@@ -1500,13 +1500,14 @@ fn start_browser_exact_run(
     let bindings = installed.bindings(&plan)?;
     let grant_observations = installed.grant_observations(&plan)?;
     let use_observations = hosted_service_use_observations(&grant_observations);
-    let plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
+    let mut plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
     let evidence_bytes = plan.budget.evidence_bytes;
     let node_count = plan.nodes.len();
     let cord_count = plan.cords.len();
     let resolved = registry
         .resolve(&panel)
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
+    pin_plan_semantic_promises(&mut plan_snapshot, &resolved.view());
     let context = ExactRunContext {
         semantic_source_hash: plan.source_semantic_hash,
         plan_epoch: source_revision,
@@ -2625,7 +2626,8 @@ fn validate_patchbay_candidate(
 fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
     let registry = browser_registry();
     let panel = conduit_panel::parse(source).ok()?;
-    let topology = registry.resolve(&panel).ok()?.exact_topology().ok()?;
+    let resolved = registry.resolve(&panel).ok()?;
+    let topology = resolved.exact_topology().ok()?;
     let installed = InstalledProfile::observe_registry(source, &registry)
         .ok()?
         .with_evidence_provider_observation(browser_evidence_provider_observation())
@@ -2635,7 +2637,123 @@ fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
     let document = compile_source(source, &installed.input).ok()?;
     let arena = bumpalo::Bump::new();
     let plan = document.as_plan(&arena).ok()?;
-    Some(conduit_patchbay::PlanSnapshot::from_exact_plan(&plan))
+    let mut snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
+    pin_plan_semantic_promises(&mut snapshot, &resolved.view());
+    Some(snapshot)
+}
+
+fn pin_plan_semantic_promises(
+    plan: &mut conduit_patchbay::PlanSnapshot,
+    resolved: &conduit_runtime::ResolvedPanelView,
+) {
+    for binding in &mut plan.bindings {
+        let Some(node) = resolved.nodes.iter().find(|node| {
+            node.id == binding.instance
+                || node.id.strip_prefix("root/") == Some(binding.instance.as_str())
+                || binding.instance.strip_prefix("root/") == Some(node.id.as_str())
+        }) else {
+            continue;
+        };
+        binding.inherited_inputs = node
+            .inputs
+            .iter()
+            .map(|port| project_authored_port(&binding.instance, port, "input"))
+            .collect();
+        binding.inherited_outputs = node
+            .outputs
+            .iter()
+            .map(|port| project_authored_port(&binding.instance, port, "output"))
+            .collect();
+    }
+}
+
+fn planned_realization_projection(
+    plan: &conduit_patchbay::PlanSnapshot,
+    logical_nodes: &[conduit_patchbay::PatchbayNodeProjection],
+    selection: &str,
+    active_plan_identity: Option<String>,
+    candidate_plan_identity: Option<String>,
+    current_source_semantic_hash: Option<&str>,
+) -> conduit_patchbay::PatchbayPlannedRealizationProjection {
+    let current_source_matches =
+        current_source_semantic_hash == Some(plan.source_semantic_hash.as_str());
+    let nodes =
+        plan.bindings
+            .iter()
+            .map(|binding| {
+                let mut inputs = binding.inherited_inputs.clone();
+                let mut outputs = binding.inherited_outputs.clone();
+                for port in &mut inputs {
+                    port.connected = plan
+                        .cords
+                        .iter()
+                        .any(|cord| cord.to_node == binding.instance && cord.to_port == port.id);
+                }
+                for port in &mut outputs {
+                    port.connected = plan.cords.iter().any(|cord| {
+                        cord.from_node == binding.instance && cord.from_port == port.id
+                    });
+                }
+                conduit_patchbay::PatchbayPlannedNodeProjection {
+                    instance: binding.instance.clone(),
+                    logical_origin: binding.logical_origin.clone(),
+                    composite_provenance: binding.composite_provenance.clone(),
+                    source_origin_range: current_source_matches
+                        .then(|| {
+                            logical_nodes
+                                .iter()
+                                .find(|node| node.id == binding.logical_origin)
+                                .and_then(|node| node.source_range.clone())
+                        })
+                        .flatten(),
+                    inputs,
+                    outputs,
+                    binding: binding.clone(),
+                }
+            })
+            .collect();
+    let mut notice = match (
+        selection,
+        current_source_matches,
+        candidate_plan_identity.as_deref(),
+    ) {
+        ("active-run", false, Some(candidate)) if candidate != plan.identity => format!(
+            "Expanded is showing active run plan {}; candidate plan {} remains separate.",
+            plan.identity, candidate
+        ),
+        ("active-run", false, _) => format!(
+            "Expanded is showing active run plan {}; the current source is a different semantic revision.",
+            plan.identity
+        ),
+        ("active-run", true, _) => {
+            format!("Expanded is showing active run plan {}.", plan.identity)
+        }
+        _ => format!(
+            "Expanded is showing read-only candidate plan {}; changes require resolution into a new plan.",
+            plan.identity
+        ),
+    };
+    if plan.bindings.iter().any(|binding| {
+        binding
+            .host_observation_status
+            .starts_with("stale-replan-required")
+    }) {
+        notice.push_str(
+            " A pinned host observation is stale; its recorded fact remains visible and replan is required.",
+        );
+    }
+    conduit_patchbay::PatchbayPlannedRealizationProjection {
+        plan_identity: plan.identity.clone(),
+        source_semantic_hash: plan.source_semantic_hash.clone(),
+        selection: selection.to_owned(),
+        current_source_matches,
+        active_plan_identity,
+        candidate_plan_identity,
+        notice,
+        nodes,
+        cords: plan.cords.clone(),
+        composites: plan.composites.clone(),
+    }
 }
 
 fn patchbay_cycle_participants(
@@ -2783,13 +2901,17 @@ fn authoritative_patchbay_view(
                 id: source_node.id.clone(),
                 semantic_id: format!("root/{}", source_node.id),
                 contract_id: Some(source_node.kind.clone()),
+                contract_identity: contract
+                    .as_ref()
+                    .and_then(|contract| contract.contract_identity.clone()),
+                semantic_effects: Vec::new(),
                 source_range: node_range,
                 inputs,
                 outputs,
                 config,
-                availability: contract
-                    .as_ref()
-                    .map(|_| availability_projection(&registry, &source_node.kind)),
+                // Semantic topology deliberately carries no provider, host,
+                // device, artifact, or live availability observation.
+                availability: None,
                 validity: validity.to_owned(),
                 diagnostic_ids,
                 placement: None,
@@ -2933,10 +3055,6 @@ fn authoritative_patchbay_view(
                 diagnostic_ids,
                 from_anchor,
                 to_anchor,
-                expanded_from_node: None,
-                expanded_from_port: None,
-                expanded_to_node: None,
-                expanded_to_port: None,
             });
         }
     } else {
@@ -3033,15 +3151,15 @@ fn authoritative_patchbay_view(
                 id: id.clone(),
                 semantic_id: format!("source/{id}"),
                 contract_id: recovered_node.kind.clone(),
+                contract_identity: contract
+                    .as_ref()
+                    .and_then(|contract| contract.contract_identity.clone()),
+                semantic_effects: Vec::new(),
                 source_range: range,
                 inputs,
                 outputs,
                 config: BTreeMap::new(),
-                availability: recovered_node.kind.as_deref().and_then(|kind| {
-                    contract
-                        .as_ref()
-                        .map(|_| availability_projection(&registry, kind))
-                }),
+                availability: None,
                 validity: validity.to_owned(),
                 diagnostic_ids,
                 placement: None,
@@ -3220,10 +3338,6 @@ fn authoritative_patchbay_view(
                 diagnostic_ids,
                 from_anchor,
                 to_anchor,
-                expanded_from_node: None,
-                expanded_from_port: None,
-                expanded_to_node: None,
-                expanded_to_port: None,
             });
         }
         if let Some(error) = document.diagnostics.first().filter(|_| {
@@ -3281,49 +3395,49 @@ fn authoritative_patchbay_view(
     }
     let resolved = resolved_result.and_then(Result::ok);
     let resolved_view = resolved.as_ref().map(conduit_runtime::ResolvedPanel::view);
-    if let Some(view) = resolved_view.as_ref() {
-        for cord in &mut cords {
-            if let Some(expanded) = view.cords.iter().find(|candidate| candidate.id == cord.id) {
-                cord.expanded_from_node = Some(expanded.from_node.clone());
-                cord.expanded_from_port = Some(expanded.from_port.clone());
-                cord.expanded_to_node = Some(expanded.to_node.clone());
-                cord.expanded_to_port = Some(expanded.to_port.clone());
-            }
-        }
-    }
-    // A live run supplies its own already-authorized plan snapshot.  A new
-    // candidate may be malformed or unresolved, but that cannot erase the
-    // active epoch from the projection.  In the absence of a live snapshot,
-    // only a currently resolved authoring revision may project its candidate
-    // plan.
-    let plan = exact_plan.or_else(|| {
-        resolved_view
+    // Candidate resolution is always kept separate from an active run's
+    // pinned plan. Expanded defaults to the active plan when one exists and
+    // never joins that plan with the mutable candidate topology.
+    let active_plan_mismatch = run.as_ref().is_some_and(|run| {
+        exact_plan
             .as_ref()
-            .and_then(|_| exact_plan_snapshot(source_text))
+            .is_none_or(|plan| run.plan_identity != plan.identity)
     });
-    // An active run is pinned to `plan`, not to the mutable authoring
-    // workspace. A candidate source revision can therefore remain visible
-    // while the prior valid epoch continues independently. The plan identity
-    // still has to match exactly; a caller cannot project an arbitrary run
-    // onto a different resolved plan.
-    let matching_run = run.filter(|run| {
-        plan.as_ref()
-            .is_some_and(|plan| run.plan_identity == plan.identity)
+    let candidate_plan = resolved_view
+        .as_ref()
+        .and_then(|_| exact_plan_snapshot(source_text));
+    let candidate_plan_identity = candidate_plan
+        .as_ref()
+        .map(|candidate| candidate.identity.clone());
+    let (plan, matching_run, selection) = match run {
+        Some(run) => match exact_plan {
+            Some(plan) if run.plan_identity == plan.identity => {
+                (Some(plan), Some(run), Some("active-run"))
+            }
+            // A caller which cannot supply the run's exact snapshot cannot
+            // fall back to the candidate and pretend it describes that run.
+            _ => (None, None, None),
+        },
+        None => (exact_plan.or(candidate_plan), None, Some("candidate")),
+    };
+    let mut planned_realization = plan.as_ref().zip(selection).map(|(plan, selection)| {
+        planned_realization_projection(
+            plan,
+            &logical_nodes,
+            selection,
+            matching_run.as_ref().map(|run| run.plan_identity.clone()),
+            candidate_plan_identity.clone(),
+            semantic.source_semantic_hash.as_deref(),
+        )
     });
-    let mut expanded_nodes = resolved_view.as_ref().map_or_else(Vec::new, |view| {
-        view.nodes
-            .iter()
-            .map(|node| {
-                project_resolved_node(
-                    node,
-                    &semantic,
-                    plan.as_ref(),
-                    matching_run.as_ref(),
-                    BTreeMap::new(),
-                )
-            })
-            .collect()
-    });
+    let planned_realization_status = if active_plan_mismatch {
+        "active-plan-mismatch"
+    } else if plan.is_some() {
+        "exact-plan"
+    } else {
+        "no-exact-plan"
+    }
+    .to_owned();
     let mut composites = resolved_view.as_ref().map_or_else(Vec::new, |view| {
         view.composites
             .iter()
@@ -3349,17 +3463,20 @@ fn authoritative_patchbay_view(
             .collect()
     });
     let mut truncated = logical_nodes.len() > bounds.maximum_nodes
-        || expanded_nodes.len() > bounds.maximum_nodes
+        || planned_realization.as_ref().is_some_and(|realization| {
+            realization.nodes.len() > bounds.maximum_nodes
+                || realization.cords.len() > bounds.maximum_cords
+                || realization.composites.len() > bounds.maximum_composites
+        })
         || cords.len() > bounds.maximum_cords
         || composites.len() > bounds.maximum_composites
         || diagnostics.len() > bounds.maximum_diagnostics
         || evidence.len() > bounds.maximum_evidence_events;
     logical_nodes.truncate(bounds.maximum_nodes);
-    expanded_nodes.truncate(bounds.maximum_nodes);
     cords.truncate(bounds.maximum_cords);
     composites.truncate(bounds.maximum_composites);
     diagnostics.truncate(bounds.maximum_diagnostics);
-    for node in logical_nodes.iter_mut().chain(expanded_nodes.iter_mut()) {
+    for node in &mut logical_nodes {
         truncated |= node.inputs.len() > bounds.maximum_ports_per_node
             || node.outputs.len() > bounds.maximum_ports_per_node
             || node.config.len() > bounds.maximum_config_fields_per_node;
@@ -3370,6 +3487,17 @@ fn authoritative_patchbay_view(
                 .into_iter()
                 .take(bounds.maximum_config_fields_per_node)
                 .collect();
+        }
+    }
+    if let Some(realization) = &mut planned_realization {
+        realization.nodes.truncate(bounds.maximum_nodes);
+        realization.cords.truncate(bounds.maximum_cords);
+        realization.composites.truncate(bounds.maximum_composites);
+        for node in &mut realization.nodes {
+            truncated |= node.inputs.len() > bounds.maximum_ports_per_node
+                || node.outputs.len() > bounds.maximum_ports_per_node;
+            node.inputs.truncate(bounds.maximum_ports_per_node);
+            node.outputs.truncate(bounds.maximum_ports_per_node);
         }
     }
     for composite in &mut composites {
@@ -3398,7 +3526,8 @@ fn authoritative_patchbay_view(
         topology: conduit_patchbay::PatchbayTopologyProjection {
             contract_imports: Vec::new(),
             logical_nodes,
-            expanded_nodes,
+            planned_realization,
+            planned_realization_status,
             cords,
             composites,
             diagnostic_anchors,
@@ -3435,9 +3564,14 @@ fn project_authored_port(
     } else {
         "outgoing"
     };
+    let node_path = if node_id.starts_with("root/") {
+        node_id.to_owned()
+    } else {
+        format!("root/{node_id}")
+    };
     conduit_patchbay::PatchbayPortProjection {
         id: port.id.clone(),
-        semantic_path: format!("root/{node_id}/port/{presentation_direction}/{}", port.id),
+        semantic_path: format!("{node_path}/port/{presentation_direction}/{}", port.id),
         direction: direction.to_owned(),
         display_label: if direction == "input" {
             format!("> {}", port.id)
@@ -3448,6 +3582,12 @@ fn project_authored_port(
         type_id: port.type_id.clone(),
         delivery: port.delivery.to_owned(),
         connections: port.connections.to_owned(),
+        values: port.values.to_owned(),
+        temporal: port.temporal.to_owned(),
+        terminal: port.terminal.to_owned(),
+        presence: port.presence.to_owned(),
+        sensitivity: port.sensitivity.to_owned(),
+        loss_acceptance: port.loss_acceptance.to_owned(),
         connected: false,
         source_range: None,
         validity: "valid".to_owned(),
@@ -3785,81 +3925,6 @@ fn parse_error_source_range(
         end_column: error.column.saturating_add(1),
     };
     source_range_for_span(source, span, source_revision, "parser-diagnostic")
-}
-
-fn project_resolved_node(
-    node: &conduit_runtime::ResolvedNodeView,
-    semantic: &conduit_patchbay::SemanticSnapshot,
-    _plan: Option<&conduit_patchbay::PlanSnapshot>,
-    _run: Option<&conduit_patchbay::RunSnapshot>,
-    config: BTreeMap<String, conduit_patchbay::PatchbayConfigProjection>,
-) -> conduit_patchbay::PatchbayNodeProjection {
-    let project_port = |port: &conduit_runtime::ResolvedPortView, direction: &str| {
-        let presentation_direction = if direction == "input" {
-            "receiving"
-        } else {
-            "outgoing"
-        };
-        conduit_patchbay::PatchbayPortProjection {
-            id: port.id.clone(),
-            semantic_path: format!(
-                "root/{}/port/{}/{}",
-                node.id, presentation_direction, port.id
-            ),
-            direction: direction.to_owned(),
-            display_label: if direction == "input" {
-                format!("> {}", port.id)
-            } else {
-                format!("{} >", port.id)
-            },
-            accessible_label: format!("{}, {presentation_direction} port", port.id),
-            type_id: port.type_id.clone(),
-            delivery: port.delivery.to_owned(),
-            connections: port.connections.to_owned(),
-            connected: false,
-            source_range: None,
-            validity: "valid".to_owned(),
-            diagnostic_ids: Vec::new(),
-        }
-    };
-    conduit_patchbay::PatchbayNodeProjection {
-        id: node.id.clone(),
-        semantic_id: format!("root/{}", node.id),
-        contract_id: Some(node.contract_id.clone()),
-        source_range: None,
-        inputs: node
-            .inputs
-            .iter()
-            .map(|port| project_port(port, "input"))
-            .collect(),
-        outputs: node
-            .outputs
-            .iter()
-            .map(|port| project_port(port, "output"))
-            .collect(),
-        config,
-        availability: Some(
-            semantic
-                .availabilities
-                .iter()
-                .find(|availability| availability.contract_id == node.contract_id)
-                .cloned()
-                .unwrap_or_else(|| conduit_patchbay::NodeAvailabilityProjection {
-                    contract_id: node.contract_id.clone(),
-                    availability_state: "unsupported".to_owned(),
-                    reason_code: "CND-AVL-006".to_owned(),
-                    implementation_id: None,
-                    host_id: None,
-                    rejection_reasons: vec!["no authoritative availability observation".to_owned()],
-                }),
-        ),
-        validity: "valid".to_owned(),
-        diagnostic_ids: Vec::new(),
-        // Placement is an observed host fact, not something the presentation
-        // layer may infer from an exact plan compiled against InstalledProfile.
-        placement: None,
-        activity: None,
-    }
 }
 
 fn declaration_source_range(
@@ -4581,12 +4646,13 @@ fn run_panel_exact_inner(
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
     let bindings = installed.bindings(&plan)?;
     let grant_observations = installed.grant_observations(&plan)?;
-    let plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
+    let mut plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
     let workspace = conduit_patchbay::Workspace::new("conduit/browser-source", source)
         .map_err(|error| RuntimeError::new(error.code, error.to_string()))?;
     let resolved = registry
         .resolve(&panel)
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
+    pin_plan_semantic_promises(&mut plan_snapshot, &resolved.view());
     let mut input_stream = std::io::empty();
     let mut output = Vec::new();
     let mut error = Vec::new();
@@ -4676,13 +4742,14 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        browser_exact_run_id, browser_watch_observation, explain_panel, panel_language_metadata,
-        panel_source_metadata, patchbay_advance_exact_run, patchbay_apply_transaction,
-        patchbay_attach_exact_watch, patchbay_cancel_exact_run, patchbay_detach_exact_watch,
-        patchbay_dispose_exact_run, patchbay_move_node, patchbay_notify_host_operation,
-        patchbay_open_session, patchbay_pump_exact_run, patchbay_read_exact_evidence,
-        patchbay_read_exact_watch, patchbay_replace_source, patchbay_session_view,
-        patchbay_snapshot_exact_run, patchbay_start_exact_run,
+        authoritative_patchbay_view, browser_exact_run_id, browser_watch_observation,
+        exact_plan_snapshot, explain_panel, panel_language_metadata, panel_source_metadata,
+        patchbay_advance_exact_run, patchbay_apply_transaction, patchbay_attach_exact_watch,
+        patchbay_cancel_exact_run, patchbay_detach_exact_watch, patchbay_dispose_exact_run,
+        patchbay_move_node, patchbay_notify_host_operation, patchbay_open_session,
+        patchbay_pump_exact_run, patchbay_read_exact_evidence, patchbay_read_exact_watch,
+        patchbay_replace_source, patchbay_session_view, patchbay_snapshot_exact_run,
+        patchbay_start_exact_run, planned_realization_projection,
     };
 
     const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
@@ -5080,16 +5147,172 @@ cord output.value -> sink.result\n\
 
         assert_eq!(opened["ok"], true);
         assert!(opened["view"]["plan"].is_object());
-        for layer in ["logical_nodes", "expanded_nodes"] {
-            let nodes = opened["view"]["topology"][layer]
-                .as_array()
-                .expect("projected nodes");
-            assert!(!nodes.is_empty());
-            assert!(
-                nodes.iter().all(|node| node.get("placement").is_none()),
-                "synthetic installed-profile host facts must not be projected as placement"
-            );
-        }
+        let logical = opened["view"]["topology"]["logical_nodes"]
+            .as_array()
+            .expect("semantic nodes");
+        assert!(!logical.is_empty());
+        assert!(logical.iter().all(|node| node.get("placement").is_none()));
+        assert!(logical.iter().all(|node| node["availability"].is_null()));
+        assert!(
+            logical
+                .iter()
+                .all(|node| node["contract_identity"].as_str().is_some())
+        );
+        let planned = opened["view"]["topology"]["planned_realization"]["nodes"]
+            .as_array()
+            .expect("planned nodes");
+        assert!(!planned.is_empty());
+        assert!(planned.iter().all(|node| node.get("placement").is_none()));
+        assert!(planned.iter().all(|node| {
+            node["binding"]["implementation_identity"]
+                .as_str()
+                .is_some()
+                && node["binding"]["artifact_digest"].as_str().is_some()
+                && node["binding"]["host_observation_identity"]
+                    .as_str()
+                    .is_some()
+        }));
+    }
+
+    #[test]
+    fn logical_topology_is_stable_while_pinned_plan_bindings_differ() {
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            "plan-variant-projection".to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .expect("session JSON");
+        let logical: Vec<conduit_patchbay::PatchbayNodeProjection> =
+            serde_json::from_value(opened["view"]["topology"]["logical_nodes"].clone())
+                .expect("logical projection");
+        let first: conduit_patchbay::PlanSnapshot =
+            serde_json::from_value(opened["view"]["plan"].clone()).expect("plan snapshot");
+        let mut second = first.clone();
+        second.identity = "sha256:alternate-plan".to_owned();
+        second.bindings[0].implementation_id = "fixture/alternate-provider".to_owned();
+        second.bindings[0].implementation_identity = "sha256:alternate-provider".to_owned();
+        second.bindings[0].host_id = "fixture/alternate-host".to_owned();
+        second.bindings[0].host_observation_id = "fixture/alternate-observation".to_owned();
+        second.bindings[0].host_observation_identity = "sha256:alternate-observation".to_owned();
+        second.bindings[0]
+            .resources
+            .push(conduit_patchbay::PlanResourceBindingProjection {
+                binding_id: "fixture/device-binding".to_owned(),
+                resource_kind: "device".to_owned(),
+                resource_id: "fixture/device-b".to_owned(),
+                host_observation_id: "fixture/alternate-observation".to_owned(),
+                lease_id: None,
+            });
+
+        let first_view = planned_realization_projection(
+            &first,
+            &logical,
+            "candidate",
+            None,
+            Some(first.identity.clone()),
+            Some(&first.source_semantic_hash),
+        );
+        let second_view = planned_realization_projection(
+            &second,
+            &logical,
+            "candidate",
+            None,
+            Some(second.identity.clone()),
+            Some(&second.source_semantic_hash),
+        );
+
+        assert_eq!(first.source_semantic_hash, second.source_semantic_hash);
+        assert_eq!(
+            first_view.nodes[0].logical_origin,
+            second_view.nodes[0].logical_origin
+        );
+        assert_eq!(first_view.nodes[0].inputs, second_view.nodes[0].inputs);
+        assert_ne!(first_view.plan_identity, second_view.plan_identity);
+        assert_ne!(
+            first_view.nodes[0].binding.implementation_identity,
+            second_view.nodes[0].binding.implementation_identity
+        );
+        assert_ne!(
+            first_view.nodes[0].binding.host_observation_identity,
+            second_view.nodes[0].binding.host_observation_identity
+        );
+        assert_eq!(
+            second_view.nodes[0].binding.resources[0].resource_id,
+            "fixture/device-b"
+        );
+        // Re-projecting does not consult the current registry or discovery;
+        // the alternate pinned facts remain byte-for-byte stable.
+        assert_eq!(
+            second_view,
+            planned_realization_projection(
+                &second,
+                &logical,
+                "candidate",
+                None,
+                Some(second.identity.clone()),
+                Some(&second.source_semantic_hash),
+            )
+        );
+    }
+
+    #[test]
+    fn expanded_is_unavailable_without_an_exact_plan() {
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            "no-exact-plan".to_owned(),
+            "panel 0\nnode unfinished :".to_owned(),
+        ))
+        .expect("session JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+        assert!(opened["view"]["plan"].is_null());
+        assert!(opened["view"]["topology"]["planned_realization"].is_null());
+        assert_eq!(
+            opened["view"]["topology"]["planned_realization_status"],
+            "no-exact-plan"
+        );
+    }
+
+    #[test]
+    fn mismatched_active_plan_fails_closed_without_candidate_blending() {
+        let workspace =
+            conduit_patchbay::Workspace::new("mismatched/active-plan", SOURCE).expect("workspace");
+        let plan = exact_plan_snapshot(SOURCE).expect("exact plan");
+        let run = conduit_patchbay::RunSnapshot {
+            run_id: "run/mismatched".to_owned(),
+            plan_identity: "sha256:not-the-supplied-plan".to_owned(),
+            source_semantic_hash: plan.source_semantic_hash.clone(),
+            state: conduit_patchbay::RunState::Active,
+        };
+        let view = authoritative_patchbay_view(&workspace, Some(plan), Some(run), None, &[])
+            .expect("bounded projection");
+
+        assert!(view.plan.is_none());
+        assert!(view.run.is_none());
+        assert!(view.topology.planned_realization.is_none());
+        assert_eq!(
+            view.topology.planned_realization_status,
+            "active-plan-mismatch"
+        );
+    }
+
+    #[test]
+    fn semantic_contract_change_invalidates_the_previous_plan_source_identity() {
+        let original = conduit_patchbay::Workspace::new("semantic/original", SOURCE)
+            .expect("source workspace");
+        let changed_source = SOURCE.replace("std/literal", "std/number");
+        let changed = conduit_patchbay::Workspace::new("semantic/changed", &changed_source)
+            .expect("changed workspace");
+        let original_hash = original
+            .semantic()
+            .source_semantic_hash
+            .expect("original semantic identity");
+        let changed_hash = changed
+            .semantic()
+            .source_semantic_hash
+            .expect("changed semantic identity");
+        let original_plan = exact_plan_snapshot(SOURCE).expect("original exact plan");
+
+        assert_ne!(original_hash, changed_hash);
+        assert_eq!(original_plan.source_semantic_hash, original_hash);
+        assert_ne!(original_plan.source_semantic_hash, changed_hash);
     }
 
     #[test]
@@ -5353,6 +5576,55 @@ cord output.value -> sink.result\n\
                 .expect("dispose JSON");
         assert_eq!(disposed["ok"], true, "{disposed}");
         assert!(disposed["view"]["run"].is_null(), "{disposed}");
+    }
+
+    #[test]
+    fn active_and_candidate_plans_are_never_joined() {
+        let session_id = "test/separate-active-candidate-plans";
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            session_id.to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+        let started: Value = serde_json::from_str(&patchbay_start_exact_run(session_id.to_owned()))
+            .expect("start JSON");
+        assert_eq!(started["ok"], true, "{started}");
+        let active_plan = started["plan_identity"].as_str().unwrap().to_owned();
+        let active_bindings = started["view"]["plan"]["bindings"].clone();
+
+        let replacement = serde_json::json!({
+            "protocol_version": 0,
+            "document_id": session_id,
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 0,
+            "operations": [{
+                "ReplaceSource": {"source": SOURCE.replace("hello", "candidate")}
+            }]
+        });
+        let edited: Value = serde_json::from_str(&patchbay_apply_transaction(
+            session_id.to_owned(),
+            replacement.to_string(),
+        ))
+        .expect("candidate edit JSON");
+        assert_eq!(edited["ok"], true, "{edited}");
+
+        let observed: Value =
+            serde_json::from_str(&patchbay_session_view(session_id.to_owned())).expect("view JSON");
+        let view = &observed["view"];
+        let realization = &view["topology"]["planned_realization"];
+        assert_eq!(view["plan"]["identity"], active_plan);
+        assert_eq!(view["run"]["plan_identity"], active_plan);
+        assert_eq!(realization["selection"], "active-run");
+        assert_eq!(realization["plan_identity"], active_plan);
+        assert_eq!(realization["current_source_matches"], false);
+        assert_ne!(realization["candidate_plan_identity"], active_plan);
+        assert_eq!(view["plan"]["bindings"], active_bindings);
+        assert!(
+            realization["notice"]
+                .as_str()
+                .is_some_and(|notice| notice.contains("remains separate"))
+        );
     }
 
     #[test]
@@ -6062,11 +6334,15 @@ cord box.uppercased -> sink.text\n";
             2
         );
         assert!(
-            opened["view"]["topology"]["expanded_nodes"]
+            opened["view"]["topology"]["planned_realization"]["nodes"]
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|node| node["id"] == "box.worker")
+                .any(|node| {
+                    node["instance"].as_str().is_some_and(|instance| {
+                        instance.ends_with("box/worker") || instance.ends_with("box.worker")
+                    }) && node["logical_origin"] == "box"
+                })
         );
         assert!(
             opened["view"]["topology"]["logical_nodes"]

@@ -71,12 +71,14 @@ fn browser_entrypoint_executes_the_authored_exact_plan() {
     assert!(evidence.iter().any(|event| {
         event["event_kind"] == "terminal" && event["terminal_cause"] == "succeeded"
     }));
-    for layer in ["logical_nodes", "expanded_nodes"] {
-        let nodes = result["patchbay"]["topology"][layer]
-            .as_array()
-            .expect("Patchbay projected nodes");
-        assert!(nodes.iter().all(|node| node.get("placement").is_none()));
-    }
+    let logical = result["patchbay"]["topology"]["logical_nodes"]
+        .as_array()
+        .expect("semantic Patchbay nodes");
+    assert!(logical.iter().all(|node| node.get("placement").is_none()));
+    let planned = result["patchbay"]["topology"]["planned_realization"]["nodes"]
+        .as_array()
+        .expect("planned Patchbay nodes");
+    assert!(planned.iter().all(|node| node.get("placement").is_none()));
 }
 
 #[test]
@@ -89,12 +91,24 @@ fn patchbay_projects_final_formatter_ports_from_authoritative_contracts() {
         "Hello, operator. Payload: {status = ready}\n"
     );
     assert!(result["evidence_bytes"].as_u64().unwrap() <= 64 * 1024);
-    for layer in ["logical_nodes", "expanded_nodes"] {
-        let formatter = result["patchbay"]["topology"][layer]
+    let layers = [
+        result["patchbay"]["topology"]["logical_nodes"]
             .as_array()
-            .unwrap()
+            .unwrap(),
+        result["patchbay"]["topology"]["planned_realization"]["nodes"]
+            .as_array()
+            .unwrap(),
+    ];
+    for (index, nodes) in layers.into_iter().enumerate() {
+        let formatter = nodes
             .iter()
-            .find(|node| node["contract_id"] == "std/text/format")
+            .find(|node| {
+                if index == 0 {
+                    node["contract_id"] == "std/text/format"
+                } else {
+                    node["binding"]["contract_id"] == "std/text/format"
+                }
+            })
             .unwrap();
         let inputs = formatter["inputs"].as_array().unwrap();
         assert_eq!(inputs.len(), 2);

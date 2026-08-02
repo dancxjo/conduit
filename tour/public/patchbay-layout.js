@@ -218,9 +218,10 @@ function componentLayout(nodes, cords, view) {
  * not make the arrangement depend on traversal order.
  */
 export function autoArrangeOperations(viewModel, view = "logical") {
-  const nodes = view === "logical"
-    ? viewModel?.topology?.logical_nodes || []
-    : viewModel?.topology?.expanded_nodes || [];
+  // Expanded is an immutable plan projection. Its layout is renderer-local
+  // and cannot emit semantic/presentation transactions for planned instances.
+  if (view !== "logical") return [];
+  const nodes = viewModel?.topology?.logical_nodes || [];
   const cords = viewModel?.topology?.cords || [];
   const positions = componentLayout(nodes, cords, view);
   const maximumNodes = Math.min(

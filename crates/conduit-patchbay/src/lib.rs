@@ -529,7 +529,13 @@ pub struct PatchbayTopologyProjection {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub contract_imports: Vec<PatchbayContractImportProjection>,
     pub logical_nodes: Vec<PatchbayNodeProjection>,
-    pub expanded_nodes: Vec<PatchbayNodeProjection>,
+    /// Exact immutable realization selected from a plan. This is absent when
+    /// no exact plan exists for the requested epoch; clients must never
+    /// synthesize it from semantic topology or registry availability.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub planned_realization: Option<PatchbayPlannedRealizationProjection>,
+    /// `exact-plan`, `no-exact-plan`, or `active-plan-mismatch`.
+    pub planned_realization_status: String,
     pub cords: Vec<PatchbayCordProjection>,
     pub composites: Vec<PatchbayCompositeProjection>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -571,6 +577,10 @@ pub struct PatchbayNodeProjection {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contract_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub contract_identity: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub semantic_effects: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub source_range: Option<SourceRangeProjection>,
     pub inputs: Vec<PatchbayPortProjection>,
     pub outputs: Vec<PatchbayPortProjection>,
@@ -611,6 +621,12 @@ pub struct PatchbayPortProjection {
     pub type_id: String,
     pub delivery: String,
     pub connections: String,
+    pub values: String,
+    pub temporal: String,
+    pub terminal: String,
+    pub presence: String,
+    pub sensitivity: String,
+    pub loss_acceptance: String,
     pub connected: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_range: Option<SourceRangeProjection>,
@@ -665,14 +681,6 @@ pub struct PatchbayCordProjection {
     pub from_anchor: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to_anchor: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub expanded_from_node: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub expanded_from_port: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub expanded_to_node: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub expanded_to_port: Option<String>,
 }
 
 /// A presentation endpoint for authored syntax which does not resolve to a
@@ -757,15 +765,123 @@ pub struct CompatibilityProof {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PlanBindingProjection {
     pub instance: String,
+    /// Authored semantic instance which produced this primitive planned path.
+    pub logical_origin: String,
+    /// Outer-to-inner composite instance provenance retained by the plan.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub composite_provenance: Vec<String>,
     pub contract_id: String,
     pub contract_identity: String,
+    /// Semantic promises inherited by this plan instance. These are copied at
+    /// resolution and remain pinned with the snapshot; they are never loaded
+    /// from a current registry while rendering.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub inherited_inputs: Vec<PatchbayPortProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub inherited_outputs: Vec<PatchbayPortProjection>,
     pub implementation_id: String,
     pub implementation_identity: String,
+    pub lifecycle_policy_id: String,
+    pub lifecycle_policy_identity: String,
+    pub artifact_id: String,
+    pub artifact_digest: String,
     pub host_id: String,
     pub host_observation_id: String,
     pub host_observation_identity: String,
+    pub host_observation_time_basis: String,
+    pub host_observed_at_tick: u64,
+    pub host_valid_until_tick: u64,
+    /// This snapshot is deliberately never refreshed from ambient discovery.
+    pub host_observation_status: String,
+    pub allocation: ResourceBudgetProjection,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub resources: Vec<PlanResourceBindingProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub authorities: Vec<PlanAuthorityProjection>,
     pub availability_state: String,
     pub reason_code: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PlanResourceBindingProjection {
+    pub binding_id: String,
+    pub resource_kind: String,
+    pub resource_id: String,
+    pub host_observation_id: String,
+    pub lease_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PlanAuthorityProjection {
+    pub effect_id: String,
+    pub effect_identity: String,
+    pub action: String,
+    pub resource_kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_id: Option<String>,
+    pub grant_id: String,
+    pub grant_identity: String,
+    pub capability_id: String,
+    pub binding_audit_id: String,
+    pub check_at_use: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PlannedCordProjection {
+    pub id: String,
+    pub from_node: String,
+    pub from_port: String,
+    pub from_port_contract_identity: String,
+    pub to_node: String,
+    pub to_port: String,
+    pub to_port_contract_identity: String,
+    pub value_type: String,
+    pub value_type_schema_version: u32,
+    pub value_type_identity: String,
+    pub capacity_items: u16,
+    pub max_value_bytes: u32,
+    pub max_queued_bytes: u64,
+    pub low_watermark_items: u16,
+    pub high_watermark_items: u16,
+    pub pressure: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PlannedCompositeProjection {
+    pub instance: String,
+    pub definition_identity: String,
+    pub members: Vec<String>,
+}
+
+/// Read-only join of one primitive plan instance and its exact binding.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayPlannedNodeProjection {
+    pub instance: String,
+    pub logical_origin: String,
+    pub composite_provenance: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_origin_range: Option<SourceRangeProjection>,
+    pub inputs: Vec<PatchbayPortProjection>,
+    pub outputs: Vec<PatchbayPortProjection>,
+    pub binding: PlanBindingProjection,
+}
+
+/// Exact planned topology selected for Expanded presentation.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayPlannedRealizationProjection {
+    pub plan_identity: String,
+    pub source_semantic_hash: String,
+    /// `active-run` or `candidate`.
+    pub selection: String,
+    pub current_source_matches: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active_plan_identity: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub candidate_plan_identity: Option<String>,
+    pub notice: String,
+    pub nodes: Vec<PatchbayPlannedNodeProjection>,
+    pub cords: Vec<PlannedCordProjection>,
+    pub composites: Vec<PlannedCompositeProjection>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -774,6 +890,10 @@ pub struct PlanSnapshot {
     pub source_semantic_hash: String,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub bindings: Vec<PlanBindingProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub cords: Vec<PlannedCordProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub composites: Vec<PlannedCompositeProjection>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub value_envelopes: Vec<ValueEnvelopeProjection>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -1114,18 +1234,133 @@ impl PlanSnapshot {
                     .iter()
                     .find(|observation| observation.id == node.host_observation)
                     .expect("validated exact plan nodes name an existing host observation");
+                let artifact = plan
+                    .artifacts
+                    .iter()
+                    .find(|artifact| artifact.id == node.artifact)
+                    .expect("validated exact plan nodes name an existing artifact");
+                let mut composite_provenance = plan
+                    .composites
+                    .iter()
+                    .filter(|composite| composite.members.contains(&node.instance))
+                    .map(|composite| composite.instance.as_str().to_owned())
+                    .collect::<Vec<_>>();
+                composite_provenance.sort_by_key(|path| path.matches('/').count());
+                let logical_origin = node
+                    .instance
+                    .as_str()
+                    .strip_prefix("root/")
+                    .unwrap_or(node.instance.as_str())
+                    .split(['/', '.'])
+                    .next()
+                    .unwrap_or(node.instance.as_str())
+                    .to_owned();
+                let resources = node
+                    .required_resources
+                    .iter()
+                    .filter_map(|required| {
+                        plan.resources
+                            .iter()
+                            .find(|resource| resource.id == *required)
+                    })
+                    .map(|resource| PlanResourceBindingProjection {
+                        binding_id: resource.id.as_str().to_owned(),
+                        resource_kind: resource.resource.kind.as_str().to_owned(),
+                        resource_id: resource.resource.id.as_str().to_owned(),
+                        host_observation_id: resource.host_observation.as_str().to_owned(),
+                        lease_id: resource.lease.map(|lease| lease.id.as_str().to_owned()),
+                    })
+                    .collect();
+                let authorities = plan
+                    .authorities
+                    .iter()
+                    .filter(|authority| authority.node == node.instance)
+                    .map(|authority| {
+                        let (resource_kind, resource_id) = match authority.effect.resource {
+                            conduit_core::ResourceSelector::Exact(resource) => (
+                                resource.kind.as_str().to_owned(),
+                                Some(resource.id.as_str().to_owned()),
+                            ),
+                            conduit_core::ResourceSelector::Kind(kind) => {
+                                (kind.as_str().to_owned(), None)
+                            }
+                        };
+                        PlanAuthorityProjection {
+                            effect_id: authority.effect.id.as_str().to_owned(),
+                            effect_identity: authority.effect_hash.to_string(),
+                            action: authority.effect.action.as_str().to_owned(),
+                            resource_kind,
+                            resource_id,
+                            grant_id: authority.grant.id.as_str().to_owned(),
+                            grant_identity: authority.grant_hash.to_string(),
+                            capability_id: authority.capability.id.as_str().to_owned(),
+                            binding_audit_id: authority.binding.audit_id.as_str().to_owned(),
+                            check_at_use: authority.binding.check_at_use,
+                        }
+                    })
+                    .collect();
                 PlanBindingProjection {
                     instance: node.instance.as_str().to_owned(),
+                    logical_origin,
+                    composite_provenance,
                     contract_id: node.contract.id.as_str().to_owned(),
                     contract_identity: node.contract.semantic_hash.to_string(),
+                    inherited_inputs: Vec::new(),
+                    inherited_outputs: Vec::new(),
                     implementation_id: node.implementation.id.as_str().to_owned(),
                     implementation_identity: node.implementation.semantic_hash.to_string(),
+                    lifecycle_policy_id: node.lifecycle_policy.id.as_str().to_owned(),
+                    lifecycle_policy_identity: node.lifecycle_policy.semantic_hash.to_string(),
+                    artifact_id: artifact.id.as_str().to_owned(),
+                    artifact_digest: artifact.digest.to_string(),
                     host_id: node.host.as_str().to_owned(),
                     host_observation_id: observation.id.as_str().to_owned(),
                     host_observation_identity: observation.semantic_hash.to_string(),
+                    host_observation_time_basis: observation.time_basis.as_str().to_owned(),
+                    host_observed_at_tick: observation.observed_at_tick,
+                    host_valid_until_tick: observation.valid_until_tick,
+                    host_observation_status: "pinned-at-resolution".to_owned(),
+                    allocation: resource_budget_projection(node.allocation),
+                    resources,
+                    authorities,
                     availability_state: "bound-in-this-plan".to_owned(),
                     reason_code: "CND-AVL-004".to_owned(),
                 }
+            })
+            .collect();
+        let cords = plan
+            .cords
+            .iter()
+            .map(|cord| PlannedCordProjection {
+                id: cord.id.as_str().to_owned(),
+                from_node: cord.from.node.as_str().to_owned(),
+                from_port: cord.from.port.as_str().to_owned(),
+                from_port_contract_identity: cord.from.port_contract_hash.to_string(),
+                to_node: cord.to.node.as_str().to_owned(),
+                to_port: cord.to.port.as_str().to_owned(),
+                to_port_contract_identity: cord.to.port_contract_hash.to_string(),
+                value_type: cord.from.value_type.contract_id.as_str().to_owned(),
+                value_type_schema_version: cord.from.value_type.schema_version,
+                value_type_identity: cord.from.value_type.semantic_hash.to_string(),
+                capacity_items: cord.flow.capacity.items(),
+                max_value_bytes: cord.flow.capacity.max_value_bytes(),
+                max_queued_bytes: cord.flow.capacity.max_queued_bytes(),
+                low_watermark_items: cord.flow.watermarks.low_items(),
+                high_watermark_items: cord.flow.watermarks.high_items(),
+                pressure: cord.flow.pressure.as_str().to_owned(),
+            })
+            .collect();
+        let composites = plan
+            .composites
+            .iter()
+            .map(|composite| PlannedCompositeProjection {
+                instance: composite.instance.as_str().to_owned(),
+                definition_identity: composite.definition_hash.to_string(),
+                members: composite
+                    .members
+                    .iter()
+                    .map(|member| member.as_str().to_owned())
+                    .collect(),
             })
             .collect();
         let value_envelopes = plan
@@ -1392,6 +1627,8 @@ impl PlanSnapshot {
             identity: plan.identity.to_string(),
             source_semantic_hash: plan.source_semantic_hash.to_string(),
             bindings,
+            cords,
+            composites,
             value_envelopes,
             watch_admissions,
             clock_conversions,
@@ -1401,12 +1638,44 @@ impl PlanSnapshot {
             workloads,
         }
     }
+
+    /// Applies an explicit host time observation to the snapshot's freshness
+    /// diagnostics without replacing any pinned host fact. A stale snapshot
+    /// therefore remains inspectable but clearly requires resolution of a new
+    /// plan before activation.
+    pub fn diagnose_host_observation_freshness(&mut self, time_basis: &str, tick: u64) {
+        for binding in &mut self.bindings {
+            binding.host_observation_status =
+                if binding.host_observation_time_basis != time_basis {
+                    "stale-replan-required:time-basis-mismatch"
+                } else if tick > binding.host_valid_until_tick {
+                    "stale-replan-required:validity-expired"
+                } else if tick < binding.host_observed_at_tick {
+                    "stale-replan-required:observation-is-from-the-future"
+                } else {
+                    "pinned-valid-at-observed-tick"
+                }
+                .to_owned();
+        }
+    }
 }
 
 fn workload_limit_projection(value: conduit_core::WorkloadLimit) -> Option<u64> {
     match value {
         conduit_core::WorkloadLimit::Finite(value) => Some(value),
         conduit_core::WorkloadLimit::Unsupported => None,
+    }
+}
+
+fn resource_budget_projection(value: conduit_core::PlanResourceBudget) -> ResourceBudgetProjection {
+    ResourceBudgetProjection {
+        memory_bytes: value.memory_bytes,
+        storage_bytes: value.storage_bytes,
+        cpu_units: value.cpu_units,
+        timers: value.timers,
+        transports: value.transports,
+        checkpoints: value.checkpoints,
+        evidence_bytes: value.evidence_bytes,
     }
 }
 

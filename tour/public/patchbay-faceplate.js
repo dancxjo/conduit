@@ -79,7 +79,8 @@ function PortRow({
     e("button", {
       type: "button",
       className: `jack-label ${presentationDirection}-port-label nodrag`,
-      title: `${port.accessible_label}; ${family} signal; type ${port.type_id}`,
+      title: `${port.accessible_label}; ${family} signal; type ${port.type_id}; ` +
+        `${port.delivery}; ${port.temporal}; ${port.terminal}; ${port.loss_acceptance}`,
       "aria-label": `${port.accessible_label}; type ${port.type_id}`,
       onClick: (event) => {
         event.stopPropagation();
@@ -127,6 +128,12 @@ export function FaceplateNodeComponent({ data, id }) {
     validity = "valid",
     diagnosticIds = [],
     diagnosticAnchors = [],
+    plannedBinding = null,
+    logicalOrigin = null,
+    compositeProvenance = [],
+    readOnly = false,
+    contract_identity: contractIdentity = null,
+    semantic_effects: semanticEffects = [],
   } = data;
 
   const [expanded, setExpanded] = window.React.useState(true);
@@ -163,7 +170,7 @@ export function FaceplateNodeComponent({ data, id }) {
         type: "text",
         className: "control-input nodrag",
         value: projection.display_value,
-        readOnly: !projection.editable,
+        readOnly: readOnly || !projection.editable,
         onMouseDown: (event) => event.stopPropagation(),
         onChange: (event) =>
           handleInputChange(key, projection, event.target.value),
@@ -210,6 +217,81 @@ export function FaceplateNodeComponent({ data, id }) {
     activity && { label: "execution", value: activity },
     !activity && status === "error" && { label: "execution", value: "error" },
   ].filter(Boolean);
+  const budgetValue = plannedBinding && [
+    ["memory", plannedBinding.allocation?.memory_bytes],
+    ["storage", plannedBinding.allocation?.storage_bytes],
+    ["cpu", plannedBinding.allocation?.cpu_units],
+    ["timers", plannedBinding.allocation?.timers],
+    ["transports", plannedBinding.allocation?.transports],
+    ["checkpoints", plannedBinding.allocation?.checkpoints],
+    ["evidence", plannedBinding.allocation?.evidence_bytes],
+  ].map(([label, value]) => `${label}=${value ?? 0}`).join(", ");
+  const plannedFacts = plannedBinding ? [
+    { label: "planned instance", value: plannedBinding.instance },
+    { label: "source origin", value: logicalOrigin || plannedBinding.logical_origin },
+    compositeProvenance.length > 0 && {
+      label: "composite provenance",
+      value: compositeProvenance.join(" → "),
+    },
+    {
+      label: "semantic contract",
+      value: `${plannedBinding.contract_id} · ${plannedBinding.contract_identity}`,
+    },
+    {
+      label: "implementation",
+      value: `${plannedBinding.implementation_id} · ${plannedBinding.implementation_identity}`,
+    },
+    {
+      label: "lifecycle policy",
+      value: `${plannedBinding.lifecycle_policy_id} · ${plannedBinding.lifecycle_policy_identity}`,
+    },
+    {
+      label: "artifact",
+      value: `${plannedBinding.artifact_id} · ${plannedBinding.artifact_digest}`,
+    },
+    { label: "host", value: plannedBinding.host_id },
+    {
+      label: "host observation",
+      value: `${plannedBinding.host_observation_id} · ` +
+        `${plannedBinding.host_observation_identity}; ` +
+        `${plannedBinding.host_observation_time_basis} ` +
+        `${plannedBinding.host_observed_at_tick}–${plannedBinding.host_valid_until_tick}; ` +
+        `${plannedBinding.host_observation_status}`,
+    },
+    {
+      label: "availability",
+      value: `${plannedBinding.availability_state} · ${plannedBinding.reason_code}`,
+    },
+    { label: "allocation", value: budgetValue },
+    ...(plannedBinding.resources || []).map((resource) => ({
+      label: "resource",
+      value: `${resource.resource_kind}/${resource.resource_id} · ` +
+        `${resource.binding_id} · observation ${resource.host_observation_id}` +
+        (resource.lease_id ? ` · lease ${resource.lease_id}` : ""),
+    })),
+    ...(plannedBinding.authorities || []).map((authority) => ({
+      label: "authority",
+      value: `${authority.action} ${authority.resource_kind}` +
+        (authority.resource_id ? `/${authority.resource_id}` : "") +
+        ` · grant ${authority.grant_id} · capability ${authority.capability_id}` +
+        (authority.check_at_use ? " · checked at use" : ""),
+    })),
+  ].filter(Boolean) : [];
+  const semanticPromiseFacts = !plannedBinding ? [
+    {
+      label: "semantic contract",
+      value: contractIdentity ? `${kind} · ${contractIdentity}` : `${kind} · source-owned boundary`,
+    },
+    {
+      label: "semantic effects",
+      value: semanticEffects.length > 0 ? semanticEffects.join(", ") : "none declared",
+    },
+    ...[...inputs, ...outputs].map((port) => ({
+      label: `${port.direction} ${port.id}`,
+      value: `${port.delivery}; ${port.temporal}; ${port.terminal}; ` +
+        `${port.values}; ${port.presence}; ${port.loss_acceptance}`,
+    })),
+  ] : [];
   const anchorRows = diagnosticAnchors.map((anchor) =>
     e("div", {
       key: anchor.id,
@@ -266,10 +348,25 @@ export function FaceplateNodeComponent({ data, id }) {
     ),
     e("div", { className: "faceplate-type-compartment faceplate-compartment" },
       e("code", { className: "kind-tag" }, kind),
+      plannedBinding && e("span", { className: "badge" }, "read-only plan"),
       validity !== "valid" && e(
         "span",
         { className: `badge faceplate-validity-badge validity-${validity}` },
         validity,
+      ),
+    ),
+    expanded && semanticPromiseFacts.length > 0 && e("div", {
+      className: "faceplate-status-compartment faceplate-compartment semantic-promise-compartment",
+      "aria-label": "Semantic promises",
+    },
+      ...semanticPromiseFacts.map((fact, index) =>
+        e("div", {
+          key: `${fact.label}-${index}`,
+          className: "faceplate-status-row",
+        },
+          e("span", { className: "faceplate-status-label" }, fact.label),
+          e("code", { className: "planned-realization-value" }, fact.value),
+        )
       ),
     ),
     expanded && configRows.length > 0 && e("div", {
@@ -280,6 +377,20 @@ export function FaceplateNodeComponent({ data, id }) {
       className: "faceplate-members-compartment faceplate-port-compartment",
       "aria-label": "Declared ports",
     }, [...portRows, ...anchorRows]),
+    expanded && plannedFacts.length > 0 && e("div", {
+      className: "faceplate-status-compartment faceplate-compartment planned-realization-compartment",
+      "aria-label": "Exact planned realization",
+    },
+      ...plannedFacts.map((fact, index) =>
+        e("div", {
+          key: `${fact.label}-${index}`,
+          className: "faceplate-status-row planned-realization-row",
+        },
+          e("span", { className: "faceplate-status-label" }, fact.label),
+          e("code", { className: "planned-realization-value" }, fact.value),
+        )
+      ),
+    ),
     expanded && statusFacts.length > 0 && e("div", {
       className: "faceplate-status-compartment faceplate-compartment",
       "aria-label": "Component status",

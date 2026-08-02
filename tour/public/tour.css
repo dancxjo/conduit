@@ -2541,6 +2541,20 @@ path.patchbay-cord.compatibility-incompatible {
   font-size: 0.64rem;
 }
 
+.planned-realization-compartment {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+}
+
+.planned-realization-row {
+  align-items: start;
+}
+
+.planned-realization-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 .availability-tag {
   max-width: 190px;
   overflow: hidden;

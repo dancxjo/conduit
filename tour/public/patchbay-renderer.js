@@ -211,7 +211,7 @@ function edgePresentation(edge) {
   };
 }
 
-function endpointForView(edge, side, view, anchors, projectedNodeIds) {
+function endpointForLogicalView(edge, side, anchors, projectedNodeIds) {
   const anchorId = edge[`${side}_anchor`];
   if (anchorId) {
     const anchor = anchors.find((candidate) => candidate.id === anchorId);
@@ -219,12 +219,6 @@ function endpointForView(edge, side, view, anchors, projectedNodeIds) {
       return { node: anchor.owner_node, port: anchor.id };
     }
     return { node: anchorId, port: "diagnostic-anchor" };
-  }
-  if (view !== "logical") {
-    return {
-      node: edge[`expanded_${side}_node`] || edge[`${side}_node`],
-      port: edge[`expanded_${side}_port`] || edge[`${side}_port`],
-    };
   }
   const path = edge[`${side}_port_path`];
   const members = typeof path === "string" ? path.split("/") : [];
@@ -398,7 +392,9 @@ export class PatchbayReactFlowRenderer {
   selectCord(cordId) {
     this.selectedNodeId = null;
     this.selectedCordId = cordId;
-    const projectedEdges = this.viewModel?.topology?.cords || [];
+    const projectedEdges = this.topologyView === "logical"
+      ? this.viewModel?.topology?.cords || []
+      : this.viewModel?.topology?.planned_realization?.cords || [];
     this.flowWrapper?.querySelectorAll(".react-flow__edge").forEach((edge, index) => {
       edge.classList.toggle("selected", this.renderedCordIds?.[index] === cordId);
     });
@@ -408,14 +404,15 @@ export class PatchbayReactFlowRenderer {
   }
 
   highlightCordEndpoints(cord) {
+    const plannedPortPath = (node, direction, port) =>
+      `${node.startsWith("root/") ? node : `root/${node}`}` +
+      `/port/${direction}/${port}`;
     const selectedPaths = new Set(cord
       ? this.topologyView === "logical"
         ? [cord.from_port_path, cord.to_port_path]
         : [
-            `root/${cord.expanded_from_node || cord.from_node}/port/outgoing/` +
-              `${cord.expanded_from_port || cord.from_port}`,
-            `root/${cord.expanded_to_node || cord.to_node}/port/receiving/` +
-              `${cord.expanded_to_port || cord.to_port}`,
+            plannedPortPath(cord.from_node, "outgoing", cord.from_port),
+            plannedPortPath(cord.to_node, "receiving", cord.to_port),
           ]
       : []
     );
@@ -492,20 +489,50 @@ export class PatchbayReactFlowRenderer {
       return;
     }
 
+    const realization = viewModel.topology?.planned_realization;
     const projectedNodes = this.topologyView === "logical"
       ? viewModel.topology?.logical_nodes || []
-      : viewModel.topology?.expanded_nodes || [];
+      : (realization?.nodes || []).map((node) => ({
+          id: node.instance,
+          semantic_id: node.binding.contract_identity,
+          contract_id: node.binding.contract_id,
+          contract_identity: node.binding.contract_identity,
+          semantic_effects: [],
+          source_range: node.source_origin_range,
+          inputs: node.inputs || [],
+          outputs: node.outputs || [],
+          config: {},
+          availability: null,
+          validity: "valid",
+          diagnostic_ids: [],
+          placement: null,
+          activity: null,
+          plannedBinding: node.binding,
+          logicalOrigin: node.logical_origin,
+          compositeProvenance: node.composite_provenance || [],
+        }));
     const projectedNodeIds = new Set(projectedNodes.map((node) => node.id));
-    const diagnosticAnchors = viewModel.topology?.diagnostic_anchors || [];
-    const projectedEdges = (viewModel.topology?.cords || [])
+    const diagnosticAnchors = this.topologyView === "logical"
+      ? viewModel.topology?.diagnostic_anchors || []
+      : [];
+    const sourceEdges = this.topologyView === "logical"
+      ? viewModel.topology?.cords || []
+      : realization?.cords || [];
+    const projectedEdges = sourceEdges
       .map((edge) => ({
-        edge,
-        source: endpointForView(
-          edge, "from", this.topologyView, diagnosticAnchors, projectedNodeIds,
-        ),
-        target: endpointForView(
-          edge, "to", this.topologyView, diagnosticAnchors, projectedNodeIds,
-        ),
+        edge: this.topologyView === "logical"
+          ? edge
+          : {
+              ...edge,
+              validity: "valid",
+              compatibility: { compatible: true },
+            },
+        source: this.topologyView === "logical"
+          ? endpointForLogicalView(edge, "from", diagnosticAnchors, projectedNodeIds)
+          : { node: edge.from_node, port: edge.from_port },
+        target: this.topologyView === "logical"
+          ? endpointForLogicalView(edge, "to", diagnosticAnchors, projectedNodeIds)
+          : { node: edge.to_node, port: edge.to_port },
       }))
       .filter(({ source, target }) =>
         source && target &&
@@ -515,11 +542,18 @@ export class PatchbayReactFlowRenderer {
           diagnosticAnchors.some((anchor) => anchor.id === target.node))
       );
     const nodePositions = viewModel.presentation?.node_positions || {};
-    const positionForNode = (nodeId, index) =>
-      nodePositions[nodeId] || {
+    const positionForNode = (nodeId, index) => {
+      if (this.topologyView === "expanded") {
+        // Planned faceplates carry substantially more exact facts. A stable
+        // horizontal strip prevents those read-only cards from overlapping
+        // without creating presentation transactions for plan instances.
+        return { x: 32 + index * 520, y: 40 };
+      }
+      return nodePositions[nodeId] || {
         x: 32 + (index % 2) * 640,
         y: 40 + Math.floor(index / 2) * 280,
       };
+    };
 
     const compositeIds = new Set(
       (viewModel.topology?.composites || []).map((composite) => composite.id),
@@ -532,9 +566,15 @@ export class PatchbayReactFlowRenderer {
         node.placement,
         node.activity,
       ].filter(Boolean).length;
+      const plannedRows = node.plannedBinding
+        ? 10 + (node.plannedBinding.resources?.length || 0) +
+          (node.plannedBinding.authorities?.length || 0)
+        : 0;
+      const semanticPromiseRows = node.plannedBinding ? 0 : 2 + portRows;
       const nodeHeight = Math.max(
         118,
-        76 + configRows * 38 + portRows * 38 + (statusRows > 0 ? 46 : 0),
+        76 + configRows * 38 + portRows * 38 + (statusRows > 0 ? 46 : 0) +
+          plannedRows * 34 + semanticPromiseRows * 30,
       );
       return {
         id: node.id,
@@ -559,6 +599,10 @@ export class PatchbayReactFlowRenderer {
           (anchor) => anchor.owner_node === node.id,
         ),
         isConnectable: this.topologyView === "logical",
+        plannedBinding: node.plannedBinding,
+        logicalOrigin: node.logicalOrigin,
+        compositeProvenance: node.compositeProvenance,
+        readOnly: this.topologyView === "expanded",
         isComposite: compositeIds.has(node.id),
         isSelected: node.id === this.selectedNodeId,
         onConfigChange: (nodeId, key, value, kind) =>
@@ -577,7 +621,7 @@ export class PatchbayReactFlowRenderer {
           if (this.onPortWatch) this.onPortWatch(nodeId, port);
         },
         },
-        draggable: true,
+        draggable: this.topologyView === "logical",
         selectable: true,
       };
     });
@@ -694,7 +738,7 @@ export class PatchbayReactFlowRenderer {
         edgeTypes,
         edgesSelectable: true,
         elevateEdgesOnSelect: true,
-        nodesDraggable: true,
+        nodesDraggable: this.topologyView === "logical",
         nodesConnectable: this.topologyView === "logical",
         elementsSelectable: true,
         connectionMode: window.ReactFlow.ConnectionMode.Loose,
@@ -768,6 +812,7 @@ export class PatchbayReactFlowRenderer {
           if (this.onSelectionClear) this.onSelectionClear();
         },
         onNodeDragStop: (_event, node) => {
+          if (this.topologyView !== "logical") return;
           if (!this.onTransaction) return;
           if (!node?.position) return;
           this.onTransaction({

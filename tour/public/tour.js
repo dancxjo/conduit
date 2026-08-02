@@ -1431,15 +1431,37 @@ function selectDiagnostic(diagnostic) {
     `${diagnostic.code}: ${diagnostic.message}\n${diagnostic.explanation}`;
 }
 
+function plannedNodesForPresentation(view = patchbayView) {
+  return (view?.topology?.planned_realization?.nodes || []).map((node) => ({
+    id: node.instance,
+    contract_id: node.binding.contract_id,
+    source_range: node.source_origin_range,
+    inputs: node.inputs || [],
+    outputs: node.outputs || [],
+    logical_origin: node.logical_origin,
+    planned_binding: node.binding,
+  }));
+}
+
+function projectedNodesForTopologyView() {
+  return topologyView === "logical"
+    ? patchbayView?.topology?.logical_nodes || []
+    : plannedNodesForPresentation();
+}
+
+function projectedCordsForTopologyView() {
+  return topologyView === "logical"
+    ? patchbayView?.topology?.cords || []
+    : patchbayView?.topology?.planned_realization?.cords || [];
+}
+
 function renderStructuredTopology() {
   const portList = document.querySelector("#panel-port-list");
   const connectionList = document.querySelector("#panel-connection-list");
   if (!portList || !connectionList) return;
   portList.replaceChildren();
   connectionList.replaceChildren();
-  const nodes = topologyView === "logical"
-    ? patchbayView?.topology?.logical_nodes || []
-    : patchbayView?.topology?.expanded_nodes || [];
+  const nodes = projectedNodesForTopologyView();
   for (const node of nodes) {
     for (const port of [...node.inputs, ...node.outputs]) {
       const item = document.createElement("li");
@@ -1465,12 +1487,14 @@ function renderStructuredTopology() {
       portList.append(item);
     }
   }
-  for (const cord of patchbayView?.topology?.cords || []) {
-    const diagnostic = (patchbayView?.diagnostics || []).find((candidate) =>
-      candidate.targets.some(
-        (target) => target.kind === "cord" && target.id === cord.id,
-      )
-    );
+  for (const cord of projectedCordsForTopologyView()) {
+    const diagnostic = topologyView === "logical"
+      ? (patchbayView?.diagnostics || []).find((candidate) =>
+          candidate.targets.some(
+            (target) => target.kind === "cord" && target.id === cord.id,
+          )
+        )
+      : null;
     const item = document.createElement("li");
     item.dataset.fromPortPath = cord.from_port_path;
     item.dataset.toPortPath = cord.to_port_path;
@@ -1484,7 +1508,8 @@ function renderStructuredTopology() {
       `${diagnostic?.explanation || `${cord.value_type}; ${cord.pressure}`}`;
     button.setAttribute(
       "aria-label",
-      `${from}, authored source endpoint, to ${to}, authored destination endpoint; ` +
+      `${from}, ${topologyView === "logical" ? "authored" : "planned"} source endpoint, ` +
+      `to ${to}, ${topologyView === "logical" ? "authored" : "planned"} destination endpoint; ` +
       `${diagnostic?.code || "valid"}; ` +
       `${diagnostic?.explanation || `${cord.value_type}; ${cord.pressure}`}`,
     );
@@ -1918,11 +1943,21 @@ function renderRustProjection(projection) {
   const topology = {
     ...projection.topology,
     logical_nodes: projection.topology.logical_nodes.map(rebaseRange),
-    expanded_nodes: projection.topology.expanded_nodes.map(rebaseRange),
     cords: projection.topology.cords.map(rebaseRange),
+    planned_realization: projection.topology.planned_realization
+      ? {
+          ...projection.topology.planned_realization,
+          nodes: projection.topology.planned_realization.nodes.map((node) => ({
+            ...node,
+            source_origin_range: node.source_origin_range
+              ? { ...node.source_origin_range, source_revision: sourceRevision }
+              : null,
+          })),
+        }
+      : null,
   };
   const survivingNodes = new Set(
-    topology.expanded_nodes.map((node) => node.id),
+    topology.logical_nodes.map((node) => node.id),
   );
   const retainedPositions = Object.fromEntries(
     Object.entries(patchbayView.presentation.node_positions)
@@ -2066,24 +2101,38 @@ function show(lesson) {
 }
 
 function selectNode(node) {
-  const projection = [
-    ...(patchbayView?.topology?.logical_nodes || []),
-    ...(patchbayView?.topology?.expanded_nodes || []),
-  ].find((candidate) => candidate.id === node);
+  const logicalProjection = (patchbayView?.topology?.logical_nodes || [])
+    .find((candidate) => candidate.id === node);
+  const plannedProjection = plannedNodesForPresentation()
+    .find((candidate) => candidate.id === node);
+  const projection = logicalProjection || plannedProjection;
   if (!selectSourceRange("node", node, projection?.source_range)) return;
   selectedNode = node;
   selectedCord = null;
-  selectedNodeLabel.textContent = `Selected node: ${node}`;
-  moveLeftBtn.disabled = false;
-  moveRightBtn.disabled = false;
+  selectedNodeLabel.textContent = plannedProjection
+    ? `Selected planned instance: ${node}; source origin: ${plannedProjection.logical_origin}`
+    : `Selected semantic node: ${node}`;
+  moveLeftBtn.disabled = Boolean(plannedProjection);
+  moveRightBtn.disabled = Boolean(plannedProjection);
   if (patchbayRenderer) {
     patchbayRenderer.selectNode(node);
   }
 }
 
 function selectCord(cordId) {
-  const projection = (patchbayView?.topology?.cords || [])
+  const projection = projectedCordsForTopologyView()
     .find((candidate) => candidate.id === cordId);
+  if (topologyView === "expanded") {
+    selectedNode = null;
+    selectedCord = cordId;
+    moveLeftBtn.disabled = true;
+    moveRightBtn.disabled = true;
+    selectedNodeLabel.textContent = `Selected exact planned cord: ${cordId}`;
+    result.textContent =
+      "Planned cords are immutable plan facts and have no independent authored source declaration.";
+    patchbayRenderer?.selectCord(cordId);
+    return;
+  }
   if (!selectSourceRange("cord", cordId, projection?.source_range)) return;
   source.setSourceRelatedRanges?.([
     projection.from_port_range,
@@ -2101,6 +2150,23 @@ function selectCord(cordId) {
 }
 
 function selectPort(nodeId, port) {
+  if (topologyView === "expanded") {
+    const plannedNode = plannedNodesForPresentation()
+      .find((candidate) => candidate.id === nodeId);
+    selectSourceRange(
+      "planned instance source origin",
+      plannedNode?.logical_origin || nodeId,
+      plannedNode?.source_range,
+    );
+    selectedNode = nodeId;
+    selectedCord = null;
+    moveLeftBtn.disabled = true;
+    moveRightBtn.disabled = true;
+    selectedNodeLabel.textContent =
+      `Selected planned port ${nodeId}.${port.id}; source origin: ` +
+      `${plannedNode?.logical_origin || "unavailable"}`;
+    return;
+  }
   const cord = (patchbayView?.topology?.cords || []).find((candidate) =>
     port.direction === "input"
       ? candidate.to_port_path === port.semantic_path
@@ -2129,7 +2195,7 @@ function selectPort(nodeId, port) {
   }
   const projection = [
     ...(patchbayView?.topology?.logical_nodes || []),
-    ...(patchbayView?.topology?.expanded_nodes || []),
+    ...plannedNodesForPresentation(),
   ].find((candidate) => candidate.id === nodeId);
   if (!selectSourceRange("port owner", port.semantic_path, projection?.source_range)) {
     return;
@@ -2211,13 +2277,33 @@ function renderTopology() {
   const explanation = JSON.parse(explain_panel(source.value));
   const logicalButton = document.querySelector("#logical-view");
   const expandedButton = document.querySelector("#expanded-view");
+  const realization = patchbayView?.topology?.planned_realization || null;
+  const realizationStatus = patchbayView?.topology?.planned_realization_status ||
+    "no-exact-plan";
+  if (!realization && topologyView === "expanded") topologyView = "logical";
+  expandedButton.disabled = !realization;
+  expandedButton.title = realization
+    ? "Show the read-only exact planned realization"
+    : "No exact plan has been resolved";
   logicalButton.classList.toggle("active", topologyView === "logical");
   logicalButton.setAttribute("aria-pressed", String(topologyView === "logical"));
   expandedButton.classList.toggle("active", topologyView === "expanded");
   expandedButton.setAttribute("aria-pressed", String(topologyView === "expanded"));
-  document.querySelector("#topology").textContent = explanation.ok
-    ? explanation[topologyView]
-    : explanation.diagnostic;
+  const notice = document.querySelector("#plan-view-notice");
+  notice.textContent = realization
+    ? topologyView === "expanded"
+      ? realization.notice
+      : "Logical shows editable semantic promises; provider, device, artifact, host, allocation, and authority facts are plan-only."
+    : realizationStatus === "active-plan-mismatch"
+      ? "The active run plan snapshot is missing or mismatched. Expanded is unavailable and candidate facts will not be blended into the run."
+    : "No exact plan has been resolved. Expanded is unavailable; no realization is manufactured from registry defaults.";
+  document.querySelector("#canvas-help").textContent = topologyView === "expanded"
+    ? "Read-only exact plan. Select an instance to reveal its authored semantic origin; resolve source changes into a new plan."
+    : "Drag nodes to adjust presentation layout. Drag from an outgoing jack to a receiving jack to connect; select a cord and drag either end to rewire it.";
+  if (arrangeButton) arrangeButton.disabled = topologyView === "expanded";
+  document.querySelector("#topology").textContent = topologyView === "expanded"
+    ? JSON.stringify(realization, null, 2)
+    : explanation.ok ? explanation.logical : explanation.diagnostic;
   renderStructuredTopology();
 }
 
@@ -2269,6 +2355,10 @@ document.querySelector("#logical-view").onclick = () => {
   renderTopology();
 };
 document.querySelector("#expanded-view").onclick = () => {
+  if (!patchbayView?.topology?.planned_realization) {
+    result.textContent = "No exact plan has been resolved; Expanded remains unavailable.";
+    return;
+  }
   topologyView = "expanded";
   updateCytoscapeGraph();
   renderTopology();

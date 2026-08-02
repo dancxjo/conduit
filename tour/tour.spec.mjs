@@ -1107,10 +1107,24 @@ test("covers every published chapter and exposes production topology projections
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator("#expanded-view")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#topology")).toContainText(
-    "box.worker : text/uppercase",
+    '"instance": "root/box.worker"',
   );
-  await expect(page.locator("#panel-port-list")).toContainText("box.worker: > text");
-  await expect(page.locator("#panel-port-list")).toContainText("box.worker: text >");
+  await expect(page.locator("#topology")).toContainText('"contract_id": "text/uppercase"');
+  await expect(page.locator("#plan-view-notice")).toContainText(
+    "read-only candidate plan",
+  );
+  const plannedWorker = page.locator('.react-flow__node[data-id="root/box.worker"]');
+  await expect(plannedWorker.locator(".planned-realization-compartment")).toContainText(
+    "implementation",
+  );
+  await expect(plannedWorker.locator(".planned-realization-compartment")).toContainText(
+    "host observation",
+  );
+  await expect(plannedWorker.locator(".planned-realization-compartment")).toContainText(
+    "artifact",
+  );
+  await expect(page.locator("#panel-port-list")).toContainText("root/box.worker: > text");
+  await expect(page.locator("#panel-port-list")).toContainText("root/box.worker: text >");
   await page.locator("#logical-view").click();
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#expanded-view")).toHaveAttribute("aria-pressed", "false");
@@ -1135,6 +1149,20 @@ test("accepts a semantically correct alternate solution", async ({ page }) => {
   await expect(source).toHaveValue(/node salutation/);
 });
 
+test("keeps Expanded unavailable when the semantic revision has no exact plan", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
+  const source = page.locator("#source");
+  await source.fill("panel 0\nnode unfinished :");
+  await expect(page.locator("#expanded-view")).toBeDisabled();
+  await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#plan-view-notice")).toContainText(
+    "No exact plan has been resolved",
+  );
+  await expect(page.locator("#plan-view-notice")).toContainText(
+    "no realization is manufactured from registry defaults",
+  );
+});
+
 test("uses React Flow with legacy line placement disabled", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const canvas = page.locator("#patchbay-flow-root");
@@ -1155,7 +1183,8 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   expect(canvasBox?.height).toBeGreaterThan(0);
   expect(firstNodeBox?.y).toBeGreaterThanOrEqual(canvasBox?.y ?? Infinity);
   expect(firstNodeBox?.y).toBeLessThan((canvasBox?.y ?? 0) + (canvasBox?.height ?? 0));
-  await expect(page.locator(".availability-tag")).toHaveCount(2);
+  await expect(page.locator(".semantic-promise-compartment")).toHaveCount(2);
+  await expect(page.locator(".faceplate-status-label", { hasText: "provider" })).toHaveCount(0);
   const receiving = page.locator(".react-flow__node").getByRole("button", {
     name: "text, receiving port; type std/text",
     exact: true,
@@ -1296,9 +1325,9 @@ test("renders composite exports as public faceplate ports", async ({ page }) => 
   expect(publicJack.width).toBeGreaterThan(internalJack.width);
   await page.locator("#expanded-view").click();
   await expect(page.locator(".composite-faceplate")).toHaveCount(0);
-  await expect(page.locator('.react-flow__node[data-id="box.worker"]')).toHaveCount(1);
+  await expect(page.locator('.react-flow__node[data-id="root/box.worker"]')).toHaveCount(1);
   await page.locator(".react-flow__edge").first()
-    .locator(".react-flow__edge-textbg").dispatchEvent("click");
+    .locator(".react-flow__edge-path").dispatchEvent("click");
   await expect(page.locator(".faceplate-port-row.selected-cord-endpoint")).toHaveCount(2);
 });
 
@@ -1409,7 +1438,7 @@ test("selects a cord by authoritative identity and reveals its declaration", asy
 
   await page.locator('[data-id="greeting"]').click();
   await expect(page.locator("#selected-node-label")).toContainText(
-    "Selected node: greeting",
+    "Selected planned instance: root/greeting; source origin: greeting",
   );
   await expect.poll(async () =>
     (await page.locator(".panel-source-selection").allTextContents()).join("")
@@ -1821,7 +1850,7 @@ test("enters and exits the same fullscreen workspace without rebuilding state", 
   const source = page.locator("#source");
   await expect(source).toHaveValue(/node greeting/, { timeout: 20_000 });
   await page.locator("#expanded-view").click();
-  await page.locator('.react-flow__node[data-id="greeting"]').click();
+  await page.locator('.react-flow__node[data-id="root/greeting"]').click();
   await source.evaluate((element) => {
     element.__conduitLiveEditor = true;
     element.setSelectionRange(6, 14);
@@ -1884,7 +1913,7 @@ test("enters and exits the same fullscreen workspace without rebuilding state", 
   }));
   expect(after).toEqual(before);
   await expect(page.locator("#selected-node-label")).toContainText(
-    "Selected node: greeting",
+    "Selected planned instance: root/greeting; source origin: greeting",
   );
   await page.locator("#workspace-fullscreen").click();
   await expect(workspace).toHaveClass(/patchbay-workspace-active/);

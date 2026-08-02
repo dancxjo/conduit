@@ -39,7 +39,7 @@ fn browser_has_no_private_panel_parser_or_semantic_inference() {
             "faceplate contains invented fact or node-kind inference `{forbidden}`"
         );
     }
-    assert!(renderer.contains("viewModel.topology?.expanded_nodes"));
+    assert!(renderer.contains("viewModel.topology?.planned_realization"));
     for forbidden in ["cordEndpoint", "selector === \".in\"", "(?:in|out)"] {
         assert!(
             !highlighter.contains(forbidden),

@@ -2886,6 +2886,11 @@ impl Registry {
             if let Some(registered) = registry.get_registered_node(contract_id) {
                 return Some(AuthoredNodeView {
                     contract_id: registered.contract.id.as_str().to_owned(),
+                    contract_identity: Some(
+                        OwnedNodeSchema::from_contract(registered.contract)
+                            .semantic_hash()
+                            .to_string(),
+                    ),
                     inputs: registered
                         .contract
                         .inputs
@@ -2928,6 +2933,12 @@ impl Registry {
                     type_id: "unresolved-composite-export".to_owned(),
                     delivery: "unknown",
                     connections: "unknown",
+                    values: "unknown",
+                    temporal: "unknown",
+                    terminal: "unknown",
+                    presence: "unknown",
+                    sensitivity: "unknown",
+                    loss_acceptance: "unknown",
                 });
                 view.id.clone_from(&export.id);
                 match export.direction {
@@ -2938,6 +2949,9 @@ impl Registry {
             visiting.pop();
             Some(AuthoredNodeView {
                 contract_id: contract_id.to_owned(),
+                // The enclosing source owns a composite definition identity;
+                // no primitive registry identity is substituted here.
+                contract_identity: None,
                 inputs,
                 outputs,
             })
@@ -5316,6 +5330,12 @@ pub struct ResolvedPortView {
     pub type_id: String,
     pub delivery: &'static str,
     pub connections: &'static str,
+    pub values: &'static str,
+    pub temporal: &'static str,
+    pub terminal: &'static str,
+    pub presence: &'static str,
+    pub sensitivity: &'static str,
+    pub loss_acceptance: &'static str,
 }
 
 /// Contract facts which are authoritative before a whole authored graph
@@ -5323,6 +5343,7 @@ pub struct ResolvedPortView {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct AuthoredNodeView {
     pub contract_id: String,
+    pub contract_identity: Option<String>,
     pub inputs: Vec<ResolvedPortView>,
     pub outputs: Vec<ResolvedPortView>,
 }
@@ -10817,6 +10838,12 @@ fn resolved_port_view(port: &PortContract<'_>) -> ResolvedPortView {
         type_id: port.value_type.contract_id.as_str().to_owned(),
         delivery: port.delivery.as_str(),
         connections: port.connections.as_str(),
+        values: port.values.as_str(),
+        temporal: port.temporal.as_str(),
+        terminal: port.terminal.as_str(),
+        presence: port.presence.as_str(),
+        sensitivity: port.sensitivity.as_str(),
+        loss_acceptance: port.flow.loss.as_str(),
     }
 }
 

@@ -350,6 +350,8 @@ fn source_edit_changes_semantics_but_not_an_existing_run() {
         identity: "sha256:plan".to_owned(),
         source_semantic_hash: old.clone(),
         bindings: Vec::new(),
+        cords: Vec::new(),
+        composites: Vec::new(),
         value_envelopes: Vec::new(),
         watch_admissions: Vec::new(),
         clock_conversions: Vec::new(),
@@ -492,15 +494,15 @@ fn fixture_names_each_required_protocol_boundary() {
 #[test]
 fn exact_plan_projection_preserves_authoritative_binding_state() {
     use conduit_core::{
-        AuthorityGrant, AuthorityScope, AuthorityTime, ClockRounding, DelegationPolicy,
-        EffectCommitProfile, EffectDiscontinuity, EffectIdempotency, EffectRequirement,
-        ExecutionPlan, FeedbackBoundaryKind, FeedbackInitialization, FeedbackReplayGapPolicy,
-        FeedbackTerminalPolicy, ForeignRetention, HostCapability, Id, InstancePath,
-        PinnedDescriptor, PlanAuthority, PlanClockConversion, PlanFeedbackBoundary,
-        PlanHostObservation, PlanResourceBinding, PlanResourceBudget, ResolvedAuthorityBinding,
-        ResolvedPlanNode, ResourceLeaseContract, ResourceRef, ResourceSelector,
-        ResourceSharingMode, SemanticHash, Sensitivity, StopPolicy, UnknownCommitPolicy,
-        ValueEnvelopePolicy,
+        ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, ClockRounding,
+        DelegationPolicy, EffectCommitProfile, EffectDiscontinuity, EffectIdempotency,
+        EffectRequirement, ExecutionPlan, FeedbackBoundaryKind, FeedbackInitialization,
+        FeedbackReplayGapPolicy, FeedbackTerminalPolicy, ForeignRetention, HostCapability, Id,
+        InstancePath, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanClockConversion,
+        PlanFeedbackBoundary, PlanHostObservation, PlanResourceBinding, PlanResourceBudget,
+        ResolvedAuthorityBinding, ResolvedPlanNode, ResourceLeaseContract, ResourceRef,
+        ResourceSelector, ResourceSharingMode, SemanticHash, Sensitivity, StopPolicy,
+        UnknownCommitPolicy, ValueEnvelopePolicy,
     };
 
     const fn hash(byte: u8) -> SemanticHash {
@@ -539,6 +541,10 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         allocation: PlanResourceBudget::ZERO,
         required_resources: &[],
         required_effects: &[],
+    }];
+    let artifacts = [PlanArtifact {
+        id: Id("artifact/literal"),
+        digest: ArtifactDigest::from_bytes([0x55; 32]),
     }];
     let clocks = [Id("clock/device")];
     let value_envelopes = [ValueEnvelopePolicy {
@@ -777,7 +783,7 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         host_observations: &hosts,
         resources: &resources,
         workloads: &workloads,
-        artifacts: &[],
+        artifacts: &artifacts,
         nodes: &nodes,
         cords: &[],
         value_envelopes: &value_envelopes,
@@ -801,15 +807,41 @@ fn exact_plan_projection_preserves_authoritative_binding_state() {
         unresolved: &[],
     };
 
-    let projection = PlanSnapshot::from_exact_plan(&plan);
+    let mut projection = PlanSnapshot::from_exact_plan(&plan);
     let binding = &projection.bindings[0];
     assert_eq!(binding.availability_state, "bound-in-this-plan");
     assert_eq!(binding.reason_code, "CND-AVL-004");
     assert_eq!(binding.contract_id, "std/literal");
+    assert_eq!(binding.logical_origin, "greeting");
     assert_eq!(binding.implementation_id, "std/literal.native");
+    assert_eq!(binding.lifecycle_policy_id, "conduit/lifecycle");
+    assert_eq!(binding.artifact_id, "artifact/literal");
+    assert_eq!(
+        binding.artifact_digest,
+        ArtifactDigest::from_bytes([0x55; 32]).to_string()
+    );
     assert_eq!(binding.host_id, "host/browser");
     assert_eq!(binding.host_observation_id, "report/browser");
     assert_eq!(binding.host_observation_identity, hash(9).to_string());
+    let pinned_observation = (
+        binding.host_observation_id.clone(),
+        binding.host_observation_identity.clone(),
+        binding.host_valid_until_tick,
+    );
+    projection.diagnose_host_observation_freshness("clock/test", 101);
+    assert_eq!(
+        (
+            projection.bindings[0].host_observation_id.clone(),
+            projection.bindings[0].host_observation_identity.clone(),
+            projection.bindings[0].host_valid_until_tick,
+        ),
+        pinned_observation,
+        "freshness diagnostics must not refresh pinned observation facts"
+    );
+    assert_eq!(
+        projection.bindings[0].host_observation_status,
+        "stale-replan-required:validity-expired"
+    );
     assert_eq!(projection.value_envelopes[0].cord, "cord/value");
     assert_eq!(
         projection.value_envelopes[0].sensitivity_ceiling,
