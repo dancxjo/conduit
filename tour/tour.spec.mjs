@@ -906,7 +906,7 @@ test("presents the persistent HTTP source and refuses to simulate its hosted pro
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto(
+  await gotoTour(page,
     "/tour/public/index.html?lesson=library.bounded-http-service",
   );
 
@@ -2674,7 +2674,7 @@ test("typed text lesson runs an edited standalone format", async ({ page }) => {
 });
 
 test("PCM WAVE lesson runs exact codec and container providers", async ({ page }) => {
-  await page.goto(
+  await gotoTour(page,
     "/tour/public/index.html?lesson=library.bounded-media-codecs",
   );
   const story = page.locator("#execution-story");
@@ -2771,7 +2771,7 @@ test("bounded spatial data runs the exact trajectory composition", async ({ page
 });
 
 test("learned inference lesson keeps model runtime and device identities exact", async ({ page }) => {
-  await page.goto(
+  await gotoTour(page,
     "/tour/public/index.html?lesson=library.bounded-learned-inference",
   );
   const story = page.locator("#execution-story");
@@ -2973,7 +2973,7 @@ test("value envelope platform lesson links checked admission to an exact run", a
 });
 
 test("resource lease lesson keeps unknown commit and cleanup visible", async ({ page }) => {
-  await page.goto(
+  await gotoTour(page,
     "/tour/public/index.html?lesson=platform.resource-lease-effect-commit",
   );
   const story = page.locator("#execution-story");
@@ -3004,7 +3004,7 @@ test("resource lease lesson keeps unknown commit and cleanup visible", async ({ 
 });
 
 test("workload lesson keeps hard admission distinct from observations", async ({ page }) => {
-  await page.goto(
+  await gotoTour(page,
     "/tour/public/index.html?lesson=platform.workload-admission-deadline",
   );
   const story = page.locator("#execution-story");
