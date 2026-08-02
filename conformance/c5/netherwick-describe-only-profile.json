@@ -1,0 +1,68 @@
+{
+  "schema": "conduit.netherwick-describe-only-profile-conformance",
+  "schema_version": 0,
+  "issue": 141,
+  "contract": "conduit.robotics/profile",
+  "profile_identity": "sha256:f4ccc52b6c40ef5106a0752cf8e2d926bbcb1bcebe5b19287c32733315767029",
+  "hosts": [
+    {
+      "id": "netherwick/pete-linux-describe-only",
+      "profile_identity": "sha256:09a016735e026bbc9fc15a0af4f8023fae2dd67a31f172749f7da46037cdfb52",
+      "class": "describe-only",
+      "implementation": "netherwick/implementation/pete-linux-robotics-describe",
+      "artifact": "netherwick/artifact/pete-brainstem-linux",
+      "provider_bundle": "netherwick/provider/pete-linux-robotics-describe",
+      "observation": null
+    },
+    {
+      "id": "netherwick/pete-pico-w-describe-only",
+      "profile_identity": "sha256:46bb4f92740d3389b3e2e0be7f2a042d4c7f317fd134d9ec33133e0ea6cd1fd9",
+      "class": "describe-only",
+      "implementation": "netherwick/implementation/pete-pico-robotics-describe",
+      "artifact": "netherwick/artifact/pete-brainstem-pico-w",
+      "provider_bundle": "netherwick/provider/pete-pico-robotics-describe",
+      "observation": null
+    }
+  ],
+  "limits": {
+    "profile_types": 8,
+    "quantities": 16,
+    "logical_relationships": 8,
+    "compiled_provider_states": 8,
+    "carrier_candidates": 8,
+    "path_observations": 8,
+    "command_ttl_ticks": 250,
+    "linear_velocity_mm_per_second": 500,
+    "angular_velocity_milliradians_per_second": 2000,
+    "command_queue": 1
+  },
+  "cases": [
+    {"id":"descriptor-hash","expected":"accepted"},
+    {"id":"distinct-value-types","expected":"accepted"},
+    {"id":"per-quantity-metadata","expected":"accepted"},
+    {"id":"finite-motion-envelope","expected":"accepted"},
+    {"id":"linux-same-contract","expected":"accepted-describe-only"},
+    {"id":"pico-same-contract","expected":"accepted-describe-only"},
+    {"id":"distinct-exact-implementations","expected":"accepted"},
+    {"id":"compiled-without-initialized-observation","expected":"accepted"},
+    {"id":"logical-relationship-without-path","expected":"accepted"},
+    {"id":"checkpoint-described-not-loaded","expected":"accepted"},
+    {"id":"describe-effect-free","expected":"accepted"},
+    {"id":"observation-as-command","expected":"CND-RBT-003"},
+    {"id":"unit-mismatch","expected":"CND-RBT-004"},
+    {"id":"frame-mismatch","expected":"CND-RBT-004"},
+    {"id":"stale-sensor","expected":"CND-RBT-005"},
+    {"id":"expired-command-ttl","expected":"CND-RBT-006"},
+    {"id":"role-as-motion-grant","expected":"CND-RBT-007"},
+    {"id":"membership-as-motion-grant","expected":"CND-RBT-007"},
+    {"id":"capability-as-motion-grant","expected":"CND-RBT-007"},
+    {"id":"missing-inhibit","expected":"CND-RBT-008"},
+    {"id":"network-discovery-as-enrollment","expected":"CND-RBT-009"},
+    {"id":"hidden-device-handle","expected":"CND-RBT-010"},
+    {"id":"unsupported-host","expected":"CND-RBT-011"},
+    {"id":"secret-topology-leakage","expected":"CND-RBT-012"},
+    {"id":"describe-causes-effects","expected":"CND-RBT-013"},
+    {"id":"missing-capability","expected":"CND-RBT-014"},
+    {"id":"descriptor-hash-mismatch","expected":"CND-RBT-002"}
+  ]
+}

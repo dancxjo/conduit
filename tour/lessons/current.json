@@ -4255,6 +4255,166 @@
       }
     },
     {
+      "id": "platform.audited-robotics-profile",
+      "chapter": 4,
+      "title": "Describe a robot without touching it",
+      "prerequisites": [
+        "platform.cross-host-provider-conformance",
+        "library.bounded-control-composites"
+      ],
+      "objective": "Compare real Linux and Pico W describe-only implementations of one robotics profile while an unchanged real node still runs only on an executable provider-bearing host.",
+      "prose": "The audited Pete profile is one semantic contract. Netherwick's Linux and Pico W builds implement its effect-free description through distinct exact implementation, artifact, provider-bundle, adapter, build, and target facts on the generic host path. Neither report contains a current boot, initialized provider, path observation, possession, authority, device handle, secret, or actuation. This unchanged gain panel remains a real executable node composition on the browser host and is rejected before work by either describe-only profile; the profile does not invent a robot node or teaching executor.",
+      "vocabulary": [
+        "describe-only profile",
+        "generic implementation",
+        "compiled inventory",
+        "current observation",
+        "logical relationship",
+        "carrier path"
+      ],
+      "source": "panel 0\n\nsource: conduit.media/audio-frame/literal { fixture = \"tone-s16le-stereo-48000\" }\ngain: conduit.media/audio/gain {\n    lifecycle = \"finite\"\n    numeric_profile = \"pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact\"\n    curve = \"linear-q15-absolute-frame\"\n    start_gain_q15 = 16384\n    end_gain_q15 = 16384\n    ramp_start_frame = 0\n    ramp_end_frame = 0\n    discontinuity = \"absolute-timeline\"\n    maximum_automation_points = 2\n    maximum_retained_samples = 0\n    maximum_frames = 16\n}\ninspect: conduit.media/audio-frame/inspect\noutput: display/text\n\nsource.frame > gain.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ngain.frame > inspect.frame { capacity = 1 max_value_bytes = 152 max_queued_bytes = 152 low_watermark = 0 high_watermark = 1 pressure = block }\ninspect.summary > output.text { capacity = 1 max_value_bytes = 96 max_queued_bytes = 96 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+      "command": "conduct examples/media-gain-provider.panel",
+      "commands": [
+        "conduct --check examples/media-gain-provider.panel",
+        "conduct examples/media-gain-provider.panel",
+        "cargo test -p conduit-robotics"
+      ],
+      "expected_display": "audio:s16le:48000:stereo-lr:16",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 64,
+        "queue_bytes": 312,
+        "evidence_events": 64
+      },
+      "presentation": {
+        "layout": "one-node-provider-matrix",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": [
+          "contract_id",
+          "profile_identity",
+          "host_profile_identity",
+          "execution_mode",
+          "implementation_id",
+          "artifact_digest",
+          "provider_bundle",
+          "adapter_id",
+          "compiled_provider_state",
+          "initialized_observation",
+          "entity_identity",
+          "boot_identity",
+          "role_identity",
+          "possession_identity",
+          "authority_identity",
+          "logical_relationship",
+          "carrier_candidate",
+          "path_observation",
+          "units",
+          "frame",
+          "clock",
+          "uncertainty",
+          "freshness",
+          "command_ttl",
+          "velocity_envelope",
+          "stop",
+          "emergency_stop",
+          "charging_interlock",
+          "safety_inhibit",
+          "capability_requirement",
+          "redaction",
+          "effect_audit",
+          "admission",
+          "error",
+          "terminal"
+        ]
+      },
+      "validation": {
+        "kind": "display",
+        "value": "audio:s16le:48000:stereo-lr:16"
+      },
+      "hints": [
+        "Compare the two describe-only rows: contract and domain profile stay identical while implementation, artifact, bundle, build, target, and compiled provider facts differ.",
+        "A compiled USB, CYW43, network, or control provider is not an initialized observation; both describe-only rows intentionally publish no current path.",
+        "Select the executable browser row to run the unchanged real panel, then a describe-only row to see generic CND-HCF-003 rejection before work."
+      ],
+      "solution": "Keep the domain profile stable, publish each host's exact implementation and static facts through generic host conformance, and require a new fresh observation and exact plan before any executable binding.",
+      "accessibility": {
+        "non_audio": "An ordered text table exposes every profile, implementation, host fact, quantity, safety requirement, admission decision, effect count, error, and terminal result; no sound, motion, graph position, or color is required.",
+        "reduced_motion": true,
+        "keyboard": "Native controls select the host row; Space plays and ArrowRight steps the same exact ordered evidence while the table has focus.",
+        "color_independent": "Every state and distinction is named in text, including absent boot, observation, possession, authority, path, and effects."
+      },
+      "runnability": {
+        "state": "runnable",
+        "profile": "browser",
+        "proof": "browser-worker-exact-plan"
+      },
+      "platform": {
+        "schema": "conduit.tour-platform-lesson",
+        "what": "One bounded robotics profile is described by real Linux and Pico W host implementations without device, network, possession, promotion, plan, or actuation effects.",
+        "when": "Use this pattern to inventory a robotics or other domain boundary before any live provider observation, authority admission, exact binding, or hardware proof exists.",
+        "wrong": "A role, membership, capability, discovered endpoint, compiled driver, simulated result, stale observation, secret handle, or matching label never becomes enrollment, possession, motion authority, a current path, or HIL evidence.",
+        "editable": [
+          "representative_panel.start_gain_q15:16384",
+          "representative_panel.end_gain_q15:16384",
+          "representative_panel.maximum_frames:16"
+        ],
+        "fixture": "../../conformance/c5/netherwick-describe-only-profile.json",
+        "panel": "../../examples/media-gain-provider.panel",
+        "docs": [
+          "../../spec/084-audited-robotics-profiles.md",
+          "../../spec/058-cross-host-provider-conformance.md",
+          "../../spec/079-generic-implementations.md"
+        ],
+        "profiles": [
+          {
+            "id": "provider-bearing-browser",
+            "fixture_case": "descriptor-hash",
+            "admission": "accepted",
+            "execution": "exact-run",
+            "terminal": "succeeded"
+          },
+          {
+            "id": "netherwick-linux-describe-only",
+            "fixture_case": "linux-same-contract",
+            "admission": "rejected-before-work",
+            "code": "CND-HCF-003",
+            "effects": 0
+          },
+          {
+            "id": "netherwick-pico-w-describe-only",
+            "fixture_case": "pico-same-contract",
+            "admission": "rejected-before-work",
+            "code": "CND-HCF-003",
+            "effects": 0
+          }
+        ],
+        "scenarios": [
+          {
+            "id": "real-node-execution",
+            "title": "Run the unchanged real node composition",
+            "panel": "../../examples/media-gain-provider.panel",
+            "semantics": "The normal executable host binds and runs the real media node plus its ordinary inspector."
+          },
+          {
+            "id": "describe-only-admission",
+            "title": "Reject execution without changing meaning",
+            "panel": "../../examples/media-gain-provider.panel",
+            "semantics": "Either Netherwick describe-only host retains the same authored graph and rejects generic binding before work with no effects."
+          }
+        ],
+        "expected_evidence": [
+          "one robotics profile contract and distinct Linux and Pico implementation, artifact, bundle, adapter, build and target pins",
+          "independent observation, command, acknowledgement, safe outcome, possession, terminal and fault type identities",
+          "exact unit, frame, clock, uncertainty, freshness, TTL, velocity, queue, stop, e-stop, charging/interlock, inhibit and capability facts",
+          "compiled provider inventory without initialized observations; stable logical relationships without observed paths",
+          "separate entity and role descriptors with absent boot, possession and authority; described checkpoint format without loaded state",
+          "zero device opens, network joins, relays, possession, promotion, activation and actuation; no handles, secrets or sensitive topology",
+          "generic describe-only rejection before execution and the normal host's exact run evidence"
+        ]
+      }
+    },
+    {
       "id": "library.bounded-quick-local-chat",
       "chapter": 4,
       "title": "Quick local chat without an ambient model",

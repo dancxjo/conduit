@@ -192,7 +192,10 @@ fn tour_lessons_declare_verified_browser_runnability() {
         }
         assert_current_panel_source(id, source);
         let panel = conduit_panel::parse(source).expect("current lesson source already parsed");
-        let registry = if id == "platform.cross-host-provider-conformance" {
+        let registry = if matches!(
+            id,
+            "platform.cross-host-provider-conformance" | "platform.audited-robotics-profile"
+        ) {
             let mut registry = Registry::hosted_primitives();
             conduit_media::register_deterministic_media_providers(&mut registry)
                 .expect("browser media value providers register");
@@ -2251,6 +2254,80 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
         "terminal",
     ] {
         assert!(fields.contains(required), "Patchbay exposes {required}");
+    }
+}
+
+#[test]
+fn audited_robotics_profile_reuses_generic_host_presentation_without_runtime_invention() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../conformance/c5/netherwick-describe-only-profile.json"
+    ))
+    .expect("robotics profile fixture is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "platform.audited-robotics-profile")
+        .expect("audited robotics profile lesson is selectable");
+
+    assert_eq!(lesson["presentation"]["layout"], "one-node-provider-matrix");
+    assert_eq!(
+        lesson["source"],
+        include_str!("../../../examples/media-gain-provider.panel")
+    );
+    let result: Value =
+        serde_json::from_str(&run_panel(lesson["source"].as_str().unwrap().to_owned())).unwrap();
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(result["display"], lesson["expected_display"]);
+    assert_eq!(result["terminal"], "succeeded");
+
+    let profiles = lesson["platform"]["profiles"].as_array().unwrap();
+    assert_eq!(profiles.len(), 3);
+    for id in [
+        "netherwick-linux-describe-only",
+        "netherwick-pico-w-describe-only",
+    ] {
+        let profile = profiles
+            .iter()
+            .find(|profile| profile["id"] == id)
+            .expect("lesson includes both describe-only hosts");
+        assert_eq!(profile["admission"], "rejected-before-work");
+        assert_eq!(profile["code"], "CND-HCF-003");
+        assert_eq!(profile["effects"], 0);
+    }
+    let hosts = fixture["hosts"].as_array().unwrap();
+    assert_eq!(hosts.len(), 2);
+    assert!(
+        hosts
+            .iter()
+            .all(|host| { host["class"] == "describe-only" && host["observation"].is_null() })
+    );
+    assert_eq!(fixture["contract"], "conduit.robotics/profile");
+    assert_ne!(hosts[0]["implementation"], hosts[1]["implementation"]);
+    assert_ne!(hosts[0]["artifact"], hosts[1]["artifact"]);
+
+    let fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|field| field.as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    for required in [
+        "compiled_provider_state",
+        "initialized_observation",
+        "logical_relationship",
+        "path_observation",
+        "possession_identity",
+        "authority_identity",
+        "effect_audit",
+        "terminal",
+    ] {
+        assert!(
+            fields.contains(required),
+            "typed projection includes {required}"
+        );
     }
 }
 

@@ -20,6 +20,7 @@ members = [
     "crates/conduit-panel",
     "crates/conduit-patchbay",
     "crates/conduit-process",
+    "crates/conduit-robotics",
     "crates/conduit-socket",
     "crates/conduit-spatial",
     "crates/conduit-runtime",
