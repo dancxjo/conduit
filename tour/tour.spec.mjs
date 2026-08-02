@@ -673,20 +673,25 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
 
 test("freezes and resumes a live Watch without pressuring execution", async ({ page }) => {
   const failures = collectPageFailures(page);
-  await startTinyInstrument(page);
+  await openTinyInstrument(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
   const liveEdge = page.locator('.react-flow__edge[data-live-update="true"]').first();
+  await page.locator("#run").click();
+  await expect(page.locator("#freeze-display")).toBeEnabled({ timeout: 20_000 });
   await page.locator("#freeze-display").click();
   await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(async () => parseWatchTick(
+    await page.locator("#watch-value").textContent(),
+  ), { timeout: 20_000 }).toBeGreaterThanOrEqual(0);
   const beforeFreeze = parseWatchTick(
     await page.locator("#watch-value").textContent(),
   );
-  await page.waitForTimeout(1_700);
+  await expect(page.locator("#display-freeze-status")).toContainText(
+    "deferred while the exact executor remains live",
+    { timeout: 20_000 },
+  );
   expect(parseWatchTick(await page.locator("#watch-value").textContent()))
     .toBe(beforeFreeze);
-  await expect(page.locator("#display-freeze-status")).toContainText(
-    "exact executor remains live",
-  );
   await page.locator("#freeze-display").click();
   await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "false");
   await expect.poll(async () => parseWatchTick(
