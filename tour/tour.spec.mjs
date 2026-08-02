@@ -666,7 +666,7 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
 
 test("freezes and resumes a live Watch without pressuring execution", async ({ page }) => {
   const failures = collectPageFailures(page);
-  const { first, firstTick } = await startTinyInstrument(page);
+  await startTinyInstrument(page);
   const liveEdge = page.locator('.react-flow__edge[data-live-update="true"]').first();
   await page.locator("#freeze-display").click();
   await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
@@ -692,7 +692,6 @@ test("freezes and resumes a live Watch without pressuring execution", async ({ p
   );
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-keyshortcuts", "W");
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
-
   await page.emulateMedia({ reducedMotion: "reduce" });
   const reducedSequence = Number(await liveEdge.getAttribute("data-live-sequence"));
   await expect.poll(async () => Number(
@@ -705,19 +704,21 @@ test("freezes and resumes a live Watch without pressuring execution", async ({ p
 test("detaches a live Watch without pressuring execution", async ({ page }) => {
   const failures = collectPageFailures(page);
   const { first } = await startTinyInstrument(page);
+  const watchToggle = page.locator("#watch-toggle");
   const structuredCordWatch = page.locator(
     "#panel-connection-list .structured-watch-button",
   ).filter({ hasText: "Remove Watch" });
   await expect(structuredCordWatch).toHaveCount(1);
   await expect(structuredCordWatch).toContainText("Remove Watch");
+  await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
   await expect.poll(async () => {
-    const pressed = await page.locator("#watch-toggle").getAttribute("aria-pressed");
-    if (pressed === "true") {
+    const pressed = await watchToggle.getAttribute("aria-pressed");
+    if (pressed === "true" && await watchToggle.isEnabled()) {
       await structuredCordWatch.click();
     }
-    return page.locator("#watch-toggle").getAttribute("aria-pressed");
+    return watchToggle.getAttribute("aria-pressed");
   }, { timeout: 20_000 }).toBe("false");
-  await expect(page.locator("#watch-toggle")).toBeEnabled();
+  await expect(watchToggle).toBeEnabled();
   await expect(page.locator("#console-status-badge")).toHaveText("Live");
   await expect.poll(async () => {
     const accounting = await page.locator("#watch-accounting").evaluate((element) =>
@@ -755,17 +756,21 @@ test("reattaches a live Watch without pressuring execution", async ({ page }) =>
   const failures = collectPageFailures(page);
   const { firstTick } = await startTinyInstrument(page);
   const watchToggle = page.locator("#watch-toggle");
-  await watchToggle.click();
-  await expect(watchToggle).toHaveAttribute("aria-pressed", "false", {
-    timeout: 20_000,
-  });
+  await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
+  await expect.poll(async () => {
+    const pressed = await watchToggle.getAttribute("aria-pressed");
+    if (pressed === "true" && await watchToggle.isEnabled()) {
+      await watchToggle.click();
+    }
+    return watchToggle.getAttribute("aria-pressed");
+  }, { timeout: 20_000 }).toBe("false");
 
   const scopeWatchLabel = page.locator(
     '.faceplate-port-row[data-semantic-path="root/scope/port/outgoing/text"] .jack-label',
   );
   await expect.poll(async () => {
     const pressed = await watchToggle.getAttribute("aria-pressed");
-    if (pressed === "false") {
+    if (pressed === "false" && await watchToggle.isEnabled()) {
       await scopeWatchLabel.dispatchEvent("dblclick");
     }
     return watchToggle.getAttribute("aria-pressed");
@@ -774,7 +779,6 @@ test("reattaches a live Watch without pressuring execution", async ({ page }) =>
   await expect.poll(async () => parseWatchTick(
     await page.locator("#watch-value").textContent(),
   ), { timeout: 20_000 }).toBeGreaterThan(firstTick);
-
   expect(failures).toEqual([]);
 });
 
