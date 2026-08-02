@@ -13,5 +13,8 @@ conduit-panel = { path = "../conduit-panel" }
 conduit-runtime = { path = "../conduit-runtime" }
 conduit-std = { path = "../conduit-std" }
 
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.31.2", features = ["process", "signal"] }
+
 [lints]
 workspace = true

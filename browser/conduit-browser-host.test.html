@@ -339,7 +339,7 @@ const audio = new AudioWorkletExecutionAdapter(
       Placement.AudioWorklet,
       new URL("./conduit-audio-worklet.mjs", import.meta.url),
     ),
-    processorName: "conduit-pass-through",
+    processorName: "conduit-bounded-gain",
   },
   emitEvidence,
   audioContext,
@@ -347,9 +347,23 @@ const audio = new AudioWorkletExecutionAdapter(
 const audioStart = await audio.start();
 placementOutcomes[Placement.AudioWorklet] = audioStart.ok ? "executed" : "unsupported";
 if (audioStart.ok) {
-  const audioResult = await audio.request("echo", "audio");
+  const audioResult = await audio.request("gain-q15-half", {
+    samples: [-32768, -3, -2, 0, 1, 2, 32767],
+  });
+  assert(
+    JSON.stringify(audioResult.value?.samples) ===
+      JSON.stringify([-16384, -2, -1, 0, 1, 1, 16384]),
+    "AudioWorklet satisfies bounded Q15 half-gain",
+  );
+  const unsupportedAudio = await audio.request("gain-q15-half", {
+    samples: Array(65).fill(0),
+  });
+  assert(
+    unsupportedAudio.ok === false && unsupportedAudio.code === "unsupported-profile",
+    "AudioWorklet rejects samples beyond its observed profile",
+  );
   placementOutcomes[Placement.AudioWorklet] =
-    audioResult.value === "audio" ? "executed" : "unsupported";
+    audioResult.ok ? "executed" : "unsupported";
   audio.terminate("completed");
 }
 await audioContext?.close();

@@ -60,7 +60,7 @@ fn browser_entrypoint_executes_the_authored_exact_plan() {
                 .as_str()
                 .is_some_and(|value| value.starts_with("conduit/hosted-"))
             && event["artifact_id"].as_str().is_some()
-            && event["host_id"] == "conduit/conduct-host"
+            && event["host_id"] == "conduit/browser-worker"
     }));
     assert!(evidence.iter().any(|event| {
         event["subject_kind"] == "cord"

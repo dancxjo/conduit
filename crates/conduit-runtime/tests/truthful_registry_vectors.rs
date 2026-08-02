@@ -268,6 +268,28 @@ fn exact_core_manifest_installation_is_provider_available_but_not_host_resolvabl
 }
 
 #[test]
+fn repeated_contract_registration_preserves_every_installed_implementation() {
+    let fixture = support::provider(file_read_contract(), "test/file-read-native");
+    let mut registry = Registry::default();
+    registry
+        .register_executable_provider(
+            file_read_contract(),
+            fixture.manifest,
+            fixture.artifacts,
+            || Box::new(DummyHandler),
+            |_| Ok(()),
+        )
+        .unwrap();
+
+    registry.register_contract_only(file_read_contract());
+
+    assert!(registry.installed_providers().iter().any(|provider| {
+        provider.contract.id == file_read_contract().id
+            && provider.manifest.id.as_str() == "test/file-read-native"
+    }));
+}
+
+#[test]
 fn cross_contract_semantic_impersonation_is_rejected() {
     let literal = Registry::default()
         .node_schema("std/literal")

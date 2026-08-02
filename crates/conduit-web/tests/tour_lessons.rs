@@ -1,12 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use bumpalo::Bump;
-use conduit_compile::{InstalledProfile, compile_source};
-use conduit_core::NodeContract;
-use conduit_runtime::{
-    CompiledInHostService, Handler, Registry, RegistryError, RunIo, RuntimeError,
-    Value as RuntimeValue,
-};
+use conduit_compile::{InstalledHostObservationInput, InstalledProfile, compile_source};
+use conduit_runtime::Registry;
 use conduit_web::{
     cancel_panel, patchbay_open_session, patchbay_pump_exact_run, patchbay_start_exact_run,
     run_panel,
@@ -197,7 +192,22 @@ fn tour_lessons_declare_verified_browser_runnability() {
         }
         assert_current_panel_source(id, source);
         let panel = conduit_panel::parse(source).expect("current lesson source already parsed");
-        let registry = if matches!(
+        let registry = if id == "platform.cross-host-provider-conformance" {
+            let mut registry = Registry::hosted_primitives();
+            conduit_media::register_deterministic_media_providers(&mut registry)
+                .expect("browser media value providers register");
+            conduit_audio::transform_implementations::install_audio_gain_implementation(
+                &mut registry,
+                conduit_audio::transform_implementations::ObservedMediaArtifact::browser_wasm_linked(
+                    include_bytes!("../src/lib.rs"),
+                    0,
+                    u64::MAX,
+                )
+                .expect("browser linked media provider is source-attested"),
+            )
+            .expect("browser gain implementation registers");
+            registry
+        } else if matches!(
             id,
             "library.bounded-audio-processing" | "library.audio-device-boundaries"
         ) {
@@ -1978,232 +1988,12 @@ fn workload_platform_lesson_keeps_guarantees_distinct_from_observations() {
     assert_eq!(fields, ["bindings", "workloads"].into_iter().collect());
 }
 
-fn cross_host_profile_registry(profile: &str) -> Registry {
-    let mut registry = Registry::hosted_primitives();
-    match profile {
-        "deterministic-host" => {
-            conduit_media::register_deterministic_media_providers(&mut registry)
-                .expect("deterministic media providers are available");
-            conduit_media::register_deterministic_codec_providers(&mut registry)
-                .expect("deterministic codec providers are available");
-        }
-        "provider-fixture-alpha" | "explicit-adapter-fixture" => {
-            conduit_media::register_deterministic_media_providers(&mut registry)
-                .expect("deterministic media providers are available");
-            conduit_media::register_media_codec_contracts(&mut registry);
-            if profile == "provider-fixture-alpha" {
-                register_provider_fixture_alpha_codec_providers(&mut registry)
-                    .expect("provider fixture alpha is available");
-            } else {
-                register_explicit_adapter_codec_fixture_providers(&mut registry)
-                    .expect("explicit adapter codec fixture providers are available");
-            }
-        }
-        "provider-fixture-beta" => {
-            conduit_media::register_deterministic_media_providers(&mut registry)
-                .expect("deterministic media providers are available");
-            conduit_media::register_media_codec_contracts(&mut registry);
-            register_provider_fixture_beta_codec_providers(&mut registry)
-                .expect("provider fixture beta is available");
-        }
-        other => panic!("unknown cross-host profile {other}"),
-    }
-    registry
-}
-
-fn register_codec_fixture_provider(
-    registry: &mut Registry,
-    providers: &[(
-        &'static NodeContract<'static>,
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static [u8],
-    )],
-) -> Result<(), RegistryError> {
-    struct FixtureCodecProvider;
-
-    impl Handler for FixtureCodecProvider {
-        fn run(
-            &mut self,
-            _node: &conduit_panel::Node,
-            _inputs: &[RuntimeValue],
-            _io: &mut RunIo<'_>,
-        ) -> Result<Vec<RuntimeValue>, RuntimeError> {
-            Ok(Vec::new())
-        }
-    }
-    static NO_AUTHORITIES: [conduit_core::SemanticHash; 0] = [];
-    for (contract, implementation_id, artifact_id, entrypoint, source_bytes) in providers {
-        registry.register_compiled_in_host_service(CompiledInHostService {
-            contract,
-            implementation_id,
-            artifact_id,
-            entrypoint,
-            source_bytes,
-            required_authorities: &NO_AUTHORITIES,
-            factory: || Box::new(FixtureCodecProvider),
-            validate_config: |_node: &conduit_panel::Node| Ok(()),
-        })?;
-    }
-    Ok(())
-}
-
-fn register_provider_fixture_alpha_codec_providers(
-    registry: &mut Registry,
-) -> Result<(), RegistryError> {
-    register_codec_fixture_provider(
-        registry,
-        &[
-            (
-                &conduit_media::WAVE_LITERAL_CONTRACT,
-                "conduit.media/wave-literal-provider-fixture-alpha",
-                "conduit.media/wave-literal-provider-fixture-alpha-artifact",
-                "media-wave-literal-provider-fixture-alpha",
-                b"conduit.media/wave-literal-provider-fixture-alpha.source",
-            ),
-            (
-                &conduit_media::DEMUX_CONTRACT,
-                "conduit.media/wave-demux-provider-fixture-alpha",
-                "conduit.media/wave-demux-provider-fixture-alpha-artifact",
-                "media-wave-demux-provider-fixture-alpha",
-                b"conduit.media/wave-demux-provider-fixture-alpha.source",
-            ),
-            (
-                &conduit_media::DECODE_CONTRACT,
-                "conduit.media/pcm-decode-provider-fixture-alpha",
-                "conduit.media/pcm-decode-provider-fixture-alpha-artifact",
-                "media-pcm-decode-provider-fixture-alpha",
-                b"conduit.media/pcm-decode-provider-fixture-alpha.source",
-            ),
-        ],
-    )
-}
-
-fn register_provider_fixture_beta_codec_providers(
-    registry: &mut Registry,
-) -> Result<(), RegistryError> {
-    register_codec_fixture_provider(
-        registry,
-        &[
-            (
-                &conduit_media::WAVE_LITERAL_CONTRACT,
-                "conduit.media/wave-literal-provider-fixture-beta",
-                "conduit.media/wave-literal-provider-fixture-beta-artifact",
-                "media-wave-literal-provider-fixture-beta",
-                b"conduit.media/wave-literal-provider-fixture-beta.source",
-            ),
-            (
-                &conduit_media::DEMUX_CONTRACT,
-                "conduit.media/wave-demux-provider-fixture-beta",
-                "conduit.media/wave-demux-provider-fixture-beta-artifact",
-                "media-wave-demux-provider-fixture-beta",
-                b"conduit.media/wave-demux-provider-fixture-beta.source",
-            ),
-            (
-                &conduit_media::DECODE_CONTRACT,
-                "conduit.media/pcm-decode-provider-fixture-beta",
-                "conduit.media/pcm-decode-provider-fixture-beta-artifact",
-                "media-pcm-decode-provider-fixture-beta",
-                b"conduit.media/pcm-decode-provider-fixture-beta.source",
-            ),
-        ],
-    )
-}
-
-fn register_explicit_adapter_codec_fixture_providers(
-    registry: &mut Registry,
-) -> Result<(), RegistryError> {
-    register_codec_fixture_provider(
-        registry,
-        &[
-            (
-                &conduit_media::WAVE_LITERAL_CONTRACT,
-                "conduit.media/wave-literal-explicit-adapter-fixture",
-                "conduit.media/wave-literal-explicit-adapter-fixture-artifact",
-                "media-wave-literal-explicit-adapter-fixture",
-                b"conduit.media/wave-literal-explicit-adapter-fixture.source",
-            ),
-            (
-                &conduit_media::DEMUX_CONTRACT,
-                "conduit.media/wave-demux-explicit-adapter-fixture",
-                "conduit.media/wave-demux-explicit-adapter-fixture-artifact",
-                "media-wave-demux-explicit-adapter-fixture",
-                b"conduit.media/wave-demux-explicit-adapter-fixture.source",
-            ),
-            (
-                &conduit_media::DECODE_CONTRACT,
-                "conduit.media/pcm-decode-explicit-adapter-fixture",
-                "conduit.media/pcm-decode-explicit-adapter-fixture-artifact",
-                "media-pcm-decode-explicit-adapter-fixture",
-                b"conduit.media/pcm-decode-explicit-adapter-fixture.source",
-            ),
-        ],
-    )
-}
-
-fn cross_host_media_bindings(
-    source: &str,
-    profile: &str,
-) -> BTreeMap<String, (String, String, String, String)> {
-    let registry = cross_host_profile_registry(profile);
-    let mut installed =
-        InstalledProfile::observe_registry(source, &registry).unwrap_or_else(|error| {
-            panic!("profile {profile} must produce a compatible installed profile: {error}")
-        });
-    let profile_observation = match profile {
-        "deterministic-host" => ("conduit/conduct-host-observation", "conduit/conduct-host"),
-        "provider-fixture-alpha" | "provider-fixture-beta" | "explicit-adapter-fixture" => (
-            "conduit/cross-host/provider-fixture-observation",
-            "conduit/cross-host/provider-fixture-host",
-        ),
-        _ => panic!("unknown cross-host profile {profile}"),
-    };
-    installed.input.candidates.iter_mut().for_each(|candidate| {
-        candidate.host_report.id = profile_observation.0.to_owned();
-        candidate.host_report.host = profile_observation.1.to_owned();
-    });
-    installed
-        .input
-        .seal()
-        .expect("cross-host media candidate profile is sealed");
-    let document = compile_source(source, &installed.input)
-        .unwrap_or_else(|error| panic!("profile {profile} must compile the media graph: {error}"));
-    let arena = Bump::new();
-    let plan = document.as_plan(&arena).unwrap_or_else(|error| {
-        panic!("profile {profile} must produce an execution plan: {error}")
-    });
-    let bindings = installed
-        .bindings(&plan)
-        .unwrap_or_else(|error| panic!("profile {profile} must compute exact bindings: {error}"));
-    let _ = bindings;
-
-    plan.nodes
-        .iter()
-        .filter_map(|node| {
-            let contract = node.contract.id.as_str();
-            if !contract.starts_with("conduit.media/") {
-                return None;
-            }
-            Some((
-                contract.to_owned(),
-                (
-                    node.implementation.id.to_string(),
-                    node.contract.semantic_hash.to_string(),
-                    node.artifact.to_string(),
-                    node.host_observation.to_string(),
-                ),
-            ))
-        })
-        .collect()
-}
-
 #[test]
 fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/c5/cross-host-provider-conformance.json"
+        "../../../conformance/c5/cross-host-media-implementations.json"
     ))
     .expect("cross-host fixture is valid JSON");
     let lesson = manifest["lessons"]
@@ -2219,175 +2009,129 @@ fn cross_host_provider_lesson_retains_the_complete_exact_chain() {
     assert_eq!(result["terminal"], "succeeded");
 
     let source = lesson["source"].as_str().unwrap();
+    assert_eq!(
+        source,
+        include_str!("../../../examples/media-gain-provider.panel")
+    );
+    let mut overlap_registry = Registry::hosted_primitives();
+    conduit_media::register_deterministic_media_providers(&mut overlap_registry).unwrap();
+    conduit_audio::transform_implementations::install_audio_gain_implementation(
+        &mut overlap_registry,
+        conduit_audio::transform_implementations::ObservedMediaArtifact::browser_wasm_linked(
+            include_bytes!("../src/lib.rs"),
+            10,
+            20,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    conduit_media::register_deterministic_audio_processing_providers(&mut overlap_registry)
+        .unwrap();
+    let mut browser_host = InstalledHostObservationInput::conduct_host();
+    browser_host.id = "conduit/browser-worker-host-observation".to_owned();
+    browser_host.host = "conduit/browser-worker".to_owned();
+    browser_host.time_basis = "clock/browser-worker".to_owned();
+    let installed =
+        InstalledProfile::observe_registry_on_host(source, &overlap_registry, &browser_host, &[])
+            .unwrap()
+            .with_implementation_preference(vec![
+                conduit_audio::transform_implementations::MediaImplementation::BrowserWasmLinked
+                    .id()
+                    .to_owned(),
+            ])
+            .unwrap();
+    let preferred = compile_source(source, &installed.input).unwrap();
+    assert!(preferred.nodes.iter().any(|node| {
+        node.contract.id == "conduit.media/audio/gain"
+            && node.implementation.id
+                == conduit_audio::transform_implementations::MediaImplementation::BrowserWasmLinked
+                    .id()
+    }));
     let cases = fixture["cases"].as_array().unwrap();
-    let mut accepted_profile_ids = BTreeSet::new();
-    let mut accepted_profile_bindings = BTreeMap::new();
-    let mut accepted_boundaries = BTreeSet::new();
-    let mut accepted_type_relations = BTreeSet::new();
-    let mut rejected_profile_codes = BTreeMap::new();
+    let mut profile_ids = BTreeSet::new();
     for profile in lesson["platform"]["profiles"].as_array().unwrap() {
         let fixture_case = cases
             .iter()
             .find(|case| case["id"] == profile["fixture_case"])
             .expect("lesson profile names a conformance case");
-        if profile["admission"] == "accepted" {
-            assert_eq!(fixture_case["expected"], "bound");
-            let profile_id = profile["id"]
-                .as_str()
-                .expect("platform profile names its accepted profile id");
-            accepted_profile_ids.insert(profile_id.to_owned());
-            accepted_profile_bindings.insert(
-                profile_id.to_owned(),
-                cross_host_media_bindings(source, profile_id),
-            );
-            accepted_boundaries.insert(
-                fixture_case["boundary"]
-                    .as_str()
-                    .expect("fixture case names a boundary"),
-            );
-            accepted_type_relations.insert(
-                fixture_case["type_relation"]
-                    .as_str()
-                    .expect("fixture case names a type relation"),
-            );
-        } else {
-            let profile_id = profile["id"].as_str().expect("platform profile has id");
-            let profile_code = profile["code"]
-                .as_str()
-                .expect("platform profile has rejection code");
-            assert_eq!(fixture_case["expected"], profile_code);
-            rejected_profile_codes.insert(profile_id.to_owned(), profile_code.to_owned());
+        let profile_id = profile["id"].as_str().expect("platform profile has id");
+        profile_ids.insert(profile_id);
+        if profile["admission"] == "rejected" {
+            assert_eq!(fixture_case["expected"], profile["code"]);
         }
     }
     assert_eq!(
-        accepted_profile_ids,
+        profile_ids,
         [
-            "deterministic-host",
-            "provider-fixture-alpha",
-            "provider-fixture-beta",
-            "explicit-adapter-fixture"
+            "reference-media",
+            "linux-ffmpeg-process",
+            "linux-sox-process",
+            "browser-worker",
+            "known-contract-no-provider",
         ]
         .into_iter()
-        .map(str::to_owned)
         .collect()
     );
-    assert!(accepted_boundaries.contains("native"));
-    assert_eq!(accepted_boundaries, ["native"].into_iter().collect());
-    assert!(accepted_type_relations.contains("exact"));
-    assert!(accepted_type_relations.contains("different-explicit-adapter"));
-    assert_eq!(rejected_profile_codes.len(), 3);
-    assert_eq!(
-        rejected_profile_codes.get("firmware-unsupported"),
-        Some(&"CND-HCF-005".to_string())
-    );
-    assert_eq!(
-        rejected_profile_codes.get("describe-only"),
-        Some(&"CND-HCF-003".to_string())
-    );
-    assert_eq!(
-        rejected_profile_codes.get("provider-lost"),
-        Some(&"CND-HCF-007".to_string())
-    );
-    let deterministic_bindings = accepted_profile_bindings
-        .get("deterministic-host")
-        .expect("deterministic-host profile is accepted");
-    let fixture_alpha_bindings = accepted_profile_bindings
-        .get("provider-fixture-alpha")
-        .expect("provider fixture alpha is accepted");
-    let fixture_beta_bindings = accepted_profile_bindings
-        .get("provider-fixture-beta")
-        .expect("provider fixture beta is accepted");
-    let explicit_bindings = accepted_profile_bindings
-        .get("explicit-adapter-fixture")
-        .expect("explicit-adapter-fixture profile is accepted");
-    let deterministic_decode = deterministic_bindings["conduit.media/audio/decode"]
-        .0
-        .clone();
-    let fixture_alpha_decode = fixture_alpha_bindings["conduit.media/audio/decode"]
-        .0
-        .clone();
-    let fixture_beta_decode = fixture_beta_bindings["conduit.media/audio/decode"]
-        .0
-        .clone();
-    let explicit_decode = explicit_bindings["conduit.media/audio/decode"].0.clone();
-    let deterministic_artifact = deterministic_bindings["conduit.media/audio/decode"]
-        .2
-        .clone();
-    let fixture_alpha_artifact = fixture_alpha_bindings["conduit.media/audio/decode"]
-        .2
-        .clone();
-    let fixture_beta_artifact = fixture_beta_bindings["conduit.media/audio/decode"]
-        .2
-        .clone();
-    let explicit_artifact = explicit_bindings["conduit.media/audio/decode"].2.clone();
-    let deterministic_observation = deterministic_bindings["conduit.media/audio/decode"]
-        .3
-        .clone();
-    let fixture_alpha_observation = fixture_alpha_bindings["conduit.media/audio/decode"]
-        .3
-        .clone();
-    let fixture_beta_observation = fixture_beta_bindings["conduit.media/audio/decode"]
-        .3
-        .clone();
-    let explicit_observation = explicit_bindings["conduit.media/audio/decode"].3.clone();
-    assert_ne!(deterministic_decode, fixture_alpha_decode);
-    assert_ne!(deterministic_decode, fixture_beta_decode);
-    assert_ne!(fixture_alpha_decode, fixture_beta_decode);
-    assert_ne!(fixture_alpha_decode, explicit_decode);
-    assert_ne!(deterministic_artifact, fixture_alpha_artifact);
-    assert_ne!(deterministic_artifact, fixture_beta_artifact);
-    assert_ne!(fixture_alpha_artifact, fixture_beta_artifact);
-    assert_ne!(explicit_artifact, deterministic_artifact);
-    assert_ne!(explicit_artifact, fixture_alpha_artifact);
-    assert_ne!(explicit_artifact, fixture_beta_artifact);
-    assert!(!deterministic_observation.is_empty());
-    assert_ne!(fixture_alpha_observation, deterministic_observation);
-    assert_ne!(fixture_beta_observation, deterministic_observation);
-    assert_ne!(explicit_observation, deterministic_observation);
-    assert_eq!(fixture_alpha_observation, fixture_beta_observation);
-    assert_eq!(fixture_alpha_observation, explicit_observation);
-    let deterministic_contract_hashes: BTreeSet<_> = deterministic_bindings
+
+    let opened: Value = serde_json::from_str(&patchbay_open_session(
+        "cross-host-media-implementation".to_owned(),
+        source.to_owned(),
+    ))
+    .expect("Patchbay session JSON");
+    assert_eq!(opened["ok"], true, "{opened}");
+    let started: Value = serde_json::from_str(&patchbay_start_exact_run(
+        "cross-host-media-implementation".to_owned(),
+    ))
+    .expect("Patchbay exact-run JSON");
+    assert_eq!(started["ok"], true, "{started}");
+    let logical_gain = started["view"]["topology"]["logical_nodes"]
+        .as_array()
+        .unwrap()
         .iter()
-        .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
-        .collect();
-    assert_eq!(
-        deterministic_contract_hashes,
-        explicit_bindings
-            .iter()
-            .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
-            .collect()
-    );
-    let fixture_alpha_contract_hashes: BTreeSet<_> = fixture_alpha_bindings
+        .filter(|node| node["contract_id"] == "conduit.media/audio/gain")
+        .collect::<Vec<_>>();
+    assert_eq!(logical_gain.len(), 1, "one semantic gain node");
+    assert!(logical_gain[0].get("implementation_id").is_none());
+    let planned_gain = started["view"]["topology"]["planned_realization"]["nodes"]
+        .as_array()
+        .unwrap()
         .iter()
-        .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
-        .collect();
-    let fixture_beta_contract_hashes: BTreeSet<_> = fixture_beta_bindings
-        .iter()
-        .map(|(contract, (_, identity, _, _))| (contract.as_str(), identity.as_str()))
-        .collect();
+        .filter(|node| node["binding"]["contract_id"] == "conduit.media/audio/gain")
+        .collect::<Vec<_>>();
+    assert_eq!(planned_gain.len(), 1, "one realized gain node");
     assert_eq!(
-        deterministic_contract_hashes.len(),
-        deterministic_bindings.len()
+        planned_gain[0]["binding"]["implementation_id"],
+        "conduit.media/audio-gain-browser-wasm-linked"
     );
-    assert_eq!(fixture_alpha_contract_hashes, deterministic_contract_hashes);
-    assert_eq!(fixture_beta_contract_hashes, deterministic_contract_hashes);
+    assert_eq!(
+        planned_gain[0]["binding"]["host_id"],
+        "conduit/browser-worker"
+    );
+    assert!(
+        planned_gain[0]["binding"]["artifact_digest"]
+            .as_str()
+            .is_some_and(|digest| digest.starts_with("sha256:"))
+    );
     let fields = lesson["presentation"]["patchbay_fields"]
         .as_array()
         .unwrap()
         .iter()
         .map(|field| field.as_str().unwrap())
         .collect::<BTreeSet<_>>();
-    assert_eq!(
-        fields,
-        [
-            "exact_bindings",
-            "extensions",
-            "mandatory_facts",
-            "optional_providers"
-        ]
-        .into_iter()
-        .collect()
-    );
+    for required in [
+        "contract_id",
+        "implementation_id",
+        "artifact_digest",
+        "host_observation",
+        "limits",
+        "resource",
+        "grant",
+        "cancellation",
+        "cleanup",
+        "terminal",
+    ] {
+        assert!(fields.contains(required), "Patchbay exposes {required}");
+    }
 }
 
 #[test]

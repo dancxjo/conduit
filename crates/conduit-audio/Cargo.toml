@@ -1,6 +1,6 @@
 [package]
 name = "conduit-audio"
-description = "Opt-in observed hosted audio-device providers for Conduit"
+description = "Opt-in observed hosted audio implementations for Conduit"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,6 +12,7 @@ conduit-core = { path = "../conduit-core" }
 conduit-compile = { path = "../conduit-compile" }
 conduit-media = { path = "../conduit-media" }
 conduit-panel = { path = "../conduit-panel" }
+conduit-process = { path = "../conduit-process" }
 conduit-runtime = { path = "../conduit-runtime" }
 sha2 = "0.10.9"
 

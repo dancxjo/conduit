@@ -4,16 +4,19 @@
 //! Nothing here starts a run, chooses a host clock, or grants device authority.
 
 use conduit_core::{
-    ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
-    ConnectionCardinality, Delivery, Direction, Id, LossAcceptance, NodeContract, PortContract,
-    PortFlowConstraints, Presence, SemanticHash, Sensitivity, TemporalContract, TerminalContract,
-    TypeContractRef, ValueCardinality,
+    ArtifactDigest, ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability,
+    ConfigRequirement, ConnectionCardinality, Delivery, Direction, ExecutorKind, Id,
+    LossAcceptance, NodeContract, PinnedDescriptor, PortContract, PortFlowConstraints, Presence,
+    SemanticHash, Sensitivity, TemporalContract, TerminalContract, TypeContractRef,
+    ValueCardinality,
 };
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
     CompiledInHostService, Handler, HostedPrimitiveImplementation, HostedServiceStep,
-    HostedServiceStepContext, Registry, RegistryError, ResolutionError, RunIo, RuntimeError, Value,
+    HostedServiceStepContext, InstalledArtifactRegistration, InstalledImplementationRegistration,
+    Registry, RegistryError, ResolutionError, RunIo, RuntimeError, Value,
 };
+use sha2::{Digest as _, Sha256};
 
 pub const MAXIMUM_CONTROL_LEVEL: u32 = 1024;
 pub const MAXIMUM_SEQUENCE_STEPS: usize = 16;
@@ -2038,14 +2041,45 @@ pub fn register_deterministic_signal_providers(
 /// the deterministic reference providers); provider selection remains an
 /// explicit compile/host fact.
 pub fn register_portable_lfo_provider(registry: &mut Registry) -> Result<(), RegistryError> {
-    static NO_AUTHORITIES: [SemanticHash; 0] = [];
-    registry.register_compiled_in_host_service(CompiledInHostService {
+    const SOURCE: &[u8] = b"conduit.media/lfo-portable-integer|triangle|u64-rational|0";
+    const PROFILE: &str = "conduit/media-portable-integer-lfo-profile";
+    let digest = ArtifactDigest::from_bytes(Sha256::digest(SOURCE).into());
+    registry.register_installed_implementation(InstalledImplementationRegistration {
         contract: &LFO_CONTRACT,
-        implementation_id: "conduit.media/lfo-portable-integer",
-        artifact_id: "conduit.media/lfo-portable-integer-artifact",
-        entrypoint: "media-lfo-portable-integer",
-        source_bytes: b"conduit.media/lfo-portable-integer|triangle|u64-rational|0",
-        required_authorities: &NO_AUTHORITIES,
+        implementation_id: "conduit.media/lfo-portable-integer".to_owned(),
+        implementation_version: "triangle-u64-rational-0".to_owned(),
+        executor: ExecutorKind::NativeInProcess,
+        entrypoint_name: "media-lfo-portable-integer".to_owned(),
+        entrypoint_adapter: "conduit/rust-native-in-process".to_owned(),
+        entrypoint_abi: "conduit/rust-handler".to_owned(),
+        entrypoint_protocol_version: 0,
+        execution_profile: PinnedDescriptor {
+            id: Id(PROFILE),
+            schema_version: 0,
+            semantic_hash: SemanticHash::from_bytes(Sha256::digest(PROFILE).into()),
+        },
+        artifacts: vec![InstalledArtifactRegistration {
+            id: "conduit.media/lfo-portable-integer-artifact".to_owned(),
+            digest,
+            media_type: "application/vnd.conduit.compiled-in-provider".to_owned(),
+            byte_size: SOURCE.len() as u64,
+            target: Some(std::env::consts::ARCH.to_owned()),
+            abi: Some("conduit/rust-handler".to_owned()),
+            builder: "conduit/rustc-workspace-build".to_owned(),
+            source_digest: digest,
+            build_recipe_digest: digest,
+            reproducible: true,
+            license_expressions: Vec::new(),
+            role: "executable".to_owned(),
+            required: true,
+        }],
+        required_authorities: Vec::new(),
+        required_effects: Vec::new(),
+        minimum_plan_version: 0,
+        maximum_plan_version: u32::MAX,
+        minimum_runtime_protocol: 1,
+        maximum_runtime_protocol: 1,
+        coexistence_memory_bytes: 0,
         factory: lfo,
         validate_config: validate_lfo,
     })

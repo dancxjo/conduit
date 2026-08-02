@@ -17,7 +17,7 @@ child: conduit.host/process/exec {
     maximum_pending_operations = 3
     maximum_processes = 1
     maximum_child_processes = 0
-    maximum_descriptors = 3
+    maximum_descriptors = 16
     maximum_environment_bytes = 16
     maximum_work = 4096
     maximum_evidence_events = 64

@@ -1667,13 +1667,28 @@ function activeScenario() {
   const outcome = platformProfile.admission === "accepted"
     ? "admitted by the checked contract"
     : `rejected before execution with ${platformProfile.code}`;
+  const runnability = platformProfile.admission !== "accepted"
+    ? {
+        state: "illustrative/unavailable",
+        profile: current.runnability?.profile || "browser",
+        code: platformProfile.code,
+        reason: `${platformProfile.id} has no admitted implementation on the current browser host.`,
+      }
+    : platformProfile.browser_execution === "fixture-only"
+      ? {
+          state: "illustrative/unavailable",
+          profile: "browser",
+          code: "CND-HST-002",
+          reason: `${platformProfile.id} is proven by the checked host fixture and native conformance run, not executed by this browser host.`,
+        }
+      : current.supporting_runnability || current.runnability;
   return {
     ...platformProfile,
     source: current.supporting_source || current.source,
     execution: current.supporting_execution || current.execution,
     validation: current.supporting_validation || current.validation,
     watch_target: current.supporting_watch_target || current.watch_target,
-    runnability: current.supporting_runnability || current.runnability,
+    runnability,
     explanation: `${platformProfile.id}: ${outcome}. The editable representative panel remains real source and reruns independently.`,
   };
 }
@@ -1908,7 +1923,7 @@ function configureExecutionStory() {
     docs.append(item);
   }
   scenarioSelect.replaceChildren();
-  for (const scenario of story.scenarios || story.profiles) {
+  for (const scenario of platform ? story.profiles : (story.scenarios || story.profiles)) {
     const option = document.createElement("option");
     option.value = scenario.id;
     option.textContent = scenario.title || scenario.id;

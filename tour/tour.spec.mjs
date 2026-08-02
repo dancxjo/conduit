@@ -2783,7 +2783,7 @@ test("workload lesson keeps hard admission distinct from observations", async ({
   await expect(page.locator("#timeline-table")).toContainText("succeeded");
 });
 
-test("cross-host lesson keeps discovery separate from exact provider binding", async ({ page }) => {
+test("cross-host lesson keeps one contract separate from its realization", async ({ page }) => {
   await gotoTour(page,
     "/tour/public/index.html?lesson=platform.cross-host-provider-conformance",
   );
@@ -2794,18 +2794,18 @@ test("cross-host lesson keeps discovery separate from exact provider binding", a
   await expect(story).toBeVisible();
   await expect(page.locator("#story-kind")).toHaveText("Platform contract lesson");
 
-  await story.getByRole("button", { name: "firmware-unsupported" }).click();
-  await expect(result).toContainText("rejected before execution with CND-HCF-005");
-  await expect(source).toHaveValue(/wave: conduit\.media\/wave\/literal/);
+  await story.getByRole("button", { name: "known-contract-no-provider" }).click();
+  await expect(result).toContainText("rejected before execution with CND-IMP-001");
+  await expect(page.locator("#run")).toBeDisabled();
+  await expect(source).toHaveValue(/gain: conduit\.media\/audio\/gain/);
 });
 
 for (const scenarioId of [
-  "deterministic-host",
-  "provider-fixture-alpha",
-  "provider-fixture-beta",
-  "explicit-adapter-fixture",
+  "reference-media",
+  "linux-ffmpeg-process",
+  "linux-sox-process",
 ]) {
-  test(`cross-host accepted profile ${scenarioId} runs with exact provider binding`, async ({ page }) => {
+  test(`cross-host accepted profile ${scenarioId} remains an honest checked fixture`, async ({ page }) => {
     await gotoTour(page,
       "/tour/public/index.html?lesson=platform.cross-host-provider-conformance",
     );
@@ -2815,15 +2815,29 @@ for (const scenarioId of [
 
     await page.locator("#scenario").selectOption(scenarioId);
     await expect(page.locator("#scenario")).toHaveValue(scenarioId);
-    await expect(run).toBeEnabled();
-    await run.click();
-    await expect(result).toContainText(
-      "audio:s16le:48000:stereo:192",
-      { timeout: 20_000 },
-    );
-    await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
-    await expect(page.locator("#timeline-table")).toContainText("succeeded");
-    await expect(source).toHaveValue(/decode: conduit\.media\/audio\/decode/);
-    await expect(run).toBeEnabled({ timeout: 20_000 });
+    await expect(result).toContainText(`${scenarioId}: admitted by the checked contract`);
+    await expect(result).toContainText("not executed by this browser host");
+    await expect(run).toBeDisabled();
+    await expect(source).toHaveValue(/gain: conduit\.media\/audio\/gain/);
   });
 }
+
+test("cross-host browser profile runs with the exact WASM-linked binding", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=platform.cross-host-provider-conformance",
+  );
+  const result = page.locator("#result");
+  const run = page.locator("#run");
+  await page.locator("#scenario").selectOption("browser-worker");
+  await expect(run).toBeEnabled();
+  await run.click();
+  await expect(result).toContainText("audio:s16le:48000:stereo-lr:16", {
+    timeout: 20_000,
+  });
+  await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+  await expect(page.locator("#timeline-table")).toContainText("succeeded");
+  await expect(page.locator("#plan")).toContainText(
+    "conduit.media/audio-gain-browser-wasm-linked",
+  );
+  await expect(run).toBeEnabled({ timeout: 20_000 });
+});

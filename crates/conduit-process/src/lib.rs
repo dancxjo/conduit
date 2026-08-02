@@ -7,9 +7,19 @@
 use std::env;
 use std::ffi::OsString;
 use std::io::{self, Read, Write};
-use std::process::{Command, ExitCode, Stdio};
+use std::path::Path;
+use std::process::{Child, Command, ExitCode, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
+
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
+
+#[cfg(unix)]
+use nix::{
+    sys::signal::{Signal, killpg},
+    unistd::Pid,
+};
 
 use conduit_core::SemanticHash;
 use conduit_panel::{Node, SourceValue};
@@ -27,6 +37,9 @@ pub const EXAMPLE_EXECUTABLE_RESOURCE: &str = "conduit.executable/process-fixtur
 pub const EXAMPLE_WORKING_RESOURCE: &str = "conduit.resource/process-working-root";
 pub const EXAMPLE_GRANT: &str = "conduit.grant/process-exec";
 pub const FIXTURE_ENTRYPOINT: &str = "__conduit_process_fixture__";
+/// Hosted adapters may need more fixed arguments than the portable authored
+/// exec contract while remaining explicitly bounded.
+pub const SUPERVISED_PROCESS_MAX_ARGUMENTS: usize = 64;
 
 const CONTRACT_ID: &str = "conduit.host/process/exec";
 const IMPLEMENTATION_ID: &str = "conduit/process-exec-hosted";
@@ -311,6 +324,304 @@ fn collect_stdin_chunks<'a>(
     Ok(stdin)
 }
 
+/// Generic exact command admitted by a domain adapter.
+///
+/// The semantic node is intentionally absent: media, repository, compiler,
+/// and other adapters translate their own contracts into this already-bound
+/// host request. This layer never parses shell text or performs `PATH` lookup.
+pub struct SupervisedProcessRequest<'a> {
+    pub executable: &'a Path,
+    pub argv: &'a [OsString],
+    pub environment: &'a [(OsString, OsString)],
+    pub working_directory: &'a Path,
+    pub stdin: &'a [u8],
+    pub limits: SupervisedProcessLimits,
+    pub cancellation: SupervisedProcessCancellation,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SupervisedProcessLimits {
+    pub maximum_arguments: usize,
+    pub maximum_stdin_bytes: usize,
+    pub maximum_stdout_bytes: usize,
+    pub maximum_stderr_bytes: usize,
+    pub maximum_processes: usize,
+    pub maximum_child_processes: usize,
+    pub maximum_threads: usize,
+    pub maximum_descriptors: usize,
+    pub deadline_millis: u64,
+    pub cleanup_millis: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SupervisedProcessCancellation {
+    None,
+    BeforeSpawn,
+    AfterSpawn,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SupervisedProcessTerminal {
+    Exited(i32),
+    Signaled,
+    Cancelled { forced: bool },
+    DeadlineExceeded { forced: bool },
+    ChildProcessLimitExceeded,
+    ThreadLimitExceeded,
+    DescriptorLimitExceeded,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SupervisedProcessResult {
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+    pub terminal: SupervisedProcessTerminal,
+    pub cleanup_complete: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SupervisedProcessError {
+    InvalidRequest,
+    InputOverflow,
+    SpawnFailed,
+    PipeUnavailable,
+    InputWriteFailed,
+    OutputReadFailed,
+    OutputOverflow,
+    StderrOverflow,
+    WaitFailed,
+    CleanupFailed,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+enum ObservedLimit {
+    ChildProcess,
+    Thread,
+    Descriptor,
+}
+
+#[cfg(target_os = "linux")]
+fn observed_limit(pid: u32, limits: SupervisedProcessLimits) -> Option<ObservedLimit> {
+    let task_root = format!("/proc/{pid}/task");
+    let thread_count = std::fs::read_dir(&task_root)
+        .ok()?
+        .take(limits.maximum_threads + 1)
+        .count();
+    if thread_count > limits.maximum_threads {
+        return Some(ObservedLimit::Thread);
+    }
+    let descriptor_count = std::fs::read_dir(format!("/proc/{pid}/fd"))
+        .ok()?
+        .take(limits.maximum_descriptors + 1)
+        .count();
+    if descriptor_count > limits.maximum_descriptors {
+        return Some(ObservedLimit::Descriptor);
+    }
+    if limits.maximum_child_processes == 0 {
+        for task in std::fs::read_dir(task_root)
+            .ok()?
+            .take(limits.maximum_threads + 1)
+        {
+            let task = task.ok()?;
+            let mut children = String::new();
+            std::fs::File::open(task.path().join("children"))
+                .ok()?
+                .take(4097)
+                .read_to_string(&mut children)
+                .ok()?;
+            if children.len() > 4096 {
+                return Some(ObservedLimit::ChildProcess);
+            }
+            if !children.trim().is_empty() {
+                return Some(ObservedLimit::ChildProcess);
+            }
+        }
+    }
+    None
+}
+
+#[cfg(not(target_os = "linux"))]
+fn observed_limit(_pid: u32, _limits: SupervisedProcessLimits) -> Option<ObservedLimit> {
+    None
+}
+
+fn terminate_and_wait(child: &mut Child) -> Result<(), SupervisedProcessError> {
+    #[cfg(unix)]
+    {
+        let pid = i32::try_from(child.id()).map_err(|_| SupervisedProcessError::CleanupFailed)?;
+        killpg(Pid::from_raw(pid), Signal::SIGKILL)
+            .map_err(|_| SupervisedProcessError::CleanupFailed)?;
+    }
+    #[cfg(not(unix))]
+    child
+        .kill()
+        .map_err(|_| SupervisedProcessError::CleanupFailed)?;
+    child
+        .wait()
+        .map_err(|_| SupervisedProcessError::CleanupFailed)?;
+    Ok(())
+}
+
+impl SupervisedProcessError {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::InvalidRequest => "CND-EXEC-005",
+            Self::InputOverflow => "CND-EXEC-006",
+            Self::SpawnFailed => "CND-EXEC-008",
+            Self::PipeUnavailable
+            | Self::InputWriteFailed
+            | Self::OutputReadFailed
+            | Self::WaitFailed
+            | Self::CleanupFailed => "CND-EXEC-011",
+            Self::OutputOverflow => "CND-EXEC-013",
+            Self::StderrOverflow => "CND-EXEC-014",
+        }
+    }
+}
+
+/// Execute one exact argv vector through the shared bounded process boundary.
+///
+/// The caller must already have selected and authorized the exact executable.
+/// This function clears ambient environment, never invokes a shell, retains
+/// stdout/stderr separately, and always waits after forced termination.
+pub fn run_supervised_process(
+    request: &SupervisedProcessRequest<'_>,
+) -> Result<SupervisedProcessResult, SupervisedProcessError> {
+    let limits = request.limits;
+    if !request.executable.is_absolute()
+        || limits.maximum_arguments == 0
+        || limits.maximum_arguments > SUPERVISED_PROCESS_MAX_ARGUMENTS
+        || request.argv.len() > limits.maximum_arguments
+        || request.environment.len() > PROCESS_MAX_ENVIRONMENT
+        || limits.maximum_stdin_bytes == 0
+        || limits.maximum_stdout_bytes == 0
+        || limits.maximum_stderr_bytes == 0
+        || limits.maximum_processes != 1
+        || limits.maximum_child_processes != 0
+        || limits.maximum_threads == 0
+        || limits.maximum_descriptors < 3
+        || limits.deadline_millis == 0
+        || limits.cleanup_millis == 0
+    {
+        return Err(SupervisedProcessError::InvalidRequest);
+    }
+    if request.stdin.len() > limits.maximum_stdin_bytes {
+        return Err(SupervisedProcessError::InputOverflow);
+    }
+    if request.cancellation == SupervisedProcessCancellation::BeforeSpawn {
+        return Ok(SupervisedProcessResult {
+            stdout: Vec::new(),
+            stderr: Vec::new(),
+            terminal: SupervisedProcessTerminal::Cancelled { forced: false },
+            cleanup_complete: true,
+        });
+    }
+    let mut command = Command::new(request.executable);
+    command
+        .args(request.argv)
+        .env_clear()
+        .envs(request.environment.iter().cloned())
+        .current_dir(request.working_directory)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(unix)]
+    command.process_group(0);
+    let mut child = command
+        .spawn()
+        .map_err(|_| SupervisedProcessError::SpawnFailed)?;
+    if request.cancellation == SupervisedProcessCancellation::AfterSpawn {
+        terminate_and_wait(&mut child)?;
+        return Ok(SupervisedProcessResult {
+            stdout: Vec::new(),
+            stderr: Vec::new(),
+            terminal: SupervisedProcessTerminal::Cancelled { forced: true },
+            cleanup_complete: true,
+        });
+    }
+    let child_stdin = child
+        .stdin
+        .take()
+        .ok_or(SupervisedProcessError::PipeUnavailable)?;
+    let child_stdout = child
+        .stdout
+        .take()
+        .ok_or(SupervisedProcessError::PipeUnavailable)?;
+    let child_stderr = child
+        .stderr
+        .take()
+        .ok_or(SupervisedProcessError::PipeUnavailable)?;
+    let stdin = request.stdin;
+    let started = Instant::now();
+    let (stdout, stderr, terminal) = thread::scope(|scope| {
+        let writer = scope.spawn(move || {
+            let mut child_stdin = child_stdin;
+            child_stdin.write_all(stdin)?;
+            child_stdin.flush()
+        });
+        let stdout_reader =
+            scope.spawn(move || read_bounded(child_stdout, limits.maximum_stdout_bytes));
+        let stderr_reader =
+            scope.spawn(move || read_bounded(child_stderr, limits.maximum_stderr_bytes));
+        let terminal = loop {
+            if let Some(limit) = observed_limit(child.id(), limits) {
+                terminate_and_wait(&mut child)?;
+                break match limit {
+                    ObservedLimit::ChildProcess => {
+                        SupervisedProcessTerminal::ChildProcessLimitExceeded
+                    }
+                    ObservedLimit::Thread => SupervisedProcessTerminal::ThreadLimitExceeded,
+                    ObservedLimit::Descriptor => SupervisedProcessTerminal::DescriptorLimitExceeded,
+                };
+            }
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    break if let Some(code) = status.code() {
+                        SupervisedProcessTerminal::Exited(code)
+                    } else {
+                        SupervisedProcessTerminal::Signaled
+                    };
+                }
+                Ok(None) if started.elapsed() < Duration::from_millis(limits.deadline_millis) => {
+                    thread::sleep(Duration::from_millis(1));
+                }
+                Ok(None) => {
+                    terminate_and_wait(&mut child)?;
+                    break SupervisedProcessTerminal::DeadlineExceeded { forced: true };
+                }
+                Err(_) => return Err(SupervisedProcessError::WaitFailed),
+            }
+        };
+        writer
+            .join()
+            .map_err(|_| SupervisedProcessError::InputWriteFailed)?
+            .map_err(|_| SupervisedProcessError::InputWriteFailed)?;
+        let stdout = stdout_reader
+            .join()
+            .map_err(|_| SupervisedProcessError::OutputReadFailed)?
+            .map_err(|_| SupervisedProcessError::OutputReadFailed)?;
+        let stderr = stderr_reader
+            .join()
+            .map_err(|_| SupervisedProcessError::OutputReadFailed)?
+            .map_err(|_| SupervisedProcessError::OutputReadFailed)?;
+        Ok::<_, SupervisedProcessError>((stdout, stderr, terminal))
+    })?;
+    if stdout.len() > limits.maximum_stdout_bytes {
+        return Err(SupervisedProcessError::OutputOverflow);
+    }
+    if stderr.len() > limits.maximum_stderr_bytes {
+        return Err(SupervisedProcessError::StderrOverflow);
+    }
+    Ok(SupervisedProcessResult {
+        stdout,
+        stderr,
+        terminal,
+        cleanup_complete: true,
+    })
+}
+
 struct ProcessHandler;
 
 impl Handler for ProcessHandler {
@@ -349,152 +660,83 @@ impl Handler for ProcessHandler {
                 format!("exact current executable is unavailable: {error}"),
             )
         })?;
-        let mut command = Command::new(executable);
-        command
-            .arg(FIXTURE_ENTRYPOINT)
-            .args(arguments)
-            .env_clear()
-            .envs(environment)
-            .current_dir("/")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-        let mut child = command.spawn().map_err(|error| {
-            runtime_error("CND-EXEC-008", format!("process spawn failed: {error}"))
-        })?;
-        if node.config("cancellation") == Some("cancel-after-spawn") {
-            child.kill().map_err(|error| {
-                runtime_error(
-                    "CND-EXEC-011",
-                    format!("forced process termination failed: {error}"),
-                )
-            })?;
-            child.wait().map_err(|error| {
-                runtime_error(
-                    "CND-EXEC-011",
-                    format!("process cleanup wait failed: {error}"),
-                )
-            })?;
-            return Err(runtime_error(
-                "CND-EXEC-009",
-                "process cancelled after spawn; forced termination and wait completed",
-            ));
-        }
-
-        let child_stdin = child
-            .stdin
-            .take()
-            .ok_or_else(|| runtime_error("CND-EXEC-008", "process stdin pipe is unavailable"))?;
-        let child_stdout = child
-            .stdout
-            .take()
-            .ok_or_else(|| runtime_error("CND-EXEC-008", "process stdout pipe is unavailable"))?;
-        let child_stderr = child
-            .stderr
-            .take()
-            .ok_or_else(|| runtime_error("CND-EXEC-008", "process stderr pipe is unavailable"))?;
         let maximum_stdout = required_usize(node, "maximum_stdout_bytes")
             .map_err(|error| runtime_error(error.code, error.message))?;
         let maximum_stderr = required_usize(node, "maximum_stderr_bytes")
             .map_err(|error| runtime_error(error.code, error.message))?;
         let deadline_millis = required_u64(node, "deadline_ticks")
             .map_err(|error| runtime_error(error.code, error.message))?;
-        let started = Instant::now();
-        let (stdout, stderr, timed_out) = thread::scope(|scope| {
-            let writer = scope.spawn(move || {
-                let mut child_stdin = child_stdin;
-                child_stdin.write_all(&stdin)?;
-                child_stdin.flush()
-            });
-            let stdout_reader = scope.spawn(move || read_bounded(child_stdout, maximum_stdout));
-            let stderr_reader = scope.spawn(move || read_bounded(child_stderr, maximum_stderr));
-            let mut timed_out = false;
-            loop {
-                match child.try_wait() {
-                    Ok(Some(_)) => break,
-                    Ok(None) if started.elapsed() < Duration::from_millis(deadline_millis) => {
-                        thread::sleep(Duration::from_millis(1));
-                    }
-                    Ok(None) => {
-                        timed_out = true;
-                        child.kill().map_err(|error| {
-                            runtime_error(
-                                "CND-EXEC-011",
-                                format!("deadline termination failed: {error}"),
-                            )
-                        })?;
-                        child.wait().map_err(|error| {
-                            runtime_error(
-                                "CND-EXEC-011",
-                                format!("deadline cleanup wait failed: {error}"),
-                            )
-                        })?;
-                        break;
-                    }
-                    Err(error) => {
-                        return Err(runtime_error(
-                            "CND-EXEC-011",
-                            format!("process wait observation failed: {error}"),
-                        ));
-                    }
-                }
+        let mut supervised_argv = Vec::with_capacity(arguments.len() + 1);
+        supervised_argv.push(OsString::from(FIXTURE_ENTRYPOINT));
+        supervised_argv.extend(arguments.into_iter().map(OsString::from));
+        let environment = environment
+            .into_iter()
+            .map(|(name, value)| (OsString::from(name), OsString::from(value)))
+            .collect::<Vec<_>>();
+        let cancellation = match node.config("cancellation") {
+            Some("cancel-after-spawn") => SupervisedProcessCancellation::AfterSpawn,
+            _ => SupervisedProcessCancellation::None,
+        };
+        let result = run_supervised_process(&SupervisedProcessRequest {
+            executable: &executable,
+            argv: &supervised_argv,
+            environment: &environment,
+            working_directory: Path::new("/"),
+            stdin: &stdin,
+            limits: SupervisedProcessLimits {
+                maximum_arguments: PROCESS_MAX_ARGUMENTS + 1,
+                maximum_stdin_bytes: maximum_stdin,
+                maximum_stdout_bytes: maximum_stdout,
+                maximum_stderr_bytes: maximum_stderr,
+                maximum_processes: 1,
+                maximum_child_processes: 0,
+                maximum_threads: 1,
+                maximum_descriptors: required_usize(node, "maximum_descriptors")
+                    .map_err(|error| runtime_error(error.code, error.message))?,
+                deadline_millis,
+                cleanup_millis: required_u64(node, "forced_ticks")
+                    .map_err(|error| runtime_error(error.code, error.message))?,
+            },
+            cancellation,
+        })
+        .map_err(|error| runtime_error(error.code(), format!("process boundary: {error:?}")))?;
+        match result.terminal {
+            SupervisedProcessTerminal::Exited(0) => {}
+            SupervisedProcessTerminal::Cancelled { .. } => {
+                return Err(runtime_error(
+                    "CND-EXEC-009",
+                    "process cancellation completed with bounded cleanup",
+                ));
             }
-            writer
-                .join()
-                .map_err(|_| runtime_error("CND-EXEC-011", "stdin writer panicked"))?
-                .map_err(|error| {
-                    runtime_error("CND-EXEC-011", format!("stdin write failed: {error}"))
-                })?;
-            let stdout = stdout_reader
-                .join()
-                .map_err(|_| runtime_error("CND-EXEC-011", "stdout reader panicked"))?
-                .map_err(|error| {
-                    runtime_error("CND-EXEC-011", format!("stdout read failed: {error}"))
-                })?;
-            let stderr = stderr_reader
-                .join()
-                .map_err(|_| runtime_error("CND-EXEC-011", "stderr reader panicked"))?
-                .map_err(|error| {
-                    runtime_error("CND-EXEC-011", format!("stderr read failed: {error}"))
-                })?;
-            Ok::<_, RuntimeError>((stdout, stderr, timed_out))
-        })?;
-        if timed_out {
-            return Err(runtime_error(
-                "CND-EXEC-012",
-                "process deadline expired; forced termination and wait completed",
-            ));
-        }
-        if stdout.len() > maximum_stdout {
-            return Err(runtime_error(
-                "CND-EXEC-013",
-                "process stdout exceeded its exact byte ceiling",
-            ));
-        }
-        if stderr.len() > maximum_stderr {
-            return Err(runtime_error(
-                "CND-EXEC-014",
-                "process stderr exceeded its exact byte ceiling",
-            ));
-        }
-        let status = child
-            .try_wait()
-            .map_err(|error| runtime_error("CND-EXEC-011", format!("exit read failed: {error}")))?
-            .ok_or_else(|| runtime_error("CND-EXEC-011", "process exit was not observed"))?;
-        if !status.success() {
-            return Err(runtime_error(
-                "CND-EXEC-015",
-                format!("process exited unsuccessfully: {status}"),
-            ));
+            SupervisedProcessTerminal::DeadlineExceeded { .. } => {
+                return Err(runtime_error(
+                    "CND-EXEC-012",
+                    "process deadline expired; forced termination and wait completed",
+                ));
+            }
+            SupervisedProcessTerminal::ChildProcessLimitExceeded
+            | SupervisedProcessTerminal::ThreadLimitExceeded
+            | SupervisedProcessTerminal::DescriptorLimitExceeded => {
+                return Err(runtime_error(
+                    "CND-EXEC-005",
+                    "process crossed an observed runtime resource ceiling",
+                ));
+            }
+            SupervisedProcessTerminal::Exited(_) | SupervisedProcessTerminal::Signaled => {
+                return Err(runtime_error(
+                    "CND-EXEC-015",
+                    "process exited unsuccessfully",
+                ));
+            }
         }
         Ok(vec![
             Value {
                 value_type: contract.outputs[0].value_type,
-                bytes: stdout,
+                bytes: result.stdout,
             },
             Value {
                 value_type: contract.outputs[1].value_type,
-                bytes: stderr,
+                bytes: result.stderr,
             },
         ])
     }
@@ -577,6 +819,37 @@ pub fn fixture_entrypoint() -> Option<ExitCode> {
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
+    fn supervised(
+        executable: &str,
+        arguments: &[&str],
+        stdout: usize,
+        stderr: usize,
+        deadline_millis: u64,
+    ) -> Result<SupervisedProcessResult, SupervisedProcessError> {
+        let argv = arguments.iter().map(OsString::from).collect::<Vec<_>>();
+        run_supervised_process(&SupervisedProcessRequest {
+            executable: Path::new(executable),
+            argv: &argv,
+            environment: &[],
+            working_directory: Path::new("/"),
+            stdin: &[],
+            limits: SupervisedProcessLimits {
+                maximum_arguments: 8,
+                maximum_stdin_bytes: 1,
+                maximum_stdout_bytes: stdout,
+                maximum_stderr_bytes: stderr,
+                maximum_processes: 1,
+                maximum_child_processes: 0,
+                maximum_threads: 1,
+                maximum_descriptors: 16,
+                deadline_millis,
+                cleanup_millis: 100,
+            },
+            cancellation: SupervisedProcessCancellation::None,
+        })
+    }
+
     #[test]
     fn stdin_collection_accepts_empty_and_multiple_bounded_chunks() {
         assert_eq!(
@@ -631,5 +904,49 @@ mod tests {
         registry
             .resolve(&panel)
             .unwrap_or_else(|error| panic!("{}: {}", error.code, error.message));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn exact_argv_has_no_shell_interpretation() {
+        let injection = "$(printf injected);*;https://example.invalid";
+        let result = supervised("/usr/bin/printf", &["%s", injection], 256, 64, 500).unwrap();
+        assert_eq!(result.stdout, injection.as_bytes());
+        assert_eq!(result.terminal, SupervisedProcessTerminal::Exited(0));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn output_stderr_deadline_child_signal_and_partial_output_are_bounded() {
+        assert_eq!(
+            supervised("/usr/bin/printf", &["123456789"], 8, 64, 500),
+            Err(SupervisedProcessError::OutputOverflow)
+        );
+        assert_eq!(
+            supervised("/bin/sh", &["-c", "printf 123456789 >&2"], 64, 8, 500),
+            Err(SupervisedProcessError::StderrOverflow)
+        );
+
+        let deadline = supervised("/usr/bin/sleep", &["30"], 64, 64, 5).unwrap();
+        assert_eq!(
+            deadline.terminal,
+            SupervisedProcessTerminal::DeadlineExceeded { forced: true }
+        );
+        assert!(deadline.cleanup_complete);
+
+        let child = supervised("/bin/sh", &["-c", "sleep 30 & wait"], 64, 64, 500).unwrap();
+        assert_eq!(
+            child.terminal,
+            SupervisedProcessTerminal::ChildProcessLimitExceeded
+        );
+        assert!(child.cleanup_complete);
+
+        let signaled = supervised("/bin/sh", &["-c", "kill -TERM $$"], 64, 64, 500).unwrap();
+        assert_eq!(signaled.terminal, SupervisedProcessTerminal::Signaled);
+
+        let partial =
+            supervised("/bin/sh", &["-c", "printf partial; exit 7"], 64, 64, 500).unwrap();
+        assert_eq!(partial.stdout, b"partial");
+        assert_eq!(partial.terminal, SupervisedProcessTerminal::Exited(7));
     }
 }
