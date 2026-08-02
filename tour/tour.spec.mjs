@@ -1438,7 +1438,7 @@ test("selects a cord by authoritative identity and reveals its declaration", asy
 
   await page.locator('[data-id="greeting"]').click();
   await expect(page.locator("#selected-node-label")).toContainText(
-    "Selected planned instance: root/greeting; source origin: greeting",
+    "Selected semantic node: greeting",
   );
   await expect.poll(async () =>
     (await page.locator(".panel-source-selection").allTextContents()).join("")
@@ -1618,7 +1618,7 @@ test("routes stacked reverse cords with straight rectilinear segments", async ({
     localStorage.setItem(
       "conduit-tour-layout/welcome.hello-panel",
       JSON.stringify({
-        greeting: { x: 300, y: 280 },
+        greeting: { x: 300, y: 520 },
         output: { x: 320, y: 20 },
       }),
     );
@@ -2189,17 +2189,17 @@ test("routes cords through free space by default and keeps labels off node faces
 
   await dragNodeTo(
     "source",
-    flowBox.width / 2,
-    190,
+    flowBox.width * 0.22,
+    320,
   );
   await dragNodeTo(
     "transform",
     flowBox.width / 2,
-    60,
+    50,
   );
   await dragNodeTo(
     "sink",
-    flowBox.width / 2,
+    flowBox.width * 0.78,
     320,
   );
 

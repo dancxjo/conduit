@@ -10,7 +10,7 @@ function compareIds(left, right) {
   return 0;
 }
 
-function nodeHeight(node) {
+export function projectedNodeHeight(node) {
   const configRows = Object.keys(node.config || {}).length;
   const portRows = (node.inputs?.length || 0) + (node.outputs?.length || 0);
   const statusRows = [
@@ -18,9 +18,16 @@ function nodeHeight(node) {
     node.placement,
     node.activity,
   ].filter(Boolean).length;
+  const plannedRows = node.plannedBinding
+    ? 10 + (node.plannedBinding.resources?.length || 0) +
+      (node.plannedBinding.authorities?.length || 0)
+    : 0;
+  const semanticPromiseRows = node.plannedBinding ? 0 : 2 + portRows;
+  const diagnosticRows = node.diagnosticAnchors?.length || 0;
   return Math.max(
     118,
-    76 + configRows * 38 + portRows * 38 + (statusRows > 0 ? 46 : 0),
+    76 + configRows * 38 + portRows * 38 + (statusRows > 0 ? 46 : 0) +
+      plannedRows * 60 + semanticPromiseRows * 70 + diagnosticRows * 38,
   );
 }
 
@@ -205,7 +212,7 @@ function componentLayout(nodes, cords, view) {
           x: LEFT_MARGIN + rank * (NODE_WIDTH + LAYER_GAP),
           y: Math.round(y),
         });
-        y += nodeHeight(nodeById.get(nodeId)) + NODE_GAP;
+        y += projectedNodeHeight(nodeById.get(nodeId)) + NODE_GAP;
       }
     }
   });
@@ -221,7 +228,13 @@ export function autoArrangeOperations(viewModel, view = "logical") {
   // Expanded is an immutable plan projection. Its layout is renderer-local
   // and cannot emit semantic/presentation transactions for planned instances.
   if (view !== "logical") return [];
-  const nodes = viewModel?.topology?.logical_nodes || [];
+  const diagnosticAnchors = viewModel?.topology?.diagnostic_anchors || [];
+  const nodes = (viewModel?.topology?.logical_nodes || []).map((node) => ({
+    ...node,
+    diagnosticAnchors: diagnosticAnchors.filter(
+      (anchor) => anchor.owner_node === node.id,
+    ),
+  }));
   const cords = viewModel?.topology?.cords || [];
   const positions = componentLayout(nodes, cords, view);
   const maximumNodes = Math.min(

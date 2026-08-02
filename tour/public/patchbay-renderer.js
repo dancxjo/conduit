@@ -8,6 +8,7 @@
 import { FaceplateNodeComponent } from "./patchbay-faceplate.js";
 import { patchbayFeatures } from "./patchbay-features.js";
 import { PatchbayCordEdge } from "./patchbay-cord-edge.js";
+import { projectedNodeHeight } from "./patchbay-layout.js";
 
 const e = window.React.createElement;
 
@@ -542,6 +543,25 @@ export class PatchbayReactFlowRenderer {
           diagnosticAnchors.some((anchor) => anchor.id === target.node))
       );
     const nodePositions = viewModel.presentation?.node_positions || {};
+    const projectedNodeHeights = new Map(projectedNodes.map((node) => [
+      node.id,
+      projectedNodeHeight({
+        ...node,
+        diagnosticAnchors: diagnosticAnchors.filter(
+          (anchor) => anchor.owner_node === node.id,
+        ),
+      }),
+    ]));
+    const defaultNodePositions = new Map();
+    const nextDefaultY = [40, 40];
+    projectedNodes.forEach((node, index) => {
+      const column = index % 2;
+      defaultNodePositions.set(node.id, {
+        x: 32 + column * 640,
+        y: nextDefaultY[column],
+      });
+      nextDefaultY[column] += projectedNodeHeights.get(node.id) + 80;
+    });
     const positionForNode = (nodeId, index) => {
       if (this.topologyView === "expanded") {
         // Planned faceplates carry substantially more exact facts. A stable
@@ -549,41 +569,20 @@ export class PatchbayReactFlowRenderer {
         // without creating presentation transactions for plan instances.
         return { x: 32 + index * 520, y: 40 };
       }
-      return nodePositions[nodeId] || {
-        x: 32 + (index % 2) * 640,
-        y: 40 + Math.floor(index / 2) * 280,
-      };
+      return nodePositions[nodeId] || defaultNodePositions.get(nodeId);
     };
 
     const compositeIds = new Set(
       (viewModel.topology?.composites || []).map((composite) => composite.id),
     );
     const nodes = projectedNodes.map((node, index) => {
-      const configRows = Object.keys(node.config || {}).length;
-      const portRows = (node.inputs?.length || 0) + (node.outputs?.length || 0);
-      const statusRows = [
-        node.availability,
-        node.placement,
-        node.activity,
-      ].filter(Boolean).length;
-      const plannedRows = node.plannedBinding
-        ? 10 + (node.plannedBinding.resources?.length || 0) +
-          (node.plannedBinding.authorities?.length || 0)
-        : 0;
-      const semanticPromiseRows = node.plannedBinding ? 0 : 2 + portRows;
-      const nodeHeight = Math.max(
-        118,
-        76 + configRows * 38 + portRows * 38 + (statusRows > 0 ? 46 : 0) +
-          plannedRows * 34 + semanticPromiseRows * 30,
-      );
       return {
         id: node.id,
         type: "faceplate",
         position: positionForNode(node.id, index),
         className: "react-flow-node-shell",
         width: 350,
-        height: nodeHeight,
-        style: { width: 350, height: nodeHeight },
+        style: { width: 350 },
         data: {
         ...node,
         title: node.id,
@@ -625,14 +624,21 @@ export class PatchbayReactFlowRenderer {
         selectable: true,
       };
     });
+    const diagnosticAnchorTop = nodes.reduce(
+      (bottom, node) => Math.max(
+        bottom,
+        node.position.y + projectedNodeHeights.get(node.id),
+      ),
+      40,
+    ) + 80;
     const standaloneAnchors = diagnosticAnchors
       .filter((anchor) => !anchor.owner_node || !projectedNodeIds.has(anchor.owner_node))
       .map((anchor, index) => ({
         id: anchor.id,
         type: "diagnosticAnchor",
         position: {
-          x: 450 + (index % 2) * 300,
-          y: 130 + Math.floor(index / 2) * 130,
+          x: 32 + (index % 2) * 400,
+          y: diagnosticAnchorTop + Math.floor(index / 2) * 130,
         },
         data: anchor,
         draggable: false,
