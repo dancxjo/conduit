@@ -311,7 +311,10 @@ containment program is tracked by
 - [`083-bounded-quick-local-chat.md`](083-bounded-quick-local-chat.md) defines
   one bounded domain chat contract with deterministic and observed local
   implementations on the generic host-observation and exact-binding path.
-- [`084-task-facing-fronts.md`](084-task-facing-fronts.md) defines bounded
+- [`084-audited-robotics-profiles.md`](084-audited-robotics-profiles.md)
+  defines one effect-free robotics profile implemented by distinct Linux and
+  Pico W describe-only hosts through the generic host-conformance path.
+- [`085-task-facing-fronts.md`](085-task-facing-fronts.md) defines bounded
   presentation metadata checked against explicit exported controls, actions,
   and exact semantic result identities.
 - [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
