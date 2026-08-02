@@ -2853,7 +2853,13 @@ test("quick-local chat keeps one contract separate from its exact provider", asy
     '"event_kind": "terminal"',
   );
   await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+});
 
+test("quick-local chat runs its result inspection composition", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=library.bounded-quick-local-chat",
+  );
+  const result = page.locator("#result");
   await page.locator("#scenario").selectOption(
     "quick-local-chat-result-composition",
   );
@@ -2963,7 +2969,13 @@ test("cited claim graph keeps source support on each traversed edge", async ({ p
     '"event_kind": "terminal"',
   );
   await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+});
 
+test("cited claim graph runs its text composition", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=library.bounded-knowledge-graph",
+  );
+  const result = page.locator("#result");
   await page.locator("#scenario").selectOption("graph-text-composition");
   await page.locator("#run").click();
   await expect(result).toContainText(
