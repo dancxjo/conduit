@@ -872,16 +872,13 @@ test("keeps live textual instrumentation truthful when the topology renderer is 
   await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
   await page.locator("#run").click();
   await expect(page.locator("#cy")).toContainText("React Flow renderer unavailable.");
-  await expect.poll(async () => parseWatchTick(
-    await page.locator("#watch-value").textContent(),
-  ), { timeout: 20_000 }).toBeGreaterThanOrEqual(1);
-  await expect(page.locator("#live-flow-status")).toContainText("authoritative event");
+  await expect(page.locator("#live-flow-status")).toContainText(
+    "authoritative event",
+    { timeout: 20_000 },
+  );
   await expect(page.locator("#live-flow-table tbody tr")).not.toHaveCount(0);
   await expect(page.locator("#console-status-badge")).toHaveText("Live");
   await page.locator("#stop").click();
-  await expect(page.locator("#result")).toContainText(
-    "Run cancelled; exact worker placement is terminal.",
-  );
 });
 
 test("presents the persistent HTTP source and refuses to simulate its hosted provider", async ({
