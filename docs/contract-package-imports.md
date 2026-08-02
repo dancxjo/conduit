@@ -8,10 +8,10 @@ import conduit.dev/std/{tee, gate as valve}
 import knowledge.dev/retrieval as knowledge
 import example.dev/parts as parts
 
-node branch : tee
-node permit : valve
-node lookup : knowledge
-node inspect : parts.probe
+branch: tee
+permit: valve
+lookup: knowledge
+inspect: parts.probe
 ```
 
 `tee`, `valve`, `knowledge`, and `parts.probe` are local source names. A

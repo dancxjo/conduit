@@ -1,7 +1,7 @@
 # One bounded connected UDP loopback exchange; datagram boundaries are retained.
 panel 0
 
-node socket : conduit.host/net/udp/connected {
+socket: conduit.host/net/udp/connected {
     network_resource = secret("conduit.resource/socket-loopback")
     target_grant = secret("conduit.grant/socket-udp-connected")
     local = "127.0.0.1:0"

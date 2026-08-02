@@ -52,7 +52,7 @@ The semantic path identifies the logical or expanded instance when known.
 Causal codes retain the lower-level compatibility, authority, flow, or
 provider reason without embedding its English display.
 
-For `microphone.audio -> tts.text`, `CND-TYP-001` points primarily at the cord,
+For `microphone.audio > tts.text`, `CND-TYP-001` points primarily at the cord,
 relates both port declarations, carries `audio.pcm` and `text.utf8` as public
 contract arguments, and retains the exact compatibility cause. It proposes an
 adapter only when the caller supplies an explicitly known adapter and edit.
@@ -93,7 +93,7 @@ source themselves. A stale fix remains diagnostic data and MUST NOT be applied.
 
 current form adapters provide actionable fixes for at least these common mistakes:
 
-1. missing cord arrow;
+1. missing graph `>` operator;
 2. unsupported panel grammar version;
 3. trailing collection comma;
 4. directly authored protected material where a secret reference is required;
@@ -140,7 +140,7 @@ fail closed.
 Example:
 
 ```json
-{"schema_version":0,"code":"CND-SRC-001","severity":"error","message":"expected `->`","primary":{"document_id":"stdin","content_hash":"sha256:...","byte_start":19,"byte_end":20,"line":2,"column":12,"end_line":2,"end_column":13}}
+{"schema_version":0,"code":"CND-SRC-001","severity":"error","message":"expected graph `>`","primary":{"document_id":"stdin","content_hash":"sha256:...","byte_start":19,"byte_end":20,"line":2,"column":12,"end_line":2,"end_column":13}}
 ```
 
 Object member order is not semantic. The hosted encoder has stable struct order

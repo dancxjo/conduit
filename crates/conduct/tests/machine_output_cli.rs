@@ -124,11 +124,11 @@ fn finite_results_and_run_records_are_versioned_structured_values() {
         .take()
         .unwrap()
         .write_all(
-            b"panel 0\nnode message : std/literal { value = \"semantic error\\n\" }\n\
-              node encoded : std/data/encode-utf8 { codec = ref(\"conduit.codec/utf-8\") codec_schema_version = 0 codec_hash = bytes(\"f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53\") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }\n\
-              node sink : io/stderr\n\
-              cord message.value -> encoded.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n\
-              cord encoded.bytes -> sink.bytes { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
+            b"panel 0\nmessage: std/literal { value = \"semantic error\\n\" }\n\
+              encoded: std/data/encode-utf8 { codec = ref(\"conduit.codec/utf-8\") codec_schema_version = 0 codec_hash = bytes(\"f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53\") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }\n\
+              sink: io/stderr\n\
+              message.value > encoded.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n\
+              encoded.bytes > sink.bytes { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n",
         )
         .unwrap();
     let output = child.wait_with_output().unwrap();
@@ -219,7 +219,7 @@ fn every_result_and_diagnostic_format_combination_keeps_streams_separate() {
                         .stdin
                         .take()
                         .unwrap()
-                        .write_all(b"panel 0\ncord missing.value absent.text\n")?;
+                        .write_all(b"panel 0\nmissing.value absent.text\n")?;
                     child.wait_with_output()
                 })
                 .unwrap();
@@ -287,7 +287,7 @@ fn quiet_verbosity_and_malformed_options_preserve_required_output() {
                 .stdin
                 .take()
                 .unwrap()
-                .write_all(b"panel 0\ncord a.value b.text\n")?;
+                .write_all(b"panel 0\na.value b.text\n")?;
             child.wait_with_output()
         })
         .unwrap();

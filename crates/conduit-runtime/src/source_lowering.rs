@@ -908,7 +908,14 @@ pub fn lower_topology(
     for module in &graph.modules {
         let uri = &module.canonical_uri;
         for cord in &module.panel.cords {
-            let lowered = lower_cord(cord, uri, uri, &module.content_hash);
+            let lowered = lower_cord(
+                cord,
+                &module.panel.nodes,
+                catalog,
+                uri,
+                uri,
+                &module.content_hash,
+            )?;
             source_map.push(SourceMapEntry {
                 semantic_path: lowered.path.clone(),
                 origins: vec![lowered.origin.clone()],
@@ -959,7 +966,14 @@ pub fn lower_topology(
                 });
             }
             for cord in &definition.cords {
-                let lowered = lower_cord(cord, &composite_path, uri, &module.content_hash);
+                let lowered = lower_cord(
+                    cord,
+                    &definition.nodes,
+                    catalog,
+                    &composite_path,
+                    uri,
+                    &module.content_hash,
+                )?;
                 source_map.push(SourceMapEntry {
                     semantic_path: lowered.path.clone(),
                     origins: vec![lowered.origin.clone()],
@@ -1725,13 +1739,32 @@ fn lower_root_selection(
 
 fn lower_cord(
     cord: &conduit_panel::Cord,
+    nodes: &[conduit_panel::Node],
+    catalog: &impl SourceContractCatalog,
     scope: &str,
     uri: &str,
     module_hash: &str,
-) -> LoweredCord {
+) -> Result<LoweredCord, LoweringDiagnostic> {
     let path = format!("{scope}/cord/{}", cord.id);
-    let from = format!("{scope}/node/{}/port/{}", cord.from.node, cord.from.port);
-    let to = format!("{scope}/node/{}/port/{}", cord.to.node, cord.to.port);
+    let cord_origin = origin(uri, module_hash, cord.source_span);
+    let from_port = resolve_endpoint_port(
+        &cord.from,
+        Direction::Output,
+        nodes,
+        catalog,
+        &path,
+        &cord_origin,
+    )?;
+    let to_port = resolve_endpoint_port(
+        &cord.to,
+        Direction::Input,
+        nodes,
+        catalog,
+        &path,
+        &cord_origin,
+    )?;
+    let from = format!("{scope}/node/{}/port/{from_port}", cord.from.node);
+    let to = format!("{scope}/node/{}/port/{to_port}", cord.to.node);
     let pressure = pressure_identity(&cord.pressure);
     let numeric = [
         cord.capacity_items.to_string(),
@@ -1754,7 +1787,7 @@ fn lower_cord(
             &pressure,
         ],
     );
-    LoweredCord {
+    Ok(LoweredCord {
         path,
         from,
         to,
@@ -1765,7 +1798,85 @@ fn lower_cord(
         high_watermark_items: cord.high_watermark_items,
         pressure: cord.pressure.clone(),
         semantic_hash,
-        origin: origin(uri, module_hash, cord.source_span),
+        origin: cord_origin,
+    })
+}
+
+fn resolve_endpoint_port(
+    endpoint: &conduit_panel::Endpoint,
+    direction: Direction,
+    nodes: &[conduit_panel::Node],
+    catalog: &impl SourceContractCatalog,
+    path: &str,
+    cord_origin: &SourceOrigin,
+) -> Result<String, LoweringDiagnostic> {
+    if !endpoint.port.is_empty() {
+        return Ok(endpoint.port.clone());
+    }
+    let node = nodes
+        .iter()
+        .find(|candidate| candidate.id == endpoint.node)
+        .ok_or_else(|| {
+            diagnostic(
+                "CND-LWR-016",
+                path,
+                None,
+                Some(cord_origin.clone()),
+                format!("bare endpoint names unknown node `{}`", endpoint.node),
+            )
+        })?;
+    let mut contracts = Vec::new();
+    if let Some(contract) = catalog.interface_contract(&node.kind) {
+        contracts.push(contract);
+    }
+    for claim in &node.implements {
+        if claim.interface != node.kind {
+            if let Some(contract) = catalog.interface_contract(&claim.interface) {
+                contracts.push(contract);
+            }
+        }
+    }
+    let mut projected = contracts
+        .iter()
+        .filter_map(|contract| {
+            contract
+                .project_principal(direction)
+                .ok()
+                .map(|member| (contract.id.as_str(), member.id.as_str()))
+        })
+        .collect::<Vec<_>>();
+    projected.sort_unstable();
+    projected.dedup();
+    match projected.as_slice() {
+        [(_, port)] => Ok((*port).to_owned()),
+        [] => Err(diagnostic(
+            "CND-LWR-016",
+            path,
+            None,
+            Some(cord_origin.clone()),
+            format!(
+                "node `{}` has no descriptor-backed principal {} endpoint; spell a named port",
+                endpoint.node,
+                match direction {
+                    Direction::Input => "receiving",
+                    Direction::Output => "outgoing",
+                }
+            ),
+        )),
+        _ => Err(diagnostic(
+            "CND-LWR-016",
+            path,
+            None,
+            Some(cord_origin.clone()),
+            format!(
+                "node `{}` has ambiguous principal {} endpoints; spell a named port",
+                endpoint.node,
+                match direction {
+                    Direction::Input => "receiving",
+                    Direction::Output => "outgoing",
+                }
+            ),
+        )),
     }
 }
 

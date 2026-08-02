@@ -14,14 +14,14 @@ const SOURCE: &str = include_str!("../../../examples/text-lines-join.panel");
 fn maximum_branch(name: &str, value: &str, separator: &str) -> String {
     format!(
         r#"
-node chunks_{name} : std/literal {{
+chunks_{name}: std/literal {{
     value = "{value}"
 }}
-node lines_{name} : std/text/lines {{
+lines_{name}: std/text/lines {{
     maximum_line_bytes = 1024
     maximum_retained_prefix_bytes = 1024
 }}
-node joined_{name} : std/text/join {{
+joined_{name}: std/text/join {{
     separator = "{separator}"
     maximum_items = 8
     maximum_item_bytes = 1024
@@ -29,7 +29,7 @@ node joined_{name} : std/text/join {{
     maximum_output_bytes = 4096
 }}
 
-cord chunks_{name}.value -> lines_{name}.text {{
+chunks_{name}.value > lines_{name}.text {{
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096
@@ -37,7 +37,7 @@ cord chunks_{name}.value -> lines_{name}.text {{
     high_watermark = 1
     pressure = block
 }}
-cord lines_{name}.line -> joined_{name}.item {{
+lines_{name}.line > joined_{name}.item {{
     capacity = 8
     max_value_bytes = 1024
     max_queued_bytes = 8192
@@ -50,9 +50,9 @@ cord lines_{name}.line -> joined_{name}.item {{
 }
 
 const MAXIMUM_OUTPUT: &str = r#"
-node encoded : std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
-node output : io/stdout
-cord joined_a.text -> encoded.text {
+encoded: std/data/encode-utf8 { codec = ref("conduit.codec/utf-8") codec_schema_version = 0 codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53") maximum_input_bytes = 4096 maximum_output_bytes = 4096 }
+output: io/stdout
+joined_a.text > encoded.text {
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096
@@ -60,7 +60,7 @@ cord joined_a.text -> encoded.text {
     high_watermark = 1
     pressure = block
 }
-cord encoded.bytes -> output.bytes {
+encoded.bytes > output.bytes {
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096

@@ -5,16 +5,16 @@
     {
       "id": "single-file-parse",
       "class": "parser",
-      "source_hex": "70616e656c20310a636f726420612e6f757420622e696e0a",
+      "source_hex": "70616e656c20300a612e76616c756520622e746578740a",
       "diagnostic": {
         "schema_version": 0,
         "code": "CND-SRC-001",
         "severity": "error",
-        "message": "expected `->`",
-        "primary": {"document_id": "mem://fixture/root.panel", "byte_start": 21, "byte_end": 22, "line": 2, "column": 12, "end_line": 2, "end_column": 13},
-        "help": "insert the missing cord arrow"
+        "message": "expected graph `>`",
+        "primary": {"document_id": "mem://fixture/root.panel", "byte_start": 16, "byte_end": 17, "line": 2, "column": 9, "end_line": 2, "end_column": 10},
+        "help": "insert the missing graph operator"
       },
-      "expected": {"plain_contains": "expected `->`", "verbose_contains": "bytes 21..22", "color_ansi": true, "fix_status": "none"}
+      "expected": {"plain_contains": "expected graph `>`", "verbose_contains": "bytes 16..17", "color_ansi": true, "fix_status": "none"}
     },
     {
       "id": "multi-file-name",

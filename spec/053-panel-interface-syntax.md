@@ -33,11 +33,11 @@ Example:
 panel 0
 
 interface speech/recognizer {
-    > audio : audio/pcm-stream
-    > cancel : conduit/cancellation
-    partial > : speech/transcript-delta optional
-    final > : speech/transcript
-    fault > : speech/asr-fault
+    > audio: audio/pcm-stream
+    > cancel: conduit/cancellation
+    partial >: speech/transcript-delta optional
+    final >: speech/transcript
+    fault >: speech/asr-fault
 }
 ```
 
@@ -50,7 +50,7 @@ Within an `interface` declaration, the combination of `(direction, member_id)` m
 
 ### Implements reference syntax
 
-`implements` claims may be authored on composite definitions and node instances:
+`implements` claims may be authored on composite definitions and instances:
 
 ```ebnf
 CompositeDefinition ::= ("node" | "composite") Word [ParameterList] [ImplementsClause] "{" DefinitionBody "}"
@@ -62,10 +62,10 @@ Examples:
 ```panel
 panel 0
 
-node local : tongues/whisper implements speech/recognizer
+local: tongues/whisper implements speech/recognizer
 
-node moderated() implements speech/recognizer {
-    node child : tongues/whisper
+moderated() implements speech/recognizer {
+    child: tongues/whisper
     export > audio = child.audio
     export > cancel = child.cancel
     export partial > = child.partial

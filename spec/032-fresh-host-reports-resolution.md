@@ -62,7 +62,7 @@ topology predicates, and one resolver policy (`RES-001`). Implementation
 manifest pins provide the contract, executor, artifacts, execution profile,
 interfaces, authority/effect requirements, and supported versions. Hosted
 predicates refine current mode, subject, detail, topology, and capacity
-requirements without changing semantic node identity (`RES-002`).
+requirements without changing semantic identity(`RES-002`).
 
 Every implementation manifest, artifact manifest, and report is validated
 before selection (`RES-003`). Required artifacts, target, ABI, executor,

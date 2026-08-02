@@ -1,13 +1,13 @@
 panel 0
 
-node document : knowledge/document/literal {
+document: knowledge/document/literal {
   fixture = "conduit-origin"
   source_identity = "sha256:6161616161616161616161616161616161616161616161616161616161616161"
   revision_identity = "sha256:6262626262626262626262626262626262626262626262626262626262626262"
   maximum_document_bytes = 256
   access_scope = "public"
 }
-node index : knowledge/index/fixture {
+index: knowledge/index/fixture {
   index_identity = "sha256:6363636363636363636363636363636363636363636363636363636363636363"
   embedding_identity = "sha256:6464646464646464646464646464646464646464646464646464646464646464"
   embedding_dimensions = 4
@@ -15,26 +15,26 @@ node index : knowledge/index/fixture {
   maximum_retained_bytes = 1024
   maximum_work = 4096
 }
-node query : knowledge/query/literal { fixture = "exact plans" maximum_query_bytes = 64 }
-node retrieve : knowledge/retrieve {
+query: knowledge/query/literal { fixture = "exact plans" maximum_query_bytes = 64 }
+retrieve: knowledge/retrieve {
   index_identity = "sha256:6363636363636363636363636363636363636363636363636363636363636363"
   embedding_identity = "sha256:6464646464646464646464646464646464646464646464646464646464646464"
   embedding_dimensions = 4 maximum_results = 1 maximum_context_bytes = 256 maximum_work = 4096
 }
-node rerank : knowledge/rerank {
+rerank: knowledge/rerank {
   reranker_identity = "sha256:6565656565656565656565656565656565656565656565656565656565656565"
   maximum_results = 1 maximum_work = 4096
 }
-node cite : knowledge/citation/assemble
-node inspect : knowledge/citation/inspect
-node uppercase : text/uppercase
-node output : display/text
+cite: knowledge/citation/assemble
+inspect: knowledge/citation/inspect
+uppercase: text/uppercase
+output: display/text
 
-cord document.document -> index.document { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
-cord index.index -> retrieve.index { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
-cord query.query -> retrieve.query { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord retrieve.results -> rerank.results { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
-cord rerank.results -> cite.results { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
-cord cite.citation -> inspect.citation { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
-cord inspect.summary -> uppercase.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
-cord uppercase.text -> output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+document.document > index.document { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
+index.index > retrieve.index { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }
+query.query > retrieve.query { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+retrieve.results > rerank.results { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
+rerank.results > cite.results { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
+cite.citation > inspect.citation { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }
+inspect.summary > uppercase.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+uppercase.text > output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }

@@ -252,7 +252,7 @@ fn help_version_and_conflict_snapshots_are_exact_at_representative_widths() {
 fn parser_and_argument_failures_support_lossless_json_with_clean_stdout() {
     let parser = output_with_stdin(
         &["--check", "--diagnostic-format=json", "-"],
-        b"panel 0\ncord a.value b.text\n",
+        b"panel 0\na.value b.text\n",
     );
     assert!(!parser.status.success());
     assert!(parser.stdout.is_empty());

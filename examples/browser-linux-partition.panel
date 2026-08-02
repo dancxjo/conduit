@@ -2,13 +2,13 @@
 # browser AudioWorklet profile and speech on an exact Linux remote endpoint.
 panel 0
 
-node media : std/literal {
+media: std/literal {
     value = "browser media frame\n"
 }
-node preprocess : text/uppercase
-node speech : display/text
+preprocess: text/uppercase
+speech: display/text
 
-cord media.value -> preprocess.text {
+media.value > preprocess.text {
     capacity = 2
     max_value_bytes = 4096
     max_queued_bytes = 8192
@@ -16,7 +16,7 @@ cord media.value -> preprocess.text {
     high_watermark = 2
     pressure = block
 }
-cord preprocess.text -> speech.text {
+preprocess.text > speech.text {
     capacity = 4
     max_value_bytes = 4096
     max_queued_bytes = 16384

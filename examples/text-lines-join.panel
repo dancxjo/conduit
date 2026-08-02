@@ -1,29 +1,29 @@
 panel 0
 
-node chunks : std/literal {
+chunks: std/literal {
     value = "alpha\r\nbeta\n\ngamma"
 }
-node lines : std/text/lines {
+lines: std/text/lines {
     maximum_line_bytes = 1024
     maximum_retained_prefix_bytes = 1024
 }
-node joined : std/text/join {
+joined: std/text/join {
     separator = " | "
     maximum_items = 8
     maximum_item_bytes = 1024
     maximum_separator_bytes = 64
     maximum_output_bytes = 4096
 }
-node encoded : std/data/encode-utf8 {
+encoded: std/data/encode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 4096
     maximum_output_bytes = 4096
 }
-node output : io/stdout
+output: io/stdout
 
-cord chunks.value -> lines.text {
+chunks.value > lines.text {
     capacity = 1
     max_value_bytes = 1024
     max_queued_bytes = 1024
@@ -31,7 +31,7 @@ cord chunks.value -> lines.text {
     high_watermark = 1
     pressure = block
 }
-cord lines.line -> joined.item {
+lines.line > joined.item {
     capacity = 8
     max_value_bytes = 1024
     max_queued_bytes = 8192
@@ -39,7 +39,7 @@ cord lines.line -> joined.item {
     high_watermark = 8
     pressure = block
 }
-cord joined.text -> encoded.text {
+joined.text > encoded.text {
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096
@@ -48,7 +48,7 @@ cord joined.text -> encoded.text {
     pressure = block
 }
 
-cord encoded.bytes -> output.bytes {
+encoded.bytes > output.bytes {
     capacity = 1
     max_value_bytes = 4096
     max_queued_bytes = 4096

@@ -1,7 +1,7 @@
 # Read one bounded chunk from an opaque provider-owned file resource.
 panel 0
 
-node reader : fs/read {
+reader: fs/read {
     resource = secret("conduit.resource/filesystem-example-read")
     grant = secret("conduit.grant/filesystem-read")
     offset = 0

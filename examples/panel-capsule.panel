@@ -1,11 +1,11 @@
 panel 0
 
-node lesson : std/literal {
+lesson: std/literal {
     value = "PROGRAM, PLAN, LIVE STATE, AND EVIDENCE STAY DISTINCT.\n"
 }
-node output : display/text
+output: display/text
 
-cord lesson.value -> output.text {
+lesson.value > output.text {
     capacity = 1
     max_value_bytes = 128
     max_queued_bytes = 128

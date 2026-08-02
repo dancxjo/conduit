@@ -2,20 +2,20 @@ panel 0
 
 # One immutable epoch stays live because the admitted ticker keeps producing
 # exact pulses. The LFO is a typed control, never a hidden configuration edit.
-node clock : time/ticker { duration_ticks = 1000 time_basis = ref("conduit.clock/monotonic-ticks") maximum_pending = 1 }
-node pulse : conduit.media/event/from-ticker
-node lfo : conduit.media/control/lfo { shape = "triangle" minimum = 0 maximum = 1024 period_ticks = 8 startup_phase = 0 discontinuity = "reset-phase" }
-node modulation : conduit.media/control/tee
-node audio : conduit.media/audio/from-control { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" sample_rate_hz = 48000 layout = "stereo-lr" frames_per_control = 8 maximum_work = 16 }
-node gain : conduit.media/audio/controlled-gain { numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" control_mapping = "unipolar-0-1024-to-q15-0-32768" maximum_frames = 8 maximum_work = 16 }
-node meter : conduit.media/audio/meter { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" window_basis = "input-frame-clock" window_frames = 8 peak = "absolute-s16" rms = "integer-sqrt-mean-square" cadence_frames = 8 latency_frames = 0 maximum_retained_samples = 0 maximum_side_outputs = 1 maximum_work = 16 }
-node level_drain : flow/discard
+clock: time/ticker { duration_ticks = 1000 time_basis = ref("conduit.clock/monotonic-ticks") maximum_pending = 1 }
+pulse: conduit.media/event/from-ticker
+lfo: conduit.media/control/lfo { shape = "triangle" minimum = 0 maximum = 1024 period_ticks = 8 startup_phase = 0 discontinuity = "reset-phase" }
+modulation: conduit.media/control/tee
+audio: conduit.media/audio/from-control { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" sample_rate_hz = 48000 layout = "stereo-lr" frames_per_control = 8 maximum_work = 16 }
+gain: conduit.media/audio/controlled-gain { numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" control_mapping = "unipolar-0-1024-to-q15-0-32768" maximum_frames = 8 maximum_work = 16 }
+meter: conduit.media/audio/meter { lifecycle = "standing" numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact" window_basis = "input-frame-clock" window_frames = 8 peak = "absolute-s16" rms = "integer-sqrt-mean-square" cadence_frames = 8 latency_frames = 0 maximum_retained_samples = 0 maximum_side_outputs = 1 maximum_work = 16 }
+level_drain: flow/discard
 
-cord clock.tick -> pulse.tick { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }
-cord pulse.event -> lfo.event { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord lfo.control -> modulation.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord modulation.left -> audio.level { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord modulation.right -> gain.gain { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
-cord audio.frame -> gain.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
-cord gain.frame -> meter.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
-cord meter.level -> level_drain.item { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+clock.tick > pulse.tick { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }
+pulse.event > lfo.event { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+lfo.control > modulation.control { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+modulation.left > audio.level { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+modulation.right > gain.gain { capacity = 1 max_value_bytes = 16 max_queued_bytes = 16 low_watermark = 0 high_watermark = 1 pressure = block }
+audio.frame > gain.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+gain.frame > meter.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+meter.level > level_drain.item { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }

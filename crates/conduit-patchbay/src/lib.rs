@@ -2416,7 +2416,7 @@ fn canonical_cord_source(
     bounds: &CordEditBounds,
 ) -> String {
     format!(
-        "\ncord {from_node}.{from_port} -> {to_node}.{to_port} {{\n    capacity = {}\n    max_value_bytes = {}\n    max_queued_bytes = {}\n    low_watermark = {}\n    high_watermark = {}\n    pressure = {}\n}}\n",
+        "\n{from_node}.{from_port} > {to_node}.{to_port} {{\n    capacity = {}\n    max_value_bytes = {}\n    max_queued_bytes = {}\n    low_watermark = {}\n    high_watermark = {}\n    pressure = {}\n}}\n",
         bounds.capacity_items,
         bounds.max_value_bytes,
         bounds.max_queued_bytes,

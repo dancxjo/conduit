@@ -67,28 +67,28 @@
       "id": "canonical-diagnostic-flags",
       "runner": "process",
       "args": ["--check", "--diagnostic-format=json", "--color=never", "--verbose-diagnostics", "-"],
-      "stdin": "panel 0\ncord a.value b.text\n",
+      "stdin": "panel 0\na.value b.text\n",
       "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-SRC-001", "ansi": false}
     },
     {
       "id": "concise-human-diagnostic",
       "runner": "process",
       "args": ["--check", "--color=never", "-"],
-      "stdin": "panel 0\ncord a.value b.text\n",
+      "stdin": "panel 0\na.value b.text\n",
       "expected": {"exit": 2, "stdout": "empty", "stderr_contains": "error[CND-SRC-001]", "ansi": false}
     },
     {
       "id": "verbose-human-diagnostic",
       "runner": "process",
       "args": ["--check", "--color=never", "--verbose-diagnostics", "-"],
-      "stdin": "panel 0\ncord a.value b.text\n",
-      "expected": {"exit": 2, "stdout": "empty", "stderr_contains": "bytes 21..22", "ansi": false}
+      "stdin": "panel 0\na.value b.text\n",
+      "expected": {"exit": 2, "stdout": "empty", "stderr_contains": "bytes 16..17", "ansi": false}
     },
     {
       "id": "diagnostic-json-clean-stdout",
       "runner": "process",
       "args": ["--check", "--diagnostic-format=json", "-"],
-      "stdin": "panel 0\ncord a.value b.text\n",
+      "stdin": "panel 0\na.value b.text\n",
       "expected": {"exit": 2, "stdout": "empty", "stderr_code": "CND-SRC-001"}
     },
     {

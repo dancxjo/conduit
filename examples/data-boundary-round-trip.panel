@@ -1,16 +1,16 @@
 panel 0
 
-node message : std/literal {
+message: std/literal {
     value = "representation boundaries stay explicit"
 }
-node encoded : std/data/encode-utf8 {
+encoded: std/data/encode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 64
     maximum_output_bytes = 64
 }
-node framed : std/data/frame-length-u32be {
+framed: std/data/frame-length-u32be {
     framing = ref("conduit.framing/length-u32be")
     framing_schema_version = 0
     framing_hash = bytes("a24b8ff5687421303d44d89afcabe9f7941464414785134fb9e74a320214a6b8")
@@ -18,7 +18,7 @@ node framed : std/data/frame-length-u32be {
     maximum_partial_bytes = 68
     maximum_output_bytes = 68
 }
-node deframed : std/data/deframe-length-u32be {
+deframed: std/data/deframe-length-u32be {
     framing = ref("conduit.framing/length-u32be")
     framing_schema_version = 0
     framing_hash = bytes("a24b8ff5687421303d44d89afcabe9f7941464414785134fb9e74a320214a6b8")
@@ -26,16 +26,16 @@ node deframed : std/data/deframe-length-u32be {
     maximum_partial_bytes = 68
     maximum_output_bytes = 64
 }
-node decoded : std/data/decode-utf8 {
+decoded: std/data/decode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 64
     maximum_output_bytes = 64
 }
-node display : display/text
+display: display/text
 
-cord message.value -> encoded.text {
+message.value > encoded.text {
     capacity = 1
     max_value_bytes = 64
     max_queued_bytes = 64
@@ -43,7 +43,7 @@ cord message.value -> encoded.text {
     high_watermark = 1
     pressure = block
 }
-cord encoded.bytes -> framed.payload {
+encoded.bytes > framed.payload {
     capacity = 1
     max_value_bytes = 64
     max_queued_bytes = 64
@@ -51,7 +51,7 @@ cord encoded.bytes -> framed.payload {
     high_watermark = 1
     pressure = block
 }
-cord framed.bytes -> deframed.chunk {
+framed.bytes > deframed.chunk {
     capacity = 1
     max_value_bytes = 68
     max_queued_bytes = 68
@@ -59,7 +59,7 @@ cord framed.bytes -> deframed.chunk {
     high_watermark = 1
     pressure = block
 }
-cord deframed.payload -> decoded.bytes {
+deframed.payload > decoded.bytes {
     capacity = 1
     max_value_bytes = 64
     max_queued_bytes = 64
@@ -67,7 +67,7 @@ cord deframed.payload -> decoded.bytes {
     high_watermark = 1
     pressure = block
 }
-cord decoded.text -> display.text {
+decoded.text > display.text {
     capacity = 1
     max_value_bytes = 64
     max_queued_bytes = 64

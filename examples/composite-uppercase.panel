@@ -1,10 +1,10 @@
 panel 0
 
-composite example/upper-line {
-    node source : std/literal
-    node upper : text/uppercase
+example/upper-line {
+    source: std/literal
+    upper: text/uppercase
 
-    cord source.value -> upper.text {
+    source.value > upper.text {
         capacity = 2
         max_value_bytes = 1024
         max_queued_bytes = 2048
@@ -17,12 +17,12 @@ composite example/upper-line {
     bind value = source.value
 }
 
-node line : example/upper-line {
+line: example/upper-line {
     value = "Composite nodes stay ordinary."
 }
-node output : display/text
+output: display/text
 
-cord line.text -> output.text {
+line.text > output.text {
     capacity = 2
     max_value_bytes = 1024
     max_queued_bytes = 2048

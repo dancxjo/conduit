@@ -1,7 +1,7 @@
 use conduit_capsule::{ArtifactReference, CapsuleDocument, InlineDocument};
 use conduit_patchbay::Workspace;
 
-const SOURCE: &str = "panel 0\nnode message : std/literal { value = \"capsule\" }\nnode output : display/text\ncord message.value -> output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n";
+const SOURCE: &str = "panel 0\nmessage: std/literal { value = \"capsule\" }\noutput: display/text\nmessage.value > output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n";
 
 #[test]
 fn source_lock_and_presentation_keep_distinct_identities() {

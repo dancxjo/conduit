@@ -1,10 +1,10 @@
 panel 0
 
-node request_source : std/literal { value = "job\n" }
-node requests : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
-node retry_terminal_source : std/literal { value = "eligible-failure\nsuccess\n" }
-node retry_terminals : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
-node retry : supervision/retry {
+request_source: std/literal { value = "job\n" }
+requests: std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
+retry_terminal_source: std/literal { value = "eligible-failure\nsuccess\n" }
+retry_terminals: std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
+retry: supervision/retry {
     terminal_schema = ref("conduit.supervision/text-terminal-observation")
     terminal_schema_version = 0
     terminal_schema_hash = bytes("354ceb6902073d56e0cd8ea1ee1aa11372fcecab51db988677c9c5b569d141c6")
@@ -29,9 +29,9 @@ node retry : supervision/retry {
     restart = "new-generation"
     checkpoint = "unsupported"
 }
-node breaker_terminal_source : std/literal { value = "eligible-failure\nsuccess\n" }
-node breaker_terminals : std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
-node breaker : supervision/circuit-breaker {
+breaker_terminal_source: std/literal { value = "eligible-failure\nsuccess\n" }
+breaker_terminals: std/text/lines { maximum_line_bytes = 64 maximum_retained_prefix_bytes = 64 }
+breaker: supervision/circuit-breaker {
     terminal_schema = ref("conduit.supervision/text-terminal-observation")
     terminal_schema_version = 0
     terminal_schema_hash = bytes("354ceb6902073d56e0cd8ea1ee1aa11372fcecab51db988677c9c5b569d141c6")
@@ -49,15 +49,15 @@ node breaker : supervision/circuit-breaker {
     restart = "closed"
     checkpoint = "unsupported"
 }
-node join : std/text/join { separator = "," maximum_items = 4 maximum_item_bytes = 64 maximum_separator_bytes = 1 maximum_output_bytes = 64 }
-node display : display/text
+join: std/text/join { separator = "," maximum_items = 4 maximum_item_bytes = 64 maximum_separator_bytes = 1 maximum_output_bytes = 64 }
+display: display/text
 
-cord request_source.value -> requests.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord requests.line -> retry.request { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord retry_terminal_source.value -> retry_terminals.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord retry_terminals.line -> retry.terminal { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
-cord retry.attempt -> breaker.request { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
-cord breaker_terminal_source.value -> breaker_terminals.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord breaker_terminals.line -> breaker.terminal { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
-cord breaker.admitted -> join.item { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
-cord join.text -> display.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+request_source.value > requests.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+requests.line > retry.request { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+retry_terminal_source.value > retry_terminals.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+retry_terminals.line > retry.terminal { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+retry.attempt > breaker.request { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+breaker_terminal_source.value > breaker_terminals.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+breaker_terminals.line > breaker.terminal { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+breaker.admitted > join.item { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+join.text > display.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }

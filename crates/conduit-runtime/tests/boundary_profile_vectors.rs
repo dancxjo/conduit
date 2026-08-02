@@ -44,8 +44,7 @@ fn file_and_process_callbacks_cannot_claim_boundary_conformance() {
         assert_eq!(availability.state, AvailabilityState::ProviderAvailable);
         assert_eq!(availability.host_id, None);
         assert_eq!(availability.rejection_reasons, vec!["CND-RES-025"]);
-        let panel =
-            conduit_panel::parse(&format!("panel 0\nnode boundary : {}\n", contract.id)).unwrap();
+        let panel = conduit_panel::parse(&format!("panel 0\nboundary: {}\n", contract.id)).unwrap();
         assert_eq!(
             registry
                 .resolve(&panel)

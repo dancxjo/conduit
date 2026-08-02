@@ -1,7 +1,7 @@
 panel 0
 
-node source : conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
-node resample : conduit.media/audio/resample {
+source: conduit.media/audio-frame/literal { fixture = "tone-s16le-stereo-48000" }
+resample: conduit.media/audio/resample {
     lifecycle = "finite"
     numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact"
     input_rate_hz = 48000
@@ -15,9 +15,9 @@ node resample : conduit.media/audio/resample {
     maximum_frames = 16
     maximum_work = 64
 }
-node inspect : conduit.media/audio-frame/inspect
-node output : display/text
+inspect: conduit.media/audio-frame/inspect
+output: display/text
 
-cord source.frame -> resample.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord resample.frame -> inspect.frame { capacity = 1 max_value_bytes = 88 max_queued_bytes = 88 low_watermark = 0 high_watermark = 1 pressure = block }
-cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 96 max_queued_bytes = 96 low_watermark = 0 high_watermark = 1 pressure = block }
+source.frame > resample.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+resample.frame > inspect.frame { capacity = 1 max_value_bytes = 88 max_queued_bytes = 88 low_watermark = 0 high_watermark = 1 pressure = block }
+inspect.summary > output.text { capacity = 1 max_value_bytes = 96 max_queued_bytes = 96 low_watermark = 0 high_watermark = 1 pressure = block }

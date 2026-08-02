@@ -2,13 +2,13 @@
 # exact implementation manifest select the WASM placement outside the panel.
 panel 0
 
-node greeting : std/literal {
+greeting: std/literal {
     value = "Browser-local semantics stay portable.\n"
 }
-node transform : text/uppercase
-node output : display/text
+transform: text/uppercase
+output: display/text
 
-cord greeting.value -> transform.text {
+greeting.value > transform.text {
     capacity = 2
     max_value_bytes = 1024
     max_queued_bytes = 2048
@@ -16,7 +16,7 @@ cord greeting.value -> transform.text {
     high_watermark = 2
     pressure = block
 }
-cord transform.text -> output.text {
+transform.text > output.text {
     capacity = 2
     max_value_bytes = 1024
     max_queued_bytes = 2048

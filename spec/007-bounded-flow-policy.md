@@ -162,7 +162,7 @@ wakes pressure waits.
 The `.panel` seed grammar supports:
 
 ```text
-cord source.value -> sink.value {
+source.value > sink.value {
     capacity = 8
     max_value_bytes = 65536
     max_queued_bytes = 524288

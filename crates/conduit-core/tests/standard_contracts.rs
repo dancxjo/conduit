@@ -433,7 +433,7 @@ fn node_contract_outcome(id: &str) -> &'static str {
                 evidence_events: 64,
             },
         ),
-        _ => panic!("unknown node fixture {id}"),
+        _ => panic!("unknown fixture{id}"),
     };
 
     let contract = StandardNodeContract {

@@ -24,11 +24,11 @@ const FIXTURE: &str = include_str!("../../../conformance/c5/compile-package.json
 const SOURCE_LIMIT_FIXTURE: &str =
     include_str!("../../../conformance/c5/compile-source-limits.json");
 const SOURCE: &str = "panel 0\n\
-node source : std/literal { value = \"hello\" }\n\
-node upper : text/uppercase using ready\n\
-node sink : display/text\n\
-cord source.value -> upper.text\n\
-cord upper.text -> sink.text\n";
+source: std/literal { value = \"hello\" }\n\
+upper: text/uppercase using ready\n\
+sink: display/text\n\
+source.value > upper.text\n\
+upper.text > sink.text\n";
 
 fn hash(byte: u8) -> String {
     SemanticHash::from_bytes([byte; 32]).to_string()
@@ -819,9 +819,9 @@ fn typed_text_format_compiles_runs_cancels_and_retains_bounded_evidence() {
 #[test]
 fn persistent_hosted_session_owns_io_after_the_plan_arena_is_released() {
     const SOURCE: &str = "panel 0\n\
-node source : std/literal { value = \"owned session\" }\n\
-node sink : display/text\n\
-cord source.value -> sink.text\n";
+source: std/literal { value = \"owned session\" }\n\
+sink: display/text\n\
+source.value > sink.text\n";
 
     let mut installed = InstalledProfile::observe(SOURCE).unwrap();
     let panel = parse(SOURCE).unwrap();

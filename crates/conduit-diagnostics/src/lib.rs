@@ -740,13 +740,13 @@ fn parse_fixes(
     source: &DiagnosticSource,
     primary: &OwnedDiagnosticSpan,
 ) -> Vec<OwnedDiagnosticFix> {
-    let (id, message, start, end, replacement) = if error.message.contains("expected `->`") {
+    let (id, message, start, end, replacement) = if error.message.contains("or graph `>`") {
         (
-            "insert-cord-arrow",
-            "insert the missing cord arrow",
+            "insert-graph-operator",
+            "insert the missing graph operator",
             primary.byte_start,
             primary.byte_start,
-            "-> ",
+            "> ",
         )
     } else if error.message.contains("unsupported panel version") {
         let version_start = source

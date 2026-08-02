@@ -1,14 +1,14 @@
 # A finite proof of typed resolution and execution.
 panel 0
 
-node greeting : std/literal {
+greeting: std/literal {
     value = "Hello from Conduit.\n"
 }
 
-node shout : text/uppercase
-node output : display/text
+shout: text/uppercase
+output: display/text
 
-cord greeting.value -> shout.text {
+greeting.value > shout.text {
     capacity = 8
     max_value_bytes = 65536
     max_queued_bytes = 524288
@@ -17,7 +17,7 @@ cord greeting.value -> shout.text {
     pressure = block
 }
 
-cord shout.text -> output.text {
+shout.text > output.text {
     capacity = 8
     max_value_bytes = 65536
     max_queued_bytes = 524288

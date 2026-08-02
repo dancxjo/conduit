@@ -38,9 +38,14 @@ export function configurePanelSourceMetadata(resolver) {
 
 function semanticAttributes(annotation) {
   const direction = annotation.direction;
-  const label = escapeHtml(annotation.accessible_label || `${direction} port`);
+  const defaultLabel = annotation.kind === "graph-operator"
+    ? "graph connect operator"
+    : annotation.kind === "expression-operator"
+      ? `expression ${direction} operator`
+      : `${direction} port`;
+  const label = escapeHtml(annotation.accessible_label || defaultLabel);
   const path = escapeHtml(annotation.semantic_path || "");
-  return ` data-token-label="${direction} port" aria-label="${label}"` +
+  return ` data-token-label="${escapeHtml(defaultLabel)}" aria-label="${label}"` +
     ` title="${label}" data-semantic-path="${path}"`;
 }
 
@@ -75,9 +80,11 @@ export function highlightPanelSource(
       kind = "string";
     } else if ((match = rest.match(/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/))) {
       kind = "number";
-    } else if ((match = rest.match(/^(?:->|<-|[><{}()[\],:=])/))) {
+    } else if ((match = rest.match(/^(?:<=|>=|==|!=|[><{}()[\],:=+*!])/))) {
       kind = "operator";
-    } else if ((match = rest.match(/^[-./@A-Za-z_][-./@A-Za-z0-9_[\]]*/))) {
+    } else if ((match = rest.match(
+      /^(?:[_./@$|\-]|\p{XID_Start})(?:[_./@\[\]$|\-]|\p{XID_Continue})*/u,
+    ))) {
       if (expectTypeName) kind = "type";
       else if (panelReservedWords.has(match[0])) kind = "keyword";
       else if (panelSyntaxWords.has(match[0]) &&
@@ -137,8 +144,9 @@ export function highlightPanelSource(
       Number.isInteger(annotation.start_utf16) &&
       Number.isInteger(annotation.end_utf16) &&
       annotation.start_utf16 < annotation.end_utf16 &&
-      ["receiving", "outgoing"].includes(annotation.direction) &&
-      ["port-name", "port-sigil"].includes(annotation.kind)
+      (["port-name", "port-sigil"].includes(annotation.kind)
+        ? ["receiving", "outgoing"].includes(annotation.direction)
+        : ["graph-operator", "expression-operator"].includes(annotation.kind))
     )
     : [];
   let output = "";
@@ -238,6 +246,10 @@ export function highlightPanelSource(
       );
       const semanticKind = annotation?.kind === "port-sigil"
         ? `port-sigil panel-token-port-sigil-${annotation.direction}`
+        : annotation?.kind === "graph-operator"
+          ? "operator panel-token-operator-graph"
+          : annotation?.kind === "expression-operator"
+            ? "operator panel-token-operator-expression"
         : annotation
           ? `port panel-token-port-${annotation.direction}`
           : null;

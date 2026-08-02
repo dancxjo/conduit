@@ -30,17 +30,17 @@ editable source or presentation.
 The executable seed grammar adds reusable definitions:
 
 ```text
-composite example/upper-line {
-    node source : std/literal
-    node upper : text/uppercase
-    cord source.value -> upper.text
+example/upper-line{
+    source: std/literal
+    upper: text/uppercase
+    source.value > upper.text
     export text > = upper.text
     bind value = source.value
 }
 
-node line : example/upper-line { value = "hello" }
-node sink : display/text
-cord line.text -> sink.text
+line: example/upper-line { value = "hello" }
+sink: display/text
+line.text > sink.text
 ```
 
 Definitions may contain primitive or composite child instances. The top-level

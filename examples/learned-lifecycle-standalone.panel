@@ -1,6 +1,6 @@
 panel 0
 
-node dataset : learned/dataset/literal {
+dataset: learned/dataset/literal {
   fixture = "tiny-supervised"
   snapshot_identity = "sha256:71d58097138d514f3220280698874fecce2486878fc5a2f7a9bc50a8e1341186"
   revision_identity = "sha256:5c434f11669a98b9587880d824f8fda7c19d26dc862696b2602066c79e794972"
@@ -13,8 +13,8 @@ node dataset : learned/dataset/literal {
   maximum_records = 4
   maximum_bytes = 128
 }
-node inspect : learned/dataset/inspect
-node output : display/text
+inspect: learned/dataset/inspect
+output: display/text
 
-cord dataset.dataset -> inspect.dataset { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
-cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+dataset.dataset > inspect.dataset { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+inspect.summary > output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }

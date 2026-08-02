@@ -1,56 +1,56 @@
 panel 0
 
-node clock : time/ticker {
+clock: time/ticker {
     duration_ticks = 1000
     time_basis = ref("conduit.clock/monotonic-ticks")
     maximum_pending = 1
 }
-node pulse : conduit.media/event/from-ticker
-node layers : conduit.media/event/tee
-node fast_divider : conduit.media/control/clock-divider {
+pulse: conduit.media/event/from-ticker
+layers: conduit.media/event/tee
+fast_divider: conduit.media/control/clock-divider {
     divisor = 2
     phase = 0
 }
-node slow_divider : conduit.media/control/clock-divider {
+slow_divider: conduit.media/control/clock-divider {
     divisor = 4
     phase = 0
 }
-node fast_sequence : conduit.media/control/sequencer {
+fast_sequence: conduit.media/control/sequencer {
     pattern = "1024,256,768,128"
     maximum_steps = 4
     lane = 0
     repeat = "repeat"
 }
-node slow_sequence : conduit.media/control/sequencer {
+slow_sequence: conduit.media/control/sequencer {
     pattern = "512,0,256,0"
     maximum_steps = 4
     lane = 1
     repeat = "repeat"
 }
-node fast_shape : conduit.media/control/slew {
+fast_shape: conduit.media/control/slew {
     initial = 0
     maximum_delta = 256
 }
-node slow_shape : conduit.media/control/slew {
+slow_shape: conduit.media/control/slew {
     initial = 0
     maximum_delta = 128
 }
-node combine : conduit.media/control/merge {
+combine: conduit.media/control/merge {
     ordering = "round-robin"
 }
-node blend : conduit.media/control/mixer {
+blend: conduit.media/control/mixer {
     gain_numerator = 1
     gain_denominator = 2
     maximum_value = 1024
 }
-node memory : conduit.media/control/register {
+memory: conduit.media/control/register {
     initial = 0
     maximum_value = 1024
 }
-node scope : conduit.media/control/scope
-node drain : flow/discard
+scope: conduit.media/control/scope
+drain: flow/discard
 
-cord clock.tick -> pulse.tick {
+clock.tick > pulse.tick {
     capacity = 1
     max_value_bytes = 32
     max_queued_bytes = 32
@@ -58,7 +58,7 @@ cord clock.tick -> pulse.tick {
     high_watermark = 1
     pressure = block
 }
-cord pulse.event -> layers.event {
+pulse.event > layers.event {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -66,7 +66,7 @@ cord pulse.event -> layers.event {
     high_watermark = 1
     pressure = block
 }
-cord layers.fast -> fast_divider.event {
+layers.fast > fast_divider.event {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -74,7 +74,7 @@ cord layers.fast -> fast_divider.event {
     high_watermark = 1
     pressure = block
 }
-cord layers.slow -> slow_divider.event {
+layers.slow > slow_divider.event {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -82,7 +82,7 @@ cord layers.slow -> slow_divider.event {
     high_watermark = 1
     pressure = block
 }
-cord fast_divider.event -> fast_sequence.event {
+fast_divider.event > fast_sequence.event {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -90,7 +90,7 @@ cord fast_divider.event -> fast_sequence.event {
     high_watermark = 1
     pressure = block
 }
-cord slow_divider.event -> slow_sequence.event {
+slow_divider.event > slow_sequence.event {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -98,7 +98,7 @@ cord slow_divider.event -> slow_sequence.event {
     high_watermark = 1
     pressure = block
 }
-cord fast_sequence.control -> fast_shape.control {
+fast_sequence.control > fast_shape.control {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -106,7 +106,7 @@ cord fast_sequence.control -> fast_shape.control {
     high_watermark = 1
     pressure = block
 }
-cord slow_sequence.control -> slow_shape.control {
+slow_sequence.control > slow_shape.control {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -114,7 +114,7 @@ cord slow_sequence.control -> slow_shape.control {
     high_watermark = 1
     pressure = block
 }
-cord fast_shape.control -> combine.left {
+fast_shape.control > combine.left {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -122,7 +122,7 @@ cord fast_shape.control -> combine.left {
     high_watermark = 1
     pressure = block
 }
-cord slow_shape.control -> combine.right {
+slow_shape.control > combine.right {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -130,7 +130,7 @@ cord slow_shape.control -> combine.right {
     high_watermark = 1
     pressure = block
 }
-cord combine.control -> blend.control {
+combine.control > blend.control {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -138,7 +138,7 @@ cord combine.control -> blend.control {
     high_watermark = 1
     pressure = block
 }
-cord blend.control -> memory.control {
+blend.control > memory.control {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -146,7 +146,7 @@ cord blend.control -> memory.control {
     high_watermark = 1
     pressure = block
 }
-cord memory.control -> scope.control {
+memory.control > scope.control {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -154,7 +154,7 @@ cord memory.control -> scope.control {
     high_watermark = 1
     pressure = block
 }
-cord scope.text -> drain.item {
+scope.text > drain.item {
     capacity = 1
     max_value_bytes = 64
     max_queued_bytes = 64

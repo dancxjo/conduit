@@ -966,7 +966,7 @@
         {
           "id": "panel-grammar",
           "path": "../c3/panel-grammar.json",
-          "sha256": "sha256:c516a10d8ba743c40d6b95c8e0592e85c57553ce89469552da8b298d1e32ee66",
+          "sha256": "sha256:87c46153317ddc04352700eee5e28a1e56e09721612b958666861f4c85825f3b",
           "operation": "panel-source",
           "requirement_ids": [
             "SRC-001",
@@ -1015,7 +1015,7 @@
         {
           "id": "panel-directional-syntax",
           "path": "../c3/panel-directional-syntax.json",
-          "sha256": "sha256:008e99f3fc8db31211fa68ec24b6482e24a5bb797da847844769f763ce2f00d9",
+          "sha256": "sha256:05221e432f3e8e86259da2f9862b33afbc6290e077ecb4403676f8f89c3a1e17",
           "operation": "panel-directional-syntax",
           "requirement_ids": [
             "SRC-001",
@@ -1028,9 +1028,9 @@
           "default_rule": "SRC-001",
           "case_rules": {
             "canonical-interface-action-shape": "SRC-001",
-            "equivalent-sigils-and-reverse-cord": "SRC-010",
+            "equivalent-directional-sigils": "SRC-010",
             "zero-sided-source-and-sink": "SRC-009",
-            "endpoint-elision-rejected": "SRC-009",
+            "bare-endpoint-chain-accepted": "SRC-009",
             "english-direction-rejected": "SRC-007",
             "doubled-sigil-rejected": "SRC-001"
           },
@@ -1049,12 +1049,13 @@
         "positive": [
           "panel-grammar#minimal",
           "panel-grammar#resolved-import",
-          "panel-directional-syntax#canonical-interface-action-shape"
+          "panel-directional-syntax#canonical-interface-action-shape",
+          "panel-directional-syntax#bare-endpoint-chain-accepted"
         ],
         "negative": [
-          "panel-grammar#malformed-cord",
+          "panel-grammar#malformed-graph",
           "panel-grammar#import-cycle",
-          "panel-directional-syntax#endpoint-elision-rejected"
+          "panel-directional-syntax#english-direction-rejected"
         ],
         "boundary": [
           "panel-grammar#port-groups",
@@ -1065,7 +1066,7 @@
         "migration": [
           "panel-grammar#format-equivalence",
           "panel-grammar#definition-parameters-constraint-export",
-          "panel-directional-syntax#equivalent-sigils-and-reverse-cord"
+          "panel-directional-syntax#equivalent-directional-sigils"
         ]
       },
       "reference_tests": [
@@ -1105,7 +1106,7 @@
         {
           "id": "port-group-source",
           "path": "../c2/port-group-correlation.json",
-          "sha256": "sha256:6b19973a5fcd80bd4ff5c89fcbad68c69bce42db6ff7394d43d3cee581b064d5",
+          "sha256": "sha256:15550c98854d194e10f52fc399d2f26efd0a68c6466c802046691d408cd797f3",
           "operation": "port-group-source",
           "requirement_ids": [
             "PGC-001",
@@ -1146,7 +1147,7 @@
         {
           "id": "port-group-plan",
           "path": "../c2/port-group-correlation.json",
-          "sha256": "sha256:6b19973a5fcd80bd4ff5c89fcbad68c69bce42db6ff7394d43d3cee581b064d5",
+          "sha256": "sha256:15550c98854d194e10f52fc399d2f26efd0a68c6466c802046691d408cd797f3",
           "operation": "port-group-plan",
           "requirement_ids": [
             "PGC-002",
@@ -1175,7 +1176,7 @@
         {
           "id": "correlation-family",
           "path": "../c2/port-group-correlation.json",
-          "sha256": "sha256:6b19973a5fcd80bd4ff5c89fcbad68c69bce42db6ff7394d43d3cee581b064d5",
+          "sha256": "sha256:15550c98854d194e10f52fc399d2f26efd0a68c6466c802046691d408cd797f3",
           "operation": "correlation-family",
           "requirement_ids": [
             "COR-001",
@@ -1203,7 +1204,7 @@
         {
           "id": "correlation-propagation",
           "path": "../c2/port-group-correlation.json",
-          "sha256": "sha256:6b19973a5fcd80bd4ff5c89fcbad68c69bce42db6ff7394d43d3cee581b064d5",
+          "sha256": "sha256:15550c98854d194e10f52fc399d2f26efd0a68c6466c802046691d408cd797f3",
           "operation": "correlation-propagation",
           "requirement_ids": [
             "COR-001",
@@ -1232,7 +1233,7 @@
         {
           "id": "correlation-allocation-rejection",
           "path": "../c2/port-group-correlation.json",
-          "sha256": "sha256:6b19973a5fcd80bd4ff5c89fcbad68c69bce42db6ff7394d43d3cee581b064d5",
+          "sha256": "sha256:15550c98854d194e10f52fc399d2f26efd0a68c6466c802046691d408cd797f3",
           "operation": "correlation-allocation-rejection",
           "requirement_ids": [
             "PGC-008",
@@ -1315,7 +1316,7 @@
         {
           "id": "diagnostics",
           "path": "../c3/diagnostics.json",
-          "sha256": "sha256:bd8b25e9065e796e7a53c2d51b7f1e63aea3b647d29c81420e64cd6c9881220c",
+          "sha256": "sha256:29a94f25c522fea83c8aff92078196dd50ccb80a75f5fa2354e319ab39e96c8f",
           "operation": "structured-diagnostic",
           "requirement_ids": [
             "DIA-001",
@@ -1406,7 +1407,7 @@
         {
           "id": "conduct-cli-command",
           "path": "../c3/conduct-cli.json",
-          "sha256": "sha256:77a2af670d28b301a47f741a417d0f903471069d8359704882955fdc947aabab",
+          "sha256": "sha256:9f43b05845af46bc1ac0dc444ee7268223cbd234e5d8d72c059384bb40e83831",
           "operation": "conduct-cli-command",
           "requirement_ids": [
             "CLI-001",
@@ -1442,7 +1443,7 @@
         {
           "id": "conduct-cli-presentation",
           "path": "../c3/conduct-cli.json",
-          "sha256": "sha256:77a2af670d28b301a47f741a417d0f903471069d8359704882955fdc947aabab",
+          "sha256": "sha256:9f43b05845af46bc1ac0dc444ee7268223cbd234e5d8d72c059384bb40e83831",
           "operation": "conduct-cli-presentation",
           "requirement_ids": [
             "CLI-005",
@@ -1517,7 +1518,7 @@
         {
           "id": "source-lowering",
           "path": "../c3/source-lowering.json",
-          "sha256": "sha256:4e11f825b18e528d1d57f9a8899bffc498acbc9138db8b5dd7f189c6aff73bc8",
+          "sha256": "sha256:4f6709eac441b3f2b84fa6267b1ab27a917b0fc1760adaedc78ebf5273939bd7",
           "operation": "source-lowering",
           "requirement_ids": [
             "SL2-001",
@@ -1973,7 +1974,7 @@
         {
           "id": "inspection",
           "path": "../c3/inspection.json",
-          "sha256": "sha256:ca0647ace345f287786d9360376336ddcd9cfbc39199fbabebb1685bebbaaf91",
+          "sha256": "sha256:157c00d47640942df46af43b67d1d04681666031a16b5fbd38e326f16a09ff4f",
           "operation": "safe-inspection",
           "requirement_ids": [
             "INSP-001",

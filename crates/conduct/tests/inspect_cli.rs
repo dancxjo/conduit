@@ -153,7 +153,7 @@ fn evidence_diagnostic_and_conformance_kinds_keep_machine_streams_clean() {
 #[test]
 fn unresolved_selectors_and_secrets_are_reported_without_resolution_or_disclosure() {
     let source = br#"panel 0
-node app : fixture/handler using ready {
+app: fixture/handler using ready {
     credential = secret("canary-secret-material")
 }
 "#;

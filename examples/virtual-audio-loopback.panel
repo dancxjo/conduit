@@ -2,7 +2,7 @@ panel 0
 
 # This deterministic virtual-device proof has no physical-device authority.
 # Both endpoint identities and their shared sample clock are exact plan inputs.
-node capture : conduit.media/audio/capture {
+capture: conduit.media/audio/capture {
     device_resource = secret("conduit.audio/device/virtual-capture-0")
     device_label = "Virtual Loopback Capture"
     provider_observation = "conduit.audio/observation/virtual-loopback"
@@ -43,7 +43,7 @@ node capture : conduit.media/audio/capture {
     maximum_work = 16
     maximum_evidence_events = 64
 }
-node process : conduit.media/audio/gain {
+process: conduit.media/audio/gain {
     lifecycle = "standing"
     numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact"
     curve = "linear-q15-absolute-frame"
@@ -56,7 +56,7 @@ node process : conduit.media/audio/gain {
     maximum_retained_samples = 0
     maximum_frames = 8
 }
-node playback : conduit.media/audio/playback {
+playback: conduit.media/audio/playback {
     device_resource = secret("conduit.audio/device/virtual-playback-0")
     device_label = "Virtual Loopback Playback"
     provider_observation = "conduit.audio/observation/virtual-loopback"
@@ -98,5 +98,5 @@ node playback : conduit.media/audio/playback {
     maximum_evidence_events = 64
 }
 
-cord capture.frame -> process.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
-cord process.frame -> playback.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+capture.frame > process.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+process.frame > playback.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }

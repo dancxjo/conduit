@@ -2820,10 +2820,9 @@ fn authoritative_patchbay_view(
 
     if let Some(panel) = document.ast.as_ref() {
         for source_node in &panel.nodes {
-            let node_range = declaration_source_range(
+            let node_range = source_range_for_span(
                 source_text,
                 source_node.source_span,
-                "node",
                 source_revision,
                 "authored",
             );
@@ -2919,10 +2918,9 @@ fn authoritative_patchbay_view(
             });
         }
         for source_cord in &panel.cords {
-            let source_range = declaration_source_range(
+            let source_range = source_range_for_span(
                 source_text,
                 source_cord.source_span,
-                "cord",
                 source_revision,
                 "authored",
             );
@@ -3761,6 +3759,16 @@ fn recovered_cord_as_authored(
         low_watermark_items,
         high_watermark_items,
         pressure,
+        operator_span: {
+            let relative = declaration.find('>')?;
+            let column = recovered.source_span.column + declaration[..relative].chars().count();
+            conduit_panel::SourceSpan {
+                line: recovered.source_span.line,
+                column,
+                end_line: recovered.source_span.line,
+                end_column: column + 1,
+            }
+        },
         source_span: conduit_panel::SourceSpan {
             line: recovered.source_span.line,
             column: recovered.source_span.column,
@@ -3927,60 +3935,6 @@ fn parse_error_source_range(
     source_range_for_span(source, span, source_revision, "parser-diagnostic")
 }
 
-fn declaration_source_range(
-    source: &str,
-    span: conduit_panel::SourceSpan,
-    declaration: &str,
-    source_revision: u64,
-    provenance: &str,
-) -> Option<conduit_patchbay::SourceRangeProjection> {
-    fn offset(source: &str, line: usize, column: usize) -> Option<usize> {
-        if line == 0 || column == 0 {
-            return None;
-        }
-        let mut byte = 0;
-        for _ in 1..line {
-            byte += source.get(byte..)?.find('\n')? + 1;
-        }
-        let line_end = source[byte..]
-            .find('\n')
-            .map_or(source.len(), |relative| byte + relative);
-        let relative = source[byte..line_end]
-            .char_indices()
-            .nth(column - 1)
-            .map_or(line_end - byte, |(relative, _)| relative);
-        Some(byte + relative)
-    }
-
-    let span_start = offset(source, span.line, span.column)?;
-    let end_byte = offset(source, span.end_line, span.end_column)?;
-    if span_start > end_byte || end_byte > source.len() {
-        return None;
-    }
-    let line_start = source[..span_start]
-        .rfind('\n')
-        .map_or(0, |index| index + 1);
-    let prefix = &source[line_start..span_start];
-    let declaration_offset = prefix.find(declaration)?;
-    let start_byte = line_start + declaration_offset;
-    let keyword_end = start_byte + declaration.len();
-    if source
-        .as_bytes()
-        .get(keyword_end)
-        .is_some_and(|byte| *byte != b' ')
-    {
-        return None;
-    }
-    Some(conduit_patchbay::SourceRangeProjection {
-        start_byte,
-        end_byte,
-        start_utf16: source[..start_byte].encode_utf16().count(),
-        end_utf16: source[..end_byte].encode_utf16().count(),
-        source_revision,
-        provenance: provenance.to_owned(),
-    })
-}
-
 fn project_config_value(
     value: &conduit_panel::SourceValue,
 ) -> conduit_patchbay::PatchbayConfigProjection {
@@ -4073,7 +4027,7 @@ pub fn parse_panel(source: String) -> String {
             panel
                 .nodes
                 .iter()
-                .map(|node| format!("{:?}", format!("{} : {}", node.id, node.kind)))
+                .map(|node| format!("{:?}", format!("{}: {}", node.id, node.kind)))
                 .collect::<Vec<_>>()
                 .join(",")
         ),
@@ -4271,15 +4225,24 @@ fn endpoint_member_offset(
     endpoint: &conduit_panel::Endpoint,
     reverse: bool,
 ) -> Option<(usize, usize)> {
-    let complete = format!("{}.{}", endpoint.node, endpoint.port);
+    let complete = if endpoint.port.is_empty() {
+        endpoint.node.clone()
+    } else {
+        format!("{}.{}", endpoint.node, endpoint.port)
+    };
     let region = source.get(search_start..search_end)?;
     let relative = if reverse {
         region.rfind(&complete)
     } else {
         region.find(&complete)
     }?;
-    let member_start = search_start + relative + complete.len() - endpoint.port.len();
-    Some((member_start, member_start + endpoint.port.len()))
+    let member = if endpoint.port.is_empty() {
+        endpoint.node.as_str()
+    } else {
+        endpoint.port.as_str()
+    };
+    let member_start = search_start + relative + complete.len() - member.len();
+    Some((member_start, member_start + member.len()))
 }
 
 fn endpoint_source_range(
@@ -4289,8 +4252,16 @@ fn endpoint_source_range(
     source_revision: u64,
     provenance: &str,
 ) -> Option<conduit_patchbay::SourceRangeProjection> {
-    let endpoint_text = format!("{}.{}", endpoint.node, endpoint.port);
-    let start = member_range.0.checked_sub(endpoint.node.len() + 1)?;
+    let endpoint_text = if endpoint.port.is_empty() {
+        endpoint.node.clone()
+    } else {
+        format!("{}.{}", endpoint.node, endpoint.port)
+    };
+    let start = if endpoint.port.is_empty() {
+        member_range.0
+    } else {
+        member_range.0.checked_sub(endpoint.node.len() + 1)?
+    };
     if source.get(start..member_range.1)? != endpoint_text {
         return None;
     }
@@ -4305,19 +4276,11 @@ fn cord_endpoint_member_offsets(
     let declaration = source.get(start..end)?;
     let body_start = declaration.find('{').unwrap_or(declaration.len());
     let endpoints = &declaration[..body_start];
-    if let Some(relative) = endpoints.find("->") {
-        let arrow = start + relative;
-        let from = endpoint_member_offset(source, (start, arrow), &cord.from, true)?;
-        let to = endpoint_member_offset(source, (arrow + 2, start + body_start), &cord.to, false)?;
-        Some((from, to))
-    } else {
-        let relative = endpoints.find("<-")?;
-        let arrow = start + relative;
-        let to = endpoint_member_offset(source, (start, arrow), &cord.to, true)?;
-        let from =
-            endpoint_member_offset(source, (arrow + 2, start + body_start), &cord.from, false)?;
-        Some((from, to))
-    }
+    let relative = endpoints.find('>')?;
+    let operator = start + relative;
+    let from = endpoint_member_offset(source, (start, operator), &cord.from, true)?;
+    let to = endpoint_member_offset(source, (operator + 1, start + body_start), &cord.to, false)?;
+    Some((from, to))
 }
 
 fn annotate_cords(
@@ -4327,6 +4290,16 @@ fn annotate_cords(
     cords: &[conduit_panel::Cord],
 ) {
     for cord in cords {
+        if let Some((start, end)) = source_span_offsets(source, cord.operator_span) {
+            annotations.push(annotation(
+                source,
+                start,
+                end,
+                "graph-operator",
+                "connect",
+                format!("{owner}/cord/{}/operator", cord.id),
+            ));
+        }
         let Some((from_range, to_range)) = cord_endpoint_member_offsets(source, cord) else {
             continue;
         };
@@ -4347,6 +4320,47 @@ fn annotate_cords(
             "receiving",
             format!("{cord_path}/to/{}/{}", cord.to.node, cord.to.port),
         ));
+    }
+}
+
+fn annotate_expression(
+    source: &str,
+    annotations: &mut Vec<serde_json::Value>,
+    owner: &str,
+    expression: &conduit_panel::SourceExpression,
+) {
+    if let conduit_panel::SourceExpression::Binary {
+        operation,
+        left,
+        right,
+        operator_span,
+    } = expression
+    {
+        if let Some((start, end)) = source_span_offsets(source, *operator_span) {
+            annotations.push(annotation(
+                source,
+                start,
+                end,
+                "expression-operator",
+                match operation {
+                    conduit_panel::ExpressionOperator::Add => "add",
+                    conduit_panel::ExpressionOperator::Subtract => "subtract",
+                    conduit_panel::ExpressionOperator::Multiply => "multiply",
+                    conduit_panel::ExpressionOperator::Divide => "divide",
+                    conduit_panel::ExpressionOperator::LessThan => "less-than",
+                    conduit_panel::ExpressionOperator::LessThanOrEqual => "less-than-or-equal",
+                    conduit_panel::ExpressionOperator::GreaterThan => "greater-than",
+                    conduit_panel::ExpressionOperator::GreaterThanOrEqual => {
+                        "greater-than-or-equal"
+                    }
+                    conduit_panel::ExpressionOperator::Equal => "equal",
+                    conduit_panel::ExpressionOperator::NotEqual => "not-equal",
+                },
+                format!("{owner}/expression/operator"),
+            ));
+        }
+        annotate_expression(source, annotations, owner, left);
+        annotate_expression(source, annotations, owner, right);
     }
 }
 
@@ -4428,6 +4442,16 @@ pub fn panel_source_metadata(source: String) -> String {
         );
     }
     annotate_cords(&source, &mut annotations, "root", &panel.cords);
+    for node in &panel.nodes {
+        if let Some(expression) = &node.expression {
+            annotate_expression(
+                &source,
+                &mut annotations,
+                &format!("root/node/{}", node.id),
+                expression,
+            );
+        }
+    }
     for definition in &panel.definitions {
         for export in &definition.exports {
             annotate_directional_declaration(
@@ -4466,6 +4490,16 @@ pub fn panel_source_metadata(source: String) -> String {
             &format!("definition/{}", definition.id),
             &definition.cords,
         );
+        for node in &definition.nodes {
+            if let Some(expression) = &node.expression {
+                annotate_expression(
+                    &source,
+                    &mut annotations,
+                    &format!("definition/{}/node/{}", definition.id, node.id),
+                    expression,
+                );
+            }
+        }
     }
     annotations.sort_by_key(|value| {
         (
@@ -4752,7 +4786,7 @@ mod tests {
         patchbay_start_exact_run, planned_realization_projection,
     };
 
-    const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
+    const SOURCE: &str = "panel 0\ngreeting: std/literal { value = \"hello\\n\" }\noutput: display/text\ngreeting.value > output.text\n";
 
     #[derive(Clone)]
     struct TestRunBinding {
@@ -4964,7 +4998,7 @@ mod tests {
         let end_byte = range["end_byte"].as_u64().expect("end byte") as usize;
         assert_eq!(
             &source[start_byte..end_byte],
-            "cord greeting.value -> output.text"
+            "greeting.value > output.text"
         );
         assert_eq!(range["source_revision"], 0);
         assert_eq!(range["provenance"], "authored");
@@ -5001,19 +5035,19 @@ mod tests {
     fn source_metadata_uses_parser_direction_and_exact_semantic_spans() {
         let source = "panel 0\n\
 interface fixture/duplex {\n\
-  > value : fixture/text\n\
-  result > : fixture/text\n\
-  > audio : fixture/audio\n\
-  committed > : fixture/text\n\
+  > value: fixture/text\n\
+  result >: fixture/text\n\
+  > audio: fixture/audio\n\
+  committed >: fixture/text\n\
 }\n\
-composite fixture/box {\n\
-  node worker : fixture/sink\n\
+fixture/box{\n\
+  worker: fixture/sink\n\
   export > audio = worker.result\n\
   export value < = worker.result\n\
 }\n\
-node output : fixture/source\n\
-node sink : fixture/sink\n\
-cord output.value -> sink.result\n\
+output: fixture/source\n\
+sink: fixture/sink\n\
+output.value > sink.result\n\
 # > comment.value and \"string.out >\" are not ports\n";
         let metadata: Value =
             serde_json::from_str(&panel_source_metadata(source.to_owned())).unwrap();
@@ -5079,11 +5113,39 @@ cord output.value -> sink.result\n\
         }));
 
         let malformed: Value = serde_json::from_str(&panel_source_metadata(
-            "panel 0\ncord source.value ->\n".to_owned(),
+            "panel 0\nsource.value > \n".to_owned(),
         ))
         .unwrap();
         assert_eq!(malformed["semantic_available"], false);
         assert_eq!(malformed["annotations"], serde_json::json!([]));
+    }
+
+    #[test]
+    fn source_metadata_distinguishes_graph_and_expression_operators_by_parse_context() {
+        let source = "panel 0\nages: fixture/source\nadults: fixture/sink\n\
+                      ages > keep { it > 18 } > adults\n";
+        let metadata: Value =
+            serde_json::from_str(&panel_source_metadata(source.to_owned())).unwrap();
+        assert_eq!(metadata["semantic_available"], true);
+        let annotations = metadata["annotations"].as_array().unwrap();
+
+        let graph = annotations
+            .iter()
+            .filter(|entry| entry["kind"] == "graph-operator")
+            .collect::<Vec<_>>();
+        let expression = annotations
+            .iter()
+            .filter(|entry| entry["kind"] == "expression-operator")
+            .collect::<Vec<_>>();
+        assert_eq!(graph.len(), 2);
+        assert_eq!(expression.len(), 1);
+        for entry in graph.iter().chain(expression.iter()) {
+            let start = entry["start_byte"].as_u64().unwrap() as usize;
+            let end = entry["end_byte"].as_u64().unwrap() as usize;
+            assert_eq!(&source[start..end], ">");
+        }
+        assert_ne!(graph[0]["semantic_path"], expression[0]["semantic_path"]);
+        assert_eq!(expression[0]["direction"], "greater-than");
     }
 
     #[test]
@@ -5112,16 +5174,16 @@ cord output.value -> sink.result\n\
 
         let explained: Value = serde_json::from_str(&explain_panel(
             "panel 0\n\
-             composite example/upper {\n\
-               node worker : text/uppercase\n\
+             example/upper{\n\
+               worker: text/uppercase\n\
                export > text = worker.text\n\
                export uppercased > = worker.text\n\
              }\n\
-             node source : std/literal { value = \"hello\" }\n\
-             node transform : example/upper\n\
-             node sink : display/text\n\
-             cord source.value -> transform.text\n\
-             cord transform.uppercased -> sink.text\n"
+             source: std/literal { value = \"hello\" }\n\
+             transform: example/upper\n\
+             sink: display/text\n\
+             source.value > transform.text\n\
+             transform.uppercased > sink.text\n"
                 .to_owned(),
         ))
         .expect("explanation JSON");
@@ -5129,11 +5191,11 @@ cord output.value -> sink.result\n\
         assert!(
             explained["logical"]
                 .as_str()
-                .is_some_and(|value| value.contains("composite transform : example/upper"))
+                .is_some_and(|value| value.contains("transform: example/upper"))
         );
         assert!(explained["expanded"].as_str().is_some_and(|value| {
-            value.contains("transform.worker : text/uppercase")
-                || value.contains("transform.worker : text/uppercase")
+            value.contains("transform.worker: text/uppercase")
+                || value.contains("transform.worker: text/uppercase")
         }));
     }
 
@@ -5258,7 +5320,7 @@ cord output.value -> sink.result\n\
     fn expanded_is_unavailable_without_an_exact_plan() {
         let opened: Value = serde_json::from_str(&patchbay_open_session(
             "no-exact-plan".to_owned(),
-            "panel 0\nnode unfinished :".to_owned(),
+            "panel 0\nunfinished :".to_owned(),
         ))
         .expect("session JSON");
         assert_eq!(opened["ok"], true, "{opened}");
@@ -5499,7 +5561,7 @@ cord output.value -> sink.result\n\
             "expected_source_revision": 0,
             "expected_presentation_revision": 0,
             "operations": [{
-                "ReplaceSource": {"source": "panel 0\nnode broken :"}
+                "ReplaceSource": {"source": "panel 0\nbroken :"}
             }]
         });
         let edited: Value = serde_json::from_str(&patchbay_apply_transaction(
@@ -5801,14 +5863,14 @@ cord output.value -> sink.result\n\
     fn browser_exact_run_keeps_one_public_text_ticker_watch_live_and_bounded() {
         const TICKER_SOURCE: &str = r#"panel 0
 
-node clock : time/ticker {
+clock: time/ticker {
     duration_ticks = 10
     time_basis = ref("conduit.clock/monotonic-ticks")
     maximum_pending = 1
 }
-node drain : flow/discard
+drain: flow/discard
 
-cord clock.tick -> drain.item {
+clock.tick > drain.item {
     capacity = 1
     max_value_bytes = 32
     max_queued_bytes = 32
@@ -6310,16 +6372,16 @@ cord clock.tick -> drain.item {
     #[test]
     fn candidate_connection_rejects_hidden_composite_members() {
         let composite = "panel 0\n\
-composite example/box {\n\
-  node worker : text/uppercase\n\
+example/box{\n\
+  worker: text/uppercase\n\
   export > text = worker.text\n\
   export uppercased > = worker.text\n\
 }\n\
-node source : std/literal { value = \"hello\" }\n\
-node box : example/box\n\
-node sink : display/text\n\
-cord source.value -> box.text\n\
-cord box.uppercased -> sink.text\n";
+source: std/literal { value = \"hello\" }\n\
+box: example/box\n\
+sink: display/text\n\
+source.value > box.text\n\
+box.uppercased > sink.text\n";
         let opened: Value = serde_json::from_str(&patchbay_open_session(
             "test/composite".to_owned(),
             composite.to_owned(),
@@ -6391,9 +6453,9 @@ cord box.uppercased -> sink.text\n";
         let mut source = String::from("panel 0\n");
         for index in 0..513 {
             source.push_str(&format!(
-                "node literal_{index} : std/literal {{ value = \"{index}\" }}\n\
-                 node output_{index} : display/text\n\
-                 cord literal_{index}.value -> output_{index}.text\n"
+                "literal_{index}: std/literal {{ value = \"{index}\" }}\n\
+                 output_{index}: display/text\n\
+                 literal_{index}.value > output_{index}.text\n"
             ));
         }
         let opened: Value =
@@ -6413,9 +6475,9 @@ cord box.uppercased -> sink.text\n";
     #[test]
     fn invalid_direction_lesson_projects_authored_graph_without_a_plan() {
         let source = "panel 0\n\
-node first : std/literal { value = \"First.\\n\" }\n\
-node second : std/literal { value = \"Second.\\n\" }\n\
-cord first.value -> second.value {\n\
+first: std/literal { value = \"First.\\n\" }\n\
+second: std/literal { value = \"Second.\\n\" }\n\
+first.value > second.value {\n\
   capacity = 1\n\
   max_value_bytes = 1024\n\
   max_queued_bytes = 1024\n\
@@ -6490,7 +6552,7 @@ cord first.value -> second.value {\n\
         ))
         .unwrap();
         assert_eq!(moved["ok"], true);
-        let incomplete = "panel 0\nnode greeting : std/literal {\n value =\nnode preserved :";
+        let incomplete = "panel 0\ngreeting: std/literal {\n value =\npreserved :";
         let replacement = serde_json::json!({
             "protocol_version": 0,
             "document_id": "test/incomplete-edit",
@@ -6527,28 +6589,28 @@ cord first.value -> second.value {\n\
         let cases = [
             (
                 "receiving-source",
-                "node a : display/text\nnode b : display/text\ncord a.text -> b.text\n",
+                "a: display/text\nb: display/text\na.text > b.text\n",
                 "wrong-direction",
             ),
             (
                 "unknown-node",
-                "node b : display/text\ncord missing.value -> b.text\n",
+                "b: display/text\nmissing.value > b.text\n",
                 "unresolved",
             ),
             (
                 "unknown-port",
-                "node a : std/literal\nnode b : display/text\ncord a.missing -> b.text\n",
+                "a: std/literal\nb: display/text\na.missing > b.text\n",
                 "unresolved",
             ),
             (
                 "incompatible",
-                "node a : std/literal\nnode b : io/stdout\ncord a.value -> b.bytes\n",
+                "a: std/literal\nb: io/stdout\na.value > b.bytes\n",
                 "incompatible",
             ),
             (
                 "bounds",
-                "node a : std/literal\nnode b : display/text\n\
-                 cord a.value -> b.text { capacity = 1 max_value_bytes = 8 \
+                "a: std/literal\nb: display/text\n\
+                 a.value > b.text { capacity = 1 max_value_bytes = 8 \
                  max_queued_bytes = 8 low_watermark = 0 high_watermark = 2 pressure = block }\n",
                 "invalid-bounds",
             ),
@@ -6590,8 +6652,8 @@ cord first.value -> second.value {\n\
 
     #[test]
     fn trivia_edit_rebases_diagnostic_ranges_to_the_new_revision() {
-        let source = "panel 0\nnode a : std/literal\nnode b : std/literal\n\
-                      cord a.value -> b.value\n";
+        let source = "panel 0\na: std/literal\nb: std/literal\n\
+                      a.value > b.value\n";
         let opened: Value = serde_json::from_str(&patchbay_open_session(
             "test/diagnostic-revision".to_owned(),
             source.to_owned(),

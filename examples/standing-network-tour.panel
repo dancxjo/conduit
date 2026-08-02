@@ -4,20 +4,20 @@
 panel 0
 
 # Endpoint A: link/address readiness -> DHCP -> local name -> observation.
-node endpoint_a : net/wifi/access-point {
+endpoint_a: net/wifi/access-point {
     lifecycle = "standing" topology = "isolated-local-only" interface = 1
     address = "192.168.4.1" prefix_length = 24 maximum_clients = 8
     period_ticks = 1000 freshness_ticks = 2000 maximum_evidence_events = 64
 }
-node endpoint_a_dhcp : net/dhcp/server {
+endpoint_a_dhcp: net/dhcp/server {
     lifecycle = "standing" lease_ticks = 3600000 maximum_leases = 8 maximum_pending = 1
     maximum_evidence_events = 64 cancellation = "cancel-before-commit"
 }
-node endpoint_a_name : net/dns-sd {
+endpoint_a_name: net/dns-sd {
     lifecycle = "standing" name = "pete.local" port = 8080 ttl_ticks = 120000
     maximum_records = 8 maximum_name_bytes = 63 maximum_evidence_events = 64
 }
-node endpoint_a_observe : net/reachability {
+endpoint_a_observe: net/reachability {
     lifecycle = "standing" scope = "local-network" maximum_packet_bytes = 1500
     maximum_packets_per_window = 4 window_ticks = 1000 maximum_evidence_events = 64
 }
@@ -25,73 +25,73 @@ node endpoint_a_observe : net/reachability {
 # The packet source and destination begin as two isolated application
 # endpoints. The route is authored fixture state, not an ambient host-route
 # mutation or an effect caused by drawing a cord.
-node packet_source : net/packet/source {
+packet_source: net/packet/source {
     lifecycle = "standing" source = "10.0.0.2" destination = "10.1.0.2"
     hop_limit = 4 payload_bytes = 64 period_ticks = 10 maximum_packets_per_step = 1
     maximum_packet_bytes = 1500 maximum_evidence_events = 64
 }
-node packet_route : net/packet/route {
+packet_route: net/packet/route {
     lifecycle = "standing" prefix = "10.1.0.0" prefix_length = 16
     egress_interface = 2 mtu = 1500 forwarding = "admitted" maximum_routes = 16
     maximum_packet_bytes = 1500 maximum_evidence_events = 64
 }
-node packet_meter : net/observe/meter {
+packet_meter: net/observe/meter {
     lifecycle = "standing" maximum_packets_per_step = 1 maximum_retained_items = 1
     maximum_evidence_events = 64
 }
 
-node frame_source : net/frame/source {
+frame_source: net/frame/source {
     lifecycle = "standing" interface = 1 period_ticks = 1000 payload_bytes = 64
     maximum_frame_bytes = 1518 maximum_evidence_events = 64
 }
-node frame_sink : net/frame/sink {
+frame_sink: net/frame/sink {
     lifecycle = "standing" maximum_frames_per_step = 1 maximum_retained_items = 1
     maximum_evidence_events = 64
 }
 
 # Application exchanges retain datagram and stream semantics separately.
-node datagram_source : net/datagram/source {
+datagram_source: net/datagram/source {
     lifecycle = "standing" source_port = 30000 destination_port = 30001 period_ticks = 1000
     payload_bytes = 64 maximum_datagram_bytes = 1472 maximum_datagrams_per_step = 1
     maximum_evidence_events = 64
 }
-node datagram_impairment : net/datagram/impair {
+datagram_impairment: net/datagram/impair {
     lifecycle = "standing" pattern = "deliver,loss,duplicate,reorder"
     maximum_datagram_bytes = 1472 maximum_evidence_events = 64
 }
-node datagram_sink : net/datagram/sink {
+datagram_sink: net/datagram/sink {
     lifecycle = "standing" maximum_datagrams_per_step = 1 maximum_retained_items = 1
     maximum_evidence_events = 64
 }
-node stream_source : net/stream/source {
+stream_source: net/stream/source {
     lifecycle = "standing" session = 1 period_ticks = 1000 chunk_bytes = 64
     maximum_chunk_bytes = 1024 maximum_evidence_events = 64
 }
-node stream_sink : net/stream/sink {
+stream_sink: net/stream/sink {
     lifecycle = "standing" maximum_chunks_per_step = 1 maximum_retained_items = 1
     maximum_evidence_events = 64
 }
 
 # One listener serves repeated sessions on a fixed topology.
-node listener : net/session/listen {
+listener: net/session/listen {
     lifecycle = "standing" transport = "tcp-fixture" local_port = 8080 period_ticks = 10
     session_timeout_ticks = 25 maximum_sessions = 8 maximum_retained_items = 8
     maximum_evidence_events = 64
 }
-node service_observe : net/observe/service {
+service_observe: net/observe/service {
     lifecycle = "standing" maximum_retained_items = 0 maximum_evidence_events = 64
 }
 
-cord endpoint_a.address -> endpoint_a_dhcp.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
-cord endpoint_a_dhcp.lease -> endpoint_a_name.lease { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
-cord endpoint_a_name.registration -> endpoint_a_observe.registration { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
+endpoint_a.address > endpoint_a_dhcp.address { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+endpoint_a_dhcp.lease > endpoint_a_name.lease { capacity = 2 max_value_bytes = 64 max_queued_bytes = 128 low_watermark = 0 high_watermark = 2 pressure = block }
+endpoint_a_name.registration > endpoint_a_observe.registration { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
 
-cord packet_source.packet -> packet_route.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }
-cord packet_route.packet -> packet_meter.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }
-cord frame_source.frame -> frame_sink.frame { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
-cord datagram_source.datagram -> datagram_impairment.datagram { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
-cord datagram_impairment.datagram -> datagram_sink.datagram { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
-cord stream_source.chunk -> stream_sink.chunk { capacity = 2 max_value_bytes = 96 max_queued_bytes = 192 low_watermark = 0 high_watermark = 2 pressure = block }
-cord listener.session -> service_observe.session { capacity = 8 max_value_bytes = 64 max_queued_bytes = 512 low_watermark = 2 high_watermark = 8 pressure = block }
-cord listener.event -> service_observe.event { capacity = 8 max_value_bytes = 32 max_queued_bytes = 256 low_watermark = 2 high_watermark = 8 pressure = block }
-cord listener.state -> service_observe.state { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }
+packet_source.packet > packet_route.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }
+packet_route.packet > packet_meter.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }
+frame_source.frame > frame_sink.frame { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
+datagram_source.datagram > datagram_impairment.datagram { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
+datagram_impairment.datagram > datagram_sink.datagram { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
+stream_source.chunk > stream_sink.chunk { capacity = 2 max_value_bytes = 96 max_queued_bytes = 192 low_watermark = 0 high_watermark = 2 pressure = block }
+listener.session > service_observe.session { capacity = 8 max_value_bytes = 64 max_queued_bytes = 512 low_watermark = 2 high_watermark = 8 pressure = block }
+listener.event > service_observe.event { capacity = 8 max_value_bytes = 32 max_queued_bytes = 256 low_watermark = 2 high_watermark = 8 pressure = block }
+listener.state > service_observe.state { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }

@@ -1,12 +1,12 @@
 # Write one bounded literal chunk to an opaque provider-owned file resource.
 panel 0
 
-node source : fs/chunk/literal {
+source: fs/chunk/literal {
     value = bytes("636f6e6475697420626f756e6465642066696c6573797374656d0a")
     maximum_bytes = 64
 }
 
-node writer : fs/write {
+writer: fs/write {
     resource = secret("conduit.resource/filesystem-example-write")
     grant = secret("conduit.grant/filesystem-write")
     mode = "replace"
@@ -17,7 +17,7 @@ node writer : fs/write {
     cancellation = "close"
 }
 
-cord source.chunk -> writer.chunk {
+source.chunk > writer.chunk {
     capacity = 1
     max_value_bytes = 64
     max_queued_bytes = 64

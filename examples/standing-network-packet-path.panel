@@ -2,25 +2,25 @@
 # The route is authored state; the cord grants no packet-injection or host-route authority.
 panel 0
 
-node source : net/packet/source {
+source: net/packet/source {
     lifecycle = "standing" source = "10.0.0.2" destination = "10.1.0.2"
     hop_limit = 4 payload_bytes = 64 period_ticks = 10 maximum_packets_per_step = 1
     maximum_packet_bytes = 1500 maximum_evidence_events = 64
 }
-node classify : net/packet/classify {
+classify: net/packet/classify {
     lifecycle = "standing" admitted_prefix = "10.0.0.0" prefix_length = 8
     maximum_packet_bytes = 1500 maximum_evidence_events = 64
 }
-node router : net/packet/route {
+router: net/packet/route {
     lifecycle = "standing" prefix = "10.1.0.0" prefix_length = 16
     egress_interface = 2 mtu = 1500 forwarding = "admitted" maximum_routes = 16
     maximum_packet_bytes = 1500 maximum_evidence_events = 64
 }
-node sink : net/packet/sink {
+sink: net/packet/sink {
     lifecycle = "standing" maximum_packets_per_step = 1 maximum_retained_items = 1
     maximum_evidence_events = 64
 }
 
-cord source.packet -> classify.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }
-cord classify.packet -> router.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }
-cord router.packet -> sink.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }
+source.packet > classify.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }
+classify.packet > router.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }
+router.packet > sink.packet { capacity = 1 max_value_bytes = 1552 max_queued_bytes = 1552 low_watermark = 0 high_watermark = 1 pressure = block }

@@ -864,7 +864,7 @@ mod tests {
 
     #[test]
     fn semantic_understanding_does_not_install_media_operations() {
-        let source = "panel 0\nnode frame : conduit.media/audio-frame/literal { fixture = \"tone-s16le-stereo-48000\" }\nnode inspect : conduit.media/audio-frame/inspect\nnode output : display/text\ncord frame.frame -> inspect.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ncord inspect.summary -> output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n";
+        let source = "panel 0\nframe: conduit.media/audio-frame/literal { fixture = \"tone-s16le-stereo-48000\" }\ninspect: conduit.media/audio-frame/inspect\noutput: display/text\nframe.frame > inspect.frame { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\ninspect.summary > output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }\n";
         let panel = conduit_panel::parse(source).unwrap();
         let mut registry = Registry::default();
         register_media_contracts(&mut registry);

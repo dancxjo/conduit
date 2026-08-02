@@ -1,6 +1,6 @@
 panel 0
 
-node model : learned/model/literal {
+model: learned/model/literal {
   fixture = "fixed-linear-i16-2x4"
   semantic_model_identity = "sha256:1e76e306f83ff89bf3770153145f271a0aadbb8ad536cd0bba28041f31c0ff25"
   artifact_identity = "sha256:65ecb31b3f30690325f1e29e6bf34e4ca73118b103ccd1d21c32e4db47d7d29c"
@@ -14,13 +14,13 @@ node model : learned/model/literal {
   output_schema_identity = "sha256:9fa614c446b8791315cee5d015192640aaecbfbb385823dde094a37f19f50ae3"
   maximum_artifact_bytes = 64
 }
-node input : learned/tensor/literal {
+input: learned/tensor/literal {
   fixture = "input-i16-1x4"
   schema_identity = "sha256:753084a8a46eceeed56c50ea01ff84c88c9d6a53217be0a4bbc36e15af956988"
   dtype = "i16le" shape = "1x4" layout = "row-major"
   maximum_output_bytes = 64 sensitivity = "public"
 }
-node infer : learned/infer {
+infer: learned/infer {
   semantic_model_identity = "sha256:1e76e306f83ff89bf3770153145f271a0aadbb8ad536cd0bba28041f31c0ff25"
   artifact_identity = "sha256:65ecb31b3f30690325f1e29e6bf34e4ca73118b103ccd1d21c32e4db47d7d29c"
   format = "conduit-fixed-linear"
@@ -38,12 +38,12 @@ node infer : learned/infer {
   state_identity = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   determinism = "exact" tolerance = "none"
 }
-node inspect : learned/tensor/inspect
-node emphasize : text/uppercase
-node output : display/text
+inspect: learned/tensor/inspect
+emphasize: text/uppercase
+output: display/text
 
-cord model.model -> infer.model { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord input.tensor -> infer.tensor { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord infer.tensor -> inspect.tensor { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord inspect.summary -> emphasize.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
-cord emphasize.text -> output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+model.model > infer.model { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+input.tensor > infer.tensor { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+infer.tensor > inspect.tensor { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+inspect.summary > emphasize.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }
+emphasize.text > output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }

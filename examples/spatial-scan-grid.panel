@@ -1,6 +1,6 @@
 panel 0
 
-node scan : spatial/scan/fixture {
+scan: spatial/scan/fixture {
   scan_schema_identity = "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
   scan_schema_version = 0
   snapshot_identity = "sha256:a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5"
@@ -11,7 +11,7 @@ node scan : spatial/scan/fixture {
   calibration_identity = "sha256:5151515151515151515151515151515151515151515151515151515151515151"
   maximum_points = 8 maximum_chunks = 2 maximum_bytes = 4096 maximum_work = 128
 }
-node transform : spatial/transform/literal {
+transform: spatial/transform/literal {
   source_frame = "sensor" target_frame = "map"
   unit = "um" handedness = "right" axes = "x-right-y-forward-z-up"
   translation_x_um = 0 translation_y_um = 0 translation_z_um = 0 quarter_turns_z = 0
@@ -20,21 +20,21 @@ node transform : spatial/transform/literal {
   provenance_identity = "sha256:5252525252525252525252525252525252525252525252525252525252525252"
   maximum_output_bytes = 256
 }
-node transformed : spatial/scan/transform {
+transformed: spatial/scan/transform {
   maximum_points = 8 maximum_uncertainty_um = 10 maximum_bytes = 4096 maximum_work = 128
 }
-node grid : spatial/grid/from-scan {
+grid: spatial/grid/from-scan {
   grid_schema_identity = "sha256:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2"
   snapshot_identity = "sha256:a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5"
   representation_identity = "sha256:a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4"
   width = 2 height = 2 resolution_um = 1000 maximum_grid_cells = 16
   maximum_points = 8 maximum_bytes = 4096 maximum_work = 128
 }
-node inspect : spatial/grid/inspect
-node output : display/text
+inspect: spatial/grid/inspect
+output: display/text
 
-cord scan.scan -> transformed.scan { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord transform.transform -> transformed.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord transformed.scan -> grid.scan { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord grid.grid -> inspect.grid { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }
+scan.scan > transformed.scan { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+transform.transform > transformed.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+transformed.scan > grid.scan { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+grid.grid > inspect.grid { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+inspect.summary > output.text { capacity = 1 max_value_bytes = 128 max_queued_bytes = 128 low_watermark = 0 high_watermark = 1 pressure = block }

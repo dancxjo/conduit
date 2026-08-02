@@ -1,8 +1,8 @@
 # Exercise cancellation after the exact spawn commit point.
 panel 0
 
-node input : io/stdin-stream
-node child : conduit.host/process/exec {
+input: io/stdin-stream
+child: conduit.host/process/exec {
     program = ref("conduit.executable/process-fixture")
     argv = record(arg0="--sleep")
     environment = record()
@@ -26,9 +26,9 @@ node child : conduit.host/process/exec {
     forced_ticks = 1
     cancellation = "cancel-after-spawn"
 }
-node output : io/stdout-stream
-node errors : io/stderr-stream
+output: io/stdout-stream
+errors: io/stderr-stream
 
-cord input.bytes -> child.stdin { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
-cord child.stdout -> output.bytes { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
-cord child.stderr -> errors.bytes { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+input.bytes > child.stdin { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+child.stdout > output.bytes { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+child.stderr > errors.bytes { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }

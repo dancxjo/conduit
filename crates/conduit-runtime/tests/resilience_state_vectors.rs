@@ -36,8 +36,7 @@ fn resilience_callbacks_cannot_claim_behavioral_conformance() {
     let availability = registry.node_availability(contract.id.as_str());
     assert_eq!(availability.state, AvailabilityState::ProviderAvailable);
     assert_eq!(availability.host_id, None);
-    let panel =
-        conduit_panel::parse(&format!("panel 0\nnode stateful : {}\n", contract.id)).unwrap();
+    let panel = conduit_panel::parse(&format!("panel 0\nstateful: {}\n", contract.id)).unwrap();
     assert_eq!(
         registry
             .resolve(&panel)

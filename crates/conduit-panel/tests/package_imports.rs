@@ -111,8 +111,8 @@ fn parser_preserves_named_aliases_and_exact_source_spans() {
     let panel = parse(
         "panel 0\n\
          import conduit.dev/std/{tee, gate as valve}\n\
-         node split : tee\n\
-         node check : valve\n",
+         split: tee\n\
+         check: valve\n",
     )
     .unwrap();
     assert_eq!(panel.package_imports.len(), 1);
@@ -137,7 +137,7 @@ fn exact_lock_resolution_rewrites_only_semantic_references() {
     let panel = parse(
         "panel 0\n\
          import conduit.dev/std/{tee as split, stream}\n\
-         node source : split implements stream\n",
+         source: split implements stream\n",
     )
     .unwrap();
     let (bytes, lock) = artifact(Vec::new());
@@ -165,7 +165,7 @@ fn imported_types_lower_in_typed_source_positions_and_local_declarations_win_no_
     let panel = parse(
         "panel 0\n\
          import conduit.dev/std/{reading as sample}\n\
-         composite Envelope(value: sample) {}\n",
+         Envelope(value: sample) {}\n",
     )
     .unwrap();
     let (bytes, lock) = artifact(Vec::new());
@@ -186,7 +186,7 @@ fn imported_types_lower_in_typed_source_positions_and_local_declarations_win_no_
     let colliding = parse(
         "panel 0\n\
          import conduit.dev/std/{tee as Part}\n\
-         composite Part {}\n",
+         Part{}\n",
     )
     .unwrap();
     let failure = resolve_package_imports(
@@ -207,8 +207,8 @@ fn qualified_package_alias_resolves_public_exports_but_not_private_surface() {
     let panel = parse(
         "panel 0\n\
          import conduit.dev/std as std\n\
-         node split : std.tee\n\
-         node check : std.gate\n",
+         split: std.tee\n\
+         check: std.gate\n",
     )
     .unwrap();
     let (bytes, lock) = artifact(Vec::new());
@@ -482,12 +482,11 @@ fn explicit_local_module_closure_resolves_package_names_without_loading_more_sou
     let loader = Loader(BTreeMap::from([
         (
             "mem://fixture/root.panel".to_owned(),
-            "panel 0\nimport \"./child.panel\" as child\nnode root : child.Part\n".to_owned(),
+            "panel 0\nimport \"./child.panel\" as child\nroot: child.Part\n".to_owned(),
         ),
         (
             "mem://fixture/child.panel".to_owned(),
-            "panel 0\nimport conduit.dev/std/{tee as split}\ncomposite Part {\nnode branch : split\n}\n"
-                .to_owned(),
+            "panel 0\nimport conduit.dev/std/{tee as split}\nPart {\nbranch: split\n}\n".to_owned(),
         ),
     ]));
     let graph = resolve_modules("mem://fixture/root.panel", None, &loader).unwrap();

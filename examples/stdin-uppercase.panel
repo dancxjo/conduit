@@ -1,25 +1,25 @@
 # With a panel read from a file, process stdin remains available to this node.
 panel 0
 
-node input : io/stdin
-node decoder : std/data/decode-utf8 {
+input: io/stdin
+decoder: std/data/decode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 4096
     maximum_output_bytes = 4096
 }
-node transform : text/uppercase
-node encoder : std/data/encode-utf8 {
+transform: text/uppercase
+encoder: std/data/encode-utf8 {
     codec = ref("conduit.codec/utf-8")
     codec_schema_version = 0
     codec_hash = bytes("f219297cb276bc91eccddb346a8b21e7edd4414b8844014108513747ae11bf53")
     maximum_input_bytes = 4096
     maximum_output_bytes = 4096
 }
-node output : io/stdout
+output: io/stdout
 
-cord input.bytes -> decoder.bytes {
+input.bytes > decoder.bytes {
     capacity = 8
     max_value_bytes = 65536
     max_queued_bytes = 524288
@@ -28,7 +28,7 @@ cord input.bytes -> decoder.bytes {
     pressure = block
 }
 
-cord decoder.text -> transform.text {
+decoder.text > transform.text {
     capacity = 4
     max_value_bytes = 65536
     max_queued_bytes = 262144
@@ -37,7 +37,7 @@ cord decoder.text -> transform.text {
     pressure = block
 }
 
-cord transform.text -> encoder.text {
+transform.text > encoder.text {
     capacity = 4
     max_value_bytes = 65536
     max_queued_bytes = 262144
@@ -46,7 +46,7 @@ cord transform.text -> encoder.text {
     pressure = block
 }
 
-cord encoder.bytes -> output.bytes {
+encoder.bytes > output.bytes {
     capacity = 8
     max_value_bytes = 65536
     max_queued_bytes = 524288

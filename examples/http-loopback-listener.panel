@@ -3,7 +3,7 @@
 # host readiness notifications until the exact run is stopped.
 panel 0
 
-node server : net/http/listen {
+server: net/http/listen {
     listen = "127.0.0.1:0"
     method = "GET"
     path = "/health"

@@ -5,7 +5,7 @@ use conduit_patchbay::{
     project_library_catalog, project_pool, project_supervision,
 };
 
-const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
+const SOURCE: &str = "panel 0\ngreeting: std/literal { value = \"hello\\n\" }\noutput: display/text\ngreeting.value > output.text\n";
 const FIXTURE: &str = include_str!("../../../conformance/c8/patchbay-protocol.json");
 
 fn request(workspace: &Workspace, operations: Vec<EditOperation>) -> EditRequest {
@@ -886,10 +886,10 @@ fn workspace_semantic_does_not_emit_contract_only_by_default() {
 #[test]
 fn typed_source_edits_are_atomic_and_history_is_finite() {
     let source = "panel 0\n\
-node greeting : std/literal {\n\
+greeting: std/literal {\n\
   value = \"hello\"\n\
 }\n\
-node output : display/text\n";
+output: display/text\n";
     let mut workspace =
         Workspace::new_with_history("tour/typed", source, 3).expect("source parses");
     let configured = workspace

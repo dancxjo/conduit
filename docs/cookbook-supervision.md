@@ -12,13 +12,13 @@ timer, and allocation bindings are deliberately absent from this snippet.
 ```panel
 panel 0
 
-node request : std/literal {
+request: std/literal {
     value = "work"
 }
-node output : display/text
-node request_policy : supervision/supervisor
+output: display/text
+request_policy: supervision/supervisor
 
-cord request.value -> output.text
+request.value > output.text
 supervise request with request_policy
 ```
 

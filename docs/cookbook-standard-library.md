@@ -59,21 +59,21 @@ placeholders, unsupported kinds, and output overflow terminate with exact
 ```panel
 panel 0
 
-node template : std/literal {
+template: std/literal {
     value = "{worker} processed {count} records; payload = {{ok}}.\n"
 }
-node values : std/format-values/literal {
+values: std/format-values/literal {
     values = list(
         record(name="worker", value="worker-1"),
         record(name="count", value=42)
     )
 }
-node message : std/text/format
-node sink : display/text
+message: std/text/format
+sink: display/text
 
-cord template.value -> message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
-cord values.values -> message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
-cord message.text -> sink.text { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
+template.value > message.template { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }
+values.values > message.values { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
+message.text > sink.text { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }
 ```
 
 The exact grammar, type descriptors, wire representation, limits, normalized
@@ -268,10 +268,10 @@ grant, or Wi-Fi provider is implied.
 ```panel
 panel 0
 
-node sta : net/wifi/join { ssid = "OfficeNet" }
-node status_logger : observe/log
+sta: net/wifi/join { ssid = "OfficeNet" }
+status_logger: observe/log
 
-cord sta.state -> status_logger.message { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
+sta.state > status_logger.message { capacity = 4 max_value_bytes = 1024 max_queued_bytes = 4096 low_watermark = 1 high_watermark = 4 pressure = block }
 ```
 
 ### GPIO Hardware Control
@@ -281,10 +281,10 @@ grant is implied.
 ```panel
 panel 0
 
-node button : device/gpio/pin { pin = 4 mode = "read" }
-node led : device/gpio/pin { pin = 13 mode = "write" }
+button: device/gpio/pin { pin = 4 mode = "read" }
+led: device/gpio/pin { pin = 13 mode = "write" }
 
-cord button.state -> led.command { capacity = 4 max_value_bytes = 256 max_queued_bytes = 1024 low_watermark = 1 high_watermark = 4 pressure = block }
+button.state > led.command { capacity = 4 max_value_bytes = 256 max_queued_bytes = 1024 low_watermark = 1 high_watermark = 4 pressure = block }
 ```
 
 ---

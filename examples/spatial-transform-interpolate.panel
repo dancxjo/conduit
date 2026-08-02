@@ -1,6 +1,6 @@
 panel 0
 
-node before : spatial/transform/literal {
+before: spatial/transform/literal {
   source_frame = "sensor" target_frame = "camera"
   unit = "um" handedness = "right" axes = "x-right-y-forward-z-up"
   translation_x_um = 0 translation_y_um = 0 translation_z_um = 0 quarter_turns_z = 0
@@ -9,7 +9,7 @@ node before : spatial/transform/literal {
   provenance_identity = "sha256:5252525252525252525252525252525252525252525252525252525252525252"
   maximum_output_bytes = 256
 }
-node after : spatial/transform/literal {
+after: spatial/transform/literal {
   source_frame = "sensor" target_frame = "camera"
   unit = "um" handedness = "right" axes = "x-right-y-forward-z-up"
   translation_x_um = 20 translation_y_um = 40 translation_z_um = 60 quarter_turns_z = 0
@@ -18,22 +18,22 @@ node after : spatial/transform/literal {
   provenance_identity = "sha256:5252525252525252525252525252525252525252525252525252525252525252"
   maximum_output_bytes = 256
 }
-node point : spatial/point/literal {
+point: spatial/point/literal {
   frame = "sensor" x_um = 1000 y_um = 500 z_um = 10000
   clock = "clock/fixture" tick = 11 uncertainty_um = 0
   provenance_identity = "sha256:5252525252525252525252525252525252525252525252525252525252525252"
   unit = "um" axes = "x-right-y-forward-z-up" maximum_output_bytes = 256
 }
-node interpolate : spatial/transform/interpolate {
+interpolate: spatial/transform/interpolate {
   tick = 11 maximum_window_ticks = 4 maximum_history_values = 2 maximum_uncertainty_um = 10 maximum_work = 256
 }
-node apply : spatial/transform/apply { maximum_uncertainty_um = 10 maximum_work = 256 }
-node inspect : spatial/point/inspect
-node output : display/text
+apply: spatial/transform/apply { maximum_uncertainty_um = 10 maximum_work = 256 }
+inspect: spatial/point/inspect
+output: display/text
 
-cord before.transform -> interpolate.before { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord after.transform -> interpolate.after { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord interpolate.transform -> apply.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord point.point -> apply.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord apply.point -> inspect.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
-cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+before.transform > interpolate.before { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+after.transform > interpolate.after { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+interpolate.transform > apply.transform { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+point.point > apply.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+apply.point > inspect.point { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }
+inspect.summary > output.text { capacity = 1 max_value_bytes = 256 max_queued_bytes = 256 low_watermark = 0 high_watermark = 1 pressure = block }

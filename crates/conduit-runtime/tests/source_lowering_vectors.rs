@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     CanonicalValue, ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability,
-    ConfigRequirement, Id, NodeContract, SemanticHash, Sensitivity, TypeContractRef,
+    ConfigRequirement, ConnectionCardinality, Delivery, Direction, Id, InterfaceMemberRequirement,
+    LossAcceptance, NodeContract, Presence, SemanticHash, Sensitivity, TemporalContract,
+    TerminalContract, TypeContractRef, ValueCardinality,
 };
 use conduit_panel::{
     LoadedModule, ModuleLoader, RootSelectionMode, SourceValue, resolve_modules,
@@ -10,8 +12,9 @@ use conduit_panel::{
 };
 use conduit_runtime::{
     ConfigProvenance, LiteralValidationError, LoweredConfigValue, OwnedConfigFieldSchema,
-    OwnedConfigRequirement, OwnedNodeSchema, OwnedPortReference, OwnedSemanticValue,
-    OwnedTypeReference, SourceContractCatalog, lower_source, lower_source_base, lower_topology,
+    OwnedConfigRequirement, OwnedInterfaceContract, OwnedInterfaceMember, OwnedNodeSchema,
+    OwnedPortReference, OwnedPrincipalPath, OwnedSemanticValue, OwnedTypeReference,
+    SourceContractCatalog, lower_source, lower_source_base, lower_topology,
 };
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
@@ -113,7 +116,9 @@ impl SourceContractCatalog for Catalog {
                     OwnedConfigRequirement::Required,
                 ),
             ],
-            "fixture/handler"
+            "fixture/source"
+            | "fixture/sink"
+            | "fixture/handler"
             | "fixture/speech-node"
             | "fixture/incomplete-node"
             | "fixture/swapped-directions" => Vec::new(),
@@ -205,6 +210,49 @@ impl SourceContractCatalog for Catalog {
         })
     }
 
+    fn interface_contract(&self, id: &str) -> Option<OwnedInterfaceContract> {
+        let (direction, principal_path) = match id {
+            "fixture/source" => (
+                Direction::Output,
+                OwnedPrincipalPath {
+                    receiving: None,
+                    outgoing: Some("value".to_owned()),
+                },
+            ),
+            "fixture/sink" => (
+                Direction::Input,
+                OwnedPrincipalPath {
+                    receiving: Some("value".to_owned()),
+                    outgoing: None,
+                },
+            ),
+            _ => return None,
+        };
+        let member = OwnedInterfaceMember {
+            requirement: InterfaceMemberRequirement::Required,
+            id: "value".to_owned(),
+            direction,
+            value_type: Self::type_ref("fixture/text"),
+            presence: Presence::Required,
+            connections: ConnectionCardinality::ZeroOrMore,
+            values: ValueCardinality::ExactlyOne,
+            delivery: Delivery::Stream,
+            temporal: TemporalContract::Committed,
+            terminal: TerminalContract::Either,
+            sensitivity: Sensitivity::Public,
+            loss: LossAcceptance::LosslessOnly,
+        };
+        let mut contract = OwnedInterfaceContract {
+            id: id.to_owned(),
+            schema_version: 0,
+            principal_path,
+            members: vec![member],
+            semantic_hash: SemanticHash::from_bytes([0; 32]),
+        };
+        contract.semantic_hash = contract.compute_semantic_hash().ok()?;
+        Some(contract)
+    }
+
     fn validate_literal(
         &self,
         expected: &OwnedTypeReference,
@@ -275,7 +323,7 @@ impl SourceContractCatalog for Catalog {
 #[test]
 fn current_grammar_uses_the_current_source_ast_schema() {
     let lowered = lower_source(
-        &graph("panel 0\ninterface fixture/ports { > value : fixture/text }\n"),
+        &graph("panel 0\ninterface fixture/ports { > value: fixture/text }\n"),
         &Catalog,
     )
     .unwrap();
@@ -283,6 +331,25 @@ fn current_grammar_uses_the_current_source_ast_schema() {
         lowered.source_ast_schema_version,
         conduit_runtime::SOURCE_AST_SCHEMA_VERSION
     );
+}
+
+#[test]
+fn bare_chain_endpoints_lower_to_exact_named_principal_ports() {
+    let lowered = lower_topology(
+        &graph("panel 0\nsource: fixture/source\nsink: fixture/sink\nsource > sink\n"),
+        &Catalog,
+    )
+    .unwrap();
+    assert_eq!(lowered.cords.len(), 1);
+    assert!(lowered.cords[0].from.ends_with("/node/source/port/value"));
+    assert!(lowered.cords[0].to.ends_with("/node/sink/port/value"));
+
+    let error = lower_topology(
+        &graph("panel 0\nsource: fixture/source\nunknown: fixture/handler\nsource > unknown\n"),
+        &Catalog,
+    )
+    .expect_err("missing principal receiving endpoint must fail closed");
+    assert_eq!(error.code, "CND-LWR-016");
 }
 
 struct OrderedPortCatalog(Vec<String>);
@@ -744,13 +811,10 @@ fn every_normative_port_group_source_vector_has_the_exact_result() {
 
 #[test]
 fn explicit_and_default_values_have_one_descriptor_with_visible_provenance() {
-    let omitted = lower_source_base(
-        &graph("panel 0\nnode value : fixture/defaulted\n"),
-        &Catalog,
-    )
-    .unwrap();
+    let omitted =
+        lower_source_base(&graph("panel 0\nvalue: fixture/defaulted\n"), &Catalog).unwrap();
     let explicit = lower_source_base(
-        &graph("panel 0\nnode value : fixture/defaulted { enabled = true }\n"),
+        &graph("panel 0\nvalue: fixture/defaulted { enabled = true }\n"),
         &Catalog,
     )
     .unwrap();
@@ -775,26 +839,24 @@ fn explicit_and_default_values_have_one_descriptor_with_visible_provenance() {
 #[test]
 fn records_are_canonical_and_precision_sensitive_values_remain_exact() {
     let left = lower_source_base(
-        &graph("panel 0\nnode value : fixture/record { value = record(name=\"a\",count=7) }\n"),
+        &graph("panel 0\nvalue: fixture/record { value = record(name=\"a\",count=7) }\n"),
         &Catalog,
     )
     .unwrap();
     let right = lower_source_base(
-        &graph("panel 0\nnode value : fixture/record { value = record(count=7,name=\"a\") }\n"),
+        &graph("panel 0\nvalue: fixture/record { value = record(count=7,name=\"a\") }\n"),
         &Catalog,
     )
     .unwrap();
     assert_eq!(left.semantic_hash, right.semantic_hash);
 
     let short = lower_source_base(
-        &graph("panel 0\nnode value : fixture/decimal { value = decimal(\"0.1\") }\n"),
+        &graph("panel 0\nvalue: fixture/decimal { value = decimal(\"0.1\") }\n"),
         &Catalog,
     )
     .unwrap();
     let precise = lower_source_base(
-        &graph(
-            "panel 0\nnode value : fixture/decimal { value = decimal(\"0.10000000000000001\") }\n",
-        ),
+        &graph("panel 0\nvalue: fixture/decimal { value = decimal(\"0.10000000000000001\") }\n"),
         &Catalog,
     )
     .unwrap();
@@ -805,15 +867,15 @@ fn records_are_canonical_and_precision_sensitive_values_remain_exact() {
 fn wrong_types_overflow_and_missing_providers_name_span_and_contract() {
     for (source, code) in [
         (
-            "panel 0\nnode value : fixture/integer { count = \"seven\" }\n",
+            "panel 0\nvalue: fixture/integer { count = \"seven\" }\n",
             "CND-LWR-005",
         ),
         (
-            "panel 0\nnode value : fixture/integer { count = 128 }\n",
+            "panel 0\nvalue: fixture/integer { count = 128 }\n",
             "CND-LWR-006",
         ),
         (
-            "panel 0\nnode value : fixture/provider { value = \"x\" }\n",
+            "panel 0\nvalue: fixture/provider { value = \"x\" }\n",
             "CND-LWR-008",
         ),
     ] {
@@ -830,21 +892,21 @@ fn wrong_types_overflow_and_missing_providers_name_span_and_contract() {
 #[test]
 fn diagnostic_value_spans_are_exact_and_exclude_following_trivia() {
     let error = lower_source_base(
-        &graph("panel 0\nnode n : fixture/integer { count = -129    }\n"),
+        &graph("panel 0\nn: fixture/integer { count = -129    }\n"),
         &Catalog,
     )
     .unwrap_err();
     let origin = error.origin.unwrap();
     assert_eq!(origin.span.line, 2);
-    assert_eq!(origin.span.column, 36);
+    assert_eq!(origin.span.column, 30);
     assert_eq!(origin.span.end_line, 2);
-    assert_eq!(origin.span.end_column, 40);
+    assert_eq!(origin.span.end_column, 34);
 }
 
 #[test]
 fn secret_references_are_plan_bindings_and_never_format_the_reference() {
     let lowered = lower_source_base(
-        &graph("panel 0\nnode value : fixture/secret { token = secret(\"do-not-print-this\") }\n"),
+        &graph("panel 0\nvalue: fixture/secret { token = secret(\"do-not-print-this\") }\n"),
         &Catalog,
     )
     .unwrap();
@@ -863,9 +925,9 @@ fn secret_references_are_plan_bindings_and_never_format_the_reference() {
 
 #[test]
 fn imported_definition_schema_and_multi_file_origins_remain_exact() {
-    let child = "panel 0\nnode configured(count: fixture/i8) { }\nroot configured\n";
+    let child = "panel 0\nconfigured(count: fixture/i8) { }\nroot configured\n";
     let entry = "panel 0\nimport \"./child.panel\" as child\n\
-                 node app : child.configured { count = 7 }\n";
+                 app: child.configured { count = 7 }\n";
     let graph = resolve_modules(
         "mem://fixture/root.panel",
         None,
@@ -898,9 +960,9 @@ fn groups_and_pools_lower_to_finite_plan_visible_specs() {
     let lowered = lower_source_base(
         &graph(
             "panel 0\n\
-             port-group > routes : fixture/request-port keyed max 2 { member home member assets }\n\
-             port-group workers > : fixture/reply-port indexed max 3\n\
-             pool sessions : fixture/handler { maximum = 8 admission = queue_bounded admission_queue = 16 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = restart_bounded restart_attempts = 2 restart_backoff_ms = 50 cleanup = drain }\n",
+             port-group > routes: fixture/request-port keyed max 2 { member home member assets }\n\
+             port-group workers >: fixture/reply-port indexed max 3\n\
+             pool sessions: fixture/handler { maximum = 8 admission = queue_bounded admission_queue = 16 deadline_ms = 1000 idle_timeout_ms = 5000 supervision = restart_bounded restart_attempts = 2 restart_backoff_ms = 50 cleanup = drain }\n",
         ),
         &Catalog,
     )

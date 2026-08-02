@@ -2,7 +2,7 @@
 # resource. The runnable conformance test owns the peer on this fixed port.
 panel 0
 
-node request : net/http/request/literal {
+request: net/http/request/literal {
     method = "GET"
     scheme = "http"
     authority = "loopback.test"
@@ -11,7 +11,7 @@ node request : net/http/request/literal {
     redirect_policy = "return"
 }
 
-node client : net/http/fetch {
+client: net/http/fetch {
     address = "127.0.0.1:38153"
     authority = "loopback.test"
     transport = "http"
@@ -35,7 +35,7 @@ node client : net/http/fetch {
     cancellation = "abort-and-cleanup"
 }
 
-cord request.request -> client.request {
+request.request > client.request {
     capacity = 1
     max_value_bytes = 32768
     max_queued_bytes = 32768
