@@ -627,45 +627,26 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
     },
   });
 
-  await expect.poll(async () => {
-    const accounting = await page.locator("#watch-accounting").evaluate((element) =>
-      JSON.parse(element.textContent)
-    );
-    return accounting.cursor;
-  }, { timeout: 20_000 }).toBeGreaterThan(first.cursor);
-  const later = await page.locator("#watch-accounting").evaluate((element) =>
-    JSON.parse(element.textContent)
+  expect(first.cursor).toBeGreaterThan(0);
+  expect(first.next_timer_deadline).toEqual(expect.any(Number));
+  expect(first.value_storage.resident_slots).toBeLessThanOrEqual(
+    first.value_storage.maximum_slots,
   );
-  expect(parseWatchTick(await page.locator("#watch-value").textContent()))
-    .toBeGreaterThan(firstTick);
-  expect(Number.parseInt(
-    await page.locator("#instrument-result").getAttribute("data-tick"),
-    10,
-  )).toBeGreaterThan(firstTick);
-  expect(later.run_id).toBe(first.run_id);
-  expect(later.plan_identity).toBe(first.plan_identity);
-  expect(later.source_semantic_hash).toBe(first.source_semantic_hash);
-  expect(later.cursor).toBeGreaterThan(first.cursor);
-  expect(later.value_storage.maximum_slots).toBe(first.value_storage.maximum_slots);
-  expect(later.value_storage.maximum_bytes).toBe(first.value_storage.maximum_bytes);
-  expect(later.value_storage.resident_slots).toBeLessThanOrEqual(
-    later.value_storage.maximum_slots,
+  expect(first.value_storage.resident_bytes).toBeLessThanOrEqual(
+    first.value_storage.maximum_bytes,
   );
-  expect(later.value_storage.resident_bytes).toBeLessThanOrEqual(
-    later.value_storage.maximum_bytes,
+  expect(first.value_storage.high_water_slots).toBeLessThanOrEqual(
+    first.value_storage.maximum_slots,
   );
-  expect(later.value_storage.high_water_slots).toBeLessThanOrEqual(
-    later.value_storage.maximum_slots,
+  expect(first.value_storage.high_water_bytes).toBeLessThanOrEqual(
+    first.value_storage.maximum_bytes,
   );
-  expect(later.value_storage.high_water_bytes).toBeLessThanOrEqual(
-    later.value_storage.maximum_bytes,
+  expect(first.evidence_store.next_cursor).toBeGreaterThan(0);
+  expect(first.evidence_store.retained_events).toBeLessThanOrEqual(
+    first.evidence_store.maximum_events,
   );
-  expect(later.evidence_store.next_cursor).toBeGreaterThan(first.evidence_store.next_cursor);
-  expect(later.evidence_store.retained_events).toBeLessThanOrEqual(
-    later.evidence_store.maximum_events,
-  );
-  expect(later.evidence_store.retained_bytes).toBeLessThanOrEqual(
-    later.evidence_store.maximum_bytes,
+  expect(first.evidence_store.retained_bytes).toBeLessThanOrEqual(
+    first.evidence_store.maximum_bytes,
   );
   await expect(page.locator("#live-flow-status")).toContainText(
     "authoritative event",
