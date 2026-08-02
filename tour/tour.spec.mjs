@@ -56,6 +56,23 @@ async function startTinyInstrument(page) {
   return { browserPlan, first, firstTick };
 }
 
+async function dragAndCommitTopologyNode(page, node, deltaX, deltaY) {
+  await node.scrollIntoViewIfNeeded();
+  const before = await node.boundingBox();
+  expect(before).not.toBeNull();
+  const beforeTransform = await node.evaluate((element) => element.style.transform);
+  const startX = before.x + before.width / 2;
+  const startY = before.y + 20;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + deltaX, startY + deltaY, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(
+    async () => node.evaluate((element) => element.style.transform),
+  ).not.toBe(beforeTransform);
+  return node.evaluate((element) => element.style.transform);
+}
+
 async function openTypedTextLesson(page) {
   await gotoTour(page, "/tour/public/index.html?lesson=library.typed-text-format");
   const story = page.locator("#execution-story");
@@ -1612,38 +1629,12 @@ test("shows node movement while a topology box is being dragged", async ({ page 
   );
 });
 
-test("retains committed topology positions across renders and visits", async ({ page }) => {
+test("retains committed topology positions across Check and Run renders", async ({ page }) => {
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const greeting = page.locator('[data-id="greeting"]');
-  await greeting.scrollIntoViewIfNeeded();
-  const before = await greeting.boundingBox();
-  expect(before).not.toBeNull();
-  const beforeTransform = await greeting.evaluate((element) => element.style.transform);
-
-  const startX = before.x + before.width / 2;
-  const startY = before.y + 20;
-  await page.mouse.move(startX, startY);
-  await page.mouse.down();
-  await page.mouse.move(startX + 96, startY + 48, { steps: 4 });
-  await page.mouse.up();
-  await expect.poll(
-    async () => greeting.evaluate((element) => element.style.transform),
-  ).not.toBe(beforeTransform);
-  const committedTransform = await greeting.evaluate(
-    (element) => element.style.transform,
-  );
   const output = page.locator('[data-id="output"]');
-  const outputBefore = await output.boundingBox();
-  expect(outputBefore).not.toBeNull();
-  const outputStartX = outputBefore.x + outputBefore.width / 2;
-  const outputStartY = outputBefore.y + 20;
-  await page.mouse.move(outputStartX, outputStartY);
-  await page.mouse.down();
-  await page.mouse.move(outputStartX - 72, outputStartY + 40, { steps: 4 });
-  await page.mouse.up();
-  const committedOutputTransform = await output.evaluate(
-    (element) => element.style.transform,
-  );
+  const committedTransform = await dragAndCommitTopologyNode(page, greeting, 96, 48);
+  const committedOutputTransform = await dragAndCommitTopologyNode(page, output, -72, 40);
 
   await page.locator("#check").click();
   await expect(greeting).toHaveCSS("transform", /matrix/);
@@ -1664,7 +1655,14 @@ test("retains committed topology positions across renders and visits", async ({ 
   await expect.poll(
     async () => output.evaluate((element) => element.style.transform),
   ).toBe(committedOutputTransform);
+});
 
+test("restores committed topology positions across lesson visits and reload", async ({ page }) => {
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  const greeting = page.locator('[data-id="greeting"]');
+  const output = page.locator('[data-id="output"]');
+  const committedTransform = await dragAndCommitTopologyNode(page, greeting, 96, 48);
+  const committedOutputTransform = await dragAndCommitTopologyNode(page, output, -72, 40);
   await page.goto("/tour/public/index.html?lesson=panels.inside-outside");
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   await expect.poll(
@@ -1678,6 +1676,9 @@ test("retains committed topology positions across renders and visits", async ({ 
   await expect.poll(
     async () => greeting.evaluate((element) => element.style.transform),
   ).toBe(committedTransform);
+  await expect.poll(
+    async () => output.evaluate((element) => element.style.transform),
+  ).toBe(committedOutputTransform);
 });
 
 test("retains headless editing and execution when presentation fails", async ({ page }) => {
