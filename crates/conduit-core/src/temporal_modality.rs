@@ -7,7 +7,7 @@ use core::convert::Infallible;
 
 use crate::{
     CanonicalDescriptor, CanonicalError, CanonicalSink, CanonicalValue, CompatibilityOutcome,
-    FieldDisposition, Id, MapField, SemanticHash, TypeContractRef,
+    DescriptorRef, FieldDisposition, Id, MapField, SemanticHash, TypeContractRef,
 };
 
 /// Exact current temporal-modality descriptor schema.
@@ -398,6 +398,253 @@ pub fn assess_temporal_modality_exact(
         };
     };
     incompatible(reason)
+}
+
+/// Explicit set of temporal surfaces one pure node may lawfully preserve.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LiftedSurfaces {
+    pub value: bool,
+    pub closing_flow: bool,
+    pub open_flow: bool,
+    pub current: bool,
+}
+
+impl LiftedSurfaces {
+    /// No surface is admitted. This is invalid for a published lift contract.
+    pub const NONE: Self = Self {
+        value: false,
+        closing_flow: false,
+        open_flow: false,
+        current: false,
+    };
+
+    /// Every common temporal surface is admitted.
+    pub const ALL: Self = Self {
+        value: true,
+        closing_flow: true,
+        open_flow: true,
+        current: true,
+    };
+
+    #[must_use]
+    pub const fn admits(self, surface: TemporalSurface) -> bool {
+        match surface {
+            TemporalSurface::Value => self.value,
+            TemporalSurface::ClosingFlow => self.closing_flow,
+            TemporalSurface::OpenFlow => self.open_flow,
+            TemporalSurface::Current => self.current,
+        }
+    }
+
+    #[must_use]
+    const fn any(self) -> bool {
+        self.value || self.closing_flow || self.open_flow || self.current
+    }
+}
+
+/// Explicit proof-bearing declaration that one pure semantic node lawfully
+/// maps admitted modalities itemwise while preserving their temporal fields.
+///
+/// The proof references are semantic inputs. Their presence never grants
+/// effects or authority and is not inferred from implementation code.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ModalityLiftContract<'a> {
+    pub node_contract: DescriptorRef<'a>,
+    pub receiving_port: Id<'a>,
+    pub outgoing_port: Id<'a>,
+    pub input_type: TypeContractRef<'a>,
+    pub output_type: TypeContractRef<'a>,
+    pub admitted: LiftedSurfaces,
+    pub purity_proof: DescriptorRef<'a>,
+    pub law_proof: DescriptorRef<'a>,
+}
+
+impl ModalityLiftContract<'_> {
+    /// Validates complete semantic proof references and named endpoints.
+    pub fn validate(self) -> Result<(), ModalityLiftContractError> {
+        if self.node_contract.kind != Id("conduit/node-contract")
+            || self.node_contract.schema_version != 0
+        {
+            return Err(ModalityLiftContractError::InvalidNodeContract);
+        }
+        if Id::new(self.receiving_port.as_str()).is_err()
+            || Id::new(self.outgoing_port.as_str()).is_err()
+        {
+            return Err(ModalityLiftContractError::InvalidPort);
+        }
+        if self.input_type.validate().is_err() || self.output_type.validate().is_err() {
+            return Err(ModalityLiftContractError::InvalidType);
+        }
+        if !valid_namespaced_descriptor(self.purity_proof) {
+            return Err(ModalityLiftContractError::InvalidPurityProof);
+        }
+        if !valid_namespaced_descriptor(self.law_proof) {
+            return Err(ModalityLiftContractError::InvalidLawProof);
+        }
+        if !self.admitted.any() {
+            return Err(ModalityLiftContractError::NoAdmittedSurface);
+        }
+        Ok(())
+    }
+
+    /// Computes the exact identity of the node, endpoints, types, admitted
+    /// surfaces, and proof identities.
+    pub fn semantic_hash(&self) -> Result<SemanticHash, ModalityLiftIdentityError<Infallible>> {
+        self.validate()
+            .map_err(ModalityLiftIdentityError::InvalidContract)?;
+        let mut sink = ModalityHashSink::new();
+        self.write_canonical(&mut sink)?;
+        Ok(sink.finish())
+    }
+
+    /// Streams the exact current lift descriptor without allocation.
+    pub fn write_canonical<S: CanonicalSink>(
+        &self,
+        sink: &mut S,
+    ) -> Result<(), ModalityLiftIdentityError<S::Error>> {
+        self.validate()
+            .map_err(ModalityLiftIdentityError::InvalidContract)?;
+        let node_fields = descriptor_fields(&self.node_contract);
+        let input_fields = type_fields(&self.input_type);
+        let output_fields = type_fields(&self.output_type);
+        let purity_fields = descriptor_fields(&self.purity_proof);
+        let law_fields = descriptor_fields(&self.law_proof);
+        let admitted_fields = [
+            semantic("value", CanonicalValue::Boolean(self.admitted.value)),
+            semantic(
+                "closing_flow",
+                CanonicalValue::Boolean(self.admitted.closing_flow),
+            ),
+            semantic(
+                "open_flow",
+                CanonicalValue::Boolean(self.admitted.open_flow),
+            ),
+            semantic("current", CanonicalValue::Boolean(self.admitted.current)),
+        ];
+        let fields = [
+            semantic("node_contract", CanonicalValue::Map(&node_fields)),
+            semantic(
+                "receiving_port",
+                CanonicalValue::Identifier(self.receiving_port),
+            ),
+            semantic(
+                "outgoing_port",
+                CanonicalValue::Identifier(self.outgoing_port),
+            ),
+            semantic("input_type", CanonicalValue::Map(&input_fields)),
+            semantic("output_type", CanonicalValue::Map(&output_fields)),
+            semantic("admitted", CanonicalValue::Map(&admitted_fields)),
+            semantic("purity_proof", CanonicalValue::Map(&purity_fields)),
+            semantic("law_proof", CanonicalValue::Map(&law_fields)),
+        ];
+        CanonicalDescriptor {
+            kind: Id("conduit/modality-lift-contract"),
+            schema_version: 0,
+            body: CanonicalValue::Map(&fields),
+        }
+        .write_canonical(sink)
+        .map_err(ModalityLiftIdentityError::Canonical)
+    }
+}
+
+/// Invalid explicit modality-lift declaration.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ModalityLiftContractError {
+    InvalidNodeContract,
+    InvalidPort,
+    InvalidType,
+    InvalidPurityProof,
+    InvalidLawProof,
+    NoAdmittedSurface,
+}
+
+impl ModalityLiftContractError {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidNodeContract => "modality-lift-invalid-node-contract",
+            Self::InvalidPort => "modality-lift-invalid-port",
+            Self::InvalidType => "modality-lift-invalid-type",
+            Self::InvalidPurityProof => "modality-lift-invalid-purity-proof",
+            Self::InvalidLawProof => "modality-lift-invalid-law-proof",
+            Self::NoAdmittedSurface => "modality-lift-no-admitted-surface",
+        }
+    }
+}
+
+/// Canonical identity construction failure for an explicit lift contract.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ModalityLiftIdentityError<E> {
+    InvalidContract(ModalityLiftContractError),
+    Canonical(CanonicalError<E>),
+}
+
+/// Failure to apply an exact, already-declared modality lift.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ModalityLiftError {
+    InvalidContract(ModalityLiftContractError),
+    InvalidInput(TemporalModalityError),
+    InputTypeMismatch,
+    SurfaceNotAdmitted(TemporalSurface),
+}
+
+/// Applies one explicit lawful lift, changing only the item type.
+///
+/// This function does not execute the node, pair flows, allocate state, or
+/// infer purity. The caller must supply the exact declared lift contract.
+pub fn lift_temporal_modality<'a>(
+    contract: ModalityLiftContract<'a>,
+    input: TemporalModalityContract<'a>,
+) -> Result<TemporalModalityContract<'a>, ModalityLiftError> {
+    contract
+        .validate()
+        .map_err(ModalityLiftError::InvalidContract)?;
+    let surface = input.surface().map_err(ModalityLiftError::InvalidInput)?;
+    if input.item_type != contract.input_type {
+        return Err(ModalityLiftError::InputTypeMismatch);
+    }
+    if !contract.admitted.admits(surface) {
+        return Err(ModalityLiftError::SurfaceNotAdmitted(surface));
+    }
+    Ok(TemporalModalityContract {
+        item_type: contract.output_type,
+        ..input
+    })
+}
+
+fn valid_namespaced_descriptor(descriptor: DescriptorRef<'_>) -> bool {
+    Id::new(descriptor.kind.as_str()).is_ok() && descriptor.kind.as_str().contains('/')
+}
+
+fn descriptor_fields<'a>(descriptor: &'a DescriptorRef<'a>) -> [MapField<'a>; 3] {
+    [
+        semantic("kind", CanonicalValue::Identifier(descriptor.kind)),
+        semantic(
+            "schema_version",
+            CanonicalValue::Integer(i128::from(descriptor.schema_version)),
+        ),
+        semantic(
+            "semantic_hash",
+            CanonicalValue::Bytes(descriptor.semantic_hash.as_bytes()),
+        ),
+    ]
+}
+
+fn type_fields<'a>(reference: &'a TypeContractRef<'a>) -> [MapField<'a>; 3] {
+    [
+        semantic(
+            "contract_id",
+            CanonicalValue::Identifier(reference.contract_id),
+        ),
+        semantic(
+            "schema_version",
+            CanonicalValue::Integer(i128::from(reference.schema_version)),
+        ),
+        semantic(
+            "semantic_hash",
+            CanonicalValue::Bytes(reference.semantic_hash.as_bytes()),
+        ),
+    ]
 }
 
 const fn incompatible(

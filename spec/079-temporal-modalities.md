@@ -63,6 +63,18 @@ Every temporal surface is observational. `$T` supplies no write or mutation
 authority. Mutation requires a separate typed effect port and an independently
 validated grant.
 
+The hosted `CurrentValueCell<T>` retains exactly one resident value and a
+monotonic replacement generation. Construction supplies the required initial
+value, so observation is immediate. Observer presence is not stored: an update
+with no observer remains current, and reconnect receives the newest value.
+When multiple replacements occurred, the observer receives the newest value
+plus an explicit skipped-replacement indication, never fabricated history.
+
+Every replacement calls a separate `CurrentValueMutationAuthorizer` before
+changing value or generation. A denied update and generation exhaustion leave
+the cell unchanged. Equal values still advance the generation because `$T`
+does not imply equality deduplication.
+
 ## Compatibility and conversions
 
 Ordinary connection compatibility compares all temporal-modality fields in
@@ -90,6 +102,19 @@ law fixtures for value order and modality preservation. Effects, joins,
 reducers, buffers, retries, clocks, and stateful nodes do not receive lifting
 implicitly.
 
+`ModalityLiftContract` binds one exact `NodeContract`, one named receiving
+port, one named outgoing port, exact input and output `TypeContractRef` values,
+an explicit set of admitted surfaces, an independent purity proof, and an
+independent modality-law proof. Every field is semantic and identity-bearing.
+An empty admitted set, malformed endpoint, wrong node descriptor, invalid type,
+or missing proof fails closed.
+
+Applying a declared lift changes only the item type. Cardinality, closing,
+initial availability, retention, replay, and replacement are copied exactly.
+An input type mismatch or unlisted surface is incompatible. Catalog state,
+implementation code, callback shape, and a coincidentally matching pair of
+ports cannot create a lift declaration.
+
 ## Canonical identity
 
 `conduit/temporal-modality-contract` current schema hashes the exact item type
@@ -111,4 +136,4 @@ plans.
 | TMOD-007 | Grant `$T` no mutation authority, history, durability, multi-writer arbitration, or CRDT semantics |
 | TMOD-008 | Reject unpublished mixed field combinations with stable diagnostics |
 | TMOD-009 | Require explicit bounded standard conversions and prohibit open-flow collection without an explicit finite window or limit |
-| TMOD-010 | Permit modality-preserving lifting only as an explicit law-tested pure node-contract fact |
+| TMOD-010 | Permit modality-preserving lifting only through an identity-bearing node, endpoint, type, admitted-surface, purity-proof, and law-proof contract |

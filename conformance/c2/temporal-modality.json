@@ -58,6 +58,56 @@
       "id": "every-field-is-identity-bearing",
       "runner": "identity",
       "expected": {"surface_identities": "all-distinct", "item_type_change": "different"}
+    },
+    {
+      "id": "explicit-pure-lift",
+      "runner": "modality-lift",
+      "expected": {"item_type": "declared-output", "all_temporal_fields": "preserved", "proofs": ["purity", "modality-law"]}
+    },
+    {
+      "id": "unadmitted-current-lift",
+      "runner": "modality-lift",
+      "expected": {"error": "surface-not-admitted", "implicit_lift": false}
+    },
+    {
+      "id": "lift-input-type-mismatch",
+      "runner": "modality-lift",
+      "expected": {"error": "input-type-mismatch", "implicit_adapter": false}
+    },
+    {
+      "id": "lift-proof-required",
+      "runner": "validation",
+      "expected": {"errors": ["modality-lift-invalid-purity-proof", "modality-lift-invalid-law-proof"]}
+    },
+    {
+      "id": "lift-declaration-is-identity-bearing",
+      "runner": "identity",
+      "expected": {"node_endpoint_type_surface_or_proof_change": "different"}
+    },
+    {
+      "id": "current-late-subscriber",
+      "runner": "current-value-runtime",
+      "expected": {"delivery": "immediate-current", "generation": 0}
+    },
+    {
+      "id": "current-update-without-subscriber",
+      "runner": "current-value-runtime",
+      "expected": {"retained": "newest", "subscriber_required_for_update": false}
+    },
+    {
+      "id": "current-reconnect-newest",
+      "runner": "current-value-runtime",
+      "expected": {"delivery": "newest-only", "history": false, "skipped_replacements_reported": true}
+    },
+    {
+      "id": "current-denied-mutation",
+      "runner": "current-value-runtime",
+      "expected": {"state_changed": false, "separate_authorizer_called": true}
+    },
+    {
+      "id": "current-equal-replacement",
+      "runner": "current-value-runtime",
+      "expected": {"generation_advanced": true, "implicit_deduplication": false}
     }
   ]
 }

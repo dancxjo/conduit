@@ -35,6 +35,7 @@ use sha2::{Digest as _, Sha256};
 
 mod artifact_verification;
 mod config_resolution;
+mod current_value;
 mod distributed;
 mod evidence_ndjson;
 mod exact_evidence;
@@ -63,6 +64,10 @@ pub use conduit_core::ImplementationManifest;
 pub use config_resolution::{
     ConfigAssignment, ConfigResolutionError, ConfigValue, ResolvedConfig, ResolvedConfigEntry,
     SecretValue, resolve_config, validate_config_update,
+};
+pub use current_value::{
+    CurrentObservation, CurrentObservationError, CurrentUpdateRequest, CurrentValueCell,
+    CurrentValueMutationAuthorizer, CurrentValueUpdateError,
 };
 pub use distributed::{
     DistributedBackendReadiness, DistributedCordBackend, DistributedFrameKind,

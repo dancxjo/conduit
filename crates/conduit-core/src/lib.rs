@@ -321,10 +321,12 @@ pub use supervision::{
     terminal_observations_correlate, validate_supervision_nesting,
 };
 pub use temporal_modality::{
-    ClosingBoundary, InitialAvailability, ModalityReplay, ModalityRetention, ReplacementBehavior,
-    TEMPORAL_MODALITY_SCHEMA_VERSION, TemporalCardinality, TemporalModalityCompatibility,
-    TemporalModalityCompatibilityReason, TemporalModalityContract, TemporalModalityError,
-    TemporalModalityIdentityError, TemporalSurface, assess_temporal_modality_exact,
+    ClosingBoundary, InitialAvailability, LiftedSurfaces, ModalityLiftContract,
+    ModalityLiftContractError, ModalityLiftError, ModalityLiftIdentityError, ModalityReplay,
+    ModalityRetention, ReplacementBehavior, TEMPORAL_MODALITY_SCHEMA_VERSION, TemporalCardinality,
+    TemporalModalityCompatibility, TemporalModalityCompatibilityReason, TemporalModalityContract,
+    TemporalModalityError, TemporalModalityIdentityError, TemporalSurface,
+    assess_temporal_modality_exact, lift_temporal_modality,
 };
 pub use transition::{
     MAX_TRANSITION_OPTIONAL_CHANGES, OptionalCharacteristicChange, PLAN_TRANSITION_SCHEMA_VERSION,

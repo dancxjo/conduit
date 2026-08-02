@@ -2992,7 +2992,7 @@
         {
           "id": "temporal-modality",
           "path": "../c2/temporal-modality.json",
-          "sha256": "sha256:0bb1a90863be114e70985fa041ea70554e5b470a5ac4b209746e3cf07ea485a5",
+          "sha256": "sha256:9cbf3bcf7a0c85073afc74142a526fd1e4a37a04e45af48e573f3942c2cbbe92",
           "operation": "temporal-modality",
           "requirement_ids": [
             "TMOD-001",
@@ -3017,7 +3017,17 @@
             "current-is-observation-only": "TMOD-007",
             "current-is-not-history": "TMOD-007",
             "invalid-immediate-open-flow": "TMOD-008",
-            "every-field-is-identity-bearing": "TMOD-004"
+            "every-field-is-identity-bearing": "TMOD-004",
+            "explicit-pure-lift": "TMOD-010",
+            "unadmitted-current-lift": "TMOD-010",
+            "lift-input-type-mismatch": "TMOD-010",
+            "lift-proof-required": "TMOD-010",
+            "lift-declaration-is-identity-bearing": "TMOD-010",
+            "current-late-subscriber": "TMOD-006",
+            "current-update-without-subscriber": "TMOD-006",
+            "current-reconnect-newest": "TMOD-006",
+            "current-denied-mutation": "TMOD-007",
+            "current-equal-replacement": "TMOD-007"
           },
           "format": "json-vectors",
           "collection": "cases",
@@ -3034,25 +3044,39 @@
           "temporal-modality#ordinary-value",
           "temporal-modality#closing-flow",
           "temporal-modality#open-flow",
-          "temporal-modality#current-observation"
+          "temporal-modality#current-observation",
+          "temporal-modality#explicit-pure-lift",
+          "temporal-modality#current-late-subscriber",
+          "temporal-modality#current-update-without-subscriber",
+          "temporal-modality#current-reconnect-newest"
         ],
         "negative": [
           "temporal-modality#cross-surface-matrix",
-          "temporal-modality#invalid-immediate-open-flow"
+          "temporal-modality#invalid-immediate-open-flow",
+          "temporal-modality#unadmitted-current-lift",
+          "temporal-modality#lift-input-type-mismatch",
+          "temporal-modality#lift-proof-required"
         ],
         "boundary": [
           "temporal-modality#closing-is-not-resource-bound",
           "temporal-modality#current-is-observation-only",
-          "temporal-modality#current-is-not-history"
+          "temporal-modality#current-is-not-history",
+          "temporal-modality#current-denied-mutation",
+          "temporal-modality#current-equal-replacement"
         ],
         "migration": [
-          "temporal-modality#every-field-is-identity-bearing"
+          "temporal-modality#every-field-is-identity-bearing",
+          "temporal-modality#lift-declaration-is-identity-bearing"
         ]
       },
       "reference_tests": [
         {
           "package": "conduit-core",
           "test": "temporal_modality_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "current_value_vectors"
         }
       ]
     },
