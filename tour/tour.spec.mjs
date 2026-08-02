@@ -759,9 +759,9 @@ test("detaches a live Watch without pressuring execution", async ({ page }) => {
   const structuredCordWatch = page.locator(
     "#panel-connection-list .structured-watch-button",
   ).filter({ hasText: "Remove Watch" });
-  await expect(structuredCordWatch).toHaveCount(1);
-  await expect(structuredCordWatch).toContainText("Remove Watch");
   await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
+  await expect(structuredCordWatch).toHaveCount(1, { timeout: 20_000 });
+  await expect(structuredCordWatch).toContainText("Remove Watch");
   await expect.poll(async () => {
     const attached = await watchToggle.getAttribute("aria-pressed");
     if (attached === "true" && await watchToggle.isEnabled()) {
