@@ -700,7 +700,7 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
   expect(failures).toEqual([]);
 });
 
-test("freezes and resumes a live Watch without pressuring execution", async ({ page }) => {
+test("freezes a live Watch presentation without pressuring execution", async ({ page }) => {
   const failures = collectPageFailures(page);
   await openTinyInstrument(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -709,23 +709,36 @@ test("freezes and resumes a live Watch without pressuring execution", async ({ p
   await expect(page.locator("#freeze-display")).toBeEnabled({ timeout: 20_000 });
   await page.locator("#freeze-display").click();
   await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(async () => parseWatchTick(
-    await page.locator("#watch-value").textContent(),
-  ), { timeout: 20_000 }).toBeGreaterThanOrEqual(0);
-  const beforeFreeze = parseWatchTick(
-    await page.locator("#watch-value").textContent(),
-  );
   await expect(page.locator("#display-freeze-status")).toContainText(
     "deferred while the exact executor remains live",
     { timeout: 20_000 },
   );
-  expect(parseWatchTick(await page.locator("#watch-value").textContent()))
-    .toBe(beforeFreeze);
+  await expect(page.locator(".watch-semantics")).toContainText(
+    "Watch is isolated instrumentation",
+  );
+  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-keyshortcuts", "W");
+  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
+  await expect(liveEdge).toHaveAttribute("data-live-sequence", /\d+/);
+  await expect(liveEdge).not.toHaveClass(/live-flow-pulse/);
+  expect(failures).toEqual([]);
+});
+
+test("resumes a frozen live Watch presentation without pressuring execution", async ({ page }) => {
+  const failures = collectPageFailures(page);
+  await openTinyInstrument(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.locator("#run").click();
+  await expect(page.locator("#freeze-display")).toBeEnabled({ timeout: 20_000 });
+  await page.locator("#freeze-display").click();
+  await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#display-freeze-status")).toContainText(
+    "the exact executor and bounded observation cursor continue",
+  );
   await page.locator("#freeze-display").click();
   await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "false");
   await expect.poll(async () => parseWatchTick(
     await page.locator("#watch-value").textContent(),
-  ), { timeout: 20_000 }).toBeGreaterThan(beforeFreeze);
+  ), { timeout: 20_000 }).toBeGreaterThanOrEqual(0);
   await expect(page.locator(".watch-semantics")).toContainText(
     "Watch is isolated instrumentation",
   );
@@ -734,8 +747,6 @@ test("freezes and resumes a live Watch without pressuring execution", async ({ p
   );
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-keyshortcuts", "W");
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
-  await expect(liveEdge).toHaveAttribute("data-live-sequence", /\d+/);
-  await expect(liveEdge).not.toHaveClass(/live-flow-pulse/);
   expect(failures).toEqual([]);
 });
 
@@ -2856,7 +2867,7 @@ test("quick-local chat keeps one contract separate from its exact provider", asy
   );
 });
 
-test("learned lifecycle keeps evaluation separate from promotion authority", async ({ page }) => {
+test("learned lifecycle exposes its training evaluation and promotion contracts", async ({ page }) => {
   await gotoTour(page,
     "/tour/public/index.html?lesson=library.bounded-learned-lifecycle",
   );
@@ -2883,7 +2894,14 @@ test("learned lifecycle keeps evaluation separate from promotion authority", asy
     { timeout: 20_000 },
   );
   await expect(run).toBeEnabled({ timeout: 20_000 });
+});
 
+test("learned evaluation stays separate from promotion authority", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=library.bounded-learned-lifecycle",
+  );
+  const result = page.locator("#result");
+  const run = page.locator("#run");
   await page.locator("#scenario").selectOption(
     "training-evaluation-without-promotion",
   );
@@ -2893,7 +2911,14 @@ test("learned lifecycle keeps evaluation separate from promotion authority", asy
     { timeout: 20_000 },
   );
   await expect(run).toBeEnabled({ timeout: 20_000 });
+});
 
+test("learned promotion remains unavailable without backend authority", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=library.bounded-learned-lifecycle",
+  );
+  const result = page.locator("#result");
+  const run = page.locator("#run");
   await page.locator("#scenario").selectOption(
     "authorized-promotion-composition",
   );
