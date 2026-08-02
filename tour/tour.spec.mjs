@@ -171,6 +171,11 @@ test("restores reading position and a local draft without reviving a run", async
     (reader) => reader.scrollTop,
   )).toBeGreaterThan(0);
   await page.reload();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-tour-ready",
+    "true",
+    { timeout: 20_000 },
+  );
 
   await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
   await expect(source).toHaveValue(/duration_ticks = 1200/);

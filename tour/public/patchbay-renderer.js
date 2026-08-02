@@ -840,6 +840,15 @@ export class PatchbayReactFlowRenderer {
         onInit: (instance) => {
           this.flowInstance = instance;
           this.flowWrapper.dataset.layout = "ready";
+          // React Flow's initial fit can run before WebKit has reported the
+          // intrinsic height of the semantic-promise faceplates. Refit once
+          // those ResizeObserver measurements have crossed two paint frames;
+          // this is still the initial topology fit, not a mutation of the
+          // presentation positions or a later reset of the user's viewport.
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (this.flowInstance !== instance) return;
+            void instance.fitView({ maxZoom: 1.2, duration: 0 });
+          }));
         },
       },
     );
