@@ -2497,8 +2497,8 @@ test("PCM WAVE lesson runs exact codec and container providers", async ({ page }
   );
 });
 
-test("bounded spatial data runs standalone and composed exact plans", async ({ page }) => {
-  await page.goto(
+test("bounded spatial data runs the composed exact scan-to-grid plan", async ({ page }) => {
+  await gotoTour(page,
     "/tour/public/index.html?lesson=library.bounded-spatial-data",
   );
   const story = page.locator("#execution-story");
@@ -2527,7 +2527,13 @@ test("bounded spatial data runs standalone and composed exact plans", async ({ p
     '"event_kind": "terminal"',
   );
   await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+});
 
+test("bounded spatial data runs the standalone exact grid plan", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=library.bounded-spatial-data",
+  );
+  const result = page.locator("#result");
   await page.locator("#scenario").selectOption("spatial-grid-standalone");
   await page.locator("#run").click();
   await expect(result).toContainText(
@@ -2537,7 +2543,13 @@ test("bounded spatial data runs standalone and composed exact plans", async ({ p
   await expect(page.locator('[data-id="grid"]')).toContainText(
     "spatial/grid/from-scan",
   );
+});
 
+test("bounded spatial data runs the exact trajectory composition", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=library.bounded-spatial-data",
+  );
+  const result = page.locator("#result");
   await page.locator("#scenario").selectOption(
     "spatial-trajectory-text-composition",
   );
