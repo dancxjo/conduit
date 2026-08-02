@@ -2987,7 +2987,7 @@ test("cited claim graph runs its text composition", async ({ page }) => {
   );
 });
 
-test("value envelope platform lesson links checked admission to an exact run", async ({ page }) => {
+test("value envelope platform lesson rejects an unbounded cycle", async ({ page }) => {
   await gotoTour(page,
     "/tour/public/index.html?lesson=platform.value-envelope-clock-feedback",
   );
@@ -3001,7 +3001,14 @@ test("value envelope platform lesson links checked admission to an exact run", a
 
   await story.getByRole("button", { name: "cycle-without-boundary" }).click();
   await expect(result).toContainText("rejected before execution with CND-FBK-002");
+});
 
+test("value envelope platform lesson links checked admission to an exact run", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=platform.value-envelope-clock-feedback",
+  );
+  const result = page.locator("#result");
+  const source = page.locator("#source");
   await page.locator("#scenario").selectOption("finite-state-feedback");
   await expect(result).toContainText("admitted by the checked contract");
   await source.fill(
@@ -3020,7 +3027,7 @@ test("value envelope platform lesson links checked admission to an exact run", a
   await expect(page.locator("#plan")).toContainText("bound-in-this-plan");
 });
 
-test("resource lease lesson keeps unknown commit and cleanup visible", async ({ page }) => {
+test("resource lease lesson rejects the wrong authority holder", async ({ page }) => {
   await gotoTour(page,
     "/tour/public/index.html?lesson=platform.resource-lease-effect-commit",
   );
@@ -3034,7 +3041,14 @@ test("resource lease lesson keeps unknown commit and cleanup visible", async ({ 
 
   await story.getByRole("button", { name: "wrong-holder" }).click();
   await expect(result).toContainText("rejected before execution with CND-LSE-003");
+});
 
+test("resource lease lesson keeps unknown commit and cleanup visible", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=platform.resource-lease-effect-commit",
+  );
+  const result = page.locator("#result");
+  const source = page.locator("#source");
   await page.locator("#scenario").selectOption("lost-ack-is-commit-unknown");
   await expect(result).toContainText("admitted by the checked contract");
   await source.fill(
@@ -3051,7 +3065,7 @@ test("resource lease lesson keeps unknown commit and cleanup visible", async ({ 
   await expect(page.locator("#timeline-table")).toContainText("succeeded");
 });
 
-test("workload lesson keeps hard admission distinct from observations", async ({ page }) => {
+test("workload lesson rejects unsupported hard-real-time admission", async ({ page }) => {
   await gotoTour(page,
     "/tour/public/index.html?lesson=platform.workload-admission-deadline",
   );
@@ -3065,7 +3079,14 @@ test("workload lesson keeps hard admission distinct from observations", async ({
 
   await story.getByRole("button", { name: "unsupported-hard-real-time" }).click();
   await expect(result).toContainText("rejected before execution with CND-WRK-005");
+});
 
+test("workload lesson keeps hard admission distinct from observations", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=platform.workload-admission-deadline",
+  );
+  const result = page.locator("#result");
+  const source = page.locator("#source");
   await page.locator("#scenario").selectOption("browser-best-effort");
   await expect(result).toContainText("admitted by the checked contract");
   await source.fill(
