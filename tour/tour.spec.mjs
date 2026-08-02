@@ -1260,25 +1260,51 @@ test("keeps structural lenses orthogonal to Use Build Inspect and preserves the 
 });
 
 test("keeps the Use information budget usable at two hundred percent zoom", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
-  await expect(page.locator('[data-presentation-mode="use"]')).toBeDisabled();
-  // #294 supplies the authoritative task front. This checks only the reserved
-  // presentation budget without claiming that this fallback lesson has one.
-  await page.evaluate(() => {
-    document.querySelector("#workspace").dataset.presentationMode = "use";
-    document.documentElement.style.zoom = "200%";
-  });
-  await expect(page.locator("#presentation-controls")).toBeVisible();
-  await expect(page.locator("#run")).toBeVisible();
-  await expect(page.locator("#result")).toBeVisible();
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  const workspace = page.locator("#workspace");
+  const front = page.locator("#task-front");
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "use");
+  await expect(front).toBeVisible();
+  await expect(front).toHaveAttribute("data-descriptor-identity", /^sha256:/);
   await expect(page.locator(".source-card")).toBeHidden();
   await expect(page.locator(".inspectors")).toBeHidden();
-  const runBox = await page.locator("#run").boundingBox();
-  const resultBox = await page.locator("#result").boundingBox();
-  expect(runBox).not.toBeNull();
+  await expect(page.locator(".task-front-control")).toHaveCount(1);
+  await expect(front).not.toContainText("private_worker");
+  await expect(page.getByLabel("Uppercase text input")).toBeDisabled();
+  await expect(front).toContainText("run-only");
+  await expect(front).toContainText("current-run-delivery");
+  await expect(page.getByRole("button", { name: "Run the checked uppercase-text plan" })).toBeEnabled();
+
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = "200%";
+  });
+  const actionBox = await page.locator(".task-front-primary-action").boundingBox();
+  const resultBox = await page.locator("#task-front-result").boundingBox();
+  expect(actionBox).not.toBeNull();
   expect(resultBox).not.toBeNull();
-  expect(runBox.x).toBeLessThan(page.viewportSize().width);
+  expect(actionBox.x).toBeLessThan(page.viewportSize().width);
   expect(resultBox.x).toBeLessThan(page.viewportSize().width);
+
+  await page.locator("#show-how").click();
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "build");
+  await expect(page.locator("#source")).toHaveValue(/private_worker/);
+  await expect(front).toBeHidden();
+  await page.locator('[data-presentation-mode="use"]').click();
+  await expect(front).toBeVisible();
+  await page.locator("#show-why").click();
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "inspect");
+  await expect(page.locator("#presentation-status")).toContainText(
+    "root/faceplate/port/outgoing/result",
+  );
+});
+
+test("runs the task-front action without manufacturing a semantic result", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await page.getByRole("button", { name: "Run the checked uppercase-text plan" }).click();
+  await expect(page.locator("#result")).toContainText("JACKS", { timeout: 20_000 });
+  await expect(page.locator("#task-front-result-value")).toContainText(
+    "terminal-without-semantic-result-observation",
+  );
 });
 
 test("navigates composite boundaries from canvas and structured controls", async ({ page }) => {
@@ -2280,6 +2306,22 @@ test("standalone Patchbay app exposes the same live fullscreen editor workspace"
   await expect(page.locator("#patchbay-source-window")).toHaveClass(
     /workspace-shaded/,
   );
+});
+
+test("Tour and standalone Patchbay consume the same checked task-front model", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  const tourIdentity = await page.locator("#task-front").getAttribute(
+    "data-descriptor-identity",
+  );
+  const tourSourceIdentity = await page.locator("#task-front").getAttribute(
+    "data-source-identity",
+  );
+  await page.goto("/tour/public/patchbay-app.html?lesson=panels.jacks-on-the-front");
+  const standalone = page.locator("#task-front");
+  await expect(standalone).toBeVisible({ timeout: 20_000 });
+  await expect(standalone).toHaveAttribute("data-descriptor-identity", tourIdentity);
+  await expect(standalone).toHaveAttribute("data-source-identity", tourSourceIdentity);
+  await expect(standalone.locator(".task-front-control")).toHaveCount(1);
 });
 
 test("routes cords through free space by default and keeps labels off node faces", async ({ page }) => {

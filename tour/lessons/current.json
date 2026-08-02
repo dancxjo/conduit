@@ -746,6 +746,38 @@
         "layout": "faceplate",
         "show_plan": false
       },
+      "task_front": {
+        "schema": "conduit.patchbay-task-front",
+        "schema_version": 0,
+        "root": "root/faceplate",
+        "name": "Uppercase text",
+        "purpose": "Send text through the exported panel face and inspect its semantic result.",
+        "controls": [
+          {
+            "id": "input-text",
+            "source": "live-input",
+            "target": "root/faceplate/port/receiving/text",
+            "label": "Text input",
+            "help": "This ordinary typed input arrives from the visible upstream cord during the run.",
+            "group": "Input",
+            "visibility": "primary",
+            "accessibility_name": "Uppercase text input"
+          }
+        ],
+        "primary_action": {
+          "request": "run-exact-plan",
+          "label": "Uppercase text",
+          "help": "Request the exact checked plan; availability and denial remain authoritative.",
+          "accessibility_name": "Run the checked uppercase-text plan"
+        },
+        "result": {
+          "target": "root/faceplate/port/outgoing/result",
+          "label": "Uppercase result",
+          "help": "A semantic result appears only with a matching plan, run, port, and type observation.",
+          "accessibility_name": "Uppercase semantic result"
+        },
+        "documentation": "Show how opens this same source and task state in Build. Why opens its exact subject in Inspect."
+      },
       "validation": {
         "kind": "display",
         "value": "JACKS"

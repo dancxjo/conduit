@@ -37,7 +37,11 @@ function exactU32(value, field) {
 function response(operation, value) {
   switch (operation) {
     case "patchbay-open-session":
-      return patchbay_open_session(value.documentId, value.source);
+      return patchbay_open_session(
+        value.documentId,
+        value.source,
+        value.taskFront ? JSON.stringify(value.taskFront) : "",
+      );
     case "patchbay-session-view":
       return patchbay_session_view(value.sessionId);
     case "patchbay-apply-transaction":

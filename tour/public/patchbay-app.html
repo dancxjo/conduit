@@ -75,6 +75,16 @@
           </section>
         </section>
 
+        <section id="task-front" class="task-front card" aria-labelledby="task-front-title" hidden>
+          <div class="task-front-heading"><div><p class="eyebrow">Task front</p><h3 id="task-front-title">Usable task</h3></div><span id="task-front-state" class="badge">Checking…</span></div>
+          <p id="task-front-purpose" class="card-subtitle"></p>
+          <div id="task-front-primary" class="task-front-controls"></div>
+          <details id="task-front-advanced" class="task-front-advanced" hidden><summary>Advanced controls</summary><div id="task-front-advanced-controls" class="task-front-controls"></div></details>
+          <div id="task-front-action" class="task-front-action"></div>
+          <section id="task-front-result" class="task-front-result" aria-labelledby="task-front-result-title" hidden><h4 id="task-front-result-title">Result</h4><output id="task-front-result-value" role="status" aria-live="polite"></output></section>
+          <p id="task-front-explanation" class="host-status"></p>
+        </section>
+
         <div class="button-row primary-actions" role="group" aria-label="App controls">
           <button id="run" class="btn primary" aria-keyshortcuts="Shift+Enter" disabled>⚡ Run <kbd>Shift</kbd>+<kbd>Enter</kbd></button>
           <button id="stop" class="btn danger" disabled>⏹ Stop</button>

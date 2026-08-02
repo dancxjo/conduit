@@ -14,6 +14,209 @@ pub const DEFAULT_WORKSPACE_HISTORY_LIMIT: usize = 16;
 pub const MAXIMUM_EDIT_OPERATIONS: usize = 32;
 pub const MAXIMUM_PATCHBAY_DIAGNOSTICS: usize = 64;
 pub const MAXIMUM_LIBRARY_CATALOG_ENTRIES: usize = 512;
+pub const MAXIMUM_TASK_FRONT_CONTROLS: usize = 32;
+pub const MAXIMUM_TASK_FRONT_CHOICES: usize = 64;
+pub const MAXIMUM_TASK_FRONT_TEXT_BYTES: usize = 4_096;
+
+/// One finite renderer/editor profile supplied by the owning semantic type
+/// registry. A task-front descriptor may select this profile, but it cannot
+/// add choices or change the type's accepted values.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TaskFrontRendererProfile {
+    pub id: String,
+    pub type_id: String,
+    pub renderer: String,
+    pub choices: Vec<TaskFrontChoiceProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskFrontChoiceProjection {
+    pub value: String,
+    pub label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TaskFrontControlSource {
+    InstanceConfiguration,
+    LiveInput,
+    SiteBinding,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TaskFrontControlVisibility {
+    Primary,
+    Advanced,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TaskFrontControlDescriptor {
+    pub id: String,
+    pub source: TaskFrontControlSource,
+    pub target: String,
+    pub label: String,
+    pub help: String,
+    #[serde(default)]
+    pub group: String,
+    pub visibility: TaskFrontControlVisibility,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub renderer_profile: Option<String>,
+    pub accessibility_name: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TaskFrontActionRequest {
+    RunExactPlan,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TaskFrontActionDescriptor {
+    pub request: TaskFrontActionRequest,
+    pub label: String,
+    pub help: String,
+    pub accessibility_name: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TaskFrontResultDescriptor {
+    pub target: String,
+    pub label: String,
+    pub help: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub renderer_profile: Option<String>,
+    pub accessibility_name: String,
+}
+
+/// Current pre-release task-front descriptor. It is presentation metadata:
+/// semantic requiredness, defaults, types, authority, actions, and results are
+/// looked up from the checked source/view and never copied from this document.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TaskFrontDescriptor {
+    pub schema: String,
+    pub schema_version: u32,
+    pub root: String,
+    pub name: String,
+    pub purpose: String,
+    pub controls: Vec<TaskFrontControlDescriptor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primary_action: Option<TaskFrontActionDescriptor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub result: Option<TaskFrontResultDescriptor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskFrontIdentityProjection {
+    pub source_identity: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub semantic_identity: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_identity: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskFrontControlProjection {
+    pub id: String,
+    pub source: TaskFrontControlSource,
+    pub target: String,
+    pub label: String,
+    pub help: String,
+    pub group: String,
+    pub visibility: TaskFrontControlVisibility,
+    pub accessibility_name: String,
+    pub type_id: String,
+    pub requirement: String,
+    pub value_origin: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_value: Option<String>,
+    pub renderer_profile: String,
+    pub renderer: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub choices: Vec<TaskFrontChoiceProjection>,
+    pub editable: bool,
+    pub edit_kind: String,
+    pub owner: String,
+    pub persistence: String,
+    pub sensitivity: String,
+    pub activation: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskFrontActionProjection {
+    pub request: TaskFrontActionRequest,
+    pub label: String,
+    pub help: String,
+    pub accessibility_name: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub explanations: Vec<String>,
+}
+
+/// One runtime-owned semantic result observation. The projector accepts it
+/// only when its exact plan, run, exported port, and semantic type all match.
+/// Browser presentation never manufactures one from stdout or console prose.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskFrontResultObservation {
+    pub plan_identity: String,
+    pub run_id: String,
+    pub port_path: String,
+    pub type_id: String,
+    pub display_value: String,
+    pub terminal_outcome: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskFrontResultProjection {
+    pub target: String,
+    pub label: String,
+    pub help: String,
+    pub accessibility_name: String,
+    pub type_id: String,
+    pub renderer_profile: String,
+    pub renderer: String,
+    pub observation_state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub terminal_outcome: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskFrontProjection {
+    pub descriptor_identity: String,
+    pub identities: TaskFrontIdentityProjection,
+    pub root: String,
+    pub contract_id: String,
+    pub name: String,
+    pub purpose: String,
+    pub controls: Vec<TaskFrontControlProjection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primary_action: Option<TaskFrontActionProjection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub result: Option<TaskFrontResultProjection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
+}
+
+/// A checked front, an explicit absence, or an explained invalid descriptor.
+/// Keeping this state in the Rust view lets every host fall back identically.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskFrontStateProjection {
+    pub status: String,
+    pub code: String,
+    pub explanation: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub front: Option<TaskFrontProjection>,
+}
 
 /// Bounded presentation of the checked library catalog. Known provider
 /// bundles remain distinct from current host observations.
@@ -1083,6 +1286,7 @@ impl TopologyProjection {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PresentationOpening {
     UsableTaskFront,
+    InvalidTaskFront,
     BuildFallback,
 }
 
@@ -1187,6 +1391,7 @@ pub struct PatchbayViewModel {
     /// provider installation, authority, resource acquisition, or execution.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub at_rest: Option<PatchbayAtRestProjection>,
+    pub task_front: TaskFrontStateProjection,
     pub configuration_layers: Vec<PatchbayConfigurationLayerProjection>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub diagnostics: Vec<PatchbayDiagnosticProjection>,
@@ -1277,6 +1482,7 @@ pub struct PatchbayProjectionBounds {
     pub maximum_ports_per_node: usize,
     pub maximum_config_fields_per_node: usize,
     pub maximum_configuration_layers: usize,
+    pub maximum_task_front_controls: usize,
     pub maximum_evidence_events: usize,
     pub maximum_diagnostics: usize,
     pub maximum_history: usize,
@@ -1291,6 +1497,7 @@ impl Default for PatchbayProjectionBounds {
             maximum_ports_per_node: 256,
             maximum_config_fields_per_node: 256,
             maximum_configuration_layers: 2_048,
+            maximum_task_front_controls: MAXIMUM_TASK_FRONT_CONTROLS,
             maximum_evidence_events: 256,
             maximum_diagnostics: MAXIMUM_PATCHBAY_DIAGNOSTICS,
             maximum_history: DEFAULT_WORKSPACE_HISTORY_LIMIT,
@@ -1316,6 +1523,549 @@ pub struct PatchbayTopologyProjection {
     pub diagnostic_anchors: Vec<PatchbayDiagnosticAnchorProjection>,
     /// `exact`, `invalid`, or `partial` for the current source revision.
     pub source_state: String,
+}
+
+fn task_front_state(
+    status: &str,
+    code: &str,
+    explanation: impl Into<String>,
+) -> TaskFrontStateProjection {
+    TaskFrontStateProjection {
+        status: status.to_owned(),
+        code: code.to_owned(),
+        explanation: explanation.into(),
+        front: None,
+    }
+}
+
+fn task_front_text_is_valid(value: &str, required: bool) -> bool {
+    (!required || !value.trim().is_empty()) && value.len() <= MAXIMUM_TASK_FRONT_TEXT_BYTES
+}
+
+fn task_front_renderer<'a>(
+    requested: Option<&str>,
+    type_id: &str,
+    profiles: &'a [TaskFrontRendererProfile],
+) -> Result<&'a TaskFrontRendererProfile, &'static str> {
+    let profile = if let Some(requested) = requested {
+        profiles.iter().find(|profile| profile.id == requested)
+    } else {
+        profiles
+            .iter()
+            .find(|profile| profile.type_id == type_id)
+            .or_else(|| {
+                profiles
+                    .iter()
+                    .find(|profile| profile.type_id == "*" && profile.renderer == "summary")
+            })
+    }
+    .ok_or("the requested semantic renderer profile is unavailable")?;
+    if profile.type_id != type_id && profile.type_id != "*" {
+        return Err("the renderer profile belongs to a different semantic type");
+    }
+    if !["text", "number", "boolean", "enum", "summary", "resource"]
+        .contains(&profile.renderer.as_str())
+        || profile.choices.len() > MAXIMUM_TASK_FRONT_CHOICES
+        || (profile.renderer == "enum" && profile.choices.is_empty())
+        || (profile.renderer != "enum" && !profile.choices.is_empty())
+    {
+        return Err("the renderer profile is malformed or exceeds its finite bounds");
+    }
+    let mut choice_values = BTreeSet::new();
+    if profile.choices.iter().any(|choice| {
+        !task_front_text_is_valid(&choice.value, true)
+            || !task_front_text_is_valid(&choice.label, true)
+            || !choice_values.insert(choice.value.clone())
+    }) {
+        return Err("the renderer profile contains an invalid or duplicate choice");
+    }
+    Ok(profile)
+}
+
+fn task_front_value(value: &conduit_panel::SourceValue) -> (String, String, bool) {
+    match value {
+        conduit_panel::SourceValue::Boolean(value) => {
+            (value.to_string(), "boolean".to_owned(), false)
+        }
+        conduit_panel::SourceValue::Integer(value) => {
+            (value.to_string(), "integer".to_owned(), false)
+        }
+        conduit_panel::SourceValue::Text(value) => (value.clone(), "text".to_owned(), false),
+        conduit_panel::SourceValue::Reference(value) => {
+            (value.clone(), "reference".to_owned(), false)
+        }
+        conduit_panel::SourceValue::ContractReference(value) => {
+            (value.clone(), "contract-reference".to_owned(), false)
+        }
+        conduit_panel::SourceValue::ExactDecimal(value) => {
+            (value.clone(), "exact-decimal".to_owned(), false)
+        }
+        conduit_panel::SourceValue::SecretReference(_) => {
+            ("[REDACTED]".to_owned(), "secret-reference".to_owned(), true)
+        }
+        conduit_panel::SourceValue::Bytes(value) => {
+            (format!("{} bytes", value.len()), "bytes".to_owned(), false)
+        }
+        conduit_panel::SourceValue::List(value) => {
+            (format!("{} items", value.len()), "list".to_owned(), false)
+        }
+        conduit_panel::SourceValue::Record(value) => (
+            format!("{} fields", value.len()),
+            "record".to_owned(),
+            false,
+        ),
+    }
+}
+
+fn task_front_edit_kind(type_id: &str) -> &'static str {
+    match type_id {
+        "std/boolean" => "boolean",
+        "std/integer" => "integer",
+        "std/decimal" | "std/exact-decimal" => "exact-decimal",
+        "std/reference" => "reference",
+        "std/contract-reference" => "contract-reference",
+        _ => "text",
+    }
+}
+
+fn task_front_invalid(explanation: impl Into<String>) -> TaskFrontStateProjection {
+    task_front_state("invalid", "CND-PBY-016", explanation)
+}
+
+/// Checks one bounded presentation descriptor against the current authored
+/// boundary and authoritative Rust projections. The descriptor can select and
+/// label only explicit parameters and public ports; every semantic fact in the
+/// returned model is copied from source, plan, run, or a matching result
+/// observation.
+#[allow(clippy::too_many_arguments)]
+#[must_use]
+pub fn project_task_front(
+    descriptor_json: Option<&str>,
+    source: &SourceSnapshot,
+    semantic: &SemanticSnapshot,
+    topology: &PatchbayTopologyProjection,
+    configuration_layers: &[PatchbayConfigurationLayerProjection],
+    plan: Option<&PlanSnapshot>,
+    run: Option<&RunSnapshot>,
+    result_observation: Option<&TaskFrontResultObservation>,
+    renderer_profiles: &[TaskFrontRendererProfile],
+    bounds: PatchbayProjectionBounds,
+) -> TaskFrontStateProjection {
+    let Some(descriptor_json) = descriptor_json.filter(|value| !value.trim().is_empty()) else {
+        return task_front_state(
+            "not-declared",
+            "CND-PBY-016",
+            "No usable task front is declared; export a bounded front to open in Use.",
+        );
+    };
+    let descriptor: TaskFrontDescriptor = match serde_json::from_str(descriptor_json) {
+        Ok(descriptor) => descriptor,
+        Err(_) => return task_front_invalid("The task-front descriptor is malformed."),
+    };
+    if descriptor.schema != "conduit.patchbay-task-front"
+        || descriptor.schema_version != 0
+        || descriptor.controls.len() > bounds.maximum_task_front_controls
+        || !task_front_text_is_valid(&descriptor.root, true)
+        || !task_front_text_is_valid(&descriptor.name, true)
+        || !task_front_text_is_valid(&descriptor.purpose, true)
+        || descriptor
+            .documentation
+            .as_deref()
+            .is_some_and(|value| !task_front_text_is_valid(value, true))
+    {
+        return task_front_invalid(
+            "The task-front schema, root, text, or finite control bound is invalid.",
+        );
+    }
+    let Some(root_id) = descriptor.root.strip_prefix("root/") else {
+        return task_front_invalid("The task front must name one parser-authored root path.");
+    };
+    if root_id.is_empty() || root_id.contains('/') {
+        return task_front_invalid("The task front root path is not one exact root instance.");
+    }
+    let document = conduit_panel::parse_document(&source.source);
+    let Some(panel) = document.ast.as_ref() else {
+        return task_front_invalid("The current source has no checked semantic document.");
+    };
+    let Some(root_source_node) = panel.nodes.iter().find(|node| node.id == root_id) else {
+        return task_front_invalid("The task front names no authored root instance.");
+    };
+    if !panel.roots.is_empty()
+        && !panel
+            .roots
+            .iter()
+            .any(|root| root.target == root_source_node.id || root.target == root_source_node.kind)
+    {
+        return task_front_invalid("The task front names an instance outside the selected roots.");
+    }
+    let Some(root_node) = topology
+        .logical_nodes
+        .iter()
+        .find(|node| node.id == root_id)
+    else {
+        return task_front_invalid("The task front root has no authoritative logical projection.");
+    };
+    let definition = panel
+        .definitions
+        .iter()
+        .find(|definition| definition.id == root_source_node.kind);
+    let mut control_ids = BTreeSet::new();
+    let mut control_targets = BTreeSet::new();
+    let mut controls = Vec::with_capacity(descriptor.controls.len());
+    for control in &descriptor.controls {
+        if !control_ids.insert(control.id.clone())
+            || !control_targets.insert(control.target.clone())
+            || [
+                control.id.as_str(),
+                control.target.as_str(),
+                control.label.as_str(),
+                control.help.as_str(),
+                control.accessibility_name.as_str(),
+            ]
+            .iter()
+            .any(|value| !task_front_text_is_valid(value, true))
+            || !task_front_text_is_valid(&control.group, false)
+        {
+            return task_front_invalid(
+                "Task-front controls must have unique bounded identities, targets, and text.",
+            );
+        }
+        let projection = match control.source {
+            TaskFrontControlSource::InstanceConfiguration => {
+                let prefix = format!("root/{root_id}/config/");
+                let Some(parameter_id) = control.target.strip_prefix(&prefix) else {
+                    return task_front_invalid(
+                        "An instance-configuration control must name its exact root config path.",
+                    );
+                };
+                let Some(parameter) = definition.and_then(|definition| {
+                    definition
+                        .parameters
+                        .iter()
+                        .find(|parameter| parameter.id == parameter_id)
+                }) else {
+                    return task_front_invalid(
+                        "An instance-configuration control names no explicitly exported parameter.",
+                    );
+                };
+                let current = root_source_node
+                    .config
+                    .iter()
+                    .find(|entry| entry.key == parameter.id)
+                    .map(|entry| &entry.value);
+                let (display_value, edit_kind, protected, value_origin) =
+                    if let Some(value) = current {
+                        let (display, kind, protected) = task_front_value(value);
+                        (Some(display), kind, protected, "instance-authored")
+                    } else if let Some(value) = parameter.default.as_ref() {
+                        let (display, kind, protected) = task_front_value(value);
+                        (Some(display), kind, protected, "definition-default")
+                    } else {
+                        (
+                            None,
+                            task_front_edit_kind(&parameter.value_type).to_owned(),
+                            false,
+                            "missing",
+                        )
+                    };
+                let renderer = match task_front_renderer(
+                    control.renderer_profile.as_deref(),
+                    &parameter.value_type,
+                    renderer_profiles,
+                ) {
+                    Ok(renderer) => renderer,
+                    Err(error) => return task_front_invalid(error),
+                };
+                TaskFrontControlProjection {
+                    id: control.id.clone(),
+                    source: control.source.clone(),
+                    target: control.target.clone(),
+                    label: control.label.clone(),
+                    help: control.help.clone(),
+                    group: control.group.clone(),
+                    visibility: control.visibility.clone(),
+                    accessibility_name: control.accessibility_name.clone(),
+                    type_id: parameter.value_type.clone(),
+                    requirement: if parameter.default.is_some() {
+                        "optional"
+                    } else {
+                        "required"
+                    }
+                    .to_owned(),
+                    value_origin: value_origin.to_owned(),
+                    display_value,
+                    renderer_profile: renderer.id.clone(),
+                    renderer: renderer.renderer.clone(),
+                    choices: renderer.choices.clone(),
+                    editable: !protected,
+                    edit_kind,
+                    owner: "panel-instance".to_owned(),
+                    persistence: "source-document".to_owned(),
+                    sensitivity: if protected { "protected" } else { "public" }.to_owned(),
+                    activation: "re-resolution-or-plan-transition".to_owned(),
+                }
+            }
+            TaskFrontControlSource::LiveInput => {
+                let Some(port) = root_node
+                    .inputs
+                    .iter()
+                    .find(|port| port.semantic_path == control.target)
+                else {
+                    return task_front_invalid(
+                        "A live-input control names no explicitly exported receiving port.",
+                    );
+                };
+                if definition.is_some_and(|definition| {
+                    !definition.exports.iter().any(|export| {
+                        export.direction == conduit_panel::ExportDirection::Input
+                            && export.id == port.id
+                    })
+                }) {
+                    return task_front_invalid(
+                        "A live-input control cannot reach through a private child boundary.",
+                    );
+                }
+                let renderer = match task_front_renderer(
+                    control.renderer_profile.as_deref(),
+                    &port.type_id,
+                    renderer_profiles,
+                ) {
+                    Ok(renderer) => renderer,
+                    Err(error) => return task_front_invalid(error),
+                };
+                TaskFrontControlProjection {
+                    id: control.id.clone(),
+                    source: control.source.clone(),
+                    target: control.target.clone(),
+                    label: control.label.clone(),
+                    help: control.help.clone(),
+                    group: control.group.clone(),
+                    visibility: control.visibility.clone(),
+                    accessibility_name: control.accessibility_name.clone(),
+                    type_id: port.type_id.clone(),
+                    requirement: port.presence.clone(),
+                    value_origin: "live-typed-input".to_owned(),
+                    display_value: None,
+                    renderer_profile: renderer.id.clone(),
+                    renderer: renderer.renderer.clone(),
+                    choices: renderer.choices.clone(),
+                    editable: false,
+                    edit_kind: "ordinary-typed-input-not-config".to_owned(),
+                    owner: "upstream-semantic-cords".to_owned(),
+                    persistence: "run-only".to_owned(),
+                    sensitivity: port.sensitivity.clone(),
+                    activation: "current-run-delivery".to_owned(),
+                }
+            }
+            TaskFrontControlSource::SiteBinding => {
+                let binding = configuration_layers.iter().find_map(|layer| {
+                    (layer.owner == "site-binding-profile")
+                        .then(|| {
+                            layer
+                                .fields
+                                .iter()
+                                .find(|field| field.id == control.target)
+                                .map(|field| (layer, field))
+                        })
+                        .flatten()
+                });
+                let Some((layer, field)) = binding else {
+                    return task_front_invalid(
+                        "A site-binding control names no authorized site-binding slot.",
+                    );
+                };
+                let renderer = match task_front_renderer(
+                    control.renderer_profile.as_deref(),
+                    "conduit/resource-binding",
+                    renderer_profiles,
+                ) {
+                    Ok(renderer) => renderer,
+                    Err(error) => return task_front_invalid(error),
+                };
+                TaskFrontControlProjection {
+                    id: control.id.clone(),
+                    source: control.source.clone(),
+                    target: control.target.clone(),
+                    label: control.label.clone(),
+                    help: control.help.clone(),
+                    group: control.group.clone(),
+                    visibility: control.visibility.clone(),
+                    accessibility_name: control.accessibility_name.clone(),
+                    type_id: "conduit/resource-binding".to_owned(),
+                    requirement: "required-by-binding-slot".to_owned(),
+                    value_origin: "site-binding-profile".to_owned(),
+                    display_value: Some(field.display_value.clone()),
+                    renderer_profile: renderer.id.clone(),
+                    renderer: renderer.renderer.clone(),
+                    choices: renderer.choices.clone(),
+                    editable: layer.mutability != "immutable",
+                    edit_kind: "authorized-site-binding-operation".to_owned(),
+                    owner: layer.owner.clone(),
+                    persistence: layer.persistence.clone(),
+                    sensitivity: layer.sensitivity.clone(),
+                    activation: layer.activation.clone(),
+                }
+            }
+        };
+        controls.push(projection);
+    }
+    let root_availability = semantic.availabilities.iter().find(|availability| {
+        availability.contract_id
+            == root_node
+                .contract_id
+                .as_deref()
+                .unwrap_or(root_source_node.kind.as_str())
+    });
+    let primary_action = descriptor.primary_action.as_ref().map(|action| {
+        let mut explanations = Vec::new();
+        let state = if let Some(availability) = root_availability.filter(|availability| {
+            plan.is_none()
+                && matches!(
+                    availability.availability_state.as_str(),
+                    "contract-only" | "unsupported"
+                )
+        }) {
+            explanations.push(availability.reason_code.clone());
+            explanations.extend(availability.rejection_reasons.clone());
+            "blocked-by-authoritative-observation"
+        } else {
+            match run.map(|run| run.state) {
+                Some(RunState::Active | RunState::Waiting) => "active",
+                Some(RunState::Quiescing | RunState::Aborting) => "stopping",
+                Some(RunState::Terminal) => "terminal",
+                Some(RunState::Prepared) => "request-available",
+                None if plan.is_some() => "request-available",
+                None => "check-or-resolution-required",
+            }
+        };
+        TaskFrontActionProjection {
+            request: action.request.clone(),
+            label: action.label.clone(),
+            help: action.help.clone(),
+            accessibility_name: action.accessibility_name.clone(),
+            state: state.to_owned(),
+            explanations,
+        }
+    });
+    if let Some(action) = descriptor.primary_action.as_ref()
+        && [
+            action.label.as_str(),
+            action.help.as_str(),
+            action.accessibility_name.as_str(),
+        ]
+        .iter()
+        .any(|value| !task_front_text_is_valid(value, true))
+    {
+        return task_front_invalid("The primary action has invalid presentation text.");
+    }
+    let result = if let Some(result) = descriptor.result.as_ref() {
+        if [
+            result.target.as_str(),
+            result.label.as_str(),
+            result.help.as_str(),
+            result.accessibility_name.as_str(),
+        ]
+        .iter()
+        .any(|value| !task_front_text_is_valid(value, true))
+        {
+            return task_front_invalid("The task result has invalid presentation text.");
+        }
+        let Some(port) = root_node
+            .outputs
+            .iter()
+            .find(|port| port.semantic_path == result.target)
+        else {
+            return task_front_invalid(
+                "The task result names no explicitly exported outgoing result port.",
+            );
+        };
+        if definition.is_some_and(|definition| {
+            !definition.exports.iter().any(|export| {
+                export.direction == conduit_panel::ExportDirection::Output && export.id == port.id
+            })
+        }) {
+            return task_front_invalid("The task result cannot expose a private child output.");
+        }
+        let renderer = match task_front_renderer(
+            result.renderer_profile.as_deref(),
+            &port.type_id,
+            renderer_profiles,
+        ) {
+            Ok(renderer) => renderer,
+            Err(error) => return task_front_invalid(error),
+        };
+        let matching_observation = result_observation.filter(|observation| {
+            plan.is_some_and(|plan| plan.identity == observation.plan_identity)
+                && run.is_some_and(|run| run.run_id == observation.run_id)
+                && observation.port_path == port.semantic_path
+                && observation.type_id == port.type_id
+        });
+        let observation_state = if matching_observation.is_some() {
+            "authoritative-result"
+        } else if result_observation.is_some() {
+            "stale-or-mismatched-result-rejected"
+        } else if run.is_some_and(|run| run.state == RunState::Terminal) {
+            "terminal-without-semantic-result-observation"
+        } else if run.is_some() {
+            "awaiting-semantic-result"
+        } else {
+            "not-run"
+        };
+        Some(TaskFrontResultProjection {
+            target: result.target.clone(),
+            label: result.label.clone(),
+            help: result.help.clone(),
+            accessibility_name: result.accessibility_name.clone(),
+            type_id: port.type_id.clone(),
+            renderer_profile: renderer.id.clone(),
+            renderer: renderer.renderer.clone(),
+            observation_state: observation_state.to_owned(),
+            display_value: matching_observation
+                .map(|observation| observation.display_value.clone()),
+            terminal_outcome: matching_observation
+                .map(|observation| observation.terminal_outcome.clone()),
+        })
+    } else {
+        None
+    };
+    let descriptor_bytes = serde_json::to_vec(&descriptor)
+        .expect("serializing a validated task-front descriptor cannot fail");
+    let descriptor_identity = format!(
+        "sha256:{:x}",
+        Sha256::digest(
+            [
+                b"conduit.patchbay-task-front\0".as_slice(),
+                descriptor_bytes.as_slice(),
+            ]
+            .concat()
+        )
+    );
+    TaskFrontStateProjection {
+        status: "usable".to_owned(),
+        code: "CND-PBY-TASK-FRONT".to_owned(),
+        explanation: "The task front is checked against explicit authored controls and results."
+            .to_owned(),
+        front: Some(TaskFrontProjection {
+            descriptor_identity,
+            identities: TaskFrontIdentityProjection {
+                source_identity: source.identity.clone(),
+                semantic_identity: semantic.source_semantic_hash.clone(),
+                plan_identity: plan.map(|plan| plan.identity.clone()),
+                run_id: run.map(|run| run.run_id.clone()),
+            },
+            root: descriptor.root,
+            contract_id: root_node
+                .contract_id
+                .clone()
+                .unwrap_or_else(|| root_source_node.kind.clone()),
+            name: descriptor.name,
+            purpose: descriptor.purpose,
+            controls,
+            primary_action,
+            result,
+            documentation: descriptor.documentation,
+        }),
+    }
 }
 
 /// Checked source alias alongside its immutable semantic identity.
@@ -2839,6 +3589,9 @@ impl Workspace {
             PresentationOpening::UsableTaskFront => {
                 (PresentationMode::Use, "usable-task-front-declared")
             }
+            PresentationOpening::InvalidTaskFront => {
+                (PresentationMode::Build, "declared-task-front-is-invalid")
+            }
             PresentationOpening::BuildFallback => {
                 (PresentationMode::Build, "no-usable-task-front-declared")
             }
@@ -3115,22 +3868,43 @@ impl Workspace {
                                 vec![error.to_string()],
                             )
                         })?;
-                    let entry = panel
+                    let node = panel
                         .nodes
                         .iter()
                         .find(|node| node.id == node_id)
-                        .and_then(|node| node.config.iter().find(|entry| entry.key == key))
                         .ok_or_else(|| {
-                            rejected(
-                                "CND-PBY-012",
-                                "configuration edit names no existing typed value span",
-                            )
+                            rejected("CND-PBY-012", "configuration edit names no source node")
                         })?;
-                    replace_source_span(
-                        &mut candidate_source.source,
-                        entry.source_span,
-                        &canonical_edit_value(&value),
-                    )?;
+                    if let Some(entry) = node.config.iter().find(|entry| entry.key == key) {
+                        replace_source_span(
+                            &mut candidate_source.source,
+                            entry.source_span,
+                            &canonical_edit_value(&value),
+                        )?;
+                    } else {
+                        let exported_parameter = panel
+                            .definitions
+                            .iter()
+                            .find(|definition| definition.id == node.kind)
+                            .is_some_and(|definition| {
+                                definition
+                                    .parameters
+                                    .iter()
+                                    .any(|parameter| parameter.id == key)
+                            });
+                        if !exported_parameter {
+                            return Err(rejected(
+                                "CND-PBY-012",
+                                "configuration edit cannot create a private or undeclared field",
+                            ));
+                        }
+                        insert_source_config(
+                            &mut candidate_source.source,
+                            node.source_span,
+                            &key,
+                            &canonical_edit_value(&value),
+                        )?;
+                    }
                     source_changed = true;
                 }
                 EditOperation::Navigate {
@@ -3518,6 +4292,36 @@ fn replace_source_span(
     let (start, end) = source_span_offsets(source, span)
         .ok_or_else(|| rejected("CND-PBY-012", "invalid configuration source span"))?;
     source.replace_range(start..end, replacement);
+    Ok(())
+}
+
+fn insert_source_config(
+    source: &mut String,
+    span: conduit_panel::SourceSpan,
+    key: &str,
+    value: &str,
+) -> Result<(), ProtocolError> {
+    let (start, end) = source_span_offsets(source, span)
+        .ok_or_else(|| rejected("CND-PBY-012", "invalid node source span"))?;
+    let authored = source
+        .get(start..end)
+        .ok_or_else(|| rejected("CND-PBY-012", "invalid node source span"))?;
+    let replacement = if let Some(close) = authored.rfind('}') {
+        let (before, after) = authored.split_at(close);
+        if before.contains('\n') {
+            format!(
+                "{}\n    {key} = {value}\n{after}",
+                before.trim_end_matches([' ', '\t', '\n'])
+            )
+        } else {
+            format!("{} {key} = {value} {after}", before.trim_end())
+        }
+    } else {
+        let declaration = authored.trim_end_matches([' ', '\t', '\n']);
+        let trailing = &authored[declaration.len()..];
+        format!("{declaration} {{ {key} = {value} }}{trailing}")
+    };
+    source.replace_range(start..end, &replacement);
     Ok(())
 }
 

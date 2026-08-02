@@ -311,6 +311,9 @@ containment program is tracked by
 - [`083-bounded-quick-local-chat.md`](083-bounded-quick-local-chat.md) defines
   one bounded domain chat contract with deterministic and observed local
   implementations on the generic host-observation and exact-binding path.
+- [`084-task-facing-fronts.md`](084-task-facing-fronts.md) defines bounded
+  presentation metadata checked against explicit exported controls, actions,
+  and exact semantic result identities.
 - [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
   separates AP, DHCP, ICMP, DNS-SD, transport/application protocols,
   observation, and Netherwick robot authority with finite no-radio fixtures.

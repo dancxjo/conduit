@@ -37,6 +37,7 @@ use conduit_std::{
 const MAXIMUM_PATCHBAY_SESSIONS: usize = 8;
 const MAXIMUM_PATCHBAY_SESSION_ID_BYTES: usize = 256;
 const MAXIMUM_PATCHBAY_REQUEST_BYTES: usize = 1024 * 1024;
+const MAXIMUM_TASK_FRONT_DESCRIPTOR_BYTES: usize = 64 * 1024;
 const MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES: u64 = 32 * 1024 * 1024;
 const MAXIMUM_BROWSER_RUN_PUMP_DECISIONS: u64 = 256;
 const MAXIMUM_BROWSER_WATCH_PREVIEW_BYTES: u32 = 256;
@@ -492,6 +493,28 @@ struct BrowserExactRunTerminal {
 struct BrowserPatchbaySession {
     workspace: conduit_patchbay::Workspace,
     run: Option<BrowserExactRun>,
+    task_front_descriptor: Option<String>,
+}
+
+fn browser_task_front_renderer_profiles() -> Vec<conduit_patchbay::TaskFrontRendererProfile> {
+    [
+        ("std/text", "text"),
+        ("std/integer", "number"),
+        ("std/boolean", "boolean"),
+        ("std/exact-decimal", "number"),
+        ("conduit/resource-binding", "resource"),
+        ("*", "summary"),
+    ]
+    .into_iter()
+    .map(
+        |(type_id, renderer)| conduit_patchbay::TaskFrontRendererProfile {
+            id: format!("{type_id}/{renderer}"),
+            type_id: type_id.to_owned(),
+            renderer: renderer.to_owned(),
+            choices: Vec::new(),
+        },
+    )
+    .collect()
 }
 
 fn browser_filesystem() -> MemoryFilesystem<1, 256, 8> {
@@ -1354,7 +1377,14 @@ fn browser_session_view(
         ),
         None => (None, None, None, Vec::new()),
     };
-    authoritative_patchbay_view(&session.workspace, plan, run, high_water, &evidence)
+    authoritative_patchbay_view(
+        &session.workspace,
+        plan,
+        run,
+        high_water,
+        &evidence,
+        session.task_front_descriptor.as_deref(),
+    )
 }
 
 fn finalize_browser_run_if_terminal(run: &mut BrowserExactRun) -> Result<(), RuntimeError> {
@@ -1600,7 +1630,11 @@ fn start_browser_exact_run(
 
 /// Opens one finite, revisioned Patchbay authoring session.
 #[wasm_bindgen]
-pub fn patchbay_open_session(document_id: String, source: String) -> String {
+pub fn patchbay_open_session(
+    document_id: String,
+    source: String,
+    task_front_descriptor: String,
+) -> String {
     if document_id.is_empty() || document_id.len() > MAXIMUM_PATCHBAY_SESSION_ID_BYTES {
         return serde_json::json!({
             "ok": false,
@@ -1611,10 +1645,45 @@ pub fn patchbay_open_session(document_id: String, source: String) -> String {
         })
         .to_string();
     }
-    let workspace = match conduit_patchbay::Workspace::new_with_history(
+    if task_front_descriptor.len() > MAXIMUM_TASK_FRONT_DESCRIPTOR_BYTES {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-016",
+            "diagnostic": "task-front descriptor exceeds its finite byte bound",
+            "diagnostics": [],
+            "disposition": "rejected",
+        })
+        .to_string();
+    }
+    let task_front_descriptor =
+        (!task_front_descriptor.trim().is_empty()).then_some(task_front_descriptor);
+    let preliminary_workspace = match conduit_patchbay::Workspace::new_with_history(
+        document_id.clone(),
+        source.clone(),
+        conduit_patchbay::DEFAULT_WORKSPACE_HISTORY_LIMIT,
+    ) {
+        Ok(workspace) => workspace,
+        Err(error) => return patchbay_error(error),
+    };
+    let preliminary_session = BrowserPatchbaySession {
+        workspace: preliminary_workspace,
+        run: None,
+        task_front_descriptor: task_front_descriptor.clone(),
+    };
+    let preliminary_view = match browser_session_view(&preliminary_session) {
+        Ok(view) => view,
+        Err(error) => return patchbay_error(error),
+    };
+    let opening = match preliminary_view.task_front.status.as_str() {
+        "usable" => conduit_patchbay::PresentationOpening::UsableTaskFront,
+        "invalid" => conduit_patchbay::PresentationOpening::InvalidTaskFront,
+        _ => conduit_patchbay::PresentationOpening::BuildFallback,
+    };
+    let workspace = match conduit_patchbay::Workspace::new_with_opening(
         document_id.clone(),
         source,
         conduit_patchbay::DEFAULT_WORKSPACE_HISTORY_LIMIT,
+        opening,
     ) {
         Ok(workspace) => workspace,
         Err(error) => return patchbay_error(error),
@@ -1648,6 +1717,7 @@ pub fn patchbay_open_session(document_id: String, source: String) -> String {
         let session = BrowserPatchbaySession {
             workspace,
             run: None,
+            task_front_descriptor,
         };
         let view = match browser_session_view(&session) {
             Ok(view) => view,
@@ -2607,6 +2677,7 @@ pub fn patchbay_apply_transaction(session_id: String, request_json: String) -> S
             .to_string();
         };
         let registry = browser_registry();
+        let previous_workspace = session.workspace.clone();
         let result = session.workspace.apply_validated(
             request,
             |contract_id| availability_projection(&registry, contract_id),
@@ -2614,6 +2685,23 @@ pub fn patchbay_apply_transaction(session_id: String, request_json: String) -> S
         );
         match result {
             Ok(result) => match browser_session_view(session) {
+                Ok(view)
+                    if view.presentation.mode == conduit_patchbay::PresentationMode::Use
+                        && view.task_front.status != "usable" =>
+                {
+                    session.workspace = previous_workspace;
+                    patchbay_rejection(
+                        conduit_patchbay::ProtocolError {
+                            code: "CND-PBY-016",
+                            message:
+                                "Use requires a task front checked against the candidate source"
+                                    .to_owned(),
+                            diagnostics: vec![view.task_front.explanation],
+                            disposition: conduit_patchbay::EditDisposition::Rejected,
+                        },
+                        &session.workspace,
+                    )
+                }
                 Ok(view) => serde_json::json!({
                     "ok": true,
                     "result": result,
@@ -2873,6 +2961,7 @@ fn authoritative_patchbay_view(
     run: Option<conduit_patchbay::RunSnapshot>,
     high_water: Option<conduit_patchbay::PatchbayHighWaterProjection>,
     evidence: &[serde_json::Value],
+    task_front_descriptor: Option<&str>,
 ) -> Result<conduit_patchbay::PatchbayViewModel, conduit_patchbay::ProtocolError> {
     let document = conduit_panel::parse_document(&workspace.source().source);
     let recovered = conduit_panel::recover_document(&workspace.source().source);
@@ -3775,6 +3864,41 @@ fn authoritative_patchbay_view(
     }
     truncated |= configuration_layers.len() > bounds.maximum_configuration_layers;
     configuration_layers.truncate(bounds.maximum_configuration_layers);
+    let topology = conduit_patchbay::PatchbayTopologyProjection {
+        contract_imports: Vec::new(),
+        logical_nodes,
+        planned_realization,
+        planned_realization_status,
+        cords,
+        composites,
+        diagnostic_anchors,
+        source_state: if document.ast.is_none()
+            && recovered.nodes.iter().all(|node| node.complete)
+            && recovered.cords.iter().all(|cord| cord.complete)
+        {
+            "invalid"
+        } else {
+            match recovered.state {
+                conduit_panel::RecoveredDocumentState::Exact if diagnostics.is_empty() => "exact",
+                conduit_panel::RecoveredDocumentState::Exact
+                | conduit_panel::RecoveredDocumentState::Invalid => "invalid",
+                conduit_panel::RecoveredDocumentState::Partial => "partial",
+            }
+        }
+        .to_owned(),
+    };
+    let task_front = conduit_patchbay::project_task_front(
+        task_front_descriptor,
+        workspace.source(),
+        &semantic,
+        &topology,
+        &configuration_layers,
+        plan.as_ref(),
+        matching_run.as_ref(),
+        None,
+        &browser_task_front_renderer_profiles(),
+        bounds,
+    );
     Ok(conduit_patchbay::PatchbayViewModel {
         protocol_version: conduit_patchbay::PATCHBAY_PROTOCOL_VERSION,
         source: workspace.source().clone(),
@@ -3792,32 +3916,9 @@ fn authoritative_patchbay_view(
         .take(bounds.maximum_evidence_events)
         .cloned()
         .collect(),
-        topology: conduit_patchbay::PatchbayTopologyProjection {
-            contract_imports: Vec::new(),
-            logical_nodes,
-            planned_realization,
-            planned_realization_status,
-            cords,
-            composites,
-            diagnostic_anchors,
-            source_state: if document.ast.is_none()
-                && recovered.nodes.iter().all(|node| node.complete)
-                && recovered.cords.iter().all(|cord| cord.complete)
-            {
-                "invalid"
-            } else {
-                match recovered.state {
-                    conduit_panel::RecoveredDocumentState::Exact if diagnostics.is_empty() => {
-                        "exact"
-                    }
-                    conduit_panel::RecoveredDocumentState::Exact
-                    | conduit_panel::RecoveredDocumentState::Invalid => "invalid",
-                    conduit_panel::RecoveredDocumentState::Partial => "partial",
-                }
-            }
-            .to_owned(),
-        },
+        topology,
         at_rest: conduit_patchbay::project_at_rest(workspace.source()).ok(),
+        task_front,
         configuration_layers,
         diagnostics,
         bounds,
@@ -5046,6 +5147,7 @@ fn run_panel_exact_inner(
                 decisions: report.high_water.decisions,
             }),
             &evidence,
+            None,
         )
         .map_err(|error| RuntimeError::new(error.code, error.to_string()))?,
     )
@@ -5075,12 +5177,50 @@ mod tests {
         patchbay_advance_exact_run, patchbay_apply_transaction, patchbay_attach_exact_watch,
         patchbay_cancel_exact_run, patchbay_detach_exact_watch, patchbay_dispose_exact_run,
         patchbay_inspect_at_rest, patchbay_move_node, patchbay_notify_host_operation,
-        patchbay_open_session, patchbay_pump_exact_run, patchbay_read_exact_evidence,
-        patchbay_read_exact_watch, patchbay_replace_source, patchbay_session_view,
-        patchbay_snapshot_exact_run, patchbay_start_exact_run, planned_realization_projection,
+        patchbay_open_session as patchbay_open_session_with_front, patchbay_pump_exact_run,
+        patchbay_read_exact_evidence, patchbay_read_exact_watch, patchbay_replace_source,
+        patchbay_session_view, patchbay_snapshot_exact_run, patchbay_start_exact_run,
+        planned_realization_projection,
     };
 
     const SOURCE: &str = "panel 0\ngreeting: std/literal { value = \"hello\\n\" }\noutput: display/text\ngreeting.value > output.text\n";
+
+    fn patchbay_open_session(document_id: String, source: String) -> String {
+        patchbay_open_session_with_front(document_id, source, String::new())
+    }
+
+    fn jacks_task_front_descriptor() -> String {
+        serde_json::json!({
+            "schema": "conduit.patchbay-task-front",
+            "schema_version": 0,
+            "root": "root/faceplate",
+            "name": "Uppercase text",
+            "purpose": "Use only the public composite boundary.",
+            "controls": [{
+                "id": "input-text",
+                "source": "live-input",
+                "target": "root/faceplate/port/receiving/text",
+                "label": "Text input",
+                "help": "Ordinary typed input from the visible upstream cord.",
+                "group": "Input",
+                "visibility": "primary",
+                "accessibility_name": "Uppercase text input"
+            }],
+            "primary_action": {
+                "request": "run-exact-plan",
+                "label": "Uppercase text",
+                "help": "Request the exact checked plan.",
+                "accessibility_name": "Run uppercase text"
+            },
+            "result": {
+                "target": "root/faceplate/port/outgoing/result",
+                "label": "Uppercase result",
+                "help": "Exact semantic result only.",
+                "accessibility_name": "Uppercase result"
+            }
+        })
+        .to_string()
+    }
 
     #[derive(Clone)]
     struct TestRunBinding {
@@ -5637,7 +5777,7 @@ output.value > sink.result\n\
             source_semantic_hash: plan.source_semantic_hash.clone(),
             state: conduit_patchbay::RunState::Active,
         };
-        let view = authoritative_patchbay_view(&workspace, Some(plan), Some(run), None, &[])
+        let view = authoritative_patchbay_view(&workspace, Some(plan), Some(run), None, &[], None)
             .expect("bounded projection");
 
         assert!(view.plan.is_none());
@@ -5784,6 +5924,144 @@ output.value > sink.result\n\
                 .is_some_and(|identity| identity.starts_with("sha256:"))
         );
         assert_eq!(replaced["result"]["candidate_revision"]["source"], 1);
+    }
+
+    #[test]
+    fn checked_task_front_opens_use_and_invalid_metadata_falls_back_to_build() {
+        let source = "panel 0\n\nexample/front-panel {\n    private_worker: text/uppercase\n    export > text = private_worker.text\n    export result > = private_worker.text\n}\n\nsource: std/literal { value = \"jacks\" }\nfaceplate: example/front-panel\nsink: display/text\nsource.value > faceplate.text\nfaceplate.result > sink.text\n";
+        let opened: Value = serde_json::from_str(&patchbay_open_session_with_front(
+            "test/task-front".to_owned(),
+            source.to_owned(),
+            jacks_task_front_descriptor(),
+        ))
+        .expect("task-front open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+        assert_eq!(opened["view"]["presentation"]["mode"], "use");
+        assert_eq!(
+            opened["view"]["presentation"]["opening_reason"],
+            "usable-task-front-declared"
+        );
+        assert_eq!(opened["view"]["task_front"]["status"], "usable");
+        assert_eq!(
+            opened["view"]["task_front"]["front"]["controls"][0]["source"],
+            "live-input"
+        );
+        assert_eq!(
+            opened["view"]["task_front"]["front"]["controls"][0]["editable"],
+            false
+        );
+        let front_text = opened["view"]["task_front"].to_string();
+        assert!(!front_text.contains("private_worker"), "{front_text}");
+
+        let mut invalid: Value =
+            serde_json::from_str(&jacks_task_front_descriptor()).expect("descriptor JSON");
+        invalid["controls"][0]["target"] =
+            Value::String("root/faceplate/port/receiving/private_worker".to_owned());
+        let rejected: Value = serde_json::from_str(&patchbay_open_session_with_front(
+            "test/task-front-invalid".to_owned(),
+            source.to_owned(),
+            invalid.to_string(),
+        ))
+        .expect("invalid front open JSON");
+        assert_eq!(rejected["ok"], true);
+        assert_eq!(rejected["view"]["presentation"]["mode"], "build");
+        assert_eq!(
+            rejected["view"]["presentation"]["opening_reason"],
+            "declared-task-front-is-invalid"
+        );
+        assert_eq!(rejected["view"]["task_front"]["status"], "invalid");
+    }
+
+    #[test]
+    fn use_transition_rechecks_task_front_against_edited_candidate_source() {
+        let session = "test/task-front-candidate-check";
+        let source = "panel 0\n\nexample/front-panel {\n    private_worker: text/uppercase\n    export > text = private_worker.text\n    export result > = private_worker.text\n}\n\nsource: std/literal { value = \"jacks\" }\nfaceplate: example/front-panel\nsink: display/text\nsource.value > faceplate.text\nfaceplate.result > sink.text\n";
+        let opened: Value = serde_json::from_str(&patchbay_open_session_with_front(
+            session.to_owned(),
+            source.to_owned(),
+            jacks_task_front_descriptor(),
+        ))
+        .expect("task-front open JSON");
+        assert_eq!(opened["view"]["presentation"]["mode"], "use");
+
+        let build = serde_json::json!({
+            "protocol_version": 0,
+            "document_id": session,
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 0,
+            "operations": [{"Navigate": {
+                "mode": "build",
+                "lens": "face",
+                "topology": "logical"
+            }}]
+        });
+        let built: Value = serde_json::from_str(&patchbay_apply_transaction(
+            session.to_owned(),
+            build.to_string(),
+        ))
+        .expect("Build navigation JSON");
+        assert_eq!(built["ok"], true, "{built}");
+
+        let renamed = source
+            .replace("export result > =", "export renamed > =")
+            .replace(
+                "faceplate.result > sink.text",
+                "faceplate.renamed > sink.text",
+            );
+        let replace = serde_json::json!({
+            "protocol_version": 0,
+            "document_id": session,
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 1,
+            "operations": [{"ReplaceSource": {"source": renamed}}]
+        });
+        let replaced: Value = serde_json::from_str(&patchbay_apply_transaction(
+            session.to_owned(),
+            replace.to_string(),
+        ))
+        .expect("source replacement JSON");
+        assert_eq!(replaced["ok"], true, "{replaced}");
+        assert_eq!(replaced["view"]["presentation"]["mode"], "build");
+        assert_eq!(replaced["view"]["task_front"]["status"], "invalid");
+        let source_revision = replaced["result"]["candidate_revision"]["source"]
+            .as_u64()
+            .expect("source revision");
+        let presentation_revision = replaced["result"]["candidate_revision"]["presentation"]
+            .as_u64()
+            .expect("presentation revision");
+
+        let use_request = serde_json::json!({
+            "protocol_version": 0,
+            "document_id": session,
+            "expected_source_revision": source_revision,
+            "expected_presentation_revision": presentation_revision,
+            "operations": [{"Navigate": {
+                "mode": "use",
+                "lens": "face",
+                "topology": "logical"
+            }}]
+        });
+        let rejected: Value = serde_json::from_str(&patchbay_apply_transaction(
+            session.to_owned(),
+            use_request.to_string(),
+        ))
+        .expect("rejected Use navigation JSON");
+        assert_eq!(rejected["ok"], false, "{rejected}");
+        assert_eq!(rejected["code"], "CND-PBY-016");
+        assert_eq!(rejected["candidate_revision"]["source"], source_revision);
+        assert_eq!(
+            rejected["candidate_revision"]["presentation"],
+            presentation_revision
+        );
+
+        let current: Value = serde_json::from_str(&patchbay_session_view(session.to_owned()))
+            .expect("current task-front view JSON");
+        assert_eq!(current["view"]["presentation"]["mode"], "build");
+        assert_eq!(
+            current["view"]["presentation"]["revision"],
+            presentation_revision
+        );
+        assert_eq!(current["view"]["task_front"]["status"], "invalid");
     }
 
     #[test]
