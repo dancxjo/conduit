@@ -1007,6 +1007,11 @@ function disableWatchControl() {
   watchToggle.disabled = true;
   watchToggle.textContent = "Attach Watch (W)";
   watchToggle.setAttribute("aria-pressed", "false");
+  watchToggle.dataset.controlPending = "false";
+  watchToggle.dataset.controlSequence = "0";
+  watchToggle.dataset.lastTransition = "unavailable";
+  delete watchToggle.dataset.runId;
+  delete watchToggle.dataset.planIdentity;
   watchObservationLead.dataset.attached = "false";
   watchObservationLead.textContent =
     "Observation lead detached. This dashed lead is presentation only and is never a graph cord.";
@@ -1018,6 +1023,11 @@ function setWatchControl(control) {
   watchToggle.disabled = Boolean(control.pending);
   watchToggle.textContent = control.attached ? "Remove Watch (W)" : "Attach Watch (W)";
   watchToggle.setAttribute("aria-pressed", String(control.attached));
+  watchToggle.dataset.controlPending = String(Boolean(control.pending));
+  watchToggle.dataset.controlSequence = String(control.controlSequence);
+  watchToggle.dataset.lastTransition = control.lastTransition;
+  watchToggle.dataset.runId = control.runIdentity.runId;
+  watchToggle.dataset.planIdentity = control.runIdentity.planIdentity;
   watchObservationLead.dataset.attached = String(control.attached);
   watchObservationLead.textContent = control.attached
     ? `Presentation-only observation lead attached to ${control.subjectLabel || control.watchId}; it cannot carry demand or pressure.`
@@ -1030,6 +1040,7 @@ function setWatchControlBusy(control, busy, allowQueuedToggle = false) {
   control.pending = busy;
   control.acceptsQueuedToggle = busy && allowQueuedToggle;
   watchToggle.disabled = busy && !allowQueuedToggle;
+  watchToggle.dataset.controlPending = String(busy);
   for (const button of document.querySelectorAll(".structured-watch-button")) {
     button.disabled = busy;
   }
@@ -1188,6 +1199,10 @@ async function toggleWatch() {
   }
   control.attached = nextAttached;
   control.pending = false;
+  // Advance only after the exact worker has acknowledged this one request.
+  // Tests can therefore wait on causal state without repeating the action.
+  control.controlSequence += 1;
+  control.lastTransition = control.attached ? "attached" : "detached";
   setWatchControl(control);
   if (!control.attached) {
     watchValue.textContent = "Watch detached; the exact ticker continues without observation pressure.";
@@ -1220,6 +1235,7 @@ function renderLatestWatch(batch, run) {
     state: run.state,
     next_timer_deadline: run.next_timer_deadline,
     watch_id: batch.watch_id,
+    attached: true,
     retention: "latest",
     cursor: batch.next_cursor,
     representation: record?.representation,
@@ -3222,6 +3238,8 @@ async function run() {
           : `${admission.node}.${admission.port}`,
         attached: true,
         cursor: 0,
+        controlSequence: 1,
+        lastTransition: "attached",
       });
     }
     const operation = activeScenario()?.execution === "cancel-before-first-step"

@@ -924,6 +924,8 @@ fn pico_report_names_exact_build_pools_and_no_unimplemented_zenoh() {
         capabilities: &capabilities,
         resources: &resources,
         topology: &[],
+        execution_placements: &[],
+        execution_lanes: &[],
         supported_executors: &executors,
         supported_targets: &targets,
         supported_abis: &abis,

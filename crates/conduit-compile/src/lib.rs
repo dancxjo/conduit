@@ -13,24 +13,25 @@ use conduit_core::{
     AdministrativeProposal, AdministrativeSubject, AdmittedSupervisionAction, ArtifactDigest,
     ArtifactManifest, ArtifactProvenance, AuthorityConstraintRef, AuthorityGrant, AuthorityScope,
     AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee, ClockRounding,
-    ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement, ContainmentContext,
-    ContainmentPolicy, ContainmentReason, DeadlineContract, DelegationEnvelope, DelegationPolicy,
-    Direction, DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION, EffectClassBinding,
-    EffectClassTraits, EffectCommitProfile, EffectDiscontinuity, EffectFlowBinding,
-    EffectIdempotency, EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile,
-    ExecutorKind, FeedbackBoundaryKind, FeedbackInitialization, FeedbackReplayGapPolicy,
-    FeedbackTerminalPolicy, FlowCapacity, FlowPolicy, FlowWatermarks, ForeignRetention,
-    GenesisReason, GrantStatus, HandleDisposition, HazardClosureContext, HazardClosureLimits,
-    HazardClosurePolicy, HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode,
-    HazardousHostBinding, HazardousHostProfile, HostCapability, HostDistributionKind, Id,
-    ImplementationConfinement, ImplementationManifest, InhibitLatchState, InhibitObservation,
-    InstancePath, MAX_HAZARD_PROOF_NODES, ManifestArtifactRef, ManifestEntrypoint,
-    ManifestInterface, MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant,
-    OperatingEnvelopeLimit, OwnershipModel, PassportStatus, PassportStatusObservation,
-    PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanClockConversion,
-    PlanCompositeMapping, PlanEvidenceProviderBinding, PlanExportBinding, PlanFeedbackBoundary,
-    PlanHazardClosure, PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime,
-    PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSupervision,
+    CommitOrdering, ConfigFieldContract, ConfigIdentity, ConfigMutability, ConfigRequirement,
+    ContainmentContext, ContainmentPolicy, ContainmentReason, DeadlineContract, DelegationEnvelope,
+    DelegationPolicy, Direction, DistributionProvider, EXECUTION_PLAN_SCHEMA_VERSION,
+    EffectClassBinding, EffectClassTraits, EffectCommitProfile, EffectDiscontinuity,
+    EffectFlowBinding, EffectIdempotency, EffectRequirement, ExecutionGuarantee, ExecutionLane,
+    ExecutionLimits, ExecutionPlacement, ExecutionPlan, ExecutionProfile, ExecutorKind,
+    FeedbackBoundaryKind, FeedbackInitialization, FeedbackReplayGapPolicy, FeedbackTerminalPolicy,
+    FlowCapacity, FlowPolicy, FlowWatermarks, ForeignRetention, GenesisReason, GrantStatus,
+    HandleDisposition, HazardClosureContext, HazardClosureLimits, HazardClosurePolicy,
+    HazardClosureReason, HazardPermit, HazardProofKind, HazardProofNode, HazardousHostBinding,
+    HazardousHostProfile, HostCapability, HostDistributionKind, Id, ImplementationConfinement,
+    ImplementationManifest, InhibitLatchState, InhibitObservation, InstancePath, IsolationProfile,
+    MAX_HAZARD_PROOF_NODES, ManifestArtifactRef, ManifestEntrypoint, ManifestInterface,
+    MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant, OperatingEnvelopeLimit,
+    OwnershipModel, PassportStatus, PassportStatusObservation, PersistentBudgetPolicy,
+    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanClockConversion, PlanCompositeMapping,
+    PlanEvidenceProviderBinding, PlanExportBinding, PlanFeedbackBoundary, PlanHazardClosure,
+    PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup,
+    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSupervision,
     PlanSupervisionTarget, PlanValidationContext, PlanWorkload, PolicyBudgetAnchor,
     PolicyBudgetAvailability, PolicyBudgetLease, PolicyBudgetLimits, PolicyBudgetReason,
     PolicyBudgetStatus, PolicyLeaseRule, PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract,
@@ -51,11 +52,14 @@ use conduit_core::{
 };
 use conduit_panel::{LoadedModule, ModuleGraph, ModuleLoader, SourcePressure};
 use conduit_runtime::{
-    CandidateAuthority, CapabilityPredicate, ExactTopologyView, HostResolverPolicy,
-    LiteralValidationError, OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedInterfaceContract,
-    OwnedNodeContract, OwnedNodeSchema, OwnedPortContract, OwnedPortReference, OwnedSemanticValue,
-    OwnedTypeReference, PlacementCandidate, PlacementRequest, Registry, ResolverTiePolicy,
-    ResourcePredicate, SourceContractCatalog, TopologyPredicate, lower_source,
+    CandidateAuthority, CapabilityPredicate, ExactTopologyView, ExecutionArrangementPolicy,
+    HostResolverPolicy, LiteralValidationError, OwnedConfigFieldSchema, OwnedConfigRequirement,
+    OwnedInterfaceContract, OwnedNodeContract, OwnedNodeSchema, OwnedPortContract,
+    OwnedPortReference, OwnedSemanticValue, OwnedTypeReference, PlacementCandidate,
+    PlacementRequest, Registry, ResolvedExecutionArrangement, ResolvedExecutionBoundary,
+    ResolvedExecutionCommitDomain, ResolvedExecutionDescriptor, ResolvedExecutionLane,
+    ResolvedExecutionPlacement, ResolvedExecutionRegion, ResolverTiePolicy, ResourcePredicate,
+    SourceContractCatalog, TopologyPredicate, lower_source, resolve_execution_arrangement,
     resolve_host_placement, seal_resolved_execution_plan, validate_hosted_execution_plan,
 };
 use serde::{Deserialize, Serialize};
@@ -90,6 +94,35 @@ pub struct BudgetDocument {
     pub transports: u16,
     pub checkpoints: u16,
     pub evidence_bytes: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExecutionArrangementPolicyDocument {
+    pub plan_epoch: u64,
+    pub boundary_realization: PinDocument,
+    pub maximum_proposal_bytes: u64,
+    pub maximum_head_of_line_ticks: u64,
+    pub cancellation_slots: u16,
+    pub evidence_slots: u32,
+}
+
+/// Current fixed-hosted arrangement policy used by the installed Conduit
+/// profile. Other hosts must supply their own exact realization pin and bounds.
+#[must_use]
+pub fn fixed_hosted_execution_arrangement_policy() -> ExecutionArrangementPolicyDocument {
+    ExecutionArrangementPolicyDocument {
+        plan_epoch: 1,
+        boundary_realization: PinDocument {
+            id: "conduit/fixed-hosted-mailbox".to_owned(),
+            schema_version: 0,
+            semantic_hash: SemanticHash::from_bytes([57; 32]).to_string(),
+        },
+        maximum_proposal_bytes: 1024 * 1024,
+        maximum_head_of_line_ticks: 256,
+        cancellation_slots: 64,
+        evidence_slots: 4096,
+    }
 }
 
 impl From<BudgetDocument> for PlanResourceBudget {
@@ -337,6 +370,46 @@ pub struct ReportTopologyDocument {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct ExecutionPlacementObservationDocument {
+    pub id: String,
+    pub provider: PinDocument,
+    pub authority_boundary: PinDocument,
+    pub resource_boundary: PinDocument,
+    pub lifecycle_boundary: PinDocument,
+    pub failure_boundary: PinDocument,
+    pub generation: u64,
+    pub isolation: String,
+    pub memory_containment: String,
+    pub regain_control: String,
+    pub effect_fencing: String,
+    pub stop_execution: String,
+    pub reclaim_resources: String,
+    pub maximum_regain_control_ticks: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExecutionLaneObservationDocument {
+    pub id: String,
+    pub placement: String,
+    pub placement_generation: u64,
+    pub generation: u64,
+    pub independent_progress: String,
+    pub simultaneous_execution: String,
+    pub preemption: String,
+    pub termination: String,
+    pub ready_slots: u16,
+    pub wake_slots: u16,
+    pub proposal_slots: u16,
+    pub commit_slots: u16,
+    pub timer_slots: u16,
+    pub scratch_bytes: u32,
+    pub stack_bytes: u32,
+    pub evidence_slots: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReportMembershipDocument {
     pub realm: String,
     pub entity: String,
@@ -369,6 +442,8 @@ pub struct HostReportDocument {
     pub resources: Vec<ReportResourceDocument>,
     #[serde(default)]
     pub topology: Vec<ReportTopologyDocument>,
+    pub execution_placements: Vec<ExecutionPlacementObservationDocument>,
+    pub execution_lanes: Vec<ExecutionLaneObservationDocument>,
     pub supported_executors: Vec<String>,
     #[serde(default)]
     pub supported_targets: Vec<String>,
@@ -1552,6 +1627,7 @@ pub struct CompileInput {
     pub time_basis: String,
     pub current_tick: u64,
     pub plan_budget: BudgetDocument,
+    pub execution_arrangement: ExecutionArrangementPolicyDocument,
     pub maximum_authority_bindings: u32,
     pub maximum_transition_memory_bytes: u64,
     pub maximum_search_states: usize,
@@ -1588,6 +1664,7 @@ struct CompileIdentityProjection<'a> {
     time_basis: &'a str,
     current_tick: u64,
     plan_budget: BudgetDocument,
+    execution_arrangement: &'a ExecutionArrangementPolicyDocument,
     maximum_authority_bindings: u32,
     maximum_transition_memory_bytes: u64,
     maximum_search_states: usize,
@@ -1685,6 +1762,7 @@ impl CompileInput {
             time_basis: &canonical.time_basis,
             current_tick: canonical.current_tick,
             plan_budget: canonical.plan_budget,
+            execution_arrangement: &canonical.execution_arrangement,
             maximum_authority_bindings: canonical.maximum_authority_bindings,
             maximum_transition_memory_bytes: canonical.maximum_transition_memory_bytes,
             maximum_search_states: canonical.maximum_search_states,
@@ -1710,6 +1788,15 @@ impl CompileInput {
         if self.candidates.is_empty() || self.candidates.len() > 4096 {
             return Err(CompileError::new(CompileReason::InvalidInput));
         }
+        if self.execution_arrangement.plan_epoch == 0
+            || self.execution_arrangement.maximum_proposal_bytes == 0
+            || self.execution_arrangement.maximum_head_of_line_ticks == 0
+            || self.execution_arrangement.cancellation_slots == 0
+            || self.execution_arrangement.evidence_slots == 0
+        {
+            return Err(CompileError::new(CompileReason::InvalidInput));
+        }
+        pin(&self.execution_arrangement.boundary_realization)?;
         self.validate_module_source_limits()?;
         if self.pool_bindings.len() > 4096 {
             return Err(CompileError::new(CompileReason::InvalidInput));
@@ -2713,6 +2800,109 @@ pub struct PlanInstancePoolDocument {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct ResolvedExecutionPlacementDocument {
+    pub id: String,
+    pub host_observation: String,
+    pub provider: PinDocument,
+    pub authority_boundary: PinDocument,
+    pub resource_boundary: PinDocument,
+    pub lifecycle_boundary: PinDocument,
+    pub failure_boundary: PinDocument,
+    pub generation: u64,
+    pub isolation: String,
+    pub memory_containment: String,
+    pub regain_control: String,
+    pub effect_fencing: String,
+    pub stop_execution: String,
+    pub reclaim_resources: String,
+    pub maximum_regain_control_ticks: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResolvedExecutionLaneDocument {
+    pub id: String,
+    pub placement: String,
+    pub placement_generation: u64,
+    pub generation: u64,
+    pub independent_progress: String,
+    pub simultaneous_execution: String,
+    pub preemption: String,
+    pub termination: String,
+    pub ready_slots: u16,
+    pub wake_slots: u16,
+    pub proposal_slots: u16,
+    pub commit_slots: u16,
+    pub timer_slots: u16,
+    pub scratch_bytes: u32,
+    pub stack_bytes: u32,
+    pub evidence_slots: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResolvedExecutionRegionDocument {
+    pub id: String,
+    pub members: Vec<String>,
+    pub placement: String,
+    pub placement_generation: u64,
+    pub lane: String,
+    pub lane_generation: u64,
+    pub commit_domain: String,
+    pub independent: bool,
+    pub maximum_in_flight_proposals: u16,
+    pub scratch_bytes: u32,
+    pub retained_state_bytes: u64,
+    pub pending_operation_slots: u16,
+    pub timer_slots: u16,
+    pub evidence_slots: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResolvedExecutionBoundaryDocument {
+    pub cord: String,
+    pub from_region: String,
+    pub to_region: String,
+    pub realization: PinDocument,
+    pub generation: u64,
+    pub from_placement_generation: u64,
+    pub to_placement_generation: u64,
+    pub capacity_items: u16,
+    pub capacity_bytes: u64,
+    pub wake_slots: u16,
+    pub evidence_slots: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResolvedExecutionCommitDomainDocument {
+    pub id: String,
+    pub ordering: String,
+    pub proposal_slots: u16,
+    pub commit_slots: u16,
+    pub maximum_proposal_bytes: u64,
+    pub maximum_head_of_line_ticks: u64,
+    pub cancellation_slots: u16,
+    pub evidence_slots: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResolvedExecutionArrangementDocument {
+    pub identity: String,
+    pub plan_identity: String,
+    pub resolution_identity: String,
+    pub plan_epoch: u64,
+    pub placements: Vec<ResolvedExecutionPlacementDocument>,
+    pub lanes: Vec<ResolvedExecutionLaneDocument>,
+    pub regions: Vec<ResolvedExecutionRegionDocument>,
+    pub boundaries: Vec<ResolvedExecutionBoundaryDocument>,
+    pub commit_domains: Vec<ResolvedExecutionCommitDomainDocument>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ExactPlanDocument {
     pub schema: String,
     pub schema_version: u32,
@@ -2723,6 +2913,8 @@ pub struct ExactPlanDocument {
     pub time_basis: String,
     pub created_at_tick: u64,
     pub budget: BudgetDocument,
+    /// Separately identified physical arrangement for this exact logical plan.
+    pub execution_arrangement: ResolvedExecutionArrangementDocument,
     pub host_observations: Vec<PlanHostDocument>,
     pub resources: Vec<PlanResourceDocument>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -2765,7 +2957,137 @@ impl ExactPlanDocument {
                 },
             },
         )
-        .map_err(|_| CompileError::new(CompileReason::PlanInvalid))
+        .map_err(|_| CompileError::new(CompileReason::PlanInvalid))?;
+        self.execution_arrangement()?
+            .validate_for_plan(&plan)
+            .map_err(|_| CompileError::new(CompileReason::ExecutionArrangement))
+    }
+
+    /// Decode the separately identified physical arrangement without
+    /// rediscovering host providers or changing the logical plan.
+    pub fn execution_arrangement(&self) -> Result<ResolvedExecutionArrangement, CompileError> {
+        let document = &self.execution_arrangement;
+        Ok(ResolvedExecutionArrangement {
+            identity: parse_hash(&document.identity)?,
+            plan_identity: parse_hash(&document.plan_identity)?,
+            resolution_identity: parse_hash(&document.resolution_identity)?,
+            plan_epoch: document.plan_epoch,
+            placements: document
+                .placements
+                .iter()
+                .map(|placement| {
+                    Ok(ResolvedExecutionPlacement {
+                        id: placement.id.clone(),
+                        host_observation: placement.host_observation.clone(),
+                        provider: resolved_execution_descriptor(&placement.provider)?,
+                        authority_boundary: resolved_execution_descriptor(
+                            &placement.authority_boundary,
+                        )?,
+                        resource_boundary: resolved_execution_descriptor(
+                            &placement.resource_boundary,
+                        )?,
+                        lifecycle_boundary: resolved_execution_descriptor(
+                            &placement.lifecycle_boundary,
+                        )?,
+                        failure_boundary: resolved_execution_descriptor(
+                            &placement.failure_boundary,
+                        )?,
+                        generation: placement.generation,
+                        isolation: isolation_profile(&placement.isolation)?,
+                        memory_containment: execution_guarantee(&placement.memory_containment)?,
+                        regain_control: execution_guarantee(&placement.regain_control)?,
+                        effect_fencing: execution_guarantee(&placement.effect_fencing)?,
+                        stop_execution: execution_guarantee(&placement.stop_execution)?,
+                        reclaim_resources: execution_guarantee(&placement.reclaim_resources)?,
+                        maximum_regain_control_ticks: placement.maximum_regain_control_ticks,
+                    })
+                })
+                .collect::<Result<Vec<_>, CompileError>>()?,
+            lanes: document
+                .lanes
+                .iter()
+                .map(|lane| {
+                    Ok(ResolvedExecutionLane {
+                        id: lane.id.clone(),
+                        placement: lane.placement.clone(),
+                        placement_generation: lane.placement_generation,
+                        generation: lane.generation,
+                        independent_progress: execution_guarantee(&lane.independent_progress)?,
+                        simultaneous_execution: execution_guarantee(&lane.simultaneous_execution)?,
+                        preemption: execution_guarantee(&lane.preemption)?,
+                        termination: execution_guarantee(&lane.termination)?,
+                        ready_slots: lane.ready_slots,
+                        wake_slots: lane.wake_slots,
+                        proposal_slots: lane.proposal_slots,
+                        commit_slots: lane.commit_slots,
+                        timer_slots: lane.timer_slots,
+                        scratch_bytes: lane.scratch_bytes,
+                        stack_bytes: lane.stack_bytes,
+                        evidence_slots: lane.evidence_slots,
+                    })
+                })
+                .collect::<Result<Vec<_>, CompileError>>()?,
+            regions: document
+                .regions
+                .iter()
+                .map(|region| ResolvedExecutionRegion {
+                    id: region.id.clone(),
+                    members: region.members.clone(),
+                    placement: region.placement.clone(),
+                    placement_generation: region.placement_generation,
+                    lane: region.lane.clone(),
+                    lane_generation: region.lane_generation,
+                    commit_domain: region.commit_domain.clone(),
+                    independent: region.independent,
+                    maximum_in_flight_proposals: region.maximum_in_flight_proposals,
+                    scratch_bytes: region.scratch_bytes,
+                    retained_state_bytes: region.retained_state_bytes,
+                    pending_operation_slots: region.pending_operation_slots,
+                    timer_slots: region.timer_slots,
+                    evidence_slots: region.evidence_slots,
+                })
+                .collect(),
+            boundaries: document
+                .boundaries
+                .iter()
+                .map(|boundary| {
+                    Ok(ResolvedExecutionBoundary {
+                        cord: boundary.cord.clone(),
+                        from_region: boundary.from_region.clone(),
+                        to_region: boundary.to_region.clone(),
+                        realization: resolved_execution_descriptor(&boundary.realization)?,
+                        generation: boundary.generation,
+                        from_placement_generation: boundary.from_placement_generation,
+                        to_placement_generation: boundary.to_placement_generation,
+                        capacity_items: boundary.capacity_items,
+                        capacity_bytes: boundary.capacity_bytes,
+                        wake_slots: boundary.wake_slots,
+                        evidence_slots: boundary.evidence_slots,
+                    })
+                })
+                .collect::<Result<Vec<_>, CompileError>>()?,
+            commit_domains: document
+                .commit_domains
+                .iter()
+                .map(|domain| {
+                    let ordering = match domain.ordering.as_str() {
+                        "deterministic-frontier" => CommitOrdering::DeterministicFrontier,
+                        "independent-frontier" => CommitOrdering::IndependentFrontier,
+                        _ => return Err(CompileError::new(CompileReason::InvalidInput)),
+                    };
+                    Ok(ResolvedExecutionCommitDomain {
+                        id: domain.id.clone(),
+                        ordering,
+                        proposal_slots: domain.proposal_slots,
+                        commit_slots: domain.commit_slots,
+                        maximum_proposal_bytes: domain.maximum_proposal_bytes,
+                        maximum_head_of_line_ticks: domain.maximum_head_of_line_ticks,
+                        cancellation_slots: domain.cancellation_slots,
+                        evidence_slots: domain.evidence_slots,
+                    })
+                })
+                .collect::<Result<Vec<_>, CompileError>>()?,
+        })
     }
 
     /// Compute the exact policy/permit subject for this plan's resolved
@@ -4334,7 +4656,21 @@ fn compile_topology(
     }
     seal_resolved_execution_plan(&resolution, &plan, validation_context)
         .map_err(|_| CompileError::new(CompileReason::PlanInvalid))?;
-    let document = plan_document(&plan, topology)?;
+    let execution_arrangement = resolve_execution_arrangement(
+        &plan,
+        &resolution,
+        validation_context,
+        ExecutionArrangementPolicy {
+            plan_epoch: input.execution_arrangement.plan_epoch,
+            boundary_realization: pin(&input.execution_arrangement.boundary_realization)?,
+            maximum_proposal_bytes: input.execution_arrangement.maximum_proposal_bytes,
+            maximum_head_of_line_ticks: input.execution_arrangement.maximum_head_of_line_ticks,
+            cancellation_slots: input.execution_arrangement.cancellation_slots,
+            evidence_slots: input.execution_arrangement.evidence_slots,
+        },
+    )
+    .map_err(|_| CompileError::new(CompileReason::ExecutionArrangement))?;
+    let document = plan_document(&plan, topology, &execution_arrangement)?;
     document.validate()?;
     Ok(document)
 }
@@ -4714,6 +5050,54 @@ fn capability_report<'a>(
             })
         })
         .collect::<Result<Vec<_>, CompileError>>()?;
+    let report_id = id(&document.id)?;
+    let execution_placements = document
+        .execution_placements
+        .iter()
+        .map(|placement| {
+            Ok(ExecutionPlacement {
+                id: id(&placement.id)?,
+                host_observation: report_id,
+                provider: pin(&placement.provider)?,
+                authority_boundary: pin(&placement.authority_boundary)?,
+                resource_boundary: pin(&placement.resource_boundary)?,
+                lifecycle_boundary: pin(&placement.lifecycle_boundary)?,
+                failure_boundary: pin(&placement.failure_boundary)?,
+                generation: placement.generation,
+                isolation: isolation_profile(&placement.isolation)?,
+                memory_containment: execution_guarantee(&placement.memory_containment)?,
+                regain_control: execution_guarantee(&placement.regain_control)?,
+                effect_fencing: execution_guarantee(&placement.effect_fencing)?,
+                stop_execution: execution_guarantee(&placement.stop_execution)?,
+                reclaim_resources: execution_guarantee(&placement.reclaim_resources)?,
+                maximum_regain_control_ticks: placement.maximum_regain_control_ticks,
+            })
+        })
+        .collect::<Result<Vec<_>, CompileError>>()?;
+    let execution_lanes = document
+        .execution_lanes
+        .iter()
+        .map(|lane| {
+            Ok(ExecutionLane {
+                id: id(&lane.id)?,
+                placement: id(&lane.placement)?,
+                placement_generation: lane.placement_generation,
+                generation: lane.generation,
+                independent_progress: execution_guarantee(&lane.independent_progress)?,
+                simultaneous_execution: execution_guarantee(&lane.simultaneous_execution)?,
+                preemption: execution_guarantee(&lane.preemption)?,
+                termination: execution_guarantee(&lane.termination)?,
+                ready_slots: lane.ready_slots,
+                wake_slots: lane.wake_slots,
+                proposal_slots: lane.proposal_slots,
+                commit_slots: lane.commit_slots,
+                timer_slots: lane.timer_slots,
+                scratch_bytes: lane.scratch_bytes,
+                stack_bytes: lane.stack_bytes,
+                evidence_slots: lane.evidence_slots,
+            })
+        })
+        .collect::<Result<Vec<_>, CompileError>>()?;
     let executors = document
         .supported_executors
         .iter()
@@ -4737,7 +5121,7 @@ fn capability_report<'a>(
     Ok(conduit_core::CapabilityReport {
         schema_version: document.schema_version,
         identity: parse_hash(&document.identity)?,
-        id: id(&document.id)?,
+        id: report_id,
         host: id(&document.host)?,
         boot_id: id(&document.boot_id)?,
         reporter: pin(&document.reporter)?,
@@ -4750,6 +5134,8 @@ fn capability_report<'a>(
         capabilities: arena.alloc_slice_copy(&capabilities),
         resources: arena.alloc_slice_copy(&resources),
         topology: arena.alloc_slice_copy(&topology),
+        execution_placements: arena.alloc_slice_copy(&execution_placements),
+        execution_lanes: arena.alloc_slice_copy(&execution_lanes),
         supported_executors: arena.alloc_slice_copy(&executors),
         supported_targets: arena.alloc_slice_copy(&targets),
         supported_abis: arena.alloc_slice_copy(&abis),
@@ -6153,9 +6539,125 @@ fn workload_document(workload: PlanWorkload<'_>) -> PlanWorkloadDocument {
     }
 }
 
+fn resolved_execution_pin_document(
+    pin: &conduit_runtime::ResolvedExecutionDescriptor,
+) -> PinDocument {
+    PinDocument {
+        id: pin.id.clone(),
+        schema_version: pin.schema_version,
+        semantic_hash: pin.semantic_hash.to_string(),
+    }
+}
+
+fn resolved_execution_arrangement_document(
+    arrangement: &ResolvedExecutionArrangement,
+) -> ResolvedExecutionArrangementDocument {
+    ResolvedExecutionArrangementDocument {
+        identity: arrangement.identity.to_string(),
+        plan_identity: arrangement.plan_identity.to_string(),
+        resolution_identity: arrangement.resolution_identity.to_string(),
+        plan_epoch: arrangement.plan_epoch,
+        placements: arrangement
+            .placements
+            .iter()
+            .map(|placement| ResolvedExecutionPlacementDocument {
+                id: placement.id.clone(),
+                host_observation: placement.host_observation.clone(),
+                provider: resolved_execution_pin_document(&placement.provider),
+                authority_boundary: resolved_execution_pin_document(&placement.authority_boundary),
+                resource_boundary: resolved_execution_pin_document(&placement.resource_boundary),
+                lifecycle_boundary: resolved_execution_pin_document(&placement.lifecycle_boundary),
+                failure_boundary: resolved_execution_pin_document(&placement.failure_boundary),
+                generation: placement.generation,
+                isolation: placement.isolation.as_str().to_owned(),
+                memory_containment: placement.memory_containment.as_str().to_owned(),
+                regain_control: placement.regain_control.as_str().to_owned(),
+                effect_fencing: placement.effect_fencing.as_str().to_owned(),
+                stop_execution: placement.stop_execution.as_str().to_owned(),
+                reclaim_resources: placement.reclaim_resources.as_str().to_owned(),
+                maximum_regain_control_ticks: placement.maximum_regain_control_ticks,
+            })
+            .collect(),
+        lanes: arrangement
+            .lanes
+            .iter()
+            .map(|lane| ResolvedExecutionLaneDocument {
+                id: lane.id.clone(),
+                placement: lane.placement.clone(),
+                placement_generation: lane.placement_generation,
+                generation: lane.generation,
+                independent_progress: lane.independent_progress.as_str().to_owned(),
+                simultaneous_execution: lane.simultaneous_execution.as_str().to_owned(),
+                preemption: lane.preemption.as_str().to_owned(),
+                termination: lane.termination.as_str().to_owned(),
+                ready_slots: lane.ready_slots,
+                wake_slots: lane.wake_slots,
+                proposal_slots: lane.proposal_slots,
+                commit_slots: lane.commit_slots,
+                timer_slots: lane.timer_slots,
+                scratch_bytes: lane.scratch_bytes,
+                stack_bytes: lane.stack_bytes,
+                evidence_slots: lane.evidence_slots,
+            })
+            .collect(),
+        regions: arrangement
+            .regions
+            .iter()
+            .map(|region| ResolvedExecutionRegionDocument {
+                id: region.id.clone(),
+                members: region.members.clone(),
+                placement: region.placement.clone(),
+                placement_generation: region.placement_generation,
+                lane: region.lane.clone(),
+                lane_generation: region.lane_generation,
+                commit_domain: region.commit_domain.clone(),
+                independent: region.independent,
+                maximum_in_flight_proposals: region.maximum_in_flight_proposals,
+                scratch_bytes: region.scratch_bytes,
+                retained_state_bytes: region.retained_state_bytes,
+                pending_operation_slots: region.pending_operation_slots,
+                timer_slots: region.timer_slots,
+                evidence_slots: region.evidence_slots,
+            })
+            .collect(),
+        boundaries: arrangement
+            .boundaries
+            .iter()
+            .map(|boundary| ResolvedExecutionBoundaryDocument {
+                cord: boundary.cord.clone(),
+                from_region: boundary.from_region.clone(),
+                to_region: boundary.to_region.clone(),
+                realization: resolved_execution_pin_document(&boundary.realization),
+                generation: boundary.generation,
+                from_placement_generation: boundary.from_placement_generation,
+                to_placement_generation: boundary.to_placement_generation,
+                capacity_items: boundary.capacity_items,
+                capacity_bytes: boundary.capacity_bytes,
+                wake_slots: boundary.wake_slots,
+                evidence_slots: boundary.evidence_slots,
+            })
+            .collect(),
+        commit_domains: arrangement
+            .commit_domains
+            .iter()
+            .map(|domain| ResolvedExecutionCommitDomainDocument {
+                id: domain.id.clone(),
+                ordering: domain.ordering.as_str().to_owned(),
+                proposal_slots: domain.proposal_slots,
+                commit_slots: domain.commit_slots,
+                maximum_proposal_bytes: domain.maximum_proposal_bytes,
+                maximum_head_of_line_ticks: domain.maximum_head_of_line_ticks,
+                cancellation_slots: domain.cancellation_slots,
+                evidence_slots: domain.evidence_slots,
+            })
+            .collect(),
+    }
+}
+
 fn plan_document(
     plan: &ExecutionPlan<'_>,
     topology: &ExactTopologyView,
+    execution_arrangement: &ResolvedExecutionArrangement,
 ) -> Result<ExactPlanDocument, CompileError> {
     let mut hosts = plan
         .host_observations
@@ -6609,6 +7111,7 @@ fn plan_document(
         time_basis: plan.created_at.basis.to_string(),
         created_at_tick: plan.created_at.tick,
         budget: plan.budget.into(),
+        execution_arrangement: resolved_execution_arrangement_document(execution_arrangement),
         host_observations: hosts,
         resources,
         workloads,
@@ -7894,6 +8397,17 @@ fn pin(document: &PinDocument) -> Result<PinnedDescriptor<'_>, CompileError> {
     })
 }
 
+fn resolved_execution_descriptor(
+    document: &PinDocument,
+) -> Result<ResolvedExecutionDescriptor, CompileError> {
+    let pin = pin(document)?;
+    Ok(ResolvedExecutionDescriptor {
+        id: pin.id.to_string(),
+        schema_version: pin.schema_version,
+        semantic_hash: pin.semantic_hash,
+    })
+}
+
 fn implementation_interfaces<'a>(
     documents: &'a [ImplementationInterfaceDocument],
     arena: &'a Bump,
@@ -8136,6 +8650,25 @@ fn executor(value: &str) -> Result<ExecutorKind, CompileError> {
     }
 }
 
+fn execution_guarantee(value: &str) -> Result<ExecutionGuarantee, CompileError> {
+    match value {
+        "unsupported" => Ok(ExecutionGuarantee::Unsupported),
+        "observed" => Ok(ExecutionGuarantee::Observed),
+        "guaranteed" => Ok(ExecutionGuarantee::Guaranteed),
+        _ => Err(CompileError::new(CompileReason::InvalidInput)),
+    }
+}
+
+fn isolation_profile(value: &str) -> Result<IsolationProfile, CompileError> {
+    match value {
+        "step-native" => Ok(IsolationProfile::StepNative),
+        "isolated-cooperative" => Ok(IsolationProfile::IsolatedCooperative),
+        "isolated-preemptible" => Ok(IsolationProfile::IsolatedPreemptible),
+        "isolated-terminable" => Ok(IsolationProfile::IsolatedTerminable),
+        _ => Err(CompileError::new(CompileReason::InvalidInput)),
+    }
+}
+
 fn boundedness_profile(value: &str) -> Result<BoundednessProfile, CompileError> {
     match value {
         "hard" => Ok(BoundednessProfile::Hard),
@@ -8281,6 +8814,7 @@ pub enum CompileReason {
     BudgetInvalid,
     PlanInvalid,
     SourceLimitExceeded,
+    ExecutionArrangement,
     Containment(ContainmentReason),
     PolicyBudget(PolicyBudgetReason),
     HazardClosure(HazardClosureReason),
@@ -8300,6 +8834,7 @@ impl CompileReason {
             Self::BudgetInvalid => "CND-CMP-007",
             Self::PlanInvalid => "CND-CMP-008",
             Self::SourceLimitExceeded => "CND-CMP-009",
+            Self::ExecutionArrangement => "CND-CMP-010",
             Self::Containment(reason) => reason.code(),
             Self::PolicyBudget(reason) => reason.code(),
             Self::HazardClosure(reason) => reason.code(),
@@ -8416,6 +8951,9 @@ impl fmt::Display for CompileError {
             CompileReason::SourceLimitExceeded => {
                 "entry source or explicit module closure limit exceeded"
             }
+            CompileReason::ExecutionArrangement => {
+                "no finite physical execution arrangement satisfies the exact plan"
+            }
             CompileReason::Containment(ContainmentReason::ApprovalMissing) => {
                 "administrative effect is missing its exact independent approval proof"
             }
@@ -8524,6 +9062,16 @@ mod tests {
             schema_version: 0,
             semantic_hash: hash(byte),
         }
+    }
+
+    fn reseal_test_execution_arrangement(document: &mut ExactPlanDocument) {
+        let mut arrangement = document.execution_arrangement().unwrap();
+        arrangement.plan_identity = parse_hash(&document.identity).unwrap();
+        for region in &mut arrangement.regions {
+            region.independent = false;
+        }
+        arrangement.identity = arrangement.computed_identity();
+        document.execution_arrangement = resolved_execution_arrangement_document(&arrangement);
     }
 
     fn current_effect_contracts(
@@ -8898,6 +9446,40 @@ mod tests {
                 capabilities: Vec::new(),
                 resources: Vec::new(),
                 topology: Vec::new(),
+                execution_placements: vec![ExecutionPlacementObservationDocument {
+                    id: format!("placement/compile-{ordinal}"),
+                    provider: pin_doc("provider/fixed-hosted-lanes", 52),
+                    authority_boundary: pin_doc("boundary/compile-authority", 53),
+                    resource_boundary: pin_doc("boundary/compile-resource", 54),
+                    lifecycle_boundary: pin_doc("boundary/compile-lifecycle", 55),
+                    failure_boundary: pin_doc("boundary/compile-failure", 56),
+                    generation: 1,
+                    isolation: "step-native".to_owned(),
+                    memory_containment: "observed".to_owned(),
+                    regain_control: "observed".to_owned(),
+                    effect_fencing: "unsupported".to_owned(),
+                    stop_execution: "unsupported".to_owned(),
+                    reclaim_resources: "unsupported".to_owned(),
+                    maximum_regain_control_ticks: 0,
+                }],
+                execution_lanes: vec![ExecutionLaneObservationDocument {
+                    id: format!("lane/compile-{ordinal}"),
+                    placement: format!("placement/compile-{ordinal}"),
+                    placement_generation: 1,
+                    generation: 1,
+                    independent_progress: "guaranteed".to_owned(),
+                    simultaneous_execution: "guaranteed".to_owned(),
+                    preemption: "observed".to_owned(),
+                    termination: "unsupported".to_owned(),
+                    ready_slots: 64,
+                    wake_slots: 64,
+                    proposal_slots: 64,
+                    commit_slots: 64,
+                    timer_slots: 4,
+                    scratch_bytes: 1024,
+                    stack_bytes: 1024,
+                    evidence_slots: 512,
+                }],
                 supported_executors: vec!["native-in-process".to_owned()],
                 supported_targets: Vec::new(),
                 supported_abis: Vec::new(),
@@ -8969,6 +9551,7 @@ mod tests {
                 checkpoints: 16,
                 evidence_bytes: 16 * 1024,
             },
+            execution_arrangement: fixed_hosted_execution_arrangement_policy(),
             maximum_authority_bindings: 64,
             maximum_transition_memory_bytes: 1024 * 1024,
             maximum_search_states: 128,
@@ -9316,6 +9899,7 @@ mod tests {
                 vec![SemanticHash::from_bytes([0; 32]); plan.validation_scratch_count().unwrap()];
             plan.semantic_hash(&mut scratch).unwrap().to_string()
         };
+        reseal_test_execution_arrangement(&mut document);
 
         document.validate().unwrap();
         let mut denied_reveal = document.clone();
@@ -9329,6 +9913,7 @@ mod tests {
                 vec![SemanticHash::from_bytes([0; 32]); plan.validation_scratch_count().unwrap()];
             plan.semantic_hash(&mut scratch).unwrap().to_string()
         };
+        reseal_test_execution_arrangement(&mut denied_reveal);
         let denied_arena = Bump::new();
         let denied_plan = denied_reveal.as_plan(&denied_arena).unwrap();
         let denied = validate_hosted_execution_plan(
@@ -9561,6 +10146,7 @@ mod tests {
                 checkpoints: 16,
                 evidence_bytes: 16 * 1024,
             },
+            execution_arrangement: fixed_hosted_execution_arrangement_policy(),
             maximum_authority_bindings: 64,
             maximum_transition_memory_bytes: 1024 * 1024,
             maximum_search_states: 128,
@@ -9901,6 +10487,7 @@ mod tests {
             exact.semantic_hash(&mut scratch).unwrap().to_string()
         };
         effect_plan.identity = computed_identity(&effect_plan);
+        reseal_test_execution_arrangement(&mut effect_plan);
         effect_plan.validate().unwrap();
         let encoded = serde_json::to_vec(&effect_plan).unwrap();
         let decoded: ExactPlanDocument = serde_json::from_slice(&encoded).unwrap();
@@ -9955,6 +10542,7 @@ mod tests {
             },
         }];
         workload_plan.identity = computed_identity(&workload_plan);
+        reseal_test_execution_arrangement(&mut workload_plan);
         workload_plan.validate().unwrap();
         let encoded = serde_json::to_vec(&workload_plan).unwrap();
         let decoded: ExactPlanDocument = serde_json::from_slice(&encoded).unwrap();
@@ -9964,6 +10552,7 @@ mod tests {
         let mut missing_commit = effect_plan.clone();
         missing_commit.authorities[0].commit_profile = None;
         missing_commit.identity = computed_identity(&missing_commit);
+        reseal_test_execution_arrangement(&mut missing_commit);
         assert_eq!(missing_commit.validate().unwrap_err().code(), "CND-CMP-008");
 
         let mut identity_mutation = effect_plan;

@@ -1516,12 +1516,20 @@ fn start_browser_exact_run(
         .resolve(&panel)
         .and_then(|resolved| resolved.exact_topology())
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
-    let installed = browser_installed_profile(source, &registry, &topology)?;
+    let mut installed = browser_installed_profile(source, &registry, &topology)?;
+    installed.input.execution_arrangement.plan_epoch = source_revision;
+    installed
+        .input
+        .seal()
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
     let document = compile_source(source, &installed.input)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
     let arena = bumpalo::Bump::new();
     let plan = document
         .as_plan(&arena)
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+    let execution_arrangement = document
+        .execution_arrangement()
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
     let watch_admissions = plan
         .watch_admissions
@@ -1624,8 +1632,9 @@ fn start_browser_exact_run(
         store: Rc::clone(&evidence),
         authority: Rc::clone(&evidence_authority),
     };
-    let session = resolved.start_exact_session_with_evidence_provider(
+    let session = resolved.start_exact_session_with_evidence_provider_arranged(
         &plan,
+        &execution_arrangement,
         &bindings,
         context,
         &browser_run_registry()?,
@@ -5573,6 +5582,9 @@ fn run_panel_exact_inner(
     let plan = document
         .as_plan(&arena)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+    let execution_arrangement = document
+        .execution_arrangement()
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
     let bindings = installed.bindings(&plan)?;
     let grant_observations = installed.grant_observations(&plan)?;
     let mut plan_snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
@@ -5616,8 +5628,21 @@ fn run_panel_exact_inner(
             },
         };
         match initial_stop {
-            Some(stop) => resolved.cancel_exact_report(&plan, &bindings, context, stop, &mut io)?,
-            None => resolved.run_exact_report(&plan, &bindings, context, &mut io)?,
+            Some(stop) => resolved.cancel_exact_report_arranged(
+                &plan,
+                &execution_arrangement,
+                &bindings,
+                context,
+                stop,
+                &mut io,
+            )?,
+            None => resolved.run_exact_report_arranged(
+                &plan,
+                &execution_arrangement,
+                &bindings,
+                context,
+                &mut io,
+            )?,
         }
     };
     let run = conduit_patchbay::RunSnapshot {

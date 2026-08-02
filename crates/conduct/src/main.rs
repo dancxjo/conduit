@@ -868,13 +868,17 @@ fn execute_run(
     let plan = document
         .as_plan(&arena)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+    let execution_arrangement = document
+        .execution_arrangement()
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
     let installed_profile = installed_profile
         .ok_or_else(|| RuntimeError::new("CND-RUN-007", "installed provider profile is absent"))?;
     let bindings = installed_profile.bindings(&plan)?;
     let grant_observations = installed_profile.grant_observations(&plan)?;
     resolved
-        .run_exact_report(
+        .run_exact_report_arranged(
             &plan,
+            &execution_arrangement,
             &bindings,
             ExactRunContext {
                 semantic_source_hash: plan.source_semantic_hash,

@@ -39,8 +39,10 @@ mod current_value;
 mod distributed;
 mod evidence_ndjson;
 mod exact_evidence;
+mod execution_arrangement;
 mod host_conformance;
 mod host_resolution;
+mod hosted_lanes;
 mod implementation_binding;
 mod managed_component;
 mod pool;
@@ -83,6 +85,11 @@ pub use evidence_ndjson::{
     encode_event_ndjson, encode_owned_event_ndjson,
 };
 pub use exact_evidence::{ExactEvidenceRecord, exact_evidence_batch_digest};
+pub use execution_arrangement::{
+    ExecutionArrangementPolicy, ExecutionArrangementReason, ResolvedExecutionArrangement,
+    ResolvedExecutionBoundary, ResolvedExecutionCommitDomain, ResolvedExecutionRegion,
+    resolve_execution_arrangement,
+};
 pub use host_conformance::{
     BoundedProviderRun, ProviderRunError, ProviderRunEvidence, ProviderRunEvidenceKind,
     ProviderRunPhase,
@@ -90,8 +97,15 @@ pub use host_conformance::{
 pub use host_resolution::{
     CandidateAuthority, CandidateRejection, CandidateRejectionReason, CapabilityPredicate,
     HostResolverPolicy, PlacementCandidate, PlacementRequest, PlanSealingReason, ResolutionFailure,
-    ResolvedPlacement, ResolvedPlacementBinding, ResolvedReplacementSupport, ResolverTiePolicy,
-    ResourcePredicate, TopologyPredicate, resolve_host_placement, seal_resolved_execution_plan,
+    ResolvedExecutionDescriptor, ResolvedExecutionLane, ResolvedExecutionPlacement,
+    ResolvedHostExecutionObservation, ResolvedPlacement, ResolvedPlacementBinding,
+    ResolvedReplacementSupport, ResolverTiePolicy, ResourcePredicate, TopologyPredicate,
+    resolve_host_placement, seal_resolved_execution_plan,
+};
+pub use hosted_lanes::{
+    FIXED_HOSTED_LANE_PROVIDER_ID, FixedHostedExecutionCoordinator, FixedHostedLaneProvider,
+    HostedCommitBatch, HostedLaneError, HostedLaneJob, HostedLaneObservation,
+    HostedLaneReservation, HostedProposal, HostedProposalBatch,
 };
 pub use implementation_binding::{
     ForeignStepReply, ForeignStepRequest, MessageStepBinding, MessageStepEndpoint,
@@ -1495,6 +1509,22 @@ pub struct ExactRunContext<'a> {
     /// Fresh grant/revocation observations supplied by the run authority
     /// boundary. Effects cannot infer an active grant from the sealed plan.
     pub grant_observations: &'a [ExactGrantObservation<'a>],
+}
+
+fn validate_run_arrangement(
+    plan: &ExecutionPlan<'_>,
+    arrangement: &ResolvedExecutionArrangement,
+    plan_epoch: u64,
+) -> Result<(), RuntimeError> {
+    if arrangement.plan_epoch != plan_epoch {
+        return Err(RuntimeError::new(
+            "CND-RUN-012",
+            "physical execution arrangement belongs to a different plan epoch",
+        ));
+    }
+    arrangement
+        .validate_for_plan(plan)
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))
 }
 
 /// One use-time grant observation. The immutable grant remains in the exact
@@ -6529,6 +6559,20 @@ impl ResolvedPanel<'_> {
         self.run_exact_report_controlled(plan, bindings, context, None, io)
     }
 
+    /// Executes only after the separately identified physical arrangement is
+    /// proven to match this exact logical plan and run epoch.
+    pub fn run_exact_report_arranged<'p, 'r, 'i>(
+        &self,
+        plan: &'p ExecutionPlan<'p>,
+        arrangement: &ResolvedExecutionArrangement,
+        bindings: &ExactHostedBindings,
+        context: ExactRunContext<'p>,
+        io: &'r mut RunIo<'i>,
+    ) -> Result<ExactExecutionReport, RuntimeError> {
+        validate_run_arrangement(plan, arrangement, context.plan_epoch)?;
+        self.run_exact_report_controlled(plan, bindings, context, None, io)
+    }
+
     /// Starts the exact executor and immediately applies one plan-visible
     /// cancellation policy, returning its deterministic terminal evidence.
     pub fn cancel_exact_report<'p, 'r, 'i>(
@@ -6539,6 +6583,20 @@ impl ResolvedPanel<'_> {
         stop: conduit_core::StopPolicy,
         io: &'r mut RunIo<'i>,
     ) -> Result<ExactExecutionReport, RuntimeError> {
+        self.run_exact_report_controlled(plan, bindings, context, Some(stop), io)
+    }
+
+    /// Arranged equivalent of [`Self::cancel_exact_report`].
+    pub fn cancel_exact_report_arranged<'p, 'r, 'i>(
+        &self,
+        plan: &'p ExecutionPlan<'p>,
+        arrangement: &ResolvedExecutionArrangement,
+        bindings: &ExactHostedBindings,
+        context: ExactRunContext<'p>,
+        stop: conduit_core::StopPolicy,
+        io: &'r mut RunIo<'i>,
+    ) -> Result<ExactExecutionReport, RuntimeError> {
+        validate_run_arrangement(plan, arrangement, context.plan_epoch)?;
         self.run_exact_report_controlled(plan, bindings, context, Some(stop), io)
     }
 
@@ -6577,6 +6635,21 @@ impl ResolvedPanel<'_> {
         })
     }
 
+    /// Starts a persistent session only after exact physical-arrangement
+    /// admission for the run epoch.
+    pub fn start_exact_session_arranged<'p>(
+        &self,
+        plan: &'p ExecutionPlan<'p>,
+        arrangement: &ResolvedExecutionArrangement,
+        bindings: &ExactHostedBindings,
+        context: ExactRunContext<'p>,
+        sessions: &ExactRunSessionRegistry,
+        io: ExactRunIo,
+    ) -> Result<ExactHostedRunSession, RuntimeError> {
+        validate_run_arrangement(plan, arrangement, context.plan_epoch)?;
+        self.start_exact_session(plan, bindings, context, sessions, io)
+    }
+
     /// Starts one persistent session with the evidence provider selected by
     /// the exact plan. The provider is owned by the session and cannot be
     /// substituted by a later Patchbay/UI drain request.
@@ -6613,6 +6686,29 @@ impl ResolvedPanel<'_> {
             watches,
             managed_components,
         })
+    }
+
+    /// Evidence-provider session start with exact physical-arrangement
+    /// admission.
+    pub fn start_exact_session_with_evidence_provider_arranged<'p>(
+        &self,
+        plan: &'p ExecutionPlan<'p>,
+        arrangement: &ResolvedExecutionArrangement,
+        bindings: &ExactHostedBindings,
+        context: ExactRunContext<'p>,
+        sessions: &ExactRunSessionRegistry,
+        io: ExactRunIo,
+        evidence_provider: Box<dyn ExactEvidenceProvider>,
+    ) -> Result<ExactHostedRunSession, RuntimeError> {
+        validate_run_arrangement(plan, arrangement, context.plan_epoch)?;
+        self.start_exact_session_with_evidence_provider(
+            plan,
+            bindings,
+            context,
+            sessions,
+            io,
+            evidence_provider,
+        )
     }
 
     fn start_exact_session_with_io<'p, 'r, 'i>(

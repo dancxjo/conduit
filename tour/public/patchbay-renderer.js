@@ -98,6 +98,25 @@ function pressureFamily(pressure) {
   return "unknown";
 }
 
+function layoutTopologyIdentity(nodes, edges) {
+  return JSON.stringify([
+    ...nodes.map((node) => [
+      "node",
+      node.id,
+      node.position.x,
+      node.position.y,
+    ]),
+    ...edges.map((edge) => [
+      "cord",
+      edge.id,
+      edge.source,
+      edge.sourceHandle,
+      edge.target,
+      edge.targetHandle,
+    ]),
+  ]);
+}
+
 function typePresentation(valueType) {
   if (typeof valueType !== "string") {
     return { color: "#94a3b8", family: "unknown" };
@@ -254,6 +273,8 @@ export class PatchbayReactFlowRenderer {
     this.liveEvidenceByCord = new Map();
     this.watchObservedCordId = null;
     this.renderedTopologyIdentity = null;
+    this.layoutIdentity = null;
+    this.layoutGeneration = 0;
   }
 
   init() {
@@ -279,6 +300,7 @@ export class PatchbayReactFlowRenderer {
       this.selectedCordId = null;
       this.renderedCordIds = [];
       this.renderedTopologyIdentity = null;
+      this.layoutIdentity = null;
       this.flowInstance = null;
       this.liveEvidenceByCord.clear();
       this.watchObservedCordId = null;
@@ -506,17 +528,37 @@ export class PatchbayReactFlowRenderer {
     void this.flowInstance.setViewport(viewport, { duration: 0 });
   }
 
-  fitViewport(instance = this.flowInstance, { markReady = false } = {}) {
+  beginLayout(topologyIdentity) {
+    this.layoutGeneration += 1;
+    this.layoutIdentity = topologyIdentity;
+    this.flowWrapper.dataset.layout = "settling";
+    this.flowWrapper.dataset.layoutGeneration = String(this.layoutGeneration);
+    this.flowWrapper.dataset.layoutIdentity = topologyIdentity;
+    this.flowWrapper.setAttribute("aria-busy", "true");
+    return this.layoutGeneration;
+  }
+
+  markLayoutReady(instance, generation, topologyIdentity) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (this.flowInstance !== instance ||
+          this.layoutGeneration !== generation ||
+          this.layoutIdentity !== topologyIdentity) return;
+      this.flowWrapper.dataset.layout = "ready";
+      this.flowWrapper.removeAttribute("aria-busy");
+    }));
+  }
+
+  fitViewport(instance = this.flowInstance, {
+    markReady = false,
+    generation = this.layoutGeneration,
+    topologyIdentity = this.layoutIdentity,
+  } = {}) {
     if (!instance?.fitView) return;
     requestAnimationFrame(() => requestAnimationFrame(async () => {
       if (this.flowInstance !== instance) return;
       await instance.fitView({ maxZoom: 1.2, duration: 0 });
       if (!markReady || this.flowInstance !== instance) return;
-      requestAnimationFrame(() => {
-        if (this.flowInstance !== instance) return;
-        this.flowWrapper.dataset.layout = "ready";
-        this.flowWrapper.removeAttribute("aria-busy");
-      });
+      this.markLayoutReady(instance, generation, topologyIdentity);
     }));
   }
 
@@ -565,6 +607,8 @@ export class PatchbayReactFlowRenderer {
       this.flowWrapper.dataset.nodeCount = "0";
       this.flowWrapper.dataset.edgeCount = "0";
       delete this.flowWrapper.dataset.layout;
+      delete this.flowWrapper.dataset.layoutGeneration;
+      delete this.flowWrapper.dataset.layoutIdentity;
       if (this.reactRoot) {
         this.reactRoot.render(null);
       } else {
@@ -815,15 +859,11 @@ export class PatchbayReactFlowRenderer {
 
     const edgeTypes = { patchbayCord: PatchbayCordEdge };
 
-    const topologyIdentity = [
-      ...nodes.map((node) =>
-        `node:${node.id}:${node.position.x}:${node.position.y}`),
-      ...edges.map((edge) => `cord:${edge.id}`),
-    ].join("\0");
+    const topologyIdentity = layoutTopologyIdentity(nodes, edges);
+    let layoutGeneration = this.layoutGeneration;
     if (topologyIdentity !== this.renderedTopologyIdentity) {
-      this.flowWrapper.dataset.layout = "settling";
-      this.flowWrapper.setAttribute("aria-busy", "true");
       this.renderedTopologyIdentity = topologyIdentity;
+      layoutGeneration = this.beginLayout(topologyIdentity);
     }
     const flow = e(
       ReactFlowRenderer,
@@ -924,11 +964,23 @@ export class PatchbayReactFlowRenderer {
             },
           }, { skipRender: true });
           if (committed?.ok && this.flowInstance?.setNodes) {
+            const movedNodes = nodes.map((currentNode) =>
+              currentNode.id === node.id
+                ? { ...currentNode, position }
+                : currentNode
+            );
+            const movedTopologyIdentity = layoutTopologyIdentity(movedNodes, edges);
+            const movedGeneration = this.beginLayout(movedTopologyIdentity);
             this.flowInstance.setNodes((currentNodes) => currentNodes.map(
               (currentNode) => currentNode.id === node.id
                 ? { ...currentNode, position }
                 : currentNode,
             ));
+            this.markLayoutReady(
+              this.flowInstance,
+              movedGeneration,
+              movedTopologyIdentity,
+            );
           }
         },
         snapToGrid: false,
@@ -944,7 +996,11 @@ export class PatchbayReactFlowRenderer {
           // those ResizeObserver measurements have crossed two paint frames;
           // this is still the initial topology fit, not a mutation of the
           // presentation positions or a later reset of the user's viewport.
-          this.fitViewport(instance, { markReady: true });
+          this.fitViewport(instance, {
+            markReady: true,
+            generation: layoutGeneration,
+            topologyIdentity,
+          });
         },
       },
     );

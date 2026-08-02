@@ -1,7 +1,8 @@
 use conduit_core::{
-    CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, ExecutorKind, HostReportReason, Id,
-    PassportStatus, PassportStatusObservation, PinnedDescriptor, PlanResourceBudget,
-    ReportCapability, ReportMembership, SemanticHash, validate_capability_report,
+    CAPABILITY_REPORT_SCHEMA_VERSION, CapabilityReport, ExecutionGuarantee, ExecutionLane,
+    ExecutionPlacement, ExecutorKind, HostReportReason, Id, IsolationProfile, PassportStatus,
+    PassportStatusObservation, PinnedDescriptor, PlanResourceBudget, ReportCapability,
+    ReportMembership, SemanticHash, validate_capability_report,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -11,6 +12,72 @@ const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
         schema_version: 0,
         semantic_hash: SemanticHash::from_bytes([byte; 32]),
     }
+}
+
+#[test]
+fn placement_and_lane_observations_are_identity_bound_and_resource_accounted() {
+    let capabilities = [CAP_A];
+    let executors = [ExecutorKind::WasmComponent];
+    let targets = [Id("wasm32-wasip2")];
+    let mut observed = report(&capabilities, &executors, &targets);
+    let placements = [ExecutionPlacement {
+        id: Id("placement/hosted"),
+        host_observation: observed.id,
+        provider: pin("provider/fixed-hosted-lanes", 20),
+        authority_boundary: pin("boundary/authority", 21),
+        resource_boundary: pin("boundary/resources", 22),
+        lifecycle_boundary: pin("boundary/lifecycle", 23),
+        failure_boundary: pin("boundary/failure", 24),
+        generation: 3,
+        isolation: IsolationProfile::StepNative,
+        memory_containment: ExecutionGuarantee::Observed,
+        regain_control: ExecutionGuarantee::Observed,
+        effect_fencing: ExecutionGuarantee::Unsupported,
+        stop_execution: ExecutionGuarantee::Unsupported,
+        reclaim_resources: ExecutionGuarantee::Unsupported,
+        maximum_regain_control_ticks: 0,
+    }];
+    let lanes = [ExecutionLane {
+        id: Id("lane/hosted-0"),
+        placement: placements[0].id,
+        placement_generation: 3,
+        generation: 5,
+        independent_progress: ExecutionGuarantee::Guaranteed,
+        simultaneous_execution: ExecutionGuarantee::Guaranteed,
+        preemption: ExecutionGuarantee::Observed,
+        termination: ExecutionGuarantee::Unsupported,
+        ready_slots: 2,
+        wake_slots: 2,
+        proposal_slots: 1,
+        commit_slots: 1,
+        timer_slots: 1,
+        scratch_bytes: 16,
+        stack_bytes: 32,
+        evidence_slots: 4,
+    }];
+    observed.execution_placements = &placements;
+    observed.execution_lanes = &lanes;
+    observed.available.timers = 1;
+    let mut scratch = [ZERO; 24];
+    observed.identity = observed.computed_semantic_hash(&mut scratch).unwrap();
+    assert_eq!(
+        validate_capability_report(&observed, Id("fixture/clock"), 15, 0, &mut scratch),
+        Ok(())
+    );
+
+    let stale_lanes = [ExecutionLane {
+        placement_generation: 2,
+        ..lanes[0]
+    }];
+    let mut stale = CapabilityReport {
+        execution_lanes: &stale_lanes,
+        ..observed
+    };
+    stale.identity = stale.computed_semantic_hash(&mut scratch).unwrap();
+    assert_eq!(
+        validate_capability_report(&stale, Id("fixture/clock"), 15, 0, &mut scratch),
+        Err(HostReportReason::InvalidDescriptor)
+    );
 }
 
 const CAP_A: ReportCapability<'static> = ReportCapability {
@@ -62,6 +129,8 @@ fn report<'a>(
         capabilities,
         resources: &[],
         topology: &[],
+        execution_placements: &[],
+        execution_lanes: &[],
         supported_executors: executors,
         supported_targets: targets,
         supported_abis: &[Id("component-v1")],

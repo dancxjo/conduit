@@ -2,12 +2,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use conduit_core::{
     ArtifactManifest, CanonicalDescriptor, CanonicalError, CanonicalValue, CapabilityReport,
-    CompatibilityOutcome, EXECUTION_PLAN_SCHEMA_VERSION, FieldDisposition, HostReportReason, Id,
-    ImplementationManifest, InstancePath, ManifestReason, MapField, PinnedDescriptor,
-    PlanResourceBudget, ReplacementSupport, ReportCapability, ReportResource, ReportTopology,
-    SatisfactionProof, SatisfactionReason, SatisfactionRole, SemanticHash,
-    validate_artifact_manifest, validate_capability_report, validate_implementation_manifest,
-    validate_satisfaction_proof,
+    CompatibilityOutcome, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionGuarantee, ExecutionLane,
+    ExecutionPlacement, FieldDisposition, HostReportReason, Id, ImplementationManifest,
+    InstancePath, IsolationProfile, ManifestReason, MapField, PinnedDescriptor, PlanResourceBudget,
+    ReplacementSupport, ReportCapability, ReportResource, ReportTopology, SatisfactionProof,
+    SatisfactionReason, SatisfactionRole, SemanticHash, validate_artifact_manifest,
+    validate_capability_report, validate_execution_provider_observation,
+    validate_implementation_manifest, validate_satisfaction_proof,
 };
 use core::convert::Infallible;
 use sha2::{Digest, Sha256};
@@ -316,6 +317,342 @@ pub struct ResolvedPlacementBinding {
     pub authority_grants: Vec<String>,
 }
 
+/// Owned exact descriptor pin copied from one selected host observation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedExecutionDescriptor {
+    pub id: String,
+    pub schema_version: u32,
+    pub semantic_hash: SemanticHash,
+}
+
+impl ResolvedExecutionDescriptor {
+    fn from_pin(pin: PinnedDescriptor<'_>) -> Self {
+        Self {
+            id: pin.id.to_string(),
+            schema_version: pin.schema_version,
+            semantic_hash: pin.semantic_hash,
+        }
+    }
+
+    fn hash_into(&self, digest: &mut Sha256, prefix: &[u8]) {
+        hash_field(digest, prefix, self.id.as_bytes());
+        hash_part(digest, &self.schema_version.to_be_bytes());
+        hash_part(digest, self.semantic_hash.as_bytes());
+    }
+
+    pub(crate) fn as_pin(&self) -> PinnedDescriptor<'_> {
+        PinnedDescriptor {
+            id: Id(&self.id),
+            schema_version: self.schema_version,
+            semantic_hash: self.semantic_hash,
+        }
+    }
+}
+
+/// Owned placement provider observation retained by the resolver decision.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedExecutionPlacement {
+    pub id: String,
+    pub host_observation: String,
+    pub provider: ResolvedExecutionDescriptor,
+    pub authority_boundary: ResolvedExecutionDescriptor,
+    pub resource_boundary: ResolvedExecutionDescriptor,
+    pub lifecycle_boundary: ResolvedExecutionDescriptor,
+    pub failure_boundary: ResolvedExecutionDescriptor,
+    pub generation: u64,
+    pub isolation: IsolationProfile,
+    pub memory_containment: ExecutionGuarantee,
+    pub regain_control: ExecutionGuarantee,
+    pub effect_fencing: ExecutionGuarantee,
+    pub stop_execution: ExecutionGuarantee,
+    pub reclaim_resources: ExecutionGuarantee,
+    pub maximum_regain_control_ticks: u64,
+}
+
+impl ResolvedExecutionPlacement {
+    fn from_observation(value: ExecutionPlacement<'_>) -> Self {
+        Self {
+            id: value.id.to_string(),
+            host_observation: value.host_observation.to_string(),
+            provider: ResolvedExecutionDescriptor::from_pin(value.provider),
+            authority_boundary: ResolvedExecutionDescriptor::from_pin(value.authority_boundary),
+            resource_boundary: ResolvedExecutionDescriptor::from_pin(value.resource_boundary),
+            lifecycle_boundary: ResolvedExecutionDescriptor::from_pin(value.lifecycle_boundary),
+            failure_boundary: ResolvedExecutionDescriptor::from_pin(value.failure_boundary),
+            generation: value.generation,
+            isolation: value.isolation,
+            memory_containment: value.memory_containment,
+            regain_control: value.regain_control,
+            effect_fencing: value.effect_fencing,
+            stop_execution: value.stop_execution,
+            reclaim_resources: value.reclaim_resources,
+            maximum_regain_control_ticks: value.maximum_regain_control_ticks,
+        }
+    }
+
+    fn hash_into(&self, digest: &mut Sha256) {
+        hash_field(digest, b"execution-placement-id", self.id.as_bytes());
+        hash_field(
+            digest,
+            b"execution-placement-host-observation",
+            self.host_observation.as_bytes(),
+        );
+        self.provider.hash_into(digest, b"execution-provider");
+        self.authority_boundary
+            .hash_into(digest, b"execution-authority-boundary");
+        self.resource_boundary
+            .hash_into(digest, b"execution-resource-boundary");
+        self.lifecycle_boundary
+            .hash_into(digest, b"execution-lifecycle-boundary");
+        self.failure_boundary
+            .hash_into(digest, b"execution-failure-boundary");
+        hash_field(
+            digest,
+            b"execution-placement-generation",
+            &self.generation.to_be_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-isolation",
+            self.isolation.as_str().as_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-memory-containment",
+            self.memory_containment.as_str().as_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-regain-control",
+            self.regain_control.as_str().as_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-effect-fencing",
+            self.effect_fencing.as_str().as_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-stop",
+            self.stop_execution.as_str().as_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-reclaim",
+            self.reclaim_resources.as_str().as_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-maximum-regain-ticks",
+            &self.maximum_regain_control_ticks.to_be_bytes(),
+        );
+    }
+
+    pub(crate) fn as_observation(&self) -> ExecutionPlacement<'_> {
+        ExecutionPlacement {
+            id: Id(&self.id),
+            host_observation: Id(&self.host_observation),
+            provider: self.provider.as_pin(),
+            authority_boundary: self.authority_boundary.as_pin(),
+            resource_boundary: self.resource_boundary.as_pin(),
+            lifecycle_boundary: self.lifecycle_boundary.as_pin(),
+            failure_boundary: self.failure_boundary.as_pin(),
+            generation: self.generation,
+            isolation: self.isolation,
+            memory_containment: self.memory_containment,
+            regain_control: self.regain_control,
+            effect_fencing: self.effect_fencing,
+            stop_execution: self.stop_execution,
+            reclaim_resources: self.reclaim_resources,
+            maximum_regain_control_ticks: self.maximum_regain_control_ticks,
+        }
+    }
+}
+
+/// Owned lane observation retained with its exact placement generation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedExecutionLane {
+    pub id: String,
+    pub placement: String,
+    pub placement_generation: u64,
+    pub generation: u64,
+    pub independent_progress: ExecutionGuarantee,
+    pub simultaneous_execution: ExecutionGuarantee,
+    pub preemption: ExecutionGuarantee,
+    pub termination: ExecutionGuarantee,
+    pub ready_slots: u16,
+    pub wake_slots: u16,
+    pub proposal_slots: u16,
+    pub commit_slots: u16,
+    pub timer_slots: u16,
+    pub scratch_bytes: u32,
+    pub stack_bytes: u32,
+    pub evidence_slots: u32,
+}
+
+impl ResolvedExecutionLane {
+    fn from_observation(value: ExecutionLane<'_>) -> Self {
+        Self {
+            id: value.id.to_string(),
+            placement: value.placement.to_string(),
+            placement_generation: value.placement_generation,
+            generation: value.generation,
+            independent_progress: value.independent_progress,
+            simultaneous_execution: value.simultaneous_execution,
+            preemption: value.preemption,
+            termination: value.termination,
+            ready_slots: value.ready_slots,
+            wake_slots: value.wake_slots,
+            proposal_slots: value.proposal_slots,
+            commit_slots: value.commit_slots,
+            timer_slots: value.timer_slots,
+            scratch_bytes: value.scratch_bytes,
+            stack_bytes: value.stack_bytes,
+            evidence_slots: value.evidence_slots,
+        }
+    }
+
+    fn hash_into(&self, digest: &mut Sha256) {
+        hash_field(digest, b"execution-lane-id", self.id.as_bytes());
+        hash_field(
+            digest,
+            b"execution-lane-placement",
+            self.placement.as_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-lane-placement-generation",
+            &self.placement_generation.to_be_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-lane-generation",
+            &self.generation.to_be_bytes(),
+        );
+        for (name, guarantee) in [
+            (
+                b"execution-lane-independent".as_slice(),
+                self.independent_progress,
+            ),
+            (
+                b"execution-lane-simultaneous".as_slice(),
+                self.simultaneous_execution,
+            ),
+            (b"execution-lane-preemption".as_slice(), self.preemption),
+            (b"execution-lane-termination".as_slice(), self.termination),
+        ] {
+            hash_field(digest, name, guarantee.as_str().as_bytes());
+        }
+        hash_field(
+            digest,
+            b"execution-lane-ready",
+            &self.ready_slots.to_be_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-lane-wake",
+            &self.wake_slots.to_be_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-lane-proposal",
+            &self.proposal_slots.to_be_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-lane-commit",
+            &self.commit_slots.to_be_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-lane-timer",
+            &self.timer_slots.to_be_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-lane-scratch",
+            &self.scratch_bytes.to_be_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-lane-stack",
+            &self.stack_bytes.to_be_bytes(),
+        );
+        hash_field(
+            digest,
+            b"execution-lane-evidence",
+            &self.evidence_slots.to_be_bytes(),
+        );
+    }
+
+    pub(crate) fn as_observation(&self) -> ExecutionLane<'_> {
+        ExecutionLane {
+            id: Id(&self.id),
+            placement: Id(&self.placement),
+            placement_generation: self.placement_generation,
+            generation: self.generation,
+            independent_progress: self.independent_progress,
+            simultaneous_execution: self.simultaneous_execution,
+            preemption: self.preemption,
+            termination: self.termination,
+            ready_slots: self.ready_slots,
+            wake_slots: self.wake_slots,
+            proposal_slots: self.proposal_slots,
+            commit_slots: self.commit_slots,
+            timer_slots: self.timer_slots,
+            scratch_bytes: self.scratch_bytes,
+            stack_bytes: self.stack_bytes,
+            evidence_slots: self.evidence_slots,
+        }
+    }
+}
+
+/// Exact provider observations from one selected report. Keeping these facts
+/// here prevents arrangement compilation from rediscovering a different host
+/// state after resolution.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedHostExecutionObservation {
+    pub report_id: String,
+    pub report_identity: SemanticHash,
+    pub placements: Vec<ResolvedExecutionPlacement>,
+    pub lanes: Vec<ResolvedExecutionLane>,
+}
+
+impl ResolvedHostExecutionObservation {
+    fn from_report(report: &CapabilityReport<'_>) -> Self {
+        Self {
+            report_id: report.id.to_string(),
+            report_identity: report.identity,
+            placements: report
+                .execution_placements
+                .iter()
+                .copied()
+                .map(ResolvedExecutionPlacement::from_observation)
+                .collect(),
+            lanes: report
+                .execution_lanes
+                .iter()
+                .copied()
+                .map(ResolvedExecutionLane::from_observation)
+                .collect(),
+        }
+    }
+
+    fn validate(&self) -> Result<(), conduit_core::ExecutionContractError> {
+        let placements = self
+            .placements
+            .iter()
+            .map(ResolvedExecutionPlacement::as_observation)
+            .collect::<Vec<_>>();
+        let lanes = self
+            .lanes
+            .iter()
+            .map(ResolvedExecutionLane::as_observation)
+            .collect::<Vec<_>>();
+        validate_execution_provider_observation(&placements, &lanes, Id(&self.report_id))
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResolvedReplacementSupport {
     Cold,
@@ -342,6 +679,7 @@ pub struct ResolvedPlacement {
     pub resolver_identity: SemanticHash,
     pub policy_hash: SemanticHash,
     pub bindings: Vec<ResolvedPlacementBinding>,
+    pub host_execution: Vec<ResolvedHostExecutionObservation>,
     pub search_states: usize,
 }
 
@@ -379,6 +717,35 @@ impl ResolvedPlacement {
                 .unwrap_or(u64::MAX)
                 .to_be_bytes(),
         );
+        hash_collection_len(
+            &mut digest,
+            b"host-execution-observations",
+            self.host_execution.len(),
+        );
+        for observation in &self.host_execution {
+            hash_field(
+                &mut digest,
+                b"host-execution-report-id",
+                observation.report_id.as_bytes(),
+            );
+            hash_field(
+                &mut digest,
+                b"host-execution-report-identity",
+                observation.report_identity.as_bytes(),
+            );
+            hash_collection_len(
+                &mut digest,
+                b"execution-placements",
+                observation.placements.len(),
+            );
+            for placement in &observation.placements {
+                placement.hash_into(&mut digest);
+            }
+            hash_collection_len(&mut digest, b"execution-lanes", observation.lanes.len());
+            for lane in &observation.lanes {
+                lane.hash_into(&mut digest);
+            }
+        }
         for binding in &self.bindings {
             hash_field(&mut digest, b"instance", binding.instance.as_bytes());
             hash_field(
@@ -687,6 +1054,13 @@ pub fn resolve_host_placement(
         ));
     }
 
+    let mut host_execution = BTreeMap::new();
+    for choice in &first.choices {
+        let report = requests[choice.request_index].candidates[choice.candidate_index].report;
+        host_execution
+            .entry((report.id.to_string(), report.identity.to_string()))
+            .or_insert_with(|| ResolvedHostExecutionObservation::from_report(report));
+    }
     let bindings = first
         .choices
         .iter()
@@ -763,6 +1137,7 @@ pub fn resolve_host_placement(
         resolver_identity: policy.resolver.semantic_hash,
         policy_hash: policy.policy_hash,
         bindings,
+        host_execution: host_execution.into_values().collect(),
         search_states: search.states,
     })
 }
@@ -813,7 +1188,24 @@ pub fn seal_resolved_execution_plan(
     if plan.nodes.len() != resolution.bindings.len() {
         return Err(PlanSealingReason::BindingMissing);
     }
+    for observation in &resolution.host_execution {
+        if observation.validate().is_err() {
+            return Err(PlanSealingReason::PortablePlanInvalid);
+        }
+        if !resolution.bindings.iter().any(|binding| {
+            binding.report_id == observation.report_id
+                && binding.report_identity == observation.report_identity
+        }) {
+            return Err(PlanSealingReason::HostObservationMissing);
+        }
+    }
     for binding in &resolution.bindings {
+        if !resolution.host_execution.iter().any(|observation| {
+            observation.report_id == binding.report_id
+                && observation.report_identity == binding.report_identity
+        }) {
+            return Err(PlanSealingReason::HostObservationMissing);
+        }
         let node = plan
             .nodes
             .iter()

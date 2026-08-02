@@ -18,6 +18,7 @@ mod containment;
 mod diagnostic;
 mod distributed;
 mod evidence;
+mod execution;
 mod execution_plan;
 mod flow;
 mod genesis;
@@ -109,6 +110,12 @@ pub use evidence::{
     EventRelations, EventTerminality, EventTime, EventTimeKind, EvidenceError, EvidencePolicy,
     EvidenceReason, ExecutionEvent, ExecutionEventKind, MAX_EVENT_DERIVATIONS,
     validate_event_stream, validate_execution_event,
+};
+pub use execution::{
+    CommitOrdering, DeterministicCommitFrontier, ExecutionArrangement, ExecutionBoundary,
+    ExecutionCommitDomain, ExecutionContractError, ExecutionGuarantee, ExecutionLane,
+    ExecutionLogicalCord, ExecutionPlacement, ExecutionProposalTicket, ExecutionRegion,
+    IsolationProfile, validate_execution_arrangement, validate_execution_provider_observation,
 };
 pub use execution_plan::{
     ArtifactDigest, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, PinnedDescriptor, PlanArtifact,

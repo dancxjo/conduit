@@ -20,7 +20,8 @@ use conduit_panel::{
 use conduit_runtime::{
     LoweredConfigValue, LoweredSource, ManagedCleanupState, ManagedComponentObservation,
     ManagedLifecycleReason, ManagedLifecycleState, ManagedRuntimeReadiness, OwnedEventPayload,
-    OwnedExecutionEvent, decode_event_ndjson, validate_hosted_execution_plan,
+    OwnedExecutionEvent, ResolvedExecutionArrangement, decode_event_ndjson,
+    validate_hosted_execution_plan,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -148,6 +149,7 @@ pub enum ArtifactKind {
     PanelSource,
     LoweredSource,
     ExecutionPlan,
+    ExecutionArrangement,
     ExecutionEvidence,
     StructuredDiagnostic,
     ConformanceManifest,
@@ -167,6 +169,7 @@ impl ArtifactKind {
             Self::PanelSource => "panel-source",
             Self::LoweredSource => "lowered-source",
             Self::ExecutionPlan => "execution-plan",
+            Self::ExecutionArrangement => "execution-arrangement",
             Self::ExecutionEvidence => "execution-evidence",
             Self::StructuredDiagnostic => "structured-diagnostic",
             Self::ConformanceManifest => "conformance-manifest",
@@ -311,6 +314,7 @@ pub fn inspect_bytes(
         ArtifactKind::Package => inspect_package(bytes, limits),
         ArtifactKind::LoweredSource
         | ArtifactKind::ExecutionPlan
+        | ArtifactKind::ExecutionArrangement
         | ArtifactKind::ImplementationManifest
         | ArtifactKind::ArtifactManifest
         | ArtifactKind::CapabilityReport
@@ -1328,6 +1332,157 @@ pub fn inspect_execution_plan(
         references,
         0,
         vec!["validation confirms structure and pins, not artifact executability".to_owned()],
+    ))
+}
+
+/// Inspect a separately identified physical execution arrangement without
+/// starting a provider or projecting its facts as logical plan semantics.
+pub fn inspect_execution_arrangement(
+    arrangement: &ResolvedExecutionArrangement,
+    plan: &ExecutionPlan<'_>,
+    content_digest: &str,
+    limits: InspectLimits,
+) -> Result<InspectionReport, InspectionError> {
+    require_digest(content_digest, "content digest")?;
+    arrangement
+        .validate_for_plan(plan)
+        .map_err(|error| failure(error.code(), error.to_string()))?;
+    let items = arrangement
+        .placements
+        .len()
+        .checked_add(arrangement.lanes.len())
+        .and_then(|value| value.checked_add(arrangement.regions.len()))
+        .and_then(|value| value.checked_add(arrangement.boundaries.len()))
+        .and_then(|value| value.checked_add(arrangement.commit_domains.len()))
+        .and_then(|value| {
+            arrangement.regions.iter().try_fold(value, |total, region| {
+                total.checked_add(region.members.len())
+            })
+        })
+        .ok_or_else(|| failure("CND-INSP-007", "execution arrangement item count overflow"))?;
+    enforce_collection_bound(items, limits, "execution arrangement items")?;
+
+    let mut counts = BTreeMap::new();
+    counts.insert("placements".to_owned(), arrangement.placements.len() as u64);
+    counts.insert("lanes".to_owned(), arrangement.lanes.len() as u64);
+    counts.insert("regions".to_owned(), arrangement.regions.len() as u64);
+    counts.insert("boundaries".to_owned(), arrangement.boundaries.len() as u64);
+    counts.insert(
+        "commit_domains".to_owned(),
+        arrangement.commit_domains.len() as u64,
+    );
+    counts.insert(
+        "independent_regions".to_owned(),
+        arrangement
+            .regions
+            .iter()
+            .filter(|region| region.independent)
+            .count() as u64,
+    );
+
+    let mut budgets = BTreeMap::new();
+    budgets.insert(
+        "ready_slots".to_owned(),
+        arrangement
+            .lanes
+            .iter()
+            .try_fold(0_u64, |total, lane| {
+                total.checked_add(u64::from(lane.ready_slots))
+            })
+            .ok_or_else(|| failure("CND-INSP-007", "ready-slot budget overflow"))?,
+    );
+    budgets.insert(
+        "proposal_slots".to_owned(),
+        arrangement
+            .commit_domains
+            .iter()
+            .try_fold(0_u64, |total, domain| {
+                total.checked_add(u64::from(domain.proposal_slots))
+            })
+            .ok_or_else(|| failure("CND-INSP-007", "proposal-slot budget overflow"))?,
+    );
+    budgets.insert(
+        "commit_slots".to_owned(),
+        arrangement
+            .commit_domains
+            .iter()
+            .try_fold(0_u64, |total, domain| {
+                total.checked_add(u64::from(domain.commit_slots))
+            })
+            .ok_or_else(|| failure("CND-INSP-007", "commit-slot budget overflow"))?,
+    );
+    budgets.insert(
+        "lane_scratch_bytes".to_owned(),
+        arrangement
+            .lanes
+            .iter()
+            .try_fold(0_u64, |total, lane| {
+                total.checked_add(u64::from(lane.scratch_bytes))
+            })
+            .ok_or_else(|| failure("CND-INSP-007", "lane scratch budget overflow"))?,
+    );
+    budgets.insert(
+        "lane_stack_bytes".to_owned(),
+        arrangement
+            .lanes
+            .iter()
+            .try_fold(0_u64, |total, lane| {
+                total.checked_add(u64::from(lane.stack_bytes))
+            })
+            .ok_or_else(|| failure("CND-INSP-007", "lane stack budget overflow"))?,
+    );
+
+    let mut references = vec![
+        InspectionReference {
+            category: "logical-plan".to_owned(),
+            value: arrangement.plan_identity.to_string(),
+        },
+        InspectionReference {
+            category: "resolver-decision".to_owned(),
+            value: arrangement.resolution_identity.to_string(),
+        },
+    ];
+    for placement in &arrangement.placements {
+        references.extend([
+            InspectionReference {
+                category: "execution-placement".to_owned(),
+                value: format!("{}@{}", placement.id, placement.generation),
+            },
+            InspectionReference {
+                category: "execution-provider".to_owned(),
+                value: format!(
+                    "{}@{}",
+                    placement.provider.id, placement.provider.semantic_hash
+                ),
+            },
+            InspectionReference {
+                category: "host-observation".to_owned(),
+                value: placement.host_observation.clone(),
+            },
+        ]);
+    }
+    references.extend(arrangement.lanes.iter().map(|lane| InspectionReference {
+        category: "execution-lane".to_owned(),
+        value: format!("{}@{}", lane.id, lane.generation),
+    }));
+    stable_references(&mut references);
+    enforce_collection_bound(references.len(), limits, "execution arrangement references")?;
+    Ok(base_report(
+        ArtifactKind::ExecutionArrangement,
+        0,
+        content_digest.to_owned(),
+        Some(arrangement.identity.to_string()),
+        counts,
+        budgets,
+        references,
+        0,
+        vec![
+            format!("plan_epoch {}", arrangement.plan_epoch),
+            "physical observations and reservations remain distinct from logical plan semantics"
+                .to_owned(),
+            "inspection performs no provider start, scheduling, discovery, or host mutation"
+                .to_owned(),
+        ],
     ))
 }
 

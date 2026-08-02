@@ -24,13 +24,17 @@ async function replaceSourceText(source, before, after) {
   }, { before, after });
 }
 
-async function gotoTour(page, path) {
-  await page.goto(path);
+async function waitForTourReady(page) {
   await expect(page.locator("html")).toHaveAttribute(
     "data-tour-ready",
     "true",
     { timeout: 20_000 },
   );
+}
+
+async function gotoTour(page, path) {
+  await page.goto(path);
+  await waitForTourReady(page);
 }
 
 function collectPageFailures(page) {
@@ -58,14 +62,85 @@ async function startTinyInstrument(page) {
   const firstTick = parseWatchTick(
     await page.locator("#watch-value").textContent(),
   );
-  const first = await page.locator("#watch-accounting").evaluate((element) =>
-    JSON.parse(element.textContent)
-  );
+  const first = await waitForExactRun(page);
   const browserPlan = await page.evaluate(() =>
     fetch("/tour/public/browser-plan.json", { cache: "no-store" })
       .then((response) => response.json())
   );
   return { browserPlan, first, firstTick };
+}
+
+async function readWatchAccounting(page) {
+  return page.locator("#watch-accounting").evaluate((element) =>
+    JSON.parse(element.textContent)
+  );
+}
+
+async function waitForExactRun(page) {
+  await expect.poll(async () => {
+    const accounting = await readWatchAccounting(page);
+    return typeof accounting.run_id === "string" &&
+      typeof accounting.plan_identity === "string" &&
+      typeof accounting.source_semantic_hash === "string" &&
+      accounting.attached === true;
+  }, { timeout: 20_000 }).toBe(true);
+  return readWatchAccounting(page);
+}
+
+async function readLayoutState(flowRoot) {
+  return flowRoot.evaluate((element) => ({
+    generation: Number.parseInt(element.dataset.layoutGeneration, 10),
+    identity: element.dataset.layoutIdentity,
+    state: element.dataset.layout,
+  }));
+}
+
+async function waitForLayoutReady(flowRoot, afterGeneration = 0) {
+  await expect.poll(async () => {
+    const layout = await readLayoutState(flowRoot);
+    return layout.state === "ready" &&
+      layout.generation > afterGeneration &&
+      typeof layout.identity === "string"
+      ? layout.identity
+      : null;
+  }, { timeout: 20_000 }).not.toBeNull();
+  const layout = await readLayoutState(flowRoot);
+  expect(layout.generation).toBeGreaterThan(afterGeneration);
+  expect(layout.identity).toEqual(expect.any(String));
+  expect(layout.state).toBe("ready");
+  return layout;
+}
+
+async function readWatchControl(watchToggle) {
+  return watchToggle.evaluate((element) => ({
+    attached: element.getAttribute("aria-pressed") === "true",
+    enabled: !element.disabled,
+    pending: element.dataset.controlPending === "true",
+    sequence: Number.parseInt(element.dataset.controlSequence, 10),
+    transition: element.dataset.lastTransition,
+    runId: element.dataset.runId,
+    planIdentity: element.dataset.planIdentity,
+  }));
+}
+
+async function actOnceAndWaitForWatchControl(
+  watchToggle,
+  action,
+  expectedAttached,
+  previousSequence,
+) {
+  await action();
+  const expectedTransition = expectedAttached ? "attached" : "detached";
+  await expect.poll(async () => readWatchControl(watchToggle), {
+    timeout: 20_000,
+  }).toMatchObject({
+    attached: expectedAttached,
+    enabled: true,
+    pending: false,
+    sequence: previousSequence + 1,
+    transition: expectedTransition,
+  });
+  return readWatchControl(watchToggle);
 }
 
 async function dragAndCommitTopologyNode(page, node, deltaX, deltaY) {
@@ -712,45 +787,44 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
   expect(failures).toEqual([]);
 });
 
-test("freezes a live Watch presentation without pressuring execution", async ({ page }) => {
+test("freezes and resumes one exact live Watch while execution advances", async ({ page }) => {
   const failures = collectPageFailures(page);
-  await openTinyInstrument(page);
+  const { first } = await startTinyInstrument(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
   const liveEdge = page.locator('.react-flow__edge[data-live-update="true"]').first();
-  await page.locator("#run").click();
-  await expect(page.locator("#freeze-display")).toBeEnabled({ timeout: 20_000 });
-  await page.locator("#freeze-display").click();
-  await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
+  const freezeDisplay = page.locator("#freeze-display");
+  await expect(freezeDisplay).toBeEnabled({ timeout: 20_000 });
+  const frozenSequence = Number(await liveEdge.getAttribute("data-live-sequence"));
+  expect(frozenSequence).toBeGreaterThanOrEqual(0);
+  await freezeDisplay.click();
+  await expect(freezeDisplay).toHaveAttribute("aria-pressed", "true");
+  const frozenTick = parseWatchTick(await page.locator("#watch-value").textContent());
+  const frozenAccounting = await readWatchAccounting(page);
   await expect(page.locator("#display-freeze-status")).toContainText(
     "deferred while the exact executor remains live",
     { timeout: 20_000 },
   );
-  await expect(page.locator(".watch-semantics")).toContainText(
-    "Watch is isolated instrumentation",
-  );
-  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-keyshortcuts", "W");
-  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
-  await expect(liveEdge).toHaveAttribute("data-live-sequence", /\d+/);
-  await expect(liveEdge).not.toHaveClass(/live-flow-pulse/);
-  expect(failures).toEqual([]);
-});
+  expect(parseWatchTick(await page.locator("#watch-value").textContent()))
+    .toBe(frozenTick);
+  expect(await readWatchAccounting(page)).toEqual(frozenAccounting);
+  expect(Number(await liveEdge.getAttribute("data-live-sequence")))
+    .toBe(frozenSequence);
 
-test("resumes a frozen live Watch presentation without pressuring execution", async ({ page }) => {
-  const failures = collectPageFailures(page);
-  await openTinyInstrument(page);
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.locator("#run").click();
-  await expect(page.locator("#freeze-display")).toBeEnabled({ timeout: 20_000 });
-  await page.locator("#freeze-display").click();
-  await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#display-freeze-status")).toContainText(
-    "the exact executor and bounded observation cursor continue",
-  );
-  await page.locator("#freeze-display").click();
-  await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "false");
-  await expect.poll(async () => parseWatchTick(
-    await page.locator("#watch-value").textContent(),
-  ), { timeout: 20_000 }).toBeGreaterThanOrEqual(0);
+  await freezeDisplay.click();
+  await expect(freezeDisplay).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(async () => {
+    const accounting = await readWatchAccounting(page);
+    if (accounting.attached !== true ||
+        accounting.run_id !== first.run_id ||
+        accounting.plan_identity !== first.plan_identity ||
+        accounting.source_semantic_hash !== first.source_semantic_hash) {
+      return -1;
+    }
+    return parseWatchTick(await page.locator("#watch-value").textContent());
+  }, { timeout: 20_000 }).toBeGreaterThan(frozenTick);
+  await expect.poll(async () => Number(
+    await liveEdge.getAttribute("data-live-sequence"),
+  ), { timeout: 20_000 }).toBeGreaterThan(frozenSequence);
   await expect(page.locator(".watch-semantics")).toContainText(
     "Watch is isolated instrumentation",
   );
@@ -759,16 +833,15 @@ test("resumes a frozen live Watch presentation without pressuring execution", as
   );
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-keyshortcuts", "W");
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
+  await expect(liveEdge).not.toHaveClass(/live-flow-pulse/);
   expect(failures).toEqual([]);
 });
 
-test("detaches a live Watch without pressuring execution", {
+test("detaches and reattaches one exact live Watch without pressuring execution", {
   tag: "@firefox-watch-detach",
 }, async ({ page }) => {
   const failures = collectPageFailures(page);
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await openTinyInstrument(page);
-  await page.locator("#run").click();
+  const { first, firstTick } = await startTinyInstrument(page);
   const watchToggle = page.locator("#watch-toggle");
   const structuredCordWatch = page.locator(
     "#panel-connection-list .structured-watch-button",
@@ -776,30 +849,42 @@ test("detaches a live Watch without pressuring execution", {
   await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
   await expect(structuredCordWatch).toHaveCount(1, { timeout: 20_000 });
   await expect(structuredCordWatch).toContainText("Remove Watch");
-  await expect.poll(async () => {
-    const attached = await watchToggle.getAttribute("aria-pressed");
-    if (attached === "true" && await watchToggle.isEnabled()) {
-      await structuredCordWatch.click();
-    }
-    return watchToggle.getAttribute("aria-pressed");
-  }, { timeout: 20_000 }).toBe("false");
-  await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
+  await expect.poll(async () => readWatchControl(watchToggle), {
+    timeout: 20_000,
+  }).toMatchObject({
+    attached: true,
+    enabled: true,
+    pending: false,
+    sequence: 1,
+    transition: "attached",
+    runId: first.run_id,
+    planIdentity: first.plan_identity,
+  });
+  const initiallyAttached = await readWatchControl(watchToggle);
+
+  const detachedControl = await actOnceAndWaitForWatchControl(
+    watchToggle,
+    () => structuredCordWatch.click(),
+    false,
+    initiallyAttached.sequence,
+  );
   await expect(page.locator("#console-status-badge")).toHaveText("Live");
   await expect.poll(async () => {
-    const accounting = await page.locator("#watch-accounting").evaluate((element) =>
-      JSON.parse(element.textContent)
-    );
-    return accounting.attached === false && accounting.evidence_store.next_cursor > 0;
+    const accounting = await readWatchAccounting(page);
+    return accounting.attached === false &&
+      accounting.evidence_store.next_cursor > first.evidence_store.next_cursor;
   }, { timeout: 20_000 }).toBe(true);
-  const detached = await page.locator("#watch-accounting").evaluate((element) =>
-    JSON.parse(element.textContent)
-  );
+  const detached = await readWatchAccounting(page);
   expect(detached).toMatchObject({
     attached: false,
     state: "waiting",
-    run_id: expect.any(String),
-    plan_identity: expect.any(String),
-    source_semantic_hash: expect.any(String),
+    run_id: first.run_id,
+    plan_identity: first.plan_identity,
+    source_semantic_hash: first.source_semantic_hash,
+  });
+  expect(detachedControl).toMatchObject({
+    runId: first.run_id,
+    planIdentity: first.plan_identity,
   });
   await expect(page.locator("#watch-value")).toContainText(
     "the exact ticker continues without observation pressure",
@@ -808,33 +893,34 @@ test("detaches a live Watch without pressuring execution", {
     "data-attached",
     "false",
   );
-  expect(failures).toEqual([]);
-});
 
-test("reattaches a live Watch without pressuring execution", async ({ page }) => {
-  const failures = collectPageFailures(page);
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await openTinyInstrument(page);
-  await page.locator("#run").click();
-  const watchToggle = page.locator("#watch-toggle");
-  await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
+  const reattachedControl = await actOnceAndWaitForWatchControl(
+    watchToggle,
+    () => watchToggle.click(),
+    true,
+    detachedControl.sequence,
+  );
   await expect.poll(async () => {
-    const attached = await watchToggle.getAttribute("aria-pressed");
-    if (attached === "true" && await watchToggle.isEnabled()) {
-      await watchToggle.click();
+    const accounting = await readWatchAccounting(page);
+    if (accounting.attached !== true ||
+        accounting.run_id !== first.run_id ||
+        accounting.plan_identity !== first.plan_identity ||
+        accounting.source_semantic_hash !== first.source_semantic_hash) {
+      return -1;
     }
-    return watchToggle.getAttribute("aria-pressed");
-  }, { timeout: 20_000 }).toBe("false");
-
-  await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
-  await watchToggle.click();
-  await expect(watchToggle).toHaveAttribute("aria-pressed", "true", {
-    timeout: 20_000,
+    return parseWatchTick(await page.locator("#watch-value").textContent());
+  }, { timeout: 20_000 }).toBeGreaterThan(firstTick);
+  const reattached = await readWatchAccounting(page);
+  expect(reattached).toMatchObject({
+    attached: true,
+    run_id: first.run_id,
+    plan_identity: first.plan_identity,
+    source_semantic_hash: first.source_semantic_hash,
   });
-  await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
-  await expect.poll(async () => parseWatchTick(
-    await page.locator("#watch-value").textContent(),
-  ), { timeout: 20_000 }).toBeGreaterThanOrEqual(0);
+  expect(reattachedControl).toMatchObject({
+    runId: first.run_id,
+    planIdentity: first.plan_identity,
+  });
   expect(failures).toEqual([]);
 });
 
@@ -854,19 +940,34 @@ test("links an active Watch cord event to its exact source", async ({ page }) =>
 
 test("toggles an admitted Watch with W from non-editing focus", async ({ page }) => {
   const failures = collectPageFailures(page);
-  await startTinyInstrument(page);
+  const { first } = await startTinyInstrument(page);
   const watchToggle = page.locator("#watch-toggle");
   await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
   const freezeDisplay = page.locator("#freeze-display");
   await expect(freezeDisplay).toBeEnabled();
-  await expect.poll(async () => {
-    const pressed = await watchToggle.getAttribute("aria-pressed");
-    if (pressed === "true") {
+  await expect.poll(async () => readWatchControl(watchToggle), {
+    timeout: 20_000,
+  }).toMatchObject({
+    attached: true,
+    enabled: true,
+    pending: false,
+    runId: first.run_id,
+    planIdentity: first.plan_identity,
+  });
+  const initiallyAttached = await readWatchControl(watchToggle);
+  const detachedControl = await actOnceAndWaitForWatchControl(
+    watchToggle,
+    async () => {
       await freezeDisplay.focus();
       await page.keyboard.press("w");
-    }
-    return watchToggle.getAttribute("aria-pressed");
-  }, { timeout: 10_000 }).toBe("false");
+    },
+    false,
+    initiallyAttached.sequence,
+  );
+  expect(detachedControl).toMatchObject({
+    runId: first.run_id,
+    planIdentity: first.plan_identity,
+  });
   expect(failures).toEqual([]);
 });
 
@@ -2619,11 +2720,8 @@ test("routes cords through free space by default and keeps labels off node faces
   });
   await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   await expect(page.locator(".react-flow__edge")).toHaveCount(2);
-  await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
-    "data-layout",
-    "ready",
-    { timeout: 20_000 },
-  );
+  const flowRoot = page.locator("#patchbay-flow-root");
+  const initialLayout = await waitForLayoutReady(flowRoot);
 
   const edge = page.locator(".patchbay-cord").nth(1);
   await expect(edge).toHaveCount(1);
@@ -2686,6 +2784,20 @@ test("routes cords through free space by default and keeps labels off node faces
     });
   }, 12);
 
+  await expect.poll(crossesOtherNode).toBe(false);
+
+  const initialPath = await edge.locator(".react-flow__edge-path").getAttribute("d");
+  const blockingNode = page.locator('.react-flow__node[data-id="source"]');
+  await expect(blockingNode).toHaveCount(1);
+  await dragAndCommitTopologyNode(page, blockingNode, 0, 140);
+  const movedLayout = await waitForLayoutReady(
+    flowRoot,
+    initialLayout.generation,
+  );
+  expect(movedLayout.identity).not.toBe(initialLayout.identity);
+  await expect.poll(async () =>
+    edge.locator(".react-flow__edge-path").getAttribute("d")
+  ).not.toBe(initialPath);
   await expect.poll(crossesOtherNode).toBe(false);
 
   await expect.poll(async () => edge.evaluate((edgeElement, clearance) => {

@@ -1,0 +1,18 @@
+{
+  "suite": "conduit.portable-execution",
+  "cases": [
+    {"id":"three-independent-regions","runner":"core-execution","expected":{"regions":3,"lanes":3,"valid":true}},
+    {"id":"observed-simultaneity-rejected","runner":"core-execution","expected":{"error":"CND-EXE-006"}},
+    {"id":"cross-region-boundary-capacity","runner":"core-execution","expected":{"items":2,"bytes":128,"valid":true}},
+    {"id":"terminable-profile-complete-guarantees","runner":"core-execution","expected":{"preemptible":true,"effect_fenced":true,"stopped":true,"reclaimed":true}},
+    {"id":"deterministic-frontier-reserved","runner":"core-execution","expected":{"proposal_slots":3,"commit_slots":3}},
+    {"id":"generation-fenced-placement","runner":"core-execution","expected":{"error":"CND-EXE-005"}},
+    {"id":"hosted-three-lane-causal-overlap","runner":"fixed-hosted-lanes","expected":{"entered_before_any_finished":true,"lanes":3}},
+    {"id":"hosted-adversarial-completion-deterministic-commit","runner":"fixed-hosted-lanes","expected":{"commit_tickets":[1,2,3]}},
+    {"id":"hosted-worker-fault-disposes-proposal","runner":"fixed-hosted-lanes","expected":{"error":"CND-LAN-006","provider_retained":true}},
+    {"id":"resolved-arrangement-commits-by-ticket","runner":"fixed-hosted-lanes","expected":{"physical_completion":[42,41,40],"committed":[40,41,42]}},
+    {"id":"commit-rejection-fences-coordinator","runner":"fixed-hosted-lanes","expected":{"error":"CND-LAN-012","terminal":true,"disposed_slots":2}},
+    {"id":"provider-fault-disposes-reserved-slots","runner":"fixed-hosted-lanes","expected":{"error":"CND-LAN-006","disposed_slots":3}},
+    {"id":"coordinator-cancellation-requires-readmission","runner":"fixed-hosted-lanes","expected":{"terminal":true,"readmission_required":true}}
+  ]
+}

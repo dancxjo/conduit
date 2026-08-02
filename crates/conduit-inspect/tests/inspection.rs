@@ -5,24 +5,28 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use conduit_core::{
     ArtifactDigest, ArtifactLocation, ArtifactLocationKind, ArtifactManifest, ArtifactProvenance,
     AuthorityTime, BlockingFairness, BoundednessProfile, CAPABILITY_REPORT_SCHEMA_VERSION,
-    CancellationGuarantee, CapabilityReport, Direction, EntityPassport, ExecutionLimits,
-    ExecutionPlan, ExecutionProfile, ExecutorKind, FlowCapacity, FlowPolicy, FlowWatermarks, Id,
-    InstancePath, KeyProtection, MembershipCredential, PassportStatus, PassportStatusObservation,
-    PinnedDescriptor, PlanArtifact, PlanHostObservation, PlanResourceBudget, PlanValidationContext,
-    Pressure, PublicKeyRef, REALM_SCHEMA_VERSION, RealmDescriptor, ReportMembership,
-    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, RoleBinding, SemanticHash, Sensitivity,
-    TypeContractRef,
+    CancellationGuarantee, CapabilityReport, CommitOrdering, Direction, EntityPassport,
+    ExecutionGuarantee, ExecutionLimits, ExecutionPlan, ExecutionProfile, ExecutorKind,
+    FlowCapacity, FlowPolicy, FlowWatermarks, Id, InstancePath, IsolationProfile, KeyProtection,
+    MembershipCredential, PassportStatus, PassportStatusObservation, PinnedDescriptor,
+    PlanArtifact, PlanHostObservation, PlanResourceBudget, PlanValidationContext, Pressure,
+    PublicKeyRef, REALM_SCHEMA_VERSION, RealmDescriptor, ReportMembership, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, RoleBinding, SemanticHash, Sensitivity, TypeContractRef,
 };
 use conduit_inspect::{
     ArtifactKind, InspectLimits, RequestedKind, inspect_artifact_manifest, inspect_bytes,
     inspect_capability_report, inspect_conformance_manifest_path, inspect_entity_passport,
-    inspect_execution_plan, inspect_lowered_source, inspect_managed_component,
+    inspect_execution_arrangement, inspect_execution_plan, inspect_lowered_source,
+    inspect_managed_component,
 };
 use conduit_package::{PackageLimits, PackageManifest, PackageObject, encode_package};
 use conduit_runtime::{
     LoweredSource, LoweredSupervisedTopology, LoweredTopology, ManagedArtifactIdentity,
     ManagedCleanupState, ManagedComponentIdentity, ManagedComponentObservation,
     ManagedLifecycleReason, ManagedLifecycleState, ManagedRuntimeReadiness,
+    ResolvedExecutionArrangement, ResolvedExecutionBoundary, ResolvedExecutionCommitDomain,
+    ResolvedExecutionDescriptor, ResolvedExecutionLane, ResolvedExecutionPlacement,
+    ResolvedExecutionRegion,
 };
 use sha2::Digest as _;
 
@@ -247,6 +251,8 @@ fn capability_report_inspection_never_refreshes_or_provisions_the_host() {
         capabilities: &[],
         resources: &[],
         topology: &[],
+        execution_placements: &[],
+        execution_lanes: &[],
         supported_executors: &[ExecutorKind::WasmComponent],
         supported_targets: &[Id("wasm32-unknown-unknown")],
         supported_abis: &[Id("component-v1")],
@@ -759,6 +765,128 @@ fn typed_plan_validation_reports_budgets_and_staleness_without_loading_artifacts
                 .unwrap_err()
                 .code,
             "CND-PLN-004"
+        );
+    });
+}
+
+#[test]
+fn physical_arrangement_inspection_preserves_separate_identity_and_provider_facts() {
+    with_minimal_plan(|plan| {
+        let descriptor = |id: &str, byte| ResolvedExecutionDescriptor {
+            id: id.to_owned(),
+            schema_version: 0,
+            semantic_hash: hash(byte),
+        };
+        let placement = ResolvedExecutionPlacement {
+            id: "placement/a".to_owned(),
+            host_observation: "observation/a".to_owned(),
+            provider: descriptor("provider/fixed-hosted-lanes", 20),
+            authority_boundary: descriptor("boundary/authority", 21),
+            resource_boundary: descriptor("boundary/resource", 22),
+            lifecycle_boundary: descriptor("boundary/lifecycle", 23),
+            failure_boundary: descriptor("boundary/failure", 24),
+            generation: 1,
+            isolation: IsolationProfile::StepNative,
+            memory_containment: ExecutionGuarantee::Observed,
+            regain_control: ExecutionGuarantee::Observed,
+            effect_fencing: ExecutionGuarantee::Unsupported,
+            stop_execution: ExecutionGuarantee::Unsupported,
+            reclaim_resources: ExecutionGuarantee::Unsupported,
+            maximum_regain_control_ticks: 0,
+        };
+        let lanes = ["lane/a", "lane/b"]
+            .into_iter()
+            .map(|id| ResolvedExecutionLane {
+                id: id.to_owned(),
+                placement: placement.id.clone(),
+                placement_generation: 1,
+                generation: 1,
+                independent_progress: ExecutionGuarantee::Guaranteed,
+                simultaneous_execution: ExecutionGuarantee::Guaranteed,
+                preemption: ExecutionGuarantee::Observed,
+                termination: ExecutionGuarantee::Unsupported,
+                ready_slots: 1,
+                wake_slots: 1,
+                proposal_slots: 1,
+                commit_slots: 1,
+                timer_slots: 0,
+                scratch_bytes: 64,
+                stack_bytes: 4096,
+                evidence_slots: 2,
+            })
+            .collect::<Vec<_>>();
+        let regions = ["root/source", "root/sink"]
+            .into_iter()
+            .zip(&lanes)
+            .map(|(member, lane)| ResolvedExecutionRegion {
+                id: format!("region/{member}"),
+                members: vec![member.to_owned()],
+                placement: placement.id.clone(),
+                placement_generation: 1,
+                lane: lane.id.clone(),
+                lane_generation: 1,
+                commit_domain: "commit/main".to_owned(),
+                independent: true,
+                maximum_in_flight_proposals: 1,
+                scratch_bytes: 64,
+                retained_state_bytes: 0,
+                pending_operation_slots: 0,
+                timer_slots: 0,
+                evidence_slots: 2,
+            })
+            .collect::<Vec<_>>();
+        let mut arrangement = ResolvedExecutionArrangement {
+            identity: ZERO_HASH,
+            plan_identity: plan.identity,
+            resolution_identity: hash(25),
+            plan_epoch: 7,
+            placements: vec![placement],
+            lanes,
+            regions,
+            boundaries: vec![ResolvedExecutionBoundary {
+                cord: "cord/a".to_owned(),
+                from_region: "region/root/source".to_owned(),
+                to_region: "region/root/sink".to_owned(),
+                realization: descriptor("conduit/fixed-hosted-mailbox", 26),
+                generation: 7,
+                from_placement_generation: 1,
+                to_placement_generation: 1,
+                capacity_items: 1,
+                capacity_bytes: 8,
+                wake_slots: 1,
+                evidence_slots: 1,
+            }],
+            commit_domains: vec![ResolvedExecutionCommitDomain {
+                id: "commit/main".to_owned(),
+                ordering: CommitOrdering::DeterministicFrontier,
+                proposal_slots: 2,
+                commit_slots: 2,
+                maximum_proposal_bytes: 16,
+                maximum_head_of_line_ticks: 4,
+                cancellation_slots: 2,
+                evidence_slots: 4,
+            }],
+        };
+        arrangement.identity = arrangement.computed_identity();
+        let report =
+            inspect_execution_arrangement(&arrangement, &plan, DIGEST, InspectLimits::default())
+                .unwrap();
+        assert_eq!(report.kind, ArtifactKind::ExecutionArrangement);
+        assert_eq!(report.identity, Some(arrangement.identity.to_string()));
+        assert_eq!(report.counts["lanes"], 2);
+        assert_eq!(report.counts["independent_regions"], 2);
+        assert_eq!(report.budgets["proposal_slots"], 2);
+        assert!(report.references.iter().any(|reference| {
+            reference.category == "execution-provider"
+                && reference.value.contains("provider/fixed-hosted-lanes")
+        }));
+
+        arrangement.plan_epoch = 8;
+        assert_eq!(
+            inspect_execution_arrangement(&arrangement, &plan, DIGEST, InspectLimits::default(),)
+                .unwrap_err()
+                .code,
+            "CND-EXA-008"
         );
     });
 }

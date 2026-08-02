@@ -4,9 +4,11 @@ use bumpalo::Bump;
 use conduit_compile::{
     ArtifactDocument, ArtifactReferenceDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
-    CompileSourceLimits, ExactPlanDocument, ExecutionLimitsDocument, ExecutionProfileDocument,
+    CompileSourceLimits, ExactPlanDocument, ExecutionLaneObservationDocument,
+    ExecutionLimitsDocument, ExecutionPlacementObservationDocument, ExecutionProfileDocument,
     HostReportDocument, ImplementationDocument, InstalledProfile, MemoryClaimDocument, PinDocument,
     WatchAdmissionDocument, builtin_catalog_document, compile_source,
+    fixed_hosted_execution_arrangement_policy,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, ArtifactDigest, CAPABILITY_REPORT_SCHEMA_VERSION,
@@ -156,6 +158,40 @@ fn candidate(ordinal: u8, contract_id: &str, contract_hash: SemanticHash) -> Can
             capabilities: Vec::new(),
             resources: Vec::new(),
             topology: Vec::new(),
+            execution_placements: vec![ExecutionPlacementObservationDocument {
+                id: format!("placement/compile-{ordinal}"),
+                provider: pin("provider/fixed-hosted-lanes", 52),
+                authority_boundary: pin("boundary/compile-authority", 53),
+                resource_boundary: pin("boundary/compile-resource", 54),
+                lifecycle_boundary: pin("boundary/compile-lifecycle", 55),
+                failure_boundary: pin("boundary/compile-failure", 56),
+                generation: 1,
+                isolation: "step-native".to_owned(),
+                memory_containment: "observed".to_owned(),
+                regain_control: "observed".to_owned(),
+                effect_fencing: "unsupported".to_owned(),
+                stop_execution: "unsupported".to_owned(),
+                reclaim_resources: "unsupported".to_owned(),
+                maximum_regain_control_ticks: 0,
+            }],
+            execution_lanes: vec![ExecutionLaneObservationDocument {
+                id: format!("lane/compile-{ordinal}"),
+                placement: format!("placement/compile-{ordinal}"),
+                placement_generation: 1,
+                generation: 1,
+                independent_progress: "guaranteed".to_owned(),
+                simultaneous_execution: "guaranteed".to_owned(),
+                preemption: "observed".to_owned(),
+                termination: "unsupported".to_owned(),
+                ready_slots: 64,
+                wake_slots: 64,
+                proposal_slots: 64,
+                commit_slots: 64,
+                timer_slots: 4,
+                scratch_bytes: 128 * 1024,
+                stack_bytes: 64 * 1024,
+                evidence_slots: 512,
+            }],
             supported_executors: vec!["native-in-process".to_owned()],
             supported_targets: Vec::new(),
             supported_abis: Vec::new(),
@@ -235,6 +271,7 @@ fn input(source: &str) -> CompileInput {
             checkpoints: 16,
             evidence_bytes: 16 * 1024,
         },
+        execution_arrangement: fixed_hosted_execution_arrangement_policy(),
         maximum_authority_bindings: 64,
         maximum_transition_memory_bytes: 1024 * 1024,
         maximum_search_states: 128,
@@ -351,6 +388,24 @@ fn every_compile_vector_executes_independently() {
 }
 
 #[test]
+fn compile_input_rejects_displaced_host_report_without_execution_observations() {
+    let encoded = serde_json::to_value(input(SOURCE)).unwrap();
+    let mut without_placements = encoded.clone();
+    let report = without_placements["candidates"][0]["host_report"]
+        .as_object_mut()
+        .unwrap();
+    report.remove("execution_placements");
+    assert!(serde_json::from_value::<CompileInput>(without_placements).is_err());
+
+    let mut without_lanes = encoded;
+    let report = without_lanes["candidates"][0]["host_report"]
+        .as_object_mut()
+        .unwrap();
+    report.remove("execution_lanes");
+    assert!(serde_json::from_value::<CompileInput>(without_lanes).is_err());
+}
+
+#[test]
 fn cross_host_compile_fails_closed_without_distributed_session_input() {
     let mut sealed = input(SOURCE);
     for (index, candidate) in sealed.candidates.iter_mut().enumerate() {
@@ -442,6 +497,30 @@ fn sealed_document_exposes_the_exact_core_plan_without_replanning() {
     );
     assert_eq!(plan.nodes.len(), document.nodes.len());
     assert_eq!(plan.cords.len(), document.cords.len());
+    assert_eq!(
+        document.execution_arrangement.plan_identity,
+        document.identity
+    );
+    assert_eq!(
+        document.execution_arrangement.regions.len(),
+        plan.nodes.len()
+    );
+    assert_eq!(
+        document.execution_arrangement.boundaries.len(),
+        plan.cords.len()
+    );
+    assert!(
+        document
+            .execution_arrangement
+            .regions
+            .iter()
+            .all(|region| region.independent)
+    );
+    document
+        .execution_arrangement()
+        .unwrap()
+        .validate_for_plan(&plan)
+        .unwrap();
     for (planned, encoded) in plan.nodes.iter().zip(&document.nodes) {
         assert_eq!(planned.contract.id.as_str(), encoded.contract.id);
         assert_eq!(
@@ -455,6 +534,57 @@ fn sealed_document_exposes_the_exact_core_plan_without_replanning() {
 }
 
 #[test]
+fn physical_arrangement_is_required_and_tampering_fails_validation() {
+    let document = compile_source(SOURCE, &input(SOURCE)).unwrap();
+    let mut encoded = serde_json::to_value(&document).unwrap();
+    encoded
+        .as_object_mut()
+        .unwrap()
+        .remove("execution_arrangement");
+    assert!(serde_json::from_value::<ExactPlanDocument>(encoded).is_err());
+
+    let mut changed = document;
+    changed.execution_arrangement.lanes[0].generation += 1;
+    assert_eq!(changed.validate().unwrap_err().code(), "CND-CMP-010");
+}
+
+#[test]
+fn physical_lane_capacity_and_observed_simultaneity_fail_closed() {
+    const TWO_BRANCHES: &str = "panel 0\n\
+left: std/literal { value = \"left\" }\n\
+left_sink: display/text\n\
+right: std/literal { value = \"right\" }\n\
+right_sink: display/text\n\
+left.value > left_sink.text\n\
+right.value > right_sink.text\n";
+    let mut exhausted = input(TWO_BRANCHES);
+    for candidate in &mut exhausted.candidates {
+        candidate.host_report.execution_lanes[0].proposal_slots = 1;
+        candidate.host_report.execution_lanes[0].commit_slots = 1;
+    }
+    exhausted.seal().unwrap();
+    assert_eq!(
+        compile_source(TWO_BRANCHES, &exhausted).unwrap_err().code(),
+        "CND-CMP-010"
+    );
+
+    let mut observed_only = input(SOURCE);
+    for candidate in &mut observed_only.candidates {
+        candidate.host_report.execution_lanes[0].independent_progress = "observed".to_owned();
+        candidate.host_report.execution_lanes[0].simultaneous_execution = "observed".to_owned();
+    }
+    observed_only.seal().unwrap();
+    let serial = compile_source(SOURCE, &observed_only).unwrap();
+    assert!(
+        serial
+            .execution_arrangement
+            .regions
+            .iter()
+            .all(|region| !region.independent)
+    );
+}
+
+#[test]
 fn sealed_document_drives_the_exact_hosted_executor() {
     let source = SOURCE.replace(" using ready", "");
     let panel = parse(&source).unwrap();
@@ -463,6 +593,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
     let document = compile_source(&source, &input(&source)).unwrap();
     let arena = Bump::new();
     let plan = document.as_plan(&arena).unwrap();
+    let execution_arrangement = document.execution_arrangement().unwrap();
     let binding_documents = plan
         .nodes
         .iter()
@@ -617,32 +748,52 @@ fn sealed_document_drives_the_exact_hosted_executor() {
     let mut output = Vec::new();
     let mut error = Vec::new();
     let mut display = Vec::new();
-    let summary = resolved
-        .run_exact(
+    let context = ExactRunContext {
+        semantic_source_hash: plan.source_semantic_hash,
+        plan_epoch: 1,
+        run_id: conduit_core::Id("fixture/run"),
+        grant_observations: &[],
+        validation: conduit_core::PlanValidationContext {
+            supported_schema_version: plan.schema_version,
+            now: plan.created_at,
+        },
+        scheduler_policy: SchedulerPolicy {
+            schema_version: SCHEDULER_CONTRACT_VERSION,
+            ready_queue: ReadyQueueDiscipline::RoundRobin,
+            max_decisions: 128,
+            max_tick: 256,
+            max_consecutive_yields: 8,
+            max_events: 64,
+        },
+        reservation: SchedulerReservation {
+            available_runtime_memory_bytes: plan.budget.memory_bytes,
+            executor_overhead_limit_bytes: plan.budget.memory_bytes,
+        },
+    };
+    let wrong_epoch = resolved
+        .run_exact_report_arranged(
             &plan,
+            &execution_arrangement,
             &bindings,
             ExactRunContext {
-                semantic_source_hash: plan.source_semantic_hash,
-                plan_epoch: 1,
-                run_id: conduit_core::Id("fixture/run"),
-                grant_observations: &[],
-                validation: conduit_core::PlanValidationContext {
-                    supported_schema_version: plan.schema_version,
-                    now: plan.created_at,
-                },
-                scheduler_policy: SchedulerPolicy {
-                    schema_version: SCHEDULER_CONTRACT_VERSION,
-                    ready_queue: ReadyQueueDiscipline::RoundRobin,
-                    max_decisions: 128,
-                    max_tick: 256,
-                    max_consecutive_yields: 8,
-                    max_events: 64,
-                },
-                reservation: SchedulerReservation {
-                    available_runtime_memory_bytes: plan.budget.memory_bytes,
-                    executor_overhead_limit_bytes: plan.budget.memory_bytes,
-                },
+                plan_epoch: 2,
+                ..context
             },
+            &mut RunIo {
+                input: &mut &b""[..],
+                output: &mut Vec::new(),
+                error: &mut Vec::new(),
+                display: &mut Vec::new(),
+            },
+        )
+        .unwrap_err();
+    assert_eq!(wrong_epoch.code, "CND-RUN-012");
+    let report = resolved
+        .run_exact_report_arranged(
+            &plan,
+            &execution_arrangement,
+            &bindings,
+            context,
             &mut RunIo {
                 input: &mut input,
                 output: &mut output,
@@ -651,6 +802,7 @@ fn sealed_document_drives_the_exact_hosted_executor() {
             },
         )
         .unwrap();
+    let summary = report.summary;
 
     assert_eq!(summary.nodes_completed, 3);
     assert_eq!(summary.cords_conducted, 2);

@@ -358,6 +358,8 @@ fn capability_report<'a>(
         capabilities,
         resources: &[],
         topology: &[],
+        execution_placements: &[],
+        execution_lanes: &[],
         supported_executors: executors,
         supported_targets: targets,
         supported_abis: abis,

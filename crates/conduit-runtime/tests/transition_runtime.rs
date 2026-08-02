@@ -313,6 +313,8 @@ fn resolution(
         capabilities: &[],
         resources: &[],
         topology: &[],
+        execution_placements: &[],
+        execution_lanes: &[],
         supported_executors: &executors,
         supported_targets: &[],
         supported_abis: &[],

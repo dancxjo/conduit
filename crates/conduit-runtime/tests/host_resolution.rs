@@ -1,8 +1,9 @@
 use conduit_core::{
     ArtifactDigest, ArtifactManifest, ArtifactProvenance, AuthorityTime, BoundednessProfile,
     CAPABILITY_REPORT_SCHEMA_VERSION, CancellationGuarantee, CapabilityReport,
-    CompatibilityOutcome, DescriptorRef, ExecutionLimits, ExecutionPlan, ExecutionProfile,
-    ExecutorKind, ExplicitSatisfactionRequirement, Id, ImplementationManifest, InstancePath,
+    CompatibilityOutcome, DescriptorRef, ExecutionGuarantee, ExecutionLane, ExecutionLimits,
+    ExecutionPlacement, ExecutionPlan, ExecutionProfile, ExecutorKind,
+    ExplicitSatisfactionRequirement, Id, ImplementationManifest, InstancePath, IsolationProfile,
     ManifestArtifactRef, ManifestEntrypoint, PassportStatus, PassportStatusObservation,
     PinnedDescriptor, PlanArtifact, PlanHostObservation, PlanResourceBudget, PlanValidationContext,
     ReportCapability, ReportMembership, ReportResource, ReproducibilityClaim, ResolvedPlanNode,
@@ -12,8 +13,8 @@ use conduit_core::{
 use conduit_rp2040_hil::FIRMWARE_IDENTITY;
 use conduit_runtime::{
     AvailabilityState, CandidateRejectionReason, CapabilityPredicate, HostResolverPolicy,
-    NodeAvailability, PlacementCandidate, PlacementRequest, ResolverTiePolicy, ResourcePredicate,
-    resolve_host_placement, seal_resolved_execution_plan,
+    NodeAvailability, PlacementCandidate, PlacementRequest, PlanSealingReason, ResolverTiePolicy,
+    ResourcePredicate, resolve_host_placement, seal_resolved_execution_plan,
 };
 use serde_json::Value;
 
@@ -206,6 +207,8 @@ fn report<'a>(
         capabilities,
         resources: &[],
         topology: &[],
+        execution_placements: &[],
+        execution_lanes: &[],
         supported_executors: executors,
         supported_targets: &[],
         supported_abis: &[],
@@ -273,8 +276,129 @@ fn membership(status: PassportStatus) -> ReportMembership<'static> {
 }
 
 fn identify_report(report: &mut CapabilityReport<'_>) {
-    let mut scratch = [ZERO; 8];
+    let mut scratch = vec![ZERO; report.identity_fact_count()];
     report.identity = report.computed_semantic_hash(&mut scratch).unwrap();
+}
+
+#[test]
+fn resolver_retains_exact_selected_execution_provider_observations() {
+    let linux_artifact = artifact("fixture/linux-blob", LINUX_DIGEST);
+    let manifest = implementation(
+        "fixture/linux",
+        ExecutorKind::NativeInProcess,
+        &LINUX_REF,
+        &[],
+    );
+    let placement = ExecutionPlacement {
+        id: Id("placement/hosted"),
+        host_observation: Id("fixture/execution-report"),
+        provider: pin("provider/fixed-hosted-lanes", 60),
+        authority_boundary: pin("boundary/authority", 61),
+        resource_boundary: pin("boundary/resource", 62),
+        lifecycle_boundary: pin("boundary/lifecycle", 63),
+        failure_boundary: pin("boundary/failure", 64),
+        generation: 4,
+        isolation: IsolationProfile::StepNative,
+        memory_containment: ExecutionGuarantee::Guaranteed,
+        regain_control: ExecutionGuarantee::Observed,
+        effect_fencing: ExecutionGuarantee::Guaranteed,
+        stop_execution: ExecutionGuarantee::Unsupported,
+        reclaim_resources: ExecutionGuarantee::Guaranteed,
+        maximum_regain_control_ticks: 0,
+    };
+    let lanes = [
+        ExecutionLane {
+            id: Id("lane/hosted-0"),
+            placement: placement.id,
+            placement_generation: placement.generation,
+            generation: 7,
+            independent_progress: ExecutionGuarantee::Guaranteed,
+            simultaneous_execution: ExecutionGuarantee::Guaranteed,
+            preemption: ExecutionGuarantee::Observed,
+            termination: ExecutionGuarantee::Unsupported,
+            ready_slots: 4,
+            wake_slots: 4,
+            proposal_slots: 1,
+            commit_slots: 1,
+            timer_slots: 2,
+            scratch_bytes: 1024,
+            stack_bytes: 64 * 1024,
+            evidence_slots: 16,
+        },
+        ExecutionLane {
+            id: Id("lane/hosted-1"),
+            ..ExecutionLane {
+                id: Id("lane/hosted-0"),
+                placement: placement.id,
+                placement_generation: placement.generation,
+                generation: 7,
+                independent_progress: ExecutionGuarantee::Guaranteed,
+                simultaneous_execution: ExecutionGuarantee::Guaranteed,
+                preemption: ExecutionGuarantee::Observed,
+                termination: ExecutionGuarantee::Unsupported,
+                ready_slots: 4,
+                wake_slots: 4,
+                proposal_slots: 1,
+                commit_slots: 1,
+                timer_slots: 2,
+                scratch_bytes: 1024,
+                stack_bytes: 64 * 1024,
+                evidence_slots: 16,
+            }
+        },
+    ];
+    let available = PlanResourceBudget {
+        memory_bytes: 256 * 1024,
+        cpu_units: 2,
+        timers: 4,
+        transports: 1,
+        ..PlanResourceBudget::ZERO
+    };
+    let mut observed_report = report(
+        "fixture/execution-report",
+        "linux",
+        30,
+        available,
+        &[LINUX_CAPABILITY],
+        &[ExecutorKind::NativeInProcess],
+    );
+    observed_report.execution_placements = core::slice::from_ref(&placement);
+    observed_report.execution_lanes = &lanes;
+    identify_report(&mut observed_report);
+    let artifacts = [&linux_artifact];
+    let required = [capability_requirement()];
+    let candidates = [PlacementCandidate {
+        manifest: &manifest,
+        artifacts: &artifacts,
+        report: &observed_report,
+        allocation: budget(8, 1, 1),
+        capabilities: &required,
+        resources: &[],
+        topology: &[],
+        authorities: &[],
+    }];
+    let requests = [PlacementRequest {
+        instance: InstancePath::new("root/wifi").unwrap(),
+        semantic_contract: CONTRACT,
+        candidates: &candidates,
+    }];
+    let resolved = resolve_host_placement(
+        &requests,
+        policy(&[], ResolverTiePolicy::LowestCanonicalIdentity),
+    )
+    .unwrap();
+    assert_eq!(resolved.host_execution.len(), 1);
+    assert_eq!(
+        resolved.host_execution[0].report_id,
+        observed_report.id.as_str()
+    );
+    assert_eq!(resolved.host_execution[0].placements[0].generation, 4);
+    assert_eq!(resolved.host_execution[0].lanes[1].id, "lane/hosted-1");
+
+    let original_identity = resolved.computed_identity();
+    let mut changed = resolved.clone();
+    changed.host_execution[0].lanes[1].generation += 1;
+    assert_ne!(changed.computed_identity(), original_identity);
 }
 
 fn rp2040_truth_expected(id: &str) -> Value {
@@ -1122,6 +1246,22 @@ fn linux_and_pico_resolve_identically_when_candidate_input_is_shuffled() {
             },
         ),
         Ok(())
+    );
+    let mut stripped_execution_observation = first.clone();
+    stripped_execution_observation.host_execution.clear();
+    assert_eq!(
+        seal_resolved_execution_plan(
+            &stripped_execution_observation,
+            &plan,
+            PlanValidationContext {
+                supported_schema_version: 0,
+                now: AuthorityTime {
+                    basis: Id("fixture/clock"),
+                    tick: 20,
+                },
+            },
+        ),
+        Err(PlanSealingReason::HostObservationMissing)
     );
 
     let preferred = resolve_host_placement(

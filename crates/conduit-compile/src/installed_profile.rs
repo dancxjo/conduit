@@ -5,11 +5,12 @@ use crate::{
     AuthorityDecisionDocument, AuthorityGrantDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
     COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CapabilityRequirementDocument, CompileInput,
     CompileModuleDocument, CompileSourceLimits, EffectCommitProfileDocument,
-    EffectRequirementDocument, EvidenceProviderBindingDocument, ExecutionLimitsDocument,
-    ExecutionProfileDocument, ExternalLeafContractDocument, HostCapabilityDocument,
-    HostReportDocument, ImplementationDocument, ImplementationInterfaceDocument,
-    MemoryClaimDocument, PinDocument, ReportCapabilityDocument, ResourceLeaseDocument,
-    WatchAdmissionDocument, builtin_catalog_document,
+    EffectRequirementDocument, EvidenceProviderBindingDocument, ExecutionLaneObservationDocument,
+    ExecutionLimitsDocument, ExecutionPlacementObservationDocument, ExecutionProfileDocument,
+    ExternalLeafContractDocument, HostCapabilityDocument, HostReportDocument,
+    ImplementationDocument, ImplementationInterfaceDocument, MemoryClaimDocument, PinDocument,
+    ReportCapabilityDocument, ResourceLeaseDocument, WatchAdmissionDocument,
+    builtin_catalog_document,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, ExecutorKind,
@@ -21,6 +22,7 @@ use conduit_runtime::{
     InstalledHostedProvider, OwnedNodeSchema, Registry, RuntimeError, SourceContractCatalog,
     hosted_effect_constraint_hash,
 };
+use sha2::{Digest, Sha256};
 
 pub struct InstalledProfile {
     pub input: CompileInput,
@@ -45,6 +47,10 @@ pub struct InstalledHostObservationInput {
     /// Current domain-owned implementation capabilities observed on this
     /// host. Registry installation does not add entries to this collection.
     pub capabilities: Vec<ReportCapabilityDocument>,
+    /// Independently observed physical execution boundaries. Registry
+    /// installation cannot add or strengthen these facts.
+    pub execution_placements: Vec<ExecutionPlacementObservationDocument>,
+    pub execution_lanes: Vec<ExecutionLaneObservationDocument>,
 }
 
 impl InstalledHostObservationInput {
@@ -70,6 +76,42 @@ impl InstalledHostObservationInput {
                 evidence_bytes: 256 * 1024,
             },
             capabilities: Vec::new(),
+            execution_placements: vec![ExecutionPlacementObservationDocument {
+                id: "placement/conduct-hosted".to_owned(),
+                provider: pin("provider/fixed-hosted-lanes", 52),
+                authority_boundary: pin("boundary/conduct-authority", 53),
+                resource_boundary: pin("boundary/conduct-resources", 54),
+                lifecycle_boundary: pin("boundary/conduct-lifecycle", 55),
+                failure_boundary: pin("boundary/conduct-failure", 56),
+                generation: 1,
+                isolation: "step-native".to_owned(),
+                memory_containment: "observed".to_owned(),
+                regain_control: "observed".to_owned(),
+                effect_fencing: "unsupported".to_owned(),
+                stop_execution: "unsupported".to_owned(),
+                reclaim_resources: "unsupported".to_owned(),
+                maximum_regain_control_ticks: 0,
+            }],
+            execution_lanes: (0_u8..4)
+                .map(|lane| ExecutionLaneObservationDocument {
+                    id: format!("lane/conduct-{lane}"),
+                    placement: "placement/conduct-hosted".to_owned(),
+                    placement_generation: 1,
+                    generation: 1,
+                    independent_progress: "guaranteed".to_owned(),
+                    simultaneous_execution: "guaranteed".to_owned(),
+                    preemption: "observed".to_owned(),
+                    termination: "unsupported".to_owned(),
+                    ready_slots: 64,
+                    wake_slots: 64,
+                    proposal_slots: 64,
+                    commit_slots: 64,
+                    timer_slots: 4,
+                    scratch_bytes: 128 * 1024,
+                    stack_bytes: 512 * 1024,
+                    evidence_slots: 512,
+                })
+                .collect(),
         }
     }
 }
@@ -396,6 +438,8 @@ impl InstalledProfile {
             .resolve(&panel)
             .and_then(|resolved| resolved.exact_topology())
             .map_err(|error| RuntimeError::new(error.code, error.message))?;
+        let normalized_host_observation = bind_execution_domains_to_report(host_observation)?;
+        let host_observation = &normalized_host_observation;
         let mut required = BTreeMap::new();
         for node in &topology.nodes {
             required
@@ -601,6 +645,7 @@ impl InstalledProfile {
                     16 * 1024
                 },
             },
+            execution_arrangement: crate::fixed_hosted_execution_arrangement_policy(),
             maximum_authority_bindings: 64,
             maximum_transition_memory_bytes: 1024 * 1024,
             maximum_search_states: 128,
@@ -791,6 +836,43 @@ impl InstalledProfile {
             })
             .collect()
     }
+}
+
+fn bind_execution_domains_to_report(
+    observation: &InstalledHostObservationInput,
+) -> Result<InstalledHostObservationInput, RuntimeError> {
+    let mut normalized = observation.clone();
+    let report_key = crate::hex(&Sha256::digest(normalized.id.as_bytes()));
+    let report_key = &report_key[..16];
+    let mut placements = BTreeMap::new();
+    for (index, placement) in normalized.execution_placements.iter_mut().enumerate() {
+        let id = format!("placement/h{report_key}/p{index}");
+        conduit_core::Id::new(&id).map_err(|_| {
+            RuntimeError::new(
+                "CND-CMP-002",
+                "host observation cannot own a valid execution placement identity",
+            )
+        })?;
+        placements.insert(placement.id.clone(), id.clone());
+        placement.id = id;
+    }
+    for (index, lane) in normalized.execution_lanes.iter_mut().enumerate() {
+        lane.placement = placements.get(&lane.placement).cloned().ok_or_else(|| {
+            RuntimeError::new(
+                "CND-CMP-002",
+                "host execution lane references an unobserved placement",
+            )
+        })?;
+        let id = format!("lane/h{report_key}/l{index}");
+        conduit_core::Id::new(&id).map_err(|_| {
+            RuntimeError::new(
+                "CND-CMP-002",
+                "host observation cannot own a valid execution lane identity",
+            )
+        })?;
+        lane.id = id;
+    }
+    Ok(normalized)
 }
 
 /// A host observation describes the host snapshot, not one implementation
@@ -1077,6 +1159,8 @@ fn candidate(
             capabilities: host_observation.capabilities.clone(),
             resources: Vec::new(),
             topology: Vec::new(),
+            execution_placements: host_observation.execution_placements.clone(),
+            execution_lanes: host_observation.execution_lanes.clone(),
             supported_executors: vec![executor_name(manifest.executor).to_owned()],
             supported_targets: installed
                 .artifacts

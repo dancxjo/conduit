@@ -80,6 +80,11 @@ pub struct CapabilityReport<'a> {
     pub capabilities: &'a [ReportCapability<'a>],
     pub resources: &'a [ReportResource<'a>],
     pub topology: &'a [ReportTopology<'a>],
+    /// Independently observed physical placement boundaries. Availability is
+    /// not admission and grants no authority.
+    pub execution_placements: &'a [crate::ExecutionPlacement<'a>],
+    /// Finite lane population within the observed placements.
+    pub execution_lanes: &'a [crate::ExecutionLane<'a>],
     pub supported_executors: &'a [ExecutorKind],
     pub supported_targets: &'a [Id<'a>],
     pub supported_abis: &'a [Id<'a>],
@@ -94,6 +99,8 @@ impl CapabilityReport<'_> {
         self.capabilities.len()
             + self.resources.len()
             + self.topology.len()
+            + self.execution_placements.len()
+            + self.execution_lanes.len()
             + self.supported_executors.len()
             + self.supported_targets.len()
             + self.supported_abis.len()
@@ -119,6 +126,18 @@ impl CapabilityReport<'_> {
         }
         for topology in self.topology {
             scratch[cursor] = hash_topology(topology)?;
+            cursor += 1;
+        }
+        for placement in self.execution_placements {
+            scratch[cursor] = placement
+                .computed_semantic_hash()
+                .map_err(HostReportIdentityError::Canonical)?;
+            cursor += 1;
+        }
+        for lane in self.execution_lanes {
+            scratch[cursor] = lane
+                .computed_semantic_hash()
+                .map_err(HostReportIdentityError::Canonical)?;
             cursor += 1;
         }
         for executor in self.supported_executors {
@@ -268,6 +287,18 @@ pub fn validate_capability_report(
     plan_version: u32,
     scratch: &mut [SemanticHash],
 ) -> Result<(), HostReportReason> {
+    let lane_memory = report
+        .execution_lanes
+        .iter()
+        .try_fold(0_u64, |total, lane| {
+            total
+                .checked_add(u64::from(lane.stack_bytes))?
+                .checked_add(u64::from(lane.scratch_bytes))
+        });
+    let lane_timers = report
+        .execution_lanes
+        .iter()
+        .try_fold(0_u16, |total, lane| total.checked_add(lane.timer_slots));
     if report.schema_version != CAPABILITY_REPORT_SCHEMA_VERSION {
         return Err(HostReportReason::UnsupportedSchema);
     }
@@ -289,6 +320,16 @@ pub fn validate_capability_report(
             .topology
             .iter()
             .any(|topology| !valid_topology(topology))
+        || crate::validate_execution_provider_observation(
+            report.execution_placements,
+            report.execution_lanes,
+            report.id,
+        )
+        .is_err()
+        || lane_memory.is_none_or(|memory| memory > report.available.memory_bytes)
+        || lane_timers.is_none_or(|timers| timers > report.available.timers)
+        || u32::try_from(report.execution_lanes.len())
+            .map_or(true, |lanes| lanes > report.available.cpu_units)
         || report
             .supported_targets
             .iter()
