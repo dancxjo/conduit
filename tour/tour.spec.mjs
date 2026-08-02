@@ -1151,13 +1151,18 @@ test("covers every published chapter and exposes production topology projections
     "read-only candidate plan",
   );
   const plannedWorker = page.locator('.react-flow__node[data-id="root/box.worker"]');
-  await expect(plannedWorker.locator(".planned-realization-compartment")).toContainText(
+  await expect(plannedWorker.locator('[data-clue="implementation"]')).toHaveCount(1);
+  await expect(plannedWorker.locator('[data-clue="provider"]')).toHaveCount(1);
+  await expect(plannedWorker.locator('[data-clue="artifact"]')).toHaveCount(1);
+  await plannedWorker.locator(".faceplate-header").click();
+  await expect(page.locator("#selection-inspector")).toBeVisible();
+  await expect(page.locator('[data-section="realization"]')).toContainText(
     "implementation",
   );
-  await expect(plannedWorker.locator(".planned-realization-compartment")).toContainText(
-    "host observation",
+  await expect(page.locator('[data-section="realization"]')).toContainText(
+    "provider observation",
   );
-  await expect(plannedWorker.locator(".planned-realization-compartment")).toContainText(
+  await expect(page.locator('[data-section="realization"]')).toContainText(
     "artifact",
   );
   await expect(page.locator("#panel-port-list")).toContainText("root/box.worker: > text");
@@ -1369,7 +1374,8 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   expect(canvasBox?.height).toBeGreaterThan(0);
   expect(firstNodeBox?.y).toBeGreaterThanOrEqual(canvasBox?.y ?? Infinity);
   expect(firstNodeBox?.y).toBeLessThan((canvasBox?.y ?? 0) + (canvasBox?.height ?? 0));
-  await expect(page.locator(".semantic-promise-compartment")).toHaveCount(2);
+  await expect(page.locator(".semantic-promise-compartment")).toHaveCount(0);
+  await expect(page.locator('[data-clue="kind"]')).toHaveCount(2);
   await expect(page.locator(".faceplate-status-label", { hasText: "provider" })).toHaveCount(0);
   const receiving = page.locator(".react-flow__node").getByRole("button", {
     name: "text, receiving port; type std/text",
@@ -1385,7 +1391,7 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
     await page.locator(".faceplate-port-row").allTextContents(),
   ).toEqual(expect.not.arrayContaining([expect.stringContaining("<")]));
   await expect(page.locator(".faceplate-type-compartment")).toHaveCount(2);
-  await expect(page.locator(".faceplate-config-row")).toHaveCount(1);
+  await expect(page.locator(".faceplate-config-row")).toHaveCount(0);
   await expect(page.locator(".faceplate-config-row .jack-handle")).toHaveCount(0);
   await expect(page.locator(".faceplate-port-row")).toHaveCount(2);
   await expect(receiving.locator("..")).toHaveClass(/faceplate-port-row/);
@@ -1410,34 +1416,92 @@ test("uses React Flow with legacy line placement disabled", async ({ page }) => 
   await expect(page.locator("#selected-node-label")).toContainText(
     "Selected value, outgoing port: root/greeting/port/outgoing/value",
   );
+  await expect(page.locator("#selection-inspector")).toBeVisible();
+  await expect(page.locator('[data-section="port"]')).toContainText("std/text");
   await expect(page.locator(".panel-source-selection")).toHaveText("value");
   const selectedEndpoint = await page.locator("#source").evaluate((element) =>
     element.value.slice(element.selectionStart, element.selectionEnd)
   );
   expect(selectedEndpoint).toBe("value");
 
-  const greeting = page.locator('[data-id="greeting"]');
-  await greeting.getByTitle("Collapse Faceplate").click();
-  await expect(greeting.getByTitle("Expand Faceplate")).toHaveAttribute(
+  const greetingBox = await page.locator('[data-id="greeting"] .conduit-faceplate-card')
+    .boundingBox();
+  expect(greetingBox?.height).toBeLessThan(260);
+});
+
+test("keeps compact topology details in one presentation-only selection inspector", async ({
+  page,
+}) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
+  const source = page.locator("#source");
+  const sourceBefore = await source.inputValue();
+  const planBefore = await page.locator("#plan").textContent();
+  const inspector = page.locator("#selection-inspector");
+
+  await expect(inspector).toBeHidden();
+  await page.locator('[data-id="greeting"] .faceplate-header').click();
+  await expect(inspector).toBeVisible();
+  await expect(page.locator("#selection-inspector-state")).toContainText(
+    "instance · root/greeting",
+  );
+  await expect(page.locator('[data-section="semantic"]')).toContainText(
+    "Semantic contract",
+  );
+  await expect(page.locator('[data-section="configuration"]')).toContainText(
+    "Configuration",
+  );
+  await expect(source).toHaveValue(sourceBefore);
+  await expect(page.locator("#plan")).toHaveText(planBefore);
+
+  await page.locator("#selection-inspector-close").click();
+  await expect(inspector).toBeHidden();
+  await expect(page.locator("#selected-node-label")).toHaveText(
+    "No topology item selected",
+  );
+
+  await page.locator('[data-id="greeting"] .faceplate-header').click();
+  await page.keyboard.press("Escape");
+  await expect(inspector).toBeHidden();
+  await page.locator('[data-id="greeting"] .faceplate-header').click();
+  await page.locator(".react-flow__pane").click({ position: { x: 8, y: 8 } });
+  await expect(inspector).toBeHidden();
+
+  await expect(page.locator("#console-body")).toBeHidden();
+  await expect(page.locator("#console-disclosure")).toHaveAttribute(
     "aria-expanded",
     "false",
   );
-  await expect(greeting.getByRole("button", {
-    name: "value, outgoing port; type std/text",
-    exact: true,
-  })).toContainText("value >");
-  const collapsedRow = greeting.locator(".faceplate-port-row");
-  const collapsedHandle = collapsedRow.locator(".jack-handle");
-  await expect.poll(async () => {
-    const collapsedRowBox = await collapsedRow.boundingBox();
-    const collapsedHandleBox = await collapsedHandle.boundingBox();
-    if (!collapsedRowBox || !collapsedHandleBox) return Number.POSITIVE_INFINITY;
-    return Math.abs(
-      (collapsedRowBox.y + collapsedRowBox.height / 2) -
-      (collapsedHandleBox.y + collapsedHandleBox.height / 2),
-    );
-  }).toBeLessThan(1);
-  await greeting.getByTitle("Expand Faceplate").click();
+  await page.locator("#console-disclosure").click();
+  await expect(page.locator("#console-body")).toBeVisible();
+  await expect(source).toHaveValue(sourceBefore);
+  await expect(page.locator("#plan")).toHaveText(planBefore);
+});
+
+test("keeps a representative many-node patch as compact selectable symbols", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.tiny-instrument");
+  const cards = page.locator(".conduit-faceplate-card");
+  await expect.poll(() => cards.count(), { timeout: 20_000 }).toBeGreaterThan(10);
+  const heights = await cards.evaluateAll((elements) =>
+    elements.map((element) => element.getBoundingClientRect().height)
+  );
+  expect(Math.max(...heights)).toBeLessThan(340);
+  await expect(page.locator(".semantic-promise-compartment")).toHaveCount(0);
+  await expect(page.locator(".planned-realization-compartment")).toHaveCount(0);
+  await expect(page.locator(".faceplate-config-row")).toHaveCount(0);
+
+  const keyboardPort = page.locator(
+    "#panel-port-list .structured-topology-button",
+  ).first();
+  await keyboardPort.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#selection-inspector")).toBeVisible();
+  await page.setViewportSize({ width: 720, height: 720 });
+  const inspectorBox = await page.locator("#selection-inspector").boundingBox();
+  expect(inspectorBox?.x).toBeGreaterThanOrEqual(0);
+  expect((inspectorBox?.x || 0) + (inspectorBox?.width || 0)).toBeLessThanOrEqual(720);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth))
+    .toBeLessThanOrEqual(720);
 });
 
 test("draws bounded cords and exposes draggable rewire ends", async ({ page }) => {
@@ -1562,9 +1626,12 @@ test("keeps semantic port direction redundant across presentation media", async 
   await expect(outgoing).toContainText("value >");
 });
 
-test("keeps faceplate controls focused while highlighting and updating source", async ({ page }) => {
+test("keeps inspector controls focused while highlighting and updating source", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
-  const input = page.locator('[data-id="greeting"] .control-input');
+  await page.locator('[data-id="greeting"] .faceplate-header').click();
+  const input = page.locator(
+    '#selection-inspector .selection-inspector-control',
+  );
   const selectedSourceText = async () =>
     (await page.locator(".panel-source-selection").allTextContents()).join("");
   await input.click();

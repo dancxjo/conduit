@@ -1387,6 +1387,11 @@ pub struct PatchbayViewModel {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub evidence: Vec<serde_json::Value>,
     pub topology: PatchbayTopologyProjection,
+    /// Bounded, Rust-authored disclosure for the one selected stable subject.
+    /// Canvas renderers consume these facts without reconstructing semantic,
+    /// exact-plan, runtime, or evidence meaning in the client.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub selection_inspector: Option<PatchbaySelectionInspectorProjection>,
     /// Definition/source facts that can be inspected without resolution,
     /// provider installation, authority, resource acquisition, or execution.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1397,6 +1402,43 @@ pub struct PatchbayViewModel {
     pub diagnostics: Vec<PatchbayDiagnosticProjection>,
     pub bounds: PatchbayProjectionBounds,
     pub truncated: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbaySelectionInspectorProjection {
+    pub subject: PresentationSubject,
+    pub title: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_range: Option<SourceRangeProjection>,
+    pub sections: Vec<PatchbayInspectorSectionProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayInspectorSectionProjection {
+    pub id: String,
+    pub label: String,
+    pub facts: Vec<PatchbayInspectorFactProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayInspectorFactProjection {
+    pub label: String,
+    pub value: String,
+    pub provenance: String,
+    pub sensitivity: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub clue: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edit: Option<PatchbayInspectorEditProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayInspectorEditProjection {
+    pub node_id: String,
+    pub key: String,
+    pub kind: String,
+    pub editable: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

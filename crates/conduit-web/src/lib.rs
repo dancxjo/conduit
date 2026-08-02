@@ -3899,6 +3899,13 @@ fn authoritative_patchbay_view(
         &browser_task_front_renderer_profiles(),
         bounds,
     );
+    let selection_inspector = project_patchbay_selection_inspector(
+        workspace.presentation().selected_subject.as_ref(),
+        &topology,
+        &diagnostics,
+        matching_run.as_ref(),
+        evidence,
+    );
     Ok(conduit_patchbay::PatchbayViewModel {
         protocol_version: conduit_patchbay::PATCHBAY_PROTOCOL_VERSION,
         source: workspace.source().clone(),
@@ -3917,12 +3924,501 @@ fn authoritative_patchbay_view(
         .cloned()
         .collect(),
         topology,
+        selection_inspector,
         at_rest: conduit_patchbay::project_at_rest(workspace.source()).ok(),
         task_front,
         configuration_layers,
         diagnostics,
         bounds,
         truncated: truncated || recovered.recovery_limited,
+    })
+}
+
+fn inspector_fact(
+    label: impl Into<String>,
+    value: impl Into<String>,
+    provenance: &str,
+    sensitivity: &str,
+    clue: Option<&str>,
+) -> conduit_patchbay::PatchbayInspectorFactProjection {
+    conduit_patchbay::PatchbayInspectorFactProjection {
+        label: label.into(),
+        value: value.into(),
+        provenance: provenance.to_owned(),
+        sensitivity: sensitivity.to_owned(),
+        clue: clue.map(str::to_owned),
+        edit: None,
+    }
+}
+
+fn inspector_section(
+    id: &str,
+    label: &str,
+    facts: Vec<conduit_patchbay::PatchbayInspectorFactProjection>,
+) -> Option<conduit_patchbay::PatchbayInspectorSectionProjection> {
+    (!facts.is_empty()).then(|| conduit_patchbay::PatchbayInspectorSectionProjection {
+        id: id.to_owned(),
+        label: label.to_owned(),
+        facts,
+    })
+}
+
+fn project_patchbay_selection_inspector(
+    subject: Option<&conduit_patchbay::PresentationSubject>,
+    topology: &conduit_patchbay::PatchbayTopologyProjection,
+    diagnostics: &[conduit_patchbay::PatchbayDiagnosticProjection],
+    run: Option<&conduit_patchbay::RunSnapshot>,
+    evidence: &[serde_json::Value],
+) -> Option<conduit_patchbay::PatchbaySelectionInspectorProjection> {
+    use conduit_patchbay::PresentationSubjectKind;
+
+    let subject = subject?.clone();
+    let mut title = subject.path.clone();
+    let mut state = "selected".to_owned();
+    let mut source_range = None;
+    let mut sections = Vec::new();
+    let mut target_id = subject
+        .path
+        .rsplit('/')
+        .next()
+        .unwrap_or_default()
+        .to_owned();
+
+    match subject.kind {
+        PresentationSubjectKind::Instance => {
+            let node = topology
+                .logical_nodes
+                .iter()
+                .find(|node| node.semantic_id == subject.path)?;
+            title = node.id.clone();
+            target_id.clone_from(&node.id);
+            state.clone_from(&node.validity);
+            source_range = node.source_range.clone();
+            let mut semantic = vec![
+                inspector_fact(
+                    "path",
+                    &node.semantic_id,
+                    "source-projection",
+                    "public",
+                    Some("kind"),
+                ),
+                inspector_fact(
+                    "contract",
+                    node.contract_id.as_deref().unwrap_or("unresolved"),
+                    "semantic-projection",
+                    "public",
+                    Some("kind"),
+                ),
+                inspector_fact(
+                    "contract identity",
+                    node.contract_identity.as_deref().unwrap_or("unresolved"),
+                    "semantic-projection",
+                    "public",
+                    None,
+                ),
+                inspector_fact(
+                    "validity",
+                    &node.validity,
+                    "source-projection",
+                    "public",
+                    Some("state"),
+                ),
+            ];
+            if !node.semantic_effects.is_empty() {
+                semantic.push(inspector_fact(
+                    "semantic effects",
+                    node.semantic_effects.join(", "),
+                    "semantic-projection",
+                    "public",
+                    None,
+                ));
+            }
+            sections.push(inspector_section(
+                "semantic",
+                "Semantic contract",
+                semantic,
+            )?);
+            let configuration = node
+                .config
+                .iter()
+                .map(|(name, config)| {
+                    let mut fact = inspector_fact(
+                        name,
+                        &config.display_value,
+                        &format!(
+                            "{}; {}; revision {}",
+                            config.owner, config.persistence, config.revision
+                        ),
+                        &config.sensitivity,
+                        Some("configuration"),
+                    );
+                    fact.edit = Some(conduit_patchbay::PatchbayInspectorEditProjection {
+                        node_id: node.id.clone(),
+                        key: name.clone(),
+                        kind: config.kind.clone(),
+                        editable: config.editable,
+                    });
+                    fact
+                })
+                .collect();
+            if let Some(section) =
+                inspector_section("configuration", "Configuration", configuration)
+            {
+                sections.push(section);
+            }
+            if let Some(planned) = topology
+                .planned_realization
+                .as_ref()
+                .and_then(|realization| {
+                    realization.nodes.iter().find(|planned| {
+                        planned.logical_origin == subject.path
+                            || planned.logical_origin == node.id
+                            || planned.instance == node.id
+                    })
+                })
+            {
+                let binding = &planned.binding;
+                let mut realization = vec![
+                    inspector_fact(
+                        "plan instance",
+                        &planned.instance,
+                        "exact-plan",
+                        "public",
+                        Some("placement"),
+                    ),
+                    inspector_fact(
+                        "implementation",
+                        format!(
+                            "{} · {}",
+                            binding.implementation_id, binding.implementation_identity
+                        ),
+                        "exact-plan",
+                        "public",
+                        Some("implementation"),
+                    ),
+                    inspector_fact(
+                        "artifact",
+                        format!("{} · {}", binding.artifact_id, binding.artifact_digest),
+                        "exact-plan",
+                        "public",
+                        Some("artifact"),
+                    ),
+                    inspector_fact(
+                        "host",
+                        &binding.host_id,
+                        "exact-host-binding",
+                        "public",
+                        Some("host"),
+                    ),
+                    inspector_fact(
+                        "provider observation",
+                        format!(
+                            "{} · {}",
+                            binding.host_observation_id, binding.host_observation_status
+                        ),
+                        "exact-host-observation",
+                        "public",
+                        Some("provider"),
+                    ),
+                    inspector_fact(
+                        "availability",
+                        format!("{} · {}", binding.availability_state, binding.reason_code),
+                        "exact-plan",
+                        "public",
+                        Some("state"),
+                    ),
+                    inspector_fact(
+                        "allocation",
+                        format!(
+                            "memory={} storage={} cpu={} timers={} transports={} checkpoints={} evidence={}",
+                            binding.allocation.memory_bytes,
+                            binding.allocation.storage_bytes,
+                            binding.allocation.cpu_units,
+                            binding.allocation.timers,
+                            binding.allocation.transports,
+                            binding.allocation.checkpoints,
+                            binding.allocation.evidence_bytes,
+                        ),
+                        "exact-plan",
+                        "public",
+                        Some("allocation"),
+                    ),
+                ];
+                realization.extend(binding.resources.iter().map(|resource| {
+                    inspector_fact(
+                        "resource",
+                        format!(
+                            "{}/{} · {}",
+                            resource.resource_kind, resource.resource_id, resource.binding_id
+                        ),
+                        "exact-resource-binding",
+                        "protected-identity",
+                        Some("resource"),
+                    )
+                }));
+                realization.extend(binding.authorities.iter().map(|authority| {
+                    inspector_fact(
+                        "authority",
+                        format!(
+                            "{} {} · grant {}",
+                            authority.action, authority.resource_kind, authority.grant_id
+                        ),
+                        "exact-authority-binding",
+                        "protected-identity",
+                        Some("authority"),
+                    )
+                }));
+                sections.push(inspector_section(
+                    "realization",
+                    "Exact realization",
+                    realization,
+                )?);
+            }
+        }
+        PresentationSubjectKind::Port => {
+            let (node, port) = topology.logical_nodes.iter().find_map(|node| {
+                node.inputs
+                    .iter()
+                    .chain(&node.outputs)
+                    .find(|port| port.semantic_path == subject.path)
+                    .map(|port| (node, port))
+            })?;
+            title = format!("{}.{}", node.id, port.id);
+            target_id.clone_from(&port.id);
+            state.clone_from(&port.validity);
+            source_range = port
+                .source_range
+                .clone()
+                .or_else(|| node.source_range.clone());
+            sections.push(inspector_section(
+                "port",
+                "Typed port",
+                vec![
+                    inspector_fact(
+                        "path",
+                        &port.semantic_path,
+                        "semantic-projection",
+                        "public",
+                        Some("port"),
+                    ),
+                    inspector_fact(
+                        "direction",
+                        &port.direction,
+                        "semantic-projection",
+                        "public",
+                        Some("direction"),
+                    ),
+                    inspector_fact(
+                        "type",
+                        &port.type_id,
+                        "semantic-projection",
+                        "public",
+                        Some("payload"),
+                    ),
+                    inspector_fact(
+                        "delivery",
+                        &port.delivery,
+                        "semantic-projection",
+                        "public",
+                        None,
+                    ),
+                    inspector_fact(
+                        "temporal",
+                        &port.temporal,
+                        "semantic-projection",
+                        "public",
+                        None,
+                    ),
+                    inspector_fact(
+                        "terminal",
+                        &port.terminal,
+                        "semantic-projection",
+                        "public",
+                        None,
+                    ),
+                    inspector_fact(
+                        "presence",
+                        &port.presence,
+                        "semantic-projection",
+                        "public",
+                        None,
+                    ),
+                    inspector_fact(
+                        "sensitivity",
+                        &port.sensitivity,
+                        "semantic-projection",
+                        "public",
+                        None,
+                    ),
+                    inspector_fact(
+                        "loss",
+                        &port.loss_acceptance,
+                        "semantic-projection",
+                        "public",
+                        None,
+                    ),
+                ],
+            )?);
+        }
+        PresentationSubjectKind::Cord => {
+            let cord = topology
+                .cords
+                .iter()
+                .find(|cord| cord.semantic_path == subject.path)?;
+            title = cord.id.clone();
+            target_id.clone_from(&cord.id);
+            state.clone_from(&cord.validity);
+            source_range = cord.source_range.clone();
+            sections.push(inspector_section(
+                "cord",
+                "Typed cord",
+                vec![
+                    inspector_fact(
+                        "path",
+                        &cord.semantic_path,
+                        "source-projection",
+                        "public",
+                        Some("cord"),
+                    ),
+                    inspector_fact(
+                        "source > target",
+                        format!(
+                            "{}.{} > {}.{}",
+                            cord.from_node.as_deref().unwrap_or("unresolved"),
+                            cord.from_port.as_deref().unwrap_or("unresolved"),
+                            cord.to_node.as_deref().unwrap_or("unresolved"),
+                            cord.to_port.as_deref().unwrap_or("unresolved"),
+                        ),
+                        "source-projection",
+                        "public",
+                        Some("direction"),
+                    ),
+                    inspector_fact(
+                        "value type",
+                        cord.value_type.as_deref().unwrap_or("unresolved"),
+                        "semantic-projection",
+                        "public",
+                        Some("payload"),
+                    ),
+                    inspector_fact(
+                        "pressure",
+                        cord.pressure.as_deref().unwrap_or("unresolved"),
+                        "semantic-projection",
+                        "public",
+                        Some("pressure"),
+                    ),
+                    inspector_fact(
+                        "capacity",
+                        format!(
+                            "{} items; {} value bytes; {} queued bytes",
+                            cord.capacity_items.unwrap_or(0),
+                            cord.max_value_bytes.unwrap_or(0),
+                            cord.max_queued_bytes.unwrap_or(0)
+                        ),
+                        "semantic-projection",
+                        "public",
+                        None,
+                    ),
+                    inspector_fact(
+                        "validity",
+                        &cord.validity,
+                        "source-projection",
+                        "public",
+                        Some("state"),
+                    ),
+                ],
+            )?);
+        }
+        PresentationSubjectKind::Configuration
+        | PresentationSubjectKind::Source
+        | PresentationSubjectKind::Definition => {
+            sections.push(inspector_section(
+                "selection",
+                "Selected subject",
+                vec![inspector_fact(
+                    "path",
+                    &subject.path,
+                    "presentation-subject",
+                    "public",
+                    None,
+                )],
+            )?);
+        }
+    }
+
+    let targeted_diagnostics = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic
+                .targets
+                .iter()
+                .any(|target| target.id == target_id)
+        })
+        .map(|diagnostic| {
+            inspector_fact(
+                &diagnostic.code,
+                format!("{}: {}", diagnostic.message, diagnostic.explanation),
+                "diagnostic-projection",
+                "public",
+                Some("diagnostic"),
+            )
+        })
+        .collect();
+    if let Some(section) = inspector_section("diagnostics", "Diagnostics", targeted_diagnostics) {
+        sections.push(section);
+    }
+    if let Some(run) = run {
+        let latest = evidence.iter().rev().find(|record| {
+            record.get("subject_id").and_then(serde_json::Value::as_str) == Some(target_id.as_str())
+        });
+        let mut runtime = vec![
+            inspector_fact(
+                "run",
+                &run.run_id,
+                "runtime-projection",
+                "public",
+                Some("runtime"),
+            ),
+            inspector_fact(
+                "state",
+                format!("{:?}", run.state).to_lowercase(),
+                "runtime-projection",
+                "public",
+                Some("state"),
+            ),
+        ];
+        if let Some(latest) = latest {
+            runtime.push(inspector_fact(
+                "latest evidence",
+                format!(
+                    "{} at sequence {}",
+                    latest
+                        .get("event_kind")
+                        .and_then(serde_json::Value::as_str)
+                        .unwrap_or("event"),
+                    latest
+                        .get("sequence")
+                        .and_then(serde_json::Value::as_u64)
+                        .unwrap_or(0),
+                ),
+                "bounded-evidence-projection",
+                "redacted",
+                Some("evidence"),
+            ));
+        }
+        sections.push(inspector_section(
+            "runtime",
+            "Runtime and evidence",
+            runtime,
+        )?);
+    }
+
+    Some(conduit_patchbay::PatchbaySelectionInspectorProjection {
+        subject,
+        title,
+        state,
+        source_range,
+        sections,
     })
 }
 
@@ -6074,6 +6570,7 @@ output.value > sink.result\n\
         .expect("open JSON");
         assert_eq!(opened["view"]["presentation"]["mode"], "build");
         assert_eq!(opened["view"]["presentation"]["lens"], "face");
+        assert!(opened["view"]["selection_inspector"].is_null());
         assert_eq!(
             opened["view"]["presentation"]["opening_reason"],
             "no-usable-task-front-declared"
@@ -6124,6 +6621,18 @@ output.value > sink.result\n\
             semantic_identity
         );
         assert_eq!(changed["view"]["plan"]["identity"], plan_identity);
+        let inspector = &changed["view"]["selection_inspector"];
+        assert_eq!(inspector["subject"]["kind"], "cord");
+        assert_eq!(inspector["subject"]["path"], cord_path);
+        assert_eq!(inspector["state"], "valid");
+        assert_eq!(inspector["sections"][0]["id"], "cord");
+        assert!(
+            inspector["sections"][0]["facts"]
+                .as_array()
+                .expect("cord facts")
+                .iter()
+                .any(|fact| fact["label"] == "source > target")
+        );
         let layers = changed["view"]["configuration_layers"]
             .as_array()
             .expect("configuration layers");
@@ -6144,6 +6653,90 @@ output.value > sink.result\n\
             .expect("instance-authored layer");
         assert_eq!(authored["persistence"], "source-document");
         assert_eq!(authored["activation"], "re-resolution-or-plan-transition");
+    }
+
+    #[test]
+    fn selected_instance_inspector_joins_semantic_and_exact_plan_facts_in_rust() {
+        let session = "test/selected-instance-inspector";
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            session.to_owned(),
+            SOURCE.to_owned(),
+        ))
+        .expect("open JSON");
+        let logical = &opened["view"]["topology"]["logical_nodes"][0];
+        let subject_path = logical["semantic_id"]
+            .as_str()
+            .expect("semantic instance path");
+        let expected_node_id = logical["id"].as_str().expect("logical node id");
+        let planned = opened["view"]["topology"]["planned_realization"]["nodes"]
+            .as_array()
+            .expect("planned nodes")
+            .iter()
+            .find(|node| {
+                node["logical_origin"] == subject_path || node["logical_origin"] == logical["id"]
+            })
+            .expect("planned realization for selected instance");
+        let expected_implementation = planned["binding"]["implementation_id"]
+            .as_str()
+            .expect("implementation id");
+
+        let request = serde_json::json!({
+            "protocol_version": 0,
+            "document_id": session,
+            "expected_source_revision": 0,
+            "expected_presentation_revision": 0,
+            "operations": [{"SelectSubject": {"subject": {
+                "kind": "instance",
+                "path": subject_path
+            }}}]
+        });
+        let selected: Value = serde_json::from_str(&patchbay_apply_transaction(
+            session.to_owned(),
+            request.to_string(),
+        ))
+        .expect("selection JSON");
+        assert_eq!(selected["ok"], true, "{selected}");
+        let inspector = &selected["view"]["selection_inspector"];
+        assert_eq!(inspector["subject"]["path"], subject_path);
+        assert!(
+            inspector["sections"]
+                .as_array()
+                .expect("inspector sections")
+                .iter()
+                .any(|section| section["id"] == "semantic")
+        );
+        let configuration = inspector["sections"]
+            .as_array()
+            .expect("inspector sections")
+            .iter()
+            .find(|section| section["id"] == "configuration")
+            .expect("owned configuration section");
+        assert!(
+            configuration["facts"]
+                .as_array()
+                .expect("configuration facts")
+                .iter()
+                .all(|fact| fact["edit"]["node_id"] == expected_node_id)
+        );
+        let realization = inspector["sections"]
+            .as_array()
+            .expect("inspector sections")
+            .iter()
+            .find(|section| section["id"] == "realization")
+            .expect("exact realization section");
+        assert!(
+            realization["facts"]
+                .as_array()
+                .expect("realization facts")
+                .iter()
+                .any(|fact| {
+                    fact["label"] == "implementation"
+                        && fact["value"]
+                            .as_str()
+                            .is_some_and(|value| value.starts_with(expected_implementation))
+                        && fact["provenance"] == "exact-plan"
+                })
+        );
     }
 
     #[test]

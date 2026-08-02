@@ -189,6 +189,7 @@
         <button id="download" class="btn secondary">💾 Export .panel</button>
       </div>
 
+      <div class="patchbay-main-grid">
       <div class="work-grid">
         <!-- Interactive React Flow Graph Canvas -->
         <section aria-labelledby="canvas-title" class="card canvas-card">
@@ -243,14 +244,27 @@
         </section>
       </div>
 
+      <aside id="selection-inspector" class="card selection-inspector" aria-labelledby="selection-inspector-title" hidden>
+        <div class="card-header selection-inspector-header">
+          <div><p class="eyebrow">Selected subject</p><h3 id="selection-inspector-title">Inspector</h3></div>
+          <button id="selection-inspector-close" type="button" class="btn small secondary" aria-label="Close selected-subject inspector">Close</button>
+        </div>
+        <p id="selection-inspector-state" class="card-subtitle" role="status"></p>
+        <div id="selection-inspector-sections" class="selection-inspector-sections"></div>
+      </aside>
+      </div>
+
       <!-- Execution Console Output -->
       <section class="card console-card">
         <div class="card-header">
           <h3>Execution Result Console</h3>
           <span id="console-status-badge" class="badge status-badge idle">Ready</span>
+          <button id="console-disclosure" type="button" class="btn small secondary" aria-expanded="false" aria-controls="console-body">Show raw output</button>
         </div>
-        <output id="result" aria-live="polite">Initializing production runtime parser...</output>
-        <ol id="diagnostic-console" class="diagnostic-console" aria-label="Source diagnostics"></ol>
+        <div id="console-body" hidden>
+          <output id="result" aria-live="polite">Initializing production runtime parser...</output>
+          <ol id="diagnostic-console" class="diagnostic-console" aria-label="Source diagnostics"></ol>
+        </div>
       </section>
 
       <section id="execution-story" class="card timeline-card" aria-labelledby="timeline-title" tabindex="0" hidden>

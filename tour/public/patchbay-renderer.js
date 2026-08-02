@@ -384,9 +384,30 @@ export class PatchbayReactFlowRenderer {
     this.selectedNodeId = nodeId;
     this.selectedCordId = null;
     this.highlightCordEndpoints(null);
+    const projectedEdges = this.topologyView === "logical"
+      ? this.viewModel?.topology?.cords || []
+      : this.viewModel?.topology?.planned_realization?.cords || [];
+    const neighboringNodes = new Set([nodeId]);
+    const neighboringCords = new Set();
+    for (const cord of projectedEdges) {
+      if (cord.from_node === nodeId || cord.to_node === nodeId) {
+        neighboringCords.add(cord.id);
+        if (cord.from_node) neighboringNodes.add(cord.from_node);
+        if (cord.to_node) neighboringNodes.add(cord.to_node);
+      }
+    }
+    this.flowWrapper.dataset.selection = "node";
     this.flowWrapper?.querySelectorAll(".conduit-faceplate-card").forEach((card) => {
       const shell = card.closest(".react-flow__node");
-      card.classList.toggle("selected-faceplate", shell?.dataset.id === nodeId);
+      const candidateId = shell?.dataset.id;
+      card.classList.toggle("selected-faceplate", candidateId === nodeId);
+      card.classList.toggle("selection-neighbor", neighboringNodes.has(candidateId));
+      card.classList.toggle("selection-muted", !neighboringNodes.has(candidateId));
+    });
+    this.flowWrapper?.querySelectorAll(".react-flow__edge").forEach((edge, index) => {
+      const candidateId = this.renderedCordIds?.[index];
+      edge.classList.toggle("selection-neighbor", neighboringCords.has(candidateId));
+      edge.classList.toggle("selection-muted", !neighboringCords.has(candidateId));
     });
   }
 
@@ -396,12 +417,43 @@ export class PatchbayReactFlowRenderer {
     const projectedEdges = this.topologyView === "logical"
       ? this.viewModel?.topology?.cords || []
       : this.viewModel?.topology?.planned_realization?.cords || [];
+    const selectedCord = projectedEdges.find((edge) => edge.id === cordId) || null;
+    const endpointNodes = new Set(
+      selectedCord ? [selectedCord.from_node, selectedCord.to_node].filter(Boolean) : [],
+    );
+    this.flowWrapper.dataset.selection = "cord";
+    this.flowWrapper?.querySelectorAll(".conduit-faceplate-card").forEach((card) => {
+      const candidateId = card.closest(".react-flow__node")?.dataset.id;
+      card.classList.remove("selected-faceplate");
+      card.classList.toggle("selection-neighbor", endpointNodes.has(candidateId));
+      card.classList.toggle("selection-muted", !endpointNodes.has(candidateId));
+    });
     this.flowWrapper?.querySelectorAll(".react-flow__edge").forEach((edge, index) => {
-      edge.classList.toggle("selected", this.renderedCordIds?.[index] === cordId);
+      const selected = this.renderedCordIds?.[index] === cordId;
+      edge.classList.toggle("selected", selected);
+      edge.classList.toggle("selection-neighbor", selected);
+      edge.classList.toggle("selection-muted", !selected);
     });
     this.highlightCordEndpoints(
-      projectedEdges.find((edge) => edge.id === cordId) || null,
+      selectedCord,
     );
+  }
+
+  clearSelection() {
+    this.selectedNodeId = null;
+    this.selectedCordId = null;
+    if (this.flowWrapper) delete this.flowWrapper.dataset.selection;
+    this.flowWrapper?.querySelectorAll(
+      ".selected-faceplate, .selection-neighbor, .selection-muted",
+    ).forEach((element) => element.classList.remove(
+      "selected-faceplate",
+      "selection-neighbor",
+      "selection-muted",
+    ));
+    this.flowWrapper?.querySelectorAll(".react-flow__edge.selected").forEach((edge) => {
+      edge.classList.remove("selected");
+    });
+    this.highlightCordEndpoints(null);
   }
 
   highlightCordEndpoints(cord) {
@@ -574,10 +626,13 @@ export class PatchbayReactFlowRenderer {
     });
     const positionForNode = (nodeId, index) => {
       if (this.topologyView === "expanded") {
-        // Planned faceplates carry substantially more exact facts. A stable
-        // horizontal strip prevents those read-only cards from overlapping
-        // without creating presentation transactions for plan instances.
-        return { x: 32 + index * 520, y: 40 };
+        // Expanded keeps compact recognizable symbols; complete exact values
+        // live in the selected-subject inspector rather than widening a strip
+        // of per-node property sheets.
+        return defaultNodePositions.get(nodeId) || {
+          x: 32 + (index % 2) * 640,
+          y: 40 + Math.floor(index / 2) * 320,
+        };
       }
       return nodePositions[nodeId] || defaultNodePositions.get(nodeId);
     };
@@ -597,7 +652,6 @@ export class PatchbayReactFlowRenderer {
         ...node,
         title: node.id,
         kind: node.contract_id,
-        config: node.config || {},
         inputs: node.inputs || [],
         outputs: node.outputs || [],
         status: node.activity || "idle",
@@ -609,23 +663,8 @@ export class PatchbayReactFlowRenderer {
         ),
         isConnectable: this.topologyView === "logical" && presentationCanEdit,
         plannedBinding: node.plannedBinding,
-        logicalOrigin: node.logicalOrigin,
-        compositeProvenance: node.compositeProvenance,
-        readOnly: this.topologyView === "expanded" || !presentationCanEdit,
-        collapsed: (viewModel.presentation?.collapsed_nodes || []).includes(node.id),
         isComposite: compositeIds.has(node.id),
         isSelected: node.id === this.selectedNodeId,
-        onConfigChange: (nodeId, key, value, kind) =>
-          this.updateConfig(nodeId, key, value, kind),
-        onCollapseChange: (nodeId, collapsed) => {
-          if (!this.onTransaction) return;
-          this.onTransaction({
-            SetCollapsed: {
-              node_id: nodeId,
-              collapsed,
-            },
-          });
-        },
         onOpenNested: (nodeId, kind) => {
           if (this.onOpenNested) {
             this.onOpenNested(nodeId, kind);

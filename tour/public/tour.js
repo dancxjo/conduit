@@ -73,6 +73,13 @@ const taskFrontAdvanced = document.querySelector("#task-front-advanced");
 const taskFrontAdvancedControls = document.querySelector("#task-front-advanced-controls");
 const taskFrontAction = document.querySelector("#task-front-action");
 const taskFrontResult = document.querySelector("#task-front-result");
+const selectionInspector = document.querySelector("#selection-inspector");
+const selectionInspectorTitle = document.querySelector("#selection-inspector-title");
+const selectionInspectorState = document.querySelector("#selection-inspector-state");
+const selectionInspectorSections = document.querySelector("#selection-inspector-sections");
+const selectionInspectorClose = document.querySelector("#selection-inspector-close");
+const consoleDisclosure = document.querySelector("#console-disclosure");
+const consoleBody = document.querySelector("#console-body");
 const taskFrontResultTitle = document.querySelector("#task-front-result-title");
 const taskFrontResultValue = document.querySelector("#task-front-result-value");
 const taskFrontExplanation = document.querySelector("#task-front-explanation");
@@ -1475,6 +1482,7 @@ function selectDiagnostic(diagnostic) {
   }
   result.textContent =
     `${diagnostic.code}: ${diagnostic.message}\n${diagnostic.explanation}`;
+  setConsoleExpanded(true);
 }
 
 function plannedNodesForPresentation(view = patchbayView) {
@@ -1853,6 +1861,85 @@ function renderTaskFront() {
   }
 }
 
+function renderSelectionInspector() {
+  if (!selectionInspector || !selectionInspectorSections) return;
+  const activeControl = document.activeElement?.classList?.contains(
+    "selection-inspector-control",
+  ) ? {
+      key: document.activeElement.dataset.editKey,
+      start: document.activeElement.selectionStart,
+      end: document.activeElement.selectionEnd,
+    } : null;
+  const projection = patchbayView?.selection_inspector || null;
+  const visible = Boolean(projection);
+  selectionInspector.hidden = !visible;
+  workspace.dataset.inspectorOpen = String(visible);
+  selectionInspectorSections.replaceChildren();
+  if (!projection) return;
+  selectionInspectorTitle.textContent = projection.title;
+  selectionInspectorState.textContent =
+    `${projection.subject.kind} · ${projection.subject.path} · ${projection.state}. ` +
+    "Opening or closing this inspector changes presentation only.";
+  for (const section of projection.sections || []) {
+    const region = document.createElement("section");
+    region.className = "selection-inspector-section";
+    region.dataset.section = section.id;
+    const heading = document.createElement("h4");
+    heading.textContent = section.label;
+    const facts = document.createElement("dl");
+    for (const fact of section.facts || []) {
+      const row = document.createElement("div");
+      row.className = "selection-inspector-fact";
+      if (fact.clue) row.dataset.clue = fact.clue;
+      const term = document.createElement("dt");
+      term.textContent = fact.label;
+      const value = document.createElement("dd");
+      if (fact.edit) {
+        const control = document.createElement("input");
+        control.type = "text";
+        control.className = "control-input selection-inspector-control";
+        control.value = fact.value;
+        control.readOnly = !fact.edit.editable ||
+          patchbayView?.presentation?.mode !== "build";
+        control.dataset.editKey = `${fact.edit.node_id}/${fact.edit.key}`;
+        control.setAttribute("aria-label", `${fact.label} configuration`);
+        control.oninput = (event) => patchbayRenderer?.updateConfig(
+          fact.edit.node_id,
+          fact.edit.key,
+          event.currentTarget.value,
+          fact.edit.kind,
+        );
+        value.append(control);
+      } else {
+        const exact = document.createElement("code");
+        exact.textContent = fact.value;
+        value.append(exact);
+      }
+      const provenance = document.createElement("small");
+      provenance.textContent = `${fact.provenance}; ${fact.sensitivity}`;
+      value.append(provenance);
+      row.append(term, value);
+      facts.append(row);
+    }
+    region.append(heading, facts);
+    selectionInspectorSections.append(region);
+  }
+  if (activeControl) {
+    const replacement = [...selectionInspectorSections.querySelectorAll(
+      ".selection-inspector-control",
+    )].find((control) => control.dataset.editKey === activeControl.key);
+    replacement?.focus({ preventScroll: true });
+    replacement?.setSelectionRange(activeControl.start, activeControl.end);
+  }
+}
+
+function setConsoleExpanded(expanded) {
+  if (!consoleDisclosure || !consoleBody) return;
+  consoleDisclosure.setAttribute("aria-expanded", String(expanded));
+  consoleDisclosure.textContent = expanded ? "Hide raw output" : "Show raw output";
+  consoleBody.hidden = !expanded;
+}
+
 function syncPresentationControls() {
   const presentation = presentationSnapshot();
   if (!presentation) return;
@@ -1893,6 +1980,7 @@ function syncPresentationControls() {
   configurationLayers.hidden = presentation.lens !== "configure";
   renderConfigurationLayers();
   renderTaskFront();
+  renderSelectionInspector();
 
   const atRest = presentation.lens === "at-rest";
   runButton.disabled ||= atRest;
@@ -2437,11 +2525,19 @@ function selectNode(node) {
   const plannedProjection = plannedNodesForPresentation()
     .find((candidate) => candidate.id === node);
   const projection = logicalProjection || plannedProjection;
-  if (!selectSourceRange("node", node, projection?.source_range)) return;
-  if (logicalProjection) {
+  const sourceRange = logicalProjection?.source_range ||
+    plannedProjection?.source_range ||
+    plannedProjection?.source_origin_range;
+  if (!selectSourceRange("node", node, sourceRange)) return;
+  const logicalSubject = logicalProjection ||
+    (patchbayView?.topology?.logical_nodes || []).find((candidate) =>
+      candidate.semantic_id === plannedProjection?.logical_origin ||
+      candidate.id === plannedProjection?.logical_origin
+    );
+  if (logicalSubject) {
     const selected = selectPresentationSubject({
       kind: "instance",
-      path: logicalProjection.semantic_id,
+      path: logicalSubject.semantic_id,
     });
     if (selected && !selected.ok) return;
   }
@@ -2461,6 +2557,15 @@ function selectCord(cordId) {
   const projection = projectedCordsForTopologyView()
     .find((candidate) => candidate.id === cordId);
   if (topologyView === "expanded") {
+    const logicalCord = (patchbayView?.topology?.cords || [])
+      .find((candidate) => candidate.id === cordId);
+    if (logicalCord) {
+      const selected = selectPresentationSubject({
+        kind: "cord",
+        path: logicalCord.semantic_path,
+      });
+      if (selected && !selected.ok) return;
+    }
     selectedNode = null;
     selectedCord = cordId;
     moveLeftBtn.disabled = true;
@@ -2496,10 +2601,32 @@ function selectPort(nodeId, port) {
   if (topologyView === "expanded") {
     const plannedNode = plannedNodesForPresentation()
       .find((candidate) => candidate.id === nodeId);
+    const logicalNode = (patchbayView?.topology?.logical_nodes || [])
+      .find((candidate) =>
+        candidate.semantic_id === plannedNode?.logical_origin ||
+        candidate.id === plannedNode?.logical_origin
+      );
+    const logicalPort = logicalNode && [
+      ...(logicalNode.inputs || []),
+      ...(logicalNode.outputs || []),
+    ].find((candidate) => candidate.id === port.id);
+    if (logicalPort) {
+      const selected = selectPresentationSubject({
+        kind: "port",
+        path: logicalPort.semantic_path,
+      });
+      if (selected && !selected.ok) return;
+    } else if (logicalNode) {
+      const selected = selectPresentationSubject({
+        kind: "instance",
+        path: logicalNode.semantic_id,
+      });
+      if (selected && !selected.ok) return;
+    }
     selectSourceRange(
       "planned instance source origin",
       plannedNode?.logical_origin || nodeId,
-      plannedNode?.source_range,
+      plannedNode?.source_range || plannedNode?.source_origin_range,
     );
     selectedNode = nodeId;
     selectedCord = null;
@@ -2592,7 +2719,7 @@ function clearTopologySelection() {
   moveRightBtn.disabled = true;
   source.setSourceHighlightRange?.(null, null);
   source.setSourceRelatedRanges?.([]);
-  patchbayRenderer?.highlightCordEndpoints(null);
+  patchbayRenderer?.clearSelection?.();
 }
 
 function check() {
@@ -3234,6 +3361,8 @@ async function run() {
 runButton.onclick = run;
 watchToggle.onclick = () => void toggleWatch();
 freezeDisplay.onclick = toggleDisplayFreeze;
+consoleDisclosure.onclick = () => setConsoleExpanded(consoleBody.hidden);
+selectionInspectorClose.onclick = () => clearTopologySelection();
 stopButton.onclick = () => void stopExactSession(
   "learner-cancelled",
   "Run cancelled; exact worker placement is terminal.",
@@ -3245,6 +3374,11 @@ document.addEventListener("keydown", (event) => {
     ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
     target.isContentEditable
   );
+  if (event.key === "Escape" && !isEditing && !selectionInspector.hidden) {
+    event.preventDefault();
+    clearTopologySelection();
+    return;
+  }
   const isWatchShortcut = event.key.toLowerCase() === "w" &&
     !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
   if (isWatchShortcut && !isEditing && !event.repeat && !event.isComposing) {

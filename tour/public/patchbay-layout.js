@@ -11,24 +11,12 @@ function compareIds(left, right) {
 }
 
 export function projectedNodeHeight(node) {
-  const configRows = Object.keys(node.config || {}).length;
   const portRows = (node.inputs?.length || 0) + (node.outputs?.length || 0);
-  const statusRows = [
-    node.availability,
-    node.placement,
-    node.activity,
-  ].filter(Boolean).length;
-  const plannedRows = node.plannedBinding
-    ? 10 + (node.plannedBinding.resources?.length || 0) +
-      (node.plannedBinding.authorities?.length || 0)
-    : 0;
-  const semanticPromiseRows = node.plannedBinding ? 0 : 2 + portRows;
   const diagnosticRows = node.diagnosticAnchors?.length || 0;
-  return Math.max(
-    118,
-    76 + configRows * 38 + portRows * 38 + (statusRows > 0 ? 46 : 0) +
-      plannedRows * 60 + semanticPromiseRows * 70 + diagnosticRows * 38,
-  );
+  // Canvas nodes carry only identity, finite clues, ports, and diagnostics.
+  // Complete semantic/configuration/plan/runtime facts live in the external
+  // selected-subject inspector and must not inflate routing obstacles.
+  return Math.max(132, 116 + portRows * 34 + diagnosticRows * 34);
 }
 
 function endpointNode(edge, side, view) {

@@ -91,7 +91,7 @@ function PortRow({
         onPortWatch?.(nodeId, port);
       },
     }, port.display_label),
-    e("code", { className: "faceplate-member-type" }, port.type_id),
+    e("code", { className: "faceplate-member-type", title: port.type_id }, port.type_id),
     e("span", {
       className: "faceplate-member-state",
       title: `${port.delivery}; ${port.connections}`,
@@ -112,81 +112,20 @@ export function FaceplateNodeComponent({ data, id }) {
   const {
     title,
     kind,
-    config = {},
     inputs = [],
     outputs = [],
     status = "idle",
-    placement = null,
-    availability = null,
     activity = null,
     isComposite = false,
     isSelected = false,
-    onConfigChange,
     onOpenNested,
     onPortSelect,
     onPortWatch,
-    collapsed = false,
-    onCollapseChange,
     validity = "valid",
     diagnosticIds = [],
     diagnosticAnchors = [],
     plannedBinding = null,
-    logicalOrigin = null,
-    compositeProvenance = [],
-    readOnly = false,
-    contract_identity: contractIdentity = null,
-    semantic_effects: semanticEffects = [],
   } = data;
-
-  const [expanded, setExpanded] = window.React.useState(!collapsed);
-  const [configValues, setConfigValues] = window.React.useState(config);
-  const updateNodeInternals = window.ReactFlow.useUpdateNodeInternals();
-
-  window.React.useEffect(() => {
-    setConfigValues(config);
-  }, [config]);
-
-  window.React.useEffect(() => {
-    setExpanded(!collapsed);
-  }, [collapsed]);
-
-  window.React.useEffect(() => {
-    const frame = window.requestAnimationFrame(() => updateNodeInternals(id));
-    return () => window.cancelAnimationFrame(frame);
-  }, [expanded, id, updateNodeInternals]);
-
-  const handleInputChange = (key, projection, value) => {
-    const next = {
-      ...configValues,
-      [key]: { ...projection, display_value: value },
-    };
-    setConfigValues(next);
-    onConfigChange?.(id, key, value, projection.kind);
-  };
-
-  const configRows = Object.entries(configValues).map(([key, projection]) =>
-    e("div", {
-      key,
-      className: "faceplate-member-row faceplate-config-row",
-      "data-config-key": key,
-    },
-      e("label", { className: "control-label", htmlFor: `${id}-config-${key}` }, key),
-      e("input", {
-        id: `${id}-config-${key}`,
-        type: "text",
-        className: "control-input nodrag",
-        value: projection.display_value,
-        readOnly: readOnly || !projection.editable,
-        onMouseDown: (event) => event.stopPropagation(),
-        onChange: (event) =>
-          handleInputChange(key, projection, event.target.value),
-      }),
-      e("code", { className: "faceplate-member-type" }, projection.kind),
-      e("span", { className: "faceplate-member-state" },
-        projection.editable ? "config" : "fixed",
-      ),
-    )
-  );
 
   const portRows = [
     ...inputs.map((port) => e(PortRow, {
@@ -213,91 +152,58 @@ export function FaceplateNodeComponent({ data, id }) {
     })),
   ];
 
-  const statusFacts = [
-    availability && {
-      label: "provider",
-      value: availability.availability_state,
-      title: availability.reason_code,
+  const compactClues = [
+    {
+      id: "kind",
+      glyph: "◇",
+      label: `Semantic kind ${kind}`,
     },
-    placement && { label: "placement", value: placement },
-    activity && { label: "execution", value: activity },
-    !activity && status === "error" && { label: "execution", value: "error" },
+    plannedBinding && {
+      id: "implementation",
+      glyph: "▣",
+      label: `Exact implementation ${plannedBinding.implementation_id}`,
+    },
+    plannedBinding && {
+      id: "artifact",
+      glyph: "□",
+      label: `Exact artifact ${plannedBinding.artifact_id}`,
+    },
+    plannedBinding && {
+      id: "provider",
+      glyph: "⌁",
+      label: `Provider observation ${plannedBinding.host_observation_status}`,
+    },
+    plannedBinding && {
+      id: "host",
+      glyph: "⌂",
+      label: `Exact host ${plannedBinding.host_id}`,
+    },
+    plannedBinding?.resources?.length > 0 && {
+      id: "resource",
+      glyph: "◉",
+      label: `${plannedBinding.resources.length} exact resource binding${plannedBinding.resources.length === 1 ? "" : "s"}`,
+    },
+    plannedBinding?.allocation && {
+      id: "allocation",
+      glyph: "▥",
+      label: "Exact finite allocation",
+    },
+    plannedBinding?.authorities?.length > 0 && {
+      id: "authority",
+      glyph: "◆",
+      label: `${plannedBinding.authorities.length} exact authority binding${plannedBinding.authorities.length === 1 ? "" : "s"}`,
+    },
+    (activity || status === "error") && {
+      id: "runtime",
+      glyph: activity === "waiting" ? "Ⅱ" : activity === "active" ? "▶" : "!",
+      label: `Runtime state ${activity || "error"}`,
+    },
+    diagnosticIds.length > 0 && {
+      id: "diagnostic",
+      glyph: "!",
+      label: `${diagnosticIds.length} diagnostic${diagnosticIds.length === 1 ? "" : "s"}`,
+    },
   ].filter(Boolean);
-  const budgetValue = plannedBinding && [
-    ["memory", plannedBinding.allocation?.memory_bytes],
-    ["storage", plannedBinding.allocation?.storage_bytes],
-    ["cpu", plannedBinding.allocation?.cpu_units],
-    ["timers", plannedBinding.allocation?.timers],
-    ["transports", plannedBinding.allocation?.transports],
-    ["checkpoints", plannedBinding.allocation?.checkpoints],
-    ["evidence", plannedBinding.allocation?.evidence_bytes],
-  ].map(([label, value]) => `${label}=${value ?? 0}`).join(", ");
-  const plannedFacts = plannedBinding ? [
-    { label: "planned instance", value: plannedBinding.instance },
-    { label: "source origin", value: logicalOrigin || plannedBinding.logical_origin },
-    compositeProvenance.length > 0 && {
-      label: "composite provenance",
-      value: compositeProvenance.join(" → "),
-    },
-    {
-      label: "semantic contract",
-      value: `${plannedBinding.contract_id} · ${plannedBinding.contract_identity}`,
-    },
-    {
-      label: "implementation",
-      value: `${plannedBinding.implementation_id} · ${plannedBinding.implementation_identity}`,
-    },
-    {
-      label: "lifecycle policy",
-      value: `${plannedBinding.lifecycle_policy_id} · ${plannedBinding.lifecycle_policy_identity}`,
-    },
-    {
-      label: "artifact",
-      value: `${plannedBinding.artifact_id} · ${plannedBinding.artifact_digest}`,
-    },
-    { label: "host", value: plannedBinding.host_id },
-    {
-      label: "host observation",
-      value: `${plannedBinding.host_observation_id} · ` +
-        `${plannedBinding.host_observation_identity}; ` +
-        `${plannedBinding.host_observation_time_basis} ` +
-        `${plannedBinding.host_observed_at_tick}–${plannedBinding.host_valid_until_tick}; ` +
-        `${plannedBinding.host_observation_status}`,
-    },
-    {
-      label: "availability",
-      value: `${plannedBinding.availability_state} · ${plannedBinding.reason_code}`,
-    },
-    { label: "allocation", value: budgetValue },
-    ...(plannedBinding.resources || []).map((resource) => ({
-      label: "resource",
-      value: `${resource.resource_kind}/${resource.resource_id} · ` +
-        `${resource.binding_id} · observation ${resource.host_observation_id}` +
-        (resource.lease_id ? ` · lease ${resource.lease_id}` : ""),
-    })),
-    ...(plannedBinding.authorities || []).map((authority) => ({
-      label: "authority",
-      value: `${authority.action} ${authority.resource_kind}` +
-        (authority.resource_id ? `/${authority.resource_id}` : "") +
-        ` · grant ${authority.grant_id} · capability ${authority.capability_id}` +
-        (authority.check_at_use ? " · checked at use" : ""),
-    })),
-  ].filter(Boolean) : [];
-  const semanticPromiseFacts = !plannedBinding ? [
-    {
-      label: "semantic contract",
-      value: contractIdentity ? `${kind} · ${contractIdentity}` : `${kind} · source-owned boundary`,
-    },
-    {
-      label: "semantic effects",
-      value: semanticEffects.length > 0 ? semanticEffects.join(", ") : "none declared",
-    },
-    ...[...inputs, ...outputs].map((port) => ({
-      label: `${port.direction} ${port.id}`,
-      value: `${port.delivery}; ${port.temporal}; ${port.terminal}; ` +
-        `${port.values}; ${port.presence}; ${port.loss_acceptance}`,
-    })),
-  ] : [];
   const anchorRows = diagnosticAnchors.map((anchor) =>
     e("div", {
       key: anchor.id,
@@ -336,85 +242,44 @@ export function FaceplateNodeComponent({ data, id }) {
     tabIndex: 0,
     role: "region",
     "aria-label": [
-      `Component faceplate ${title}`,
+      `Compact component faceplate ${title}; select for details`,
       validity !== "valid" ? `${validity}; ${diagnosticIds.length} diagnostics` : "",
     ].filter(Boolean).join(", "),
   },
     e("div", { className: "faceplate-header faceplate-compartment" },
+      e("span", { className: "faceplate-kind-glyph", "aria-hidden": "true" }, "◇"),
       e("strong", { className: "node-title" }, title),
       e("div", { className: "faceplate-header-actions" },
         isComposite && e("span", { className: "badge composite-badge" }, "public"),
-        e("button", {
+        isComposite && e("button", {
           className: "btn-icon nodrag",
-          title: expanded ? "Collapse Faceplate" : "Expand Faceplate",
-          "aria-expanded": String(expanded),
-          onClick: () => {
-            setExpanded(!expanded);
-            onCollapseChange?.(id, expanded);
-          },
-        }, expanded ? "−" : "+"),
+          title: `Open ${title} inside`,
+          "aria-label": `Open ${title} inside`,
+          onClick: () => onOpenNested?.(id, kind),
+        }, "↳"),
       ),
     ),
     e("div", { className: "faceplate-type-compartment faceplate-compartment" },
       e("code", { className: "kind-tag" }, kind),
-      plannedBinding && e("span", { className: "badge" }, "read-only plan"),
       validity !== "valid" && e(
         "span",
         { className: `badge faceplate-validity-badge validity-${validity}` },
         validity,
       ),
     ),
-    expanded && semanticPromiseFacts.length > 0 && e("div", {
-      className: "faceplate-status-compartment faceplate-compartment semantic-promise-compartment",
-      "aria-label": "Semantic promises",
-    },
-      ...semanticPromiseFacts.map((fact, index) =>
-        e("div", {
-          key: `${fact.label}-${index}`,
-          className: "faceplate-status-row",
-        },
-          e("span", { className: "faceplate-status-label" }, fact.label),
-          e("code", { className: "planned-realization-value" }, fact.value),
-        )
-      ),
-    ),
-    expanded && configRows.length > 0 && e("div", {
-      className: "faceplate-members-compartment faceplate-config-compartment",
-      "aria-label": "Configuration values",
-    }, configRows),
+    e("ul", {
+      className: "faceplate-clues",
+      "aria-label": plannedBinding ? "Compact exact realization clues" : "Compact semantic clues",
+    }, compactClues.map((clue) => e("li", {
+      key: clue.id,
+      className: `faceplate-clue clue-${clue.id}`,
+      title: clue.label,
+      "aria-label": clue.label,
+      "data-clue": clue.id,
+    }, e("span", { "aria-hidden": "true" }, clue.glyph)))),
     e("div", {
       className: "faceplate-members-compartment faceplate-port-compartment",
       "aria-label": "Declared ports",
     }, [...portRows, ...anchorRows]),
-    expanded && plannedFacts.length > 0 && e("div", {
-      className: "faceplate-status-compartment faceplate-compartment planned-realization-compartment",
-      "aria-label": "Exact planned realization",
-    },
-      ...plannedFacts.map((fact, index) =>
-        e("div", {
-          key: `${fact.label}-${index}`,
-          className: "faceplate-status-row planned-realization-row",
-        },
-          e("span", { className: "faceplate-status-label" }, fact.label),
-          e("code", { className: "planned-realization-value" }, fact.value),
-        )
-      ),
-    ),
-    expanded && statusFacts.length > 0 && e("div", {
-      className: "faceplate-status-compartment faceplate-compartment",
-      "aria-label": "Component status",
-    },
-      ...statusFacts.map((fact) =>
-        e("div", { key: `${fact.label}-${fact.value}`, className: "faceplate-status-row" },
-          e("span", { className: "faceplate-status-label" }, fact.label),
-          e("span", { className: "badge availability-tag", title: fact.title }, fact.value),
-        )
-      ),
-      isComposite && e("button", {
-        className: "btn small secondary nodrag faceplate-inspect-action",
-        onClick: () => onOpenNested?.(id, kind),
-        "aria-label": `Open ${title} inside`,
-      }, "Inside"),
-    ),
   );
 }
