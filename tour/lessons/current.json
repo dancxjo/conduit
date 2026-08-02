@@ -3882,7 +3882,7 @@
       },
       "validation": {"kind":"watch","value":"conduit.net/service-registration"},
       "hints": [
-        "Describe-only inventory has no provider observation and cannot start the fixture or a radio.",
+        "A describe-only report has no current provider observation and cannot start the reference implementation or a radio.",
         "The ninth DHCP client, stale registration, wrong boot/device, ICMP overflow, port or mDNS conflict, cancellation, reboot and provider loss each have distinct bounded outcomes.",
         "No network value can become a Create UART handle, possession lease, safety grant or motor authority."
       ],
@@ -3907,7 +3907,7 @@
           {"id":"net/reachability","kind":"node","inputs":["registration:conduit.net/service-registration"],"outputs":["observation:conduit.net/reachability-observation"],"policy":"local-only bounded non-authority observation"}
         ],
         "editable": ["maximum_clients:8","maximum_packet_bytes:1500","maximum_packets_per_window:4","ttl_ticks:1..120000","cancellation:cancel-before-commit"],
-        "provider": "deterministic no-radio fixture with no network authority; physical Pico W availability requires a separate fresh initialized-provider observation and executor-supplied exact effect binding",
+        "provider": "deterministic no-radio reference implementation with no network authority; physical Pico W availability requires a separate fresh initialized-provider observation and executor-supplied exact effect binding",
         "profile": "browser-dedicated-worker",
         "expected_evidence": [
           "contract, implementation, artifact, compiled inventory, current observation and exact binding remain distinct",

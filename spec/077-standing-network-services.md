@@ -10,7 +10,7 @@ and reusable standing link, packet, route, session, service-state, and
 observation contracts. `conduit-socket` owns OS TCP/UDP effects;
 `conduit-http` owns HTTP, SSE, and WebSocket semantics. NetworkManager,
 netlink, kernel packet paths, browser APIs, embedded stacks, deterministic
-fixtures, and appliance providers implement compatible subsets; none defines
+reference implementations, and appliance providers implement compatible subsets; none defines
 the graph language.
 
 This specification does not require a new TCP/IP, Wi-Fi, DHCP, DNS, routing,
@@ -65,7 +65,7 @@ The checked deterministic sources use one packet or observation per step,
 1,500-byte packets, one exact timer interest, finite one-value current state,
 16 routes, eight concurrent sessions, and 64 retained evidence events. Cords
 remain independently bounded by their plan-pinned item and byte capacities.
-Those fixture values are not universal network limits.
+Those reference-profile bounds are not universal network limits.
 
 ## Current standing panels
 
@@ -89,7 +89,7 @@ Those fixture values are not universal network limits.
   rejected, cancelled, and provider-lost outcomes distinct.
 - `net/stream/source` and `net/stream/sink` preserve byte offsets, EOF,
   half-close, and pressure without inventing datagram boundaries.
-- `net/session/listen` accepts repeated bounded fixture sessions from one
+- `net/session/listen` accepts repeated bounded reference sessions from one
   long-lived node and publishes session, control-event, and finite session
   table values.
 - `net/observe/meter` is an executable meter with explicit input pressure and
@@ -106,7 +106,7 @@ timer wakes, preserve one immutable plan identity, handle repeated runtime
 values without topology growth, and end only through explicit lifecycle
 control.
 
-The displaced finite text fixtures now have one standing typed form. The
+The displaced finite text demonstrations now have one standing typed form. The
 checked isolated-local chain is `net/wifi/access-point` link/address readiness
 to `net/dhcp/server` lease state, then `net/dns-sd` service registration and
 `net/reachability` scoped observation. Repeated values cross the same four
@@ -134,7 +134,7 @@ retain the finite generation and expiry rules in
 Semantic source may request behavior and finite bounds. It cannot author a
 resource, grant, provider observation, initialized interface, authenticated
 peer, membership, Internet reachability, or effect authority. The checked
-standing fixtures require no authorities because they perform no host network
+standing reference implementations require no authorities because they perform no host network
 I/O. That absence is not evidence that a physical provider needs no grant.
 
 Use-time physical effects remain subject to the exact #212 resource/grant
@@ -152,8 +152,11 @@ Its presence in source therefore authors a request but cannot establish
 availability, host state, grant validity, use-time authority, or an effect.
 The displaced generic text-shaped `net/*` catalog entries have been removed.
 
-The deterministic router has a second portable userspace implementation
-identity to prove provider substitution without ambient route mutation.
+The deterministic router has a second source-attested native userspace
+implementation identity to prove provider substitution without ambient route
+mutation. It is installed through the generic implementation-manifest path and
+is selectable only when an independent fresh host snapshot reports its exact
+linked-code capability. Installation alone is insufficient.
 Linux socket/HTTP providers remain owned by `conduit-socket` and
 `conduit-http`; Pico W overlap remains the bounded AP/DHCP/reachability/DNS-SD
 provider contract from #144. Missing physical facts remain contract-only or

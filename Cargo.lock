@@ -530,6 +530,7 @@ dependencies = [
 name = "conduit-net"
 version = "0.0.0-dev"
 dependencies = [
+ "conduit-compile",
  "conduit-core",
  "conduit-panel",
  "conduit-runtime",

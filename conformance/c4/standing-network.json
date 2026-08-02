@@ -71,7 +71,7 @@
   ],
   "provider_matrix": [
     {"contract":"net/packet/route","provider":"conduit.net/packet-router-reference","class":"deterministic","state":"supported"},
-    {"contract":"net/packet/route","provider":"conduit.net/portable-route-table","class":"portable-userspace","state":"supported"},
+    {"contract":"net/packet/route","provider":"conduit.net/native-userspace-route-table","class":"native-host","state":"requires-fresh-host-capability"},
     {"contract":"conduit.host/net/tcp/listen","provider":"conduit/socket-linux-loopback","class":"linux","state":"explicit-install-only"},
     {"contract":"net/http/serve","provider":"conduit/http-linux-listener","class":"linux","state":"explicit-binding-and-authority"},
     {"contract":"net/wifi/access-point","provider":"netherwick/pico-w","class":"embedded","state":"requires-current-cyw43-observation-and-grant"},
