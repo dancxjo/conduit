@@ -113,6 +113,8 @@ its first failure, and must finish inside the workflow's suite and job bounds.
 For the same path locally, run `npm ci` followed by
 `npm run test:browser:local`.
 
-The Pages workflow downloads the successful `main` CI artifact instead of
-checking out or rebuilding it. A `v*` tag publishes the same tested archive
-and checksum as an attested GitHub release artifact.
+After every successful `main` run, the CI Pages jobs download that exact
+commit-named artifact instead of checking out or rebuilding it, deploy its
+assembled site, and verify the live `BUILD_COMMIT` matches the triggering
+commit. A `v*` tag publishes the same tested archive and checksum as an
+attested GitHub release artifact.
