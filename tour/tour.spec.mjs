@@ -1565,7 +1565,7 @@ test("clears the previous diagram before redrawing a lesson that fails resolutio
 });
 
 test("styles cords from their projected type and pressure policy", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const edge = page.locator(".patchbay-cord").first();
   await expect(edge).toHaveClass(/pressure-block/);
   await expect(edge).toHaveClass(/pressure-lossless/);
