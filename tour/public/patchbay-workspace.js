@@ -322,6 +322,14 @@ export class PatchbayWorkspaceController {
     });
   }
 
+  notifyRendererResize() {
+    requestAnimationFrame(() => {
+      this.notifyingResize = true;
+      this.renderer?.notifyResize?.();
+      this.notifyingResize = false;
+    });
+  }
+
   async enter() {
     if (this.active) return;
     this.savedFocus = document.activeElement;
@@ -387,7 +395,7 @@ export class PatchbayWorkspaceController {
     this.applyWindowState();
     this.applyConsoleWindowState();
     this.recoverBounds();
-    this.restoreViewport();
+    this.renderer?.fitViewport?.();
     this.fullscreenButton.focus({ preventScroll: true });
     this.canvasCard.dispatchEvent(new CustomEvent("patchbayworkspacechange", {
       detail: { active: true, nativeFullscreen },
@@ -396,7 +404,6 @@ export class PatchbayWorkspaceController {
 
   async exit() {
     if (!this.active) return;
-    this.captureViewport();
     if (this.nativeFullscreen && document.fullscreenElement) {
       try {
         await document.exitFullscreen();
@@ -663,7 +670,7 @@ export class PatchbayWorkspaceController {
     );
     this.persistState();
     this.applyWindowState();
-    this.restoreViewport();
+    this.notifyRendererResize();
   }
 
   startDrag(event) {

@@ -2392,13 +2392,16 @@ test("typed text lesson exposes format topology and ordered evidence", async ({ 
   await expect(timelinePosition).not.toHaveText(steppedPosition);
 });
 
-test("typed text lesson distinguishes composition rejection and cancellation", async ({ page }) => {
+test("typed text lesson runs exact composition", async ({ page }) => {
   const { result } = await openTypedTextLesson(page);
   await page.locator("#scenario").selectOption("composition");
   await page.locator("#run").click();
   await expect(result).toContainText("HELLO, OPERATOR.", { timeout: 20_000 });
   await expect(page.locator('[data-id="shout"]')).toContainText("text/uppercase");
+});
 
+test("typed text lesson projects missing-value rejection", async ({ page }) => {
+  const { result } = await openTypedTextLesson(page);
   await page.locator("#scenario").selectOption("missing-value");
   await page.locator("#run").click();
   await expect(result).toContainText("format/missing-value", { timeout: 20_000 });
@@ -2406,7 +2409,10 @@ test("typed text lesson distinguishes composition rejection and cancellation", a
   await expect(page.locator("#timeline-values")).toContainText(
     "Exact run rejection: format/missing-value",
   );
+});
 
+test("typed text lesson projects cancellation", async ({ page }) => {
+  const { result } = await openTypedTextLesson(page);
   await page.locator("#scenario").selectOption("cancelled");
   await page.locator("#run").click();
   await expect(result).toContainText("cancelled", { timeout: 20_000 });
