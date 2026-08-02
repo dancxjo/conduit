@@ -818,6 +818,7 @@ test("toggles an admitted Watch with W from non-editing focus", async ({ page })
 
 test("keeps the active Watch epoch exact across candidate edits and stop", async ({ page }) => {
   const failures = collectPageFailures(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const { browserPlan, first } = await startTinyInstrument(page);
   const activeValueBeforeEdit = parseWatchTick(
     await page.locator("#watch-value").textContent(),
@@ -863,6 +864,7 @@ test("keeps the active Watch epoch exact across candidate edits and stop", async
 test("keeps live textual instrumentation truthful when the topology renderer is unavailable", async ({
   page,
 }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.addInitScript(() => {
     window.__CONDUIT_DISABLE_PATCHBAY_RENDERER__ = true;
   });
