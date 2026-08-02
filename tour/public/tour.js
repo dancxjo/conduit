@@ -228,6 +228,7 @@ if (hostReport.ok === false) {
 
 let current = lessons.lessons.find((lesson) => lesson.id === "book.origin-hidden-program")
   || lessons.lessons[0];
+let pendingSourceEditFrame = null;
 let acceptedSource = "";
 let selectedNode = null;
 let selectedCord = null;
@@ -2049,6 +2050,10 @@ async function stopExactSession(cause, message) {
 }
 
 function show(lesson) {
+  if (pendingSourceEditFrame !== null) {
+    cancelAnimationFrame(pendingSourceEditFrame);
+    pendingSourceEditFrame = null;
+  }
   void stopExactSession("lesson-changed");
   resetWatchPresentation();
   current = lesson;
@@ -2309,8 +2314,29 @@ function renderTopology() {
 
 source.addEventListener("input", () => {
   localStorage.setItem(draftKey(current.id), source.value);
-  applyPatchbayOperations([{ ReplaceSource: { source: source.value } }]);
-  check();
+  // Browser editing APIs may deliver one logical replacement as a burst of
+  // input events. Fail closed immediately, then resolve only the newest value
+  // once the browser has finished that frame instead of manufacturing an
+  // intermediate plan and lesson-check record for every chunk.
+  runButton.disabled = true;
+  const lessonId = current.id;
+  const sourceValue = source.value;
+  if (pendingSourceEditFrame !== null) {
+    cancelAnimationFrame(pendingSourceEditFrame);
+  }
+  pendingSourceEditFrame = requestAnimationFrame(() => {
+    pendingSourceEditFrame = null;
+    if (current.id !== lessonId || source.value !== sourceValue) return;
+    const transaction = applyPatchbayOperations(
+      [{ ReplaceSource: { source: sourceValue } }],
+      { skipRender: true },
+    );
+    if (!transaction.ok) {
+      runButton.disabled = true;
+      return;
+    }
+    check();
+  });
 });
 
 scenarioSelect?.addEventListener("change", () => {

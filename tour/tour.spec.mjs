@@ -575,7 +575,7 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
     "Audio remains off",
   );
   await expect(page.locator("#console-status-badge")).toHaveText("Live");
-  await expect(page.locator("#result")).toContainText("Live exact run remains waiting");
+  await expect(page.locator("#result")).toContainText("Run remains waiting");
   const first = await page.locator("#watch-accounting").evaluate((element) =>
     JSON.parse(element.textContent)
   );
