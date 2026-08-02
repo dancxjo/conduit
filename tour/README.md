@@ -110,12 +110,13 @@ not source files: `bash tour/build-artifact.sh` creates them under
 and emits a deterministic release archive plus checksum under
 `target/tour-dist`.
 
-The three Playwright engine jobs download one commit-named CI artifact and
-serve its assembled site as an overlay on the source-owned test harness. Each
-engine keeps one worker, has no retries or per-test timeout overrides, stops at
-its first failure, and must finish inside the workflow's suite and job bounds.
-For the same path locally, run `npm ci` followed by
-`npm run test:browser:local`.
+The Playwright engine jobs download one commit-named CI artifact and serve its
+assembled site as an overlay on the source-owned test harness. Each engine
+keeps one worker, has no retries or spec-level timeout overrides, stops at its
+first failure, and must finish inside the workflow's suite and job bounds. The
+Firefox live-Watch detach proof runs alone with a larger configured shard bound;
+the three ordinary Firefox shards exclude it. For the same path locally, run
+`npm ci` followed by `npm run test:browser:local`.
 
 After every successful `main` run, the CI Pages jobs download that exact
 commit-named artifact instead of checking out or rebuilding it, deploy its

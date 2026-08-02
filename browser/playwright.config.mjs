@@ -4,6 +4,14 @@ const port = process.env.CONDUIT_PLAYWRIGHT_PORT ?? "4173";
 const baseURL = `http://127.0.0.1:${port}`;
 const shard = process.env.CONDUIT_PLAYWRIGHT_SHARD ?? "1/1";
 const shardCount = Number.parseInt(shard.split("/")[1] ?? "1", 10);
+const testTimeoutMs = Number.parseInt(
+  process.env.CONDUIT_PLAYWRIGHT_TEST_TIMEOUT_MS ?? "30000",
+  10,
+);
+
+if (!Number.isSafeInteger(testTimeoutMs) || testTimeoutMs <= 0) {
+  throw new Error("CONDUIT_PLAYWRIGHT_TEST_TIMEOUT_MS must be a positive integer");
+}
 
 export default defineConfig({
   testDir: "..",
@@ -21,7 +29,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   maxFailures: process.env.CI ? 1 : undefined,
-  timeout: 30_000,
+  timeout: testTimeoutMs,
   reporter: process.env.CI
     ? [["line"], ["blob", {
       outputDir: process.env.PLAYWRIGHT_BLOB_OUTPUT_DIR ?? "blob-report",

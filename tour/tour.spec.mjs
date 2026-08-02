@@ -762,7 +762,9 @@ test("resumes a frozen live Watch presentation without pressuring execution", as
   expect(failures).toEqual([]);
 });
 
-test("detaches a live Watch without pressuring execution", async ({ page }) => {
+test("detaches a live Watch without pressuring execution", {
+  tag: "@firefox-watch-detach",
+}, async ({ page }) => {
   const failures = collectPageFailures(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await openTinyInstrument(page);

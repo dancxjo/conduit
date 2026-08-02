@@ -21,8 +21,8 @@ for (const root of roots) {
 
 if (violations.length > 0) {
   throw new Error(
-    `Browser tests must stay inside the configured 30 second bound:\n${violations.join("\n")}`,
+    `Browser tests must stay inside their configured shard bound:\n${violations.join("\n")}`,
   );
 }
 
-console.log("Browser tests use the one configured 30 second bound.");
+console.log("Browser specs use configured shard bounds without per-test overrides.");
