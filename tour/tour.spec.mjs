@@ -1683,13 +1683,13 @@ test("retains committed topology positions across Check and Run renders", async 
 });
 
 test("restores committed topology positions across lesson visits and reload", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const greeting = page.locator('[data-id="greeting"]');
   const output = page.locator('[data-id="output"]');
   const committedTransform = await dragAndCommitTopologyNode(page, greeting, 96, 48);
   const committedOutputTransform = await dragAndCommitTopologyNode(page, output, -72, 40);
-  await page.goto("/tour/public/index.html?lesson=panels.inside-outside");
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.inside-outside");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   await expect.poll(
     async () => greeting.evaluate((element) => element.style.transform),
   ).toBe(committedTransform);
@@ -1698,6 +1698,11 @@ test("restores committed topology positions across lesson visits and reload", as
   ).toBe(committedOutputTransform);
 
   await page.reload();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-tour-ready",
+    "true",
+    { timeout: 20_000 },
+  );
   await expect.poll(
     async () => greeting.evaluate((element) => element.style.transform),
   ).toBe(committedTransform);
