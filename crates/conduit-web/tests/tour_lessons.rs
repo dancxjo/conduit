@@ -7,7 +7,10 @@ use conduit_runtime::{
     CompiledInHostService, Handler, Registry, RegistryError, RunIo, RuntimeError,
     Value as RuntimeValue,
 };
-use conduit_web::{cancel_panel, run_panel};
+use conduit_web::{
+    cancel_panel, patchbay_open_session, patchbay_pump_exact_run, patchbay_start_exact_run,
+    run_panel,
+};
 use serde_json::Value;
 
 fn assert_current_panel_source(id: &str, source: &str) {
@@ -18,6 +21,70 @@ fn assert_current_panel_source(id: &str, source: &str) {
         conduit_panel::SOURCE_AST_SCHEMA_VERSION,
         "{id} must teach the current Panel grammar"
     );
+}
+
+fn browser_response_bytes(response: &str) -> usize {
+    let value: Value = serde_json::from_str(response).expect("browser response is valid JSON");
+    serde_json::to_vec(&serde_json::json!({
+        "id": 1,
+        "ok": true,
+        "value": value,
+    }))
+    .expect("browser response envelope serializes")
+    .len()
+}
+
+#[test]
+fn cumulative_instrument_views_fit_the_explicit_browser_message_bound() {
+    let browser_plan: Value =
+        serde_json::from_str(include_str!("../../../tour/browser-plan-contract.json"))
+            .expect("Tour browser plan contract is valid JSON");
+    let maximum_message_bytes = browser_plan["bounds"]["maximum_message_bytes"]
+        .as_u64()
+        .expect("browser plan bounds message bytes") as usize;
+    let session_id = "test/cumulative-instrument-message-bound";
+    let source = include_str!("../../../examples/living-instrument.panel");
+
+    let opened = patchbay_open_session(session_id.to_owned(), source.to_owned());
+    assert!(
+        browser_response_bytes(&opened) <= maximum_message_bytes,
+        "the exact semantic and candidate-plan view fits the worker response bound"
+    );
+
+    let started = patchbay_start_exact_run(session_id.to_owned());
+    assert!(
+        browser_response_bytes(&started) <= maximum_message_bytes,
+        "the exact active-plan view fits the worker response bound"
+    );
+    let started_value: Value = serde_json::from_str(&started).expect("start response JSON");
+    assert_eq!(started_value["ok"], true);
+
+    for _ in 0..8 {
+        let pumped = patchbay_pump_exact_run(
+            session_id.to_owned(),
+            started_value["run_id"]
+                .as_str()
+                .expect("run identity")
+                .to_owned(),
+            started_value["source_revision"]
+                .as_u64()
+                .expect("source revision"),
+            started_value["plan_identity"]
+                .as_str()
+                .expect("plan identity")
+                .to_owned(),
+            32,
+        );
+        assert!(
+            browser_response_bytes(&pumped) <= maximum_message_bytes,
+            "every bounded exact-run pump view fits the worker response bound"
+        );
+        let pumped_value: Value = serde_json::from_str(&pumped).expect("pump response JSON");
+        assert_eq!(pumped_value["ok"], true);
+        if pumped_value["state"] != "active" {
+            break;
+        }
+    }
 }
 
 #[test]

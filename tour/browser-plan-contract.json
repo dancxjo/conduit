@@ -1,7 +1,7 @@
 {
   "bounds": {
     "maximum_evidence_events": 64,
-    "maximum_message_bytes": 131072,
+    "maximum_message_bytes": 262144,
     "maximum_pending": 1,
     "maximum_runtime_ticks": 512,
     "maximum_scheduler_events": 256,
