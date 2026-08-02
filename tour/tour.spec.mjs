@@ -57,7 +57,7 @@ async function startTinyInstrument(page) {
 }
 
 async function openTypedTextLesson(page) {
-  await page.goto("/tour/public/index.html?lesson=library.typed-text-format");
+  await gotoTour(page, "/tour/public/index.html?lesson=library.typed-text-format");
   const story = page.locator("#execution-story");
   await expect(story).toBeVisible();
   return {
@@ -2072,7 +2072,9 @@ test("navigates incomplete source and diagnostics in fullscreen with reduced mot
   )).toBe(true);
   await page.locator("#workspace-hide-editor").click();
   await page.locator("#workspace-hide-console").click();
-  await page.locator('[data-id="first"]').click();
+  await page.locator(
+    '[data-id="first"] .conduit-faceplate-card',
+  ).click();
   await page.locator("#workspace-show-editor").click();
   await expect(page.locator(".panel-source-selection")).toContainText(
     "node first",

@@ -655,7 +655,7 @@ textarea#source::placeholder {
   padding: 0.75rem;
   display: grid;
   grid-template-rows:
-    auto auto auto auto minmax(12rem, 1fr) auto minmax(0, 7.5rem);
+    auto auto auto auto auto minmax(12rem, 1fr) auto minmax(0, 7.5rem) auto;
   gap: 0.5rem;
   background: var(--bg-dark);
   animation: patchbay-workspace-enter var(--patchbay-workspace-fullscreen)
