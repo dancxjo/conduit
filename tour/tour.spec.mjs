@@ -2503,12 +2503,21 @@ test("routes cords through free space by default and keeps labels off node faces
     .poll(async () => edge.locator(".react-flow__edge-path").getAttribute("d"))
     .not.toBe("");
 
-  await expect.poll(async () => edge.evaluate((edgeElement, clearance) => {
+  const crossesOtherNode = async () => edge.evaluate((edgeElement, clearance) => {
     const path = edgeElement.querySelector(".react-flow__edge-path");
     if (!path) return false;
-    const totalLength = path.getTotalLength();
-    if (!Number.isFinite(totalLength) || totalLength <= 0) return false;
-    const sampleCount = 240;
+    const coordinates = (path.getAttribute("d")?.match(/-?\d+(?:\.\d+)?/g) || [])
+      .map(Number);
+    if (coordinates.length < 4 || coordinates.length % 2 !== 0) return false;
+    const matrix = path.getScreenCTM();
+    if (!matrix) return false;
+    const points = [];
+    for (let index = 0; index < coordinates.length; index += 2) {
+      points.push(new DOMPoint(
+        coordinates[index],
+        coordinates[index + 1],
+      ).matrixTransform(matrix));
+    }
     const nodes = Array.from(document.querySelectorAll(".react-flow__node"))
       .map((node) => {
         const bounds = node.getBoundingClientRect();
@@ -2524,27 +2533,26 @@ test("routes cords through free space by default and keeps labels off node faces
       path.dataset.sourceNode,
       path.dataset.targetNode,
     ]);
-    for (let index = 0; index <= sampleCount; index += 1) {
-      const ratio = index / sampleCount;
-      // A cord necessarily leaves its source faceplate and enters its target
-      // faceplate. Its routed interior must remain in free space around every
-      // other node, independent of route length or viewport scale.
-      if (ratio < 0.03 || ratio > 0.97) continue;
-      const point = path.getPointAtLength(totalLength * ratio);
-      const screenPoint = point.matrixTransform(path.getScreenCTM());
-      const hits = nodes.some(({ id, ...bounds }) =>
-        !endpointNodeIds.has(id) &&
-        screenPoint.x > bounds.left &&
-        screenPoint.x < bounds.right &&
-        screenPoint.y > bounds.top &&
-        screenPoint.y < bounds.bottom,
-      );
-      if (hits) {
+    return points.slice(1).some((to, index) => {
+      const from = points[index];
+      return nodes.some(({ id, ...bounds }) => {
+        if (endpointNodeIds.has(id)) return false;
+        if (Math.abs(from.x - to.x) < 0.01) {
+          return from.x > bounds.left && from.x < bounds.right &&
+            Math.max(from.y, to.y) > bounds.top &&
+            Math.min(from.y, to.y) < bounds.bottom;
+        }
+        if (Math.abs(from.y - to.y) < 0.01) {
+          return from.y > bounds.top && from.y < bounds.bottom &&
+            Math.max(from.x, to.x) > bounds.left &&
+            Math.min(from.x, to.x) < bounds.right;
+        }
         return true;
-      }
-    }
-    return false;
-  }, 12)).toBe(false);
+      });
+    });
+  }, 12);
+
+  await expect.poll(crossesOtherNode).toBe(false);
 
   await expect.poll(async () => edge.evaluate((edgeElement, clearance) => {
     const label = edgeElement.querySelector(".react-flow__edge-textbg");
@@ -2560,47 +2568,7 @@ test("routes cords through free space by default and keeps labels off node faces
   }, 6)).toBe(false);
 
   await dragNodeTo("transform", 80, 70);
-  await expect.poll(async () => {
-    return edge.evaluate((edgeElement, clearance) => {
-      const path = edgeElement.querySelector(".react-flow__edge-path");
-      if (!path) return false;
-      const totalLength = path.getTotalLength();
-      if (!Number.isFinite(totalLength) || totalLength <= 0) return false;
-      const sampleCount = 280;
-      const nodes = Array.from(document.querySelectorAll(".react-flow__node"))
-        .map((node) => {
-          const bounds = node.getBoundingClientRect();
-          return {
-            id: node.dataset.id,
-            left: bounds.left - clearance,
-            right: bounds.right + clearance,
-            top: bounds.top - clearance,
-            bottom: bounds.bottom + clearance,
-          };
-        });
-      const endpointNodeIds = new Set([
-        path.dataset.sourceNode,
-        path.dataset.targetNode,
-      ]);
-      for (let index = 0; index <= sampleCount; index += 1) {
-        const ratio = index / sampleCount;
-        if (ratio < 0.03 || ratio > 0.97) continue;
-        const point = path.getPointAtLength(totalLength * ratio);
-        const screenPoint = point.matrixTransform(path.getScreenCTM());
-        const hits = nodes.some(({ id, ...bounds }) =>
-          !endpointNodeIds.has(id) &&
-          screenPoint.x > bounds.left &&
-          screenPoint.x < bounds.right &&
-          screenPoint.y > bounds.top &&
-          screenPoint.y < bounds.bottom,
-        );
-        if (hits) {
-          return true;
-        }
-      }
-      return false;
-    }, 12);
-  }).toBe(false);
+  await expect.poll(crossesOtherNode).toBe(false);
 });
 
 test("filesystem reference panels use the explicit bounded browser provider", async ({ page }) => {
