@@ -1270,9 +1270,11 @@ fn bounded_brainstem_network_lesson_keeps_observation_and_robot_authority_separa
         contracts,
         [
             "net/dhcp/server",
+            "net/dns/local-authority",
             "net/dns-sd",
             "net/reachability",
             "net/wifi/access-point",
+            "net/address/tee",
         ]
         .into_iter()
         .collect()

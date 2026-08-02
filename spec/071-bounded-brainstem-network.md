@@ -4,8 +4,8 @@ Issue: #144. Parent: #133. Physical equivalence: #142.
 
 ## Ownership
 
-`conduit-net` owns reusable Wi-Fi access-point, DHCP-server, ICMP
-reachability, and DNS-SD contracts. `conduit-socket` continues to own TCP and
+`conduit-net` owns reusable Wi-Fi access-point, DHCP-server, bounded local DNS
+authority, ICMP reachability, and DNS-SD contracts. `conduit-socket` continues to own TCP and
 UDP. `conduit-http` continues to own HTTP, SSE, and WebSocket. Netherwick owns
 the `motherbrain.pete.internal` composition and all Create UART, stop,
 watchdog, reflex, possession, service, safety, and motor authority.
@@ -37,16 +37,17 @@ fresh current CYW43/AP observation. Loss or expiry changes availability and
 terminates an active bounded run; it never rewrites source, contract, plan, or
 prior evidence.
 
-The checked deterministic providers are explicitly fixtures and open no radio
-or socket. A physical adapter must use the enforced effect backend and must
+The checked reference providers are deterministic no-radio implementations;
+they open no interface or socket and claim no physical effect. A physical
+adapter must use the enforced effect backend and must
 recheck the exact binding, live provider observation, resource, grant/lease,
 and cancellation state at use. A handler may not manufacture initialization,
 freshness, permission, possession, service, safety, or motor facts.
 
 Panel source may request only the contract's bounded behavior and semantic
 limits. It must not name a resource, grant, concrete interface, provider
-observation, device, boot, lease, or authority. The deterministic no-radio
-fixture therefore has no network authority at all. A physical adapter remains
+observation, device, boot, lease, or authority. A deterministic no-radio
+implementation therefore has no network authority at all. A physical adapter remains
 unavailable until the exact executor supplies and validates its resource,
 interface, grant, lease, and fresh CYW43 binding; missing or revoked bindings
 fail before I/O, including when a handler is invoked directly.
