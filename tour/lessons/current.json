@@ -4000,6 +4000,178 @@
       }
     },
     {
+      "id": "library.bounded-control-composites",
+      "chapter": 4,
+      "title": "Ask once; act with bounded cancellation",
+      "prerequisites": [
+        "library.bounded-supervision",
+        "library.contract-package-imports"
+      ],
+      "objective": "Distinguish correlated request/reply from an admitted long-running action, then inspect rejection, feedback pressure, cancellation, deadline, provider loss, and handoff without inventing RPC or authority.",
+      "prose": "Request/reply has one correlated typed outcome. A cancellable action first separates queued work from admission, then emits non-authoritative bounded feedback before one typed terminal result. The goal is data rather than authority: admission, workload, placement, cleanup, inhibit, deadline, retry, and transition facts are exact plan inputs. The browser presents the exact Rust-owned projection field contract and rejects execution because no specialized action provider was observed; the ordered timelines come from deterministic reference evidence rather than a teaching-only panel.",
+      "vocabulary": [
+        "subject identity",
+        "attempt identity",
+        "correlation identity",
+        "idempotency identity",
+        "pre-work rejection",
+        "non-authoritative feedback",
+        "causal cancellation"
+      ],
+      "source": "panel 0\n\n# Meaning imports without a selected provider, authority, or hidden runtime.\nimport conduit.std/control/{cancellable-action as action}\n\ngoal: action\n",
+      "command": "conduct --check examples/control-cancellable-action.panel",
+      "commands": [
+        "conduct --check examples/control-request-reply.panel",
+        "conduct --check examples/control-cancellable-action.panel",
+        "conduct --check examples/control-compose.panel",
+        "cargo test -p conduit-std --test control"
+      ],
+      "expected_diagnostic": "CND-IMP-001",
+      "profile": "browser-dedicated-worker",
+      "budgets": {
+        "runtime_ticks": 16,
+        "queue_bytes": 512,
+        "evidence_events": 32
+      },
+      "presentation": {
+        "layout": "bounded-control-story",
+        "show_plan": true,
+        "timeline": "accessible-textual-evidence-projection",
+        "patchbay_fields": [
+          "source_semantic_hash",
+          "plan_identity",
+          "plan_epoch",
+          "run_id",
+          "evidence_stream_id",
+          "evidence_cursor",
+          "composite_contract_id",
+          "request_type",
+          "reply_type",
+          "domain_error_type",
+          "goal_type",
+          "feedback_type",
+          "result_type",
+          "domain_failure_type",
+          "subject",
+          "attempt",
+          "correlation",
+          "idempotency",
+          "state",
+          "terminal_outcome",
+          "rejection_reason",
+          "deadline_tick",
+          "retries",
+          "retained_feedback_items",
+          "retained_feedback_bytes",
+          "cancellations",
+          "feedback_pressure",
+          "transition_policy",
+          "limits.maximum-in-flight",
+          "limits.maximum-request-bytes",
+          "limits.maximum-reply-bytes",
+          "limits.maximum-domain-error-bytes",
+          "limits.maximum-retries",
+          "limits.maximum-concurrent-goals",
+          "limits.maximum-queued-admissions",
+          "limits.maximum-goal-bytes",
+          "limits.maximum-result-bytes",
+          "limits.maximum-domain-failure-bytes",
+          "limits.maximum-feedback-items-per-goal",
+          "limits.maximum-feedback-bytes-per-goal",
+          "limits.maximum-replay-outcomes",
+          "limits.maximum-deadline-ticks",
+          "limits.maximum-retries-per-goal",
+          "limits.maximum-cancellations",
+          "limits.maximum-timers",
+          "limits.maximum-evidence-events",
+          "limits.maximum-work-per-step",
+          "descriptors.clock",
+          "descriptors.correlation",
+          "descriptors.idempotency",
+          "descriptors.cancellation",
+          "descriptors.admission-authority",
+          "descriptors.workload-admission",
+          "descriptors.placement",
+          "descriptors.resource-commit-cleanup",
+          "descriptors.transition",
+          "descriptors.inhibit",
+          "descriptors.checkpoint",
+          "provider_observation",
+          "latest_evidence",
+          "latest_evidence.feedback_disposition",
+          "latest_evidence.feedback_items_affected",
+          "latest_evidence.causal_sequence"
+        ]
+      },
+      "validation": {
+        "kind": "diagnostic",
+        "value": "CND-IMP-001"
+      },
+      "hints": [
+        "Compare rejected-before-work, withdrawn-before-admission, cancelled-after-admission, and failed-after-start; they are different terminal facts.",
+        "Slow the feedback consumer and select one finite pressure policy; feedback never becomes terminal authority or a durable result payload.",
+        "Remove the inhibit or admission proof in the robotics denial scenario and observe rejection before work rather than fabricated motion success.",
+        "A provider transition resumes only when both transition and compatible checkpoint proofs match the exact plan."
+      ],
+      "solution": "Specialize all domain types, pin identity and policy descriptors, bind admission/workload/placement/cleanup/inhibit authority, make every finite bound plan-visible, and preserve each terminal distinction in immutable causal evidence.",
+      "accessibility": {
+        "non_audio": "An ordered textual timeline names every state, identity, admission decision, feedback pressure decision, cancellation cause, provider transition, and terminal outcome. It remains complete without animation, graph position, or color.",
+        "reduced_motion": true,
+        "keyboard": "Native controls plus ArrowRight step through the same numbered textual timeline; Tab reaches standalone request/reply, standalone action, composition, unavailable-host, and robotics-denial scenarios.",
+        "color_independent": "Every state and outcome is written as text with a sequence number and causal identity."
+      },
+      "runnability": {
+        "state": "contract-only",
+        "profile": "browser",
+        "proof": "resolver-rejection"
+      },
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "Correlated request/reply and cancellable action are bounded typed composites with explicit admission and causal terminal evidence, not RPC or callback primitives.",
+        "what": "Request/reply produces one typed correlated outcome. Action separates goal queueing, admission, bounded non-authoritative feedback, cancellation, and typed terminal outcomes under exact finite policies.",
+        "when": "Use request/reply for one bounded correlated exchange and cancellable action when work must be admitted, observed over time, cancelled, retried, cleaned up, or handed off explicitly.",
+        "wrong": "Ambient RPC, callbacks, futures, transport-specific handles, universal Action<T>, success booleans, unbounded queues, feedback as authority, imported contracts as provider availability, and silent provider handoff all fail closed.",
+        "contracts": [
+          {"id":"conduit.std/control/request-reply","types":["request","reply","domain-error"],"terminal":["reply","domain-error","timed-out","cancelled"]},
+          {"id":"conduit.std/control/cancellable-action","types":["goal","feedback","result","domain-failure"],"terminal":["rejected","withdrawn-before-admission","cancelled","failed","result","deadline-exhausted","discontinued"]}
+        ],
+        "editable": [
+          "maximum_concurrent_goals:1..32",
+          "maximum_queued_admissions:1..32",
+          "maximum_feedback_items_per_goal:1..32",
+          "maximum_deadline_ticks:1..1000000",
+          "feedback_pressure:block-producer|drop-oldest|coalesce-latest",
+          "transition_policy:terminal-failure|explicit-discontinuity|compatible-checkpoint-handoff"
+        ],
+        "provider": "deterministic allocator-free Rust reference composite; browser lesson consumes its exact Patchbay projection contract and honestly reports no specialized provider",
+        "profile": "cross-host contract with rust-hosted, browser-WASM, process, Python, firmware and unavailable-provider vectors",
+        "expected_evidence": [
+          "specialized domain types and exact descriptor identities",
+          "subject, attempt, correlation and idempotency identity",
+          "finite queue, concurrency, feedback, replay, deadline, retry, cancellation, timer, evidence and work bounds",
+          "admission authority, workload, placement, resource/commit/cleanup and inhibit decision",
+          "non-authoritative payload-free feedback observation and pressure facts",
+          "causal cancellation and one distinct terminal outcome",
+          "provider observation, transition, checkpoint handoff or explicit discontinuity"
+        ],
+        "docs": [
+          "../../spec/080-bounded-control-composites.md",
+          "../../contract-packages/conduit-std-control.json",
+          "../../conformance/c4/bounded-control.json",
+          "../../examples/control-request-reply.panel",
+          "../../examples/control-cancellable-action.panel",
+          "../../examples/control-compose.panel"
+        ],
+        "scenarios": [
+          {"id":"request-reply","title":"One correlated exchange","panel":"../../examples/control-request-reply.panel","semantics":"One request has exactly one typed reply, domain-error, timeout, or cancellation outcome."},
+          {"id":"action","title":"Admit, observe, finish","panel":"../../examples/control-cancellable-action.panel","semantics":"A goal is admitted using exact proofs, bounded feedback is non-authoritative, and result remains distinct from failure."},
+          {"id":"composition","title":"Cancel and transition","panel":"../../examples/control-compose.panel","semantics":"Pre-admission withdrawal and accepted-work discontinuity retain separate causal terminal evidence."},
+          {"id":"unavailable-host","title":"Meaning without a machine","fixture":"../../conformance/c4/bounded-control.json#semantic-import-host-unavailable","semantics":"Contract import succeeds while execution honestly remains unavailable."},
+          {"id":"robotics-denial","title":"Safety blocks before motion","fixture":"../../conformance/c4/bounded-control.json#robotics-safety-inhibit-denial","semantics":"Missing authority or active inhibit rejects before work and grants no motion authority."}
+        ]
+      }
+    },
+    {
       "id": "library.contract-package-imports",
       "chapter": 4,
       "title": "Imports name meaning; plans provide machines",

@@ -294,6 +294,10 @@ containment program is tracked by
 - [`079-temporal-modalities.md`](079-temporal-modalities.md) defines exact
   ordinary-value, closing-flow, open-flow, and current-observation contracts,
   compatibility, identity, and explicit conversion boundaries.
+- [`080-bounded-control-composites.md`](080-bounded-control-composites.md)
+  defines typed correlated request/reply and admitted cancellable-action
+  composites with finite identity, feedback, retry, cancellation, handoff,
+  evidence, and authority boundaries.
 - [`081-patchbay-structural-lenses.md`](081-patchbay-structural-lenses.md)
   defines presentation-only structural lenses and orthogonal
   Use/Build/Inspect modes.

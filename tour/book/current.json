@@ -287,6 +287,7 @@
       "library.bounded-media-values",
       "library.bounded-spatial-foundation",
       "library.bounded-process-exec",
+      "library.bounded-control-composites",
       "library.contract-package-imports"
     ]
   },
@@ -298,6 +299,7 @@
       {"id":"nested-panel","title":"Put a panel inside a panel","lesson_id":"panels.put-a-panel-in-a-panel","tags":["panel","composition"]},
       {"id":"panel-reuse","title":"Reuse a panel without copying","lesson_id":"panels.reuse-without-copying","tags":["panel","reuse"]},
       {"id":"typed-text","title":"Format typed text","lesson_id":"library.typed-text-format","tags":["text","format"]},
+      {"id":"bounded-action","title":"Run a bounded cancellable action","lesson_id":"library.bounded-control-composites","tags":["control","request-reply","action","cancellation","admission"]},
       {"id":"media-codecs","title":"Use exact PCM and WAVE operations","lesson_id":"library.bounded-media-codecs","tags":["media","codec"]},
       {"id":"audio-processing","title":"Build a bounded standing audio patch","lesson_id":"library.bounded-audio-processing","tags":["media","audio","mix","meter","standing"]},
       {"id":"audio-devices","title":"Connect a standing patch to explicit audio devices","lesson_id":"library.audio-device-boundaries","tags":["media","audio","device","authority","standing"]},

@@ -17,6 +17,7 @@ use conduit_core::{
 };
 
 mod conformance;
+pub mod control;
 mod data_boundaries;
 mod filesystem;
 mod process_exec;

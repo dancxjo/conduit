@@ -1,0 +1,8 @@
+panel 0
+
+# This imports the action shape without inventing a universal action runtime,
+# provider observation, or admission authority. Deterministic execution lives
+# in the allocator-free reference composite and its conformance fixtures.
+import conduit.std/control/{cancellable-action as action}
+
+goal: action

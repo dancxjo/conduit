@@ -1464,6 +1464,82 @@ fn bounded_supervision_lesson_exposes_attempt_backoff_breaker_and_authority_fact
 }
 
 #[test]
+fn bounded_control_lesson_exposes_typed_admission_pressure_and_causal_timelines() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-control-composites")
+        .expect("bounded control lesson is selectable");
+
+    assert_eq!(lesson["runnability"]["state"], "contract-only");
+    assert_eq!(lesson["runnability"]["proof"], "resolver-rejection");
+    assert_eq!(lesson["expected_diagnostic"], "CND-IMP-001");
+    assert_eq!(
+        lesson["presentation"]["timeline"],
+        "accessible-textual-evidence-projection"
+    );
+    let projected_fields = lesson["presentation"]["patchbay_fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|value| value.as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    let required_fields = conduit_patchbay::REQUEST_REPLY_PATCHBAY_FIELDS
+        .iter()
+        .chain(conduit_patchbay::CANCELLABLE_ACTION_PATCHBAY_FIELDS)
+        .copied()
+        .collect::<BTreeSet<_>>();
+    assert_eq!(projected_fields, required_fields);
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "conduit.std/control/cancellable-action",
+            "conduit.std/control/request-reply",
+        ]
+        .into_iter()
+        .collect()
+    );
+    assert!(lesson["library"]["wrong"].as_str().is_some_and(|wrong| {
+        wrong.contains("universal Action<T>")
+            && wrong.contains("success booleans")
+            && wrong.contains("silent provider handoff")
+    }));
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    for required in [
+        "request-reply",
+        "action",
+        "composition",
+        "unavailable-host",
+        "robotics-denial",
+    ] {
+        assert!(
+            scenarios.iter().any(|scenario| scenario["id"] == required),
+            "lesson includes {required} story"
+        );
+    }
+    assert!(
+        lesson["accessibility"]["non_audio"]
+            .as_str()
+            .is_some_and(|text| text.contains("ordered textual timeline"))
+    );
+
+    let panel = conduit_panel::parse(lesson["source"].as_str().unwrap()).unwrap();
+    let error = Registry::compatibility_demo()
+        .resolve(&panel)
+        .expect_err("an imported control shape is not an observed provider");
+    assert_eq!(error.code, "CND-IMP-001");
+}
+
+#[test]
 fn explicit_time_lesson_exposes_clock_timer_loss_and_terminal_facts() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");

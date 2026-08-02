@@ -414,6 +414,595 @@ fn supervision_action_name(kind: conduit_core::SupervisionActionKind) -> &'stati
     }
 }
 
+/// Exact identity projected for a bounded-control type, policy, or provider
+/// observation. This is presentation data only and cannot satisfy admission.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ControlIdentityProjection {
+    pub id: String,
+    pub schema_version: u32,
+    pub semantic_hash: String,
+}
+
+pub const REQUEST_REPLY_PATCHBAY_FIELDS: &[&str] = &[
+    "source_semantic_hash",
+    "plan_identity",
+    "plan_epoch",
+    "run_id",
+    "evidence_stream_id",
+    "evidence_cursor",
+    "composite_contract_id",
+    "request_type",
+    "reply_type",
+    "domain_error_type",
+    "subject",
+    "attempt",
+    "correlation",
+    "idempotency",
+    "state",
+    "terminal_outcome",
+    "deadline_tick",
+    "retries",
+    "limits.maximum-in-flight",
+    "limits.maximum-request-bytes",
+    "limits.maximum-reply-bytes",
+    "limits.maximum-domain-error-bytes",
+    "limits.maximum-deadline-ticks",
+    "limits.maximum-retries",
+    "limits.maximum-replay-outcomes",
+    "limits.maximum-timers",
+    "limits.maximum-evidence-events",
+    "limits.maximum-work-per-step",
+    "descriptors.clock",
+    "descriptors.correlation",
+    "descriptors.cancellation",
+    "descriptors.idempotency",
+    "provider_observation",
+    "latest_evidence",
+];
+
+pub const CANCELLABLE_ACTION_PATCHBAY_FIELDS: &[&str] = &[
+    "source_semantic_hash",
+    "plan_identity",
+    "plan_epoch",
+    "run_id",
+    "evidence_stream_id",
+    "evidence_cursor",
+    "composite_contract_id",
+    "goal_type",
+    "feedback_type",
+    "result_type",
+    "domain_failure_type",
+    "subject",
+    "attempt",
+    "correlation",
+    "idempotency",
+    "state",
+    "terminal_outcome",
+    "rejection_reason",
+    "deadline_tick",
+    "retries",
+    "retained_feedback_items",
+    "retained_feedback_bytes",
+    "cancellations",
+    "feedback_pressure",
+    "transition_policy",
+    "limits.maximum-concurrent-goals",
+    "limits.maximum-queued-admissions",
+    "limits.maximum-goal-bytes",
+    "limits.maximum-result-bytes",
+    "limits.maximum-domain-failure-bytes",
+    "limits.maximum-feedback-items-per-goal",
+    "limits.maximum-feedback-bytes-per-goal",
+    "limits.maximum-replay-outcomes",
+    "limits.maximum-deadline-ticks",
+    "limits.maximum-retries-per-goal",
+    "limits.maximum-cancellations",
+    "limits.maximum-timers",
+    "limits.maximum-evidence-events",
+    "limits.maximum-work-per-step",
+    "descriptors.clock",
+    "descriptors.correlation",
+    "descriptors.idempotency",
+    "descriptors.cancellation",
+    "descriptors.admission-authority",
+    "descriptors.workload-admission",
+    "descriptors.placement",
+    "descriptors.resource-commit-cleanup",
+    "descriptors.transition",
+    "descriptors.inhibit",
+    "descriptors.checkpoint",
+    "provider_observation",
+    "latest_evidence.feedback_disposition",
+    "latest_evidence.feedback_items_affected",
+    "latest_evidence.causal_sequence",
+];
+
+/// One immutable request/reply evidence fact. Domain payload bytes remain at
+/// their owning boundary and are represented only by a bounded byte count.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct RequestReplyEvidenceProjection {
+    pub sequence: u32,
+    pub kind: String,
+    pub terminal_outcome: Option<String>,
+    pub payload_bytes: u32,
+}
+
+/// Rebuildable Patchbay presentation of one correlated request/reply subject.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct RequestReplyProjection {
+    pub source_semantic_hash: String,
+    pub plan_identity: String,
+    pub plan_epoch: u64,
+    pub run_id: String,
+    pub evidence_stream_id: String,
+    pub evidence_cursor: u32,
+    pub composite_contract_id: String,
+    pub request_type: ControlIdentityProjection,
+    pub reply_type: ControlIdentityProjection,
+    pub domain_error_type: ControlIdentityProjection,
+    pub subject: u64,
+    pub attempt: u32,
+    pub correlation: u64,
+    pub idempotency: u64,
+    pub state: String,
+    pub terminal_outcome: Option<String>,
+    pub deadline_tick: u64,
+    pub retries: u16,
+    pub limits: BTreeMap<String, u64>,
+    pub descriptors: BTreeMap<String, ControlIdentityProjection>,
+    pub provider_observation: Option<ControlIdentityProjection>,
+    pub latest_evidence: Option<RequestReplyEvidenceProjection>,
+}
+
+pub struct RequestReplyProjectionInput<'a, 'contract> {
+    pub source_semantic_hash: &'a str,
+    pub plan_identity: conduit_core::SemanticHash,
+    pub plan_epoch: u64,
+    pub run_id: &'a str,
+    pub evidence_stream_id: &'a str,
+    pub contract: conduit_std::control::RequestReplyContract<'contract>,
+    pub snapshot: conduit_std::control::RequestReplySnapshot,
+    pub evidence: &'a [Option<conduit_std::control::RequestReplyEvidence>],
+    pub provider_observation: Option<conduit_core::DescriptorRef<'contract>>,
+}
+
+#[must_use]
+pub fn project_request_reply(input: RequestReplyProjectionInput<'_, '_>) -> RequestReplyProjection {
+    use conduit_std::control::RequestReplyState;
+
+    let terminal_outcome = match input.snapshot.state {
+        RequestReplyState::Terminal(outcome) => {
+            Some(request_reply_outcome_name(outcome).to_owned())
+        }
+        RequestReplyState::Empty | RequestReplyState::InFlight => None,
+    };
+    let latest_evidence =
+        input
+            .evidence
+            .iter()
+            .flatten()
+            .last()
+            .map(|event| RequestReplyEvidenceProjection {
+                sequence: event.sequence,
+                kind: request_reply_evidence_name(event.kind).to_owned(),
+                terminal_outcome: event
+                    .outcome
+                    .map(request_reply_outcome_name)
+                    .map(str::to_owned),
+                payload_bytes: event.payload_bytes,
+            });
+    let mut limits = BTreeMap::new();
+    limits.insert(
+        "maximum-in-flight".to_owned(),
+        u64::from(input.contract.limits.maximum_in_flight),
+    );
+    limits.insert(
+        "maximum-request-bytes".to_owned(),
+        u64::from(input.contract.limits.maximum_request_bytes),
+    );
+    limits.insert(
+        "maximum-reply-bytes".to_owned(),
+        u64::from(input.contract.limits.maximum_reply_bytes),
+    );
+    limits.insert(
+        "maximum-domain-error-bytes".to_owned(),
+        u64::from(input.contract.limits.maximum_domain_error_bytes),
+    );
+    limits.insert(
+        "maximum-deadline-ticks".to_owned(),
+        input.contract.limits.maximum_deadline_ticks,
+    );
+    limits.insert(
+        "maximum-retries".to_owned(),
+        u64::from(input.contract.limits.maximum_retries),
+    );
+    limits.insert(
+        "maximum-replay-outcomes".to_owned(),
+        u64::from(input.contract.limits.maximum_replay_outcomes),
+    );
+    limits.insert(
+        "maximum-timers".to_owned(),
+        u64::from(input.contract.limits.maximum_timers),
+    );
+    limits.insert(
+        "maximum-evidence-events".to_owned(),
+        u64::from(input.contract.limits.maximum_evidence_events),
+    );
+    limits.insert(
+        "maximum-work-per-step".to_owned(),
+        u64::from(input.contract.limits.maximum_work_per_step),
+    );
+    let descriptors = [
+        ("clock", input.contract.clock),
+        ("correlation", input.contract.correlation),
+        ("cancellation", input.contract.cancellation),
+        ("idempotency", input.contract.idempotency),
+    ]
+    .into_iter()
+    .map(|(name, value)| (name.to_owned(), control_descriptor(value)))
+    .collect();
+    RequestReplyProjection {
+        source_semantic_hash: input.source_semantic_hash.to_owned(),
+        plan_identity: input.plan_identity.to_string(),
+        plan_epoch: input.plan_epoch,
+        run_id: input.run_id.to_owned(),
+        evidence_stream_id: input.evidence_stream_id.to_owned(),
+        evidence_cursor: latest_evidence.as_ref().map_or(0, |event| event.sequence),
+        composite_contract_id: input.contract.id.as_str().to_owned(),
+        request_type: control_type(input.contract.request),
+        reply_type: control_type(input.contract.reply),
+        domain_error_type: control_type(input.contract.domain_error),
+        subject: input.snapshot.identity.subject,
+        attempt: input.snapshot.identity.attempt,
+        correlation: input.snapshot.identity.correlation,
+        idempotency: input.snapshot.identity.idempotency,
+        state: match input.snapshot.state {
+            RequestReplyState::Empty => "empty",
+            RequestReplyState::InFlight => "in-flight",
+            RequestReplyState::Terminal(_) => "terminal",
+        }
+        .to_owned(),
+        terminal_outcome,
+        deadline_tick: input.snapshot.deadline_tick,
+        retries: input.snapshot.retries,
+        limits,
+        descriptors,
+        provider_observation: input.provider_observation.map(control_descriptor),
+        latest_evidence,
+    }
+}
+
+/// Immutable action evidence projected without retaining feedback or terminal
+/// domain payloads.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ActionEvidenceProjection {
+    pub sequence: u32,
+    pub kind: String,
+    pub state: String,
+    pub terminal_outcome: Option<String>,
+    pub rejection_reason: Option<String>,
+    pub feedback_bytes: u32,
+    pub feedback_disposition: Option<String>,
+    pub feedback_items_affected: u16,
+    pub terminal_bytes: u32,
+    pub causal_sequence: Option<u32>,
+}
+
+/// Rebuildable Patchbay presentation of one cancellable-action goal.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CancellableActionProjection {
+    pub source_semantic_hash: String,
+    pub plan_identity: String,
+    pub plan_epoch: u64,
+    pub run_id: String,
+    pub evidence_stream_id: String,
+    pub evidence_cursor: u32,
+    pub composite_contract_id: String,
+    pub goal_type: ControlIdentityProjection,
+    pub feedback_type: ControlIdentityProjection,
+    pub result_type: ControlIdentityProjection,
+    pub domain_failure_type: ControlIdentityProjection,
+    pub subject: u64,
+    pub attempt: u32,
+    pub correlation: u64,
+    pub idempotency: u64,
+    pub state: String,
+    pub terminal_outcome: Option<String>,
+    pub rejection_reason: Option<String>,
+    pub deadline_tick: u64,
+    pub retries: u16,
+    pub retained_feedback_items: u16,
+    pub retained_feedback_bytes: u32,
+    pub cancellations: u16,
+    pub feedback_pressure: String,
+    pub transition_policy: String,
+    pub limits: BTreeMap<String, u64>,
+    pub descriptors: BTreeMap<String, ControlIdentityProjection>,
+    pub provider_observation: Option<ControlIdentityProjection>,
+    pub latest_evidence: Option<ActionEvidenceProjection>,
+}
+
+pub struct CancellableActionProjectionInput<'a, 'contract> {
+    pub source_semantic_hash: &'a str,
+    pub plan_identity: conduit_core::SemanticHash,
+    pub plan_epoch: u64,
+    pub run_id: &'a str,
+    pub evidence_stream_id: &'a str,
+    pub contract: conduit_std::control::ActionContract<'contract>,
+    pub snapshot: conduit_std::control::ActionSnapshot,
+    pub cancellations: u16,
+    pub evidence: &'a [Option<conduit_std::control::ActionEvidence>],
+    pub provider_observation: Option<conduit_core::DescriptorRef<'contract>>,
+}
+
+#[must_use]
+pub fn project_cancellable_action(
+    input: CancellableActionProjectionInput<'_, '_>,
+) -> CancellableActionProjection {
+    use conduit_std::control::{FeedbackPressurePolicy, TransitionPolicy};
+
+    let (terminal_outcome, rejection_reason) = action_terminal(input.snapshot.state);
+    let latest_evidence = input.evidence.iter().flatten().last().map(|event| {
+        let (terminal_outcome, rejection_reason) = action_terminal(event.state);
+        ActionEvidenceProjection {
+            sequence: event.sequence,
+            kind: action_evidence_name(event.kind).to_owned(),
+            state: action_state_name(event.state).to_owned(),
+            terminal_outcome,
+            rejection_reason,
+            feedback_bytes: event.feedback_bytes,
+            feedback_disposition: event
+                .feedback_disposition
+                .map(feedback_disposition_name)
+                .map(str::to_owned),
+            feedback_items_affected: event.feedback_items_affected,
+            terminal_bytes: event.terminal_bytes,
+            causal_sequence: event.causal_sequence,
+        }
+    });
+    let limits = action_limits(input.contract.limits);
+    let mut descriptors = BTreeMap::new();
+    for (name, value) in [
+        ("clock", input.contract.clock),
+        ("correlation", input.contract.correlation),
+        ("idempotency", input.contract.idempotency),
+        ("cancellation", input.contract.cancellation),
+        ("admission-authority", input.contract.admission_authority),
+        ("workload-admission", input.contract.workload_admission),
+        ("placement", input.contract.placement),
+        (
+            "resource-commit-cleanup",
+            input.contract.resource_commit_cleanup,
+        ),
+        ("transition", input.contract.transition),
+    ] {
+        descriptors.insert(name.to_owned(), control_descriptor(value));
+    }
+    if let Some(value) = input.contract.inhibit {
+        descriptors.insert("inhibit".to_owned(), control_descriptor(value));
+    }
+    if let Some(value) = input.contract.checkpoint {
+        descriptors.insert("checkpoint".to_owned(), control_descriptor(value));
+    }
+    CancellableActionProjection {
+        source_semantic_hash: input.source_semantic_hash.to_owned(),
+        plan_identity: input.plan_identity.to_string(),
+        plan_epoch: input.plan_epoch,
+        run_id: input.run_id.to_owned(),
+        evidence_stream_id: input.evidence_stream_id.to_owned(),
+        evidence_cursor: latest_evidence.as_ref().map_or(0, |event| event.sequence),
+        composite_contract_id: input.contract.id.as_str().to_owned(),
+        goal_type: control_type(input.contract.goal),
+        feedback_type: control_type(input.contract.feedback),
+        result_type: control_type(input.contract.result),
+        domain_failure_type: control_type(input.contract.domain_failure),
+        subject: input.snapshot.identity.subject,
+        attempt: input.snapshot.identity.attempt,
+        correlation: input.snapshot.identity.correlation,
+        idempotency: input.snapshot.identity.idempotency,
+        state: action_state_name(input.snapshot.state).to_owned(),
+        terminal_outcome,
+        rejection_reason,
+        deadline_tick: input.snapshot.deadline_tick,
+        retries: input.snapshot.retries,
+        retained_feedback_items: input.snapshot.feedback_items,
+        retained_feedback_bytes: input.snapshot.feedback_bytes,
+        cancellations: input.cancellations,
+        feedback_pressure: match input.contract.feedback_pressure {
+            FeedbackPressurePolicy::BlockProducer => "block-producer",
+            FeedbackPressurePolicy::DropOldest => "drop-oldest",
+            FeedbackPressurePolicy::CoalesceLatest => "coalesce-latest",
+        }
+        .to_owned(),
+        transition_policy: match input.contract.transition_policy {
+            TransitionPolicy::TerminalFailure => "terminal-failure",
+            TransitionPolicy::ExplicitDiscontinuity => "explicit-discontinuity",
+            TransitionPolicy::CompatibleCheckpointHandoff => "compatible-checkpoint-handoff",
+        }
+        .to_owned(),
+        limits,
+        descriptors,
+        provider_observation: input.provider_observation.map(control_descriptor),
+        latest_evidence,
+    }
+}
+
+fn control_type(value: conduit_core::TypeContractRef<'_>) -> ControlIdentityProjection {
+    ControlIdentityProjection {
+        id: value.contract_id.as_str().to_owned(),
+        schema_version: value.schema_version,
+        semantic_hash: value.semantic_hash.to_string(),
+    }
+}
+
+fn control_descriptor(value: conduit_core::DescriptorRef<'_>) -> ControlIdentityProjection {
+    ControlIdentityProjection {
+        id: value.kind.as_str().to_owned(),
+        schema_version: value.schema_version,
+        semantic_hash: value.semantic_hash.to_string(),
+    }
+}
+
+fn action_limits(limits: conduit_std::control::ActionLimits) -> BTreeMap<String, u64> {
+    [
+        (
+            "maximum-concurrent-goals",
+            u64::from(limits.maximum_concurrent_goals),
+        ),
+        (
+            "maximum-queued-admissions",
+            u64::from(limits.maximum_queued_admissions),
+        ),
+        ("maximum-goal-bytes", u64::from(limits.maximum_goal_bytes)),
+        (
+            "maximum-result-bytes",
+            u64::from(limits.maximum_result_bytes),
+        ),
+        (
+            "maximum-domain-failure-bytes",
+            u64::from(limits.maximum_domain_failure_bytes),
+        ),
+        (
+            "maximum-feedback-items-per-goal",
+            u64::from(limits.maximum_feedback_items_per_goal),
+        ),
+        (
+            "maximum-feedback-bytes-per-goal",
+            u64::from(limits.maximum_feedback_bytes_per_goal),
+        ),
+        (
+            "maximum-replay-outcomes",
+            u64::from(limits.maximum_replay_outcomes),
+        ),
+        ("maximum-deadline-ticks", limits.maximum_deadline_ticks),
+        (
+            "maximum-retries-per-goal",
+            u64::from(limits.maximum_retries_per_goal),
+        ),
+        (
+            "maximum-cancellations",
+            u64::from(limits.maximum_cancellations),
+        ),
+        ("maximum-timers", u64::from(limits.maximum_timers)),
+        (
+            "maximum-evidence-events",
+            u64::from(limits.maximum_evidence_events),
+        ),
+        (
+            "maximum-work-per-step",
+            u64::from(limits.maximum_work_per_step),
+        ),
+    ]
+    .into_iter()
+    .map(|(name, value)| (name.to_owned(), value))
+    .collect()
+}
+
+fn request_reply_outcome_name(value: conduit_std::control::RequestReplyOutcome) -> &'static str {
+    use conduit_std::control::RequestReplyOutcome;
+    match value {
+        RequestReplyOutcome::Reply => "reply",
+        RequestReplyOutcome::DomainError => "domain-error",
+        RequestReplyOutcome::TimedOut => "timed-out",
+        RequestReplyOutcome::Cancelled => "cancelled",
+        RequestReplyOutcome::Exhausted => "exhausted",
+    }
+}
+
+fn request_reply_evidence_name(
+    value: conduit_std::control::RequestReplyEvidenceKind,
+) -> &'static str {
+    use conduit_std::control::RequestReplyEvidenceKind;
+    match value {
+        RequestReplyEvidenceKind::Requested => "requested",
+        RequestReplyEvidenceKind::Replied => "replied",
+        RequestReplyEvidenceKind::DomainError => "domain-error",
+        RequestReplyEvidenceKind::TimedOut => "timed-out",
+        RequestReplyEvidenceKind::Cancelled => "cancelled",
+        RequestReplyEvidenceKind::DuplicateReplayed => "duplicate-replayed",
+        RequestReplyEvidenceKind::Exhausted => "exhausted",
+    }
+}
+
+fn action_state_name(value: conduit_std::control::ActionState) -> &'static str {
+    use conduit_std::control::ActionState;
+    match value {
+        ActionState::Empty => "empty",
+        ActionState::Queued => "queued",
+        ActionState::Accepted => "accepted",
+        ActionState::Terminal(_) => "terminal",
+    }
+}
+
+fn action_terminal(value: conduit_std::control::ActionState) -> (Option<String>, Option<String>) {
+    use conduit_std::control::{ActionOutcome, ActionState};
+    match value {
+        ActionState::Terminal(ActionOutcome::Rejected(reason)) => (
+            Some("rejected".to_owned()),
+            Some(rejection_reason_name(reason).to_owned()),
+        ),
+        ActionState::Terminal(ActionOutcome::Cancelled) => (Some("cancelled".to_owned()), None),
+        ActionState::Terminal(ActionOutcome::Failed) => (Some("failed".to_owned()), None),
+        ActionState::Terminal(ActionOutcome::Result) => (Some("result".to_owned()), None),
+        ActionState::Terminal(ActionOutcome::DeadlineExhausted) => {
+            (Some("deadline-exhausted".to_owned()), None)
+        }
+        ActionState::Terminal(ActionOutcome::Discontinued) => {
+            (Some("discontinued".to_owned()), None)
+        }
+        ActionState::Terminal(ActionOutcome::WithdrawnBeforeAdmission) => {
+            (Some("withdrawn-before-admission".to_owned()), None)
+        }
+        ActionState::Empty | ActionState::Queued | ActionState::Accepted => (None, None),
+    }
+}
+
+fn rejection_reason_name(value: conduit_std::control::RejectionReason) -> &'static str {
+    use conduit_std::control::RejectionReason;
+    match value {
+        RejectionReason::DomainPolicy => "domain-policy",
+        RejectionReason::Authority => "authority",
+        RejectionReason::WorkloadAdmission => "workload-admission",
+        RejectionReason::Placement => "placement",
+        RejectionReason::ResourceCommitCleanup => "resource-commit-cleanup",
+        RejectionReason::Inhibited => "inhibited",
+        RejectionReason::ConcurrentGoalLimit => "concurrent-goal-limit",
+    }
+}
+
+fn feedback_disposition_name(value: conduit_std::control::FeedbackDisposition) -> &'static str {
+    use conduit_std::control::FeedbackDisposition;
+    match value {
+        FeedbackDisposition::Retained => "retained",
+        FeedbackDisposition::Blocked => "blocked",
+        FeedbackDisposition::DroppedOldest => "dropped-oldest",
+        FeedbackDisposition::CoalescedLatest => "coalesced-latest",
+    }
+}
+
+fn action_evidence_name(value: conduit_std::control::ActionEvidenceKind) -> &'static str {
+    use conduit_std::control::ActionEvidenceKind;
+    match value {
+        ActionEvidenceKind::GoalQueued => "goal-queued",
+        ActionEvidenceKind::GoalAccepted => "goal-accepted",
+        ActionEvidenceKind::GoalRejected => "goal-rejected",
+        ActionEvidenceKind::DuplicateReplayed => "duplicate-replayed",
+        ActionEvidenceKind::AdmissionExhausted => "admission-exhausted",
+        ActionEvidenceKind::FeedbackObserved => "feedback-observed",
+        ActionEvidenceKind::FeedbackPressured => "feedback-pressured",
+        ActionEvidenceKind::CancelRequested => "cancel-requested",
+        ActionEvidenceKind::GoalCancelled => "goal-cancelled",
+        ActionEvidenceKind::GoalWithdrawn => "goal-withdrawn",
+        ActionEvidenceKind::AttemptRetried => "attempt-retried",
+        ActionEvidenceKind::Result => "result",
+        ActionEvidenceKind::Failed => "failed",
+        ActionEvidenceKind::DeadlineExhausted => "deadline-exhausted",
+        ActionEvidenceKind::ProviderLost => "provider-lost",
+        ActionEvidenceKind::TransitionDiscontinuity => "transition-discontinuity",
+        ActionEvidenceKind::TransitionHandoff => "transition-handoff",
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SourceSnapshot {
     pub document_id: String,

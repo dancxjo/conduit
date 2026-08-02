@@ -1,0 +1,62 @@
+{
+  "schema": "conduit.contract-package",
+  "draft": 0,
+  "package_id": "conduit.std/control",
+  "owner": "Conduit project",
+  "provenance": "repository:contract-packages/conduit-std-control.json",
+  "license": "MIT OR Apache-2.0",
+  "dependencies": [],
+  "exports": [
+    {
+      "name": "request-reply",
+      "canonical_id": "conduit.std/control/request-reply",
+      "kind": "composite",
+      "descriptor_hash": "sha256:89f565814729364692d1b95c3fa14eb937b218fdf60c22893a99fe570a829d3e",
+      "descriptor": {
+        "schema": "conduit.bounded-control-composite",
+        "schema_version": 0,
+        "id": "conduit.std/control/request-reply",
+        "kind": "composite",
+        "type_parameters": ["request", "reply", "domain-error"],
+        "identity": ["subject", "attempt", "correlation", "idempotency"],
+        "terminal_outcomes": ["reply", "domain-error", "timed-out", "cancelled"],
+        "descriptors": ["clock", "correlation", "cancellation", "idempotency"],
+        "finite_limits": ["maximum-in-flight", "maximum-request-bytes", "maximum-reply-bytes", "maximum-domain-error-bytes", "maximum-deadline-ticks", "maximum-retries", "maximum-replay-outcomes", "maximum-timers", "maximum-evidence-events", "maximum-work-per-step"]
+      },
+      "public": true,
+      "structural_facets": ["conduit.facets/correlated-interaction", "conduit.facets/bounded-work"],
+      "directional_obligations": ["request -> exactly-one(reply,domain-error,timed-out,cancelled)"],
+      "conformance_fixtures": ["conformance/c4/bounded-control.json"],
+      "lessons": ["library.bounded-control-composites"],
+      "successor": null,
+      "deprecated": false
+    },
+    {
+      "name": "cancellable-action",
+      "canonical_id": "conduit.std/control/cancellable-action",
+      "kind": "composite",
+      "descriptor_hash": "sha256:8f62b12d21931c41b1f4697b662b9e52ed4b3c15300c7585b08406f84e6ee0b7",
+      "descriptor": {
+        "schema": "conduit.bounded-control-composite",
+        "schema_version": 0,
+        "id": "conduit.std/control/cancellable-action",
+        "kind": "composite",
+        "type_parameters": ["goal", "feedback", "result", "domain-failure"],
+        "identity": ["subject", "attempt", "correlation", "idempotency"],
+        "states": ["queued", "accepted", "terminal"],
+        "terminal_outcomes": ["rejected", "withdrawn-before-admission", "cancelled", "failed", "result", "deadline-exhausted", "discontinued"],
+        "descriptors": ["clock", "correlation", "idempotency", "cancellation", "admission-authority", "workload-admission", "placement", "resource-commit-cleanup", "transition", "inhibit", "checkpoint"],
+        "policies": ["feedback-pressure", "transition-policy"],
+        "finite_limits": ["maximum-concurrent-goals", "maximum-queued-admissions", "maximum-goal-bytes", "maximum-result-bytes", "maximum-domain-failure-bytes", "maximum-feedback-items-per-goal", "maximum-feedback-bytes-per-goal", "maximum-replay-outcomes", "maximum-deadline-ticks", "maximum-retries-per-goal", "maximum-cancellations", "maximum-timers", "maximum-evidence-events", "maximum-work-per-step"],
+        "feedback": {"authoritative": false, "durable_payload": false}
+      },
+      "public": true,
+      "structural_facets": ["conduit.facets/correlated-interaction", "conduit.facets/bounded-work", "conduit.facets/cancellable"],
+      "directional_obligations": ["goal -> admitted-or-rejected", "accepted -> feedback* -> exactly-one(result,domain-failure,cancelled,deadline-exhausted,discontinued)"],
+      "conformance_fixtures": ["conformance/c4/bounded-control.json"],
+      "lessons": ["library.bounded-control-composites"],
+      "successor": null,
+      "deprecated": false
+    }
+  ]
+}

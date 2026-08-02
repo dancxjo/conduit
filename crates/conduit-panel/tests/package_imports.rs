@@ -413,6 +413,63 @@ fn checked_repository_artifact_and_lock_resolve_the_tour_alias_offline() {
 }
 
 #[test]
+fn bounded_control_composites_are_consumable_as_one_current_contract_package() {
+    let bytes = include_bytes!("../../../contract-packages/conduit-std-control.json");
+    let manifest: ContractPackageManifest = serde_json::from_slice(bytes).unwrap();
+    assert_eq!(manifest.package_id, "conduit.std/control");
+    assert!(manifest.exports.iter().all(|export| {
+        export.kind == ContractExportKind::Composite
+            && export.canonical_id == format!("{}/{}", manifest.package_id, export.name)
+            && export.successor.is_none()
+            && !export.deprecated
+    }));
+    let lock = ContractPackageLock {
+        schema: "conduit.contract-package-lock".to_owned(),
+        draft: 0,
+        packages: vec![LockedContractPackage {
+            package_id: manifest.package_id.clone(),
+            artifact_digest: format!("sha256:{:x}", Sha256::digest(bytes)),
+            source: "repository contract package".to_owned(),
+            provenance_policy: "repository-owned".to_owned(),
+            exports: manifest
+                .exports
+                .iter()
+                .map(|export| LockedExport {
+                    name: export.name.clone(),
+                    canonical_id: export.canonical_id.clone(),
+                    descriptor_hash: export.descriptor_hash.clone(),
+                })
+                .collect(),
+        }],
+    };
+    let panel = parse(
+        "panel 0\n\
+         import conduit.std/control/{request-reply as exchange, cancellable-action as action}\n\
+         request: exchange\n\
+         goal: action\n",
+    )
+    .unwrap();
+    let resolution = resolve_package_imports(
+        &panel,
+        &lock,
+        &[ContractPackageArtifact {
+            bytes,
+            mirror: Some("repository"),
+        }],
+    )
+    .unwrap();
+    assert_eq!(resolution.bindings().len(), 2);
+    assert_eq!(
+        resolution.panel().nodes[0].kind,
+        "conduit.std/control/request-reply"
+    );
+    assert_eq!(
+        resolution.panel().nodes[1].kind,
+        "conduit.std/control/cancellable-action"
+    );
+}
+
+#[test]
 fn a_target_that_can_name_both_a_package_and_parent_export_is_ambiguous() {
     let manifest = |package_id: &str, name: &str| ContractPackageManifest {
         schema: "conduit.contract-package".to_owned(),
