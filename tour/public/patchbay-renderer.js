@@ -383,7 +383,6 @@ export class PatchbayReactFlowRenderer {
   selectNode(nodeId) {
     this.selectedNodeId = nodeId;
     this.selectedCordId = null;
-    this.highlightCordEndpoints(null);
     const projectedEdges = this.topologyView === "logical"
       ? this.viewModel?.topology?.cords || []
       : this.viewModel?.topology?.planned_realization?.cords || [];
@@ -397,17 +396,21 @@ export class PatchbayReactFlowRenderer {
       }
     }
     this.flowWrapper.dataset.selection = "node";
-    this.flowWrapper?.querySelectorAll(".conduit-faceplate-card").forEach((card) => {
-      const shell = card.closest(".react-flow__node");
-      const candidateId = shell?.dataset.id;
-      card.classList.toggle("selected-faceplate", candidateId === nodeId);
-      card.classList.toggle("selection-neighbor", neighboringNodes.has(candidateId));
-      card.classList.toggle("selection-muted", !neighboringNodes.has(candidateId));
-    });
-    this.flowWrapper?.querySelectorAll(".react-flow__edge").forEach((edge, index) => {
-      const candidateId = this.renderedCordIds?.[index];
-      edge.classList.toggle("selection-neighbor", neighboringCords.has(candidateId));
-      edge.classList.toggle("selection-muted", !neighboringCords.has(candidateId));
+    this.renderFlow();
+    requestAnimationFrame(() => {
+      this.highlightCordEndpoints(null);
+      this.flowWrapper?.querySelectorAll(".conduit-faceplate-card").forEach((card) => {
+        const shell = card.closest(".react-flow__node");
+        const candidateId = shell?.dataset.id;
+        card.classList.toggle("selected-faceplate", candidateId === nodeId);
+        card.classList.toggle("selection-neighbor", neighboringNodes.has(candidateId));
+        card.classList.toggle("selection-muted", !neighboringNodes.has(candidateId));
+      });
+      this.flowWrapper?.querySelectorAll(".react-flow__edge").forEach((edge) => {
+        const candidateId = edge.dataset.id;
+        edge.classList.toggle("selection-neighbor", neighboringCords.has(candidateId));
+        edge.classList.toggle("selection-muted", !neighboringCords.has(candidateId));
+      });
     });
   }
 
@@ -422,38 +425,33 @@ export class PatchbayReactFlowRenderer {
       selectedCord ? [selectedCord.from_node, selectedCord.to_node].filter(Boolean) : [],
     );
     this.flowWrapper.dataset.selection = "cord";
-    this.flowWrapper?.querySelectorAll(".conduit-faceplate-card").forEach((card) => {
-      const candidateId = card.closest(".react-flow__node")?.dataset.id;
-      card.classList.remove("selected-faceplate");
-      card.classList.toggle("selection-neighbor", endpointNodes.has(candidateId));
-      card.classList.toggle("selection-muted", !endpointNodes.has(candidateId));
+    this.renderFlow();
+    requestAnimationFrame(() => {
+      this.flowWrapper?.querySelectorAll(".conduit-faceplate-card").forEach((card) => {
+        const candidateId = card.closest(".react-flow__node")?.dataset.id;
+        card.classList.remove("selected-faceplate");
+        card.classList.toggle("selection-neighbor", endpointNodes.has(candidateId));
+        card.classList.toggle("selection-muted", !endpointNodes.has(candidateId));
+      });
+      this.highlightCordEndpoints(selectedCord);
     });
-    this.flowWrapper?.querySelectorAll(".react-flow__edge").forEach((edge, index) => {
-      const selected = this.renderedCordIds?.[index] === cordId;
-      edge.classList.toggle("selected", selected);
-      edge.classList.toggle("selection-neighbor", selected);
-      edge.classList.toggle("selection-muted", !selected);
-    });
-    this.highlightCordEndpoints(
-      selectedCord,
-    );
   }
 
   clearSelection() {
     this.selectedNodeId = null;
     this.selectedCordId = null;
     if (this.flowWrapper) delete this.flowWrapper.dataset.selection;
-    this.flowWrapper?.querySelectorAll(
-      ".selected-faceplate, .selection-neighbor, .selection-muted",
-    ).forEach((element) => element.classList.remove(
-      "selected-faceplate",
-      "selection-neighbor",
-      "selection-muted",
-    ));
-    this.flowWrapper?.querySelectorAll(".react-flow__edge.selected").forEach((edge) => {
-      edge.classList.remove("selected");
+    this.renderFlow();
+    requestAnimationFrame(() => {
+      this.flowWrapper?.querySelectorAll(
+        ".selected-faceplate, .selection-neighbor, .selection-muted",
+      ).forEach((element) => element.classList.remove(
+        "selected-faceplate",
+        "selection-neighbor",
+        "selection-muted",
+      ));
+      this.highlightCordEndpoints(null);
     });
-    this.highlightCordEndpoints(null);
   }
 
   highlightCordEndpoints(cord) {
@@ -728,6 +726,11 @@ export class PatchbayReactFlowRenderer {
           "patchbay-cord",
           presentation.className,
           edge.id === emphasizedDiagnosticCord ? "diagnostic-emphasized" : "",
+          edge.id === this.selectedCordId
+            ? "selection-current selection-neighbor"
+            : this.selectedCordId
+            ? "selection-muted"
+            : "",
         ].join(" "),
         style: {
           stroke: presentation.color,

@@ -286,11 +286,20 @@ export function PatchbayCordEdge(props) {
     nodes.map(nodeRectangle).filter(Boolean),
     props.label,
   );
+  const path = svgPath(points);
   return e(window.React.Fragment, null,
+    e("path", {
+      className: "react-flow__edge-interaction",
+      d: path,
+      fill: "none",
+      stroke: "transparent",
+      strokeWidth: 20,
+      style: { pointerEvents: "stroke" },
+    }),
     e("path", {
       id: props.id,
       className: "react-flow__edge-path",
-      d: svgPath(points),
+      d: path,
       style: props.style,
       markerEnd: props.markerEnd,
       markerStart: props.markerStart,

@@ -73,6 +73,29 @@ async function dragAndCommitTopologyNode(page, node, deltaX, deltaY) {
   return node.evaluate((element) => element.style.transform);
 }
 
+async function clickCordPath(page, edge) {
+  await edge.scrollIntoViewIfNeeded();
+  const point = await edge.locator(".react-flow__edge-interaction").evaluate((path) => {
+    const matrix = path.getScreenCTM();
+    if (!matrix) throw new Error("cord interaction path has no screen transform");
+    const local = path.getPointAtLength(path.getTotalLength() / 4);
+    const screen = new DOMPoint(local.x, local.y).matrixTransform(matrix);
+    return { x: screen.x, y: screen.y };
+  });
+  const hit = await page.evaluate(({ x, y }) => {
+    const target = document.elementFromPoint(x, y);
+    return {
+      tag: target?.tagName || "",
+      className: typeof target?.className === "string"
+        ? target.className
+        : target?.className?.baseVal || "",
+    };
+  }, point);
+  expect(hit.tag).toBe("path");
+  expect(hit.className).toMatch(/react-flow__edge-(?:interaction|path)/);
+  await page.mouse.click(point.x, point.y);
+}
+
 async function openTypedTextLesson(page) {
   await gotoTour(page, "/tour/public/index.html?lesson=library.typed-text-format");
   const story = page.locator("#execution-story");
@@ -786,7 +809,7 @@ test("links an active Watch cord event to its exact source", async ({ page }) =>
     '.timeline-event[data-subject-kind="cord"]',
   ).last();
   await liveCordEvent.click();
-  await expect(page.locator(".react-flow__edge.selected")).toHaveCount(1);
+  await expect(page.locator(".react-flow__edge.selection-current")).toHaveCount(1);
   expect(await page.locator("#source").evaluate((element) =>
     element.selectionEnd > element.selectionStart
   )).toBe(true);
@@ -1551,9 +1574,9 @@ test("draws bounded cords and exposes draggable rewire ends", async ({ page }) =
   await expect(source).toHaveValue(/first\.value > primary\.text/);
   await expect(source).toHaveValue(/max_queued_bytes = 1024/);
 
-  await page.locator(".react-flow__edge-textbg").click();
+  await clickCordPath(page, page.locator(".react-flow__edge").first());
   const updaters = page.locator(
-    ".react-flow__edge.selected .react-flow__edgeupdater",
+    ".react-flow__edge.selection-current .react-flow__edgeupdater",
   );
   await expect(updaters).toHaveCount(2);
   await expect(updaters.first()).toHaveCSS("pointer-events", "all");
@@ -1649,12 +1672,12 @@ test("keeps inspector controls focused while highlighting and updating source", 
 test("selects a cord by authoritative identity and reveals its declaration", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const edge = page.locator(".react-flow__edge").first();
-  await edge.locator(".react-flow__edge-textbg").click();
+  await clickCordPath(page, edge);
 
   await expect(page.locator("#selected-node-label")).toContainText(
     "Selected cord: cord-0",
   );
-  await expect(edge).toHaveClass(/selected/);
+  await expect(edge).toHaveClass(/selection-current/);
   await expect(page.locator(".faceplate-port-row.selected-cord-endpoint")).toHaveCount(2);
   await expect(page.locator(".panel-source-endpoint")).toHaveCount(2);
   expect(await page.locator(".panel-source-endpoint").allTextContents()).toEqual([
