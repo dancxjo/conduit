@@ -311,6 +311,9 @@ containment program is tracked by
 - [`083-bounded-quick-local-chat.md`](083-bounded-quick-local-chat.md) defines
   one bounded domain chat contract with deterministic and observed local
   implementations on the generic host-observation and exact-binding path.
+- [`084-audited-robotics-profiles.md`](084-audited-robotics-profiles.md)
+  defines one effect-free robotics profile implemented by distinct Linux and
+  Pico W describe-only hosts through the generic host-conformance path.
 - [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
   separates AP, DHCP, ICMP, DNS-SD, transport/application protocols,
   observation, and Netherwick robot authority with finite no-radio fixtures.

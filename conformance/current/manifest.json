@@ -6944,6 +6944,100 @@
         {"package": "conduit-ai", "test": "chat"},
         {"package": "conduit-web", "test": "tour_lessons"}
       ]
+    },
+    {
+      "id": "netherwick-describe-only-profile",
+      "profile": "conduit.c5",
+      "requirement_ids": [
+        "RBT-001", "RBT-002", "RBT-003", "RBT-004",
+        "RBT-005", "RBT-006", "RBT-007", "RBT-008"
+      ],
+      "artifacts": [
+        {
+          "id": "netherwick-describe-only-profile",
+          "path": "../c5/netherwick-describe-only-profile.json",
+          "sha256": "sha256:64b5ce2f255939c2dd115459ac2c497b8e5ecbde8ea57cf22420542ca8b7b64f",
+          "operation": "netherwick-describe-only-profile",
+          "requirement_ids": [
+            "RBT-001", "RBT-002", "RBT-003", "RBT-004",
+            "RBT-005", "RBT-006", "RBT-007", "RBT-008"
+          ],
+          "default_rule": "RBT-007",
+          "case_rules": {
+            "descriptor-hash": "RBT-001",
+            "distinct-value-types": "RBT-002",
+            "per-quantity-metadata": "RBT-003",
+            "finite-motion-envelope": "RBT-004",
+            "linux-same-contract": "RBT-005",
+            "pico-same-contract": "RBT-005",
+            "distinct-exact-implementations": "RBT-005",
+            "compiled-without-initialized-observation": "RBT-006",
+            "logical-relationship-without-path": "RBT-006",
+            "checkpoint-described-not-loaded": "RBT-007",
+            "describe-effect-free": "RBT-007",
+            "observation-as-command": "RBT-002",
+            "unit-mismatch": "RBT-003",
+            "frame-mismatch": "RBT-003",
+            "stale-sensor": "RBT-003",
+            "expired-command-ttl": "RBT-004",
+            "role-as-motion-grant": "RBT-004",
+            "membership-as-motion-grant": "RBT-004",
+            "capability-as-motion-grant": "RBT-004",
+            "missing-inhibit": "RBT-004",
+            "network-discovery-as-enrollment": "RBT-007",
+            "hidden-device-handle": "RBT-008",
+            "unsupported-host": "RBT-005",
+            "secret-topology-leakage": "RBT-008",
+            "describe-causes-effects": "RBT-007",
+            "missing-capability": "RBT-004",
+            "descriptor-hash-mismatch": "RBT-001"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "netherwick-describe-only-profile#descriptor-hash",
+          "netherwick-describe-only-profile#distinct-value-types",
+          "netherwick-describe-only-profile#per-quantity-metadata",
+          "netherwick-describe-only-profile#finite-motion-envelope",
+          "netherwick-describe-only-profile#linux-same-contract",
+          "netherwick-describe-only-profile#pico-same-contract",
+          "netherwick-describe-only-profile#distinct-exact-implementations",
+          "netherwick-describe-only-profile#compiled-without-initialized-observation",
+          "netherwick-describe-only-profile#logical-relationship-without-path",
+          "netherwick-describe-only-profile#checkpoint-described-not-loaded",
+          "netherwick-describe-only-profile#describe-effect-free"
+        ],
+        "negative": [
+          "netherwick-describe-only-profile#observation-as-command",
+          "netherwick-describe-only-profile#unit-mismatch",
+          "netherwick-describe-only-profile#frame-mismatch",
+          "netherwick-describe-only-profile#stale-sensor",
+          "netherwick-describe-only-profile#expired-command-ttl",
+          "netherwick-describe-only-profile#role-as-motion-grant",
+          "netherwick-describe-only-profile#membership-as-motion-grant",
+          "netherwick-describe-only-profile#capability-as-motion-grant",
+          "netherwick-describe-only-profile#missing-inhibit",
+          "netherwick-describe-only-profile#unsupported-host",
+          "netherwick-describe-only-profile#missing-capability",
+          "netherwick-describe-only-profile#descriptor-hash-mismatch"
+        ],
+        "boundary": [
+          "netherwick-describe-only-profile#network-discovery-as-enrollment",
+          "netherwick-describe-only-profile#hidden-device-handle",
+          "netherwick-describe-only-profile#secret-topology-leakage",
+          "netherwick-describe-only-profile#describe-causes-effects"
+        ],
+        "migration": []
+      },
+      "reference_tests": [
+        {"package": "conduit-robotics", "test": "lib"},
+        {"package": "conduit-web", "test": "tour_lessons"}
+      ]
     }
   ]
 }

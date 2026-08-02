@@ -198,6 +198,7 @@
         "conduit.media-codec-conformance",
         "conduit.media-value-conformance",
         "conduit.netherwick-network",
+        "conduit.netherwick-describe-only-profile-conformance",
         "conduit.performance-baseline",
         "conduit.persistent-budget-fixtures",
         "conduit.quick-local-chat-conformance",

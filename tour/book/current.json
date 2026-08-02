@@ -287,8 +287,9 @@
       "library.bounded-media-values",
       "library.bounded-spatial-foundation",
       "library.bounded-process-exec",
-      "library.bounded-control-composites",
-      "library.contract-package-imports"
+    "library.bounded-control-composites",
+    "platform.audited-robotics-profile",
+    "library.contract-package-imports"
     ]
   },
   "cookbook": {
