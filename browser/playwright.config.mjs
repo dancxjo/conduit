@@ -2,6 +2,8 @@ import { defineConfig } from "@playwright/test";
 
 const port = process.env.CONDUIT_PLAYWRIGHT_PORT ?? "4173";
 const baseURL = `http://127.0.0.1:${port}`;
+const shard = process.env.CONDUIT_PLAYWRIGHT_SHARD ?? "1/1";
+const shardCount = Number.parseInt(shard.split("/")[1] ?? "1", 10);
 
 export default defineConfig({
   testDir: "..",
@@ -12,7 +14,10 @@ export default defineConfig({
     "tour/standing-signals.spec.mjs",
     "tour/tour.spec.mjs",
   ],
-  fullyParallel: false,
+  // Keep ordinary runs in file order. CI's Firefox shards opt into test-level
+  // distribution so the large Tour spec is divided instead of assigned whole
+  // to one shard; each shard still executes serially with one worker.
+  fullyParallel: shardCount > 1,
   workers: 1,
   retries: 0,
   maxFailures: process.env.CI ? 1 : undefined,

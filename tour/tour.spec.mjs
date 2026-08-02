@@ -2543,11 +2543,12 @@ test("learned inference lesson keeps model runtime and device identities exact",
 });
 
 test("learned lifecycle keeps evaluation separate from promotion authority", async ({ page }) => {
-  await page.goto(
+  await gotoTour(page,
     "/tour/public/index.html?lesson=library.bounded-learned-lifecycle",
   );
   const story = page.locator("#execution-story");
   const result = page.locator("#result");
+  const run = page.locator("#run");
 
   await expect(story).toBeVisible();
   for (const contract of [
@@ -2562,29 +2563,32 @@ test("learned lifecycle keeps evaluation separate from promotion authority", asy
   await expect(page.locator("#runnability-state")).toContainText(
     "runnable · browser",
   );
-  await page.locator("#run").click();
+  await run.click();
   await expect(result).toContainText(
     "learned:dataset:tiny:train:4:public",
     { timeout: 20_000 },
   );
+  await expect(run).toBeEnabled({ timeout: 20_000 });
 
   await page.locator("#scenario").selectOption(
     "training-evaluation-without-promotion",
   );
-  await page.locator("#run").click();
+  await run.click();
   await expect(result).toContainText(
     "learned:evaluation:accuracy@1:4/4:not-approval",
     { timeout: 20_000 },
   );
+  await expect(run).toBeEnabled({ timeout: 20_000 });
 
   await page.locator("#scenario").selectOption(
     "authorized-promotion-composition",
   );
   await expect(result).toContainText(
     "backend-originated receipt",
+    { timeout: 20_000 },
   );
   await expect(result).toContainText("CND-IMP-001");
-  await expect(page.locator("#run")).toBeDisabled();
+  await expect(run).toBeDisabled();
   await expect(page.locator("#evidence")).not.toContainText(
     '"kind": "lesson-completed"',
   );
@@ -2728,7 +2732,7 @@ test("workload lesson keeps hard admission distinct from observations", async ({
 });
 
 test("cross-host lesson keeps discovery separate from exact provider binding", async ({ page }) => {
-  await page.goto(
+  await gotoTour(page,
     "/tour/public/index.html?lesson=platform.cross-host-provider-conformance",
   );
   const story = page.locator("#execution-story");
@@ -2738,11 +2742,29 @@ test("cross-host lesson keeps discovery separate from exact provider binding", a
   await expect(story).toBeVisible();
   await expect(page.locator("#story-kind")).toHaveText("Platform contract lesson");
 
-  const runWithAcceptedProfile = async (scenarioId) => {
+  await story.getByRole("button", { name: "firmware-unsupported" }).click();
+  await expect(result).toContainText("rejected before execution with CND-HCF-005");
+  await expect(source).toHaveValue(/node wave : conduit\.media\/wave\/literal/);
+});
+
+for (const scenarioId of [
+  "deterministic-host",
+  "provider-fixture-alpha",
+  "provider-fixture-beta",
+  "explicit-adapter-fixture",
+]) {
+  test(`cross-host accepted profile ${scenarioId} runs with exact provider binding`, async ({ page }) => {
+    await gotoTour(page,
+      "/tour/public/index.html?lesson=platform.cross-host-provider-conformance",
+    );
+    const result = page.locator("#result");
+    const source = page.locator("#source");
+    const run = page.locator("#run");
+
     await page.locator("#scenario").selectOption(scenarioId);
     await expect(page.locator("#scenario")).toHaveValue(scenarioId);
-    await expect(page.locator("#run")).toBeEnabled();
-    await page.locator("#run").click();
+    await expect(run).toBeEnabled();
+    await run.click();
     await expect(result).toContainText(
       "audio:s16le:48000:stereo:192",
       { timeout: 20_000 },
@@ -2750,14 +2772,6 @@ test("cross-host lesson keeps discovery separate from exact provider binding", a
     await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
     await expect(page.locator("#timeline-table")).toContainText("succeeded");
     await expect(source).toHaveValue(/node decode : conduit\.media\/audio\/decode/);
-  };
-
-  await story.getByRole("button", { name: "firmware-unsupported" }).click();
-  await expect(result).toContainText("rejected before execution with CND-HCF-005");
-  await expect(source).toHaveValue(/node wave : conduit\.media\/wave\/literal/);
-
-  await runWithAcceptedProfile("deterministic-host");
-  await runWithAcceptedProfile("provider-fixture-alpha");
-  await runWithAcceptedProfile("provider-fixture-beta");
-  await runWithAcceptedProfile("explicit-adapter-fixture");
-});
+    await expect(run).toBeEnabled({ timeout: 20_000 });
+  });
+}
