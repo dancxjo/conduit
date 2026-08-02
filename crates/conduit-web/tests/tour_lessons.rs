@@ -219,8 +219,8 @@ fn tour_lessons_declare_verified_browser_runnability() {
             registry
         } else if id == "library.bounded-brainstem-network" {
             let mut registry = Registry::hosted_primitives();
-            conduit_net::register_deterministic_network_fixture_providers(&mut registry)
-                .expect("browser network fixture providers register");
+            conduit_net::register_deterministic_network_providers(&mut registry)
+                .expect("browser network reference providers register");
             registry
         } else {
             Registry::compatibility_demo()

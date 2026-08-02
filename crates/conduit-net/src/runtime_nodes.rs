@@ -1,6 +1,6 @@
 //! Standing isolated-network service contracts and deterministic providers.
 //!
-//! These providers are deliberately no-radio fixtures. They preserve the same
+//! These providers are deterministic no-radio reference implementations. They preserve the same
 //! typed graph that a Linux or embedded provider can satisfy, but they neither
 //! open an interface nor claim current host authority or reachability.
 
@@ -347,12 +347,12 @@ fn runtime_error(reason: NetworkReason, detail: &'static str) -> RuntimeError {
 }
 
 #[derive(Default)]
-struct FixtureAp {
+struct DeterministicAp {
     generation: u32,
     deadline_tick: Option<u64>,
 }
 
-impl Handler for FixtureAp {
+impl Handler for DeterministicAp {
     fn step(
         &mut self,
         _node: &Node,
@@ -363,7 +363,7 @@ impl Handler for FixtureAp {
         if !inputs.is_empty() {
             return Err(runtime_error(
                 NetworkReason::MalformedPacket,
-                "access-point fixture received hidden input",
+                "deterministic access-point provider received hidden input",
             ));
         }
         if let Some(deadline_tick) = self.deadline_tick
@@ -421,12 +421,12 @@ impl Handler for FixtureAp {
     }
 }
 
-struct FixtureDhcp {
+struct DeterministicDhcp {
     leases: DhcpLeaseTable,
     client_cursor: u64,
 }
 
-impl Handler for FixtureDhcp {
+impl Handler for DeterministicDhcp {
     fn step(
         &mut self,
         _node: &Node,
@@ -456,7 +456,7 @@ impl Handler for FixtureDhcp {
             })?
         };
         let client = crate::ClientIdentity::new(&self.client_cursor.to_be_bytes())
-            .map_err(|reason| runtime_error(reason, "invalid fixture client identity"))?;
+            .map_err(|reason| runtime_error(reason, "invalid deterministic client identity"))?;
         let DhcpOutcome::Offered(lease) = self
             .leases
             .handle(DhcpMessage::Discover, client, 8, context.tick)
@@ -464,7 +464,7 @@ impl Handler for FixtureDhcp {
         else {
             return Err(runtime_error(
                 NetworkReason::MalformedPacket,
-                "fixture discover did not produce an offer",
+                "deterministic discover did not produce an offer",
             ));
         };
         let mut address = [0; 16];
@@ -501,9 +501,9 @@ impl Handler for FixtureDhcp {
 }
 
 #[derive(Default)]
-struct FixtureDnsSd;
+struct DeterministicDnsSd;
 
-impl Handler for FixtureDnsSd {
+impl Handler for DeterministicDnsSd {
     fn step(
         &mut self,
         _node: &Node,
@@ -560,11 +560,11 @@ impl Handler for FixtureDnsSd {
     }
 }
 
-struct FixtureReachability {
+struct DeterministicReachability {
     limiter: IcmpRateLimiter,
 }
 
-impl Handler for FixtureReachability {
+impl Handler for DeterministicReachability {
     fn step(
         &mut self,
         _node: &Node,
@@ -611,7 +611,7 @@ pub fn register_network_contracts(registry: &mut Registry) {
 
 /// Installs only deterministic no-radio providers. A physical provider must
 /// bind its own exact current observation, resource, grant, and use-time lease.
-pub fn register_deterministic_network_fixture_providers(
+pub fn register_deterministic_network_providers(
     registry: &mut Registry,
 ) -> Result<(), RegistryError> {
     register_network_contracts(registry);
@@ -619,23 +619,23 @@ pub fn register_deterministic_network_fixture_providers(
     for provider in [
         CompiledInHostService {
             contract: &WIFI_AP_CONTRACT,
-            implementation_id: "conduit.net/fixture-wifi-ap",
-            artifact_id: "conduit.net/fixture-wifi-ap-artifact",
-            entrypoint: "network-fixture-wifi-ap",
+            implementation_id: "conduit.net/reference-wifi-ap",
+            artifact_id: "conduit.net/reference-wifi-ap-artifact",
+            entrypoint: "network-reference-wifi-ap",
             source_bytes: include_bytes!("runtime_nodes.rs"),
             required_authorities: &NO_AUTHORITIES,
-            factory: || recorded_handler(FixtureAp::default()),
+            factory: || recorded_handler(DeterministicAp::default()),
             validate_config: validate_ap,
         },
         CompiledInHostService {
             contract: &DHCP_SERVER_CONTRACT,
-            implementation_id: "conduit.net/fixture-dhcp-server",
-            artifact_id: "conduit.net/fixture-dhcp-server-artifact",
-            entrypoint: "network-fixture-dhcp-server",
+            implementation_id: "conduit.net/reference-dhcp-server",
+            artifact_id: "conduit.net/reference-dhcp-server-artifact",
+            entrypoint: "network-reference-dhcp-server",
             source_bytes: include_bytes!("runtime_nodes.rs"),
             required_authorities: &NO_AUTHORITIES,
             factory: || {
-                recorded_handler(FixtureDhcp {
+                recorded_handler(DeterministicDhcp {
                     leases: DhcpLeaseTable::new(),
                     client_cursor: 0,
                 })
@@ -644,23 +644,23 @@ pub fn register_deterministic_network_fixture_providers(
         },
         CompiledInHostService {
             contract: &DNS_SD_CONTRACT,
-            implementation_id: "conduit.net/fixture-dns-sd",
-            artifact_id: "conduit.net/fixture-dns-sd-artifact",
-            entrypoint: "network-fixture-dns-sd",
+            implementation_id: "conduit.net/reference-dns-sd",
+            artifact_id: "conduit.net/reference-dns-sd-artifact",
+            entrypoint: "network-reference-dns-sd",
             source_bytes: include_bytes!("runtime_nodes.rs"),
             required_authorities: &NO_AUTHORITIES,
-            factory: || recorded_handler(FixtureDnsSd),
+            factory: || recorded_handler(DeterministicDnsSd),
             validate_config: validate_dns_sd,
         },
         CompiledInHostService {
             contract: &REACHABILITY_CONTRACT,
-            implementation_id: "conduit.net/fixture-icmp",
-            artifact_id: "conduit.net/fixture-icmp-artifact",
-            entrypoint: "network-fixture-icmp",
+            implementation_id: "conduit.net/reference-reachability",
+            artifact_id: "conduit.net/reference-reachability-artifact",
+            entrypoint: "network-reference-reachability",
             source_bytes: include_bytes!("runtime_nodes.rs"),
             required_authorities: &NO_AUTHORITIES,
             factory: || {
-                recorded_handler(FixtureReachability {
+                recorded_handler(DeterministicReachability {
                     limiter: IcmpRateLimiter::new(),
                 })
             },
@@ -679,7 +679,7 @@ mod tests {
     use conduit_runtime::AvailabilityState;
 
     #[test]
-    fn contract_inventory_has_no_provider_until_fixture_is_explicitly_installed() {
+    fn contract_inventory_has_no_provider_until_reference_is_explicitly_installed() {
         let mut registry = Registry::default();
         register_network_contracts(&mut registry);
         for contract in NETWORK_CONTRACTS {
@@ -688,7 +688,7 @@ mod tests {
                 AvailabilityState::ContractOnly
             );
         }
-        register_deterministic_network_fixture_providers(&mut registry).unwrap();
+        register_deterministic_network_providers(&mut registry).unwrap();
         for contract in NETWORK_CONTRACTS {
             assert_eq!(
                 registry.node_availability(contract.id.as_str()).state,
@@ -837,7 +837,7 @@ mod tests {
             valid_until_tick: Some(20_000),
         })
         .unwrap();
-        let mut handler = FixtureDhcp {
+        let mut handler = DeterministicDhcp {
             leases: DhcpLeaseTable::new(),
             client_cursor: 0,
         };

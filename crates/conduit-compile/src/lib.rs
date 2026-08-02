@@ -25,12 +25,12 @@ use conduit_core::{
     HazardousHostBinding, HazardousHostProfile, HostCapability, HostDistributionKind, Id,
     ImplementationConfinement, ImplementationManifest, InhibitLatchState, InhibitObservation,
     InstancePath, MAX_HAZARD_PROOF_NODES, ManifestArtifactRef, ManifestEntrypoint,
-    MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant, OperatingEnvelopeLimit,
-    OwnershipModel, PassportStatus, PassportStatusObservation, PersistentBudgetPolicy,
-    PinnedDescriptor, PlanArtifact, PlanAuthority, PlanClockConversion, PlanCompositeMapping,
-    PlanEvidenceProviderBinding, PlanExportBinding, PlanFeedbackBoundary, PlanHazardClosure,
-    PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime, PlanPortGroup,
-    PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSupervision,
+    ManifestInterface, MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant,
+    OperatingEnvelopeLimit, OwnershipModel, PassportStatus, PassportStatusObservation,
+    PersistentBudgetPolicy, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanClockConversion,
+    PlanCompositeMapping, PlanEvidenceProviderBinding, PlanExportBinding, PlanFeedbackBoundary,
+    PlanHazardClosure, PlanHostObservation, PlanInstancePool, PlanPolicyBudget, PlanPoolRuntime,
+    PlanPortGroup, PlanPortGroupMember, PlanResourceBinding, PlanResourceBudget, PlanSupervision,
     PlanSupervisionTarget, PlanValidationContext, PlanWorkload, PolicyBudgetAnchor,
     PolicyBudgetAvailability, PolicyBudgetLease, PolicyBudgetLimits, PolicyBudgetReason,
     PolicyBudgetStatus, PolicyLeaseRule, PoolAdmissionPolicy, PoolCleanupPolicy, PoolContract,
@@ -191,6 +191,13 @@ pub struct ArtifactReferenceDocument {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct ImplementationInterfaceDocument {
+    pub interface: PinDocument,
+    pub entrypoint: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ImplementationDocument {
     pub schema_version: u32,
     pub identity: String,
@@ -204,6 +211,8 @@ pub struct ImplementationDocument {
     pub runtime_protocol_version: u32,
     pub execution_profile: PinDocument,
     pub artifacts: Vec<ArtifactReferenceDocument>,
+    pub required_interfaces: Vec<ImplementationInterfaceDocument>,
+    pub provided_interfaces: Vec<ImplementationInterfaceDocument>,
     #[serde(default)]
     pub required_authorities: Vec<String>,
     #[serde(default)]
@@ -346,6 +355,7 @@ pub struct HostReportDocument {
     pub identity: String,
     pub id: String,
     pub host: String,
+    pub boot_id: String,
     pub reporter: PinDocument,
     pub trust: PinDocument,
     pub membership: Option<ReportMembershipDocument>,
@@ -2335,6 +2345,7 @@ fn lower_compile_source(
 pub struct PlanHostDocument {
     pub id: String,
     pub host: String,
+    pub boot_id: String,
     pub semantic_hash: String,
     pub time_basis: String,
     pub observed_at_tick: u64,
@@ -2797,6 +2808,7 @@ impl ExactPlanDocument {
                 Ok(PlanHostObservation {
                     id: id(&host.id)?,
                     host: id(&host.host)?,
+                    boot_id: id(&host.boot_id)?,
                     semantic_hash: parse_hash(&host.semantic_hash)?,
                     time_basis: id(&host.time_basis)?,
                     observed_at_tick: host.observed_at_tick,
@@ -3667,6 +3679,7 @@ fn compile_topology(
             host_observations.push(PlanHostObservation {
                 id: candidate.report.id,
                 host: candidate.report.host,
+                boot_id: candidate.report.boot_id,
                 semantic_hash: candidate.report.identity,
                 time_basis: candidate.report.time_basis,
                 observed_at_tick: candidate.report.observed_at_tick,
@@ -3790,6 +3803,7 @@ fn compile_topology(
             let provider_host = PlanHostObservation {
                 id: id(&provider.host_observation.id)?,
                 host: id(&provider.host_observation.host)?,
+                boot_id: id(&provider.host_observation.boot_id)?,
                 semantic_hash: parse_hash(&provider.host_observation.semantic_hash)?,
                 time_basis: id(&provider.host_observation.time_basis)?,
                 observed_at_tick: provider.host_observation.observed_at_tick,
@@ -4382,6 +4396,10 @@ fn prepare_candidate<'a>(
             })
         })
         .collect::<Result<Vec<_>, CompileError>>()?;
+    let required_interfaces =
+        implementation_interfaces(&document.implementation.required_interfaces, arena)?;
+    let provided_interfaces =
+        implementation_interfaces(&document.implementation.provided_interfaces, arena)?;
     let manifest = arena.alloc(ImplementationManifest {
         schema_version: document.implementation.schema_version,
         identity: parse_hash(&document.implementation.identity)?,
@@ -4397,8 +4415,8 @@ fn prepare_candidate<'a>(
         },
         execution_profile: pin(&document.implementation.execution_profile)?,
         artifacts: arena.alloc_slice_copy(&artifact_refs),
-        required_interfaces: &[],
-        provided_interfaces: &[],
+        required_interfaces,
+        provided_interfaces,
         required_authorities: arena.alloc_slice_copy(
             &document
                 .implementation
@@ -4721,6 +4739,7 @@ fn capability_report<'a>(
         identity: parse_hash(&document.identity)?,
         id: id(&document.id)?,
         host: id(&document.host)?,
+        boot_id: id(&document.boot_id)?,
         reporter: pin(&document.reporter)?,
         trust: pin(&document.trust)?,
         membership,
@@ -5941,6 +5960,8 @@ fn implementation_identity(document: &ImplementationDocument) -> Result<String, 
             })
         })
         .collect::<Result<Vec<_>, CompileError>>()?;
+    let required_interfaces = implementation_interfaces(&document.required_interfaces, &arena)?;
+    let provided_interfaces = implementation_interfaces(&document.provided_interfaces, &arena)?;
     let manifest = ImplementationManifest {
         schema_version: document.schema_version,
         identity: SemanticHash::from_bytes([0; 32]),
@@ -5956,8 +5977,8 @@ fn implementation_identity(document: &ImplementationDocument) -> Result<String, 
         },
         execution_profile: pin(&document.execution_profile)?,
         artifacts: arena.alloc_slice_copy(&refs),
-        required_interfaces: &[],
-        provided_interfaces: &[],
+        required_interfaces,
+        provided_interfaces,
         required_authorities: arena.alloc_slice_copy(
             &document
                 .required_authorities
@@ -6142,6 +6163,7 @@ fn plan_document(
         .map(|host| PlanHostDocument {
             id: host.id.to_string(),
             host: host.host.to_string(),
+            boot_id: host.boot_id.to_string(),
             semantic_hash: host.semantic_hash.to_string(),
             time_basis: host.time_basis.to_string(),
             observed_at_tick: host.observed_at_tick,
@@ -6563,6 +6585,7 @@ fn plan_document(
                 host_observation: PlanHostDocument {
                     id: host.id.to_string(),
                     host: host.host.to_string(),
+                    boot_id: host.boot_id.to_string(),
                     semantic_hash: host.semantic_hash.to_string(),
                     time_basis: host.time_basis.to_string(),
                     observed_at_tick: host.observed_at_tick,
@@ -7871,6 +7894,22 @@ fn pin(document: &PinDocument) -> Result<PinnedDescriptor<'_>, CompileError> {
     })
 }
 
+fn implementation_interfaces<'a>(
+    documents: &'a [ImplementationInterfaceDocument],
+    arena: &'a Bump,
+) -> Result<&'a [ManifestInterface<'a>], CompileError> {
+    let interfaces = documents
+        .iter()
+        .map(|document| {
+            Ok(ManifestInterface {
+                interface: pin(&document.interface)?,
+                entrypoint: id(&document.entrypoint)?,
+            })
+        })
+        .collect::<Result<Vec<_>, CompileError>>()?;
+    Ok(arena.alloc_slice_copy(&interfaces))
+}
+
 fn id(value: &str) -> Result<Id<'_>, CompileError> {
     Id::new(value).map_err(|_| CompileError::new(CompileReason::InvalidInput))
 }
@@ -8809,6 +8848,8 @@ mod tests {
                     role: "implementation".to_owned(),
                     required: true,
                 }],
+                required_interfaces: Vec::new(),
+                provided_interfaces: Vec::new(),
                 required_authorities: Vec::new(),
                 required_effects: Vec::new(),
                 minimum_plan_version: 0,
@@ -8838,6 +8879,7 @@ mod tests {
                 identity: String::new(),
                 id: format!("fixture/report-{ordinal}"),
                 host: "fixture/host-local".to_owned(),
+                boot_id: "fixture/host-local-boot".to_owned(),
                 reporter: pin_doc("fixture/reporter", 50),
                 trust: pin_doc("fixture/report-trust", 51),
                 membership: None,
@@ -8952,6 +8994,7 @@ mod tests {
             host_observation: PlanHostDocument {
                 id: "fixture/exact-evidence-host-observation".to_owned(),
                 host: "fixture/host-local".to_owned(),
+                boot_id: "fixture/host-local-boot".to_owned(),
                 semantic_hash: hash(213),
                 time_basis: "clock/compile".to_owned(),
                 observed_at_tick: 10,

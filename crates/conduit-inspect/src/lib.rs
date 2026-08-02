@@ -18,8 +18,9 @@ use conduit_panel::{
     LoadedModule, ModuleLoader, Panel, SourceValue, parse_document, resolve_modules,
 };
 use conduit_runtime::{
-    LoweredConfigValue, LoweredSource, OwnedEventPayload, OwnedExecutionEvent, decode_event_ndjson,
-    validate_hosted_execution_plan,
+    LoweredConfigValue, LoweredSource, ManagedCleanupState, ManagedComponentObservation,
+    ManagedLifecycleReason, ManagedLifecycleState, ManagedRuntimeReadiness, OwnedEventPayload,
+    OwnedExecutionEvent, decode_event_ndjson, validate_hosted_execution_plan,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -27,6 +28,77 @@ use sha2::{Digest as _, Sha256};
 
 pub const INSPECTION_SCHEMA: &str = "conduit.inspection";
 pub const INSPECTION_SCHEMA_VERSION: u16 = 0;
+
+/// Read-only typed projection of one managed component. Presentation layers
+/// receive the independent dimensions; they do not reduce them to a status
+/// boolean or gain transition authority by rendering this value.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ManagedComponentInspection {
+    pub component: String,
+    pub semantic_contract: String,
+    pub implementation_id: String,
+    pub implementation_version: String,
+    pub implementation_identity: String,
+    pub artifact_ids: Vec<String>,
+    pub host_id: String,
+    pub host_boot_id: String,
+    pub host_observation_id: String,
+    pub run_id: String,
+    pub plan_identity: String,
+    pub plan_epoch: u64,
+    pub activation_generation: u64,
+    pub resources: Vec<String>,
+    pub grants: Vec<String>,
+    pub leases: Vec<String>,
+    pub state: ManagedLifecycleState,
+    pub reason: ManagedLifecycleReason,
+    pub reason_code: String,
+    pub readiness: ManagedRuntimeReadiness,
+    pub cleanup: ManagedCleanupState,
+    pub observation_sequence: u64,
+    pub observed_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub retired: bool,
+}
+
+#[must_use]
+pub fn inspect_managed_component(
+    observation: &ManagedComponentObservation,
+) -> ManagedComponentInspection {
+    ManagedComponentInspection {
+        component: observation.identity.component.clone(),
+        semantic_contract: observation.identity.semantic_contract.clone(),
+        implementation_id: observation.identity.implementation_id.clone(),
+        implementation_version: observation.identity.implementation_version.clone(),
+        implementation_identity: observation.identity.implementation_identity.clone(),
+        artifact_ids: observation
+            .identity
+            .artifacts
+            .iter()
+            .map(|artifact| artifact.id.clone())
+            .collect(),
+        host_id: observation.identity.host_id.clone(),
+        host_boot_id: observation.identity.host_boot_id.clone(),
+        host_observation_id: observation.identity.host_observation_id.clone(),
+        run_id: observation.identity.run_id.clone(),
+        plan_identity: observation.identity.plan_identity.clone(),
+        plan_epoch: observation.identity.plan_epoch,
+        activation_generation: observation.identity.activation_generation,
+        resources: observation.identity.resources.clone(),
+        grants: observation.identity.grants.clone(),
+        leases: observation.identity.leases.clone(),
+        state: observation.state,
+        reason: observation.reason,
+        reason_code: observation.reason_code.clone(),
+        readiness: observation.readiness,
+        cleanup: observation.cleanup,
+        observation_sequence: observation.sequence,
+        observed_at_tick: observation.observed_at_tick,
+        valid_until_tick: observation.valid_until_tick,
+        retired: observation.retired,
+    }
+}
 
 /// Fixed resource ceilings applied before artifact-specific validation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1136,14 +1208,18 @@ pub fn inspect_execution_plan(
             value: format!("{}@{}", plan.resolver.id, plan.resolver.semantic_hash),
         },
     ];
-    references.extend(
-        plan.host_observations
-            .iter()
-            .map(|value| InspectionReference {
+    for value in plan.host_observations {
+        references.extend([
+            InspectionReference {
                 category: "host-observation".to_owned(),
                 value: format!("{}@{}", value.id, value.semantic_hash),
-            }),
-    );
+            },
+            InspectionReference {
+                category: "host-boot".to_owned(),
+                value: format!("{}@{}", value.host, value.boot_id),
+            },
+        ]);
+    }
     references.extend(plan.artifacts.iter().map(|value| InspectionReference {
         category: "artifact".to_owned(),
         value: format!("{}@{}", value.id, value.digest),

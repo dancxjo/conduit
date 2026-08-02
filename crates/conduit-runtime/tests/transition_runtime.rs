@@ -302,6 +302,7 @@ fn resolution(
         identity: ZERO,
         id: Id("fixture/report"),
         host: Id("host.effect"),
+        boot_id: Id("host.effect.boot"),
         reporter: REPORTER,
         trust: REPORT_TRUST,
         membership: None,

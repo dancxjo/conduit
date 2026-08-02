@@ -3489,6 +3489,7 @@ pub fn register_portable_route_provider(registry: &mut Registry) -> Result<(), R
         minimum_runtime_protocol: 1,
         maximum_runtime_protocol: 1,
         coexistence_memory_bytes: 0,
+        managed_lifecycle: None,
         factory: portable_packet_router,
         validate_config: validate_route,
     })
@@ -3627,7 +3628,7 @@ mod tests {
     }
 
     #[test]
-    fn independent_router_implementations_preserve_the_same_fixture_semantics() {
+    fn independent_router_implementations_preserve_the_same_normalized_semantics() {
         let route_node = node(
             "net/packet/route { lifecycle = \"standing\" prefix = \"10.1.0.0\" prefix_length = 16 egress_interface = 2 mtu = 1500 forwarding = \"admitted\" maximum_routes = 16 maximum_packet_bytes = 1500 maximum_evidence_events = 64 }",
         );

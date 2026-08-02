@@ -7,8 +7,8 @@ use crate::{
     CompileSourceLimits, EffectCommitProfileDocument, EffectRequirementDocument,
     EvidenceProviderBindingDocument, ExecutionLimitsDocument, ExecutionProfileDocument,
     ExternalLeafContractDocument, HostCapabilityDocument, HostReportDocument,
-    ImplementationDocument, MemoryClaimDocument, PinDocument, ResourceLeaseDocument,
-    WatchAdmissionDocument, builtin_catalog_document,
+    ImplementationDocument, ImplementationInterfaceDocument, MemoryClaimDocument, PinDocument,
+    ResourceLeaseDocument, WatchAdmissionDocument, builtin_catalog_document,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, ExecutorKind,
@@ -33,6 +33,7 @@ pub struct InstalledProfile {
 pub struct InstalledHostObservationInput {
     pub id: String,
     pub host: String,
+    pub boot_id: String,
     pub reporter: PinDocument,
     pub trust: PinDocument,
     pub time_basis: String,
@@ -48,6 +49,7 @@ impl InstalledHostObservationInput {
         Self {
             id: "conduit/conduct-host-observation".to_owned(),
             host: "conduit/conduct-host".to_owned(),
+            boot_id: "conduit/conduct-host-boot".to_owned(),
             reporter: pin("conduit/conduct-host-reporter", 50),
             trust: pin("conduit/local-build-trust", 51),
             time_basis: "clock/conduct-host".to_owned(),
@@ -691,10 +693,20 @@ impl InstalledProfile {
             }) {
                 bindings.push(ExactHostedBinding {
                     implementation_id: node.implementation.id.to_string(),
+                    implementation_version: installed.manifest.implementation_version.to_owned(),
                     implementation_identity: node.implementation.semantic_hash,
                     artifact_id: installed.artifact.id.to_string(),
                     artifact_digest: installed.artifact.digest,
+                    artifacts: installed
+                        .artifacts
+                        .iter()
+                        .map(|artifact| conduit_runtime::ManagedArtifactIdentity {
+                            id: artifact.id.to_string(),
+                            digest: artifact.digest.to_string(),
+                        })
+                        .collect(),
                     implementation,
+                    managed_lifecycle: installed.managed_lifecycle.cloned(),
                 });
             }
         }
@@ -952,6 +964,30 @@ fn candidate(
                     required: reference.required,
                 })
                 .collect(),
+            required_interfaces: manifest
+                .required_interfaces
+                .iter()
+                .map(|interface| ImplementationInterfaceDocument {
+                    interface: PinDocument {
+                        id: interface.interface.id.to_string(),
+                        schema_version: interface.interface.schema_version,
+                        semantic_hash: interface.interface.semantic_hash.to_string(),
+                    },
+                    entrypoint: interface.entrypoint.to_string(),
+                })
+                .collect(),
+            provided_interfaces: manifest
+                .provided_interfaces
+                .iter()
+                .map(|interface| ImplementationInterfaceDocument {
+                    interface: PinDocument {
+                        id: interface.interface.id.to_string(),
+                        schema_version: interface.interface.schema_version,
+                        semantic_hash: interface.interface.semantic_hash.to_string(),
+                    },
+                    entrypoint: interface.entrypoint.to_string(),
+                })
+                .collect(),
             required_authorities: manifest
                 .required_authorities
                 .iter()
@@ -1025,6 +1061,7 @@ fn candidate(
             identity: String::new(),
             id: host_observation.id.clone(),
             host: host_observation.host.clone(),
+            boot_id: host_observation.boot_id.clone(),
             reporter: host_observation.reporter.clone(),
             trust: host_observation.trust.clone(),
             membership: None,

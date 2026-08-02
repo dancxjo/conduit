@@ -2080,6 +2080,7 @@ pub fn register_portable_lfo_provider(registry: &mut Registry) -> Result<(), Reg
         minimum_runtime_protocol: 1,
         maximum_runtime_protocol: 1,
         coexistence_memory_bytes: 0,
+        managed_lifecycle: None,
         factory: lfo,
         validate_config: validate_lfo,
     })

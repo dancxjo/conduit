@@ -26,8 +26,9 @@ use conduit_media::{
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
     CompiledInHostService, ExactHostedServiceBinding, Handler, HostedServiceCleanup,
-    HostedServiceInterest, HostedServiceStep, HostedServiceStepContext, Registry, RegistryError,
-    ResolutionError, RunIo, RuntimeError, Value,
+    HostedServiceInterest, HostedServiceStep, HostedServiceStepContext, ManagedAdapterBoundary,
+    ManagedComponentDescriptor, Registry, RegistryError, ResolutionError, RunIo, RuntimeError,
+    Value,
 };
 use sha2::{Digest, Sha256};
 
@@ -1258,26 +1259,32 @@ pub fn register_observed_alsa_providers(
     }
     static CAPTURE_AUTHORITIES: [SemanticHash; 1] = [CAPTURE_AUTHORITY];
     static PLAYBACK_AUTHORITIES: [SemanticHash; 1] = [PLAYBACK_AUTHORITY];
-    registry.register_compiled_in_host_service(CompiledInHostService {
-        contract: &AUDIO_CAPTURE_CONTRACT,
-        implementation_id: ALSA_CAPTURE_IMPLEMENTATION_ID,
-        artifact_id: "conduit.audio/capture-alsa-hosted-artifact",
-        entrypoint: "audio-capture-alsa-hosted",
-        source_bytes: include_bytes!("lib.rs"),
-        required_authorities: &CAPTURE_AUTHORITIES,
-        factory: capture_factory,
-        validate_config: validate_capture,
-    })?;
-    registry.register_compiled_in_host_service(CompiledInHostService {
-        contract: &AUDIO_PLAYBACK_CONTRACT,
-        implementation_id: ALSA_PLAYBACK_IMPLEMENTATION_ID,
-        artifact_id: "conduit.audio/playback-alsa-hosted-artifact",
-        entrypoint: "audio-playback-alsa-hosted",
-        source_bytes: include_bytes!("lib.rs"),
-        required_authorities: &PLAYBACK_AUTHORITIES,
-        factory: playback_factory,
-        validate_config: validate_playback,
-    })
+    registry.register_managed_compiled_in_host_service(
+        CompiledInHostService {
+            contract: &AUDIO_CAPTURE_CONTRACT,
+            implementation_id: ALSA_CAPTURE_IMPLEMENTATION_ID,
+            artifact_id: "conduit.audio/capture-alsa-hosted-artifact",
+            entrypoint: "audio-capture-alsa-hosted",
+            source_bytes: include_bytes!("lib.rs"),
+            required_authorities: &CAPTURE_AUTHORITIES,
+            factory: capture_factory,
+            validate_config: validate_capture,
+        },
+        ManagedComponentDescriptor::leased_provider(ManagedAdapterBoundary::SupervisedProcess),
+    )?;
+    registry.register_managed_compiled_in_host_service(
+        CompiledInHostService {
+            contract: &AUDIO_PLAYBACK_CONTRACT,
+            implementation_id: ALSA_PLAYBACK_IMPLEMENTATION_ID,
+            artifact_id: "conduit.audio/playback-alsa-hosted-artifact",
+            entrypoint: "audio-playback-alsa-hosted",
+            source_bytes: include_bytes!("lib.rs"),
+            required_authorities: &PLAYBACK_AUTHORITIES,
+            factory: playback_factory,
+            validate_config: validate_playback,
+        },
+        ManagedComponentDescriptor::leased_provider(ManagedAdapterBoundary::SupervisedProcess),
+    )
 }
 
 /// Evaluates explicit ALSA device requests against one current host
@@ -1665,6 +1672,27 @@ mod tests {
         let mut registry = Registry::hosted_primitives();
         conduit_media::register_deterministic_audio_processing_providers(&mut registry).unwrap();
         register_observed_alsa_providers(&mut registry, &report).unwrap();
+        let managed = registry
+            .installed_providers()
+            .into_iter()
+            .filter(|provider| {
+                provider.managed_lifecycle.is_some()
+                    && matches!(
+                        provider.contract.id.as_str(),
+                        "conduit.media/audio/capture" | "conduit.media/audio/playback"
+                    )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(managed.len(), 2);
+        assert!(managed.iter().all(|provider| {
+            provider.managed_lifecycle.is_some_and(|descriptor| {
+                descriptor.boundary == ManagedAdapterBoundary::SupervisedProcess
+            }) && provider.manifest.provided_interfaces[0]
+                .interface
+                .id
+                .as_str()
+                == conduit_runtime::MANAGED_COMPONENT_INTERFACE_ID
+        }));
         let source_only = InstalledProfile::observe_registry(&source, &registry).unwrap();
         assert_eq!(
             compile_source(&source, &source_only.input)
@@ -1852,6 +1880,18 @@ mod tests {
             )
             .unwrap();
 
+        let managed = session.managed_component_observations();
+        assert_eq!(managed.len(), 2);
+        assert!(managed.iter().all(|component| {
+            component.state == conduit_runtime::ManagedLifecycleState::Active
+                && component.readiness == conduit_runtime::ManagedRuntimeReadiness::Waiting
+                && component.identity.host_boot_id == "conduit/conduct-host-boot"
+                && component.identity.resources.len() == 1
+                && component.identity.grants.len() == 1
+                && component.identity.leases.len() == 1
+                && component.identity.artifacts.len() == 1
+        }));
+
         let pump = session.pump(16, &use_observations).unwrap();
         let saw_waiting = session.scheduler_events().any(|event| {
             matches!(
@@ -1886,5 +1926,21 @@ mod tests {
             cancelled.state,
             ExactRunState::Aborting | ExactRunState::Terminal(_)
         ));
+        assert!(
+            session
+                .managed_component_observations()
+                .iter()
+                .all(|component| {
+                    matches!(
+                        component.state,
+                        conduit_runtime::ManagedLifecycleState::Cleaning
+                            | conduit_runtime::ManagedLifecycleState::Stopped
+                    ) && matches!(
+                        component.cleanup,
+                        conduit_runtime::ManagedCleanupState::InProgress
+                            | conduit_runtime::ManagedCleanupState::Complete
+                    )
+                })
+        );
     }
 }

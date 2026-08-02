@@ -6556,6 +6556,115 @@
       ]
     },
     {
+      "id": "managed-component-lifecycle",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "MCL-001",
+        "MCL-002",
+        "MCL-003",
+        "MCL-004",
+        "MCL-005",
+        "MCL-006",
+        "MCL-007",
+        "MCL-008",
+        "MCL-009",
+        "MCL-010",
+        "MCL-011",
+        "MCL-012"
+      ],
+      "artifacts": [
+        {
+          "id": "managed-component-lifecycle",
+          "path": "../c4/managed-component-lifecycle.json",
+          "sha256": "sha256:a634be8830249567a26da29e934ae925d8027e17ecf15537da3f5f9a7f82eb31",
+          "operation": "managed-component-lifecycle",
+          "requirement_ids": [
+            "MCL-001",
+            "MCL-002",
+            "MCL-003",
+            "MCL-004",
+            "MCL-005",
+            "MCL-006",
+            "MCL-007",
+            "MCL-008",
+            "MCL-009",
+            "MCL-010",
+            "MCL-011",
+            "MCL-012"
+          ],
+          "default_rule": "MCL-004",
+          "case_rules": {
+            "successful-full-lifecycle": "MCL-006",
+            "duplicate-request": "MCL-005",
+            "active-while-scheduler-waiting": "MCL-003",
+            "host-loss-unprovable-cleanup": "MCL-009",
+            "deterministic-native-normalized-evidence": "MCL-008",
+            "structural-satisfaction-distinct-profiles": "MCL-008",
+            "leased-audio-production-binding": "MCL-007",
+            "network-listener-production-binding": "MCL-012",
+            "ci-obligation-uses-managed-server": "MCL-003",
+            "typed-inspection-keeps-dimensions": "MCL-011"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "managed-component-lifecycle#successful-full-lifecycle",
+          "managed-component-lifecycle#active-while-scheduler-waiting",
+          "managed-component-lifecycle#structural-satisfaction-distinct-profiles",
+          "managed-component-lifecycle#leased-audio-production-binding",
+          "managed-component-lifecycle#network-listener-production-binding"
+        ],
+        "negative": [
+          "managed-component-lifecycle#activation-from-wrong-state",
+          "managed-component-lifecycle#stale-plan-epoch",
+          "managed-component-lifecycle#revoked-grant",
+          "managed-component-lifecycle#host-loss-unprovable-cleanup",
+          "managed-component-lifecycle#unsupported-lifecycle-facet"
+        ],
+        "boundary": [
+          "managed-component-lifecycle#drain-deadline",
+          "managed-component-lifecycle#cleanup-timeout",
+          "managed-component-lifecycle#late-callback-from-retired-generation",
+          "managed-component-lifecycle#deterministic-native-normalized-evidence"
+        ],
+        "migration": [
+          "managed-component-lifecycle#ci-obligation-uses-managed-server",
+          "managed-component-lifecycle#typed-inspection-keeps-dimensions"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-runtime",
+          "test": "managed_component"
+        },
+        {
+          "package": "conduit-http",
+          "test": "lib"
+        },
+        {
+          "package": "conduit-audio",
+          "test": "lib"
+        },
+        {
+          "package": "conduit-socket",
+          "test": "lib"
+        },
+        {
+          "package": "conduit-inspect",
+          "test": "inspection"
+        }
+      ]
+    },
+    {
       "id": "cross-host-provider-conformance",
       "profile": "conduit.c5",
       "requirement_ids": [

@@ -5,12 +5,16 @@ exercises `HST-001` through `HST-014` and `RES-001` through `RES-029`.
 
 ## Fresh capability reports
 
-A `CapabilityReport` is a canonical, versioned observation with a host,
-observation identity, reporter and trust descriptor, named time basis,
+A `CapabilityReport` is a canonical, versioned observation with a host, exact
+boot/session identity, observation identity, reporter and trust descriptor, named time basis,
 observed-at and valid-until ticks, aggregate available resources, semantic
 capabilities, concrete resource pools, topology facts, executor/target/ABI
 support, plan-version range, and current constraint hashes (`HST-001`).
 Collection order is not identity (`HST-002`).
+
+The boot identity distinguishes provider loss within one live host boot from
+loss and replacement of the host itself. It participates in report and sealed
+plan identity; consumers must not synthesize it from a report ID.
 
 Capabilities, resources, and topology remain distinct (`HST-003`). A
 capability pins a semantic interface, mode, subject, capability-specific detail

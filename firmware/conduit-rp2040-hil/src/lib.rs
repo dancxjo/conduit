@@ -14,8 +14,8 @@ include!(concat!(env!("OUT_DIR"), "/firmware_identity.rs"));
 
 pub type ReferenceStorage = EmbeddedStorage<3, 2, 4, 2, 16, 64, 4, 4>;
 pub const PLAN_HASH: SemanticHash = SemanticHash::from_bytes([
-    0xf9, 0x14, 0x52, 0xe1, 0x4b, 0x4e, 0x13, 0x64, 0x1b, 0x73, 0x02, 0xe8, 0x6a, 0x0b, 0xe1, 0xec,
-    0xfb, 0xd7, 0x46, 0x5d, 0x3c, 0x57, 0x04, 0xf7, 0xdc, 0x49, 0x55, 0xa9, 0x55, 0xab, 0x8c, 0x6c,
+    0x70, 0xea, 0xda, 0x87, 0x20, 0x87, 0x75, 0xc2, 0xbc, 0xfe, 0x7c, 0xe2, 0xed, 0xbc, 0x82, 0x01,
+    0xd6, 0xcc, 0x18, 0xe4, 0x95, 0x5a, 0xa8, 0x16, 0x4e, 0x9b, 0x48, 0x51, 0x69, 0x91, 0x04, 0x54,
 ]);
 /// Identity of the generic RP2040 board profile implemented by this artifact.
 ///
@@ -220,6 +220,7 @@ pub fn with_capability_report<R>(
         identity: SemanticHash::from_bytes([0; 32]),
         id: Id("conduit/rp2040-generic-firmware-report"),
         host: Id("conduit/rp2040-generic"),
+        boot_id: Id("conduit/rp2040-generic-boot"),
         reporter: PinnedDescriptor {
             id: Id("conduit/rp2040-generic-firmware"),
             schema_version: 0,
@@ -291,6 +292,7 @@ pub fn with_pico_w_capability_report<R>(
         identity: SemanticHash::from_bytes([0; 32]),
         id: Id("conduit/pico-w-firmware-report"),
         host: Id("conduit/pico-w"),
+        boot_id: Id("conduit/pico-w-boot"),
         reporter: PinnedDescriptor {
             id: Id("conduit/pico-w-firmware"),
             schema_version: 0,

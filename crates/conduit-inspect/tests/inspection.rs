@@ -16,10 +16,14 @@ use conduit_core::{
 use conduit_inspect::{
     ArtifactKind, InspectLimits, RequestedKind, inspect_artifact_manifest, inspect_bytes,
     inspect_capability_report, inspect_conformance_manifest_path, inspect_entity_passport,
-    inspect_execution_plan, inspect_lowered_source,
+    inspect_execution_plan, inspect_lowered_source, inspect_managed_component,
 };
 use conduit_package::{PackageLimits, PackageManifest, PackageObject, encode_package};
-use conduit_runtime::{LoweredSource, LoweredSupervisedTopology, LoweredTopology};
+use conduit_runtime::{
+    LoweredSource, LoweredSupervisedTopology, LoweredTopology, ManagedArtifactIdentity,
+    ManagedCleanupState, ManagedComponentIdentity, ManagedComponentObservation,
+    ManagedLifecycleReason, ManagedLifecycleState, ManagedRuntimeReadiness,
+};
 use sha2::Digest as _;
 
 const INSPECTION_FIXTURE: &str = include_str!("../../../conformance/c3/inspection.json");
@@ -32,6 +36,60 @@ const VALUE_TYPE: TypeContractRef<'static> = TypeContractRef {
     schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([10; 32]),
 };
+
+#[test]
+fn managed_component_projection_keeps_independent_operational_dimensions() {
+    let observation = ManagedComponentObservation {
+        schema_version: 0,
+        descriptor_id: "conduit.lifecycle/managed-standing-service".to_owned(),
+        descriptor_identity: hash(90).to_string(),
+        identity: ManagedComponentIdentity {
+            component: "root/server".to_owned(),
+            semantic_contract: "conduit.host/http/listen".to_owned(),
+            implementation_id: "conduit/http-linux-listener".to_owned(),
+            implementation_version: "1".to_owned(),
+            implementation_identity: hash(91).to_string(),
+            artifacts: vec![ManagedArtifactIdentity {
+                id: "conduit/http-linux-listener-artifact".to_owned(),
+                digest: ArtifactDigest::from_bytes([92; 32]).to_string(),
+            }],
+            host_id: "host/a".to_owned(),
+            host_boot_id: "host/a-boot".to_owned(),
+            host_observation_id: "observation/a".to_owned(),
+            run_id: "run/a".to_owned(),
+            plan_identity: hash(93).to_string(),
+            plan_epoch: 7,
+            activation_generation: 3,
+            resources: vec!["binding/socket".to_owned()],
+            grants: vec!["grant/listen".to_owned()],
+            leases: vec!["lease/socket".to_owned()],
+        },
+        state: ManagedLifecycleState::Active,
+        readiness: ManagedRuntimeReadiness::Waiting,
+        cleanup: ManagedCleanupState::Required,
+        reason: ManagedLifecycleReason::Activated,
+        reason_code: ManagedLifecycleReason::Activated.code().to_owned(),
+        sequence: 4,
+        observed_at_tick: 12,
+        valid_until_tick: 20,
+        pending_request_id: None,
+        pending_action: None,
+        progress: None,
+        retired: false,
+    };
+    let projection = inspect_managed_component(&observation);
+    assert_eq!(projection.state, ManagedLifecycleState::Active);
+    assert_eq!(projection.readiness, ManagedRuntimeReadiness::Waiting);
+    assert_eq!(projection.cleanup, ManagedCleanupState::Required);
+    assert_eq!(projection.reason_code, "CND-MCL-004");
+    assert_eq!(projection.activation_generation, 3);
+    assert_eq!(projection.resources, ["binding/socket"]);
+    assert_eq!(projection.grants, ["grant/listen"]);
+    assert_eq!(projection.host_boot_id, "host/a-boot");
+    let encoded = serde_json::to_value(projection).unwrap();
+    assert!(encoded.get("healthy").is_none());
+    assert!(encoded.get("status").is_none());
+}
 
 fn hash(byte: u8) -> SemanticHash {
     SemanticHash::from_bytes([byte; 32])
@@ -160,6 +218,7 @@ fn capability_report_inspection_never_refreshes_or_provisions_the_host() {
         identity: ZERO_HASH,
         id: Id("fixture/browser-report"),
         host: Id("browser/a"),
+        boot_id: Id("browser/a-boot"),
         reporter: pin("fixture/reporter", 41),
         trust: pin("fixture/trust", 42),
         membership: Some(ReportMembership {
@@ -304,6 +363,7 @@ fn with_minimal_plan(test: impl FnOnce(ExecutionPlan<'_>)) {
     let observations = [PlanHostObservation {
         id: Id("observation/a"),
         host: Id("host/a"),
+        boot_id: Id("host/a-boot"),
         semantic_hash: hash(4),
         time_basis: Id("clock/monotonic"),
         observed_at_tick: 1,

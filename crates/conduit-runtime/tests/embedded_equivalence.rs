@@ -348,6 +348,7 @@ fn observation(id: &'static str, host: &'static str, byte: u8) -> PlanHostObserv
     PlanHostObservation {
         id: Id(id),
         host: Id(host),
+        boot_id: Id("fixture/host-boot"),
         semantic_hash: hash(byte),
         time_basis: Id("clock/monotonic"),
         observed_at_tick: 0,

@@ -46,6 +46,7 @@ fn report<'a>(
         identity: ZERO,
         id: Id("fixture/report"),
         host: Id("fixture/host"),
+        boot_id: Id("fixture/host-boot"),
         reporter: pin("fixture/reporter", 5),
         trust: pin("fixture/trust", 6),
         membership: None,

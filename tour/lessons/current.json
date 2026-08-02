@@ -1331,7 +1331,7 @@
           "audio.fixture:tone-s16le-stereo-48000|silence-s16le-stereo-48000",
           "video.fixture:rgb24-2x2|gray8-2x2"
         ],
-        "provider": "deterministic compiled-in fixture provider through the ordinary exact host-service boundary",
+        "provider": "deterministic compiled-in reference provider through the ordinary exact host-service boundary",
         "profile": "browser-dedicated-worker",
         "expected_evidence": [
           "exact media contract, type descriptor hash, implementation, artifact, and typed port bindings",

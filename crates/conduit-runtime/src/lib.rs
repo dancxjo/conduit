@@ -18,13 +18,13 @@ use conduit_core::{
     ConfigMutability, ConfigRequirement, ConnectionCardinality, Delivery, DescriptorRef, Direction,
     Endpoint as CoreEndpoint, ExecutionPlan, ExecutorKind, FieldDisposition, FlowCapacity,
     FlowPolicy, FlowQueueState, FlowTypeFacts, FlowWatermarks, GrantStatus, Id,
-    ImplementationMachine, LossAcceptance, ManifestArtifactRef, ManifestEntrypoint, MapField,
-    MemoryAccounting, NodeContract, PinnedDescriptor, PlanArtifact, PlanCord, PlanGraph, PlanNode,
-    PortContract, PortFlowConstraints, Presence, Pressure, ReplacementSupport, ResolvedPlanNode,
-    SampleSchedule, SchedulerPolicy, SemanticHash, Sensitivity, TemporalContract, TerminalClass,
-    TerminalContract, TraitProof, TypeContractRef, ValueCardinality, assess_port_connection,
-    assess_type_contract_exact, validate_artifact_manifest, validate_implementation_manifest,
-    validate_plan_graph,
+    ImplementationMachine, LossAcceptance, ManifestArtifactRef, ManifestEntrypoint,
+    ManifestInterface, MapField, MemoryAccounting, NodeContract, PinnedDescriptor, PlanArtifact,
+    PlanCord, PlanGraph, PlanNode, PortContract, PortFlowConstraints, Presence, Pressure,
+    ReplacementSupport, ResolvedPlanNode, SampleSchedule, SchedulerPolicy, SemanticHash,
+    Sensitivity, TemporalContract, TerminalClass, TerminalContract, TraitProof, TypeContractRef,
+    ValueCardinality, assess_port_connection, assess_type_contract_exact,
+    validate_artifact_manifest, validate_implementation_manifest, validate_plan_graph,
 };
 use conduit_panel::{
     CompositeDefinition, ConfigEntry, Cord, Endpoint, ExportDirection, Node, Panel, SourcePressure,
@@ -42,6 +42,7 @@ mod exact_evidence;
 mod host_conformance;
 mod host_resolution;
 mod implementation_binding;
+mod managed_component;
 mod pool;
 mod resource_effect;
 mod runtime_evidence;
@@ -96,6 +97,17 @@ pub use implementation_binding::{
     ForeignStepReply, ForeignStepRequest, MessageStepBinding, MessageStepEndpoint,
     NativeStepBinding, NativeStepImplementation, OwnedStepOutcome, OwnedStepReply,
     OwnedWakeInterest,
+};
+pub use managed_component::{
+    MANAGED_COMPONENT_INTERFACE_ID, MANAGED_COMPONENT_SCHEMA_VERSION, ManagedAdapterBoundary,
+    ManagedArtifactIdentity, ManagedCleanupState, ManagedComponentDescriptor,
+    ManagedComponentIdentity, ManagedComponentMachine, ManagedComponentObservation,
+    ManagedEvidenceKind, ManagedGrantState, ManagedLeaseState, ManagedLifecycleAction,
+    ManagedLifecycleAuthority, ManagedLifecycleError, ManagedLifecycleEvidence,
+    ManagedLifecycleFacets, ManagedLifecycleProgress, ManagedLifecycleReason,
+    ManagedLifecycleRequest, ManagedLifecycleState, ManagedProviderAvailability,
+    ManagedProviderEvent, ManagedRequestReceipt, ManagedResourceState, ManagedRuntimeReadiness,
+    managed_component_interface_hash,
 };
 pub use pool::{
     HostedPoolError, HostedPoolRuntime, HostedPoolStepError, HostedPoolStepObservation,
@@ -1371,10 +1383,13 @@ pub enum HostedPrimitiveImplementation {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExactHostedBinding {
     pub implementation_id: String,
+    pub implementation_version: String,
     pub implementation_identity: SemanticHash,
     pub artifact_id: String,
     pub artifact_digest: conduit_core::ArtifactDigest,
+    pub artifacts: Vec<ManagedArtifactIdentity>,
     pub implementation: HostedPrimitiveImplementation,
+    pub managed_lifecycle: Option<ManagedComponentDescriptor>,
 }
 
 /// Finite caller-supplied implementation set for one exact hosted run.
@@ -1417,7 +1432,7 @@ impl ExactHostedBindings {
         &self,
         node: &ResolvedPlanNode<'_>,
         artifacts: &[PlanArtifact<'_>],
-    ) -> Result<HostedPrimitiveImplementation, RuntimeError> {
+    ) -> Result<&ExactHostedBinding, RuntimeError> {
         let binding = self
             .bindings
             .iter()
@@ -1448,7 +1463,23 @@ impl ExactHostedBindings {
                 ),
             ));
         }
-        Ok(binding.implementation)
+        if binding.artifacts.is_empty()
+            || binding.artifacts.iter().any(|installed| {
+                artifacts.iter().all(|planned| {
+                    planned.id.as_str() != installed.id
+                        || planned.digest.to_string() != installed.digest
+                })
+            })
+        {
+            return Err(RuntimeError::new(
+                "CND-RUN-008",
+                format!(
+                    "installed implementation `{}` lacks its complete exact artifact set",
+                    node.implementation.id
+                ),
+            ));
+        }
+        Ok(binding)
     }
 }
 
@@ -1667,9 +1698,15 @@ pub struct ExactHostedServiceBinding {
     pub run_id: String,
     pub instance: String,
     pub implementation_id: String,
+    pub implementation_version: String,
+    pub implementation_identity: SemanticHash,
     pub artifact_id: String,
+    pub artifacts: Vec<ManagedArtifactIdentity>,
     pub host_id: String,
+    pub host_boot_id: String,
     pub host_observation_id: String,
+    pub host_observation_valid_until_tick: u64,
+    pub managed_lifecycle: Option<ManagedComponentDescriptor>,
     pub use_time_tick: u64,
     pub authorities: Vec<ExactHostedServiceAuthority>,
 }
@@ -1856,6 +1893,7 @@ fn validate_use_time_grants(
 fn exact_host_service_binding(
     plan: &ExecutionPlan<'_>,
     node: &ResolvedPlanNode<'_>,
+    installed: &ExactHostedBinding,
     context: ExactRunContext<'_>,
 ) -> Result<ExactHostedServiceBinding, RuntimeError> {
     let authorities = plan
@@ -1991,18 +2029,218 @@ fn exact_host_service_binding(
             })
         })
         .collect::<Result<Vec<_>, RuntimeError>>()?;
+    let host_observation = plan
+        .host_observations
+        .iter()
+        .find(|observation| observation.id == node.host_observation)
+        .ok_or_else(|| {
+            RuntimeError::new("CND-RUN-007", "planned host boot observation is absent")
+        })?;
     Ok(ExactHostedServiceBinding {
         plan_identity: plan.identity,
         plan_epoch: context.plan_epoch,
         run_id: context.run_id.to_string(),
         instance: node.instance.as_str().to_owned(),
         implementation_id: node.implementation.id.to_string(),
+        implementation_version: installed.implementation_version.clone(),
+        implementation_identity: node.implementation.semantic_hash,
         artifact_id: node.artifact.to_string(),
+        artifacts: installed.artifacts.clone(),
         host_id: node.host.to_string(),
+        host_boot_id: host_observation.boot_id.to_string(),
         host_observation_id: node.host_observation.to_string(),
+        host_observation_valid_until_tick: host_observation.valid_until_tick,
+        managed_lifecycle: installed.managed_lifecycle.clone(),
         use_time_tick: context.validation.now.tick,
         authorities,
     })
+}
+
+fn managed_component_machine(
+    binding: &ExactHostedServiceBinding,
+    semantic_contract: &str,
+) -> Result<Option<ManagedComponentMachine>, RuntimeError> {
+    let Some(descriptor) = binding.managed_lifecycle.clone() else {
+        return Ok(None);
+    };
+    let identity = ManagedComponentIdentity {
+        component: binding.instance.clone(),
+        semantic_contract: semantic_contract.to_owned(),
+        implementation_id: binding.implementation_id.clone(),
+        implementation_version: binding.implementation_version.clone(),
+        implementation_identity: binding.implementation_identity.to_string(),
+        artifacts: binding.artifacts.clone(),
+        host_id: binding.host_id.clone(),
+        host_boot_id: binding.host_boot_id.clone(),
+        host_observation_id: binding.host_observation_id.clone(),
+        run_id: binding.run_id.clone(),
+        plan_identity: binding.plan_identity.to_string(),
+        plan_epoch: binding.plan_epoch,
+        activation_generation: 1,
+        resources: binding
+            .authorities
+            .iter()
+            .map(|authority| authority.resource_binding_id.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect(),
+        grants: binding
+            .authorities
+            .iter()
+            .map(|authority| authority.grant_id.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect(),
+        leases: binding
+            .authorities
+            .iter()
+            .map(|authority| authority.resource_lease_id.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect(),
+    };
+    ManagedComponentMachine::new(
+        descriptor,
+        identity,
+        binding.use_time_tick,
+        binding
+            .authorities
+            .iter()
+            .map(|authority| authority.valid_until_tick)
+            .min()
+            .unwrap_or(binding.host_observation_valid_until_tick)
+            .min(binding.host_observation_valid_until_tick),
+    )
+    .map(Some)
+    .map_err(|error| RuntimeError::new(error.code, error.to_string()))
+}
+
+fn managed_tick(binding: &ExactHostedServiceBinding, scheduler_tick: u64) -> u64 {
+    binding.use_time_tick.saturating_add(scheduler_tick)
+}
+
+fn begin_managed_executor_transition(
+    machine: &mut ManagedComponentMachine,
+    action: ManagedLifecycleAction,
+    tick: u64,
+    causation: &str,
+) -> Result<String, RuntimeError> {
+    let observation = machine.observation();
+    let request_id = format!(
+        "{}/executor-{:?}-{}",
+        observation.identity.component, action, observation.sequence
+    )
+    .to_ascii_lowercase();
+    let request = ManagedLifecycleRequest {
+        schema_version: MANAGED_COMPONENT_SCHEMA_VERSION,
+        request_id: request_id.clone(),
+        component: observation.identity.component.clone(),
+        action,
+        expected_plan_epoch: observation.identity.plan_epoch,
+        expected_activation_generation: observation.identity.activation_generation,
+        expected_observation_sequence: observation.sequence,
+        issued_at_tick: tick,
+        deadline_tick: tick
+            .checked_add(machine.descriptor().maximum_request_ticks)
+            .ok_or_else(|| RuntimeError::new("CND-MCL-013", "lifecycle deadline overflowed"))?,
+        causation: causation.to_owned(),
+    };
+    let authority = ManagedLifecycleAuthority {
+        requester: "conduit/exact-hosted-executor".to_owned(),
+        authority_id: observation.identity.run_id.clone(),
+        provider: ManagedProviderAvailability::Available,
+        grant: ManagedGrantState::Active,
+        resources: ManagedResourceState::Available,
+        leases: ManagedLeaseState::Current,
+        not_before_tick: tick,
+        expires_at_tick: tick.saturating_add(1),
+        actions: vec![action],
+        inhibit_asserted: false,
+    };
+    machine
+        .request(request, &authority, tick)
+        .map_err(|error| RuntimeError::new(error.code, error.to_string()))?;
+    Ok(request_id)
+}
+
+fn apply_managed_executor_event(
+    machine: &Rc<RefCell<ManagedComponentMachine>>,
+    request_id: &str,
+    event: ManagedProviderEvent,
+    tick: u64,
+) -> Result<(), RuntimeError> {
+    machine
+        .borrow_mut()
+        .apply_provider_event(request_id, event, tick)
+        .map_err(|error| RuntimeError::new(error.code, error.to_string()))
+}
+
+fn begin_managed_stop(
+    machine: &Rc<RefCell<ManagedComponentMachine>>,
+    tick: u64,
+    causation: &str,
+    in_flight: u32,
+) -> Result<String, RuntimeError> {
+    let request_id = begin_managed_executor_transition(
+        &mut machine.borrow_mut(),
+        ManagedLifecycleAction::Stop,
+        tick,
+        causation,
+    )?;
+    apply_managed_executor_event(
+        machine,
+        &request_id,
+        ManagedProviderEvent::AdmissionClosed { in_flight },
+        tick,
+    )?;
+    Ok(request_id)
+}
+
+fn begin_managed_cleanup(
+    machine: &Rc<RefCell<ManagedComponentMachine>>,
+    request_id: &str,
+    tick: u64,
+) -> Result<(), RuntimeError> {
+    if machine.borrow().observation().state == ManagedLifecycleState::Quiescing {
+        apply_managed_executor_event(
+            machine,
+            request_id,
+            ManagedProviderEvent::Quiesced {
+                drained: 0,
+                cancelled: 0,
+            },
+            tick,
+        )?;
+    }
+    if machine.borrow().observation().state == ManagedLifecycleState::Inactive {
+        apply_managed_executor_event(
+            machine,
+            request_id,
+            ManagedProviderEvent::CleanupStarted,
+            tick,
+        )?;
+    }
+    Ok(())
+}
+
+fn set_managed_readiness(
+    managed: &Option<Rc<RefCell<ManagedComponentMachine>>>,
+    readiness: ManagedRuntimeReadiness,
+    tick: u64,
+    causation: &str,
+) -> Result<(), RuntimeError> {
+    let Some(machine) = managed else {
+        return Ok(());
+    };
+    let mut machine = machine.borrow_mut();
+    if machine.observation().state != ManagedLifecycleState::Active
+        || machine.observation().readiness == readiness
+    {
+        return Ok(());
+    }
+    machine
+        .set_readiness(readiness, tick, causation)
+        .map_err(|error| RuntimeError::new(error.code, error.to_string()))
 }
 
 fn validate_hosted_service_use_time(
@@ -2089,12 +2327,14 @@ pub struct ExactHostedRunSession {
     host_failure: Rc<RefCell<Option<RuntimeError>>>,
     io: Rc<RefCell<ExactRunIo>>,
     watches: Rc<RefCell<watch::HostedWatchRuntime>>,
+    managed_components: Vec<Rc<RefCell<ManagedComponentMachine>>>,
 }
 
 type StartedHostedSession<'r, 'i> = (
     ExactRunSession<HostedSchedulerDriver<'r, 'i>>,
     Rc<RefCell<Option<RuntimeError>>>,
     Rc<RefCell<watch::HostedWatchRuntime>>,
+    Vec<Rc<RefCell<ManagedComponentMachine>>>,
 );
 
 impl ExactHostedRunSession {
@@ -2111,6 +2351,51 @@ impl ExactHostedRunSession {
     #[must_use]
     pub fn scheduler_status(&self) -> SchedulerStatus {
         self.session.scheduler_status()
+    }
+
+    /// Current typed observations for only those exact implementations that
+    /// explicitly offered the managed-component facet.
+    #[must_use]
+    pub fn managed_component_observations(&self) -> Vec<ManagedComponentObservation> {
+        self.managed_components
+            .iter()
+            .map(|machine| machine.borrow().observation().clone())
+            .collect()
+    }
+
+    /// Reads a bounded lifecycle-evidence window for one exact component.
+    pub fn read_managed_component_evidence(
+        &self,
+        component: &str,
+        cursor: u64,
+        maximum_events: u32,
+    ) -> Result<Vec<ManagedLifecycleEvidence>, RuntimeError> {
+        let machine = self
+            .managed_components
+            .iter()
+            .find(|machine| machine.borrow().observation().identity.component == component)
+            .ok_or_else(|| {
+                RuntimeError::new("CND-MCL-010", "component does not offer managed lifecycle")
+            })?;
+        let machine = machine.borrow();
+        if maximum_events == 0 || maximum_events > machine.descriptor().maximum_retained_events {
+            return Err(RuntimeError::new(
+                "CND-MCL-033",
+                "managed lifecycle evidence request exceeds its finite bound",
+            ));
+        }
+        if cursor < machine.earliest_evidence_sequence() {
+            return Err(RuntimeError::new(
+                "CND-MCL-013",
+                "managed lifecycle evidence cursor predates retained evidence",
+            ));
+        }
+        Ok(machine
+            .evidence()
+            .filter(|event| event.sequence >= cursor)
+            .take(maximum_events as usize)
+            .cloned()
+            .collect())
     }
 
     pub fn pump(
@@ -2447,6 +2732,10 @@ pub struct InstalledImplementationRegistration {
     pub minimum_runtime_protocol: u32,
     pub maximum_runtime_protocol: u32,
     pub coexistence_memory_bytes: u64,
+    /// Optional portable managed-component facet offered by this exact
+    /// implementation. It is hashed into the implementation manifest as a
+    /// provided interface and never inferred from executor or process type.
+    pub managed_lifecycle: Option<ManagedComponentDescriptor>,
     pub factory: HandlerFactory,
     pub validate_config: ConfigValidator,
 }
@@ -2456,6 +2745,7 @@ pub struct RegisteredExecutable {
     pub manifest: &'static ImplementationManifest<'static>,
     pub artifacts: &'static [&'static ArtifactManifest<'static>],
     pub implementation: HostedPrimitiveImplementation,
+    pub managed_lifecycle: Option<&'static ManagedComponentDescriptor>,
     pub factory: HandlerFactory,
     pub validate_config: ConfigValidator,
 }
@@ -2483,6 +2773,7 @@ pub struct InstalledHostedProvider {
     /// Primary executable artifact selected for the plan node binding.
     pub artifact: &'static ArtifactManifest<'static>,
     pub implementation: HostedPrimitiveImplementation,
+    pub managed_lifecycle: Option<&'static ManagedComponentDescriptor>,
     validate_config: ConfigValidator,
 }
 
@@ -2649,9 +2940,26 @@ impl Registry {
         &mut self,
         service: CompiledInHostService,
     ) -> Result<(), RegistryError> {
-        self.register_compiled_in_host_primitive(
+        self.register_compiled_in_host_primitive_with_lifecycle(
             service,
             HostedPrimitiveImplementation::HostedService,
+            None,
+        )
+    }
+
+    /// Registers one compiled-in implementation that explicitly offers the
+    /// portable managed-component facet. Execution still uses the same hosted
+    /// provider adapter; this descriptor adds observation and request facts,
+    /// not another runtime.
+    pub fn register_managed_compiled_in_host_service(
+        &mut self,
+        service: CompiledInHostService,
+        descriptor: ManagedComponentDescriptor,
+    ) -> Result<(), RegistryError> {
+        self.register_compiled_in_host_primitive_with_lifecycle(
+            service,
+            HostedPrimitiveImplementation::HostedService,
+            Some(descriptor),
         )
     }
 
@@ -2663,6 +2971,15 @@ impl Registry {
         &mut self,
         service: CompiledInHostService,
         implementation: HostedPrimitiveImplementation,
+    ) -> Result<(), RegistryError> {
+        self.register_compiled_in_host_primitive_with_lifecycle(service, implementation, None)
+    }
+
+    fn register_compiled_in_host_primitive_with_lifecycle(
+        &mut self,
+        service: CompiledInHostService,
+        implementation: HostedPrimitiveImplementation,
+        managed_lifecycle: Option<ManagedComponentDescriptor>,
     ) -> Result<(), RegistryError> {
         let source_digest = ArtifactDigest::from_bytes(Sha256::digest(service.source_bytes).into());
         let mut artifact = ArtifactManifest {
@@ -2710,6 +3027,38 @@ impl Registry {
             role: Id("executable"),
             required: true,
         }]));
+        let managed_lifecycle = managed_lifecycle
+            .map(|descriptor| {
+                descriptor.validate().map_err(|error| RegistryError {
+                    code: "CND-REG-007",
+                    message: error.to_string(),
+                })?;
+                Ok::<_, RegistryError>(&*Box::leak(Box::new(descriptor)))
+            })
+            .transpose()?;
+        let provided_interfaces: &'static [ManifestInterface<'static>] =
+            managed_lifecycle.map_or(&[], |descriptor| {
+                Box::leak(Box::new([
+                    ManifestInterface {
+                        interface: PinnedDescriptor {
+                            id: Id(MANAGED_COMPONENT_INTERFACE_ID),
+                            schema_version: MANAGED_COMPONENT_SCHEMA_VERSION,
+                            semantic_hash: managed_component_interface_hash(),
+                        },
+                        entrypoint: Id(service.entrypoint),
+                    },
+                    ManifestInterface {
+                        interface: PinnedDescriptor {
+                            id: Id(descriptor.id.as_str()),
+                            schema_version: descriptor.schema_version,
+                            semantic_hash: descriptor
+                                .semantic_hash()
+                                .expect("validated managed descriptor has a semantic hash"),
+                        },
+                        entrypoint: Id(service.entrypoint),
+                    },
+                ]))
+            });
         let mut manifest = ImplementationManifest {
             schema_version: 0,
             identity: SemanticHash::from_bytes([0; 32]),
@@ -2736,7 +3085,7 @@ impl Registry {
             },
             artifacts: references,
             required_interfaces: &[],
-            provided_interfaces: &[],
+            provided_interfaces,
             required_authorities: service.required_authorities,
             required_effects: &[],
             minimum_plan_version: 0,
@@ -2758,11 +3107,14 @@ impl Registry {
         let manifest = &*Box::leak(Box::new(manifest));
         self.register_executable_provider_with_implementation(
             service.contract,
-            manifest,
-            artifacts,
-            service.factory,
-            service.validate_config,
-            implementation,
+            RegisteredExecutable {
+                manifest,
+                artifacts,
+                factory: service.factory,
+                validate_config: service.validate_config,
+                implementation,
+                managed_lifecycle,
+            },
         )
     }
 
@@ -2790,6 +3142,7 @@ impl Registry {
                     artifacts: executable.artifacts,
                     artifact,
                     implementation: executable.implementation,
+                    managed_lifecycle: executable.managed_lifecycle,
                     validate_config: executable.validate_config,
                 });
             }
@@ -2854,11 +3207,14 @@ impl Registry {
     ) -> Result<(), RegistryError> {
         self.register_executable_provider_with_implementation(
             contract,
-            manifest,
-            artifacts,
-            factory,
-            validate_config,
-            HostedPrimitiveImplementation::HostedService,
+            RegisteredExecutable {
+                manifest,
+                artifacts,
+                factory,
+                validate_config,
+                implementation: HostedPrimitiveImplementation::HostedService,
+                managed_lifecycle: None,
+            },
         )
     }
 
@@ -2945,6 +3301,40 @@ impl Registry {
             Box::leak(registration.required_authorities.into_boxed_slice());
         let required_effects: &'static [SemanticHash] =
             Box::leak(registration.required_effects.into_boxed_slice());
+        let entrypoint_name = leak(registration.entrypoint_name);
+        let managed_lifecycle = registration
+            .managed_lifecycle
+            .map(|descriptor| {
+                descriptor.validate().map_err(|error| RegistryError {
+                    code: "CND-REG-010",
+                    message: error.to_string(),
+                })?;
+                Ok::<_, RegistryError>(&*Box::leak(Box::new(descriptor)))
+            })
+            .transpose()?;
+        let provided_interfaces: &'static [ManifestInterface<'static>] =
+            managed_lifecycle.map_or(&[], |descriptor| {
+                Box::leak(Box::new([
+                    ManifestInterface {
+                        interface: PinnedDescriptor {
+                            id: Id(MANAGED_COMPONENT_INTERFACE_ID),
+                            schema_version: MANAGED_COMPONENT_SCHEMA_VERSION,
+                            semantic_hash: managed_component_interface_hash(),
+                        },
+                        entrypoint: Id(entrypoint_name),
+                    },
+                    ManifestInterface {
+                        interface: PinnedDescriptor {
+                            id: Id(descriptor.id.as_str()),
+                            schema_version: descriptor.schema_version,
+                            semantic_hash: descriptor
+                                .semantic_hash()
+                                .expect("validated managed descriptor has a semantic hash"),
+                        },
+                        entrypoint: Id(entrypoint_name),
+                    },
+                ]))
+            });
         let mut manifest = ImplementationManifest {
             schema_version: 0,
             identity: SemanticHash::from_bytes([0; 32]),
@@ -2958,7 +3348,7 @@ impl Registry {
             },
             executor: registration.executor,
             entrypoint: ManifestEntrypoint {
-                name: Id(leak(registration.entrypoint_name)),
+                name: Id(entrypoint_name),
                 adapter: Id(leak(registration.entrypoint_adapter)),
                 abi: Id(leak(registration.entrypoint_abi)),
                 protocol_version: registration.entrypoint_protocol_version,
@@ -2966,7 +3356,7 @@ impl Registry {
             execution_profile: registration.execution_profile,
             artifacts: references,
             required_interfaces: &[],
-            provided_interfaces: &[],
+            provided_interfaces,
             required_authorities,
             required_effects,
             minimum_plan_version: registration.minimum_plan_version,
@@ -2989,24 +3379,32 @@ impl Registry {
                     ),
                 })?;
         let manifest = &*Box::leak(Box::new(manifest));
-        self.register_executable_provider(
+        self.register_executable_provider_with_implementation(
             registration.contract,
-            manifest,
-            artifacts,
-            registration.factory,
-            registration.validate_config,
+            RegisteredExecutable {
+                manifest,
+                artifacts,
+                factory: registration.factory,
+                validate_config: registration.validate_config,
+                implementation: HostedPrimitiveImplementation::HostedService,
+                managed_lifecycle,
+            },
         )
     }
 
     fn register_executable_provider_with_implementation(
         &mut self,
         contract: &'static NodeContract<'static>,
-        manifest: &'static ImplementationManifest<'static>,
-        artifacts: &'static [&'static ArtifactManifest<'static>],
-        factory: HandlerFactory,
-        validate_config: ConfigValidator,
-        implementation: HostedPrimitiveImplementation,
+        executable: RegisteredExecutable,
     ) -> Result<(), RegistryError> {
+        let RegisteredExecutable {
+            manifest,
+            artifacts,
+            implementation,
+            managed_lifecycle,
+            factory,
+            validate_config,
+        } = executable;
         let canonical_target_id = self.resolve_canonical_id(contract.id.as_str())?.to_owned();
         let manifest_target_canonical = self
             .resolve_canonical_id(manifest.semantic_contract.id.as_str())?
@@ -3084,6 +3482,7 @@ impl Registry {
             manifest,
             artifacts,
             implementation,
+            managed_lifecycle,
             factory,
             validate_config,
         });
@@ -3600,11 +3999,14 @@ impl Registry {
             registry
                 .register_executable_provider_with_implementation(
                     definition.installed.contract,
-                    definition.installed.manifest,
-                    definition.artifacts,
-                    definition.factory,
-                    definition.validate_config,
-                    definition.installed.implementation,
+                    RegisteredExecutable {
+                        manifest: definition.installed.manifest,
+                        artifacts: definition.artifacts,
+                        factory: definition.factory,
+                        validate_config: definition.validate_config,
+                        implementation: definition.installed.implementation,
+                        managed_lifecycle: definition.installed.managed_lifecycle,
+                    },
                 )
                 .expect("compiled-in hosted primitive manifest is valid");
         }
@@ -4015,6 +4417,7 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                             artifacts,
                             artifact,
                             implementation: *implementation,
+                            managed_lifecycle: None,
                             validate_config: *validate_config,
                         },
                         artifacts,
@@ -6102,19 +6505,21 @@ impl ResolvedPanel<'_> {
             ));
         }
         let io = Rc::new(RefCell::new(io));
-        let (session, host_failure, watches) = self.start_exact_session_with_io(
-            plan,
-            bindings,
-            context,
-            sessions,
-            HostedRunIo::Owned(Rc::clone(&io)),
-            None,
-        )?;
+        let (session, host_failure, watches, managed_components) = self
+            .start_exact_session_with_io(
+                plan,
+                bindings,
+                context,
+                sessions,
+                HostedRunIo::Owned(Rc::clone(&io)),
+                None,
+            )?;
         Ok(ExactHostedRunSession {
             session,
             host_failure,
             io,
             watches,
+            managed_components,
         })
     }
 
@@ -6138,19 +6543,21 @@ impl ResolvedPanel<'_> {
         }
         let evidence_binding = exact_evidence_provider_binding(plan)?;
         let io = Rc::new(RefCell::new(io));
-        let (session, host_failure, watches) = self.start_exact_session_with_io(
-            plan,
-            bindings,
-            context,
-            sessions,
-            HostedRunIo::Owned(Rc::clone(&io)),
-            Some((evidence_binding, evidence_provider)),
-        )?;
+        let (session, host_failure, watches, managed_components) = self
+            .start_exact_session_with_io(
+                plan,
+                bindings,
+                context,
+                sessions,
+                HostedRunIo::Owned(Rc::clone(&io)),
+                Some((evidence_binding, evidence_provider)),
+            )?;
         Ok(ExactHostedRunSession {
             session,
             host_failure,
             io,
             watches,
+            managed_components,
         })
     }
 
@@ -6271,9 +6678,11 @@ impl ResolvedPanel<'_> {
         )?));
         let watches = Rc::new(RefCell::new(watch::HostedWatchRuntime::from_plan(plan)?));
         let host_failure = Rc::new(RefCell::new(None));
+        let mut managed_components = Vec::new();
         let mut scheduled_nodes = Vec::with_capacity(plan.nodes.len());
         for (node_index, planned) in plan.nodes.iter().enumerate() {
-            let implementation = bindings.resolve(planned, plan.artifacts)?;
+            let installed_binding = bindings.resolve(planned, plan.artifacts)?;
+            let implementation = installed_binding.implementation;
             let expected_contract = match implementation {
                 HostedPrimitiveImplementation::Literal => "std/literal",
                 HostedPrimitiveImplementation::FormatValuesLiteral => "std/format-values/literal",
@@ -6760,7 +7169,8 @@ impl ResolvedPanel<'_> {
                 }
                 HostedPrimitiveImplementation::Ticker
                 | HostedPrimitiveImplementation::HostedService => {
-                    let binding = exact_host_service_binding(plan, planned, context)?;
+                    let binding =
+                        exact_host_service_binding(plan, planned, installed_binding, context)?;
                     let input_cords = resolved
                         .definition
                         .contract
@@ -6796,10 +7206,20 @@ impl ResolvedPanel<'_> {
                             )
                         })
                         .collect();
+                    let managed =
+                        managed_component_machine(&binding, planned.contract.id.as_str())?.map(
+                            |machine| {
+                                let machine = Rc::new(RefCell::new(machine));
+                                managed_components.push(Rc::clone(&machine));
+                                machine
+                            },
+                        );
                     HostedNodeKind::HostedService {
                         handler: (resolved.executable_factory())(),
                         node: resolved.source.clone(),
                         binding,
+                        managed,
+                        managed_stop_request: None,
                         input_cords,
                         inputs: Vec::new(),
                         output_routes,
@@ -6908,7 +7328,7 @@ impl ResolvedPanel<'_> {
         } else {
             ExactRunSession::new(admission, identity, executor)
         };
-        Ok((session, host_failure, watches))
+        Ok((session, host_failure, watches, managed_components))
     }
 
     fn run_exact_report_controlled<'p, 'r, 'i>(
@@ -6923,14 +7343,15 @@ impl ResolvedPanel<'_> {
             ExactRunSessionRegistry::new(1, context.reservation.available_runtime_memory_bytes)
                 .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
         let borrowed_io = Rc::new(RefCell::new(io));
-        let (mut session, host_failure, _watches) = self.start_exact_session_with_io(
-            plan,
-            bindings,
-            context,
-            &sessions,
-            HostedRunIo::Borrowed(borrowed_io),
-            None,
-        )?;
+        let (mut session, host_failure, _watches, _managed_components) = self
+            .start_exact_session_with_io(
+                plan,
+                bindings,
+                context,
+                &sessions,
+                HostedRunIo::Borrowed(borrowed_io),
+                None,
+            )?;
         if let Some(stop) = initial_stop {
             session.cancel(stop).map_err(|error| {
                 host_failure
@@ -7642,6 +8063,8 @@ enum HostedNodeKind {
         handler: Box<dyn Handler>,
         node: Node,
         binding: ExactHostedServiceBinding,
+        managed: Option<Rc<RefCell<ManagedComponentMachine>>>,
+        managed_stop_request: Option<String>,
         input_cords: Vec<(usize, TypeContractRef<'static>)>,
         inputs: Vec<Option<Value>>,
         output_routes: Vec<(TypeContractRef<'static>, Vec<usize>)>,
@@ -7841,12 +8264,37 @@ fn begin_hosted_service_cleanup(
 fn drive_hosted_service_cleanup(
     handler: &mut dyn Handler,
     node: &Node,
+    binding: &ExactHostedServiceBinding,
+    managed: &Option<Rc<RefCell<ManagedComponentMachine>>>,
+    managed_stop_request: &mut Option<String>,
     cleanup: &mut Option<HostedServiceCleanupState>,
     completed: &mut bool,
     cancellation_ticks: u64,
     io: &mut StepIo<'_>,
     host_failure: &Rc<RefCell<Option<RuntimeError>>>,
 ) -> SchedulerStep {
+    let lifecycle_tick = managed_tick(binding, io.tick());
+    if let Some(machine) = managed {
+        if managed_stop_request.is_none() {
+            match begin_managed_stop(machine, lifecycle_tick, "hosted-service-completed", 0) {
+                Ok(request_id) => *managed_stop_request = Some(request_id),
+                Err(error) => {
+                    *host_failure.borrow_mut() = Some(error);
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/managed-lifecycle-projection-failed"),
+                    };
+                }
+            }
+        }
+        if let Some(request_id) = managed_stop_request.as_deref()
+            && let Err(error) = begin_managed_cleanup(machine, request_id, lifecycle_tick)
+        {
+            *host_failure.borrow_mut() = Some(error);
+            return SchedulerStep::Failed {
+                code: Id("conduit/managed-lifecycle-projection-failed"),
+            };
+        }
+    }
     if let Err(error) = begin_hosted_service_cleanup(cleanup, io.tick(), cancellation_ticks, None) {
         *host_failure.borrow_mut() = Some(error);
         return SchedulerStep::Failed {
@@ -7857,6 +8305,17 @@ fn drive_hosted_service_cleanup(
         .as_mut()
         .expect("hosted cleanup state was initialized");
     if io.tick() > state.deadline_tick {
+        if let (Some(machine), Some(request_id)) = (managed, managed_stop_request.as_deref()) {
+            let _ = apply_managed_executor_event(
+                machine,
+                request_id,
+                ManagedProviderEvent::Failed {
+                    reason: ManagedLifecycleReason::CleanupTimeout,
+                    cleanup: ManagedCleanupState::TimedOut,
+                },
+                lifecycle_tick,
+            );
+        }
         *host_failure.borrow_mut() = Some(RuntimeError::new(
             "CND-RUN-013",
             format!(
@@ -7875,6 +8334,25 @@ fn drive_hosted_service_cleanup(
     };
     match outcome {
         Ok(HostedServiceCleanup::Complete) => {
+            if let (Some(machine), Some(request_id)) = (managed, managed_stop_request.as_deref())
+                && let Err(error) = apply_managed_executor_event(
+                    machine,
+                    request_id,
+                    ManagedProviderEvent::CleanupComplete {
+                        released_resources: binding
+                            .authorities
+                            .iter()
+                            .map(|authority| authority.resource_binding_id.clone())
+                            .collect(),
+                    },
+                    lifecycle_tick,
+                )
+            {
+                *host_failure.borrow_mut() = Some(error);
+                return SchedulerStep::Failed {
+                    code: Id("conduit/managed-lifecycle-projection-failed"),
+                };
+            }
             *completed = true;
             *cleanup = None;
             SchedulerStep::Completed
@@ -7901,6 +8379,19 @@ fn drive_hosted_service_cleanup(
                         io.wait_for_timer(subject, deadline_tick)
                     }
                     HostedServiceInterest::Timer { .. } => {
+                        if let (Some(machine), Some(request_id)) =
+                            (managed, managed_stop_request.as_deref())
+                        {
+                            let _ = apply_managed_executor_event(
+                                machine,
+                                request_id,
+                                ManagedProviderEvent::Failed {
+                                    reason: ManagedLifecycleReason::CleanupTimeout,
+                                    cleanup: ManagedCleanupState::TimedOut,
+                                },
+                                lifecycle_tick,
+                            );
+                        }
                         *host_failure.borrow_mut() = Some(RuntimeError::new(
                             "CND-RUN-013",
                             format!(
@@ -7932,6 +8423,17 @@ fn drive_hosted_service_cleanup(
             SchedulerStep::Pending
         }
         Err(error) => {
+            if let (Some(machine), Some(request_id)) = (managed, managed_stop_request.as_deref()) {
+                let _ = apply_managed_executor_event(
+                    machine,
+                    request_id,
+                    ManagedProviderEvent::Failed {
+                        reason: ManagedLifecycleReason::CleanupFailed,
+                        cleanup: ManagedCleanupState::Failed,
+                    },
+                    lifecycle_tick,
+                );
+            }
             *host_failure.borrow_mut() = Some(error);
             SchedulerStep::Failed {
                 code: Id("conduit/host-service-cleanup-failed"),
@@ -7946,22 +8448,115 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
             handler,
             node,
             binding,
+            managed,
             ..
         } = &mut self.kind
-            && let Err(error) = handler.prepare(node, binding.clone())
         {
-            *self.host_failure.borrow_mut() = Some(error);
-            return Err(Id("conduit/host-service-prepare-failed"));
+            let tick = binding.use_time_tick;
+            let request_id = if let Some(machine) = managed {
+                match begin_managed_executor_transition(
+                    &mut machine.borrow_mut(),
+                    ManagedLifecycleAction::Prepare,
+                    tick,
+                    "exact-run-prepare",
+                ) {
+                    Ok(request_id) => Some(request_id),
+                    Err(error) => {
+                        *self.host_failure.borrow_mut() = Some(error);
+                        return Err(Id("conduit/managed-lifecycle-projection-failed"));
+                    }
+                }
+            } else {
+                None
+            };
+            if let Err(error) = handler.prepare(node, binding.clone()) {
+                if let (Some(machine), Some(request_id)) = (managed, request_id.as_deref()) {
+                    let _ = apply_managed_executor_event(
+                        machine,
+                        request_id,
+                        ManagedProviderEvent::Failed {
+                            reason: ManagedLifecycleReason::PreparationFailed,
+                            cleanup: ManagedCleanupState::NotRequired,
+                        },
+                        tick,
+                    );
+                }
+                *self.host_failure.borrow_mut() = Some(error);
+                return Err(Id("conduit/host-service-prepare-failed"));
+            }
+            if let (Some(machine), Some(request_id)) = (managed, request_id.as_deref())
+                && let Err(error) = apply_managed_executor_event(
+                    machine,
+                    request_id,
+                    ManagedProviderEvent::Prepared {
+                        resource_evidence: binding
+                            .authorities
+                            .iter()
+                            .map(|authority| authority.resource_binding_id.clone())
+                            .collect(),
+                    },
+                    tick,
+                )
+            {
+                *self.host_failure.borrow_mut() = Some(error);
+                return Err(Id("conduit/managed-lifecycle-projection-failed"));
+            }
         }
         Ok(conduit_core::LifecycleUsage::default())
     }
 
     fn start(&mut self) -> Result<conduit_core::LifecycleUsage, Id<'static>> {
-        if let HostedNodeKind::HostedService { handler, node, .. } = &mut self.kind
-            && let Err(error) = handler.start(node)
+        if let HostedNodeKind::HostedService {
+            handler,
+            node,
+            binding,
+            managed,
+            ..
+        } = &mut self.kind
         {
-            *self.host_failure.borrow_mut() = Some(error);
-            return Err(Id("conduit/host-service-start-failed"));
+            let tick = binding.use_time_tick;
+            let request_id = if let Some(machine) = managed {
+                match begin_managed_executor_transition(
+                    &mut machine.borrow_mut(),
+                    ManagedLifecycleAction::Activate,
+                    tick,
+                    "exact-run-start",
+                ) {
+                    Ok(request_id) => Some(request_id),
+                    Err(error) => {
+                        *self.host_failure.borrow_mut() = Some(error);
+                        return Err(Id("conduit/managed-lifecycle-projection-failed"));
+                    }
+                }
+            } else {
+                None
+            };
+            if let Err(error) = handler.start(node) {
+                if let (Some(machine), Some(request_id)) = (managed, request_id.as_deref()) {
+                    let _ = apply_managed_executor_event(
+                        machine,
+                        request_id,
+                        ManagedProviderEvent::Failed {
+                            reason: ManagedLifecycleReason::ActivationFailed,
+                            cleanup: ManagedCleanupState::Required,
+                        },
+                        tick,
+                    );
+                }
+                *self.host_failure.borrow_mut() = Some(error);
+                return Err(Id("conduit/host-service-start-failed"));
+            }
+            if let (Some(machine), Some(request_id)) = (managed, request_id.as_deref())
+                && let Err(error) = apply_managed_executor_event(
+                    machine,
+                    request_id,
+                    ManagedProviderEvent::Activated,
+                    tick,
+                )
+            {
+                *self.host_failure.borrow_mut() = Some(error);
+                return Err(Id("conduit/managed-lifecycle-projection-failed"));
+            }
         }
         Ok(conduit_core::LifecycleUsage::default())
     }
@@ -7970,6 +8565,9 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
         if let HostedNodeKind::HostedService {
             handler,
             node,
+            binding,
+            managed,
+            managed_stop_request,
             inputs,
             pending_outputs,
             completion_pending,
@@ -7982,12 +8580,59 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 *self.host_failure.borrow_mut() = Some(error);
                 return;
             }
+            let lifecycle_tick = managed_tick(binding, tick);
+            if let Some(machine) = managed
+                && managed_stop_request.is_none()
+            {
+                match begin_managed_stop(
+                    machine,
+                    lifecycle_tick,
+                    if stop == conduit_core::StopPolicy::Abort {
+                        "exact-run-abort"
+                    } else {
+                        "exact-run-drain"
+                    },
+                    u32::try_from(inputs.iter().filter(|input| input.is_some()).count())
+                        .unwrap_or(u32::MAX),
+                ) {
+                    Ok(request_id) => *managed_stop_request = Some(request_id),
+                    Err(error) => {
+                        *self.host_failure.borrow_mut() = Some(error);
+                        return;
+                    }
+                }
+            }
             if stop == conduit_core::StopPolicy::Abort {
                 inputs.clear();
                 pending_outputs.clear();
                 *completion_pending = false;
+                if let (Some(machine), Some(request_id)) =
+                    (managed.as_ref(), managed_stop_request.as_deref())
+                    && let Err(error) = begin_managed_cleanup(machine, request_id, lifecycle_tick)
+                {
+                    *self.host_failure.borrow_mut() = Some(error);
+                    return;
+                }
                 match handler.cleanup(node, HostedServiceStepContext { tick }) {
                     Ok(HostedServiceCleanup::Complete) => {
+                        if let (Some(machine), Some(request_id)) =
+                            (managed.as_ref(), managed_stop_request.as_deref())
+                            && let Err(error) = apply_managed_executor_event(
+                                machine,
+                                request_id,
+                                ManagedProviderEvent::CleanupComplete {
+                                    released_resources: binding
+                                        .authorities
+                                        .iter()
+                                        .map(|authority| authority.resource_binding_id.clone())
+                                        .collect(),
+                                },
+                                lifecycle_tick,
+                            )
+                        {
+                            *self.host_failure.borrow_mut() = Some(error);
+                            return;
+                        }
                         *completed = true;
                         *cleanup = None;
                     }
@@ -8003,6 +8648,19 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                         }
                     }
                     Err(error) => {
+                        if let (Some(machine), Some(request_id)) =
+                            (managed.as_ref(), managed_stop_request.as_deref())
+                        {
+                            let _ = apply_managed_executor_event(
+                                machine,
+                                request_id,
+                                ManagedProviderEvent::Failed {
+                                    reason: ManagedLifecycleReason::CleanupFailed,
+                                    cleanup: ManagedCleanupState::Failed,
+                                },
+                                lifecycle_tick,
+                            );
+                        }
                         *self.host_failure.borrow_mut() = Some(error);
                         *completed = true;
                     }
@@ -8025,12 +8683,26 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
     fn validate_deadlines(&mut self, tick: u64) -> Result<(), Id<'static>> {
         if let HostedNodeKind::HostedService {
             node,
+            binding,
+            managed,
+            managed_stop_request,
             cleanup: Some(cleanup),
             completed: false,
             ..
         } = &self.kind
             && tick > cleanup.deadline_tick
         {
+            if let (Some(machine), Some(request_id)) = (managed, managed_stop_request.as_deref()) {
+                let _ = apply_managed_executor_event(
+                    machine,
+                    request_id,
+                    ManagedProviderEvent::Failed {
+                        reason: ManagedLifecycleReason::CleanupTimeout,
+                        cleanup: ManagedCleanupState::TimedOut,
+                    },
+                    managed_tick(binding, tick),
+                );
+            }
             *self.host_failure.borrow_mut() = Some(RuntimeError::new(
                 "CND-RUN-013",
                 format!(
@@ -8685,6 +9357,8 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 handler,
                 node,
                 binding,
+                managed,
+                managed_stop_request,
                 input_cords,
                 inputs,
                 output_routes,
@@ -8701,6 +9375,9 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                     return drive_hosted_service_cleanup(
                         handler.as_mut(),
                         node,
+                        binding,
+                        managed,
+                        managed_stop_request,
                         cleanup,
                         completed,
                         self.cancellation_ticks,
@@ -8742,6 +9419,9 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                             return drive_hosted_service_cleanup(
                                 handler.as_mut(),
                                 node,
+                                binding,
+                                managed,
+                                managed_stop_request,
                                 cleanup,
                                 completed,
                                 self.cancellation_ticks,
@@ -8814,12 +9494,34 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                     }
                 }
                 if inputs.iter().any(Option::is_none) {
+                    if let Err(error) = set_managed_readiness(
+                        managed,
+                        ManagedRuntimeReadiness::Waiting,
+                        managed_tick(binding, io.tick()),
+                        "scheduler-waiting-for-input",
+                    ) {
+                        *self.host_failure.borrow_mut() = Some(error);
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/managed-lifecycle-projection-failed"),
+                        };
+                    }
                     return SchedulerStep::Pending;
                 }
                 if let Err(error) = validate_hosted_service_use_time(binding, io.tick()) {
                     *self.host_failure.borrow_mut() = Some(error);
                     return SchedulerStep::Failed {
                         code: Id("conduit/host-service-use-time-stale"),
+                    };
+                }
+                if let Err(error) = set_managed_readiness(
+                    managed,
+                    ManagedRuntimeReadiness::Ready,
+                    managed_tick(binding, io.tick()),
+                    "scheduler-dispatched-provider",
+                ) {
+                    *self.host_failure.borrow_mut() = Some(error);
+                    return SchedulerStep::Failed {
+                        code: Id("conduit/managed-lifecycle-projection-failed"),
                     };
                 }
                 let values = inputs.iter().flatten().cloned().collect::<Vec<_>>();
@@ -8841,9 +9543,46 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 };
                 inputs.clear();
                 let (outputs, terminal) = match step {
-                    HostedServiceStep::Produced { outputs } => (outputs, false),
-                    HostedServiceStep::Completed { outputs } => (outputs, true),
+                    HostedServiceStep::Produced { outputs } => {
+                        if let Err(error) = set_managed_readiness(
+                            managed,
+                            ManagedRuntimeReadiness::Ready,
+                            managed_tick(binding, io.tick()),
+                            "provider-produced",
+                        ) {
+                            *self.host_failure.borrow_mut() = Some(error);
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/managed-lifecycle-projection-failed"),
+                            };
+                        }
+                        (outputs, false)
+                    }
+                    HostedServiceStep::Completed { outputs } => {
+                        if let Err(error) = set_managed_readiness(
+                            managed,
+                            ManagedRuntimeReadiness::Ready,
+                            managed_tick(binding, io.tick()),
+                            "provider-completed-work",
+                        ) {
+                            *self.host_failure.borrow_mut() = Some(error);
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/managed-lifecycle-projection-failed"),
+                            };
+                        }
+                        (outputs, true)
+                    }
                     HostedServiceStep::Waiting { interests } => {
+                        if let Err(error) = set_managed_readiness(
+                            managed,
+                            ManagedRuntimeReadiness::Waiting,
+                            managed_tick(binding, io.tick()),
+                            "provider-waiting",
+                        ) {
+                            *self.host_failure.borrow_mut() = Some(error);
+                            return SchedulerStep::Failed {
+                                code: Id("conduit/managed-lifecycle-projection-failed"),
+                            };
+                        }
                         for interest in interests {
                             let wake = match interest {
                                 HostedServiceInterest::Timer {
@@ -8920,6 +9659,9 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                         drive_hosted_service_cleanup(
                             handler.as_mut(),
                             node,
+                            binding,
+                            managed,
+                            managed_stop_request,
                             cleanup,
                             completed,
                             self.cancellation_ticks,
@@ -8955,6 +9697,9 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                                     drive_hosted_service_cleanup(
                                         handler.as_mut(),
                                         node,
+                                        binding,
+                                        managed,
+                                        managed_stop_request,
                                         cleanup,
                                         completed,
                                         self.cancellation_ticks,

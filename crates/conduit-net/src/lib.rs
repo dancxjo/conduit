@@ -12,7 +12,7 @@ mod types;
 
 pub use runtime_nodes::{
     DHCP_SERVER_CONTRACT, DNS_SD_CONTRACT, NETWORK_CONTRACTS, REACHABILITY_CONTRACT,
-    WIFI_AP_CONTRACT, register_deterministic_network_fixture_providers, register_network_contracts,
+    WIFI_AP_CONTRACT, register_deterministic_network_providers, register_network_contracts,
 };
 pub use standing::{
     EXECUTABLE_STANDING_NETWORK_CONTRACTS, LINK_OBSERVE_CONTRACT, NETWORK_EFFECT_CONTRACTS,

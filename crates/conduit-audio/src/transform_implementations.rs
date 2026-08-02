@@ -471,6 +471,7 @@ pub fn install_audio_gain_implementation(
         minimum_runtime_protocol: 1,
         maximum_runtime_protocol: 1,
         coexistence_memory_bytes: 0,
+        managed_lifecycle: None,
         factory,
         validate_config: validate_constant_half_gain,
     })
