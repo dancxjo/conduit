@@ -383,6 +383,16 @@ fn run(
         )
     })?;
 
+    let audio_observation =
+        (!arguments.compatibility_demo && arguments.enable_audio_alsa).then(|| {
+            conduit_audio::observe_alsa_devices(
+                &conduit_audio::AlsaToolchain::default(),
+                1,
+                12,
+                1_000_000,
+            )
+        });
+
     let registry = if arguments.compatibility_demo {
         Registry::compatibility_demo()
     } else {
@@ -544,6 +554,17 @@ fn run(
                 )
             })?;
         }
+        if let Some(observation) = &audio_observation {
+            conduit_audio::register_observed_alsa_providers(&mut registry, observation).map_err(
+                |error| {
+                    cli_error(
+                        simple_diagnostic(error.code, &error.message),
+                        presentation,
+                        vec![source_document.clone()],
+                    )
+                },
+            )?;
+        }
         conduit_http::register_hosted_http_provider(&mut registry).map_err(|error| {
             cli_error(
                 simple_diagnostic(error.code, &error.message),
@@ -554,8 +575,33 @@ fn run(
         registry
     };
     let installed_profile = if arguments.mode() == Mode::Run && !arguments.compatibility_demo {
+        let audio_authorities = audio_observation
+            .as_ref()
+            .map(|observation| {
+                conduit_audio::observe_alsa_authorities(
+                    &source,
+                    observation,
+                    12,
+                    "conduit/conduct-run",
+                    1,
+                )
+                .map_err(|error| {
+                    cli_error(
+                        from_runtime_error(&error),
+                        presentation,
+                        vec![source_document.clone()],
+                    )
+                })
+            })
+            .transpose()?
+            .unwrap_or_default();
         Some(
-            InstalledProfile::observe_registry(&source, &registry).map_err(|error| {
+            InstalledProfile::observe_registry_with_host_authorities(
+                &source,
+                &registry,
+                &audio_authorities,
+            )
+            .map_err(|error| {
                 cli_error(
                     from_runtime_error(&error),
                     presentation,

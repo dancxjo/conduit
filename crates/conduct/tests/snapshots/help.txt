@@ -46,6 +46,8 @@ Options:
           Explicitly install the bounded numeric-loopback socket providers
       --enable-http-client-loopback
           Explicitly install the bounded numeric-loopback HTTP client provider
+      --enable-audio-alsa
+          Observe and explicitly install the closed-inventory hosted ALSA audio provider
   -h, --help
           Print help
   -V, --version

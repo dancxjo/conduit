@@ -1,0 +1,49 @@
+panel 0
+
+# Isolated deterministic capture boundary. It opens no physical device.
+node capture : conduit.media/audio/capture {
+    device_resource = secret("conduit.audio/device/virtual-capture-0")
+    device_label = "Virtual Loopback Capture"
+    provider_observation = "conduit.audio/observation/virtual-loopback"
+    observation_generation = 1
+    observation_valid_until_tick = 1000000
+    backend_identity = "conduit.audio/backend/deterministic-loopback"
+    sample_format = "pcm-s16le-interleaved"
+    sample_rate_hz = 48000
+    layout = "stereo-lr"
+    sample_clock = "conduit.clock/virtual-audio-48000"
+    clock_correlation = "exact"
+    requested_period_frames = 8
+    admitted_period_frames = 8
+    requested_buffer_frames = 8
+    admitted_buffer_frames = 8
+    requested_latency_frames = 8
+    admitted_latency_frames = 8
+    latency_classification = "enforced"
+    sharing_mode = "exclusive"
+    maximum_concurrent_streams = 1
+    workload_class = "deterministic-bounded"
+    lifecycle = "standing"
+    underrun = "not-applicable"
+    overrun = "fail-terminal-evidenced"
+    drift = "reject-evidenced"
+    discontinuity = "fail-terminal-evidenced"
+    provider_loss = "fail-terminal-evidenced"
+    cancellation = "before-open-after-open-running-drain-distinct"
+    drain = "not-applicable"
+    commit_point = "first-sample-delivered"
+    device_grant = secret("conduit.audio/grant/virtual-capture")
+    lease_ticks = 1000000
+    revocation_grace_ticks = 1
+    cleanup_ticks = 2
+    sensitivity = "restricted-audio"
+    maximum_frames_per_step = 8
+    maximum_host_queue_frames = 8
+    maximum_work = 16
+    maximum_evidence_events = 64
+}
+node inspect : conduit.media/audio-frame/inspect
+node output : display/text
+
+cord capture.frame -> inspect.frame { capacity = 1 max_value_bytes = 56 max_queued_bytes = 56 low_watermark = 0 high_watermark = 1 pressure = block }
+cord inspect.summary -> output.text { capacity = 1 max_value_bytes = 64 max_queued_bytes = 64 low_watermark = 0 high_watermark = 1 pressure = block }

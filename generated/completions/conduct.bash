@@ -62,7 +62,7 @@ _conduct() {
 
     case "${cmd}" in
         conduct)
-            opts="-q -v -h -V --check --explain --run --format --diagnostic-format --color --quiet --verbose-diagnostics --compile-input --compatibility-demo --enable-file-write --enable-file-watch --enable-storage-cache --enable-process-exec --enable-socket-loopback --enable-http-client-loopback --help --version inspect compile package capsule"
+            opts="-q -v -h -V --check --explain --run --format --diagnostic-format --color --quiet --verbose-diagnostics --compile-input --compatibility-demo --enable-file-write --enable-file-watch --enable-storage-cache --enable-process-exec --enable-socket-loopback --enable-http-client-loopback --enable-audio-alsa --help --version inspect compile package capsule"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

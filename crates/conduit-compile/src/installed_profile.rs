@@ -14,7 +14,7 @@ use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, ExecutorKind,
     IMPLEMENTATION_MANIFEST_SCHEMA_VERSION, SemanticHash,
 };
-use conduit_panel::parse;
+use conduit_panel::{SourceValue, parse};
 use conduit_runtime::{
     ExactGrantObservation, ExactHostedBinding, ExactHostedBindings, HostedPrimitiveImplementation,
     InstalledHostedProvider, OwnedNodeSchema, Registry, RuntimeError, SourceContractCatalog,
@@ -38,6 +38,25 @@ pub struct ObservedHostServiceAuthority {
     pub decision: AuthorityDecisionDocument,
 }
 
+/// Host-policy input for one observed service authority. The caller owns the
+/// policy decision; source can only be checked against the resulting exact
+/// resource, grant, lease, and constraint identities.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HostServiceAuthorityObservationInput {
+    pub contract_id: String,
+    pub instance: String,
+    pub run_id: String,
+    pub epoch: u64,
+    pub constraints: Vec<AuthorityConstraintDocument>,
+    pub resource_id: Option<String>,
+    pub grant_id: Option<String>,
+    pub sharing: Option<String>,
+    pub maximum_holders: Option<u16>,
+    pub lease_ticks: Option<u64>,
+    pub revocation_grace_ticks: Option<u64>,
+    pub cleanup_ticks: Option<u64>,
+}
+
 /// Commits host-observed opaque values to the semantic constraint identifiers
 /// owned by an effect domain.
 #[must_use]
@@ -51,6 +70,48 @@ pub fn observed_host_service_constraints(
             semantic_hash: hosted_effect_constraint_hash(id, value).to_string(),
         })
         .collect()
+}
+
+/// Converts an independently observed host-policy decision into compile input
+/// without deriving authority from panel source or provider installation.
+#[must_use]
+pub fn observed_host_service_authority(
+    input: HostServiceAuthorityObservationInput,
+) -> Option<ObservedHostServiceAuthority> {
+    let instance = HostedServiceInstance {
+        instance: input.instance.clone(),
+        constraints: input.constraints,
+        resource_id: input.resource_id,
+        grant_id: input.grant_id,
+        sharing: input.sharing,
+        maximum_holders: input.maximum_holders,
+        lease_ticks: input.lease_ticks,
+        revocation_grace_ticks: input.revocation_grace_ticks,
+        cleanup_ticks: input.cleanup_ticks,
+    };
+    host_service_authority(&input.contract_id, &instance).map(|mut decision| {
+        decision.effect.audience = input.run_id.clone();
+        decision.grant.audience = input.run_id.clone();
+        decision.resource_lease.run = input.run_id;
+        decision.resource_lease.epoch = input.epoch;
+        ObservedHostServiceAuthority {
+            contract_id: input.contract_id,
+            instance: input.instance,
+            decision,
+        }
+    })
+}
+
+struct HostedServiceInstance {
+    instance: String,
+    constraints: Vec<AuthorityConstraintDocument>,
+    resource_id: Option<String>,
+    grant_id: Option<String>,
+    sharing: Option<String>,
+    maximum_holders: Option<u16>,
+    lease_ticks: Option<u64>,
+    revocation_grace_ticks: Option<u64>,
+    cleanup_ticks: Option<u64>,
 }
 
 impl InstalledProfile {
@@ -202,25 +263,42 @@ impl InstalledProfile {
                 .then(|| instances.first().cloned())
                 .flatten();
             for installed in matching {
-                let host_service_instances =
-                    if installed.implementation == HostedPrimitiveImplementation::HostedService {
-                        instances
-                            .iter()
-                            .map(|instance| {
-                                let constraints = panel
-                                    .nodes
-                                    .iter()
-                                    .find(|node| {
-                                        node.id == *instance
-                                            || instance.ends_with(&format!("/{}", node.id))
-                                    })
-                                    .map_or_else(Vec::new, hosted_service_authority_constraints);
-                                (instance.clone(), constraints)
-                            })
-                            .collect::<Vec<_>>()
-                    } else {
-                        Vec::new()
-                    };
+                let host_service_instances = if installed.implementation
+                    == HostedPrimitiveImplementation::HostedService
+                {
+                    instances
+                        .iter()
+                        .map(|instance| {
+                            let node = panel.nodes.iter().find(|node| {
+                                node.id == *instance || instance.ends_with(&format!("/{}", node.id))
+                            });
+                            HostedServiceInstance {
+                                instance: instance.clone(),
+                                constraints: node
+                                    .map_or_else(Vec::new, hosted_service_authority_constraints),
+                                resource_id: node.and_then(|node| {
+                                    secret_reference(node, "device_resource").map(ToOwned::to_owned)
+                                }),
+                                grant_id: node.and_then(|node| {
+                                    secret_reference(node, "device_grant").map(ToOwned::to_owned)
+                                }),
+                                sharing: node
+                                    .and_then(|node| node.config("sharing_mode"))
+                                    .map(ToOwned::to_owned),
+                                maximum_holders: node
+                                    .and_then(|node| source_u64(node, "maximum_concurrent_streams"))
+                                    .and_then(|value| u16::try_from(value).ok()),
+                                lease_ticks: node.and_then(|node| source_u64(node, "lease_ticks")),
+                                revocation_grace_ticks: node
+                                    .and_then(|node| source_u64(node, "revocation_grace_ticks")),
+                                cleanup_ticks: node
+                                    .and_then(|node| source_u64(node, "cleanup_ticks")),
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                } else {
+                    Vec::new()
+                };
                 candidates.push(candidate(
                     installed,
                     stdout_instance.as_deref(),
@@ -516,7 +594,7 @@ impl InstalledProfile {
 fn candidate(
     installed: &conduit_runtime::InstalledHostedProvider,
     stdout_instance: Option<&str>,
-    host_service_instances: &[(String, Vec<AuthorityConstraintDocument>)],
+    host_service_instances: &[HostedServiceInstance],
     stdout_granted: bool,
     observed_authorities: &[ObservedHostServiceAuthority],
 ) -> CandidateDocument {
@@ -525,12 +603,14 @@ fn candidate(
     let mut authorities = stdout_instance
         .map(|instance| vec![stdout_authority(instance, stdout_granted)])
         .unwrap_or_default();
-    for (instance, constraints) in host_service_instances {
-        if installed.contract.id.as_str() != "learned/promote" {
+    for instance in host_service_instances {
+        if !matches!(
+            installed.contract.id.as_str(),
+            "learned/promote" | "conduit.media/audio/capture" | "conduit.media/audio/playback"
+        ) {
             authorities.extend(host_service_authority(
                 installed.contract.id.as_str(),
                 instance,
-                constraints,
             ));
         }
         authorities.extend(
@@ -538,7 +618,7 @@ fn candidate(
                 .iter()
                 .filter(|observation| {
                     observation.contract_id == installed.contract.id.as_str()
-                        && observation.instance == *instance
+                        && observation.instance == instance.instance
                 })
                 .map(|observation| observation.decision.clone()),
         );
@@ -603,6 +683,10 @@ fn candidate(
             | HostedPrimitiveImplementation::DisplayText
     );
     let process_profile = installed.contract.id.as_str() == "conduit.host/process/exec";
+    let audio_device_profile = matches!(
+        installed.contract.id.as_str(),
+        "conduit.media/audio/capture" | "conduit.media/audio/playback"
+    );
     let socket_profile = installed
         .contract
         .id
@@ -643,7 +727,9 @@ fn candidate(
             maximum_runtime_protocol: manifest.maximum_runtime_protocol,
             coexistence_memory_bytes: manifest.coexistence_memory_bytes,
         },
-        execution_profile: if process_profile {
+        execution_profile: if audio_device_profile {
+            audio_device_execution_profile()
+        } else if process_profile {
             process_execution_profile()
         } else if socket_profile {
             socket_execution_profile()
@@ -776,6 +862,23 @@ fn candidate(
 fn hosted_service_authority_constraints(
     node: &conduit_panel::Node,
 ) -> Vec<AuthorityConstraintDocument> {
+    if let (Some(device), Some(observation), Some(backend)) = (
+        secret_reference(node, "device_resource"),
+        node.config("provider_observation"),
+        node.config("backend_identity"),
+    ) {
+        return [
+            ("conduit.constraint/audio-device", device),
+            ("conduit.constraint/audio-observation", observation),
+            ("conduit.constraint/audio-backend", backend),
+        ]
+        .into_iter()
+        .map(|(id, value)| AuthorityConstraintDocument {
+            id: id.to_owned(),
+            semantic_hash: hosted_effect_constraint_hash(id, value.as_bytes()).to_string(),
+        })
+        .collect();
+    }
     if node.config("address").is_none()
         || node.config("authority").is_none()
         || node.config("transport").is_none()
@@ -802,6 +905,20 @@ fn hosted_service_authority_constraints(
         semantic_hash: hosted_effect_constraint_hash(id, value.as_bytes()).to_string(),
     })
     .collect()
+}
+
+fn secret_reference<'a>(node: &'a conduit_panel::Node, key: &str) -> Option<&'a str> {
+    match node.config_value(key) {
+        Some(SourceValue::SecretReference(value)) => Some(value),
+        _ => None,
+    }
+}
+
+fn source_u64(node: &conduit_panel::Node, key: &str) -> Option<u64> {
+    match node.config_value(key) {
+        Some(SourceValue::Integer(value)) => u64::try_from(*value).ok(),
+        _ => None,
+    }
 }
 
 fn stdout_authority(instance: &str, granted: bool) -> AuthorityDecisionDocument {
@@ -876,23 +993,25 @@ pub fn fixture_host_service_authority_observation(
     epoch: u64,
     constraints: &[AuthorityConstraintDocument],
 ) -> Option<ObservedHostServiceAuthority> {
-    host_service_authority(contract_id, instance, constraints).map(|mut decision| {
-        decision.effect.audience = run_id.to_owned();
-        decision.grant.audience = run_id.to_owned();
-        decision.resource_lease.run = run_id.to_owned();
-        decision.resource_lease.epoch = epoch;
-        ObservedHostServiceAuthority {
-            contract_id: contract_id.to_owned(),
-            instance: instance.to_owned(),
-            decision,
-        }
+    observed_host_service_authority(HostServiceAuthorityObservationInput {
+        contract_id: contract_id.to_owned(),
+        instance: instance.to_owned(),
+        run_id: run_id.to_owned(),
+        epoch,
+        constraints: constraints.to_vec(),
+        resource_id: None,
+        grant_id: None,
+        sharing: None,
+        maximum_holders: None,
+        lease_ticks: None,
+        revocation_grace_ticks: None,
+        cleanup_ticks: None,
     })
 }
 
 fn host_service_authority(
     contract_id: &str,
-    instance: &str,
-    constraints: &[AuthorityConstraintDocument],
+    instance: &HostedServiceInstance,
 ) -> Option<AuthorityDecisionDocument> {
     let host = "conduit/conduct-host";
     let (name, requirement, action, resource_kind, resource_id) = match contract_id {
@@ -994,14 +1113,44 @@ fn host_service_authority(
             "conduit.resource/learned-model-slot",
             "conduit.resource/learned-reference-slot",
         ),
+        "conduit.media/audio/capture" => (
+            "audio-capture",
+            "sha256:6565656565656565656565656565656565656565656565656565656565656565",
+            "conduit.action/capture-audio",
+            "conduit.resource/audio-input-device",
+            "conduit.audio/device/unspecified-capture",
+        ),
+        "conduit.media/audio/playback" => (
+            "audio-playback",
+            "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+            "conduit.action/play-audio",
+            "conduit.resource/audio-output-device",
+            "conduit.audio/device/unspecified-playback",
+        ),
         _ => return None,
     };
+    let resource_id = instance.resource_id.as_deref().unwrap_or(resource_id);
     let (mut resource_lease, commit_profile) =
-        effect_contracts(name, instance, action, resource_id);
+        effect_contracts(name, &instance.instance, action, resource_id);
+    if let Some(sharing) = &instance.sharing {
+        resource_lease.sharing.clone_from(sharing);
+    }
+    if let Some(maximum_holders) = instance.maximum_holders {
+        resource_lease.maximum_holders = maximum_holders;
+    }
+    if let Some(ticks) = instance.lease_ticks {
+        resource_lease.expires_at_tick = resource_lease.issued_at_tick.saturating_add(ticks);
+    }
+    if let Some(ticks) = instance.revocation_grace_ticks {
+        resource_lease.revocation_grace_ticks = ticks;
+    }
+    if let Some(ticks) = instance.cleanup_ticks {
+        resource_lease.cleanup_ticks = ticks;
+    }
     let valid_until_tick = if contract_id == "learned/promote" {
         200
     } else {
-        20
+        resource_lease.expires_at_tick
     };
     resource_lease.expires_at_tick = valid_until_tick;
     Some(AuthorityDecisionDocument {
@@ -1015,9 +1164,9 @@ fn host_service_authority(
             action: action.to_owned(),
             resource_kind: resource_kind.to_owned(),
             resource_id: Some(resource_id.to_owned()),
-            requester: instance.to_owned(),
+            requester: instance.instance.clone(),
             audience: "conduit/conduct-run".to_owned(),
-            constraints: constraints.to_vec(),
+            constraints: instance.constraints.clone(),
             check_at_use: true,
         },
         capability: HostCapabilityDocument {
@@ -1031,14 +1180,17 @@ fn host_service_authority(
             valid_until_tick,
         },
         grant: AuthorityGrantDocument {
-            id: format!("conduit.grant/{name}"),
+            id: instance
+                .grant_id
+                .clone()
+                .unwrap_or_else(|| format!("conduit.grant/{name}")),
             action: action.to_owned(),
             resource_kind: resource_kind.to_owned(),
             resource_id: resource_id.to_owned(),
-            scope_root: instance.to_owned(),
+            scope_root: instance.instance.clone(),
             scope_descendants: false,
             audience: "conduit/conduct-run".to_owned(),
-            constraints: constraints.to_vec(),
+            constraints: instance.constraints.clone(),
             time_basis: "clock/conduct-host".to_owned(),
             not_before_tick: 10,
             expires_at_tick: valid_until_tick,
@@ -1132,6 +1284,61 @@ fn execution_profile() -> ExecutionProfileDocument {
             accounting: "executor-allocated".to_owned(),
             bytes: 2048,
         }],
+        checkpoint: None,
+    }
+}
+
+fn audio_device_execution_profile() -> ExecutionProfileDocument {
+    const HOST_BUFFER_BYTES: u64 = 4 * 1024;
+    const MEMORY_BYTES: u64 = 32 * 1024;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-audio-device-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "observed".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: false,
+        limits: ExecutionLimitsDocument {
+            max_step_work: 256,
+            max_input_leases: 1,
+            max_input_bytes: 256,
+            max_output_reservations: 1,
+            max_output_bytes: 256,
+            max_transactions: 1,
+            max_fragments_per_step: 1,
+            max_pending_operations: 1,
+            max_timers: 1,
+            max_child_tasks: 1,
+            max_host_buffer_bytes: HOST_BUFFER_BYTES,
+            max_foreign_queue_items: 2,
+            max_foreign_queue_bytes: HOST_BUFFER_BYTES,
+            implementation_memory_bytes: MEMORY_BYTES,
+            cancellation_ticks: 2,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "host-services".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: HOST_BUFFER_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "foreign-runtime".to_owned(),
+                accounting: "observed-only".to_owned(),
+                bytes: HOST_BUFFER_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "pending-operations".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: HOST_BUFFER_BYTES,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: MEMORY_BYTES - 3 * HOST_BUFFER_BYTES,
+            },
+        ],
         checkpoint: None,
     }
 }

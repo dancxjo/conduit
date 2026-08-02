@@ -1,0 +1,41 @@
+{
+  "schema": "conduit.audio-device-boundary-conformance",
+  "schema_version": 0,
+  "contracts": [
+    "conduit.media/audio/capture",
+    "conduit.media/audio/playback"
+  ],
+  "proofs": [
+    {"id":"virtual-capture-standalone","panel":"examples/virtual-audio-capture.panel","runner":"conduct --check","expected":{"device":"conduit.audio/device/virtual-capture-0","standing":true}},
+    {"id":"virtual-playback-standalone","panel":"examples/virtual-audio-playback.panel","runner":"conduct --check","expected":{"device":"conduit.audio/device/virtual-playback-0","standing":true}},
+    {"id":"virtual-loopback-composition","panel":"examples/virtual-audio-loopback.panel","runner":"conduit-web::standing_signal::virtual_capture_processing_playback_waits_and_stops_explicitly","expected":{"path":["capture","bounded-gain","playback"],"terminal":"explicit-cancellation"}},
+    {"id":"hosted-alsa-null-composition","runner":"conduit-audio::observed_alsa_null_runs_capture_processing_playback_through_the_production_executor","expected":{"conditional":"observed-alsa-null","authority":"host-observed","waiting_not_terminal":true}},
+    {"id":"exact-plan-binding","runner":"conduit-audio::observed_alsa_panel_seals_devices_grants_backend_and_limits_into_one_exact_plan","expected":{"devices":2,"authorities":2,"latency":"observed","step_bound":"observed-only"}}
+  ],
+  "fixtures": [
+    {"id":"no-device","code":"CND-AUDDEV-001"},
+    {"id":"permission-denied","code":"CND-AUDDEV-002"},
+    {"id":"stale-observation","code":"CND-AUDDEV-003"},
+    {"id":"format-mismatch","code":"CND-AUDDEV-004"},
+    {"id":"device-busy","code":"CND-AUDDEV-005"},
+    {"id":"exclusive-conflict","code":"CND-AUDDEV-006"},
+    {"id":"underrun","code":"CND-AUDDEV-007"},
+    {"id":"overrun","code":"CND-AUDDEV-008"},
+    {"id":"clock-drift","code":"CND-AUDDEV-009"},
+    {"id":"hot-unplug","code":"CND-AUDDEV-010"},
+    {"id":"provider-restart","code":"CND-AUDDEV-011"},
+    {"id":"cancellation-before-open","code":"CND-AUDDEV-012"},
+    {"id":"cancellation-after-open","code":"CND-AUDDEV-013"},
+    {"id":"cancellation-during-drain","code":"CND-AUDDEV-014"},
+    {"id":"cleanup-timeout","code":"CND-AUDDEV-015"},
+    {"id":"virtual-loopback-equivalence","code":"CND-AUDDEV-OK"}
+  ],
+  "presentation": {
+    "patchbay_and_timeline_same_evidence": true,
+    "ordered_text_equivalent": true,
+    "keyboard": true,
+    "reduced_motion": true,
+    "screen_reader": true,
+    "non_audio": true
+  }
+}

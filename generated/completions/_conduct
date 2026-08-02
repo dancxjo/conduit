@@ -33,6 +33,7 @@ _conduct() {
 '--enable-process-exec[Explicitly install the bounded closed-inventory process provider]' \
 '--enable-socket-loopback[Explicitly install the bounded numeric-loopback socket providers]' \
 '--enable-http-client-loopback[Explicitly install the bounded numeric-loopback HTTP client provider]' \
+'--enable-audio-alsa[Observe and explicitly install the closed-inventory hosted ALSA audio provider]' \
 '-h[Print help]' \
 '--help[Print help]' \
 '-V[Print version]' \

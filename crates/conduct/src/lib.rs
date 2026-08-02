@@ -294,6 +294,10 @@ pub struct Arguments {
     #[arg(long)]
     pub enable_http_client_loopback: bool,
 
+    /// Observe and explicitly install the closed-inventory hosted ALSA audio provider.
+    #[arg(long)]
+    pub enable_audio_alsa: bool,
+
     /// Additive read-only operations.
     #[command(subcommand)]
     pub secondary: Option<SecondaryCommand>,

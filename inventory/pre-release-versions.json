@@ -175,6 +175,7 @@
       "validator": "current-schema",
       "markers": [
         "conduit.application-socket-conformance",
+        "conduit.audio-device-boundary-conformance",
         "conduit.audio-processing-conformance",
         "conduit.standing-signal-conformance",
         "conduit.standing-network-conformance",

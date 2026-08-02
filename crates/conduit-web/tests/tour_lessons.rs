@@ -130,7 +130,10 @@ fn tour_lessons_declare_verified_browser_runnability() {
         }
         assert_current_panel_source(id, source);
         let panel = conduit_panel::parse(source).expect("current lesson source already parsed");
-        let registry = if id == "library.bounded-audio-processing" {
+        let registry = if matches!(
+            id,
+            "library.bounded-audio-processing" | "library.audio-device-boundaries"
+        ) {
             let mut registry = Registry::hosted_primitives();
             conduit_media::register_deterministic_signal_providers(&mut registry)
                 .expect("browser signal providers register");
@@ -391,6 +394,68 @@ fn bounded_audio_lesson_covers_every_processor_and_the_standing_patch() {
             .as_str()
             .unwrap()
             .contains("ordered event table")
+    );
+}
+
+#[test]
+fn audio_device_lesson_covers_both_boundaries_isolated_and_composed() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.audio-device-boundaries")
+        .expect("audio device lesson is selectable");
+    assert_eq!(lesson["execution"], "continuous-watch");
+    assert_eq!(lesson["presentation"]["timeline"], "exact-evidence-marble");
+    assert_eq!(lesson["accessibility"]["reduced_motion"], true);
+    assert!(lesson["accessibility"]["non_audio"].as_str().is_some());
+    assert!(lesson["accessibility"]["screen_reader"].as_str().is_some());
+
+    let contracts = lesson["library"]["contracts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|contract| contract["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts,
+        [
+            "conduit.media/audio/capture",
+            "conduit.media/audio/playback"
+        ]
+        .into_iter()
+        .collect()
+    );
+    let scenario_ids = lesson["library"]["scenarios"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|scenario| scenario["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        scenario_ids,
+        [
+            "audio-capture-standalone",
+            "audio-device-composition",
+            "audio-playback-standalone"
+        ]
+        .into_iter()
+        .collect()
+    );
+    let panel = conduit_panel::parse(lesson["source"].as_str().unwrap()).unwrap();
+    assert!(
+        panel
+            .nodes
+            .iter()
+            .any(|node| node.kind == "conduit.media/audio/capture")
+    );
+    assert!(
+        panel
+            .nodes
+            .iter()
+            .any(|node| node.kind == "conduit.media/audio/playback")
     );
 }
 

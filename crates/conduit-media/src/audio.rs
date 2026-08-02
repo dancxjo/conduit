@@ -579,6 +579,34 @@ const fn field(
     }
 }
 
+const fn plan_field(
+    key: &'static str,
+    value_type: TypeContractRef<'static>,
+) -> ConfigFieldContract<'static> {
+    ConfigFieldContract {
+        key: Id(key),
+        value_type,
+        requirement: ConfigRequirement::Required,
+        sensitivity: Sensitivity::Public,
+        mutability: ConfigMutability::PreStart,
+        identity: ConfigIdentity::Plan,
+    }
+}
+
+const fn secret_plan_field(
+    key: &'static str,
+    value_type: TypeContractRef<'static>,
+) -> ConfigFieldContract<'static> {
+    ConfigFieldContract {
+        key: Id(key),
+        value_type,
+        requirement: ConfigRequirement::Required,
+        sensitivity: Sensitivity::Secret,
+        mutability: ConfigMutability::PreStart,
+        identity: ConfigIdentity::Plan,
+    }
+}
+
 const fn stream_port(
     id: &'static str,
     direction: Direction,
@@ -750,29 +778,87 @@ const FROM_CONTROL_FIELDS: [ConfigFieldContract<'static>; 6] = [
     field("frames_per_control", U64_TYPE),
     field("maximum_work", U64_TYPE),
 ];
-const CAPTURE_FIELDS: [ConfigFieldContract<'static>; 11] = [
-    field("device", TEXT_TYPE),
-    field("sample_clock", TEXT_TYPE),
-    field("period_ticks", U64_TYPE),
+const CAPTURE_FIELDS: [ConfigFieldContract<'static>; 39] = [
+    secret_plan_field("device_resource", TEXT_TYPE),
+    plan_field("device_label", TEXT_TYPE),
+    plan_field("provider_observation", TEXT_TYPE),
+    plan_field("observation_generation", U64_TYPE),
+    plan_field("observation_valid_until_tick", U64_TYPE),
+    plan_field("backend_identity", TEXT_TYPE),
+    field("sample_format", TEXT_TYPE),
     field("sample_rate_hz", U64_TYPE),
     field("layout", TEXT_TYPE),
-    field("frames_per_period", U64_TYPE),
-    field("lifecycle", TEXT_TYPE),
-    field("drift", TEXT_TYPE),
-    field("discontinuity", TEXT_TYPE),
-    field("source_loss", TEXT_TYPE),
-    field("maximum_work", U64_TYPE),
-];
-const PLAYBACK_FIELDS: [ConfigFieldContract<'static>; 9] = [
-    field("device", TEXT_TYPE),
-    field("sample_clock", TEXT_TYPE),
-    field("buffer_frames", U64_TYPE),
+    plan_field("sample_clock", TEXT_TYPE),
+    field("clock_correlation", TEXT_TYPE),
+    field("requested_period_frames", U64_TYPE),
+    plan_field("admitted_period_frames", U64_TYPE),
+    field("requested_buffer_frames", U64_TYPE),
+    plan_field("admitted_buffer_frames", U64_TYPE),
+    field("requested_latency_frames", U64_TYPE),
+    plan_field("admitted_latency_frames", U64_TYPE),
+    plan_field("latency_classification", TEXT_TYPE),
+    plan_field("sharing_mode", TEXT_TYPE),
+    plan_field("maximum_concurrent_streams", U64_TYPE),
+    plan_field("workload_class", TEXT_TYPE),
     field("lifecycle", TEXT_TYPE),
     field("underrun", TEXT_TYPE),
+    field("overrun", TEXT_TYPE),
+    field("drift", TEXT_TYPE),
     field("discontinuity", TEXT_TYPE),
-    field("source_loss", TEXT_TYPE),
+    field("provider_loss", TEXT_TYPE),
+    field("cancellation", TEXT_TYPE),
     field("drain", TEXT_TYPE),
+    field("commit_point", TEXT_TYPE),
+    secret_plan_field("device_grant", TEXT_TYPE),
+    plan_field("lease_ticks", U64_TYPE),
+    plan_field("revocation_grace_ticks", U64_TYPE),
+    plan_field("cleanup_ticks", U64_TYPE),
+    field("sensitivity", TEXT_TYPE),
+    field("maximum_frames_per_step", U64_TYPE),
+    plan_field("maximum_host_queue_frames", U64_TYPE),
     field("maximum_work", U64_TYPE),
+    field("maximum_evidence_events", U64_TYPE),
+];
+const PLAYBACK_FIELDS: [ConfigFieldContract<'static>; 39] = [
+    secret_plan_field("device_resource", TEXT_TYPE),
+    plan_field("device_label", TEXT_TYPE),
+    plan_field("provider_observation", TEXT_TYPE),
+    plan_field("observation_generation", U64_TYPE),
+    plan_field("observation_valid_until_tick", U64_TYPE),
+    plan_field("backend_identity", TEXT_TYPE),
+    field("sample_format", TEXT_TYPE),
+    field("sample_rate_hz", U64_TYPE),
+    field("layout", TEXT_TYPE),
+    plan_field("sample_clock", TEXT_TYPE),
+    field("clock_correlation", TEXT_TYPE),
+    field("requested_period_frames", U64_TYPE),
+    plan_field("admitted_period_frames", U64_TYPE),
+    field("requested_buffer_frames", U64_TYPE),
+    plan_field("admitted_buffer_frames", U64_TYPE),
+    field("requested_latency_frames", U64_TYPE),
+    plan_field("admitted_latency_frames", U64_TYPE),
+    plan_field("latency_classification", TEXT_TYPE),
+    plan_field("sharing_mode", TEXT_TYPE),
+    plan_field("maximum_concurrent_streams", U64_TYPE),
+    plan_field("workload_class", TEXT_TYPE),
+    field("lifecycle", TEXT_TYPE),
+    field("underrun", TEXT_TYPE),
+    field("overrun", TEXT_TYPE),
+    field("drift", TEXT_TYPE),
+    field("discontinuity", TEXT_TYPE),
+    field("provider_loss", TEXT_TYPE),
+    field("cancellation", TEXT_TYPE),
+    field("drain", TEXT_TYPE),
+    field("commit_point", TEXT_TYPE),
+    secret_plan_field("device_grant", TEXT_TYPE),
+    plan_field("lease_ticks", U64_TYPE),
+    plan_field("revocation_grace_ticks", U64_TYPE),
+    plan_field("cleanup_ticks", U64_TYPE),
+    field("sensitivity", TEXT_TYPE),
+    field("maximum_frames_per_step", U64_TYPE),
+    plan_field("maximum_host_queue_frames", U64_TYPE),
+    field("maximum_work", U64_TYPE),
+    field("maximum_evidence_events", U64_TYPE),
 ];
 
 pub const AUDIO_MIX_CONTRACT: NodeContract<'static> = NodeContract {
@@ -891,6 +977,20 @@ fn require_text(node: &Node, key: &str, expected: &str) -> Result<(), Resolution
         Err(ResolutionError::new(
             "CND-AUDIO-005",
             format!("audio configuration `{key}` must be `{expected}`"),
+        ))
+    }
+}
+
+fn require_secret(node: &Node, key: &str, expected: &str) -> Result<(), ResolutionError> {
+    if matches!(
+        node.config_value(key),
+        Some(SourceValue::SecretReference(value)) if value == expected
+    ) {
+        Ok(())
+    } else {
+        Err(ResolutionError::new(
+            "CND-AUDIO-005",
+            format!("audio configuration `{key}` requires exact protected binding `{expected}`"),
         ))
     }
 }
@@ -1105,49 +1205,136 @@ fn validate_from_control(node: &Node) -> Result<(), ResolutionError> {
 }
 
 fn validate_capture(node: &Node) -> Result<(), ResolutionError> {
+    require_secret(
+        node,
+        "device_resource",
+        "conduit.audio/device/virtual-capture-0",
+    )?;
+    require_secret(node, "device_grant", "conduit.audio/grant/virtual-capture")?;
     for (key, expected) in [
-        ("device", "virtual-loopback/capture-0"),
+        ("device_label", "Virtual Loopback Capture"),
+        (
+            "provider_observation",
+            "conduit.audio/observation/virtual-loopback",
+        ),
+        (
+            "backend_identity",
+            "conduit.audio/backend/deterministic-loopback",
+        ),
+        ("sample_format", "pcm-s16le-interleaved"),
         ("sample_clock", "conduit.clock/virtual-audio-48000"),
         ("layout", "stereo-lr"),
+        ("clock_correlation", "exact"),
+        ("latency_classification", "enforced"),
+        ("sharing_mode", "exclusive"),
+        ("workload_class", "deterministic-bounded"),
         ("lifecycle", "standing"),
-        ("drift", "exact"),
-        ("discontinuity", "fail-terminal"),
-        ("source_loss", "fail-terminal"),
+        ("underrun", "not-applicable"),
+        ("overrun", "fail-terminal-evidenced"),
+        ("drift", "reject-evidenced"),
+        ("discontinuity", "fail-terminal-evidenced"),
+        ("provider_loss", "fail-terminal-evidenced"),
+        (
+            "cancellation",
+            "before-open-after-open-running-drain-distinct",
+        ),
+        ("drain", "not-applicable"),
+        ("commit_point", "first-sample-delivered"),
+        ("sensitivity", "restricted-audio"),
     ] {
         require_text(node, key, expected)?;
     }
-    if node.config.len() != CAPTURE_FIELDS.len() || integer(node, "sample_rate_hz")? != 48_000 {
+    if node.config.len() != CAPTURE_FIELDS.len()
+        || integer(node, "observation_generation")? != 1
+        || integer(node, "sample_rate_hz")? != 48_000
+        || integer(node, "requested_period_frames")? != 8
+        || integer(node, "admitted_period_frames")? != 8
+        || integer(node, "requested_buffer_frames")? != 8
+        || integer(node, "admitted_buffer_frames")? != 8
+        || integer(node, "requested_latency_frames")? != 8
+        || integer(node, "admitted_latency_frames")? != 8
+        || integer(node, "maximum_concurrent_streams")? != 1
+    {
         return Err(ResolutionError::new(
             "CND-AUDIO-005",
-            "the deterministic virtual capture profile is exact stereo 48 kHz",
+            "the deterministic virtual capture profile requires one exact admitted stereo 48 kHz stream",
         ));
     }
-    bound(node, "period_ticks", u64::MAX)?;
-    bound(node, "frames_per_period", MAXIMUM_PCM_FRAMES as u64)?;
+    bound(node, "observation_valid_until_tick", 1_000_000)?;
+    bound(node, "lease_ticks", 1_000_000)?;
+    bound(node, "revocation_grace_ticks", 16)?;
+    bound(node, "cleanup_ticks", 16)?;
+    bound(node, "maximum_frames_per_step", MAXIMUM_PCM_FRAMES as u64)?;
+    bound(node, "maximum_host_queue_frames", MAXIMUM_PCM_FRAMES as u64)?;
     bound(node, "maximum_work", MAXIMUM_AUDIO_WORK as u64)?;
+    bound(node, "maximum_evidence_events", 64)?;
     Ok(())
 }
 
 fn validate_playback(node: &Node) -> Result<(), ResolutionError> {
+    require_secret(
+        node,
+        "device_resource",
+        "conduit.audio/device/virtual-playback-0",
+    )?;
+    require_secret(node, "device_grant", "conduit.audio/grant/virtual-playback")?;
     for (key, expected) in [
-        ("device", "virtual-loopback/playback-0"),
+        ("device_label", "Virtual Loopback Playback"),
+        (
+            "provider_observation",
+            "conduit.audio/observation/virtual-loopback",
+        ),
+        (
+            "backend_identity",
+            "conduit.audio/backend/deterministic-loopback",
+        ),
+        ("sample_format", "pcm-s16le-interleaved"),
         ("sample_clock", "conduit.clock/virtual-audio-48000"),
+        ("layout", "stereo-lr"),
+        ("clock_correlation", "exact"),
+        ("latency_classification", "enforced"),
+        ("sharing_mode", "exclusive"),
+        ("workload_class", "deterministic-bounded"),
         ("lifecycle", "standing"),
-        ("underrun", "wait"),
-        ("discontinuity", "fail-terminal"),
-        ("source_loss", "fail-terminal"),
+        ("underrun", "wait-evidenced"),
+        ("overrun", "fail-terminal-evidenced"),
+        ("drift", "reject-evidenced"),
+        ("discontinuity", "fail-terminal-evidenced"),
+        ("provider_loss", "fail-terminal-evidenced"),
+        (
+            "cancellation",
+            "before-open-after-open-running-drain-distinct",
+        ),
         ("drain", "flush-bounded"),
+        ("commit_point", "frame-accepted-by-device"),
+        ("sensitivity", "restricted-audio"),
     ] {
         require_text(node, key, expected)?;
     }
-    if node.config.len() != PLAYBACK_FIELDS.len() {
+    if node.config.len() != PLAYBACK_FIELDS.len()
+        || integer(node, "observation_generation")? != 1
+        || integer(node, "sample_rate_hz")? != 48_000
+        || integer(node, "requested_period_frames")? != 8
+        || integer(node, "admitted_period_frames")? != 8
+        || integer(node, "requested_buffer_frames")? != 8
+        || integer(node, "admitted_buffer_frames")? != 8
+        || integer(node, "requested_latency_frames")? != 8
+        || integer(node, "admitted_latency_frames")? != 8
+        || integer(node, "maximum_concurrent_streams")? != 1
+    {
         return Err(ResolutionError::new(
             "CND-AUDIO-002",
-            "the deterministic virtual playback profile requires one exact bounded buffer",
+            "the deterministic virtual playback profile requires one exact admitted stereo 48 kHz stream",
         ));
     }
-    bound(node, "buffer_frames", MAXIMUM_PCM_FRAMES as u64)?;
+    bound(node, "observation_valid_until_tick", 1_000_000)?;
+    bound(node, "lease_ticks", 1_000_000)?;
+    bound(node, "revocation_grace_ticks", 16)?;
+    bound(node, "cleanup_ticks", 16)?;
+    bound(node, "maximum_frames_per_step", MAXIMUM_PCM_FRAMES as u64)?;
+    bound(node, "maximum_host_queue_frames", MAXIMUM_PCM_FRAMES as u64)?;
     bound(node, "maximum_work", MAXIMUM_AUDIO_WORK as u64)?;
+    bound(node, "maximum_evidence_events", 64)?;
     Ok(())
 }
 
@@ -1459,8 +1646,8 @@ impl Handler for VirtualCapture {
         binding: ExactHostedServiceBinding,
     ) -> Result<(), RuntimeError> {
         self.bind_exact(binding)?;
-        self.period_ticks = runtime_integer(node, "period_ticks")?;
-        self.frames = usize::try_from(runtime_integer(node, "frames_per_period")?)
+        self.period_ticks = runtime_integer(node, "admitted_period_frames")?;
+        self.frames = usize::try_from(runtime_integer(node, "maximum_frames_per_step")?)
             .map_err(|_| runtime_reason(AudioProcessingReason::Bounds))?;
         Ok(())
     }
@@ -1536,7 +1723,7 @@ impl Handler for VirtualPlayback {
         if chunk.discontinuity || chunk.start_frame != self.next_frame {
             return Err(runtime_reason(AudioProcessingReason::Discontinuity));
         }
-        if chunk.frames() as u64 > runtime_integer(node, "buffer_frames")? {
+        if chunk.frames() as u64 > runtime_integer(node, "admitted_buffer_frames")? {
             return Err(runtime_reason(AudioProcessingReason::Bounds));
         }
         require_work_bound(node, chunk.samples.len())?;
@@ -1590,6 +1777,8 @@ pub fn register_deterministic_audio_processing_providers(
 ) -> Result<(), RegistryError> {
     register_audio_processing_contracts(registry);
     static NO_AUTHORITIES: [SemanticHash; 0] = [];
+    static CAPTURE_AUTHORITY: [SemanticHash; 1] = [SemanticHash::from_bytes([0x65; 32])];
+    static PLAYBACK_AUTHORITY: [SemanticHash; 1] = [SemanticHash::from_bytes([0x66; 32])];
     for (contract, implementation_id, artifact_id, entrypoint, factory, validate_config) in [
         (
             &AUDIO_TEE_CONTRACT,
@@ -1672,13 +1861,18 @@ pub fn register_deterministic_audio_processing_providers(
             validate_playback as conduit_runtime::ConfigValidator,
         ),
     ] {
+        let required_authorities = match contract.id.as_str() {
+            "conduit.media/audio/capture" => &CAPTURE_AUTHORITY[..],
+            "conduit.media/audio/playback" => &PLAYBACK_AUTHORITY[..],
+            _ => &NO_AUTHORITIES[..],
+        };
         registry.register_compiled_in_host_service(CompiledInHostService {
             contract,
             implementation_id,
             artifact_id,
             entrypoint,
             source_bytes: include_bytes!("audio.rs"),
-            required_authorities: &NO_AUTHORITIES,
+            required_authorities,
             factory,
             validate_config,
         })?;

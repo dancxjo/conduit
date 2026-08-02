@@ -348,6 +348,9 @@ fn lesson(id: &str, composition: bool) -> Lesson {
         ) => Some("library.bounded-media-codecs"),
         (id, _) if id.starts_with("learned/") => Some("library.bounded-learned-inference"),
         (id, _) if id.starts_with("spatial/") => Some("library.bounded-spatial-foundation"),
+        ("conduit.media/audio/capture" | "conduit.media/audio/playback", _) => {
+            Some("library.audio-device-boundaries")
+        }
         (
             "conduit.media/audio/mix"
             | "conduit.media/audio/tee"

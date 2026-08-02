@@ -288,6 +288,9 @@ containment program is tracked by
   defines exact link, frame, packet, datagram, stream, session, control, and
   retained-state values; standing services, finite routes and sessions,
   independent effects, observation, provider plurality, and explicit stop.
+- [`078-audio-device-boundaries.md`](078-audio-device-boundaries.md) defines
+  observed capture and playback resources, exact negotiation, authority,
+  clocks, hosted and virtual providers, standing lifecycle, and failures.
 - [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
   separates AP, DHCP, ICMP, DNS-SD, transport/application protocols,
   observation, and Netherwick robot authority with finite no-radio fixtures.

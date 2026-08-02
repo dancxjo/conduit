@@ -273,6 +273,8 @@ fn standing_signal_catalog_examples_and_provider_plurality_are_exact() {
         "examples/standing-signal-lab.panel",
         "examples/clocked-sample-hold.panel",
         "examples/bounded-control-feedback.panel",
+        "examples/virtual-audio-capture.panel",
+        "examples/virtual-audio-playback.panel",
         "examples/virtual-audio-loopback.panel",
     ] {
         let output = Command::new(env!("CARGO_BIN_EXE_conduct"))

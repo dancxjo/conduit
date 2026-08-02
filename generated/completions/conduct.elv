@@ -36,6 +36,7 @@ set edit:completion:arg-completer[conduct] = {|@words|
             cand --enable-process-exec 'Explicitly install the bounded closed-inventory process provider'
             cand --enable-socket-loopback 'Explicitly install the bounded numeric-loopback socket providers'
             cand --enable-http-client-loopback 'Explicitly install the bounded numeric-loopback HTTP client provider'
+            cand --enable-audio-alsa 'Observe and explicitly install the closed-inventory hosted ALSA audio provider'
             cand -h 'Print help'
             cand --help 'Print help'
             cand -V 'Print version'

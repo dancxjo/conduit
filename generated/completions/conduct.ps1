@@ -39,6 +39,7 @@ Register-ArgumentCompleter -Native -CommandName 'conduct' -ScriptBlock {
             [CompletionResult]::new('--enable-process-exec', '--enable-process-exec', [CompletionResultType]::ParameterName, 'Explicitly install the bounded closed-inventory process provider')
             [CompletionResult]::new('--enable-socket-loopback', '--enable-socket-loopback', [CompletionResultType]::ParameterName, 'Explicitly install the bounded numeric-loopback socket providers')
             [CompletionResult]::new('--enable-http-client-loopback', '--enable-http-client-loopback', [CompletionResultType]::ParameterName, 'Explicitly install the bounded numeric-loopback HTTP client provider')
+            [CompletionResult]::new('--enable-audio-alsa', '--enable-audio-alsa', [CompletionResultType]::ParameterName, 'Observe and explicitly install the closed-inventory hosted ALSA audio provider')
             [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help')
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help')
             [CompletionResult]::new('-V', '-V ', [CompletionResultType]::ParameterName, 'Print version')

@@ -312,6 +312,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "clap_mangen",
+ "conduit-audio",
  "conduit-cache",
  "conduit-capsule",
  "conduit-compile",
@@ -332,6 +333,20 @@ dependencies = [
  "conduit-spatial",
  "conduit-std",
  "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "conduit-audio"
+version = "0.0.0-dev"
+dependencies = [
+ "bumpalo",
+ "conduit-compile",
+ "conduit-core",
+ "conduit-media",
+ "conduit-panel",
+ "conduit-runtime",
  "serde_json",
  "sha2",
 ]
