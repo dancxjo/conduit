@@ -120,7 +120,7 @@ fn default_registry_publishes_contracts_without_installing_callbacks() {
             "{kind}"
         );
         assert_eq!(availability.reason_code, "CND-AVL-001");
-        let panel = parse(&format!("panel 0\n: {kind}\n")).unwrap();
+        let panel = parse(&format!("panel 0\ncandidate: {kind}\n")).unwrap();
         assert_eq!(
             registry
                 .resolve(&panel)
