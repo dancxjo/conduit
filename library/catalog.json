@@ -7645,6 +7645,89 @@
       "compatible_adapter_artifacts": []
     },
     {
+      "semantic_identity": "net/address/tee",
+      "public_source_spelling": "net/address/tee",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/address/tee",
+      "schema_version": 0,
+      "semantic_hash": "sha256:f8bb1d1ca3384fb9f0b66fe3f00532f758eb12752d9917250b98935f09cbb0c4",
+      "ports": [
+        {
+          "id": "address",
+          "direction": "input",
+          "value_type": "conduit.net/address-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:c5e2c0b37a7a14caad4e5b60eb82e7e3dc87c3f4ef989d09ccd23bfa2a5b11fe",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "left",
+          "direction": "output",
+          "value_type": "conduit.net/address-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:c5e2c0b37a7a14caad4e5b60eb82e7e3dc87c3f4ef989d09ccd23bfa2a5b11fe",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "right",
+          "direction": "output",
+          "value_type": "conduit.net/address-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:c5e2c0b37a7a14caad4e5b60eb82e7e3dc87c3f4ef989d09ccd23bfa2a5b11fe",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [
+        {
+          "key": "mode",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.address.tee.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.address.tee.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
       "semantic_identity": "net/bridge",
       "public_source_spelling": "net/bridge",
       "classification": "optional-host-boundary",
@@ -8171,8 +8254,8 @@
           "value_type": "conduit.net/dhcp-lease",
           "type_schema_version": 0,
           "type_hash": "sha256:f782e5c0fccc186c6e934a399315c2f998ae2bf034b9f3f6d688301eef25c5c4",
-          "presence": "required",
-          "connections": "exactly-one",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
@@ -8264,11 +8347,11 @@
       "semantic_hash": "sha256:35493926a4c630a703c9382a6625cbee6a52e8bd6a1184b4f6ccb9533ad3e6ce",
       "ports": [
         {
-          "id": "lease",
+          "id": "address",
           "direction": "input",
-          "value_type": "conduit.net/dhcp-lease",
+          "value_type": "conduit.net/address-state",
           "type_schema_version": 0,
-          "type_hash": "sha256:f782e5c0fccc186c6e934a399315c2f998ae2bf034b9f3f6d688301eef25c5c4",
+          "type_hash": "sha256:c5e2c0b37a7a14caad4e5b60eb82e7e3dc87c3f4ef989d09ccd23bfa2a5b11fe",
           "presence": "required",
           "connections": "exactly-one",
           "values": "zero-or-more",
@@ -8284,8 +8367,8 @@
           "value_type": "conduit.net/service-registration",
           "type_schema_version": 0,
           "type_hash": "sha256:c2366ca453ddf5ef1540c1f7eca5ad8242964705baaafd3ac6eb531bd559024b",
-          "presence": "required",
-          "connections": "exactly-one",
+          "presence": "optional",
+          "connections": "zero-or-more",
           "values": "zero-or-more",
           "delivery": "stream",
           "temporal": "committed",
@@ -8367,6 +8450,149 @@
       "composition_lesson": {
         "artifact": "tour/lessons/current.json#library.bounded-brainstem-network",
         "status": "published"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
+      "semantic_identity": "net/dns/local-authority",
+      "public_source_spelling": "net/dns/local-authority",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.net",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.net",
+      "export_path": "conduit.host.net/net/dns/local-authority",
+      "schema_version": 0,
+      "semantic_hash": "sha256:740779f7055e23208fffae99af51f8c740fa95af36e9abd506ec39cc78882caf",
+      "ports": [
+        {
+          "id": "address",
+          "direction": "input",
+          "value_type": "conduit.net/address-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:c5e2c0b37a7a14caad4e5b60eb82e7e3dc87c3f4ef989d09ccd23bfa2a5b11fe",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "either",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "registration",
+          "direction": "output",
+          "value_type": "conduit.net/service-registration",
+          "type_schema_version": 0,
+          "type_hash": "sha256:c2366ca453ddf5ef1540c1f7eca5ad8242964705baaafd3ac6eb531bd559024b",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        },
+        {
+          "id": "state",
+          "direction": "output",
+          "value_type": "conduit.net/retained-state",
+          "type_schema_version": 0,
+          "type_hash": "sha256:6f0b392584c849d4f7a3142d6f32b23a2aca85e394938077ba0a68064e356c0e",
+          "presence": "optional",
+          "connections": "zero-or-more",
+          "values": "zero-or-more",
+          "delivery": "latest-state",
+          "temporal": "retained-state",
+          "terminal": "open-ended",
+          "sensitivity": "restricted",
+          "loss": "type-contract-defined"
+        }
+      ],
+      "config": [
+        {
+          "key": "lifecycle",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "zone",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "address",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "port",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "ttl_ticks",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_records",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_name_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_packet_bytes",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "maximum_questions_per_step",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        },
+        {
+          "key": "recursion",
+          "value_type": "std/text",
+          "type_schema_version": 0,
+          "type_hash": "sha256:94dfe25509fe624d8974b1dd442eb7f96f7e621e6e71f035ac6f080463618072"
+        },
+        {
+          "key": "maximum_evidence_events",
+          "value_type": "std/u64",
+          "type_schema_version": 0,
+          "type_hash": "sha256:f9bad3ea53d3ca01a0a4d69f86c8256517071645ea7d68ef636b6d948770f0ec"
+        }
+      ],
+      "catalog_membership": "host-registry",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.net/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.dns.local-authority.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.net.dns.local-authority.composition",
+        "status": "required"
       },
       "successor": null,
       "deprecation": null,
@@ -10450,11 +10676,11 @@
       "semantic_hash": "sha256:b4cbb0e3f6e676583a3ef2eb7a4f2eed59ed82ea842f0f8fe4e6eeafea8ed91c",
       "ports": [
         {
-          "id": "registration",
+          "id": "address",
           "direction": "input",
-          "value_type": "conduit.net/service-registration",
+          "value_type": "conduit.net/address-state",
           "type_schema_version": 0,
-          "type_hash": "sha256:c2366ca453ddf5ef1540c1f7eca5ad8242964705baaafd3ac6eb531bd559024b",
+          "type_hash": "sha256:c5e2c0b37a7a14caad4e5b60eb82e7e3dc87c3f4ef989d09ccd23bfa2a5b11fe",
           "presence": "required",
           "connections": "exactly-one",
           "values": "zero-or-more",

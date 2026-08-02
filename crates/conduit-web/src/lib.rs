@@ -39,6 +39,7 @@ const MAXIMUM_PATCHBAY_SESSION_ID_BYTES: usize = 256;
 const MAXIMUM_PATCHBAY_REQUEST_BYTES: usize = 1024 * 1024;
 const MAXIMUM_TASK_FRONT_DESCRIPTOR_BYTES: usize = 64 * 1024;
 const MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES: u64 = 32 * 1024 * 1024;
+const MAXIMUM_BROWSER_ACTIVE_RUN_RESOURCE_SLOTS: u16 = 32;
 const MAXIMUM_BROWSER_RUN_PUMP_DECISIONS: u64 = 256;
 const MAXIMUM_BROWSER_WATCH_PREVIEW_BYTES: u32 = 256;
 const MAXIMUM_BROWSER_EVIDENCE_DRAIN_EVENTS: u32 = 128;
@@ -66,6 +67,9 @@ fn browser_host_observation() -> InstalledHostObservationInput {
     observation.host = BROWSER_EVIDENCE_HOST.to_owned();
     observation.boot_id = "conduit/browser-worker-boot".to_owned();
     observation.time_basis = "clock/browser-worker".to_owned();
+    observation.available.memory_bytes = MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES;
+    observation.available.timers = MAXIMUM_BROWSER_ACTIVE_RUN_RESOURCE_SLOTS;
+    observation.available.transports = MAXIMUM_BROWSER_ACTIVE_RUN_RESOURCE_SLOTS;
     observation
 }
 
@@ -1471,6 +1475,34 @@ fn browser_watch_admissions(
         .collect()
 }
 
+fn browser_installed_profile(
+    source: &str,
+    registry: &Registry,
+    topology: &conduit_runtime::ExactTopologyView,
+) -> Result<InstalledProfile, RuntimeError> {
+    let mut installed = InstalledProfile::observe_registry_on_host(
+        source,
+        registry,
+        &browser_host_observation(),
+        &[],
+    )?
+    .with_implementation_preference(vec![
+        conduit_audio::transform_implementations::MediaImplementation::BrowserWasmLinked
+            .id()
+            .to_owned(),
+    ])?
+    .with_evidence_provider_observation(browser_evidence_provider_observation())?
+    .with_watch_admissions(browser_watch_admissions(topology))?;
+    installed.input.plan_budget.memory_bytes = MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES;
+    installed.input.plan_budget.timers = MAXIMUM_BROWSER_ACTIVE_RUN_RESOURCE_SLOTS;
+    installed.input.plan_budget.transports = MAXIMUM_BROWSER_ACTIVE_RUN_RESOURCE_SLOTS;
+    installed
+        .input
+        .seal()
+        .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+    Ok(installed)
+}
+
 fn start_browser_exact_run(
     source: &str,
     source_revision: u64,
@@ -1484,19 +1516,7 @@ fn start_browser_exact_run(
         .resolve(&panel)
         .and_then(|resolved| resolved.exact_topology())
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
-    let installed = InstalledProfile::observe_registry_on_host(
-        source,
-        &registry,
-        &browser_host_observation(),
-        &[],
-    )?
-    .with_implementation_preference(vec![
-        conduit_audio::transform_implementations::MediaImplementation::BrowserWasmLinked
-            .id()
-            .to_owned(),
-    ])?
-    .with_evidence_provider_observation(browser_evidence_provider_observation())?
-    .with_watch_admissions(browser_watch_admissions(&topology))?;
+    let installed = browser_installed_profile(source, &registry, &topology)?;
     let document = compile_source(source, &installed.input)
         .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
     let arena = bumpalo::Bump::new();
@@ -2773,23 +2793,7 @@ fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
     let panel = conduit_panel::parse(source).ok()?;
     let resolved = registry.resolve(&panel).ok()?;
     let topology = resolved.exact_topology().ok()?;
-    let installed = InstalledProfile::observe_registry_on_host(
-        source,
-        &registry,
-        &browser_host_observation(),
-        &[],
-    )
-    .ok()?
-    .with_implementation_preference(vec![
-        conduit_audio::transform_implementations::MediaImplementation::BrowserWasmLinked
-            .id()
-            .to_owned(),
-    ])
-    .ok()?
-    .with_evidence_provider_observation(browser_evidence_provider_observation())
-    .ok()?
-    .with_watch_admissions(browser_watch_admissions(&topology))
-    .ok()?;
+    let installed = browser_installed_profile(source, &registry, &topology).ok()?;
     let document = compile_source(source, &installed.input).ok()?;
     let arena = bumpalo::Bump::new();
     let plan = document.as_plan(&arena).ok()?;
