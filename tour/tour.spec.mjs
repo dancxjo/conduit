@@ -1,5 +1,17 @@
 import { expect, test } from "@playwright/test";
 
+// Engines can expose adjoining layout edges on opposite sides of one subpixel
+// quantum when DOMRect values cross their internal float boundary.
+const DOM_RECT_EPSILON_PX = 1 / 64;
+
+function expectAtOrAfter(actual, expected) {
+  expect(actual).toBeGreaterThanOrEqual(expected - DOM_RECT_EPSILON_PX);
+}
+
+function expectAtOrBefore(actual, expected) {
+  expect(actual).toBeLessThanOrEqual(expected + DOM_RECT_EPSILON_PX);
+}
+
 function parseWatchTick(text) {
   const scoped = /tick=(\d+)/.exec(text || "");
   return scoped ? Number.parseInt(scoped[1], 10) : Number.parseInt(text, 10);
@@ -2214,13 +2226,16 @@ test("enters and exits the same fullscreen workspace without rebuilding state", 
     fullscreenGeometry.viewport.height,
     0,
   );
-  expect(fullscreenGeometry.status.top).toBeGreaterThanOrEqual(
+  expectAtOrAfter(
+    fullscreenGeometry.status.top,
     fullscreenGeometry.flow.bottom,
   );
-  expect(fullscreenGeometry.status.bottom).toBeLessThanOrEqual(
+  expectAtOrBefore(
+    fullscreenGeometry.status.bottom,
     fullscreenGeometry.canvas.bottom,
   );
-  expect(fullscreenGeometry.canvas.bottom).toBeLessThanOrEqual(
+  expectAtOrBefore(
+    fullscreenGeometry.canvas.bottom,
     fullscreenGeometry.workspace.bottom,
   );
 
@@ -2284,10 +2299,12 @@ test("maximizes the compact fullscreen canvas around its live status", async ({ 
       statusBottom: statusBounds.bottom,
     };
   });
-  expect(embeddedGeometry.statusTop).toBeGreaterThanOrEqual(
+  expectAtOrAfter(
+    embeddedGeometry.statusTop,
     embeddedGeometry.flowBottom,
   );
-  expect(embeddedGeometry.statusBottom).toBeLessThanOrEqual(
+  expectAtOrBefore(
+    embeddedGeometry.statusBottom,
     embeddedGeometry.canvasBottom,
   );
 
@@ -2316,10 +2333,12 @@ test("maximizes the compact fullscreen canvas around its live status", async ({ 
   expect(fullscreenGeometry.flowHeight).toBeGreaterThan(
     fullscreenGeometry.viewportHeight * 0.55,
   );
-  expect(fullscreenGeometry.statusTop).toBeGreaterThanOrEqual(
+  expectAtOrAfter(
+    fullscreenGeometry.statusTop,
     fullscreenGeometry.flowBottom,
   );
-  expect(fullscreenGeometry.statusBottom).toBeLessThanOrEqual(
+  expectAtOrBefore(
+    fullscreenGeometry.statusBottom,
     fullscreenGeometry.canvasBottom,
   );
   expect(fullscreenGeometry.workspaceBottom - fullscreenGeometry.canvasBottom)
