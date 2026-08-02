@@ -159,9 +159,9 @@ pub use source_lowering::{
     LoweredSupervisedTopology, LoweredSupervision, LoweredTopology, LoweredTopologyBase,
     LoweringDiagnostic, OwnedConfigFieldSchema, OwnedConfigRequirement, OwnedInterfaceContract,
     OwnedInterfaceMember, OwnedNodeContract, OwnedNodeSchema, OwnedPortContract,
-    OwnedPortReference, OwnedSemanticValue, OwnedTypeReference, SOURCE_AST_SCHEMA_VERSION,
-    SourceContractCatalog, SourceMapEntry, SourceOrigin, lower_source, lower_source_base,
-    lower_supervision, lower_topology,
+    OwnedPortReference, OwnedPrincipalPath, OwnedPrincipalProjectionError, OwnedSemanticValue,
+    OwnedTypeReference, SOURCE_AST_SCHEMA_VERSION, SourceContractCatalog, SourceMapEntry,
+    SourceOrigin, lower_source, lower_source_base, lower_supervision, lower_topology,
 };
 pub use supervision::BoundedSupervisionRuntime;
 pub use transition::{
@@ -4049,6 +4049,7 @@ impl Default for Registry {
         let mut stream_sink = OwnedInterfaceContract {
             id: "conduit/stream-sink".to_owned(),
             schema_version: 0,
+            principal_path: OwnedPrincipalPath::none(),
             members: vec![stream_sink_member],
             semantic_hash: SemanticHash::from_bytes([0; 32]),
         };
@@ -4088,6 +4089,7 @@ impl Default for Registry {
         let mut text_processor = OwnedInterfaceContract {
             id: "conduit/text-processor".to_owned(),
             schema_version: 0,
+            principal_path: OwnedPrincipalPath::none(),
             members: vec![text_processor_in, text_processor_out],
             semantic_hash: SemanticHash::from_bytes([0; 32]),
         };

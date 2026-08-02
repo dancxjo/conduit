@@ -1,0 +1,63 @@
+{
+  "suite": "conduit.temporal-modality",
+  "schema_version": 0,
+  "surfaces": {
+    "T": "value",
+    "T...|": "closing-flow",
+    "T...": "open-flow",
+    "$T": "current"
+  },
+  "compatibility": "exact-modality-only",
+  "cases": [
+    {
+      "id": "ordinary-value",
+      "runner": "descriptor",
+      "expected": {"surface": "value", "cardinality": "exactly-one", "closing": "after-value"}
+    },
+    {
+      "id": "closing-flow",
+      "runner": "descriptor",
+      "expected": {"surface": "closing-flow", "cardinality": "zero-or-more", "closing": "available"}
+    },
+    {
+      "id": "open-flow",
+      "runner": "descriptor",
+      "expected": {"surface": "open-flow", "cardinality": "zero-or-more", "closing": "absent"}
+    },
+    {
+      "id": "current-observation",
+      "runner": "descriptor",
+      "expected": {"surface": "current", "initial": "immediate-current", "retention": "latest-replacement", "replay": "current-only", "replacement": "replace-latest"}
+    },
+    {
+      "id": "cross-surface-matrix",
+      "runner": "compatibility",
+      "expected": {"diagonal": "compatible", "off_diagonal": "incompatible", "implicit_conversion": false}
+    },
+    {
+      "id": "closing-is-not-resource-bound",
+      "runner": "boundary",
+      "expected": {"maximum_items": null, "maximum_bytes": null, "maximum_duration": null, "progress_promised": false}
+    },
+    {
+      "id": "current-is-observation-only",
+      "runner": "boundary",
+      "expected": {"mutation_authority": false, "separate_effect_port_required": true, "separate_grant_required": true}
+    },
+    {
+      "id": "current-is-not-history",
+      "runner": "boundary",
+      "expected": {"historical_replay": false, "durable": false, "multi_writer": false, "crdt": false}
+    },
+    {
+      "id": "invalid-immediate-open-flow",
+      "runner": "validation",
+      "expected": {"error": "temporal-modality-invalid-combination"}
+    },
+    {
+      "id": "every-field-is-identity-bearing",
+      "runner": "identity",
+      "expected": {"surface_identities": "all-distinct", "item_type_change": "different"}
+    }
+  ]
+}

@@ -2859,13 +2859,17 @@
         "NIF-011",
         "NIF-012",
         "NIF-013",
-        "NIF-014"
+        "NIF-014",
+        "NIF-015",
+        "NIF-016",
+        "NIF-017",
+        "NIF-018"
       ],
       "artifacts": [
         {
           "id": "node-interface",
           "path": "../c2/node-interface.json",
-          "sha256": "sha256:be2cbf1c4e2d99cf438fe21ddcc45468f1d9ac8a866f0d76578c65b8994b40d0",
+          "sha256": "sha256:d32f049c4336b7d7c35604f7065e4b759c8a90d340ab0768577f2521b557e2b8",
           "operation": "node-interface-satisfaction",
           "requirement_ids": [
             "NIF-001",
@@ -2881,7 +2885,11 @@
             "NIF-011",
             "NIF-012",
             "NIF-013",
-            "NIF-014"
+            "NIF-014",
+            "NIF-015",
+            "NIF-016",
+            "NIF-017",
+            "NIF-018"
           ],
           "default_rule": "NIF-006",
           "case_rules": {
@@ -2899,6 +2907,13 @@
             "ambiguous-provider-decisions": "NIF-009",
             "authority-effect-widening-rejected": "NIF-007",
             "extra-concrete-member": "NIF-005",
+            "principal-exact-projection": "NIF-015",
+            "principal-absent-side": "NIF-017",
+            "principal-missing-member": "NIF-016",
+            "principal-wrong-direction": "NIF-016",
+            "principal-optional-member": "NIF-016",
+            "principal-change-is-semantic": "NIF-015",
+            "auxiliary-members-do-not-select-principal": "NIF-017",
             "duplicate-interface-member": "NIF-009",
             "revision-or-hash-mismatch": "NIF-001",
             "member-order-nonsemantic": "NIF-011",
@@ -2921,29 +2936,123 @@
         "positive": [
           "node-interface#exact-primitive-boundary",
           "node-interface#compatible-directional-refinement",
-          "node-interface#composite-exported-boundary"
+          "node-interface#composite-exported-boundary",
+          "node-interface#principal-exact-projection"
         ],
         "negative": [
           "node-interface#missing-required-member",
           "node-interface#wrong-direction",
           "node-interface#same-type-incompatible-delivery",
-          "node-interface#authority-effect-widening-rejected"
+          "node-interface#authority-effect-widening-rejected",
+          "node-interface#principal-missing-member",
+          "node-interface#principal-wrong-direction",
+          "node-interface#principal-optional-member"
         ],
         "boundary": [
           "node-interface#optional-member-absent",
           "node-interface#provider-unavailable",
-          "node-interface#insufficient-proof-scratch"
+          "node-interface#insufficient-proof-scratch",
+          "node-interface#principal-absent-side",
+          "node-interface#auxiliary-members-do-not-select-principal"
         ],
         "migration": [
           "node-interface#revision-or-hash-mismatch",
           "node-interface#member-order-nonsemantic",
-          "node-interface#semantic-member-change"
+          "node-interface#semantic-member-change",
+          "node-interface#principal-change-is-semantic"
         ]
       },
       "reference_tests": [
         {
           "package": "conduit-core",
           "test": "node_interface_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "principal_path_vectors"
+        }
+      ]
+    },
+    {
+      "id": "temporal-modality",
+      "profile": "conduit.c2",
+      "requirement_ids": [
+        "TMOD-001",
+        "TMOD-002",
+        "TMOD-003",
+        "TMOD-004",
+        "TMOD-005",
+        "TMOD-006",
+        "TMOD-007",
+        "TMOD-008",
+        "TMOD-009",
+        "TMOD-010"
+      ],
+      "artifacts": [
+        {
+          "id": "temporal-modality",
+          "path": "../c2/temporal-modality.json",
+          "sha256": "sha256:0bb1a90863be114e70985fa041ea70554e5b470a5ac4b209746e3cf07ea485a5",
+          "operation": "temporal-modality",
+          "requirement_ids": [
+            "TMOD-001",
+            "TMOD-002",
+            "TMOD-003",
+            "TMOD-004",
+            "TMOD-005",
+            "TMOD-006",
+            "TMOD-007",
+            "TMOD-008",
+            "TMOD-009",
+            "TMOD-010"
+          ],
+          "default_rule": "TMOD-001",
+          "case_rules": {
+            "ordinary-value": "TMOD-001",
+            "closing-flow": "TMOD-001",
+            "open-flow": "TMOD-001",
+            "current-observation": "TMOD-006",
+            "cross-surface-matrix": "TMOD-003",
+            "closing-is-not-resource-bound": "TMOD-005",
+            "current-is-observation-only": "TMOD-007",
+            "current-is-not-history": "TMOD-007",
+            "invalid-immediate-open-flow": "TMOD-008",
+            "every-field-is-identity-bearing": "TMOD-004"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": [
+            "id"
+          ],
+          "expected_fields": [
+            "expected"
+          ]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "temporal-modality#ordinary-value",
+          "temporal-modality#closing-flow",
+          "temporal-modality#open-flow",
+          "temporal-modality#current-observation"
+        ],
+        "negative": [
+          "temporal-modality#cross-surface-matrix",
+          "temporal-modality#invalid-immediate-open-flow"
+        ],
+        "boundary": [
+          "temporal-modality#closing-is-not-resource-bound",
+          "temporal-modality#current-is-observation-only",
+          "temporal-modality#current-is-not-history"
+        ],
+        "migration": [
+          "temporal-modality#every-field-is-identity-bearing"
+        ]
+      },
+      "reference_tests": [
+        {
+          "package": "conduit-core",
+          "test": "temporal_modality_vectors"
         }
       ]
     },

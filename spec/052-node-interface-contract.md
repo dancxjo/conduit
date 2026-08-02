@@ -38,10 +38,10 @@ grant authority, allocate a queue, or mutate topology.
 - exact canonical `semantic_hash`.
 
 The descriptor kind is `conduit/node-interface-contract`, current schema.
-Its body contains the namespaced `contract_id` and a canonical set of member
-and non-port requirement hashes. Source order, comments, spans, labels, and
-presentation do not participate. Every member or requirement semantic change
-changes the identity.
+Its body contains the namespaced `contract_id`, an explicit principal path,
+and a canonical set of member and non-port requirement hashes. Source order,
+comments, spans, labels, and presentation do not participate. Every principal
+endpoint, member, or requirement semantic change changes the identity.
 
 current form permits at most 64 port members and 16 non-port requirements. The
 caller supplies one hash slot per combined fact. Duplicate semantic keys,
@@ -77,6 +77,31 @@ projection, not a closed implementation shape. Every concrete input must
 still be in the input slice, every concrete output in the output slice, and
 each slice must have unique valid IDs. Extra ports create no hidden interface
 member, adapter, connection, queue, or authority.
+
+## Principal path
+
+`PrincipalPath` contains at most one receiving member ID and one outgoing
+member ID. Either side may be absent, so sources, sinks, duplex boundaries,
+and boundaries that prohibit shorthand all remain explicit. A present ID must
+name a required interface member in that exact direction. Missing,
+opposite-direction, and optional members fail descriptor validation.
+
+The path is the sole authority for projecting a bare source endpoint. Bare
+use in receiving position projects to `receiving`; bare use in producing
+position projects to `outgoing`. An absent side fails with
+`principal-path-unavailable`. Projection never considers member declaration
+order, the number of ports, type compatibility, unconnected ports, catalog
+order, implementations, providers, or host observations.
+
+Adding, removing, or reordering auxiliary ports cannot select or change a
+declared principal endpoint. Changing the principal path changes the exact
+interface identity and therefore invalidates stale references and dependent
+proofs. A composite may publish a principal path only on its exported
+boundary; a child port that is not explicitly exported cannot be projected.
+
+Stable validation reasons are `interface-principal-member-missing` and
+`interface-principal-member-optional`. These are descriptor failures, not
+requests to guess another endpoint.
 
 ## Non-port requirements
 
@@ -201,9 +226,10 @@ provider availability and ambiguity, extra concrete ports, authority/effect
 widening, duplicates, revisions, order-independent identity, semantic
 mutation, and insufficient scratch.
 
-This specification adds new descriptor and proof kinds. It does not reinterpret
-or change the identities of existing `TypeContract`, `PortContract`,
-`NodeContract`, implicit-satisfaction proof, composite, or exact-plan schemas.
+This current descriptor form makes the principal path identity-bearing. It
+does not reinterpret or change the identities of existing `TypeContract`,
+`PortContract`, `NodeContract`, implicit-satisfaction proof, composite, or
+exact-plan schemas.
 Source grammar, module resolution, lowering, and plan retention are owned by
 the ordered follow-up issues and must consume these exact identities and reason
 codes.
@@ -225,4 +251,8 @@ codes.
 | NIF-011 | Make member, requirement, and source ordering non-semantic |
 | NIF-012 | Use caller-owned fixed scratch and fail before admission when it is insufficient |
 | NIF-013 | Insert no adapter, queue, authority, implementation behavior, topology, or runtime interface object |
-| NIF-014 | Preserve all current TypeContract, PortContract, NodeContract, composite, satisfaction, and plan identities |
+| NIF-014 | Preserve TypeContract, PortContract, NodeContract, composite, implicit-satisfaction, and plan schemas; interface references and their proofs change when the principal path changes |
+| NIF-015 | Make receiving and outgoing principal endpoints explicit, directional, and identity-bearing |
+| NIF-016 | Reject missing, wrong-direction, or optional principal members rather than inferring another endpoint |
+| NIF-017 | Project bare endpoints from the exact descriptor only, independent of order, types, connections, catalog, implementation, provider, and host state |
+| NIF-018 | Permit composite principal paths only through explicit exported boundary members |
