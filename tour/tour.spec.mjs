@@ -2113,6 +2113,10 @@ test("enters and exits the same fullscreen workspace without rebuilding state", 
   const source = page.locator("#source");
   await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
   await page.locator("#expanded-view").click();
+  await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
+    "data-layout",
+    "ready",
+  );
   await page.locator('.react-flow__node[data-id="root/greeting"]').click();
   await source.evaluate((element) => {
     element.__conduitLiveEditor = true;

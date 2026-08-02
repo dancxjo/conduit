@@ -416,21 +416,18 @@ export class PatchbayReactFlowRenderer {
       }
     }
     this.flowWrapper.dataset.selection = "node";
-    this.renderFlow();
-    requestAnimationFrame(() => {
-      this.highlightCordEndpoints(null);
-      this.flowWrapper?.querySelectorAll(".conduit-faceplate-card").forEach((card) => {
-        const shell = card.closest(".react-flow__node");
-        const candidateId = shell?.dataset.id;
-        card.classList.toggle("selected-faceplate", candidateId === nodeId);
-        card.classList.toggle("selection-neighbor", neighboringNodes.has(candidateId));
-        card.classList.toggle("selection-muted", !neighboringNodes.has(candidateId));
-      });
-      this.flowWrapper?.querySelectorAll(".react-flow__edge").forEach((edge) => {
-        const candidateId = edge.dataset.id;
-        edge.classList.toggle("selection-neighbor", neighboringCords.has(candidateId));
-        edge.classList.toggle("selection-muted", !neighboringCords.has(candidateId));
-      });
+    this.highlightCordEndpoints(null);
+    this.flowWrapper?.querySelectorAll(".conduit-faceplate-card").forEach((card) => {
+      const shell = card.closest(".react-flow__node");
+      const candidateId = shell?.dataset.id;
+      card.classList.toggle("selected-faceplate", candidateId === nodeId);
+      card.classList.toggle("selection-neighbor", neighboringNodes.has(candidateId));
+      card.classList.toggle("selection-muted", !neighboringNodes.has(candidateId));
+    });
+    this.flowWrapper?.querySelectorAll(".react-flow__edge").forEach((edge) => {
+      const candidateId = edge.dataset.id;
+      edge.classList.toggle("selection-neighbor", neighboringCords.has(candidateId));
+      edge.classList.toggle("selection-muted", !neighboringCords.has(candidateId));
     });
   }
 
@@ -507,11 +504,17 @@ export class PatchbayReactFlowRenderer {
     void this.flowInstance.setViewport(viewport, { duration: 0 });
   }
 
-  fitViewport(instance = this.flowInstance) {
+  fitViewport(instance = this.flowInstance, { markReady = false } = {}) {
     if (!instance?.fitView) return;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+    requestAnimationFrame(() => requestAnimationFrame(async () => {
       if (this.flowInstance !== instance) return;
-      void instance.fitView({ maxZoom: 1.2, duration: 0 });
+      await instance.fitView({ maxZoom: 1.2, duration: 0 });
+      if (!markReady || this.flowInstance !== instance) return;
+      requestAnimationFrame(() => {
+        if (this.flowInstance !== instance) return;
+        this.flowWrapper.dataset.layout = "ready";
+        this.flowWrapper.removeAttribute("aria-busy");
+      });
     }));
   }
 
@@ -567,6 +570,8 @@ export class PatchbayReactFlowRenderer {
       }
       return;
     }
+    this.flowWrapper.dataset.layout = "settling";
+    this.flowWrapper.setAttribute("aria-busy", "true");
 
     const realization = viewModel.topology?.planned_realization;
     const presentationCanEdit = viewModel.presentation?.mode === "build" &&
@@ -904,15 +909,23 @@ export class PatchbayReactFlowRenderer {
           if (this.topologyView !== "logical" || !presentationCanEdit) return;
           if (!this.onTransaction) return;
           if (!node?.position) return;
-          this.onTransaction({
+          const position = {
+            x: Math.round(node.position.x),
+            y: Math.round(node.position.y),
+          };
+          const committed = this.onTransaction({
             MoveNode: {
               node_id: node.id,
-              position: {
-                x: Math.round(node.position.x),
-                y: Math.round(node.position.y),
-              },
+              position,
             },
-          });
+          }, { skipRender: true });
+          if (committed?.ok && this.flowInstance?.setNodes) {
+            this.flowInstance.setNodes((currentNodes) => currentNodes.map(
+              (currentNode) => currentNode.id === node.id
+                ? { ...currentNode, position }
+                : currentNode,
+            ));
+          }
         },
         snapToGrid: false,
         defaultViewport: { x: 0, y: 0, zoom: 1 },
@@ -922,13 +935,12 @@ export class PatchbayReactFlowRenderer {
         fitViewOptions: { maxZoom: 1.2 },
         onInit: (instance) => {
           this.flowInstance = instance;
-          this.flowWrapper.dataset.layout = "ready";
           // React Flow's initial fit can run before WebKit has reported the
           // intrinsic height of the semantic-promise faceplates. Refit once
           // those ResizeObserver measurements have crossed two paint frames;
           // this is still the initial topology fit, not a mutation of the
           // presentation positions or a later reset of the user's viewport.
-          this.fitViewport(instance);
+          this.fitViewport(instance, { markReady: true });
         },
       },
     );

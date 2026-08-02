@@ -3361,8 +3361,12 @@ async function run() {
 runButton.onclick = run;
 watchToggle.onclick = () => void toggleWatch();
 freezeDisplay.onclick = toggleDisplayFreeze;
-consoleDisclosure.onclick = () => setConsoleExpanded(consoleBody.hidden);
-selectionInspectorClose.onclick = () => clearTopologySelection();
+if (consoleDisclosure && consoleBody) {
+  consoleDisclosure.onclick = () => setConsoleExpanded(consoleBody.hidden);
+}
+if (selectionInspectorClose) {
+  selectionInspectorClose.onclick = () => clearTopologySelection();
+}
 stopButton.onclick = () => void stopExactSession(
   "learner-cancelled",
   "Run cancelled; exact worker placement is terminal.",
@@ -3374,7 +3378,8 @@ document.addEventListener("keydown", (event) => {
     ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
     target.isContentEditable
   );
-  if (event.key === "Escape" && !isEditing && !selectionInspector.hidden) {
+  if (event.key === "Escape" && !isEditing && selectionInspector &&
+      !selectionInspector.hidden) {
     event.preventDefault();
     clearTopologySelection();
     return;
