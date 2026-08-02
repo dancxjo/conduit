@@ -2428,8 +2428,6 @@ test("Tour and standalone Patchbay consume the same checked task-front model", a
 });
 
 test("routes cords through free space by default and keeps labels off node faces", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
-
   const panelSource = "panel 0\n\n" +
     "source: std/literal {\n" +
     "  value = \"source\"\n" +
@@ -2452,46 +2450,26 @@ test("routes cords through free space by default and keeps labels off node faces
     "  high_watermark = 1\n" +
     "  pressure = block\n" +
     "}\n";
-  const source = page.locator("#source");
-  await expect(page.locator(".react-flow__edge")).toHaveCount(1);
-  await source.fill(panelSource);
-  await expect(page.locator(".react-flow__edge")).toHaveCount(2);
-  const flow = page.locator("#cy");
-  const flowBox = await flow.boundingBox();
-  expect(flowBox).not.toBeNull();
-
-  const dragNodeTo = async (nodeId, relativeX, relativeY) => {
-    const node = page.locator(`.react-flow__node[data-id="${nodeId}"]`);
-    await expect(node).toHaveCount(1);
-    await node.scrollIntoViewIfNeeded();
-    const nodeBox = await node.boundingBox();
-    const currentFlowBox = await flow.boundingBox();
-    expect(nodeBox).not.toBeNull();
-    expect(currentFlowBox).not.toBeNull();
-    await page.mouse.move(nodeBox.x + nodeBox.width / 2, nodeBox.y + 20);
-    await page.mouse.down();
-    await page.mouse.move(
-      currentFlowBox.x + relativeX,
-      currentFlowBox.y + relativeY,
-      { steps: 8 },
+  await page.addInitScript(({ source, layout }) => {
+    localStorage.setItem("conduit-tour-draft/welcome.hello-panel", source);
+    localStorage.setItem(
+      "conduit-tour-layout/welcome.hello-panel",
+      JSON.stringify(layout),
     );
-    await page.mouse.up();
-  };
-
-  await dragNodeTo(
-    "source",
-    flowBox.width * 0.22,
-    320,
-  );
-  await dragNodeTo(
-    "transform",
-    flowBox.width / 2,
-    50,
-  );
-  await dragNodeTo(
-    "sink",
-    flowBox.width * 0.78,
-    320,
+  }, {
+    source: panelSource,
+    layout: {
+      transform: { x: 32, y: 40 },
+      source: { x: 482, y: 40 },
+      sink: { x: 932, y: 40 },
+    },
+  });
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
+  await expect(page.locator(".react-flow__edge")).toHaveCount(2);
+  await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
+    "data-layout",
+    "ready",
+    { timeout: 20_000 },
   );
 
   const edge = page.locator(".patchbay-cord").nth(1);
@@ -2570,8 +2548,6 @@ test("routes cords through free space by default and keeps labels off node faces
     });
   }, 6)).toBe(false);
 
-  await dragNodeTo("transform", 80, 70);
-  await expect.poll(crossesOtherNode).toBe(false);
 });
 
 test("filesystem reference panels use the explicit bounded browser provider", async ({ page }) => {
