@@ -93,6 +93,21 @@ implementations. In particular:
 - `state/hold` requires an explicit initial value and retains the latest input
   from `T...` as `$T`.
 
+`TemporalConversionContract` freezes those five exact profiles. Collection
+element relation proofs, `flow/collect` item/byte maxima, and the
+`state/hold` initial-value requirement are identity-bearing. Zero or absent
+collect maxima, an open-flow collect input, a missing list-item proof, a type
+mismatch, or a changed surface profile fails closed.
+
+The hosted reference path uses distinct `ClosingFlowEvent<T>` and
+`OpenFlowItem<T>` types. `EachClosingFlow` emits list items in order followed
+by exactly one `Closed`. `BoundedClosingCollector` reserves the item ceiling
+before admission, checks item and byte maxima before every mutation, returns a
+rejected item on overflow, and produces a list only after `Closed`.
+`CurrentChanges` starts after the sampled current generation and emits only
+future newest replacements as an open flow. `hold_current` requires its
+initial value at construction.
+
 An open flow cannot reach `flow/collect` without an explicit finite
 window/limit that produces a closing bounded input. A closing flow is not
 resource-bounded merely because it has a normal closing boundary.

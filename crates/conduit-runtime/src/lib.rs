@@ -49,6 +49,7 @@ mod scheduler;
 mod session;
 mod source_lowering;
 mod supervision;
+mod temporal_conversion;
 mod transition;
 mod transport;
 mod type_registry;
@@ -169,6 +170,10 @@ pub use source_lowering::{
     SourceOrigin, lower_source, lower_source_base, lower_supervision, lower_topology,
 };
 pub use supervision::BoundedSupervisionRuntime;
+pub use temporal_conversion::{
+    BoundedClosingCollector, ClosingFlowEvent, CollectError, CollectLimits, CollectRejection,
+    CurrentChanges, EachClosingFlow, OpenFlowItem, hold_current, sample_current,
+};
 pub use transition::{
     HostedDrainObservation, HostedGenerationBinding, HostedTransitionAdmission,
     HostedTransitionAdmissionError, HostedTransitionError, HostedTransitionGeneration,

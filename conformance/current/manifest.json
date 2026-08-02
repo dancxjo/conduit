@@ -2992,7 +2992,7 @@
         {
           "id": "temporal-modality",
           "path": "../c2/temporal-modality.json",
-          "sha256": "sha256:9cbf3bcf7a0c85073afc74142a526fd1e4a37a04e45af48e573f3942c2cbbe92",
+          "sha256": "sha256:703d6494f93b23796c003560eceea6763d6f7c2ff47c3b1b49bd098c19e21265",
           "operation": "temporal-modality",
           "requirement_ids": [
             "TMOD-001",
@@ -3027,7 +3027,15 @@
             "current-update-without-subscriber": "TMOD-006",
             "current-reconnect-newest": "TMOD-006",
             "current-denied-mutation": "TMOD-007",
-            "current-equal-replacement": "TMOD-007"
+            "current-equal-replacement": "TMOD-007",
+            "standard-conversion-profiles": "TMOD-009",
+            "flow-each-order-and-close": "TMOD-009",
+            "flow-collect-bounded": "TMOD-009",
+            "flow-collect-open-rejected": "TMOD-009",
+            "flow-collect-close-required": "TMOD-009",
+            "flow-collect-overflow-atomic": "TMOD-009",
+            "state-conversion-runtime": "TMOD-009",
+            "state-hold-initial-required": "TMOD-009"
           },
           "format": "json-vectors",
           "collection": "cases",
@@ -3048,21 +3056,29 @@
           "temporal-modality#explicit-pure-lift",
           "temporal-modality#current-late-subscriber",
           "temporal-modality#current-update-without-subscriber",
-          "temporal-modality#current-reconnect-newest"
+          "temporal-modality#current-reconnect-newest",
+          "temporal-modality#standard-conversion-profiles",
+          "temporal-modality#flow-each-order-and-close",
+          "temporal-modality#flow-collect-bounded",
+          "temporal-modality#state-conversion-runtime"
         ],
         "negative": [
           "temporal-modality#cross-surface-matrix",
           "temporal-modality#invalid-immediate-open-flow",
           "temporal-modality#unadmitted-current-lift",
           "temporal-modality#lift-input-type-mismatch",
-          "temporal-modality#lift-proof-required"
+          "temporal-modality#lift-proof-required",
+          "temporal-modality#flow-collect-open-rejected",
+          "temporal-modality#flow-collect-close-required",
+          "temporal-modality#state-hold-initial-required"
         ],
         "boundary": [
           "temporal-modality#closing-is-not-resource-bound",
           "temporal-modality#current-is-observation-only",
           "temporal-modality#current-is-not-history",
           "temporal-modality#current-denied-mutation",
-          "temporal-modality#current-equal-replacement"
+          "temporal-modality#current-equal-replacement",
+          "temporal-modality#flow-collect-overflow-atomic"
         ],
         "migration": [
           "temporal-modality#every-field-is-identity-bearing",
@@ -3077,6 +3093,10 @@
         {
           "package": "conduit-runtime",
           "test": "current_value_vectors"
+        },
+        {
+          "package": "conduit-runtime",
+          "test": "temporal_conversion_vectors"
         }
       ]
     },

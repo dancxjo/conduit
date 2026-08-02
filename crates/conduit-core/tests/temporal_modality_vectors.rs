@@ -2,8 +2,9 @@ use conduit_core::{
     ClosingBoundary, CompatibilityOutcome, DescriptorRef, Id, InitialAvailability, LiftedSurfaces,
     ModalityLiftContract, ModalityLiftContractError, ModalityLiftError, ModalityReplay,
     ModalityRetention, ReplacementBehavior, SemanticHash, TemporalCardinality,
-    TemporalModalityCompatibilityReason, TemporalModalityContract, TemporalModalityError,
-    TemporalSurface, TypeContractRef, assess_temporal_modality_exact, lift_temporal_modality,
+    TemporalConversionContract, TemporalConversionError, TemporalModalityCompatibilityReason,
+    TemporalModalityContract, TemporalModalityError, TemporalSurface, TypeContractRef,
+    assess_temporal_modality_exact, lift_temporal_modality,
 };
 
 const ITEM: TypeContractRef<'static> = TypeContractRef {
@@ -16,6 +17,12 @@ const OUTPUT: TypeContractRef<'static> = TypeContractRef {
     contract_id: Id("fixture/output"),
     schema_version: 0,
     semantic_hash: SemanticHash::from_bytes([0x62; 32]),
+};
+
+const LIST: TypeContractRef<'static> = TypeContractRef {
+    contract_id: Id("fixture/list-item"),
+    schema_version: 0,
+    semantic_hash: SemanticHash::from_bytes([0x63; 32]),
 };
 
 fn descriptor(kind: &'static str, byte: u8) -> DescriptorRef<'static> {
@@ -53,7 +60,7 @@ fn normative_fixture_covers_every_surface_and_safety_boundary() {
     let fixture = include_str!("../../../conformance/c2/temporal-modality.json");
     let value: serde_json::Value = serde_json::from_str(fixture).unwrap();
     assert_eq!(value["suite"], "conduit.temporal-modality");
-    assert_eq!(value["cases"].as_array().unwrap().len(), 20);
+    assert_eq!(value["cases"].as_array().unwrap().len(), 28);
     for id in [
         "ordinary-value",
         "closing-flow",
@@ -75,6 +82,14 @@ fn normative_fixture_covers_every_surface_and_safety_boundary() {
         "current-reconnect-newest",
         "current-denied-mutation",
         "current-equal-replacement",
+        "standard-conversion-profiles",
+        "flow-each-order-and-close",
+        "flow-collect-bounded",
+        "flow-collect-open-rejected",
+        "flow-collect-close-required",
+        "flow-collect-overflow-atomic",
+        "state-conversion-runtime",
+        "state-hold-initial-required",
     ] {
         assert!(
             value["cases"]
@@ -238,4 +253,95 @@ fn every_lift_declaration_fact_is_identity_bearing() {
         contract.semantic_hash().unwrap(),
         changed.semantic_hash().unwrap()
     );
+}
+
+#[test]
+fn standard_temporal_conversions_have_exact_published_profiles() {
+    let relation = descriptor("conduit/list-item-proof", 0x75);
+    let conversions = [
+        TemporalConversionContract::flow_each(LIST, ITEM, relation),
+        TemporalConversionContract::flow_collect(ITEM, LIST, relation, 16, 4_096),
+        TemporalConversionContract::state_sample(ITEM),
+        TemporalConversionContract::state_changes(ITEM),
+        TemporalConversionContract::state_hold(ITEM),
+    ];
+    for conversion in conversions {
+        assert_eq!(conversion.validate(), Ok(()));
+    }
+
+    let identities = conversions.map(|conversion| conversion.semantic_hash().unwrap());
+    for (index, identity) in identities.iter().enumerate() {
+        assert!(!identities[index + 1..].contains(identity));
+    }
+}
+
+#[test]
+fn collect_requires_closing_input_and_finite_nonzero_bounds() {
+    let relation = descriptor("conduit/list-item-proof", 0x75);
+    let valid = TemporalConversionContract::flow_collect(ITEM, LIST, relation, 16, 4_096);
+
+    let open = TemporalConversionContract {
+        input: TemporalModalityContract::open_flow(ITEM),
+        ..valid
+    };
+    assert_eq!(
+        open.validate(),
+        Err(TemporalConversionError::InvalidProfile)
+    );
+
+    let zero_items = TemporalConversionContract {
+        maximum_items: Some(0),
+        ..valid
+    };
+    assert_eq!(
+        zero_items.validate(),
+        Err(TemporalConversionError::InvalidProfile)
+    );
+
+    let no_bytes = TemporalConversionContract {
+        maximum_bytes: None,
+        ..valid
+    };
+    assert_eq!(
+        no_bytes.validate(),
+        Err(TemporalConversionError::InvalidProfile)
+    );
+}
+
+#[test]
+fn state_conversions_preserve_item_type_and_hold_requires_initial_value() {
+    let sample = TemporalConversionContract {
+        output: TemporalModalityContract::value(OUTPUT),
+        ..TemporalConversionContract::state_sample(ITEM)
+    };
+    assert_eq!(
+        sample.validate(),
+        Err(TemporalConversionError::InvalidProfile)
+    );
+
+    let hold = TemporalConversionContract {
+        initial_value_required: false,
+        ..TemporalConversionContract::state_hold(ITEM)
+    };
+    assert_eq!(
+        hold.validate(),
+        Err(TemporalConversionError::InvalidProfile)
+    );
+}
+
+#[test]
+fn collection_bounds_and_relation_proof_are_identity_bearing() {
+    let relation = descriptor("conduit/list-item-proof", 0x75);
+    let contract = TemporalConversionContract::flow_collect(ITEM, LIST, relation, 16, 4_096);
+    let changed_bound = TemporalConversionContract {
+        maximum_items: Some(17),
+        ..contract
+    };
+    let changed_proof = TemporalConversionContract {
+        collection_item_proof: Some(descriptor("conduit/list-item-proof", 0x76)),
+        ..contract
+    };
+    let identity = contract.semantic_hash().unwrap();
+    assert_ne!(identity, changed_bound.semantic_hash().unwrap());
+    assert_ne!(identity, changed_proof.semantic_hash().unwrap());
 }

@@ -612,6 +612,325 @@ pub fn lift_temporal_modality<'a>(
     })
 }
 
+/// Published explicit conversion between temporal surfaces.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TemporalConversionKind {
+    FlowEach,
+    FlowCollect,
+    StateSample,
+    StateChanges,
+    StateHold,
+}
+
+impl TemporalConversionKind {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::FlowEach => "flow-each",
+            Self::FlowCollect => "flow-collect",
+            Self::StateSample => "state-sample",
+            Self::StateChanges => "state-changes",
+            Self::StateHold => "state-hold",
+        }
+    }
+}
+
+/// Exact semantic contract for one named standard temporal conversion.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TemporalConversionContract<'a> {
+    pub id: Id<'a>,
+    pub kind: TemporalConversionKind,
+    pub input: TemporalModalityContract<'a>,
+    pub output: TemporalModalityContract<'a>,
+    /// Exact proof that a collection type contains the declared item type.
+    pub collection_item_proof: Option<DescriptorRef<'a>>,
+    /// Required only for `flow/collect`; zero and absence are invalid there.
+    pub maximum_items: Option<u32>,
+    /// Required only for `flow/collect`; zero and absence are invalid there.
+    pub maximum_bytes: Option<u64>,
+    /// `state/hold` must receive an explicit initial current value.
+    pub initial_value_required: bool,
+}
+
+impl<'a> TemporalConversionContract<'a> {
+    #[must_use]
+    pub const fn flow_each(
+        collection_type: TypeContractRef<'a>,
+        item_type: TypeContractRef<'a>,
+        collection_item_proof: DescriptorRef<'a>,
+    ) -> Self {
+        Self {
+            id: Id("conduit.std/flow/each"),
+            kind: TemporalConversionKind::FlowEach,
+            input: TemporalModalityContract::value(collection_type),
+            output: TemporalModalityContract::closing_flow(item_type),
+            collection_item_proof: Some(collection_item_proof),
+            maximum_items: None,
+            maximum_bytes: None,
+            initial_value_required: false,
+        }
+    }
+
+    #[must_use]
+    pub const fn flow_collect(
+        item_type: TypeContractRef<'a>,
+        collection_type: TypeContractRef<'a>,
+        collection_item_proof: DescriptorRef<'a>,
+        maximum_items: u32,
+        maximum_bytes: u64,
+    ) -> Self {
+        Self {
+            id: Id("conduit.std/flow/collect"),
+            kind: TemporalConversionKind::FlowCollect,
+            input: TemporalModalityContract::closing_flow(item_type),
+            output: TemporalModalityContract::value(collection_type),
+            collection_item_proof: Some(collection_item_proof),
+            maximum_items: Some(maximum_items),
+            maximum_bytes: Some(maximum_bytes),
+            initial_value_required: false,
+        }
+    }
+
+    #[must_use]
+    pub const fn state_sample(item_type: TypeContractRef<'a>) -> Self {
+        Self {
+            id: Id("conduit.std/state/sample"),
+            kind: TemporalConversionKind::StateSample,
+            input: TemporalModalityContract::current(item_type),
+            output: TemporalModalityContract::value(item_type),
+            collection_item_proof: None,
+            maximum_items: None,
+            maximum_bytes: None,
+            initial_value_required: false,
+        }
+    }
+
+    #[must_use]
+    pub const fn state_changes(item_type: TypeContractRef<'a>) -> Self {
+        Self {
+            id: Id("conduit.std/state/changes"),
+            kind: TemporalConversionKind::StateChanges,
+            input: TemporalModalityContract::current(item_type),
+            output: TemporalModalityContract::open_flow(item_type),
+            collection_item_proof: None,
+            maximum_items: None,
+            maximum_bytes: None,
+            initial_value_required: false,
+        }
+    }
+
+    #[must_use]
+    pub const fn state_hold(item_type: TypeContractRef<'a>) -> Self {
+        Self {
+            id: Id("conduit.std/state/hold"),
+            kind: TemporalConversionKind::StateHold,
+            input: TemporalModalityContract::open_flow(item_type),
+            output: TemporalModalityContract::current(item_type),
+            collection_item_proof: None,
+            maximum_items: None,
+            maximum_bytes: None,
+            initial_value_required: true,
+        }
+    }
+
+    /// Validates the exact surface, type, proof, initialization, and bound
+    /// profile for the named conversion kind.
+    pub fn validate(self) -> Result<(), TemporalConversionError> {
+        if Id::new(self.id.as_str()).is_err() || !self.id.as_str().contains('/') {
+            return Err(TemporalConversionError::InvalidIdentifier);
+        }
+        let input_surface = self
+            .input
+            .surface()
+            .map_err(|_| TemporalConversionError::InvalidInput)?;
+        let output_surface = self
+            .output
+            .surface()
+            .map_err(|_| TemporalConversionError::InvalidOutput)?;
+        let collection_proof_valid = self
+            .collection_item_proof
+            .is_some_and(valid_namespaced_descriptor);
+        let has_no_collection_proof = self.collection_item_proof.is_none();
+        let has_no_bounds = self.maximum_items.is_none() && self.maximum_bytes.is_none();
+        let same_item_type = self.input.item_type == self.output.item_type;
+
+        match self.kind {
+            TemporalConversionKind::FlowEach => {
+                if self.id != Id("conduit.std/flow/each")
+                    || input_surface != TemporalSurface::Value
+                    || output_surface != TemporalSurface::ClosingFlow
+                    || !collection_proof_valid
+                    || !has_no_bounds
+                    || self.initial_value_required
+                {
+                    return Err(TemporalConversionError::InvalidProfile);
+                }
+            }
+            TemporalConversionKind::FlowCollect => {
+                if self.id != Id("conduit.std/flow/collect")
+                    || input_surface != TemporalSurface::ClosingFlow
+                    || output_surface != TemporalSurface::Value
+                    || !collection_proof_valid
+                    || self.maximum_items.is_none_or(|value| value == 0)
+                    || self.maximum_bytes.is_none_or(|value| value == 0)
+                    || self.initial_value_required
+                {
+                    return Err(TemporalConversionError::InvalidProfile);
+                }
+            }
+            TemporalConversionKind::StateSample => {
+                if self.id != Id("conduit.std/state/sample")
+                    || input_surface != TemporalSurface::Current
+                    || output_surface != TemporalSurface::Value
+                    || !same_item_type
+                    || !has_no_collection_proof
+                    || !has_no_bounds
+                    || self.initial_value_required
+                {
+                    return Err(TemporalConversionError::InvalidProfile);
+                }
+            }
+            TemporalConversionKind::StateChanges => {
+                if self.id != Id("conduit.std/state/changes")
+                    || input_surface != TemporalSurface::Current
+                    || output_surface != TemporalSurface::OpenFlow
+                    || !same_item_type
+                    || !has_no_collection_proof
+                    || !has_no_bounds
+                    || self.initial_value_required
+                {
+                    return Err(TemporalConversionError::InvalidProfile);
+                }
+            }
+            TemporalConversionKind::StateHold => {
+                if self.id != Id("conduit.std/state/hold")
+                    || input_surface != TemporalSurface::OpenFlow
+                    || output_surface != TemporalSurface::Current
+                    || !same_item_type
+                    || !has_no_collection_proof
+                    || !has_no_bounds
+                    || !self.initial_value_required
+                {
+                    return Err(TemporalConversionError::InvalidProfile);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Computes the exact conversion identity.
+    pub fn semantic_hash(
+        &self,
+    ) -> Result<SemanticHash, TemporalConversionIdentityError<Infallible>> {
+        self.validate()
+            .map_err(TemporalConversionIdentityError::InvalidContract)?;
+        let mut sink = ModalityHashSink::new();
+        self.write_canonical(&mut sink)?;
+        Ok(sink.finish())
+    }
+
+    /// Streams the exact current conversion descriptor without allocation.
+    pub fn write_canonical<S: CanonicalSink>(
+        &self,
+        sink: &mut S,
+    ) -> Result<(), TemporalConversionIdentityError<S::Error>> {
+        self.validate()
+            .map_err(TemporalConversionIdentityError::InvalidContract)?;
+        let input_hash = self.input.semantic_hash().map_err(|error| match error {
+            TemporalModalityIdentityError::InvalidContract(error) => {
+                TemporalConversionIdentityError::InvalidContract(match error {
+                    TemporalModalityError::InvalidItemType => TemporalConversionError::InvalidInput,
+                    TemporalModalityError::InvalidCombination => {
+                        TemporalConversionError::InvalidInput
+                    }
+                })
+            }
+            TemporalModalityIdentityError::Canonical(_) => {
+                TemporalConversionIdentityError::InvalidContract(
+                    TemporalConversionError::InvalidInput,
+                )
+            }
+        })?;
+        let output_hash = self.output.semantic_hash().map_err(|error| match error {
+            TemporalModalityIdentityError::InvalidContract(_) => {
+                TemporalConversionIdentityError::InvalidContract(
+                    TemporalConversionError::InvalidOutput,
+                )
+            }
+            TemporalModalityIdentityError::Canonical(_) => {
+                TemporalConversionIdentityError::InvalidContract(
+                    TemporalConversionError::InvalidOutput,
+                )
+            }
+        })?;
+        let collection_item_proof = self.collection_item_proof;
+        let proof_fields = collection_item_proof.as_ref().map(descriptor_fields);
+        let fields = [
+            semantic("id", CanonicalValue::Identifier(self.id)),
+            semantic("kind", CanonicalValue::Identifier(Id(self.kind.as_str()))),
+            semantic("input", CanonicalValue::Bytes(input_hash.as_bytes())),
+            semantic("output", CanonicalValue::Bytes(output_hash.as_bytes())),
+            semantic(
+                "collection_item_proof",
+                proof_fields
+                    .as_ref()
+                    .map_or(CanonicalValue::Null, |fields| CanonicalValue::Map(fields)),
+            ),
+            semantic(
+                "maximum_items",
+                self.maximum_items.map_or(CanonicalValue::Null, |value| {
+                    CanonicalValue::Integer(i128::from(value))
+                }),
+            ),
+            semantic(
+                "maximum_bytes",
+                self.maximum_bytes.map_or(CanonicalValue::Null, |value| {
+                    CanonicalValue::Integer(i128::from(value))
+                }),
+            ),
+            semantic(
+                "initial_value_required",
+                CanonicalValue::Boolean(self.initial_value_required),
+            ),
+        ];
+        CanonicalDescriptor {
+            kind: Id("conduit/temporal-conversion-contract"),
+            schema_version: 0,
+            body: CanonicalValue::Map(&fields),
+        }
+        .write_canonical(sink)
+        .map_err(TemporalConversionIdentityError::Canonical)
+    }
+}
+
+/// Invalid standard conversion descriptor.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TemporalConversionError {
+    InvalidIdentifier,
+    InvalidInput,
+    InvalidOutput,
+    InvalidProfile,
+}
+
+impl TemporalConversionError {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidIdentifier => "temporal-conversion-invalid-identifier",
+            Self::InvalidInput => "temporal-conversion-invalid-input",
+            Self::InvalidOutput => "temporal-conversion-invalid-output",
+            Self::InvalidProfile => "temporal-conversion-invalid-profile",
+        }
+    }
+}
+
+/// Canonical identity construction failure for a conversion contract.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TemporalConversionIdentityError<E> {
+    InvalidContract(TemporalConversionError),
+    Canonical(CanonicalError<E>),
+}
+
 fn valid_namespaced_descriptor(descriptor: DescriptorRef<'_>) -> bool {
     Id::new(descriptor.kind.as_str()).is_ok() && descriptor.kind.as_str().contains('/')
 }

@@ -108,6 +108,46 @@
       "id": "current-equal-replacement",
       "runner": "current-value-runtime",
       "expected": {"generation_advanced": true, "implicit_deduplication": false}
+    },
+    {
+      "id": "standard-conversion-profiles",
+      "runner": "temporal-conversion-contract",
+      "expected": {"contracts": ["conduit.std/flow/each", "conduit.std/flow/collect", "conduit.std/state/sample", "conduit.std/state/changes", "conduit.std/state/hold"]}
+    },
+    {
+      "id": "flow-each-order-and-close",
+      "runner": "temporal-conversion-runtime",
+      "expected": {"order": "list-order", "normal_closes": 1}
+    },
+    {
+      "id": "flow-collect-bounded",
+      "runner": "temporal-conversion-runtime",
+      "expected": {"maximum_items": "positive-required", "maximum_bytes": "positive-required", "preallocated": true}
+    },
+    {
+      "id": "flow-collect-open-rejected",
+      "runner": "temporal-conversion-contract",
+      "expected": {"error": "temporal-conversion-invalid-profile", "implicit_window": false}
+    },
+    {
+      "id": "flow-collect-close-required",
+      "runner": "temporal-conversion-runtime",
+      "expected": {"error": "normal-close-required", "partial_list_fabricated": false}
+    },
+    {
+      "id": "flow-collect-overflow-atomic",
+      "runner": "temporal-conversion-runtime",
+      "expected": {"resident_state_changed": false, "rejected_item_returned": true}
+    },
+    {
+      "id": "state-conversion-runtime",
+      "runner": "temporal-conversion-runtime",
+      "expected": {"sample": "one-current", "changes": "future-open-flow", "hold": "initialized-current"}
+    },
+    {
+      "id": "state-hold-initial-required",
+      "runner": "temporal-conversion-contract",
+      "expected": {"error": "temporal-conversion-invalid-profile", "missing_initial_allowed": false}
     }
   ]
 }
