@@ -605,7 +605,28 @@ export class PatchbayWorkspaceController {
   }
 
   toggleDiagnostics() {
-    if (!this.active || !this.consoleCard) return;
+    if (!this.consoleCard) return;
+    if (!this.active) {
+      const consoleBody = this.consoleCard.querySelector("#console-body");
+      const disclosure = this.consoleCard.querySelector("#console-disclosure");
+      if (!consoleBody) return;
+      const opening = consoleBody.hidden;
+      consoleBody.hidden = !opening;
+      this.diagnosticsOpen = opening;
+      disclosure?.setAttribute("aria-expanded", String(opening));
+      if (disclosure) {
+        disclosure.textContent = opening ? "Hide raw output" : "Show raw output";
+      }
+      this.errorCount.setAttribute("aria-expanded", String(opening));
+      if (opening) {
+        this.consoleCard.querySelector(
+          ".diagnostic-console-button, #result",
+        )?.focus?.({ preventScroll: true });
+      } else {
+        this.errorCount.focus({ preventScroll: true });
+      }
+      return;
+    }
     this.diagnosticsOpen = !this.diagnosticsOpen;
     this.consoleState.hidden = !this.diagnosticsOpen;
     this.persistConsoleState();

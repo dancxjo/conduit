@@ -1918,6 +1918,7 @@ test("renders the direction lesson as an invalid authored graph", async ({ page 
   await expect(page.locator(".diagnostic-anchor-row")).toContainText(
     "second.value",
   );
+  await page.getByRole("button", { name: "Show source diagnostics" }).click();
   const diagnostic = page.locator("#diagnostic-console").getByRole("button", {
     name: /CND-CMP-003/,
   });

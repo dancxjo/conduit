@@ -251,6 +251,8 @@ export class PatchbayReactFlowRenderer {
     this.onSelectionClear = options.onSelectionClear || null;
     this.onOpenNested = options.onOpenNested || null;
     this.livePulseTimers = new Map();
+    this.liveEvidenceByCord = new Map();
+    this.watchObservedCordId = null;
   }
 
   init() {
@@ -276,6 +278,8 @@ export class PatchbayReactFlowRenderer {
       this.selectedCordId = null;
       this.renderedCordIds = [];
       this.flowInstance = null;
+      this.liveEvidenceByCord.clear();
+      this.watchObservedCordId = null;
     }
     this.updateRunPresentation(viewModel);
     const renderIdentity = JSON.stringify([
@@ -332,15 +336,30 @@ export class PatchbayReactFlowRenderer {
 
   presentLiveEvidence(viewModel, records, watchRecord) {
     this.updateRunPresentation(viewModel);
+    for (const record of records.slice(-32)) {
+      if (record.subject_kind === "cord" && record.cord_id) {
+        this.liveEvidenceByCord.set(record.cord_id, record);
+      }
+    }
+    this.watchObservedCordId = watchRecord?.subject?.kind === "cord"
+      ? watchRecord.subject.cord
+      : null;
+    this.applyLiveEvidenceToDom(records);
+  }
+
+  applyLiveEvidenceToDom(pulseRecords = []) {
+    if (!this.flowWrapper) return;
     this.flowWrapper.querySelectorAll(".react-flow__edge[data-watch-observed]")
       .forEach((edge) => delete edge.dataset.watchObserved);
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    for (const record of records.slice(-32)) {
-      if (record.subject_kind !== "cord" || !record.cord_id) continue;
+    const pulseCordIds = new Set(pulseRecords
+      .filter((record) => record.subject_kind === "cord" && record.cord_id)
+      .map((record) => record.cord_id));
+    for (const [cordId, record] of this.liveEvidenceByCord) {
       const edge = [...this.flowWrapper.querySelectorAll(".react-flow__edge")]
         .find((candidate) =>
-          candidate.dataset.id === record.cord_id ||
-          candidate.querySelector(".react-flow__edge-path")?.id === record.cord_id
+          candidate.dataset.id === cordId ||
+          candidate.querySelector(".react-flow__edge-path")?.id === cordId
         );
       if (!edge) continue;
       edge.dataset.liveUpdate = "true";
@@ -350,24 +369,25 @@ export class PatchbayReactFlowRenderer {
       edge.dataset.occupancyBytes = String(record.occupancy_bytes);
       edge.setAttribute(
         "aria-label",
-        `${record.cord_id}: ${record.event_kind}; ${record.pressure}; ` +
+        `${cordId}: ${record.event_kind}; ${record.pressure}; ` +
         `${record.occupancy_items} items, ${record.occupancy_bytes} bytes`,
       );
-      if (reducedMotion) continue;
+      if (reducedMotion || !pulseCordIds.has(cordId)) continue;
       edge.classList.remove("live-flow-pulse");
       void edge.getBoundingClientRect();
       edge.classList.add("live-flow-pulse");
-      clearTimeout(this.livePulseTimers.get(record.cord_id));
-      this.livePulseTimers.set(record.cord_id, setTimeout(() => {
+      clearTimeout(this.livePulseTimers.get(cordId));
+      this.livePulseTimers.set(cordId, setTimeout(() => {
         edge.classList.remove("live-flow-pulse");
-        this.livePulseTimers.delete(record.cord_id);
+        this.livePulseTimers.delete(cordId);
       }, 450));
     }
-    if (watchRecord?.subject?.kind === "cord") {
+    if (this.watchObservedCordId) {
       const watched = [...this.flowWrapper.querySelectorAll(".react-flow__edge")]
         .find((candidate) =>
-          candidate.dataset.id === watchRecord.subject.cord ||
-          candidate.querySelector(".react-flow__edge-path")?.id === watchRecord.subject.cord
+          candidate.dataset.id === this.watchObservedCordId ||
+          candidate.querySelector(".react-flow__edge-path")?.id ===
+            this.watchObservedCordId
         );
       if (watched) watched.dataset.watchObserved = "true";
     }
@@ -929,5 +949,8 @@ export class PatchbayReactFlowRenderer {
           };
     }
     this.reactRoot.render(flow);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      this.applyLiveEvidenceToDom();
+    }));
   }
 }
