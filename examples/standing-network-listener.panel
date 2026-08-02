@@ -3,7 +3,7 @@
 panel 0
 
 listener: net/session/listen {
-    lifecycle = "standing" transport = "tcp-fixture" local_port = 8080 period_ticks = 10
+    lifecycle = "standing" transport = "tcp-reference" local_port = 8080 period_ticks = 10
     session_timeout_ticks = 25 maximum_sessions = 8 maximum_retained_items = 8
     maximum_evidence_events = 64
 }

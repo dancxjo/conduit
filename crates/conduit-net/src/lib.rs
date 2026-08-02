@@ -15,11 +15,13 @@ pub use runtime_nodes::{
     WIFI_AP_CONTRACT, register_deterministic_network_providers, register_network_contracts,
 };
 pub use standing::{
-    EXECUTABLE_STANDING_NETWORK_CONTRACTS, LINK_OBSERVE_CONTRACT, NETWORK_EFFECT_CONTRACTS,
-    NETWORK_METER_CONTRACT, PACKET_CLASSIFY_CONTRACT, PACKET_ROUTE_CONTRACT, PACKET_SINK_CONTRACT,
-    PACKET_SOURCE_CONTRACT, SERVICE_OBSERVE_CONTRACT, SESSION_LISTEN_CONTRACT,
-    STANDING_NETWORK_CONTRACTS, register_deterministic_standing_network_providers,
-    register_portable_route_provider, register_standing_network_contracts,
+    EXECUTABLE_STANDING_NETWORK_CONTRACTS, LINK_OBSERVE_CONTRACT,
+    NATIVE_USERSPACE_ROUTE_ARTIFACT_ID, NATIVE_USERSPACE_ROUTE_IMPLEMENTATION_ID,
+    NETWORK_EFFECT_CONTRACTS, NETWORK_METER_CONTRACT, PACKET_CLASSIFY_CONTRACT,
+    PACKET_ROUTE_CONTRACT, PACKET_SINK_CONTRACT, PACKET_SOURCE_CONTRACT, SERVICE_OBSERVE_CONTRACT,
+    SESSION_LISTEN_CONTRACT, STANDING_NETWORK_CONTRACTS,
+    install_native_userspace_route_implementation, native_userspace_route_capability_requirement,
+    register_deterministic_standing_network_providers, register_standing_network_contracts,
 };
 pub use types::*;
 
@@ -107,91 +109,6 @@ impl NetworkReason {
             Self::Unsupported => "CND-NET-019",
             Self::InvalidTopology => "CND-NET-020",
         }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct CompiledNetworkInventory<'a> {
-    pub firmware_artifact: &'a str,
-    pub build_identity: &'a str,
-    pub target: &'a str,
-    pub interface: &'a str,
-    pub wifi_ap_linked: bool,
-    pub dhcp_server_linked: bool,
-    pub icmp_linked: bool,
-    pub dns_sd_linked: bool,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct InitializedNetworkObservation {
-    pub device_identity: u64,
-    pub boot_identity: u64,
-    pub interface_generation: u32,
-    pub observed_at_tick: u64,
-    pub valid_until_tick: u64,
-    pub cyw43_initialized: bool,
-    pub ap_available: bool,
-    pub dhcp_available: bool,
-    pub icmp_available: bool,
-    pub dns_sd_available: bool,
-    pub route_enabled: bool,
-    pub bridge_enabled: bool,
-    pub nat_enabled: bool,
-}
-
-impl InitializedNetworkObservation {
-    pub fn validate(self, now_tick: u64) -> Result<(), NetworkReason> {
-        if !self.cyw43_initialized {
-            return Err(NetworkReason::Cyw43InitializationFailed);
-        }
-        if !self.ap_available {
-            return Err(NetworkReason::ApUnavailable);
-        }
-        if self.observed_at_tick > now_tick || now_tick >= self.valid_until_tick {
-            return Err(NetworkReason::ObservationStale);
-        }
-        if self.route_enabled || self.bridge_enabled || self.nat_enabled {
-            return Err(NetworkReason::RoutingForbidden);
-        }
-        Ok(())
-    }
-}
-
-/// Static inventory and current initialization are deliberately separate.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct PicoNetworkReport<'a> {
-    pub inventory: CompiledNetworkInventory<'a>,
-    pub observation: Option<InitializedNetworkObservation>,
-}
-
-impl<'a> PicoNetworkReport<'a> {
-    #[must_use]
-    pub const fn describe_only(inventory: CompiledNetworkInventory<'a>) -> Self {
-        Self {
-            inventory,
-            observation: None,
-        }
-    }
-
-    pub fn runnable(
-        inventory: CompiledNetworkInventory<'a>,
-        observation: InitializedNetworkObservation,
-        now_tick: u64,
-    ) -> Result<Self, NetworkReason> {
-        observation.validate(now_tick)?;
-        Ok(Self {
-            inventory,
-            observation: Some(observation),
-        })
-    }
-
-    pub fn require_current(
-        self,
-        now_tick: u64,
-    ) -> Result<InitializedNetworkObservation, NetworkReason> {
-        let observation = self.observation.ok_or(NetworkReason::ApUnavailable)?;
-        observation.validate(now_tick)?;
-        Ok(observation)
     }
 }
 
@@ -780,70 +697,8 @@ impl EvidenceLog {
 mod tests {
     use super::*;
 
-    const INVENTORY: CompiledNetworkInventory<'static> = CompiledNetworkInventory {
-        firmware_artifact: "sha256:fixture",
-        build_identity: "netherwick/pete-brainstem",
-        target: "thumbv6m-none-eabi",
-        interface: "cyw43/ap0",
-        wifi_ap_linked: true,
-        dhcp_server_linked: true,
-        icmp_linked: true,
-        dns_sd_linked: true,
-    };
-
-    fn observation() -> InitializedNetworkObservation {
-        InitializedNetworkObservation {
-            device_identity: 10,
-            boot_identity: 20,
-            interface_generation: 1,
-            observed_at_tick: 10,
-            valid_until_tick: 20,
-            cyw43_initialized: true,
-            ap_available: true,
-            dhcp_available: true,
-            icmp_available: true,
-            dns_sd_available: true,
-            route_enabled: false,
-            bridge_enabled: false,
-            nat_enabled: false,
-        }
-    }
-
     fn client(value: u8) -> ClientIdentity {
         ClientIdentity::new(&[value]).unwrap()
-    }
-
-    #[test]
-    fn describe_only_has_inventory_but_no_current_provider_or_effect() {
-        let report = PicoNetworkReport::describe_only(INVENTORY);
-        assert_eq!(report.observation, None);
-        assert_eq!(
-            report.require_current(10),
-            Err(NetworkReason::ApUnavailable)
-        );
-    }
-
-    #[test]
-    fn runnable_report_requires_fresh_initialized_isolated_state() {
-        assert!(PicoNetworkReport::runnable(INVENTORY, observation(), 10).is_ok());
-        let mut stale = observation();
-        stale.valid_until_tick = 10;
-        assert_eq!(
-            PicoNetworkReport::runnable(INVENTORY, stale, 10),
-            Err(NetworkReason::ObservationStale)
-        );
-        let mut failed = observation();
-        failed.cyw43_initialized = false;
-        assert_eq!(
-            PicoNetworkReport::runnable(INVENTORY, failed, 10),
-            Err(NetworkReason::Cyw43InitializationFailed)
-        );
-        let mut routed = observation();
-        routed.nat_enabled = true;
-        assert_eq!(
-            PicoNetworkReport::runnable(INVENTORY, routed, 10),
-            Err(NetworkReason::RoutingForbidden)
-        );
     }
 
     #[test]

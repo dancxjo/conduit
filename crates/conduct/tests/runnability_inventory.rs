@@ -465,13 +465,13 @@ fn filesystem_exact_plan_pins_provider_authority_resource_and_bounds() {
 }
 
 #[test]
-fn no_radio_network_fixtures_reject_authored_authority_and_have_no_effect_binding() {
+fn no_radio_network_references_reject_authored_authority_and_have_no_effect_binding() {
     let root = root();
     let base = fs::read_to_string(root.join("examples/wifi-ap-isolated.panel"))
-        .expect("network fixture example");
+        .expect("network reference example");
     let mut registry = conduit_runtime::Registry::hosted_primitives();
     conduit_net::register_deterministic_network_providers(&mut registry)
-        .expect("no-radio fixtures install");
+        .expect("no-radio reference implementations install");
 
     for key in [
         "resource",
@@ -496,7 +496,7 @@ fn no_radio_network_fixtures_reject_authored_authority_and_have_no_effect_bindin
     }
 
     let installed = conduit_compile::InstalledProfile::observe_registry(&base, &registry)
-        .expect("no-radio fixture resolves without an authority");
+        .expect("no-radio reference resolves without an authority");
     for candidate in installed.input.candidates.iter().filter(|candidate| {
         candidate
             .implementation
@@ -507,9 +507,11 @@ fn no_radio_network_fixtures_reject_authored_authority_and_have_no_effect_bindin
         assert!(candidate.authorities.is_empty());
     }
     let document = conduit_compile::compile_source(&base, &installed.input)
-        .expect("fixture exact plan compiles");
+        .expect("reference exact plan compiles");
     let arena = bumpalo::Bump::new();
-    let plan = document.as_plan(&arena).expect("fixture exact plan loads");
+    let plan = document
+        .as_plan(&arena)
+        .expect("reference exact plan loads");
     assert!(
         plan.authorities
             .iter()
@@ -528,7 +530,7 @@ fn no_radio_network_fixtures_reject_authored_authority_and_have_no_effect_bindin
         plan.nodes
             .iter()
             .all(|node| node.execution_profile.is_some()),
-        "every standing fixture node pins bounded step limits"
+        "every standing reference node pins bounded step limits"
     );
 }
 

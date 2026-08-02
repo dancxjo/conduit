@@ -103,20 +103,22 @@ fn issue_270_inventory_names_every_required_type_proof_and_fixture() {
 }
 
 #[test]
-fn provider_matrix_is_plural_and_never_claims_unsupported_pico_routing() {
+fn provider_matrix_is_plural_observation_gated_and_never_claims_unsupported_pico_routing() {
     let fixture: serde_json::Value = serde_json::from_str(include_str!(
         "../../../conformance/c4/standing-network.json"
     ))
     .unwrap();
     let providers = fixture["provider_matrix"].as_array().unwrap();
-    assert_eq!(
-        providers
-            .iter()
-            .filter(|entry| entry["contract"] == "net/packet/route")
-            .filter(|entry| entry["state"] == "supported")
-            .count(),
-        2
-    );
+    assert!(providers.iter().any(|entry| {
+        entry["provider"] == "conduit.net/packet-router-reference"
+            && entry["contract"] == "net/packet/route"
+            && entry["state"] == "supported"
+    }));
+    assert!(providers.iter().any(|entry| {
+        entry["provider"] == "conduit.net/native-userspace-route-table"
+            && entry["contract"] == "net/packet/route"
+            && entry["state"] == "requires-fresh-host-capability"
+    }));
     assert!(providers.iter().any(|entry| {
         entry["provider"] == "netherwick/pico-w"
             && entry["contract"] == "net/packet/route"
