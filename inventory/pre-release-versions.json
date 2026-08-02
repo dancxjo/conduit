@@ -298,14 +298,6 @@
       "locations": [
         "inventory/release-compatibility-exceptions.json"
       ]
-    },
-    {
-      "family": "generated-browser-wasm",
-      "classification": "generated-from-current-source",
-      "validator": "generated-binary",
-      "locations": [
-        "tour/public/conduit_web_bg.wasm"
-      ]
     }
   ],
   "released_obligations": []

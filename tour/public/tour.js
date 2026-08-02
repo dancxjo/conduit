@@ -1611,7 +1611,21 @@ function activeScenario() {
   const libraryScenario = current.library?.scenarios?.find(
     (scenario) => scenario.id === scenarioSelect.value,
   );
-  if (libraryScenario) return libraryScenario;
+  if (libraryScenario) {
+    if (libraryScenario.validation?.kind === "diagnostic" &&
+        libraryScenario.validation.value === "CND-IMP-001") {
+      return {
+        ...libraryScenario,
+        runnability: {
+          state: "unsupported",
+          profile: current.runnability?.profile || "browser",
+          code: libraryScenario.validation.value,
+          reason: libraryScenario.semantics,
+        },
+      };
+    }
+    return libraryScenario;
+  }
   const platformProfile = current.platform?.profiles?.find(
     (profile) => profile.id === scenarioSelect.value,
   );
@@ -2235,7 +2249,11 @@ scenarioSelect?.addEventListener("change", () => {
   renderTimeline([]);
   openPatchbaySession();
   check();
-  result.textContent = `${scenario.explanation}\nReady for an exact deterministic run.`;
+  const runnability = activeRunnability();
+  const readiness = runnability?.state === "runnable"
+    ? "Ready for an exact deterministic run."
+    : `${runnability.code}: ${runnability.reason}`;
+  result.textContent = `${scenario.explanation}\n${readiness}`;
 });
 
 document.querySelector("#check").onclick = check;

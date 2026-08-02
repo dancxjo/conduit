@@ -71,6 +71,18 @@ fn browser_evidence_hash(domain: &[u8], facts: &[&[u8]]) -> SemanticHash {
     SemanticHash::from_bytes(hasher.finalize().into())
 }
 
+fn browser_exact_run_id(session_id: &str, source_revision: u64) -> String {
+    let identity = browser_evidence_hash(
+        b"exact-run-id",
+        &[session_id.as_bytes(), &source_revision.to_be_bytes()],
+    )
+    .to_string();
+    let digest = identity
+        .strip_prefix("sha256:")
+        .expect("semantic hashes use the canonical sha256 prefix");
+    format!("run-{}", &digest[..32])
+}
+
 fn browser_evidence_provider_observation() -> EvidenceProviderBindingDocument {
     // This artifact is the exact source compiled into the current provider,
     // rather than a placeholder digest. The generated WASM/browser-plan gate
@@ -804,7 +816,7 @@ fn browser_registry() -> Registry {
         .expect("deterministic codec providers have distinct identities");
     conduit_learned::register_deterministic_inference_provider(&mut registry)
         .expect("deterministic inference providers have distinct identities");
-    conduit_learned::lifecycle::register_deterministic_lifecycle_provider(&mut registry)
+    conduit_learned::lifecycle::register_deterministic_training_provider(&mut registry)
         .expect("deterministic learned lifecycle providers have distinct identities");
     conduit_knowledge::register_deterministic_retrieval_provider(&mut registry)
         .expect("deterministic retrieval providers have distinct identities");
@@ -1414,6 +1426,7 @@ fn start_browser_exact_run(
 ) -> Result<BrowserExactRun, RuntimeError> {
     let panel = conduit_panel::parse(source)
         .map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
+    let run_id = browser_exact_run_id(session_id, source_revision);
     let registry = browser_registry();
     let topology = registry
         .resolve(&panel)
@@ -1491,7 +1504,6 @@ fn start_browser_exact_run(
     let evidence_bytes = plan.budget.evidence_bytes;
     let node_count = plan.nodes.len();
     let cord_count = plan.cords.len();
-    let run_id = format!("conduit/browser-run/{session_id}/{source_revision}");
     let resolved = registry
         .resolve(&panel)
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
@@ -4664,13 +4676,13 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        browser_watch_observation, explain_panel, panel_language_metadata, panel_source_metadata,
-        patchbay_advance_exact_run, patchbay_apply_transaction, patchbay_attach_exact_watch,
-        patchbay_cancel_exact_run, patchbay_detach_exact_watch, patchbay_dispose_exact_run,
-        patchbay_move_node, patchbay_notify_host_operation, patchbay_open_session,
-        patchbay_pump_exact_run, patchbay_read_exact_evidence, patchbay_read_exact_watch,
-        patchbay_replace_source, patchbay_session_view, patchbay_snapshot_exact_run,
-        patchbay_start_exact_run,
+        browser_exact_run_id, browser_watch_observation, explain_panel, panel_language_metadata,
+        panel_source_metadata, patchbay_advance_exact_run, patchbay_apply_transaction,
+        patchbay_attach_exact_watch, patchbay_cancel_exact_run, patchbay_detach_exact_watch,
+        patchbay_dispose_exact_run, patchbay_move_node, patchbay_notify_host_operation,
+        patchbay_open_session, patchbay_pump_exact_run, patchbay_read_exact_evidence,
+        patchbay_read_exact_watch, patchbay_replace_source, patchbay_session_view,
+        patchbay_snapshot_exact_run, patchbay_start_exact_run,
     };
 
     const SOURCE: &str = "panel 0\nnode greeting : std/literal { value = \"hello\\n\" }\nnode output : display/text\ncord greeting.value -> output.text\n";
@@ -5341,6 +5353,32 @@ cord output.value -> sink.result\n\
                 .expect("dispose JSON");
         assert_eq!(disposed["ok"], true, "{disposed}");
         assert!(disposed["view"]["run"].is_null(), "{disposed}");
+    }
+
+    #[test]
+    fn browser_learned_promotion_fails_closed_without_host_policy_and_backend() {
+        let session_id = "test/browser-learned-promotion";
+        let source = include_str!("../../../examples/learned-lifecycle.panel");
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            session_id.to_owned(),
+            source.to_owned(),
+        ))
+        .expect("open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+
+        let started: Value = serde_json::from_str(&patchbay_start_exact_run(session_id.to_owned()))
+            .expect("start JSON");
+        assert_eq!(started["ok"], false, "{started}");
+        assert_eq!(started["code"], "CND-IMP-001", "{started}");
+    }
+
+    #[test]
+    fn browser_run_identity_is_valid_bounded_and_revision_specific() {
+        let first = browser_exact_run_id("tour/worker-run/1", 0);
+        let second = browser_exact_run_id("tour/worker-run/1", 1);
+        assert_eq!(first.len(), 36);
+        assert!(conduit_core::Id::new(&first).is_ok());
+        assert_ne!(first, second);
     }
 
     #[test]

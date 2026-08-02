@@ -19,9 +19,19 @@ separate effect requiring an exact `conduit.action/promote` grant, resource
 lease, commit profile, and acknowledged receipt. Missing, revoked, or stale
 authority fails before the promotion provider runs.
 
+The authored approval, checkpoint, evaluation report, desired target, and
+finite limits are semantic requests. The host independently observes the
+provider, model-slot resource generation, current time, grant, run/epoch lease,
+and use-time status before plan sealing and again where required at use. Merely
+installing `learned/promote` or naming those source values creates none of that
+authority.
+
 `LML-003` An inference provider, a training/evaluation provider, and a
 promotion provider are independently installable. Contract knowledge does not
-install any of them.
+install any of them. A promotion-capable host must supply two independent
+inputs: a current policy observation for the exact run/epoch and a
+source-attested model-slot commit backend. The default `conduct` and browser
+registries supply neither and therefore report promotion as unsupported.
 
 ## Finite lifecycle
 
@@ -39,13 +49,23 @@ a checkpoint, report, approval, or receipt.
 Unknown promotion commit requires reconciliation under the pinned commit
 policy; retry does not imply global exactly-once behavior.
 
+An acknowledged promotion receipt is returned by the host commit backend only
+after that backend changes the exact model-slot resource generation. The
+semantic handler verifies its bounded domain-separated commitment to the exact
+plan, epoch, run, promotion instance, checkpoint bytes, evaluation bytes,
+approval, target, resource binding and generation, lease, commit profile,
+effect, and grant before forwarding it. The handler never constructs a
+success receipt. No receipt exists for a rejected, duplicate, cancelled,
+provider-lost, inexactly acknowledged, or commit-unknown attempt.
+
 ## First proof
 
 The deterministic proof uses four public fixture records, one four-step exact
 training job, one retained checkpoint, four evaluation cases under
-`accuracy@1`, and one independently granted promotion into
-`learned/reference`. The complete composition executes through the production
-executor and emits only the acknowledged promotion receipt.
+`accuracy@1`, and an explicit fixture host that independently supplies both a
+grant observation and an in-memory model-slot backend. That backend changes
+generation zero to generation one and returns the receipt through the exact
+executor. It is not installed by production `conduct` or browser registries.
 
 Owned nodes are `learned/dataset/literal`, `learned/train`,
 `learned/evaluate`, `learned/promote`, and bounded dataset/evaluation/promotion
@@ -57,7 +77,9 @@ evaluation run without a promotion provider or grant.
 `conformance/c4/learned-lifecycle.json` owns the complete first matrix.
 `examples/learned-lifecycle-standalone.panel` is the dataset proof;
 `examples/learned-evaluation.panel` is the unprivileged training/evaluation
-proof; and `examples/learned-lifecycle.panel` is the authorized composition.
+proof; and `examples/learned-lifecycle.panel` is the authorized composition
+only under the explicit conformance-fixture host. Default hosts fail closed on
+that composition.
 
 ## Non-goals
 

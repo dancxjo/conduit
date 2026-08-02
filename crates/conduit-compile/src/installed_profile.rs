@@ -27,6 +27,32 @@ pub struct InstalledProfile {
     providers: Vec<InstalledHostedProvider>,
 }
 
+/// One authority decision observed independently by the host and offered to
+/// the resolver for a specific semantic service instance. Panel source cannot
+/// construct this value or make its status current merely by requesting the
+/// associated contract.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ObservedHostServiceAuthority {
+    pub contract_id: String,
+    pub instance: String,
+    pub decision: AuthorityDecisionDocument,
+}
+
+/// Commits host-observed opaque values to the semantic constraint identifiers
+/// owned by an effect domain.
+#[must_use]
+pub fn observed_host_service_constraints(
+    values: &[(&str, &[u8])],
+) -> Vec<AuthorityConstraintDocument> {
+    values
+        .iter()
+        .map(|(id, value)| AuthorityConstraintDocument {
+            id: (*id).to_owned(),
+            semantic_hash: hosted_effect_constraint_hash(id, value).to_string(),
+        })
+        .collect()
+}
+
 impl InstalledProfile {
     pub fn observe(source: &str) -> Result<Self, RuntimeError> {
         Self::observe_with_stdout_grant(source, true)
@@ -49,6 +75,23 @@ impl InstalledProfile {
     /// extension point for linked host-service providers.
     pub fn observe_registry(source: &str, registry: &Registry) -> Result<Self, RuntimeError> {
         Self::observe_registry_with_stdout_grant(source, registry, true)
+    }
+
+    /// Observe an explicitly assembled registry together with independently
+    /// supplied host authority facts. This is the production entry point for
+    /// effectful providers whose grants must not be inferred from panel
+    /// source or provider installation.
+    pub fn observe_registry_with_host_authorities(
+        source: &str,
+        registry: &Registry,
+        authorities: &[ObservedHostServiceAuthority],
+    ) -> Result<Self, RuntimeError> {
+        Self::observe_registry_with_stdout_grant_and_host_authorities(
+            source,
+            registry,
+            true,
+            authorities,
+        )
     }
 
     /// Adds one independently observed host evidence-provider binding to the
@@ -83,6 +126,20 @@ impl InstalledProfile {
         source: &str,
         registry: &Registry,
         stdout_granted: bool,
+    ) -> Result<Self, RuntimeError> {
+        Self::observe_registry_with_stdout_grant_and_host_authorities(
+            source,
+            registry,
+            stdout_granted,
+            &[],
+        )
+    }
+
+    fn observe_registry_with_stdout_grant_and_host_authorities(
+        source: &str,
+        registry: &Registry,
+        stdout_granted: bool,
+        observed_authorities: &[ObservedHostServiceAuthority],
     ) -> Result<Self, RuntimeError> {
         let panel =
             parse(source).map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
@@ -169,6 +226,7 @@ impl InstalledProfile {
                     stdout_instance.as_deref(),
                     &host_service_instances,
                     stdout_granted,
+                    observed_authorities,
                 ));
             }
         }
@@ -460,6 +518,7 @@ fn candidate(
     stdout_instance: Option<&str>,
     host_service_instances: &[(String, Vec<AuthorityConstraintDocument>)],
     stdout_granted: bool,
+    observed_authorities: &[ObservedHostServiceAuthority],
 ) -> CandidateDocument {
     let manifest = installed.manifest;
     let artifact = installed.artifact;
@@ -467,11 +526,22 @@ fn candidate(
         .map(|instance| vec![stdout_authority(instance, stdout_granted)])
         .unwrap_or_default();
     for (instance, constraints) in host_service_instances {
-        authorities.extend(host_service_authority(
-            installed.contract.id.as_str(),
-            instance,
-            constraints,
-        ));
+        if installed.contract.id.as_str() != "learned/promote" {
+            authorities.extend(host_service_authority(
+                installed.contract.id.as_str(),
+                instance,
+                constraints,
+            ));
+        }
+        authorities.extend(
+            observed_authorities
+                .iter()
+                .filter(|observation| {
+                    observation.contract_id == installed.contract.id.as_str()
+                        && observation.instance == *instance
+                })
+                .map(|observation| observation.decision.clone()),
+        );
     }
     let has_host_service = !host_service_instances.is_empty();
     let format_profile = matches!(
@@ -793,6 +863,30 @@ fn stdout_authority(instance: &str, granted: bool) -> AuthorityDecisionDocument 
         resource_lease,
         commit_profile,
     }
+}
+
+/// Builds one deterministic authority fixture for conformance tests. This is
+/// not a production policy observer and must never be called by default host
+/// execution paths.
+#[must_use]
+pub fn fixture_host_service_authority_observation(
+    contract_id: &str,
+    instance: &str,
+    run_id: &str,
+    epoch: u64,
+    constraints: &[AuthorityConstraintDocument],
+) -> Option<ObservedHostServiceAuthority> {
+    host_service_authority(contract_id, instance, constraints).map(|mut decision| {
+        decision.effect.audience = run_id.to_owned();
+        decision.grant.audience = run_id.to_owned();
+        decision.resource_lease.run = run_id.to_owned();
+        decision.resource_lease.epoch = epoch;
+        ObservedHostServiceAuthority {
+            contract_id: contract_id.to_owned(),
+            instance: instance.to_owned(),
+            decision,
+        }
+    })
 }
 
 fn host_service_authority(

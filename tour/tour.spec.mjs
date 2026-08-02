@@ -210,7 +210,7 @@ test("keeps one canonical source artifact through every cumulative build", async
     ["service.listen", "Waiting is not completion", /node server : net\/http\/listen/],
     ["robot.rehearse", "Choose hosts without changing meaning", /node wifi_ap : net\/wifi\/access-point/],
   ]) {
-    await page.goto(`/tour/public/index.html?section=${section}`);
+    await gotoTour(page, `/tour/public/index.html?section=${section}`);
     const source = page.locator("#source");
     await expect(source).toHaveValue(sourcePattern);
     const before = await source.inputValue();
@@ -1565,7 +1565,7 @@ test("clears the previous diagram before redrawing a lesson that fails resolutio
 });
 
 test("styles cords from their projected type and pressure policy", async ({ page }) => {
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const edge = page.locator(".patchbay-cord").first();
   await expect(edge).toHaveClass(/pressure-block/);
   await expect(edge).toHaveClass(/pressure-lossless/);
@@ -2551,19 +2551,19 @@ test("learned lifecycle keeps evaluation separate from promotion authority", asy
   await page.locator("#scenario").selectOption(
     "authorized-promotion-composition",
   );
-  await page.locator("#run").click();
   await expect(result).toContainText(
-    "learned:promotion:learned/reference:acknowledged",
-    { timeout: 20_000 },
+    "backend-originated receipt",
   );
-  await expect(page.locator("#evidence")).toContainText(
-    '"event_kind": "terminal"',
+  await expect(result).toContainText("CND-IMP-001");
+  await expect(page.locator("#run")).toBeDisabled();
+  await expect(page.locator("#evidence")).not.toContainText(
+    '"kind": "lesson-completed"',
   );
-  await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+  await expect(page.locator("#timeline-table tbody tr")).toHaveCount(0);
 });
 
 test("cited claim graph keeps source support on each traversed edge", async ({ page }) => {
-  await page.goto(
+  await gotoTour(page,
     "/tour/public/index.html?lesson=library.bounded-knowledge-graph",
   );
   const story = page.locator("#execution-story");
@@ -2711,7 +2711,8 @@ test("cross-host lesson keeps discovery separate from exact provider binding", a
 
   const runWithAcceptedProfile = async (scenarioId) => {
     await page.locator("#scenario").selectOption(scenarioId);
-    await expect(result).toContainText("admitted by the checked contract");
+    await expect(page.locator("#scenario")).toHaveValue(scenarioId);
+    await expect(page.locator("#run")).toBeEnabled();
     await page.locator("#run").click();
     await expect(result).toContainText(
       "audio:s16le:48000:stereo:192",

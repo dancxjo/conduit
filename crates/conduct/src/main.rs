@@ -426,7 +426,7 @@ fn run(
                 )
             },
         )?;
-        conduit_learned::lifecycle::register_deterministic_lifecycle_provider(&mut registry)
+        conduit_learned::lifecycle::register_deterministic_training_provider(&mut registry)
             .map_err(|error| {
                 cli_error(
                     simple_diagnostic(error.code, &error.message),
