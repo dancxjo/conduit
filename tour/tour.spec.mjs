@@ -303,7 +303,7 @@ test("keeps the project path keyboard-operable with adjacent reduced-motion equi
   await expect(page.locator("#plan-drawer")).not.toHaveAttribute("open", "");
 });
 
-test("routes Book, Cookbook, Reference and retired lesson links through the migration ledger", async ({
+test("routes retired lesson links back into the Book through the migration ledger", async ({
   page,
 }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
@@ -313,7 +313,9 @@ test("routes Book, Cookbook, Reference and retired lesson links through the migr
   );
   await page.locator("#previous-section").click();
   await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
+});
 
+test("routes Book lesson links through the migration ledger", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-http-service");
   await expect(page.locator("#reader-section-title")).toHaveText(
     "Open the service boundary",
@@ -321,11 +323,15 @@ test("routes Book, Cookbook, Reference and retired lesson links through the migr
   await expect(page.locator("#artifact-id")).toHaveText("bounded-service.panel");
   await expect(page.locator("#run")).toBeDisabled();
   await expect(page.locator("#result")).toContainText("CND-IMP-001");
+});
 
+test("routes Reference lesson links through the migration ledger", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=nodes.more-than-one-port");
   await expect(page.locator("#project-progress")).toHaveText("Reference lesson");
   await expect(page.locator("#project-artifact")).toBeHidden();
+});
 
+test("routes Cookbook recipe links through the migration ledger", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-media-codecs");
   await expect(page.locator("#project-progress")).toHaveText("Cookbook recipe");
   await expect(page.locator("#reader-section-title")).toHaveText(
