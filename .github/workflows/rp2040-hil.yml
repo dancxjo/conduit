@@ -20,7 +20,7 @@ jobs:
   physical-rp2040:
     runs-on: [self-hosted, rp2040-hil]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: thumbv6m-none-eabi

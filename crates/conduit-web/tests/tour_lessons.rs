@@ -39,8 +39,8 @@ fn tour_lessons_declare_verified_browser_runnability() {
         "Tour lesson ids are unique; the manifest is the published inventory"
     );
     let browser_plan: Value =
-        serde_json::from_str(include_str!("../../../tour/public/browser-plan.json"))
-            .expect("Tour browser plan is valid JSON");
+        serde_json::from_str(include_str!("../../../tour/browser-plan-contract.json"))
+            .expect("Tour browser plan contract is valid JSON");
     assert_eq!(
         browser_plan["schema"], "conduit.tour-browser-plan",
         "lessons consume the exact browser-host plan"
@@ -1503,8 +1503,8 @@ fn typed_text_format_library_lesson_runs_every_checked_scenario() {
     let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
         .expect("Tour lesson manifest is valid JSON");
     let browser_plan: Value =
-        serde_json::from_str(include_str!("../../../tour/public/browser-plan.json"))
-            .expect("Tour browser plan is valid JSON");
+        serde_json::from_str(include_str!("../../../tour/browser-plan-contract.json"))
+            .expect("Tour browser plan contract is valid JSON");
     let maximum_evidence = browser_plan["bounds"]["maximum_evidence_events"]
         .as_u64()
         .unwrap();

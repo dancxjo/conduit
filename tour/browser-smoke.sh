@@ -2,6 +2,11 @@
 set -euo pipefail
 
 root_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+site_dir=${CONDUIT_TOUR_SITE:-"${root_dir}/target/tour-site"}
+if [[ ! -f "${site_dir}/tour/public/browser-plan.json" ]]; then
+  echo "Tour artifact is missing; run bash tour/build-artifact.sh first" >&2
+  exit 1
+fi
 server_log=$(mktemp)
 cleanup() {
   kill "${server_pid}" 2>/dev/null || true
@@ -9,7 +14,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-cargo xtask serve --directory "${root_dir}" --port 0 >"${server_log}" 2>&1 &
+CONDUIT_TOUR_SITE="${site_dir}" \
+  node "${root_dir}/browser/static-server.mjs" 0 >"${server_log}" 2>&1 &
 server_pid=$!
 
 port=""
@@ -36,7 +42,7 @@ done
 curl --fail --silent "http://127.0.0.1:${port}/tour/public/index.html" >/dev/null
 
 chrome_bin="${CHROME_BIN:-}"
-if [[ -z "${chrome_bin}" ]]; then
+if [[ -z "${chrome_bin}" ]] && command -v google-chrome >/dev/null 2>&1; then
   chrome_bin=$(command -v google-chrome)
 fi
 CHROME_BIN="${chrome_bin}" node "${root_dir}/tour/browser-smoke.mjs" \

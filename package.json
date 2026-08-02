@@ -2,7 +2,10 @@
   "name": "conduit-browser-conformance",
   "private": true,
   "scripts": {
-    "test:browser": "playwright test --config browser/playwright.config.mjs"
+    "build:tour": "bash tour/build-artifact.sh",
+    "check:browser-bounds": "node browser/check-test-bounds.mjs",
+    "test:browser": "playwright test --config browser/playwright.config.mjs",
+    "test:browser:local": "npm run build:tour && CONDUIT_TOUR_SITE=target/tour-site npm run test:browser"
   },
   "devDependencies": {
     "@playwright/test": "1.62.0"

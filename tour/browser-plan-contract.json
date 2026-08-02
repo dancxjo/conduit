@@ -1,0 +1,26 @@
+{
+  "bounds": {
+    "maximum_evidence_events": 64,
+    "maximum_message_bytes": 131072,
+    "maximum_pending": 1,
+    "maximum_runtime_ticks": 512,
+    "maximum_scheduler_events": 256,
+    "response_timeout_ms": 20000
+  },
+  "evidence_provider": {
+    "gap_policy": "explicit-earliest-cursor",
+    "implementation_id": "conduit/browser-worker-exact-evidence",
+    "maximum_bytes": 262144,
+    "maximum_events": 256,
+    "maximum_projection_events": 32,
+    "provider_resource": null,
+    "retention": "rolling",
+    "storage_claim": "execution-plan-budget.evidence_bytes",
+    "terminal_required": true
+  },
+  "implementation_id": "conduit/tour-production-wasm-worker",
+  "observation_id": "conduit/tour-static-browser-observation",
+  "placement": "dedicated-worker",
+  "schema": "conduit.tour-browser-plan",
+  "semantic_contract": "conduit/tour-panel-run"
+}

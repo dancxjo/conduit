@@ -3,7 +3,10 @@ import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 
-const root = resolve(".");
+const sourceRoot = resolve(".");
+const artifactRoot = process.env.CONDUIT_TOUR_SITE
+  ? resolve(process.env.CONDUIT_TOUR_SITE)
+  : undefined;
 const mediaTypes = new Map([
   [".html", "text/html; charset=utf-8"],
   [".css", "text/css; charset=utf-8"],
@@ -19,13 +22,27 @@ const requestedPort = parseInt(process.argv[2] ?? process.env.PORT ?? "4173", 10
 const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname);
-    const file = resolve(root, `.${pathname}`);
-    if (file !== root && !file.startsWith(`${root}${sep}`)) {
-      response.writeHead(403).end();
-      return;
+    const roots = artifactRoot ? [artifactRoot, sourceRoot] : [sourceRoot];
+    let file;
+    let metadata;
+    for (const root of roots) {
+      const candidate = resolve(root, `.${pathname}`);
+      if (candidate !== root && !candidate.startsWith(`${root}${sep}`)) {
+        continue;
+      }
+      try {
+        const candidateMetadata = await stat(candidate);
+        if (candidateMetadata.isFile()) {
+          file = candidate;
+          metadata = candidateMetadata;
+          break;
+        }
+      } catch {
+        // The test harness remains source-owned while release paths come from
+        // the assembled artifact whenever it contains the requested file.
+      }
     }
-    const metadata = await stat(file);
-    if (!metadata.isFile()) {
+    if (!file || !metadata) {
       response.writeHead(404).end();
       return;
     }

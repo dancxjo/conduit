@@ -14,8 +14,13 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
+  maxFailures: process.env.CI ? 1 : undefined,
   timeout: 30_000,
-  reporter: "line",
+  reporter: process.env.CI
+    ? [["line"], ["blob", {
+      outputDir: process.env.PLAYWRIGHT_BLOB_OUTPUT_DIR ?? "blob-report",
+    }]]
+    : "line",
   use: {
     baseURL,
     serviceWorkers: "allow",

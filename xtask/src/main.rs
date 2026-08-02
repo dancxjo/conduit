@@ -25,6 +25,12 @@ enum Commands {
     GenerateBrowserPlan {
         #[arg(long)]
         check: bool,
+        /// Directory containing the wasm-bindgen runtime outputs
+        #[arg(long, default_value = "target/tour-runtime")]
+        artifact_dir: PathBuf,
+        /// Generated public browser plan path
+        #[arg(long, default_value = "target/tour-runtime/browser-plan.json")]
+        output: PathBuf,
     },
     /// Verify C1 canonical descriptor vectors
     VerifyCanonical {
@@ -114,9 +120,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match cli.command {
         Commands::CatalogIndex { check } => commands::catalog_index::run(&root, check),
-        Commands::GenerateBrowserPlan { check } => {
-            commands::generate_browser_plan::run(&root, check)
-        }
+        Commands::GenerateBrowserPlan {
+            check,
+            artifact_dir,
+            output,
+        } => commands::generate_browser_plan::run(&root, check, &artifact_dir, &output),
         Commands::VerifyCanonical { vectors, show } => {
             commands::verify_canonical::run(&root, vectors, show)
         }

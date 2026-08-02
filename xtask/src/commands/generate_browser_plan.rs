@@ -1,10 +1,57 @@
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
-pub fn run(workspace_root: &Path, check: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let output_path = workspace_root.join("tour/public/browser-plan.json");
+fn workspace_path(workspace_root: &Path, path: &Path) -> PathBuf {
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        workspace_root.join(path)
+    }
+}
+
+fn read_contract(workspace_root: &Path) -> Result<Value, Box<dyn std::error::Error>> {
+    let contract_path = workspace_root.join("tour/browser-plan-contract.json");
+    let contract: Value = serde_json::from_str(&fs::read_to_string(&contract_path)?)?;
+    let contract_object = contract
+        .as_object()
+        .ok_or("tour/browser-plan-contract.json must contain one JSON object")?;
+    if contract_object.get("schema") != Some(&json!("conduit.tour-browser-plan")) {
+        return Err("Tour browser plan contract has the wrong schema".into());
+    }
+    for field in [
+        "bounds",
+        "evidence_provider",
+        "implementation_id",
+        "observation_id",
+        "placement",
+        "semantic_contract",
+    ] {
+        if !contract_object.contains_key(field) {
+            return Err(format!("Tour browser plan contract is missing {field}").into());
+        }
+    }
+    Ok(contract)
+}
+
+pub fn check_contract(workspace_root: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    read_contract(workspace_root)?;
+    println!("tour/browser-plan-contract.json is valid.");
+    Ok(())
+}
+
+pub fn run(
+    workspace_root: &Path,
+    check: bool,
+    artifact_dir: &Path,
+    output: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let artifact_dir = workspace_path(workspace_root, artifact_dir);
+    let output_path = workspace_path(workspace_root, output);
 
     let artifacts_def = [
         (
@@ -19,12 +66,12 @@ pub fn run(workspace_root: &Path, check: bool) -> Result<(), Box<dyn std::error:
         ),
         (
             "wasm-bindgen-loader",
-            workspace_root.join("tour/public/conduit_web.js"),
+            artifact_dir.join("conduit_web.js"),
             "./conduit_web.js",
         ),
         (
             "conduit-web-wasm",
-            workspace_root.join("tour/public/conduit_web_bg.wasm"),
+            artifact_dir.join("conduit_web_bg.wasm"),
             "./conduit_web_bg.wasm",
         ),
     ];
@@ -45,56 +92,29 @@ pub fn run(workspace_root: &Path, check: bool) -> Result<(), Box<dyn std::error:
         }));
     }
 
-    let identity_input = json!({
-        "schema": "conduit.tour-browser-plan",
-        "implementation_id": "conduit/tour-production-wasm-worker",
-        "semantic_contract": "conduit/tour-panel-run",
-        "placement": "dedicated-worker",
-        "evidence_provider": {
-            "implementation_id": "conduit/browser-worker-exact-evidence",
-            "retention": "rolling",
-            "maximum_events": 256,
-            "maximum_bytes": 262144,
-            "maximum_projection_events": 32,
-            "gap_policy": "explicit-earliest-cursor",
-            "terminal_required": true,
-            "storage_claim": "execution-plan-budget.evidence_bytes",
-            "provider_resource": null
-        },
-        "artifacts": artifacts
-    });
-
-    let identity_bytes = serde_json::to_vec(&identity_input)?;
+    let mut plan = read_contract(workspace_root)?;
+    plan.as_object_mut()
+        .expect("validated browser plan contract")
+        .insert("artifacts".to_string(), json!(artifacts));
+    let identity_bytes = serde_json::to_vec(&plan)?;
     let plan_identity = format!("{:x}", Sha256::digest(&identity_bytes));
-
-    let mut plan = identity_input;
-    if let Value::Object(ref mut map) = plan {
-        map.insert("plan_identity".to_string(), json!(plan_identity));
-        map.insert(
-            "observation_id".to_string(),
-            json!("conduit/tour-static-browser-observation"),
-        );
-        map.insert(
-            "bounds".to_string(),
-            json!({
-                "maximum_pending": 1,
-                "maximum_message_bytes": 131072,
-                "response_timeout_ms": 20000,
-                "maximum_evidence_events": 64,
-                "maximum_scheduler_events": 256,
-                "maximum_runtime_ticks": 512
-            }),
-        );
-    }
+    plan.as_object_mut()
+        .expect("validated browser plan contract")
+        .insert("plan_identity".to_string(), json!(plan_identity));
 
     let rendered = format!("{}\n", serde_json::to_string_pretty(&plan)?);
 
     if check {
         if !output_path.exists() || fs::read_to_string(&output_path)? != rendered {
-            return Err("tour/public/browser-plan.json is stale; run tour/build-wasm.sh".into());
+            return Err(
+                format!("{} is stale; run tour/build-wasm.sh", output_path.display()).into(),
+            );
         }
-        println!("tour/public/browser-plan.json is up to date.");
+        println!("{} is up to date.", output_path.display());
     } else {
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
         fs::write(&output_path, rendered)?;
         println!("Generated {}", output_path.display());
     }

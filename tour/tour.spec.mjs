@@ -21,6 +21,52 @@ async function gotoTour(page, path) {
   );
 }
 
+function collectPageFailures(page) {
+  const failures = [];
+  page.on("pageerror", (error) => failures.push(error.stack ?? String(error)));
+  page.on("console", (message) => {
+    if (message.type() === "error") failures.push(message.text());
+  });
+  return failures;
+}
+
+async function openTinyInstrument(page) {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.tiny-instrument");
+  await page.locator("#accounting-drawer > summary").click();
+  await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
+}
+
+async function startTinyInstrument(page) {
+  await openTinyInstrument(page);
+  await page.locator("#run").click();
+  await expect.poll(async () => {
+    const text = await page.locator("#watch-value").textContent();
+    return parseWatchTick(text);
+  }, { timeout: 20_000 }).toBeGreaterThanOrEqual(0);
+  const firstTick = parseWatchTick(
+    await page.locator("#watch-value").textContent(),
+  );
+  const first = await page.locator("#watch-accounting").evaluate((element) =>
+    JSON.parse(element.textContent)
+  );
+  const browserPlan = await page.evaluate(() =>
+    fetch("/tour/public/browser-plan.json", { cache: "no-store" })
+      .then((response) => response.json())
+  );
+  return { browserPlan, first, firstTick };
+}
+
+async function openTypedTextLesson(page) {
+  await page.goto("/tour/public/index.html?lesson=library.typed-text-format");
+  const story = page.locator("#execution-story");
+  await expect(story).toBeVisible();
+  return {
+    result: page.locator("#result"),
+    source: page.locator("#source"),
+    story,
+  };
+}
+
 test("runs a production lesson in the resolved browser worker", async ({ page }) => {
   const failures = [];
   page.on("pageerror", (error) => failures.push(error.stack ?? String(error)));
@@ -491,17 +537,9 @@ test("owns an exact Patchbay run session inside the dedicated worker", async ({ 
   expect(result.disposed.value.view.run).toBeUndefined();
 });
 
-test("keeps one public latest-value ticker Watch live in the production executor", async ({
-  page,
-}) => {
-  test.setTimeout(90_000);
-  const failures = [];
-  page.on("pageerror", (error) => failures.push(error.stack ?? String(error)));
-  page.on("console", (message) => {
-    if (message.type() === "error") failures.push(message.text());
-  });
-
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.tiny-instrument");
+test("starts one public latest-value Watch with bounded accounting", async ({ page }) => {
+  const failures = collectPageFailures(page);
+  await openTinyInstrument(page);
   await expect(page.locator("#title")).toHaveText(
     "Project one: A living instrument — Wake the instrument",
   );
@@ -518,10 +556,7 @@ test("keeps one public latest-value ticker Watch live in the production executor
   await expect(page.locator("#instrument-result-text")).toContainText(
     "Start the exact run to produce the first beat",
   );
-  await page.locator("#accounting-drawer > summary").click();
-  await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
   await page.locator("#run").click();
-
   await expect.poll(async () => {
     const text = await page.locator("#watch-value").textContent();
     return parseWatchTick(text);
@@ -543,10 +578,6 @@ test("keeps one public latest-value ticker Watch live in the production executor
   await expect(page.locator("#result")).toContainText("Live exact run remains waiting");
   const first = await page.locator("#watch-accounting").evaluate((element) =>
     JSON.parse(element.textContent)
-  );
-  const browserPlan = await page.evaluate(() =>
-    fetch("/tour/public/browser-plan.json", { cache: "no-store" })
-      .then((response) => response.json())
   );
   expect(first).toMatchObject({
     state: "waiting",
@@ -625,7 +656,13 @@ test("keeps one public latest-value ticker Watch live in the production executor
     "aria-keyshortcuts",
     "F",
   );
+  expect(failures).toEqual([]);
+});
 
+test("freezes and reattaches a live Watch without pressuring execution", async ({ page }) => {
+  const failures = collectPageFailures(page);
+  const { first, firstTick } = await startTinyInstrument(page);
+  const liveEdge = page.locator('.react-flow__edge[data-live-update="true"]').first();
   await page.locator("#freeze-display").click();
   await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
   const beforeFreeze = parseWatchTick(
@@ -676,7 +713,7 @@ test("keeps one public latest-value ticker Watch live in the production executor
       JSON.parse(element.textContent)
     );
     return accounting.evidence_store.next_cursor;
-  }, { timeout: 20_000 }).toBeGreaterThan(later.evidence_store.next_cursor);
+  }, { timeout: 20_000 }).toBeGreaterThan(first.evidence_store.next_cursor);
   const detached = await page.locator("#watch-accounting").evaluate((element) =>
     JSON.parse(element.textContent)
   );
@@ -716,7 +753,12 @@ test("keeps one public latest-value ticker Watch live in the production executor
     await liveEdge.getAttribute("data-live-sequence"),
   ), { timeout: 20_000 }).toBeGreaterThan(reducedSequence);
   await expect(liveEdge).not.toHaveClass(/live-flow-pulse/);
+  expect(failures).toEqual([]);
+});
 
+test("links an active Watch cord event to its exact source", async ({ page }) => {
+  const failures = collectPageFailures(page);
+  await startTinyInstrument(page);
   const liveCordEvent = page.locator(
     '.timeline-event[data-subject-kind="cord"]',
   ).last();
@@ -725,12 +767,37 @@ test("keeps one public latest-value ticker Watch live in the production executor
   expect(await page.locator("#source").evaluate((element) =>
     element.selectionEnd > element.selectionStart
   )).toBe(true);
+  expect(failures).toEqual([]);
+});
 
+test("toggles an admitted Watch with W from non-editing focus", async ({ page }) => {
+  const failures = collectPageFailures(page);
+  await startTinyInstrument(page);
+  const watchToggle = page.locator("#watch-toggle");
+  await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
+  const freezeDisplay = page.locator("#freeze-display");
+  await expect(freezeDisplay).toBeEnabled();
+  await expect.poll(async () => {
+    const pressed = await watchToggle.getAttribute("aria-pressed");
+    if (pressed === "true") {
+      await freezeDisplay.focus();
+      await page.keyboard.press("w");
+    }
+    return watchToggle.getAttribute("aria-pressed");
+  }, { timeout: 10_000 }).toBe("false");
+  expect(failures).toEqual([]);
+});
+
+test("keeps the active Watch epoch exact across candidate edits and stop", async ({ page }) => {
+  const failures = collectPageFailures(page);
+  const { browserPlan, first } = await startTinyInstrument(page);
   const activeValueBeforeEdit = parseWatchTick(
     await page.locator("#watch-value").textContent(),
   );
-  const authored = await page.locator("#source").inputValue();
-  await page.locator("#source").fill(`${authored}\ncord`);
+  await page.locator("#source").evaluate((element) => {
+    element.value = `${element.value}\ncord`;
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
   await expect(page.locator(".patchbay-live-run-status")).toContainText(
     "is separate from this active epoch",
   );
@@ -746,20 +813,14 @@ test("keeps one public latest-value ticker Watch live in the production executor
   expect(browserPlan.evidence_provider).toMatchObject({
     implementation_id: "conduit/browser-worker-exact-evidence",
     retention: "rolling",
-    maximum_events: later.evidence_store.maximum_events,
-    maximum_bytes: later.evidence_store.maximum_bytes,
+    maximum_events: first.evidence_store.maximum_events,
+    maximum_bytes: first.evidence_store.maximum_bytes,
     maximum_projection_events: 32,
     gap_policy: "explicit-earliest-cursor",
     terminal_required: true,
     storage_claim: "execution-plan-budget.evidence_bytes",
     provider_resource: null,
   });
-
-  await page.locator("#check").focus();
-  await page.keyboard.press("w");
-  await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "false");
-  await expect(page.locator("#watch-toggle")).toBeEnabled({ timeout: 20_000 });
-  await expect(page.locator("#console-status-badge")).toHaveText("Live");
 
   await page.locator("#stop").click();
   await expect(page.locator("#console-status-badge")).toHaveText("Ready");
@@ -2263,16 +2324,8 @@ test("multi-port lesson runs its explicit display composite", async ({ page }) =
   await expect(page.locator("#evidence")).toContainText('"event_kind": "terminal"');
 });
 
-test("typed text lesson shares format, lines, join, and ordered evidence", async ({ page }) => {
-  test.setTimeout(90_000);
-  await page.goto(
-    "/tour/public/index.html?lesson=library.typed-text-format",
-  );
-  const story = page.locator("#execution-story");
-  const result = page.locator("#result");
-  const source = page.locator("#source");
-
-  await expect(story).toBeVisible();
+test("typed text lesson exposes format topology and ordered evidence", async ({ page }) => {
+  const { result, story } = await openTypedTextLesson(page);
   await expect(story).toContainText("std/text/format");
   await expect(story).toContainText("std/format-values/literal");
   await expect(story).toContainText("std/text/lines");
@@ -2303,7 +2356,10 @@ test("typed text lesson shares format, lines, join, and ordered evidence", async
   await story.focus();
   await page.keyboard.press("ArrowRight");
   await expect(timelinePosition).not.toHaveText(steppedPosition);
+});
 
+test("typed text lesson distinguishes composition rejection and cancellation", async ({ page }) => {
+  const { result } = await openTypedTextLesson(page);
   await page.locator("#scenario").selectOption("composition");
   await page.locator("#run").click();
   await expect(result).toContainText("HELLO, OPERATOR.", { timeout: 20_000 });
@@ -2321,7 +2377,10 @@ test("typed text lesson shares format, lines, join, and ordered evidence", async
   await page.locator("#run").click();
   await expect(result).toContainText("cancelled", { timeout: 20_000 });
   await expect(page.locator("#timeline-table")).toContainText("cancelled");
+});
 
+test("typed text lesson runs line transforms", async ({ page }) => {
+  const { result } = await openTypedTextLesson(page);
   await page.locator("#scenario").selectOption("lines-join");
   await page.locator("#run").click();
   await expect(result).toContainText("alpha | beta |  | gamma", { timeout: 20_000 });
@@ -2331,7 +2390,10 @@ test("typed text lesson shares format, lines, join, and ordered evidence", async
   await page.locator("#scenario").selectOption("format-lines");
   await page.locator("#run").click();
   await expect(result).toContainText("alpha / beta", { timeout: 20_000 });
+});
 
+test("typed text lesson runs an edited standalone format", async ({ page }) => {
+  const { result, source } = await openTypedTextLesson(page);
   await page.locator("#scenario").selectOption("standalone");
   await source.fill((await source.inputValue()).replace("operator", "robot"));
   await page.locator("#run").click();

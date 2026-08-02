@@ -25,6 +25,13 @@ blob-report/
 __pycache__/
 *.pyc
 
+# Generated Tour runtime outputs are assembled under target/ for CI and releases.
+tour/public/browser-plan.json
+tour/public/conduit_web.d.ts
+tour/public/conduit_web.js
+tour/public/conduit_web_bg.wasm
+tour/public/conduit_web_bg.wasm.d.ts
+
 # RustRover
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore

@@ -113,8 +113,8 @@ pub fn run(workspace_root: &Path) -> Result<(), Box<dyn std::error::Error>> {
         workspace_root,
     )?;
 
-    println!("\n=== Running check-all step: xtask generate-browser-plan --check ===");
-    crate::commands::generate_browser_plan::run(workspace_root, true)?;
+    println!("\n=== Running check-all step: browser plan contract ===");
+    crate::commands::generate_browser_plan::check_contract(workspace_root)?;
 
     println!("\n=== Running check-all step: xtask verify-canonical ===");
     crate::commands::verify_canonical::run(workspace_root, None, false)?;

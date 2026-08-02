@@ -91,7 +91,20 @@ representative panel still runs through the exact browser worker. Envelope,
 clock-conversion, and feedback facts remain exact-plan projections rather than
 teaching-only runtime events.
 
-`tour/build-site.sh` assembles the checked static Tour, lessons, exact
-browser-host adapter, linked examples, and the formatter's linked
-specification/cookbook/conformance fixture. The Pages workflow publishes that
-artifact only after the corresponding `main` CI run succeeds.
+`tour/browser-plan-contract.json` is the tracked semantic contract and finite
+browser bound. Build-specific wasm-bindgen outputs and `browser-plan.json` are
+not source files: `bash tour/build-artifact.sh` creates them under
+`target/tour-runtime`, assembles the complete site under `target/tour-site`,
+and emits a deterministic release archive plus checksum under
+`target/tour-dist`.
+
+The three Playwright engine jobs download one commit-named CI artifact and
+serve its assembled site as an overlay on the source-owned test harness. Each
+engine keeps one worker, has no retries or per-test timeout overrides, stops at
+its first failure, and must finish inside the workflow's suite and job bounds.
+For the same path locally, run `npm ci` followed by
+`npm run test:browser:local`.
+
+The Pages workflow downloads the successful `main` CI artifact instead of
+checking out or rebuilding it. A `v*` tag publishes the same tested archive
+and checksum as an attested GitHub release artifact.

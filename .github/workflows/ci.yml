@@ -17,11 +17,10 @@ jobs:
   hosted:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy,rustfmt
-          targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -35,19 +34,6 @@ jobs:
         with:
           name: release-evidence
           path: target/release-evidence.json
-      - id: wasm-bindgen-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/wasm-bindgen*
-          key: wasm-bindgen-cli-${{ runner.os }}-${{ runner.arch }}-0.2.126
-      - if: steps.wasm-bindgen-cache.outputs.cache-hit != 'true'
-        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
-      # WASM binary layout is toolchain-dependent, so CI verifies that the
-      # checked-in static Tour can be rebuilt instead of byte-comparing it.
-      - run: bash tour/build-wasm.sh
-      - run: npm ci --ignore-scripts
-      - run: bash tour/browser-smoke.sh
-      - run: bash browser/run-chromium-vectors.sh
       - run: cargo run -p conduct --bin generate-conduct-assets -- --check
       # Workspace tests already execute every manifest reference test.
       - run: cargo run -p conduit-conformance -- verify-fixtures conformance/current/manifest.json
@@ -59,22 +45,80 @@ jobs:
       - run: test "$(cargo run -q -p conduct -- --run examples/hello.panel)" = "HELLO FROM CONDUIT."
       - run: test "$(cargo run -q -p conduct -- examples/hello.panel)" = "HELLO FROM CONDUIT."
 
-  browser-engines:
+  tour-artifact:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - id: wasm-bindgen-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-bindgen*
+          key: wasm-bindgen-cli-${{ runner.os }}-${{ runner.arch }}-0.2.126
+      - if: steps.wasm-bindgen-cache.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
+      - run: bash tour/build-artifact.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tour-${{ github.sha }}
+          path: |
+            target/tour-site
+            target/tour-dist
+          if-no-files-found: error
+          retention-days: 7
+
+  browser-engines:
+    needs: tour-artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     container:
       image: mcr.microsoft.com/playwright:v1.62.0-noble
       options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chromium
+            port: 4173
+          - browser: firefox
+            port: 4174
+          - browser: webkit
+            port: 4175
     env:
       HOME: /root
+      CONDUIT_PLAYWRIGHT_PORT: ${{ matrix.port }}
+      CONDUIT_TOUR_SITE: target/tour-site
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v5
+        with:
+          name: tour-${{ github.sha }}
+          path: target
       - run: npm ci --ignore-scripts
-      - run: npm run test:browser
+      - run: npm run check:browser-bounds
+      - name: Run bounded ${{ matrix.browser }} suite
+        run: >-
+          timeout --signal=INT --kill-after=30s 13m
+          npm run test:browser -- --project=${{ matrix.browser }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: browser-results-${{ matrix.browser }}-${{ github.run_attempt }}
+          path: |
+            blob-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7
 
   embedded-core:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: thumbv6m-none-eabi
@@ -88,7 +132,7 @@ jobs:
   msrv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@1.85.0
         with:
           targets: thumbv6m-none-eabi
@@ -98,3 +142,30 @@ jobs:
       - run: cargo check --workspace --all-targets
       - run: cargo check -p conduit-core --no-default-features --target thumbv6m-none-eabi
       - run: cargo check -p conduit-embedded --target thumbv6m-none-eabi
+
+  release-tour:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [hosted, tour-artifact, browser-engines, embedded-core, msrv]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: tour-${{ github.sha }}
+          path: target
+      - uses: actions/attest@v4
+        with:
+          subject-path: target/tour-dist/conduit-tour.tar.gz
+      - name: Publish tested Tour release artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "${GITHUB_REF_NAME}"
+          target/tour-dist/conduit-tour.tar.gz
+          target/tour-dist/conduit-tour.tar.gz.sha256
+          --repo "${GITHUB_REPOSITORY}"
+          --verify-tag
+          --generate-notes

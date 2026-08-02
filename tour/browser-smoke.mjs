@@ -3,12 +3,12 @@ import { chromium } from "playwright";
 const url = process.argv[2];
 const executablePath = process.env.CHROME_BIN;
 
-if (!url || !executablePath) {
-  throw new Error("browser smoke requires a Tour URL and CHROME_BIN");
+if (!url) {
+  throw new Error("browser smoke requires a Tour URL");
 }
 
 const browser = await chromium.launch({
-  executablePath,
+  ...(executablePath ? { executablePath } : {}),
   headless: true,
   args: ["--no-sandbox", "--disable-gpu"],
 });
