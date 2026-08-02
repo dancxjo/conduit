@@ -18,6 +18,15 @@
     {"id":"renderer-failure-preserves-headless-control","expected":{"authoring_available":true,"execution_available":true}},
     {"id":"direct-active-plan-mutation-is-not-a-protocol-operation","expected":{"accepted":false,"code":"CND-PBY-012"}},
     {"id":"candidate-plan-does-not-mutate-active-run","expected":{"candidate_plan_identity":true,"active_plan_unchanged":true}},
-    {"id":"authoritative-view-has-no-browser-inference","expected":{"rust_projection":true,"fake_activity_absent":true,"hard_coded_placement_absent":true}}
+    {"id":"authoritative-view-has-no-browser-inference","expected":{"rust_projection":true,"fake_activity_absent":true,"hard_coded_placement_absent":true}},
+    {"id":"mode-lens-topology-navigation-is-presentation-only","expected":{"presentation_changed":true,"source_unchanged":true,"plan_unchanged":true,"run_unchanged":true,"execution_triggered":false}},
+    {"id":"unloaded-at-rest-inspection-has-no-resolution-or-effect","expected":{"provider_availability":"not-observed","fetched":false,"installed":false,"resolved":false,"authority_acquired":false,"resources_acquired":false,"run_started":false}},
+    {"id":"usable-task-front-opens-use-and-missing-front-falls-back-build","expected":{"usable_front_mode":"use","missing_front_mode":"build","fallback_explained":true,"manual_use_without_front_rejected":true,"code":"CND-PBY-013"}},
+    {"id":"selected-subject-survives-mode-and-lens-navigation","expected":{"stable_subject_path":true,"client_invented_subject_rejected":true,"code":"CND-PBY-013"}},
+    {"id":"internal-and-external-cords-retain-distinct-owners","expected":{"internal_owner":"panel-definition","external_owner":"enclosing-panel","private_bypass_rejected":true}},
+    {"id":"two-instances-retain-distinct-config-and-enclosing-cords","expected":{"same_definition":true,"distinct_instance_config":true,"distinct_external_cords":true,"external_owner":"enclosing-panel"}},
+    {"id":"configuration-runtime-plan-and-evidence-layers-stay-distinct","expected":{"owner_visible":true,"persistence_visible":true,"revision_visible":true,"sensitivity_visible":true,"mutability_visible":true,"activation_visible":true}},
+    {"id":"lens-navigation-has-keyboard-and-screen-reader-equivalents","expected":{"canvas_controls":true,"structured_controls":true,"aria_pressed":true,"status_announced":true}},
+    {"id":"use-view-information-budget-survives-two-hundred-percent-zoom","expected":{"primary_controls_visible":true,"primary_action_visible":true,"semantic_result_visible":true,"implementation_details_hidden":true}}
   ]
 }

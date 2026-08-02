@@ -132,6 +132,43 @@
         </details>
       </header>
 
+      <section id="presentation-controls" class="presentation-controls card" aria-labelledby="presentation-controls-title">
+        <div class="presentation-controls-heading">
+          <div>
+            <p class="eyebrow">PresentationDocument</p>
+            <h3 id="presentation-controls-title">Choose intent and boundary</h3>
+          </div>
+          <output id="presentation-status" role="status" aria-live="polite">Opening the authored root…</output>
+        </div>
+        <div class="presentation-axis">
+          <span class="presentation-axis-label">Intent</span>
+          <div id="intent-mode-controls" class="view-toggle" role="group" aria-label="Presentation intent">
+            <button type="button" class="toggle-btn" data-presentation-mode="use" aria-pressed="false">Use</button>
+            <button type="button" class="toggle-btn" data-presentation-mode="build" aria-pressed="false">Build</button>
+            <button type="button" class="toggle-btn" data-presentation-mode="inspect" aria-pressed="false">Inspect</button>
+          </div>
+        </div>
+        <div class="presentation-axis">
+          <span class="presentation-axis-label">Boundary</span>
+          <div id="structural-lens-controls" class="view-toggle" role="group" aria-label="Structural lens">
+            <button type="button" class="toggle-btn" data-structural-lens="at-rest" aria-pressed="false">At rest</button>
+            <button type="button" class="toggle-btn" data-structural-lens="face" aria-pressed="false">Face</button>
+            <button type="button" class="toggle-btn" data-structural-lens="inside" aria-pressed="false">Inside</button>
+            <button type="button" class="toggle-btn" data-structural-lens="context" aria-pressed="false">Context / back</button>
+            <button type="button" class="toggle-btn" data-structural-lens="configure" aria-pressed="false">Configure</button>
+          </div>
+        </div>
+        <div class="button-row presentation-explain-actions">
+          <button id="show-how" type="button" class="btn small secondary">Show how this works</button>
+          <button id="show-why" type="button" class="btn small secondary">Why did this happen?</button>
+        </div>
+        <section id="configuration-layers" aria-labelledby="configuration-layers-title" hidden>
+          <h4 id="configuration-layers-title">Owned configuration and state layers</h4>
+          <p class="card-subtitle">Each projected field names its owner, persistence, revision, sensitivity, mutability, and activation consequence.</p>
+          <ul id="configuration-layer-list" class="configuration-layer-list"></ul>
+        </section>
+      </section>
+
       <div class="button-row primary-actions" role="group" aria-label="Lesson controls">
         <button id="run" class="btn primary" aria-keyshortcuts="Shift+Enter" disabled>⚡ Run <kbd>Shift</kbd>+<kbd>Enter</kbd></button>
         <button id="stop" class="btn danger" disabled>⏹ Stop</button>
@@ -167,6 +204,7 @@
           <section class="structured-topology" aria-labelledby="structured-topology-title">
             <h4 id="structured-topology-title">Structured semantic ports and cords</h4>
             <p class="card-subtitle">Keyboard and screen-reader equivalent of the selected topology projection.</p>
+            <ul id="panel-boundary-list" class="connection-list" aria-label="Panel boundary navigation"></ul>
             <ul id="panel-port-list" class="connection-list" aria-label="Explicit semantic ports"></ul>
             <ul id="panel-connection-list" class="connection-list" aria-label="Typed cord connections"></ul>
           </section>

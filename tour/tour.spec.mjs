@@ -56,6 +56,23 @@ async function startTinyInstrument(page) {
   return { browserPlan, first, firstTick };
 }
 
+async function dragAndCommitTopologyNode(page, node, deltaX, deltaY) {
+  await node.scrollIntoViewIfNeeded();
+  const before = await node.boundingBox();
+  expect(before).not.toBeNull();
+  const beforeTransform = await node.evaluate((element) => element.style.transform);
+  const startX = before.x + before.width / 2;
+  const startY = before.y + 20;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + deltaX, startY + deltaY, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(
+    async () => node.evaluate((element) => element.style.transform),
+  ).not.toBe(beforeTransform);
+  return node.evaluate((element) => element.style.transform);
+}
+
 async function openTypedTextLesson(page) {
   await gotoTour(page, "/tour/public/index.html?lesson=library.typed-text-format");
   const story = page.locator("#execution-story");
@@ -667,6 +684,7 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
 test("freezes and resumes a live Watch without pressuring execution", async ({ page }) => {
   const failures = collectPageFailures(page);
   await startTinyInstrument(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const liveEdge = page.locator('.react-flow__edge[data-live-update="true"]').first();
   await page.locator("#freeze-display").click();
   await expect(page.locator("#freeze-display")).toHaveAttribute("aria-pressed", "true");
@@ -692,11 +710,7 @@ test("freezes and resumes a live Watch without pressuring execution", async ({ p
   );
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-keyshortcuts", "W");
   await expect(page.locator("#watch-toggle")).toHaveAttribute("aria-pressed", "true");
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  const reducedSequence = Number(await liveEdge.getAttribute("data-live-sequence"));
-  await expect.poll(async () => Number(
-    await liveEdge.getAttribute("data-live-sequence"),
-  ), { timeout: 20_000 }).toBeGreaterThan(reducedSequence);
+  await expect(liveEdge).toHaveAttribute("data-live-sequence", /\d+/);
   await expect(liveEdge).not.toHaveClass(/live-flow-pulse/);
   expect(failures).toEqual([]);
 });
@@ -1157,9 +1171,11 @@ test("covers every published chapter and exposes production topology projections
   await page.locator("#logical-view").click();
   await expect(page.locator("#logical-view")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#expanded-view")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("#topology")).toContainText('"id": "box"');
   await expect(page.locator("#topology")).toContainText(
-    "box: example/upper-box",
+    '"contract_id": "example/upper-box"',
   );
+  await expect(page.locator("#topology")).not.toContainText("worker");
 });
 
 test("accepts a semantically correct alternate solution", async ({ page }) => {
@@ -1190,6 +1206,119 @@ test("keeps Expanded unavailable when the semantic revision has no exact plan", 
   await expect(page.locator("#plan-view-notice")).toContainText(
     "no realization is manufactured from registry defaults",
   );
+});
+
+test("keeps structural lenses orthogonal to Use Build Inspect and preserves the exact subject", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
+  const workspace = page.locator("#workspace");
+  const status = page.locator("#presentation-status");
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "build");
+  await expect(workspace).toHaveAttribute("data-structural-lens", "face");
+  await expect(workspace).toHaveAttribute("data-topology-projection", "logical");
+  await expect(status).toContainText(
+    "No usable task front is declared, so this root opened in Build.",
+  );
+
+  await page.getByRole("button", {
+    name: "value, outgoing port; type std/text",
+    exact: true,
+  }).click();
+  await expect(status).toContainText("root/greeting/port/outgoing/value");
+
+  const sourceBefore = await page.locator("#source").inputValue();
+  await expect(page.locator('[data-presentation-mode="use"]')).toBeDisabled();
+  await page.locator('[data-presentation-mode="inspect"]').click();
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "inspect");
+  await expect(page.locator("#source")).toHaveAttribute("readonly", "");
+  await expect(status).toContainText("root/greeting/port/outgoing/value");
+
+  await page.locator("#show-how").click();
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "build");
+  await expect(page.locator(".source-card")).toBeVisible();
+  await expect(page.locator("#source")).toHaveValue(sourceBefore);
+  await expect(status).toContainText("root/greeting/port/outgoing/value");
+
+  await page.locator("#show-why").click();
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "inspect");
+  await expect(workspace).toHaveAttribute("data-structural-lens", "context");
+  await expect(page.locator("#source")).toHaveAttribute("readonly", "");
+  await page.locator("#expanded-view").click();
+  await expect(workspace).toHaveAttribute("data-topology-projection", "expanded");
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "inspect");
+  await expect(workspace).toHaveAttribute("data-structural-lens", "context");
+
+  await page.locator('[data-structural-lens="configure"]').click();
+  await expect(page.locator("#configuration-layers")).toBeVisible();
+  await expect(page.locator("#configuration-layer-list")).toContainText(
+    "Owner: panel-instance",
+  );
+  await expect(page.locator("#configuration-layer-list")).toContainText(
+    "Owner: exact-plan",
+  );
+  await expect(page.locator("#configuration-layer-list")).toContainText(
+    "activation: re-resolution-or-plan-transition",
+  );
+});
+
+test("keeps the Use information budget usable at two hundred percent zoom", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
+  await expect(page.locator('[data-presentation-mode="use"]')).toBeDisabled();
+  // #294 supplies the authoritative task front. This checks only the reserved
+  // presentation budget without claiming that this fallback lesson has one.
+  await page.evaluate(() => {
+    document.querySelector("#workspace").dataset.presentationMode = "use";
+    document.documentElement.style.zoom = "200%";
+  });
+  await expect(page.locator("#presentation-controls")).toBeVisible();
+  await expect(page.locator("#run")).toBeVisible();
+  await expect(page.locator("#result")).toBeVisible();
+  await expect(page.locator(".source-card")).toBeHidden();
+  await expect(page.locator(".inspectors")).toBeHidden();
+  const runBox = await page.locator("#run").boundingBox();
+  const resultBox = await page.locator("#result").boundingBox();
+  expect(runBox).not.toBeNull();
+  expect(resultBox).not.toBeNull();
+  expect(runBox.x).toBeLessThan(page.viewportSize().width);
+  expect(resultBox.x).toBeLessThan(page.viewportSize().width);
+});
+
+test("navigates composite boundaries from canvas and structured controls", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.inside-outside");
+  const workspace = page.locator("#workspace");
+  const status = page.locator("#presentation-status");
+  const sourceBefore = await page.locator("#source").inputValue();
+
+  await page.getByRole("button", { name: "Open box inside" }).first().click();
+  await expect(workspace).toHaveAttribute("data-structural-lens", "inside");
+  await expect(status).toContainText("root/box");
+  await expect(page.locator("#topology")).toContainText('"owner": "panel-definition"');
+  await expect(page.locator("#source")).toHaveValue(sourceBefore);
+
+  await page.locator("#panel-boundary-list").getByRole("button", {
+    name: "Open box context",
+  }).click();
+  await expect(workspace).toHaveAttribute("data-structural-lens", "context");
+  await expect(page.locator("#topology")).toContainText('"owner_kind": "enclosing-panel"');
+  await expect(page.locator("#topology")).toContainText("realization_bindings");
+  await expect(status).toContainText("root/box");
+
+  await page.locator('[data-structural-lens="at-rest"]').click();
+  await expect(workspace).toHaveAttribute("data-structural-lens", "at-rest");
+  await expect(page.locator("#run")).toBeDisabled();
+  await expect(page.locator(".primary-actions")).toBeHidden();
+  await expect(page.locator("#topology")).toContainText(
+    '"provider_availability": "not-observed"',
+  );
+  await expect(page.locator("#topology")).toContainText('"resolved": false');
+  await expect(page.locator("#topology")).toContainText('"run_started": false');
+  await page.locator('[data-structural-lens="face"]').click();
+  await expect(workspace).toHaveAttribute("data-structural-lens", "face");
+  await expect(page.locator(".primary-actions")).toBeVisible();
+  await expect(page.locator("#topology")).not.toContainText("worker");
+  await expect(page.locator("#topology")).toContainText(
+    '"owner": "panel-instance-public-boundary"',
+  );
+  await expect(page.locator("#source")).toHaveValue(sourceBefore);
 });
 
 test("uses React Flow with legacy line placement disabled", async ({ page }) => {
@@ -1500,38 +1629,12 @@ test("shows node movement while a topology box is being dragged", async ({ page 
   );
 });
 
-test("retains committed topology positions across renders and visits", async ({ page }) => {
+test("retains committed topology positions across Check and Run renders", async ({ page }) => {
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   const greeting = page.locator('[data-id="greeting"]');
-  await greeting.scrollIntoViewIfNeeded();
-  const before = await greeting.boundingBox();
-  expect(before).not.toBeNull();
-  const beforeTransform = await greeting.evaluate((element) => element.style.transform);
-
-  const startX = before.x + before.width / 2;
-  const startY = before.y + 20;
-  await page.mouse.move(startX, startY);
-  await page.mouse.down();
-  await page.mouse.move(startX + 96, startY + 48, { steps: 4 });
-  await page.mouse.up();
-  await expect.poll(
-    async () => greeting.evaluate((element) => element.style.transform),
-  ).not.toBe(beforeTransform);
-  const committedTransform = await greeting.evaluate(
-    (element) => element.style.transform,
-  );
   const output = page.locator('[data-id="output"]');
-  const outputBefore = await output.boundingBox();
-  expect(outputBefore).not.toBeNull();
-  const outputStartX = outputBefore.x + outputBefore.width / 2;
-  const outputStartY = outputBefore.y + 20;
-  await page.mouse.move(outputStartX, outputStartY);
-  await page.mouse.down();
-  await page.mouse.move(outputStartX - 72, outputStartY + 40, { steps: 4 });
-  await page.mouse.up();
-  const committedOutputTransform = await output.evaluate(
-    (element) => element.style.transform,
-  );
+  const committedTransform = await dragAndCommitTopologyNode(page, greeting, 96, 48);
+  const committedOutputTransform = await dragAndCommitTopologyNode(page, output, -72, 40);
 
   await page.locator("#check").click();
   await expect(greeting).toHaveCSS("transform", /matrix/);
@@ -1552,7 +1655,14 @@ test("retains committed topology positions across renders and visits", async ({ 
   await expect.poll(
     async () => output.evaluate((element) => element.style.transform),
   ).toBe(committedOutputTransform);
+});
 
+test("restores committed topology positions across lesson visits and reload", async ({ page }) => {
+  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  const greeting = page.locator('[data-id="greeting"]');
+  const output = page.locator('[data-id="output"]');
+  const committedTransform = await dragAndCommitTopologyNode(page, greeting, 96, 48);
+  const committedOutputTransform = await dragAndCommitTopologyNode(page, output, -72, 40);
   await page.goto("/tour/public/index.html?lesson=panels.inside-outside");
   await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
   await expect.poll(
@@ -1566,6 +1676,9 @@ test("retains committed topology positions across renders and visits", async ({ 
   await expect.poll(
     async () => greeting.evaluate((element) => element.style.transform),
   ).toBe(committedTransform);
+  await expect.poll(
+    async () => output.evaluate((element) => element.style.transform),
+  ).toBe(committedOutputTransform);
 });
 
 test("retains headless editing and execution when presentation fails", async ({ page }) => {

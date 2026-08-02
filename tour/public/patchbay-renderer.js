@@ -499,6 +499,8 @@ export class PatchbayReactFlowRenderer {
     }
 
     const realization = viewModel.topology?.planned_realization;
+    const presentationCanEdit = viewModel.presentation?.mode === "build" &&
+      ["face", "context", "configure"].includes(viewModel.presentation?.lens);
     const projectedNodes = this.topologyView === "logical"
       ? viewModel.topology?.logical_nodes || []
       : (realization?.nodes || []).map((node) => ({
@@ -605,18 +607,28 @@ export class PatchbayReactFlowRenderer {
         diagnosticAnchors: diagnosticAnchors.filter(
           (anchor) => anchor.owner_node === node.id,
         ),
-        isConnectable: this.topologyView === "logical",
+        isConnectable: this.topologyView === "logical" && presentationCanEdit,
         plannedBinding: node.plannedBinding,
         logicalOrigin: node.logicalOrigin,
         compositeProvenance: node.compositeProvenance,
-        readOnly: this.topologyView === "expanded",
+        readOnly: this.topologyView === "expanded" || !presentationCanEdit,
+        collapsed: (viewModel.presentation?.collapsed_nodes || []).includes(node.id),
         isComposite: compositeIds.has(node.id),
         isSelected: node.id === this.selectedNodeId,
         onConfigChange: (nodeId, key, value, kind) =>
           this.updateConfig(nodeId, key, value, kind),
-        onOpenNested: (kind) => {
+        onCollapseChange: (nodeId, collapsed) => {
+          if (!this.onTransaction) return;
+          this.onTransaction({
+            SetCollapsed: {
+              node_id: nodeId,
+              collapsed,
+            },
+          });
+        },
+        onOpenNested: (nodeId, kind) => {
           if (this.onOpenNested) {
-            this.onOpenNested(kind);
+            this.onOpenNested(nodeId, kind);
           }
         },
         onPortSelect: (nodeId, port) => {
@@ -628,7 +640,7 @@ export class PatchbayReactFlowRenderer {
           if (this.onPortWatch) this.onPortWatch(nodeId, port);
         },
         },
-        draggable: this.topologyView === "logical",
+        draggable: this.topologyView === "logical" && presentationCanEdit,
         selectable: true,
       };
     });
@@ -752,19 +764,20 @@ export class PatchbayReactFlowRenderer {
         edgeTypes,
         edgesSelectable: true,
         elevateEdgesOnSelect: true,
-        nodesDraggable: this.topologyView === "logical",
-        nodesConnectable: this.topologyView === "logical",
+        nodesDraggable: this.topologyView === "logical" && presentationCanEdit,
+        nodesConnectable: this.topologyView === "logical" && presentationCanEdit,
         elementsSelectable: true,
         connectionMode: window.ReactFlow.ConnectionMode.Loose,
         connectionLineType: window.ReactFlow.ConnectionLineType.Straight,
         onConnect: (connection) => {
+          if (!presentationCanEdit) return;
           const normalizedConnection = normalizeConnection(connection, projectedNodes);
           const operation = connectOperation(normalizedConnection);
           if (!operation || !this.onTransaction) return;
           this.onTransaction(operation, { syncSource: true });
         },
         onEdgeUpdate: (oldEdge, connection) => {
-          if (!this.onTransaction) return;
+          if (!presentationCanEdit || !this.onTransaction) return;
           const cord = (viewModel.topology?.cords || [])
             .find((candidate) => candidate.id === oldEdge.id);
           const bounds = projectedCordBounds(cord);
@@ -779,7 +792,7 @@ export class PatchbayReactFlowRenderer {
           ], { syncSource: true });
         },
         onEdgesDelete: (deletedEdges) => {
-          if (!this.onTransaction || deletedEdges.length === 0) return;
+          if (!presentationCanEdit || !this.onTransaction || deletedEdges.length === 0) return;
           this.onTransaction(
             deletedEdges.map((edge) => ({ Disconnect: { cord_id: edge.id } })),
             { syncSource: true },
@@ -826,7 +839,7 @@ export class PatchbayReactFlowRenderer {
           if (this.onSelectionClear) this.onSelectionClear();
         },
         onNodeDragStop: (_event, node) => {
-          if (this.topologyView !== "logical") return;
+          if (this.topologyView !== "logical" || !presentationCanEdit) return;
           if (!this.onTransaction) return;
           if (!node?.position) return;
           this.onTransaction({

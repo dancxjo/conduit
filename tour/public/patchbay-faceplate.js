@@ -125,6 +125,8 @@ export function FaceplateNodeComponent({ data, id }) {
     onOpenNested,
     onPortSelect,
     onPortWatch,
+    collapsed = false,
+    onCollapseChange,
     validity = "valid",
     diagnosticIds = [],
     diagnosticAnchors = [],
@@ -136,13 +138,17 @@ export function FaceplateNodeComponent({ data, id }) {
     semantic_effects: semanticEffects = [],
   } = data;
 
-  const [expanded, setExpanded] = window.React.useState(true);
+  const [expanded, setExpanded] = window.React.useState(!collapsed);
   const [configValues, setConfigValues] = window.React.useState(config);
   const updateNodeInternals = window.ReactFlow.useUpdateNodeInternals();
 
   window.React.useEffect(() => {
     setConfigValues(config);
   }, [config]);
+
+  window.React.useEffect(() => {
+    setExpanded(!collapsed);
+  }, [collapsed]);
 
   window.React.useEffect(() => {
     const frame = window.requestAnimationFrame(() => updateNodeInternals(id));
@@ -342,7 +348,10 @@ export function FaceplateNodeComponent({ data, id }) {
           className: "btn-icon nodrag",
           title: expanded ? "Collapse Faceplate" : "Expand Faceplate",
           "aria-expanded": String(expanded),
-          onClick: () => setExpanded(!expanded),
+          onClick: () => {
+            setExpanded(!expanded);
+            onCollapseChange?.(id, expanded);
+          },
         }, expanded ? "−" : "+"),
       ),
     ),
@@ -403,8 +412,9 @@ export function FaceplateNodeComponent({ data, id }) {
       ),
       isComposite && e("button", {
         className: "btn small secondary nodrag faceplate-inspect-action",
-        onClick: () => onOpenNested?.(kind),
-      }, "Inspect surface"),
+        onClick: () => onOpenNested?.(id, kind),
+        "aria-label": `Open ${title} inside`,
+      }, "Inside"),
     ),
   );
 }

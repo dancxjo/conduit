@@ -4,7 +4,7 @@
 //! projections.  It never makes layout part of `.panel` semantics, resolves a
 //! plan, executes a node, or appends executor evidence.
 
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
@@ -432,6 +432,108 @@ pub struct NodePosition {
     pub y: i32,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PresentationMode {
+    Use,
+    Build,
+    Inspect,
+}
+
+impl PresentationMode {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Use => "use",
+            Self::Build => "build",
+            Self::Inspect => "inspect",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum StructuralLens {
+    AtRest,
+    Face,
+    Inside,
+    Context,
+    Configure,
+}
+
+impl StructuralLens {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::AtRest => "at-rest",
+            Self::Face => "face",
+            Self::Inside => "inside",
+            Self::Context => "context",
+            Self::Configure => "configure",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TopologyProjection {
+    Logical,
+    Expanded,
+}
+
+impl TopologyProjection {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Logical => "logical",
+            Self::Expanded => "expanded",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PresentationOpening {
+    UsableTaskFront,
+    BuildFallback,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PresentationSubjectKind {
+    Source,
+    Definition,
+    Instance,
+    Port,
+    Cord,
+    Configuration,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PresentationSubject {
+    pub kind: PresentationSubjectKind,
+    /// Parser/projector-authored stable subject path. Screen geometry is never
+    /// an identity source.
+    pub path: String,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PresentationViewport {
+    pub x: i32,
+    pub y: i32,
+    /// Integer basis points avoid a floating-point presentation identity.
+    pub zoom_basis_points: u16,
+}
+
+impl Default for PresentationViewport {
+    fn default() -> Self {
+        Self {
+            x: 0,
+            y: 0,
+            zoom_basis_points: 10_000,
+        }
+    }
+}
+
 /// Presentation-only state. Its identity deliberately excludes source,
 /// descriptor, plan, run, and evidence identities.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -439,6 +541,16 @@ pub struct PresentationSnapshot {
     pub document_id: String,
     pub revision: u64,
     pub node_positions: BTreeMap<String, NodePosition>,
+    pub mode: PresentationMode,
+    pub lens: StructuralLens,
+    pub topology: TopologyProjection,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub selected_subject: Option<PresentationSubject>,
+    pub collapsed_nodes: BTreeSet<String>,
+    pub viewport: PresentationViewport,
+    /// Explains why the initial presentation is Use or Build without claiming
+    /// that a task-facing front exists when none was declared.
+    pub opening_reason: String,
     pub identity: String,
 }
 
@@ -482,10 +594,81 @@ pub struct PatchbayViewModel {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub evidence: Vec<serde_json::Value>,
     pub topology: PatchbayTopologyProjection,
+    /// Definition/source facts that can be inspected without resolution,
+    /// provider installation, authority, resource acquisition, or execution.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub at_rest: Option<PatchbayAtRestProjection>,
+    pub configuration_layers: Vec<PatchbayConfigurationLayerProjection>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub diagnostics: Vec<PatchbayDiagnosticProjection>,
     pub bounds: PatchbayProjectionBounds,
     pub truncated: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayAtRestProjection {
+    pub source_identity: String,
+    pub source_revision: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub semantic_identity: Option<String>,
+    pub imports: Vec<String>,
+    pub definitions: Vec<PatchbayAtRestDefinitionProjection>,
+    pub authored_instances: Vec<PatchbayAtRestInstanceProjection>,
+    pub roots: Vec<String>,
+    /// `not-observed` is distinct from provider absence or availability.
+    pub provider_availability: String,
+    pub operations: PatchbayAtRestOperationProjection,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayAtRestDefinitionProjection {
+    pub path: String,
+    pub parameters: Vec<String>,
+    pub children: Vec<String>,
+    pub internal_cords: Vec<String>,
+    pub exports: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayAtRestInstanceProjection {
+    pub path: String,
+    pub contract_id: String,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayAtRestOperationProjection {
+    pub fetched: bool,
+    pub installed: bool,
+    pub resolved: bool,
+    pub authority_acquired: bool,
+    pub resources_acquired: bool,
+    pub run_started: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayAtRestInspection {
+    pub source: SourceSnapshot,
+    pub semantic: SemanticSnapshot,
+    pub presentation: PresentationSnapshot,
+    pub definition: PatchbayAtRestProjection,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayConfigurationLayerProjection {
+    pub id: String,
+    pub owner: String,
+    pub persistence: String,
+    pub revision: String,
+    pub sensitivity: String,
+    pub mutability: String,
+    pub activation: String,
+    pub fields: Vec<PatchbayConfigurationFieldProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayConfigurationFieldProjection {
+    pub id: String,
+    pub display_value: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -504,6 +687,7 @@ pub struct PatchbayProjectionBounds {
     pub maximum_composites: usize,
     pub maximum_ports_per_node: usize,
     pub maximum_config_fields_per_node: usize,
+    pub maximum_configuration_layers: usize,
     pub maximum_evidence_events: usize,
     pub maximum_diagnostics: usize,
     pub maximum_history: usize,
@@ -517,6 +701,7 @@ impl Default for PatchbayProjectionBounds {
             maximum_composites: 1_024,
             maximum_ports_per_node: 256,
             maximum_config_fields_per_node: 256,
+            maximum_configuration_layers: 2_048,
             maximum_evidence_events: 256,
             maximum_diagnostics: MAXIMUM_PATCHBAY_DIAGNOSTICS,
             maximum_history: DEFAULT_WORKSPACE_HISTORY_LIMIT,
@@ -601,6 +786,11 @@ pub struct PatchbayConfigProjection {
     pub kind: String,
     pub display_value: String,
     pub editable: bool,
+    pub owner: String,
+    pub persistence: String,
+    pub revision: u64,
+    pub sensitivity: String,
+    pub activation: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_range: Option<SourceRangeProjection>,
     pub validity: String,
@@ -638,6 +828,12 @@ pub struct PatchbayPortProjection {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PatchbayCordProjection {
     pub id: String,
+    pub semantic_path: String,
+    pub owner_kind: String,
+    pub owner_path: String,
+    /// Root semantic cords may cross a composite boundary only through that
+    /// instance's exported public ports.
+    pub boundary_rule: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from_node: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -739,7 +935,26 @@ pub struct PatchbayCompositeProjection {
     pub id: String,
     pub definition: String,
     pub members: Vec<String>,
+    pub internal_cords: Vec<PatchbayOwnedInternalCordProjection>,
     pub exports: Vec<PatchbayExportProjection>,
+    pub bindings: Vec<PatchbayDefinitionBindingProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayOwnedInternalCordProjection {
+    pub from: String,
+    pub to: String,
+    pub owner_kind: String,
+    pub owner_path: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PatchbayDefinitionBindingProjection {
+    pub parameter: String,
+    pub target: String,
+    pub owner_kind: String,
+    pub persistence: String,
+    pub activation: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -1884,6 +2099,22 @@ pub enum EditOperation {
         key: String,
         value: EditValue,
     },
+    /// Changes only which presentation boundary and intent are visible.
+    Navigate {
+        mode: PresentationMode,
+        lens: StructuralLens,
+        topology: TopologyProjection,
+    },
+    /// Synchronizes one parser/projector-authored source subject across the
+    /// canvas and accessible views. An absent subject clears selection.
+    SelectSubject {
+        subject: Option<PresentationSubject>,
+    },
+    /// Changes only the compact/open state of one authored node face.
+    SetCollapsed { node_id: String, collapsed: bool },
+    /// Changes only the workspace camera. The finite integer zoom is part of
+    /// presentation identity, never source or plan identity.
+    SetViewport { viewport: PresentationViewport },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -1978,13 +2209,32 @@ impl Workspace {
         document_id: impl Into<String>,
         source: impl Into<String>,
     ) -> Result<Self, ProtocolError> {
-        Self::new_with_history(document_id, source, DEFAULT_WORKSPACE_HISTORY_LIMIT)
+        Self::new_with_opening(
+            document_id,
+            source,
+            DEFAULT_WORKSPACE_HISTORY_LIMIT,
+            PresentationOpening::BuildFallback,
+        )
     }
 
     pub fn new_with_history(
         document_id: impl Into<String>,
         source: impl Into<String>,
         history_limit: usize,
+    ) -> Result<Self, ProtocolError> {
+        Self::new_with_opening(
+            document_id,
+            source,
+            history_limit,
+            PresentationOpening::BuildFallback,
+        )
+    }
+
+    pub fn new_with_opening(
+        document_id: impl Into<String>,
+        source: impl Into<String>,
+        history_limit: usize,
+        opening: PresentationOpening,
     ) -> Result<Self, ProtocolError> {
         if history_limit == 0 {
             return Err(rejected(
@@ -1996,7 +2246,28 @@ impl Workspace {
         let source = source.into();
         let document = conduit_panel::parse_document(&source);
         let semantic_hash = document.semantic_hash();
-        let presentation = presentation_snapshot(&document_id, 0, BTreeMap::new());
+        let (mode, opening_reason) = match opening {
+            PresentationOpening::UsableTaskFront => {
+                (PresentationMode::Use, "usable-task-front-declared")
+            }
+            PresentationOpening::BuildFallback => {
+                (PresentationMode::Build, "no-usable-task-front-declared")
+            }
+        };
+        let presentation = presentation_snapshot(
+            &document_id,
+            0,
+            PresentationState {
+                node_positions: BTreeMap::new(),
+                mode,
+                lens: StructuralLens::Face,
+                topology: TopologyProjection::Logical,
+                selected_subject: None,
+                collapsed_nodes: BTreeSet::new(),
+                viewport: PresentationViewport::default(),
+            },
+            opening_reason.to_owned(),
+        );
         let source = SourceSnapshot {
             document_id,
             revision: 0,
@@ -2154,6 +2425,13 @@ impl Workspace {
 
         let mut candidate_source = self.source.clone();
         let mut positions = self.presentation.node_positions.clone();
+        let mut mode = self.presentation.mode;
+        let mut lens = self.presentation.lens;
+        let mut topology = self.presentation.topology;
+        let mut selected_subject = self.presentation.selected_subject.clone();
+        let mut collapsed_nodes = self.presentation.collapsed_nodes.clone();
+        let mut viewport = self.presentation.viewport;
+        let opening_reason = self.presentation.opening_reason.clone();
         let mut source_changed = false;
         let mut source_replaced = false;
         let mut presentation_changed = false;
@@ -2266,6 +2544,53 @@ impl Workspace {
                     )?;
                     source_changed = true;
                 }
+                EditOperation::Navigate {
+                    mode: next_mode,
+                    lens: next_lens,
+                    topology: next_topology,
+                } => {
+                    if next_mode == PresentationMode::Use
+                        && opening_reason != "usable-task-front-declared"
+                    {
+                        return Err(rejected(
+                            "CND-PBY-013",
+                            "Use requires an authoritative usable task front",
+                        ));
+                    }
+                    presentation_changed |=
+                        mode != next_mode || lens != next_lens || topology != next_topology;
+                    mode = next_mode;
+                    lens = next_lens;
+                    topology = next_topology;
+                }
+                EditOperation::SelectSubject { subject } => {
+                    if let Some(subject) = subject.as_ref() {
+                        validate_presentation_subject(&candidate_source.source, subject)?;
+                    }
+                    presentation_changed |= selected_subject != subject;
+                    selected_subject = subject;
+                }
+                EditOperation::SetCollapsed { node_id, collapsed } => {
+                    validate_root_node(&candidate_source.source, &node_id)?;
+                    let changed = if collapsed {
+                        collapsed_nodes.insert(node_id)
+                    } else {
+                        collapsed_nodes.remove(&node_id)
+                    };
+                    presentation_changed |= changed;
+                }
+                EditOperation::SetViewport {
+                    viewport: next_viewport,
+                } => {
+                    if !(2_000..=30_000).contains(&next_viewport.zoom_basis_points) {
+                        return Err(rejected(
+                            "CND-PBY-013",
+                            "presentation zoom must remain between 20% and 300%",
+                        ));
+                    }
+                    presentation_changed |= viewport != next_viewport;
+                    viewport = next_viewport;
+                }
             }
         }
         let mut diagnostics = Vec::new();
@@ -2342,10 +2667,36 @@ impl Workspace {
         };
         if source_changed {
             candidate_source.revision += 1;
+            if selected_subject.as_ref().is_some_and(|subject| {
+                validate_presentation_subject(&candidate_source.source, subject).is_err()
+            }) {
+                selected_subject = None;
+                presentation_changed = true;
+            }
+            let parsed = conduit_panel::parse(&candidate_source.source).ok();
+            let collapsed_before = collapsed_nodes.len();
+            collapsed_nodes.retain(|node_id| {
+                parsed
+                    .as_ref()
+                    .is_some_and(|panel| panel.nodes.iter().any(|node| node.id == node_id.as_str()))
+            });
+            presentation_changed |= collapsed_nodes.len() != collapsed_before;
         }
         let presentation_revision = self.presentation.revision + u64::from(presentation_changed);
-        let candidate_presentation =
-            presentation_snapshot(&self.source.document_id, presentation_revision, positions);
+        let candidate_presentation = presentation_snapshot(
+            &self.source.document_id,
+            presentation_revision,
+            PresentationState {
+                node_positions: positions,
+                mode,
+                lens,
+                topology,
+                selected_subject,
+                collapsed_nodes,
+                viewport,
+            },
+            opening_reason,
+        );
         self.source = candidate_source;
         self.presentation = candidate_presentation;
         self.history.push_back(WorkspaceRevision {
@@ -2368,6 +2719,117 @@ impl Workspace {
             disposition: EditDisposition::Committed,
         })
     }
+}
+
+/// Projects only authored definition/source facts. This function performs no
+/// registry lookup, resolution, fetch, installation, authority check,
+/// resource acquisition, or execution.
+pub fn project_at_rest(source: &SourceSnapshot) -> Result<PatchbayAtRestProjection, ProtocolError> {
+    let panel = conduit_panel::parse(&source.source).map_err(|error| {
+        rejected_with_diagnostics(
+            "CND-PBY-004",
+            "at-rest source is not a complete definition",
+            vec![error.to_string()],
+        )
+    })?;
+    let mut imports = panel
+        .imports
+        .iter()
+        .map(|import| format!("source:{}:{}", import.alias, import.target))
+        .collect::<Vec<_>>();
+    imports.extend(
+        panel
+            .package_imports
+            .iter()
+            .map(|import| format!("package:{}", import.target)),
+    );
+    Ok(PatchbayAtRestProjection {
+        source_identity: source.identity.clone(),
+        source_revision: source.revision,
+        semantic_identity: source.semantic_hash.clone(),
+        imports,
+        definitions: panel
+            .definitions
+            .iter()
+            .map(|definition| PatchbayAtRestDefinitionProjection {
+                path: format!("definition/{}", definition.id),
+                parameters: definition
+                    .parameters
+                    .iter()
+                    .map(|parameter| parameter.id.clone())
+                    .collect(),
+                children: definition
+                    .nodes
+                    .iter()
+                    .map(|node| format!("definition/{}/{}", definition.id, node.id))
+                    .collect(),
+                internal_cords: definition
+                    .cords
+                    .iter()
+                    .map(|cord| format!("definition/{}/cord/{}", definition.id, cord.id))
+                    .collect(),
+                exports: definition
+                    .exports
+                    .iter()
+                    .map(|export| {
+                        let direction = match export.direction {
+                            conduit_panel::ExportDirection::Input => "receiving",
+                            conduit_panel::ExportDirection::Output => "outgoing",
+                        };
+                        format!(
+                            "definition/{}/export/{direction}/{}",
+                            definition.id, export.id
+                        )
+                    })
+                    .collect(),
+            })
+            .collect(),
+        authored_instances: panel
+            .nodes
+            .iter()
+            .map(|node| PatchbayAtRestInstanceProjection {
+                path: format!("root/{}", node.id),
+                contract_id: node.kind.clone(),
+            })
+            .collect(),
+        roots: panel.roots.iter().map(|root| root.target.clone()).collect(),
+        provider_availability: "not-observed".to_owned(),
+        operations: PatchbayAtRestOperationProjection {
+            fetched: false,
+            installed: false,
+            resolved: false,
+            authority_acquired: false,
+            resources_acquired: false,
+            run_started: false,
+        },
+    })
+}
+
+/// Opens an unloaded source directly in the At-rest lens without consulting a
+/// registry or constructing an exact plan/run projection.
+pub fn inspect_at_rest(
+    document_id: impl Into<String>,
+    source: impl Into<String>,
+) -> Result<PatchbayAtRestInspection, ProtocolError> {
+    let mut workspace = Workspace::new(document_id, source)?;
+    let request = EditRequest {
+        protocol_version: PATCHBAY_PROTOCOL_VERSION,
+        document_id: workspace.source().document_id.clone(),
+        expected_source_revision: workspace.source().revision,
+        expected_presentation_revision: workspace.presentation().revision,
+        operations: vec![EditOperation::Navigate {
+            mode: PresentationMode::Build,
+            lens: StructuralLens::AtRest,
+            topology: TopologyProjection::Logical,
+        }],
+    };
+    workspace.apply(request)?;
+    Ok(PatchbayAtRestInspection {
+        source: workspace.source().clone(),
+        semantic: workspace.semantic(),
+        presentation: workspace.presentation().clone(),
+        definition: project_at_rest(workspace.source())?,
+    })
 }
 
 fn rejected(code: &'static str, message: &str) -> ProtocolError {
@@ -2484,20 +2946,123 @@ fn remove_source_span(
     Ok(())
 }
 
+fn validate_root_node(source: &str, node_id: &str) -> Result<(), ProtocolError> {
+    let panel = conduit_panel::parse(source)
+        .map_err(|_| rejected("CND-PBY-004", "current source is not editable"))?;
+    if panel.nodes.iter().any(|node| node.id == node_id) {
+        Ok(())
+    } else {
+        Err(rejected(
+            "CND-PBY-005",
+            "presentation operation names an unknown source node",
+        ))
+    }
+}
+
+fn validate_presentation_subject(
+    source: &str,
+    subject: &PresentationSubject,
+) -> Result<(), ProtocolError> {
+    const MAXIMUM_SUBJECT_PATH_BYTES: usize = 1_024;
+    if subject.path.is_empty()
+        || subject.path.len() > MAXIMUM_SUBJECT_PATH_BYTES
+        || subject
+            .path
+            .chars()
+            .any(|character| matches!(character, '\0' | '\n' | '\r'))
+    {
+        return Err(rejected(
+            "CND-PBY-013",
+            "presentation subject path is malformed or exceeds its finite bound",
+        ));
+    }
+    let panel = conduit_panel::parse(source)
+        .map_err(|_| rejected("CND-PBY-004", "current source is not editable"))?;
+    let known = match subject.kind {
+        PresentationSubjectKind::Source => subject.path == "root",
+        PresentationSubjectKind::Definition => panel
+            .definitions
+            .iter()
+            .any(|definition| subject.path == format!("definition/{}", definition.id)),
+        PresentationSubjectKind::Instance => panel
+            .nodes
+            .iter()
+            .any(|node| subject.path == format!("root/{}", node.id)),
+        PresentationSubjectKind::Cord => panel
+            .cords
+            .iter()
+            .any(|cord| subject.path == format!("root/cord/{}", cord.id)),
+        PresentationSubjectKind::Configuration => panel.nodes.iter().any(|node| {
+            node.config
+                .iter()
+                .any(|entry| subject.path == format!("root/{}/config/{}", node.id, entry.key))
+        }),
+        PresentationSubjectKind::Port => panel.cords.iter().any(|cord| {
+            let from = format!("root/{}/port/outgoing/{}", cord.from.node, cord.from.port);
+            let to = format!("root/{}/port/receiving/{}", cord.to.node, cord.to.port);
+            subject.path == from || subject.path == to
+        }),
+    };
+    if known {
+        Ok(())
+    } else {
+        Err(rejected(
+            "CND-PBY-013",
+            "presentation selection is not an authoritative subject in this source revision",
+        ))
+    }
+}
+
+struct PresentationState {
+    node_positions: BTreeMap<String, NodePosition>,
+    mode: PresentationMode,
+    lens: StructuralLens,
+    topology: TopologyProjection,
+    selected_subject: Option<PresentationSubject>,
+    collapsed_nodes: BTreeSet<String>,
+    viewport: PresentationViewport,
+}
+
 fn presentation_snapshot(
     document_id: &str,
     revision: u64,
-    node_positions: BTreeMap<String, NodePosition>,
+    state: PresentationState,
+    opening_reason: String,
 ) -> PresentationSnapshot {
-    let mut identity_input = format!("conduit.patchbay-presentation\0{document_id}\0{revision}\0");
+    let PresentationState {
+        node_positions,
+        mode,
+        lens,
+        topology,
+        selected_subject,
+        collapsed_nodes,
+        viewport,
+    } = state;
+    let mut identity_input = format!(
+        "conduit.patchbay-presentation\0{document_id}\0{revision}\0{mode:?}\0{lens:?}\0{topology:?}\0{}\0{}\0{}\0{opening_reason}\0",
+        viewport.x, viewport.y, viewport.zoom_basis_points
+    );
     for (node, position) in &node_positions {
         identity_input.push_str(&format!("{node}\0{}\0{}\0", position.x, position.y));
+    }
+    for node in &collapsed_nodes {
+        identity_input.push_str(&format!("collapsed\0{node}\0"));
+    }
+    if let Some(subject) = &selected_subject {
+        identity_input.push_str(&format!("subject\0{:?}\0{}\0", subject.kind, subject.path));
     }
     let identity = format!("sha256:{:x}", Sha256::digest(identity_input.as_bytes()));
     PresentationSnapshot {
         document_id: document_id.to_owned(),
         revision,
         node_positions,
+        mode,
+        lens,
+        topology,
+        selected_subject,
+        collapsed_nodes,
+        viewport,
+        opening_reason,
         identity,
     }
 }

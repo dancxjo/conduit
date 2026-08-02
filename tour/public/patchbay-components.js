@@ -48,6 +48,7 @@ export class PatchbayCanvasElement extends HTMLElement {
       <section class="structured-topology" aria-labelledby="structured-topology-title">
         <h4 id="structured-topology-title">Structured semantic ports and cords</h4>
         <p class="card-subtitle">Keyboard and screen-reader equivalent of the selected topology projection.</p>
+        <ul id="panel-boundary-list" class="connection-list" aria-label="Panel boundary navigation"></ul>
         <ul id="panel-port-list" class="connection-list" aria-label="Explicit semantic ports"></ul>
         <ul id="panel-connection-list" class="connection-list" aria-label="Typed cord connections"></ul>
       </section>
