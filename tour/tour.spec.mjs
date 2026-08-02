@@ -210,7 +210,7 @@ test("keeps one canonical source artifact through every cumulative build", async
     ["service.listen", "Waiting is not completion", /node server : net\/http\/listen/],
     ["robot.rehearse", "Choose hosts without changing meaning", /node wifi_ap : net\/wifi\/access-point/],
   ]) {
-    await page.goto(`/tour/public/index.html?section=${section}`);
+    await gotoTour(page, `/tour/public/index.html?section=${section}`);
     const source = page.locator("#source");
     await expect(source).toHaveValue(sourcePattern);
     const before = await source.inputValue();
