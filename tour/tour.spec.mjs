@@ -2184,6 +2184,45 @@ test("enters and exits the same fullscreen workspace without rebuilding state", 
   await expect(page.locator("#workspace-error-count")).toBeVisible();
   await expect(page.locator("#patchbay-source-window")).toBeVisible();
   expect(await source.evaluate((element) => element.__conduitLiveEditor)).toBe(true);
+  const fullscreenGeometry = await page.evaluate(() => {
+    const rect = (selector) => {
+      const bounds = document.querySelector(selector).getBoundingClientRect();
+      return {
+        top: bounds.top,
+        right: bounds.right,
+        bottom: bounds.bottom,
+        left: bounds.left,
+        width: bounds.width,
+        height: bounds.height,
+      };
+    };
+    return {
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      workspace: rect("#patchbay-workspace"),
+      canvas: rect("#cy"),
+      flow: rect("#patchbay-flow-root"),
+      status: rect(".patchbay-live-run-status"),
+    };
+  });
+  expect(fullscreenGeometry.workspace.left).toBeCloseTo(0, 0);
+  expect(fullscreenGeometry.workspace.top).toBeCloseTo(0, 0);
+  expect(fullscreenGeometry.workspace.right).toBeCloseTo(
+    fullscreenGeometry.viewport.width,
+    0,
+  );
+  expect(fullscreenGeometry.workspace.bottom).toBeCloseTo(
+    fullscreenGeometry.viewport.height,
+    0,
+  );
+  expect(fullscreenGeometry.status.top).toBeGreaterThanOrEqual(
+    fullscreenGeometry.flow.bottom,
+  );
+  expect(fullscreenGeometry.status.bottom).toBeLessThanOrEqual(
+    fullscreenGeometry.canvas.bottom,
+  );
+  expect(fullscreenGeometry.canvas.bottom).toBeLessThanOrEqual(
+    fullscreenGeometry.workspace.bottom,
+  );
 
   await fullscreenToggle.click();
   await expect(workspace).not.toHaveClass(/patchbay-workspace-active/);
@@ -2216,6 +2255,75 @@ test("enters and exits the same fullscreen workspace without rebuilding state", 
   await expect(workspace).toHaveClass(/patchbay-workspace-active/);
   await page.evaluate(() => document.exitFullscreen());
   await expect(workspace).not.toHaveClass(/patchbay-workspace-active/);
+});
+
+test("maximizes the compact fullscreen canvas around its live status", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?section=instrument.wake");
+  const canvas = page.locator("#cy");
+  const flow = page.locator("#patchbay-flow-root");
+  const status = page.locator(".patchbay-live-run-status");
+  await expect(flow).toHaveAttribute("data-layout", "ready", {
+    timeout: 20_000,
+  });
+  await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
+  await page.locator("#run").click();
+  await expect(flow).toHaveAttribute("data-run-state", "waiting", {
+    timeout: 20_000,
+  });
+
+  const embeddedGeometry = await page.evaluate(() => {
+    const canvasBounds = document.querySelector("#cy").getBoundingClientRect();
+    const flowBounds = document.querySelector("#patchbay-flow-root")
+      .getBoundingClientRect();
+    const statusBounds = document.querySelector(".patchbay-live-run-status")
+      .getBoundingClientRect();
+    return {
+      canvasBottom: canvasBounds.bottom,
+      flowBottom: flowBounds.bottom,
+      statusTop: statusBounds.top,
+      statusBottom: statusBounds.bottom,
+    };
+  });
+  expect(embeddedGeometry.statusTop).toBeGreaterThanOrEqual(
+    embeddedGeometry.flowBottom,
+  );
+  expect(embeddedGeometry.statusBottom).toBeLessThanOrEqual(
+    embeddedGeometry.canvasBottom,
+  );
+
+  await page.locator("#workspace-fullscreen").click();
+  await expect(page.locator("#patchbay-workspace")).toHaveClass(
+    /patchbay-workspace-active/,
+  );
+  const fullscreenGeometry = await page.evaluate(() => {
+    const canvasBounds = document.querySelector("#cy").getBoundingClientRect();
+    const flowBounds = document.querySelector("#patchbay-flow-root")
+      .getBoundingClientRect();
+    const statusBounds = document.querySelector(".patchbay-live-run-status")
+      .getBoundingClientRect();
+    const workspaceBounds = document.querySelector("#patchbay-workspace")
+      .getBoundingClientRect();
+    return {
+      viewportHeight: window.innerHeight,
+      canvasBottom: canvasBounds.bottom,
+      flowHeight: flowBounds.height,
+      flowBottom: flowBounds.bottom,
+      statusTop: statusBounds.top,
+      statusBottom: statusBounds.bottom,
+      workspaceBottom: workspaceBounds.bottom,
+    };
+  });
+  expect(fullscreenGeometry.flowHeight).toBeGreaterThan(
+    fullscreenGeometry.viewportHeight * 0.55,
+  );
+  expect(fullscreenGeometry.statusTop).toBeGreaterThanOrEqual(
+    fullscreenGeometry.flowBottom,
+  );
+  expect(fullscreenGeometry.statusBottom).toBeLessThanOrEqual(
+    fullscreenGeometry.canvasBottom,
+  );
+  expect(fullscreenGeometry.workspaceBottom - fullscreenGeometry.canvasBottom)
+    .toBeLessThanOrEqual(13);
 });
 
 test("falls back honestly and keeps one movable shadeable dockable editor", async ({ page }) => {
