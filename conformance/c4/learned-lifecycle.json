@@ -27,8 +27,9 @@
     "evaluation-is-not-approval",
     "training-without-promotion-provider",
     "promotion-requires-exact-authority",
-    "acknowledged-promotion-commit",
-    "production-executor",
+    "backend-originated-promotion-receipt",
+    "explicit-fixture-host-exact-executor",
+    "default-conduct-browser-promotion-unsupported",
     "standalone-dataset-inspection",
     "composed-training-evaluation-promotion"
   ],
@@ -51,6 +52,7 @@
     "promotion-wrong-epoch",
     "rejected-promotion",
     "unknown-commit",
-    "duplicate-commit"
+    "duplicate-commit",
+    "inexact-host-acknowledgement"
   ]
 }

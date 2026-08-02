@@ -37,6 +37,7 @@
     {"path":"examples/invalid-zero-delay-network-loop.panel","state":"illustrative/unavailable","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-CMP-001"},
     {"path":"examples/learned-fixed-inference.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"learned:i16:1x2:[35,-3]"},
     {"path":"examples/learned-inference-compose.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"LEARNED:I16:1X2:[35,-3]"},
+    {"path":"examples/learned-lifecycle.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/media-audio-frame.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"audio:s16le:48000:stereo:192"},
     {"path":"examples/media-frame-compose.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"audio:s16le:48000:stereo:192video:rgb24:2x2"},
     {"path":"examples/media-wave-probe.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"wave:pcm-s16le:48000:2:1-track:192-frames:812-bytes"},

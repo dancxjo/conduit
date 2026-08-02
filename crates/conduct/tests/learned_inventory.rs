@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use conduit_compile::{
-    InstalledProfile, compile_source, deterministic_host_service_authority_observation,
+    InstalledProfile, compile_source, fixture_host_service_authority_observation,
     observed_host_service_constraints,
 };
 use conduit_core::{
@@ -13,9 +13,9 @@ use conduit_core::{
 use conduit_learned::{
     InferenceProviderFault,
     lifecycle::{
-        PROMOTION_AUTHORITY_CONSTRAINTS, PromotionProviderFault,
-        register_deterministic_lifecycle_provider,
-        register_deterministic_lifecycle_provider_with_promotion_fault,
+        PROMOTION_AUTHORITY_CONSTRAINTS, PromotionFixtureFault,
+        register_deterministic_lifecycle_fixture_provider,
+        register_deterministic_lifecycle_fixture_provider_with_promotion_fault,
         register_deterministic_training_provider,
     },
     register_deterministic_inference_provider,
@@ -39,7 +39,7 @@ fn promotion_observation(
     epoch: u64,
 ) -> conduit_compile::ObservedHostServiceAuthority {
     let constraints = observed_host_service_constraints(&PROMOTION_AUTHORITY_CONSTRAINTS);
-    deterministic_host_service_authority_observation(
+    fixture_host_service_authority_observation(
         "learned/promote",
         "root/promote",
         run_id,
@@ -50,7 +50,7 @@ fn promotion_observation(
 }
 
 fn execute_promotion_fixture(
-    provider_fault: PromotionProviderFault,
+    provider_fault: PromotionFixtureFault,
     use_fault: PromotionUseFault,
     planned_run: &str,
     planned_epoch: u64,
@@ -61,8 +61,11 @@ fn execute_promotion_fixture(
     let source = include_str!("../../../examples/learned-lifecycle.panel");
     let mut registry = Registry::hosted_primitives();
     register_deterministic_inference_provider(&mut registry).unwrap();
-    register_deterministic_lifecycle_provider_with_promotion_fault(&mut registry, provider_fault)
-        .unwrap();
+    register_deterministic_lifecycle_fixture_provider_with_promotion_fault(
+        &mut registry,
+        provider_fault,
+    )
+    .unwrap();
     let authorities = if planned_run.is_empty() {
         Vec::new()
     } else {
@@ -392,9 +395,9 @@ fn exact_lifecycle_plan_pins_training_evaluation_and_promotion_authority() {
     let source = include_str!("../../../examples/learned-lifecycle.panel");
     let mut registry = Registry::hosted_primitives();
     register_deterministic_inference_provider(&mut registry).unwrap();
-    register_deterministic_lifecycle_provider(&mut registry).unwrap();
+    register_deterministic_lifecycle_fixture_provider(&mut registry).unwrap();
     let constraints = observed_host_service_constraints(&PROMOTION_AUTHORITY_CONSTRAINTS);
-    let authority = deterministic_host_service_authority_observation(
+    let authority = fixture_host_service_authority_observation(
         "learned/promote",
         "root/promote",
         "conduit/conduct-run",
@@ -413,7 +416,7 @@ fn exact_lifecycle_plan_pins_training_evaluation_and_promotion_authority() {
         .unwrap();
     assert_eq!(
         promotion.implementation.id,
-        "conduit.learned/promote-deterministic"
+        "conduit.learned/promote-fixture"
     );
     assert_eq!(document.authorities.len(), 1);
     assert_eq!(
@@ -430,10 +433,6 @@ fn exact_lifecycle_plan_pins_training_evaluation_and_promotion_authority() {
             "examples/learned-evaluation.panel",
             "learned:evaluation:accuracy@1:4/4:not-approval",
         ),
-        (
-            "examples/learned-lifecycle.panel",
-            "learned:promotion:learned/reference:acknowledged",
-        ),
     ] {
         let output = Command::new(env!("CARGO_BIN_EXE_conduct"))
             .arg(workspace_file(path))
@@ -446,19 +445,34 @@ fn exact_lifecycle_plan_pins_training_evaluation_and_promotion_authority() {
         );
         assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
     }
+
+    let output = Command::new(env!("CARGO_BIN_EXE_conduct"))
+        .arg(workspace_file("examples/learned-lifecycle.panel"))
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("CND-IMP-001"),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 #[test]
-fn promotion_effect_failures_run_through_the_production_backend_without_receipts() {
+fn promotion_effect_failures_run_through_the_fixture_backend_without_receipts() {
     for (fault, code) in [
-        (PromotionProviderFault::Rejected, "CND-LEARN-019"),
-        (PromotionProviderFault::ProviderLost, "CND-LEARN-016"),
+        (PromotionFixtureFault::Rejected, "CND-LEARN-019"),
+        (PromotionFixtureFault::ProviderLost, "CND-LEARN-016"),
         (
-            PromotionProviderFault::AfterCommitBeforeAcknowledgement,
+            PromotionFixtureFault::AfterCommitBeforeAcknowledgement,
             "CND-LEARN-020",
         ),
-        (PromotionProviderFault::Duplicate, "CND-LEARN-020"),
-        (PromotionProviderFault::BeforeCommit, "CND-LEARN-019"),
+        (PromotionFixtureFault::Duplicate, "CND-LEARN-020"),
+        (
+            PromotionFixtureFault::InexactAcknowledgement,
+            "CND-LEARN-020",
+        ),
+        (PromotionFixtureFault::BeforeCommit, "CND-LEARN-019"),
     ] {
         let error = execute_promotion_fixture(
             fault,
@@ -527,7 +541,7 @@ fn promotion_use_time_authority_run_epoch_and_cancellation_fail_closed() {
         ),
     ] {
         let error = execute_promotion_fixture(
-            PromotionProviderFault::None,
+            PromotionFixtureFault::None,
             use_fault,
             planned_run,
             planned_epoch,
@@ -540,7 +554,7 @@ fn promotion_use_time_authority_run_epoch_and_cancellation_fail_closed() {
     }
 
     let (report, display) = execute_promotion_fixture(
-        PromotionProviderFault::None,
+        PromotionFixtureFault::None,
         PromotionUseFault::None,
         "conduit/conduct-run",
         1,
@@ -561,7 +575,7 @@ fn stale_promotion_provider_observation_is_rejected_before_execution() {
     let source = include_str!("../../../examples/learned-lifecycle.panel");
     let mut registry = Registry::hosted_primitives();
     register_deterministic_inference_provider(&mut registry).unwrap();
-    register_deterministic_lifecycle_provider(&mut registry).unwrap();
+    register_deterministic_lifecycle_fixture_provider(&mut registry).unwrap();
     let installed = InstalledProfile::observe_registry_with_host_authorities(
         source,
         &registry,
@@ -612,14 +626,9 @@ fn learned_lifecycle_schema_resources_metrics_and_promotion_fail_closed() {
         ),
         ("maximum_work = 64", "maximum_work = 65", "CND-LEARN-013"),
         ("metric_version = 1", "metric_version = 2", "CND-LEARN-018"),
-        (
-            "target_slot = \"learned/reference\"",
-            "target_slot = \"learned/unapproved\"",
-            "CND-LEARN-019",
-        ),
     ] {
         let source =
-            include_str!("../../../examples/learned-lifecycle.panel").replacen(from, to, 1);
+            include_str!("../../../examples/learned-evaluation.panel").replacen(from, to, 1);
         let mut child = Command::new(env!("CARGO_BIN_EXE_conduct"))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -640,4 +649,21 @@ fn learned_lifecycle_schema_resources_metrics_and_promotion_fail_closed() {
             String::from_utf8_lossy(&output.stderr)
         );
     }
+
+    let source = include_str!("../../../examples/learned-lifecycle.panel").replacen(
+        "target_slot = \"learned/reference\"",
+        "target_slot = \"learned/unapproved\"",
+        1,
+    );
+    let mut registry = Registry::hosted_primitives();
+    register_deterministic_inference_provider(&mut registry).unwrap();
+    register_deterministic_lifecycle_fixture_provider(&mut registry).unwrap();
+    let error = InstalledProfile::observe_registry_with_host_authorities(
+        &source,
+        &registry,
+        &[promotion_observation("conduit/conduct-run", 1)],
+    )
+    .err()
+    .expect("unapproved target was rejected");
+    assert_eq!(error.code, "CND-LEARN-019");
 }

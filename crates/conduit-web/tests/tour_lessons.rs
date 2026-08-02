@@ -623,11 +623,16 @@ fn bounded_learned_lifecycle_separates_evaluation_from_promotion_authority() {
         let source = scenario["source"].as_str().unwrap();
         assert_current_panel_source(id, source);
         let result: Value = serde_json::from_str(&run_panel(source.to_owned())).unwrap();
-        assert_eq!(result["ok"], true, "{id}: {result}");
-        assert_eq!(result["display"], scenario["validation"]["value"], "{id}");
-        assert_eq!(result["terminal"], "succeeded", "{id}: {result}");
-        assert_eq!(result["stdout"], "", "{id}: {result}");
-        assert_eq!(result["stderr"], "", "{id}: {result}");
+        if scenario["validation"]["kind"] == "diagnostic" {
+            assert_eq!(result["ok"], false, "{id}: {result}");
+            assert_eq!(result["code"], scenario["validation"]["value"], "{id}");
+        } else {
+            assert_eq!(result["ok"], true, "{id}: {result}");
+            assert_eq!(result["display"], scenario["validation"]["value"], "{id}");
+            assert_eq!(result["terminal"], "succeeded", "{id}: {result}");
+            assert_eq!(result["stdout"], "", "{id}: {result}");
+            assert_eq!(result["stderr"], "", "{id}: {result}");
+        }
     }
 }
 

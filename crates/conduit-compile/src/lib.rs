@@ -64,8 +64,8 @@ use sha2::{Digest as _, Sha256};
 mod installed_profile;
 
 pub use installed_profile::{
-    InstalledProfile, ObservedHostServiceAuthority,
-    deterministic_host_service_authority_observation, observed_host_service_constraints,
+    InstalledProfile, ObservedHostServiceAuthority, fixture_host_service_authority_observation,
+    observed_host_service_constraints,
 };
 
 pub const COMPILE_INPUT_SCHEMA: &str = "conduit.compile-input";

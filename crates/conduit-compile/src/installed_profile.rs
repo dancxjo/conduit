@@ -865,12 +865,11 @@ fn stdout_authority(instance: &str, granted: bool) -> AuthorityDecisionDocument 
     }
 }
 
-/// Builds one explicit deterministic-host authority observation. Calling this
-/// function is a host-profile decision; merely installing a provider or
-/// mentioning its contract in panel source never calls it implicitly for
-/// learned promotion.
+/// Builds one deterministic authority fixture for conformance tests. This is
+/// not a production policy observer and must never be called by default host
+/// execution paths.
 #[must_use]
-pub fn deterministic_host_service_authority_observation(
+pub fn fixture_host_service_authority_observation(
     contract_id: &str,
     instance: &str,
     run_id: &str,
