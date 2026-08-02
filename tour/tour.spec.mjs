@@ -206,11 +206,9 @@ test("restores reading position and a local draft without reviving a run", async
   )).toBeGreaterThan(0);
 });
 
-test("carries, resets and recovers cumulative project state explicitly", async ({ page }) => {
+test("carries and resets cumulative project state explicitly", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?section=instrument.wake");
-  await page.locator("#expand-lab").click();
   const source = page.locator("#source");
-  await source.scrollIntoViewIfNeeded();
   await replaceSourceText(source, "duration_ticks = 1000", "duration_ticks = 1400");
   await page.locator("#next-section").click();
 
@@ -220,10 +218,21 @@ test("carries, resets and recovers cumulative project state explicitly", async (
   await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
   await expect(page.locator("#artifact-status")).toContainText("instrument-ready");
   await expect(source).toHaveValue(/duration_ticks = 1000/);
+  await expect(page.locator("#recover-project")).toBeEnabled();
+});
 
+test("recovers cumulative project drafts explicitly", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?section=instrument.wake");
+  const source = page.locator("#source");
+  await replaceSourceText(source, "duration_ticks = 1000", "duration_ticks = 1400");
+  await page.locator("#reset-project").dispatchEvent("click");
+  await expect(page.locator("#artifact-status")).toContainText("instrument-ready");
+  await expect(source).toHaveValue(/duration_ticks = 1000/);
+  await expect(page.locator("#recover-project")).toBeEnabled();
   await page.locator("#recover-project").dispatchEvent("click");
-  await expect(page.locator("#artifact-status")).toContainText("instrument-running");
+  await expect(page.locator("#artifact-status")).toContainText("instrument-ready");
   await expect(source).toHaveValue(/duration_ticks = 1400/);
+  await expect(page.locator("#recover-project")).toBeDisabled();
 });
 
 test("keeps one canonical source artifact through every cumulative build", async ({ page }) => {

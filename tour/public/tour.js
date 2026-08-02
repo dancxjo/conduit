@@ -1018,10 +1018,11 @@ function setWatchControl(control) {
   renderStructuredTopology();
 }
 
-function setWatchControlBusy(control, busy) {
+function setWatchControlBusy(control, busy, allowQueuedToggle = false) {
   if (!control || activeWatchControl !== control) return;
   control.pending = busy;
-  watchToggle.disabled = busy;
+  control.acceptsQueuedToggle = busy && allowQueuedToggle;
+  watchToggle.disabled = busy && !allowQueuedToggle;
   for (const button of document.querySelectorAll(".structured-watch-button")) {
     button.disabled = busy;
   }
@@ -1142,7 +1143,18 @@ function toggleDisplayFreeze() {
 
 async function toggleWatch() {
   const control = activeWatchControl;
-  if (!control || watchToggle.disabled) return;
+  if (!control) return;
+  if (control.pending) {
+    // A live cycle owns the adapter's one bounded request slot. Preserve the
+    // learner's action and perform it as soon as that cycle releases the slot.
+    if (control.acceptsQueuedToggle && !control.toggleQueued) {
+      control.toggleQueued = true;
+      control.acceptsQueuedToggle = false;
+      watchToggle.disabled = true;
+    }
+    return;
+  }
+  if (watchToggle.disabled) return;
   const wasAttached = control.attached;
   const nextAttached = !wasAttached;
   // Stop issuing observation reads before the detach request reaches the
@@ -2864,7 +2876,8 @@ function scheduleContinuousWatch({
       });
       return;
     }
-    setWatchControlBusy(cycleControl, true);
+    setWatchControlBusy(cycleControl, true, true);
+    let cycleSucceeded = false;
     try {
       const advanced = await adapter.request("patchbay-advance-exact-run", {
         sessionId,
@@ -2921,6 +2934,7 @@ function scheduleContinuousWatch({
         cursor: nextCursor,
         state: pumped.value.state,
       });
+      cycleSucceeded = true;
       if (!pumped.value.terminal) {
         scheduleContinuousWatch({
           adapter,
@@ -2942,7 +2956,12 @@ function scheduleContinuousWatch({
         consoleBadge.className = "badge status-badge failed";
       }
     } finally {
+      const runQueuedToggle = Boolean(
+        cycleSucceeded && cycleControl?.toggleQueued && activeWatchControl === cycleControl
+      );
+      if (cycleControl) cycleControl.toggleQueued = false;
       setWatchControlBusy(cycleControl, false);
+      if (runQueuedToggle) void toggleWatch();
     }
   }, LIVE_WATCH_PRESENTATION_INTERVAL_MS);
 }
