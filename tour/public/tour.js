@@ -999,6 +999,15 @@ function setWatchControl(control) {
   renderStructuredTopology();
 }
 
+function setWatchControlBusy(control, busy) {
+  if (!control || activeWatchControl !== control) return;
+  control.pending = busy;
+  watchToggle.disabled = busy;
+  for (const button of document.querySelectorAll(".structured-watch-button")) {
+    button.disabled = busy;
+  }
+}
+
 function setLivePresentationActive() {
   freezeDisplay.disabled = false;
   displayFreezeStatus.textContent = displayIsFrozen
@@ -1115,11 +1124,10 @@ async function toggleWatch() {
   if (!control || watchToggle.disabled) return;
   const wasAttached = control.attached;
   const nextAttached = !wasAttached;
-  control.pending = true;
   // Stop issuing observation reads before the detach request reaches the
   // worker. The ticker pump remains independent and continues below.
   if (wasAttached) control.attached = false;
-  watchToggle.disabled = true;
+  setWatchControlBusy(control, true);
   watchToggle.setAttribute("aria-pressed", String(control.attached));
   const operation = wasAttached
     ? "patchbay-detach-exact-watch"
@@ -2438,6 +2446,22 @@ function scheduleContinuousWatch({
   liveWakeTimer = setTimeout(async () => {
     liveWakeTimer = null;
     if (epoch !== runEpoch || activeAdapter !== adapter) return;
+    const cycleControl = activeWatchControl?.watchId === watchId
+      ? activeWatchControl
+      : null;
+    if (cycleControl?.pending) {
+      scheduleContinuousWatch({
+        adapter,
+        sessionId,
+        runIdentity,
+        watchId,
+        epoch,
+        cursor,
+        deadline,
+      });
+      return;
+    }
+    setWatchControlBusy(cycleControl, true);
     try {
       const advanced = await adapter.request("patchbay-advance-exact-run", {
         sessionId,
@@ -2456,16 +2480,13 @@ function scheduleContinuousWatch({
       // for every value would spend the observation budget on static work and
       // can starve Stop/Watch input on slower browser hosts.
       const liveDelta = renderLiveRunProjection(pumped.value.view);
-      const control = activeWatchControl?.watchId === watchId
-        ? activeWatchControl
-        : null;
       let nextCursor = cursor;
       let watched = null;
-      if (control?.attached && !control.pending) {
+      if (cycleControl?.attached) {
         watched = await adapter.request("patchbay-read-exact-watch", {
           sessionId,
           ...runIdentity,
-          operatorId: control.operatorId,
+          operatorId: cycleControl.operatorId,
           watchId,
           cursor,
           maximumRecords: 1,
@@ -2475,7 +2496,7 @@ function scheduleContinuousWatch({
         }
         if (epoch !== runEpoch || activeAdapter !== adapter) return;
         nextCursor = watched.value.next_cursor;
-        control.cursor = nextCursor;
+        cycleControl.cursor = nextCursor;
       }
       const message =
         `✓ Live exact run remains ${pumped.value.state}.\n` +
@@ -2487,7 +2508,7 @@ function scheduleContinuousWatch({
         projection: activeRunProjection,
         result: pumped.value,
         watched: watched?.value || null,
-        control,
+        control: cycleControl,
         delta: liveDelta,
         message,
       });
@@ -2517,6 +2538,8 @@ function scheduleContinuousWatch({
         consoleBadge.textContent = "Failed";
         consoleBadge.className = "badge status-badge failed";
       }
+    } finally {
+      setWatchControlBusy(cycleControl, false);
     }
   }, LIVE_WATCH_PRESENTATION_INTERVAL_MS);
 }

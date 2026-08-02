@@ -711,14 +711,11 @@ test("detaches a live Watch without pressuring execution", async ({ page }) => {
   await expect(structuredCordWatch).toHaveCount(1);
   await expect(structuredCordWatch).toContainText("Remove Watch");
   await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
-  await expect.poll(async () => {
-    const pressed = await watchToggle.getAttribute("aria-pressed");
-    if (pressed === "true" && await watchToggle.isEnabled()) {
-      await structuredCordWatch.click();
-    }
-    return watchToggle.getAttribute("aria-pressed");
-  }, { timeout: 20_000 }).toBe("false");
-  await expect(watchToggle).toBeEnabled();
+  await structuredCordWatch.click();
+  await expect(watchToggle).toHaveAttribute("aria-pressed", "false", {
+    timeout: 20_000,
+  });
+  await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
   await expect(page.locator("#console-status-badge")).toHaveText("Live");
   await expect.poll(async () => {
     const accounting = await page.locator("#watch-accounting").evaluate((element) =>
@@ -757,25 +754,16 @@ test("reattaches a live Watch without pressuring execution", async ({ page }) =>
   const { firstTick } = await startTinyInstrument(page);
   const watchToggle = page.locator("#watch-toggle");
   await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
-  await expect.poll(async () => {
-    const pressed = await watchToggle.getAttribute("aria-pressed");
-    if (pressed === "true" && await watchToggle.isEnabled()) {
-      await watchToggle.click();
-    }
-    return watchToggle.getAttribute("aria-pressed");
-  }, { timeout: 20_000 }).toBe("false");
+  await watchToggle.click();
+  await expect(watchToggle).toHaveAttribute("aria-pressed", "false", {
+    timeout: 20_000,
+  });
 
-  const scopeWatchLabel = page.locator(
-    '.faceplate-port-row[data-semantic-path="root/scope/port/outgoing/text"] .jack-label',
-  );
-  await expect.poll(async () => {
-    const pressed = await watchToggle.getAttribute("aria-pressed");
-    if (pressed === "false" && await watchToggle.isEnabled()) {
-      await scopeWatchLabel.dispatchEvent("dblclick");
-    }
-    return watchToggle.getAttribute("aria-pressed");
-  }, { timeout: 20_000 }).toBe("true");
-  await expect(watchToggle).toBeEnabled();
+  await watchToggle.click();
+  await expect(watchToggle).toHaveAttribute("aria-pressed", "true", {
+    timeout: 20_000,
+  });
+  await expect(watchToggle).toBeEnabled({ timeout: 20_000 });
   await expect.poll(async () => parseWatchTick(
     await page.locator("#watch-value").textContent(),
   ), { timeout: 20_000 }).toBeGreaterThan(firstTick);
@@ -1649,7 +1637,7 @@ test("routes stacked reverse cords with straight rectilinear segments", async ({
       }),
     );
   });
-  await page.goto("/tour/public/index.html?lesson=welcome.hello-panel");
+  await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
 
   const path = page.locator(".patchbay-cord .react-flow__edge-path").first();
   await expect(path).toHaveAttribute("data-cord-geometry", "straight");
@@ -2686,7 +2674,7 @@ test("cited claim graph keeps source support on each traversed edge", async ({ p
 });
 
 test("value envelope platform lesson links checked admission to an exact run", async ({ page }) => {
-  await page.goto(
+  await gotoTour(page,
     "/tour/public/index.html?lesson=platform.value-envelope-clock-feedback",
   );
   const story = page.locator("#execution-story");
