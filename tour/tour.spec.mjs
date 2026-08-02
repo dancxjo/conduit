@@ -2563,7 +2563,7 @@ test("learned lifecycle keeps evaluation separate from promotion authority", asy
 });
 
 test("cited claim graph keeps source support on each traversed edge", async ({ page }) => {
-  await page.goto(
+  await gotoTour(page,
     "/tour/public/index.html?lesson=library.bounded-knowledge-graph",
   );
   const story = page.locator("#execution-story");
