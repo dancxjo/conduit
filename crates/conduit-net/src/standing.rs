@@ -3,16 +3,17 @@
 use conduit_core::{
     ArtifactDigest, ConfigContract, ConfigFieldContract, ConfigIdentity, ConfigMutability,
     ConfigRequirement, ConnectionCardinality, Delivery, Direction, ExecutorKind, Id,
-    LossAcceptance, NodeContract, PinnedDescriptor, PortContract, PortFlowConstraints, Presence,
-    SemanticHash, Sensitivity, StopPolicy, TemporalContract, TerminalContract, TypeContractRef,
-    ValueCardinality,
+    LossAcceptance, NodeContract, PinnedDescriptor, PlanResourceBudget, PortContract,
+    PortFlowConstraints, Presence, SemanticHash, Sensitivity, StopPolicy, TemporalContract,
+    TerminalContract, TypeContractRef, ValueCardinality,
 };
 use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
     CompiledInHostService, ExactHostedServiceBinding, Handler, HostedServiceCleanup,
     HostedServiceInterest, HostedServiceStep, HostedServiceStepContext,
-    InstalledArtifactRegistration, InstalledImplementationRegistration, Registry, RegistryError,
-    ResolutionError, RunIo, RuntimeError, Value,
+    InstalledArtifactRegistration, InstalledCapabilityRequirement,
+    InstalledImplementationRegistration, Registry, RegistryError, ResolutionError, RunIo,
+    RuntimeError, Value,
 };
 use sha2::{Digest as _, Sha256};
 
@@ -1105,7 +1106,7 @@ fn validate_stream_sink(node: &Node) -> Result<(), ResolutionError> {
 
 fn validate_listener(node: &Node) -> Result<(), ResolutionError> {
     validate_base(node, LISTENER_FIELDS.len())?;
-    if node.config("transport") != Some("tcp-fixture")
+    if node.config("transport") != Some("tcp-reference")
         || integer(node, "local_port") != Some(8080)
         || integer(node, "period_ticks") != Some(10)
         || integer(node, "session_timeout_ticks") != Some(25)
@@ -1115,7 +1116,7 @@ fn validate_listener(node: &Node) -> Result<(), ResolutionError> {
     {
         return Err(ResolutionError::new(
             NetworkReason::Bounds.code(),
-            "listener does not match the bounded multi-session fixture profile",
+            "listener does not match the bounded multi-session reference profile",
         ));
     }
     Ok(())
@@ -2739,9 +2740,9 @@ impl Default for PacketRouter {
 /// routing contract. It intentionally does not share `RouteTable` with the
 /// reference implementation, so substitution exercises an implementation
 /// boundary rather than a second manifest name over the same handler.
-struct PortablePacketRouter;
+struct NativeUserspacePacketRouter;
 
-impl Handler for PortablePacketRouter {
+impl Handler for NativeUserspacePacketRouter {
     fn step(
         &mut self,
         _node: &Node,
@@ -2752,7 +2753,7 @@ impl Handler for PortablePacketRouter {
         let [input] = inputs else {
             return Err(runtime_error(
                 NetworkReason::MalformedPacket,
-                "portable router requires one packet",
+                "native userspace router requires one packet",
             ));
         };
         let mut packet = parse_packet(input)?;
@@ -3268,8 +3269,8 @@ fn packet_classifier() -> Box<dyn Handler> {
 fn packet_router() -> Box<dyn Handler> {
     recorded_handler(PacketRouter::default())
 }
-fn portable_packet_router() -> Box<dyn Handler> {
-    recorded_handler(PortablePacketRouter)
+fn native_userspace_packet_router() -> Box<dyn Handler> {
+    recorded_handler(NativeUserspacePacketRouter)
 }
 fn packet_sink() -> Box<dyn Handler> {
     recorded_handler(PacketSink::default())
@@ -3446,19 +3447,61 @@ pub fn register_deterministic_standing_network_providers(
     Ok(())
 }
 
-/// A second implementation identity for the exact same host-neutral router.
-/// It remains a userspace provider and does not mutate an ambient host route
+pub const NATIVE_USERSPACE_ROUTE_IMPLEMENTATION_ID: &str =
+    "conduit.net/native-userspace-route-table";
+pub const NATIVE_USERSPACE_ROUTE_ARTIFACT_ID: &str =
+    "conduit.net/native-userspace-route-table-artifact";
+
+/// Exact capability predicate for the source-attested native route adapter.
+///
+/// The implementation declares this predicate at installation. A caller-owned
+/// host observation must independently report the matching current target and
+/// linked-code digest before the generic resolver may select it.
+#[must_use]
+pub fn native_userspace_route_capability_requirement() -> InstalledCapabilityRequirement {
+    const INTERFACE: &str = "conduit.host/network/native-userspace-route";
+    let source_digest =
+        SemanticHash::from_bytes(Sha256::digest(include_bytes!("standing.rs")).into());
+    InstalledCapabilityRequirement {
+        interface: PinnedDescriptor {
+            id: Id(INTERFACE),
+            schema_version: 0,
+            semantic_hash: SemanticHash::from_bytes(Sha256::digest(INTERFACE).into()),
+        },
+        mode: "linked".to_owned(),
+        subject: Some(format!(
+            "{}/{}",
+            std::env::consts::OS,
+            std::env::consts::ARCH
+        )),
+        details: Some(source_digest),
+        minimum_capacity: PlanResourceBudget::ZERO,
+    }
+}
+
+/// Installs a second executable for the same host-neutral route contract via
+/// the shared implementation-manifest and artifact path.
+///
+/// The artifact is the actual linked adapter source, not a synthetic fixture.
+/// Installation performs no discovery or effect, and the implementation
+/// remains unusable until the generic host snapshot satisfies
+/// [`native_userspace_route_capability_requirement`]. The adapter only
+/// validates and translates values; it does not mutate an ambient host route
 /// table or claim packet-injection authority.
-pub fn register_portable_route_provider(registry: &mut Registry) -> Result<(), RegistryError> {
-    const ARTIFACT: &[u8] = b"conduit.net/portable-route-table|longest-prefix|finite|0";
-    let digest = ArtifactDigest::from_bytes(Sha256::digest(ARTIFACT).into());
-    let profile = "conduit/network-portable-in-process-profile";
+pub fn install_native_userspace_route_implementation(
+    registry: &mut Registry,
+) -> Result<(), RegistryError> {
+    const SOURCE: &[u8] = include_bytes!("standing.rs");
+    let digest = ArtifactDigest::from_bytes(Sha256::digest(SOURCE).into());
+    let recipe_digest =
+        ArtifactDigest::from_bytes(Sha256::digest(b"cargo build -p conduit-net").into());
+    let profile = "conduit/network-native-in-process-profile";
     registry.register_installed_implementation(InstalledImplementationRegistration {
         contract: &PACKET_ROUTE_CONTRACT,
-        implementation_id: "conduit.net/portable-route-table".to_owned(),
-        implementation_version: "portable-longest-prefix-0".to_owned(),
+        implementation_id: NATIVE_USERSPACE_ROUTE_IMPLEMENTATION_ID.to_owned(),
+        implementation_version: digest.to_string(),
         executor: ExecutorKind::NativeInProcess,
-        entrypoint_name: "net-portable-route-table".to_owned(),
+        entrypoint_name: "net-native-userspace-route-table".to_owned(),
         entrypoint_adapter: "conduit/host-service-step".to_owned(),
         entrypoint_abi: "conduit/rust-in-process".to_owned(),
         entrypoint_protocol_version: 0,
@@ -3468,21 +3511,21 @@ pub fn register_portable_route_provider(registry: &mut Registry) -> Result<(), R
             semantic_hash: SemanticHash::from_bytes(Sha256::digest(profile).into()),
         },
         artifacts: vec![InstalledArtifactRegistration {
-            id: "conduit.net/portable-route-table-artifact".to_owned(),
+            id: NATIVE_USERSPACE_ROUTE_ARTIFACT_ID.to_owned(),
             digest,
             media_type: "application/vnd.conduit.compiled-in-provider".to_owned(),
-            byte_size: u64::try_from(ARTIFACT.len()).expect("artifact size fits u64"),
+            byte_size: u64::try_from(SOURCE.len()).expect("artifact size fits u64"),
             target: Some(std::env::consts::ARCH.to_owned()),
             abi: Some("conduit/rust-in-process".to_owned()),
             builder: "conduit/rustc-workspace-build".to_owned(),
             source_digest: digest,
-            build_recipe_digest: digest,
+            build_recipe_digest: recipe_digest,
             reproducible: true,
             license_expressions: vec!["MIT".to_owned(), "Apache-2.0".to_owned()],
             role: "implementation".to_owned(),
             required: true,
         }],
-        required_capabilities: Vec::new(),
+        required_capabilities: vec![native_userspace_route_capability_requirement()],
         required_authorities: Vec::new(),
         required_effects: Vec::new(),
         minimum_plan_version: 0,
@@ -3491,7 +3534,7 @@ pub fn register_portable_route_provider(registry: &mut Registry) -> Result<(), R
         maximum_runtime_protocol: 1,
         coexistence_memory_bytes: 0,
         managed_lifecycle: None,
-        factory: portable_packet_router,
+        factory: native_userspace_packet_router,
         validate_config: validate_route,
     })
 }
@@ -3599,10 +3642,10 @@ mod tests {
     }
 
     #[test]
-    fn one_semantic_router_has_two_explicit_provider_implementations() {
+    fn one_semantic_router_has_two_generic_installed_implementations() {
         let mut registry = Registry::default();
         register_deterministic_standing_network_providers(&mut registry).unwrap();
-        register_portable_route_provider(&mut registry).unwrap();
+        install_native_userspace_route_implementation(&mut registry).unwrap();
         let router_providers = registry
             .installed_providers()
             .into_iter()
@@ -3613,28 +3656,32 @@ mod tests {
             router_providers[0].manifest.id,
             router_providers[1].manifest.id
         );
-        let portable = router_providers
+        let native = router_providers
             .iter()
-            .find(|provider| provider.manifest.id == Id("conduit.net/portable-route-table"))
+            .find(|provider| provider.manifest.id == Id(NATIVE_USERSPACE_ROUTE_IMPLEMENTATION_ID))
             .unwrap();
-        assert_eq!(
-            portable.manifest.implementation_version,
-            "portable-longest-prefix-0"
+        assert!(
+            native
+                .manifest
+                .implementation_version
+                .starts_with("sha256:")
         );
-        assert_eq!(portable.manifest.executor, ExecutorKind::NativeInProcess);
-        assert_eq!(portable.artifacts.len(), 1);
-        assert_eq!(portable.artifact.target, Some(Id(std::env::consts::ARCH)));
-        assert!(portable.manifest.required_authorities.is_empty());
-        assert!(portable.manifest.required_effects.is_empty());
+        assert_eq!(native.manifest.executor, ExecutorKind::NativeInProcess);
+        assert_eq!(native.artifacts.len(), 1);
+        assert_eq!(native.artifact.id, Id(NATIVE_USERSPACE_ROUTE_ARTIFACT_ID));
+        assert_eq!(native.artifact.target, Some(Id(std::env::consts::ARCH)));
+        assert_eq!(native.required_capabilities.len(), 1);
+        assert!(native.manifest.required_authorities.is_empty());
+        assert!(native.manifest.required_effects.is_empty());
     }
 
     #[test]
-    fn independent_router_implementations_preserve_the_same_normalized_semantics() {
+    fn installed_router_adapter_preserves_reference_normalized_semantics() {
         let route_node = node(
             "net/packet/route { lifecycle = \"standing\" prefix = \"10.1.0.0\" prefix_length = 16 egress_interface = 2 mtu = 1500 forwarding = \"admitted\" maximum_routes = 16 maximum_packet_bytes = 1500 maximum_evidence_events = 64 }",
         );
         let mut reference = PacketRouter::default();
-        let mut portable = PortablePacketRouter;
+        let mut native = NativeUserspacePacketRouter;
         let mut input = std::io::empty();
         let mut output = std::io::sink();
         let mut error = std::io::sink();
@@ -3673,8 +3720,8 @@ mod tests {
                 panic!("reference router did not produce");
             };
             let HostedServiceStep::Produced {
-                outputs: portable_outputs,
-            } = portable
+                outputs: native_outputs,
+            } = native
                 .step(
                     &route_node,
                     core::slice::from_ref(&input),
@@ -3683,9 +3730,9 @@ mod tests {
                 )
                 .unwrap()
             else {
-                panic!("portable router did not produce");
+                panic!("native userspace router did not produce");
             };
-            assert_eq!(reference_outputs, portable_outputs);
+            assert_eq!(reference_outputs, native_outputs);
         }
     }
 
@@ -3951,7 +3998,7 @@ mod tests {
     #[test]
     fn listener_reports_expiry_as_a_correlated_terminal_lifecycle() {
         let listener_node = node(
-            "net/session/listen { lifecycle = \"standing\" transport = \"tcp-fixture\" local_port = 8080 period_ticks = 10 session_timeout_ticks = 25 maximum_sessions = 8 maximum_retained_items = 8 maximum_evidence_events = 64 }",
+            "net/session/listen { lifecycle = \"standing\" transport = \"tcp-reference\" local_port = 8080 period_ticks = 10 session_timeout_ticks = 25 maximum_sessions = 8 maximum_retained_items = 8 maximum_evidence_events = 64 }",
         );
         let mut listener = SessionListener::default();
         let mut input = std::io::empty();
@@ -4010,7 +4057,7 @@ mod tests {
     #[test]
     fn listener_drain_and_abort_have_distinct_bounded_cleanup() {
         let listener_node = node(
-            "net/session/listen { lifecycle = \"standing\" transport = \"tcp-fixture\" local_port = 8080 period_ticks = 10 session_timeout_ticks = 25 maximum_sessions = 8 maximum_retained_items = 8 maximum_evidence_events = 64 }",
+            "net/session/listen { lifecycle = \"standing\" transport = \"tcp-reference\" local_port = 8080 period_ticks = 10 session_timeout_ticks = 25 maximum_sessions = 8 maximum_retained_items = 8 maximum_evidence_events = 64 }",
         );
         let mut input = std::io::empty();
         let mut output = std::io::sink();

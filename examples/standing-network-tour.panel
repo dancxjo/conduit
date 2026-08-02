@@ -23,7 +23,7 @@ endpoint_a_observe: net/reachability {
 }
 
 # The packet source and destination begin as two isolated application
-# endpoints. The route is authored fixture state, not an ambient host-route
+# endpoints. The route is authored reference state, not an ambient host-route
 # mutation or an effect caused by drawing a cord.
 packet_source: net/packet/source {
     lifecycle = "standing" source = "10.0.0.2" destination = "10.1.0.2"
@@ -74,7 +74,7 @@ stream_sink: net/stream/sink {
 
 # One listener serves repeated sessions on a fixed topology.
 listener: net/session/listen {
-    lifecycle = "standing" transport = "tcp-fixture" local_port = 8080 period_ticks = 10
+    lifecycle = "standing" transport = "tcp-reference" local_port = 8080 period_ticks = 10
     session_timeout_ticks = 25 maximum_sessions = 8 maximum_retained_items = 8
     maximum_evidence_events = 64
 }
