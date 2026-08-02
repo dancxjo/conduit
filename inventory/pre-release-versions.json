@@ -200,6 +200,7 @@
         "conduit.netherwick-network",
         "conduit.performance-baseline",
         "conduit.persistent-budget-fixtures",
+        "conduit.quick-local-chat-conformance",
         "conduit.reference-distribution",
         "conduit.release-capabilities",
         "conduit.rp2040-budget",

@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::io::{Read, Write};
 use std::rc::Rc;
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 use conduit_core::{
     ArtifactDigest, ArtifactManifest, ArtifactProvenance, BlockingFairness, CanonicalDescriptor,
@@ -2672,6 +2672,9 @@ pub trait Handler {
 
 pub type HandlerFactory = fn() -> Box<dyn Handler>;
 pub type ConfigValidator = fn(&Node) -> Result<(), ResolutionError>;
+type OwnedHandlerFactory = Arc<dyn Fn() -> Box<dyn Handler> + Send + Sync>;
+type OwnedConfigValidator =
+    Arc<dyn for<'a> Fn(&'a Node) -> Result<(), ResolutionError> + Send + Sync>;
 
 /// Static facts and callbacks for one provider linked into the current host
 /// executable.
@@ -2707,6 +2710,18 @@ pub struct InstalledArtifactRegistration {
     pub required: bool,
 }
 
+/// One host capability an installed implementation requires before it may be
+/// selected. The implementation declares the predicate; a caller-owned host
+/// observation supplies (or omits) the matching current fact independently.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InstalledCapabilityRequirement {
+    pub interface: PinnedDescriptor<'static>,
+    pub mode: String,
+    pub subject: Option<String>,
+    pub details: Option<SemanticHash>,
+    pub minimum_capacity: conduit_core::PlanResourceBudget,
+}
+
 /// Generic installation request for any implementation of any semantic node.
 ///
 /// Contracts, implementation manifests, artifacts, adapters, and authority
@@ -2714,7 +2729,7 @@ pub struct InstalledArtifactRegistration {
 /// and adapter callback; host code supplies observed artifact facts. The same
 /// resolver path is used for native, process, WASM, FFI, firmware, and remote
 /// implementations.
-pub struct InstalledImplementationRegistration {
+pub struct InstalledImplementationRegistration<F = HandlerFactory, V = ConfigValidator> {
     pub contract: &'static NodeContract<'static>,
     pub implementation_id: String,
     pub implementation_version: String,
@@ -2725,6 +2740,9 @@ pub struct InstalledImplementationRegistration {
     pub entrypoint_protocol_version: u32,
     pub execution_profile: PinnedDescriptor<'static>,
     pub artifacts: Vec<InstalledArtifactRegistration>,
+    /// Host-observed capabilities required by this implementation. Installing
+    /// the implementation never manufactures the matching observation.
+    pub required_capabilities: Vec<InstalledCapabilityRequirement>,
     pub required_authorities: Vec<SemanticHash>,
     pub required_effects: Vec<SemanticHash>,
     pub minimum_plan_version: u32,
@@ -2736,18 +2754,31 @@ pub struct InstalledImplementationRegistration {
     /// implementation. It is hashed into the implementation manifest as a
     /// provided interface and never inferred from executor or process type.
     pub managed_lifecycle: Option<ManagedComponentDescriptor>,
-    pub factory: HandlerFactory,
-    pub validate_config: ConfigValidator,
+    pub factory: F,
+    pub validate_config: V,
 }
 
-#[derive(Debug)]
 pub struct RegisteredExecutable {
     pub manifest: &'static ImplementationManifest<'static>,
     pub artifacts: &'static [&'static ArtifactManifest<'static>],
     pub implementation: HostedPrimitiveImplementation,
     pub managed_lifecycle: Option<&'static ManagedComponentDescriptor>,
-    pub factory: HandlerFactory,
-    pub validate_config: ConfigValidator,
+    required_capabilities: &'static [InstalledCapabilityRequirement],
+    factory: OwnedHandlerFactory,
+    validate_config: OwnedConfigValidator,
+}
+
+impl fmt::Debug for RegisteredExecutable {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("RegisteredExecutable")
+            .field("manifest", &self.manifest.id)
+            .field("artifacts", &self.artifacts.len())
+            .field("implementation", &self.implementation)
+            .field("managed_lifecycle", &self.managed_lifecycle)
+            .field("required_capabilities", &self.required_capabilities)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug)]
@@ -2764,7 +2795,7 @@ struct RegisteredNode {
 }
 
 /// Exact compiled-in provider facts independently trusted by the hosted runtime.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone)]
 pub struct InstalledHostedProvider {
     pub contract: &'static NodeContract<'static>,
     pub manifest: &'static ImplementationManifest<'static>,
@@ -2774,15 +2805,30 @@ pub struct InstalledHostedProvider {
     pub artifact: &'static ArtifactManifest<'static>,
     pub implementation: HostedPrimitiveImplementation,
     pub managed_lifecycle: Option<&'static ManagedComponentDescriptor>,
-    validate_config: ConfigValidator,
+    pub required_capabilities: &'static [InstalledCapabilityRequirement],
+    validate_config: OwnedConfigValidator,
 }
 
-#[derive(Clone, Copy)]
+impl fmt::Debug for InstalledHostedProvider {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("InstalledHostedProvider")
+            .field("contract", &self.contract.id)
+            .field("manifest", &self.manifest.id)
+            .field("artifacts", &self.artifacts.len())
+            .field("artifact", &self.artifact.id)
+            .field("implementation", &self.implementation)
+            .field("managed_lifecycle", &self.managed_lifecycle)
+            .field("required_capabilities", &self.required_capabilities)
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone)]
 struct HostedProviderDefinition {
     installed: InstalledHostedProvider,
     artifacts: &'static [&'static ArtifactManifest<'static>],
     factory: HandlerFactory,
-    validate_config: ConfigValidator,
 }
 
 impl RegisteredNode {
@@ -3110,8 +3156,9 @@ impl Registry {
             RegisteredExecutable {
                 manifest,
                 artifacts,
-                factory: service.factory,
-                validate_config: service.validate_config,
+                required_capabilities: &[],
+                factory: Arc::new(service.factory),
+                validate_config: Arc::new(service.validate_config),
                 implementation,
                 managed_lifecycle,
             },
@@ -3143,7 +3190,8 @@ impl Registry {
                     artifact,
                     implementation: executable.implementation,
                     managed_lifecycle: executable.managed_lifecycle,
-                    validate_config: executable.validate_config,
+                    required_capabilities: executable.required_capabilities,
+                    validate_config: Arc::clone(&executable.validate_config),
                 });
             }
         }
@@ -3210,8 +3258,9 @@ impl Registry {
             RegisteredExecutable {
                 manifest,
                 artifacts,
-                factory,
-                validate_config,
+                required_capabilities: &[],
+                factory: Arc::new(factory),
+                validate_config: Arc::new(validate_config),
                 implementation: HostedPrimitiveImplementation::HostedService,
                 managed_lifecycle: None,
             },
@@ -3226,10 +3275,14 @@ impl Registry {
     /// library, firmware image, or remote adapter artifact). It deliberately
     /// does not discover artifacts or create host observations, conformance
     /// results, resources, effects, or grants.
-    pub fn register_installed_implementation(
+    pub fn register_installed_implementation<F, V>(
         &mut self,
-        registration: InstalledImplementationRegistration,
-    ) -> Result<(), RegistryError> {
+        registration: InstalledImplementationRegistration<F, V>,
+    ) -> Result<(), RegistryError>
+    where
+        F: Fn() -> Box<dyn Handler> + Send + Sync + 'static,
+        V: for<'a> Fn(&'a Node) -> Result<(), ResolutionError> + Send + Sync + 'static,
+    {
         fn leak(value: String) -> &'static str {
             Box::leak(value.into_boxed_str())
         }
@@ -3301,6 +3354,8 @@ impl Registry {
             Box::leak(registration.required_authorities.into_boxed_slice());
         let required_effects: &'static [SemanticHash] =
             Box::leak(registration.required_effects.into_boxed_slice());
+        let required_capabilities: &'static [InstalledCapabilityRequirement] =
+            Box::leak(registration.required_capabilities.into_boxed_slice());
         let entrypoint_name = leak(registration.entrypoint_name);
         let managed_lifecycle = registration
             .managed_lifecycle
@@ -3384,8 +3439,9 @@ impl Registry {
             RegisteredExecutable {
                 manifest,
                 artifacts,
-                factory: registration.factory,
-                validate_config: registration.validate_config,
+                required_capabilities,
+                factory: Arc::new(registration.factory),
+                validate_config: Arc::new(registration.validate_config),
                 implementation: HostedPrimitiveImplementation::HostedService,
                 managed_lifecycle,
             },
@@ -3402,6 +3458,7 @@ impl Registry {
             artifacts,
             implementation,
             managed_lifecycle,
+            required_capabilities,
             factory,
             validate_config,
         } = executable;
@@ -3483,6 +3540,7 @@ impl Registry {
             artifacts,
             implementation,
             managed_lifecycle,
+            required_capabilities,
             factory,
             validate_config,
         });
@@ -4002,8 +4060,9 @@ impl Registry {
                     RegisteredExecutable {
                         manifest: definition.installed.manifest,
                         artifacts: definition.artifacts,
-                        factory: definition.factory,
-                        validate_config: definition.validate_config,
+                        required_capabilities: definition.installed.required_capabilities,
+                        factory: Arc::new(definition.factory),
+                        validate_config: Arc::clone(&definition.installed.validate_config),
                         implementation: definition.installed.implementation,
                         managed_lifecycle: definition.installed.managed_lifecycle,
                     },
@@ -4022,7 +4081,7 @@ impl Registry {
             .get_or_init(|| {
                 hosted_provider_definitions()
                     .iter()
-                    .map(|definition| definition.installed)
+                    .map(|definition| definition.installed.clone())
                     .collect()
             })
             .as_slice()
@@ -4418,11 +4477,11 @@ fn hosted_provider_definitions() -> &'static [HostedProviderDefinition] {
                             artifact,
                             implementation: *implementation,
                             managed_lifecycle: None,
-                            validate_config: *validate_config,
+                            required_capabilities: &[],
+                            validate_config: Arc::new(*validate_config),
                         },
                         artifacts,
                         factory: *factory,
-                        validate_config: *validate_config,
                     }
                 },
             )
@@ -4814,23 +4873,18 @@ impl Registry {
             } else {
                 None
             };
-            let validate_config = executable
-                .as_ref()
-                .map(|executable| executable.validate_config)
-                .or_else(|| {
-                    definition
-                        .compatibility_executable
-                        .as_ref()
-                        .map(|executable| executable.validate_config)
-                })
-                .or_else(|| (!require_executable).then_some(validate_contract_config));
-            let validate_config = validate_config.ok_or_else(|| {
-                ResolutionError::new(
+            if let Some(executable) = executable {
+                (executable.validate_config)(&source)?;
+            } else if let Some(executable) = &definition.compatibility_executable {
+                (executable.validate_config)(&source)?;
+            } else if !require_executable {
+                validate_contract_config(&source)?;
+            } else {
+                return Err(ResolutionError::new(
                     "CND-IMP-001",
                     format!("no ready implementation for `{}`", source.kind),
-                )
-            })?;
-            validate_config(&source)?;
+                ));
+            }
             nodes.push(ResolvedNode {
                 source,
                 definition,
@@ -5870,16 +5924,16 @@ struct ResolvedNode<'a> {
 }
 
 impl<'a> ResolvedNode<'a> {
-    fn executable_factory(&self) -> HandlerFactory {
-        self.executable
-            .map(|executable| executable.factory)
-            .or_else(|| {
-                self.definition
-                    .compatibility_executable
-                    .as_ref()
-                    .map(|executable| executable.factory)
-            })
-            .expect("resolved node has executable implementation")
+    fn new_handler(&self) -> Box<dyn Handler> {
+        if let Some(executable) = self.executable {
+            return (executable.factory)();
+        }
+        let executable = self
+            .definition
+            .compatibility_executable
+            .as_ref()
+            .expect("resolved node has executable implementation");
+        (executable.factory)()
     }
 }
 
@@ -7215,7 +7269,7 @@ impl ResolvedPanel<'_> {
                             },
                         );
                     HostedNodeKind::HostedService {
-                        handler: (resolved.executable_factory())(),
+                        handler: resolved.new_handler(),
                         node: resolved.source.clone(),
                         binding,
                         managed,
@@ -7491,7 +7545,7 @@ impl ResolvedPanel<'_> {
                 }
 
                 let resolved = &self.nodes[node_index];
-                let mut handler = (resolved.executable_factory())();
+                let mut handler = resolved.new_handler();
                 let node_outputs = handler.run(&resolved.source, &inputs, io)?;
                 if node_outputs.len() != resolved.definition.contract.outputs.len() {
                     return Err(RuntimeError::new(

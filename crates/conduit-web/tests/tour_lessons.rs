@@ -207,6 +207,11 @@ fn tour_lessons_declare_verified_browser_runnability() {
             )
             .expect("browser gain implementation registers");
             registry
+        } else if id == "library.bounded-quick-local-chat" {
+            let mut registry = Registry::hosted_primitives();
+            conduit_ai::register_deterministic_chat_provider(&mut registry)
+                .expect("browser chat reference provider registers");
+            registry
         } else if matches!(
             id,
             "library.bounded-audio-processing" | "library.audio-device-boundaries"
@@ -278,6 +283,45 @@ fn tour_lessons_declare_verified_browser_runnability() {
             assert_eq!(lesson["validation"]["kind"], "diagnostic");
             assert_eq!(lesson["validation"]["value"], expected);
         }
+    }
+}
+
+#[test]
+fn quick_local_chat_lesson_runs_standalone_and_typed_result_composition() {
+    let manifest: Value = serde_json::from_str(include_str!("../../../tour/lessons/current.json"))
+        .expect("Tour lesson manifest is valid JSON");
+    let lesson = manifest["lessons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|lesson| lesson["id"] == "library.bounded-quick-local-chat")
+        .expect("quick-local chat lesson is selectable");
+    let contracts = lesson["library"]["contracts"].as_array().unwrap();
+    assert!(contracts.iter().any(|contract| contract["id"] == "ai/chat"));
+    assert!(
+        contracts
+            .iter()
+            .any(|contract| contract["id"] == "ai/chat/result/inspect")
+    );
+    let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
+    assert_eq!(scenarios.len(), 2);
+    for scenario in scenarios {
+        let source = scenario["source"].as_str().unwrap();
+        assert_current_panel_source(scenario["id"].as_str().unwrap(), source);
+        let result: Value = serde_json::from_str(&run_panel(source.to_owned())).unwrap();
+        assert_eq!(result["ok"], true, "{result}");
+        assert_eq!(result["display"], scenario["validation"]["value"]);
+        assert_eq!(result["terminal"], "succeeded");
+    }
+    let prose = lesson["prose"].as_str().unwrap();
+    for boundary in [
+        "same contract",
+        "host capability",
+        "resource",
+        "grant",
+        "exact plan",
+    ] {
+        assert!(prose.contains(boundary), "lesson explains {boundary}");
     }
 }
 

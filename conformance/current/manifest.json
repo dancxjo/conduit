@@ -6873,6 +6873,77 @@
           "test": "tour_lessons"
         }
       ]
+    },
+    {
+      "id": "quick-local-chat",
+      "profile": "conduit.c4",
+      "requirement_ids": [
+        "CHAT-001", "CHAT-002", "CHAT-003", "CHAT-004", "CHAT-005",
+        "CHAT-006", "CHAT-007", "CHAT-008", "CHAT-009", "CHAT-010"
+      ],
+      "artifacts": [
+        {
+          "id": "quick-local-chat",
+          "path": "../c4/quick-local-chat.json",
+          "sha256": "sha256:791aba09dd1d65ff73300a530f491b91ac3b79ad15991bea708885af30fdf108",
+          "operation": "quick-local-chat",
+          "requirement_ids": [
+            "CHAT-001", "CHAT-002", "CHAT-003", "CHAT-004", "CHAT-005",
+            "CHAT-006", "CHAT-007", "CHAT-008", "CHAT-009", "CHAT-010"
+          ],
+          "default_rule": "CHAT-007",
+          "case_rules": {
+            "deterministic-fixed-reply": "CHAT-003",
+            "bounded-streaming-reply": "CHAT-006",
+            "same-contract-distinct-implementations": "CHAT-003",
+            "same-source-distinct-host-plans": "CHAT-005",
+            "secret-redaction": "CHAT-008",
+            "unexpected-network": "CHAT-009",
+            "provider-model-transition-new-plan": "CHAT-004"
+          },
+          "format": "json-vectors",
+          "collection": "cases",
+          "case_fields": ["id"],
+          "expected_fields": ["expected"]
+        }
+      ],
+      "coverage": {
+        "positive": [
+          "quick-local-chat#deterministic-fixed-reply",
+          "quick-local-chat#bounded-streaming-reply",
+          "quick-local-chat#same-contract-distinct-implementations",
+          "quick-local-chat#same-source-distinct-host-plans"
+        ],
+        "negative": [
+          "quick-local-chat#empty-prompt",
+          "quick-local-chat#context-overflow",
+          "quick-local-chat#output-overflow",
+          "quick-local-chat#provider-unavailable",
+          "quick-local-chat#stale-provider-report",
+          "quick-local-chat#timeout",
+          "quick-local-chat#cancellation",
+          "quick-local-chat#provider-loss",
+          "quick-local-chat#malformed-frame",
+          "quick-local-chat#sensitivity-refusal",
+          "quick-local-chat#grant-denied",
+          "quick-local-chat#unexpected-network",
+          "quick-local-chat#unsupported-tools",
+          "quick-local-chat#structured-output-rejected",
+          "quick-local-chat#model-mismatch"
+        ],
+        "boundary": [
+          "quick-local-chat#maximum-context",
+          "quick-local-chat#maximum-output",
+          "quick-local-chat#concurrency-exhausted",
+          "quick-local-chat#secret-redaction"
+        ],
+        "migration": ["quick-local-chat#provider-model-transition-new-plan"]
+      },
+      "reference_tests": [
+        {"package": "conduit-ai", "test": "lib"},
+        {"package": "conduit-ai", "test": "chat"},
+        {"package": "conduit-web", "test": "tour_lessons"}
+      ]
     }
   ]
 }

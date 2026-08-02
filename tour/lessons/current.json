@@ -4253,6 +4253,62 @@
           "provider availability remains a later host observation and exact-plan decision"
         ]
       }
+    },
+    {
+      "id": "library.bounded-quick-local-chat",
+      "chapter": 4,
+      "title": "Quick local chat without an ambient model",
+      "prerequisites": ["nodes.types-mean-promises", "platform.cross-host-provider-conformance"],
+      "objective": "Run one bounded chat contract through a deterministic implementation, then inspect exact result facts without naming a model server in source.",
+      "prose": "The chat node asks for a precise quick-local mode: public text, caller-supplied context, finite output, no tools, no structured-output promise, no retained conversation, and local processing. A deterministic browser provider and an explicitly observed Ollama-compatible host adapter implement the same contract through the generic implementation path. Discovery and installation still do not create a host capability, resource, grant, or exact plan.",
+      "vocabulary": ["semantic mode", "provider profile", "model artifact", "host observation", "caller-supplied context", "retention"],
+      "source": "panel 0\n\nmessage: std/literal {\n  value = \"Explain the implementation boundary.\"\n}\n\nchat: ai/chat {\n  mode = \"conduit.ai/chat/quick-local\"\n  maximum_message_bytes = 4096\n  maximum_context_bytes = 8192\n  maximum_output_bytes = 4096\n  maximum_chunk_bytes = 1024\n  maximum_chunks = 8\n  maximum_concurrency = 4\n  timeout_millis = 1000\n  sensitivity = \"public\"\n  conversation_state = \"caller-supplied-only\"\n  retention = \"none\"\n  tools = \"forbidden\"\n  structured_output = \"unsupported\"\n}\n\njoin: std/text/join {\n  separator = \"\"\n  maximum_items = 8\n  maximum_item_bytes = 1024\n  maximum_separator_bytes = 64\n  maximum_output_bytes = 4096\n}\noutput: display/text\n\nmessage.value > chat.message {\n  capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096\n  low_watermark = 0 high_watermark = 1 pressure = block\n}\n\nchat.chunks > join.item {\n  capacity = 8 max_value_bytes = 1024 max_queued_bytes = 8192\n  low_watermark = 1 high_watermark = 8 pressure = block\n}\n\njoin.text > output.text {\n  capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096\n  low_watermark = 0 high_watermark = 1 pressure = block\n}\n",
+      "command": "conduct examples/quick-local-chat.panel",
+      "commands": ["conduct --check examples/quick-local-chat.panel", "conduct examples/quick-local-chat.panel", "conduct examples/quick-local-chat-compose.panel", "cargo test -p conduit-ai"],
+      "expected_display": "Conduit keeps contracts, implementations, host facts, plans, and evidence distinct.",
+      "profile": "browser-dedicated-worker",
+      "budgets": {"runtime_ticks":128,"queue_bytes":8192,"evidence_events":64},
+      "presentation": {
+        "layout": "one-node-provider-matrix",
+        "show_plan": true,
+        "timeline": "exact-evidence",
+        "patchbay_fields": ["contract_id","semantic_mode","implementation_id","model_artifact_id","model_artifact_digest","host_observation","provider_profile","limits","locality","network_requirement","resource","grant","conversation_state","retention","pressure","cancellation","error","terminal"]
+      },
+      "validation": {"kind":"display","value":"Conduit keeps contracts, implementations, host facts, plans, and evidence distinct."},
+      "hints": [
+        "Select chat to compare the stable semantic contract with the exact deterministic browser implementation.",
+        "Inspect the result composition to see friendly wording and exact model, locality, retention, reason, and terminal facts together.",
+        "A host that knows the contract but lacks a fresh compatible capability or grant remains unsupported."
+      ],
+      "solution": "Keep chat meaning in the domain node, install each provider through the generic implementation registry, and require independent fresh host capability and authority before an exact local adapter can run.",
+      "accessibility": {
+        "non_audio": "An ordered textual event table lists admission, request commit, bounded chunks, byte counts, exact provider and model identities, cancellation or error, and terminal reason.",
+        "screen_reader": "The semantic node, exact realization, cords, limits, evidence events, and terminal result are exposed in source order with text labels.",
+        "reduced_motion": true,
+        "keyboard": "Native controls select the node and scenario; Space plays evidence and ArrowRight steps the ordered event table.",
+        "color_independent": "Every provider, bound, authority, pressure, cancellation, error, and terminal state is duplicated as text."
+      },
+      "runnability": {"state":"runnable","profile":"browser","proof":"browser-worker-exact-plan"},
+      "library": {
+        "schema": "conduit.tour-library-lesson",
+        "summary": "One bounded chat promise can have several exact host implementations without putting provider technology into the graph.",
+        "what": "A public text message produces bounded text chunks and a typed terminal result with caller-owned context and no retained conversation.",
+        "when": "Use it when a limited local text answer is useful and the host can truthfully report and authorize an exact compatible provider.",
+        "wrong": "Missing or stale providers, overflow, saturation, timeout, cancellation, provider loss, malformed framing, sensitivity or grant denial, unexpected network, tools, structured output, and model mismatch stay distinct.",
+        "contracts": [
+          {"id":"ai/chat","instance":"chat","kind":"node","inputs":["message:std/text","context:ai/chat/context"],"outputs":["chunks:std/text","result:ai/chat/result"],"policy":"quick-local exact bounds, caller context, no retention, tools, or structured output"},
+          {"id":"ai/chat/result/inspect","instance":"inspect","kind":"node","inputs":["result:ai/chat/result"],"outputs":["summary:std/text"],"policy":"bounded friendly projection of exact result facts"}
+        ],
+        "editable": ["maximum_message_bytes:4096","maximum_context_bytes:8192","maximum_output_bytes:4096","maximum_chunks:8","timeout_millis:1000"],
+        "provider": "deterministic provider in default and browser hosts; optional Ollama-compatible adapter only after explicit observation, capability, resource and grant inputs",
+        "profile": "browser-dedicated-worker",
+        "expected_evidence": ["admission and request commit", "bounded chunk indices and byte counts without prompt or output text", "exact implementation, model and terminal reason"],
+        "docs": ["../../spec/083-bounded-quick-local-chat.md","../../conformance/c4/quick-local-chat.json","../../examples/quick-local-chat.panel","../../examples/quick-local-chat-compose.panel"],
+        "scenarios": [
+          {"id":"quick-local-chat-standalone","title":"Run one bounded chat node","panel":"../../examples/quick-local-chat.panel","semantics":"The source requests only semantic mode and limits; the browser plan pins the deterministic implementation.","explanation":"Provider technology remains outside authored source.","source":"panel 0\n\nmessage: std/literal { value = \"Explain the implementation boundary.\" }\nchat: ai/chat { mode = \"conduit.ai/chat/quick-local\" maximum_message_bytes = 4096 maximum_context_bytes = 8192 maximum_output_bytes = 4096 maximum_chunk_bytes = 1024 maximum_chunks = 8 maximum_concurrency = 4 timeout_millis = 1000 sensitivity = \"public\" conversation_state = \"caller-supplied-only\" retention = \"none\" tools = \"forbidden\" structured_output = \"unsupported\" }\njoin: std/text/join { separator = \"\" maximum_items = 8 maximum_item_bytes = 1024 maximum_separator_bytes = 64 maximum_output_bytes = 4096 }\noutput: display/text\nmessage.value > chat.message { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\nchat.chunks > join.item { capacity = 8 max_value_bytes = 1024 max_queued_bytes = 8192 low_watermark = 1 high_watermark = 8 pressure = block }\njoin.text > output.text { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\n","execution":"run","validation":{"kind":"display","value":"Conduit keeps contracts, implementations, host facts, plans, and evidence distinct."}},
+          {"id":"quick-local-chat-result-composition","title":"Inspect typed result facts","panel":"../../examples/quick-local-chat-compose.panel","semantics":"The typed result composes with its ordinary inspector and text uppercase node while chunks need not be consumed.","explanation":"Friendly presentation does not replace exact provider facts.","source":"panel 0\n\nmessage: std/literal { value = \"Explain the implementation boundary.\" }\nchat: ai/chat { mode = \"conduit.ai/chat/quick-local\" maximum_message_bytes = 4096 maximum_context_bytes = 8192 maximum_output_bytes = 4096 maximum_chunk_bytes = 1024 maximum_chunks = 8 maximum_concurrency = 4 timeout_millis = 1000 sensitivity = \"public\" conversation_state = \"caller-supplied-only\" retention = \"none\" tools = \"forbidden\" structured_output = \"unsupported\" }\ninspect: ai/chat/result/inspect\nemphasize: text/uppercase\noutput: display/text\nmessage.value > chat.message { capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096 low_watermark = 0 high_watermark = 1 pressure = block }\nchat.result > inspect.result { capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384 low_watermark = 0 high_watermark = 1 pressure = block }\ninspect.summary > emphasize.text { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }\nemphasize.text > output.text { capacity = 1 max_value_bytes = 512 max_queued_bytes = 512 low_watermark = 0 high_watermark = 1 pressure = block }\n","execution":"run","validation":{"kind":"display","value":"QUICK LOCAL MODEL: COMPLETED; 1 CHUNK(S); 83 BYTES; CONVERSATION CALLER-SUPPLIED-ONLY; RETENTION NONE"}}
+        ]
+      }
     }
   ]
 }

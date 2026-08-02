@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/conduit-ai",
     "crates/conduit-audio",
     "crates/conduit-capsule",
     "crates/conduit-conformance",

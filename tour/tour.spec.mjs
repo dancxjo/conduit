@@ -597,7 +597,7 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
     "Audio remains off",
   );
   await expect(page.locator("#console-status-badge")).toHaveText("Live");
-  await expect(page.locator("#result")).toContainText("Run remains waiting");
+  await expect(page.locator("#result")).toContainText(/run remains waiting/i);
   const first = await page.locator("#watch-accounting").evaluate((element) =>
     JSON.parse(element.textContent)
   );
@@ -2703,6 +2703,53 @@ test("learned inference lesson keeps model runtime and device identities exact",
   });
   await expect(page.locator("#evidence")).toContainText(
     '"event_kind": "terminal"',
+  );
+});
+
+test("quick-local chat keeps one contract separate from its exact provider", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=library.bounded-quick-local-chat",
+  );
+  const story = page.locator("#execution-story");
+  const result = page.locator("#result");
+
+  await expect(story).toBeVisible();
+  for (const contract of ["ai/chat", "ai/chat/result/inspect"]) {
+    await expect(story).toContainText(contract);
+  }
+  const prose = page.locator("#prose");
+  for (const fact of [
+    "same contract",
+    "host capability",
+    "resource",
+    "grant",
+    "exact plan",
+  ]) {
+    await expect(prose).toContainText(fact);
+  }
+  await expect(page.locator("#runnability-state")).toContainText(
+    "runnable · browser",
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText(
+    "Conduit keeps contracts, implementations, host facts, plans, and evidence distinct.",
+    { timeout: 20_000 },
+  );
+  await expect(page.locator("#evidence")).toContainText(
+    '"event_kind": "terminal"',
+  );
+  await expect(page.locator("#timeline-table tbody tr")).not.toHaveCount(0);
+
+  await page.locator("#scenario").selectOption(
+    "quick-local-chat-result-composition",
+  );
+  await page.locator("#run").click();
+  await expect(result).toContainText(
+    "QUICK LOCAL MODEL: COMPLETED; 1 CHUNK(S); 83 BYTES; CONVERSATION CALLER-SUPPLIED-ONLY; RETENTION NONE",
+    { timeout: 20_000 },
+  );
+  await expect(page.locator('[data-id="inspect"]')).toContainText(
+    "ai/chat/result/inspect",
   );
 });
 

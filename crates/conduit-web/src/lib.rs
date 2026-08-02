@@ -816,6 +816,8 @@ fn browser_registry() -> Registry {
     static WRITE_AUTHORITIES: [SemanticHash; 1] = [SemanticHash::from_bytes([0x32; 32])];
     static WATCH_AUTHORITIES: [SemanticHash; 1] = [SemanticHash::from_bytes([0x33; 32])];
     let mut registry = Registry::hosted_primitives();
+    conduit_ai::register_deterministic_chat_provider(&mut registry)
+        .expect("deterministic chat provider has a distinct identity");
     conduit_media::register_deterministic_media_providers(&mut registry)
         .expect("deterministic media providers have distinct identities");
     conduit_media::register_deterministic_signal_providers(&mut registry)

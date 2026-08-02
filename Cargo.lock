@@ -318,6 +318,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "clap_mangen",
+ "conduit-ai",
  "conduit-audio",
  "conduit-cache",
  "conduit-capsule",
@@ -341,6 +342,21 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "conduit-ai"
+version = "0.0.0-dev"
+dependencies = [
+ "bumpalo",
+ "conduit-compile",
+ "conduit-core",
+ "conduit-panel",
+ "conduit-runtime",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
 ]
 
 [[package]]
@@ -636,6 +652,7 @@ name = "conduit-web"
 version = "0.0.0-dev"
 dependencies = [
  "bumpalo",
+ "conduit-ai",
  "conduit-audio",
  "conduit-cache",
  "conduit-compile",
@@ -3451,6 +3468,7 @@ name = "xtask"
 version = "0.0.0-dev"
 dependencies = [
  "clap",
+ "conduit-ai",
  "conduit-compile",
  "conduit-core",
  "conduit-learned",

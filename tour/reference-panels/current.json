@@ -26,12 +26,12 @@
       "runnability": {"state":"contract-only","profile":"browser","code":"CND-IMP-001","reason":"HTTP providers and listen authority are absent from the Tour browser host"}
     },
     {
-      "id": "ollama-text",
-      "title": "Local Ollama AI Generation",
-      "objective": "Inspect a bounded local HTTP client contract",
-      "prose": "Contract-only: the Tour does not infer, install, or contact a local Ollama provider.",
-      "source_path": "../../examples/ollama-text.panel",
-      "runnability": {"state":"contract-only","profile":"browser","code":"CND-IMP-001","reason":"no HTTP client provider or local-service grant is bound"}
+      "id": "quick-local-chat",
+      "title": "Quick Local Chat",
+      "objective": "Run one bounded chat contract through an exact implementation",
+      "prose": "Runnable with the deterministic browser implementation. The same semantic node can bind to an independently observed local provider on an authorized host; the source never names Ollama, an endpoint, or a model.",
+      "source_path": "../../examples/quick-local-chat.panel",
+      "runnability": {"state":"runnable","profile":"browser","proof":"browser-worker-exact-plan"}
     },
     {
       "id": "wifi-station-join",

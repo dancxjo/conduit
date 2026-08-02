@@ -863,6 +863,7 @@ fn generic_installed_implementation_hashes_and_exposes_the_optional_interface() 
                 role: "adapter".to_owned(),
                 required: true,
             }],
+            required_capabilities: Vec::new(),
             required_authorities: Vec::new(),
             required_effects: Vec::new(),
             minimum_plan_version: 0,

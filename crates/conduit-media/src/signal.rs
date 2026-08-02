@@ -2073,6 +2073,7 @@ pub fn register_portable_lfo_provider(registry: &mut Registry) -> Result<(), Reg
             role: "executable".to_owned(),
             required: true,
         }],
+        required_capabilities: Vec::new(),
         required_authorities: Vec::new(),
         required_effects: Vec::new(),
         minimum_plan_version: 0,
