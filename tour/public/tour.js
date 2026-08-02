@@ -1826,6 +1826,36 @@ function renderTaskFrontControl(control) {
   return field;
 }
 
+async function requestTaskRuntimeControl(action) {
+  const front = patchbayView?.task_front?.front;
+  const primary = front?.primary_action;
+  if (!activeAdapter || !activeWorkerSessionId || !activeWorkerRunIdentity ||
+      !primary?.operation_id) return;
+  const response = await activeAdapter.request("patchbay-request-task-action", {
+    sessionId: activeWorkerSessionId,
+    request: {
+      protocol_version: 0,
+      request_id: `request/${crypto.randomUUID()}`,
+      operation_id: primary.operation_id,
+      action,
+      source_identity: front.identities.source_identity,
+      plan_identity: activeWorkerRunIdentity.planIdentity,
+      plan_epoch: primary.plan_epoch,
+      run_id: activeWorkerRunIdentity.runId,
+    },
+  });
+  if (!response.ok || !response.value?.ok) {
+    result.textContent = response.value?.diagnostic || response.code ||
+      "Task lifecycle request was rejected.";
+    if (response.value?.view) renderRustProjection(response.value.view);
+    return;
+  }
+  renderRustProjection(response.value.view);
+  renderExactResultTimeline(response.value);
+  result.textContent = response.value.action_receipt?.explanation ||
+    "Task lifecycle request accepted; terminal evidence remains pending.";
+}
+
 function renderTaskFront() {
   const state = patchbayView?.task_front;
   const useMode = patchbayView?.presentation?.mode === "use";
@@ -1859,8 +1889,15 @@ function renderTaskFront() {
     action.textContent = front.primary_action.label;
     action.setAttribute("aria-label", front.primary_action.accessibility_name);
     action.dataset.actionState = front.primary_action.state;
-    action.disabled = front.primary_action.state !== "request-available" || runButton.disabled;
-    action.onclick = () => runButton.click();
+    action.dataset.operationId = front.primary_action.operation_id || "";
+    action.disabled = front.primary_action.state !== "request-available" ||
+      !front.primary_action.operation_id || runButton.disabled;
+    action.onclick = () => void run({
+      operationId: front.primary_action.operation_id,
+      sourceIdentity: front.identities.source_identity,
+      planIdentity: front.identities.plan_identity,
+      planEpoch: front.primary_action.plan_epoch,
+    });
     const help = document.createElement("p");
     help.className = "card-subtitle";
     help.textContent = [
@@ -1868,13 +1905,36 @@ function renderTaskFront() {
       ...(front.primary_action.explanations || []),
     ].join(" ");
     taskFrontAction.append(action, help);
+    for (const control of front.primary_action.active_controls || []) {
+      const lifecycle = document.createElement("button");
+      lifecycle.type = "button";
+      lifecycle.className = "btn secondary task-front-lifecycle-action";
+      lifecycle.textContent = control === "drain" ? "Drain" : "Cancel";
+      lifecycle.setAttribute("aria-label", `${lifecycle.textContent} ${front.name}`);
+      lifecycle.onclick = () => void requestTaskRuntimeControl(control);
+      taskFrontAction.append(lifecycle);
+    }
   }
   if (front.result) {
     taskFrontResult.hidden = false;
     taskFrontResultTitle.textContent = front.result.label;
-    taskFrontResultValue.textContent = front.result.display_value ||
-      `${front.result.observation_state}. ${front.result.help}`;
+    const semantic = front.result.display_value
+      ? `${front.result.display_value} (${front.result.semantic_status})`
+      : `${front.result.observation_state}. ${front.result.help}`;
+    const terminal = front.terminal
+      ? ` Terminal: ${front.terminal.state}; cleanup: ${front.terminal.cleanup_state}; ` +
+        `evidence: ${front.terminal.evidence_state}.`
+      : " Terminal evidence is pending.";
+    const warnings = [...(front.result.warnings || []), ...(front.terminal?.warnings || [])];
+    taskFrontResultValue.textContent = `${semantic}.${terminal}${warnings.length
+      ? ` Warnings: ${warnings.join(" ")}`
+      : ""}`;
   }
+  taskFrontState.textContent = front.readiness.state;
+  taskFrontExplanation.textContent = [
+    front.readiness.summary,
+    ...(front.readiness.requirements || []),
+  ].join(" ");
 }
 
 function renderSelectionInspector() {
@@ -3109,7 +3169,7 @@ function scheduleContinuousWatch({
   }, LIVE_WATCH_PRESENTATION_INTERVAL_MS);
 }
 
-async function run() {
+async function run(requestedTaskAction = null) {
   const runnability = activeRunnability();
   if (runnability?.state !== "runnable") {
     result.textContent =
@@ -3181,7 +3241,31 @@ async function run() {
     }
     sessionId = opened.value.session_id;
     activeWorkerSessionId = sessionId;
-    const started = await adapter.request("patchbay-start-exact-run", { sessionId });
+    const taskAction = requestedTaskAction || (() => {
+      const front = opened.value?.view?.task_front?.front;
+      const action = front?.primary_action;
+      if (!action || action.state !== "request-available") return null;
+      return {
+        operationId: action.operation_id,
+        sourceIdentity: front.identities.source_identity,
+        planIdentity: front.identities.plan_identity,
+        planEpoch: action.plan_epoch,
+      };
+    })();
+    const started = taskAction
+      ? await adapter.request("patchbay-request-task-action", {
+          sessionId,
+          request: {
+            protocol_version: 0,
+            request_id: `request/${crypto.randomUUID()}`,
+            operation_id: taskAction.operationId,
+            action: "run-exact-plan",
+            source_identity: taskAction.sourceIdentity,
+            plan_identity: taskAction.planIdentity,
+            plan_epoch: taskAction.planEpoch,
+          },
+        })
+      : await adapter.request("patchbay-start-exact-run", { sessionId });
     if (!started.ok || !started.value?.ok) {
       const rejection = {
         ok: false,

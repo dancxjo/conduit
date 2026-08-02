@@ -10,6 +10,7 @@ import init, {
   patchbay_pump_exact_run,
   patchbay_read_exact_evidence,
   patchbay_read_exact_watch,
+  patchbay_request_task_action,
   patchbay_session_view,
   patchbay_snapshot_exact_run,
   patchbay_start_exact_run,
@@ -48,6 +49,8 @@ function response(operation, value) {
       return patchbay_apply_transaction(value.sessionId, value.requestJson);
     case "patchbay-start-exact-run":
       return patchbay_start_exact_run(value.sessionId);
+    case "patchbay-request-task-action":
+      return patchbay_request_task_action(value.sessionId, JSON.stringify(value.request));
     case "patchbay-pump-exact-run":
       return patchbay_pump_exact_run(
         value.sessionId,

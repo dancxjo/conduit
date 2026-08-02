@@ -4638,13 +4638,15 @@
         "TFR-007",
         "TFR-008",
         "TFR-009",
-        "TFR-010"
+        "TFR-010",
+        "TFR-011",
+        "TFR-012"
       ],
       "artifacts": [
         {
           "id": "patchbay-protocol",
           "path": "../c8/patchbay-protocol.json",
-          "sha256": "sha256:8dc99adf132a71dab97c45407634488f2980031bbf83409b441ff5ad8ccf81e2",
+          "sha256": "sha256:d5d675c414f879e2cdba7275f4745eafc1116e92801e7978eaac7f458f4c3b00",
           "operation": "patchbay-protocol",
           "requirement_ids": [
             "PBY-001",
@@ -4674,7 +4676,9 @@
             "TFR-007",
             "TFR-008",
             "TFR-009",
-            "TFR-010"
+            "TFR-010",
+            "TFR-011",
+            "TFR-012"
           ],
           "default_rule": "PBY-001",
           "case_rules": {
@@ -4697,12 +4701,20 @@
             "authoritative-view-has-no-browser-inference": "PBY-006",
             "mode-lens-topology-navigation-is-presentation-only": "PBL-009",
             "unloaded-at-rest-inspection-has-no-resolution-or-effect": "PBL-001",
-            "checked-task-front-opens-use-and-missing-or-invalid-front-falls-back-build": "TFR-007",
+            "checked-task-front-opens-use-and-missing-or-invalid-front-falls-back-build": "TFR-009",
             "task-front-controls-derive-semantic-requiredness-defaults-and-ownership": "TFR-002",
             "task-front-renderers-are-finite-type-owned-profiles": "TFR-004",
-            "task-front-result-requires-exact-plan-run-port-and-type": "TFR-006",
-            "task-front-show-how-and-why-preserve-authoritative-resources": "TFR-008",
-            "tour-and-self-hosted-patchbay-share-task-front-model": "TFR-009",
+            "task-front-result-requires-exact-plan-run-port-and-type": "TFR-007",
+            "task-action-requires-explicit-permitted-export": "TFR-005",
+            "task-action-request-retains-operation-plan-run-and-epoch": "TFR-006",
+            "duplicate-and-pending-start-do-not-dispatch-again": "TFR-006",
+            "task-lifecycle-controls-are-exact-exports": "TFR-006",
+            "semantic-result-and-terminal-evidence-remain-distinct": "TFR-008",
+            "late-prior-epoch-task-observations-are-rejected": "TFR-007",
+            "valid-result-survives-evidence-or-console-presentation-failure": "TFR-008",
+            "task-projection-resynchronizes-after-cursor-gap": "TFR-010",
+            "task-front-show-how-and-why-preserve-authoritative-resources": "TFR-010",
+            "tour-and-self-hosted-patchbay-share-task-front-model": "TFR-011",
             "selected-subject-survives-mode-and-lens-navigation": "PBL-006",
             "internal-and-external-cords-retain-distinct-owners": "PBL-002",
             "two-instances-retain-distinct-config-and-enclosing-cords": "PBL-002",
@@ -4732,6 +4744,9 @@
           "patchbay-protocol#checked-task-front-opens-use-and-missing-or-invalid-front-falls-back-build",
           "patchbay-protocol#task-front-controls-derive-semantic-requiredness-defaults-and-ownership",
           "patchbay-protocol#task-front-result-requires-exact-plan-run-port-and-type",
+          "patchbay-protocol#task-action-requires-explicit-permitted-export",
+          "patchbay-protocol#task-action-request-retains-operation-plan-run-and-epoch",
+          "patchbay-protocol#semantic-result-and-terminal-evidence-remain-distinct",
           "patchbay-protocol#task-front-show-how-and-why-preserve-authoritative-resources",
           "patchbay-protocol#tour-and-self-hosted-patchbay-share-task-front-model",
           "patchbay-protocol#internal-and-external-cords-retain-distinct-owners",
@@ -4746,6 +4761,9 @@
           "patchbay-protocol#incompatible-connection-is-atomic",
           "patchbay-protocol#hidden-composite-port-is-inaccessible",
           "patchbay-protocol#task-front-renderers-are-finite-type-owned-profiles",
+          "patchbay-protocol#duplicate-and-pending-start-do-not-dispatch-again",
+          "patchbay-protocol#task-lifecycle-controls-are-exact-exports",
+          "patchbay-protocol#late-prior-epoch-task-observations-are-rejected",
           "patchbay-protocol#invalid-config-span-is-atomic",
           "patchbay-protocol#direct-active-plan-mutation-is-not-a-protocol-operation",
           "patchbay-protocol#selected-subject-survives-mode-and-lens-navigation"
@@ -4754,6 +4772,8 @@
           "patchbay-protocol#projection-gap-requires-resync",
           "patchbay-protocol#projection-truncation-is-explicit",
           "patchbay-protocol#renderer-failure-preserves-headless-control",
+          "patchbay-protocol#valid-result-survives-evidence-or-console-presentation-failure",
+          "patchbay-protocol#task-projection-resynchronizes-after-cursor-gap",
           "patchbay-protocol#use-view-information-budget-survives-two-hundred-percent-zoom"
         ],
         "migration": [

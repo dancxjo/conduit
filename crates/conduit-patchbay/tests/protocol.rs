@@ -162,16 +162,57 @@ second: example/task { required_text = "second" }
     let run = RunSnapshot {
         run_id: "run-1".to_owned(),
         plan_identity: plan.identity.clone(),
+        plan_epoch: 7,
         source_semantic_hash: plan.source_semantic_hash.clone(),
         state: RunState::Terminal,
     };
-    let observation = conduit_patchbay::TaskFrontResultObservation {
+    let action_export = conduit_patchbay::TaskActionExport {
+        operation_id: "operation/task-1".to_owned(),
+        source_identity: workspace.source().identity.clone(),
         plan_identity: plan.identity.clone(),
+        plan_epoch: run.plan_epoch,
+        request: conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan,
+        permission: "permitted".to_owned(),
+        code: "CND-PBY-ACT-READY".to_owned(),
+        explanations: Vec::new(),
+        active_controls: Vec::new(),
+    };
+    let action_receipt = conduit_patchbay::TaskActionReceipt {
+        sequence: 1,
+        request_id: "request/task-1".to_owned(),
+        operation_id: action_export.operation_id.clone(),
+        action: conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan,
+        source_identity: workspace.source().identity.clone(),
+        plan_identity: plan.identity.clone(),
+        plan_epoch: run.plan_epoch,
+        run_id: Some(run.run_id.clone()),
+        disposition: "accepted".to_owned(),
+        code: "CND-PBY-ACT-ACCEPTED".to_owned(),
+        explanation: "accepted".to_owned(),
+    };
+    let observation = conduit_patchbay::TaskFrontResultObservation {
+        operation_id: action_export.operation_id.clone(),
+        request_id: action_receipt.request_id.clone(),
+        plan_identity: plan.identity.clone(),
+        plan_epoch: run.plan_epoch,
         run_id: run.run_id.clone(),
         port_path: "root/first/port/outgoing/result".to_owned(),
         type_id: "std/text".to_owned(),
+        semantic_status: "succeeded".to_owned(),
         display_value: "done".to_owned(),
-        terminal_outcome: "succeeded".to_owned(),
+        typed_details: vec!["5 bytes".to_owned()],
+        warnings: Vec::new(),
+    };
+    let terminal = conduit_patchbay::TaskTerminalObservation {
+        operation_id: action_export.operation_id.clone(),
+        request_id: action_receipt.request_id.clone(),
+        plan_identity: plan.identity.clone(),
+        plan_epoch: run.plan_epoch,
+        run_id: run.run_id.clone(),
+        terminal_state: "succeeded".to_owned(),
+        cleanup_state: "complete".to_owned(),
+        evidence_state: "published".to_owned(),
+        warnings: Vec::new(),
     };
     let projected = conduit_patchbay::project_task_front(
         Some(&descriptor.to_string()),
@@ -181,7 +222,10 @@ second: example/task { required_text = "second" }
         &[],
         Some(&plan),
         Some(&run),
+        Some(&action_export),
+        Some(&action_receipt),
         Some(&observation),
+        Some(&terminal),
         &profiles,
         conduit_patchbay::PatchbayProjectionBounds::default(),
     );
@@ -199,9 +243,104 @@ second: example/task { required_text = "second" }
     );
     assert_eq!(front.result.unwrap().display_value.as_deref(), Some("done"));
 
+    let partial = conduit_patchbay::TaskFrontResultObservation {
+        semantic_status: "partial".to_owned(),
+        display_value: "3 of 4 records committed".to_owned(),
+        warnings: vec!["one record was not committed".to_owned()],
+        ..observation.clone()
+    };
+    let failed_terminal = conduit_patchbay::TaskTerminalObservation {
+        terminal_state: "failed".to_owned(),
+        cleanup_state: "warning".to_owned(),
+        evidence_state: "unavailable".to_owned(),
+        warnings: vec!["cleanup confirmation is incomplete".to_owned()],
+        ..terminal.clone()
+    };
+    let partial_projection = conduit_patchbay::project_task_front(
+        Some(&descriptor.to_string()),
+        workspace.source(),
+        &workspace.semantic(),
+        &topology,
+        &[],
+        Some(&plan),
+        Some(&run),
+        Some(&action_export),
+        Some(&action_receipt),
+        Some(&partial),
+        Some(&failed_terminal),
+        &profiles,
+        conduit_patchbay::PatchbayProjectionBounds::default(),
+    );
+    let partial_front = partial_projection
+        .front
+        .expect("partial result remains visible");
+    assert_eq!(
+        partial_front
+            .result
+            .as_ref()
+            .unwrap()
+            .semantic_status
+            .as_deref(),
+        Some("partial")
+    );
+    assert_eq!(partial_front.terminal.as_ref().unwrap().state, "failed");
+    assert_eq!(
+        partial_front.terminal.as_ref().unwrap().evidence_state,
+        "unavailable"
+    );
+    assert!(
+        partial_front
+            .readiness
+            .requirements
+            .iter()
+            .any(|item| item.contains("partial"))
+    );
+    assert!(
+        partial_front
+            .readiness
+            .requirements
+            .iter()
+            .any(|item| item.contains("evidence"))
+    );
+
+    let domain_rejection = conduit_patchbay::TaskFrontResultObservation {
+        semantic_status: "domain-rejected".to_owned(),
+        display_value: "request declined by the task contract".to_owned(),
+        ..observation.clone()
+    };
+    let domain_projection = conduit_patchbay::project_task_front(
+        Some(&descriptor.to_string()),
+        workspace.source(),
+        &workspace.semantic(),
+        &topology,
+        &[],
+        Some(&plan),
+        Some(&run),
+        Some(&action_export),
+        Some(&action_receipt),
+        Some(&domain_rejection),
+        Some(&terminal),
+        &profiles,
+        conduit_patchbay::PatchbayProjectionBounds::default(),
+    );
+    let domain_front = domain_projection
+        .front
+        .expect("domain result remains visible");
+    assert_eq!(
+        domain_front
+            .result
+            .as_ref()
+            .unwrap()
+            .semantic_status
+            .as_deref(),
+        Some("domain-rejected")
+    );
+    assert_eq!(domain_front.terminal.as_ref().unwrap().state, "succeeded");
+
     let stale = conduit_patchbay::TaskFrontResultObservation {
         run_id: "run-stale".to_owned(),
-        ..observation
+        plan_epoch: run.plan_epoch - 1,
+        ..observation.clone()
     };
     let stale_projection = conduit_patchbay::project_task_front(
         Some(&descriptor.to_string()),
@@ -211,7 +350,10 @@ second: example/task { required_text = "second" }
         &[],
         Some(&plan),
         Some(&run),
+        Some(&action_export),
+        Some(&action_receipt),
         Some(&stale),
+        Some(&terminal),
         &profiles,
         conduit_patchbay::PatchbayProjectionBounds::default(),
     );
@@ -234,12 +376,15 @@ second: example/task { required_text = "second" }
         None,
         None,
         None,
+        None,
+        None,
+        None,
         &profiles,
         conduit_patchbay::PatchbayProjectionBounds::default(),
     );
     assert_eq!(
         unavailable.front.unwrap().primary_action.unwrap().state,
-        "blocked-by-authoritative-observation"
+        "incomplete-choices"
     );
 
     let mut weakening = descriptor.clone();
@@ -251,6 +396,9 @@ second: example/task { required_text = "second" }
             &workspace.semantic(),
             &topology,
             &[],
+            None,
+            None,
+            None,
             None,
             None,
             None,
@@ -273,6 +421,9 @@ second: example/task { required_text = "second" }
             None,
             None,
             None,
+            None,
+            None,
+            None,
             &profiles,
             conduit_patchbay::PatchbayProjectionBounds::default(),
         )
@@ -289,6 +440,9 @@ second: example/task { required_text = "second" }
             &workspace.semantic(),
             &topology,
             &[],
+            None,
+            None,
+            None,
             None,
             None,
             None,
@@ -315,6 +469,137 @@ second: example/task { required_text = "second" }
             .source
             .contains("required_text = \"authored\"")
     );
+    let no_export = conduit_patchbay::project_task_front(
+        Some(&descriptor.to_string()),
+        workspace.source(),
+        &workspace.semantic(),
+        &topology,
+        &[],
+        Some(&plan),
+        None,
+        None,
+        None,
+        None,
+        None,
+        &profiles,
+        conduit_patchbay::PatchbayProjectionBounds::default(),
+    );
+    assert_eq!(
+        no_export.front.unwrap().primary_action.unwrap().state,
+        "action-not-exported"
+    );
+}
+
+#[test]
+fn task_action_admission_denies_stale_duplicate_and_conflicting_requests() {
+    let workspace = Workspace::new("task-action", SOURCE).expect("source parses");
+    let export = conduit_patchbay::TaskActionExport {
+        operation_id: "operation/exact-task".to_owned(),
+        source_identity: workspace.source().identity.clone(),
+        plan_identity: "sha256:exact-plan".to_owned(),
+        plan_epoch: 9,
+        request: conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan,
+        permission: "permitted".to_owned(),
+        code: "CND-PBY-ACT-READY".to_owned(),
+        explanations: Vec::new(),
+        active_controls: vec![
+            conduit_patchbay::TaskRuntimeControlRequest::Cancel,
+            conduit_patchbay::TaskRuntimeControlRequest::Drain,
+        ],
+    };
+    let start = conduit_patchbay::TaskActionRequestEnvelope {
+        protocol_version: PATCHBAY_PROTOCOL_VERSION,
+        request_id: "request/start-1".to_owned(),
+        operation_id: export.operation_id.clone(),
+        action: conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan,
+        source_identity: export.source_identity.clone(),
+        plan_identity: export.plan_identity.clone(),
+        plan_epoch: export.plan_epoch,
+        run_id: None,
+    };
+    let admitted = conduit_patchbay::admit_task_action(&export, &start, None, &[], 1);
+    assert!(admitted.dispatch);
+    assert_eq!(admitted.receipt.disposition, "pending");
+
+    let duplicate = conduit_patchbay::admit_task_action(
+        &export,
+        &start,
+        None,
+        std::slice::from_ref(&admitted.receipt),
+        2,
+    );
+    assert!(!duplicate.dispatch);
+    assert_eq!(duplicate.receipt.disposition, "duplicate");
+    assert_eq!(duplicate.receipt.sequence, admitted.receipt.sequence);
+
+    let mut collision = start.clone();
+    collision.operation_id = "operation/different".to_owned();
+    let collision = conduit_patchbay::admit_task_action(
+        &export,
+        &collision,
+        None,
+        std::slice::from_ref(&admitted.receipt),
+        2,
+    );
+    assert!(!collision.dispatch);
+    assert_eq!(collision.receipt.code, "CND-PBY-ACT-001");
+
+    let mut second_start = start.clone();
+    second_start.request_id = "request/start-while-pending".to_owned();
+    let pending_conflict = conduit_patchbay::admit_task_action(
+        &export,
+        &second_start,
+        None,
+        std::slice::from_ref(&admitted.receipt),
+        2,
+    );
+    assert!(!pending_conflict.dispatch);
+    assert_eq!(pending_conflict.receipt.code, "CND-PBY-ACT-010");
+
+    let mut denied_export = export.clone();
+    denied_export.permission = "denied".to_owned();
+    denied_export.code = "CND-AUT-006".to_owned();
+    let denied = conduit_patchbay::admit_task_action(&denied_export, &start, None, &[], 1);
+    assert!(!denied.dispatch);
+    assert_eq!(denied.receipt.code, "CND-AUT-006");
+
+    let mut stale = start.clone();
+    stale.request_id = "request/stale".to_owned();
+    stale.plan_epoch -= 1;
+    let stale = conduit_patchbay::admit_task_action(&export, &stale, None, &[], 1);
+    assert!(!stale.dispatch);
+    assert_eq!(stale.receipt.code, "CND-PBY-ACT-006");
+
+    let run = RunSnapshot {
+        run_id: "run/exact-task".to_owned(),
+        plan_identity: export.plan_identity.clone(),
+        plan_epoch: export.plan_epoch,
+        source_semantic_hash: "sha256:source".to_owned(),
+        state: RunState::Active,
+    };
+    let conflicting_start =
+        conduit_patchbay::admit_task_action(&export, &second_start, Some(&run), &[], 3);
+    assert!(!conflicting_start.dispatch);
+    assert_eq!(conflicting_start.receipt.code, "CND-PBY-ACT-010");
+
+    for action in [
+        conduit_patchbay::TaskRuntimeControlRequest::Cancel,
+        conduit_patchbay::TaskRuntimeControlRequest::Drain,
+    ] {
+        let control = conduit_patchbay::TaskActionRequestEnvelope {
+            protocol_version: PATCHBAY_PROTOCOL_VERSION,
+            request_id: format!("request/{action:?}"),
+            operation_id: export.operation_id.clone(),
+            action,
+            source_identity: export.source_identity.clone(),
+            plan_identity: export.plan_identity.clone(),
+            plan_epoch: export.plan_epoch,
+            run_id: Some(run.run_id.clone()),
+        };
+        assert!(
+            conduit_patchbay::admit_task_action(&export, &control, Some(&run), &[], 4).dispatch
+        );
+    }
 }
 
 #[test]
@@ -848,6 +1133,7 @@ fn source_edit_changes_semantics_but_not_an_existing_run() {
     let run = RunSnapshot {
         run_id: "run/1".to_owned(),
         plan_identity: plan.identity,
+        plan_epoch: 0,
         source_semantic_hash: plan.source_semantic_hash,
         state: RunState::Active,
     };
@@ -977,6 +1263,14 @@ fn fixture_names_each_required_protocol_boundary() {
         "task-front-controls-derive-semantic-requiredness-defaults-and-ownership",
         "task-front-renderers-are-finite-type-owned-profiles",
         "task-front-result-requires-exact-plan-run-port-and-type",
+        "task-action-requires-explicit-permitted-export",
+        "task-action-request-retains-operation-plan-run-and-epoch",
+        "duplicate-and-pending-start-do-not-dispatch-again",
+        "task-lifecycle-controls-are-exact-exports",
+        "semantic-result-and-terminal-evidence-remain-distinct",
+        "late-prior-epoch-task-observations-are-rejected",
+        "valid-result-survives-evidence-or-console-presentation-failure",
+        "task-projection-resynchronizes-after-cursor-gap",
         "task-front-show-how-and-why-preserve-authoritative-resources",
         "tour-and-self-hosted-patchbay-share-task-front-model",
         "selected-subject-survives-mode-and-lens-navigation",

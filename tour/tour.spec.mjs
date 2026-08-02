@@ -1458,13 +1458,17 @@ test("keeps the Use information budget usable at two hundred percent zoom", asyn
   );
 });
 
-test("runs the task-front action without manufacturing a semantic result", async ({ page }) => {
+test("shows authoritative task readiness and outcome with the raw console closed", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await expect(page.locator("#task-front-state")).toHaveText("ready");
+  await expect(page.locator("#console-body")).toBeHidden();
   await page.getByRole("button", { name: "Run the checked uppercase-text plan" }).click();
-  await expect(page.locator("#result")).toContainText("JACKS", { timeout: 20_000 });
-  await expect(page.locator("#task-front-result-value")).toContainText(
-    "terminal-without-semantic-result-observation",
-  );
+  const taskResult = page.locator("#task-front-result-value");
+  await expect(taskResult).toContainText("JACKS (succeeded)", { timeout: 20_000 });
+  await expect(taskResult).toContainText("Terminal: succeeded");
+  await expect(taskResult).toContainText("cleanup: complete");
+  await expect(taskResult).toContainText("evidence: published");
+  await expect(page.locator("#console-body")).toBeHidden();
 });
 
 test("navigates composite boundaries from canvas and structured controls", async ({ page }) => {

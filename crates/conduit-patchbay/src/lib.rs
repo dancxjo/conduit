@@ -17,6 +17,7 @@ pub const MAXIMUM_LIBRARY_CATALOG_ENTRIES: usize = 512;
 pub const MAXIMUM_TASK_FRONT_CONTROLS: usize = 32;
 pub const MAXIMUM_TASK_FRONT_CHOICES: usize = 64;
 pub const MAXIMUM_TASK_FRONT_TEXT_BYTES: usize = 4_096;
+pub const MAXIMUM_TASK_ACTION_RECEIPTS: usize = 32;
 
 /// One finite renderer/editor profile supplied by the owning semantic type
 /// registry. A task-front descriptor may select this profile, but it cannot
@@ -72,6 +73,238 @@ pub enum TaskFrontActionRequest {
     RunExactPlan,
 }
 
+/// Runtime controls are exported independently from presentation metadata.
+/// A task front may render only controls present in the current exact export.
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TaskRuntimeControlRequest {
+    RunExactPlan,
+    Cancel,
+    Drain,
+}
+
+/// One host/runtime-owned permission observation for an exact task operation.
+/// Plan presence is deliberately insufficient: a matching permitted export is
+/// required before any task action can be requested.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TaskActionExport {
+    pub operation_id: String,
+    pub source_identity: String,
+    pub plan_identity: String,
+    pub plan_epoch: u64,
+    pub request: TaskRuntimeControlRequest,
+    /// `permitted`, `denied`, `binding-required`, `resource-conflict`,
+    /// `resolving`, `unavailable`, or `stale`.
+    pub permission: String,
+    pub code: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub explanations: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub active_controls: Vec<TaskRuntimeControlRequest>,
+}
+
+/// Exact asynchronous task request transported through Patchbay to runtime.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TaskActionRequestEnvelope {
+    pub protocol_version: u16,
+    pub request_id: String,
+    pub operation_id: String,
+    pub action: TaskRuntimeControlRequest,
+    pub source_identity: String,
+    pub plan_identity: String,
+    pub plan_epoch: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
+}
+
+/// Causal receipt for one exact task request. Acceptance records dispatch,
+/// never terminal or semantic success.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskActionReceipt {
+    pub sequence: u64,
+    pub request_id: String,
+    pub operation_id: String,
+    pub action: TaskRuntimeControlRequest,
+    pub source_identity: String,
+    pub plan_identity: String,
+    pub plan_epoch: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
+    /// `pending`, `accepted`, `rejected`, or `duplicate`.
+    pub disposition: String,
+    pub code: String,
+    pub explanation: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TaskActionAdmission {
+    pub receipt: TaskActionReceipt,
+    /// False for a duplicate or rejected request; callers must not dispatch it.
+    pub dispatch: bool,
+}
+
+/// Validate one exact request against the runtime-owned export and bounded
+/// receipt ledger. Duplicate request identities replay causally without
+/// dispatching a second effect.
+#[must_use]
+pub fn admit_task_action(
+    export: &TaskActionExport,
+    request: &TaskActionRequestEnvelope,
+    run: Option<&RunSnapshot>,
+    receipts: &[TaskActionReceipt],
+    sequence: u64,
+) -> TaskActionAdmission {
+    let rejected = |code: &str, explanation: &str| TaskActionAdmission {
+        receipt: TaskActionReceipt {
+            sequence,
+            request_id: request.request_id.clone(),
+            operation_id: request.operation_id.clone(),
+            action: request.action.clone(),
+            source_identity: request.source_identity.clone(),
+            plan_identity: request.plan_identity.clone(),
+            plan_epoch: request.plan_epoch,
+            run_id: request.run_id.clone(),
+            disposition: "rejected".to_owned(),
+            code: code.to_owned(),
+            explanation: explanation.to_owned(),
+        },
+        dispatch: false,
+    };
+    if let Some(prior) = receipts
+        .iter()
+        .find(|receipt| receipt.request_id == request.request_id)
+    {
+        if prior.operation_id != request.operation_id
+            || prior.action != request.action
+            || prior.source_identity != request.source_identity
+            || prior.plan_identity != request.plan_identity
+            || prior.plan_epoch != request.plan_epoch
+            || (request.action != TaskRuntimeControlRequest::RunExactPlan
+                && prior.run_id != request.run_id)
+        {
+            return rejected(
+                "CND-PBY-ACT-001",
+                "Task request identity collides with a different exact request.",
+            );
+        }
+        let mut receipt = prior.clone();
+        receipt.disposition = "duplicate".to_owned();
+        receipt.code = "CND-PBY-ACT-009".to_owned();
+        receipt.explanation =
+            "Duplicate request identity replayed the existing receipt without dispatch.".to_owned();
+        return TaskActionAdmission {
+            receipt,
+            dispatch: false,
+        };
+    }
+    if request.protocol_version != PATCHBAY_PROTOCOL_VERSION
+        || !task_front_text_is_valid(&request.request_id, true)
+        || !task_front_text_is_valid(&request.operation_id, true)
+        || !task_front_text_is_valid(&request.source_identity, true)
+        || !task_front_text_is_valid(&request.plan_identity, true)
+    {
+        return rejected(
+            "CND-PBY-ACT-001",
+            "Task action request is malformed or unbounded.",
+        );
+    }
+    if request.operation_id != export.operation_id
+        || request.source_identity != export.source_identity
+        || request.plan_identity != export.plan_identity
+        || request.plan_epoch != export.plan_epoch
+    {
+        return rejected(
+            "CND-PBY-ACT-006",
+            "Task action request belongs to a stale source, plan, operation, or epoch.",
+        );
+    }
+    if export.permission != "permitted" {
+        return rejected(
+            &export.code,
+            "The runtime-owned task action export is not permitted.",
+        );
+    }
+    match request.action {
+        TaskRuntimeControlRequest::RunExactPlan => {
+            if export.request != TaskRuntimeControlRequest::RunExactPlan {
+                return rejected(
+                    "CND-PBY-ACT-007",
+                    "The exported operation does not permit Start.",
+                );
+            }
+            if run.is_some_and(|run| run.state != RunState::Terminal) {
+                return rejected(
+                    "CND-PBY-ACT-010",
+                    "The task operation already owns a live run.",
+                );
+            }
+            if receipts.iter().any(|receipt| {
+                receipt.operation_id == request.operation_id
+                    && receipt.action == TaskRuntimeControlRequest::RunExactPlan
+                    && receipt.disposition == "pending"
+            }) {
+                return rejected(
+                    "CND-PBY-ACT-010",
+                    "A prior Start request for this exact operation is still pending.",
+                );
+            }
+            if request.run_id.is_some() {
+                return rejected(
+                    "CND-PBY-ACT-001",
+                    "A Start request cannot select a client-owned run identity.",
+                );
+            }
+        }
+        TaskRuntimeControlRequest::Cancel | TaskRuntimeControlRequest::Drain => {
+            if !export.active_controls.contains(&request.action) {
+                return rejected(
+                    "CND-PBY-ACT-007",
+                    "The exact run does not export that lifecycle control.",
+                );
+            }
+            let Some(run) = run else {
+                return rejected(
+                    "CND-PBY-ACT-010",
+                    "The lifecycle request has no active exact run.",
+                );
+            };
+            if request.run_id.as_deref() != Some(run.run_id.as_str())
+                || request.plan_epoch != run.plan_epoch
+                || request.plan_identity != run.plan_identity
+            {
+                return rejected(
+                    "CND-PBY-ACT-006",
+                    "The lifecycle request names a stale run or epoch.",
+                );
+            }
+            if matches!(run.state, RunState::Terminal | RunState::Prepared) {
+                return rejected(
+                    "CND-PBY-ACT-010",
+                    "The exact run cannot accept that lifecycle request now.",
+                );
+            }
+        }
+    }
+    TaskActionAdmission {
+        receipt: TaskActionReceipt {
+            sequence,
+            request_id: request.request_id.clone(),
+            operation_id: request.operation_id.clone(),
+            action: request.action.clone(),
+            source_identity: request.source_identity.clone(),
+            plan_identity: request.plan_identity.clone(),
+            plan_epoch: request.plan_epoch,
+            run_id: request.run_id.clone(),
+            disposition: "pending".to_owned(),
+            code: "CND-PBY-ACT-008".to_owned(),
+            explanation: "The exact task request was admitted for runtime dispatch.".to_owned(),
+        },
+        dispatch: true,
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TaskFrontActionDescriptor {
@@ -120,7 +353,13 @@ pub struct TaskFrontIdentityProjection {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub plan_identity: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_epoch: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub run_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operation_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -157,6 +396,18 @@ pub struct TaskFrontActionProjection {
     pub help: String,
     pub accessibility_name: String,
     pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operation_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_epoch: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_disposition: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_code: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub active_controls: Vec<TaskRuntimeControlRequest>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub explanations: Vec<String>,
 }
@@ -166,12 +417,39 @@ pub struct TaskFrontActionProjection {
 /// Browser presentation never manufactures one from stdout or console prose.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TaskFrontResultObservation {
+    pub operation_id: String,
+    pub request_id: String,
     pub plan_identity: String,
+    pub plan_epoch: u64,
     pub run_id: String,
     pub port_path: String,
     pub type_id: String,
+    /// `succeeded`, `domain-rejected`, or `partial`.
+    pub semantic_status: String,
     pub display_value: String,
-    pub terminal_outcome: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub typed_details: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub warnings: Vec<String>,
+}
+
+/// Exact terminal evidence remains independent from the semantic domain
+/// result, including cleanup and evidence-publication disposition.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskTerminalObservation {
+    pub operation_id: String,
+    pub request_id: String,
+    pub plan_identity: String,
+    pub plan_epoch: u64,
+    pub run_id: String,
+    /// `succeeded`, `failed`, `cancelled`, or `disconnected`.
+    pub terminal_state: String,
+    /// `complete`, `warning`, `failed`, or `unavailable`.
+    pub cleanup_state: String,
+    /// `published`, `failed`, or `unavailable`.
+    pub evidence_state: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub warnings: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -185,9 +463,31 @@ pub struct TaskFrontResultProjection {
     pub renderer: String,
     pub observation_state: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub display_value: Option<String>,
+    pub semantic_status: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub terminal_outcome: Option<String>,
+    pub display_value: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub typed_details: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub warnings: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskFrontTerminalProjection {
+    pub state: String,
+    pub cleanup_state: String,
+    pub evidence_state: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub warnings: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskReadinessProjection {
+    pub state: String,
+    pub code: String,
+    pub summary: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub requirements: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -198,11 +498,14 @@ pub struct TaskFrontProjection {
     pub contract_id: String,
     pub name: String,
     pub purpose: String,
+    pub readiness: TaskReadinessProjection,
     pub controls: Vec<TaskFrontControlProjection>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub primary_action: Option<TaskFrontActionProjection>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<TaskFrontResultProjection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub terminal: Option<TaskFrontTerminalProjection>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub documentation: Option<String>,
 }
@@ -214,6 +517,7 @@ pub struct TaskFrontStateProjection {
     pub status: String,
     pub code: String,
     pub explanation: String,
+    pub readiness: TaskReadinessProjection,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub front: Option<TaskFrontProjection>,
 }
@@ -1576,6 +1880,22 @@ fn task_front_state(
         status: status.to_owned(),
         code: code.to_owned(),
         explanation: explanation.into(),
+        readiness: TaskReadinessProjection {
+            state: if status == "invalid" {
+                "source-or-configuration-invalid"
+            } else {
+                "not-declared"
+            }
+            .to_owned(),
+            code: code.to_owned(),
+            summary: if status == "invalid" {
+                "The current source, configuration, or task-front declaration is invalid."
+            } else {
+                "No bounded task interaction is declared."
+            }
+            .to_owned(),
+            requirements: Vec::new(),
+        },
         front: None,
     }
 }
@@ -1689,7 +2009,10 @@ pub fn project_task_front(
     configuration_layers: &[PatchbayConfigurationLayerProjection],
     plan: Option<&PlanSnapshot>,
     run: Option<&RunSnapshot>,
+    action_export: Option<&TaskActionExport>,
+    action_receipt: Option<&TaskActionReceipt>,
     result_observation: Option<&TaskFrontResultObservation>,
+    terminal_observation: Option<&TaskTerminalObservation>,
     renderer_profiles: &[TaskFrontRendererProfile],
     bounds: PatchbayProjectionBounds,
 ) -> TaskFrontStateProjection {
@@ -1951,6 +2274,11 @@ pub fn project_task_front(
         };
         controls.push(projection);
     }
+    let incomplete_requirements = controls
+        .iter()
+        .filter(|control| control.requirement == "required" && control.value_origin == "missing")
+        .map(|control| format!("{} is required", control.label))
+        .collect::<Vec<_>>();
     let root_availability = semantic.availabilities.iter().find(|availability| {
         availability.contract_id
             == root_node
@@ -1958,9 +2286,57 @@ pub fn project_task_front(
                 .as_deref()
                 .unwrap_or(root_source_node.kind.as_str())
     });
+    let action_export_matches = action_export.filter(|export| {
+        let mut controls = BTreeSet::new();
+        [
+            export.operation_id.as_str(),
+            export.source_identity.as_str(),
+            export.plan_identity.as_str(),
+            export.code.as_str(),
+        ]
+        .iter()
+        .all(|value| task_front_text_is_valid(value, true))
+            && export.plan_epoch > 0
+            && [
+                "permitted",
+                "denied",
+                "binding-required",
+                "resource-conflict",
+                "resolving",
+                "unavailable",
+                "stale",
+            ]
+            .contains(&export.permission.as_str())
+            && export.explanations.len() <= bounds.maximum_task_front_controls
+            && export
+                .explanations
+                .iter()
+                .all(|value| task_front_text_is_valid(value, true))
+            && export.active_controls.len() <= 2
+            && export.active_controls.iter().all(|control| {
+                *control != TaskRuntimeControlRequest::RunExactPlan
+                    && controls.insert(control.clone())
+            })
+            && export.source_identity == source.identity
+            && plan.is_some_and(|plan| plan.identity == export.plan_identity)
+            && matches!(export.request, TaskRuntimeControlRequest::RunExactPlan)
+    });
+    let receipt_matches = action_receipt.filter(|receipt| {
+        action_export_matches.is_some_and(|export| {
+            receipt.operation_id == export.operation_id
+                && receipt.source_identity == export.source_identity
+                && receipt.plan_identity == export.plan_identity
+                && receipt.plan_epoch == export.plan_epoch
+                && ["pending", "accepted", "rejected", "duplicate"]
+                    .contains(&receipt.disposition.as_str())
+        })
+    });
     let primary_action = descriptor.primary_action.as_ref().map(|action| {
         let mut explanations = Vec::new();
-        let state = if let Some(availability) = root_availability.filter(|availability| {
+        let state = if !incomplete_requirements.is_empty() {
+            explanations.extend(incomplete_requirements.iter().cloned());
+            "incomplete-choices"
+        } else if let Some(availability) = root_availability.filter(|availability| {
             plan.is_none()
                 && matches!(
                     availability.availability_state.as_str(),
@@ -1970,22 +2346,68 @@ pub fn project_task_front(
             explanations.push(availability.reason_code.clone());
             explanations.extend(availability.rejection_reasons.clone());
             "blocked-by-authoritative-observation"
+        } else if action_export.is_some() && action_export_matches.is_none() {
+            explanations.push(
+                "The exported action belongs to a different source, plan, or epoch.".to_owned(),
+            );
+            "stale-action-export"
+        } else if let Some(receipt) = receipt_matches
+            && receipt.disposition == "rejected"
+        {
+            explanations.push(receipt.explanation.clone());
+            "request-rejected"
         } else {
             match run.map(|run| run.state) {
                 Some(RunState::Active | RunState::Waiting) => "active",
                 Some(RunState::Quiescing | RunState::Aborting) => "stopping",
                 Some(RunState::Terminal) => "terminal",
-                Some(RunState::Prepared) => "request-available",
-                None if plan.is_some() => "request-available",
-                None => "check-or-resolution-required",
+                Some(RunState::Prepared) | None
+                    if receipt_matches.is_some_and(|receipt| receipt.disposition == "accepted") =>
+                {
+                    "start-accepted"
+                }
+                Some(RunState::Prepared) | None => match action_export_matches {
+                    Some(export) if export.permission == "permitted" => {
+                        if receipt_matches.is_some_and(|receipt| receipt.disposition == "pending") {
+                            "request-pending"
+                        } else {
+                            "request-available"
+                        }
+                    }
+                    Some(export) => {
+                        explanations.push(export.code.clone());
+                        explanations.extend(export.explanations.iter().cloned());
+                        match export.permission.as_str() {
+                            "binding-required" => "binding-required",
+                            "resource-conflict" => "resource-conflict",
+                            "resolving" => "resolving",
+                            "unavailable" => "unavailable",
+                            "stale" => "stale-action-export",
+                            _ => "action-denied",
+                        }
+                    }
+                    None if plan.is_some() => "action-not-exported",
+                    None => "check-or-resolution-required",
+                },
             }
         };
+        if let Some(receipt) = receipt_matches {
+            explanations.push(receipt.explanation.clone());
+        }
         TaskFrontActionProjection {
             request: action.request.clone(),
             label: action.label.clone(),
             help: action.help.clone(),
             accessibility_name: action.accessibility_name.clone(),
             state: state.to_owned(),
+            operation_id: action_export_matches.map(|export| export.operation_id.clone()),
+            plan_epoch: action_export_matches.map(|export| export.plan_epoch),
+            request_id: receipt_matches.map(|receipt| receipt.request_id.clone()),
+            request_disposition: receipt_matches.map(|receipt| receipt.disposition.clone()),
+            request_code: receipt_matches.map(|receipt| receipt.code.clone()),
+            active_controls: action_export_matches
+                .map(|export| export.active_controls.clone())
+                .unwrap_or_default(),
             explanations,
         }
     });
@@ -2037,8 +2459,28 @@ pub fn project_task_front(
             Err(error) => return task_front_invalid(error),
         };
         let matching_observation = result_observation.filter(|observation| {
-            plan.is_some_and(|plan| plan.identity == observation.plan_identity)
-                && run.is_some_and(|run| run.run_id == observation.run_id)
+            ["succeeded", "domain-rejected", "partial"]
+                .contains(&observation.semantic_status.as_str())
+                && task_front_text_is_valid(&observation.display_value, false)
+                && observation.typed_details.len() <= bounds.maximum_task_front_controls
+                && observation.warnings.len() <= bounds.maximum_task_front_controls
+                && observation
+                    .typed_details
+                    .iter()
+                    .chain(observation.warnings.iter())
+                    .all(|value| task_front_text_is_valid(value, true))
+                && plan.is_some_and(|plan| plan.identity == observation.plan_identity)
+                && run.is_some_and(|run| {
+                    run.run_id == observation.run_id && run.plan_epoch == observation.plan_epoch
+                })
+                && action_export_matches.is_some_and(|export| {
+                    export.operation_id == observation.operation_id
+                        && export.plan_epoch == observation.plan_epoch
+                })
+                && receipt_matches.is_some_and(|receipt| {
+                    receipt.request_id == observation.request_id
+                        && matches!(receipt.disposition.as_str(), "accepted" | "duplicate")
+                })
                 && observation.port_path == port.semantic_path
                 && observation.type_id == port.type_id
         });
@@ -2062,13 +2504,163 @@ pub fn project_task_front(
             renderer_profile: renderer.id.clone(),
             renderer: renderer.renderer.clone(),
             observation_state: observation_state.to_owned(),
+            semantic_status: matching_observation
+                .map(|observation| observation.semantic_status.clone()),
             display_value: matching_observation
                 .map(|observation| observation.display_value.clone()),
-            terminal_outcome: matching_observation
-                .map(|observation| observation.terminal_outcome.clone()),
+            typed_details: matching_observation
+                .map(|observation| observation.typed_details.clone())
+                .unwrap_or_default(),
+            warnings: matching_observation
+                .map(|observation| observation.warnings.clone())
+                .unwrap_or_default(),
         })
     } else {
         None
+    };
+    let matching_terminal = terminal_observation.filter(|terminal| {
+        ["succeeded", "failed", "cancelled", "disconnected"]
+            .contains(&terminal.terminal_state.as_str())
+            && ["complete", "warning", "failed", "unavailable"]
+                .contains(&terminal.cleanup_state.as_str())
+            && ["published", "failed", "unavailable"].contains(&terminal.evidence_state.as_str())
+            && terminal.warnings.len() <= bounds.maximum_task_front_controls
+            && terminal
+                .warnings
+                .iter()
+                .all(|value| task_front_text_is_valid(value, true))
+            && plan.is_some_and(|plan| plan.identity == terminal.plan_identity)
+            && run.is_some_and(|run| {
+                run.run_id == terminal.run_id && run.plan_epoch == terminal.plan_epoch
+            })
+            && action_export_matches.is_some_and(|export| {
+                export.operation_id == terminal.operation_id
+                    && export.plan_epoch == terminal.plan_epoch
+            })
+            && receipt_matches.is_some_and(|receipt| {
+                receipt.request_id == terminal.request_id
+                    && matches!(receipt.disposition.as_str(), "accepted" | "duplicate")
+            })
+    });
+    let terminal = matching_terminal.map(|terminal| TaskFrontTerminalProjection {
+        state: terminal.terminal_state.clone(),
+        cleanup_state: terminal.cleanup_state.clone(),
+        evidence_state: terminal.evidence_state.clone(),
+        warnings: terminal.warnings.clone(),
+    });
+    let action_state = primary_action
+        .as_ref()
+        .map_or("no-primary-action", |action| action.state.as_str());
+    let (readiness_state, readiness_code, readiness_summary) = match action_state {
+        "request-available" => (
+            "ready",
+            "CND-PBY-ACT-READY",
+            "Ready to run the exported action.",
+        ),
+        "incomplete-choices" => (
+            "incomplete-choices",
+            "CND-PBY-ACT-001",
+            "Required task choices are incomplete.",
+        ),
+        "check-or-resolution-required" => (
+            "checkable",
+            "CND-PBY-ACT-002",
+            "A bounded check or resolution is required.",
+        ),
+        "binding-required" => (
+            "binding-required",
+            "CND-PBY-ACT-003",
+            "An authority or resource binding is required.",
+        ),
+        "resource-conflict" => (
+            "resource-conflict",
+            "CND-PBY-ACT-014",
+            "The exported action has an exact resource conflict.",
+        ),
+        "resolving" => (
+            "resolving",
+            "CND-PBY-ACT-015",
+            "The bounded readiness operation is still resolving.",
+        ),
+        "unavailable" | "blocked-by-authoritative-observation" => (
+            "unavailable",
+            "CND-PBY-ACT-004",
+            "The exported action is unavailable on the observed host.",
+        ),
+        "action-not-exported" => (
+            "action-not-exported",
+            "CND-PBY-ACT-005",
+            "The exact plan exports no permitted task action.",
+        ),
+        "stale-action-export" => (
+            "stale",
+            "CND-PBY-ACT-006",
+            "The action permission is stale for this task generation.",
+        ),
+        "action-denied" | "request-rejected" => (
+            "denied",
+            "CND-PBY-ACT-007",
+            "The exact action request was denied.",
+        ),
+        "request-pending" => (
+            "start-request-pending",
+            "CND-PBY-ACT-008",
+            "The exact start request is pending.",
+        ),
+        "start-accepted" => (
+            "start-request-accepted",
+            "CND-PBY-ACT-ACCEPTED",
+            "Runtime accepted the exact start request and assigned its run identity.",
+        ),
+        "active" => match run.map(|run| run.state) {
+            Some(RunState::Waiting) => (
+                "waiting",
+                "CND-PBY-ACT-010",
+                "The run is waiting for an admitted wake.",
+            ),
+            _ => ("active", "CND-PBY-ACT-009", "The exact run is active."),
+        },
+        "stopping" => (
+            "stopping",
+            "CND-PBY-ACT-011",
+            "The exact run is draining or cancelling.",
+        ),
+        "terminal" => (
+            "terminal",
+            "CND-PBY-ACT-012",
+            "The exact run is terminal; inspect semantic result and terminal evidence separately.",
+        ),
+        _ => (
+            "not-actionable",
+            "CND-PBY-ACT-013",
+            "No task action is currently available.",
+        ),
+    };
+    let mut readiness_requirements = primary_action
+        .as_ref()
+        .map(|action| action.explanations.clone())
+        .unwrap_or_default();
+    if result
+        .as_ref()
+        .is_some_and(|result| result.semantic_status.as_deref() == Some("partial"))
+    {
+        readiness_requirements
+            .push("The semantic result is partial; review warnings and cleanup facts.".to_owned());
+    }
+    if terminal
+        .as_ref()
+        .is_some_and(|terminal| terminal.evidence_state != "published")
+    {
+        readiness_requirements.push(
+            "The semantic result is valid, but exact evidence publication is unavailable."
+                .to_owned(),
+        );
+    }
+    let readiness = TaskReadinessProjection {
+        state: readiness_state.to_owned(),
+        code: readiness_code.to_owned(),
+        summary: readiness_summary.to_owned(),
+        requirements: readiness_requirements,
     };
     let descriptor_bytes = serde_json::to_vec(&descriptor)
         .expect("serializing a validated task-front descriptor cannot fail");
@@ -2087,13 +2679,17 @@ pub fn project_task_front(
         code: "CND-PBY-TASK-FRONT".to_owned(),
         explanation: "The task front is checked against explicit authored controls and results."
             .to_owned(),
+        readiness: readiness.clone(),
         front: Some(TaskFrontProjection {
             descriptor_identity,
             identities: TaskFrontIdentityProjection {
                 source_identity: source.identity.clone(),
                 semantic_identity: semantic.source_semantic_hash.clone(),
                 plan_identity: plan.map(|plan| plan.identity.clone()),
+                plan_epoch: action_export_matches.map(|export| export.plan_epoch),
                 run_id: run.map(|run| run.run_id.clone()),
+                operation_id: action_export_matches.map(|export| export.operation_id.clone()),
+                request_id: receipt_matches.map(|receipt| receipt.request_id.clone()),
             },
             root: descriptor.root,
             contract_id: root_node
@@ -2102,9 +2698,11 @@ pub fn project_task_front(
                 .unwrap_or_else(|| root_source_node.kind.clone()),
             name: descriptor.name,
             purpose: descriptor.purpose,
+            readiness,
             controls,
             primary_action,
             result,
+            terminal,
             documentation: descriptor.documentation,
         }),
     }
@@ -3298,6 +3896,7 @@ fn workload_budget_projection(value: conduit_core::WorkloadBudget) -> WorkloadBu
 pub struct RunSnapshot {
     pub run_id: String,
     pub plan_identity: String,
+    pub plan_epoch: u64,
     pub source_semantic_hash: String,
     pub state: RunState,
 }
@@ -3305,6 +3904,7 @@ pub struct RunSnapshot {
 impl RunSnapshot {
     pub fn from_execution_events(
         plan: &conduit_core::ExecutionPlan<'_>,
+        plan_epoch: u64,
         run_id: &str,
         events: &[conduit_core::ExecutionEvent<'_>],
     ) -> Result<Self, ProtocolError> {
@@ -3334,6 +3934,7 @@ impl RunSnapshot {
         Ok(Self {
             run_id: run_id.to_owned(),
             plan_identity: plan.identity.to_string(),
+            plan_epoch,
             source_semantic_hash: plan.source_semantic_hash.to_string(),
             state,
         })

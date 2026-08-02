@@ -11,6 +11,7 @@ const declarations = await readFile(declarationsPath, "utf8");
 const requiredOperations = [
   "panel_source_metadata",
   "patchbay_open_session",
+  "patchbay_request_task_action",
   "patchbay_session_view",
   "patchbay_apply_transaction",
   "patchbay_start_exact_run",

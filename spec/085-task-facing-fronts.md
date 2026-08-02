@@ -3,9 +3,10 @@
 Status: candidate normative Patchbay presentation contract.
 
 A task-facing front is a bounded presentation descriptor checked against one
-current `SourceDocument`, semantic projection, candidate or exact plan, run,
-and semantic result observation. It is not a second form schema, graph,
-callback surface, execution API, readiness model, or success channel.
+current `SourceDocument`, semantic projection, candidate or exact plan,
+runtime-owned action export and receipt, run, semantic result observation, and
+terminal observation. It is not a second form schema, graph, callback surface,
+execution API, or success channel.
 
 ## Descriptor and semantic ownership
 
@@ -37,18 +38,39 @@ profile.
 
 ## Action and result
 
-The only current primary request is `run-exact-plan`. Its visible state is
-derived from semantic availability, exact plan, and run state. The descriptor
-does not carry a callback and the presentation cannot report local success.
-The fuller readiness, request identity, stop, cleanup, and result lifecycle is
-owned by issue #296.
+The only current primary request is `run-exact-plan`. Exact plan presence does
+not make that request available. The host/runtime must export a bounded action
+for the current source identity, plan identity, nonzero plan epoch, and stable
+operation identity, with an explicit `permitted` disposition. Denied, missing,
+unavailable, binding-required, malformed, and stale exports remain visibly
+non-actionable.
+
+The presentation sends an asynchronous Patchbay request with a fresh request
+identity and the exact exported identities. Runtime admission rejects stale
+identities, colliding request identities, a second Start while one is pending
+or active, and lifecycle controls not exported for the active run. Exact
+duplicate requests replay the original receipt without dispatching a second
+effect. Runtime assigns the run identity; a client cannot select one for
+Start. Cancel and Drain require the exact active run and plan epoch.
+
+Readiness is a Rust-owned state distinct from the descriptor and plan:
+incomplete choices, checkable, binding required, unavailable, stale, denied,
+start pending, ready, active, waiting, stopping, and terminal are projected
+with bounded explanations. The descriptor does not carry a callback and the
+presentation cannot report local success.
 
 A result descriptor names one explicitly exported outgoing port. A displayed
 semantic value is accepted only when a runtime-owned observation matches the
-exact plan identity, run identity, public port path, and semantic type. A
-stale or mismatched observation is rejected visibly. Stdout, console prose,
-timeline position, and validation hints are not semantic results. A terminal
-run without a matching semantic result says so.
+operation, request, exact plan, plan epoch, run, public port path, and semantic
+type. Semantic status is one of succeeded, domain-rejected, or partial. A
+stale or mismatched observation is rejected visibly.
+
+Terminal state, cleanup state, and evidence-publication state are a separate
+exact observation with the same causal identities. Runtime failure does not
+erase a partial semantic result; terminal success does not manufacture one;
+cleanup or evidence failure does not rewrite domain meaning. Stdout, console
+prose, display-sink text, timeline position, and validation hints are not
+semantic results. A terminal run without a matching semantic result says so.
 
 ## Modes and fallback
 
@@ -80,20 +102,28 @@ status output, forced colors, and reduced motion remain usable.
   and semantic result remain distinct identities and operations.
 - **TFR-004:** renderer profiles are finite type-registry facts; malformed or
   wrong-type profiles invalidate the front.
-- **TFR-005:** one primary action requests the ordinary exact-plan operation;
-  the front contains no callback or local-success path.
-- **TFR-006:** semantic results require exact plan, run, port, and type
-  identity; console output is never promoted into a result.
-- **TFR-007:** no or invalid front produces an explained Build fallback.
-- **TFR-008:** Use, Build, and Inspect preserve the same source, logical graph,
+- **TFR-005:** one primary action requests an explicitly exported and permitted
+  exact-plan operation; plan presence alone is never actionable.
+- **TFR-006:** requests and receipts retain exact operation, request, source,
+  plan, epoch, and run identity; duplicates never dispatch twice.
+- **TFR-007:** semantic results require operation, request, exact plan, epoch,
+  run, port, and type identity; console output is never promoted into a result.
+- **TFR-008:** semantic result, terminal state, cleanup, and evidence
+  publication remain distinct observations and failure domains.
+- **TFR-009:** no or invalid front produces an explained Build fallback.
+- **TFR-010:** Use, Build, and Inspect preserve the same source, logical graph,
   plan, run, authority, and evidence resources.
-- **TFR-009:** Tour and self-hosted surfaces serialize the same checked model
+- **TFR-011:** Tour and self-hosted surfaces serialize the same checked model
   and remain keyboard and high-zoom usable.
-- **TFR-010:** bounds cap descriptor bytes, controls, choices, and text; an
-  oversized front fails without partial projection.
+- **TFR-012:** bounds cap descriptors, action ledgers, controls, choices,
+  result details, warnings, and text; an oversized front fails without partial
+  projection.
 
 Rust protocol and web tests cover zero/private/malformed fronts, required and
-defaulted values, advanced controls, multiple instances, exact and stale
-results, invalid metadata, and ordinary source editing. Tour browser tests
+defaulted values, advanced controls, multiple instances, denial, duplicate and
+colliding requests, cancellation, domain rejection, partial results, runtime
+failure, cleanup/evidence failure, late prior-epoch results, invalid metadata,
+and ordinary source editing. Tour browser tests
 cover shared-surface identity, mode preservation, accessibility, high zoom,
-run request, and honest terminal-without-result presentation.
+exact task dispatch, and recognizable semantic and terminal outcome while the
+raw console stays closed.

@@ -199,6 +199,7 @@ struct BrowserExactRun {
     plan: conduit_patchbay::PlanSnapshot,
     run_id: String,
     source_revision: u64,
+    plan_epoch: u64,
     node_count: usize,
     cord_count: usize,
     session: Option<ExactHostedRunSession>,
@@ -467,10 +468,10 @@ fn browser_watch_use_authority(
         control_grant_hash: admission.control_grant_hash,
         control_grant_active: admission.control_grant_active,
         run_id: run.run_id.clone(),
-        plan_epoch: run.source_revision,
+        plan_epoch: run.plan_epoch,
         watch_id: watch_id.to_owned(),
         lease_id: admission.lease.clone(),
-        lease_epoch: run.source_revision,
+        lease_epoch: run.plan_epoch,
         lease_available: admission.lease_available,
         reveal_grant_hash: admission.reveal_grant_hash,
         reveal_grant_active: admission.reveal_grant_active,
@@ -498,6 +499,48 @@ struct BrowserPatchbaySession {
     workspace: conduit_patchbay::Workspace,
     run: Option<BrowserExactRun>,
     task_front_descriptor: Option<String>,
+    task_action_receipts: VecDeque<conduit_patchbay::TaskActionReceipt>,
+    next_task_action_sequence: u64,
+}
+
+fn browser_task_action_export(
+    workspace: &conduit_patchbay::Workspace,
+    descriptor_json: Option<&str>,
+) -> Option<conduit_patchbay::TaskActionExport> {
+    let descriptor = descriptor_json.and_then(|value| {
+        serde_json::from_str::<conduit_patchbay::TaskFrontDescriptor>(value).ok()
+    })?;
+    let primary_action = descriptor.primary_action.as_ref()?;
+    if primary_action.request != conduit_patchbay::TaskFrontActionRequest::RunExactPlan {
+        return None;
+    }
+    let source = workspace.source();
+    let plan_epoch = source.revision.checked_add(1)?;
+    let plan = exact_plan_snapshot_at_epoch(&source.source, plan_epoch)?;
+    let operation_id = browser_evidence_hash(
+        b"task-action-operation",
+        &[
+            source.identity.as_bytes(),
+            plan.identity.as_bytes(),
+            &source.revision.to_be_bytes(),
+            descriptor.root.as_bytes(),
+        ],
+    )
+    .to_string();
+    Some(conduit_patchbay::TaskActionExport {
+        operation_id,
+        source_identity: source.identity.clone(),
+        plan_identity: plan.identity,
+        plan_epoch,
+        request: conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan,
+        permission: "permitted".to_owned(),
+        code: "CND-PBY-ACT-READY".to_owned(),
+        explanations: vec![
+            "The browser host exported this bounded Start request for the exact checked plan."
+                .to_owned(),
+        ],
+        active_controls: Vec::new(),
+    })
 }
 
 fn browser_task_front_renderer_profiles() -> Vec<conduit_patchbay::TaskFrontRendererProfile> {
@@ -1022,6 +1065,7 @@ fn patchbay_run_snapshot(run: &BrowserExactRun) -> conduit_patchbay::RunSnapshot
     conduit_patchbay::RunSnapshot {
         run_id: run.run_id.clone(),
         plan_identity: run.plan.identity.clone(),
+        plan_epoch: run.plan_epoch,
         source_semantic_hash: run.plan.source_semantic_hash.clone(),
         state,
     }
@@ -1364,6 +1408,153 @@ fn browser_run_io(run: &BrowserExactRun) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
     )
 }
 
+fn browser_task_start_receipt(
+    session: &BrowserPatchbaySession,
+) -> Option<&conduit_patchbay::TaskActionReceipt> {
+    let run = session.run.as_ref()?;
+    session.task_action_receipts.iter().rev().find(|receipt| {
+        receipt.action == conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan
+            && receipt.run_id.as_deref() == Some(run.run_id.as_str())
+            && matches!(receipt.disposition.as_str(), "accepted" | "duplicate")
+    })
+}
+
+fn browser_task_result_binding(
+    source: &str,
+    descriptor_json: &str,
+    plan: &conduit_patchbay::PlanSnapshot,
+) -> Option<(String, String, String)> {
+    let descriptor: conduit_patchbay::TaskFrontDescriptor =
+        serde_json::from_str(descriptor_json).ok()?;
+    let result = descriptor.result.as_ref()?;
+    let root = descriptor.root.strip_prefix("root/")?;
+    let panel = conduit_panel::parse_document(source).ast?;
+    let root_node = panel.nodes.iter().find(|node| node.id == root)?;
+    let exported_target = panel
+        .definitions
+        .iter()
+        .find(|definition| definition.id == root_node.kind)
+        .and_then(|definition| {
+            definition.exports.iter().find(|export| {
+                export.direction == conduit_panel::ExportDirection::Output
+                    && result.target.ends_with(&format!("/{}", export.id))
+            })
+        });
+    let (producer_suffix, producer_port) = if let Some(export) = exported_target {
+        (
+            format!("root/{root}/{}", export.target.node),
+            export.target.port.clone(),
+        )
+    } else {
+        (
+            format!("root/{root}"),
+            result.target.rsplit('/').next()?.to_owned(),
+        )
+    };
+    let cord = plan.cords.iter().find(|cord| {
+        let normalized_from_node = cord.from_node.replace('.', "/");
+        cord.from_port == producer_port
+            && (normalized_from_node == producer_suffix
+                || normalized_from_node.ends_with(&producer_suffix)
+                || producer_suffix.ends_with(&normalized_from_node))
+    })?;
+    Some((
+        cord.id.clone(),
+        cord.value_type.clone(),
+        result.target.clone(),
+    ))
+}
+
+fn attach_browser_task_result_watch(
+    run: &mut BrowserExactRun,
+    source: &str,
+    descriptor_json: &str,
+) -> Result<(), RuntimeError> {
+    let Some((cord_id, _, _)) = browser_task_result_binding(source, descriptor_json, &run.plan)
+    else {
+        return Ok(());
+    };
+    let watch_id = format!("watch/{cord_id}");
+    let authority = browser_watch_use_authority(
+        run,
+        BROWSER_WATCH_OPERATOR,
+        &watch_id,
+        ExactWatchOperation::Attach,
+    )?;
+    run.session
+        .as_mut()
+        .ok_or_else(|| RuntimeError::new("CND-WAT-002", "task result Watch has no live run"))?
+        .attach_watch(&watch_id, &authority)
+}
+
+fn browser_task_result_observation(
+    session: &BrowserPatchbaySession,
+) -> Option<conduit_patchbay::TaskFrontResultObservation> {
+    let run = session.run.as_ref()?;
+    let terminal = run.terminal.as_ref()?;
+    let receipt = browser_task_start_receipt(session)?;
+    let descriptor_json = session.task_front_descriptor.as_deref()?;
+    let (cord_id, type_id, port_path) = browser_task_result_binding(
+        &session.workspace.source().source,
+        descriptor_json,
+        &run.plan,
+    )?;
+    let watch_id = format!("watch/{cord_id}");
+    let record = terminal.watches.get(&watch_id)?.records.last()?;
+    let display_value = match &record.material {
+        ExactWatchMaterial::Preview(bytes) if record.representation_id == "std/text" => {
+            std::str::from_utf8(bytes).ok()?.to_owned()
+        }
+        ExactWatchMaterial::Preview(bytes) => format!("{} bytes", bytes.len()),
+        ExactWatchMaterial::Redacted => "[REDACTED]".to_owned(),
+        ExactWatchMaterial::Absent => return None,
+    };
+    Some(conduit_patchbay::TaskFrontResultObservation {
+        operation_id: receipt.operation_id.clone(),
+        request_id: receipt.request_id.clone(),
+        plan_identity: run.plan.identity.clone(),
+        plan_epoch: run.plan_epoch,
+        run_id: run.run_id.clone(),
+        port_path,
+        type_id: type_id.clone(),
+        semantic_status: "succeeded".to_owned(),
+        display_value,
+        typed_details: vec![format!("{type_id} value from exact exported port")],
+        warnings: Vec::new(),
+    })
+}
+
+fn browser_task_terminal_observation(
+    session: &BrowserPatchbaySession,
+) -> Option<conduit_patchbay::TaskTerminalObservation> {
+    let run = session.run.as_ref()?;
+    let receipt = browser_task_start_receipt(session)?;
+    let ExactRunState::Terminal(class) = browser_run_state(run) else {
+        return None;
+    };
+    Some(conduit_patchbay::TaskTerminalObservation {
+        operation_id: receipt.operation_id.clone(),
+        request_id: receipt.request_id.clone(),
+        plan_identity: run.plan.identity.clone(),
+        plan_epoch: run.plan_epoch,
+        run_id: run.run_id.clone(),
+        terminal_state: terminal_name(class).to_owned(),
+        cleanup_state: if run.terminal.is_some() {
+            "complete"
+        } else {
+            "unavailable"
+        }
+        .to_owned(),
+        evidence_state: if browser_run_evidence(run).is_ok() {
+            "published"
+        } else {
+            "failed"
+        }
+        .to_owned(),
+        warnings: Vec::new(),
+    })
+}
+
 fn browser_session_view(
     session: &BrowserPatchbaySession,
 ) -> Result<conduit_patchbay::PatchbayViewModel, conduit_patchbay::ProtocolError> {
@@ -1381,6 +1572,28 @@ fn browser_session_view(
         ),
         None => (None, None, None, Vec::new()),
     };
+    let mut action_export =
+        browser_task_action_export(&session.workspace, session.task_front_descriptor.as_deref());
+    if let Some(export) = action_export.as_mut()
+        && session.run.as_ref().is_some_and(|run| {
+            matches!(
+                browser_run_state(run),
+                ExactRunState::Active
+                    | ExactRunState::Waiting
+                    | ExactRunState::Quiescing
+                    | ExactRunState::Aborting
+            )
+        })
+    {
+        export.active_controls = vec![
+            conduit_patchbay::TaskRuntimeControlRequest::Cancel,
+            conduit_patchbay::TaskRuntimeControlRequest::Drain,
+        ];
+    }
+    let action_receipt =
+        browser_task_start_receipt(session).or_else(|| session.task_action_receipts.back());
+    let result_observation = browser_task_result_observation(session);
+    let terminal_observation = browser_task_terminal_observation(session);
     authoritative_patchbay_view(
         &session.workspace,
         plan,
@@ -1388,6 +1601,12 @@ fn browser_session_view(
         high_water,
         &evidence,
         session.task_front_descriptor.as_deref(),
+        BrowserTaskRuntimeProjection {
+            action_export: action_export.as_ref(),
+            action_receipt,
+            result_observation: result_observation.as_ref(),
+            terminal_observation: terminal_observation.as_ref(),
+        },
     )
 }
 
@@ -1517,7 +1736,10 @@ fn start_browser_exact_run(
         .and_then(|resolved| resolved.exact_topology())
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
     let mut installed = browser_installed_profile(source, &registry, &topology)?;
-    installed.input.execution_arrangement.plan_epoch = source_revision;
+    let plan_epoch = source_revision
+        .checked_add(1)
+        .ok_or_else(|| RuntimeError::new("CND-PBY-ACT-006", "plan epoch exhausted"))?;
+    installed.input.execution_arrangement.plan_epoch = plan_epoch;
     installed
         .input
         .seal()
@@ -1600,7 +1822,7 @@ fn start_browser_exact_run(
     pin_plan_semantic_promises(&mut plan_snapshot, &resolved.view());
     let context = ExactRunContext {
         semantic_source_hash: plan.source_semantic_hash,
-        plan_epoch: source_revision,
+        plan_epoch,
         run_id: conduit_core::Id(&run_id),
         grant_observations: &grant_observations,
         validation: conduit_core::PlanValidationContext {
@@ -1624,7 +1846,7 @@ fn start_browser_exact_run(
     let evidence_authority = Rc::new(RefCell::new(Some(browser_evidence_authority(
         &evidence_binding,
         &run_id,
-        source_revision,
+        plan_epoch,
     ))));
     let evidence = Rc::new(RefCell::new(BrowserEvidenceStore::new(evidence_bytes)?));
     let evidence_provider = BrowserEvidenceProvider {
@@ -1645,6 +1867,7 @@ fn start_browser_exact_run(
         plan: plan_snapshot,
         run_id,
         source_revision,
+        plan_epoch,
         node_count,
         cord_count,
         session: Some(session),
@@ -1698,6 +1921,8 @@ pub fn patchbay_open_session(
         workspace: preliminary_workspace,
         run: None,
         task_front_descriptor: task_front_descriptor.clone(),
+        task_action_receipts: VecDeque::new(),
+        next_task_action_sequence: 1,
     };
     let preliminary_view = match browser_session_view(&preliminary_session) {
         Ok(view) => view,
@@ -1747,6 +1972,8 @@ pub fn patchbay_open_session(
             workspace,
             run: None,
             task_front_descriptor,
+            task_action_receipts: VecDeque::new(),
+            next_task_action_sequence: 1,
         };
         let view = match browser_session_view(&session) {
             Ok(view) => view,
@@ -1969,6 +2196,185 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
 /// Explicitly starts one browser-worker exact run from the current source
 /// revision. This is the only operation that may create a new run epoch;
 /// authoring and checking remain non-actuating.
+#[wasm_bindgen]
+pub fn patchbay_request_task_action(session_id: String, request_json: String) -> String {
+    if request_json.len() > MAXIMUM_PATCHBAY_REQUEST_BYTES {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-PBY-ACT-001",
+            "diagnostic": "task action request exceeds its finite byte bound",
+        })
+        .to_string();
+    }
+    let request =
+        match serde_json::from_str::<conduit_patchbay::TaskActionRequestEnvelope>(&request_json) {
+            Ok(request) => request,
+            Err(error) => {
+                return serde_json::json!({
+                    "ok": false,
+                    "code": "CND-PBY-ACT-001",
+                    "diagnostic": format!("invalid task action request: {error}"),
+                })
+                .to_string();
+            }
+        };
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let task_front_usable = browser_session_view(session)
+            .is_ok_and(|view| view.task_front.status == "usable");
+        if !task_front_usable {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-ACT-005",
+                "diagnostic": "the current checked task front exports no runtime action",
+                "view": browser_session_view(session).ok(),
+            })
+            .to_string();
+        }
+        let Some(mut export) = browser_task_action_export(
+            &session.workspace,
+            session.task_front_descriptor.as_deref(),
+        ) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-ACT-005",
+                "diagnostic": "the checked task exports no runtime action",
+                "view": browser_session_view(session).ok(),
+            })
+            .to_string();
+        };
+        let run_snapshot = session.run.as_ref().map(patchbay_run_snapshot);
+        if run_snapshot.as_ref().is_some_and(|run| {
+            !matches!(run.state, conduit_patchbay::RunState::Prepared | conduit_patchbay::RunState::Terminal)
+        }) {
+            export.active_controls = vec![
+                conduit_patchbay::TaskRuntimeControlRequest::Cancel,
+                conduit_patchbay::TaskRuntimeControlRequest::Drain,
+            ];
+        }
+        let admission = conduit_patchbay::admit_task_action(
+            &export,
+            &request,
+            run_snapshot.as_ref(),
+            session.task_action_receipts.make_contiguous(),
+            session.next_task_action_sequence,
+        );
+        let mut receipt = admission.receipt;
+        if !admission.dispatch {
+            let duplicate = receipt.disposition == "duplicate";
+            if !duplicate {
+                session.next_task_action_sequence =
+                    session.next_task_action_sequence.saturating_add(1);
+                session.task_action_receipts.push_back(receipt.clone());
+            }
+            if duplicate && session.run.is_some() {
+                let mut value: serde_json::Value =
+                    serde_json::from_str(&browser_run_result(session))
+                        .expect("browser run result is canonical JSON");
+                value["ok"] = serde_json::Value::Bool(true);
+                value["action_receipt"] = serde_json::to_value(&receipt)
+                    .expect("task action receipt is serializable");
+                return value.to_string();
+            }
+            let view = browser_session_view(session).ok();
+            return serde_json::json!({
+                "ok": duplicate,
+                "code": receipt.code,
+                "diagnostic": receipt.explanation,
+                "action_receipt": receipt,
+                "view": view,
+            })
+            .to_string();
+        }
+        session.next_task_action_sequence = session.next_task_action_sequence.saturating_add(1);
+        let dispatch = match request.action {
+            conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan => {
+                let source = session.workspace.source().source.clone();
+                let source_revision = session.workspace.source().revision;
+                start_browser_exact_run(&source, source_revision, &session_id).and_then(|mut run| {
+                    if let Some(descriptor) = session.task_front_descriptor.as_deref() {
+                        attach_browser_task_result_watch(&mut run, &source, descriptor)?;
+                    }
+                    receipt.run_id = Some(run.run_id.clone());
+                    session.run = Some(run);
+                    Ok(())
+                })
+            }
+            conduit_patchbay::TaskRuntimeControlRequest::Cancel
+            | conduit_patchbay::TaskRuntimeControlRequest::Drain => {
+                let stop = if request.action
+                    == conduit_patchbay::TaskRuntimeControlRequest::Drain
+                {
+                    conduit_core::StopPolicy::Drain
+                } else {
+                    conduit_core::StopPolicy::Abort
+                };
+                let run = session.run.as_mut().expect("admission required one exact run");
+                let result = run
+                    .session
+                    .as_mut()
+                    .ok_or_else(|| RuntimeError::new("CND-PBY-ACT-010", "terminal run has no control session"))
+                    .and_then(|exact| exact.cancel(stop).map(|_| ()))
+                    .and_then(|()| drain_browser_exact_evidence(run))
+                    .and_then(|()| finalize_browser_run_if_terminal(run));
+                receipt.run_id = Some(run.run_id.clone());
+                result
+            }
+        };
+        match dispatch {
+            Ok(()) => {
+                receipt.disposition = "accepted".to_owned();
+                receipt.code = "CND-PBY-ACT-ACCEPTED".to_owned();
+                receipt.explanation =
+                    "Runtime accepted the exact task request; semantic and terminal results remain pending observations."
+                        .to_owned();
+            }
+            Err(error) => {
+                receipt.disposition = "rejected".to_owned();
+                receipt.code = error.code.to_owned();
+                receipt.explanation = error.to_string();
+            }
+        }
+        session.task_action_receipts.push_back(receipt.clone());
+        while session.task_action_receipts.len()
+            > conduit_patchbay::MAXIMUM_TASK_ACTION_RECEIPTS
+        {
+            session.task_action_receipts.pop_front();
+        }
+        if session.run.is_some() {
+            let mut value: serde_json::Value = serde_json::from_str(&browser_run_result(session))
+                .expect("browser run result is canonical JSON");
+            value["action_receipt"] = serde_json::to_value(&receipt)
+                .expect("task action receipt is serializable");
+            value["ok"] = serde_json::Value::Bool(receipt.disposition == "accepted");
+            if receipt.disposition != "accepted" {
+                value["code"] = serde_json::Value::String(receipt.code.clone());
+                value["diagnostic"] = serde_json::Value::String(receipt.explanation.clone());
+            }
+            value.to_string()
+        } else {
+            serde_json::json!({
+                "ok": receipt.disposition == "accepted",
+                "code": receipt.code,
+                "diagnostic": receipt.explanation,
+                "action_receipt": receipt,
+                "view": browser_session_view(session).ok(),
+            })
+            .to_string()
+        }
+    })
+}
+
+/// Low-level exact-run start retained for non-task Patchbay clients. Task
+/// fronts must use `patchbay_request_task_action` and its exact receipt.
 #[wasm_bindgen]
 pub fn patchbay_start_exact_run(session_id: String) -> String {
     PATCHBAY_SESSIONS.with(|sessions| {
@@ -2811,6 +3217,25 @@ fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
     Some(snapshot)
 }
 
+fn exact_plan_snapshot_at_epoch(
+    source: &str,
+    plan_epoch: u64,
+) -> Option<conduit_patchbay::PlanSnapshot> {
+    let registry = browser_registry();
+    let panel = conduit_panel::parse(source).ok()?;
+    let resolved = registry.resolve(&panel).ok()?;
+    let topology = resolved.exact_topology().ok()?;
+    let mut installed = browser_installed_profile(source, &registry, &topology).ok()?;
+    installed.input.execution_arrangement.plan_epoch = plan_epoch;
+    installed.input.seal().ok()?;
+    let document = compile_source(source, &installed.input).ok()?;
+    let arena = bumpalo::Bump::new();
+    let plan = document.as_plan(&arena).ok()?;
+    let mut snapshot = conduit_patchbay::PlanSnapshot::from_exact_plan(&plan);
+    pin_plan_semantic_promises(&mut snapshot, &resolved.view());
+    Some(snapshot)
+}
+
 fn pin_plan_semantic_promises(
     plan: &mut conduit_patchbay::PlanSnapshot,
     resolved: &conduit_runtime::ResolvedPanelView,
@@ -2968,6 +3393,14 @@ fn patchbay_cycle_participants(
     (cycle_nodes, cycle_cords)
 }
 
+#[derive(Default)]
+struct BrowserTaskRuntimeProjection<'a> {
+    action_export: Option<&'a conduit_patchbay::TaskActionExport>,
+    action_receipt: Option<&'a conduit_patchbay::TaskActionReceipt>,
+    result_observation: Option<&'a conduit_patchbay::TaskFrontResultObservation>,
+    terminal_observation: Option<&'a conduit_patchbay::TaskTerminalObservation>,
+}
+
 fn authoritative_patchbay_view(
     workspace: &conduit_patchbay::Workspace,
     exact_plan: Option<conduit_patchbay::PlanSnapshot>,
@@ -2975,7 +3408,14 @@ fn authoritative_patchbay_view(
     high_water: Option<conduit_patchbay::PatchbayHighWaterProjection>,
     evidence: &[serde_json::Value],
     task_front_descriptor: Option<&str>,
+    task_runtime: BrowserTaskRuntimeProjection<'_>,
 ) -> Result<conduit_patchbay::PatchbayViewModel, conduit_patchbay::ProtocolError> {
+    let BrowserTaskRuntimeProjection {
+        action_export: task_action_export,
+        action_receipt: task_action_receipt,
+        result_observation: task_result_observation,
+        terminal_observation: task_terminal_observation,
+    } = task_runtime;
     let document = conduit_panel::parse_document(&workspace.source().source);
     let recovered = conduit_panel::recover_document(&workspace.source().source);
     let registry = browser_registry();
@@ -3579,9 +4019,12 @@ fn authoritative_patchbay_view(
             .as_ref()
             .is_none_or(|plan| run.plan_identity != plan.identity)
     });
-    let candidate_plan = resolved_view
-        .as_ref()
-        .and_then(|_| exact_plan_snapshot(source_text));
+    let candidate_plan = resolved_view.as_ref().and_then(|_| {
+        task_action_export.map_or_else(
+            || exact_plan_snapshot(source_text),
+            |export| exact_plan_snapshot_at_epoch(source_text, export.plan_epoch),
+        )
+    });
     let candidate_plan_identity = candidate_plan
         .as_ref()
         .map(|candidate| candidate.identity.clone());
@@ -3908,7 +4351,10 @@ fn authoritative_patchbay_view(
         &configuration_layers,
         plan.as_ref(),
         matching_run.as_ref(),
-        None,
+        task_action_export,
+        task_action_receipt,
+        task_result_observation,
+        task_terminal_observation,
         &browser_task_front_renderer_profiles(),
         bounds,
     );
@@ -5648,6 +6094,7 @@ fn run_panel_exact_inner(
     let run = conduit_patchbay::RunSnapshot {
         run_id: "conduit/browser-run".to_owned(),
         plan_identity: plan_snapshot.identity.clone(),
+        plan_epoch: 1,
         source_semantic_hash: plan_snapshot.source_semantic_hash.clone(),
         state: conduit_patchbay::RunState::Terminal,
     };
@@ -5673,6 +6120,7 @@ fn run_panel_exact_inner(
             }),
             &evidence,
             None,
+            BrowserTaskRuntimeProjection::default(),
         )
         .map_err(|error| RuntimeError::new(error.code, error.to_string()))?,
     )
@@ -5697,15 +6145,15 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        authoritative_patchbay_view, browser_exact_run_id, browser_watch_observation,
-        exact_plan_snapshot, explain_panel, panel_language_metadata, panel_source_metadata,
-        patchbay_advance_exact_run, patchbay_apply_transaction, patchbay_attach_exact_watch,
-        patchbay_cancel_exact_run, patchbay_detach_exact_watch, patchbay_dispose_exact_run,
-        patchbay_inspect_at_rest, patchbay_move_node, patchbay_notify_host_operation,
-        patchbay_open_session as patchbay_open_session_with_front, patchbay_pump_exact_run,
-        patchbay_read_exact_evidence, patchbay_read_exact_watch, patchbay_replace_source,
-        patchbay_session_view, patchbay_snapshot_exact_run, patchbay_start_exact_run,
-        planned_realization_projection,
+        BrowserTaskRuntimeProjection, authoritative_patchbay_view, browser_exact_run_id,
+        browser_watch_observation, exact_plan_snapshot, explain_panel, panel_language_metadata,
+        panel_source_metadata, patchbay_advance_exact_run, patchbay_apply_transaction,
+        patchbay_attach_exact_watch, patchbay_cancel_exact_run, patchbay_detach_exact_watch,
+        patchbay_dispose_exact_run, patchbay_inspect_at_rest, patchbay_move_node,
+        patchbay_notify_host_operation, patchbay_open_session as patchbay_open_session_with_front,
+        patchbay_pump_exact_run, patchbay_read_exact_evidence, patchbay_read_exact_watch,
+        patchbay_replace_source, patchbay_request_task_action, patchbay_session_view,
+        patchbay_snapshot_exact_run, patchbay_start_exact_run, planned_realization_projection,
     };
 
     const SOURCE: &str = "panel 0\ngreeting: std/literal { value = \"hello\\n\" }\noutput: display/text\ngreeting.value > output.text\n";
@@ -6299,11 +6747,20 @@ output.value > sink.result\n\
         let run = conduit_patchbay::RunSnapshot {
             run_id: "run/mismatched".to_owned(),
             plan_identity: "sha256:not-the-supplied-plan".to_owned(),
+            plan_epoch: 0,
             source_semantic_hash: plan.source_semantic_hash.clone(),
             state: conduit_patchbay::RunState::Active,
         };
-        let view = authoritative_patchbay_view(&workspace, Some(plan), Some(run), None, &[], None)
-            .expect("bounded projection");
+        let view = authoritative_patchbay_view(
+            &workspace,
+            Some(plan),
+            Some(run),
+            None,
+            &[],
+            None,
+            BrowserTaskRuntimeProjection::default(),
+        )
+        .expect("bounded projection");
 
         assert!(view.plan.is_none());
         assert!(view.run.is_none());
@@ -6495,6 +6952,135 @@ output.value > sink.result\n\
             "declared-task-front-is-invalid"
         );
         assert_eq!(rejected["view"]["task_front"]["status"], "invalid");
+    }
+
+    #[test]
+    fn task_front_dispatches_exact_action_and_projects_semantic_result_separately() {
+        let session = "test/task-front-action";
+        let source = "panel 0\n\nexample/front-panel {\n    private_worker: text/uppercase\n    export > text = private_worker.text\n    export result > = private_worker.text\n}\n\nsource: std/literal { value = \"jacks\" }\nfaceplate: example/front-panel\nsink: display/text\nsource.value > faceplate.text\nfaceplate.result > sink.text\n";
+        let opened: Value = serde_json::from_str(&patchbay_open_session_with_front(
+            session.to_owned(),
+            source.to_owned(),
+            jacks_task_front_descriptor(),
+        ))
+        .expect("task-front open JSON");
+        let front = &opened["view"]["task_front"]["front"];
+        assert_eq!(front["readiness"]["state"], "ready", "{opened}");
+        assert_eq!(front["primary_action"]["state"], "request-available");
+        let request = serde_json::json!({
+            "protocol_version": 0,
+            "request_id": "request/task-front-positive",
+            "operation_id": front["primary_action"]["operation_id"],
+            "action": "run-exact-plan",
+            "source_identity": front["identities"]["source_identity"],
+            "plan_identity": front["identities"]["plan_identity"],
+            "plan_epoch": front["primary_action"]["plan_epoch"],
+        });
+        let started: Value = serde_json::from_str(&patchbay_request_task_action(
+            session.to_owned(),
+            request.to_string(),
+        ))
+        .expect("task start JSON");
+        assert_eq!(started["ok"], true, "{started}");
+        assert_eq!(started["action_receipt"]["disposition"], "accepted");
+        assert_eq!(
+            started["action_receipt"]["operation_id"],
+            request["operation_id"]
+        );
+        assert_eq!(
+            started["action_receipt"]["plan_epoch"],
+            request["plan_epoch"]
+        );
+        let binding = test_run_binding(&started);
+
+        let duplicate: Value = serde_json::from_str(&patchbay_request_task_action(
+            session.to_owned(),
+            request.to_string(),
+        ))
+        .expect("duplicate task start JSON");
+        assert_eq!(duplicate["ok"], true, "{duplicate}");
+        assert_eq!(duplicate["action_receipt"]["disposition"], "duplicate");
+        assert_eq!(duplicate["run_id"], started["run_id"]);
+
+        let mut terminal = started;
+        for _ in 0..32 {
+            if !terminal["terminal"].is_null() {
+                break;
+            }
+            terminal =
+                serde_json::from_str(&bound_run!(patchbay_pump_exact_run, session, binding, 16,))
+                    .expect("task pump JSON");
+            assert_eq!(terminal["ok"], true, "{terminal}");
+        }
+        assert_eq!(terminal["terminal"], "succeeded", "{terminal}");
+        let front = &terminal["view"]["task_front"]["front"];
+        assert_eq!(front["result"]["display_value"], "JACKS", "{front}");
+        assert_eq!(front["result"]["semantic_status"], "succeeded");
+        assert_eq!(front["terminal"]["state"], "succeeded");
+        assert_eq!(front["terminal"]["evidence_state"], "published");
+        assert!(front["result"].get("terminal_outcome").is_none());
+    }
+
+    #[test]
+    fn task_front_cancellation_uses_exact_run_identity_without_inventing_a_result() {
+        let session = "test/task-front-cancel";
+        let source = "panel 0\n\nexample/front-panel {\n    private_worker: text/uppercase\n    export > text = private_worker.text\n    export result > = private_worker.text\n}\n\nsource: std/literal { value = \"jacks\" }\nfaceplate: example/front-panel\nsink: display/text\nsource.value > faceplate.text\nfaceplate.result > sink.text\n";
+        let opened: Value = serde_json::from_str(&patchbay_open_session_with_front(
+            session.to_owned(),
+            source.to_owned(),
+            jacks_task_front_descriptor(),
+        ))
+        .expect("task-front open JSON");
+        let front = &opened["view"]["task_front"]["front"];
+        let start_request = serde_json::json!({
+            "protocol_version": 0,
+            "request_id": "request/task-front-cancel-start",
+            "operation_id": front["primary_action"]["operation_id"],
+            "action": "run-exact-plan",
+            "source_identity": front["identities"]["source_identity"],
+            "plan_identity": front["identities"]["plan_identity"],
+            "plan_epoch": front["primary_action"]["plan_epoch"],
+        });
+        let started: Value = serde_json::from_str(&patchbay_request_task_action(
+            session.to_owned(),
+            start_request.to_string(),
+        ))
+        .expect("task start JSON");
+        assert_eq!(started["ok"], true, "{started}");
+        let binding = test_run_binding(&started);
+        let cancel_request = serde_json::json!({
+            "protocol_version": 0,
+            "request_id": "request/task-front-cancel-control",
+            "operation_id": start_request["operation_id"],
+            "action": "cancel",
+            "source_identity": start_request["source_identity"],
+            "plan_identity": binding.plan_identity.clone(),
+            "plan_epoch": start_request["plan_epoch"],
+            "run_id": binding.run_id.clone(),
+        });
+        let mut cancelled: Value = serde_json::from_str(&patchbay_request_task_action(
+            session.to_owned(),
+            cancel_request.to_string(),
+        ))
+        .expect("task cancel JSON");
+        assert_eq!(cancelled["ok"], true, "{cancelled}");
+        assert_eq!(cancelled["action_receipt"]["disposition"], "accepted");
+        for _ in 0..8 {
+            if !cancelled["terminal"].is_null() {
+                break;
+            }
+            cancelled =
+                serde_json::from_str(&bound_run!(patchbay_pump_exact_run, session, binding, 16,))
+                    .expect("cancel pump JSON");
+        }
+        assert_eq!(cancelled["terminal"], "cancelled", "{cancelled}");
+        let front = &cancelled["view"]["task_front"]["front"];
+        assert_eq!(front["terminal"]["state"], "cancelled");
+        assert_eq!(front["result"]["display_value"], Value::Null);
+        assert_eq!(
+            front["result"]["observation_state"],
+            "terminal-without-semantic-result-observation"
+        );
     }
 
     #[test]
