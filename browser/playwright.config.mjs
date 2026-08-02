@@ -6,6 +6,7 @@ const baseURL = `http://127.0.0.1:${port}`;
 export default defineConfig({
   testDir: "..",
   testMatch: [
+    "browser/browser-proof-pages.spec.mjs",
     "browser/conduit-browser-host.spec.mjs",
     "tour/standing-network.spec.mjs",
     "tour/standing-signals.spec.mjs",
