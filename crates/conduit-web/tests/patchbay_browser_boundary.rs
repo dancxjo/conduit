@@ -53,31 +53,3 @@ fn browser_has_no_private_panel_parser_or_semantic_inference() {
     assert!(!tour.contains("patchbay_replace_source"));
     assert!(!tour.contains("patchbay_move_node"));
 }
-
-#[test]
-fn checked_wasm_bridge_exports_revisioned_session_operations() {
-    let root = root();
-    let declarations = std::fs::read_to_string(root.join("tour/public/conduit_web.d.ts")).unwrap();
-    for operation in [
-        "panel_source_metadata",
-        "patchbay_open_session",
-        "patchbay_session_view",
-        "patchbay_apply_transaction",
-        "patchbay_start_exact_run",
-        "patchbay_pump_exact_run",
-        "patchbay_read_exact_evidence",
-        "patchbay_attach_exact_watch",
-        "patchbay_detach_exact_watch",
-        "patchbay_read_exact_watch",
-        "patchbay_advance_exact_run",
-        "patchbay_notify_host_operation",
-        "patchbay_cancel_exact_run",
-        "patchbay_snapshot_exact_run",
-        "patchbay_dispose_exact_run",
-    ] {
-        assert!(
-            declarations.contains(operation),
-            "generated WASM bridge omits `{operation}`"
-        );
-    }
-}

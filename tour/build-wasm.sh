@@ -12,6 +12,7 @@ wasm-bindgen \
   --target web \
   --out-dir "${runtime_dir}" \
   target/wasm32-unknown-unknown/release/conduit_web.wasm
+node browser/check-wasm-bridge.mjs "${runtime_dir}"
 cargo xtask generate-browser-plan \
   --artifact-dir "${runtime_dir}" \
   --output "${runtime_dir}/browser-plan.json"
