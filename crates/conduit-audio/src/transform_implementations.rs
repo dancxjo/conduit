@@ -460,6 +460,7 @@ pub fn install_audio_gain_implementation(
             role: "executable".to_owned(),
             required: true,
         }],
+        required_capabilities: Vec::new(),
         required_authorities: implementation
             .is_process()
             .then_some(PROCESS_EXECUTE_AUTHORITY)

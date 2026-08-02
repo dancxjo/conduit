@@ -3,12 +3,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::{
     ArtifactDocument, ArtifactReferenceDocument, AuthorityConstraintDocument,
     AuthorityDecisionDocument, AuthorityGrantDocument, BudgetDocument, COMPILE_INPUT_SCHEMA,
-    COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CompileInput, CompileModuleDocument,
-    CompileSourceLimits, EffectCommitProfileDocument, EffectRequirementDocument,
-    EvidenceProviderBindingDocument, ExecutionLimitsDocument, ExecutionProfileDocument,
-    ExternalLeafContractDocument, HostCapabilityDocument, HostReportDocument,
-    ImplementationDocument, ImplementationInterfaceDocument, MemoryClaimDocument, PinDocument,
-    ResourceLeaseDocument, WatchAdmissionDocument, builtin_catalog_document,
+    COMPILE_INPUT_SCHEMA_VERSION, CandidateDocument, CapabilityRequirementDocument, CompileInput,
+    CompileModuleDocument, CompileSourceLimits, EffectCommitProfileDocument,
+    EffectRequirementDocument, EvidenceProviderBindingDocument, ExecutionLimitsDocument,
+    ExecutionProfileDocument, ExternalLeafContractDocument, HostCapabilityDocument,
+    HostReportDocument, ImplementationDocument, ImplementationInterfaceDocument,
+    MemoryClaimDocument, PinDocument, ReportCapabilityDocument, ResourceLeaseDocument,
+    WatchAdmissionDocument, builtin_catalog_document,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, ExecutorKind,
@@ -41,6 +42,9 @@ pub struct InstalledHostObservationInput {
     pub valid_until_tick: u64,
     pub current_tick: u64,
     pub available: BudgetDocument,
+    /// Current domain-owned implementation capabilities observed on this
+    /// host. Registry installation does not add entries to this collection.
+    pub capabilities: Vec<ReportCapabilityDocument>,
 }
 
 impl InstalledHostObservationInput {
@@ -65,6 +69,7 @@ impl InstalledHostObservationInput {
                 checkpoints: 16,
                 evidence_bytes: 256 * 1024,
             },
+            capabilities: Vec::new(),
         }
     }
 }
@@ -1069,7 +1074,7 @@ fn candidate(
             observed_at_tick: host_observation.observed_at_tick,
             valid_until_tick: host_observation.valid_until_tick,
             available: host_observation.available,
-            capabilities: Vec::new(),
+            capabilities: host_observation.capabilities.clone(),
             resources: Vec::new(),
             topology: Vec::new(),
             supported_executors: vec![executor_name(manifest.executor).to_owned()],
@@ -1136,7 +1141,21 @@ fn candidate(
             ..BudgetDocument::default()
         },
         lifecycle_policy: pin("conduit/finite-lifecycle", 60),
-        capabilities: Vec::new(),
+        capabilities: installed
+            .required_capabilities
+            .iter()
+            .map(|required| CapabilityRequirementDocument {
+                interface: PinDocument {
+                    id: required.interface.id.to_string(),
+                    schema_version: required.interface.schema_version,
+                    semantic_hash: required.interface.semantic_hash.to_string(),
+                },
+                mode: required.mode.clone(),
+                subject: required.subject.clone(),
+                details: required.details.map(|details| details.to_string()),
+                minimum_capacity: required.minimum_capacity.into(),
+            })
+            .collect(),
         resources: Vec::new(),
         topology: Vec::new(),
         granted_authorities: Vec::new(),

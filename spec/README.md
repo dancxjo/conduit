@@ -308,6 +308,9 @@ containment program is tracked by
   defines the optional generic implementation facet for configured, prepared,
   active, quiescing, cleaning, stopped, failed, and unsupported components,
   with separate readiness, authority, host, run, and plan identities.
+- [`083-bounded-quick-local-chat.md`](083-bounded-quick-local-chat.md) defines
+  one bounded domain chat contract with deterministic and observed local
+  implementations on the generic host-observation and exact-binding path.
 - [`071-bounded-brainstem-network.md`](071-bounded-brainstem-network.md)
   separates AP, DHCP, ICMP, DNS-SD, transport/application protocols,
   observation, and Netherwick robot authority with finite no-radio fixtures.

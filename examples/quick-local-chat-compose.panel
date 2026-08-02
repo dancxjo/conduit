@@ -1,0 +1,46 @@
+# Chat result facts remain typed and compose through an ordinary inspector.
+panel 0
+
+message: std/literal {
+  value = "Explain the implementation boundary."
+}
+
+chat: ai/chat {
+  mode = "conduit.ai/chat/quick-local"
+  maximum_message_bytes = 4096
+  maximum_context_bytes = 8192
+  maximum_output_bytes = 4096
+  maximum_chunk_bytes = 1024
+  maximum_chunks = 8
+  maximum_concurrency = 4
+  timeout_millis = 1000
+  sensitivity = "public"
+  conversation_state = "caller-supplied-only"
+  retention = "none"
+  tools = "forbidden"
+  structured_output = "unsupported"
+}
+
+inspect: ai/chat/result/inspect
+emphasize: text/uppercase
+output: display/text
+
+message.value > chat.message {
+  capacity = 1 max_value_bytes = 4096 max_queued_bytes = 4096
+  low_watermark = 0 high_watermark = 1 pressure = block
+}
+
+chat.result > inspect.result {
+  capacity = 1 max_value_bytes = 16384 max_queued_bytes = 16384
+  low_watermark = 0 high_watermark = 1 pressure = block
+}
+
+inspect.summary > emphasize.text {
+  capacity = 1 max_value_bytes = 512 max_queued_bytes = 512
+  low_watermark = 0 high_watermark = 1 pressure = block
+}
+
+emphasize.text > output.text {
+  capacity = 1 max_value_bytes = 512 max_queued_bytes = 512
+  low_watermark = 0 high_watermark = 1 pressure = block
+}

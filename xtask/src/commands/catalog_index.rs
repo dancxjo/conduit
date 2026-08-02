@@ -265,6 +265,8 @@ fn fixture(id: &str, classification: &str) -> &'static str {
             | "conduit.media/audio/encode"
     ) {
         "conformance/c4/media-codecs.json"
+    } else if id.starts_with("ai/") {
+        "conformance/c4/quick-local-chat.json"
     } else if id.starts_with("learned/") {
         "conformance/c4/learned-inference.json"
     } else if id.starts_with("spatial/") {
@@ -346,6 +348,7 @@ fn lesson(id: &str, composition: bool) -> Lesson {
             | "conduit.media/audio/encode",
             _,
         ) => Some("library.bounded-media-codecs"),
+        (id, _) if id.starts_with("ai/") => Some("library.bounded-quick-local-chat"),
         (id, _) if id.starts_with("learned/") => Some("library.bounded-learned-inference"),
         (id, _) if id.starts_with("spatial/") => Some("library.bounded-spatial-foundation"),
         ("conduit.media/audio/capture" | "conduit.media/audio/playback", _) => {
@@ -406,6 +409,7 @@ fn validate_semantic_port_inventory(entries: &[Entry]) -> Result<(), String> {
 
 fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
     let mut registry = Registry::default();
+    conduit_ai::register_deterministic_chat_provider(&mut registry)?;
     conduit_media::register_media_contracts(&mut registry);
     conduit_media::register_audio_processing_contracts(&mut registry);
     conduit_media::register_media_codec_contracts(&mut registry);
@@ -423,6 +427,20 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
         .collect::<BTreeSet<_>>();
     let mut providers = BTreeMap::<&str, Vec<Provider>>::new();
     for provider in Registry::installed_hosted_providers() {
+        providers
+            .entry(provider.contract.id.as_str())
+            .or_default()
+            .push(Provider {
+                implementation: provider.manifest.id.to_string(),
+                artifact: provider.artifact.id.to_string(),
+                artifact_digest: provider.artifact.digest.to_string(),
+            });
+    }
+    let installed_providers = registry.installed_providers();
+    for provider in installed_providers
+        .iter()
+        .filter(|provider| provider.contract.id.as_str().starts_with("ai/"))
+    {
         providers
             .entry(provider.contract.id.as_str())
             .or_default()

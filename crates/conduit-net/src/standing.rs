@@ -3482,6 +3482,7 @@ pub fn register_portable_route_provider(registry: &mut Registry) -> Result<(), R
             role: "implementation".to_owned(),
             required: true,
         }],
+        required_capabilities: Vec::new(),
         required_authorities: Vec::new(),
         required_effects: Vec::new(),
         minimum_plan_version: 0,

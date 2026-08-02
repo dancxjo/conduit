@@ -4,6 +4,8 @@ This file is generated from the exact published registry by `cargo xtask catalog
 
 | Contract | Class | Package | Provider bundles | Standalone lesson | Composition lesson |
 |---|---|---|---:|---|---|
+| `ai/chat` | reusable-domain-package | `conduit.domain.ai` | 1 | tour/lessons/current.json#library.bounded-quick-local-chat (published) | tour/lessons/current.json#library.bounded-quick-local-chat (published) |
+| `ai/chat/result/inspect` | reusable-domain-package | `conduit.domain.ai` | 1 | tour/lessons/current.json#library.bounded-quick-local-chat (published) | tour/lessons/current.json#library.bounded-quick-local-chat (published) |
 | `conduit.host/net/tcp/connect` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.bounded-sockets (published) | tour/lessons/current.json#library.bounded-sockets (published) |
 | `conduit.host/net/tcp/listen` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.bounded-sockets (published) | tour/lessons/current.json#library.bounded-sockets (published) |
 | `conduit.host/net/udp/connected` | optional-host-boundary | `conduit.host.net` | 0 | tour/lessons/current.json#library.bounded-sockets (published) | tour/lessons/current.json#library.bounded-sockets (published) |
