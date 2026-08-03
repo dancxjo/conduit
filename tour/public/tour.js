@@ -171,6 +171,116 @@ const TASK_ACTION_POLICY_CODES = {
 };
 const TASK_ACTION_POLICY_STATES = new Set(Object.keys(TASK_ACTION_POLICY_CODES));
 
+function asPositiveSafeInteger(value, fallback) {
+  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
+
+function parseTaskActionPolicySeed(candidate, {
+  fallbackState = "unavailable",
+  fallbackGeneration = 1,
+  fallbackObservationId = TASK_ACTION_POLICY_OBSERVATION_ID,
+  fallbackObservedAtTick = 10,
+  fallbackValidUntilTick = 100,
+} = {}) {
+  if (!candidate || typeof candidate !== "object") return null;
+  const state = taskActionPolicyMessageValue(candidate, "state", "state", fallbackState);
+  if (!TASK_ACTION_POLICY_STATES.has(state)) return null;
+  return tourTaskActionPolicy(state, {
+    generation: asPositiveSafeInteger(
+      taskActionPolicyMessageValue(candidate, "generation", "generation"),
+      fallbackGeneration,
+    ),
+    observationId: taskActionPolicyMessageValue(
+      candidate,
+      "observationId",
+      "observation_id",
+      fallbackObservationId,
+    ),
+    observedAtTick: asSafeInteger(
+      taskActionPolicyMessageValue(
+        candidate,
+        "observedAtTick",
+        "observed_at_tick",
+        fallbackObservedAtTick,
+      ),
+      fallbackObservedAtTick,
+    ),
+    validUntilTick: asSafeInteger(
+      taskActionPolicyMessageValue(
+        candidate,
+        "validUntilTick",
+        "valid_until_tick",
+        fallbackValidUntilTick,
+      ),
+      fallbackValidUntilTick,
+    ),
+    activeControls: parseTaskActionControls(
+      taskActionPolicyMessageValue(candidate, "activeControls", "active_controls"),
+    ),
+    code: taskActionPolicyMessageValue(
+      candidate,
+      "code",
+      "code",
+      TASK_ACTION_POLICY_CODES[state],
+    ),
+    explanation: taskActionPolicyMessageValue(
+      candidate,
+      "explanation",
+      "explanation",
+      `The independent Tour host policy is ${state} for this exact task action.`,
+    ),
+  });
+}
+
+function parseTaskActionPolicySeedFromSearch() {
+  const rawState = pageParameters.get("taskActionPolicy") ||
+    pageParameters.get("task-action-policy") ||
+    pageParameters.get("task_action_policy");
+  if (typeof rawState !== "string" || rawState.length === 0) return null;
+  if (rawState.startsWith("{") && rawState.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(rawState);
+      return parseTaskActionPolicySeed(parsed);
+    } catch {
+      return null;
+    }
+  }
+  const candidate = {
+    state: rawState,
+    generation: Number(pageParameters.get("taskActionPolicyGeneration")) ||
+      Number(pageParameters.get("task_action_policy_generation")) ||
+      undefined,
+  };
+  const observedAtTick = Number(pageParameters.get("taskActionPolicyObservedAtTick")) ||
+    Number(pageParameters.get("task_action_policy_observed_at_tick")) ||
+    Number(pageParameters.get("observedAtTick")) ||
+    Number(pageParameters.get("observed_at_tick"));
+  const validUntilTick = Number(pageParameters.get("taskActionPolicyValidUntilTick")) ||
+    Number(pageParameters.get("task_action_policy_valid_until_tick")) ||
+    Number(pageParameters.get("validUntilTick")) ||
+    Number(pageParameters.get("valid_until_tick"));
+  const observationId =
+    pageParameters.get("taskActionPolicyObservationId") ||
+    pageParameters.get("task_action_policy_observation_id");
+  const code = pageParameters.get("taskActionPolicyCode") ||
+    pageParameters.get("task_action_policy_code");
+  const explanation = pageParameters.get("taskActionPolicyExplanation") ||
+    pageParameters.get("task_action_policy_explanation");
+  if (observedAtTick) candidate.observedAtTick = observedAtTick;
+  if (validUntilTick) candidate.validUntilTick = validUntilTick;
+  if (observationId) candidate.observationId = observationId;
+  if (code) candidate.code = code;
+  if (explanation) candidate.explanation = explanation;
+  return parseTaskActionPolicySeed(candidate);
+}
+
+function parseTaskActionPolicySeedFromWindow() {
+  const candidate = globalThis.__conduitTourTaskActionPolicy ||
+    globalThis.conduitTourTaskActionPolicy ||
+    globalThis.__conduitTaskActionPolicy;
+  return parseTaskActionPolicySeed(candidate);
+}
+
 function asSafeInteger(value, fallback) {
   return Number.isSafeInteger(value) ? value : fallback;
 }
@@ -203,7 +313,9 @@ function tourTaskActionPolicy(state, {
   };
 }
 
-const initialTaskActionPolicy = tourTaskActionPolicy("unavailable");
+const initialTaskActionPolicy = parseTaskActionPolicySeedFromSearch() ||
+  parseTaskActionPolicySeedFromWindow() ||
+  tourTaskActionPolicy("unavailable");
 let hostTaskActionPolicy = { ...initialTaskActionPolicy };
 
 if (browserPlan.schema !== "conduit.tour-browser-plan") {

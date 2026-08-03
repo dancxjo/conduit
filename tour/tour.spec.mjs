@@ -1654,6 +1654,14 @@ test("requires explicit host policy to enable task front execution", async ({ pa
   await expect(page.locator("#run")).toBeEnabled();
 });
 
+test("loads task-action policy from URL seed", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front&taskActionPolicy=permitted", {
+    authorize: false,
+  });
+  await expect(page.locator("#task-front-state")).toHaveText("ready");
+  await expect(page.locator("#run")).toBeEnabled();
+});
+
 test("updates task-action policy from runtime host signal", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
   await expect(page.locator("#task-front-state")).toHaveText("ready");
