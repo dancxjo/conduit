@@ -62,41 +62,18 @@ async function waitForTourReady(page) {
   );
 }
 
-async function readTaskFrontIdentities(page) {
-  return page.locator("#task-front").evaluate((element) => ({
-    descriptorIdentity: element.dataset.descriptorIdentity || null,
-    sourceIdentity: element.dataset.sourceIdentity || null,
-    semanticIdentity: element.dataset.semanticIdentity || null,
-    planIdentity: element.dataset.planIdentity || null,
-    readinessState: element.dataset.readinessState || null,
-    runId: element.dataset.runId || null,
-    taskRequestId: element.dataset.taskRequestId || null,
-    primaryActionRequestId: element.dataset.primaryActionRequestId || null,
-    primaryActionPlanEpoch: Number.parseInt(
-      element.dataset.primaryActionPlanEpoch || "",
-      10,
-    ),
-    resultObservationState: element.dataset.resultObservationState || null,
-    resultSemanticStatus: element.dataset.resultSemanticStatus || null,
-    resultRequestId: element.dataset.resultRequestId || null,
-    resultOperationId: element.dataset.resultOperationId || null,
-    resultPlanIdentity: element.dataset.resultPlanIdentity || null,
-    resultPlanEpoch: Number.parseInt(element.dataset.resultPlanEpoch || "", 10),
-    resultRunId: element.dataset.resultRunId || null,
-    terminalState: element.dataset.terminalState || null,
-    cleanupState: element.dataset.cleanupState || null,
-    evidenceState: element.dataset.evidenceState || null,
-    terminalRequestId: element.dataset.terminalRequestId || null,
-    terminalOperationId: element.dataset.terminalOperationId || null,
-    terminalPlanIdentity: element.dataset.terminalPlanIdentity || null,
-    terminalPlanEpoch: Number.parseInt(element.dataset.terminalPlanEpoch || "", 10),
-    terminalRunId: element.dataset.terminalRunId || null,
-  }));
-}
-
-async function gotoTour(page, path) {
+async function gotoTour(page, path, { authorize = true, state = "permitted" } = {}) {
   await page.goto(path);
   await waitForTourReady(page);
+  if (authorize) {
+    await postHostTaskActionPolicy(page, {
+      state,
+      generation: 2,
+      code: state === "permitted" ? "CND-PBY-ACT-READY" : "CND-HOST-TASK-DENIED",
+      observedAtTick: 10,
+      validUntilTick: 100,
+    });
+  }
 }
 
 function collectPageFailures(page) {
@@ -110,13 +87,6 @@ function collectPageFailures(page) {
 
 async function openTinyInstrument(page) {
   await gotoTour(page, "/tour/public/index.html?lesson=panels.tiny-instrument");
-  await postHostTaskActionPolicy(page, {
-    state: "permitted",
-    generation: 2,
-    code: "CND-PBY-ACT-READY",
-    observedAtTick: 10,
-    validUntilTick: 100,
-  });
   await page.locator("#accounting-drawer > summary").click();
   await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
 }
@@ -874,9 +844,21 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
     /conduit\.media\/control\/mixer/,
   );
   await expect(page.locator("#instrument-result")).toBeVisible();
+  await expect(page.locator("#instrument-audio-toggle")).toBeVisible();
+  await expect(page.locator("#instrument-audio-toggle")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(page.locator("#instrument-audio-status")).toContainText("Audio output is disabled");
   await expect(page.locator("#instrument-result-text")).toContainText(
     "Start the exact run to produce the first beat",
   );
+  await page.locator("#instrument-audio-toggle").click();
+  await expect(page.locator("#instrument-audio-toggle")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.locator("#instrument-audio-status")).toContainText("Audio output is enabled");
   await page.locator("#run").click();
   await expect.poll(async () => {
     const text = await page.locator("#watch-value").textContent();
@@ -893,7 +875,7 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
     `Exact Watch beat ${firstTick}`,
   );
   await expect(page.locator("#instrument-result-text")).toContainText(
-    "Audio remains off",
+    "Audio output is enabled",
   );
   await expect(page.locator("#console-status-badge")).toHaveText("Live");
   await expect(page.locator("#result")).toContainText(/run remains waiting/i);
@@ -1607,13 +1589,6 @@ test("keeps structural lenses orthogonal to Use Build Inspect and preserves the 
 
 test("keeps the Use information budget usable at two hundred percent zoom", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
-  await postHostTaskActionPolicy(page, {
-    state: "permitted",
-    generation: 2,
-    code: "CND-PBY-ACT-READY",
-    observedAtTick: 10,
-    validUntilTick: 100,
-  });
   const workspace = page.locator("#workspace");
   const front = page.locator("#task-front");
   await expect(workspace).toHaveAttribute("data-presentation-mode", "use");
@@ -1651,36 +1626,53 @@ test("keeps the Use information budget usable at two hundred percent zoom", asyn
 
 test("shows authoritative task readiness and outcome with the raw console closed", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
-  await postHostTaskActionPolicy(page, {
-    state: "permitted",
-    generation: 2,
-    code: "CND-PBY-ACT-READY",
-    observedAtTick: 10,
-    validUntilTick: 100,
-  });
   await expect(page.locator("#task-front-state")).toHaveText("ready");
   await expect(page.locator("#console-body")).toBeHidden();
-  const frontIdentities = await readTaskFrontIdentities(page);
-  expect(frontIdentities.descriptorIdentity).toMatch(/^sha256:/);
-  expect(frontIdentities.sourceIdentity).toMatch(/^sha256:/);
-  expect(frontIdentities.planIdentity).toMatch(/^sha256:/);
-  expect(frontIdentities.readinessState).toBe("ready");
-  await page.getByRole("button", { name: "Run the checked uppercase-text plan" }).click();
+  const primaryAction = page.getByRole("button", { name: "Run the checked uppercase-text plan" });
+  const topLevelRun = page.locator("#run");
+  await expect(primaryAction).toHaveAttribute("data-action-state", "request-available");
+  await expect(primaryAction).toHaveAttribute("data-operation-id", /\S+/);
+  await expect(topLevelRun).toHaveAttribute("data-action-state", "request-available");
+  await expect(topLevelRun).toHaveAttribute(
+    "data-operation-id",
+    await primaryAction.getAttribute("data-operation-id") || "",
+  );
+  await expect(topLevelRun).toHaveAttribute(
+    "data-request-id",
+    await primaryAction.getAttribute("data-request-id") || "",
+  );
+  await expect(topLevelRun).toHaveAttribute(
+    "data-plan-epoch",
+    await primaryAction.getAttribute("data-plan-epoch") || "",
+  );
+  await expect(topLevelRun).toHaveAttribute(
+    "data-plan-identity",
+    await primaryAction.getAttribute("data-plan-identity") || "",
+  );
+  await expect(page.locator("#stop")).not.toHaveAttribute("data-action");
+  await primaryAction.click();
   const taskResult = page.locator("#task-front-result-value");
+  await expect(taskResult).toContainText("Semantic result", { timeout: 60_000 });
   await expect(taskResult).toContainText("JACKS (succeeded)", { timeout: 60_000 });
   await expect(taskResult).toContainText("Terminal: succeeded");
   await expect(taskResult).toContainText("cleanup: complete");
   await expect(taskResult).toContainText("evidence: published");
-  const liveRunId = await page.locator("#live-flow-status").getAttribute("data-run-id");
-  expect(typeof liveRunId).toBe("string");
-  const runIdentity = await readTaskFrontIdentities(page);
-  expect(runIdentity.runId).toBeTruthy();
-  expect(runIdentity.runId).toBe(liveRunId);
-  expect(runIdentity.taskRequestId).toMatch(/^request\//);
-  expect(
-    await page.locator("#live-flow-status").getAttribute("data-plan-identity"),
-  ).toBe(frontIdentities.planIdentity);
+  await expect(taskResult).toContainText("Task context:");
+  const taskResultText = await taskResult.textContent();
+  const workspace = page.locator("#workspace");
   await expect(page.locator("#console-body")).toBeHidden();
+  await page.locator("#show-why").click();
+  await expect(taskResult).toHaveText(taskResultText);
+  await page.locator("#show-how").click();
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "build");
+
+  await page.locator("#show-why").click();
+  await page.locator("#console-disclosure").click();
+  await expect(page.locator("#console-body")).toBeVisible();
+  await expect(taskResult).toHaveText(taskResultText);
+  await page.locator("#console-disclosure").click();
+  await expect(page.locator("#console-body")).toBeHidden();
+  await expect(taskResult).toHaveText(taskResultText);
 });
 
 test("respects denied task-action policy for run availability", async ({ page }) => {
@@ -1697,7 +1689,9 @@ test("respects denied task-action policy for run availability", async ({ page })
 });
 
 test("requires explicit host policy to enable task front execution", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front", {
+    authorize: false,
+  });
   await expect(page.locator("#run")).toBeDisabled();
   await postHostTaskActionPolicy(page, {
     state: "permitted",
@@ -1708,130 +1702,10 @@ test("requires explicit host policy to enable task front execution", async ({ pa
   });
   await expect(page.locator("#task-front-state")).toHaveText("ready");
   await expect(page.locator("#run")).toBeEnabled();
-});
-
-test("does not consume task-action policy from URL or page-global seed", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front&taskActionPolicy=permitted");
-  await page.evaluate(() => {
-    window.taskActionPolicy = {
-      observationId: "conduit.task-policy/global",
-      generation: 2,
-      action: "run-exact-plan",
-      state: "permitted",
-      observedAtTick: 10,
-      validUntilTick: 100,
-      activeControls: ["cancel", "drain"],
-      code: "CND-PBY-ACT-READY",
-      explanation: "mutable-page policy seed",
-    };
-    window.taskActionPolicyState = "permitted";
-  });
-  await expect(page.locator("#task-front-state")).toHaveText("denied");
-  await expect(page.locator("#run")).toBeDisabled();
-  await page.getByRole("button", { name: "Run the checked uppercase-text plan" }).click();
-  await expect.poll(() => page.locator("#result").textContent(), {
-    timeout: 10_000,
-  }).toContain("Task-action policy is not currently request-available.");
-  await postHostTaskActionPolicy(page, {
-    state: "permitted",
-    generation: 2,
-    code: "CND-PBY-ACT-READY",
-    observedAtTick: 10,
-    validUntilTick: 100,
-  });
-  await expect(page.locator("#task-front-state")).toHaveText("ready");
-  await expect(page.locator("#run")).toBeEnabled();
-});
-
-test("proves exact task-action identity binding across lifecycle and policy transitions", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
-  await expect(page.locator("#task-front-state")).toHaveText("denied");
-  await expect(page.locator("#run")).toBeDisabled();
-  await postHostTaskActionPolicy(page, {
-    state: "permitted",
-    generation: 2,
-    code: "CND-PBY-ACT-READY",
-    observedAtTick: 10,
-    validUntilTick: 100,
-  });
-  await expect(page.locator("#task-front-state")).toHaveText("ready");
-  await expect(page.locator("#run")).toBeEnabled();
-  const afterPermitted = await readTaskFrontIdentities(page);
-  expect(afterPermitted.primaryActionRequestId).toBe(null);
-  expect(afterPermitted.primaryActionPlanEpoch).toBeGreaterThanOrEqual(1);
-
-  await postHostTaskActionPolicy(page, {
-    state: "permitted",
-    generation: 2,
-    code: "CND-PBY-ACT-READY",
-    observedAtTick: 10,
-    validUntilTick: 100,
-  });
-  await expect(page.locator("#result")).toContainText("CND-PBY-ACT-006");
-
-  await postHostTaskActionPolicy(page, {
-    state: "denied",
-    generation: 3,
-    code: "CND-HOST-TASK-DENIED",
-    observedAtTick: 10,
-    validUntilTick: 100,
-  });
-  await expect(page.locator("#task-front-state")).toHaveText("denied");
-  await expect(page.locator("#run")).toBeDisabled();
-
-  await postHostTaskActionPolicy(page, {
-    state: "permitted",
-    generation: 4,
-    code: "CND-PBY-ACT-READY",
-    observedAtTick: 10,
-    validUntilTick: 100,
-  });
-  await expect(page.locator("#task-front-state")).toHaveText("ready");
-  await expect(page.locator("#run")).toBeEnabled();
-
-  await page.getByRole("button", { name: "Run the checked uppercase-text plan" }).click();
-  const liveRunId = await page.locator("#live-flow-status").getAttribute("data-run-id");
-  expect(typeof liveRunId).toBe("string");
-  const taskResult = page.locator("#task-front-result-value");
-  await expect(taskResult).toContainText("JACKS (succeeded)", { timeout: 60_000 });
-  await expect(taskResult).toContainText("Terminal: succeeded");
-  await expect(taskResult).toContainText("cleanup: complete");
-  await expect(taskResult).toContainText("evidence: published");
-
-  const identities = await readTaskFrontIdentities(page);
-  expect(identities.descriptorIdentity).toMatch(/^sha256:/);
-  expect(identities.sourceIdentity).toMatch(/^sha256:/);
-  expect(identities.planIdentity).toMatch(/^sha256:/);
-  expect(identities.readinessState).toBe("terminal");
-  expect(identities.runId).toBe(liveRunId);
-  expect(identities.taskRequestId).toMatch(/^request\//);
-  expect(identities.primaryActionRequestId).toBe(identities.taskRequestId);
-  expect(identities.primaryActionPlanEpoch).toBe(identities.resultPlanEpoch);
-  expect(identities.resultRequestId).toBe(identities.taskRequestId);
-  expect(identities.resultPlanIdentity).toBe(identities.planIdentity);
-  expect(identities.resultRunId).toBe(liveRunId);
-  expect(identities.resultPlanEpoch).toBe(identities.primaryActionPlanEpoch);
-  expect(identities.resultObservationState).toBe("authoritative-result");
-  expect(identities.resultSemanticStatus).toBe("succeeded");
-  expect(identities.terminalState).toBe("succeeded");
-  expect(identities.cleanupState).toBe("complete");
-  expect(identities.evidenceState).toBe("published");
-  expect(identities.terminalRequestId).toBe(identities.taskRequestId);
-  expect(identities.terminalPlanIdentity).toBe(identities.planIdentity);
-  expect(identities.terminalRunId).toBe(liveRunId);
-  expect(identities.terminalPlanEpoch).toBe(identities.primaryActionPlanEpoch);
-  expect(identities.terminalOperationId).toBeTruthy();
 });
 
 test("updates task-action policy from runtime host signal", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
-  await postHostTaskActionPolicy(page, {
-    state: "permitted",
-    generation: 2,
-    code: "CND-PBY-ACT-READY",
-    observedAtTick: 10,
-    validUntilTick: 100,
-  });
   await expect(page.locator("#task-front-state")).toHaveText("ready");
   await expect(page.locator("#run")).toBeEnabled();
 

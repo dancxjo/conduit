@@ -47,6 +47,8 @@ const displayFreezeStatus = document.querySelector("#display-freeze-status");
 const watchObservationLead = document.querySelector("#watch-observation-lead");
 const instrumentResult = document.querySelector("#instrument-result");
 const instrumentResultText = document.querySelector("#instrument-result-text");
+const instrumentAudioToggle = document.querySelector("#instrument-audio-toggle");
+const instrumentAudioStatus = document.querySelector("#instrument-audio-status");
 const liveFlowStatus = document.querySelector("#live-flow-status");
 const liveFlowTableBody = document.querySelector("#live-flow-table tbody");
 const workspace = document.querySelector("#workspace");
@@ -163,28 +165,24 @@ const TASK_ACTION_POLICY_MESSAGES = new Set([
   "task-action-policy",
   "task-action-policy-update",
 ]);
-const TASK_ACTION_REQUEST_MESSAGES = new Set([
-  "conduit-task-action-request",
-  "task-action-request",
-  "run-task-action-request",
-]);
 const TASK_ACTION_POLICY_CODES = {
   permitted: "CND-PBY-ACT-READY",
   denied: "CND-PBY-ACT-DENIED",
   revoked: "CND-PBY-ACT-REVOKED",
   unavailable: "CND-PBY-ACT-UNAVAILABLE",
 };
+const INSTRUMENT_AUDIO_GAIN_NODE_ID = "audio_gain";
+const INSTRUMENT_AUDIO_GAIN_MUTED = 0;
+const INSTRUMENT_AUDIO_GAIN_ENABLED = 16384;
 const TASK_ACTION_POLICY_STATES = new Set(Object.keys(TASK_ACTION_POLICY_CODES));
-const TASK_ACTION_POLICY_ADAPTER_MAX_QUEUE = 8;
-const TASK_ACTION_TEST_MODE = pageParameters.get("tourTaskActionProof") === "1" ||
-  pageParameters.get("tour-task-action-proof") === "1";
-
-function asPositiveSafeInteger(value, fallback) {
-  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
-}
 
 function asSafeInteger(value, fallback) {
   return Number.isSafeInteger(value) ? value : fallback;
+}
+
+function parseSafeInteger(value) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
 function taskActionPolicyMessageValue(payload, camelCase, snakeCase, fallback = undefined) {
@@ -325,10 +323,10 @@ hostTaskActionPolicy = hostReport.taskActionPolicies.find(
 if (!hostTaskActionPolicy) {
   throw new Error("host task-action policy is missing");
 }
-const taskActionPolicyAdapter = createTaskActionPolicyAdapter({
-  initialPolicy: hostTaskActionPolicy,
-  onPolicy: applyTaskActionPolicy,
-});
+
+function asPositiveSafeInteger(value, fallback) {
+  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
 
 function parseTaskActionControls(value) {
   const raw = Array.isArray(value) ? value : [];
@@ -397,72 +395,6 @@ function taskActionPolicyFromHostMessage(payload) {
   });
 }
 
-function taskActionRequestFromHostMessage(payload) {
-  const request = payload?.request || payload;
-  if (!request || typeof request !== "object") return null;
-  if (request.action && request.action !== "run-exact-plan") return null;
-  const operationId = taskActionPolicyMessageValue(request, "operationId", "operation_id");
-  const sourceIdentity = taskActionPolicyMessageValue(
-    request,
-    "sourceIdentity",
-    "source_identity",
-  );
-  const planIdentity = taskActionPolicyMessageValue(
-    request,
-    "planIdentity",
-    "plan_identity",
-  );
-  const planEpoch = taskActionPolicyMessageValue(request, "planEpoch", "plan_epoch");
-  if (typeof operationId !== "string" || operationId.length === 0 ||
-      typeof sourceIdentity !== "string" || sourceIdentity.length === 0 ||
-      typeof planIdentity !== "string" || planIdentity.length === 0 ||
-      !Number.isSafeInteger(planEpoch) || planEpoch <= 0
-  ) {
-    return null;
-  }
-  return { operationId, sourceIdentity, planIdentity, planEpoch };
-}
-
-function createTaskActionPolicyAdapter({
-  initialPolicy,
-  maximumQueuedPolicies = TASK_ACTION_POLICY_ADAPTER_MAX_QUEUE,
-  onPolicy,
-}) {
-  const queued = [];
-  let activePolicy = initialPolicy;
-  return {
-    offer(policy, { notify = true } = {}) {
-      if (!policy || typeof policy !== "object") {
-        return {
-          ok: false,
-          code: "CND-PBY-ACT-007",
-          diagnostic: "task-action policy update was malformed",
-        };
-      }
-      queued.push(policy);
-      if (queued.length > maximumQueuedPolicies) {
-        queued.splice(0, queued.length - maximumQueuedPolicies);
-      }
-      let result = { ok: true };
-      while (queued.length > 0) {
-        const candidate = queued.shift();
-        result = onPolicy(candidate, { notify });
-        if (result.ok) {
-          activePolicy = candidate;
-          continue;
-        }
-        if (result.code !== "CND-PBY-ACT-006") {
-          return result;
-        }
-      }
-      return result;
-    },
-    get current() {
-      return activePolicy;
-    },
-  };
-}
-
 function applyTaskActionPolicy(policy, { notify = true } = {}) {
   if (policy.generation <= hostTaskActionPolicy.generation ||
       policy.observationId !== hostTaskActionPolicy.observationId) {
@@ -481,6 +413,7 @@ function applyTaskActionPolicy(policy, { notify = true } = {}) {
     if (notify) {
       result.textContent = `Task-action policy set to ${policy.state}.`;
     }
+    refreshRunButtonState();
     return { ok: true, view: patchbayView };
   }
   const responseText = patchbay_update_task_action_policy(
@@ -497,6 +430,7 @@ function applyTaskActionPolicy(policy, { notify = true } = {}) {
   hostTaskActionPolicy = policy;
   patchbayView = response.view;
   syncPresentationControls();
+  refreshRunButtonState();
   if (notify) {
     result.textContent = `Task-action policy updated to ${policy.state}.`;
   }
@@ -505,18 +439,11 @@ function applyTaskActionPolicy(policy, { notify = true } = {}) {
 
 function handleTaskActionPolicyMessage(event) {
   const data = event?.data;
-  if (!data || typeof data !== "object") return;
+  if (!data || typeof data !== "object" || !TASK_ACTION_POLICY_MESSAGES.has(data.type)) return;
   if (event.origin && event.origin !== "null" && event.origin !== location.origin) return;
-  if (TASK_ACTION_REQUEST_MESSAGES.has(data.type) && TASK_ACTION_TEST_MODE) {
-    const request = taskActionRequestFromHostMessage(data);
-    if (!request) return;
-    void run(request);
-    return;
-  }
-  if (!TASK_ACTION_POLICY_MESSAGES.has(data.type)) return;
   const policy = taskActionPolicyFromHostMessage(data);
   if (!policy) return;
-  taskActionPolicyAdapter.offer(policy);
+  applyTaskActionPolicy(policy);
 }
 
 window.addEventListener("message", handleTaskActionPolicyMessage);
@@ -551,6 +478,7 @@ let deferredLivePresentation = null;
 let deferredLiveDeltaCount = 0;
 let liveEvidenceSequence = -1;
 let liveFlowRows = [];
+let instrumentAudioEnabled = false;
 let topologyView = "logical";
 const evidence = [];
 let timelineRecords = [];
@@ -800,6 +728,7 @@ function renderProjectArtifact(entry) {
     projectArtifactSources.has(entry.project.id)
   );
   if (instrumentResult && !instrumentResult.hidden) resetInstrumentResult();
+  syncInstrumentAudioControls();
 }
 
 function saveReadingPosition() {
@@ -1225,6 +1154,9 @@ function resetLiveFlowPresentation() {
   delete liveFlowStatus.dataset.planIdentity;
   delete liveFlowStatus.dataset.sourceRevision;
   delete liveFlowStatus.dataset.lastSequence;
+  delete liveFlowStatus.dataset.sourceIdentity;
+  delete liveFlowStatus.dataset.semanticSourceIdentity;
+  delete liveFlowStatus.dataset.topologyIdentity;
   liveFlowTableBody.replaceChildren();
 }
 
@@ -1244,15 +1176,95 @@ function resetWatchPresentation(message = "No Watch is attached.") {
   if (instrumentResult && !instrumentResult.hidden) resetInstrumentResult();
 }
 
+function instrumentAudioNodeAvailable() {
+  if (patchbayView?.topology?.logical_nodes?.some((node) =>
+    node.id === INSTRUMENT_AUDIO_GAIN_NODE_ID)) {
+    return true;
+  }
+  return typeof acceptedSource === "string" && acceptedSource.includes(
+    `${INSTRUMENT_AUDIO_GAIN_NODE_ID}: conduit.media/audio/gain`,
+  );
+}
+
+function instrumentAudioStateText() {
+  return instrumentAudioEnabled
+    ? "Audio output is enabled."
+    : "Audio output is disabled.";
+}
+
+function instrumentResultTextWithAudioState(message) {
+  return `${message} ${instrumentAudioStateText()}`;
+}
+
+function applyInstrumentAudioGain(enabled) {
+  if (!patchbayView || !patchbaySessionId || !instrumentAudioNodeAvailable()) return false;
+  const value = enabled ? INSTRUMENT_AUDIO_GAIN_ENABLED : INSTRUMENT_AUDIO_GAIN_MUTED;
+  const request = [{
+    SetConfig: {
+      node_id: INSTRUMENT_AUDIO_GAIN_NODE_ID,
+      key: "start_gain_q15",
+      value: { kind: "integer", value },
+    },
+  }, {
+    SetConfig: {
+      node_id: INSTRUMENT_AUDIO_GAIN_NODE_ID,
+      key: "end_gain_q15",
+      value: { kind: "integer", value },
+    },
+  }];
+  const response = applyPatchbayOperations(request);
+  return response.ok;
+}
+
+function syncInstrumentAudioControls() {
+  if (!instrumentAudioToggle || !instrumentAudioStatus) return;
+  if (!instrumentResult || instrumentResult.hidden || !instrumentAudioNodeAvailable()) {
+    instrumentAudioToggle.hidden = true;
+    instrumentAudioStatus.hidden = true;
+    return;
+  }
+  instrumentAudioToggle.hidden = false;
+  instrumentAudioStatus.hidden = false;
+  instrumentAudioToggle.disabled = !patchbaySessionId;
+  instrumentAudioToggle.textContent = instrumentAudioEnabled ? "Disable audio output" : "Enable audio output";
+  instrumentAudioToggle.setAttribute("aria-pressed", String(instrumentAudioEnabled));
+  instrumentAudioToggle.setAttribute(
+    "aria-label",
+    instrumentAudioEnabled ? "Disable instrument audio output" : "Enable instrument audio output",
+  );
+  instrumentAudioStatus.textContent = instrumentAudioStateText();
+}
+
+function setInstrumentAudioEnabled(nextEnabled) {
+  const target = Boolean(nextEnabled);
+  if (instrumentAudioEnabled === target) {
+    return true;
+  }
+  if (!applyInstrumentAudioGain(target)) {
+    result.textContent = "Instrument audio control could not be applied to this exact run.";
+    return false;
+  }
+  instrumentAudioEnabled = target;
+  syncInstrumentAudioControls();
+  if (instrumentResult && !instrumentResult.hidden && instrumentResultText) {
+    if (instrumentResultText.textContent) {
+      const stripped = instrumentResultText.textContent
+        .replace(/\s*Audio output is (?:enabled|disabled)\.?$/, "").trim();
+      instrumentResultText.textContent = instrumentResultTextWithAudioState(stripped || "");
+    }
+  }
+  return true;
+}
+
 function resetInstrumentResult(message =
-  "Ready. Start the exact run to produce the first beat; audio remains off.") {
+  "Ready. Start the exact run to produce the first beat.") {
   if (!instrumentResult || !instrumentResultText) return;
   instrumentResult.dataset.state = "ready";
   instrumentResult.dataset.phase = "";
   instrumentResult.dataset.tick = "";
   instrumentResult.dataset.accent = "false";
   instrumentResult.style.setProperty("--instrument-level", "0%");
-  instrumentResultText.textContent = message;
+  instrumentResultText.textContent = instrumentResultTextWithAudioState(message);
 }
 
 function renderInstrumentWatch(record) {
@@ -1265,9 +1277,10 @@ function renderInstrumentWatch(record) {
   if (!Number.isSafeInteger(beat) || beat < 0) {
     instrumentResult.dataset.state = "observed";
     instrumentResultText.textContent = text
-      ? `Exact Watch value: ${text.trim() || "empty"}. Audio remains off.`
-      : "The exact Watch has not produced a numeric beat yet. Audio remains off.";
-    return response;
+      ? `Exact Watch value: ${text.trim() || "empty"}.`
+      : "The exact Watch has not produced a numeric beat yet.";
+    instrumentResultText.textContent = instrumentResultTextWithAudioState(instrumentResultText.textContent);
+    return;
   }
   const phase = beat % 8;
   const exactLevel = scoped ? Number.parseInt(scoped[2], 10) : null;
@@ -1282,8 +1295,8 @@ function renderInstrumentWatch(record) {
   instrumentResult.style.setProperty("--instrument-level", `${25 + intensity * 18.75}%`);
   instrumentResultText.textContent =
     `Exact Watch beat ${beat}. Step ${phase + 1} of 8; ` +
-    `${accent ? "accent on" : "accent off"}; intensity ${intensity} of 4. ` +
-    "Audio remains off.";
+    `${accent ? "accent on" : "accent off"}; intensity ${intensity} of 4.`;
+  instrumentResultText.textContent = instrumentResultTextWithAudioState(instrumentResultText.textContent);
 }
 
 function disableWatchControl() {
@@ -1380,9 +1393,28 @@ function renderLiveFlowRows(projection, delta, watchRecord, runtime = projection
   const runId = runtime.run_id ?? projection.run?.run_id;
   const planIdentity = runtime.plan_identity ?? projection.run?.plan_identity;
   const sourceRevision = runtime.source_revision ?? projection.run?.source_revision;
+  const sourceIdentity = runtime.source?.identity;
+  const semanticSourceIdentity = runtime.semantic?.source_semantic_hash;
+  const topologyIdentity = runtime.topology?.identity ??
+    patchbayRenderer?.flowWrapper?.dataset.layoutIdentity;
   if (typeof runId === "string") liveFlowStatus.dataset.runId = runId;
   if (typeof planIdentity === "string") {
     liveFlowStatus.dataset.planIdentity = planIdentity;
+  }
+  if (typeof sourceIdentity === "string") {
+    liveFlowStatus.dataset.sourceIdentity = sourceIdentity;
+  } else {
+    delete liveFlowStatus.dataset.sourceIdentity;
+  }
+  if (typeof semanticSourceIdentity === "string") {
+    liveFlowStatus.dataset.semanticSourceIdentity = semanticSourceIdentity;
+  } else {
+    delete liveFlowStatus.dataset.semanticSourceIdentity;
+  }
+  if (typeof topologyIdentity === "string") {
+    liveFlowStatus.dataset.topologyIdentity = topologyIdentity;
+  } else {
+    delete liveFlowStatus.dataset.topologyIdentity;
   }
   if (Number.isSafeInteger(sourceRevision)) {
     liveFlowStatus.dataset.sourceRevision = String(sourceRevision);
@@ -1503,8 +1535,10 @@ async function toggleWatch() {
     watchValue.textContent = "Watch detached; the exact ticker continues without observation pressure.";
     if (instrumentResult && instrumentResultText && !instrumentResult.hidden) {
       instrumentResult.dataset.state = "detached";
-      instrumentResultText.textContent =
-        "Watch detached. The exact ticker continues, but this presentation no longer receives beat values; audio remains off.";
+      instrumentResultText.textContent = instrumentResultTextWithAudioState(
+        "Watch detached. The exact ticker continues, " +
+        "but this presentation no longer receives beat values.",
+      );
     }
   }
   recordEvidence({
@@ -2055,11 +2089,7 @@ function applyPatchbayOperations(operations, options = {}) {
   positions = transaction.result.presentation.node_positions;
   topologyView = transaction.result.presentation.topology;
   syncDiagnosticSourceHighlights();
-  runButton.disabled =
-    activeRunnability()?.state !== "runnable" ||
-    !patchbayView.plan ||
-    patchbayRunBlocked() ||
-    Boolean(activeAdapter);
+  refreshRunButtonState();
   syncPresentationControls();
   rememberLayout(current.id, positions, patchbayView);
   if (!options.preserveFaceplateFocus && !options.skipRender) {
@@ -2191,10 +2221,7 @@ function applyResourceBindingProjection(projection) {
   patchbayPresentationRevision = projection.presentation.revision;
   positions = projection.presentation.node_positions;
   topologyView = projection.presentation.topology;
-  runButton.disabled = activeRunnability()?.state !== "runnable" ||
-    !projection.plan ||
-    patchbayRunBlocked() ||
-    Boolean(activeAdapter);
+  refreshRunButtonState();
   syncPresentationControls();
   updateCytoscapeGraph();
 }
@@ -2379,34 +2406,121 @@ function renderTaskFrontControl(control) {
   return field;
 }
 
-async function requestTaskRuntimeControl(action) {
+function taskFrontResultContext(front) {
+  const identities = front?.identities || {};
+  const entries = [];
+  if (typeof identities.operation_id === "string" && identities.operation_id.length > 0) {
+    entries.push(`operation ${identities.operation_id}`);
+  }
+  if (typeof identities.request_id === "string" && identities.request_id.length > 0) {
+    entries.push(`request ${identities.request_id}`);
+  }
+  if (typeof identities.run_id === "string" && identities.run_id.length > 0) {
+    entries.push(`run ${identities.run_id}`);
+  }
+  if (typeof identities.plan_identity === "string" && identities.plan_identity.length > 0) {
+    entries.push(`plan ${identities.plan_identity}`);
+  }
+  if (Number.isFinite(identities.plan_epoch) && identities.plan_epoch > 0) {
+    entries.push(`epoch ${identities.plan_epoch}`);
+  }
+  return entries.length > 0 ? `Task context: ${entries.join(", ")}` : "";
+}
+
+function taskFrontControlIdentity(front = patchbayView?.task_front?.front, runIdentity = activeWorkerRunIdentity) {
+  const identities = front?.identities || {};
+  const primaryAction = front?.primary_action || {};
+  return {
+    operationId: typeof primaryAction.operation_id === "string"
+      ? primaryAction.operation_id : "",
+    requestId: typeof primaryAction.request_id === "string" ? primaryAction.request_id : "",
+    planEpoch: primaryAction.plan_epoch,
+    planIdentity: typeof identities.plan_identity === "string" ? identities.plan_identity : "",
+    sourceIdentity: typeof identities.source_identity === "string"
+      ? identities.source_identity : "",
+    runId: typeof runIdentity?.runId === "string" ? runIdentity.runId : "",
+  };
+}
+
+async function requestTaskRuntimeControl(action, expectedIdentity = null) {
   const front = patchbayView?.task_front?.front;
   const primary = front?.primary_action;
   if (!activeAdapter || !activeWorkerSessionId || !activeWorkerRunIdentity ||
-      !primary?.operation_id) return;
+      !primary?.operation_id) return false;
+  const requestedAction = (typeof action === "string" && action.length > 0) ? action : null;
+  if (action !== null && requestedAction === null) return false;
+  if (requestedAction && !primary.active_controls?.includes(requestedAction)) return false;
+  const expected = expectedIdentity || taskFrontControlIdentity(front, activeWorkerRunIdentity);
+  const expectedRequestId = expected.requestId;
+  const expectedOperationId = expected.operationId;
+  const expectedPlanIdentity = expected.planIdentity;
+  const expectedPlanEpoch = parseSafeInteger(
+    typeof expected.planEpoch === "number" ? String(expected.planEpoch) : expected.planEpoch,
+  );
+  if (
+    (typeof expectedOperationId === "string" && expectedOperationId.length > 0 &&
+      primary.operation_id !== expectedOperationId) ||
+    (typeof expectedRequestId === "string" && expectedRequestId.length > 0 &&
+      primary.request_id !== expectedRequestId) ||
+    (typeof expectedPlanIdentity === "string" && expectedPlanIdentity.length > 0 &&
+      front?.identities?.plan_identity !== expectedPlanIdentity) ||
+    (Number.isSafeInteger(expectedPlanEpoch) && primary.plan_epoch !== expectedPlanEpoch)
+  ) {
+    return false;
+  }
+  const epoch = runEpoch;
+  const adapter = activeAdapter;
+  const sessionId = activeWorkerSessionId;
+  const runIdentity = activeWorkerRunIdentity;
   const response = await activeAdapter.request("patchbay-request-task-action", {
-    sessionId: activeWorkerSessionId,
+    sessionId,
     request: {
       protocol_version: 0,
       request_id: `request/${crypto.randomUUID()}`,
       operation_id: primary.operation_id,
-      action,
+      action: requestedAction,
       source_identity: front.identities.source_identity,
       plan_identity: activeWorkerRunIdentity.planIdentity,
       plan_epoch: primary.plan_epoch,
       run_id: activeWorkerRunIdentity.runId,
     },
   });
+  if (epoch !== runEpoch || adapter !== activeAdapter || sessionId !== activeWorkerSessionId) {
+    return false;
+  }
+  if (
+    activeWorkerRunIdentity?.runId !== runIdentity?.runId ||
+    primary.operation_id !== expectedOperationId ||
+    (expected.requestId && primary.request_id !== expectedRequestId) ||
+    (expected.planIdentity && front?.identities?.plan_identity !== expectedPlanIdentity) ||
+    (Number.isSafeInteger(expectedPlanEpoch) && primary.plan_epoch !== expectedPlanEpoch)
+  ) {
+    return false;
+  }
   if (!response.ok || !response.value?.ok) {
     result.textContent = response.value?.diagnostic || response.code ||
       "Task lifecycle request was rejected.";
-    if (response.value?.view) renderRustProjection(response.value.view);
-    return;
+    if (response.value?.view && runIdentity.runId === activeWorkerRunIdentity?.runId) {
+      renderRustProjection(response.value.view);
+    }
+    return false;
+  }
+  if (!response.value?.view || runIdentity.runId !== response.value?.run_id) {
+    return false;
   }
   renderRustProjection(response.value.view);
   renderExactResultTimeline(response.value);
   result.textContent = response.value.action_receipt?.explanation ||
     "Task lifecycle request accepted; terminal evidence remains pending.";
+  return true;
+}
+
+function activeTaskFrontStopAction() {
+  const front = patchbayView?.task_front?.front;
+  const controls = front?.primary_action?.active_controls || [];
+  if (controls.includes("drain")) return { ...taskFrontControlIdentity(front), action: "drain" };
+  if (controls.includes("cancel")) return { ...taskFrontControlIdentity(front), action: "cancel" };
+  return null;
 }
 
 function renderTaskFront() {
@@ -2419,45 +2533,12 @@ function renderTaskFront() {
   taskFrontAction.replaceChildren();
   taskFrontAdvanced.hidden = true;
   taskFrontResult.hidden = true;
-  if (!front) {
-    delete taskFrontSection.dataset.descriptorIdentity;
-    delete taskFrontSection.dataset.sourceIdentity;
-    delete taskFrontSection.dataset.planIdentity;
-    delete taskFrontSection.dataset.semanticIdentity;
-    delete taskFrontSection.dataset.readinessState;
-    delete taskFrontSection.dataset.terminalState;
-    delete taskFrontSection.dataset.cleanupState;
-    delete taskFrontSection.dataset.evidenceState;
-    delete taskFrontSection.dataset.resultObservationState;
-    delete taskFrontSection.dataset.resultSemanticStatus;
-    delete taskFrontSection.dataset.resultRequestId;
-    delete taskFrontSection.dataset.resultOperationId;
-    delete taskFrontSection.dataset.resultPlanIdentity;
-    delete taskFrontSection.dataset.resultPlanEpoch;
-    delete taskFrontSection.dataset.resultRunId;
-    delete taskFrontSection.dataset.terminalRequestId;
-    delete taskFrontSection.dataset.terminalOperationId;
-    delete taskFrontSection.dataset.terminalPlanIdentity;
-    delete taskFrontSection.dataset.terminalPlanEpoch;
-    delete taskFrontSection.dataset.terminalRunId;
-    delete taskFrontSection.dataset.resultTypedDetails;
-    delete taskFrontSection.dataset.taskRequestId;
-    delete taskFrontSection.dataset.runId;
-    delete taskFrontSection.dataset.primaryActionRequestId;
-    delete taskFrontSection.dataset.primaryActionPlanEpoch;
-    return;
-  }
+  if (!front) return;
   taskFrontSection.dataset.descriptorIdentity = front.descriptor_identity;
   taskFrontSection.dataset.sourceIdentity = front.identities.source_identity;
-  taskFrontSection.dataset.semanticIdentity = front.identities.semantic_identity || "";
-  taskFrontSection.dataset.planIdentity = front.identities.plan_identity;
-  taskFrontSection.dataset.readinessState = front.readiness.state;
   taskFrontTitle.textContent = front.name;
   taskFrontPurpose.textContent = front.purpose;
-  taskFrontState.textContent = state.status;
   taskFrontExplanation.textContent = state.explanation;
-  taskFrontSection.dataset.primaryActionRequestId = "";
-  taskFrontSection.dataset.primaryActionPlanEpoch = "";
   for (const control of front.controls) {
     const field = renderTaskFrontControl(control);
     if (control.visibility === "advanced") {
@@ -2468,17 +2549,22 @@ function renderTaskFront() {
     }
   }
   if (front.primary_action) {
+    const activeRunState = [
+      "active",
+      "waiting",
+      "request-pending",
+      "stopping",
+    ].includes(front.primary_action.state);
     const action = document.createElement("button");
     action.type = "button";
     action.className = "btn primary task-front-primary-action";
     action.textContent = front.primary_action.label;
     action.setAttribute("aria-label", front.primary_action.accessibility_name);
     action.dataset.actionState = front.primary_action.state;
-    action.dataset.operationPlanEpoch = String(front.primary_action.plan_epoch);
     action.dataset.operationId = front.primary_action.operation_id || "";
     action.dataset.requestId = front.primary_action.request_id || "";
-    taskFrontSection.dataset.primaryActionRequestId = front.primary_action.request_id || "";
-    taskFrontSection.dataset.primaryActionPlanEpoch = String(front.primary_action.plan_epoch || "");
+    action.dataset.planEpoch = String(front.primary_action.plan_epoch || "");
+    action.dataset.planIdentity = front.identities.plan_identity || "";
     const exactRunActive = Boolean(
       activeAdapter && activeRunProjection?.run?.state !== "Terminal"
     );
@@ -2497,68 +2583,49 @@ function renderTaskFront() {
       ...(front.primary_action.explanations || []),
     ].join(" ");
     taskFrontAction.append(action, help);
-    for (const control of front.primary_action.active_controls || []) {
+    const lifecycleControls = activeRunState
+      ? front.primary_action.active_controls || []
+      : [];
+    for (const control of lifecycleControls) {
       const lifecycle = document.createElement("button");
       lifecycle.type = "button";
       lifecycle.className = "btn secondary task-front-lifecycle-action";
       lifecycle.textContent = control === "drain" ? "Drain" : "Cancel";
       lifecycle.setAttribute("aria-label", `${lifecycle.textContent} ${front.name}`);
-      lifecycle.onclick = () => void requestTaskRuntimeControl(control);
+      lifecycle.dataset.action = control;
+      lifecycle.dataset.operationId = front.primary_action.operation_id || "";
+      lifecycle.dataset.planEpoch = String(front.primary_action.plan_epoch || "");
+      lifecycle.dataset.planIdentity = front.identities?.plan_identity || "";
+      lifecycle.dataset.runId = activeWorkerRunIdentity?.runId || "";
+      lifecycle.onclick = () => void requestTaskRuntimeControl(
+        control,
+        taskFrontControlIdentity(front),
+      );
       taskFrontAction.append(lifecycle);
     }
   }
-  taskFrontSection.dataset.resultObservationState = "";
-  taskFrontSection.dataset.resultSemanticStatus = "";
-  taskFrontSection.dataset.resultRequestId = "";
-  taskFrontSection.dataset.resultOperationId = "";
-  taskFrontSection.dataset.resultPlanIdentity = "";
-  taskFrontSection.dataset.resultPlanEpoch = "";
-  taskFrontSection.dataset.resultRunId = "";
-  taskFrontSection.dataset.terminalState = "";
-  taskFrontSection.dataset.cleanupState = "";
-  taskFrontSection.dataset.evidenceState = "";
-  taskFrontSection.dataset.terminalRequestId = "";
-  taskFrontSection.dataset.terminalOperationId = "";
-  taskFrontSection.dataset.terminalPlanIdentity = "";
-  taskFrontSection.dataset.terminalPlanEpoch = "";
-  taskFrontSection.dataset.terminalRunId = "";
   if (front.result || front.terminal) {
     taskFrontResult.hidden = false;
     taskFrontResultTitle.textContent = front.result?.label || "Task outcome";
-    taskFrontSection.dataset.resultObservationState = front.result?.observation_state || "";
-    taskFrontSection.dataset.resultSemanticStatus = front.result?.semantic_status || "";
-    taskFrontSection.dataset.resultRequestId = front.result?.request_id || "";
-    taskFrontSection.dataset.resultOperationId = front.result?.operation_id || "";
-    taskFrontSection.dataset.resultPlanIdentity = front.result?.plan_identity || "";
-    taskFrontSection.dataset.resultPlanEpoch = front.result?.plan_epoch?.toString() || "";
-    taskFrontSection.dataset.resultRunId = front.result?.run_id || "";
     const semantic = front.result
       ? (front.result.display_value
-          ? `${front.result.display_value} (${front.result.semantic_status})`
-          : `${front.result.observation_state}. ${front.result.help}`)
+          ? `Semantic result (${front.result.observation_state}): ${front.result.display_value}` +
+            (front.result.semantic_status ? ` (${front.result.semantic_status})` : "")
+          : `Semantic result (${front.result.observation_state}): ${front.result.help}`)
       : "No semantic result was exported by this task front";
     const terminal = front.terminal
       ? ` Terminal: ${front.terminal.state}; cleanup: ${front.terminal.cleanup_state}; ` +
         `evidence: ${front.terminal.evidence_state}.`
-      : "Terminal evidence is pending.";
-    taskFrontSection.dataset.terminalRequestId = front.terminal?.request_id || "";
-    taskFrontSection.dataset.terminalOperationId = front.terminal?.operation_id || "";
-    taskFrontSection.dataset.terminalPlanIdentity = front.terminal?.plan_identity || "";
-    taskFrontSection.dataset.terminalPlanEpoch = front.terminal?.plan_epoch?.toString() || "";
-    taskFrontSection.dataset.terminalRunId = front.terminal?.run_id || "";
-    const warnings = [
-      ...(front.result?.warnings || []),
-      ...(front.terminal?.warnings || []),
+      : " Terminal evidence is pending.";
+    const warnings = [...(front.result?.warnings || []), ...(front.terminal?.warnings || [])];
+    const context = taskFrontResultContext(front);
+    const resultRows = [
+      semantic,
+      `Terminal:${terminal.startsWith(" ") ? terminal.slice(1) : terminal}`,
     ];
-    taskFrontResultValue.textContent = `${semantic}.${terminal}${warnings.length
-      ? ` Warnings: ${warnings.join(" ")}`
-      : ""}`;
-    taskFrontSection.dataset.terminalState = front.terminal?.state || "";
-    taskFrontSection.dataset.cleanupState = front.terminal?.cleanup_state || "";
-    taskFrontSection.dataset.evidenceState = front.terminal?.evidence_state || "";
-    if (front.result?.typed_details?.length) {
-      taskFrontSection.dataset.resultTypedDetails = front.result.typed_details.join(" · ");
-    }
+    if (warnings.length) resultRows.push(`Warnings: ${warnings.join(" ")}`);
+    if (context) resultRows.push(context);
+    taskFrontResultValue.textContent = resultRows.join("\n");
   }
   taskFrontState.textContent = front.readiness.state;
   taskFrontExplanation.textContent = [
@@ -2695,8 +2762,38 @@ function syncPresentationControls() {
   renderSelectionInspector();
 
   const atRest = presentation.lens === "at-rest";
-  runButton.disabled = atRest || patchbayRunBlocked() || Boolean(activeAdapter);
+  refreshRunButtonState();
   stopButton.disabled = atRest || !activeAdapter;
+  const usableFront = patchbayView?.task_front?.status === "usable";
+  const primary = usableFront ? patchbayView?.task_front?.front?.primary_action : null;
+  if (primary) {
+    runButton.dataset.actionState = primary.state;
+    runButton.dataset.operationId = primary.operation_id || "";
+    runButton.dataset.requestId = primary.request_id || "";
+    runButton.dataset.planEpoch = String(primary.plan_epoch || "");
+    runButton.dataset.planIdentity = patchbayView?.task_front?.front?.identities?.plan_identity || "";
+  } else {
+    delete runButton.dataset.actionState;
+    delete runButton.dataset.operationId;
+    delete runButton.dataset.requestId;
+    delete runButton.dataset.planEpoch;
+    delete runButton.dataset.planIdentity;
+  }
+  const stopAction = activeTaskFrontStopAction();
+  if (stopAction) {
+    stopButton.dataset.action = stopAction.action || "";
+    stopButton.dataset.operationId = stopAction.operationId || "";
+    stopButton.dataset.planEpoch = String(stopAction.planEpoch || "");
+    stopButton.dataset.planIdentity = stopAction.planIdentity || "";
+    stopButton.dataset.runId = stopAction.runId || "";
+  } else {
+    delete stopButton.dataset.action;
+    delete stopButton.dataset.operationId;
+    delete stopButton.dataset.planEpoch;
+    delete stopButton.dataset.planIdentity;
+    delete stopButton.dataset.runId;
+  }
+  syncInstrumentAudioControls();
 }
 
 function navigatePresentation({ mode, lens, topology } = {}) {
@@ -2801,11 +2898,23 @@ function activeRunnability() {
 function patchbayRunBlocked() {
   if (hostTaskActionPolicy.state !== "permitted") return true;
   const front = patchbayView?.task_front;
-  if (!front || front.status !== "usable") return true;
+  if (!front || front.status !== "usable") return false;
   const readiness = front.front?.readiness?.state;
   const action = front.front?.primary_action;
   return readiness !== "ready" || action?.state !== "request-available" ||
     !action?.operation_id;
+}
+
+function refreshRunButtonState() {
+  const availability = activeRunnability();
+  const presentation = presentationSnapshot();
+  const atRest = presentation?.lens === "at-rest";
+  runButton.disabled =
+    availability?.state !== "runnable" ||
+    !patchbayView?.plan ||
+    patchbayRunBlocked() ||
+    atRest ||
+    Boolean(activeAdapter);
 }
 
 function authoredSource() {
@@ -3196,8 +3305,7 @@ async function stopExactSession(cause, message) {
   freezeDisplay.setAttribute("aria-pressed", "false");
   freezeDisplay.textContent = "Freeze Display (F)";
   displayFreezeStatus.textContent = "Display follows authoritative live deltas.";
-  runButton.disabled = activeRunnability()?.state !== "runnable" ||
-    patchbayRunBlocked();
+  refreshRunButtonState();
   stopButton.disabled = true;
   consoleBadge.textContent = "Ready";
   consoleBadge.className = "badge status-badge idle";
@@ -3259,7 +3367,7 @@ function show(lesson) {
   renderPlan();
   openPatchbaySession();
   check();
-  runButton.disabled = availability.state !== "runnable" || patchbayRunBlocked();
+  refreshRunButtonState();
   syncPresentationControls();
 }
 
@@ -3494,10 +3602,7 @@ function check() {
   }
   updateCytoscapeGraph();
   renderTopology();
-  runButton.disabled =
-    activeRunnability()?.state !== "runnable" ||
-    !patchbayView?.plan ||
-    patchbayRunBlocked();
+  refreshRunButtonState();
 }
 
 function renderTopology() {
@@ -3964,6 +4069,7 @@ async function run(requestedTaskAction = null) {
         );
       }
     }
+    const taskFrontUsable = workerView?.task_front?.status === "usable";
     const taskAction = requestedTaskAction || (() => {
       const front = workerView?.task_front?.front;
       const action = front?.primary_action;
@@ -3975,6 +4081,14 @@ async function run(requestedTaskAction = null) {
         planEpoch: action.plan_epoch,
       };
     })();
+    if (!taskAction && taskFrontUsable) {
+      const frontState = workerView?.task_front?.front?.readiness?.state || "unknown";
+      const actionState = workerView?.task_front?.front?.primary_action?.state || "unknown";
+      result.textContent =
+        `Task front is not ready for start: readiness ${frontState}, action ${actionState}.`;
+      await stopExactSession("request-rejected", result.textContent);
+      return;
+    }
     const taskRequestId = taskAction ? `request/${crypto.randomUUID()}` : null;
     const started = taskAction
       ? await adapter.request("patchbay-request-task-action", {
@@ -4009,8 +4123,6 @@ async function run(requestedTaskAction = null) {
       planEpoch: taskAction?.planEpoch ?? started.value.view?.run?.plan_epoch,
       taskRequestId,
     };
-    taskFrontSection.dataset.taskRequestId = taskRequestId || "";
-    taskFrontSection.dataset.runId = runIdentity.runId;
     activeWorkerRunIdentity = runIdentity;
     setLivePresentationActive();
     if ((activeScenario()?.execution || current.execution) === "continuous-watch") {
@@ -4213,8 +4325,7 @@ async function run(requestedTaskAction = null) {
       freezeDisplay.setAttribute("aria-pressed", "false");
       freezeDisplay.textContent = "Freeze Display (F)";
       disableWatchControl();
-      runButton.disabled = activeRunnability()?.state !== "runnable" ||
-        patchbayRunBlocked();
+      refreshRunButtonState();
       stopButton.disabled = true;
       consoleBadge.textContent = "Idle";
       consoleBadge.className = "badge status-badge idle";
@@ -4234,10 +4345,18 @@ if (consoleDisclosure && consoleBody) {
 if (selectionInspectorClose) {
   selectionInspectorClose.onclick = () => clearTopologySelection();
 }
-stopButton.onclick = () => void stopExactSession(
-  "learner-cancelled",
-  "Run cancelled; exact worker placement is terminal.",
-);
+if (instrumentAudioToggle) {
+  instrumentAudioToggle.onclick = () => void setInstrumentAudioEnabled(!instrumentAudioEnabled);
+}
+stopButton.onclick = async () => {
+  const stopAction = activeTaskFrontStopAction();
+  if (!stopAction || !await requestTaskRuntimeControl(stopAction.action, stopAction)) {
+    await stopExactSession(
+      "learner-cancelled",
+      "Run cancelled; exact worker placement is terminal.",
+    );
+  }
+};
 
 document.addEventListener("keydown", (event) => {
   const target = event.target;

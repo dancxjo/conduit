@@ -87,8 +87,12 @@
                 <span></span>
               </div>
             </div>
-            <output id="instrument-result-text" aria-live="polite">Ready. Start the exact run to produce the first beat; audio remains off.</output>
+            <output id="instrument-result-text" aria-live="polite">Ready. Start the exact run to produce the first beat.</output>
           </figure>
+          <div id="instrument-audio-controls" class="instrument-audio-controls button-row" role="group" aria-label="Instrument audio output controls" hidden>
+            <button id="instrument-audio-toggle" type="button" class="btn secondary" disabled>Enable audio output</button>
+            <output id="instrument-audio-status" aria-live="polite">Audio output is disabled.</output>
+          </div>
           <dl class="artifact-state" aria-label="Cumulative project artifact state">
             <div><dt>Artifact</dt><dd id="artifact-id"></dd></div>
             <div><dt>This section starts from</dt><dd id="artifact-inherits"></dd></div>
