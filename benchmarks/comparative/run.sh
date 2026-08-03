@@ -40,6 +40,7 @@ persistent_timer_quantum=$(jq -r .persistent_timer_residency.session_pump_quantu
 persistent_timer_advance_ticks=$(jq -r .persistent_timer_residency.timer_advance_ticks "$manifest")
 shared_payload_capacity=$(jq -r .shared_payload_fanout.queue_capacity_items "$manifest")
 shared_watch_preview_sizes=$(jq -r '.shared_payload_fanout.watch_preview_bytes[]' "$manifest")
+shared_watch_detach_preview_bytes=$(jq -r '.shared_payload_fanout.watch_detach_preview_bytes' "$manifest")
 copy_payload_capacity=$(jq -r .copy_required_payload_fanout.queue_capacity_items "$manifest")
 
 mkdir -p "$output_dir"
@@ -291,8 +292,32 @@ for shared_payload_bytes in $(jq -r '.shared_payload_fanout.payload_bytes[]' "$m
             --termination-request "$termination" \
             --payload-bytes "$shared_payload_bytes" \
             --watch-slots "$watch_slots" \
-            --watch-preview-bytes "$watch_preview_bytes"
+            --watch-preview-bytes "$watch_preview_bytes" \
+            --watch-lifecycle attached-before-publication
         done
+      done
+      for watch_mode in one every-branch; do
+        if [[ "$watch_mode" == one ]]; then
+          watch_slots=1
+        else
+          watch_slots=$branches
+        fi
+        record_raw "$workspace_root/target/release/conduit-benchmark" \
+          --workload shared-payload-fanout \
+          --operators 1 \
+          --values 1 \
+          --queue-items "$shared_payload_capacity" \
+          --latency-sample-stride 1 \
+          --warmup-trials "$warmups" \
+          --measured-trials "$trials" \
+          --fanout-branches "$branches" \
+          --fanout-mode coupled \
+          --slow-consumer-yields 0 \
+          --termination-request "$termination" \
+          --payload-bytes "$shared_payload_bytes" \
+          --watch-slots "$watch_slots" \
+          --watch-preview-bytes "$shared_watch_detach_preview_bytes" \
+          --watch-lifecycle detached-before-publication
       done
     done
   done

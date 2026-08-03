@@ -54,7 +54,7 @@
     },
     "workload": {
       "type": "object",
-      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs", "fanout_branches", "fanout_mode", "slow_branches", "termination_request", "cancel_after_offers", "consumer_pattern", "consumer_burst_items", "session_mode", "session_pump_quantum", "residency_plateau_after_wakes", "timer_advance_ticks", "payload_bytes", "payload_representation", "watch_slots", "watch_preview_bytes", "watch_retention"]
+      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs", "fanout_branches", "fanout_mode", "slow_branches", "termination_request", "cancel_after_offers", "consumer_pattern", "consumer_burst_items", "session_mode", "session_pump_quantum", "residency_plateau_after_wakes", "timer_advance_ticks", "payload_bytes", "payload_representation", "watch_slots", "watch_preview_bytes", "watch_retention", "watch_lifecycle"]
     },
     "exact_identity": {
       "type": "object",

@@ -157,12 +157,22 @@ payload, branch, and terminal combination rather than once per preview size.
 A Watch observes only a committed production cord
 publication; it does not add demand, delay a cord, or change the graph.
 
+The one-Watch and every-branch modes also have a 64-byte lifecycle row that
+attaches and then detaches every admitted Watch before the timed publication.
+The fixed Watch slots and preview capacity remain admitted and included in
+planned/runtime memory, while attached slots, retained records, and retained
+preview bytes must all remain zero. Payload delivery, completion/Abort outcome,
+allocator counts, and terminal value reclamation must match the corresponding
+attached row except for the deliberately absent Watch captures.
+
 After terminal state, the runner first requires zero resident value slots and
-bytes, then reads each Watch outside the timed allocation scope. The read must
-return one record carrying the same generation-safe handle, the verified
-plan-sized payload prefix, the full content hash, and a truncation marker.
-Abort therefore retains the separately copied preview even though the original
-arena value and every queued reference have been reclaimed. The report exposes
+bytes, then reads each Watch outside the timed allocation scope. An attached
+Watch must return one record carrying the same generation-safe handle, the
+verified plan-sized payload prefix, the full content hash, and a truncation
+marker. A Watch detached before publication must return an empty future cursor
+at sequence zero. An attached Abort row therefore retains the separately copied
+preview even though the original arena value and every queued reference have
+been reclaimed. The report exposes
 admitted and attached slots, retained records/bytes, drops, and maximum fixed
 Watch storage so copied observability cost cannot be mistaken for executor
 value residency or zero-copy delivery.
@@ -193,7 +203,8 @@ production branch transformation, not a claim that the runtime executes
 This slice does not substitute payloads above 1 MiB, PCM, images, encoded
 frames, fragments, isolated subscribers,
 ring/sample Watch retention,
-mid-run attach/detach/reconnect, coalescing, slot reuse, or browser execution.
+attach/detach after publication begins, reconnect, coalescing, slot reuse, or
+browser execution.
 The current hosted literal value binding is bounded to 1 MiB, and RxJS/Reactor
 object references have no reviewed mapping to Conduit's generation-safe handle,
 Watch, and arena-residency evidence. Those cases remain explicitly unavailable

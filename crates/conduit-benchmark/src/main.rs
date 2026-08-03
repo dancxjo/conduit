@@ -186,6 +186,21 @@ impl PayloadBinding {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+enum WatchLifecycle {
+    AttachedBeforePublication,
+    DetachedBeforePublication,
+}
+
+impl WatchLifecycle {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::AttachedBeforePublication => "attached-before-publication",
+            Self::DetachedBeforePublication => "detached-before-publication",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Serialize, ValueEnum)]
 #[serde(rename_all = "kebab-case")]
 enum TerminationRequest {
@@ -357,6 +372,8 @@ struct Args {
     watch_slots: u16,
     #[arg(long, default_value_t = 0)]
     watch_preview_bytes: u32,
+    #[arg(long, value_enum, default_value_t = WatchLifecycle::AttachedBeforePublication)]
+    watch_lifecycle: WatchLifecycle,
 }
 
 #[derive(Serialize)]
@@ -477,6 +494,7 @@ struct WorkloadIdentity {
     watch_slots: u16,
     watch_preview_bytes: u32,
     watch_retention: &'static str,
+    watch_lifecycle: &'static str,
 }
 
 #[derive(Serialize)]
@@ -2009,8 +2027,18 @@ fn run_shared_payload_sample(
     );
     if args.watch_slots == 0 {
         assert_eq!(args.watch_preview_bytes, 0);
+        assert!(matches!(
+            args.watch_lifecycle,
+            WatchLifecycle::AttachedBeforePublication
+        ));
     } else {
         assert!(matches!(args.watch_preview_bytes, 16 | 64 | 256));
+        if matches!(
+            args.watch_lifecycle,
+            WatchLifecycle::DetachedBeforePublication
+        ) {
+            assert_eq!(args.watch_preview_bytes, 64);
+        }
     }
     assert_eq!(args.slow_consumer_yields, 0);
     assert_eq!(args.cancel_after_offers, 0);
@@ -2305,6 +2333,19 @@ fn run_shared_payload_sample(
             )
             .unwrap();
     }
+    if matches!(
+        args.watch_lifecycle,
+        WatchLifecycle::DetachedBeforePublication
+    ) {
+        for (watch, watch_id) in watch_ids.iter().enumerate() {
+            session
+                .detach_watch(
+                    watch_id,
+                    &watch_authority(watch, ExactWatchOperation::Detach),
+                )
+                .unwrap();
+        }
+    }
     let allocation = session.allocation();
     let reserved_session_bytes = session.reserved_session_bytes();
     let host_io_capacity_bytes = session.with_io(ExactRunIo::capacity_bytes);
@@ -2357,15 +2398,34 @@ fn run_shared_payload_sample(
         .value_storage_usage()
         .expect("hosted production drivers expose the fixed value arena");
     let watch_usage = session.watch_usage();
+    let watch_attached = matches!(
+        args.watch_lifecycle,
+        WatchLifecycle::AttachedBeforePublication
+    );
     assert_eq!(watch_usage.admitted_slots, u32::from(args.watch_slots));
-    assert_eq!(watch_usage.attached_slots, u32::from(args.watch_slots));
+    assert_eq!(
+        watch_usage.attached_slots,
+        if watch_attached {
+            u32::from(args.watch_slots)
+        } else {
+            0
+        }
+    );
     assert_eq!(
         watch_usage.retained_observations,
-        u64::from(args.watch_slots)
+        if watch_attached {
+            u64::from(args.watch_slots)
+        } else {
+            0
+        }
     );
     assert_eq!(
         watch_usage.retained_preview_bytes,
-        u64::from(args.watch_slots) * u64::from(args.watch_preview_bytes)
+        if watch_attached {
+            u64::from(args.watch_slots) * u64::from(args.watch_preview_bytes)
+        } else {
+            0
+        }
     );
     assert_eq!(watch_usage.dropped_observations, 0);
     assert_eq!(
@@ -2409,6 +2469,14 @@ fn run_shared_payload_sample(
                 &watch_authority(watch, ExactWatchOperation::Read),
             )
             .unwrap();
+        if !watch_attached {
+            assert_eq!(
+                batch.status,
+                EvidenceCursorStatus::Future { next_sequence: 0 }
+            );
+            assert!(batch.records.is_empty());
+            continue;
+        }
         assert_eq!(batch.status, EvidenceCursorStatus::Available);
         assert_eq!(batch.records.len(), 1);
         let record = &batch.records[0];
@@ -2450,7 +2518,7 @@ fn run_shared_payload_sample(
         1
     };
     assert_eq!(handles.len(), expected_handles);
-    if args.watch_slots == 0 {
+    if args.watch_slots == 0 || !watch_attached {
         assert!(watched_handles.is_empty());
     } else {
         assert_eq!(watched_handles, handles);
@@ -2554,17 +2622,27 @@ fn run_shared_payload_sample(
             } else {
                 "latest"
             },
+            watch_lifecycle: if args.watch_slots == 0 {
+                "none"
+            } else {
+                args.watch_lifecycle.as_str()
+            },
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(
-                "comparative-shared-payload-fanout/{}/{}/{}/{}/{}/{}/{}",
+                "comparative-shared-payload-fanout/{}/{}/{}/{}/{}/{}/{}/{}",
                 args.fanout_branches,
                 args.payload_bytes,
                 args.payload_binding.representation(),
                 args.queue_items,
                 args.termination_request.as_str(),
                 args.watch_slots,
-                args.watch_preview_bytes
+                args.watch_preview_bytes,
+                if args.watch_slots == 0 {
+                    "none"
+                } else {
+                    args.watch_lifecycle.as_str()
+                }
             ),
             plan_identity: Some(plan.identity.to_string()),
             source_semantic_hash: Some(plan.source_semantic_hash.to_string()),
@@ -2682,6 +2760,14 @@ fn run_shared_payload_sample(
             [
                 "The benchmark harness assembles the current exact coupled shared-handle PlanFanOut for the source boundary; each branch then executes the production text/uppercase driver and stores one distinct copied handle before its display sink.",
                 "Copy counts and bytes are exact from the one-copy-per-branch graph, after-Start allocator calls include the production uppercase buffers, full uppercase content verification and event-handle inspection remain outside the timed region, and this row does not claim execution of DuplicationRule::Copy.",
+            ]
+        } else if matches!(
+            args.watch_lifecycle,
+            WatchLifecycle::DetachedBeforePublication
+        ) {
+            [
+                "The benchmark harness assembles the current exact coupled PlanFanOut plus pre-Start exact Watch admissions for the full source topology; every admitted Watch is attached and detached before the timed publication region.",
+                "The production hosted literal still publishes one generation-safe handle across every capacity-one output cord; fixed Watch storage remains planned and admitted, but detached Watches capture no record or preview and terminal executor value residency remains zero.",
             ]
         } else if matches!(args.termination_request, TerminationRequest::Abort)
             && args.watch_slots > 0
@@ -3177,6 +3263,7 @@ fn run_sample(
             watch_slots: 0,
             watch_preview_bytes: 0,
             watch_retention: "none",
+            watch_lifecycle: "none",
         },
         exact_identity: ExactIdentity {
             logical_fixture: if matches!(args.workload, Workload::Overload) {
@@ -3485,6 +3572,7 @@ fn run_identity_sample(
             watch_slots: 0,
             watch_preview_bytes: 0,
             watch_retention: "none",
+            watch_lifecycle: "none",
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(

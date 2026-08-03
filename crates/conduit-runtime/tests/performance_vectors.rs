@@ -196,6 +196,14 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         serde_json::json!([16, 64, 256])
     );
     assert_eq!(
+        manifest["shared_payload_fanout"]["watch_lifecycles"],
+        serde_json::json!(["attached-before-publication", "detached-before-publication"])
+    );
+    assert_eq!(
+        manifest["shared_payload_fanout"]["watch_detach_preview_bytes"],
+        64
+    );
+    assert_eq!(
         manifest["shared_payload_fanout"]["watch_retention"],
         "latest"
     );
@@ -307,7 +315,8 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "payload_representation",
             "watch_slots",
             "watch_preview_bytes",
-            "watch_retention"
+            "watch_retention",
+            "watch_lifecycle"
         ]
         .iter()
         .all(|field| schema["properties"]["workload"]["required"]

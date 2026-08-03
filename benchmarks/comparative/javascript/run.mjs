@@ -100,6 +100,7 @@ function runIdentitySample(sampleKind, trial, thermalState) {
       watch_slots: 0,
       watch_preview_bytes: 0,
       watch_retention: "none",
+      watch_lifecycle: "none",
     },
     exact_identity: {
       logical_fixture: logicalFixture,
@@ -267,6 +268,7 @@ async function runSample(sampleKind, trial, thermalState) {
       watch_slots: 0,
       watch_preview_bytes: 0,
       watch_retention: "none",
+      watch_lifecycle: "none",
     },
     exact_identity: {
       logical_fixture: logicalFixture,

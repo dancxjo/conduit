@@ -38,6 +38,7 @@ for (const sample of samples) {
       || sample.workload.watch_slots !== 0
       || sample.workload.watch_preview_bytes !== 0
       || sample.workload.watch_retention !== "none"
+      || sample.workload.watch_lifecycle !== "none"
       || [sample.execution.shared_handle_publications, sample.execution.payload_copy_operations,
         sample.execution.payload_bytes_copied].some((value) => value !== null)
       || [sample.memory.watch_admitted_slots, sample.memory.watch_attached_slots,
@@ -84,7 +85,7 @@ for (const sample of samples) {
       throw new Error("the current fan-out slice has no cross-runtime substitute");
     }
   } else if (sharedPayload) {
-    if (identityParts.length !== 8
+    if (identityParts.length !== 9
         || identityParts[0] !== "comparative-shared-payload-fanout"
         || Number(identityParts[1]) !== sample.workload.fanout_branches
         || Number(identityParts[2]) !== sample.workload.payload_bytes
@@ -92,7 +93,8 @@ for (const sample of samples) {
         || Number(identityParts[4]) !== sample.workload.queue_capacity_items
         || identityParts[5] !== sample.workload.termination_request
         || Number(identityParts[6]) !== sample.workload.watch_slots
-        || Number(identityParts[7]) !== sample.workload.watch_preview_bytes) {
+        || Number(identityParts[7]) !== sample.workload.watch_preview_bytes
+        || identityParts[8] !== sample.workload.watch_lifecycle) {
       throw new Error("shared-payload fixture identity does not match the raw sample");
     }
     if (sample.runtime.id !== "conduit-hosted-value-arena") {
@@ -386,6 +388,9 @@ for (const sample of samples) {
     const watchSlots = sample.workload.watch_slots;
     const watchPreviewBytes = sample.workload.watch_preview_bytes;
     const expectedWatchPreviewBytes = watchSlots * watchPreviewBytes;
+    const watchAttached = sample.workload.watch_lifecycle === "attached-before-publication";
+    const expectedRetainedWatchSlots = watchAttached ? watchSlots : 0;
+    const expectedRetainedWatchPreviewBytes = watchAttached ? expectedWatchPreviewBytes : 0;
     if (![2, 8, 32].includes(branches)
         || ![1024, 1048576].includes(payloadBytes)
         || !["hosted-generation-safe-shared-text-handle", "hosted-branch-local-uppercase-copy"].includes(sample.workload.payload_representation)
@@ -396,6 +401,10 @@ for (const sample of samples) {
         || (copyRequired ? watchSlots !== 0 : ![0, 1, branches].includes(watchSlots))
         || (watchSlots === 0 ? watchPreviewBytes !== 0 : ![16, 64, 256].includes(watchPreviewBytes))
         || sample.workload.watch_retention !== (watchSlots === 0 ? "none" : "latest")
+        || (watchSlots === 0
+          ? sample.workload.watch_lifecycle !== "none"
+          : !["attached-before-publication", "detached-before-publication"].includes(sample.workload.watch_lifecycle))
+        || (sample.workload.watch_lifecycle === "detached-before-publication" && watchPreviewBytes !== 64)
         || (copyRequired ? sample.workload.termination_request !== "complete" : !["complete", "abort"].includes(sample.workload.termination_request))
         || sample.workload.cancel_after_offers !== (aborted ? 1 : 0)
         || sample.outcomes.offered !== 1
@@ -423,9 +432,9 @@ for (const sample of samples) {
         || (copyRequired && sample.memory.queue_payload_bytes_high_water !== branches * payloadBytes)
         || sample.memory.queue_max_cord_items_high_water > 1
         || sample.memory.watch_admitted_slots !== watchSlots
-        || sample.memory.watch_attached_slots !== watchSlots
-        || sample.memory.watch_retained_observations !== watchSlots
-        || sample.memory.watch_retained_preview_bytes !== expectedWatchPreviewBytes
+        || sample.memory.watch_attached_slots !== expectedRetainedWatchSlots
+        || sample.memory.watch_retained_observations !== expectedRetainedWatchSlots
+        || sample.memory.watch_retained_preview_bytes !== expectedRetainedWatchPreviewBytes
         || sample.memory.watch_dropped_observations !== 0
         || sample.memory.watch_maximum_observations !== watchSlots
         || sample.memory.watch_maximum_preview_bytes !== expectedWatchPreviewBytes) {
@@ -502,7 +511,8 @@ for (const sample of measured) {
     sample.workload.session_mode, sample.workload.session_pump_quantum,
     sample.workload.residency_plateau_after_wakes, sample.workload.payload_bytes,
     sample.workload.payload_representation, sample.workload.watch_slots,
-    sample.workload.watch_preview_bytes, sample.workload.watch_retention].join("/");
+    sample.workload.watch_preview_bytes, sample.workload.watch_retention,
+    sample.workload.watch_lifecycle].join("/");
   if (!groups.has(key)) groups.set(key, []);
   groups.get(key).push(sample);
 }
@@ -614,6 +624,7 @@ summaries.sort((left, right) =>
   || left.workload.consumer_pattern.localeCompare(right.workload.consumer_pattern)
   || left.workload.fanout_branches - right.workload.fanout_branches
   || left.workload.watch_slots - right.workload.watch_slots
+  || left.workload.watch_lifecycle.localeCompare(right.workload.watch_lifecycle)
   || left.workload.slow_branches.localeCompare(right.workload.slow_branches)
 );
 
@@ -738,9 +749,9 @@ if (reportOutput) {
       report.push("");
     }
     if (workload === "shared-payload-fanout") {
-      report.push("## shared-payload-fanout: handle, copy, Watch, and residency accounting", "", "Shared rows retain one generation-safe topology-sized source handle across every branch for the 1 KiB and 1 MiB cases. Labeled branch-copy rows run the production uppercase driver after that source publication and store one distinct copied handle per branch; their exact copy count, copied bytes, and allocator cost are reported. Queue byte charges, content-verifying display buffers, and fixed Watch preview copies are separate bounded storage and are not described as zero-copy. Watch and content verification run outside the timed region.", "", "| Runtime | Representation | Terminal request | Payload bytes | Branches | Shared publications | Copy operations | Bytes copied | Watch slots | Watch preview bytes retained | Planned bytes | Executor overhead bytes | Unique handles | Branch deliveries | Value slots high water | Value bytes high water | Terminal value slots | Terminal value bytes | Queue payload bytes | Host verifier output bytes | Alloc calls after Start | Alloc bytes after Start |", "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+      report.push("## shared-payload-fanout: handle, copy, Watch, and residency accounting", "", "Shared rows retain one generation-safe topology-sized source handle across every branch for the 1 KiB and 1 MiB cases. Labeled branch-copy rows run the production uppercase driver after that source publication and store one distinct copied handle per branch; their exact copy count, copied bytes, and allocator cost are reported. Queue byte charges, content-verifying display buffers, and fixed Watch preview copies are separate bounded storage and are not described as zero-copy. Watch control operations and content verification run outside the timed region.", "", "| Runtime | Representation | Terminal request | Payload bytes | Branches | Shared publications | Copy operations | Bytes copied | Watch lifecycle | Watch slots | Attached slots | Retained records | Watch preview bytes retained | Maximum Watch preview bytes | Planned bytes | Executor overhead bytes | Unique handles | Branch deliveries | Value slots high water | Value bytes high water | Terminal value slots | Terminal value bytes | Queue payload bytes | Host verifier output bytes | Alloc calls after Start | Alloc bytes after Start |", "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
       for (const group of workloadGroups) {
-        report.push(`| ${group.runtime.id} | ${group.workload.payload_representation} | ${group.workload.termination_request} | ${group.workload.payload_bytes} | ${group.workload.fanout_branches} | ${duration(group.execution.shared_handle_publications)} | ${duration(group.execution.payload_copy_operations)} | ${duration(group.execution.payload_bytes_copied)} | ${group.workload.watch_slots} | ${duration(group.high_water.watch_retained_preview_bytes)} | ${duration(group.memory_accounting.planned_bytes)} | ${duration(group.memory_accounting.executor_overhead_bytes)} | ${duration(group.execution.unique_value_handles)} | ${duration(group.execution.branch_deliveries)} | ${duration(group.high_water.value_slots)} | ${duration(group.high_water.value_bytes)} | ${duration(group.high_water.value_resident_slots_after_terminal)} | ${duration(group.high_water.value_resident_bytes_after_terminal)} | ${duration(group.high_water.queue_payload_bytes)} | ${duration(group.high_water.host_io_output_bytes)} | ${duration(group.allocations_after_start.calls)} | ${duration(group.allocations_after_start.bytes)} |`);
+        report.push(`| ${group.runtime.id} | ${group.workload.payload_representation} | ${group.workload.termination_request} | ${group.workload.payload_bytes} | ${group.workload.fanout_branches} | ${duration(group.execution.shared_handle_publications)} | ${duration(group.execution.payload_copy_operations)} | ${duration(group.execution.payload_bytes_copied)} | ${group.workload.watch_lifecycle} | ${group.workload.watch_slots} | ${duration(group.high_water.watch_attached_slots)} | ${duration(group.high_water.watch_retained_observations)} | ${duration(group.high_water.watch_retained_preview_bytes)} | ${duration(group.high_water.watch_maximum_preview_bytes)} | ${duration(group.memory_accounting.planned_bytes)} | ${duration(group.memory_accounting.executor_overhead_bytes)} | ${duration(group.execution.unique_value_handles)} | ${duration(group.execution.branch_deliveries)} | ${duration(group.high_water.value_slots)} | ${duration(group.high_water.value_bytes)} | ${duration(group.high_water.value_resident_slots_after_terminal)} | ${duration(group.high_water.value_resident_bytes_after_terminal)} | ${duration(group.high_water.queue_payload_bytes)} | ${duration(group.high_water.host_io_output_bytes)} | ${duration(group.allocations_after_start.calls)} | ${duration(group.allocations_after_start.bytes)} |`);
       }
       report.push("");
     }

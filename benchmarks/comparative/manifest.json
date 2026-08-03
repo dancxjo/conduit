@@ -76,10 +76,12 @@
     "termination_requests": ["complete", "abort"],
     "watch_modes": ["none", "one", "every-branch"],
     "watch_preview_bytes": [16, 64, 256],
+    "watch_lifecycles": ["attached-before-publication", "detached-before-publication"],
+    "watch_detach_preview_bytes": 64,
     "watch_retention": "latest",
     "queue_capacity_items": 1,
     "fanout_mode": "coupled",
-    "scope": "production hosted literal value-store handle through an exact coupled fan-out plan assembled by the benchmark harness; zero, one, or every-branch exact-plan-admitted Watch retains a separately accounted 16-, 64-, or 256-byte Latest preview, with the no-Watch baseline emitted once; completion content-verifies every branch, while Abort follows atomic publication and both paths require zero terminal executor value residency"
+    "scope": "production hosted literal value-store handle through an exact coupled fan-out plan assembled by the benchmark harness; zero, one, or every-branch exact-plan-admitted Watch is attached before publication for separately accounted 16-, 64-, or 256-byte Latest previews, while a 64-byte lifecycle row detaches every admitted Watch before publication and retains no observation; the no-Watch baseline is emitted once; completion content-verifies every branch, while Abort follows atomic publication and both paths require zero terminal executor value residency"
   },
   "copy_required_payload_fanout": {
     "workload": "shared-payload-fanout",
