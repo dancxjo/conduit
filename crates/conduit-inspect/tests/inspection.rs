@@ -16,17 +16,17 @@ use conduit_core::{
 use conduit_inspect::{
     ArtifactKind, InspectLimits, RequestedKind, inspect_artifact_manifest, inspect_bytes,
     inspect_capability_report, inspect_conformance_manifest_path, inspect_entity_passport,
-    inspect_execution_arrangement, inspect_execution_plan, inspect_lowered_source,
-    inspect_managed_component,
+    inspect_execution_arrangement, inspect_execution_plan, inspect_hosted_lane_batch,
+    inspect_lowered_source, inspect_managed_component,
 };
 use conduit_package::{PackageLimits, PackageManifest, PackageObject, encode_package};
 use conduit_runtime::{
-    LoweredSource, LoweredSupervisedTopology, LoweredTopology, ManagedArtifactIdentity,
-    ManagedCleanupState, ManagedComponentIdentity, ManagedComponentObservation,
-    ManagedLifecycleReason, ManagedLifecycleState, ManagedRuntimeReadiness,
-    ResolvedExecutionArrangement, ResolvedExecutionBoundary, ResolvedExecutionCommitDomain,
-    ResolvedExecutionDescriptor, ResolvedExecutionLane, ResolvedExecutionPlacement,
-    ResolvedExecutionRegion,
+    HostedLaneBatchEvidence, HostedLaneObservation, LoweredSource, LoweredSupervisedTopology,
+    LoweredTopology, ManagedArtifactIdentity, ManagedCleanupState, ManagedComponentIdentity,
+    ManagedComponentObservation, ManagedLifecycleReason, ManagedLifecycleState,
+    ManagedRuntimeReadiness, ResolvedExecutionArrangement, ResolvedExecutionBoundary,
+    ResolvedExecutionCommitDomain, ResolvedExecutionDescriptor, ResolvedExecutionLane,
+    ResolvedExecutionPlacement, ResolvedExecutionRegion,
 };
 use sha2::Digest as _;
 
@@ -895,6 +895,60 @@ fn physical_arrangement_inspection_preserves_separate_identity_and_provider_fact
                 && reference.value.starts_with("cord/a:region/root/source:")
         }));
 
+        let batch = HostedLaneBatchEvidence {
+            commit_domain: "commit/main".to_owned(),
+            active_lanes: vec![0, 1],
+            proposal_slots_used: 2,
+            proposal_slots_capacity: 2,
+            proposal_bytes_used: 16,
+            proposal_bytes_capacity: 16,
+            committed_tickets: vec![1, 2],
+            physical_completion_order: vec![
+                HostedLaneObservation {
+                    generation: 1,
+                    batch: 1,
+                    lane: 1,
+                    ticket: 2,
+                    entered_sequence: 2,
+                    release_sequence: 3,
+                    finished_sequence: 4,
+                    faulted: false,
+                },
+                HostedLaneObservation {
+                    generation: 1,
+                    batch: 1,
+                    lane: 0,
+                    ticket: 1,
+                    entered_sequence: 1,
+                    release_sequence: 3,
+                    finished_sequence: 5,
+                    faulted: false,
+                },
+            ],
+        };
+        let batch_report =
+            inspect_hosted_lane_batch(&batch, &arrangement, DIGEST, InspectLimits::default())
+                .unwrap();
+        assert_eq!(batch_report.kind, ArtifactKind::HostedLaneBatch);
+        assert_eq!(batch_report.counts["overlap_observed"], 1);
+        assert_eq!(batch_report.budgets["proposal_bytes_used"], 16);
+        assert!(batch_report.references.iter().any(|reference| {
+            reference.category == "physical-completion-order" && reference.value == "0:1:2"
+        }));
+        let mut oversized_batch = batch.clone();
+        oversized_batch.proposal_bytes_used = 17;
+        assert_eq!(
+            inspect_hosted_lane_batch(
+                &oversized_batch,
+                &arrangement,
+                DIGEST,
+                InspectLimits::default(),
+            )
+            .unwrap_err()
+            .code,
+            "CND-INSP-006"
+        );
+
         arrangement.plan_epoch = 8;
         assert_eq!(
             inspect_execution_arrangement(&arrangement, &plan, DIGEST, InspectLimits::default(),)
@@ -1344,6 +1398,7 @@ fn every_serialized_inspection_conformance_vector_executes() {
             ("panel-module-path", "path"),
             ("lowered-source-typed", "typed-lowering"),
             ("execution-plan-typed", "typed-plan"),
+            ("hosted-lane-batch-typed", "typed-hosted-lane-batch"),
             ("conformance-manifest", "path"),
             ("module-count-limit", "path-limit"),
             ("aggregate-module-byte-limit", "path-limit"),

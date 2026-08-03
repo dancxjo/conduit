@@ -3,6 +3,7 @@ use conduit_core::{
     Id, PlanValidationContext, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION,
     SchedulerDecisionReason, SchedulerPolicy, StopPolicy, TerminalClass,
 };
+use conduit_inspect::{ArtifactKind, InspectLimits, inspect_hosted_lane_batch};
 use conduit_runtime::{
     ExactRunContext, ExactRunIo, ExactRunSessionRegistry, ExactRunState,
     FIXED_HOSTED_LANE_PROVIDER_ID, Registry, RunIo, SchedulerEventKind, SchedulerReservation,
@@ -26,6 +27,8 @@ third.value > third_display.text
 effect_text.value > effect_bytes.text
 effect_bytes.bytes > effect_sink.bytes
 "#;
+const INSPECTION_DIGEST: &str =
+    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 fn context<'a>(
     plan: &'a conduit_core::ExecutionPlan<'a>,
@@ -165,6 +168,24 @@ fn canonical_runs_use_three_hosted_lanes_and_match_the_serial_oracle() {
                     && !observation.faulted
             })
     );
+    let inspection = inspect_hosted_lane_batch(
+        lane_batch,
+        &arrangement,
+        INSPECTION_DIGEST,
+        InspectLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(inspection.kind, ArtifactKind::HostedLaneBatch);
+    assert_eq!(inspection.counts["active_lanes"], 3);
+    assert_eq!(inspection.counts["overlap_observed"], 1);
+    assert_eq!(inspection.budgets["proposal_bytes_used"], 17);
+    assert!(inspection.references.iter().any(|reference| {
+        reference.category == "execution-arrangement"
+            && reference.value == arrangement.identity.to_string()
+    }));
+    assert!(inspection.references.iter().any(|reference| {
+        reference.category == "deterministic-commit-order" && reference.value == "0:1"
+    }));
 
     let mut serial_input = &b""[..];
     let mut serial_output = Vec::new();

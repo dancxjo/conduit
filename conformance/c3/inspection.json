@@ -15,6 +15,7 @@
     {"id":"panel-module-path","runner":"path","input":"$HELLO_PATH","requested":"auto","expected":{"kind":"panel-source","modules":1,"valid":true}},
     {"id":"lowered-source-typed","runner":"typed-lowering","expected":{"kind":"lowered-source","version":0,"valid":true}},
     {"id":"execution-plan-typed","runner":"typed-plan","expected":{"kind":"execution-plan","version":0,"valid":true}},
+    {"id":"hosted-lane-batch-typed","runner":"typed-hosted-lane-batch","expected":{"kind":"hosted-lane-batch","overlap":true,"pressure":"at-capacity","commit_order":[1,2]}},
     {"id":"evidence-ndjson","runner":"bytes","input":"$EVIDENCE","requested":"auto","extension":"ndjson","expected":{"kind":"execution-evidence","version":0,"records":3,"valid":true}},
     {"id":"structured-diagnostic","runner":"bytes","input":"$DIAGNOSTIC","requested":"diagnostic","extension":"json","expected":{"kind":"structured-diagnostic","version":0,"valid":true}},
     {"id":"conformance-manifest","runner":"path","input":"$MANIFEST_PATH","requested":"auto","expected":{"kind":"conformance-manifest","valid":true,"references_verified":true}},

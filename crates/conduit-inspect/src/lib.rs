@@ -18,10 +18,10 @@ use conduit_panel::{
     LoadedModule, ModuleLoader, Panel, SourceValue, parse_document, resolve_modules,
 };
 use conduit_runtime::{
-    LoweredConfigValue, LoweredSource, ManagedCleanupState, ManagedComponentObservation,
-    ManagedLifecycleReason, ManagedLifecycleState, ManagedRuntimeReadiness, OwnedEventPayload,
-    OwnedExecutionEvent, ResolvedExecutionArrangement, decode_event_ndjson,
-    validate_hosted_execution_plan,
+    FIXED_HOSTED_LANE_PROVIDER_ID, HostedLaneBatchEvidence, LoweredConfigValue, LoweredSource,
+    ManagedCleanupState, ManagedComponentObservation, ManagedLifecycleReason,
+    ManagedLifecycleState, ManagedRuntimeReadiness, OwnedEventPayload, OwnedExecutionEvent,
+    ResolvedExecutionArrangement, decode_event_ndjson, validate_hosted_execution_plan,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -150,6 +150,7 @@ pub enum ArtifactKind {
     LoweredSource,
     ExecutionPlan,
     ExecutionArrangement,
+    HostedLaneBatch,
     ExecutionEvidence,
     StructuredDiagnostic,
     ConformanceManifest,
@@ -170,6 +171,7 @@ impl ArtifactKind {
             Self::LoweredSource => "lowered-source",
             Self::ExecutionPlan => "execution-plan",
             Self::ExecutionArrangement => "execution-arrangement",
+            Self::HostedLaneBatch => "hosted-lane-batch",
             Self::ExecutionEvidence => "execution-evidence",
             Self::StructuredDiagnostic => "structured-diagnostic",
             Self::ConformanceManifest => "conformance-manifest",
@@ -315,6 +317,7 @@ pub fn inspect_bytes(
         ArtifactKind::LoweredSource
         | ArtifactKind::ExecutionPlan
         | ArtifactKind::ExecutionArrangement
+        | ArtifactKind::HostedLaneBatch
         | ArtifactKind::ImplementationManifest
         | ArtifactKind::ArtifactManifest
         | ArtifactKind::CapabilityReport
@@ -1544,6 +1547,230 @@ pub fn inspect_execution_arrangement(
             format!("plan_epoch {}", arrangement.plan_epoch),
             "physical observations and reservations remain distinct from logical plan semantics"
                 .to_owned(),
+            "inspection performs no provider start, scheduling, discovery, or host mutation"
+                .to_owned(),
+        ],
+    ))
+}
+
+/// Inspect one provider-owned hosted lane batch separately from its logical
+/// plan and resolved physical arrangement. The adapter validates bounded
+/// activity, overlap, pressure, and deterministic commit observations without
+/// treating any provider sequence or lane slot as semantic identity.
+pub fn inspect_hosted_lane_batch(
+    batch: &HostedLaneBatchEvidence,
+    arrangement: &ResolvedExecutionArrangement,
+    content_digest: &str,
+    limits: InspectLimits,
+) -> Result<InspectionReport, InspectionError> {
+    require_digest(content_digest, "content digest")?;
+    if arrangement.identity != arrangement.computed_identity() {
+        return Err(failure(
+            "CND-INSP-006",
+            "hosted lane batch arrangement identity is invalid",
+        ));
+    }
+    let domain = arrangement
+        .commit_domains
+        .iter()
+        .find(|domain| domain.id == batch.commit_domain)
+        .ok_or_else(|| {
+            failure(
+                "CND-INSP-006",
+                "hosted lane batch commit domain is absent from the arrangement",
+            )
+        })?;
+    let placement = arrangement
+        .placements
+        .iter()
+        .find(|placement| placement.provider.id == FIXED_HOSTED_LANE_PROVIDER_ID)
+        .ok_or_else(|| {
+            failure(
+                "CND-INSP-006",
+                "hosted lane batch arrangement does not select the fixed provider",
+            )
+        })?;
+    let lane_count = arrangement
+        .lanes
+        .iter()
+        .filter(|lane| {
+            lane.placement == placement.id
+                && arrangement.regions.iter().any(|region| {
+                    region.independent
+                        && region.placement == placement.id
+                        && region.lane == lane.id
+                        && region.commit_domain == domain.id
+                })
+        })
+        .count();
+    let structurally_valid = !batch.physical_completion_order.is_empty()
+        && batch.proposal_slots_capacity == domain.proposal_slots
+        && batch.proposal_bytes_capacity == domain.maximum_proposal_bytes
+        && batch.proposal_slots_used as usize == batch.active_lanes.len()
+        && batch.committed_tickets.len() == batch.active_lanes.len()
+        && batch.proposal_slots_used <= batch.proposal_slots_capacity
+        && batch.proposal_bytes_used <= batch.proposal_bytes_capacity
+        && batch.physical_completion_order.len() == lane_count
+        && batch
+            .committed_tickets
+            .windows(2)
+            .all(|tickets| tickets[0] < tickets[1]);
+    if !structurally_valid {
+        return Err(failure(
+            "CND-INSP-006",
+            "hosted lane batch violates its resolved capacity or commit contract",
+        ));
+    }
+    let first = batch
+        .physical_completion_order
+        .first()
+        .expect("validated non-empty hosted batch");
+    let mut observed_lanes = BTreeSet::new();
+    let mut observed_tickets = BTreeSet::new();
+    for observation in &batch.physical_completion_order {
+        if observation.generation != placement.generation
+            || observation.generation != first.generation
+            || observation.batch != first.batch
+            || usize::from(observation.lane) >= lane_count
+            || !observed_lanes.insert(observation.lane)
+            || !observed_tickets.insert(observation.ticket)
+        {
+            return Err(failure(
+                "CND-INSP-006",
+                "hosted lane batch contains stale or duplicate provider observations",
+            ));
+        }
+    }
+    let active_lanes = batch.active_lanes.iter().copied().collect::<BTreeSet<_>>();
+    if active_lanes.len() != batch.active_lanes.len()
+        || !active_lanes.is_subset(&observed_lanes)
+        || !batch
+            .committed_tickets
+            .iter()
+            .all(|ticket| observed_tickets.contains(ticket))
+    {
+        return Err(failure(
+            "CND-INSP-006",
+            "hosted lane activity or commit tickets do not match provider observations",
+        ));
+    }
+    let overlapped = batch.physical_completion_order.len() >= 2
+        && batch.physical_completion_order.iter().all(|observation| {
+            observation.entered_sequence < observation.release_sequence
+                && observation.release_sequence < observation.finished_sequence
+                && observation.release_sequence == first.release_sequence
+        });
+    let pressure = if batch.proposal_slots_used >= batch.proposal_slots_capacity
+        || batch.proposal_bytes_used >= batch.proposal_bytes_capacity
+    {
+        "at-capacity"
+    } else {
+        "within-capacity"
+    };
+    let items = batch
+        .active_lanes
+        .len()
+        .checked_add(batch.committed_tickets.len())
+        .and_then(|count| count.checked_add(batch.physical_completion_order.len()))
+        .ok_or_else(|| failure("CND-INSP-007", "hosted lane batch item count overflow"))?;
+    enforce_collection_bound(items, limits, "hosted lane batch items")?;
+
+    let counts = BTreeMap::from([
+        ("active_lanes".to_owned(), batch.active_lanes.len() as u64),
+        (
+            "committed_proposals".to_owned(),
+            batch.committed_tickets.len() as u64,
+        ),
+        (
+            "faulted_lanes".to_owned(),
+            batch
+                .physical_completion_order
+                .iter()
+                .filter(|observation| observation.faulted)
+                .count() as u64,
+        ),
+        ("overlap_observed".to_owned(), u64::from(overlapped)),
+        ("observed_lanes".to_owned(), observed_lanes.len() as u64),
+    ]);
+    let budgets = BTreeMap::from([
+        (
+            "proposal_bytes_capacity".to_owned(),
+            batch.proposal_bytes_capacity,
+        ),
+        ("proposal_bytes_used".to_owned(), batch.proposal_bytes_used),
+        (
+            "proposal_slots_capacity".to_owned(),
+            u64::from(batch.proposal_slots_capacity),
+        ),
+        (
+            "proposal_slots_used".to_owned(),
+            u64::from(batch.proposal_slots_used),
+        ),
+    ]);
+    let mut references = vec![
+        InspectionReference {
+            category: "execution-arrangement".to_owned(),
+            value: arrangement.identity.to_string(),
+        },
+        InspectionReference {
+            category: "logical-plan".to_owned(),
+            value: arrangement.plan_identity.to_string(),
+        },
+        InspectionReference {
+            category: "resolver-decision".to_owned(),
+            value: arrangement.resolution_identity.to_string(),
+        },
+        InspectionReference {
+            category: "execution-commit-domain".to_owned(),
+            value: batch.commit_domain.clone(),
+        },
+    ];
+    references.extend(batch.active_lanes.iter().map(|lane| InspectionReference {
+        category: "active-hosted-lane".to_owned(),
+        value: lane.to_string(),
+    }));
+    references.extend(
+        batch
+            .committed_tickets
+            .iter()
+            .enumerate()
+            .map(|(position, ticket)| InspectionReference {
+                category: "deterministic-commit-order".to_owned(),
+                value: format!("{position}:{ticket}"),
+            }),
+    );
+    references.extend(batch.physical_completion_order.iter().enumerate().map(
+        |(position, observation)| InspectionReference {
+            category: "physical-completion-order".to_owned(),
+            value: format!("{position}:{}:{}", observation.lane, observation.ticket),
+        },
+    ));
+    stable_references(&mut references);
+    enforce_collection_bound(references.len(), limits, "hosted lane batch references")?;
+    Ok(base_report(
+        ArtifactKind::HostedLaneBatch,
+        0,
+        content_digest.to_owned(),
+        None,
+        counts,
+        budgets,
+        references,
+        0,
+        vec![
+            format!(
+                "provider generation {} batch {}",
+                first.generation, first.batch
+            ),
+            format!(
+                "physical overlap {}",
+                if overlapped {
+                    "observed"
+                } else {
+                    "not-observed"
+                }
+            ),
+            format!("proposal pressure {pressure}"),
+            "provider lane and sequence observations are not logical plan identity".to_owned(),
             "inspection performs no provider start, scheduling, discovery, or host mutation"
                 .to_owned(),
         ],

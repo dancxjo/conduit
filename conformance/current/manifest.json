@@ -1974,7 +1974,7 @@
         {
           "id": "inspection",
           "path": "../c3/inspection.json",
-          "sha256": "sha256:157c00d47640942df46af43b67d1d04681666031a16b5fbd38e326f16a09ff4f",
+          "sha256": "sha256:7dd0fbe0b598db717e341a6eda3fa07ad9942179ef028ff95c274c344117ffb8",
           "operation": "safe-inspection",
           "requirement_ids": [
             "INSP-001",
@@ -1997,6 +1997,7 @@
           "case_rules": {
             "lowered-source-typed": "INSP-006",
             "execution-plan-typed": "INSP-006",
+            "hosted-lane-batch-typed": "INSP-010",
             "conformance-manifest": "INSP-008",
             "unknown-native-bytes": "INSP-003",
             "ambiguous-json-markers": "INSP-003",
@@ -2028,6 +2029,7 @@
         "positive": [
           "inspection#panel-bytes",
           "inspection#execution-plan-typed",
+          "inspection#hosted-lane-batch-typed",
           "inspection#conformance-manifest"
         ],
         "negative": [

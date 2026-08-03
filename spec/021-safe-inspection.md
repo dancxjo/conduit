@@ -37,13 +37,16 @@ evidence payload material.
 | panel source | UTF-8 `.panel` bytes or local path | lossless CST/source AST, current source identity, local module graph and pins |
 | current lowered source | typed `LoweredSource` | schema pair, semantic/source references, topology counts and aggregate authored bounds |
 | execution current plan/current/current | typed `ExecutionPlan` plus explicit validation context | portable exact-plan validation, identity, implementation execution profiles, pins, staleness, budgets and references |
+| physical execution arrangement | typed `ResolvedExecutionArrangement` plus its exact plan | distinct arrangement/plan/resolution identities, region placement, lane and wake capacity, commit domains and boundaries |
+| hosted lane batch | typed `HostedLaneBatchEvidence` plus its resolved arrangement | provider generation, bounded lane activity, causal overlap, proposal pressure, deterministic commit order and arrangement reference |
 | execution evidence current | hosted immutable-event NDJSON | record bounds, owned decoding, core event/stream validation, identity/order/redaction |
 | structured diagnostic current | hosted diagnostic JSON | exact owned schema and allocator-free contract validation |
 | conformance manifest current | JSON bytes or local path | header/schema, uniqueness, digest syntax, and bounded local referenced-digest verification |
 | conformance cases | normative JSON-vector or TSV bytes | current suite/header markers and bounded collection structure |
 
-Lowered source and exact plan currently have semantic Rust/core schemas but no
-current standalone hosted byte codec. The typed adapters inspect them exactly.
+Lowered source, exact plan, physical execution arrangement, and hosted lane
+batch currently have semantic Rust/core schemas but no current standalone
+hosted byte codec. The typed adapters inspect them exactly.
 `conduct inspect --type=lowered-source` and
 `--type=execution-plan` reject ad-hoc JSON marker objects with `CND-INSP-008`
 instead of inventing, guessing, or blessing a persisted encoding. A future
@@ -181,7 +184,7 @@ bytes to be guessed as executable or collapse identity categories.
 | ID | Obligation |
 |---|---|
 | INSP-001 | Keep inspection hosted, read-only, non-executing, and free of implicit network/provider/authority behavior |
-| INSP-002 | Preserve source, lowering, plan, artifact, evidence, diagnostic, conformance, content, and report identities separately |
+| INSP-002 | Preserve source, lowering, plan, physical arrangement, provider observation, artifact, evidence, diagnostic, conformance, content, and report identities separately |
 | INSP-003 | Detect only current markers and fail closed on unknown, ambiguous, conflicting, or unsupported input |
 | INSP-004 | Apply fixed pre-allocation byte, record, depth, item, module, and aggregate limits |
 | INSP-005 | Validate panel CST/AST/source identity and bounded local module graphs without resolving providers |
