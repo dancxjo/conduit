@@ -99,7 +99,7 @@ Start time is `null`; fabricating a separate value would change the graph.
 Steady time, process CPU, resident memory, outcome accounting,
 queue/value/evidence high water, post-Start allocations, and sampled end-to-end
 latency accompany every repeat. Outcomes always separate offered, admitted,
-completed-useful, rejected, sampled, coalesced, dropped, retried, and terminal
+completed-useful, rejected, sampled, coalesced, dropped, cancelled, retried, and terminal
 values. The Conduit runner also reports exact scheduler decision count and wall
 time accumulated only while a source is blocked waiting for bounded output
 capacity. Overload rows additionally split the slow pressure region from the
@@ -107,6 +107,13 @@ recovery-to-terminal region. `drain_ns` and `abort_ns` remain `null` until a
 fixture explicitly requests the corresponding cancellation transition;
 ordinary successful completion is not renamed. Other unsupported measurements
 remain `null` with a reason instead of being reported as zero.
+
+The cancellation slice requests `Drain` and `Abort` only after a capacity-four
+FIFO cord has entered block pressure. Drain keeps consuming every value already
+admitted before the request; Abort may discard admitted queue contents, which
+remain excluded from completed-useful. The request-to-terminal duration is
+reported only in the matching `drain_ns` or `abort_ns` field. These are finite
+exact-run cancellation measurements, not persistent-session results.
 
 The summary reports p50, p95, p99, p99.9, and maximum sampled latency. Useful
 outputs per second is summarized across at least nine measured repeats with a

@@ -17,6 +17,9 @@ stride=$(jq -r .latency_sample_stride "$manifest")
 queue=$(jq -r .queue_capacity_items "$manifest")
 overload_slow_yields=$(jq -r .overload.slow_consumer_yields "$manifest")
 fanout_slow_yields=$(jq -r .fanout.slow_consumer_yields "$manifest")
+cancellation_capacity=$(jq -r .cancellation.queue_capacity_items "$manifest")
+cancellation_pressure=$(jq -r .cancellation.pressure_policy "$manifest")
+cancellation_after=$(jq -r .cancellation.cancel_after_offers "$manifest")
 
 mkdir -p "$output_dir"
 for artifact in "$raw" "$summary" "$metadata" "$report" "$commands"; do
@@ -104,6 +107,21 @@ for capacity in $(jq -r '.overload.queue_capacity_items[]' "$manifest"); do
       --pressure-policy "$pressure" \
       --slow-consumer-yields "$overload_slow_yields"
   done
+done
+
+for stop in $(jq -r '.cancellation.stop_policies[]' "$manifest"); do
+  record_raw "$workspace_root/target/release/conduit-benchmark" \
+    --workload overload \
+    --operators 1 \
+    --values "$values" \
+    --queue-items "$cancellation_capacity" \
+    --latency-sample-stride "$stride" \
+    --warmup-trials "$warmups" \
+    --measured-trials "$trials" \
+    --pressure-policy "$cancellation_pressure" \
+    --slow-consumer-yields "$overload_slow_yields" \
+    --termination-request "$stop" \
+    --cancel-after-offers "$cancellation_after"
 done
 
 for capacity in $(jq -r '.fanout.queue_capacity_items[]' "$manifest"); do

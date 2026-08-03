@@ -29,13 +29,15 @@ for (const sample of samples) {
   const fanout = sample.workload.id === "fanout";
   if (overload) {
     const pressureId = sample.workload.pressure.split("/")[0];
-    if (identityParts.length !== 6
+    if (identityParts.length !== 8
         || identityParts[0] !== "comparative-overload"
         || identityParts[1] !== pressureId
-        || Number(identityParts[2]) !== sample.workload.input_values
-        || Number(identityParts[3]) !== sample.workload.queue_capacity_items
-        || Number(identityParts[4]) !== sample.workload.slow_consumer_yields
-        || Number(identityParts[5]) !== sample.latency.sample_stride) {
+        || identityParts[2] !== sample.workload.termination_request
+        || Number(identityParts[3]) !== sample.workload.input_values
+        || Number(identityParts[4]) !== sample.workload.queue_capacity_items
+        || Number(identityParts[5]) !== sample.workload.slow_consumer_yields
+        || Number(identityParts[6]) !== sample.workload.cancel_after_offers
+        || Number(identityParts[7]) !== sample.latency.sample_stride) {
       throw new Error("overload fixture identity does not match the raw sample");
     }
     if (sample.runtime.id !== "conduit-reference-scheduler") {
@@ -72,6 +74,16 @@ for (const sample of samples) {
       && (sample.execution.scheduler_decisions === null || sample.execution.producer_stall_ns === null)) {
     throw new Error("Conduit sample omitted scheduler decisions or producer stall time");
   }
+  if (sample.workload.termination_request === "complete") {
+    if (sample.workload.cancel_after_offers !== 0
+        || sample.execution.drain_ns !== null || sample.execution.abort_ns !== null
+        || sample.outcomes.cancelled !== 0) {
+      throw new Error("complete fixture carries cancellation state or timing");
+    }
+  } else if (!["drain", "abort"].includes(sample.workload.termination_request)
+      || sample.workload.cancel_after_offers <= sample.workload.queue_capacity_items) {
+    throw new Error("cancellation fixture identity is invalid");
+  }
   if (sample.outcomes.terminal !== 1) throw new Error("fixture must report one terminal signal");
   if (sample.runtime.id === "conduit-reference-scheduler"
       && sample.outcomes.retried > 0 && sample.execution.producer_stall_ns <= 0) {
@@ -83,7 +95,27 @@ for (const sample of samples) {
     if (sample.memory.queue_items_high_water > capacity) throw new Error("overload queue exceeded declared capacity");
     if (outcomes.offered > sample.workload.input_values) throw new Error("overload offered more than its finite source");
     const pressureId = sample.workload.pressure.split("/")[0];
-    if (pressureId === "block") {
+    const termination = sample.workload.termination_request;
+    if (["drain", "abort"].includes(termination)) {
+      if (pressureId !== "block" || outcomes.offered !== sample.workload.cancel_after_offers
+          || outcomes.retried < 1
+          || outcomes.cancelled !== 1
+          || [outcomes.rejected, outcomes.sampled, outcomes.coalesced, outcomes.dropped].some((value) => value !== 0)
+          || outcomes.offered !== outcomes.admitted + outcomes.cancelled) {
+        throw new Error("pressured cancellation accounting is not conservative");
+      }
+      if (termination === "drain" && (outcomes.completed_useful !== outcomes.admitted
+          || sample.execution.drain_ns === null || sample.execution.abort_ns !== null)) {
+        throw new Error("Drain did not preserve all admitted work or exact timing identity");
+      }
+      if (termination === "abort" && (outcomes.completed_useful > outcomes.admitted
+          || sample.execution.abort_ns === null || sample.execution.drain_ns !== null)) {
+        throw new Error("Abort accounting or exact timing identity is invalid");
+      }
+      if (sample.phases.recovery_ns !== null) {
+        throw new Error("pressured cancellation unexpectedly entered recovery");
+      }
+    } else if (pressureId === "block") {
       if (outcomes.offered !== sample.workload.input_values || outcomes.admitted !== outcomes.offered
           || outcomes.completed_useful !== outcomes.admitted || outcomes.retried < 1
           || [outcomes.rejected, outcomes.sampled, outcomes.coalesced, outcomes.dropped].some((value) => value !== 0)) {
@@ -113,7 +145,9 @@ for (const sample of samples) {
     } else {
       throw new Error(`unknown overload pressure policy ${pressureId}`);
     }
-    if (["disconnect", "fail"].includes(pressureId)) {
+    if (["drain", "abort"].includes(termination)) {
+      // Cancellation terminal timing is checked above; it has no recovery region.
+    } else if (["disconnect", "fail"].includes(pressureId)) {
       if (sample.phases.recovery_ns !== null) throw new Error("terminal overload unexpectedly entered recovery");
     } else if (sample.phases.pressure_ns === null || sample.phases.recovery_ns === null) {
       throw new Error("finite overload fixture did not expose both pressure and recovery regions");
@@ -207,7 +241,8 @@ for (const sample of measured) {
   const key = [sample.runtime.id, sample.workload.id, sample.workload.operators,
     sample.workload.queue_capacity_items, sample.workload.pressure,
     sample.workload.slow_consumer_yields, sample.workload.fanout_branches,
-    sample.workload.fanout_mode, sample.workload.slow_branches].join("/");
+    sample.workload.fanout_mode, sample.workload.slow_branches,
+    sample.workload.termination_request, sample.workload.cancel_after_offers].join("/");
   if (!groups.has(key)) groups.set(key, []);
   groups.get(key).push(sample);
 }
@@ -243,7 +278,7 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
       abort_ns: optionalStats(group.map((value) => value.execution.abort_ns)),
     },
     outcomes: Object.fromEntries([
-      "offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "retried", "terminal",
+      "offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "cancelled", "retried", "terminal",
     ].map((field) => [field, optionalStats(group.map((value) => value.outcomes[field]))])),
     allocations_after_start: {
       calls: optionalStats(group.map((value) => value.allocations.calls)),
@@ -345,7 +380,7 @@ if (reportOutput) {
     "- RxJS overload: synchronous push has no demand-bounded queue matching these pressure policies and is not substituted.",
     "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
     "- RxJS/Reactor fan-out: reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted.",
-    "- Drain/Abort timing: unavailable until explicit cancellation fixtures request those transitions; normal completion is not relabelled.",
+    "- Drain/Abort timing is present only on fixtures that explicitly request that transition; normal completion remains distinct and null.",
     "",
   ];
   for (const workload of [...new Set(summaries.map((group) => group.workload.id))].sort()) {
@@ -361,10 +396,11 @@ if (reportOutput) {
     }
     report.push("");
     if (workload === "overload") {
-      report.push("## overload: outcome accounting", "", "Counts are per-trial medians. Completed-useful is the throughput numerator; admitted, replaced, or discarded work is never counted as success.", "", "| Runtime | Policy | Capacity | Offered | Admitted | Useful | Rejected | Sampled | Coalesced | Dropped | Retried | Terminal | Queue high water |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+      report.push("## overload: outcome accounting", "", "Counts are per-trial medians. Completed-useful is the throughput numerator; admitted, replaced, aborted, cancelled-before-admission, or discarded work is never counted as success.", "", "| Runtime | Policy | Stop | Capacity | Offered | Admitted | Useful | Rejected | Sampled | Coalesced | Dropped | Cancelled | Retried | Terminal | Stop median ns | Queue high water |", "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
       for (const group of workloadGroups) {
         const outcome = (field) => integer.format(group.outcomes[field].median);
-        report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${outcome("offered")} | ${outcome("admitted")} | ${outcome("completed_useful")} | ${outcome("rejected")} | ${outcome("sampled")} | ${outcome("coalesced")} | ${outcome("dropped")} | ${outcome("retried")} | ${outcome("terminal")} | ${duration(group.high_water.queue_items)} |`);
+        const stopTime = group.workload.termination_request === "drain" ? group.execution.drain_ns : group.execution.abort_ns;
+        report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.termination_request} | ${group.workload.queue_capacity_items} | ${outcome("offered")} | ${outcome("admitted")} | ${outcome("completed_useful")} | ${outcome("rejected")} | ${outcome("sampled")} | ${outcome("coalesced")} | ${outcome("dropped")} | ${outcome("cancelled")} | ${outcome("retried")} | ${outcome("terminal")} | ${duration(stopTime)} | ${duration(group.high_water.queue_items)} |`);
       }
       report.push("");
     }

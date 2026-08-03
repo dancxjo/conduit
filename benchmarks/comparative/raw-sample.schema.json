@@ -30,7 +30,7 @@
     "thermal_state": { "enum": ["cold", "warming", "warmed"] },
     "outcomes": {
       "type": "object",
-      "required": ["offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "retried", "terminal"],
+      "required": ["offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "cancelled", "retried", "terminal"],
       "properties": {
         "offered": { "type": "integer", "minimum": 0 },
         "admitted": { "type": "integer", "minimum": 0 },
@@ -39,6 +39,7 @@
         "sampled": { "type": "integer", "minimum": 0 },
         "coalesced": { "type": "integer", "minimum": 0 },
         "dropped": { "type": "integer", "minimum": 0 },
+        "cancelled": { "type": "integer", "minimum": 0 },
         "retried": { "type": "integer", "minimum": 0 },
         "terminal": { "type": "integer", "minimum": 0 }
       },
@@ -53,7 +54,7 @@
     },
     "workload": {
       "type": "object",
-      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs", "fanout_branches", "fanout_mode", "slow_branches"]
+      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs", "fanout_branches", "fanout_mode", "slow_branches", "termination_request", "cancel_after_offers"]
     },
     "exact_identity": {
       "type": "object",
