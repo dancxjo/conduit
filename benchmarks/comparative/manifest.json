@@ -2,7 +2,7 @@
   "schema": "conduit.comparative-benchmark-manifest",
   "schema_version": 0,
   "fixture_revision": 0,
-  "issues": [243, 244, 245, 249],
+  "issues": [243, 244, 245, 248, 249],
   "values": 1000000,
   "operator_depths": [1, 8, 32],
   "workloads": ["map", "map-filter", "merge", "bounded-async"],
@@ -74,9 +74,12 @@
     "payload_representation": "hosted-generation-safe-shared-text-handle",
     "branches": [2, 8, 32],
     "termination_requests": ["complete", "abort"],
+    "watch_modes": ["none", "one", "every-branch"],
+    "watch_preview_bytes": 64,
+    "watch_retention": "latest",
     "queue_capacity_items": 1,
     "fanout_mode": "coupled",
-    "scope": "production hosted literal value-store handle through an exact coupled fan-out plan assembled by the benchmark harness; completion content-verifies every branch at a separately accounted display boundary, while Abort is requested after atomic publication and verifies bounded reclamation before any sink consumes"
+    "scope": "production hosted literal value-store handle through an exact coupled fan-out plan assembled by the benchmark harness; zero, one, or every-branch exact-plan-admitted Watch retains a separately accounted 64-byte Latest preview; completion content-verifies every branch, while Abort follows atomic publication and both paths require zero terminal executor value residency"
   },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,

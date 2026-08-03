@@ -72,7 +72,10 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
     assert_eq!(manifest["schema"], "conduit.comparative-benchmark-manifest");
     assert_eq!(manifest["schema_version"], 0);
     assert_eq!(manifest["fixture_revision"], 0);
-    assert_eq!(manifest["issues"], serde_json::json!([243, 244, 245, 249]));
+    assert_eq!(
+        manifest["issues"],
+        serde_json::json!([243, 244, 245, 248, 249])
+    );
     assert_eq!(manifest["values"], 1_000_000);
     assert_eq!(manifest["operator_depths"], serde_json::json!([1, 8, 32]));
     assert_eq!(
@@ -185,6 +188,15 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         serde_json::json!(["complete", "abort"])
     );
     assert_eq!(
+        manifest["shared_payload_fanout"]["watch_modes"],
+        serde_json::json!(["none", "one", "every-branch"])
+    );
+    assert_eq!(manifest["shared_payload_fanout"]["watch_preview_bytes"], 64);
+    assert_eq!(
+        manifest["shared_payload_fanout"]["watch_retention"],
+        "latest"
+    );
+    assert_eq!(
         manifest["wall_clock_policy"]["gate"],
         "strict only for the separately versioned reviewed regression policy when machine class, architecture, input cardinality, and trial counts match exactly; otherwise report-only"
     );
@@ -269,7 +281,10 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "residency_plateau_after_wakes",
             "timer_advance_ticks",
             "payload_bytes",
-            "payload_representation"
+            "payload_representation",
+            "watch_slots",
+            "watch_preview_bytes",
+            "watch_retention"
         ]
         .iter()
         .all(|field| schema["properties"]["workload"]["required"]
@@ -295,7 +310,14 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "value_slots_capacity",
             "value_bytes_capacity",
             "host_io_capacity_bytes",
-            "host_io_output_bytes"
+            "host_io_output_bytes",
+            "watch_admitted_slots",
+            "watch_attached_slots",
+            "watch_retained_observations",
+            "watch_retained_preview_bytes",
+            "watch_dropped_observations",
+            "watch_maximum_observations",
+            "watch_maximum_preview_bytes"
         ]
         .iter()
         .all(|field| schema["properties"]["memory"]["required"]

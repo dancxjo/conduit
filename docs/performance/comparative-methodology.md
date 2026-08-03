@@ -139,12 +139,30 @@ terminal cleanup. Completion content verification and cancellation reclamation
 are separate measurements rather than a cancellation run pretending it
 consumed payload content.
 
+Each completion and Abort row also runs with no Watch, one watched branch, and
+every branch watched. Watched rows admit exact cord subjects into the plan and
+attach them before the timed region. Each admission has one fixed `Latest`
+record and a 64-byte public preview buffer, both included in planned/runtime
+memory accounting. A Watch observes only a committed production cord
+publication; it does not add demand, delay a cord, or change the graph.
+
+After terminal state, the runner first requires zero resident value slots and
+bytes, then reads each Watch outside the timed allocation scope. The read must
+return one record carrying the same generation-safe handle, the verified
+64-byte payload prefix, the full 1 KiB content hash, and a truncation marker.
+Abort therefore retains the separately copied preview even though the original
+arena value and every queued reference have been reclaimed. The report exposes
+admitted and attached slots, retained records/bytes, drops, and maximum fixed
+Watch storage so copied observability cost cannot be mistaken for executor
+value residency or zero-copy delivery.
+
 This first slice does not substitute 1 MiB payloads, PCM, images, encoded
-frames, fragments, isolated subscribers, Watch, coalescing, slot reuse, or
-browser execution. The current hosted literal value binding is
-bounded to 1 KiB, and RxJS/Reactor object references have no reviewed mapping
-to Conduit's generation-safe handle and arena-residency evidence. Those cases
-remain explicitly unavailable and #244 remains open.
+frames, fragments, isolated subscribers, ring/sample Watch retention,
+mid-run attach/detach/reconnect, coalescing, slot reuse, or browser execution.
+The current hosted literal value binding is bounded to 1 KiB, and RxJS/Reactor
+object references have no reviewed mapping to Conduit's generation-safe handle,
+Watch, and arena-residency evidence. Those cases remain explicitly unavailable
+and #244/#248 remain open.
 
 ## Regions and metrics
 
