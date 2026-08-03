@@ -15,6 +15,9 @@
     {"id":"provider-fault-disposes-reserved-slots","runner":"fixed-hosted-lanes","expected":{"error":"CND-LAN-006","disposed_slots":3}},
     {"id":"coordinator-cancellation-requires-readmission","runner":"fixed-hosted-lanes","expected":{"terminal":true,"readmission_required":true}},
     {"id":"hosted-repeated-batches-retain-fixed-storage","runner":"fixed-hosted-lanes","expected":{"batches":64,"lanes":3,"provider_batch_allocations":0}},
-    {"id":"hosted-explicit-lane-placement-preserves-commit","runner":"fixed-hosted-lanes","expected":{"dispatch_lanes":[2,0,1],"commit_tickets":[1,2,3]}}
+    {"id":"hosted-explicit-lane-placement-preserves-commit","runner":"fixed-hosted-lanes","expected":{"dispatch_lanes":[2,0,1],"commit_tickets":[1,2,3]}},
+    {"id":"production-arranged-three-lane-overlap","runner":"production-exact-executor","expected":{"lanes":3,"entered_before_any_finished":true,"commit_tickets":[1,2,3]}},
+    {"id":"production-persistent-session-hosted-lanes","runner":"production-exact-executor","expected":{"persistent_session":true,"terminal":"succeeded"}},
+    {"id":"production-hosted-lanes-match-serial-oracle","runner":"production-exact-executor","expected":{"scheduler_events_equal":true,"outputs_equal":true}}
   ]
 }

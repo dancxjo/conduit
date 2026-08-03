@@ -524,6 +524,7 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
                         region.placement == placement.id
                             && region.lane == lane.id
                             && region.commit_domain == domain.id
+                            && region.independent
                     })
             })
             .collect::<Vec<_>>();

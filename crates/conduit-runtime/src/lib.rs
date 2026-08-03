@@ -2360,6 +2360,13 @@ pub struct ExactExecutionReport {
     pub scheduler_events: Vec<SchedulerEvent>,
     pub evidence: Vec<ExactEvidenceRecord>,
     pub evidence_bytes: u64,
+    pub hosted_lane_batch: Option<HostedLaneBatchEvidence>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HostedLaneBatchEvidence {
+    pub committed_tickets: Vec<u64>,
+    pub physical_completion_order: Vec<HostedLaneObservation>,
 }
 
 /// Hosted exact-run ownership retained across cooperative scheduler turns.
@@ -2369,6 +2376,7 @@ pub struct ExactExecutionReport {
 /// retained after Start returns.
 pub struct ExactHostedRunSession {
     session: ExactRunSession<HostedSchedulerDriver<'static, 'static>>,
+    parallel_lanes: Option<HostedProductionLanes>,
     host_failure: Rc<RefCell<Option<RuntimeError>>>,
     io: Rc<RefCell<ExactRunIo>>,
     watches: Rc<RefCell<watch::HostedWatchRuntime>>,
@@ -2377,6 +2385,7 @@ pub struct ExactHostedRunSession {
 
 type StartedHostedSession<'r, 'i> = (
     ExactRunSession<HostedSchedulerDriver<'r, 'i>>,
+    Option<HostedProductionLanes>,
     Rc<RefCell<Option<RuntimeError>>>,
     Rc<RefCell<watch::HostedWatchRuntime>>,
     Vec<Rc<RefCell<ManagedComponentMachine>>>,
@@ -2448,8 +2457,18 @@ impl ExactHostedRunSession {
         quantum: u64,
         grant_observations: &[ExactHostedServiceUseObservation],
     ) -> Result<ExactRunPump, RuntimeError> {
+        let parallel_lanes = &mut self.parallel_lanes;
         self.session
-            .pump_with_authority(quantum, grant_observations)
+            .pump_with_authority_using(
+                quantum,
+                grant_observations,
+                |executor, remaining, grants| {
+                    let Some(parallel_lanes) = parallel_lanes.as_mut() else {
+                        return Ok(false);
+                    };
+                    parallel_lanes.drive(executor, remaining, grants)
+                },
+            )
             .map_err(|error| self.take_scheduler_error(error))
     }
 
@@ -2474,6 +2493,9 @@ impl ExactHostedRunSession {
     }
 
     pub fn cancel(&mut self, stop: conduit_core::StopPolicy) -> Result<ExactRunPump, RuntimeError> {
+        if let Some(mut parallel_lanes) = self.parallel_lanes.take() {
+            parallel_lanes.cancel();
+        }
         let pump = self
             .session
             .cancel(stop)
@@ -2513,6 +2535,13 @@ impl ExactHostedRunSession {
 
     pub fn scheduler_events(&self) -> impl Iterator<Item = &SchedulerEvent> {
         self.session.scheduler_events()
+    }
+
+    #[must_use]
+    pub fn hosted_lane_batch(&self) -> Option<HostedLaneBatchEvidence> {
+        self.parallel_lanes
+            .as_ref()
+            .and_then(HostedProductionLanes::batch_evidence)
     }
 
     #[must_use]
@@ -6571,7 +6600,7 @@ impl ResolvedPanel<'_> {
         context: ExactRunContext<'p>,
         io: &'r mut RunIo<'i>,
     ) -> Result<ExactExecutionReport, RuntimeError> {
-        self.run_exact_report_controlled(plan, bindings, context, None, io)
+        self.run_exact_report_controlled(plan, None, bindings, context, None, io)
     }
 
     /// Executes only after the separately identified physical arrangement is
@@ -6585,7 +6614,7 @@ impl ResolvedPanel<'_> {
         io: &'r mut RunIo<'i>,
     ) -> Result<ExactExecutionReport, RuntimeError> {
         validate_run_arrangement(plan, arrangement, context.plan_epoch)?;
-        self.run_exact_report_controlled(plan, bindings, context, None, io)
+        self.run_exact_report_controlled(plan, Some(arrangement), bindings, context, None, io)
     }
 
     /// Starts the exact executor and immediately applies one plan-visible
@@ -6598,7 +6627,7 @@ impl ResolvedPanel<'_> {
         stop: conduit_core::StopPolicy,
         io: &'r mut RunIo<'i>,
     ) -> Result<ExactExecutionReport, RuntimeError> {
-        self.run_exact_report_controlled(plan, bindings, context, Some(stop), io)
+        self.run_exact_report_controlled(plan, None, bindings, context, Some(stop), io)
     }
 
     /// Arranged equivalent of [`Self::cancel_exact_report`].
@@ -6612,7 +6641,7 @@ impl ResolvedPanel<'_> {
         io: &'r mut RunIo<'i>,
     ) -> Result<ExactExecutionReport, RuntimeError> {
         validate_run_arrangement(plan, arrangement, context.plan_epoch)?;
-        self.run_exact_report_controlled(plan, bindings, context, Some(stop), io)
+        self.run_exact_report_controlled(plan, Some(arrangement), bindings, context, Some(stop), io)
     }
 
     /// Atomically admits and starts one persistent exact-run session. It does
@@ -6632,7 +6661,7 @@ impl ResolvedPanel<'_> {
             ));
         }
         let io = Rc::new(RefCell::new(io));
-        let (session, host_failure, watches, managed_components) = self
+        let (session, parallel_lanes, host_failure, watches, managed_components) = self
             .start_exact_session_with_io(
                 plan,
                 bindings,
@@ -6640,9 +6669,11 @@ impl ResolvedPanel<'_> {
                 sessions,
                 HostedRunIo::Owned(Rc::clone(&io)),
                 None,
+                None,
             )?;
         Ok(ExactHostedRunSession {
             session,
+            parallel_lanes,
             host_failure,
             io,
             watches,
@@ -6662,7 +6693,31 @@ impl ResolvedPanel<'_> {
         io: ExactRunIo,
     ) -> Result<ExactHostedRunSession, RuntimeError> {
         validate_run_arrangement(plan, arrangement, context.plan_epoch)?;
-        self.start_exact_session(plan, bindings, context, sessions, io)
+        if io.capacity_bytes() != exact_host_io_capacity(plan)? {
+            return Err(RuntimeError::new(
+                "CND-RUN-009",
+                "owned host I/O capacity does not match the exact plan",
+            ));
+        }
+        let io = Rc::new(RefCell::new(io));
+        let (session, parallel_lanes, host_failure, watches, managed_components) = self
+            .start_exact_session_with_io(
+                plan,
+                bindings,
+                context,
+                sessions,
+                HostedRunIo::Owned(Rc::clone(&io)),
+                Some(arrangement),
+                None,
+            )?;
+        Ok(ExactHostedRunSession {
+            session,
+            parallel_lanes,
+            host_failure,
+            io,
+            watches,
+            managed_components,
+        })
     }
 
     /// Starts one persistent session with the evidence provider selected by
@@ -6685,17 +6740,19 @@ impl ResolvedPanel<'_> {
         }
         let evidence_binding = exact_evidence_provider_binding(plan)?;
         let io = Rc::new(RefCell::new(io));
-        let (session, host_failure, watches, managed_components) = self
+        let (session, parallel_lanes, host_failure, watches, managed_components) = self
             .start_exact_session_with_io(
                 plan,
                 bindings,
                 context,
                 sessions,
                 HostedRunIo::Owned(Rc::clone(&io)),
+                None,
                 Some((evidence_binding, evidence_provider)),
             )?;
         Ok(ExactHostedRunSession {
             session,
+            parallel_lanes,
             host_failure,
             io,
             watches,
@@ -6716,16 +6773,35 @@ impl ResolvedPanel<'_> {
         resources: ExactEvidenceSessionResources,
     ) -> Result<ExactHostedRunSession, RuntimeError> {
         validate_run_arrangement(plan, arrangement, context.plan_epoch)?;
-        self.start_exact_session_with_evidence_provider(
-            plan,
-            bindings,
-            context,
-            sessions,
-            resources.io,
-            resources.evidence_provider,
-        )
+        if resources.io.capacity_bytes() != exact_host_io_capacity(plan)? {
+            return Err(RuntimeError::new(
+                "CND-RUN-009",
+                "owned host I/O capacity does not match the exact plan",
+            ));
+        }
+        let evidence_binding = exact_evidence_provider_binding(plan)?;
+        let io = Rc::new(RefCell::new(resources.io));
+        let (session, parallel_lanes, host_failure, watches, managed_components) = self
+            .start_exact_session_with_io(
+                plan,
+                bindings,
+                context,
+                sessions,
+                HostedRunIo::Owned(Rc::clone(&io)),
+                Some(arrangement),
+                Some((evidence_binding, resources.evidence_provider)),
+            )?;
+        Ok(ExactHostedRunSession {
+            session,
+            parallel_lanes,
+            host_failure,
+            io,
+            watches,
+            managed_components,
+        })
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn start_exact_session_with_io<'p, 'r, 'i>(
         &self,
         plan: &'p ExecutionPlan<'p>,
@@ -6733,6 +6809,7 @@ impl ResolvedPanel<'_> {
         context: ExactRunContext<'p>,
         sessions: &ExactRunSessionRegistry,
         io: HostedRunIo<'r, 'i>,
+        arrangement: Option<&ResolvedExecutionArrangement>,
         evidence_provider: Option<(ExactEvidenceProviderBinding, Box<dyn ExactEvidenceProvider>)>,
     ) -> Result<StartedHostedSession<'r, 'i>, RuntimeError> {
         let admission = sessions
@@ -7467,6 +7544,12 @@ impl ResolvedPanel<'_> {
             });
             debug_assert_eq!(scheduled_nodes.len(), node_index + 1);
         }
+        let parallel_lanes = arrangement
+            .map(|arrangement| {
+                HostedProductionLanes::admit(plan, arrangement, Rc::clone(&host_failure))
+            })
+            .transpose()?
+            .flatten();
         let executor = DeterministicExecutor::start(
             plan,
             context.validation,
@@ -7493,12 +7576,19 @@ impl ResolvedPanel<'_> {
         } else {
             ExactRunSession::new(admission, identity, executor)
         };
-        Ok((session, host_failure, watches, managed_components))
+        Ok((
+            session,
+            parallel_lanes,
+            host_failure,
+            watches,
+            managed_components,
+        ))
     }
 
     fn run_exact_report_controlled<'p, 'r, 'i>(
         &self,
         plan: &'p ExecutionPlan<'p>,
+        arrangement: Option<&ResolvedExecutionArrangement>,
         bindings: &ExactHostedBindings,
         context: ExactRunContext<'p>,
         initial_stop: Option<conduit_core::StopPolicy>,
@@ -7508,16 +7598,20 @@ impl ResolvedPanel<'_> {
             ExactRunSessionRegistry::new(1, context.reservation.available_runtime_memory_bytes)
                 .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
         let borrowed_io = Rc::new(RefCell::new(io));
-        let (mut session, host_failure, _watches, _managed_components) = self
+        let (mut session, mut parallel_lanes, host_failure, _watches, _managed_components) = self
             .start_exact_session_with_io(
-                plan,
-                bindings,
-                context,
-                &sessions,
-                HostedRunIo::Borrowed(borrowed_io),
-                None,
-            )?;
+            plan,
+            bindings,
+            context,
+            &sessions,
+            HostedRunIo::Borrowed(borrowed_io),
+            arrangement,
+            None,
+        )?;
         if let Some(stop) = initial_stop {
+            if let Some(mut parallel_lanes) = parallel_lanes.take() {
+                parallel_lanes.cancel();
+            }
             session.cancel(stop).map_err(|error| {
                 host_failure
                     .borrow_mut()
@@ -7530,12 +7624,19 @@ impl ResolvedPanel<'_> {
         }
         let quantum = context.scheduler_policy.max_decisions.max(1);
         let status = loop {
-            session.pump(quantum).map_err(|error| {
-                host_failure
-                    .borrow_mut()
-                    .take()
-                    .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string()))
-            })?;
+            session
+                .pump_with_authority_using(quantum, &[], |executor, remaining, grants| {
+                    let Some(parallel_lanes) = parallel_lanes.as_mut() else {
+                        return Ok(false);
+                    };
+                    parallel_lanes.drive(executor, remaining, grants)
+                })
+                .map_err(|error| {
+                    host_failure
+                        .borrow_mut()
+                        .take()
+                        .unwrap_or_else(|| RuntimeError::new(error.code(), error.to_string()))
+                })?;
             match session.scheduler_status() {
                 SchedulerStatus::Running => continue,
                 SchedulerStatus::Stalled => {
@@ -7570,6 +7671,9 @@ impl ResolvedPanel<'_> {
                 "exact execution evidence exceeded the plan-visible byte budget",
             ));
         }
+        let hosted_lane_batch = parallel_lanes
+            .as_ref()
+            .and_then(HostedProductionLanes::batch_evidence);
         match status {
             SchedulerStatus::Succeeded => Ok(ExactExecutionReport {
                 summary: ExecutionSummary {
@@ -7582,6 +7686,7 @@ impl ResolvedPanel<'_> {
                 scheduler_events,
                 evidence,
                 evidence_bytes,
+                hosted_lane_batch,
             }),
             SchedulerStatus::Cancelled if initial_stop.is_some() => Ok(ExactExecutionReport {
                 summary: ExecutionSummary {
@@ -7594,6 +7699,7 @@ impl ResolvedPanel<'_> {
                 scheduler_events,
                 evidence,
                 evidence_bytes,
+                hosted_lane_batch,
             }),
             SchedulerStatus::Cancelled => Err(RuntimeError::new(
                 "CND-RUN-006",
@@ -8404,6 +8510,372 @@ struct HostedSchedulerDriver<'r, 'i> {
     maximum_input_bytes: u32,
     cancellation_ticks: u64,
     host_failure: Rc<RefCell<Option<RuntimeError>>>,
+}
+
+#[cfg(not(target_family = "wasm"))]
+enum HostedParallelJob {
+    Literal(Vec<u8>),
+}
+
+#[cfg(not(target_family = "wasm"))]
+enum HostedParallelProposal {
+    Literal(Vec<u8>),
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl HostedLaneJob for HostedParallelJob {
+    type Proposal = HostedParallelProposal;
+
+    fn compute(self) -> Self::Proposal {
+        match self {
+            Self::Literal(value) => HostedParallelProposal::Literal(value),
+        }
+    }
+
+    fn proposal_bytes(proposal: &Self::Proposal) -> u64 {
+        match proposal {
+            HostedParallelProposal::Literal(value) => {
+                u64::try_from(value.len()).unwrap_or(u64::MAX)
+            }
+        }
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl scheduler::ProposedSchedulerNode for HostedSchedulerDriver<'_, '_> {
+    type Job = HostedParallelJob;
+    type Proposal = HostedParallelProposal;
+
+    fn proposed_step_ready(&self) -> bool {
+        matches!(self.kind, HostedNodeKind::Literal { emitted: false, .. })
+            && !self.out_cords.is_empty()
+    }
+
+    fn take_proposed_step(&mut self) -> Option<Self::Job> {
+        match &mut self.kind {
+            HostedNodeKind::Literal {
+                value,
+                emitted: false,
+            } if !self.out_cords.is_empty() => {
+                Some(HostedParallelJob::Literal(std::mem::take(value)))
+            }
+            _ => None,
+        }
+    }
+
+    fn commit_proposed_step(
+        &mut self,
+        proposal: Self::Proposal,
+        io: &mut StepIo<'_>,
+    ) -> SchedulerStep {
+        match (&mut self.kind, proposal) {
+            (
+                HostedNodeKind::Literal {
+                    value,
+                    emitted: false,
+                },
+                HostedParallelProposal::Literal(proposed),
+            ) if value.is_empty() => {
+                *value = proposed;
+                <Self as SchedulerNode>::step(self, io)
+            }
+            _ => SchedulerStep::Failed {
+                code: Id("conduit/hosted-lane-stale-proposal"),
+            },
+        }
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+enum HostedRunLaneJob {
+    Step { node: usize, job: HostedParallelJob },
+    Idle,
+}
+
+#[cfg(not(target_family = "wasm"))]
+enum HostedRunLaneProposal {
+    Step {
+        node: usize,
+        proposal: HostedParallelProposal,
+    },
+    Idle,
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl HostedLaneJob for HostedRunLaneJob {
+    type Proposal = HostedRunLaneProposal;
+
+    fn compute(self) -> Self::Proposal {
+        match self {
+            Self::Step { node, job } => HostedRunLaneProposal::Step {
+                node,
+                proposal: job.compute(),
+            },
+            Self::Idle => HostedRunLaneProposal::Idle,
+        }
+    }
+
+    fn proposal_bytes(proposal: &Self::Proposal) -> u64 {
+        match proposal {
+            HostedRunLaneProposal::Step { proposal, .. } => {
+                HostedParallelJob::proposal_bytes(proposal)
+            }
+            HostedRunLaneProposal::Idle => 0,
+        }
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+struct HostedProductionLanes {
+    coordinator: FixedHostedExecutionCoordinator<HostedRunLaneJob>,
+    node_lanes: Vec<Option<u16>>,
+    lane_count: u16,
+    selected: Vec<(usize, u16)>,
+    assignments: Vec<HostedLaneAssignment<HostedRunLaneJob>>,
+    committed_tickets: Vec<u64>,
+    observations: Vec<HostedLaneObservation>,
+    host_failure: Rc<RefCell<Option<RuntimeError>>>,
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl HostedProductionLanes {
+    fn admit(
+        plan: &ExecutionPlan<'_>,
+        arrangement: &ResolvedExecutionArrangement,
+        host_failure: Rc<RefCell<Option<RuntimeError>>>,
+    ) -> Result<Option<Self>, RuntimeError> {
+        let Some(placement) = arrangement
+            .placements
+            .iter()
+            .find(|placement| placement.provider.id == FIXED_HOSTED_LANE_PROVIDER_ID)
+        else {
+            return Ok(None);
+        };
+        let Some(domain) = arrangement.commit_domains.first() else {
+            return Err(RuntimeError::new(
+                "CND-LAN-009",
+                "fixed hosted execution has no deterministic commit domain",
+            ));
+        };
+        let lane_ids = arrangement
+            .lanes
+            .iter()
+            .filter(|lane| {
+                lane.placement == placement.id
+                    && arrangement.regions.iter().any(|region| {
+                        region.placement == placement.id
+                            && region.lane == lane.id
+                            && region.commit_domain == domain.id
+                            && region.independent
+                    })
+            })
+            .map(|lane| lane.id.as_str())
+            .collect::<Vec<_>>();
+        let lane_count = u16::try_from(lane_ids.len())
+            .map_err(|_| RuntimeError::new("CND-LAN-001", "hosted lane population exceeds u16"))?;
+        if lane_count < 3 {
+            return Ok(None);
+        }
+        let coordinator =
+            FixedHostedExecutionCoordinator::admit(arrangement, &placement.id, &domain.id, 1)
+                .map_err(|error| RuntimeError::new(error.code(), error.to_string()))?;
+        let mut node_lanes = Vec::new();
+        node_lanes
+            .try_reserve_exact(plan.nodes.len())
+            .map_err(|_| {
+                RuntimeError::new(
+                    "CND-LAN-001",
+                    "hosted node placement storage is unavailable",
+                )
+            })?;
+        node_lanes.resize(plan.nodes.len(), None);
+        for region in arrangement.regions.iter().filter(|region| {
+            region.independent
+                && region.placement == placement.id
+                && region.commit_domain == domain.id
+        }) {
+            let Some(lane) = lane_ids.iter().position(|lane| *lane == region.lane) else {
+                continue;
+            };
+            for member in &region.members {
+                let Some(node) = plan
+                    .nodes
+                    .iter()
+                    .position(|planned| planned.instance.as_str() == member)
+                else {
+                    return Err(RuntimeError::new(
+                        "CND-LAN-007",
+                        "hosted region member is absent from the exact plan",
+                    ));
+                };
+                node_lanes[node] = Some(u16::try_from(lane).map_err(|_| {
+                    RuntimeError::new("CND-LAN-001", "hosted lane index exceeds u16")
+                })?);
+            }
+        }
+        let mut selected = Vec::new();
+        let mut assignments = Vec::new();
+        let mut committed_tickets = Vec::new();
+        let mut observations = Vec::new();
+        selected
+            .try_reserve_exact(usize::from(lane_count))
+            .map_err(|_| RuntimeError::new("CND-LAN-001", "lane selection storage unavailable"))?;
+        assignments
+            .try_reserve_exact(usize::from(lane_count))
+            .map_err(|_| RuntimeError::new("CND-LAN-001", "lane assignment storage unavailable"))?;
+        committed_tickets
+            .try_reserve_exact(usize::from(lane_count))
+            .map_err(|_| RuntimeError::new("CND-LAN-001", "lane commit storage unavailable"))?;
+        observations
+            .try_reserve_exact(usize::from(lane_count))
+            .map_err(|_| RuntimeError::new("CND-LAN-001", "lane evidence storage unavailable"))?;
+        Ok(Some(Self {
+            coordinator,
+            node_lanes,
+            lane_count,
+            selected,
+            assignments,
+            committed_tickets,
+            observations,
+            host_failure,
+        }))
+    }
+
+    fn drive(
+        &mut self,
+        executor: &mut DeterministicExecutor<HostedSchedulerDriver<'_, '_>>,
+        maximum_decisions: u64,
+        grant_observations: &[ExactHostedServiceUseObservation],
+    ) -> Result<bool, SchedulerError> {
+        let maximum = executor
+            .ready_len()
+            .min(usize::try_from(maximum_decisions).unwrap_or(usize::MAX));
+        self.selected.clear();
+        for offset in 0..maximum {
+            if self.selected.len() == usize::from(self.lane_count) {
+                break;
+            }
+            let Some(node) = executor.ready_node_at(offset) else {
+                break;
+            };
+            let Some(lane) = self.node_lanes.get(node).copied().flatten() else {
+                continue;
+            };
+            if !executor.proposed_step_ready(node)
+                || self.selected.iter().any(|(_, selected)| *selected == lane)
+            {
+                continue;
+            }
+            self.selected.push((node, lane));
+        }
+        if self.selected.len() < 3 {
+            return Ok(false);
+        }
+
+        self.assignments.clear();
+        for &(node, lane) in &self.selected {
+            let Some(job) = executor.take_proposed_step(node) else {
+                return executor
+                    .fail_proposed_execution(SchedulerError::StepContractViolation)
+                    .map(|_| false);
+            };
+            self.assignments.push(HostedLaneAssignment {
+                lane,
+                job: HostedRunLaneJob::Step { node, job },
+            });
+        }
+        for lane in 0..self.lane_count {
+            if !self.selected.iter().any(|(_, selected)| *selected == lane) {
+                self.assignments.push(HostedLaneAssignment {
+                    lane,
+                    job: HostedRunLaneJob::Idle,
+                });
+            }
+        }
+
+        let mut scheduler_error = None;
+        let result = self.coordinator.compute_assigned_and_commit(
+            self.assignments.drain(..),
+            |_, proposal| match proposal {
+                HostedRunLaneProposal::Step { node, proposal } => {
+                    while executor.ready_node_at(0) != Some(node) {
+                        if let Err(error) = executor.run_one_with_authority(grant_observations) {
+                            scheduler_error = Some(error);
+                            return Err(());
+                        }
+                    }
+                    executor
+                        .commit_proposed_front(node, proposal, grant_observations)
+                        .map(|_| ())
+                        .map_err(|error| {
+                            scheduler_error = Some(error);
+                        })
+                }
+                HostedRunLaneProposal::Idle => Ok(()),
+            },
+        );
+        match result {
+            Ok(batch) => {
+                self.committed_tickets.clear();
+                self.committed_tickets
+                    .extend_from_slice(batch.committed_tickets);
+                self.observations.clear();
+                self.observations
+                    .extend_from_slice(batch.physical_completion_order);
+                Ok(true)
+            }
+            Err(error) => {
+                let scheduler_error = scheduler_error.unwrap_or(SchedulerError::NodeFailed);
+                *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                    error.code(),
+                    format!("production hosted lane batch failed: {error}"),
+                ));
+                executor
+                    .fail_proposed_execution(scheduler_error)
+                    .map(|_| false)
+            }
+        }
+    }
+
+    fn cancel(&mut self) {
+        let _ = self.coordinator.cancel();
+    }
+
+    fn batch_evidence(&self) -> Option<HostedLaneBatchEvidence> {
+        (!self.observations.is_empty()).then(|| HostedLaneBatchEvidence {
+            committed_tickets: self.committed_tickets.clone(),
+            physical_completion_order: self.observations.clone(),
+        })
+    }
+}
+
+#[cfg(target_family = "wasm")]
+struct HostedProductionLanes;
+
+#[cfg(target_family = "wasm")]
+impl HostedProductionLanes {
+    fn admit(
+        _plan: &ExecutionPlan<'_>,
+        _arrangement: &ResolvedExecutionArrangement,
+        _host_failure: Rc<RefCell<Option<RuntimeError>>>,
+    ) -> Result<Option<Self>, RuntimeError> {
+        Ok(None)
+    }
+
+    fn drive(
+        &mut self,
+        _executor: &mut DeterministicExecutor<HostedSchedulerDriver<'_, '_>>,
+        _maximum_decisions: u64,
+        _grant_observations: &[ExactHostedServiceUseObservation],
+    ) -> Result<bool, SchedulerError> {
+        Ok(false)
+    }
+
+    fn cancel(&mut self) {}
+
+    fn batch_evidence(&self) -> Option<HostedLaneBatchEvidence> {
+        None
+    }
 }
 
 fn begin_hosted_service_cleanup(

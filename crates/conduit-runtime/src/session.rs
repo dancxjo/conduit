@@ -545,12 +545,32 @@ impl<N: SchedulerNode> ExactRunSession<N> {
         quantum: u64,
         grant_observations: &[crate::ExactHostedServiceUseObservation],
     ) -> Result<ExactRunPump, SchedulerError> {
+        self.pump_with_authority_using(quantum, grant_observations, |_, _, _| Ok(false))
+    }
+
+    pub(crate) fn pump_with_authority_using(
+        &mut self,
+        quantum: u64,
+        grant_observations: &[crate::ExactHostedServiceUseObservation],
+        mut proposed: impl FnMut(
+            &mut DeterministicExecutor<N>,
+            u64,
+            &[crate::ExactHostedServiceUseObservation],
+        ) -> Result<bool, SchedulerError>,
+    ) -> Result<ExactRunPump, SchedulerError> {
         if quantum == 0 {
             return Err(SchedulerError::InvalidPolicy);
         }
         let start = self.executor().decisions();
         while self.executor().decisions().saturating_sub(start) < quantum {
             let before = self.executor().decisions();
+            let remaining = quantum.saturating_sub(before.saturating_sub(start));
+            if proposed(self.executor_mut(), remaining, grant_observations)? {
+                if self.executor().decisions() == before {
+                    return Err(SchedulerError::StepContractViolation);
+                }
+                continue;
+            }
             let status = self
                 .executor_mut()
                 .run_one_with_authority(grant_observations)?;

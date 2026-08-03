@@ -588,6 +588,24 @@ pub trait SchedulerNode {
     }
 }
 
+/// Optional compute/propose boundary for scheduler nodes whose exact region
+/// is admitted for independent physical execution. Proposal computation may
+/// happen elsewhere, but this trait's commit hook remains inside the serial
+/// scheduler decision and transaction boundary.
+#[cfg(not(target_family = "wasm"))]
+pub(crate) trait ProposedSchedulerNode: SchedulerNode {
+    type Job;
+    type Proposal;
+
+    fn proposed_step_ready(&self) -> bool;
+    fn take_proposed_step(&mut self) -> Option<Self::Job>;
+    fn commit_proposed_step(
+        &mut self,
+        proposal: Self::Proposal,
+        io: &mut StepIo<'_>,
+    ) -> SchedulerStep;
+}
+
 /// One already-instantiated driver and its portable implementation validator.
 pub struct ScheduledNode<N> {
     pub driver: N,
@@ -1847,6 +1865,14 @@ impl FixedReadyQueue {
     const fn len(&self) -> usize {
         self.len
     }
+
+    #[cfg(not(target_family = "wasm"))]
+    fn get(&self, offset: usize) -> Option<ReadyEntry> {
+        if offset >= self.len {
+            return None;
+        }
+        self.slots[(self.head + offset) % self.slots.len()]
+    }
 }
 
 struct FixedEventLog {
@@ -2327,6 +2353,74 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
         })
     }
 
+    #[cfg(not(target_family = "wasm"))]
+    pub(crate) const fn ready_len(&self) -> usize {
+        self.ready.len()
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    pub(crate) fn ready_node_at(&self, offset: usize) -> Option<usize> {
+        self.ready.get(offset).map(|entry| entry.node)
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    pub(crate) fn proposed_step_ready(&self, node: usize) -> bool
+    where
+        N: ProposedSchedulerNode,
+    {
+        self.drivers
+            .get(node)
+            .is_some_and(ProposedSchedulerNode::proposed_step_ready)
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    pub(crate) fn take_proposed_step(&mut self, node: usize) -> Option<N::Job>
+    where
+        N: ProposedSchedulerNode,
+    {
+        self.drivers.get_mut(node)?.take_proposed_step()
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    pub(crate) fn commit_proposed_front(
+        &mut self,
+        expected_node: usize,
+        proposal: N::Proposal,
+        grant_observations: &[crate::ExactHostedServiceUseObservation],
+    ) -> Result<SchedulerStatus, SchedulerError>
+    where
+        N: ProposedSchedulerNode,
+    {
+        let node = match self.begin_next_decision(Some(expected_node)) {
+            Ok(Some(node)) => node,
+            Ok(None) => return self.fail(SchedulerError::StepContractViolation),
+            Err(error) => return self.fail(error),
+        };
+        self.workspaces[node].begin_step();
+        let step = {
+            let mut io = StepIo {
+                node,
+                tick: self.tick,
+                plan: &self.runtime,
+                cords: &self.cords,
+                workspace: &mut self.workspaces[node],
+            };
+            self.drivers[node].commit_proposed_step(proposal, &mut io)
+        };
+        if let Err(error) = self.finish_node_step(node, step) {
+            return self.fail(error);
+        }
+        self.finish_scheduler_turn(grant_observations)
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    pub(crate) fn fail_proposed_execution(
+        &mut self,
+        error: SchedulerError,
+    ) -> Result<SchedulerStatus, SchedulerError> {
+        self.fail(error)
+    }
+
     /// Execute one fair ready-queue decision.
     pub fn run_one(&mut self) -> Result<SchedulerStatus, SchedulerError> {
         self.run_one_with_authority(&[])
@@ -2338,27 +2432,45 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
         &mut self,
         grant_observations: &[crate::ExactHostedServiceUseObservation],
     ) -> Result<SchedulerStatus, SchedulerError> {
+        let node = match self.begin_next_decision(None) {
+            Ok(Some(node)) => node,
+            Ok(None) => return Ok(self.status),
+            Err(error) => return self.fail(error),
+        };
+        if let Err(error) = self.step_node(node) {
+            return self.fail(error);
+        }
+        self.finish_scheduler_turn(grant_observations)
+    }
+
+    fn begin_next_decision(
+        &mut self,
+        expected_node: Option<usize>,
+    ) -> Result<Option<usize>, SchedulerError> {
         if !matches!(
             self.status,
             SchedulerStatus::Running | SchedulerStatus::Stalled
         ) {
             self.reconcile_host_values();
-            return Ok(self.status);
+            return Ok(None);
         }
         if self
             .policy
             .lifetime_decision_limit()
             .is_some_and(|limit| self.decisions >= limit)
         {
-            return self.fail(SchedulerError::DecisionLimitExceeded);
+            return Err(SchedulerError::DecisionLimitExceeded);
         }
         let Some(entry) = self.ready.pop() else {
             self.status = SchedulerStatus::Stalled;
             self.check_cancellation_deadline()?;
             self.refresh_terminal_status()?;
             self.reconcile_host_values();
-            return Ok(self.status);
+            return Ok(None);
         };
+        if expected_node.is_some_and(|expected| expected != entry.node) {
+            return Err(SchedulerError::StepContractViolation);
+        }
         self.enqueued[entry.node] = false;
         self.status = SchedulerStatus::Running;
         let scheduling_latency_ticks = self
@@ -2383,13 +2495,15 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
             .checked_add(1)
             .ok_or(SchedulerError::ClockLimitExceeded)?;
         if self.tick > self.policy.max_tick {
-            return self.fail(SchedulerError::ClockLimitExceeded);
+            return Err(SchedulerError::ClockLimitExceeded);
         }
+        Ok(Some(entry.node))
+    }
 
-        let result = self.step_node(entry.node);
-        if let Err(error) = result {
-            return self.fail(error);
-        }
+    fn finish_scheduler_turn(
+        &mut self,
+        grant_observations: &[crate::ExactHostedServiceUseObservation],
+    ) -> Result<SchedulerStatus, SchedulerError> {
         self.wake_due_timers(grant_observations)?;
         self.check_cancellation_deadline()?;
         self.refresh_terminal_status()?;
@@ -2551,6 +2665,10 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
             self.drivers[node].step(&mut io)
         };
 
+        self.finish_node_step(node, step)
+    }
+
+    fn finish_node_step(&mut self, node: usize, step: SchedulerStep) -> Result<(), SchedulerError> {
         self.apply_probes(node)?;
         let commit = matches!(step, SchedulerStep::Progress | SchedulerStep::Completed);
         if commit {
