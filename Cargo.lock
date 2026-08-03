@@ -622,6 +622,7 @@ version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "conduit-embedded",
+ "conduit-embedded-build",
  "cortex-m",
  "cortex-m-rt",
  "panic-halt",
@@ -639,7 +640,6 @@ version = "0.0.0-dev"
 dependencies = [
  "conduit-core",
  "conduit-embedded",
- "conduit-embedded-build",
  "conduit-http",
  "conduit-package",
  "conduit-panel",

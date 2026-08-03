@@ -2,416 +2,26 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use conduit_core::{
-    ArtifactDigest, AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee,
-    Direction, ExecutionLimits, ExecutionPlan, ExecutionProfile, FlowCapacity, FlowEventKind,
-    FlowPolicy, FlowQueueState, FlowWatermarks, HandleDisposition, Id, ImplementationMachine,
-    InstancePath, InstantiationContext, LifecycleUsage, MemoryAccounting, MemoryCategory,
-    MemoryClaim, OwnershipModel, PinnedDescriptor, PlanArtifact, PlanHostObservation,
-    PlanResourceBudget, PlanValidationContext, Pressure, ReadyQueueDiscipline, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, SemanticHash,
-    StopPolicy, TypeContractRef, ValueRepresentation,
+    AuthorityTime, ExecutionPlan, ExecutionProfile, FlowEventKind, FlowQueueState, Id,
+    ImplementationMachine, InstantiationContext, LifecycleUsage, PinnedDescriptor,
+    PlanValidationContext, ReadyQueueDiscipline, ResolvedPlanNode, SCHEDULER_CONTRACT_VERSION,
+    SchedulerPolicy, SemanticHash, StopPolicy,
 };
 use conduit_embedded::{
     EmbeddedEventKind, EmbeddedHostServices, EmbeddedInterest, EmbeddedNode, EmbeddedOutcome,
     EmbeddedStep, EmbeddedStorage, EmbeddedValue, HostReply, InterestSet, RunControl, RunIdentity,
     RunStatus, StepContext, execute_static_plan,
 };
-use conduit_embedded_build::{
-    EmbeddedNodeBinding, EmbeddedProgramIdentity, GeneratedEmbeddedPlan, generate_embedded_plan,
-};
 use conduit_rp2040_hil::{
-    CORDS as FIRMWARE_CORDS, GENERATED_PLAN_HASH as FIRMWARE_GENERATED_PLAN_HASH,
-    NODES as FIRMWARE_NODES, PLAN_HASH as FIRMWARE_PLAN_HASH, profile as firmware_profile,
+    FULL_PLAN_HASH as FIRMWARE_PLAN_HASH, GENERATED_EMBEDDED_PLAN_IDENTITY, GENERATED_NODES,
+    plan as firmware_plan, profile as firmware_profile, reference_plan::with_equivalence_plans,
 };
 use conduit_runtime::{
     DeterministicExecutor, RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerEventKind,
     SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
 };
 
-const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
-const TYPE: TypeContractRef<'static> = TypeContractRef {
-    contract_id: Id("fixture/sample"),
-    schema_version: 0,
-    semantic_hash: SemanticHash::from_bytes([9; 32]),
-};
-const CLAIMS: [MemoryClaim; 1] = [MemoryClaim {
-    category: MemoryCategory::PortTransactions,
-    accounting: MemoryAccounting::ExecutorAllocated,
-    bytes: 320,
-}];
-const REPRESENTATIONS: [ValueRepresentation<'static>; 2] = [
-    ValueRepresentation {
-        direction: Direction::Input,
-        port: Id("in"),
-        semantic_type: TYPE,
-        representation: PinnedDescriptor {
-            id: Id("fixture/fixed-bytes"),
-            schema_version: 0,
-            semantic_hash: SemanticHash::from_bytes([12; 32]),
-        },
-        ownership: OwnershipModel::Owned,
-        disposition: HandleDisposition::None,
-        max_bytes: 8,
-    },
-    ValueRepresentation {
-        direction: Direction::Output,
-        port: Id("out"),
-        semantic_type: TYPE,
-        representation: PinnedDescriptor {
-            id: Id("fixture/fixed-bytes"),
-            schema_version: 0,
-            semantic_hash: SemanticHash::from_bytes([12; 32]),
-        },
-        ownership: OwnershipModel::Owned,
-        disposition: HandleDisposition::None,
-        max_bytes: 8,
-    },
-];
-const LIMITS: ExecutionLimits = ExecutionLimits {
-    max_step_work: 4,
-    max_retained_values: 0,
-    max_retained_bytes: 0,
-    max_scratch_bytes: 0,
-    max_input_leases: 1,
-    max_input_bytes: 8,
-    max_output_reservations: 1,
-    max_output_bytes: 8,
-    max_transactions: 1,
-    max_fragments_per_step: 0,
-    max_pending_operations: 0,
-    max_timers: 0,
-    max_child_tasks: 0,
-    max_host_buffer_bytes: 0,
-    max_foreign_queue_items: 0,
-    max_foreign_queue_bytes: 0,
-    max_checkpoint_bytes: 0,
-    implementation_memory_bytes: 320,
-    cancellation_ticks: 8,
-};
 const EQUIVALENCE_FIXTURE: &str = include_str!("../../../conformance/c5/embedded-equivalence.json");
-const fn static_pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
-    PinnedDescriptor {
-        id: Id(id),
-        schema_version: 0,
-        semantic_hash: SemanticHash::from_bytes([byte; 32]),
-    }
-}
-
-const NO_PORTS: &[Id<'static>] = &[];
-const INPUT_PORTS: &[Id<'static>] = &[Id("in")];
-const OUTPUT_PORTS: &[Id<'static>] = &[Id("out")];
-
-fn hash(byte: u8) -> SemanticHash {
-    SemanticHash::from_bytes([byte; 32])
-}
-
-fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
-    PinnedDescriptor {
-        id: Id(id),
-        schema_version: 0,
-        semantic_hash: hash(byte),
-    }
-}
-
-fn profile() -> ExecutionProfile<'static> {
-    let mut profile = ExecutionProfile {
-        id: Id("fixture/embedded-equivalence-profile"),
-        schema_version: 0,
-        semantic_hash: ZERO,
-        boundedness: BoundednessProfile::Hard,
-        cancellation: CancellationGuarantee::Bounded,
-        step_bound_enforced: true,
-        limits: LIMITS,
-        representations: &REPRESENTATIONS,
-        memory_claims: &CLAIMS,
-        checkpoint: None,
-    };
-    profile.semantic_hash = profile.computed_semantic_hash(&mut [ZERO; 3]).unwrap();
-    profile
-}
-
-fn with_equivalence_plans(
-    test: impl FnOnce(ExecutionPlan<'_>, ExecutionPlan<'_>, &ExecutionProfile<'_>),
-) {
-    let profile = profile();
-    let desktop_observations = [observation("fixture/desktop-report", "fixture/desktop", 1)];
-    let rp2040_observations = [observation("fixture/rp2040-report", "fixture/rp2040", 2)];
-    let desktop_artifacts = [
-        PlanArtifact {
-            id: Id("fixture/desktop-sensor-artifact"),
-            digest: ArtifactDigest::from_bytes([3; 32]),
-        },
-        PlanArtifact {
-            id: Id("fixture/desktop-threshold-artifact"),
-            digest: ArtifactDigest::from_bytes([4; 32]),
-        },
-        PlanArtifact {
-            id: Id("fixture/desktop-indicator-artifact"),
-            digest: ArtifactDigest::from_bytes([5; 32]),
-        },
-    ];
-    let rp2040_artifacts = [
-        PlanArtifact {
-            id: Id("fixture/rp2040-sensor-artifact"),
-            digest: ArtifactDigest::from_bytes([6; 32]),
-        },
-        PlanArtifact {
-            id: Id("fixture/rp2040-threshold-artifact"),
-            digest: ArtifactDigest::from_bytes([7; 32]),
-        },
-        PlanArtifact {
-            id: Id("fixture/rp2040-indicator-artifact"),
-            digest: ArtifactDigest::from_bytes([8; 32]),
-        },
-    ];
-    let instances = [
-        InstancePath::new("fixture/sensor").unwrap(),
-        InstancePath::new("fixture/threshold").unwrap(),
-        InstancePath::new("fixture/indicator").unwrap(),
-    ];
-    let desktop_nodes = [
-        node(
-            instances[0],
-            "fixture/sensor",
-            20,
-            "fixture/desktop-sensor",
-            30,
-            desktop_artifacts[0].id,
-            desktop_observations[0].id,
-            desktop_observations[0].host,
-            &profile,
-        ),
-        node(
-            instances[1],
-            "fixture/threshold",
-            21,
-            "fixture/desktop-threshold",
-            31,
-            desktop_artifacts[1].id,
-            desktop_observations[0].id,
-            desktop_observations[0].host,
-            &profile,
-        ),
-        node(
-            instances[2],
-            "fixture/indicator",
-            22,
-            "fixture/desktop-indicator",
-            32,
-            desktop_artifacts[2].id,
-            desktop_observations[0].id,
-            desktop_observations[0].host,
-            &profile,
-        ),
-    ];
-    let rp2040_nodes = [
-        node(
-            instances[0],
-            "fixture/sensor",
-            20,
-            "fixture/rp2040-sensor",
-            40,
-            rp2040_artifacts[0].id,
-            rp2040_observations[0].id,
-            rp2040_observations[0].host,
-            &profile,
-        ),
-        node(
-            instances[1],
-            "fixture/threshold",
-            21,
-            "fixture/rp2040-threshold",
-            41,
-            rp2040_artifacts[1].id,
-            rp2040_observations[0].id,
-            rp2040_observations[0].host,
-            &profile,
-        ),
-        node(
-            instances[2],
-            "fixture/indicator",
-            22,
-            "fixture/rp2040-indicator",
-            42,
-            rp2040_artifacts[2].id,
-            rp2040_observations[0].id,
-            rp2040_observations[0].host,
-            &profile,
-        ),
-    ];
-    let capacity = FlowCapacity::new(1, 8, 8).unwrap();
-    let flow = FlowPolicy::new(
-        capacity,
-        Pressure::Block(BlockingFairness::Fifo),
-        FlowWatermarks::new(0, 1, capacity).unwrap(),
-    )
-    .unwrap();
-    let desktop_cords = [
-        cord(
-            "fixture/sample",
-            desktop_nodes[0].instance,
-            desktop_nodes[1].instance,
-            50,
-            flow,
-        ),
-        cord(
-            "fixture/decision",
-            desktop_nodes[1].instance,
-            desktop_nodes[2].instance,
-            51,
-            flow,
-        ),
-    ];
-    let rp2040_cords = [
-        cord(
-            "fixture/sample",
-            rp2040_nodes[0].instance,
-            rp2040_nodes[1].instance,
-            50,
-            flow,
-        ),
-        cord(
-            "fixture/decision",
-            rp2040_nodes[1].instance,
-            rp2040_nodes[2].instance,
-            51,
-            flow,
-        ),
-    ];
-    let mut desktop_plan = ExecutionPlan {
-        schema_version: 0,
-        identity: ZERO,
-        source_semantic_hash: hash(60),
-        resolver: pin("fixture/resolver", 61),
-        resolver_policy_hash: hash(62),
-        created_at: AuthorityTime {
-            basis: Id("clock/monotonic"),
-            tick: 1,
-        },
-        budget: PlanResourceBudget {
-            memory_bytes: 32_000_000,
-            storage_bytes: 0,
-            cpu_units: 3,
-            timers: 0,
-            transports: 0,
-            checkpoints: 0,
-            evidence_bytes: 32_000_000,
-        },
-        host_observations: &desktop_observations,
-        resources: &[],
-        workloads: &[],
-        artifacts: &desktop_artifacts,
-        nodes: &desktop_nodes,
-        cords: &desktop_cords,
-        value_envelopes: &[],
-        clock_conversions: &[],
-        feedback_boundaries: &[],
-        distributed_cords: &[],
-        fanouts: &[],
-        merges: &[],
-        event_streams: &[],
-        runtime_evidence: None,
-        evidence_provider: None,
-        watch_admissions: &[],
-        jobs: &[],
-        satisfaction_proofs: &[],
-        authorities: &[],
-        hazard_closure: None,
-        composites: &[],
-        port_groups: &[],
-        instance_pools: &[],
-        supervisions: &[],
-        unresolved: &[],
-    };
-    let mut rp2040_plan = ExecutionPlan {
-        host_observations: &rp2040_observations,
-        artifacts: &rp2040_artifacts,
-        nodes: &rp2040_nodes,
-        cords: &rp2040_cords,
-        ..desktop_plan
-    };
-    desktop_plan.identity = desktop_plan.semantic_hash(&mut [ZERO; 32]).unwrap();
-    rp2040_plan.identity = rp2040_plan.semantic_hash(&mut [ZERO; 32]).unwrap();
-    assert_eq!(
-        desktop_plan.source_semantic_hash,
-        rp2040_plan.source_semantic_hash
-    );
-    assert_ne!(desktop_plan.identity, rp2040_plan.identity);
-    assert_eq!(rp2040_plan.identity, FIRMWARE_PLAN_HASH);
-    test(desktop_plan, rp2040_plan, &profile);
-}
-
-fn observation(id: &'static str, host: &'static str, byte: u8) -> PlanHostObservation<'static> {
-    PlanHostObservation {
-        id: Id(id),
-        host: Id(host),
-        boot_id: Id("fixture/host-boot"),
-        semantic_hash: hash(byte),
-        time_basis: Id("clock/monotonic"),
-        observed_at_tick: 0,
-        valid_until_tick: 1_000,
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn node<'a>(
-    instance: InstancePath<'a>,
-    contract_id: &'static str,
-    contract_byte: u8,
-    implementation_id: &'static str,
-    implementation_byte: u8,
-    artifact: Id<'static>,
-    host_observation: Id<'static>,
-    host: Id<'static>,
-    profile: &'a ExecutionProfile<'static>,
-) -> ResolvedPlanNode<'a> {
-    ResolvedPlanNode {
-        instance,
-        contract: pin(contract_id, contract_byte),
-        implementation: pin(implementation_id, implementation_byte),
-        lifecycle_policy: pin("fixture/lifecycle", 30),
-        execution_profile: Some(profile),
-        artifact,
-        host_observation,
-        host,
-        allocation: PlanResourceBudget {
-            memory_bytes: 512,
-            cpu_units: 1,
-            ..PlanResourceBudget::ZERO
-        },
-        required_resources: &[],
-        required_effects: &[],
-    }
-}
-
-fn cord<'a>(
-    id: &'static str,
-    from: InstancePath<'a>,
-    to: InstancePath<'a>,
-    byte: u8,
-    flow: FlowPolicy<'a>,
-) -> ResolvedPlanCord<'a> {
-    ResolvedPlanCord {
-        id: Id(id),
-        from: ResolvedPlanPort {
-            node: from,
-            port: Id("out"),
-            direction: Direction::Output,
-            port_contract_hash: hash(byte),
-            value_type: TYPE,
-        },
-        to: ResolvedPlanPort {
-            node: to,
-            port: Id("in"),
-            direction: Direction::Input,
-            port_contract_hash: hash(byte + 20),
-            value_type: TYPE,
-        },
-        flow,
-        queue_memory_bytes: 8,
-    }
-}
-
 fn machine<'a>(
     profile: &'a ExecutionProfile<'a>,
     node: &ResolvedPlanNode<'a>,
@@ -646,9 +256,9 @@ enum EmbeddedDriver {
 impl EmbeddedNode<EmbeddedHost, 16, 4, 4> for EmbeddedDriver {
     fn descriptor(&self) -> PinnedDescriptor<'static> {
         match self {
-            Self::Sensor { .. } => static_pin("fixture/rp2040-sensor-driver", 80),
-            Self::Threshold => static_pin("fixture/rp2040-threshold-driver", 81),
-            Self::Indicator => static_pin("fixture/rp2040-indicator-driver", 82),
+            Self::Sensor { .. } => GENERATED_NODES[0].driver,
+            Self::Threshold => GENERATED_NODES[1].driver,
+            Self::Indicator => GENERATED_NODES[2].driver,
         }
     }
 
@@ -753,48 +363,6 @@ fn equivalence_fixture_expected(id: &str) -> serde_json::Value {
         .unwrap_or_else(|| panic!("missing executed equivalence fixture case {id}"))["expected"]
         .clone()
 }
-
-fn generated_embedded_plan(plan: &ExecutionPlan<'_>) -> GeneratedEmbeddedPlan {
-    let bindings = [
-        EmbeddedNodeBinding {
-            instance: InstancePath::new("fixture/sensor").unwrap(),
-            driver: static_pin("fixture/rp2040-sensor-driver", 80),
-            input_ports: NO_PORTS,
-            output_ports: OUTPUT_PORTS,
-        },
-        EmbeddedNodeBinding {
-            instance: InstancePath::new("fixture/threshold").unwrap(),
-            driver: static_pin("fixture/rp2040-threshold-driver", 81),
-            input_ports: INPUT_PORTS,
-            output_ports: OUTPUT_PORTS,
-        },
-        EmbeddedNodeBinding {
-            instance: InstancePath::new("fixture/indicator").unwrap(),
-            driver: static_pin("fixture/rp2040-indicator-driver", 82),
-            input_ports: INPUT_PORTS,
-            output_ports: NO_PORTS,
-        },
-    ];
-    generate_embedded_plan(
-        plan,
-        PlanValidationContext {
-            supported_schema_version: plan.schema_version,
-            now: AuthorityTime {
-                basis: Id("clock/monotonic"),
-                tick: 1,
-            },
-        },
-        firmware_profile(),
-        EmbeddedProgramIdentity {
-            conduit_revision: "1111111111111111111111111111111111111111",
-            policy_package_hash: hash(70),
-            policy_lock_hash: hash(71),
-        },
-        &bindings,
-    )
-    .unwrap()
-}
-
 #[test]
 fn desktop_and_rp2040_execute_one_semantic_plan_with_normalized_equivalence() {
     let expected = equivalence_fixture_expected("same-plan-normalized-equivalence");
@@ -807,47 +375,46 @@ fn desktop_and_rp2040_execute_one_semantic_plan_with_normalized_equivalence() {
         );
         assert_eq!(desktop_indicator.get(), Some(1));
 
-        let generated = generated_embedded_plan(&rp2040_plan);
-        let embedded_profile = generated.profile;
+        let static_plan = firmware_plan();
+        let embedded_profile = firmware_profile();
         assert!(
-            generated
+            static_plan
                 .cords
                 .iter()
                 .all(|cord| cord.maximum_value_bytes == 8)
         );
-        assert_eq!(generated.identity, FIRMWARE_GENERATED_PLAN_HASH);
-        generated.with_static_plan(|static_plan| {
-            assert_eq!(static_plan.nodes, FIRMWARE_NODES);
-            assert_eq!(static_plan.cords, FIRMWARE_CORDS);
-        });
-        let rendered = generated.render_rust_module();
-        assert!(rendered.contains("pub const GENERATED_STATIC_PLAN"));
+        assert_eq!(
+            static_plan.generated_plan_hash,
+            GENERATED_EMBEDDED_PLAN_IDENTITY
+        );
+        assert_eq!(static_plan.full_plan_hash, rp2040_plan.identity);
+        assert_ne!(
+            GENERATED_EMBEDDED_PLAN_IDENTITY,
+            SemanticHash::from_bytes([0; 32])
+        );
         let mut storage = EmbeddedStorage::<3, 2, 4, 2, 16, 64, 4, 4>::new();
         let mut embedded_host = EmbeddedHost { indicator: None };
-        let summary = generated
-            .with_static_plan(|static_plan| {
-                execute_static_plan(
-                    &static_plan,
-                    &embedded_profile,
-                    &mut storage,
-                    &mut [
-                        EmbeddedDriver::Sensor { emitted: false },
-                        EmbeddedDriver::Threshold,
-                        EmbeddedDriver::Indicator,
-                    ],
-                    &mut embedded_host,
-                    RunIdentity {
-                        boot_id: [5; 16],
-                        run_sequence: 1,
-                    },
-                    RunControl {
-                        maximum_decisions: 64,
-                        cancellation_at_decision: None,
-                        initial_tick: 0,
-                    },
-                )
-            })
-            .unwrap();
+        let summary = execute_static_plan(
+            &static_plan,
+            &embedded_profile,
+            &mut storage,
+            &mut [
+                EmbeddedDriver::Sensor { emitted: false },
+                EmbeddedDriver::Threshold,
+                EmbeddedDriver::Indicator,
+            ],
+            &mut embedded_host,
+            RunIdentity {
+                boot_id: [5; 16],
+                run_sequence: 1,
+            },
+            RunControl {
+                maximum_decisions: 64,
+                cancellation_at_decision: None,
+                initial_tick: 0,
+            },
+        )
+        .unwrap();
         assert_eq!(summary.status, RunStatus::Succeeded);
         assert_eq!(embedded_host.indicator, Some(1));
         let normalized_equal = normalize_desktop(&desktop) == normalize_embedded(storage.events());
@@ -891,33 +458,31 @@ fn desktop_and_rp2040_abort_cancellation_are_both_terminal() {
             SchedulerEventKind::Terminal(conduit_core::TerminalClass::Cancelled)
         )));
 
-        let generated = generated_embedded_plan(&rp2040_plan);
-        let embedded_profile = generated.profile;
+        let static_plan = firmware_plan();
+        let embedded_profile = firmware_profile();
+        assert_eq!(static_plan.full_plan_hash, rp2040_plan.identity);
         let mut storage = EmbeddedStorage::<3, 2, 4, 2, 16, 64, 4, 4>::new();
-        let summary = generated
-            .with_static_plan(|static_plan| {
-                execute_static_plan(
-                    &static_plan,
-                    &embedded_profile,
-                    &mut storage,
-                    &mut [
-                        EmbeddedDriver::Sensor { emitted: false },
-                        EmbeddedDriver::Threshold,
-                        EmbeddedDriver::Indicator,
-                    ],
-                    &mut EmbeddedHost { indicator: None },
-                    RunIdentity {
-                        boot_id: [5; 16],
-                        run_sequence: 2,
-                    },
-                    RunControl {
-                        maximum_decisions: 4,
-                        cancellation_at_decision: Some(0),
-                        initial_tick: 0,
-                    },
-                )
-            })
-            .unwrap();
+        let summary = execute_static_plan(
+            &static_plan,
+            &embedded_profile,
+            &mut storage,
+            &mut [
+                EmbeddedDriver::Sensor { emitted: false },
+                EmbeddedDriver::Threshold,
+                EmbeddedDriver::Indicator,
+            ],
+            &mut EmbeddedHost { indicator: None },
+            RunIdentity {
+                boot_id: [5; 16],
+                run_sequence: 2,
+            },
+            RunControl {
+                maximum_decisions: 4,
+                cancellation_at_decision: Some(0),
+                initial_tick: 0,
+            },
+        )
+        .unwrap();
         assert_eq!(summary.status, RunStatus::Cancelled);
         assert!(
             storage

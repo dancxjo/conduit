@@ -3,8 +3,8 @@ use conduit_embedded::{
     RunIdentity, RunStatus, execute_static_plan,
 };
 use conduit_rp2040_hil::{
-    FIRMWARE_IDENTITY, GENERIC_RP2040_BOARD_PROFILE, PLAN_HASH, ReferenceHost, ReferenceStorage,
-    drivers, plan, profile, with_capability_report,
+    CONDUIT_REVISION, FIRMWARE_IDENTITY, FULL_PLAN_HASH, GENERIC_RP2040_BOARD_PROFILE,
+    ReferenceHost, ReferenceStorage, drivers, plan, profile, with_capability_report,
 };
 use sha2::{Digest, Sha256};
 
@@ -24,6 +24,19 @@ fn rp2040_link_contract_places_boot2_before_the_application() {
 
 #[test]
 fn linked_firmware_path_matches_the_physical_hil_oracle() {
+    let repository_revision = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .output()
+        .unwrap();
+    assert!(repository_revision.status.success());
+    assert_eq!(
+        CONDUIT_REVISION,
+        std::str::from_utf8(&repository_revision.stdout)
+            .unwrap()
+            .trim(),
+        "generated firmware plan must name the exact Conduit revision"
+    );
     assert_eq!(
         FIRMWARE_IDENTITY.as_bytes(),
         &current_firmware_identity(),
@@ -36,7 +49,7 @@ fn linked_firmware_path_matches_the_physical_hil_oracle() {
     );
 
     let selected = profile();
-    let static_plan = plan(&selected);
+    let static_plan = plan();
     let run = RunIdentity {
         boot_id: [4; 16],
         run_sequence: 9,
@@ -63,7 +76,7 @@ fn linked_firmware_path_matches_the_physical_hil_oracle() {
     let header = HilRunHeader {
         protocol_version: HIL_PROTOCOL_VERSION,
         nonce: [3; 16],
-        plan_hash: PLAN_HASH,
+        plan_hash: FULL_PLAN_HASH,
         firmware_identity: FIRMWARE_IDENTITY,
         capability_report_hash: with_capability_report(0, |report| {
             assert_eq!(
@@ -129,7 +142,7 @@ fn linked_firmware_path_matches_the_physical_hil_oracle() {
     assert!(succeeded);
     let actual = serde_json::json!({
         "same_firmware_path": true,
-        "exact_rp2040_plan_hash": static_plan.full_plan_hash == PLAN_HASH,
+        "exact_rp2040_plan_hash": static_plan.full_plan_hash == FULL_PLAN_HASH,
         "build_input_identity": true,
         "fresh_capability_report_identity": header.capability_report_hash.as_bytes() != &[0; 32],
         "values": ["0000002a", "01"],
@@ -141,18 +154,21 @@ fn linked_firmware_path_matches_the_physical_hil_oracle() {
 }
 
 fn current_firmware_identity() -> [u8; 32] {
-    const INPUTS: [&str; 11] = [
+    const INPUTS: [&str; 14] = [
         "../../Cargo.lock",
         "../../Cargo.toml",
         "../../crates/conduit-core/Cargo.toml",
         "../../crates/conduit-core/src",
         "../../crates/conduit-embedded/Cargo.toml",
         "../../crates/conduit-embedded/src/lib.rs",
+        "../../crates/conduit-embedded-build/Cargo.toml",
+        "../../crates/conduit-embedded-build/src",
         "Cargo.toml",
         "build.rs",
         "memory.x",
         "src/lib.rs",
         "src/main.rs",
+        "src/reference_plan.rs",
     ];
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut digest = Sha256::new();
@@ -170,6 +186,11 @@ fn current_firmware_identity() -> [u8; 32] {
             hash_file(&mut digest, relative, &source);
         }
     }
+    hash_bytes(
+        &mut digest,
+        "generated-embedded-plan",
+        include_bytes!(concat!(env!("OUT_DIR"), "/embedded_plan.rs")),
+    );
     hash_bytes(
         &mut digest,
         "cargo-target",

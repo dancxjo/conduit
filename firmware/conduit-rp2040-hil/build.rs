@@ -4,25 +4,39 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use conduit_core::{AuthorityTime, Id, InstancePath, PinnedDescriptor, SemanticHash};
+use conduit_embedded_build::{
+    EmbeddedNodeBinding, EmbeddedProgramIdentity, generate_embedded_plan,
+};
 use sha2::{Digest, Sha256};
 
-const FIRMWARE_INPUTS: [&str; 11] = [
+#[path = "src/reference_plan.rs"]
+mod reference_plan;
+
+const FIRMWARE_INPUTS: [&str; 14] = [
     "../../Cargo.lock",
     "../../Cargo.toml",
     "../../crates/conduit-core/Cargo.toml",
     "../../crates/conduit-core/src",
     "../../crates/conduit-embedded/Cargo.toml",
     "../../crates/conduit-embedded/src/lib.rs",
+    "../../crates/conduit-embedded-build/Cargo.toml",
+    "../../crates/conduit-embedded-build/src",
     "Cargo.toml",
     "build.rs",
     "memory.x",
     "src/lib.rs",
     "src/main.rs",
+    "src/reference_plan.rs",
 ];
 
 fn main() {
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"));
     std::fs::copy("memory.x", output.join("memory.x")).expect("copy RP2040 memory layout");
+    let conduit_revision = conduit_revision();
+    let embedded_plan = generated_embedded_plan(&conduit_revision);
+    fs::write(output.join("embedded_plan.rs"), &embedded_plan)
+        .expect("write generated embedded plan");
     let mut digest = Sha256::new();
     for path in FIRMWARE_INPUTS {
         let input = Path::new(path);
@@ -38,6 +52,11 @@ fn main() {
             hash_file(&mut digest, path, input);
         }
     }
+    hash_bytes(
+        &mut digest,
+        "generated-embedded-plan",
+        embedded_plan.as_bytes(),
+    );
     let target = env::var("TARGET").expect("Cargo supplies TARGET");
     let profile = env::var("PROFILE").expect("Cargo supplies PROFILE");
     let rustc = env::var_os("RUSTC").expect("Cargo supplies RUSTC");
@@ -68,6 +87,95 @@ fn main() {
     println!("cargo:rustc-link-search={}", output.display());
     if target == "thumbv6m-none-eabi" {
         println!("cargo:rustc-link-arg=-Tlink.x");
+    }
+}
+
+fn conduit_revision() -> String {
+    let output = Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir("../..")
+        .output()
+        .expect("query exact Conduit revision");
+    assert!(output.status.success(), "git rev-parse HEAD must succeed");
+    let revision = String::from_utf8(output.stdout)
+        .expect("Git revision is UTF-8")
+        .trim()
+        .to_owned();
+    assert!(
+        revision.len() == 40
+            && revision
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)),
+        "Git must return one full lowercase commit"
+    );
+    println!("cargo:rerun-if-changed=../../.git/HEAD");
+    let symbolic = Command::new("git")
+        .args(["symbolic-ref", "-q", "HEAD"])
+        .current_dir("../..")
+        .output()
+        .expect("query Conduit symbolic ref");
+    if symbolic.status.success() {
+        let reference = String::from_utf8(symbolic.stdout)
+            .expect("Git symbolic ref is UTF-8")
+            .trim()
+            .to_owned();
+        println!("cargo:rerun-if-changed=../../.git/{reference}");
+    }
+    revision
+}
+
+fn generated_embedded_plan(conduit_revision: &str) -> String {
+    const NO_PORTS: &[Id<'static>] = &[];
+    const INPUT_PORTS: &[Id<'static>] = &[Id("in")];
+    const OUTPUT_PORTS: &[Id<'static>] = &[Id("out")];
+    let bindings = [
+        EmbeddedNodeBinding {
+            instance: InstancePath::new("fixture/sensor").expect("reference instance"),
+            driver: pin("fixture/rp2040-sensor-driver", 80),
+            input_ports: NO_PORTS,
+            output_ports: OUTPUT_PORTS,
+        },
+        EmbeddedNodeBinding {
+            instance: InstancePath::new("fixture/threshold").expect("reference instance"),
+            driver: pin("fixture/rp2040-threshold-driver", 81),
+            input_ports: INPUT_PORTS,
+            output_ports: OUTPUT_PORTS,
+        },
+        EmbeddedNodeBinding {
+            instance: InstancePath::new("fixture/indicator").expect("reference instance"),
+            driver: pin("fixture/rp2040-indicator-driver", 82),
+            input_ports: INPUT_PORTS,
+            output_ports: NO_PORTS,
+        },
+    ];
+    reference_plan::with_equivalence_plans(|_, rp2040_plan, _| {
+        generate_embedded_plan(
+            &rp2040_plan,
+            conduit_core::PlanValidationContext {
+                supported_schema_version: rp2040_plan.schema_version,
+                now: AuthorityTime {
+                    basis: Id("clock/monotonic"),
+                    tick: 1,
+                },
+            },
+            reference_plan::embedded_profile(),
+            EmbeddedProgramIdentity {
+                conduit_revision,
+                policy_package_hash: reference_plan::PROGRAM_FIXTURE_PACKAGE_HASH,
+                policy_lock_hash: reference_plan::PROGRAM_FIXTURE_LOCK_HASH,
+            },
+            &bindings,
+        )
+        .expect("checked reference plan must lower exactly")
+        .render_rust_module()
+    })
+}
+
+const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
+    PinnedDescriptor {
+        id: Id(id),
+        schema_version: 0,
+        semantic_hash: SemanticHash::from_bytes([byte; 32]),
     }
 }
 

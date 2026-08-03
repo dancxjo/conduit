@@ -8,7 +8,7 @@ mod firmware {
         RunIdentity, RunStatus, execute_static_plan,
     };
     use conduit_rp2040_hil::{
-        FIRMWARE_IDENTITY, PLAN_HASH, ReferenceHost, ReferenceStorage, drivers, plan, profile,
+        FIRMWARE_IDENTITY, FULL_PLAN_HASH, ReferenceHost, ReferenceStorage, drivers, plan, profile,
         with_capability_report,
     };
     use panic_halt as _;
@@ -58,7 +58,7 @@ mod firmware {
         let storage = cortex_m::singleton!(: ReferenceStorage = ReferenceStorage::new())
             .expect("single firmware init");
         let profile = profile();
-        let plan = plan(&profile);
+        let plan = plan();
         let mut request_bytes = [0; HilRequest::ENCODED_BYTES];
         let mut request_length = 0;
         let mut run_sequence = 0_u64;
@@ -91,7 +91,7 @@ mod firmware {
                 with_capability_report(run_sequence, |report| report.identity);
             let mut drivers = drivers();
             let mut host = ReferenceHost { indicator: false };
-            let result = if request.expected_plan_hash == PLAN_HASH {
+            let result = if request.expected_plan_hash == FULL_PLAN_HASH {
                 execute_static_plan(
                     &plan,
                     &profile,
