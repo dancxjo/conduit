@@ -2311,6 +2311,13 @@ fn audited_robotics_profile_reuses_generic_host_presentation_without_runtime_inv
             .all(|host| { host["class"] == "describe-only" && host["observation"].is_null() })
     );
     assert_eq!(fixture["contract"], "conduit.robotics/profile");
+    assert_eq!(fixture["command_flow"]["ordinary_ingress_capacity"], 1);
+    assert_eq!(fixture["command_flow"]["motion_ingress_capacity"], 1);
+    assert_eq!(fixture["command_flow"]["execution_queue_capacity"], 16);
+    assert_eq!(
+        fixture["command_flow"]["maximum_interrupted_command_ids"],
+        2
+    );
     assert_ne!(hosts[0]["implementation"], hosts[1]["implementation"]);
     assert_ne!(hosts[0]["artifact"], hosts[1]["artifact"]);
 
@@ -2327,6 +2334,11 @@ fn audited_robotics_profile_reuses_generic_host_presentation_without_runtime_inv
         "path_observation",
         "possession_identity",
         "authority_identity",
+        "command_flow_policy",
+        "ordinary_ingress",
+        "motion_ingress",
+        "execution_queue",
+        "command_interruption",
         "effect_audit",
         "terminal",
     ] {

@@ -7006,17 +7006,17 @@
       "profile": "conduit.c5",
       "requirement_ids": [
         "RBT-001", "RBT-002", "RBT-003", "RBT-004",
-        "RBT-005", "RBT-006", "RBT-007", "RBT-008"
+        "RBT-005", "RBT-006", "RBT-007", "RBT-008", "RBT-009"
       ],
       "artifacts": [
         {
           "id": "netherwick-describe-only-profile",
           "path": "../c5/netherwick-describe-only-profile.json",
-          "sha256": "sha256:64b5ce2f255939c2dd115459ac2c497b8e5ecbde8ea57cf22420542ca8b7b64f",
+          "sha256": "sha256:092b4b5d4d429d637d8b2188f6e4131f41e4853c5352a59300b15c9fb0d53eb5",
           "operation": "netherwick-describe-only-profile",
           "requirement_ids": [
             "RBT-001", "RBT-002", "RBT-003", "RBT-004",
-            "RBT-005", "RBT-006", "RBT-007", "RBT-008"
+            "RBT-005", "RBT-006", "RBT-007", "RBT-008", "RBT-009"
           ],
           "default_rule": "RBT-007",
           "case_rules": {
@@ -7024,6 +7024,12 @@
             "distinct-value-types": "RBT-002",
             "per-quantity-metadata": "RBT-003",
             "finite-motion-envelope": "RBT-004",
+            "bounded-command-flow": "RBT-004",
+            "same-kind-refresh-replaces": "RBT-009",
+            "latest-motion-replaces": "RBT-009",
+            "active-motion-renewal": "RBT-009",
+            "stop-preempts-both-ingress": "RBT-009",
+            "stop-resets-motion-sequence": "RBT-009",
             "linux-same-contract": "RBT-005",
             "pico-same-contract": "RBT-005",
             "distinct-exact-implementations": "RBT-005",
@@ -7046,6 +7052,8 @@
             "secret-topology-leakage": "RBT-008",
             "describe-causes-effects": "RBT-007",
             "missing-capability": "RBT-004",
+            "ordinary-ingress-busy": "RBT-009",
+            "stale-motion-sequence": "RBT-009",
             "descriptor-hash-mismatch": "RBT-001"
           },
           "format": "json-vectors",
@@ -7060,6 +7068,11 @@
           "netherwick-describe-only-profile#distinct-value-types",
           "netherwick-describe-only-profile#per-quantity-metadata",
           "netherwick-describe-only-profile#finite-motion-envelope",
+          "netherwick-describe-only-profile#bounded-command-flow",
+          "netherwick-describe-only-profile#same-kind-refresh-replaces",
+          "netherwick-describe-only-profile#latest-motion-replaces",
+          "netherwick-describe-only-profile#stop-preempts-both-ingress",
+          "netherwick-describe-only-profile#stop-resets-motion-sequence",
           "netherwick-describe-only-profile#linux-same-contract",
           "netherwick-describe-only-profile#pico-same-contract",
           "netherwick-describe-only-profile#distinct-exact-implementations",
@@ -7080,13 +7093,16 @@
           "netherwick-describe-only-profile#missing-inhibit",
           "netherwick-describe-only-profile#unsupported-host",
           "netherwick-describe-only-profile#missing-capability",
+          "netherwick-describe-only-profile#ordinary-ingress-busy",
+          "netherwick-describe-only-profile#stale-motion-sequence",
           "netherwick-describe-only-profile#descriptor-hash-mismatch"
         ],
         "boundary": [
           "netherwick-describe-only-profile#network-discovery-as-enrollment",
           "netherwick-describe-only-profile#hidden-device-handle",
           "netherwick-describe-only-profile#secret-topology-leakage",
-          "netherwick-describe-only-profile#describe-causes-effects"
+          "netherwick-describe-only-profile#describe-causes-effects",
+          "netherwick-describe-only-profile#active-motion-renewal"
         ],
         "migration": []
       },

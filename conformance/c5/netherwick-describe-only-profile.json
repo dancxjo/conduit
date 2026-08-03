@@ -1,13 +1,25 @@
 {
   "schema": "conduit.netherwick-describe-only-profile-conformance",
   "schema_version": 0,
-  "issue": 141,
+  "issue": 142,
   "contract": "conduit.robotics/profile",
-  "profile_identity": "sha256:f4ccc52b6c40ef5106a0752cf8e2d926bbcb1bcebe5b19287c32733315767029",
+  "contract_identity": "sha256:64435faec70f0fe772ba9f01561839c75726789966c569b2bd6fc6afcfd1d86d",
+  "profile_identity": "sha256:2841daa4642cde33a8a3f8b3503e44568f329f30154a0ad3cd1d7d00b3811707",
+  "command_flow": {
+    "policy": "conduit.robotics/command-flow/two-ingress-lanes",
+    "policy_identity": "sha256:a3ddc8b47c618ab304afe4eccff22d939c1db1f1de4e6a847cccb49c435ead33",
+    "ordinary_ingress_capacity": 1,
+    "motion_ingress_capacity": 1,
+    "execution_queue_capacity": 16,
+    "maximum_interrupted_command_ids": 2,
+    "ordinary_pressure": "reject-busy-except-replace-same-kind",
+    "motion_pressure": "replace-current-or-newer-u32-half-range",
+    "stop_preemption": "clear-both-ingress-lanes"
+  },
   "hosts": [
     {
       "id": "netherwick/pete-linux-describe-only",
-      "profile_identity": "sha256:09a016735e026bbc9fc15a0af4f8023fae2dd67a31f172749f7da46037cdfb52",
+      "profile_identity": "sha256:8697317f0a0c663530c06737067b095f61e7b8e18f3a0d0d48979ee9df261878",
       "class": "describe-only",
       "implementation": "netherwick/implementation/pete-linux-robotics-describe",
       "artifact": "netherwick/artifact/pete-brainstem-linux",
@@ -16,7 +28,7 @@
     },
     {
       "id": "netherwick/pete-pico-w-describe-only",
-      "profile_identity": "sha256:46bb4f92740d3389b3e2e0be7f2a042d4c7f317fd134d9ec33133e0ea6cd1fd9",
+      "profile_identity": "sha256:8972194080a4e8c19b3109d39643e1be7052d2dbe47eea749ba75ebb2d0d4e09",
       "class": "describe-only",
       "implementation": "netherwick/implementation/pete-pico-robotics-describe",
       "artifact": "netherwick/artifact/pete-brainstem-pico-w",
@@ -34,13 +46,22 @@
     "command_ttl_ticks": 250,
     "linear_velocity_mm_per_second": 500,
     "angular_velocity_milliradians_per_second": 2000,
-    "command_queue": 1
+    "ordinary_ingress": 1,
+    "motion_ingress": 1,
+    "execution_queue": 16,
+    "command_interruption_ids": 2
   },
   "cases": [
     {"id":"descriptor-hash","expected":"accepted"},
     {"id":"distinct-value-types","expected":"accepted"},
     {"id":"per-quantity-metadata","expected":"accepted"},
     {"id":"finite-motion-envelope","expected":"accepted"},
+    {"id":"bounded-command-flow","expected":"accepted"},
+    {"id":"same-kind-refresh-replaces","expected":"accepted-replaced"},
+    {"id":"latest-motion-replaces","expected":"accepted-replaced"},
+    {"id":"active-motion-renewal","expected":"accepted-renewed"},
+    {"id":"stop-preempts-both-ingress","expected":"accepted-safety-preempted"},
+    {"id":"stop-resets-motion-sequence","expected":"accepted"},
     {"id":"linux-same-contract","expected":"accepted-describe-only"},
     {"id":"pico-same-contract","expected":"accepted-describe-only"},
     {"id":"distinct-exact-implementations","expected":"accepted"},
@@ -63,6 +84,8 @@
     {"id":"secret-topology-leakage","expected":"CND-RBT-012"},
     {"id":"describe-causes-effects","expected":"CND-RBT-013"},
     {"id":"missing-capability","expected":"CND-RBT-014"},
+    {"id":"ordinary-ingress-busy","expected":"CND-RBT-015"},
+    {"id":"stale-motion-sequence","expected":"CND-RBT-016"},
     {"id":"descriptor-hash-mismatch","expected":"CND-RBT-002"}
   ]
 }

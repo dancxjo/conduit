@@ -1,12 +1,12 @@
 #![no_std]
 
-//! Host-neutral, effect-free robotics profile descriptions.
+//! Host-neutral, effect-free robotics profiles and command policy.
 //!
-//! This package owns domain semantics and validation only. Implementations,
-//! artifacts, host observations, exact bindings, authority, run evidence, and
-//! presentation remain separate. It deliberately contains no robot driver,
-//! device handle, discovery, resolver, scheduler, possession service, or
-//! actuation path.
+//! This package owns domain semantics, validation, and pure bounded policy
+//! transitions only. Implementations, artifacts, host observations, exact
+//! bindings, authority, run evidence, and presentation remain separate. It
+//! deliberately contains no robot driver, device handle, discovery, resolver,
+//! scheduler, possession service, synchronization primitive, or actuation path.
 
 #[cfg(test)]
 extern crate std;
@@ -27,10 +27,11 @@ pub const MAXIMUM_LOGICAL_RELATIONSHIPS: usize = 8;
 pub const MAXIMUM_PROVIDER_STATES: usize = 8;
 pub const MAXIMUM_CARRIER_CANDIDATES: usize = 8;
 pub const MAXIMUM_PATH_OBSERVATIONS: usize = 8;
+pub const MAXIMUM_COMMAND_INTERRUPTION_IDS: usize = 2;
 
 pub const ROBOTICS_PROFILE_CONTRACT: PinnedDescriptor<'static> = pin(
     "conduit.robotics/profile",
-    hash_bytes("8186fdd2be75eb23f4343f15b82a336bad951c19c803308162d150b45f67fd1e"),
+    hash_bytes("64435faec70f0fe772ba9f01561839c75726789966c569b2bd6fc6afcfd1d86d"),
 );
 pub const LINUX_IMPLEMENTATION: PinnedDescriptor<'static> = pin(
     "netherwick/implementation/pete-linux-robotics-describe",
@@ -59,6 +60,10 @@ pub const PICO_PROVIDER_BUNDLE: PinnedDescriptor<'static> = pin(
 pub const DESCRIBE_ADAPTER: PinnedDescriptor<'static> = pin(
     "conduit.adapter/robotics-profile-describe",
     hash_bytes("a446ad531079a0f5e8622302ed6f59592d2594b4eb5ed314060f09fede2f4c51"),
+);
+pub const COMMAND_FLOW_POLICY: PinnedDescriptor<'static> = pin(
+    "conduit.robotics/command-flow/two-ingress-lanes",
+    hash_bytes("a3ddc8b47c618ab304afe4eccff22d939c1db1f1de4e6a847cccb49c435ead33"),
 );
 
 pub const OBSERVATION_TYPE: PinnedDescriptor<'static> = pin(
@@ -204,7 +209,6 @@ pub struct SafetyEnvelope<'a> {
     pub command_ttl_ticks: u64,
     pub maximum_linear_velocity_mm_per_second: u32,
     pub maximum_angular_velocity_milliradians_per_second: u32,
-    pub maximum_command_queue: u16,
     pub possession: PinnedDescriptor<'a>,
     pub motion_authority: PinnedDescriptor<'a>,
     pub stop: PinnedDescriptor<'a>,
@@ -213,6 +217,20 @@ pub struct SafetyEnvelope<'a> {
     pub charging_interlock: PinnedDescriptor<'a>,
     pub inhibit_clear: PinnedDescriptor<'a>,
     pub capability: PinnedDescriptor<'a>,
+}
+
+/// Exact finite storage bounds for the portable command policy.
+///
+/// The two ingress lanes are deliberately distinct from the host's execution
+/// queue. The current policy has one atomic slot per ingress lane; the host may
+/// realize those slots and the downstream queue with any synchronization or
+/// scheduling mechanism that preserves [`transition_command_ingress`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CommandFlowPolicy<'a> {
+    pub descriptor: PinnedDescriptor<'a>,
+    pub maximum_ordinary_ingress: u16,
+    pub maximum_motion_ingress: u16,
+    pub maximum_execution_queue: u16,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -232,6 +250,7 @@ pub struct RoboticsProfile<'a> {
     pub value_types: &'a [RoboticsValueType<'a>],
     pub quantities: &'a [QuantityContract<'a>],
     pub safety: SafetyEnvelope<'a>,
+    pub command_flow: CommandFlowPolicy<'a>,
     pub logical_relationships: &'a [LogicalRelationship<'a>],
     pub role_descriptor: PinnedDescriptor<'a>,
     pub checkpoint_descriptor: PinnedDescriptor<'a>,
@@ -332,7 +351,6 @@ const SAFETY: SafetyEnvelope<'static> = SafetyEnvelope {
     command_ttl_ticks: 250,
     maximum_linear_velocity_mm_per_second: 500,
     maximum_angular_velocity_milliradians_per_second: 2_000,
-    maximum_command_queue: 1,
     possession: POSSESSION_REQUIREMENT,
     motion_authority: MOTION_AUTHORITY,
     stop: STOP_REQUIREMENT,
@@ -341,6 +359,13 @@ const SAFETY: SafetyEnvelope<'static> = SafetyEnvelope {
     charging_interlock: INTERLOCK_REQUIREMENT,
     inhibit_clear: INHIBIT_REQUIREMENT,
     capability: MOTION_CAPABILITY,
+};
+
+const COMMAND_FLOW: CommandFlowPolicy<'static> = CommandFlowPolicy {
+    descriptor: COMMAND_FLOW_POLICY,
+    maximum_ordinary_ingress: 1,
+    maximum_motion_ingress: 1,
+    maximum_execution_queue: 16,
 };
 
 const ROLE_DESCRIPTOR: PinnedDescriptor<'static> = pin(
@@ -365,6 +390,7 @@ pub fn audited_profile() -> RoboticsProfile<'static> {
         value_types: &VALUE_TYPES,
         quantities: &QUANTITIES,
         safety: SAFETY,
+        command_flow: COMMAND_FLOW,
         logical_relationships: &RELATIONSHIPS,
         role_descriptor: ROLE_DESCRIPTOR,
         checkpoint_descriptor: CHECKPOINT_DESCRIPTOR,
@@ -446,6 +472,10 @@ impl RoboticsProfile<'_> {
             self.safety.inhibit_clear,
         )?;
         let capability = hash_pin("conduit.robotics/safety-capability", self.safety.capability)?;
+        let command_flow = hash_pin(
+            "conduit.robotics/command-flow-policy",
+            self.command_flow.descriptor,
+        )?;
         let role_descriptor = hash_pin("conduit.robotics/role", self.role_descriptor)?;
         let checkpoint_descriptor =
             hash_pin("conduit.robotics/checkpoint", self.checkpoint_descriptor)?;
@@ -482,8 +512,20 @@ impl RoboticsProfile<'_> {
                 )),
             ),
             semantic(
-                "maximum_command_queue",
-                CanonicalValue::Integer(i128::from(self.safety.maximum_command_queue)),
+                "maximum_ordinary_ingress",
+                CanonicalValue::Integer(i128::from(self.command_flow.maximum_ordinary_ingress)),
+            ),
+            semantic(
+                "maximum_motion_ingress",
+                CanonicalValue::Integer(i128::from(self.command_flow.maximum_motion_ingress)),
+            ),
+            semantic(
+                "maximum_execution_queue",
+                CanonicalValue::Integer(i128::from(self.command_flow.maximum_execution_queue)),
+            ),
+            semantic(
+                "command_flow_policy",
+                CanonicalValue::Bytes(command_flow.as_bytes()),
             ),
             semantic("possession", CanonicalValue::Bytes(possession.as_bytes())),
             semantic(
@@ -746,6 +788,75 @@ pub struct MotionAdmission<'a> {
     pub inhibit_clear: bool,
 }
 
+/// The checked program's portable classification of a command at ingress.
+///
+/// Classification is semantic input to policy, not a fact inferred by a host
+/// from an implementation-specific opcode.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CommandIngressClass {
+    /// Occupy the ordinary lane or fail with bounded backpressure.
+    Ordinary,
+    /// Replace an ordinary command only when its exact kind is the same.
+    ReplaceSameKind,
+    /// Occupy the motion lane, replacing a current-or-older sequence.
+    MotionLatest,
+    /// Clear both ingress lanes and occupy the ordinary lane.
+    Stop,
+    /// Clear both ingress lanes and occupy the ordinary lane.
+    EmergencyStop,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CommandIngressLane {
+    Ordinary,
+    Motion,
+}
+
+/// One command held by a host-provided ingress slot.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PendingIngressCommand<'a> {
+    pub command_id: u32,
+    pub kind: Id<'a>,
+    pub sequence: u32,
+    /// This entry refreshes an already-active motion and therefore owns no
+    /// separately interruptible queued lifecycle.
+    pub renews_active_motion: bool,
+}
+
+/// The complete portable state needed to decide command ingress.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct CommandIngressState<'a> {
+    pub ordinary: Option<PendingIngressCommand<'a>>,
+    pub motion: Option<PendingIngressCommand<'a>>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CommandIngressRequest<'a> {
+    pub class: CommandIngressClass,
+    pub command: PendingIngressCommand<'a>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CommandIngressDisposition {
+    Accepted,
+    Replaced,
+    Renewed,
+    SafetyPreempted,
+}
+
+/// A bounded, host-neutral description of the ingress transaction.
+///
+/// `interrupted[0]` belongs to the displaced ordinary slot and
+/// `interrupted[1]` to the displaced motion slot. A host closes those exact
+/// accepted lifecycles when it atomically installs `state`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CommandIngressTransition<'a> {
+    pub state: CommandIngressState<'a>,
+    pub lane: CommandIngressLane,
+    pub disposition: CommandIngressDisposition,
+    pub interrupted: [Option<u32>; MAXIMUM_COMMAND_INTERRUPTION_IDS],
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RoboticsReason {
     UnsupportedVersion,
@@ -762,6 +873,8 @@ pub enum RoboticsReason {
     SensitiveDisclosure,
     DescribeCausedEffect,
     CapabilityMissing,
+    CommandIngressBusy,
+    CommandSequenceStale,
 }
 
 impl RoboticsReason {
@@ -782,6 +895,8 @@ impl RoboticsReason {
             Self::SensitiveDisclosure => "CND-RBT-012",
             Self::DescribeCausedEffect => "CND-RBT-013",
             Self::CapabilityMissing => "CND-RBT-014",
+            Self::CommandIngressBusy => "CND-RBT-015",
+            Self::CommandSequenceStale => "CND-RBT-016",
         }
     }
 }
@@ -803,7 +918,10 @@ pub fn validate_profile(profile: RoboticsProfile<'_>) -> Result<(), RoboticsReas
             .safety
             .maximum_angular_velocity_milliradians_per_second
             == 0
-        || profile.safety.maximum_command_queue == 0
+        || profile.command_flow.maximum_ordinary_ingress != 1
+        || profile.command_flow.maximum_motion_ingress != 1
+        || profile.command_flow.maximum_execution_queue == 0
+        || profile.command_flow.descriptor != COMMAND_FLOW_POLICY
         || profile.quantities.iter().any(|quantity| {
             quantity.id.as_str().is_empty()
                 || quantity.units.as_str().is_empty()
@@ -944,6 +1062,146 @@ pub fn validate_motion_admission(
         return Err(RoboticsReason::SafetyRequirementMissing);
     }
     Ok(())
+}
+
+/// Compare wrapping command sequences using the exact half-range rule.
+///
+/// Equality is a valid refresh. A difference at or beyond half of the `u32`
+/// range is stale, which keeps ordering unambiguous across wraparound.
+#[must_use]
+pub const fn command_sequence_is_current_or_newer(sequence: u32, current: u32) -> bool {
+    sequence == current || sequence.wrapping_sub(current) < u32::MAX / 2
+}
+
+/// Apply one checked command classification to the portable ingress state.
+///
+/// This function has no effects and performs no synchronization. A host must
+/// read its ingress slots consistently and atomically install the returned
+/// state while closing every lifecycle named by `interrupted`. The host owns
+/// how that transaction is synchronized and how accepted commands are woken
+/// and dispatched.
+pub fn transition_command_ingress<'a>(
+    profile: RoboticsProfile<'_>,
+    state: CommandIngressState<'a>,
+    request: CommandIngressRequest<'a>,
+) -> Result<CommandIngressTransition<'a>, RoboticsReason> {
+    validate_profile(profile)?;
+    validate_ingress_state(state, request)?;
+
+    let replacement = request.command;
+    match request.class {
+        CommandIngressClass::Ordinary => {
+            if state.ordinary.is_some() {
+                return Err(RoboticsReason::CommandIngressBusy);
+            }
+            Ok(CommandIngressTransition {
+                state: CommandIngressState {
+                    ordinary: Some(replacement),
+                    ..state
+                },
+                lane: CommandIngressLane::Ordinary,
+                disposition: CommandIngressDisposition::Accepted,
+                interrupted: [None, None],
+            })
+        }
+        CommandIngressClass::ReplaceSameKind => {
+            let Some(current) = state.ordinary else {
+                return Ok(CommandIngressTransition {
+                    state: CommandIngressState {
+                        ordinary: Some(replacement),
+                        ..state
+                    },
+                    lane: CommandIngressLane::Ordinary,
+                    disposition: CommandIngressDisposition::Accepted,
+                    interrupted: [None, None],
+                });
+            };
+            if current.kind != replacement.kind {
+                return Err(RoboticsReason::CommandIngressBusy);
+            }
+            Ok(CommandIngressTransition {
+                state: CommandIngressState {
+                    ordinary: Some(replacement),
+                    ..state
+                },
+                lane: CommandIngressLane::Ordinary,
+                disposition: CommandIngressDisposition::Replaced,
+                interrupted: [different_command(current, replacement.command_id), None],
+            })
+        }
+        CommandIngressClass::MotionLatest => {
+            if let Some(current) = state.motion
+                && !command_sequence_is_current_or_newer(replacement.sequence, current.sequence)
+            {
+                return Err(RoboticsReason::CommandSequenceStale);
+            }
+            let interrupted = state.motion.and_then(|current| {
+                (!current.renews_active_motion)
+                    .then(|| different_command(current, replacement.command_id))
+                    .flatten()
+            });
+            let disposition = if replacement.renews_active_motion {
+                CommandIngressDisposition::Renewed
+            } else if state.motion.is_some() {
+                CommandIngressDisposition::Replaced
+            } else {
+                CommandIngressDisposition::Accepted
+            };
+            Ok(CommandIngressTransition {
+                state: CommandIngressState {
+                    motion: Some(replacement),
+                    ..state
+                },
+                lane: CommandIngressLane::Motion,
+                disposition,
+                interrupted: [None, interrupted],
+            })
+        }
+        CommandIngressClass::Stop | CommandIngressClass::EmergencyStop => {
+            let interrupted = [
+                state
+                    .ordinary
+                    .and_then(|current| different_command(current, replacement.command_id)),
+                state.motion.and_then(|current| {
+                    (!current.renews_active_motion)
+                        .then(|| different_command(current, replacement.command_id))
+                        .flatten()
+                }),
+            ];
+            Ok(CommandIngressTransition {
+                state: CommandIngressState {
+                    ordinary: Some(replacement),
+                    motion: None,
+                },
+                lane: CommandIngressLane::Ordinary,
+                disposition: CommandIngressDisposition::SafetyPreempted,
+                interrupted,
+            })
+        }
+    }
+}
+
+fn validate_ingress_state(
+    state: CommandIngressState<'_>,
+    request: CommandIngressRequest<'_>,
+) -> Result<(), RoboticsReason> {
+    let invalid_pending = |command: PendingIngressCommand<'_>| command.kind.as_str().is_empty();
+    if request.command.kind.as_str().is_empty()
+        || state.ordinary.is_some_and(invalid_pending)
+        || state.motion.is_some_and(invalid_pending)
+        || state
+            .ordinary
+            .is_some_and(|command| command.renews_active_motion)
+        || (request.class != CommandIngressClass::MotionLatest
+            && request.command.renews_active_motion)
+    {
+        return Err(RoboticsReason::InvalidDescriptor);
+    }
+    Ok(())
+}
+
+fn different_command(command: PendingIngressCommand<'_>, replacement_id: u32) -> Option<u32> {
+    (command.command_id != replacement_id).then_some(command.command_id)
 }
 
 pub fn validate_describe_only_report(report: RoboticsHostReport<'_>) -> Result<(), RoboticsReason> {
@@ -1164,6 +1422,14 @@ fn computed_profile_contract_hash() -> Result<SemanticHash, CanonicalError<Infal
                 "maximum-path-observations",
                 CanonicalValue::Integer(MAXIMUM_PATH_OBSERVATIONS as i128),
             ),
+            semantic(
+                "command-flow-contract",
+                CanonicalValue::Identifier(Id("conduit.robotics/command-flow")),
+            ),
+            semantic(
+                "maximum-command-interruption-ids",
+                CanonicalValue::Integer(MAXIMUM_COMMAND_INTERRUPTION_IDS as i128),
+            ),
         ]),
     }
     .semantic_hash()
@@ -1325,6 +1591,19 @@ mod tests {
         }
     }
 
+    fn pending(
+        command_id: u32,
+        kind: &'static str,
+        sequence: u32,
+    ) -> PendingIngressCommand<'static> {
+        PendingIngressCommand {
+            command_id,
+            kind: Id(kind),
+            sequence,
+            renews_active_motion: false,
+        }
+    }
+
     #[test]
     fn audited_descriptor_has_exact_hash_and_distinct_value_roles() {
         assert_eq!(
@@ -1339,6 +1618,7 @@ mod tests {
             LINUX_PROVIDER_BUNDLE,
             PICO_PROVIDER_BUNDLE,
             DESCRIBE_ADAPTER,
+            COMMAND_FLOW_POLICY,
             OBSERVATION_TYPE,
             COMMAND_TYPE,
             ACKNOWLEDGEMENT_TYPE,
@@ -1376,7 +1656,7 @@ mod tests {
         validate_profile(profile).unwrap();
         assert_eq!(
             profile.identity.to_string(),
-            "sha256:f4ccc52b6c40ef5106a0752cf8e2d926bbcb1bcebe5b19287c32733315767029"
+            "sha256:2841daa4642cde33a8a3f8b3503e44568f329f30154a0ad3cd1d7d00b3811707"
         );
         assert_ne!(profile.identity, ZERO_HASH);
         assert_eq!(profile.value_types.len(), 7);
@@ -1393,6 +1673,24 @@ mod tests {
             }),
             Err(RoboticsReason::InvalidDescriptor)
         );
+
+        let mut wrong_policy = profile;
+        wrong_policy.command_flow.descriptor = STOP_REQUIREMENT;
+        wrong_policy.identity = wrong_policy.semantic_hash().unwrap();
+        assert_eq!(
+            validate_profile(wrong_policy),
+            Err(RoboticsReason::InvalidDescriptor)
+        );
+
+        let mut unimplemented_lane_shape = profile;
+        unimplemented_lane_shape
+            .command_flow
+            .maximum_ordinary_ingress = 2;
+        unimplemented_lane_shape.identity = unimplemented_lane_shape.semantic_hash().unwrap();
+        assert_eq!(
+            validate_profile(unimplemented_lane_shape),
+            Err(RoboticsReason::InvalidDescriptor)
+        );
     }
 
     #[test]
@@ -1403,11 +1701,11 @@ mod tests {
         validate_describe_only_report(pico).unwrap();
         assert_eq!(
             linux.generic_host.identity.to_string(),
-            "sha256:09a016735e026bbc9fc15a0af4f8023fae2dd67a31f172749f7da46037cdfb52"
+            "sha256:8697317f0a0c663530c06737067b095f61e7b8e18f3a0d0d48979ee9df261878"
         );
         assert_eq!(
             pico.generic_host.identity.to_string(),
-            "sha256:46bb4f92740d3389b3e2e0be7f2a042d4c7f317fd134d9ec33133e0ea6cd1fd9"
+            "sha256:8972194080a4e8c19b3109d39643e1be7052d2dbe47eea749ba75ebb2d0d4e09"
         );
         assert_eq!(
             linux.generic_host.optional_providers[0].contract,
@@ -1524,6 +1822,162 @@ mod tests {
     }
 
     #[test]
+    fn ordinary_ingress_is_bounded_and_only_same_kind_refreshes_replace() {
+        let profile = audited_profile();
+        let heartbeat = CommandIngressRequest {
+            class: CommandIngressClass::ReplaceSameKind,
+            command: pending(10, "heartbeat-stop", 10),
+        };
+        let first =
+            transition_command_ingress(profile, CommandIngressState::default(), heartbeat).unwrap();
+        assert_eq!(first.disposition, CommandIngressDisposition::Accepted);
+        assert_eq!(first.state.ordinary, Some(heartbeat.command));
+
+        assert_eq!(
+            transition_command_ingress(
+                profile,
+                first.state,
+                CommandIngressRequest {
+                    class: CommandIngressClass::Ordinary,
+                    command: pending(11, "arm", 0),
+                },
+            ),
+            Err(RoboticsReason::CommandIngressBusy)
+        );
+        assert_eq!(
+            transition_command_ingress(
+                profile,
+                first.state,
+                CommandIngressRequest {
+                    class: CommandIngressClass::ReplaceSameKind,
+                    command: pending(11, "arm", 0),
+                },
+            ),
+            Err(RoboticsReason::CommandIngressBusy)
+        );
+
+        let refreshed = transition_command_ingress(
+            profile,
+            first.state,
+            CommandIngressRequest {
+                command: pending(12, "heartbeat-stop", 12),
+                ..heartbeat
+            },
+        )
+        .unwrap();
+        assert_eq!(refreshed.disposition, CommandIngressDisposition::Replaced);
+        assert_eq!(refreshed.interrupted, [Some(10), None]);
+        assert_eq!(refreshed.state.ordinary.unwrap().command_id, 12);
+    }
+
+    #[test]
+    fn motion_ingress_keeps_latest_wrapping_sequence_and_exact_renewal_lifecycle() {
+        let profile = audited_profile();
+        let state = CommandIngressState {
+            ordinary: None,
+            motion: Some(pending(41, "cmd-vel", u32::MAX - 2)),
+        };
+        assert_eq!(
+            transition_command_ingress(
+                profile,
+                state,
+                CommandIngressRequest {
+                    class: CommandIngressClass::MotionLatest,
+                    command: pending(40, "cmd-vel", u32::MAX - 3),
+                },
+            ),
+            Err(RoboticsReason::CommandSequenceStale)
+        );
+
+        let wrapped = transition_command_ingress(
+            profile,
+            state,
+            CommandIngressRequest {
+                class: CommandIngressClass::MotionLatest,
+                command: pending(42, "cmd-vel", 1),
+            },
+        )
+        .unwrap();
+        assert_eq!(wrapped.disposition, CommandIngressDisposition::Replaced);
+        assert_eq!(wrapped.interrupted, [None, Some(41)]);
+
+        let renewal = PendingIngressCommand {
+            renews_active_motion: true,
+            ..pending(43, "cmd-vel", 2)
+        };
+        let renewed = transition_command_ingress(
+            profile,
+            CommandIngressState {
+                ordinary: None,
+                motion: Some(PendingIngressCommand {
+                    renews_active_motion: true,
+                    ..pending(42, "cmd-vel", 1)
+                }),
+            },
+            CommandIngressRequest {
+                class: CommandIngressClass::MotionLatest,
+                command: renewal,
+            },
+        )
+        .unwrap();
+        assert_eq!(renewed.disposition, CommandIngressDisposition::Renewed);
+        assert_eq!(renewed.interrupted, [None, None]);
+    }
+
+    #[test]
+    fn stop_preempts_both_ingress_lanes_and_resets_motion_sequence_epoch() {
+        let profile = audited_profile();
+        let state = CommandIngressState {
+            ordinary: Some(pending(70, "heartbeat-stop", 70)),
+            motion: Some(pending(71, "cmd-vel", 10_000)),
+        };
+        let stopped = transition_command_ingress(
+            profile,
+            state,
+            CommandIngressRequest {
+                class: CommandIngressClass::Stop,
+                command: pending(72, "stop", 0),
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            stopped.disposition,
+            CommandIngressDisposition::SafetyPreempted
+        );
+        assert_eq!(stopped.interrupted, [Some(70), Some(71)]);
+        assert_eq!(stopped.state.ordinary.unwrap().command_id, 72);
+        assert_eq!(stopped.state.motion, None);
+
+        let emergency_stopped = transition_command_ingress(
+            profile,
+            state,
+            CommandIngressRequest {
+                class: CommandIngressClass::EmergencyStop,
+                command: pending(82, "emergency-stop", 0),
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            emergency_stopped.disposition,
+            CommandIngressDisposition::SafetyPreempted
+        );
+        assert_eq!(emergency_stopped.interrupted, [Some(70), Some(71)]);
+        assert_eq!(emergency_stopped.state.motion, None);
+
+        let restarted = transition_command_ingress(
+            profile,
+            stopped.state,
+            CommandIngressRequest {
+                class: CommandIngressClass::MotionLatest,
+                command: pending(73, "cmd-vel", 321),
+            },
+        )
+        .unwrap();
+        assert_eq!(restarted.disposition, CommandIngressDisposition::Accepted);
+        assert_eq!(restarted.interrupted, [None, None]);
+    }
+
+    #[test]
     fn describe_only_rejects_live_facts_handles_leakage_and_effects() {
         let clean = report(true);
         validate_describe_only_report(clean).unwrap();
@@ -1607,6 +2061,8 @@ mod tests {
             "secret-topology-leakage",
             "describe-causes-effects",
             "missing-capability",
+            "ordinary-ingress-busy",
+            "stale-motion-sequence",
             "descriptor-hash-mismatch",
         ] {
             assert!(
@@ -1618,5 +2074,22 @@ mod tests {
                 "missing {id}"
             );
         }
+        assert_eq!(value["issue"], 142);
+        assert_eq!(
+            value["command_flow"]["ordinary_ingress_capacity"],
+            COMMAND_FLOW.maximum_ordinary_ingress
+        );
+        assert_eq!(
+            value["command_flow"]["motion_ingress_capacity"],
+            COMMAND_FLOW.maximum_motion_ingress
+        );
+        assert_eq!(
+            value["command_flow"]["execution_queue_capacity"],
+            COMMAND_FLOW.maximum_execution_queue
+        );
+        assert_eq!(
+            value["command_flow"]["maximum_interrupted_command_ids"],
+            MAXIMUM_COMMAND_INTERRUPTION_IDS
+        );
     }
 }
