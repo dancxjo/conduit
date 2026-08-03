@@ -30,6 +30,9 @@ cli-assets:
 cli-assets-check:
     cargo run -p conduct --bin generate-conduct-assets -- --check
 
+hello *args:
+    cargo xtask hello {{args}}
+
 perf:
     cargo xtask performance-gate
 

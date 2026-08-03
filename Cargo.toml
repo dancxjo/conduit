@@ -31,6 +31,7 @@ members = [
     "crates/conduit-web",
     "crates/conduct",
     "firmware/conduit-rp2040-hil",
+    "firmware/conduit-pico-w-hello",
     "xtask",
 ]
 resolver = "2"

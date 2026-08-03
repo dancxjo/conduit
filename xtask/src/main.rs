@@ -85,6 +85,19 @@ enum Commands {
     },
     /// Verify that only one unreleased Conduit-owned draft remains
     PreReleaseVersionGate,
+    /// Fetch, build, UF2-pack, and optionally flash the Pico W hello firmware
+    Hello {
+        #[arg(long)]
+        build_only: bool,
+        #[arg(long)]
+        mount: Option<PathBuf>,
+        #[arg(long)]
+        port: Option<String>,
+        #[arg(long)]
+        verify: bool,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Run complete workspace check suite (formatting, clippy, tests, gates, boundaries)
     CheckAll,
 }
@@ -159,6 +172,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::release_gate::run(&root, check, output.as_deref())
         }
         Commands::PreReleaseVersionGate => commands::pre_release_version_gate::run(&root),
+        Commands::Hello {
+            build_only,
+            mount,
+            port,
+            verify,
+            dry_run,
+        } => commands::hello::run(
+            &root,
+            commands::hello::HelloOptions {
+                build_only,
+                mount,
+                port,
+                verify,
+                dry_run,
+            },
+        ),
         Commands::CheckAll => commands::check_all::run(&root),
     }
 }
