@@ -117,6 +117,7 @@ enum Workload {
     Overload,
     Fanout,
     PersistentWake,
+    PersistentTimer,
 }
 
 impl Workload {
@@ -129,6 +130,7 @@ impl Workload {
             Self::Overload => "overload",
             Self::Fanout => "fanout",
             Self::PersistentWake => "persistent-wake",
+            Self::PersistentTimer => "persistent-timer",
         }
     }
 }
@@ -179,6 +181,13 @@ enum ConsumerPattern {
 enum SessionMode {
     Finite,
     Persistent,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum WakeMode {
+    None,
+    HostOperation,
+    Timer(u64),
 }
 
 impl SessionMode {
@@ -313,6 +322,8 @@ struct Args {
     session_pump_quantum: u64,
     #[arg(long, default_value_t = 0)]
     residency_plateau_after_wakes: u64,
+    #[arg(long, default_value_t = 0)]
+    timer_advance_ticks: u64,
 }
 
 #[derive(Serialize)]
@@ -337,6 +348,7 @@ struct ExecutionMeasurement {
     session_reserved_bytes: Option<u64>,
     pressured_items_at_stop: Option<u64>,
     session_host_wakes: Option<u64>,
+    session_timer_wakes: Option<u64>,
     residency_plateau_verified: Option<bool>,
     residency_checkpoint_queue_items_high_water: Option<u64>,
     residency_checkpoint_queue_payload_bytes_high_water: Option<u64>,
@@ -406,6 +418,7 @@ struct WorkloadIdentity {
     session_mode: &'static str,
     session_pump_quantum: u64,
     residency_plateau_after_wakes: u64,
+    timer_advance_ticks: u64,
 }
 
 #[derive(Serialize)]
@@ -471,7 +484,6 @@ struct Observations {
     recovery_cycles: Rc<Cell<u64>>,
     terminal_requested: Rc<Cell<bool>>,
     observation_window_waiting: Rc<Cell<bool>>,
-    host_wake_requested: Rc<Cell<bool>>,
     stride: u64,
 }
 
@@ -503,7 +515,8 @@ enum BenchNode {
         pressure: PressurePolicy,
         queue_capacity: u64,
         standing: bool,
-        wake_per_value: bool,
+        wake_mode: WakeMode,
+        wake_armed: bool,
     },
     CoupledSource {
         next: u64,
@@ -583,7 +596,8 @@ impl SchedulerNode for BenchNode {
                 pressure,
                 queue_capacity,
                 standing,
-                wake_per_value,
+                wake_mode,
+                wake_armed,
             } => {
                 if *next == *end {
                     if *standing {
@@ -597,13 +611,25 @@ impl SchedulerNode for BenchNode {
                     }
                     return SchedulerStep::Completed;
                 }
-                if *wake_per_value && !*retrying {
-                    if !observations.host_wake_requested.replace(false) {
+                if !matches!(*wake_mode, WakeMode::None) && !*retrying {
+                    if !*wake_armed {
                         observations.observation_window_waiting.set(true);
-                        io.wait_for_host_operation(Id("benchmark/persistent-wake"))
-                            .unwrap();
+                        match wake_mode {
+                            WakeMode::HostOperation => io
+                                .wait_for_host_operation(Id("benchmark/persistent-wake"))
+                                .unwrap(),
+                            WakeMode::Timer(advance_ticks) => io
+                                .wait_for_timer(
+                                    Id("benchmark/persistent-timer"),
+                                    io.tick().saturating_add(*advance_ticks),
+                                )
+                                .unwrap(),
+                            WakeMode::None => unreachable!(),
+                        }
+                        *wake_armed = true;
                         return SchedulerStep::Pending;
                     }
+                    *wake_armed = false;
                     observations.observation_window_waiting.set(false);
                 }
                 let index = *next;
@@ -1021,7 +1047,10 @@ fn semantic_digest(parts: &[&str]) -> SemanticHash {
 }
 
 fn recovery_after_outputs(args: &Args) -> u64 {
-    if matches!(args.workload, Workload::PersistentWake) {
+    if matches!(
+        args.workload,
+        Workload::PersistentWake | Workload::PersistentTimer
+    ) {
         return 0;
     }
     if matches!(args.consumer_pattern, ConsumerPattern::Bursty) {
@@ -1145,7 +1174,10 @@ fn prepare(args: &Args) -> PreparedRun {
     );
     if args.termination_request.stop_policy().is_some() {
         assert!(
-            matches!(args.workload, Workload::Overload | Workload::PersistentWake),
+            matches!(
+                args.workload,
+                Workload::Overload | Workload::PersistentWake | Workload::PersistentTimer
+            ),
             "requested termination requires an exact persistent or pressured fixture"
         );
         if matches!(args.workload, Workload::Overload) {
@@ -1202,7 +1234,10 @@ fn prepare(args: &Args) -> PreparedRun {
     }
     if matches!(args.session_mode, SessionMode::Persistent) {
         assert!(
-            matches!(args.workload, Workload::Overload | Workload::PersistentWake),
+            matches!(
+                args.workload,
+                Workload::Overload | Workload::PersistentWake | Workload::PersistentTimer
+            ),
             "persistent sessions require an exact persistent workload"
         );
         assert!(
@@ -1215,22 +1250,25 @@ fn prepare(args: &Args) -> PreparedRun {
             "finite executor fixtures do not carry an unused session pump quantum"
         );
     }
-    if matches!(args.workload, Workload::PersistentWake) {
+    if matches!(
+        args.workload,
+        Workload::PersistentWake | Workload::PersistentTimer
+    ) {
         assert!(
             matches!(args.session_mode, SessionMode::Persistent),
-            "persistent wake residency requires production ExactRunSession ownership"
+            "persistent residency requires production ExactRunSession ownership"
         );
         assert_eq!(
             args.operators, 1,
-            "persistent wake uses one source/sink boundary"
+            "persistent residency uses one source/sink boundary"
         );
         assert!(
             matches!(args.pressure_policy, PressurePolicy::Block),
-            "persistent wake uses the fixed FIFO block policy"
+            "persistent residency uses the fixed FIFO block policy"
         );
         assert_eq!(
             args.slow_consumer_yields, 0,
-            "persistent wake measures standing residency without a slow consumer"
+            "persistent residency measures standing operation without a slow consumer"
         );
         assert!(
             args.residency_plateau_after_wakes > 0
@@ -1241,6 +1279,17 @@ fn prepare(args: &Args) -> PreparedRun {
         assert_eq!(
             args.residency_plateau_after_wakes, 0,
             "other fixtures do not carry an unused residency checkpoint"
+        );
+    }
+    if matches!(args.workload, Workload::PersistentTimer) {
+        assert!(
+            args.timer_advance_ticks > args.session_pump_quantum,
+            "persistent timer deadlines must remain ahead of one bounded host pump"
+        );
+    } else {
+        assert_eq!(
+            args.timer_advance_ticks, 0,
+            "non-timer fixtures do not carry an unused timer advance"
         );
     }
     if matches!(args.consumer_pattern, ConsumerPattern::Bursty) {
@@ -1329,7 +1378,6 @@ fn prepare(args: &Args) -> PreparedRun {
         recovery_cycles: Rc::new(Cell::new(0)),
         terminal_requested: Rc::new(Cell::new(false)),
         observation_window_waiting: Rc::new(Cell::new(false)),
-        host_wake_requested: Rc::new(Cell::new(false)),
         stride: args.latency_sample_stride,
     };
     assert_eq!(observations.values.borrow().len(), value_count);
@@ -1339,6 +1387,7 @@ fn prepare(args: &Args) -> PreparedRun {
         Workload::Overload => 0,
         Workload::Fanout => 0,
         Workload::PersistentWake => 0,
+        Workload::PersistentTimer => 0,
         _ => args.operators,
     };
     let mut node_roles = if matches!(args.workload, Workload::Merge) {
@@ -1470,7 +1519,8 @@ fn prepare(args: &Args) -> PreparedRun {
             pressure: args.pressure_policy,
             queue_capacity: u64::from(args.queue_items),
             standing: false,
-            wake_per_value: false,
+            wake_mode: WakeMode::None,
+            wake_armed: false,
         });
         drivers.push(BenchNode::Source {
             next: split,
@@ -1481,7 +1531,8 @@ fn prepare(args: &Args) -> PreparedRun {
             pressure: args.pressure_policy,
             queue_capacity: u64::from(args.queue_items),
             standing: false,
-            wake_per_value: false,
+            wake_mode: WakeMode::None,
+            wake_armed: false,
         });
         drivers.push(BenchNode::Merge {
             inputs: [0, 1],
@@ -1547,7 +1598,8 @@ fn prepare(args: &Args) -> PreparedRun {
                 pressure: PressurePolicy::Block,
                 queue_capacity: u64::from(args.queue_items),
                 standing: false,
-                wake_per_value: false,
+                wake_mode: WakeMode::None,
+                wake_armed: false,
             });
             drivers.push(BenchNode::IsolatedDuplicator {
                 input: 0,
@@ -1635,7 +1687,12 @@ fn prepare(args: &Args) -> PreparedRun {
             pressure: args.pressure_policy,
             queue_capacity: u64::from(args.queue_items),
             standing: matches!(args.session_mode, SessionMode::Persistent),
-            wake_per_value: matches!(args.workload, Workload::PersistentWake),
+            wake_mode: match args.workload {
+                Workload::PersistentWake => WakeMode::HostOperation,
+                Workload::PersistentTimer => WakeMode::Timer(args.timer_advance_ticks),
+                _ => WakeMode::None,
+            },
+            wake_armed: false,
         });
         for transform in 0..transform_count {
             let from = transform;
@@ -1715,6 +1772,7 @@ fn prepare(args: &Args) -> PreparedRun {
                 Workload::Overload => "overload",
                 Workload::Fanout => "fanout",
                 Workload::PersistentWake => "persistent-wake",
+                Workload::PersistentTimer => "persistent-timer",
             },
             &args.operators.to_string(),
             &args.values.to_string(),
@@ -1728,6 +1786,7 @@ fn prepare(args: &Args) -> PreparedRun {
             args.session_mode.as_str(),
             &args.session_pump_quantum.to_string(),
             &args.residency_plateau_after_wakes.to_string(),
+            &args.timer_advance_ticks.to_string(),
         ]),
         resolver: pin("benchmark/resolver", "resolver"),
         resolver_policy_hash: semantic_digest(&["resolver-policy", "exact-local-reference"]),
@@ -1840,7 +1899,15 @@ fn run_sample(
         schema_version: SCHEDULER_CONTRACT_VERSION,
         ready_queue: ReadyQueueDiscipline::RoundRobin,
         max_decisions: args.values.saturating_mul(decisions_per_value),
-        max_tick: args.values.saturating_mul(decisions_per_value + 1),
+        max_tick: args
+            .values
+            .saturating_mul(decisions_per_value.saturating_add(1).saturating_add(
+                if matches!(args.workload, Workload::PersistentTimer) {
+                    args.timer_advance_ticks
+                } else {
+                    0
+                },
+            )),
         max_consecutive_yields: 8,
         max_events: 1024,
     };
@@ -1879,10 +1946,10 @@ fn run_sample(
             plan_identity: prepared.plan.identity,
             source_semantic_hash: prepared.plan.source_semantic_hash,
             plan_epoch: 1,
-            run_id: if matches!(args.workload, Workload::PersistentWake) {
-                "benchmark/persistent-wake"
-            } else {
-                "benchmark/persistent-overload"
+            run_id: match args.workload {
+                Workload::PersistentWake => "benchmark/persistent-wake",
+                Workload::PersistentTimer => "benchmark/persistent-timer",
+                _ => "benchmark/persistent-overload",
             }
             .to_owned(),
         };
@@ -1905,6 +1972,7 @@ fn run_sample(
     let mut session_pumps = None;
     let mut pressured_items_at_stop = None;
     let mut session_host_wakes = None;
+    let mut session_timer_wakes = None;
     let mut residency_plateau_verified = None;
     let mut residency_checkpoint_queue_items_high_water = None;
     let mut residency_checkpoint_queue_payload_bytes_high_water = None;
@@ -1913,7 +1981,10 @@ fn run_sample(
     let (status, executor) = if matches!(args.session_mode, SessionMode::Persistent) {
         let mut session = persistent_session.take().unwrap();
         let mut pumps = 0_u64;
-        let status = if matches!(args.workload, Workload::PersistentWake) {
+        let status = if matches!(
+            args.workload,
+            Workload::PersistentWake | Workload::PersistentTimer
+        ) {
             loop {
                 let pump = session.pump(args.session_pump_quantum).unwrap();
                 pumps += 1;
@@ -1932,10 +2003,20 @@ fn run_sample(
             for wake in 1..=args.values {
                 assert!(prepared.observations.observation_window_waiting.get());
                 prepared.observations.observation_window_waiting.set(false);
-                prepared.observations.host_wake_requested.set(true);
-                session
-                    .notify_host_operation(Id("benchmark/persistent-wake"))
-                    .unwrap();
+                match args.workload {
+                    Workload::PersistentWake => {
+                        session
+                            .notify_host_operation(Id("benchmark/persistent-wake"))
+                            .unwrap();
+                    }
+                    Workload::PersistentTimer => {
+                        let deadline = session
+                            .next_timer_deadline()
+                            .expect("persistent timer retains one exact deadline");
+                        session.advance_to(deadline).unwrap();
+                    }
+                    _ => unreachable!(),
+                }
                 loop {
                     let pump = session.pump(args.session_pump_quantum).unwrap();
                     pumps += 1;
@@ -1969,7 +2050,11 @@ fn run_sample(
             );
             assert_eq!(final_wake_high_water.ready_slots, plateau.ready_slots);
             assert_eq!(final_wake_high_water.event_slots, plateau.event_slots);
-            session_host_wakes = Some(args.values);
+            if matches!(args.workload, Workload::PersistentWake) {
+                session_host_wakes = Some(args.values);
+            } else {
+                session_timer_wakes = Some(args.values);
+            }
             residency_plateau_verified = Some(true);
             residency_checkpoint_queue_items_high_water = Some(plateau.queue_items);
             residency_checkpoint_queue_payload_bytes_high_water = Some(plateau.queue_payload_bytes);
@@ -2157,6 +2242,8 @@ fn run_sample(
                 "source order independently at every exact branch"
             } else if matches!(args.workload, Workload::PersistentWake) {
                 "one host wake admits one source-ordered value"
+            } else if matches!(args.workload, Workload::PersistentTimer) {
+                "one exact timer wake admits one source-ordered value"
             } else {
                 "source-order; merge uses retained round-robin"
             },
@@ -2164,6 +2251,8 @@ fn run_sample(
                 args.pressure_policy.as_str()
             } else if matches!(args.workload, Workload::PersistentWake) {
                 "exact host wake to bounded FIFO"
+            } else if matches!(args.workload, Workload::PersistentTimer) {
+                "exact timer wake to bounded FIFO"
             } else if matches!(args.workload, Workload::Fanout) {
                 if matches!(args.fanout_mode, FanoutPublication::Coupled) {
                     "atomic publication waits for every branch"
@@ -2177,6 +2266,9 @@ fn run_sample(
                 match (args.workload, args.session_mode, args.termination_request) {
                     (Workload::PersistentWake, _, TerminationRequest::Drain) => {
                         "persistent host-wake session requested Drain after the final re-wait"
+                    }
+                    (Workload::PersistentTimer, _, TerminationRequest::Drain) => {
+                        "persistent timer session requested Drain after the final re-wait"
                     }
                     (_, SessionMode::Persistent, TerminationRequest::Drain) => {
                         "persistent session requested Drain at the observation boundary"
@@ -2242,6 +2334,7 @@ fn run_sample(
             session_mode: args.session_mode.as_str(),
             session_pump_quantum: args.session_pump_quantum,
             residency_plateau_after_wakes: args.residency_plateau_after_wakes,
+            timer_advance_ticks: args.timer_advance_ticks,
         },
         exact_identity: ExactIdentity {
             logical_fixture: if matches!(args.workload, Workload::Overload) {
@@ -2279,6 +2372,16 @@ fn run_sample(
                     args.residency_plateau_after_wakes,
                     args.queue_items,
                     args.session_pump_quantum,
+                    args.latency_sample_stride
+                )
+            } else if matches!(args.workload, Workload::PersistentTimer) {
+                format!(
+                    "comparative-persistent-timer/{}/{}/{}/{}/{}/{}",
+                    args.values,
+                    args.residency_plateau_after_wakes,
+                    args.queue_items,
+                    args.session_pump_quantum,
+                    args.timer_advance_ticks,
                     args.latency_sample_stride
                 )
             } else {
@@ -2335,6 +2438,7 @@ fn run_sample(
             session_reserved_bytes,
             pressured_items_at_stop,
             session_host_wakes,
+            session_timer_wakes,
             residency_plateau_verified,
             residency_checkpoint_queue_items_high_water,
             residency_checkpoint_queue_payload_bytes_high_water,
@@ -2391,6 +2495,8 @@ fn run_sample(
             "The public deterministic executor validates and preallocates the exact plan; timed execution does not disable contract checks.",
             if matches!(args.workload, Workload::PersistentWake) {
                 "The production exact-run session reaches the same bounded queue, payload, ready, and evidence high-water values at the declared wake checkpoint and after the final host wake."
+            } else if matches!(args.workload, Workload::PersistentTimer) {
+                "The production exact-run session reaches the same bounded queue, payload, ready, and evidence high-water values at the declared wake checkpoint and after the final exact timer wake."
             } else if matches!(args.session_mode, SessionMode::Persistent) {
                 "The production exact-run session owns one admitted reservation across bounded host pumps and releases it only after explicit terminal finalization."
             } else if matches!(args.workload, Workload::Overload) {
@@ -2421,6 +2527,7 @@ fn run_identity_sample(
                 | Workload::Overload
                 | Workload::Fanout
                 | Workload::PersistentWake
+                | Workload::PersistentTimer
         ),
         "an identity loop cannot model an asynchronous, overload, or fan-out boundary"
     );
@@ -2509,6 +2616,7 @@ fn run_identity_sample(
             session_mode: "finite-executor",
             session_pump_quantum: 0,
             residency_plateau_after_wakes: 0,
+            timer_advance_ticks: 0,
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(
@@ -2545,6 +2653,7 @@ fn run_identity_sample(
             session_reserved_bytes: None,
             pressured_items_at_stop: None,
             session_host_wakes: None,
+            session_timer_wakes: None,
             residency_plateau_verified: None,
             residency_checkpoint_queue_items_high_water: None,
             residency_checkpoint_queue_payload_bytes_high_water: None,

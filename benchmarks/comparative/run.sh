@@ -29,6 +29,11 @@ persistent_wakes=$(jq -r .persistent_wake_residency.host_wakes "$manifest")
 persistent_wake_plateau=$(jq -r .persistent_wake_residency.residency_plateau_after_wakes "$manifest")
 persistent_wake_capacity=$(jq -r .persistent_wake_residency.queue_capacity_items "$manifest")
 persistent_wake_quantum=$(jq -r .persistent_wake_residency.session_pump_quantum "$manifest")
+persistent_timer_wakes=$(jq -r .persistent_timer_residency.timer_wakes "$manifest")
+persistent_timer_plateau=$(jq -r .persistent_timer_residency.residency_plateau_after_wakes "$manifest")
+persistent_timer_capacity=$(jq -r .persistent_timer_residency.queue_capacity_items "$manifest")
+persistent_timer_quantum=$(jq -r .persistent_timer_residency.session_pump_quantum "$manifest")
+persistent_timer_advance_ticks=$(jq -r .persistent_timer_residency.timer_advance_ticks "$manifest")
 
 mkdir -p "$output_dir"
 for artifact in "$raw" "$summary" "$metadata" "$report" "$commands"; do
@@ -166,6 +171,22 @@ record_raw "$workspace_root/target/release/conduit-benchmark" \
   --session-mode persistent \
   --session-pump-quantum "$persistent_wake_quantum" \
   --residency-plateau-after-wakes "$persistent_wake_plateau"
+
+record_raw "$workspace_root/target/release/conduit-benchmark" \
+  --workload persistent-timer \
+  --operators 1 \
+  --values "$persistent_timer_wakes" \
+  --queue-items "$persistent_timer_capacity" \
+  --latency-sample-stride "$stride" \
+  --warmup-trials "$warmups" \
+  --measured-trials "$trials" \
+  --slow-consumer-yields 0 \
+  --termination-request drain \
+  --cancel-after-offers "$persistent_timer_wakes" \
+  --session-mode persistent \
+  --session-pump-quantum "$persistent_timer_quantum" \
+  --timer-advance-ticks "$persistent_timer_advance_ticks" \
+  --residency-plateau-after-wakes "$persistent_timer_plateau"
 
 for pressure in $(jq -r '.bursty_consumers.pressure_policies[]' "$manifest"); do
   record_raw "$workspace_root/target/release/conduit-benchmark" \

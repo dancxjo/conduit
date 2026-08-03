@@ -150,6 +150,26 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         "drain"
     );
     assert_eq!(
+        manifest["persistent_timer_residency"]["workload"],
+        "persistent-timer"
+    );
+    assert_eq!(
+        manifest["persistent_timer_residency"]["timer_wakes"],
+        10_000
+    );
+    assert_eq!(
+        manifest["persistent_timer_residency"]["residency_plateau_after_wakes"],
+        1_000
+    );
+    assert_eq!(
+        manifest["persistent_timer_residency"]["stop_policy"],
+        "drain"
+    );
+    assert_eq!(
+        manifest["persistent_timer_residency"]["timer_advance_ticks"],
+        64
+    );
+    assert_eq!(
         manifest["wall_clock_policy"]["gate"],
         "report-only until a reviewed machine-class baseline exists"
     );
@@ -222,7 +242,8 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "consumer_burst_items",
             "session_mode",
             "session_pump_quantum",
-            "residency_plateau_after_wakes"
+            "residency_plateau_after_wakes",
+            "timer_advance_ticks"
         ]
         .iter()
         .all(|field| schema["properties"]["workload"]["required"]
@@ -256,6 +277,7 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "session_reserved_bytes",
             "pressured_items_at_stop",
             "session_host_wakes",
+            "session_timer_wakes",
             "residency_plateau_verified",
             "residency_checkpoint_queue_items_high_water",
             "residency_checkpoint_queue_payload_bytes_high_water",
