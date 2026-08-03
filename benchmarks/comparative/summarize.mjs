@@ -112,22 +112,26 @@ for (const sample of samples) {
     }
   } else if (fanout) {
     const outcomes = sample.outcomes;
-    const maximumItems = sample.workload.queue_capacity_items * sample.workload.fanout_branches;
-    if (sample.workload.fanout_mode !== "coupled" || ![2, 8, 32].includes(sample.workload.fanout_branches)) {
-      throw new Error("fan-out identity does not name the current coupled matrix");
+    const cordCount = sample.workload.fanout_branches + Number(sample.workload.fanout_mode === "isolated");
+    const maximumItems = sample.workload.queue_capacity_items * cordCount;
+    if (!["coupled", "isolated"].includes(sample.workload.fanout_mode) || ![2, 8, 32].includes(sample.workload.fanout_branches)) {
+      throw new Error("fan-out identity does not name the current publication matrix");
     }
     if (!["one", "all"].includes(sample.workload.slow_branches)) {
       throw new Error("fan-out slow-branch mode is invalid");
     }
     if (sample.memory.queue_items_high_water > maximumItems) {
-      throw new Error("aggregate fan-out queues exceeded declared branch capacities");
+      throw new Error("aggregate fan-out queues exceeded declared cord capacities");
+    }
+    if (sample.memory.queue_max_cord_items_high_water > sample.workload.queue_capacity_items) {
+      throw new Error("a fan-out cord exceeded its declared item capacity");
     }
     if (outcomes.offered !== sample.workload.input_values
         || outcomes.admitted !== outcomes.offered
         || outcomes.completed_useful !== outcomes.admitted * sample.workload.fanout_branches
         || outcomes.retried < 1
         || [outcomes.rejected, outcomes.sampled, outcomes.coalesced, outcomes.dropped].some((value) => value !== 0)) {
-      throw new Error("coupled fan-out accounting is not atomic and conservative");
+      throw new Error("fan-out accounting is not lossless and conservative");
     }
     if (sample.phases.pressure_ns === null || sample.phases.recovery_ns === null) {
       throw new Error("finite fan-out fixture did not expose both pressure and recovery regions");
@@ -238,6 +242,7 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
     },
     high_water: {
       queue_items: optionalStats(group.map((value) => value.memory.queue_items_high_water)),
+      queue_max_cord_items: optionalStats(group.map((value) => value.memory.queue_max_cord_items_high_water)),
       queue_payload_bytes: optionalStats(group.map((value) => value.memory.queue_payload_bytes_high_water)),
       ready_slots: optionalStats(group.map((value) => value.memory.ready_slots_high_water)),
       evidence_slots: optionalStats(group.map((value) => value.memory.evidence_slots_high_water)),
@@ -300,11 +305,6 @@ const result = {
       reason: "a reviewed demand/buffer and loss-policy mapping is not yet implemented; local-depth publishOn is not substituted",
     },
     {
-      runtime: "conduit-reference-scheduler",
-      workload: "fanout/isolated",
-      reason: "an ordinary duplicator with exact retained-value accounting is not implemented; coupled publication is not substituted",
-    },
-    {
       runtime: "rxjs/reactor-core",
       workload: "fanout",
       reason: "reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted",
@@ -330,7 +330,6 @@ if (reportOutput) {
     "- Conduit optimized hosted streaming: unavailable pending #214/#242; reference results are not substituted.",
     "- RxJS overload: synchronous push has no demand-bounded queue matching these pressure policies and is not substituted.",
     "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
-    "- Conduit isolated fan-out: no ordinary duplicator with exact retained-value accounting is implemented; coupled publication is not substituted.",
     "- RxJS/Reactor fan-out: reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted.",
     "",
   ];
@@ -355,10 +354,10 @@ if (reportOutput) {
       report.push("");
     }
     if (workload === "fanout") {
-      report.push("## fanout: atomic outcome accounting", "", "Completed-useful counts branch deliveries. Coupled admission is one all-branches transaction; a retry publishes to no branch.", "", "| Runtime | Capacity | Branches | Slow branches | Offered | Admitted atomically | Useful branch deliveries | Retried | Terminal | Aggregate queue high water |", "| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |");
+      report.push("## fanout: outcome accounting", "", "Completed-useful counts branch deliveries. Coupled mode publishes all branches atomically; isolated mode uses an ordinary duplicator with one profile-accounted retained input and independent finite branch transactions.", "", "| Runtime | Mode | Capacity | Branches | Slow branches | Offered | Admitted inputs | Useful branch deliveries | Retried | Terminal | Aggregate queue high water | Max cord high water |", "| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
       for (const group of workloadGroups) {
         const outcome = (field) => integer.format(group.outcomes[field].median);
-        report.push(`| ${group.runtime.id} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${outcome("offered")} | ${outcome("admitted")} | ${outcome("completed_useful")} | ${outcome("retried")} | ${outcome("terminal")} | ${duration(group.high_water.queue_items)} |`);
+        report.push(`| ${group.runtime.id} | ${group.workload.fanout_mode} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${outcome("offered")} | ${outcome("admitted")} | ${outcome("completed_useful")} | ${outcome("retried")} | ${outcome("terminal")} | ${duration(group.high_water.queue_items)} | ${duration(group.high_water.queue_max_cord_items)} |`);
       }
       report.push("");
     }

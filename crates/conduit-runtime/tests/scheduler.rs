@@ -29,10 +29,11 @@ use conduit_runtime::{
     DeterministicExecutor, ExactEvidenceCommitReceipt, ExactEvidenceCommitRequest,
     ExactEvidenceDrainError, ExactEvidenceProvider, ExactEvidenceProviderBinding,
     ExactEvidenceUseAuthority, ExactRunIdentity, ExactRunSession, ExactRunSessionRegistry,
-    ExactRunState, OwnedEventPayload, RuntimeError, RuntimeEvidenceContext, RuntimeTimestamp,
-    RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerError, SchedulerEventKind,
-    SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
-    record_scheduler_evidence, validate_hosted_execution_plan, validate_runtime_value_for_cord,
+    ExactRunState, OwnedEventPayload, RetainedValueUsage, RuntimeError, RuntimeEvidenceContext,
+    RuntimeTimestamp, RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerError,
+    SchedulerEventKind, SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep,
+    SendStatus, StepIo, record_scheduler_evidence, validate_hosted_execution_plan,
+    validate_runtime_value_for_cord,
 };
 
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
@@ -676,6 +677,30 @@ impl SchedulerNode for FixtureNode {
                 }
             }
         }
+    }
+}
+
+#[derive(Clone)]
+struct RetainedFixtureNode {
+    inner: FixtureNode,
+    usage: RetainedValueUsage,
+}
+
+impl SchedulerNode for RetainedFixtureNode {
+    fn prepare(&mut self) -> Result<LifecycleUsage, Id<'static>> {
+        self.inner.prepare()
+    }
+
+    fn start(&mut self) -> Result<LifecycleUsage, Id<'static>> {
+        self.inner.start()
+    }
+
+    fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep {
+        self.inner.step(io)
+    }
+
+    fn retained_value_usage(&self) -> RetainedValueUsage {
+        self.usage
     }
 }
 
@@ -1712,6 +1737,50 @@ fn feedback_cycle_requires_a_finite_boundary_and_reserves_retained_state() {
         assert_eq!(
             executor.run_until_stalled().unwrap(),
             SchedulerStatus::Cancelled
+        );
+    });
+}
+
+#[test]
+fn implementation_retained_values_are_enforced_after_each_step() {
+    with_plan(2, 128, |plan, profile| {
+        let nodes = vec![
+            ScheduledNode {
+                driver: RetainedFixtureNode {
+                    inner: FixtureNode::source(1),
+                    usage: RetainedValueUsage {
+                        values: 1,
+                        bytes: 8,
+                    },
+                },
+                machine: machine(profile, &plan.nodes[0]),
+            },
+            ScheduledNode {
+                driver: RetainedFixtureNode {
+                    inner: FixtureNode::sink(Rc::new(RefCell::new(Vec::new()))),
+                    usage: RetainedValueUsage::default(),
+                },
+                machine: machine(profile, &plan.nodes[1]),
+            },
+        ];
+        let mut executor = DeterministicExecutor::start(
+            &plan,
+            PlanValidationContext {
+                supported_schema_version: 0,
+                now: AuthorityTime {
+                    basis: Id("clock/monotonic"),
+                    tick: 2,
+                },
+            },
+            policy(100, 1_000),
+            reservation(),
+            nodes,
+        )
+        .unwrap();
+
+        assert_eq!(
+            executor.run_until_stalled().unwrap_err(),
+            SchedulerError::StepContractViolation
         );
     });
 }

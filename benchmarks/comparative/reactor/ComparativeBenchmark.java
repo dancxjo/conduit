@@ -105,7 +105,7 @@ public final class ComparativeBenchmark {
             "\"sample_kind\":\"%s\",\"trial\":%d,\"thermal_state\":\"%s\",\"phases\":{\"assembly_ns\":%d,\"plan_seal_ns\":null,\"start_ns\":null,\"steady_ns\":%d,\"pressure_ns\":null,\"recovery_ns\":null}," +
             "\"process_cpu_ns\":%d,\"outcomes\":{\"offered\":%d,\"admitted\":%d,\"completed_useful\":%d,\"rejected\":0,\"sampled\":0,\"coalesced\":0,\"dropped\":0,\"retried\":0,\"terminal\":1}," +
             "\"allocations\":{\"scope\":\"unavailable-without-JVM-agent\",\"calls\":null,\"bytes\":null}," +
-            "\"memory\":{\"resident_before_bytes\":%s,\"resident_after_bytes\":%s,\"resident_peak_bytes\":%s,\"planned_memory_bytes\":null,\"executor_overhead_bytes\":null,\"queue_items_high_water\":null,\"queue_payload_bytes_high_water\":null,\"ready_slots_high_water\":null,\"evidence_slots_high_water\":null}," +
+            "\"memory\":{\"resident_before_bytes\":%s,\"resident_after_bytes\":%s,\"resident_peak_bytes\":%s,\"planned_memory_bytes\":null,\"executor_overhead_bytes\":null,\"queue_items_high_water\":null,\"queue_max_cord_items_high_water\":null,\"queue_payload_bytes_high_water\":null,\"ready_slots_high_water\":null,\"evidence_slots_high_water\":null}," +
             "\"latency\":{\"clock\":\"System.nanoTime monotonic\",\"sample_stride\":%d,\"samples_ns\":%s}," +
             "\"semantic_notes\":[\"This no-framework Java loop is a language-cost lower bound, not a reactive-runtime competitor.\",\"It has no subscription, scheduler, demand, queue, evidence, or merge boundary and cannot support runtime claims.\"]}%n",
             System.getProperty("java.version"), workload, operators, values,
@@ -194,7 +194,7 @@ public final class ComparativeBenchmark {
             "\"sample_kind\":\"%s\",\"trial\":%d,\"thermal_state\":\"%s\",\"phases\":{\"assembly_ns\":%d,\"plan_seal_ns\":null,\"start_ns\":null,\"steady_ns\":%d,\"pressure_ns\":null,\"recovery_ns\":null}," +
             "\"process_cpu_ns\":%d,\"outcomes\":{\"offered\":%d,\"admitted\":%d,\"completed_useful\":%d,\"rejected\":0,\"sampled\":0,\"coalesced\":0,\"dropped\":0,\"retried\":0,\"terminal\":1}," +
             "\"allocations\":{\"scope\":\"unavailable-without-JVM-agent\",\"calls\":null,\"bytes\":null}," +
-            "\"memory\":{\"resident_before_bytes\":%s,\"resident_after_bytes\":%s,\"resident_peak_bytes\":%s,\"planned_memory_bytes\":null,\"executor_overhead_bytes\":null,\"queue_items_high_water\":null,\"queue_payload_bytes_high_water\":null,\"ready_slots_high_water\":null,\"evidence_slots_high_water\":null}," +
+            "\"memory\":{\"resident_before_bytes\":%s,\"resident_after_bytes\":%s,\"resident_peak_bytes\":%s,\"planned_memory_bytes\":null,\"executor_overhead_bytes\":null,\"queue_items_high_water\":null,\"queue_max_cord_items_high_water\":null,\"queue_payload_bytes_high_water\":null,\"ready_slots_high_water\":null,\"evidence_slots_high_water\":null}," +
             "\"latency\":{\"clock\":\"System.nanoTime monotonic\",\"sample_stride\":%d,\"samples_ns\":%s},\"semantic_notes\":%s}%n",
             workload.equals("bounded-async") ? "bounded-asynchronous" : "synchronous",
             scheduler, workload, operators, values, workload.equals("bounded-async") ? queueItems : 0,

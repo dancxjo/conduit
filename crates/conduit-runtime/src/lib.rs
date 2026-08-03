@@ -137,10 +137,11 @@ pub use runtime_evidence::{
     RuntimeEvidenceContext, RuntimeEvidenceError, record_scheduler_evidence,
 };
 pub use scheduler::{
-    DeterministicExecutor, RuntimeTimestamp, RuntimeValue, RuntimeValueEnvelope, ScheduledNode,
-    SchedulerAllocation, SchedulerError, SchedulerEvent, SchedulerEventBatch, SchedulerEventKind,
-    SchedulerHighWater, SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep,
-    SchedulerSubject, SendStatus, StepIo, ValueStorageUsage, validate_runtime_value_for_cord,
+    DeterministicExecutor, RetainedValueUsage, RuntimeTimestamp, RuntimeValue,
+    RuntimeValueEnvelope, ScheduledNode, SchedulerAllocation, SchedulerError, SchedulerEvent,
+    SchedulerEventBatch, SchedulerEventKind, SchedulerHighWater, SchedulerNode,
+    SchedulerReservation, SchedulerStatus, SchedulerStep, SchedulerSubject, SendStatus, StepIo,
+    ValueStorageUsage, validate_runtime_value_for_cord,
 };
 pub use session::{
     ExactEvidenceBatch, ExactEvidenceCommitReceipt, ExactEvidenceCommitRequest,

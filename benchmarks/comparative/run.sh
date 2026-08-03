@@ -108,18 +108,21 @@ done
 
 for capacity in $(jq -r '.fanout.queue_capacity_items[]' "$manifest"); do
   for branches in $(jq -r '.fanout.branches[]' "$manifest"); do
-    for slow in $(jq -r '.fanout.slow_branches[]' "$manifest"); do
-      record_raw "$workspace_root/target/release/conduit-benchmark" \
-        --workload fanout \
-        --operators 1 \
-        --values "$values" \
-        --queue-items "$capacity" \
-        --latency-sample-stride "$stride" \
-        --warmup-trials "$warmups" \
-        --measured-trials "$trials" \
-        --fanout-branches "$branches" \
-        --slow-branches "$slow" \
-        --slow-consumer-yields "$fanout_slow_yields"
+    for mode in $(jq -r '.fanout.modes[]' "$manifest"); do
+      for slow in $(jq -r '.fanout.slow_branches[]' "$manifest"); do
+        record_raw "$workspace_root/target/release/conduit-benchmark" \
+          --workload fanout \
+          --operators 1 \
+          --values "$values" \
+          --queue-items "$capacity" \
+          --latency-sample-stride "$stride" \
+          --warmup-trials "$warmups" \
+          --measured-trials "$trials" \
+          --fanout-branches "$branches" \
+          --fanout-mode "$mode" \
+          --slow-branches "$slow" \
+          --slow-consumer-yields "$fanout_slow_yields"
+      done
     done
   done
 done

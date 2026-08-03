@@ -67,29 +67,28 @@ as a useful completion; a sample-selected value that still cannot fit is a
 drop, distinct from schedule exclusion. Disconnect and fail stop at the first
 saturated offer and are terminal measurements, not throughput successes.
 
-The overload slice does not claim #245's persistent-session matrix or fan-out
-coverage beyond the coupled fixture described below.
+The overload slice does not claim #245's persistent-session matrix.
 RxJS overload remains unavailable because synchronous push has no matching
 demand-bounded queue. Reactor overload also remains unavailable until its
 demand, buffer, and loss mappings receive a semantic review; the existing
 local-depth `publishOn` case is not substituted for either comparison.
 
-The coupled fan-out slice publishes each input atomically to 2, 8, or 32 exact
-branch cords at capacities 4, 64, and 1,024. It measures both one slow branch
-and all slow branches. Admission advances only when every branch reserves the
-value in the same scheduler transaction; a pressured attempt rolls back all
-earlier branch reservations and is counted once as a retry. Useful completion
-counts branch deliveries, so its strict invariant is admitted inputs multiplied
-by the branch count. Aggregate queue high water is checked against branch
-capacity multiplied by branch count, and the driver uses fixed stack arrays up
-to the reviewed 32-branch maximum rather than a hidden publication buffer.
+The fan-out slice covers coupled and isolated publication to 2, 8, or 32 exact
+branch cords at capacities 4, 64, and 1,024, with both one slow branch and all
+branches slow. Coupled admission reserves every branch in one scheduler
+transaction; a pressured attempt rolls back all earlier reservations. Isolated
+publication uses an explicit ordinary duplicator node. It removes one input
+from its own finite cord, retains at most that one value under a `Retained`
+memory claim and execution-profile limit, and publishes it to each finite
+branch cord in independent transactions. Its per-branch progress is a fixed
+32-entry driver field, not a queue or an unbounded adapter.
 
-This does not substitute coupled publication for isolated fan-out. The latter
-requires an ordinary duplicator whose retained in-flight value and per-branch
-progress are exact plan/profile facts; it remains unavailable until that
-fixture exists. RxJS and Reactor fan-out comparisons likewise remain
-unavailable until their multicast, demand, buffering, and coupling semantics
-have reviewed mappings.
+Useful completion counts branch deliveries in both modes, so the strict
+invariant is admitted inputs multiplied by branch count. Every cord's observed
+item high water is checked against its declared capacity; aggregate high water
+also includes the isolated duplicator's input cord. RxJS and Reactor fan-out
+comparisons remain unavailable until their multicast, demand, buffering, and
+coupling semantics have reviewed mappings.
 
 ## Regions and metrics
 
