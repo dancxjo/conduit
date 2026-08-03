@@ -8,11 +8,12 @@ async function readLayoutState(flowRoot) {
   }));
 }
 
-async function waitForTopologyLayoutReady(flowRoot, afterGeneration = 0) {
+async function waitForTopologyLayoutReady(flowRoot, afterGeneration = 0, afterIdentity = null) {
   await expect.poll(async () => {
     const layout = await readLayoutState(flowRoot);
     return layout.state === "ready" &&
       layout.generation > afterGeneration &&
+      layout.identity !== afterIdentity &&
       typeof layout.identity === "string" &&
       layout.identity.length > 0
       ? layout
@@ -73,7 +74,7 @@ frame_source.frame > frame_sink.frame { capacity = 2 max_value_bytes = 128 max_q
 datagram_source.datagram > datagram_sink.datagram { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
 stream_source.chunk > stream_sink.chunk { capacity = 2 max_value_bytes = 96 max_queued_bytes = 192 low_watermark = 0 high_watermark = 2 pressure = block }
   `);
-  layout = await waitForTopologyLayoutReady(flowRoot, layout.generation);
+  layout = await waitForTopologyLayoutReady(flowRoot, layout.generation, layout.identity);
   for (const family of ["network-frame", "network-datagram", "network-stream"]) {
     await expectFamily(page, family);
     await expect(page.locator(`.patchbay-cord.type-family-${family}`).first()).toBeVisible();
@@ -84,7 +85,7 @@ source: net/packet/source { lifecycle = "standing" source = "10.0.0.2" destinati
 sink: net/packet/sink { lifecycle = "standing" maximum_packets_per_step = 1 maximum_retained_items = 1 maximum_evidence_events = 64 }
 source.packet > sink.packet { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
   `);
-  layout = await waitForTopologyLayoutReady(flowRoot, layout.generation);
+  layout = await waitForTopologyLayoutReady(flowRoot, layout.generation, layout.identity);
   await expectFamily(page, "network-packet");
   await expect(page.locator(".patchbay-cord.type-family-network-packet").first()).toBeVisible();
 
@@ -95,7 +96,7 @@ listener.session > observe.session { capacity = 8 max_value_bytes = 64 max_queue
 listener.event > observe.event { capacity = 8 max_value_bytes = 32 max_queued_bytes = 256 low_watermark = 2 high_watermark = 8 pressure = block }
 listener.state > observe.state { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }
   `);
-  layout = await waitForTopologyLayoutReady(flowRoot, layout.generation);
+  layout = await waitForTopologyLayoutReady(flowRoot, layout.generation, layout.identity);
   await expectFamily(page, "network-session");
   await expectFamily(page, "network-control");
   await expectFamily(page, "network-state");
