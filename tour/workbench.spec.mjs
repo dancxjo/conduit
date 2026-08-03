@@ -18,6 +18,11 @@ async function connect(page, fromNode, fromPort, toNode, toPort) {
   await page.locator("#connection-from").selectOption(`${fromNode}::${fromPort}`);
   await page.locator("#connection-to").selectOption(`${toNode}::${toPort}`);
   await page.locator("#connect-ports").click();
+  const sourceConnection = `${fromNode}.${fromPort} > ${toNode}.${toPort}`;
+  await expect(page.locator("#source")).toHaveValue(
+    new RegExp(sourceConnection.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    { timeout: 20_000 },
+  );
 }
 
 test("Workbench authors, runs, saves, reopens, and round-trips one ordinary graph", async ({ page }) => {
