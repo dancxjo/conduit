@@ -81,7 +81,6 @@ async function connect(
 }
 
 test("Workbench authors, runs, saves, reopens, and round-trips one ordinary graph", async ({ page }) => {
-  test.setTimeout(120_000);
   await gotoWorkbench(page);
   await expect(page.locator("#cy .react-flow__node")).toHaveCount(0);
 

@@ -949,6 +949,17 @@ function clearLiveWakeTimer() {
   }
 }
 
+function resetLiveFlowPresentation() {
+  liveEvidenceSequence = -1;
+  liveFlowRows = [];
+  liveFlowStatus.textContent = "No authoritative live-flow delta yet.";
+  delete liveFlowStatus.dataset.runId;
+  delete liveFlowStatus.dataset.planIdentity;
+  delete liveFlowStatus.dataset.sourceRevision;
+  delete liveFlowStatus.dataset.lastSequence;
+  liveFlowTableBody.replaceChildren();
+}
+
 function resetWatchPresentation(message = "No Watch is attached.") {
   disableWatchControl();
   watchValue.textContent = message;
@@ -957,14 +968,11 @@ function resetWatchPresentation(message = "No Watch is attached.") {
   displayIsFrozen = false;
   deferredLivePresentation = null;
   deferredLiveDeltaCount = 0;
-  liveEvidenceSequence = -1;
-  liveFlowRows = [];
   freezeDisplay.disabled = true;
   freezeDisplay.setAttribute("aria-pressed", "false");
   freezeDisplay.textContent = "Freeze Display (F)";
   displayFreezeStatus.textContent = "Display follows authoritative live deltas.";
-  liveFlowStatus.textContent = "No authoritative live-flow delta yet.";
-  liveFlowTableBody.replaceChildren();
+  resetLiveFlowPresentation();
   if (instrumentResult && !instrumentResult.hidden) resetInstrumentResult();
 }
 
@@ -1101,6 +1109,17 @@ function renderLiveFlowRows(projection, delta, watchRecord, runtime = projection
   const cordDeltas = delta.filter((record) => record.subject_kind === "cord");
   const latest = cordDeltas.at(-1) || delta.at(-1);
   const dropped = runtime.evidence_store?.dropped_events ?? 0;
+  const runId = runtime.run_id ?? projection.run?.run_id;
+  const planIdentity = runtime.plan_identity ?? projection.run?.plan_identity;
+  const sourceRevision = runtime.source_revision ?? projection.run?.source_revision;
+  if (typeof runId === "string") liveFlowStatus.dataset.runId = runId;
+  if (typeof planIdentity === "string") {
+    liveFlowStatus.dataset.planIdentity = planIdentity;
+  }
+  if (Number.isSafeInteger(sourceRevision)) {
+    liveFlowStatus.dataset.sourceRevision = String(sourceRevision);
+  }
+  if (latest) liveFlowStatus.dataset.lastSequence = String(latest.sequence);
   liveFlowStatus.textContent = latest
     ? `Batch rate: ${delta.length} authoritative event${delta.length === 1 ? "" : "s"} per bounded presentation update; ` +
       `${cordDeltas.length} cord event${cordDeltas.length === 1 ? "" : "s"}. ` +
@@ -1239,6 +1258,7 @@ function renderLatestWatch(batch, run) {
   watchAccounting.textContent = JSON.stringify({
     run_id: run.run_id,
     plan_identity: run.plan_identity,
+    source_revision: run.source_revision,
     source_semantic_hash: run.source_semantic_hash,
     state: run.state,
     next_timer_deadline: run.next_timer_deadline,
@@ -1273,6 +1293,7 @@ function renderDetachedWatch(run, control) {
   watchAccounting.textContent = JSON.stringify({
     run_id: run.run_id,
     plan_identity: run.plan_identity,
+    source_revision: run.source_revision,
     source_semantic_hash: run.source_semantic_hash,
     state: run.state,
     next_timer_deadline: run.next_timer_deadline,
@@ -3471,6 +3492,7 @@ async function run(requestedTaskAction = null) {
     return;
   }
   await stopExactSession("superseded");
+  resetLiveFlowPresentation();
   retainedTaskRunProjection = null;
   const epoch = ++runEpoch;
   const binding = resolveBrowserPlacement(hostReport, {

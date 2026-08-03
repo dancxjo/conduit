@@ -101,20 +101,50 @@ async function startTinyInstrument(page) {
 }
 
 async function readWatchAccounting(page) {
-  return page.locator("#watch-accounting").evaluate((element) =>
-    JSON.parse(element.textContent)
-  );
+  return page.locator("#watch-accounting").evaluate((element) => {
+    try {
+      return JSON.parse(element.textContent);
+    } catch {
+      return null;
+    }
+  });
 }
 
 async function waitForExactRun(page) {
   await expect.poll(async () => {
     const accounting = await readWatchAccounting(page);
-    return typeof accounting.run_id === "string" &&
+    return accounting !== null &&
+      typeof accounting.run_id === "string" &&
       typeof accounting.plan_identity === "string" &&
+      Number.isSafeInteger(accounting.source_revision) &&
       typeof accounting.source_semantic_hash === "string" &&
       accounting.attached === true;
-  }, { timeout: 20_000 }).toBe(true);
+  }, { timeout: 60_000 }).toBe(true);
   return readWatchAccounting(page);
+}
+
+async function readLiveFlowReceipt(status) {
+  return status.evaluate((element) => ({
+    runId: element.dataset.runId,
+    planIdentity: element.dataset.planIdentity,
+    sourceRevision: Number.parseInt(element.dataset.sourceRevision, 10),
+    lastSequence: Number.parseInt(element.dataset.lastSequence, 10),
+    text: element.textContent,
+  }));
+}
+
+async function waitForExactLiveFlow(status, run, previousSequence = -1) {
+  await expect.poll(async () => {
+    const receipt = await readLiveFlowReceipt(status);
+    return receipt.runId === run.run_id &&
+      receipt.planIdentity === run.plan_identity &&
+      receipt.sourceRevision === run.source_revision &&
+      receipt.lastSequence > previousSequence &&
+      receipt.text.includes("authoritative event");
+  }, { timeout: 60_000 }).toBe(true);
+  const receipt = await readLiveFlowReceipt(status);
+  expect(receipt.lastSequence).toBeGreaterThan(previousSequence);
+  return receipt;
 }
 
 async function readLayoutState(flowRoot) {
@@ -320,7 +350,6 @@ test("keeps Reference and Cookbook searchable outside sequential navigation", as
 });
 
 test("restores reading position and a local draft without reviving a run", async ({ page }) => {
-  test.setTimeout(120_000);
   await gotoTour(page, "/tour/public/index.html?section=instrument.wake");
   await page.locator("#expand-lab").click();
   const source = page.locator("#source");
@@ -347,7 +376,6 @@ test("restores reading position and a local draft without reviving a run", async
 });
 
 test("carries and resets cumulative project state explicitly", async ({ page }) => {
-  test.setTimeout(120_000);
   await gotoTour(page, "/tour/public/index.html?section=instrument.wake");
   await page.locator("#expand-lab").click();
   const source = page.locator("#source");
@@ -364,7 +392,6 @@ test("carries and resets cumulative project state explicitly", async ({ page }) 
 });
 
 test("recovers cumulative project drafts explicitly", async ({ page }) => {
-  test.setTimeout(120_000);
   await gotoTour(page, "/tour/public/index.html?section=instrument.wake");
   await page.locator("#expand-lab").click();
   const source = page.locator("#source");
@@ -1006,7 +1033,6 @@ test("toggles an admitted Watch with W from non-editing focus", async ({ page })
 });
 
 test("keeps the active Watch epoch exact across candidate edits and stop", async ({ page }) => {
-  test.setTimeout(120_000);
   const failures = collectPageFailures(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
   const { browserPlan, first } = await startTinyInstrument(page);
@@ -1062,13 +1088,16 @@ test("keeps live textual instrumentation truthful when the topology renderer is 
   await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
   await page.locator("#run").click();
   await expect(page.locator("#cy")).toContainText("React Flow renderer unavailable.");
-  await expect(page.locator("#live-flow-status")).toContainText(
-    "authoritative event",
-    { timeout: 20_000 },
-  );
+  const run = await waitForExactRun(page);
+  const liveFlow = await waitForExactLiveFlow(page.locator("#live-flow-status"), run);
+  expect(liveFlow.lastSequence).toBeGreaterThanOrEqual(0);
   await expect(page.locator("#live-flow-table tbody tr")).not.toHaveCount(0);
   await expect(page.locator("#console-status-badge")).toHaveText("Live");
   await page.locator("#stop").click();
+  await expect(page.locator("#console-status-badge")).toHaveText("Ready", {
+    timeout: 60_000,
+  });
+  await expect(page.locator("#stop")).toBeDisabled();
 });
 
 test("presents the persistent HTTP source and refuses to simulate its hosted provider", async ({
@@ -1987,7 +2016,6 @@ test("restores a committed topology position across reload", async ({ page }) =>
 });
 
 test("retains headless editing and execution when presentation fails", async ({ page }) => {
-  test.setTimeout(120_000);
   await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   await page.evaluate(() => {
     window.__CONDUIT_DISABLE_PATCHBAY_RENDERER__ = true;
