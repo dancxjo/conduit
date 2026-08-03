@@ -25,20 +25,83 @@ for (const sample of samples) {
     throw new Error("sample comparison role is invalid");
   }
   const identityParts = sample.exact_identity.logical_fixture.split("/");
-  if (identityParts.length !== 6
+  const overload = sample.workload.id === "overload";
+  if (overload) {
+    const pressureId = sample.workload.pressure.split("/")[0];
+    if (identityParts.length !== 6
+        || identityParts[0] !== "comparative-overload"
+        || identityParts[1] !== pressureId
+        || Number(identityParts[2]) !== sample.workload.input_values
+        || Number(identityParts[3]) !== sample.workload.queue_capacity_items
+        || Number(identityParts[4]) !== sample.workload.slow_consumer_yields
+        || Number(identityParts[5]) !== sample.latency.sample_stride) {
+      throw new Error("overload fixture identity does not match the raw sample");
+    }
+    if (sample.runtime.id !== "conduit-reference-scheduler") {
+      throw new Error("the current overload slice has no cross-runtime substitute");
+    }
+  } else if (identityParts.length !== 6
       || identityParts[0] !== "comparative-local-depth"
       || identityParts[1] !== sample.workload.id
       || Number(identityParts[2]) !== sample.workload.operators
       || Number(identityParts[3]) !== sample.workload.input_values
       || Number(identityParts[5]) !== sample.latency.sample_stride) {
-    throw new Error("logical fixture identity does not match the raw sample");
+    throw new Error("local-depth fixture identity does not match the raw sample");
   }
   if (sample.runtime.id === "conduit-reference-scheduler"
       && [sample.exact_identity.plan_identity, sample.exact_identity.source_semantic_hash, sample.exact_identity.artifact_digest].some((value) => !value)) {
     throw new Error("Conduit sample omitted exact plan, source, or artifact identity");
   }
-  if (sample.accepted_values !== sample.workload.input_values) throw new Error("accepted input count changed");
-  if (sample.useful_outputs !== expectedUseful(sample)) throw new Error("useful output count changed");
+  if (sample.outcomes.terminal !== 1) throw new Error("fixture must report one terminal signal");
+  if (overload) {
+    const outcomes = sample.outcomes;
+    const capacity = sample.workload.queue_capacity_items;
+    if (sample.memory.queue_items_high_water > capacity) throw new Error("overload queue exceeded declared capacity");
+    if (outcomes.offered > sample.workload.input_values) throw new Error("overload offered more than its finite source");
+    const pressureId = sample.workload.pressure.split("/")[0];
+    if (pressureId === "block") {
+      if (outcomes.offered !== sample.workload.input_values || outcomes.admitted !== outcomes.offered
+          || outcomes.completed_useful !== outcomes.admitted || outcomes.retried < 1
+          || [outcomes.rejected, outcomes.sampled, outcomes.coalesced, outcomes.dropped].some((value) => value !== 0)) {
+        throw new Error("block overload accounting is not conservative");
+      }
+    } else if (pressureId === "reject") {
+      if (outcomes.offered !== outcomes.admitted + outcomes.rejected || outcomes.completed_useful !== outcomes.admitted) {
+        throw new Error("reject overload accounting is not conservative");
+      }
+    } else if (pressureId === "coalesce") {
+      if (outcomes.offered !== outcomes.admitted || outcomes.completed_useful + outcomes.coalesced !== outcomes.admitted) {
+        throw new Error("coalesce overload accounting is not conservative");
+      }
+    } else if (pressureId === "sample") {
+      if (outcomes.offered !== outcomes.admitted + outcomes.sampled + outcomes.dropped
+          || outcomes.completed_useful !== outcomes.admitted) {
+        throw new Error("sample overload accounting is not conservative");
+      }
+    } else if (pressureId === "drop-disposable") {
+      if (outcomes.offered !== outcomes.admitted + outcomes.dropped || outcomes.completed_useful !== outcomes.admitted) {
+        throw new Error("disposable-drop overload accounting is not conservative");
+      }
+    } else if (["disconnect", "fail"].includes(pressureId)) {
+      if (outcomes.offered !== outcomes.admitted + 1 || outcomes.completed_useful > outcomes.admitted) {
+        throw new Error(`${pressureId} overload accounting is not conservative`);
+      }
+    } else {
+      throw new Error(`unknown overload pressure policy ${pressureId}`);
+    }
+    if (["disconnect", "fail"].includes(pressureId)) {
+      if (sample.phases.recovery_ns !== null) throw new Error("terminal overload unexpectedly entered recovery");
+    } else if (sample.phases.pressure_ns === null || sample.phases.recovery_ns === null) {
+      throw new Error("finite overload fixture did not expose both pressure and recovery regions");
+    }
+  } else {
+    if (sample.outcomes.offered !== sample.workload.input_values) throw new Error("offered input count changed");
+    if (sample.outcomes.admitted !== sample.workload.input_values) throw new Error("admitted input count changed");
+    if (sample.outcomes.completed_useful !== expectedUseful(sample)) throw new Error("useful output count changed");
+    if (["rejected", "sampled", "coalesced", "dropped"].some((field) => sample.outcomes[field] !== 0)) {
+      throw new Error("lossless local-depth fixture reported value loss");
+    }
+  }
   if (sample.latency.samples_ns.length === 0 || sample.latency.samples_ns.some((value) => value <= 0)) {
     throw new Error("latency samples must be present and positive");
   }
@@ -91,7 +154,9 @@ function bootstrapMedian95(values, seed, count) {
 const measured = samples.filter((sample) => sample.sample_kind === "measured");
 const groups = new Map();
 for (const sample of measured) {
-  const key = [sample.runtime.id, sample.workload.id, sample.workload.operators].join("/");
+  const key = [sample.runtime.id, sample.workload.id, sample.workload.operators,
+    sample.workload.queue_capacity_items, sample.workload.pressure,
+    sample.workload.slow_consumer_yields].join("/");
   if (!groups.has(key)) groups.set(key, []);
   groups.get(key).push(sample);
 }
@@ -99,7 +164,7 @@ for (const sample of measured) {
 const summaries = [];
 for (const [key, group] of [...groups].sort(([left], [right]) => left.localeCompare(right))) {
   if (group.length < 9) throw new Error(`${key} has ${group.length} measured trials; at least 9 are required`);
-  const throughputs = group.map((sample) => sample.useful_outputs / (sample.phases.steady_ns / 1e9));
+  const throughputs = group.map((sample) => sample.outcomes.completed_useful / (sample.phases.steady_ns / 1e9));
   const steady = group.map((sample) => sample.phases.steady_ns);
   const latency = group.flatMap((sample) => sample.latency.samples_ns);
   const sample = group[0];
@@ -116,8 +181,13 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
       plan_seal: optionalStats(group.map((value) => value.phases.plan_seal_ns)),
       start: optionalStats(group.map((value) => value.phases.start_ns)),
       steady: optionalStats(steady),
+      pressure: optionalStats(group.map((value) => value.phases.pressure_ns)),
+      recovery: optionalStats(group.map((value) => value.phases.recovery_ns)),
     },
     process_cpu_ns: optionalStats(group.map((value) => value.process_cpu_ns)),
+    outcomes: Object.fromEntries([
+      "offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "retried", "terminal",
+    ].map((field) => [field, optionalStats(group.map((value) => value.outcomes[field]))])),
     allocations_after_start: {
       calls: optionalStats(group.map((value) => value.allocations.calls)),
       bytes: optionalStats(group.map((value) => value.allocations.bytes)),
@@ -147,6 +217,8 @@ summaries.sort((left, right) =>
   left.workload.id.localeCompare(right.workload.id)
   || left.runtime.id.localeCompare(right.runtime.id)
   || left.workload.operators - right.workload.operators
+  || left.workload.queue_capacity_items - right.workload.queue_capacity_items
+  || left.workload.pressure.localeCompare(right.workload.pressure)
 );
 
 const result = {
@@ -176,6 +248,16 @@ const result = {
       workload: "all",
       reason: "unavailable pending #214/#242; reference-scheduler results are not substituted",
     },
+    {
+      runtime: "rxjs",
+      workload: "overload",
+      reason: "no demand-bounded queue matches the exact Conduit pressure policies; synchronous push is not substituted",
+    },
+    {
+      runtime: "reactor-core",
+      workload: "overload",
+      reason: "a reviewed demand/buffer and loss-policy mapping is not yet implemented; local-depth publishOn is not substituted",
+    },
   ],
   groups: summaries,
 };
@@ -195,20 +277,30 @@ if (reportOutput) {
     "- Conduit reference bounded-async: the runner is single-lane; a bounded cord is not relabelled as an asynchronous boundary.",
     "- RxJS bounded-async: no demand-bounded boundary exists; an uncontrolled `observeOn` queue is not substituted.",
     "- Conduit optimized hosted streaming: unavailable pending #214/#242; reference results are not substituted.",
+    "- RxJS overload: synchronous push has no demand-bounded queue matching these pressure policies and is not substituted.",
+    "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
     "",
   ];
   for (const workload of [...new Set(summaries.map((group) => group.workload.id))].sort()) {
     const workloadGroups = summaries.filter((group) => group.workload.id === workload && group.runtime.comparison_role === "reactive-runtime");
-    report.push(`## ${workload}: preparation regions`, "", "| Runtime | Depth | Assembly median ns | Plan seal median ns | Start median ns |", "| --- | ---: | ---: | ---: | ---: |");
+    report.push(`## ${workload}: preparation regions`, "", "| Runtime | Policy | Capacity | Depth | Assembly median ns | Plan seal median ns | Start median ns |", "| --- | --- | ---: | ---: | ---: | ---: | ---: |");
     for (const group of workloadGroups) {
-      report.push(`| ${group.runtime.id} | ${group.workload.operators} | ${duration(group.phases_ns.assembly)} | ${duration(group.phases_ns.plan_seal)} | ${duration(group.phases_ns.start)} |`);
+      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${group.workload.operators} | ${duration(group.phases_ns.assembly)} | ${duration(group.phases_ns.plan_seal)} | ${duration(group.phases_ns.start)} |`);
     }
-    report.push("", `## ${workload}: steady region`, "", "| Runtime | Depth | Useful outputs/s median | 95% CI | p50 ns | p95 ns | p99 ns | p99.9 ns | max ns |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+    report.push("", `## ${workload}: steady region`, "", "| Runtime | Policy | Capacity | Depth | Useful outputs/s median | 95% CI | p50 ns | p95 ns | p99 ns | p99.9 ns | max ns | Recovery median ns |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
     for (const group of workloadGroups) {
       const throughput = group.useful_outputs_per_second;
-      report.push(`| ${group.runtime.id} | ${group.workload.operators} | ${integer.format(throughput.median)} | ${integer.format(throughput.median_confidence_95.low)}–${integer.format(throughput.median_confidence_95.high)} | ${integer.format(group.latency_ns.p50)} | ${integer.format(group.latency_ns.p95)} | ${integer.format(group.latency_ns.p99)} | ${integer.format(group.latency_ns.p99_9)} | ${integer.format(group.latency_ns.max)} |`);
+      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${group.workload.operators} | ${integer.format(throughput.median)} | ${integer.format(throughput.median_confidence_95.low)}–${integer.format(throughput.median_confidence_95.high)} | ${integer.format(group.latency_ns.p50)} | ${integer.format(group.latency_ns.p95)} | ${integer.format(group.latency_ns.p99)} | ${integer.format(group.latency_ns.p99_9)} | ${integer.format(group.latency_ns.max)} | ${duration(group.phases_ns.recovery)} |`);
     }
     report.push("");
+    if (workload === "overload") {
+      report.push("## overload: outcome accounting", "", "Counts are per-trial medians. Completed-useful is the throughput numerator; admitted, replaced, or discarded work is never counted as success.", "", "| Runtime | Policy | Capacity | Offered | Admitted | Useful | Rejected | Sampled | Coalesced | Dropped | Retried | Terminal | Queue high water |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+      for (const group of workloadGroups) {
+        const outcome = (field) => integer.format(group.outcomes[field].median);
+        report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${outcome("offered")} | ${outcome("admitted")} | ${outcome("completed_useful")} | ${outcome("rejected")} | ${outcome("sampled")} | ${outcome("coalesced")} | ${outcome("dropped")} | ${outcome("retried")} | ${outcome("terminal")} | ${duration(group.high_water.queue_items)} |`);
+      }
+      report.push("");
+    }
     const lowerBounds = summaries.filter((group) => group.workload.id === workload && group.runtime.comparison_role === "language-lower-bound");
     if (lowerBounds.length > 0) {
       report.push(`## ${workload}: language lower bounds`, "", "These loops have no reactive runtime, subscription, demand, scheduler, queues, evidence, or merge boundary. They are language-cost references, never competitors.", "", "| Language loop | Depth | Useful outputs/s median | 95% CI | p99 ns |", "| --- | ---: | ---: | ---: | ---: |");

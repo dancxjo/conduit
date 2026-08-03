@@ -14,8 +14,7 @@
     "trial",
     "thermal_state",
     "phases",
-    "accepted_values",
-    "useful_outputs",
+    "outcomes",
     "allocations",
     "memory",
     "latency",
@@ -28,8 +27,22 @@
     "sample_kind": { "enum": ["warmup", "measured"] },
     "trial": { "type": "integer", "minimum": 0 },
     "thermal_state": { "enum": ["cold", "warming", "warmed"] },
-    "accepted_values": { "type": "integer", "minimum": 0 },
-    "useful_outputs": { "type": "integer", "minimum": 0 },
+    "outcomes": {
+      "type": "object",
+      "required": ["offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "retried", "terminal"],
+      "properties": {
+        "offered": { "type": "integer", "minimum": 0 },
+        "admitted": { "type": "integer", "minimum": 0 },
+        "completed_useful": { "type": "integer", "minimum": 0 },
+        "rejected": { "type": "integer", "minimum": 0 },
+        "sampled": { "type": "integer", "minimum": 0 },
+        "coalesced": { "type": "integer", "minimum": 0 },
+        "dropped": { "type": "integer", "minimum": 0 },
+        "retried": { "type": "integer", "minimum": 0 },
+        "terminal": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
     "runtime": {
       "type": "object",
       "required": ["id", "comparison_role", "execution_mode", "build_profile", "scheduler", "fusion", "batching", "concurrency"],
@@ -39,7 +52,7 @@
     },
     "workload": {
       "type": "object",
-      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss"]
+      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs"]
     },
     "exact_identity": {
       "type": "object",
@@ -47,7 +60,7 @@
     },
     "phases": {
       "type": "object",
-      "required": ["assembly_ns", "plan_seal_ns", "start_ns", "steady_ns"]
+      "required": ["assembly_ns", "plan_seal_ns", "start_ns", "steady_ns", "pressure_ns", "recovery_ns"]
     },
     "latency": {
       "type": "object",
