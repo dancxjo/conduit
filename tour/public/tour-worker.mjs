@@ -7,6 +7,7 @@ import init, {
   patchbay_dispose_exact_run,
   patchbay_notify_host_operation,
   patchbay_open_session,
+  patchbay_install_browser_file,
   patchbay_pump_exact_run,
   patchbay_read_exact_evidence,
   patchbay_read_exact_watch,
@@ -15,6 +16,7 @@ import init, {
   patchbay_session_view,
   patchbay_snapshot_exact_run,
   patchbay_start_exact_run,
+  patchbay_take_browser_download,
   patchbay_workbench_palette,
 } from "./conduit_web.js";
 import {
@@ -59,6 +61,21 @@ function response(operation, value) {
       return patchbay_request_resource_binding(
         value.sessionId,
         JSON.stringify(value.command),
+      );
+    case "patchbay-install-browser-file":
+      return patchbay_install_browser_file(
+        value.sessionId,
+        value.slotId,
+        value.bytes,
+      );
+    case "patchbay-take-browser-download":
+      return patchbay_take_browser_download(
+        value.sessionId,
+        value.taskRequestId,
+        value.runId,
+        exactUnsigned(value.sourceRevision, "sourceRevision"),
+        value.planIdentity,
+        exactUnsigned(value.planEpoch, "planEpoch"),
       );
     case "patchbay-pump-exact-run":
       return patchbay_pump_exact_run(

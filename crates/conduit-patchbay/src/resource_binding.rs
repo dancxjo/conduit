@@ -129,6 +129,7 @@ impl SelectionProviderObservation {
             &[
                 ResourceSelectionOperation::Choose,
                 ResourceSelectionOperation::CreateNew,
+                ResourceSelectionOperation::ReplaceExisting,
                 ResourceSelectionOperation::DownloadExport,
             ],
             false,

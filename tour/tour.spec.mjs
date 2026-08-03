@@ -2833,6 +2833,7 @@ test("filesystem reference panels use the explicit bounded browser provider", as
 });
 
 test("Copy task front binds From and To without exposing selected material", async ({ page }) => {
+  test.slow();
   await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem");
   const taskFront = page.locator("#task-front");
   await expect(taskFront).toBeVisible();
@@ -2866,6 +2867,41 @@ test("Copy task front binds From and To without exposing selected material", asy
     await page.keyboard.press("Enter");
   };
 
+  const bindBrowserFiles = async () => {
+    const activeFrom = taskFront.locator('[data-control-id="copy-from"]');
+    const activeTo = taskFront.locator('[data-control-id="copy-to"]');
+    await activate(activeFrom.getByRole("button", { name: "Choose source for From" }));
+    await expect(activeFrom.locator(".task-front-resource-status")).toContainText(
+      "selection-pending",
+    );
+    await activeFrom.getByLabel("Select browser file for From").setInputFiles({
+      name: "actual-input.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("bounded filesystem fixture\n"),
+    });
+    await expect(activeFrom.locator(".task-front-resource-status")).toContainText(
+      "actual-input.txt — required",
+    );
+    await activate(activeFrom.getByRole("button", { name: "Grant read for From" }));
+    await expect(activeFrom.locator(".task-front-resource-status")).toContainText(
+      "actual-input.txt — ready",
+    );
+
+    await activate(activeTo.getByRole("button", { name: "Replace destination for To" }));
+    await expect(activeTo.locator(".task-front-resource-status")).toContainText(
+      "selection-pending",
+    );
+    await activeTo.getByLabel("Download filename for To").fill("copied-output.txt");
+    await activate(activeTo.getByRole("button", { name: "Use browser download for To" }));
+    await expect(activeTo.locator(".task-front-resource-status")).toContainText(
+      "copied-output.txt — required",
+    );
+    await activate(activeTo.getByRole("button", { name: "Grant write + replace for To" }));
+    await expect(activeTo.locator(".task-front-resource-status")).toContainText(
+      "copied-output.txt — ready",
+    );
+  };
+
   await activate(from.getByRole("button", { name: "Choose source for From" }));
   await expect(from.locator(".task-front-resource-status")).toContainText(
     "selection-pending",
@@ -2875,30 +2911,20 @@ test("Copy task front binds From and To without exposing selected material", asy
     "selection-required",
   );
   await activate(from.getByRole("button", { name: "Choose source for From" }));
+  await from.getByLabel("Select browser file for From").setInputFiles({
+    name: "too-large.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.alloc(257, 0x78),
+  });
+  await expect(page.locator("#result")).toContainText("CND-BND-OVERSIZED");
   await expect(from.locator(".task-front-resource-status")).toContainText(
     "selection-pending",
   );
-  await activate(from.getByRole("button", { name: "Use bounded input for From" }));
+  await activate(from.getByRole("button", { name: "Cancel chooser for From" }));
   await expect(from.locator(".task-front-resource-status")).toContainText(
-    "bounded-input.txt — required",
+    "selection-required",
   );
-  await activate(from.getByRole("button", { name: "Grant read for From" }));
-  await expect(from.locator(".task-front-resource-status")).toContainText(
-    "bounded-input.txt — ready",
-  );
-
-  await activate(to.getByRole("button", { name: "Replace destination for To" }));
-  await expect(to.locator(".task-front-resource-status")).toContainText(
-    "selection-pending",
-  );
-  await activate(to.getByRole("button", { name: "Use bounded output for To" }));
-  await expect(to.locator(".task-front-resource-status")).toContainText(
-    "bounded-output.txt — required",
-  );
-  await activate(to.getByRole("button", { name: "Grant write + replace for To" }));
-  await expect(to.locator(".task-front-resource-status")).toContainText(
-    "bounded-output.txt — ready",
-  );
+  await bindBrowserFiles();
   await expect(page.locator("#task-front-state")).toHaveText("ready");
 
   const sourceText = await page.locator("#source").inputValue();
@@ -2910,13 +2936,15 @@ test("Copy task front binds From and To without exposing selected material", asy
 
   await page.reload();
   await waitForTourReady(page);
-  await expect(page.locator("#task-front-state")).toHaveText("ready");
+  await expect(page.locator("#task-front-state")).toHaveText("incomplete-choices");
   await expect(
     page.locator('[data-control-id="copy-from"] .task-front-resource-status'),
-  ).toContainText("bounded-input.txt — ready");
+  ).toContainText("selection-required");
   await expect(
     page.locator('[data-control-id="copy-to"] .task-front-resource-status'),
-  ).toContainText("bounded-output.txt — ready");
+  ).toContainText("selection-required");
+  await bindBrowserFiles();
+  await expect(page.locator("#task-front-state")).toHaveText("ready");
 
   await taskFront.locator("#task-front-advanced").evaluate((details) => {
     details.open = true;
@@ -2943,7 +2971,16 @@ test("Copy task front binds From and To without exposing selected material", asy
   await expect(page.locator("#task-front-state")).toHaveText("ready");
   copy = taskFront.getByRole("button", { name: "Copy selected file" });
   await expect(copy).toBeEnabled();
+  const downloadPromise = page.waitForEvent("download");
   await activate(copy);
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("copied-output.txt");
+  const downloadStream = await download.createReadStream();
+  const downloadChunks = [];
+  for await (const chunk of downloadStream) downloadChunks.push(chunk);
+  expect(Buffer.concat(downloadChunks).toString("utf8")).toBe(
+    "bounded filesystem fixture\n",
+  );
   await expect(page.locator("#task-front-result")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator("#task-front-result-value")).toContainText(
     "Copied 27 bytes — committed (succeeded)",
@@ -2970,7 +3007,7 @@ test("Copy task front binds From and To without exposing selected material", asy
   await page.locator('[data-presentation-mode="use"]').click();
   await expect(taskFront).toBeVisible();
   await expect(from.locator(".task-front-resource-status")).toContainText(
-    "bounded-input.txt — ready",
+    "actual-input.txt — ready",
   );
   await expect(page.locator("#task-front-result-value")).toContainText(
     "Copied 27 bytes — committed",

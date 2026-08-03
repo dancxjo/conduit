@@ -46,8 +46,10 @@ const MAXIMUM_BROWSER_WATCH_PREVIEW_BYTES: u32 = 256;
 const MAXIMUM_BROWSER_EVIDENCE_DRAIN_EVENTS: u32 = 128;
 const MAXIMUM_BROWSER_RETAINED_EVIDENCE_EVENTS: usize = 256;
 const MAXIMUM_PATCHBAY_PROJECTED_EVIDENCE_EVENTS: usize = 32;
+const MAXIMUM_BROWSER_FILE_BYTES: usize = 256;
 const BROWSER_READ_RESOURCE: &str = "conduit.resource/filesystem-example-read";
 const BROWSER_WRITE_RESOURCE: &str = "conduit.resource/filesystem-example-write";
+const BROWSER_FILE_RESOURCE_PREFIX: &str = "conduit.resource/browser-file-";
 const BROWSER_WATCH_RESOURCE: &str = "conduit.resource/filesystem-example-watch";
 const BROWSER_EVIDENCE_IMPLEMENTATION: &str = "conduit/browser-worker-exact-evidence";
 const BROWSER_EVIDENCE_ARTIFACT: &str = "conduit/browser-worker-exact-evidence-artifact";
@@ -201,6 +203,11 @@ thread_local! {
         const { RefCell::new(BTreeMap::new()) };
     static BROWSER_RUN_SESSIONS: RefCell<Option<ExactRunSessionRegistry>> =
         const { RefCell::new(None) };
+    /// Worker-private browser file material. Keys are opaque protected
+    /// resource identities; neither keys nor bytes enter Patchbay projections,
+    /// task-front state, evidence, or persisted browser storage.
+    static BROWSER_FILE_MATERIAL: RefCell<BTreeMap<String, Vec<u8>>> =
+        const { RefCell::new(BTreeMap::new()) };
 }
 
 struct ExactBrowserResult {
@@ -580,15 +587,12 @@ fn copy_binding_profile(
 }
 
 fn browser_binding_providers() -> Vec<conduit_patchbay::SelectionProviderObservation> {
-    let mut browser = conduit_patchbay::SelectionProviderObservation::browser_files(10);
-    browser.state = conduit_patchbay::SelectionProviderState::Unsupported;
-    browser.supported_operations.clear();
     let mut hosted = conduit_patchbay::SelectionProviderObservation::hosted_local_files(10);
     hosted.state = conduit_patchbay::SelectionProviderState::Unsupported;
     hosted.supported_operations.clear();
     vec![
         conduit_patchbay::SelectionProviderObservation::deterministic_files(10),
-        browser,
+        conduit_patchbay::SelectionProviderObservation::browser_files(10),
         hosted,
         conduit_patchbay::SelectionProviderObservation::unsupported_files(10),
     ]
@@ -850,6 +854,69 @@ fn browser_filesystem() -> MemoryFilesystem<1, 256, 8> {
         .expect("browser filesystem fixture is statically bounded")])
 }
 
+fn browser_filesystem_with(bytes: &[u8]) -> Result<MemoryFilesystem<1, 256, 8>, RuntimeError> {
+    Ok(MemoryFilesystem::new([FileSlot::seeded(
+        FileHandle(1),
+        bytes,
+        false,
+    )
+    .map_err(|error| {
+        RuntimeError::new(error.code(), error.code())
+    })?]))
+}
+
+fn browser_file_resource(node: &Node) -> Option<&str> {
+    match node.config_value("resource") {
+        Some(SourceValue::SecretReference(value)) => Some(value),
+        _ => None,
+    }
+}
+
+fn browser_file_resource_is_supported(resource: &str, deterministic: &str) -> bool {
+    resource == deterministic || resource.starts_with(BROWSER_FILE_RESOURCE_PREFIX)
+}
+
+fn protected_browser_file_handle(request_id: &str, slot_id: &str) -> String {
+    let identity = browser_evidence_hash(
+        b"protected-browser-file",
+        &[request_id.as_bytes(), slot_id.as_bytes()],
+    )
+    .to_string();
+    let digest = identity
+        .strip_prefix("sha256:")
+        .expect("semantic hashes use the canonical sha256 prefix");
+    format!("{BROWSER_FILE_RESOURCE_PREFIX}{}", &digest[..32])
+}
+
+fn browser_file_material(resource: &str) -> Result<Vec<u8>, RuntimeError> {
+    BROWSER_FILE_MATERIAL.with(|materials| {
+        materials.borrow().get(resource).cloned().ok_or_else(|| {
+            RuntimeError::new(
+                "CND-BND-STALE",
+                "browser file material is absent or stale; choose the file again",
+            )
+        })
+    })
+}
+
+fn forget_browser_file_material(profile: Option<&conduit_patchbay::ProtectedBindingProfile>) {
+    let Some(profile) = profile else {
+        return;
+    };
+    let resources = [COPY_SOURCE_SLOT, COPY_DESTINATION_SLOT]
+        .into_iter()
+        .filter_map(|slot| profile.resolve(slot).ok())
+        .filter(|resolution| resolution.provider_id == "conduit.selector/browser-files")
+        .map(|resolution| resolution.resource().to_owned())
+        .collect::<Vec<_>>();
+    BROWSER_FILE_MATERIAL.with(|materials| {
+        let mut materials = materials.borrow_mut();
+        for resource in resources {
+            materials.remove(&resource);
+        }
+    });
+}
+
 fn exact_keys(node: &Node, expected: &[&str]) -> Result<(), ResolutionError> {
     if node.config.len() == expected.len()
         && expected
@@ -902,7 +969,8 @@ fn validate_browser_read(node: &Node) -> Result<(), ResolutionError> {
             "cancellation",
         ],
     )?;
-    if exact_secret(node, "resource", BROWSER_READ_RESOURCE)
+    if browser_file_resource(node)
+        .is_some_and(|resource| browser_file_resource_is_supported(resource, BROWSER_READ_RESOURCE))
         && exact_secret(node, "grant", "conduit.grant/filesystem-read")
         && matches!(node.config("consistency"), Some("snapshot" | "live"))
         && node.config("eof") == Some("terminal")
@@ -931,8 +999,9 @@ fn validate_browser_write(node: &Node) -> Result<(), ResolutionError> {
             "cancellation",
         ],
     )?;
-    if exact_secret(node, "resource", BROWSER_WRITE_RESOURCE)
-        && exact_secret(node, "grant", "conduit.grant/filesystem-write")
+    if browser_file_resource(node).is_some_and(|resource| {
+        browser_file_resource_is_supported(resource, BROWSER_WRITE_RESOURCE)
+    }) && exact_secret(node, "grant", "conduit.grant/filesystem-write")
         && matches!(node.config("mode"), Some("create" | "replace" | "append"))
         && matches!(
             node.config("partial"),
@@ -1023,8 +1092,15 @@ impl Handler for BrowserRead {
         };
         let maximum_bytes = exact_usize(node, "maximum_bytes", 256)?;
         let chunk_bytes = exact_usize(node, "chunk_bytes", 256)?;
-        let mut output = [0; 256];
-        let result = browser_filesystem()
+        let resource = browser_file_resource(node)
+            .ok_or_else(|| RuntimeError::new("CND-FSH-019", "read resource is missing"))?;
+        let selected_bytes = if resource == BROWSER_READ_RESOURCE {
+            BROWSER_FILE_BYTES.to_vec()
+        } else {
+            browser_file_material(resource)?
+        };
+        let mut output = [0; MAXIMUM_BROWSER_FILE_BYTES];
+        let result = browser_filesystem_with(&selected_bytes)?
             .read(
                 ReadRequest {
                     handle: FileHandle(1),
@@ -1086,7 +1162,15 @@ impl Handler for BrowserWrite {
         } else {
             FlushClaim::None
         };
-        let result = browser_filesystem()
+        let resource = browser_file_resource(node)
+            .ok_or_else(|| RuntimeError::new("CND-FSH-019", "write resource is missing"))?;
+        let selected_bytes = if resource == BROWSER_WRITE_RESOURCE {
+            BROWSER_FILE_BYTES.to_vec()
+        } else {
+            browser_file_material(resource)?
+        };
+        let mut filesystem = browser_filesystem_with(&selected_bytes)?;
+        let result = filesystem
             .write(
                 WriteRequest {
                     handle: FileHandle(1),
@@ -1098,6 +1182,19 @@ impl Handler for BrowserWrite {
                 &input.bytes,
             )
             .map_err(|error| RuntimeError::new(error.code(), error.code()))?;
+        if resource.starts_with(BROWSER_FILE_RESOURCE_PREFIX) && result.committed {
+            let mut committed = if mode == WriteMode::Append {
+                selected_bytes
+            } else {
+                Vec::new()
+            };
+            committed.extend_from_slice(&input.bytes[..result.bytes_written]);
+            BROWSER_FILE_MATERIAL.with(|materials| {
+                materials
+                    .borrow_mut()
+                    .insert(resource.to_owned(), committed);
+            });
+        }
         let mut metadata = Vec::with_capacity(19);
         metadata.extend_from_slice(&(result.bytes_written as u64).to_be_bytes());
         metadata.extend_from_slice(&result.generation.to_be_bytes());
@@ -2401,6 +2498,9 @@ pub fn patchbay_open_session(
             Ok(view) => view,
             Err(error) => return patchbay_error(error),
         };
+        if let Some(previous) = sessions.get(&document_id) {
+            forget_browser_file_material(previous.protected_bindings.as_ref());
+        }
         sessions.insert(document_id.clone(), session);
         serde_json::json!({
             "ok": true,
@@ -2833,12 +2933,14 @@ struct BrowserResourceBindingCommand {
     request: conduit_patchbay::ResourceBindingRequestEnvelope,
     #[serde(default)]
     choice: Option<String>,
+    #[serde(default)]
+    safe_label: Option<String>,
 }
 
 /// Applies one exact protected resource-binding operation. The browser client
-/// sends a bounded chooser identity, never a path, resource handle, grant, or
-/// selected content. This deterministic provider maps that ceremony to its
-/// own opaque resources behind the worker boundary.
+/// sends a bounded chooser identity and safe display label, never a path,
+/// resource handle, grant, or selected content. Each provider maps that
+/// ceremony to its own opaque resource behind the worker boundary.
 #[wasm_bindgen]
 pub fn patchbay_request_resource_binding(session_id: String, request_json: String) -> String {
     if request_json.len() > MAXIMUM_PATCHBAY_REQUEST_BYTES {
@@ -2893,10 +2995,6 @@ pub fn patchbay_request_resource_binding(session_id: String, request_json: Strin
                     .as_ref()
                     .ok_or(conduit_patchbay::ResourceBindingError::WrongProvider);
                 provider.and_then(|provider| {
-                    if provider.kind != conduit_patchbay::SelectionProviderKind::DeterministicMemory
-                    {
-                        return Err(conduit_patchbay::ResourceBindingError::Unsupported);
-                    }
                     let Some(selection_request_id) = command.request.selection_request_id.as_ref()
                     else {
                         if command.choice.is_some() {
@@ -2904,16 +3002,48 @@ pub fn patchbay_request_resource_binding(session_id: String, request_json: Strin
                         }
                         return profile.begin_selection(&command.request, provider, 10);
                     };
-                    let (handle, label) =
-                        match (command.request.slot_id.as_str(), command.choice.as_deref()) {
-                            (COPY_SOURCE_SLOT, Some("bounded-input")) => {
-                                (BROWSER_READ_RESOURCE, "bounded-input.txt")
-                            }
-                            (COPY_DESTINATION_SLOT, Some("bounded-output")) => {
-                                (BROWSER_WRITE_RESOURCE, "bounded-output.txt")
-                            }
-                            _ => return Err(conduit_patchbay::ResourceBindingError::Malformed),
-                        };
+                    let (handle, label) = match (
+                        provider.kind,
+                        command.request.slot_id.as_str(),
+                        command.choice.as_deref(),
+                    ) {
+                        (
+                            conduit_patchbay::SelectionProviderKind::DeterministicMemory,
+                            COPY_SOURCE_SLOT,
+                            Some("bounded-input"),
+                        ) => (
+                            BROWSER_READ_RESOURCE.to_owned(),
+                            "bounded-input.txt".to_owned(),
+                        ),
+                        (
+                            conduit_patchbay::SelectionProviderKind::DeterministicMemory,
+                            COPY_DESTINATION_SLOT,
+                            Some("bounded-output"),
+                        ) => (
+                            BROWSER_WRITE_RESOURCE.to_owned(),
+                            "bounded-output.txt".to_owned(),
+                        ),
+                        (
+                            conduit_patchbay::SelectionProviderKind::BrowserFile,
+                            COPY_SOURCE_SLOT,
+                            Some("browser-file"),
+                        )
+                        | (
+                            conduit_patchbay::SelectionProviderKind::BrowserFile,
+                            COPY_DESTINATION_SLOT,
+                            Some("browser-download"),
+                        ) => (
+                            protected_browser_file_handle(
+                                selection_request_id,
+                                &command.request.slot_id,
+                            ),
+                            command
+                                .safe_label
+                                .clone()
+                                .ok_or(conduit_patchbay::ResourceBindingError::Malformed)?,
+                        ),
+                        _ => return Err(conduit_patchbay::ResourceBindingError::Malformed),
+                    };
                     profile.complete_selection(
                         conduit_patchbay::ProtectedSelectionCompletion {
                             request_id: selection_request_id.clone(),
@@ -2924,7 +3054,7 @@ pub fn patchbay_request_resource_binding(session_id: String, request_json: Strin
                             completed_at_tick: 10,
                             outcome: conduit_patchbay::SelectionCompletionOutcome::Selected,
                             opaque_handle: Some(conduit_patchbay::ProtectedValue::new(handle)?),
-                            safe_label: Some(label.to_owned()),
+                            safe_label: Some(label),
                         },
                         provider,
                     )
@@ -2984,6 +3114,185 @@ pub fn patchbay_request_resource_binding(session_id: String, request_json: Strin
             })
             .to_string(),
             Err(error) => binding_error_response(error, session),
+        }
+    })
+}
+
+/// Installs one bounded browser-selected file behind an already selected and
+/// granted protected binding. The caller never learns the opaque resource
+/// identity, and this material is worker-memory-only.
+#[wasm_bindgen]
+pub fn patchbay_install_browser_file(
+    session_id: String,
+    slot_id: String,
+    bytes: Vec<u8>,
+) -> String {
+    if bytes.len() > MAXIMUM_BROWSER_FILE_BYTES {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-BND-OVERSIZED",
+            "diagnostic": "selected browser file exceeds the 256-byte task bound",
+        })
+        .to_string();
+    }
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let sessions = sessions.borrow();
+        let Some(session) = sessions.get(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(profile) = session.protected_bindings.as_ref() else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-BND-004",
+                "diagnostic": "this task front declares no protected binding profile",
+            })
+            .to_string();
+        };
+        let resolution = match profile.resolve(&slot_id) {
+            Ok(resolution) if resolution.provider_id == "conduit.selector/browser-files" => {
+                resolution
+            }
+            Ok(_) => {
+                return serde_json::json!({
+                    "ok": false,
+                    "code": "CND-BND-WRONG-PROVIDER",
+                    "diagnostic": "protected binding is not owned by the browser file provider",
+                })
+                .to_string();
+            }
+            Err(error) => return binding_error_response(error, session),
+        };
+        if slot_id == COPY_DESTINATION_SLOT && !bytes.is_empty() {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-BND-001",
+                "diagnostic": "a browser download destination must begin empty",
+            })
+            .to_string();
+        }
+        BROWSER_FILE_MATERIAL.with(|materials| {
+            materials
+                .borrow_mut()
+                .insert(resolution.resource().to_owned(), bytes);
+        });
+        serde_json::json!({
+            "ok": true,
+            "slot_id": slot_id,
+            "binding_revision": resolution.binding_revision,
+            "byte_length": if slot_id == COPY_SOURCE_SLOT {
+                BROWSER_FILE_MATERIAL.with(|materials| {
+                    materials.borrow().get(resolution.resource()).map_or(0, Vec::len)
+                })
+            } else {
+                0
+            },
+        })
+        .to_string()
+    })
+}
+
+/// Returns a successful browser-download payload only for the exact accepted
+/// task request and exact terminal run/epoch that produced it.
+#[wasm_bindgen]
+pub fn patchbay_take_browser_download(
+    session_id: String,
+    task_request_id: String,
+    run_id: String,
+    source_revision: u64,
+    plan_identity: String,
+    plan_epoch: u64,
+) -> String {
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let sessions = sessions.borrow();
+        let Some(session) = sessions.get(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let Some(run) = session.run.as_ref() else {
+            return browser_run_result(session);
+        };
+        if let Err(error) =
+            validate_browser_run_identity(run, &run_id, source_revision, &plan_identity)
+        {
+            return error;
+        }
+        if run.plan_epoch != plan_epoch {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-016",
+                "diagnostic": "stale exact-run epoch",
+            })
+            .to_string();
+        }
+        if !matches!(browser_run_state(run), ExactRunState::Terminal(TerminalClass::Succeeded)) {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-BND-NO-RESULT",
+                "diagnostic": "browser download is unavailable because the exact run did not succeed",
+            })
+            .to_string();
+        }
+        let accepted = session.task_action_receipts.iter().any(|receipt| {
+            receipt.request_id == task_request_id
+                && receipt.plan_epoch == plan_epoch
+                && receipt.disposition == "accepted"
+        });
+        if !accepted {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-ACT-005",
+                "diagnostic": "browser download task request identity was not accepted",
+            })
+            .to_string();
+        }
+        let Some(profile) = session.protected_bindings.as_ref() else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-BND-004",
+                "diagnostic": "this task front declares no protected binding profile",
+            })
+            .to_string();
+        };
+        let resolution = match profile.resolve(COPY_DESTINATION_SLOT) {
+            Ok(resolution) if resolution.provider_id == "conduit.selector/browser-files" => resolution,
+            Ok(_) => {
+                return serde_json::json!({
+                    "ok": false,
+                    "code": "CND-BND-WRONG-PROVIDER",
+                    "diagnostic": "destination is not a browser download binding",
+                })
+                .to_string();
+            }
+            Err(error) => return binding_error_response(error, session),
+        };
+        let bytes = BROWSER_FILE_MATERIAL.with(|materials| {
+            materials.borrow_mut().remove(resolution.resource())
+        });
+        match bytes {
+            Some(bytes) => serde_json::json!({
+                "ok": true,
+                "request_id": task_request_id,
+                "run_id": run_id,
+                "plan_epoch": plan_epoch,
+                "byte_length": bytes.len(),
+                "bytes": bytes,
+            })
+            .to_string(),
+            None => serde_json::json!({
+                "ok": false,
+                "code": "CND-BND-STALE",
+                "diagnostic": "browser download material is absent, stale, or already exported",
+            })
+            .to_string(),
         }
     })
 }
@@ -3683,6 +3992,7 @@ pub fn patchbay_dispose_exact_run(
             .to_string();
         }
         session.run = None;
+        forget_browser_file_material(session.protected_bindings.as_ref());
         match browser_session_view(session) {
             Ok(view) => serde_json::json!({
                 "ok": true,
@@ -6936,15 +7246,17 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        BrowserTaskRuntimeProjection, authoritative_patchbay_view, browser_exact_run_id,
-        browser_watch_observation, exact_plan_snapshot, explain_panel, panel_language_metadata,
-        panel_source_metadata, patchbay_advance_exact_run, patchbay_apply_transaction,
-        patchbay_attach_exact_watch, patchbay_cancel_exact_run, patchbay_detach_exact_watch,
-        patchbay_dispose_exact_run, patchbay_inspect_at_rest, patchbay_move_node,
-        patchbay_notify_host_operation, patchbay_open_session as patchbay_open_session_with_front,
-        patchbay_pump_exact_run, patchbay_read_exact_evidence, patchbay_read_exact_watch,
-        patchbay_replace_source, patchbay_request_resource_binding, patchbay_request_task_action,
-        patchbay_session_view, patchbay_snapshot_exact_run, patchbay_start_exact_run,
+        BROWSER_FILE_RESOURCE_PREFIX, BrowserTaskRuntimeProjection, COPY_DESTINATION_SLOT,
+        COPY_SOURCE_SLOT, MAXIMUM_BROWSER_FILE_BYTES, authoritative_patchbay_view,
+        browser_exact_run_id, browser_watch_observation, exact_plan_snapshot, explain_panel,
+        panel_language_metadata, panel_source_metadata, patchbay_advance_exact_run,
+        patchbay_apply_transaction, patchbay_attach_exact_watch, patchbay_cancel_exact_run,
+        patchbay_detach_exact_watch, patchbay_dispose_exact_run, patchbay_inspect_at_rest,
+        patchbay_install_browser_file, patchbay_move_node, patchbay_notify_host_operation,
+        patchbay_open_session as patchbay_open_session_with_front, patchbay_pump_exact_run,
+        patchbay_read_exact_evidence, patchbay_read_exact_watch, patchbay_replace_source,
+        patchbay_request_resource_binding, patchbay_request_task_action, patchbay_session_view,
+        patchbay_snapshot_exact_run, patchbay_start_exact_run, patchbay_take_browser_download,
         planned_realization_projection,
     };
 
@@ -7030,7 +7342,7 @@ uppercase.text > text.text { capacity = 8 max_value_bytes = 65536 max_queued_byt
                     "source": "site-binding",
                     "target": "conduit.binding/copy/destination-file",
                     "label": "To",
-                    "help": "Choose or create a writable destination through an authorized provider.",
+                    "help": "Prepare an authorized download. The browser handles name collisions.",
                     "group": "Files",
                     "visibility": "primary",
                     "accessibility_name": "Choose Copy destination file"
@@ -7040,7 +7352,7 @@ uppercase.text > text.text { capacity = 8 max_value_bytes = 65536 max_queued_byt
                     "source": "instance-configuration",
                     "target": "root/copy/config/mode",
                     "label": "Mode",
-                    "help": "Replace overwrites the explicitly selected existing destination.",
+                    "help": "Replace updates the protected destination before download.",
                     "group": "Copy options",
                     "visibility": "primary",
                     "renderer_profile": "conduit.filesystem/write-mode",
@@ -7879,8 +8191,9 @@ output.value > sink.result\n\
             .iter()
             .filter(|provider| provider["state"] == "available")
             .collect::<Vec<_>>();
-        assert_eq!(available_providers.len(), 1);
+        assert_eq!(available_providers.len(), 2);
         assert_eq!(available_providers[0]["kind"], "deterministic-memory");
+        assert_eq!(available_providers[1]["kind"], "browser-file");
         let source_identity = opened["view"]["source"]["identity"].clone();
         let source_revision = opened["view"]["source"]["revision"].clone();
 
@@ -8131,6 +8444,219 @@ output.value > sink.result\n\
         assert_eq!(front["result"]["semantic_status"], "succeeded");
         assert_eq!(front["terminal"]["state"], "succeeded");
         assert_eq!(front["result"]["type_id"], "fs/write-result");
+    }
+
+    #[test]
+    fn browser_file_copy_keeps_material_private_and_exports_only_the_exact_successful_run() {
+        fn bind_browser_slot(
+            session: &str,
+            slot: &str,
+            action: &str,
+            access: &[&str],
+            choice: &str,
+            safe_label: &str,
+        ) -> Value {
+            let request_stem = if slot.ends_with("source-file") {
+                "browser-source"
+            } else {
+                "browser-destination"
+            };
+            let begin_id = format!("conduit.request/{request_stem}-select");
+            let begin: Value = serde_json::from_str(&patchbay_request_resource_binding(
+                session.to_owned(),
+                serde_json::json!({
+                    "request": {
+                        "protocol_version": 0,
+                        "request_id": begin_id,
+                        "operation_id": "conduit.operation/browser-copy-bindings",
+                        "slot_id": slot,
+                        "expected_binding_revision": 0,
+                        "provider_id": "conduit.selector/browser-files",
+                        "provider_generation": 1,
+                        "action": action,
+                        "requested_access": access,
+                    }
+                })
+                .to_string(),
+            ))
+            .expect("browser binding begin JSON");
+            assert_eq!(begin["ok"], true, "{begin}");
+            let selected: Value = serde_json::from_str(&patchbay_request_resource_binding(
+                session.to_owned(),
+                serde_json::json!({
+                    "request": {
+                        "protocol_version": 0,
+                        "request_id": format!("conduit.request/{request_stem}-complete"),
+                        "operation_id": "conduit.operation/browser-copy-bindings",
+                        "slot_id": slot,
+                        "expected_binding_revision": 0,
+                        "provider_id": "conduit.selector/browser-files",
+                        "provider_generation": 1,
+                        "action": action,
+                        "requested_access": access,
+                        "selection_request_id": begin_id,
+                    },
+                    "choice": choice,
+                    "safe_label": safe_label,
+                })
+                .to_string(),
+            ))
+            .expect("browser binding completion JSON");
+            assert_eq!(selected["ok"], true, "{selected}");
+            let binding_revision = selected["binding_receipt"]["binding_revision"]
+                .as_u64()
+                .expect("selected browser binding revision");
+            let granted: Value = serde_json::from_str(&patchbay_request_resource_binding(
+                session.to_owned(),
+                serde_json::json!({
+                    "request": {
+                        "protocol_version": 0,
+                        "request_id": format!("conduit.request/{request_stem}-grant"),
+                        "operation_id": "conduit.operation/browser-copy-bindings",
+                        "slot_id": slot,
+                        "expected_binding_revision": binding_revision,
+                        "provider_id": "conduit.selector/browser-files",
+                        "provider_generation": 1,
+                        "action": "confirm-grant",
+                        "requested_access": access,
+                    }
+                })
+                .to_string(),
+            ))
+            .expect("browser binding grant JSON");
+            assert_eq!(granted["ok"], true, "{granted}");
+            granted
+        }
+
+        let session = "test/browser-file-copy";
+        let opened: Value = serde_json::from_str(&patchbay_open_session_with_front(
+            session.to_owned(),
+            copy_binding_source(),
+            copy_task_front_descriptor(),
+        ))
+        .expect("browser Copy open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+        bind_browser_slot(
+            session,
+            COPY_SOURCE_SLOT,
+            "choose",
+            &["read"],
+            "browser-file",
+            "chosen.txt",
+        );
+        let ready = bind_browser_slot(
+            session,
+            COPY_DESTINATION_SLOT,
+            "replace-existing",
+            &["write", "replace"],
+            "browser-download",
+            "copied.txt",
+        );
+
+        let oversized: Value = serde_json::from_str(&patchbay_install_browser_file(
+            session.to_owned(),
+            COPY_SOURCE_SLOT.to_owned(),
+            vec![0; MAXIMUM_BROWSER_FILE_BYTES + 1],
+        ))
+        .expect("oversized install JSON");
+        assert_eq!(oversized["code"], "CND-BND-OVERSIZED");
+        let selected_bytes = b"actual browser bytes\n".to_vec();
+        let installed_source: Value = serde_json::from_str(&patchbay_install_browser_file(
+            session.to_owned(),
+            COPY_SOURCE_SLOT.to_owned(),
+            selected_bytes.clone(),
+        ))
+        .expect("source install JSON");
+        assert_eq!(installed_source["ok"], true, "{installed_source}");
+        let installed_destination: Value = serde_json::from_str(&patchbay_install_browser_file(
+            session.to_owned(),
+            COPY_DESTINATION_SLOT.to_owned(),
+            Vec::new(),
+        ))
+        .expect("destination install JSON");
+        assert_eq!(installed_destination["ok"], true, "{installed_destination}");
+        let public_view = ready["view"].to_string();
+        assert!(
+            !public_view.contains("actual browser bytes"),
+            "{public_view}"
+        );
+        assert!(
+            !public_view.contains(BROWSER_FILE_RESOURCE_PREFIX),
+            "{public_view}"
+        );
+
+        let front = &ready["view"]["task_front"]["front"];
+        let plan_epoch = front["primary_action"]["plan_epoch"]
+            .as_u64()
+            .expect("browser Copy plan epoch");
+        let request_id = "request/browser-copy-ready-run";
+        let started: Value = serde_json::from_str(&patchbay_request_task_action(
+            session.to_owned(),
+            serde_json::json!({
+                "protocol_version": 0,
+                "request_id": request_id,
+                "operation_id": front["primary_action"]["operation_id"],
+                "action": "run-exact-plan",
+                "source_identity": front["identities"]["source_identity"],
+                "plan_identity": front["identities"]["plan_identity"],
+                "plan_epoch": plan_epoch,
+            })
+            .to_string(),
+        ))
+        .expect("browser Copy start JSON");
+        assert_eq!(started["ok"], true, "{started}");
+        let binding = test_run_binding(&started);
+        let mut terminal = started;
+        for _ in 0..32 {
+            if !terminal["terminal"].is_null() {
+                break;
+            }
+            terminal =
+                serde_json::from_str(&bound_run!(patchbay_pump_exact_run, session, binding, 16,))
+                    .expect("browser Copy pump JSON");
+        }
+        assert_eq!(terminal["terminal"], "succeeded", "{terminal}");
+
+        let stale_epoch: Value = serde_json::from_str(&patchbay_take_browser_download(
+            session.to_owned(),
+            request_id.to_owned(),
+            binding.run_id.clone(),
+            binding.source_revision,
+            binding.plan_identity.clone(),
+            plan_epoch + 1,
+        ))
+        .expect("stale browser download JSON");
+        assert_eq!(stale_epoch["code"], "CND-PBY-016", "{stale_epoch}");
+        let download: Value = serde_json::from_str(&patchbay_take_browser_download(
+            session.to_owned(),
+            request_id.to_owned(),
+            binding.run_id.clone(),
+            binding.source_revision,
+            binding.plan_identity.clone(),
+            plan_epoch,
+        ))
+        .expect("browser download JSON");
+        assert_eq!(download["ok"], true, "{download}");
+        assert_eq!(download["request_id"], request_id);
+        assert_eq!(download["run_id"], binding.run_id);
+        assert_eq!(download["plan_epoch"], plan_epoch);
+        let downloaded = download["bytes"]
+            .as_array()
+            .expect("download bytes")
+            .iter()
+            .map(|byte| byte.as_u64().expect("byte") as u8)
+            .collect::<Vec<_>>();
+        assert_eq!(downloaded, selected_bytes);
+        let duplicate: Value = serde_json::from_str(&patchbay_take_browser_download(
+            session.to_owned(),
+            request_id.to_owned(),
+            binding.run_id,
+            binding.source_revision,
+            binding.plan_identity,
+            plan_epoch,
+        ))
+        .expect("duplicate browser download JSON");
+        assert_eq!(duplicate["code"], "CND-BND-STALE", "{duplicate}");
     }
 
     #[test]

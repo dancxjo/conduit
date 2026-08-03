@@ -262,6 +262,10 @@ let selectedCord = null;
 let positions = {};
 let patchbaySessionId = "";
 let resourceBindingCommands = [];
+// Browser File objects and bytes are deliberately ephemeral, main-thread-only
+// protected material. Only bounded byte copies cross into the exact worker;
+// neither this map nor its contents are persisted or projected.
+const browserFileSelections = new Map();
 const MAXIMUM_RESOURCE_BINDING_COMMANDS = 64;
 let patchbaySourceRevision = 0;
 let patchbayPresentationRevision = 0;
@@ -987,7 +991,7 @@ function renderInstrumentWatch(record) {
     instrumentResultText.textContent = text
       ? `Exact Watch value: ${text.trim() || "empty"}. Audio remains off.`
       : "The exact Watch has not produced a numeric beat yet. Audio remains off.";
-    return;
+    return response;
   }
   const phase = beat % 8;
   const exactLevel = scoped ? Number.parseInt(scoped[2], 10) : null;
@@ -1627,6 +1631,7 @@ function renderStructuredTopology() {
 }
 
 function openPatchbaySession() {
+  browserFileSelections.clear();
   patchbaySessionId = `tour/${current.id}`;
   const storageKey = `conduit.protected-site-bindings/${current.id}`;
   try {
@@ -1814,13 +1819,14 @@ function taskFrontEditValue(control, rawValue, checked = false) {
   return { kind: "text", value: rawValue };
 }
 
-async function requestResourceBinding(control, action) {
-  const provider = (patchbayView?.resource_selection_providers || []).find(
-    (candidate) => candidate.kind === "deterministic-memory" &&
-      candidate.state === "available",
-  );
+async function requestResourceBinding(control, action, selection = null) {
   const slot = (patchbayView?.protected_bindings?.slots || []).find(
     (candidate) => candidate.id === control.target,
+  );
+  const providerKind = slot?.provider_kind || "browser-file";
+  const provider = (patchbayView?.resource_selection_providers || []).find(
+    (candidate) => candidate.kind === providerKind &&
+      candidate.state === "available",
   );
   if (!patchbaySessionId || !provider || !slot) return;
   if (resourceBindingCommands.length >= MAXIMUM_RESOURCE_BINDING_COMMANDS) {
@@ -1849,9 +1855,8 @@ async function requestResourceBinding(control, action) {
     command.request.selection_request_id = slot.pending_request_id;
   }
   if (completingSelection) {
-    command.choice = slot.id.endsWith("source-file")
-      ? "bounded-input"
-      : "bounded-output";
+    command.choice = selection?.choice;
+    command.safe_label = selection?.safeLabel;
   }
   const response = JSON.parse(patchbay_request_resource_binding(
     patchbaySessionId,
@@ -1864,14 +1869,22 @@ async function requestResourceBinding(control, action) {
     return;
   }
   resourceBindingCommands.push(command);
+  if (action === "cancel" || action === "forget") {
+    browserFileSelections.delete(slot.id);
+  }
   retainedTaskRunProjection = null;
+  const persistableCommands = resourceBindingCommands.filter(
+    (candidate) => candidate.request?.provider_id ===
+      "conduit.selector/deterministic-files",
+  );
   localStorage.setItem(
     `conduit.protected-site-bindings/${current.id}`,
-    JSON.stringify(resourceBindingCommands),
+    JSON.stringify(persistableCommands),
   );
   applyResourceBindingProjection(response.view);
   result.textContent = response.binding_receipt?.explanation ||
     "Protected resource binding updated.";
+  return response;
 }
 
 function applyResourceBindingProjection(projection) {
@@ -1912,6 +1925,68 @@ function renderResourceBindingEditor(control) {
     .join("; ");
   providerDetails.append(providerSummary, providers);
   editor.append(providerDetails);
+  const isSource = control.target.endsWith("source-file");
+  if (control.binding_state === "selection-pending" && isSource) {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.className = "task-front-file-input";
+    fileInput.setAttribute("aria-label", `Select browser file for ${control.label}`);
+    fileInput.onchange = async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      if (file.size > 256) {
+        result.textContent =
+          `CND-BND-OVERSIZED: ${file.name} is ${file.size} bytes; this task permits 256 bytes.`;
+        fileInput.value = "";
+        return;
+      }
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        browserFileSelections.set(control.target, {
+          bytes,
+          safeLabel: file.name,
+        });
+        const response = await requestResourceBinding(control, "choose", {
+          choice: "browser-file",
+          safeLabel: file.name,
+        });
+        if (response?.ok === false) browserFileSelections.delete(control.target);
+      } catch (error) {
+        browserFileSelections.delete(control.target);
+        result.textContent = `CND-BND-READ-DENIED: the browser could not read the selected file: ${error}`;
+      }
+    };
+    editor.append(fileInput);
+  }
+  if (control.binding_state === "selection-pending" && !isSource) {
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = "bounded-output.txt";
+    nameInput.maxLength = 256;
+    nameInput.setAttribute("aria-label", `Download filename for ${control.label}`);
+    const prepare = document.createElement("button");
+    prepare.type = "button";
+    prepare.className = "btn secondary";
+    prepare.textContent = "Use browser download";
+    prepare.setAttribute("aria-label", `Use browser download for ${control.label}`);
+    prepare.onclick = async () => {
+      const safeLabel = nameInput.value.trim();
+      if (!safeLabel) {
+        result.textContent = "CND-BND-001: enter a download filename.";
+        return;
+      }
+      browserFileSelections.set(control.target, {
+        bytes: new Uint8Array(),
+        safeLabel,
+      });
+      const response = await requestResourceBinding(control, "replace-existing", {
+        choice: "browser-download",
+        safeLabel,
+      });
+      if (response?.ok === false) browserFileSelections.delete(control.target);
+    };
+    editor.append(nameInput, prepare);
+  }
   const actionLabels = {
     "choose": control.target.endsWith("source-file") ? "Choose source" : "Choose destination",
     "create-new": "Create destination",
@@ -1926,6 +2001,8 @@ function renderResourceBindingEditor(control) {
   };
   for (const action of control.binding_actions || []) {
     if (!actionLabels[action]) continue;
+    if (control.binding_state === "selection-pending" &&
+        ["choose", "create-new", "replace-existing"].includes(action)) continue;
     const button = document.createElement("button");
     button.type = "button";
     button.className = action === "confirm-grant" ? "btn primary" : "btn secondary";
@@ -3477,6 +3554,19 @@ async function run(requestedTaskAction = null) {
       }
       workerView = bound.value.view;
     }
+    for (const [slotId, selection] of browserFileSelections) {
+      const installed = await adapter.request("patchbay-install-browser-file", {
+        sessionId,
+        slotId,
+        bytes: selection.bytes,
+      });
+      if (!installed.ok || !installed.value?.ok) {
+        throw new Error(
+          `${installed.code || installed.value?.code || "browser-file-install-failed"}: ` +
+          `${installed.value?.diagnostic || "selected browser file became unavailable"}`,
+        );
+      }
+    }
     const taskAction = requestedTaskAction || (() => {
       const front = workerView?.task_front?.front;
       const action = front?.primary_action;
@@ -3488,12 +3578,13 @@ async function run(requestedTaskAction = null) {
         planEpoch: action.plan_epoch,
       };
     })();
+    const taskRequestId = taskAction ? `request/${crypto.randomUUID()}` : null;
     const started = taskAction
       ? await adapter.request("patchbay-request-task-action", {
           sessionId,
           request: {
             protocol_version: 0,
-            request_id: `request/${crypto.randomUUID()}`,
+            request_id: taskRequestId,
             operation_id: taskAction.operationId,
             action: "run-exact-plan",
             source_identity: taskAction.sourceIdentity,
@@ -3518,6 +3609,8 @@ async function run(requestedTaskAction = null) {
       runId: started.value.run_id,
       sourceRevision: started.value.source_revision,
       planIdentity: started.value.plan_identity,
+      planEpoch: taskAction?.planEpoch ?? started.value.view?.run?.plan_epoch,
+      taskRequestId,
     };
     activeWorkerRunIdentity = runIdentity;
     setLivePresentationActive();
@@ -3585,6 +3678,37 @@ async function run(requestedTaskAction = null) {
     terminal = Boolean(value.terminal);
     renderRustProjection(value.view);
     renderExactResultTimeline(value);
+    let browserDownloadSummary = "";
+    const destination = browserFileSelections.get(
+      "conduit.binding/copy/destination-file",
+    );
+    if (value.terminal === "succeeded" && destination && taskRequestId) {
+      const downloaded = await adapter.request("patchbay-take-browser-download", {
+        sessionId,
+        ...runIdentity,
+      });
+      if (!downloaded.ok || !downloaded.value?.ok) {
+        throw new Error(
+          `${downloaded.code || downloaded.value?.code || "browser-download-failed"}: ` +
+          `${downloaded.value?.diagnostic || "exact browser download was rejected"}`,
+        );
+      }
+      const blobUrl = URL.createObjectURL(new Blob([
+        new Uint8Array(downloaded.value.bytes),
+      ], { type: "application/octet-stream" }));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = destination.safeLabel;
+      link.hidden = true;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
+      browserDownloadSummary =
+        `\nDownload: ${destination.safeLabel} (${downloaded.value.byte_length} bytes), ` +
+        `from exact request ${downloaded.value.request_id}, run ${downloaded.value.run_id}, ` +
+        `epoch ${downloaded.value.plan_epoch}.`;
+    }
     const initialLiveDelta = authoritativeEvidenceDelta(value.view.evidence);
     let watched = null;
     if (watchId) {
@@ -3639,8 +3763,11 @@ async function run(requestedTaskAction = null) {
           : value.ok;
 
     result.textContent = lessonComplete
-      ? `✓ Lesson complete!\n${visibleResult}`
-      : visibleResult;
+      ? `✓ Lesson complete!\n${visibleResult}${browserDownloadSummary}`
+      : `${visibleResult}${browserDownloadSummary}`;
+    if (browserDownloadSummary && taskFrontResultValue) {
+      taskFrontResultValue.textContent += browserDownloadSummary;
+    }
 
     recordEvidence({
       kind: lessonComplete ? "lesson-completed" : (value.ok ? "run-completed" : "run-rejected"),

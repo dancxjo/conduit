@@ -232,7 +232,7 @@ fn copy_bindings_require_separate_selection_and_exact_scope_grant() {
 }
 
 #[test]
-fn provider_profiles_are_honest_about_enumeration_and_replace() {
+fn provider_profiles_are_honest_about_enumeration_replace_and_export() {
     let deterministic = SelectionProviderObservation::deterministic_files(10);
     let browser = SelectionProviderObservation::browser_files(10);
     let hosted = SelectionProviderObservation::hosted_local_files(10);
@@ -246,9 +246,14 @@ fn provider_profiles_are_honest_about_enumeration_and_replace() {
     );
     assert!(!browser.enumeration_authorized);
     assert!(
-        !browser
+        browser
             .supported_operations
             .contains(&ResourceSelectionOperation::ReplaceExisting)
+    );
+    assert!(
+        browser
+            .supported_operations
+            .contains(&ResourceSelectionOperation::DownloadExport)
     );
     assert!(!hosted.enumeration_authorized);
     assert!(
@@ -286,7 +291,21 @@ fn provider_profiles_are_honest_about_enumeration_and_replace() {
     );
     assert_eq!(
         profile.begin_selection(&browser_replace, &browser, 10),
-        Err(ResourceBindingError::Unsupported)
+        Err(ResourceBindingError::AccessDenied)
+    );
+    let browser_replace = request(
+        "conduit.request/browser-replace-exact",
+        "conduit.operation/copy-bindings",
+        DESTINATION_SLOT,
+        0,
+        &browser,
+        ResourceBindingRequestAction::ReplaceExisting,
+        vec![ResourceAccessScope::Write, ResourceAccessScope::Replace],
+    );
+    assert!(
+        profile
+            .begin_selection(&browser_replace, &browser, 10)
+            .is_ok()
     );
 
     let mut create_profile = copy_profile();

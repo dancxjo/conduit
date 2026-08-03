@@ -3717,7 +3717,7 @@
             "source": "site-binding",
             "target": "conduit.binding/copy/destination-file",
             "label": "To",
-            "help": "Choose or create a writable destination through an authorized provider.",
+            "help": "Prepare an authorized download. The browser handles name collisions.",
             "group": "Files",
             "visibility": "primary",
             "accessibility_name": "Choose Copy destination file"
@@ -3727,7 +3727,7 @@
             "source": "instance-configuration",
             "target": "root/copy/config/mode",
             "label": "Mode",
-            "help": "Replace overwrites the explicitly selected existing destination.",
+            "help": "Replace updates the protected destination before download.",
             "group": "Copy options",
             "visibility": "primary",
             "renderer_profile": "conduit.filesystem/write-mode",
