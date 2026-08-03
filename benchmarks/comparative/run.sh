@@ -254,18 +254,21 @@ for capacity in $(jq -r '.fanout.queue_capacity_items[]' "$manifest"); do
 done
 
 for branches in $(jq -r '.shared_payload_fanout.branches[]' "$manifest"); do
-  record_raw "$workspace_root/target/release/conduit-benchmark" \
-    --workload shared-payload-fanout \
-    --operators 1 \
-    --values 1 \
-    --queue-items "$shared_payload_capacity" \
-    --latency-sample-stride 1 \
-    --warmup-trials "$warmups" \
-    --measured-trials "$trials" \
-    --fanout-branches "$branches" \
-    --fanout-mode coupled \
-    --slow-consumer-yields 0 \
-    --payload-bytes "$shared_payload_bytes"
+  for termination in $(jq -r '.shared_payload_fanout.termination_requests[]' "$manifest"); do
+    record_raw "$workspace_root/target/release/conduit-benchmark" \
+      --workload shared-payload-fanout \
+      --operators 1 \
+      --values 1 \
+      --queue-items "$shared_payload_capacity" \
+      --latency-sample-stride 1 \
+      --warmup-trials "$warmups" \
+      --measured-trials "$trials" \
+      --fanout-branches "$branches" \
+      --fanout-mode coupled \
+      --slow-consumer-yields 0 \
+      --termination-request "$termination" \
+      --payload-bytes "$shared_payload_bytes"
+  done
 done
 
 node "$workspace_root/benchmarks/comparative/summarize.mjs" "$raw" "$summary" "$report"

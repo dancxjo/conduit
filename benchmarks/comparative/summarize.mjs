@@ -73,11 +73,12 @@ for (const sample of samples) {
       throw new Error("the current fan-out slice has no cross-runtime substitute");
     }
   } else if (sharedPayload) {
-    if (identityParts.length !== 4
+    if (identityParts.length !== 5
         || identityParts[0] !== "comparative-shared-payload-fanout"
         || Number(identityParts[1]) !== sample.workload.fanout_branches
         || Number(identityParts[2]) !== sample.workload.payload_bytes
-        || Number(identityParts[3]) !== sample.workload.queue_capacity_items) {
+        || Number(identityParts[3]) !== sample.workload.queue_capacity_items
+        || identityParts[4] !== sample.workload.termination_request) {
       throw new Error("shared-payload fixture identity does not match the raw sample");
     }
     if (sample.runtime.id !== "conduit-hosted-value-arena") {
@@ -232,6 +233,14 @@ for (const sample of samples) {
         || sample.outcomes.cancelled !== 0) {
       throw new Error("persistent wake Drain identity is invalid");
     }
+  } else if (sharedPayload) {
+    if (sample.workload.termination_request !== "abort"
+        || sample.workload.cancel_after_offers !== 1
+        || sample.execution.drain_ns !== null || sample.execution.abort_ns === null
+        || sample.execution.pressured_items_at_stop !== sample.workload.fanout_branches
+        || sample.outcomes.cancelled !== 1) {
+      throw new Error("shared-payload Abort identity is invalid");
+    }
   } else if (!["drain", "abort"].includes(sample.workload.termination_request)
       || sample.workload.cancel_after_offers <= sample.workload.queue_capacity_items
       || sample.execution.pressured_items_at_stop <= 0) {
@@ -356,6 +365,9 @@ for (const sample of samples) {
   } else if (sharedPayload) {
     const branches = sample.workload.fanout_branches;
     const payloadBytes = sample.workload.payload_bytes;
+    const aborted = sample.workload.termination_request === "abort";
+    const expectedDeliveries = aborted ? 0 : branches;
+    const expectedVerifierBytes = aborted ? 0 : branches * payloadBytes;
     if (![2, 8, 32].includes(branches)
         || payloadBytes !== 1024
         || sample.workload.payload_representation !== "hosted-generation-safe-shared-text-handle"
@@ -363,11 +375,16 @@ for (const sample of samples) {
         || sample.workload.queue_capacity_items !== 1
         || sample.workload.input_values !== 1
         || sample.workload.slow_consumer_yields !== 0
+        || !["complete", "abort"].includes(sample.workload.termination_request)
+        || sample.workload.cancel_after_offers !== (aborted ? 1 : 0)
         || sample.outcomes.offered !== 1
         || sample.outcomes.admitted !== 1
-        || sample.outcomes.completed_useful !== branches
+        || sample.outcomes.completed_useful !== expectedDeliveries
+        || sample.outcomes.cancelled !== (aborted ? 1 : 0)
         || sample.execution.unique_value_handles !== 1
-        || sample.execution.branch_deliveries !== branches
+        || sample.execution.branch_deliveries !== expectedDeliveries
+        || sample.execution.pressured_items_at_stop !== (aborted ? branches : null)
+        || (aborted ? sample.execution.abort_ns === null : sample.execution.abort_ns !== null)
         || sample.allocations.calls !== 0
         || sample.allocations.bytes !== 0
         || sample.memory.value_resident_slots_after_terminal !== 0
@@ -376,7 +393,7 @@ for (const sample of samples) {
         || sample.memory.value_bytes_high_water !== payloadBytes
         || sample.memory.value_slots_capacity < 1
         || sample.memory.value_bytes_capacity < payloadBytes
-        || sample.memory.host_io_output_bytes !== branches * payloadBytes
+        || sample.memory.host_io_output_bytes !== expectedVerifierBytes
         || sample.memory.host_io_capacity_bytes < sample.memory.host_io_output_bytes
         || sample.memory.queue_max_cord_items_high_water > 1) {
       throw new Error("shared-payload handle, residency, delivery, or verifier accounting changed");
@@ -671,9 +688,9 @@ if (reportOutput) {
       report.push("");
     }
     if (workload === "shared-payload-fanout") {
-      report.push("## shared-payload-fanout: handle and residency accounting", "", "The value arena retains one generation-safe 1 KiB handle across every branch. Queue byte charges and content-verifying display buffers are separate bounded storage and are not described as zero-copy.", "", "| Runtime | Payload bytes | Branches | Unique handles | Branch deliveries | Value slots high water | Value bytes high water | Terminal value slots | Terminal value bytes | Queue payload bytes | Host verifier output bytes | Alloc calls after Start |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+      report.push("## shared-payload-fanout: handle and residency accounting", "", "The value arena retains one generation-safe 1 KiB handle across every branch. Queue byte charges and content-verifying display buffers are separate bounded storage and are not described as zero-copy. Abort rows cancel after atomic publication and before verifier consumption.", "", "| Runtime | Terminal request | Payload bytes | Branches | Unique handles | Branch deliveries | Value slots high water | Value bytes high water | Terminal value slots | Terminal value bytes | Queue payload bytes | Host verifier output bytes | Alloc calls after Start |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
       for (const group of workloadGroups) {
-        report.push(`| ${group.runtime.id} | ${group.workload.payload_bytes} | ${group.workload.fanout_branches} | ${duration(group.execution.unique_value_handles)} | ${duration(group.execution.branch_deliveries)} | ${duration(group.high_water.value_slots)} | ${duration(group.high_water.value_bytes)} | ${duration(group.high_water.value_resident_slots_after_terminal)} | ${duration(group.high_water.value_resident_bytes_after_terminal)} | ${duration(group.high_water.queue_payload_bytes)} | ${duration(group.high_water.host_io_output_bytes)} | ${duration(group.allocations_after_start.calls)} |`);
+        report.push(`| ${group.runtime.id} | ${group.workload.termination_request} | ${group.workload.payload_bytes} | ${group.workload.fanout_branches} | ${duration(group.execution.unique_value_handles)} | ${duration(group.execution.branch_deliveries)} | ${duration(group.high_water.value_slots)} | ${duration(group.high_water.value_bytes)} | ${duration(group.high_water.value_resident_slots_after_terminal)} | ${duration(group.high_water.value_resident_bytes_after_terminal)} | ${duration(group.high_water.queue_payload_bytes)} | ${duration(group.high_water.host_io_output_bytes)} | ${duration(group.allocations_after_start.calls)} |`);
       }
       report.push("");
     }

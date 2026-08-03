@@ -129,9 +129,19 @@ charges 1 KiB of queue payload capacity even though all cords name one arena
 value. Those verifier and queue charges are reported beside arena residency;
 the suite does not call the end-to-end path zero-copy.
 
+The same 2/8/32 matrix has a distinct Abort case. One bounded scheduler
+decision performs the exact atomic coupled publication, leaving the same handle
+on every capacity-one branch cord. The host then requests Abort before a sink
+can consume. The runner requires the terminal class to be cancelled, zero
+branch deliveries and verifier bytes, the full 2/8/32 KiB queue-payload high
+water, zero allocator calls after Start, and zero value slots/bytes after
+terminal cleanup. Completion content verification and cancellation reclamation
+are separate measurements rather than a cancellation run pretending it
+consumed payload content.
+
 This first slice does not substitute 1 MiB payloads, PCM, images, encoded
-frames, fragments, isolated subscribers, Watch, coalescing, cancellation, slot
-reuse, or browser execution. The current hosted literal value binding is
+frames, fragments, isolated subscribers, Watch, coalescing, slot reuse, or
+browser execution. The current hosted literal value binding is
 bounded to 1 KiB, and RxJS/Reactor object references have no reviewed mapping
 to Conduit's generation-safe handle and arena-residency evidence. Those cases
 remain explicitly unavailable and #244 remains open.
