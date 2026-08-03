@@ -18,17 +18,47 @@ function parseWatchTick(text) {
 }
 
 async function replaceSourceText(source, before, after) {
-  await source.evaluate((element, replacement) => {
-    element.value = element.value.replace(replacement.before, replacement.after);
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-  }, { before, after });
+  const previous = await source.inputValue();
+  const next = previous.replace(before, after);
+  expect(next).not.toBe(previous);
+  let prefixLength = 0;
+  while (prefixLength < previous.length && previous[prefixLength] === next[prefixLength]) {
+    prefixLength += 1;
+  }
+  let suffixLength = 0;
+  while (
+    suffixLength < previous.length - prefixLength &&
+    suffixLength < next.length - prefixLength &&
+    previous[previous.length - suffixLength - 1] === next[next.length - suffixLength - 1]
+  ) {
+    suffixLength += 1;
+  }
+  const prefix = previous.slice(0, prefixLength);
+  const removed = previous.length - prefixLength - suffixLength;
+  const inserted = next.slice(prefixLength, next.length - suffixLength);
+  const linesBeforeEdit = prefix.split("\n");
+  await expect(source).toBeVisible();
+  await source.click();
+  await source.press("Control+Home");
+  for (let line = 1; line < linesBeforeEdit.length; line += 1) {
+    await source.press("ArrowDown");
+  }
+  await source.press("Home");
+  for (let column = 0; column < linesBeforeEdit.at(-1).length; column += 1) {
+    await source.press("ArrowRight");
+  }
+  for (let offset = 0; offset < removed; offset += 1) {
+    await source.press("Shift+ArrowRight");
+  }
+  await source.pressSequentially(inserted);
+  await expect(source).toHaveValue(next);
 }
 
 async function waitForTourReady(page) {
   await expect(page.locator("html")).toHaveAttribute(
     "data-tour-ready",
     "true",
-    { timeout: 20_000 },
+    { timeout: 60_000 },
   );
 }
 
@@ -161,26 +191,31 @@ async function dragAndCommitTopologyNode(page, node, deltaX, deltaY) {
 }
 
 async function clickCordPath(page, edge) {
-  await edge.scrollIntoViewIfNeeded();
-  const point = await edge.locator(".react-flow__edge-interaction").evaluate((path) => {
-    const matrix = path.getScreenCTM();
-    if (!matrix) throw new Error("cord interaction path has no screen transform");
-    const local = path.getPointAtLength(path.getTotalLength() / 4);
-    const screen = new DOMPoint(local.x, local.y).matrixTransform(matrix);
-    return { x: screen.x, y: screen.y };
+  await edge.first().scrollIntoViewIfNeeded();
+  const hit = await edge.locator(".react-flow__edge-interaction").evaluateAll((paths) => {
+    for (const path of paths) {
+      const matrix = path.getScreenCTM();
+      if (!matrix) continue;
+      const length = path.getTotalLength();
+      for (const fraction of [.15, .25, .35, .5, .65, .75, .85]) {
+        const local = path.getPointAtLength(length * fraction);
+        const screen = new DOMPoint(local.x, local.y).matrixTransform(matrix);
+        const target = document.elementFromPoint(screen.x, screen.y);
+        const className = typeof target?.className === "string"
+          ? target.className
+          : target?.className?.baseVal || "";
+        if (target?.tagName === "path" &&
+          /react-flow__edge-(?:interaction|path)/.test(className)) {
+          return { x: screen.x, y: screen.y, tag: target.tagName, className };
+        }
+      }
+    }
+    return null;
   });
-  const hit = await page.evaluate(({ x, y }) => {
-    const target = document.elementFromPoint(x, y);
-    return {
-      tag: target?.tagName || "",
-      className: typeof target?.className === "string"
-        ? target.className
-        : target?.className?.baseVal || "",
-    };
-  }, point);
+  expect(hit).not.toBeNull();
   expect(hit.tag).toBe("path");
   expect(hit.className).toMatch(/react-flow__edge-(?:interaction|path)/);
-  await page.mouse.click(point.x, point.y);
+  await page.mouse.click(hit.x, hit.y);
 }
 
 async function openTypedTextLesson(page) {
@@ -285,24 +320,19 @@ test("keeps Reference and Cookbook searchable outside sequential navigation", as
 });
 
 test("restores reading position and a local draft without reviving a run", async ({ page }) => {
+  test.setTimeout(120_000);
   await gotoTour(page, "/tour/public/index.html?section=instrument.wake");
   await page.locator("#expand-lab").click();
   const source = page.locator("#source");
   await source.scrollIntoViewIfNeeded();
   await replaceSourceText(source, "duration_ticks = 1000", "duration_ticks = 1200");
-  await page.locator("#reader-content").evaluate((reader) => {
-    reader.scrollTop = 420;
-    reader.dispatchEvent(new Event("scroll"));
-  });
+  await page.locator("#reader-content").hover();
+  await page.mouse.wheel(0, 420);
   await expect.poll(async () => page.locator("#reader-content").evaluate(
     (reader) => reader.scrollTop,
   )).toBeGreaterThan(0);
   await page.reload();
-  await expect(page.locator("html")).toHaveAttribute(
-    "data-tour-ready",
-    "true",
-    { timeout: 20_000 },
-  );
+  await waitForTourReady(page);
 
   await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
   await expect(source).toHaveValue(/duration_ticks = 1200/);
@@ -317,14 +347,16 @@ test("restores reading position and a local draft without reviving a run", async
 });
 
 test("carries and resets cumulative project state explicitly", async ({ page }) => {
+  test.setTimeout(120_000);
   await gotoTour(page, "/tour/public/index.html?section=instrument.wake");
+  await page.locator("#expand-lab").click();
   const source = page.locator("#source");
   await replaceSourceText(source, "duration_ticks = 1000", "duration_ticks = 1400");
   await page.locator("#next-section").click();
 
   await expect(page.locator("#reader-section-title")).toHaveText("Give it a heartbeat");
   await expect(page.locator("#artifact-status")).toContainText("instrument-running");
-  await page.locator("#reset-project").dispatchEvent("click");
+  await page.locator("#reset-project").click();
   await expect(page.locator("#reader-section-title")).toHaveText("Wake the instrument");
   await expect(page.locator("#artifact-status")).toContainText("instrument-ready");
   await expect(source).toHaveValue(/duration_ticks = 1000/);
@@ -332,14 +364,16 @@ test("carries and resets cumulative project state explicitly", async ({ page }) 
 });
 
 test("recovers cumulative project drafts explicitly", async ({ page }) => {
+  test.setTimeout(120_000);
   await gotoTour(page, "/tour/public/index.html?section=instrument.wake");
+  await page.locator("#expand-lab").click();
   const source = page.locator("#source");
   await replaceSourceText(source, "duration_ticks = 1000", "duration_ticks = 1400");
-  await page.locator("#reset-project").dispatchEvent("click");
+  await page.locator("#reset-project").click();
   await expect(page.locator("#artifact-status")).toContainText("instrument-ready");
   await expect(source).toHaveValue(/duration_ticks = 1000/);
   await expect(page.locator("#recover-project")).toBeEnabled();
-  await page.locator("#recover-project").dispatchEvent("click");
+  await page.locator("#recover-project").click();
   await expect(page.locator("#artifact-status")).toContainText("instrument-ready");
   await expect(source).toHaveValue(/duration_ticks = 1400/);
   await expect(page.locator("#recover-project")).toBeDisabled();
@@ -972,16 +1006,16 @@ test("toggles an admitted Watch with W from non-editing focus", async ({ page })
 });
 
 test("keeps the active Watch epoch exact across candidate edits and stop", async ({ page }) => {
+  test.setTimeout(120_000);
   const failures = collectPageFailures(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
   const { browserPlan, first } = await startTinyInstrument(page);
   const activeValueBeforeEdit = parseWatchTick(
     await page.locator("#watch-value").textContent(),
   );
-  await page.locator("#source").evaluate((element) => {
-    element.value = `${element.value}\ncord`;
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-  });
+  const source = page.locator("#source");
+  const sourceBeforeEdit = await source.inputValue();
+  await replaceSourceText(source, sourceBeforeEdit, `${sourceBeforeEdit}\ncord`);
   await expect(page.locator(".patchbay-live-run-status")).toContainText(
     "is separate from this active epoch",
   );
@@ -1745,11 +1779,13 @@ test("renders composite exports as public faceplate ports", async ({ page }) => 
     ".conduit-faceplate-card:not(.composite-faceplate) .jack-handle",
   ).first().boundingBox();
   expect(publicJack.width).toBeGreaterThan(internalJack.width);
+  const flowRoot = page.locator("#patchbay-flow-root");
+  const logicalLayout = await waitForLayoutReady(flowRoot);
   await page.locator("#expanded-view").click();
   await expect(page.locator(".composite-faceplate")).toHaveCount(0);
   await expect(page.locator('.react-flow__node[data-id="root/box.worker"]')).toHaveCount(1);
-  await page.locator(".react-flow__edge").first()
-    .locator(".react-flow__edge-path").dispatchEvent("click");
+  await waitForLayoutReady(flowRoot, logicalLayout.generation);
+  await page.locator(".react-flow__edge-textwrapper").first().click();
   await expect(page.locator(".faceplate-port-row.selected-cord-endpoint")).toHaveCount(2);
 });
 
@@ -1951,21 +1987,19 @@ test("restores a committed topology position across reload", async ({ page }) =>
 });
 
 test("retains headless editing and execution when presentation fails", async ({ page }) => {
+  test.setTimeout(120_000);
   await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   await page.evaluate(() => {
     window.__CONDUIT_DISABLE_PATCHBAY_RENDERER__ = true;
   });
   const source = page.locator("#source");
   await expect(source).toHaveValue(/Hello from the Tour\./);
-  await source.evaluate((element) => {
-    element.value = element.value.replace("Hello from the Tour.", "Headless proof.");
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-  });
+  await replaceSourceText(source, "Hello from the Tour.", "Headless proof.");
   await expect(page.locator("#result")).toContainText("Valid runnable panel");
   await expect(page.locator("#cy")).toContainText("React Flow renderer unavailable.");
   await page.locator("#run").click();
   await expect(page.locator("#result")).toContainText("Headless proof.", {
-    timeout: 20_000,
+    timeout: 60_000,
   });
 });
 

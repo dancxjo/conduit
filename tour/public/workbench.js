@@ -319,7 +319,7 @@ function renderConnectionBuilder() {
   }
 }
 
-async function openSession(source = EMPTY_SOURCE, positions = {}) {
+async function openSessionNow(source, positions) {
   const opened = await bridge.request("patchbay-open-session", {
     documentId: SESSION_ID,
     source,
@@ -332,14 +332,28 @@ async function openSession(source = EMPTY_SOURCE, positions = {}) {
     MoveNode: { node_id, position },
   }));
   for (let offset = 0; offset < operations.length; offset += 32) {
-    await applyOperations(operations.slice(offset, offset + 32), { skipStatus: true });
+    const positioned = await applyOperationsNow(operations.slice(offset, offset + 32), {
+      skipStatus: true,
+    });
+    if (!positioned.ok) return positioned;
   }
   setStatus(source === EMPTY_SOURCE ? "New blank Workbench ready." : "Saved work reopened.");
+  return opened;
+}
+
+function enqueueAfterSourceEdit(execute) {
+  flushSourceEdit();
+  operationQueue = operationQueue.then(execute, execute);
+  return operationQueue;
+}
+
+function openSession(source = EMPTY_SOURCE, positions = {}) {
+  return enqueueAfterSourceEdit(() => openSessionNow(source, positions));
 }
 
 function applyOperations(operations, options = {}) {
   if (pendingSourceEdit !== null && !options.sourceEdit) {
-    return flushSourceEdit().then(() => enqueueOperations(operations, options));
+    flushSourceEdit();
   }
   return enqueueOperations(operations, options);
 }
@@ -587,9 +601,8 @@ function renderPalette() {
   }
 }
 
-async function runPanel() {
-  await flushSourceEdit();
-  if (!view?.plan || running) return;
+async function runPanelNow() {
+  if (!view?.plan || running || elements.source.value !== view.source.source) return;
   running = true;
   renderView(view, { syncSource: false });
   setStatus("Executing the exact planned revision in the production worker…");
@@ -618,6 +631,32 @@ async function runPanel() {
     running = false;
     renderView(view, { syncSource: false });
   }
+}
+
+function runPanel() {
+  return enqueueAfterSourceEdit(runPanelNow);
+}
+
+function saveDocument() {
+  return enqueueAfterSourceEdit(() => {
+    if (!view || elements.source.value !== view.source.source) return { ok: false };
+    const suggested = elements.saved_documents.value || "untitled";
+    const name = window.prompt("Save this Workbench document as:", suggested)?.trim();
+    if (!name) return { ok: false };
+    const documents = parseDocuments();
+    documents[name] = {
+      schema: "conduit.workbench-document",
+      schema_version: 0,
+      source: view.source.source,
+      source_identity: view.source.identity,
+      semantic_identity: view.semantic.source_semantic_hash || null,
+      presentation: { node_positions: view.presentation.node_positions },
+    };
+    writeDocuments(documents);
+    refreshSavedDocuments(name);
+    setStatus(`Saved “${name}” with separate semantic and presentation state.`);
+    return { ok: true };
+  });
 }
 
 async function stopPanel() {
@@ -662,24 +701,7 @@ elements.source.addEventListener("input", () => {
   sourceTimer = setTimeout(() => void flushSourceEdit(), 220);
 });
 elements.new_document.onclick = () => void openSession();
-elements.save_document.onclick = async () => {
-  await flushSourceEdit();
-  const suggested = elements.saved_documents.value || "untitled";
-  const name = window.prompt("Save this Workbench document as:", suggested)?.trim();
-  if (!name || !view) return;
-  const documents = parseDocuments();
-  documents[name] = {
-    schema: "conduit.workbench-document",
-    schema_version: 0,
-    source: view.source.source,
-    source_identity: view.source.identity,
-    semantic_identity: view.semantic.source_semantic_hash || null,
-    presentation: { node_positions: view.presentation.node_positions },
-  };
-  writeDocuments(documents);
-  refreshSavedDocuments(name);
-  setStatus(`Saved “${name}” with separate semantic and presentation state.`);
-};
+elements.save_document.onclick = () => void saveDocument();
 elements.open_document.onclick = () => {
   const name = elements.saved_documents.value;
   const saved = parseDocuments()[name];
