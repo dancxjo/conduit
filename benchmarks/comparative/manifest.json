@@ -12,7 +12,7 @@
     "pressure_policies": ["block", "reject", "coalesce", "sample", "drop-disposable", "disconnect", "fail"],
     "slow_consumer_yields": 3,
     "branch_count": 1,
-    "scope": "finite exact-run single-cord pressure and recovery; persistent sessions remain unavailable in this slice"
+    "scope": "finite exact-run single-cord pressure and recovery; persistent ownership is measured separately"
   },
   "fanout": {
     "queue_capacity_items": [4, 64, 1024],
@@ -44,10 +44,10 @@
   "persistent_sessions": {
     "workload": "overload",
     "queue_capacity_items": 4,
-    "pressure_policy": "block",
+    "pressure_policies": ["block", "reject", "coalesce", "sample", "drop-disposable"],
     "stop_policies": ["drain", "abort"],
     "session_pump_quantum": 8,
-    "scope": "production ExactRunSession ownership of one standing source through repeated bounded host pumps and an explicit pressured terminal request at the observation offer boundary"
+    "scope": "production ExactRunSession ownership of one standing source through repeated bounded host pumps and an explicit pressured terminal request at the observation offer boundary for every nonterminal pressure policy"
   },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
@@ -98,7 +98,7 @@
     "offered and admitted values equal configured input values for the lossless local-depth fixtures",
     "offered, admitted, completed-useful, rejected, sampled, coalesced, dropped, cancelled, retried, and terminal outcomes are always reported separately",
     "Conduit reports exact scheduler decisions and producer stall duration; Drain and Abort timing stay unavailable until those transitions are explicitly requested",
-    "pressured Drain preserves every admitted value while pressured Abort may discard admitted work and neither counts discarded work as useful",
+    "pressured Drain preserves every retained admitted value while pressured Abort may discard retained admitted work and neither coalesced replacement nor aborted work counts as useful",
     "bursty consumers report exact repeated pressure and recovery cycle counts without a hidden timing source or buffer",
     "persistent rows retain one finite session reservation across bounded host pumps, request termination with admitted work still pressured, and release the reservation only after terminal finalization",
     "bounded FIFO retries in local-depth fixtures are reported and do not change admitted or completed-useful counts",

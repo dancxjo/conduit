@@ -127,7 +127,10 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         manifest["bursty_consumers"]["fanout_branches"],
         serde_json::json!([2, 8, 32])
     );
-    assert_eq!(manifest["persistent_sessions"]["pressure_policy"], "block");
+    assert_eq!(
+        manifest["persistent_sessions"]["pressure_policies"],
+        serde_json::json!(["block", "reject", "coalesce", "sample", "drop-disposable"])
+    );
     assert_eq!(
         manifest["persistent_sessions"]["stop_policies"],
         serde_json::json!(["drain", "abort"])

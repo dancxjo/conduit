@@ -82,7 +82,7 @@ for (const sample of samples) {
   }
   const persistent = sample.workload.session_mode === "persistent-exact-run-session";
   if (persistent) {
-    if (!overload || sample.workload.pressure !== "block"
+    if (!overload || !["block", "reject", "coalesce/latest-wins", "sample/every-2-offset-0", "drop-disposable"].includes(sample.workload.pressure)
         || sample.workload.session_pump_quantum <= 0
         || sample.workload.cancel_after_offers !== sample.workload.input_values
         || sample.execution.session_pumps <= 1
@@ -141,18 +141,37 @@ for (const sample of samples) {
     const pressureId = sample.workload.pressure.split("/")[0];
     const termination = sample.workload.termination_request;
     if (["drain", "abort"].includes(termination)) {
-      if (pressureId !== "block" || outcomes.offered !== sample.workload.cancel_after_offers
-          || outcomes.retried < 1
-          || outcomes.cancelled !== 1
-          || [outcomes.rejected, outcomes.sampled, outcomes.coalesced, outcomes.dropped].some((value) => value !== 0)
-          || outcomes.offered !== outcomes.admitted + outcomes.cancelled) {
+      if (!["block", "reject", "coalesce", "sample", "drop-disposable"].includes(pressureId)
+          || outcomes.offered !== sample.workload.cancel_after_offers
+          || outcomes.offered !== outcomes.admitted + outcomes.rejected + outcomes.sampled + outcomes.dropped + outcomes.cancelled) {
         throw new Error("pressured cancellation accounting is not conservative");
       }
-      if (termination === "drain" && (outcomes.completed_useful !== outcomes.admitted
+      if (pressureId === "block" && (outcomes.retried < 1
+          || [outcomes.rejected, outcomes.sampled, outcomes.coalesced, outcomes.dropped].some((value) => value !== 0))) {
+        throw new Error("block cancellation did not preserve FIFO retry accounting");
+      }
+      if (pressureId === "reject" && (outcomes.rejected < 1
+          || [outcomes.sampled, outcomes.coalesced, outcomes.dropped].some((value) => value !== 0))) {
+        throw new Error("reject cancellation did not preserve explicit rejection accounting");
+      }
+      if (pressureId === "coalesce" && (outcomes.coalesced < 1
+          || [outcomes.rejected, outcomes.sampled, outcomes.dropped].some((value) => value !== 0))) {
+        throw new Error("coalesce cancellation did not preserve replacement accounting");
+      }
+      if (pressureId === "sample" && (outcomes.sampled < 1
+          || outcomes.rejected !== 0 || outcomes.coalesced !== 0)) {
+        throw new Error("sample cancellation did not preserve schedule/loss accounting");
+      }
+      if (pressureId === "drop-disposable" && (outcomes.dropped < 1
+          || [outcomes.rejected, outcomes.sampled, outcomes.coalesced].some((value) => value !== 0))) {
+        throw new Error("disposable-drop cancellation did not preserve explicit loss accounting");
+      }
+      const retainedAdmitted = outcomes.admitted - outcomes.coalesced;
+      if (termination === "drain" && (outcomes.completed_useful !== retainedAdmitted
           || sample.execution.drain_ns === null || sample.execution.abort_ns !== null)) {
         throw new Error("Drain did not preserve all admitted work or exact timing identity");
       }
-      if (termination === "abort" && (outcomes.completed_useful > outcomes.admitted
+      if (termination === "abort" && (outcomes.completed_useful + sample.execution.pressured_items_at_stop !== retainedAdmitted
           || sample.execution.abort_ns === null || sample.execution.drain_ns !== null)) {
         throw new Error("Abort accounting or exact timing identity is invalid");
       }
