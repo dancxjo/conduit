@@ -39,6 +39,8 @@ const MAXIMUM_PATCHBAY_SESSIONS: usize = 8;
 const MAXIMUM_PATCHBAY_SESSION_ID_BYTES: usize = 256;
 const MAXIMUM_PATCHBAY_REQUEST_BYTES: usize = 1024 * 1024;
 const MAXIMUM_TASK_FRONT_DESCRIPTOR_BYTES: usize = 64 * 1024;
+const MAXIMUM_TASK_ACTION_POLICY_BYTES: usize = 16 * 1024;
+const BROWSER_TASK_ACTION_POLICY_TICK: u64 = 11;
 const MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES: u64 = 32 * 1024 * 1024;
 const MAXIMUM_BROWSER_ACTIVE_RUN_RESOURCE_SLOTS: u16 = 32;
 const MAXIMUM_BROWSER_RUN_PUMP_DECISIONS: u64 = 256;
@@ -528,9 +530,60 @@ struct BrowserPatchbaySession {
     workspace: conduit_patchbay::Workspace,
     run: Option<BrowserExactRun>,
     task_front_descriptor: Option<String>,
+    task_action_policy: Option<BrowserTaskActionPolicyObservation>,
     task_action_receipts: VecDeque<conduit_patchbay::TaskActionReceipt>,
     next_task_action_sequence: u64,
     protected_bindings: Option<conduit_patchbay::ProtectedBindingProfile>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct BrowserTaskActionPolicyObservation {
+    schema_version: u16,
+    observation_id: String,
+    generation: u64,
+    action: conduit_patchbay::TaskRuntimeControlRequest,
+    active_controls: Vec<conduit_patchbay::TaskRuntimeControlRequest>,
+    state: String,
+    observed_at_tick: u64,
+    valid_until_tick: u64,
+    code: String,
+    explanation: String,
+}
+
+fn parse_browser_task_action_policy(
+    observation_json: &str,
+) -> Result<Option<BrowserTaskActionPolicyObservation>, &'static str> {
+    if observation_json.trim().is_empty() {
+        return Ok(None);
+    }
+    if observation_json.len() > MAXIMUM_TASK_ACTION_POLICY_BYTES {
+        return Err("task-action policy observation exceeds its finite byte bound");
+    }
+    let observation = serde_json::from_str::<BrowserTaskActionPolicyObservation>(observation_json)
+        .map_err(|_| "task-action policy observation is malformed")?;
+    let bounded_text = |value: &str| !value.is_empty() && value.len() <= 256;
+    let mut controls = BTreeSet::new();
+    if observation.schema_version != 0
+        || !bounded_text(&observation.observation_id)
+        || observation.generation == 0
+        || observation.action != conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan
+        || observation.active_controls.len() > 2
+        || !observation.active_controls.iter().all(|control| {
+            *control != conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan
+                && controls.insert(control.clone())
+        })
+        || !matches!(
+            observation.state.as_str(),
+            "permitted" | "denied" | "revoked" | "unavailable"
+        )
+        || observation.observed_at_tick >= observation.valid_until_tick
+        || !bounded_text(&observation.code)
+        || !bounded_text(&observation.explanation)
+    {
+        return Err("task-action policy observation is invalid or unbounded");
+    }
+    Ok(Some(observation))
 }
 
 fn copy_binding_profile(
@@ -771,14 +824,7 @@ fn browser_task_action_export(
     session: &BrowserPatchbaySession,
 ) -> Option<conduit_patchbay::TaskActionExport> {
     let workspace = &session.workspace;
-    let descriptor_json = session.task_front_descriptor.as_deref();
-    let descriptor = descriptor_json.and_then(|value| {
-        serde_json::from_str::<conduit_patchbay::TaskFrontDescriptor>(value).ok()
-    })?;
-    let primary_action = descriptor.primary_action.as_ref()?;
-    if primary_action.request != conduit_patchbay::TaskFrontActionRequest::RunExactPlan {
-        return None;
-    }
+    let policy = session.task_action_policy.as_ref()?;
     let source = workspace.source();
     let plan_epoch = browser_plan_epoch(session)?;
     let plan = browser_candidate_plan(session)?;
@@ -793,23 +839,35 @@ fn browser_task_action_export(
             source.identity.as_bytes(),
             plan.identity.as_bytes(),
             &source.revision.to_be_bytes(),
-            descriptor.root.as_bytes(),
+            policy.observation_id.as_bytes(),
+            &policy.generation.to_be_bytes(),
             binding_identity.as_bytes(),
         ],
     )
     .to_string();
+    let policy_is_fresh = policy.observed_at_tick <= BROWSER_TASK_ACTION_POLICY_TICK
+        && BROWSER_TASK_ACTION_POLICY_TICK < policy.valid_until_tick;
+    let (permission, code) = if policy_is_fresh {
+        (
+            if policy.state == "revoked" {
+                "denied".to_owned()
+            } else {
+                policy.state.clone()
+            },
+            policy.code.clone(),
+        )
+    } else {
+        ("stale".to_owned(), "CND-PBY-ACT-006".to_owned())
+    };
     Some(conduit_patchbay::TaskActionExport {
         operation_id,
         source_identity: source.identity.clone(),
         plan_identity: plan.identity,
         plan_epoch,
-        request: conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan,
-        permission: "permitted".to_owned(),
-        code: "CND-PBY-ACT-READY".to_owned(),
-        explanations: vec![
-            "The browser host exported this bounded Start request for the exact checked plan."
-                .to_owned(),
-        ],
+        request: policy.action.clone(),
+        permission,
+        code,
+        explanations: vec![policy.explanation.clone()],
         active_controls: Vec::new(),
     })
 }
@@ -2215,10 +2273,11 @@ fn browser_session_view(
             )
         })
     {
-        export.active_controls = vec![
-            conduit_patchbay::TaskRuntimeControlRequest::Cancel,
-            conduit_patchbay::TaskRuntimeControlRequest::Drain,
-        ];
+        export.active_controls = session
+            .task_action_policy
+            .as_ref()
+            .map(|policy| policy.active_controls.clone())
+            .unwrap_or_default();
     }
     let action_receipt =
         browser_task_start_receipt(session).or_else(|| session.task_action_receipts.back());
@@ -2525,6 +2584,7 @@ pub fn patchbay_open_session(
     document_id: String,
     source: String,
     task_front_descriptor: String,
+    task_action_policy_observation: String,
 ) -> String {
     if document_id.is_empty() || document_id.len() > MAXIMUM_PATCHBAY_SESSION_ID_BYTES {
         return serde_json::json!({
@@ -2548,6 +2608,20 @@ pub fn patchbay_open_session(
     }
     let task_front_descriptor =
         (!task_front_descriptor.trim().is_empty()).then_some(task_front_descriptor);
+    let task_action_policy = match parse_browser_task_action_policy(&task_action_policy_observation)
+    {
+        Ok(policy) => policy,
+        Err(diagnostic) => {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-ACT-001",
+                "diagnostic": diagnostic,
+                "diagnostics": [],
+                "disposition": "rejected",
+            })
+            .to_string();
+        }
+    };
     let protected_bindings = copy_binding_profile(task_front_descriptor.as_deref());
     let preliminary_workspace = match conduit_patchbay::Workspace::new_with_history(
         document_id.clone(),
@@ -2561,6 +2635,7 @@ pub fn patchbay_open_session(
         workspace: preliminary_workspace,
         run: None,
         task_front_descriptor: task_front_descriptor.clone(),
+        task_action_policy: task_action_policy.clone(),
         task_action_receipts: VecDeque::new(),
         next_task_action_sequence: 1,
         protected_bindings: protected_bindings.clone(),
@@ -2613,6 +2688,7 @@ pub fn patchbay_open_session(
             workspace,
             run: None,
             task_front_descriptor,
+            task_action_policy,
             task_action_receipts: VecDeque::new(),
             next_task_action_sequence: 1,
             protected_bindings,
@@ -2686,6 +2762,63 @@ pub fn patchbay_session_view(session_id: String) -> String {
                     "can_undo": session.workspace.can_undo(),
                     "can_redo": session.workspace.can_redo(),
                 },
+            })
+            .to_string(),
+            Err(error) => patchbay_rejection(error, &session.workspace),
+        }
+    })
+}
+
+/// Replaces the independent host-policy observation used by task actions.
+/// Updates are monotonic and remain separate from task-front presentation.
+#[wasm_bindgen]
+pub fn patchbay_update_task_action_policy(session_id: String, observation_json: String) -> String {
+    let observation = match parse_browser_task_action_policy(&observation_json) {
+        Ok(Some(observation)) => observation,
+        Ok(None) => {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-ACT-001",
+                "diagnostic": "task-action policy update requires one explicit observation",
+            })
+            .to_string();
+        }
+        Err(diagnostic) => {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-ACT-001",
+                "diagnostic": diagnostic,
+            })
+            .to_string();
+        }
+    };
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        if let Some(previous) = session.task_action_policy.as_ref()
+            && (observation.observation_id != previous.observation_id
+                || observation.generation <= previous.generation)
+        {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-ACT-006",
+                "diagnostic": "task-action policy update has a stale generation or wrong observer",
+                "view": browser_session_view(session).ok(),
+            })
+            .to_string();
+        }
+        session.task_action_policy = Some(observation);
+        match browser_session_view(session) {
+            Ok(view) => serde_json::json!({
+                "ok": true,
+                "view": view,
             })
             .to_string(),
             Err(error) => patchbay_rejection(error, &session.workspace),
@@ -2909,10 +3042,11 @@ pub fn patchbay_request_task_action(session_id: String, request_json: String) ->
         if run_snapshot.as_ref().is_some_and(|run| {
             !matches!(run.state, conduit_patchbay::RunState::Prepared | conduit_patchbay::RunState::Terminal)
         }) {
-            export.active_controls = vec![
-                conduit_patchbay::TaskRuntimeControlRequest::Cancel,
-                conduit_patchbay::TaskRuntimeControlRequest::Drain,
-            ];
+            export.active_controls = session
+                .task_action_policy
+                .as_ref()
+                .map(|policy| policy.active_controls.clone())
+                .unwrap_or_default();
         }
         let admission = conduit_patchbay::admit_task_action(
             &export,
@@ -7377,24 +7511,59 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        BROWSER_FILE_RESOURCE_PREFIX, BrowserTaskRuntimeProjection, COPY_DESTINATION_SLOT,
-        COPY_SOURCE_SLOT, MAXIMUM_BROWSER_FILE_BYTES, authoritative_patchbay_view,
-        browser_exact_run_id, browser_watch_observation, exact_plan_snapshot, explain_panel,
-        panel_language_metadata, panel_source_metadata, patchbay_advance_exact_run,
-        patchbay_apply_transaction, patchbay_attach_exact_watch, patchbay_cancel_exact_run,
-        patchbay_detach_exact_watch, patchbay_dispose_exact_run, patchbay_inspect_at_rest,
-        patchbay_install_browser_file, patchbay_move_node, patchbay_notify_host_operation,
+        BROWSER_FILE_RESOURCE_PREFIX, BROWSER_TASK_ACTION_POLICY_TICK,
+        BrowserTaskRuntimeProjection, COPY_DESTINATION_SLOT, COPY_SOURCE_SLOT,
+        MAXIMUM_BROWSER_FILE_BYTES, authoritative_patchbay_view, browser_exact_run_id,
+        browser_watch_observation, exact_plan_snapshot, explain_panel, panel_language_metadata,
+        panel_source_metadata, patchbay_advance_exact_run, patchbay_apply_transaction,
+        patchbay_attach_exact_watch, patchbay_cancel_exact_run, patchbay_detach_exact_watch,
+        patchbay_dispose_exact_run, patchbay_inspect_at_rest, patchbay_install_browser_file,
+        patchbay_move_node, patchbay_notify_host_operation,
         patchbay_open_session as patchbay_open_session_with_front, patchbay_pump_exact_run,
         patchbay_read_exact_evidence, patchbay_read_exact_watch, patchbay_replace_source,
         patchbay_request_resource_binding, patchbay_request_task_action, patchbay_session_view,
         patchbay_snapshot_exact_run, patchbay_start_exact_run, patchbay_take_browser_download,
-        planned_realization_projection,
+        patchbay_update_task_action_policy, planned_realization_projection,
     };
 
     const SOURCE: &str = "panel 0\ngreeting: std/literal { value = \"hello\\n\" }\noutput: display/text\ngreeting.value > output.text\n";
 
+    fn task_action_policy(
+        observation_id: &str,
+        generation: u64,
+        state: &str,
+        observed_at_tick: u64,
+        valid_until_tick: u64,
+        code: &str,
+    ) -> String {
+        serde_json::json!({
+            "schemaVersion": 0,
+            "observationId": observation_id,
+            "generation": generation,
+            "action": "run-exact-plan",
+            "activeControls": ["cancel", "drain"],
+            "state": state,
+            "observedAtTick": observed_at_tick,
+            "validUntilTick": valid_until_tick,
+            "code": code,
+            "explanation": "The independent test host supplied this exact task-action policy."
+        })
+        .to_string()
+    }
+
+    fn permitted_task_action_policy() -> String {
+        task_action_policy(
+            "conduit.task-policy/test-host",
+            1,
+            "permitted",
+            10,
+            100,
+            "CND-PBY-ACT-READY",
+        )
+    }
+
     fn patchbay_open_session(document_id: String, source: String) -> String {
-        patchbay_open_session_with_front(document_id, source, String::new())
+        patchbay_open_session_with_front(document_id, source, String::new(), String::new())
     }
 
     #[test]
@@ -8322,6 +8491,7 @@ output.value > sink.result\n\
             "test/task-front".to_owned(),
             source.to_owned(),
             jacks_task_front_descriptor(),
+            permitted_task_action_policy(),
         ))
         .expect("task-front open JSON");
         assert_eq!(opened["ok"], true, "{opened}");
@@ -8350,6 +8520,7 @@ output.value > sink.result\n\
             "test/task-front-invalid".to_owned(),
             source.to_owned(),
             invalid.to_string(),
+            permitted_task_action_policy(),
         ))
         .expect("invalid front open JSON");
         assert_eq!(rejected["ok"], true);
@@ -8368,6 +8539,7 @@ output.value > sink.result\n\
             session.to_owned(),
             copy_binding_source(),
             copy_task_front_descriptor(),
+            permitted_task_action_policy(),
         ))
         .expect("Copy task-front open JSON");
         assert_eq!(opened["ok"], true, "{opened}");
@@ -8729,6 +8901,7 @@ output.value > sink.result\n\
             session.to_owned(),
             copy_binding_source(),
             copy_task_front_descriptor(),
+            permitted_task_action_policy(),
         ))
         .expect("browser Copy open JSON");
         assert_eq!(opened["ok"], true, "{opened}");
@@ -8863,6 +9036,7 @@ output.value > sink.result\n\
                 session.to_owned(),
                 copy_binding_source(),
                 copy_task_front_descriptor(),
+                permitted_task_action_policy(),
             )),
         )
         .expect("Copy task-front open JSON");
@@ -8893,6 +9067,176 @@ output.value > sink.result\n\
     }
 
     #[test]
+    fn task_action_policy_fails_closed_when_absent_denied_stale_or_revoked() {
+        let source = "panel 0\n\nexample/front-panel {\n    private_worker: text/uppercase\n    export > text = private_worker.text\n    export result > = private_worker.text\n}\n\nsource: std/literal { value = \"jacks\" }\nfaceplate: example/front-panel\nsink: display/text\nsource.value > faceplate.text\nfaceplate.result > sink.text\n";
+
+        let absent_session = "test/task-action-policy-absent";
+        let absent: Value = serde_json::from_str(&patchbay_open_session_with_front(
+            absent_session.to_owned(),
+            source.to_owned(),
+            jacks_task_front_descriptor(),
+            String::new(),
+        ))
+        .expect("absent policy session JSON");
+        assert_eq!(
+            absent["view"]["task_front"]["front"]["primary_action"]["state"], "action-not-exported",
+            "{absent}"
+        );
+        let absent_request = serde_json::json!({
+            "protocol_version": 0,
+            "request_id": "request/task-action-policy-absent",
+            "operation_id": "missing-policy-operation",
+            "action": "run-exact-plan",
+            "source_identity": absent["view"]["source"]["identity"],
+            "plan_identity": absent["view"]["plan"]["identity"],
+            "plan_epoch": 1,
+        });
+        let absent_rejected: Value = serde_json::from_str(&patchbay_request_task_action(
+            absent_session.to_owned(),
+            absent_request.to_string(),
+        ))
+        .expect("absent policy rejection JSON");
+        assert_eq!(absent_rejected["ok"], false, "{absent_rejected}");
+        assert_eq!(absent_rejected["code"], "CND-PBY-ACT-005");
+
+        let denied_session = "test/task-action-policy-denied";
+        let denied: Value = serde_json::from_str(&patchbay_open_session_with_front(
+            denied_session.to_owned(),
+            source.to_owned(),
+            jacks_task_front_descriptor(),
+            task_action_policy(
+                "conduit.task-policy/denied-host",
+                1,
+                "denied",
+                10,
+                100,
+                "CND-HOST-TASK-DENIED",
+            ),
+        ))
+        .expect("denied policy session JSON");
+        let denied_front = &denied["view"]["task_front"]["front"];
+        assert_eq!(denied_front["readiness"]["state"], "denied", "{denied}");
+        let denied_request = serde_json::json!({
+            "protocol_version": 0,
+            "request_id": "request/task-action-policy-denied",
+            "operation_id": denied_front["primary_action"]["operation_id"],
+            "action": "run-exact-plan",
+            "source_identity": denied_front["identities"]["source_identity"],
+            "plan_identity": denied_front["identities"]["plan_identity"],
+            "plan_epoch": denied_front["primary_action"]["plan_epoch"],
+        });
+        let denied_rejected: Value = serde_json::from_str(&patchbay_request_task_action(
+            denied_session.to_owned(),
+            denied_request.to_string(),
+        ))
+        .expect("denied policy rejection JSON");
+        assert_eq!(denied_rejected["ok"], false, "{denied_rejected}");
+        assert_eq!(denied_rejected["code"], "CND-HOST-TASK-DENIED");
+
+        let stale_session = "test/task-action-policy-stale";
+        let stale: Value = serde_json::from_str(&patchbay_open_session_with_front(
+            stale_session.to_owned(),
+            source.to_owned(),
+            jacks_task_front_descriptor(),
+            task_action_policy(
+                "conduit.task-policy/stale-host",
+                1,
+                "permitted",
+                9,
+                BROWSER_TASK_ACTION_POLICY_TICK,
+                "CND-PBY-ACT-READY",
+            ),
+        ))
+        .expect("stale policy session JSON");
+        let stale_front = &stale["view"]["task_front"]["front"];
+        assert_eq!(stale_front["readiness"]["state"], "stale", "{stale}");
+        let stale_request = serde_json::json!({
+            "protocol_version": 0,
+            "request_id": "request/task-action-policy-stale",
+            "operation_id": stale_front["primary_action"]["operation_id"],
+            "action": "run-exact-plan",
+            "source_identity": stale_front["identities"]["source_identity"],
+            "plan_identity": stale_front["identities"]["plan_identity"],
+            "plan_epoch": stale_front["primary_action"]["plan_epoch"],
+        });
+        let stale_rejected: Value = serde_json::from_str(&patchbay_request_task_action(
+            stale_session.to_owned(),
+            stale_request.to_string(),
+        ))
+        .expect("stale policy rejection JSON");
+        assert_eq!(stale_rejected["ok"], false, "{stale_rejected}");
+        assert_eq!(stale_rejected["code"], "CND-PBY-ACT-006");
+
+        let revoked_session = "test/task-action-policy-revoked";
+        let permitted: Value = serde_json::from_str(&patchbay_open_session_with_front(
+            revoked_session.to_owned(),
+            source.to_owned(),
+            jacks_task_front_descriptor(),
+            task_action_policy(
+                "conduit.task-policy/revocable-host",
+                1,
+                "permitted",
+                10,
+                100,
+                "CND-PBY-ACT-READY",
+            ),
+        ))
+        .expect("revocable policy session JSON");
+        let permitted_front = &permitted["view"]["task_front"]["front"];
+        let pre_revocation_request = serde_json::json!({
+            "protocol_version": 0,
+            "request_id": "request/task-action-policy-before-revocation",
+            "operation_id": permitted_front["primary_action"]["operation_id"],
+            "action": "run-exact-plan",
+            "source_identity": permitted_front["identities"]["source_identity"],
+            "plan_identity": permitted_front["identities"]["plan_identity"],
+            "plan_epoch": permitted_front["primary_action"]["plan_epoch"],
+        });
+        let revoked: Value = serde_json::from_str(&patchbay_update_task_action_policy(
+            revoked_session.to_owned(),
+            task_action_policy(
+                "conduit.task-policy/revocable-host",
+                2,
+                "revoked",
+                10,
+                100,
+                "CND-HOST-TASK-REVOKED",
+            ),
+        ))
+        .expect("revocation update JSON");
+        assert_eq!(revoked["ok"], true, "{revoked}");
+        assert_eq!(
+            revoked["view"]["task_front"]["front"]["readiness"]["state"], "denied",
+            "{revoked}"
+        );
+        let old_request_rejected: Value = serde_json::from_str(&patchbay_request_task_action(
+            revoked_session.to_owned(),
+            pre_revocation_request.to_string(),
+        ))
+        .expect("pre-revocation request rejection JSON");
+        assert_eq!(old_request_rejected["ok"], false, "{old_request_rejected}");
+        assert_eq!(old_request_rejected["code"], "CND-PBY-ACT-006");
+
+        let revoked_front = &revoked["view"]["task_front"]["front"];
+        let revoked_request = serde_json::json!({
+            "protocol_version": 0,
+            "request_id": "request/task-action-policy-after-revocation",
+            "operation_id": revoked_front["primary_action"]["operation_id"],
+            "action": "run-exact-plan",
+            "source_identity": revoked_front["identities"]["source_identity"],
+            "plan_identity": revoked_front["identities"]["plan_identity"],
+            "plan_epoch": revoked_front["primary_action"]["plan_epoch"],
+        });
+        let revoked_rejected: Value = serde_json::from_str(&patchbay_request_task_action(
+            revoked_session.to_owned(),
+            revoked_request.to_string(),
+        ))
+        .expect("revoked policy rejection JSON");
+        assert_eq!(revoked_rejected["ok"], false, "{revoked_rejected}");
+        assert_eq!(revoked_rejected["code"], "CND-HOST-TASK-REVOKED");
+    }
+
+    #[test]
     fn task_front_dispatches_exact_action_and_projects_semantic_result_separately() {
         let session = "test/task-front-action";
         let source = "panel 0\n\nexample/front-panel {\n    private_worker: text/uppercase\n    export > text = private_worker.text\n    export result > = private_worker.text\n}\n\nsource: std/literal { value = \"jacks\" }\nfaceplate: example/front-panel\nsink: display/text\nsource.value > faceplate.text\nfaceplate.result > sink.text\n";
@@ -8900,6 +9244,7 @@ output.value > sink.result\n\
             session.to_owned(),
             source.to_owned(),
             jacks_task_front_descriptor(),
+            permitted_task_action_policy(),
         ))
         .expect("task-front open JSON");
         let front = &opened["view"]["task_front"]["front"];
@@ -8967,6 +9312,7 @@ output.value > sink.result\n\
             session.to_owned(),
             source.to_owned(),
             jacks_task_front_descriptor(),
+            permitted_task_action_policy(),
         ))
         .expect("task-front open JSON");
         let front = &opened["view"]["task_front"]["front"];
@@ -9029,6 +9375,7 @@ output.value > sink.result\n\
             session.to_owned(),
             source.to_owned(),
             jacks_task_front_descriptor(),
+            permitted_task_action_policy(),
         ))
         .expect("task-front open JSON");
         assert_eq!(opened["view"]["presentation"]["mode"], "use");

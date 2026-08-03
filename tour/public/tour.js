@@ -243,6 +243,18 @@ const hostReport = observeBrowserHost({
     ),
   ],
   permissions: [],
+  taskActionPolicies: [{
+    schemaVersion: 0,
+    observationId: "conduit.task-policy/tour-browser-host",
+    generation: 1,
+    action: "run-exact-plan",
+    activeControls: ["cancel", "drain"],
+    state: "permitted",
+    observedAtTick: 10,
+    validUntilTick: 100,
+    code: "CND-PBY-ACT-READY",
+    explanation: "The independent Tour host policy permits one exact task action.",
+  }],
   activation: false,
   resources: {
     queueBytes: browserPlan.bounds.maximum_message_bytes,
@@ -252,6 +264,9 @@ const hostReport = observeBrowserHost({
 if (hostReport.ok === false) {
   throw new Error(`${hostReport.code}:${hostReport.detail}`);
 }
+const taskActionPolicy = hostReport.taskActionPolicies.find(
+  (policy) => policy.action === "run-exact-plan",
+);
 
 let current = lessons.lessons.find((lesson) => lesson.id === "book.origin-hidden-program")
   || lessons.lessons[0];
@@ -1668,6 +1683,7 @@ function openPatchbaySession() {
     patchbaySessionId,
     acceptedSource,
     current.task_front ? JSON.stringify(current.task_front) : "",
+    taskActionPolicy ? JSON.stringify(taskActionPolicy) : "",
   ));
   if (!opened.ok) {
     patchbayView = null;
@@ -1687,6 +1703,7 @@ function openPatchbaySession() {
         patchbaySessionId,
         acceptedSource,
         current.task_front ? JSON.stringify(current.task_front) : "",
+        taskActionPolicy ? JSON.stringify(taskActionPolicy) : "",
       ));
       break;
     }
@@ -3547,6 +3564,7 @@ async function run(requestedTaskAction = null) {
       documentId: `tour/worker-run/${epoch}`,
       source: source.value,
       taskFront: current.task_front || null,
+      taskActionPolicy,
     });
     if (!opened.ok || !opened.value?.ok) {
       throw new Error(`${opened.code || opened.value?.code || "open-failed"}: ${opened.value?.diagnostic || ""}`);

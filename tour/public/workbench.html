@@ -14,7 +14,7 @@
 <body class="workbench-body">
   <a class="skip-link" href="#workbench-canvas">Skip to canvas</a>
   <header class="workbench-header">
-    <div>
+    <div class="workbench-brand">
       <p class="eyebrow">Conduit</p>
       <h1>Workbench</h1>
       <p>Make an ordinary Panel from authoritative semantic contracts.</p>
@@ -27,7 +27,7 @@
 
   <main class="workbench-shell">
     <section class="card workbench-document-bar" aria-label="Document and run controls">
-      <div class="button-row">
+      <div class="button-row workbench-command-row">
         <button id="new-document" type="button" class="btn secondary">New</button>
         <label for="saved-documents" class="sr-only">Saved work</label>
         <select id="saved-documents" aria-label="Saved work"><option value="">Open saved work…</option></select>
@@ -38,12 +38,20 @@
         <button id="run" type="button" class="btn primary" disabled>Run</button>
         <button id="stop" type="button" class="btn danger" disabled>Stop</button>
       </div>
-      <output id="workbench-status" role="status" aria-live="polite">Starting production worker…</output>
+      <div class="workbench-status-strip">
+        <span class="eyebrow">Workbench state</span>
+        <output id="workbench-status" role="status" aria-live="polite">Starting production worker…</output>
+      </div>
     </section>
 
     <div class="workbench-grid">
       <aside class="card palette-card workbench-panel" data-panel="palette" data-panel-mode="docked" data-panel-dock="left" aria-labelledby="palette-title">
-        <div class="card-header"><h2 id="palette-title">Node palette</h2><span id="palette-count" class="badge">0</span></div>
+        <div class="card-header workbench-panel-header">
+          <div class="workbench-panel-heading">
+            <h2 id="palette-title">Node palette</h2>
+            <span id="palette-count" class="badge">0</span>
+          </div>
+        </div>
         <label for="palette-search">Search contracts</label>
         <input id="palette-search" type="search" placeholder="name, namespace, port, type…" autocomplete="off">
         <div class="palette-filters">
@@ -63,16 +71,31 @@
       </aside>
 
       <section id="workbench-canvas" class="card workbench-canvas-card" aria-labelledby="canvas-title">
-        <div class="card-header">
-          <div><p class="eyebrow">Semantic source + presentation layout</p><h2 id="canvas-title">Canvas</h2></div>
-          <button id="delete-node" type="button" class="btn danger" disabled>Delete selected</button>
+        <div class="card-header workbench-panel-header">
+          <div class="workbench-panel-heading">
+            <div class="workbench-panel-title">
+              <p class="eyebrow">Semantic source + presentation layout</p>
+              <h2 id="canvas-title">Canvas</h2>
+            </div>
+          </div>
+          <div class="workbench-panel-actions">
+            <button id="delete-node" type="button" class="btn danger" disabled>Delete selected</button>
+          </div>
         </div>
         <p class="card-subtitle">Connect compatible jacks directly. Rejected connections remain explained below and are never coerced.</p>
         <div id="cy" class="cytoscape-container" tabindex="0" aria-label="Patchbay topology canvas"></div>
       </section>
 
       <section class="card source-card workbench-source workbench-panel" data-panel="source" data-panel-mode="docked" data-panel-dock="bottom" aria-labelledby="source-title">
-        <div class="card-header"><div><p class="eyebrow">Synchronized Build view</p><h2 id="source-title">Panel source</h2></div><span class="badge">panel 0</span></div>
+        <div class="card-header workbench-panel-header">
+          <div class="workbench-panel-heading">
+            <div class="workbench-panel-title">
+              <p class="eyebrow">Synchronized Build view</p>
+              <h2 id="source-title">Panel source</h2>
+            </div>
+            <span class="badge">panel 0</span>
+          </div>
+        </div>
         <div class="panel-source-editor">
           <pre class="panel-source-highlight" aria-hidden="true"></pre>
           <textarea id="source" rows="18" spellcheck="false" autocomplete="off" aria-label="Panel source"></textarea>
@@ -80,7 +103,12 @@
       </section>
 
       <aside class="card workbench-inspector workbench-panel" data-panel="inspector" data-panel-mode="docked" data-panel-dock="right" aria-labelledby="inspector-title">
-        <div class="card-header"><h2 id="inspector-title">Readiness and result</h2><span id="readiness" class="badge">Checking</span></div>
+        <div class="card-header workbench-panel-header">
+          <div class="workbench-panel-heading">
+            <h2 id="inspector-title">Readiness and result</h2>
+            <span id="readiness" class="badge">Checking</span>
+          </div>
+        </div>
         <p id="selection-summary">No node selected.</p>
         <div id="node-config" class="node-config"></div>
         <form id="connection-builder" class="connection-builder">

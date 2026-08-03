@@ -16,6 +16,7 @@ import init, {
   patchbay_session_view,
   patchbay_snapshot_exact_run,
   patchbay_start_exact_run,
+  patchbay_update_task_action_policy,
   patchbay_take_browser_download,
   patchbay_workbench_palette,
 } from "./conduit_web.js";
@@ -46,6 +47,7 @@ function response(operation, value) {
         value.documentId,
         value.source,
         value.taskFront ? JSON.stringify(value.taskFront) : "",
+        value.taskActionPolicy ? JSON.stringify(value.taskActionPolicy) : "",
       );
     case "patchbay-session-view":
       return patchbay_session_view(value.sessionId);
@@ -57,6 +59,11 @@ function response(operation, value) {
       return patchbay_start_exact_run(value.sessionId);
     case "patchbay-request-task-action":
       return patchbay_request_task_action(value.sessionId, JSON.stringify(value.request));
+    case "patchbay-update-task-action-policy":
+      return patchbay_update_task_action_policy(
+        value.sessionId,
+        JSON.stringify(value.taskActionPolicy),
+      );
     case "patchbay-request-resource-binding":
       return patchbay_request_resource_binding(
         value.sessionId,

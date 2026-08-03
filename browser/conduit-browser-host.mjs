@@ -11,6 +11,13 @@ export const PermissionState = Object.freeze({
   Unavailable: "unavailable",
 });
 
+export const TaskActionPermissionState = Object.freeze({
+  Permitted: "permitted",
+  Denied: "denied",
+  Revoked: "revoked",
+  Unavailable: "unavailable",
+});
+
 export const Placement = Object.freeze({
   Window: "window",
   DedicatedWorker: "dedicated-worker",
@@ -100,13 +107,15 @@ export function observeBrowserHost(input) {
     context,
     placements,
     permissions = [],
+    taskActionPolicies = [],
     activation = false,
     resources,
   } = input;
   if (!hostId || !observationId || !validStatusBinding(reporter, tick) ||
       !Number.isSafeInteger(tick) || !Number.isSafeInteger(validUntilTick) ||
       tick >= validUntilTick || !context || !resources ||
-      !Array.isArray(placements) || !Array.isArray(permissions)) {
+      !Array.isArray(placements) || !Array.isArray(permissions) ||
+      !Array.isArray(taskActionPolicies)) {
     return fail(BrowserHostReason.InvalidReport, "missing or malformed observation facts");
   }
   const frozenPlacements = placements.map((placement) => cloneFact({
@@ -123,13 +132,42 @@ export function observeBrowserHost(input) {
     state: permission.state,
     scope: permission.scope,
   })).sort((left, right) => left.capability.localeCompare(right.capability));
+  const frozenTaskActionPolicies = taskActionPolicies.map((policy) => cloneFact({
+    schemaVersion: policy.schemaVersion,
+    observationId: policy.observationId,
+    generation: policy.generation,
+    action: policy.action,
+    activeControls: Object.freeze([...(policy.activeControls ?? [])]),
+    state: policy.state,
+    observedAtTick: policy.observedAtTick,
+    validUntilTick: policy.validUntilTick,
+    code: policy.code,
+    explanation: policy.explanation,
+  })).sort((left, right) => left.action.localeCompare(right.action));
+  const boundedPolicyText = (value) =>
+    typeof value === "string" && value.length > 0 && value.length <= 256;
   if (frozenPlacements.some((placement) =>
         !Object.values(Placement).includes(placement.id) ||
         !placement.lifetime || !placement.scheduling || !placement.transfer ||
         !Number.isSafeInteger(placement.limits?.queueBytes) ||
         placement.limits.queueBytes <= 0) ||
       new Set(frozenPlacements.map((placement) => placement.id)).size !== frozenPlacements.length ||
-      frozenPermissions.some((permission) => !Object.values(PermissionState).includes(permission.state))) {
+      frozenPermissions.some((permission) => !Object.values(PermissionState).includes(permission.state)) ||
+      frozenTaskActionPolicies.some((policy) =>
+        policy.schemaVersion !== BROWSER_HOST_SCHEMA_VERSION ||
+        !boundedPolicyText(policy.observationId) ||
+        !Number.isSafeInteger(policy.generation) || policy.generation <= 0 ||
+        policy.action !== "run-exact-plan" ||
+        policy.activeControls.length > 2 ||
+        policy.activeControls.some((control) => !["cancel", "drain"].includes(control)) ||
+        new Set(policy.activeControls).size !== policy.activeControls.length ||
+        !Object.values(TaskActionPermissionState).includes(policy.state) ||
+        !Number.isSafeInteger(policy.observedAtTick) ||
+        !Number.isSafeInteger(policy.validUntilTick) ||
+        policy.observedAtTick > tick || policy.observedAtTick >= policy.validUntilTick ||
+        !boundedPolicyText(policy.code) || !boundedPolicyText(policy.explanation)) ||
+      new Set(frozenTaskActionPolicies.map((policy) => policy.action)).size !==
+        frozenTaskActionPolicies.length) {
     return fail(BrowserHostReason.InvalidReport, "unknown permission state");
   }
   return Object.freeze({
@@ -147,6 +185,7 @@ export function observeBrowserHost(input) {
     context: Object.freeze({ ...context }),
     placements: Object.freeze(frozenPlacements),
     permissions: Object.freeze(frozenPermissions),
+    taskActionPolicies: Object.freeze(frozenTaskActionPolicies),
     activation: activation === true,
     resources: Object.freeze({ ...resources }),
   });

@@ -10,7 +10,7 @@ fn json(value: String) -> Value {
 }
 
 fn patchbay_open_session(document_id: String, source: String) -> String {
-    patchbay_open_session_with_front(document_id, source, String::new())
+    patchbay_open_session_with_front(document_id, source, String::new(), String::new())
 }
 
 #[test]

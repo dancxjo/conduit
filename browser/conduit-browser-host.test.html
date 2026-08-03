@@ -20,6 +20,7 @@ import {
   DedicatedWorkerExecutionAdapter,
   PermissionState,
   Placement,
+  TaskActionPermissionState,
   ServiceWorkerExecutionAdapter,
   SharedWorkerExecutionAdapter,
   WasmExecutionAdapter,
@@ -109,11 +110,27 @@ const report = observeBrowserHost({
     placement(Placement.WebGpu, Boolean(navigator.gpu), "device", "provider-scheduled", "external-memory", ["device-loss"]),
   ],
   permissions: [{ capability: "microphone", state: PermissionState.Prompt, scope: "origin" }],
+  taskActionPolicies: [{
+    schemaVersion: 0,
+    observationId: "fixture/task-action-policy",
+    generation: 1,
+    action: "run-exact-plan",
+    activeControls: ["cancel", "drain"],
+    state: TaskActionPermissionState.Permitted,
+    observedAtTick: 10,
+    validUntilTick: 20,
+    code: "CND-PBY-ACT-READY",
+    explanation: "The fixture host policy permits this exact task action.",
+  }],
   activation: false,
   resources: { queueBytes: 1024, pendingMessages: 2 },
 });
 
 assert(report.ok !== false, "report accepted");
+assert(
+  report.taskActionPolicies[0].state === TaskActionPermissionState.Permitted,
+  "task-action authority remains an explicit host observation",
+);
 assert(report.reporter.statusObservation.status === "active", "realm/passport status bound");
 assert(new Set(report.placements.map((item) => item.id)).size === 7, "placements distinct");
 assert(
