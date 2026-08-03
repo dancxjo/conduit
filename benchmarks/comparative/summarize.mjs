@@ -32,7 +32,14 @@ for (const sample of samples) {
   const persistentTimer = sample.workload.id === "persistent-timer";
   const persistentResidency = persistentWake || persistentTimer;
   if (!sharedPayload && (sample.workload.payload_bytes !== 0
-      || !["handle-backed-u64", "native-u64", "native-number", "native-long"].includes(sample.workload.payload_representation))) {
+      || !["handle-backed-u64", "native-u64", "native-number", "native-long"].includes(sample.workload.payload_representation)
+      || sample.workload.watch_slots !== 0
+      || sample.workload.watch_preview_bytes !== 0
+      || sample.workload.watch_retention !== "none"
+      || [sample.memory.watch_admitted_slots, sample.memory.watch_attached_slots,
+        sample.memory.watch_retained_observations, sample.memory.watch_retained_preview_bytes,
+        sample.memory.watch_dropped_observations, sample.memory.watch_maximum_observations,
+        sample.memory.watch_maximum_preview_bytes].some((value) => value !== null))) {
     throw new Error("non-payload fixture carries shared-payload identity");
   }
   if (overload) {
@@ -73,12 +80,14 @@ for (const sample of samples) {
       throw new Error("the current fan-out slice has no cross-runtime substitute");
     }
   } else if (sharedPayload) {
-    if (identityParts.length !== 5
+    if (identityParts.length !== 7
         || identityParts[0] !== "comparative-shared-payload-fanout"
         || Number(identityParts[1]) !== sample.workload.fanout_branches
         || Number(identityParts[2]) !== sample.workload.payload_bytes
         || Number(identityParts[3]) !== sample.workload.queue_capacity_items
-        || identityParts[4] !== sample.workload.termination_request) {
+        || identityParts[4] !== sample.workload.termination_request
+        || Number(identityParts[5]) !== sample.workload.watch_slots
+        || Number(identityParts[6]) !== sample.workload.watch_preview_bytes) {
       throw new Error("shared-payload fixture identity does not match the raw sample");
     }
     if (sample.runtime.id !== "conduit-hosted-value-arena") {
@@ -368,6 +377,9 @@ for (const sample of samples) {
     const aborted = sample.workload.termination_request === "abort";
     const expectedDeliveries = aborted ? 0 : branches;
     const expectedVerifierBytes = aborted ? 0 : branches * payloadBytes;
+    const watchSlots = sample.workload.watch_slots;
+    const watchPreviewBytes = sample.workload.watch_preview_bytes;
+    const expectedWatchPreviewBytes = watchSlots * watchPreviewBytes;
     if (![2, 8, 32].includes(branches)
         || payloadBytes !== 1024
         || sample.workload.payload_representation !== "hosted-generation-safe-shared-text-handle"
@@ -375,6 +387,9 @@ for (const sample of samples) {
         || sample.workload.queue_capacity_items !== 1
         || sample.workload.input_values !== 1
         || sample.workload.slow_consumer_yields !== 0
+        || ![0, 1, branches].includes(watchSlots)
+        || watchPreviewBytes !== (watchSlots === 0 ? 0 : 64)
+        || sample.workload.watch_retention !== (watchSlots === 0 ? "none" : "latest")
         || !["complete", "abort"].includes(sample.workload.termination_request)
         || sample.workload.cancel_after_offers !== (aborted ? 1 : 0)
         || sample.outcomes.offered !== 1
@@ -395,8 +410,15 @@ for (const sample of samples) {
         || sample.memory.value_bytes_capacity < payloadBytes
         || sample.memory.host_io_output_bytes !== expectedVerifierBytes
         || sample.memory.host_io_capacity_bytes < sample.memory.host_io_output_bytes
-        || sample.memory.queue_max_cord_items_high_water > 1) {
-      throw new Error("shared-payload handle, residency, delivery, or verifier accounting changed");
+        || sample.memory.queue_max_cord_items_high_water > 1
+        || sample.memory.watch_admitted_slots !== watchSlots
+        || sample.memory.watch_attached_slots !== watchSlots
+        || sample.memory.watch_retained_observations !== watchSlots
+        || sample.memory.watch_retained_preview_bytes !== expectedWatchPreviewBytes
+        || sample.memory.watch_dropped_observations !== 0
+        || sample.memory.watch_maximum_observations !== watchSlots
+        || sample.memory.watch_maximum_preview_bytes !== expectedWatchPreviewBytes) {
+      throw new Error("shared-payload handle, residency, delivery, verifier, or Watch accounting changed");
     }
   } else {
     if (sample.outcomes.offered !== sample.workload.input_values) throw new Error("offered input count changed");
@@ -467,7 +489,8 @@ for (const sample of measured) {
     sample.workload.consumer_pattern, sample.workload.consumer_burst_items,
     sample.workload.session_mode, sample.workload.session_pump_quantum,
     sample.workload.residency_plateau_after_wakes, sample.workload.payload_bytes,
-    sample.workload.payload_representation].join("/");
+    sample.workload.payload_representation, sample.workload.watch_slots,
+    sample.workload.watch_preview_bytes, sample.workload.watch_retention].join("/");
   if (!groups.has(key)) groups.set(key, []);
   groups.get(key).push(sample);
 }
@@ -530,6 +553,10 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
       after: optionalStats(group.map((value) => value.memory.resident_after_bytes)),
       peak: optionalStats(group.map((value) => value.memory.resident_peak_bytes)),
     },
+    memory_accounting: {
+      planned_bytes: optionalStats(group.map((value) => value.memory.planned_memory_bytes)),
+      executor_overhead_bytes: optionalStats(group.map((value) => value.memory.executor_overhead_bytes)),
+    },
     high_water: {
       queue_items: optionalStats(group.map((value) => value.memory.queue_items_high_water)),
       queue_max_cord_items: optionalStats(group.map((value) => value.memory.queue_max_cord_items_high_water)),
@@ -544,6 +571,13 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
       value_bytes_capacity: optionalStats(group.map((value) => value.memory.value_bytes_capacity)),
       host_io_capacity_bytes: optionalStats(group.map((value) => value.memory.host_io_capacity_bytes)),
       host_io_output_bytes: optionalStats(group.map((value) => value.memory.host_io_output_bytes)),
+      watch_admitted_slots: optionalStats(group.map((value) => value.memory.watch_admitted_slots)),
+      watch_attached_slots: optionalStats(group.map((value) => value.memory.watch_attached_slots)),
+      watch_retained_observations: optionalStats(group.map((value) => value.memory.watch_retained_observations)),
+      watch_retained_preview_bytes: optionalStats(group.map((value) => value.memory.watch_retained_preview_bytes)),
+      watch_dropped_observations: optionalStats(group.map((value) => value.memory.watch_dropped_observations)),
+      watch_maximum_observations: optionalStats(group.map((value) => value.memory.watch_maximum_observations)),
+      watch_maximum_preview_bytes: optionalStats(group.map((value) => value.memory.watch_maximum_preview_bytes)),
     },
     latency_ns: {
       samples: latency.length,
@@ -564,6 +598,7 @@ summaries.sort((left, right) =>
   || left.workload.session_mode.localeCompare(right.workload.session_mode)
   || left.workload.consumer_pattern.localeCompare(right.workload.consumer_pattern)
   || left.workload.fanout_branches - right.workload.fanout_branches
+  || left.workload.watch_slots - right.workload.watch_slots
   || left.workload.slow_branches.localeCompare(right.workload.slow_branches)
 );
 
@@ -617,7 +652,7 @@ const result = {
     {
       runtime: "conduit-hosted-value-arena",
       workload: "shared-payload-fanout payloads above 1 KiB or non-text media",
-      reason: "the current production hosted literal binding is bounded to 1 KiB public text; larger, PCM, image, encoded, fragment, browser, Watch, coalesce, cancellation, and slot-reuse slices remain unavailable",
+      reason: "the current production hosted literal binding is bounded to 1 KiB public text and Watch coverage is limited to exact pre-Start Latest previews; larger, PCM, image, encoded, fragment, browser, other Watch retention/lifecycle modes, coalesce, and slot-reuse slices remain unavailable",
     },
     {
       runtime: "rxjs/reactor-core",
@@ -652,7 +687,7 @@ if (reportOutput) {
     "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
     "- RxJS/Reactor fan-out: reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted.",
     "- RxJS/Reactor shared payloads: no reviewed generation-safe shared-handle and residency mapping exists; language object references are not substituted.",
-    "- Conduit shared payloads beyond 1 KiB public text: larger, PCM, image, encoded, fragment, browser, Watch, coalesce, cancellation, and slot-reuse slices remain unavailable.",
+    "- Conduit shared payloads beyond 1 KiB public text: larger, PCM, image, encoded, fragment, browser, Watch retention/lifecycle modes beyond exact pre-Start Latest previews, coalesce, and slot-reuse slices remain unavailable.",
     "- RxJS/Reactor persistent wake: no reviewed mapping exists for Conduit's exact named host-operation wait and production session reservation; a timer or subject is not substituted.",
     "- RxJS/Reactor persistent timer: no reviewed mapping exists for Conduit's exact retained timer deadline and production session reservation; an interval operator is not substituted.",
     "- Drain/Abort timing is present only on fixtures that explicitly request that transition; normal completion remains distinct and null.",
@@ -688,9 +723,9 @@ if (reportOutput) {
       report.push("");
     }
     if (workload === "shared-payload-fanout") {
-      report.push("## shared-payload-fanout: handle and residency accounting", "", "The value arena retains one generation-safe 1 KiB handle across every branch. Queue byte charges and content-verifying display buffers are separate bounded storage and are not described as zero-copy. Abort rows cancel after atomic publication and before verifier consumption.", "", "| Runtime | Terminal request | Payload bytes | Branches | Unique handles | Branch deliveries | Value slots high water | Value bytes high water | Terminal value slots | Terminal value bytes | Queue payload bytes | Host verifier output bytes | Alloc calls after Start |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+      report.push("## shared-payload-fanout: handle, Watch, and residency accounting", "", "The value arena retains one generation-safe 1 KiB handle across every branch. Queue byte charges, content-verifying display buffers, and fixed Watch preview copies are separate bounded storage and are not described as zero-copy. Watch reads verify the copied 64-byte prefix and full content hash after the timed region. Abort rows cancel after atomic publication and before verifier consumption; retained Watch previews must not extend terminal executor-value residency.", "", "| Runtime | Terminal request | Payload bytes | Branches | Watch slots | Watch preview bytes retained | Planned bytes | Executor overhead bytes | Unique handles | Branch deliveries | Value slots high water | Value bytes high water | Terminal value slots | Terminal value bytes | Queue payload bytes | Host verifier output bytes | Alloc calls after Start |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
       for (const group of workloadGroups) {
-        report.push(`| ${group.runtime.id} | ${group.workload.termination_request} | ${group.workload.payload_bytes} | ${group.workload.fanout_branches} | ${duration(group.execution.unique_value_handles)} | ${duration(group.execution.branch_deliveries)} | ${duration(group.high_water.value_slots)} | ${duration(group.high_water.value_bytes)} | ${duration(group.high_water.value_resident_slots_after_terminal)} | ${duration(group.high_water.value_resident_bytes_after_terminal)} | ${duration(group.high_water.queue_payload_bytes)} | ${duration(group.high_water.host_io_output_bytes)} | ${duration(group.allocations_after_start.calls)} |`);
+        report.push(`| ${group.runtime.id} | ${group.workload.termination_request} | ${group.workload.payload_bytes} | ${group.workload.fanout_branches} | ${group.workload.watch_slots} | ${duration(group.high_water.watch_retained_preview_bytes)} | ${duration(group.memory_accounting.planned_bytes)} | ${duration(group.memory_accounting.executor_overhead_bytes)} | ${duration(group.execution.unique_value_handles)} | ${duration(group.execution.branch_deliveries)} | ${duration(group.high_water.value_slots)} | ${duration(group.high_water.value_bytes)} | ${duration(group.high_water.value_resident_slots_after_terminal)} | ${duration(group.high_water.value_resident_bytes_after_terminal)} | ${duration(group.high_water.queue_payload_bytes)} | ${duration(group.high_water.host_io_output_bytes)} | ${duration(group.allocations_after_start.calls)} |`);
       }
       report.push("");
     }

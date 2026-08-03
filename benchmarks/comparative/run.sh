@@ -40,6 +40,7 @@ persistent_timer_quantum=$(jq -r .persistent_timer_residency.session_pump_quantu
 persistent_timer_advance_ticks=$(jq -r .persistent_timer_residency.timer_advance_ticks "$manifest")
 shared_payload_bytes=$(jq -r '.shared_payload_fanout.payload_bytes[0]' "$manifest")
 shared_payload_capacity=$(jq -r .shared_payload_fanout.queue_capacity_items "$manifest")
+shared_watch_preview_bytes=$(jq -r .shared_payload_fanout.watch_preview_bytes "$manifest")
 
 mkdir -p "$output_dir"
 for artifact in "$raw" "$summary" "$metadata" "$report" "$regression_evaluation" "$regression_report" "$commands"; do
@@ -255,19 +256,41 @@ done
 
 for branches in $(jq -r '.shared_payload_fanout.branches[]' "$manifest"); do
   for termination in $(jq -r '.shared_payload_fanout.termination_requests[]' "$manifest"); do
-    record_raw "$workspace_root/target/release/conduit-benchmark" \
-      --workload shared-payload-fanout \
-      --operators 1 \
-      --values 1 \
-      --queue-items "$shared_payload_capacity" \
-      --latency-sample-stride 1 \
-      --warmup-trials "$warmups" \
-      --measured-trials "$trials" \
-      --fanout-branches "$branches" \
-      --fanout-mode coupled \
-      --slow-consumer-yields 0 \
-      --termination-request "$termination" \
-      --payload-bytes "$shared_payload_bytes"
+    for watch_mode in $(jq -r '.shared_payload_fanout.watch_modes[]' "$manifest"); do
+      case "$watch_mode" in
+        none)
+          watch_slots=0
+          watch_preview_bytes=0
+          ;;
+        one)
+          watch_slots=1
+          watch_preview_bytes=$shared_watch_preview_bytes
+          ;;
+        every-branch)
+          watch_slots=$branches
+          watch_preview_bytes=$shared_watch_preview_bytes
+          ;;
+        *)
+          echo "unsupported shared-payload Watch mode: $watch_mode" >&2
+          exit 1
+          ;;
+      esac
+      record_raw "$workspace_root/target/release/conduit-benchmark" \
+        --workload shared-payload-fanout \
+        --operators 1 \
+        --values 1 \
+        --queue-items "$shared_payload_capacity" \
+        --latency-sample-stride 1 \
+        --warmup-trials "$warmups" \
+        --measured-trials "$trials" \
+        --fanout-branches "$branches" \
+        --fanout-mode coupled \
+        --slow-consumer-yields 0 \
+        --termination-request "$termination" \
+        --payload-bytes "$shared_payload_bytes" \
+        --watch-slots "$watch_slots" \
+        --watch-preview-bytes "$watch_preview_bytes"
+    done
   done
 done
 

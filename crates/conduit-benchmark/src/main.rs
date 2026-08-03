@@ -17,21 +17,22 @@ use clap::{Parser, ValueEnum};
 use conduit_compile::{InstalledProfile, compile_source};
 use conduit_core::{
     ArtifactDigest, AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee,
-    CompatibilityOutcome, Direction, DuplicationRule, ExecutionLimits, ExecutionPlan,
-    ExecutionProfile, FanOutMode, FlowCapacity, FlowPolicy, FlowQueueState, FlowTypeFacts,
-    FlowWatermarks, Id, ImplementationMachine, InstancePath, InstantiationContext, LifecycleUsage,
-    MemoryAccounting, MemoryCategory, MemoryClaim, PinnedDescriptor, PlanArtifact, PlanFanOut,
-    PlanHostObservation, PlanResourceBudget, PlanValidationContext, Pressure, ReadyQueueDiscipline,
-    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION,
-    SampleSchedule, SchedulerPolicy, SemanticHash, StopPolicy, TraitProof, TypeContractRef,
+    CompatibilityOutcome, Direction, DuplicationRule, EvidenceCursorStatus, ExecutionLimits,
+    ExecutionPlan, ExecutionProfile, FanOutMode, FlowCapacity, FlowPolicy, FlowQueueState,
+    FlowTypeFacts, FlowWatermarks, Id, ImplementationMachine, InstancePath, InstantiationContext,
+    LifecycleUsage, MemoryAccounting, MemoryCategory, MemoryClaim, PinnedDescriptor, PlanArtifact,
+    PlanFanOut, PlanHostObservation, PlanResourceBudget, PlanValidationContext, Pressure,
+    ReadyQueueDiscipline, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
+    SCHEDULER_CONTRACT_VERSION, SampleSchedule, SchedulerPolicy, SemanticHash, Sensitivity,
+    StopPolicy, TraitProof, TypeContractRef, WatchAdmission, WatchRetention, WatchSubject,
     validate_execution_plan,
 };
 use conduit_runtime::{
     DeterministicExecutor, ExactRunContext, ExactRunIdentity, ExactRunIo, ExactRunSession,
-    ExactRunSessionRegistry, ExactRunState, Registry, RetainedValueUsage, RuntimeValue,
-    RuntimeValueEnvelope, ScheduledNode, SchedulerEventKind, SchedulerNode, SchedulerReservation,
-    SchedulerStatus, SchedulerStep, SchedulerSubject, SendStatus, StepIo,
-    hosted_service_use_observations,
+    ExactRunSessionRegistry, ExactRunState, ExactWatchMaterial, ExactWatchOperation,
+    ExactWatchUseAuthority, Registry, RetainedValueUsage, RuntimeValue, RuntimeValueEnvelope,
+    ScheduledNode, SchedulerEventKind, SchedulerNode, SchedulerReservation, SchedulerStatus,
+    SchedulerStep, SchedulerSubject, SendStatus, StepIo, hosted_service_use_observations,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -334,6 +335,10 @@ struct Args {
     timer_advance_ticks: u64,
     #[arg(long, default_value_t = 0)]
     payload_bytes: u64,
+    #[arg(long, default_value_t = 0)]
+    watch_slots: u16,
+    #[arg(long, default_value_t = 0)]
+    watch_preview_bytes: u32,
 }
 
 #[derive(Serialize)]
@@ -395,6 +400,13 @@ struct MemoryMeasurement {
     value_bytes_capacity: Option<u64>,
     host_io_capacity_bytes: Option<u64>,
     host_io_output_bytes: Option<u64>,
+    watch_admitted_slots: Option<u32>,
+    watch_attached_slots: Option<u32>,
+    watch_retained_observations: Option<u64>,
+    watch_retained_preview_bytes: Option<u64>,
+    watch_dropped_observations: Option<u64>,
+    watch_maximum_observations: Option<u64>,
+    watch_maximum_preview_bytes: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -441,6 +453,9 @@ struct WorkloadIdentity {
     timer_advance_ticks: u64,
     payload_bytes: u64,
     payload_representation: &'static str,
+    watch_slots: u16,
+    watch_preview_bytes: u32,
+    watch_retention: &'static str,
 }
 
 #[derive(Serialize)]
@@ -1945,6 +1960,14 @@ fn run_shared_payload_sample(
     assert!(matches!(args.fanout_branches, 2 | 8 | 32));
     assert!(matches!(args.fanout_mode, FanoutPublication::Coupled));
     assert_eq!(args.payload_bytes, 1024);
+    assert!(
+        args.watch_slots == 0 || args.watch_slots == 1 || args.watch_slots == args.fanout_branches
+    );
+    if args.watch_slots == 0 {
+        assert_eq!(args.watch_preview_bytes, 0);
+    } else {
+        assert_eq!(args.watch_preview_bytes, 64);
+    }
     assert_eq!(args.slow_consumer_yields, 0);
     assert_eq!(args.cancel_after_offers, 0);
     assert_eq!(args.session_pump_quantum, 0);
@@ -2024,6 +2047,35 @@ fn run_shared_payload_sample(
         duplicator_input: None,
         duplication: DuplicationRule::SharedHandle,
     }]);
+    let watch_ids = (0..args.watch_slots)
+        .map(|watch| leaked(format!("watch/shared-payload-{watch}")))
+        .collect::<Vec<_>>();
+    let watch_leases = (0..args.watch_slots)
+        .map(|watch| leaked(format!("lease/shared-payload-{watch}")))
+        .collect::<Vec<_>>();
+    let representation = PinnedDescriptor {
+        id: cords[0].from.value_type.contract_id,
+        schema_version: cords[0].from.value_type.schema_version,
+        semantic_hash: cords[0].from.value_type.semantic_hash,
+    };
+    let watch_admissions = (0..usize::from(args.watch_slots))
+        .map(|watch| WatchAdmission {
+            id: Id(watch_ids[watch]),
+            subject: WatchSubject::Cord(branch_ids[watch]),
+            operator: Id("operator/benchmark"),
+            control_grant_hash: SemanticHash::from_bytes([91; 32]),
+            lease: Id(watch_leases[watch]),
+            representation,
+            maximum_preview_bytes: args.watch_preview_bytes,
+            maximum_history: 1,
+            minimum_tick_interval: 1,
+            retention: WatchRetention::Latest,
+            sensitivity_ceiling: Sensitivity::Public,
+            reveal_action: None,
+            reveal_grant_hash: None,
+        })
+        .collect::<Vec<_>>();
+    plan.watch_admissions = arena.alloc_slice_copy(&watch_admissions);
     plan.source_semantic_hash = topology.source_semantic_hash;
     plan.identity = SemanticHash::from_bytes([0; 32]);
     let mut identity_scratch =
@@ -2077,6 +2129,32 @@ fn run_shared_payload_sample(
         )
         .unwrap();
     let start_ns = start_started.elapsed().as_nanos() as u64;
+    let exact_identity = session.identity().clone();
+    let watch_authority = |watch: usize, operation| ExactWatchUseAuthority {
+        operation,
+        operator_id: "operator/benchmark".to_owned(),
+        control_grant_hash: SemanticHash::from_bytes([91; 32]),
+        control_grant_active: true,
+        run_id: exact_identity.run_id.clone(),
+        plan_epoch: exact_identity.plan_epoch,
+        watch_id: watch_ids[watch].to_owned(),
+        lease_id: watch_leases[watch].to_owned(),
+        lease_epoch: exact_identity.plan_epoch,
+        lease_available: true,
+        reveal_grant_hash: None,
+        reveal_grant_active: false,
+        time_basis: "clock/conduct-host".to_owned(),
+        validated_at_tick: 12,
+        valid_until_tick: u64::MAX,
+    };
+    for (watch, watch_id) in watch_ids.iter().enumerate() {
+        session
+            .attach_watch(
+                watch_id,
+                &watch_authority(watch, ExactWatchOperation::Attach),
+            )
+            .unwrap();
+    }
     let allocation = session.allocation();
     let reserved_session_bytes = session.reserved_session_bytes();
     let host_io_capacity_bytes = session.with_io(ExactRunIo::capacity_bytes);
@@ -2128,6 +2206,26 @@ fn run_shared_payload_sample(
     let value_usage = session
         .value_storage_usage()
         .expect("hosted production drivers expose the fixed value arena");
+    let watch_usage = session.watch_usage();
+    assert_eq!(watch_usage.admitted_slots, u32::from(args.watch_slots));
+    assert_eq!(watch_usage.attached_slots, u32::from(args.watch_slots));
+    assert_eq!(
+        watch_usage.retained_observations,
+        u64::from(args.watch_slots)
+    );
+    assert_eq!(
+        watch_usage.retained_preview_bytes,
+        u64::from(args.watch_slots) * u64::from(args.watch_preview_bytes)
+    );
+    assert_eq!(watch_usage.dropped_observations, 0);
+    assert_eq!(
+        watch_usage.maximum_observations,
+        u64::from(args.watch_slots)
+    );
+    assert_eq!(
+        watch_usage.maximum_preview_bytes,
+        u64::from(args.watch_slots) * u64::from(args.watch_preview_bytes)
+    );
     let display = session.with_io(|io| io.display().to_vec());
     if matches!(args.termination_request, TerminationRequest::Abort) {
         assert!(display.is_empty());
@@ -2138,6 +2236,31 @@ fn run_shared_payload_sample(
         );
     }
     let host_io_output_bytes = u64::try_from(display.len()).unwrap();
+    let expected_content_hash = SemanticHash::from_bytes(Sha256::digest(payload.as_bytes()).into());
+    let expected_preview =
+        payload.as_bytes()[..usize::try_from(args.watch_preview_bytes).unwrap()].to_vec();
+    let mut watched_handles = BTreeSet::new();
+    for (watch, watch_id) in watch_ids.iter().enumerate() {
+        let batch = session
+            .read_watch(
+                watch_id,
+                0,
+                1,
+                &watch_authority(watch, ExactWatchOperation::Read),
+            )
+            .unwrap();
+        assert_eq!(batch.status, EvidenceCursorStatus::Available);
+        assert_eq!(batch.records.len(), 1);
+        let record = &batch.records[0];
+        assert_eq!(record.original_bytes, args.payload_bytes as u32);
+        assert_eq!(record.content_hash, Some(expected_content_hash));
+        assert_eq!(
+            record.material,
+            ExactWatchMaterial::Preview(expected_preview.clone())
+        );
+        assert!(record.truncated);
+        watched_handles.insert(record.value_handle);
+    }
     let mut handles = BTreeSet::new();
     let mut branch_deliveries = 0_u64;
     let mut maximum_cord_items = 0_u16;
@@ -2165,6 +2288,11 @@ fn run_shared_payload_sample(
         1,
         "every production tee branch must retain one exact handle: {handles:?}"
     );
+    if args.watch_slots == 0 {
+        assert!(watched_handles.is_empty());
+    } else {
+        assert_eq!(watched_handles, handles);
+    }
     let expected_deliveries = if matches!(args.termination_request, TerminationRequest::Abort) {
         0
     } else {
@@ -2234,14 +2362,23 @@ fn run_shared_payload_sample(
             timer_advance_ticks: 0,
             payload_bytes: args.payload_bytes,
             payload_representation: "hosted-generation-safe-shared-text-handle",
+            watch_slots: args.watch_slots,
+            watch_preview_bytes: args.watch_preview_bytes,
+            watch_retention: if args.watch_slots == 0 {
+                "none"
+            } else {
+                "latest"
+            },
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(
-                "comparative-shared-payload-fanout/{}/{}/{}/{}",
+                "comparative-shared-payload-fanout/{}/{}/{}/{}/{}/{}",
                 args.fanout_branches,
                 args.payload_bytes,
                 args.queue_items,
-                args.termination_request.as_str()
+                args.termination_request.as_str(),
+                args.watch_slots,
+                args.watch_preview_bytes
             ),
             plan_identity: Some(plan.identity.to_string()),
             source_semantic_hash: Some(plan.source_semantic_hash.to_string()),
@@ -2295,7 +2432,7 @@ fn run_shared_payload_sample(
             terminal: 1,
         },
         allocations: AllocationMeasurement {
-            scope: "after-start scheduler execution and finalization; caller verification excluded",
+            scope: "after-start scheduler execution and finalization; caller content and Watch-read verification excluded",
             calls: ALLOCATION_CALLS.load(Ordering::Relaxed),
             bytes: ALLOCATED_BYTES.load(Ordering::Relaxed),
         },
@@ -2318,16 +2455,35 @@ fn run_shared_payload_sample(
             value_bytes_capacity: Some(value_usage.maximum_bytes),
             host_io_capacity_bytes: Some(host_io_capacity_bytes),
             host_io_output_bytes: Some(host_io_output_bytes),
+            watch_admitted_slots: Some(watch_usage.admitted_slots),
+            watch_attached_slots: Some(watch_usage.attached_slots),
+            watch_retained_observations: Some(watch_usage.retained_observations),
+            watch_retained_preview_bytes: Some(watch_usage.retained_preview_bytes),
+            watch_dropped_observations: Some(watch_usage.dropped_observations),
+            watch_maximum_observations: Some(watch_usage.maximum_observations),
+            watch_maximum_preview_bytes: Some(watch_usage.maximum_preview_bytes),
         },
         latency: LatencyMeasurement {
             clock: "CLOCK_MONOTONIC via std::time::Instant",
             sample_stride: 1,
             samples_ns: vec![steady_ns.max(1)],
         },
-        semantic_notes: if matches!(args.termination_request, TerminationRequest::Abort) {
+        semantic_notes: if matches!(args.termination_request, TerminationRequest::Abort)
+            && args.watch_slots > 0
+        {
+            [
+                "The benchmark harness assembles the current exact coupled PlanFanOut plus pre-Start exact Watch admissions for the full source topology; the production hosted literal publishes one generation-safe handle across every capacity-one output cord.",
+                "Abort follows atomic publication; fixed Latest previews retain verified 64-byte copies after terminal cleanup reclaims the one 1 KiB executor value, while Watch reads and caller verification remain outside the timed allocation scope.",
+            ]
+        } else if matches!(args.termination_request, TerminationRequest::Abort) {
             [
                 "The benchmark harness assembles the current exact coupled PlanFanOut fact for the full source topology; the production hosted literal then stores one finite-batch value in the fixed arena and publishes its generation-safe handle across every capacity-one output cord.",
                 "Abort is requested after atomic publication and before any sink consumes; terminal cleanup must reclaim the one 1 KiB value while queue charges remain visible and verifier output stays empty.",
+            ]
+        } else if args.watch_slots > 0 {
+            [
+                "The benchmark harness assembles the current exact coupled PlanFanOut plus pre-Start exact Watch admissions for the full source topology; the production hosted literal publishes one generation-safe handle across every capacity-one output cord.",
+                "Every display branch consumes the shared handle; fixed Latest previews retain separately accounted verified 64-byte copies while terminal executor value residency remains zero and Watch reads stay outside the timed allocation scope.",
             ]
         } else {
             [
@@ -2803,6 +2959,9 @@ fn run_sample(
             timer_advance_ticks: args.timer_advance_ticks,
             payload_bytes: 0,
             payload_representation: "handle-backed-u64",
+            watch_slots: 0,
+            watch_preview_bytes: 0,
+            watch_retention: "none",
         },
         exact_identity: ExactIdentity {
             logical_fixture: if matches!(args.workload, Workload::Overload) {
@@ -2963,6 +3122,13 @@ fn run_sample(
             value_bytes_capacity: None,
             host_io_capacity_bytes: None,
             host_io_output_bytes: None,
+            watch_admitted_slots: None,
+            watch_attached_slots: None,
+            watch_retained_observations: None,
+            watch_retained_preview_bytes: None,
+            watch_dropped_observations: None,
+            watch_maximum_observations: None,
+            watch_maximum_preview_bytes: None,
         },
         latency: LatencyMeasurement {
             clock: "CLOCK_MONOTONIC via std::time::Instant",
@@ -3098,6 +3264,9 @@ fn run_identity_sample(
             timer_advance_ticks: 0,
             payload_bytes: 0,
             payload_representation: "native-u64",
+            watch_slots: 0,
+            watch_preview_bytes: 0,
+            watch_retention: "none",
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(
@@ -3180,6 +3349,13 @@ fn run_identity_sample(
             value_bytes_capacity: None,
             host_io_capacity_bytes: None,
             host_io_output_bytes: None,
+            watch_admitted_slots: None,
+            watch_attached_slots: None,
+            watch_retained_observations: None,
+            watch_retained_preview_bytes: None,
+            watch_dropped_observations: None,
+            watch_maximum_observations: None,
+            watch_maximum_preview_bytes: None,
         },
         latency: LatencyMeasurement {
             clock: "CLOCK_MONOTONIC via std::time::Instant",
