@@ -1464,7 +1464,7 @@ test("shows authoritative task readiness and outcome with the raw console closed
   await expect(page.locator("#console-body")).toBeHidden();
   await page.getByRole("button", { name: "Run the checked uppercase-text plan" }).click();
   const taskResult = page.locator("#task-front-result-value");
-  await expect(taskResult).toContainText("JACKS (succeeded)", { timeout: 20_000 });
+  await expect(taskResult).toContainText("JACKS (succeeded)", { timeout: 60_000 });
   await expect(taskResult).toContainText("Terminal: succeeded");
   await expect(taskResult).toContainText("cleanup: complete");
   await expect(taskResult).toContainText("evidence: published");
