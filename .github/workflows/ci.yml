@@ -224,6 +224,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo check -p conduit-core --no-default-features --target thumbv6m-none-eabi
       - run: cargo check -p conduit-embedded --target thumbv6m-none-eabi
+      - run: cargo check -p conduit-robotics --target thumbv6m-none-eabi
       - run: cargo xtask embedded-gate
 
   msrv:
@@ -239,6 +240,7 @@ jobs:
       - run: cargo check --workspace --all-targets
       - run: cargo check -p conduit-core --no-default-features --target thumbv6m-none-eabi
       - run: cargo check -p conduit-embedded --target thumbv6m-none-eabi
+      - run: cargo check -p conduit-robotics --target thumbv6m-none-eabi
 
   pages-artifact:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

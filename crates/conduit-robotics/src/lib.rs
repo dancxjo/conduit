@@ -1,3 +1,5 @@
+#![no_std]
+
 //! Host-neutral, effect-free robotics profile descriptions.
 //!
 //! This package owns domain semantics and validation only. Implementations,
@@ -5,6 +7,9 @@
 //! presentation remain separate. It deliberately contains no robot driver,
 //! device handle, discovery, resolver, scheduler, possession service, or
 //! actuation path.
+
+#[cfg(test)]
+extern crate std;
 
 use conduit_core::{
     CanonicalDescriptor, CanonicalError, CanonicalValue, FieldDisposition,
@@ -1175,6 +1180,7 @@ const fn semantic<'a>(name: &'a str, value: CanonicalValue<'a>) -> MapField<'a> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::string::ToString;
 
     const ENTITY: PinnedDescriptor<'static> = pin(
         "netherwick/entity/pete-brainstem",

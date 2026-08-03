@@ -85,6 +85,19 @@ pub fn run(workspace_root: &Path) -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     run_step(
+        "cargo check conduit-robotics thumbv6m-none-eabi",
+        &[
+            "cargo",
+            "check",
+            "-p",
+            "conduit-robotics",
+            "--target",
+            "thumbv6m-none-eabi",
+        ],
+        workspace_root,
+    )?;
+
+    run_step(
         "conduct assets check",
         &[
             "cargo",

@@ -1,6 +1,6 @@
 [package]
 name = "conduit-robotics"
-description = "Host-neutral audited robotics profiles for Conduit"
+description = "Allocator-free host-neutral robotics profiles for Conduit"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
