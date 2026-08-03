@@ -824,6 +824,13 @@ const FS_WRITE_RESULT_OUTPUT: PortContract<'static> = port(
     ValueCardinality::ExactlyOne,
     TerminalContract::Finite,
 );
+const FS_WRITE_RESULT_INPUT: PortContract<'static> = port(
+    "result",
+    Direction::Input,
+    FS_WRITE_RESULT,
+    ValueCardinality::ExactlyOne,
+    TerminalContract::Finite,
+);
 const FS_EVENT_OUTPUT: PortContract<'static> = port(
     "event",
     Direction::Output,
@@ -2661,6 +2668,21 @@ pub static STANDARD_CATALOG: &[CatalogEntry] = &[
             HOST_SUPPORT
         );
         value.host_service = Some(Id("host/filesystem-write"));
+        value
+    },
+    {
+        let mut value = entry!(
+            "fs/write-result/sink",
+            Sink,
+            EMPTY,
+            &[FS_WRITE_RESULT_INPUT],
+            &[],
+            Preserving,
+            None,
+            FINITE,
+            HOST_SUPPORT
+        );
+        value.host_service = Some(Id("host/filesystem-write-result-sink"));
         value
     },
     {

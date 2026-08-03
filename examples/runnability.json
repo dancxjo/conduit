@@ -6,7 +6,7 @@
     {"path":"examples/browser-linux-partition.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"BROWSER MEDIA FRAME\n"},
     {"path":"examples/browser-wasm-transform.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"BROWSER-LOCAL SEMANTICS STAY PORTABLE.\n"},
     {"path":"examples/cli-pipe-bridge.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":""},
-    {"path":"examples/composite-uppercase.panel","state":"illustrative/unavailable","profile":"hosted","proof":"canonical-run-rejection","expected_diagnostic":"CND-CMP-004"},
+    {"path":"examples/composite-uppercase.panel","state":"runnable","profile":"hosted","proof":"canonical-run","expected_stdout":"COMPOSITE NODES STAY ORDINARY."},
     {"path":"examples/control-cancellable-action.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/control-compose.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},
     {"path":"examples/control-request-reply.panel","state":"contract-only","profile":"hosted","proof":"canonical-check-rejection","expected_diagnostic":"CND-IMP-001"},

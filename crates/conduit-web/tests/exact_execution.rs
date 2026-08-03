@@ -133,7 +133,7 @@ fn browser_rejects_compile_candidate_as_executable_authority() {
     .unwrap();
 
     assert_eq!(result["ok"], false);
-    assert_eq!(result["code"], "CND-RUN-007");
+    assert_eq!(result["code"], "CND-RUN-007", "{result}");
 }
 
 #[test]

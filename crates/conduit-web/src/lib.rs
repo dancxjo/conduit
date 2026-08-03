@@ -21,13 +21,14 @@ use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
     CompiledInHostService, ExactEvidenceBatch, ExactEvidenceCommitReceipt,
     ExactEvidenceCommitRequest, ExactEvidenceDrainError, ExactEvidenceProvider,
-    ExactEvidenceProviderBinding, ExactEvidenceRecord, ExactEvidenceUseAuthority,
-    ExactExecutionReport, ExactHostedRunSession, ExactHostedServiceUseObservation, ExactRunContext,
-    ExactRunIo, ExactRunSessionRegistry, ExactRunState, ExactWatchBatch, ExactWatchMaterial,
-    ExactWatchObservation, ExactWatchOperation, ExactWatchSubject, ExactWatchUsage,
-    ExactWatchUseAuthority, Handler, Registry, ResolutionError, RunIo, RuntimeError,
-    SchedulerReservation, Value, exact_evidence_provider_binding, file_read_contract,
-    file_watch_contract, file_write_contract, hosted_service_use_observations,
+    ExactEvidenceProviderBinding, ExactEvidenceRecord, ExactEvidenceSessionResources,
+    ExactEvidenceUseAuthority, ExactExecutionReport, ExactHostedRunSession,
+    ExactHostedServiceUseObservation, ExactRunContext, ExactRunIo, ExactRunSessionRegistry,
+    ExactRunState, ExactWatchBatch, ExactWatchMaterial, ExactWatchObservation, ExactWatchOperation,
+    ExactWatchSubject, ExactWatchUsage, ExactWatchUseAuthority, Handler, Registry, ResolutionError,
+    RunIo, RuntimeError, SchedulerReservation, Value, exact_evidence_provider_binding,
+    file_read_contract, file_watch_contract, file_write_contract, file_write_result_sink_contract,
+    hosted_service_use_observations,
 };
 use conduit_std::{
     FileHandle, FileSlot, FlushClaim, MemoryFilesystem, PartialWritePolicy, ReadConsistency,
@@ -76,6 +77,14 @@ fn browser_host_observation() -> InstalledHostObservationInput {
     observation.available.memory_bytes = MAXIMUM_BROWSER_ACTIVE_RUN_MEMORY_BYTES;
     observation.available.timers = MAXIMUM_BROWSER_ACTIVE_RUN_RESOURCE_SLOTS;
     observation.available.transports = MAXIMUM_BROWSER_ACTIVE_RUN_RESOURCE_SLOTS;
+    let lane_count = u16::try_from(observation.execution_lanes.len())
+        .expect("the finite browser lane inventory fits u16");
+    let timers_per_lane = MAXIMUM_BROWSER_ACTIVE_RUN_RESOURCE_SLOTS
+        .checked_div(lane_count)
+        .expect("the browser host publishes at least one execution lane");
+    for lane in &mut observation.execution_lanes {
+        lane.timer_slots = timers_per_lane;
+    }
     observation
 }
 
@@ -217,6 +226,7 @@ struct BrowserExactRun {
     watch_admissions: Vec<BrowserWatchAdmission>,
     evidence: Rc<RefCell<BrowserEvidenceStore>>,
     terminal: Option<BrowserExactRunTerminal>,
+    runtime_failure_code: Option<String>,
 }
 
 /// Worker-owned committed evidence for the rolling browser service profile.
@@ -553,25 +563,15 @@ fn copy_binding_profile(
                 required_profile: "conduit.filesystem/write-file".to_owned(),
                 principal: conduit_patchbay::BindingPrincipal::Site,
                 allowed_selection: vec![
-                    conduit_patchbay::ResourceSelectionOperation::CreateNew,
                     conduit_patchbay::ResourceSelectionOperation::ReplaceExisting,
                 ],
-                selection_access: vec![
-                    conduit_patchbay::ResourceSelectionAccessProfile {
-                        operation: conduit_patchbay::ResourceSelectionOperation::CreateNew,
-                        access: vec![
-                            conduit_patchbay::ResourceAccessScope::Write,
-                            conduit_patchbay::ResourceAccessScope::Create,
-                        ],
-                    },
-                    conduit_patchbay::ResourceSelectionAccessProfile {
-                        operation: conduit_patchbay::ResourceSelectionOperation::ReplaceExisting,
-                        access: vec![
-                            conduit_patchbay::ResourceAccessScope::Write,
-                            conduit_patchbay::ResourceAccessScope::Replace,
-                        ],
-                    },
-                ],
+                selection_access: vec![conduit_patchbay::ResourceSelectionAccessProfile {
+                    operation: conduit_patchbay::ResourceSelectionOperation::ReplaceExisting,
+                    access: vec![
+                        conduit_patchbay::ResourceAccessScope::Write,
+                        conduit_patchbay::ResourceAccessScope::Replace,
+                    ],
+                }],
                 disallow_same_resource_as: vec![COPY_SOURCE_SLOT.to_owned()],
             },
         ],
@@ -609,9 +609,18 @@ fn browser_plan_epoch(session: &BrowserPatchbaySession) -> Option<u64> {
 }
 
 fn browser_resolved_source(session: &BrowserPatchbaySession) -> Option<String> {
-    let source = &session.workspace.source().source;
-    let Some(profile) = session.protected_bindings.as_ref() else {
-        return Some(source.clone());
+    browser_resolved_source_for(
+        &session.workspace.source().source,
+        session.protected_bindings.as_ref(),
+    )
+}
+
+fn browser_resolved_source_for(
+    source: &str,
+    profile: Option<&conduit_patchbay::ProtectedBindingProfile>,
+) -> Option<String> {
+    let Some(profile) = profile else {
+        return Some(source.to_owned());
     };
     if !profile.is_ready() {
         return None;
@@ -673,7 +682,7 @@ fn browser_resolved_source(session: &BrowserPatchbaySession) -> Option<String> {
         return None;
     }
     replacements.sort_by_key(|(start, _, _)| std::cmp::Reverse(*start));
-    let mut resolved = source.clone();
+    let mut resolved = source.to_owned();
     for (start, end, replacement) in replacements {
         resolved.replace_range(start..end, &replacement);
     }
@@ -800,7 +809,7 @@ fn browser_task_action_export(
 }
 
 fn browser_task_front_renderer_profiles() -> Vec<conduit_patchbay::TaskFrontRendererProfile> {
-    [
+    let mut profiles = [
         ("std/text", "text"),
         ("std/integer", "number"),
         ("std/boolean", "boolean"),
@@ -817,7 +826,23 @@ fn browser_task_front_renderer_profiles() -> Vec<conduit_patchbay::TaskFrontRend
             choices: Vec::new(),
         },
     )
-    .collect()
+    .collect::<Vec<_>>();
+    profiles.push(conduit_patchbay::TaskFrontRendererProfile {
+        id: "conduit.filesystem/write-mode".to_owned(),
+        type_id: "std/text".to_owned(),
+        renderer: "enum".to_owned(),
+        choices: vec![conduit_patchbay::TaskFrontChoiceProjection {
+            value: "replace".to_owned(),
+            label: "Replace".to_owned(),
+        }],
+    });
+    profiles.push(conduit_patchbay::TaskFrontRendererProfile {
+        id: "conduit.filesystem/write-result".to_owned(),
+        type_id: "fs/write-result".to_owned(),
+        renderer: "summary".to_owned(),
+        choices: Vec::new(),
+    });
+    profiles
 }
 
 fn browser_filesystem() -> MemoryFilesystem<1, 256, 8> {
@@ -1090,6 +1115,39 @@ impl Handler for BrowserWrite {
     }
 }
 
+struct BrowserWriteResultSink;
+
+impl Handler for BrowserWriteResultSink {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        if !node.config.is_empty()
+            || inputs.len() != 1
+            || inputs[0].value_type != file_write_result_sink_contract().inputs[0].value_type
+        {
+            return Err(RuntimeError::new(
+                "CND-FSH-019",
+                "browser file-result sink requires one exact semantic result",
+            ));
+        }
+        Ok(Vec::new())
+    }
+}
+
+fn validate_browser_write_result_sink(node: &Node) -> Result<(), ResolutionError> {
+    if node.config.is_empty() {
+        Ok(())
+    } else {
+        Err(ResolutionError::new(
+            "CND-FSH-019",
+            "browser file-result sink accepts no configuration",
+        ))
+    }
+}
+
 struct BrowserWatch;
 
 impl Handler for BrowserWatch {
@@ -1206,6 +1264,16 @@ fn browser_registry() -> Registry {
             required_authorities: &WATCH_AUTHORITIES,
             factory: || Box::new(BrowserWatch),
             validate_config: validate_browser_watch,
+        },
+        CompiledInHostService {
+            contract: file_write_result_sink_contract(),
+            implementation_id: "conduit/filesystem-memory-write-result-sink",
+            artifact_id: "conduit/filesystem-memory-write-result-sink-artifact",
+            entrypoint: "filesystem-memory-write-result-sink",
+            source_bytes: include_bytes!("lib.rs"),
+            required_authorities: &[],
+            factory: || Box::new(BrowserWriteResultSink),
+            validate_config: validate_browser_write_result_sink,
         },
     ] {
         registry
@@ -1757,12 +1825,60 @@ fn browser_task_result_observation(
     )?;
     let watch_id = format!("watch/{cord_id}");
     let record = terminal.watches.get(&watch_id)?.records.last()?;
-    let display_value = match &record.material {
-        ExactWatchMaterial::Preview(bytes) if record.representation_id == "std/text" => {
-            std::str::from_utf8(bytes).ok()?.to_owned()
+    let (semantic_status, display_value, typed_details, warnings) = match &record.material {
+        ExactWatchMaterial::Preview(bytes) if type_id == "fs/write-result" => {
+            let bytes_written = u64::from_be_bytes(bytes.get(0..8)?.try_into().ok()?);
+            let generation = u64::from_be_bytes(bytes.get(8..16)?.try_into().ok()?);
+            let committed = *bytes.get(16)? != 0;
+            let complete = *bytes.get(17)? != 0;
+            let flush = match *bytes.get(18)? {
+                0 => "none",
+                1 => "provider-accepted",
+                2 => "durable",
+                _ => return None,
+            };
+            let (status, commit_label, warnings) = match (committed, complete) {
+                (true, true) => ("succeeded", "committed", Vec::new()),
+                (true, false) => (
+                    "partial",
+                    "partial commit",
+                    vec!["The destination contains only the reported committed prefix.".to_owned()],
+                ),
+                (false, _) => (
+                    "domain-rejected",
+                    "not committed",
+                    vec!["The destination was not committed.".to_owned()],
+                ),
+            };
+            (
+                status.to_owned(),
+                format!("Copied {bytes_written} bytes — {commit_label}"),
+                vec![
+                    format!("bytes copied: {bytes_written}"),
+                    format!("destination generation: {generation}"),
+                    format!("flush claim: {flush}"),
+                ],
+                warnings,
+            )
         }
-        ExactWatchMaterial::Preview(bytes) => format!("{} bytes", bytes.len()),
-        ExactWatchMaterial::Redacted => "[REDACTED]".to_owned(),
+        ExactWatchMaterial::Preview(bytes) if record.representation_id == "std/text" => (
+            "succeeded".to_owned(),
+            std::str::from_utf8(bytes).ok()?.to_owned(),
+            vec![format!("{type_id} value from exact exported port")],
+            Vec::new(),
+        ),
+        ExactWatchMaterial::Preview(bytes) => (
+            "succeeded".to_owned(),
+            format!("{} bytes", bytes.len()),
+            vec![format!("{type_id} value from exact exported port")],
+            Vec::new(),
+        ),
+        ExactWatchMaterial::Redacted => (
+            "succeeded".to_owned(),
+            "[REDACTED]".to_owned(),
+            vec![format!("{type_id} value from exact exported port")],
+            Vec::new(),
+        ),
         ExactWatchMaterial::Absent => return None,
     };
     Some(conduit_patchbay::TaskFrontResultObservation {
@@ -1773,10 +1889,10 @@ fn browser_task_result_observation(
         run_id: run.run_id.clone(),
         port_path,
         type_id: type_id.clone(),
-        semantic_status: "succeeded".to_owned(),
+        semantic_status,
         display_value,
-        typed_details: vec![format!("{type_id} value from exact exported port")],
-        warnings: Vec::new(),
+        typed_details,
+        warnings,
     })
 }
 
@@ -1787,6 +1903,49 @@ fn browser_task_terminal_observation(
     let receipt = browser_task_start_receipt(session)?;
     let ExactRunState::Terminal(class) = browser_run_state(run) else {
         return None;
+    };
+    let evidence_records = browser_run_evidence_records(run);
+    let terminal_cause = run.runtime_failure_code.as_deref().or_else(|| {
+        evidence_records
+            .iter()
+            .rev()
+            .find(|record| record.event_kind == "terminal")
+            .and_then(|record| record.terminal_cause)
+    });
+    let warnings = match (class, terminal_cause) {
+        (TerminalClass::Cancelled, _) => vec![
+            "Copy was cancelled before completion; no successful copy result was produced."
+                .to_owned(),
+        ],
+        (
+            TerminalClass::Failed,
+            Some("CND-FS-001" | "CND-FS-006" | "CND-FSH-010" | "CND-FSH-011"),
+        ) => vec![
+            "The source or requested maximum exceeds this provider's bounded copy limit."
+                .to_owned(),
+        ],
+        (TerminalClass::Failed, Some("CND-FSH-006")) => vec![
+            "File access was denied; check the source read grant and destination write grant."
+                .to_owned(),
+        ],
+        (TerminalClass::Failed, Some("CND-FSH-007" | "CND-FSH-017")) => vec![
+            "A selected file disappeared or its binding became stale before Copy completed."
+                .to_owned(),
+        ],
+        (TerminalClass::Failed, Some("CND-FSH-013")) => vec![
+            "The destination accepted only a partial prefix; inspect the reported commit status."
+                .to_owned(),
+        ],
+        (TerminalClass::Failed, Some("CND-FSH-015")) => vec![
+            "The host failed while reading, writing, flushing, or closing the selected file."
+                .to_owned(),
+        ],
+        (TerminalClass::Failed, Some(cause)) => {
+            vec![format!(
+                "Copy failed at the exact runtime boundary ({cause})."
+            )]
+        }
+        _ => Vec::new(),
     };
     Some(conduit_patchbay::TaskTerminalObservation {
         operation_id: receipt.operation_id.clone(),
@@ -1807,7 +1966,7 @@ fn browser_task_terminal_observation(
             "failed"
         }
         .to_owned(),
-        warnings: Vec::new(),
+        warnings,
     })
 }
 
@@ -2117,8 +2276,10 @@ fn start_browser_exact_run(
         &bindings,
         context,
         &browser_run_registry()?,
-        ExactRunIo::for_plan(&plan)?,
-        Box::new(evidence_provider),
+        ExactEvidenceSessionResources {
+            io: ExactRunIo::for_plan(&plan)?,
+            evidence_provider: Box::new(evidence_provider),
+        },
     )?;
     let mut run = BrowserExactRun {
         plan: plan_snapshot,
@@ -2132,6 +2293,7 @@ fn start_browser_exact_run(
         watch_admissions,
         evidence,
         terminal: None,
+        runtime_failure_code: None,
     };
     drain_browser_exact_evidence(&mut run)?;
     Ok(run)
@@ -2928,14 +3090,9 @@ pub fn patchbay_pump_exact_run(
         let Some(exact_session) = run.session.as_mut() else {
             return browser_run_result(session);
         };
-        let result = exact_session.pump(quantum, &run.use_observations);
-        if let Err(error) = result {
-            return serde_json::json!({
-                "ok": false,
-                "code": error.code,
-                "diagnostic": error.to_string(),
-            })
-            .to_string();
+        let runtime_failure = exact_session.pump(quantum, &run.use_observations).err();
+        if let Some(error) = runtime_failure.as_ref() {
+            run.runtime_failure_code = Some(error.code.to_owned());
         }
         if let Err(error) = drain_browser_exact_evidence(run) {
             return serde_json::json!({
@@ -2953,7 +3110,17 @@ pub fn patchbay_pump_exact_run(
             })
             .to_string();
         }
-        browser_run_result(session)
+        let response = browser_run_result(session);
+        let Some(runtime_failure) = runtime_failure else {
+            return response;
+        };
+        let mut response: serde_json::Value =
+            serde_json::from_str(&response).expect("browser run result is canonical JSON");
+        response["runtime_failure"] = serde_json::json!({
+            "code": runtime_failure.code,
+            "diagnostic": runtime_failure.to_string(),
+        });
+        response.to_string()
     })
 }
 
@@ -3592,10 +3759,17 @@ pub fn patchbay_apply_transaction(session_id: String, request_json: String) -> S
                 request.operations.first(),
                 Some(conduit_patchbay::EditOperation::Connect { .. })
             );
+        let protected_bindings = session.protected_bindings.clone();
         let result = session.workspace.apply_validated(
             request,
             |contract_id| availability_projection(&registry, contract_id),
-            |source| validate_patchbay_candidate(source, permits_incremental_cord),
+            |source| {
+                validate_patchbay_candidate_with_bindings(
+                    source,
+                    protected_bindings.as_ref(),
+                    permits_incremental_cord,
+                )
+            },
         );
         match result {
             Ok(result) => match browser_session_view(session) {
@@ -3745,6 +3919,41 @@ fn validate_patchbay_candidate(
         candidate_plan_identity,
         plan_disposition: plan_disposition.to_owned(),
     })
+}
+
+fn validate_patchbay_candidate_with_bindings(
+    source: &str,
+    protected_bindings: Option<&conduit_patchbay::ProtectedBindingProfile>,
+    permits_incremental_cord: bool,
+) -> Result<conduit_patchbay::CompatibilityProof, conduit_patchbay::ProtocolError> {
+    if protected_bindings.is_none() {
+        return validate_patchbay_candidate(source, permits_incremental_cord);
+    }
+    // Validation may happen before the user has selected either protected
+    // resource. Substitute the deterministic provider's bounded admissible
+    // identities only in this private candidate copy. Readiness and an
+    // executable plan still require the separately revisioned selections and
+    // grants in `browser_resolved_source`.
+    let resolved_source =
+        browser_resolved_source_for(source, protected_bindings).unwrap_or_else(|| {
+            [
+                (COPY_SOURCE_RESOURCE_REFERENCE, BROWSER_READ_RESOURCE),
+                (COPY_SOURCE_GRANT_REFERENCE, "conduit.grant/filesystem-read"),
+                (COPY_DESTINATION_RESOURCE_REFERENCE, BROWSER_WRITE_RESOURCE),
+                (
+                    COPY_DESTINATION_GRANT_REFERENCE,
+                    "conduit.grant/filesystem-write",
+                ),
+            ]
+            .into_iter()
+            .fold(source.to_owned(), |candidate, (reference, exact)| {
+                candidate.replace(
+                    &format!("secret(\"{reference}\")"),
+                    &format!("secret(\"{exact}\")"),
+                )
+            })
+        });
+    validate_patchbay_candidate(&resolved_source, permits_incremental_cord)
 }
 
 fn exact_plan_snapshot(source: &str) -> Option<conduit_patchbay::PlanSnapshot> {
@@ -5103,19 +5312,22 @@ fn project_patchbay_selection_inspector(
             {
                 sections.push(section);
             }
-            if let Some(planned) = topology
-                .planned_realization
-                .as_ref()
-                .and_then(|realization| {
-                    realization.nodes.iter().find(|planned| {
+            if let Some(planned_nodes) = topology.planned_realization.as_ref().map(|realization| {
+                realization
+                    .nodes
+                    .iter()
+                    .filter(|planned| {
                         planned.logical_origin == subject.path
                             || planned.logical_origin == node.id
                             || planned.instance == node.id
                     })
-                })
+                    .collect::<Vec<_>>()
+            }) && !planned_nodes.is_empty()
             {
-                let binding = &planned.binding;
-                let mut realization = vec![
+                let mut exact_realization = Vec::new();
+                for planned in planned_nodes {
+                    let binding = &planned.binding;
+                    exact_realization.extend([
                     inspector_fact(
                         "plan instance",
                         &planned.instance,
@@ -5180,35 +5392,36 @@ fn project_patchbay_selection_inspector(
                         "public",
                         Some("allocation"),
                     ),
-                ];
-                realization.extend(binding.resources.iter().map(|resource| {
-                    inspector_fact(
-                        "resource",
-                        format!(
-                            "{}/{} · {}",
-                            resource.resource_kind, resource.resource_id, resource.binding_id
-                        ),
-                        "exact-resource-binding",
-                        "protected-identity",
-                        Some("resource"),
-                    )
-                }));
-                realization.extend(binding.authorities.iter().map(|authority| {
-                    inspector_fact(
-                        "authority",
-                        format!(
-                            "{} {} · grant {}",
-                            authority.action, authority.resource_kind, authority.grant_id
-                        ),
-                        "exact-authority-binding",
-                        "protected-identity",
-                        Some("authority"),
-                    )
-                }));
+                    ]);
+                    exact_realization.extend(binding.resources.iter().map(|resource| {
+                        inspector_fact(
+                            "resource",
+                            format!(
+                                "{}/{} · {}",
+                                resource.resource_kind, resource.resource_id, resource.binding_id
+                            ),
+                            "exact-resource-binding",
+                            "protected-identity",
+                            Some("resource"),
+                        )
+                    }));
+                    exact_realization.extend(binding.authorities.iter().map(|authority| {
+                        inspector_fact(
+                            "authority",
+                            format!(
+                                "{} {} · grant {}",
+                                authority.action, authority.resource_kind, authority.grant_id
+                            ),
+                            "exact-authority-binding",
+                            "protected-identity",
+                            Some("authority"),
+                        )
+                    }));
+                }
                 sections.push(inspector_section(
                     "realization",
                     "Exact realization",
-                    realization,
+                    exact_realization,
                 )?);
             }
         }
@@ -6778,9 +6991,9 @@ mod tests {
         serde_json::json!({
             "schema": "conduit.patchbay-task-front",
             "schema_version": 0,
-            "root": "root/reader",
-            "name": "Copy file",
-            "purpose": "Copy one bounded chunk between explicitly selected resources.",
+            "root": "root/copy",
+            "name": "Copy a file",
+            "purpose": "Choose a source and destination, then copy the source contents.",
             "controls": [
                 {
                     "id": "copy-from",
@@ -6801,6 +7014,27 @@ mod tests {
                     "group": "Files",
                     "visibility": "primary",
                     "accessibility_name": "Choose Copy destination file"
+                },
+                {
+                    "id": "copy-mode",
+                    "source": "instance-configuration",
+                    "target": "root/copy/config/mode",
+                    "label": "Mode",
+                    "help": "Replace overwrites the explicitly selected existing destination.",
+                    "group": "Copy options",
+                    "visibility": "primary",
+                    "renderer_profile": "conduit.filesystem/write-mode",
+                    "accessibility_name": "Copy destination mode"
+                },
+                {
+                    "id": "copy-maximum-bytes",
+                    "source": "instance-configuration",
+                    "target": "root/copy/config/maximum_bytes",
+                    "label": "Maximum bytes",
+                    "help": "Reject a copy that exceeds this bounded write limit.",
+                    "group": "Copy options",
+                    "visibility": "advanced",
+                    "accessibility_name": "Maximum bytes to copy"
                 }
             ],
             "primary_action": {
@@ -6808,6 +7042,13 @@ mod tests {
                 "label": "Copy",
                 "help": "Run the exact plan resolved from the protected binding revision.",
                 "accessibility_name": "Copy selected file"
+            },
+            "result": {
+                "target": "root/copy/port/outgoing/result",
+                "label": "Copy result",
+                "help": "The exact file-write result reports bytes and commit status independently from terminal evidence.",
+                "renderer_profile": "conduit.filesystem/write-result",
+                "accessibility_name": "Copy result"
             }
         })
         .to_string()
@@ -7815,6 +8056,7 @@ output.value > sink.result\n\
         assert_eq!(started["ok"], true, "{started}");
         assert_eq!(started["action_receipt"]["disposition"], "accepted");
         let active_plan_identity = started["plan_identity"].clone();
+        let binding = test_run_binding(&started);
 
         let ready_destination_revision =
             ready["view"]["protected_bindings"]["slots"][1]["binding_revision"]
@@ -7849,6 +8091,63 @@ output.value > sink.result\n\
             revoked["view"]["topology"]["planned_realization"]["selection"],
             "active-run"
         );
+
+        let mut terminal = started;
+        for _ in 0..32 {
+            if !terminal["terminal"].is_null() {
+                break;
+            }
+            terminal =
+                serde_json::from_str(&bound_run!(patchbay_pump_exact_run, session, binding, 16,))
+                    .expect("Copy task pump JSON");
+            assert_eq!(terminal["ok"], true, "{terminal}");
+        }
+        assert_eq!(terminal["terminal"], "succeeded", "{terminal}");
+        let front = &terminal["view"]["task_front"]["front"];
+        assert_eq!(
+            front["result"]["display_value"], "Copied 27 bytes — committed",
+            "{front}"
+        );
+        assert_eq!(front["result"]["semantic_status"], "succeeded");
+        assert_eq!(front["terminal"]["state"], "succeeded");
+        assert_eq!(front["result"]["type_id"], "fs/write-result");
+    }
+
+    #[test]
+    fn copy_task_front_exported_parameter_commits_a_valid_candidate() {
+        let session = "test/copy-exported-parameter";
+        let opened: Value = serde_json::from_str(
+            &(patchbay_open_session_with_front(
+                session.to_owned(),
+                copy_binding_source(),
+                copy_task_front_descriptor(),
+            )),
+        )
+        .expect("Copy task-front open JSON");
+        let changed: Value = serde_json::from_str(&patchbay_apply_transaction(
+            session.to_owned(),
+            serde_json::json!({
+                "protocol_version": 0,
+                "document_id": session,
+                "expected_source_revision": opened["view"]["source"]["revision"],
+                "expected_presentation_revision": opened["view"]["presentation"]["revision"],
+                "operations": [{
+                    "SetConfig": {
+                        "node_id": "copy",
+                        "key": "maximum_bytes",
+                        "value": {"kind": "integer", "value": 10}
+                    }
+                }]
+            })
+            .to_string(),
+        ))
+        .expect("exported parameter transaction JSON");
+        assert_eq!(changed["ok"], true, "{changed}");
+        assert_eq!(
+            changed["view"]["task_front"]["front"]["controls"][3]["display_value"], "10",
+            "{changed}"
+        );
+        assert!(changed["view"]["plan"].is_null(), "{changed}");
     }
 
     #[test]

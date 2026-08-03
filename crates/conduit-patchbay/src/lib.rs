@@ -2030,6 +2030,21 @@ fn task_front_value(value: &conduit_panel::SourceValue) -> (String, String, bool
     }
 }
 
+fn task_front_value_type(value: &conduit_panel::SourceValue) -> &'static str {
+    match value {
+        conduit_panel::SourceValue::Boolean(_) => "std/boolean",
+        conduit_panel::SourceValue::Integer(_) => "std/integer",
+        conduit_panel::SourceValue::Text(_) => "std/text",
+        conduit_panel::SourceValue::Reference(_)
+        | conduit_panel::SourceValue::SecretReference(_) => "std/reference",
+        conduit_panel::SourceValue::ContractReference(_) => "std/contract-reference",
+        conduit_panel::SourceValue::ExactDecimal(_) => "std/exact-decimal",
+        conduit_panel::SourceValue::Bytes(_) => "std/bytes",
+        conduit_panel::SourceValue::List(_) => "std/list",
+        conduit_panel::SourceValue::Record(_) => "std/record",
+    }
+}
+
 fn task_front_edit_kind(type_id: &str) -> &'static str {
     match type_id {
         "std/boolean" => "boolean",
@@ -2190,39 +2205,71 @@ pub fn project_task_front_with_bindings(
                         "An instance-configuration control must name its exact root config path.",
                     );
                 };
-                let Some(parameter) = definition.and_then(|definition| {
+                let explicit_parameter = definition.and_then(|definition| {
                     definition
                         .parameters
                         .iter()
                         .find(|parameter| parameter.id == parameter_id)
-                }) else {
+                });
+                let binding = definition.and_then(|definition| {
+                    definition
+                        .bindings
+                        .iter()
+                        .find(|binding| binding.parameter == parameter_id)
+                });
+                let bound_default = definition.and_then(|definition| {
+                    binding.and_then(|binding| {
+                        definition
+                            .nodes
+                            .iter()
+                            .find(|node| node.id == binding.target.node)
+                            .and_then(|node| {
+                                node.config
+                                    .iter()
+                                    .find(|entry| entry.key == binding.target.port)
+                            })
+                    })
+                });
+                let current = root_source_node
+                    .config
+                    .iter()
+                    .find(|entry| entry.key == parameter_id)
+                    .map(|entry| &entry.value);
+                let Some(value_type) = explicit_parameter
+                    .map(|parameter| parameter.value_type.as_str())
+                    .or_else(|| bound_default.map(|entry| task_front_value_type(&entry.value)))
+                    .or_else(|| {
+                        binding
+                            .is_some()
+                            .then(|| current.map(task_front_value_type))
+                            .flatten()
+                    })
+                else {
                     return task_front_invalid(
                         "An instance-configuration control names no explicitly exported parameter.",
                     );
                 };
-                let current = root_source_node
-                    .config
-                    .iter()
-                    .find(|entry| entry.key == parameter.id)
-                    .map(|entry| &entry.value);
+                let default = explicit_parameter
+                    .and_then(|parameter| parameter.default.as_ref())
+                    .or_else(|| bound_default.map(|entry| &entry.value));
                 let (display_value, edit_kind, protected, value_origin) =
                     if let Some(value) = current {
                         let (display, kind, protected) = task_front_value(value);
                         (Some(display), kind, protected, "instance-authored")
-                    } else if let Some(value) = parameter.default.as_ref() {
+                    } else if let Some(value) = default {
                         let (display, kind, protected) = task_front_value(value);
                         (Some(display), kind, protected, "definition-default")
                     } else {
                         (
                             None,
-                            task_front_edit_kind(&parameter.value_type).to_owned(),
+                            task_front_edit_kind(value_type).to_owned(),
                             false,
                             "missing",
                         )
                     };
                 let renderer = match task_front_renderer(
                     control.renderer_profile.as_deref(),
-                    &parameter.value_type,
+                    value_type,
                     renderer_profiles,
                 ) {
                     Ok(renderer) => renderer,
@@ -2237,8 +2284,8 @@ pub fn project_task_front_with_bindings(
                     group: control.group.clone(),
                     visibility: control.visibility.clone(),
                     accessibility_name: control.accessibility_name.clone(),
-                    type_id: parameter.value_type.clone(),
-                    requirement: if parameter.default.is_some() {
+                    type_id: value_type.to_owned(),
+                    requirement: if default.is_some() {
                         "optional"
                     } else {
                         "required"
@@ -2421,18 +2468,39 @@ pub fn project_task_front_with_bindings(
             && matches!(export.request, TaskRuntimeControlRequest::RunExactPlan)
     });
     let receipt_matches = action_receipt.filter(|receipt| {
-        action_export_matches.is_some_and(|export| {
-            receipt.operation_id == export.operation_id
-                && receipt.source_identity == export.source_identity
-                && receipt.plan_identity == export.plan_identity
-                && receipt.plan_epoch == export.plan_epoch
-                && ["pending", "accepted", "rejected", "duplicate"]
-                    .contains(&receipt.disposition.as_str())
-        })
+        ["pending", "accepted", "rejected", "duplicate"].contains(&receipt.disposition.as_str())
+            && receipt.source_identity == source.identity
+            && plan.is_some_and(|plan| plan.identity == receipt.plan_identity)
+            && run.is_none_or(|run| {
+                run.plan_epoch == receipt.plan_epoch
+                    && receipt
+                        .run_id
+                        .as_ref()
+                        .is_none_or(|run_id| *run_id == run.run_id)
+            })
+            && (action_export_matches.is_some_and(|export| {
+                receipt.operation_id == export.operation_id
+                    && receipt.plan_epoch == export.plan_epoch
+            }) || run.is_some_and(|run| {
+                receipt.run_id.as_deref() == Some(run.run_id.as_str())
+                    && receipt.plan_epoch == run.plan_epoch
+            }))
     });
     let primary_action = descriptor.primary_action.as_ref().map(|action| {
         let mut explanations = Vec::new();
-        let state = if !incomplete_requirements.is_empty() {
+        let state = if matches!(
+            run.map(|run| run.state),
+            Some(RunState::Active | RunState::Waiting)
+        ) {
+            "active"
+        } else if matches!(
+            run.map(|run| run.state),
+            Some(RunState::Quiescing | RunState::Aborting)
+        ) {
+            "stopping"
+        } else if matches!(run.map(|run| run.state), Some(RunState::Terminal)) {
+            "terminal"
+        } else if !incomplete_requirements.is_empty() {
             explanations.extend(incomplete_requirements.iter().cloned());
             "incomplete-choices"
         } else if let Some(availability) = root_availability.filter(|availability| {
@@ -2457,9 +2525,6 @@ pub fn project_task_front_with_bindings(
             "request-rejected"
         } else {
             match run.map(|run| run.state) {
-                Some(RunState::Active | RunState::Waiting) => "active",
-                Some(RunState::Quiescing | RunState::Aborting) => "stopping",
-                Some(RunState::Terminal) => "terminal",
                 Some(RunState::Prepared) | None
                     if receipt_matches.is_some_and(|receipt| receipt.disposition == "accepted") =>
                 {
@@ -2488,6 +2553,13 @@ pub fn project_task_front_with_bindings(
                     None if plan.is_some() => "action-not-exported",
                     None => "check-or-resolution-required",
                 },
+                Some(
+                    RunState::Active
+                    | RunState::Waiting
+                    | RunState::Quiescing
+                    | RunState::Aborting
+                    | RunState::Terminal,
+                ) => "active",
             }
         };
         if let Some(receipt) = receipt_matches {
@@ -2499,8 +2571,12 @@ pub fn project_task_front_with_bindings(
             help: action.help.clone(),
             accessibility_name: action.accessibility_name.clone(),
             state: state.to_owned(),
-            operation_id: action_export_matches.map(|export| export.operation_id.clone()),
-            plan_epoch: action_export_matches.map(|export| export.plan_epoch),
+            operation_id: action_export_matches
+                .map(|export| export.operation_id.clone())
+                .or_else(|| receipt_matches.map(|receipt| receipt.operation_id.clone())),
+            plan_epoch: action_export_matches
+                .map(|export| export.plan_epoch)
+                .or_else(|| receipt_matches.map(|receipt| receipt.plan_epoch)),
             request_id: receipt_matches.map(|receipt| receipt.request_id.clone()),
             request_disposition: receipt_matches.map(|receipt| receipt.disposition.clone()),
             request_code: receipt_matches.map(|receipt| receipt.code.clone()),
@@ -2572,12 +2648,10 @@ pub fn project_task_front_with_bindings(
                 && run.is_some_and(|run| {
                     run.run_id == observation.run_id && run.plan_epoch == observation.plan_epoch
                 })
-                && action_export_matches.is_some_and(|export| {
-                    export.operation_id == observation.operation_id
-                        && export.plan_epoch == observation.plan_epoch
-                })
                 && receipt_matches.is_some_and(|receipt| {
                     receipt.request_id == observation.request_id
+                        && receipt.operation_id == observation.operation_id
+                        && receipt.plan_epoch == observation.plan_epoch
                         && matches!(receipt.disposition.as_str(), "accepted" | "duplicate")
                 })
                 && observation.port_path == port.semantic_path
@@ -2632,12 +2706,10 @@ pub fn project_task_front_with_bindings(
             && run.is_some_and(|run| {
                 run.run_id == terminal.run_id && run.plan_epoch == terminal.plan_epoch
             })
-            && action_export_matches.is_some_and(|export| {
-                export.operation_id == terminal.operation_id
-                    && export.plan_epoch == terminal.plan_epoch
-            })
             && receipt_matches.is_some_and(|receipt| {
                 receipt.request_id == terminal.request_id
+                    && receipt.operation_id == terminal.operation_id
+                    && receipt.plan_epoch == terminal.plan_epoch
                     && matches!(receipt.disposition.as_str(), "accepted" | "duplicate")
             })
     });
@@ -5082,11 +5154,22 @@ pub fn project_at_rest(source: &SourceSnapshot) -> Result<PatchbayAtRestProjecti
             .iter()
             .map(|definition| PatchbayAtRestDefinitionProjection {
                 path: format!("definition/{}", definition.id),
-                parameters: definition
-                    .parameters
-                    .iter()
-                    .map(|parameter| parameter.id.clone())
-                    .collect(),
+                parameters: {
+                    let mut parameters = definition
+                        .parameters
+                        .iter()
+                        .map(|parameter| parameter.id.clone())
+                        .chain(
+                            definition
+                                .bindings
+                                .iter()
+                                .map(|binding| binding.parameter.clone()),
+                        )
+                        .collect::<Vec<_>>();
+                    parameters.sort();
+                    parameters.dedup();
+                    parameters
+                },
                 children: definition
                     .nodes
                     .iter()

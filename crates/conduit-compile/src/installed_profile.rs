@@ -107,7 +107,7 @@ impl InstalledHostObservationInput {
                     proposal_slots: 64,
                     commit_slots: 64,
                     timer_slots: 4,
-                    scratch_bytes: 128 * 1024,
+                    scratch_bytes: conduit_std::DATA_MAX_RECORD_BYTES as u32,
                     stack_bytes: 512 * 1024,
                     evidence_slots: 512,
                 })

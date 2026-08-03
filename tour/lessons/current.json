@@ -3694,13 +3694,13 @@
         "watch gap",
         "rename identity"
       ],
-      "source": "panel 0\n\nreader: fs/read {\n    resource = secret(\"conduit.resource-binding/copy-source\")\n    grant = secret(\"conduit.grant-binding/copy-source-read\")\n    offset = 0\n    maximum_bytes = 64\n    chunk_bytes = 64\n    consistency = \"snapshot\"\n    eof = \"terminal\"\n    cancellation = \"discard\"\n}\n\nwriter: fs/write {\n    resource = secret(\"conduit.resource-binding/copy-destination\")\n    grant = secret(\"conduit.grant-binding/copy-destination-write\")\n    mode = \"replace\"\n    maximum_bytes = 64\n    partial = \"fail-without-commit\"\n    flush = \"provider-accepted\"\n    cleanup = \"close\"\n    cancellation = \"close\"\n}\n\nreader.chunk > writer.chunk {\n    capacity = 1\n    max_value_bytes = 64\n    max_queued_bytes = 64\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "source": "panel 0\n\nconduit.task/copy-file {\n    reader: fs/read {\n        resource = secret(\"conduit.resource-binding/copy-source\")\n        grant = secret(\"conduit.grant-binding/copy-source-read\")\n        offset = 0\n        maximum_bytes = 64\n        chunk_bytes = 64\n        consistency = \"snapshot\"\n        eof = \"terminal\"\n        cancellation = \"discard\"\n    }\n\n    writer: fs/write {\n        resource = secret(\"conduit.resource-binding/copy-destination\")\n        grant = secret(\"conduit.grant-binding/copy-destination-write\")\n        partial = \"fail-without-commit\"\n        flush = \"provider-accepted\"\n        cleanup = \"close\"\n        cancellation = \"close\"\n    }\n\n    reader.chunk > writer.chunk {\n        capacity = 1\n        max_value_bytes = 64\n        max_queued_bytes = 64\n        low_watermark = 0\n        high_watermark = 1\n        pressure = block\n    }\n\n    export result > = writer.result\n    bind mode = writer.mode\n    bind maximum_bytes = writer.maximum_bytes\n}\n\ncopy: conduit.task/copy-file {\n    mode = \"replace\"\n    maximum_bytes = 64\n}\nresult_observer: fs/write-result/sink\n\ncopy.result > result_observer.result {\n    capacity = 1\n    max_value_bytes = 19\n    max_queued_bytes = 19\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
       "task_front": {
         "schema": "conduit.patchbay-task-front",
         "schema_version": 0,
-        "root": "root/reader",
-        "name": "Copy file",
-        "purpose": "Copy one bounded chunk between explicitly selected resources.",
+        "root": "root/copy",
+        "name": "Copy a file",
+        "purpose": "Choose a source and destination, then copy the source contents.",
         "controls": [
           {
             "id": "copy-from",
@@ -3721,6 +3721,27 @@
             "group": "Files",
             "visibility": "primary",
             "accessibility_name": "Choose Copy destination file"
+          },
+          {
+            "id": "copy-mode",
+            "source": "instance-configuration",
+            "target": "root/copy/config/mode",
+            "label": "Mode",
+            "help": "Replace overwrites the explicitly selected existing destination.",
+            "group": "Copy options",
+            "visibility": "primary",
+            "renderer_profile": "conduit.filesystem/write-mode",
+            "accessibility_name": "Copy destination mode"
+          },
+          {
+            "id": "copy-maximum-bytes",
+            "source": "instance-configuration",
+            "target": "root/copy/config/maximum_bytes",
+            "label": "Maximum bytes",
+            "help": "Reject a copy that exceeds this bounded write limit.",
+            "group": "Copy options",
+            "visibility": "advanced",
+            "accessibility_name": "Maximum bytes to copy"
           }
         ],
         "primary_action": {
@@ -3728,6 +3749,13 @@
           "label": "Copy",
           "help": "Run the exact plan resolved from the protected binding revision.",
           "accessibility_name": "Copy selected file"
+        },
+        "result": {
+          "target": "root/copy/port/outgoing/result",
+          "label": "Copy result",
+          "help": "The exact file-write result reports bytes and commit status independently from terminal evidence.",
+          "renderer_profile": "conduit.filesystem/write-result",
+          "accessibility_name": "Copy result"
         }
       },
       "command": "conduct --enable-file-write examples/file-copier.panel",
@@ -3821,6 +3849,15 @@
               "result:fs/write-result"
             ],
             "descriptor_hash": "sha256:5d96b31b89347d681e3bdacaf1d93f91ea72d44d19843139a1d792a6f3b74e71"
+          },
+          {
+            "id": "fs/write-result/sink",
+            "kind": "node",
+            "instance": "result_observer",
+            "inputs": [
+              "result:fs/write-result"
+            ],
+            "descriptor_hash": "sha256:19cc6c5b7d6b53ee3bf502910bd2cabf5106544fd3faf1a6ef70ec6960109afc"
           },
           {
             "id": "fs/watch",

@@ -326,6 +326,15 @@ fn every_checked_panel_has_one_verified_runnability_state() {
                 "{} exact stderr",
                 entry.path
             );
+            if entry.path == "examples/file-copier.panel" {
+                assert_eq!(
+                    fs::read(root.join("target/conduit-filesystem-example.bin"))
+                        .expect("hosted Copy destination remains inside its installed scope"),
+                    fs::read(root.join("fixtures/filesystem/read-source.txt"))
+                        .expect("hosted Copy source fixture exists"),
+                    "the production executor copied the exact hosted source bytes"
+                );
+            }
         } else {
             assert!(!output.status.success(), "{} must fail closed", entry.path);
             assert!(
@@ -356,10 +365,33 @@ fn every_checked_panel_has_one_verified_runnability_state() {
             std::process::id(),
             id.replace(['.', '/'], "-")
         ));
-        fs::write(&path, lesson["source"].as_str().expect("lesson source"))
-            .expect("exported lesson can be written");
+        let mut source = lesson["source"].as_str().expect("lesson source").to_owned();
+        if id == "library.bounded-filesystem" {
+            source = source
+                .replace(
+                    "conduit.resource-binding/copy-source",
+                    "conduit.resource/filesystem-example-read",
+                )
+                .replace(
+                    "conduit.grant-binding/copy-source-read",
+                    "conduit.grant/filesystem-read",
+                )
+                .replace(
+                    "conduit.resource-binding/copy-destination",
+                    "conduit.resource/filesystem-example-write",
+                )
+                .replace(
+                    "conduit.grant-binding/copy-destination-write",
+                    "conduit.grant/filesystem-write",
+                );
+        }
+        fs::write(&path, source).expect("exported lesson can be written");
         let mut check_command = Command::new(env!("CARGO_BIN_EXE_conduct"));
         let mut run_command = Command::new(env!("CARGO_BIN_EXE_conduct"));
+        if id == "library.bounded-filesystem" {
+            check_command.arg("--enable-file-write");
+            run_command.arg("--enable-file-write");
+        }
         if id == "library.evictable-storage-cache" {
             check_command.arg("--enable-storage-cache");
             run_command.arg("--enable-storage-cache");

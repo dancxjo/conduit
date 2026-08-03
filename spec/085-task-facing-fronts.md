@@ -36,6 +36,12 @@ Missing exported instance parameters may be authored by the ordinary atomic
 field. Site bindings remain owned by their separate binding operation and
 profile.
 
+For a composite, a source `bind parameter = child.field` declaration is the
+public configuration export. The definition body may defer that required child
+field only because every instance must supply the inferred parameter under the
+child field's exact type, sensitivity, mutability, and identity contract.
+Descriptor metadata cannot make an unbound child field public.
+
 ## Action and result
 
 The only current primary request is `run-exact-plan`. Exact plan presence does

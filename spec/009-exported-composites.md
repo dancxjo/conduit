@@ -160,10 +160,9 @@ host selection, artifacts, and UI state remain outside the core.
 
 `conformance/c2/composite.tsv` freezes one-level and nested exports,
 fan-out, parameter provenance, and every required negative classification.
-`examples/composite-uppercase.panel` is an authored
-**illustrative/unavailable** example. The canonical hosted run currently
-rejects it with `CND-CMP-004`; it must not be presented as executable until
-that exact path has conformance evidence.
+`examples/composite-uppercase.panel` is an authored runnable example. Its
+public `value` parameter is inferred from the explicit binding to the required
+child field, and the canonical hosted run proves the resulting primitive graph.
 
 ## Normative requirements
 

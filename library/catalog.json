@@ -4174,7 +4174,7 @@
         {
           "implementation": "conduit/hosted-gate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4264,7 +4264,7 @@
         {
           "implementation": "conduit/hosted-merge",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4376,7 +4376,7 @@
         {
           "implementation": "conduit/hosted-select",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4466,7 +4466,7 @@
         {
           "implementation": "conduit/hosted-tee",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4571,7 +4571,7 @@
         {
           "implementation": "conduit/hosted-zip",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -4939,7 +4939,7 @@
         {
           "implementation": "conduit/hosted-display-text",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5513,7 +5513,7 @@
         {
           "implementation": "conduit/hosted-discard",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -5595,7 +5595,7 @@
         {
           "implementation": "conduit/hosted-fallback",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6110,7 +6110,7 @@
         {
           "implementation": "conduit/hosted-pass-through",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -6739,7 +6739,7 @@
         {
           "implementation": "conduit/hosted-file-chunk-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7140,6 +7140,52 @@
       "compatible_adapter_artifacts": []
     },
     {
+      "semantic_identity": "fs/write-result/sink",
+      "public_source_spelling": "fs/write-result/sink",
+      "classification": "optional-host-boundary",
+      "package_owner": "conduit.host.fs",
+      "contract_package_artifact": "conduit.contract-package/conduit.host.fs",
+      "export_path": "conduit.host.fs/fs/write-result/sink",
+      "schema_version": 0,
+      "semantic_hash": "sha256:19cc6c5b7d6b53ee3bf502910bd2cabf5106544fd3faf1a6ef70ec6960109afc",
+      "ports": [
+        {
+          "id": "result",
+          "direction": "input",
+          "value_type": "fs/write-result",
+          "type_schema_version": 0,
+          "type_hash": "sha256:7c68df17525284faf752d4da145694e11c5e3bc8f983c2a96d7f3b652c09049c",
+          "presence": "required",
+          "connections": "exactly-one",
+          "values": "exactly-one",
+          "delivery": "stream",
+          "temporal": "committed",
+          "terminal": "finite",
+          "sensitivity": "restricted",
+          "loss": "lossless-only"
+        }
+      ],
+      "config": [],
+      "catalog_membership": "portable-catalog",
+      "compiler_exported": false,
+      "known_provider_bundles": [],
+      "current_provider_observation": "not-recorded-in-catalog",
+      "conformance_fixture_owner": "conformance/c5/registry-availability.json",
+      "required_result_profile": "conduit.cross-host-provider",
+      "structural_facet_owner": "conduit.host.fs/facets",
+      "standalone_lesson": {
+        "artifact": "tour/lessons/current.json#library.fs.write-result.sink.standalone",
+        "status": "required"
+      },
+      "composition_lesson": {
+        "artifact": "tour/lessons/current.json#library.fs.write-result.sink.composition",
+        "status": "required"
+      },
+      "successor": null,
+      "deprecation": null,
+      "compatible_adapter_artifacts": []
+    },
+    {
       "semantic_identity": "io/stderr",
       "public_source_spelling": "io/stderr",
       "classification": "optional-host-boundary",
@@ -7172,7 +7218,7 @@
         {
           "implementation": "conduit/hosted-stderr",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7224,7 +7270,7 @@
         {
           "implementation": "conduit/hosted-stderr-stream",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7276,7 +7322,7 @@
         {
           "implementation": "conduit/hosted-stdin",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7328,7 +7374,7 @@
         {
           "implementation": "conduit/hosted-stdin-stream",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7380,7 +7426,7 @@
         {
           "implementation": "conduit/hosted-stdout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -7432,7 +7478,7 @@
         {
           "implementation": "conduit/hosted-stdout-stream",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13757,7 +13803,7 @@
         {
           "implementation": "conduit/hosted-state-cache",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -13917,7 +13963,7 @@
         {
           "implementation": "conduit/hosted-state-cell",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14221,7 +14267,7 @@
         {
           "implementation": "conduit/hosted-state-deduplicate",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14520,7 +14566,7 @@
         {
           "implementation": "conduit/hosted-data-decode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14630,7 +14676,7 @@
         {
           "implementation": "conduit/hosted-data-deframe-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14733,7 +14779,7 @@
         {
           "implementation": "conduit/hosted-data-encode-utf8",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14843,7 +14889,7 @@
         {
           "implementation": "conduit/hosted-data-frame-length-u32be",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -14975,7 +15021,7 @@
         {
           "implementation": "conduit/hosted-data-validate-closed-record",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -15142,7 +15188,7 @@
         {
           "implementation": "conduit/hosted-format-values-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -15202,7 +15248,7 @@
         {
           "implementation": "conduit/hosted-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -15336,7 +15382,7 @@
         {
           "implementation": "conduit/hosted-data-record-literal",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -15396,7 +15442,7 @@
         {
           "implementation": "conduit/hosted-data-assert-validation-decision",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -15478,7 +15524,7 @@
         {
           "implementation": "conduit/hosted-format",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -15581,7 +15627,7 @@
         {
           "implementation": "conduit/hosted-text-join",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -15663,7 +15709,7 @@
         {
           "implementation": "conduit/hosted-text-lines",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -16303,7 +16349,7 @@
         {
           "implementation": "conduit/hosted-supervision-circuit-breaker",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -16699,7 +16745,7 @@
         {
           "implementation": "conduit/hosted-supervision-retry",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -17276,7 +17322,7 @@
         {
           "implementation": "conduit/hosted-uppercase",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -17580,7 +17626,7 @@
         {
           "implementation": "conduit/hosted-time-debounce",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -17704,7 +17750,7 @@
         {
           "implementation": "conduit/hosted-time-delay",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -18008,7 +18054,7 @@
         {
           "implementation": "conduit/hosted-time-throttle",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -18082,7 +18128,7 @@
         {
           "implementation": "conduit/hosted-time-ticker",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",
@@ -18213,7 +18259,7 @@
         {
           "implementation": "conduit/hosted-time-timeout",
           "artifact": "conduit/hosted-primitives-artifact",
-          "artifact_digest": "sha256:4837e6248079f3772d5323ebe2c6892939b88897f9beaba75779a0a87db168e5"
+          "artifact_digest": "sha256:89d3b62b91820d2a1a2dee8a974d601f1fcfb2807f1aa32f6556b197c5ee2e89"
         }
       ],
       "current_provider_observation": "not-recorded-in-catalog",

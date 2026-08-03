@@ -5,6 +5,8 @@ Status: current pre-release contract.
 ## Separation and identity
 
 `fs/read`, `fs/write`, and `fs/watch` are ordinary host boundary nodes.
+`fs/write-result/sink` is an effect-free observer for one exact typed write
+result; it owns no filesystem resource or authority.
 Semantic source contains an opaque protected `fs/resource` binding and a
 separate grant binding. It never contains an operating-system path, file
 descriptor, directory iterator, glob, current-directory lookup, or framework
@@ -76,6 +78,14 @@ committed, whether the input completed, and the exact flush claim. The current
 Linux and deterministic providers reject a durable claim because neither can
 prove durable persistence. Replace and append require an existing resource;
 create requires an absent resource. No mode implies atomic replacement.
+
+The checked Copy composite explicitly exports `mode` and `maximum_bytes` with
+source `bind` declarations into the private writer configuration, and exports
+the writer's `result` port. A required child field supplied by such a binding
+is deferred while lowering the definition body and remains required on every
+composite instance. The result sink keeps that exported semantic value on an
+exact observable cord. Its domain status and fields remain distinct from run
+terminal, cleanup, and evidence-publication state.
 
 ## Watch
 

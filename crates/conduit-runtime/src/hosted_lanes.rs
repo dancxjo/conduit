@@ -187,11 +187,7 @@ impl<J: HostedLaneJob> FixedHostedExecutionCoordinator<J> {
         }
         let provider = arrangement
             .with_contract(|contract| {
-                FixedHostedLaneProvider::admit(
-                    contract,
-                    Id(placement_id),
-                    Id(commit_domain),
-                )
+                FixedHostedLaneProvider::admit(contract, Id(placement_id), Id(commit_domain))
             })
             .map_err(|_| HostedLaneError::ArrangementMismatch)??;
         let lanes = provider.reservation().lanes;
@@ -659,8 +655,7 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
                 });
                 continue;
             };
-            let Some(next_proposal_bytes) =
-                proposal_bytes.checked_add(J::proposal_bytes(&value))
+            let Some(next_proposal_bytes) = proposal_bytes.checked_add(J::proposal_bytes(&value))
             else {
                 first_fault.get_or_insert(HostedLaneError::ProposalCapacityExceeded);
                 continue;

@@ -16,7 +16,7 @@ use conduit_panel::{Node, SourceValue};
 use conduit_runtime::{
     CompiledInHostService, Handler, HostedServiceCleanup, HostedServiceInterest, HostedServiceStep,
     HostedServiceStepContext, Registry, RegistryError, ResolutionError, RunIo, RuntimeError, Value,
-    file_read_contract, file_watch_contract, file_write_contract,
+    file_read_contract, file_watch_contract, file_write_contract, file_write_result_sink_contract,
 };
 use conduit_std::{FlushClaim, PartialWritePolicy, WatchEventKind, WriteMode};
 
@@ -1218,6 +1218,39 @@ impl Handler for WriteHandler {
     }
 }
 
+struct WriteResultSinkHandler;
+
+impl Handler for WriteResultSinkHandler {
+    fn run(
+        &mut self,
+        node: &Node,
+        inputs: &[Value],
+        _io: &mut RunIo<'_>,
+    ) -> Result<Vec<Value>, RuntimeError> {
+        if !node.config.is_empty()
+            || inputs.len() != 1
+            || inputs[0].value_type != file_write_result_sink_contract().inputs[0].value_type
+        {
+            return Err(RuntimeError::new(
+                "CND-FSH-019",
+                "file-write result sink requires one exact semantic result",
+            ));
+        }
+        Ok(Vec::new())
+    }
+}
+
+fn validate_write_result_sink_config(node: &Node) -> Result<(), ResolutionError> {
+    if node.config.is_empty() {
+        Ok(())
+    } else {
+        Err(ResolutionError::new(
+            "CND-FSH-019",
+            "file-write result sink accepts no configuration",
+        ))
+    }
+}
+
 /// One exact hosted watch state. The handler emits each bounded provider
 /// observation, then waits for an explicit host notification before polling
 /// again. It never advances the host clock or retains an unbounded history.
@@ -1344,6 +1377,23 @@ pub fn register_hosted_file_write_provider(registry: &mut Registry) -> Result<()
         required_authorities: &REQUIRED_AUTHORITIES,
         factory: || Box::new(WriteHandler),
         validate_config: validate_write_config,
+    })
+}
+
+/// Installs the effect-free sink used to retain the typed write result on an
+/// exact observable cord. It grants no file authority of its own.
+pub fn register_hosted_file_result_sink_provider(
+    registry: &mut Registry,
+) -> Result<(), RegistryError> {
+    registry.register_compiled_in_host_service(CompiledInHostService {
+        contract: file_write_result_sink_contract(),
+        implementation_id: "conduit/filesystem-write-result-sink",
+        artifact_id: "conduit/filesystem-write-result-sink-artifact",
+        entrypoint: "filesystem-write-result-sink",
+        source_bytes: include_bytes!("lib.rs"),
+        required_authorities: &[],
+        factory: || Box::new(WriteResultSinkHandler),
+        validate_config: validate_write_result_sink_config,
     })
 }
 

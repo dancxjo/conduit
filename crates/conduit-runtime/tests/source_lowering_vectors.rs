@@ -956,6 +956,47 @@ fn imported_definition_schema_and_multi_file_origins_remain_exact() {
 }
 
 #[test]
+fn composite_binding_exports_required_child_configuration() {
+    let lowered = lower_source_base(
+        &graph(
+            "panel 0\n\
+             fixture/configured {\n\
+               child: fixture/integer\n\
+               bind count = child.count\n\
+             }\n\
+             app: fixture/configured { count = 7 }\n",
+        ),
+        &Catalog,
+    )
+    .unwrap();
+
+    let child = lowered
+        .nodes
+        .iter()
+        .find(|node| {
+            node.path
+                .ends_with("/definition/fixture/configured/node/child")
+        })
+        .expect("definition child");
+    assert!(
+        child.config.is_empty(),
+        "the instance binding supplies count"
+    );
+
+    let app = lowered
+        .nodes
+        .iter()
+        .find(|node| node.path.ends_with("/node/app"))
+        .expect("composite instance");
+    assert_eq!(app.config.len(), 1);
+    assert_eq!(app.config[0].field.key, "count");
+    assert!(matches!(
+        app.config[0].value,
+        LoweredConfigValue::Public(OwnedSemanticValue::Integer(7))
+    ));
+}
+
+#[test]
 fn groups_and_pools_lower_to_finite_plan_visible_specs() {
     let lowered = lower_source_base(
         &graph(

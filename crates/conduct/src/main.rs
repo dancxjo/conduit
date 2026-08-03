@@ -501,6 +501,15 @@ fn run(
                 vec![source_document.clone()],
             )
         })?;
+        conduit_filesystem::register_hosted_file_result_sink_provider(&mut registry).map_err(
+            |error| {
+                cli_error(
+                    simple_diagnostic(error.code, &error.message),
+                    presentation,
+                    vec![source_document.clone()],
+                )
+            },
+        )?;
         if arguments.enable_file_write {
             conduit_filesystem::register_hosted_file_write_provider(&mut registry).map_err(
                 |error| {

@@ -1435,9 +1435,7 @@ test("keeps the Use information budget usable at two hundred percent zoom", asyn
   await expect(front).toContainText("current-run-delivery");
   await expect(page.getByRole("button", { name: "Run the checked uppercase-text plan" })).toBeEnabled();
 
-  await page.evaluate(() => {
-    document.documentElement.style.zoom = "200%";
-  });
+  await page.setViewportSize({ width: 640, height: 900 });
   const actionBox = await page.locator(".task-front-primary-action").boundingBox();
   const resultBox = await page.locator("#task-front-result").boundingBox();
   expect(actionBox).not.toBeNull();
@@ -2836,6 +2834,10 @@ test("Copy task front binds From and To without exposing selected material", asy
   await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem");
   const taskFront = page.locator("#task-front");
   await expect(taskFront).toBeVisible();
+  await expect(page.locator("#task-front-title")).toHaveText("Copy a file");
+  await expect(page.locator("#task-front-purpose")).toHaveText(
+    "Choose a source and destination, then copy the source contents.",
+  );
   await expect(page.locator("#task-front-state")).toHaveText("incomplete-choices");
 
   const from = taskFront.locator('[data-control-id="copy-from"]');
@@ -2847,37 +2849,51 @@ test("Copy task front binds From and To without exposing selected material", asy
     "selection-required",
   );
   await expect(taskFront.getByRole("button", { name: "Copy selected file" })).toBeDisabled();
+  await expect(taskFront.getByRole("combobox", { name: "Copy destination mode" })).toHaveValue(
+    "replace",
+  );
+  await taskFront.locator("#task-front-advanced").evaluate((details) => {
+    details.open = true;
+  });
+  await expect(taskFront.getByRole("spinbutton", { name: "Maximum bytes to copy" })).toHaveValue(
+    "64",
+  );
 
-  await from.getByRole("button", { name: "Choose source for From" }).click();
+  const activate = async (control) => {
+    await control.focus();
+    await page.keyboard.press("Enter");
+  };
+
+  await activate(from.getByRole("button", { name: "Choose source for From" }));
   await expect(from.locator(".task-front-resource-status")).toContainText(
     "selection-pending",
   );
-  await from.getByRole("button", { name: "Cancel chooser for From" }).click();
+  await activate(from.getByRole("button", { name: "Cancel chooser for From" }));
   await expect(from.locator(".task-front-resource-status")).toContainText(
     "selection-required",
   );
-  await from.getByRole("button", { name: "Choose source for From" }).click();
+  await activate(from.getByRole("button", { name: "Choose source for From" }));
   await expect(from.locator(".task-front-resource-status")).toContainText(
     "selection-pending",
   );
-  await from.getByRole("button", { name: "Use bounded input for From" }).click();
+  await activate(from.getByRole("button", { name: "Use bounded input for From" }));
   await expect(from.locator(".task-front-resource-status")).toContainText(
     "bounded-input.txt — required",
   );
-  await from.getByRole("button", { name: "Grant read for From" }).click();
+  await activate(from.getByRole("button", { name: "Grant read for From" }));
   await expect(from.locator(".task-front-resource-status")).toContainText(
     "bounded-input.txt — ready",
   );
 
-  await to.getByRole("button", { name: "Replace destination for To" }).click();
+  await activate(to.getByRole("button", { name: "Replace destination for To" }));
   await expect(to.locator(".task-front-resource-status")).toContainText(
     "selection-pending",
   );
-  await to.getByRole("button", { name: "Use bounded output for To" }).click();
+  await activate(to.getByRole("button", { name: "Use bounded output for To" }));
   await expect(to.locator(".task-front-resource-status")).toContainText(
     "bounded-output.txt — required",
   );
-  await to.getByRole("button", { name: "Grant write + replace for To" }).click();
+  await activate(to.getByRole("button", { name: "Grant write + replace for To" }));
   await expect(to.locator(".task-front-resource-status")).toContainText(
     "bounded-output.txt — ready",
   );
@@ -2900,14 +2916,89 @@ test("Copy task front binds From and To without exposing selected material", asy
     page.locator('[data-control-id="copy-to"] .task-front-resource-status'),
   ).toContainText("bounded-output.txt — ready");
 
-  const copy = taskFront.getByRole("button", { name: "Copy selected file" });
+  await taskFront.locator("#task-front-advanced").evaluate((details) => {
+    details.open = true;
+  });
+  let maximumBytes = taskFront.getByRole("spinbutton", { name: "Maximum bytes to copy" });
+  await maximumBytes.fill("10");
+  await maximumBytes.press("Tab");
+  await expect(maximumBytes).toHaveValue("10");
+  await expect(page.locator("#task-front-state")).toHaveText("ready");
+  let copy = taskFront.getByRole("button", { name: "Copy selected file" });
   await expect(copy).toBeEnabled();
-  await copy.click();
+  await activate(copy);
+  await expect(page.locator("#task-front-result-value")).toContainText(
+    "Terminal: failed",
+    { timeout: 20_000 },
+  );
+  await expect(page.locator("#task-front-result-value")).toContainText(
+    "bounded copy limit",
+  );
+
+  maximumBytes = taskFront.getByRole("spinbutton", { name: "Maximum bytes to copy" });
+  await maximumBytes.fill("64");
+  await maximumBytes.press("Tab");
+  await expect(page.locator("#task-front-state")).toHaveText("ready");
+  copy = taskFront.getByRole("button", { name: "Copy selected file" });
+  await expect(copy).toBeEnabled();
+  await activate(copy);
   await expect(page.locator("#task-front-result")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#task-front-result-value")).toContainText(
+    "Copied 27 bytes — committed (succeeded)",
+    { timeout: 20_000 },
+  );
   await expect(page.locator("#task-front-result-value")).toContainText(
     "Terminal: succeeded",
     { timeout: 20_000 },
   );
+
+  await page.getByRole("button", { name: "Show how this works" }).click();
+  await expect(page.locator("#workspace")).toHaveAttribute(
+    "data-presentation-mode",
+    "build",
+  );
+  await expect(taskFront).toBeHidden();
+  await page.getByRole("button", { name: "Open copy inside" }).first().click();
+  await expect(page.locator("#workspace")).toHaveAttribute(
+    "data-structural-lens",
+    "inside",
+  );
+  await expect(page.locator("#selection-inspector")).toContainText("root/copy.reader");
+  await expect(page.locator("#selection-inspector")).toContainText("root/copy.writer");
+  await page.locator('[data-presentation-mode="use"]').click();
+  await expect(taskFront).toBeVisible();
+  await expect(from.locator(".task-front-resource-status")).toContainText(
+    "bounded-input.txt — ready",
+  );
+  await expect(page.locator("#task-front-result-value")).toContainText(
+    "Copied 27 bytes — committed",
+  );
+});
+
+test("Copy task front fits an ordinary viewport and remains usable at 200 percent", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem");
+  const taskFront = page.locator("#task-front");
+  await taskFront.scrollIntoViewIfNeeded();
+  const ordinary = await taskFront.boundingBox();
+  expect(ordinary).not.toBeNull();
+  expect(ordinary.height).toBeLessThanOrEqual(900);
+
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = "200%";
+  });
+  const from = taskFront.locator('[data-control-id="copy-from"]');
+  await from.scrollIntoViewIfNeeded();
+  await expect(from.getByRole("button", { name: "Choose source for From" })).toBeVisible();
+  await expect(taskFront.getByRole("combobox", { name: "Copy destination mode" })).toHaveValue(
+    "replace",
+  );
+  await taskFront.getByRole("button", { name: "Copy selected file" }).scrollIntoViewIfNeeded();
+  await expect(taskFront.getByRole("button", { name: "Copy selected file" })).toBeVisible();
+  const overflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
 });
 
 test("pedagogical completion is not execution evidence", async ({ page }) => {

@@ -74,6 +74,7 @@
     "fs/chunk/literal": ["STD-001", "STD-003"],
     "fs/read": ["STD-007", "STD-011"],
     "fs/write": ["STD-007", "STD-012"],
+    "fs/write-result/sink": ["STD-007", "STD-011"],
     "fs/watch": ["STD-007", "STD-011"],
     "storage/blob/literal": ["STD-001", "STD-003"],
     "storage/cache/put": ["STD-007", "STD-012"],

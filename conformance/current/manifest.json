@@ -4646,7 +4646,7 @@
         {
           "id": "patchbay-protocol",
           "path": "../c8/patchbay-protocol.json",
-          "sha256": "sha256:d5d675c414f879e2cdba7275f4745eafc1116e92801e7978eaac7f458f4c3b00",
+          "sha256": "sha256:f59b4b67d64aa3625fd346dc2c6358963e5eef4a651b2b4fc768224c91584062",
           "operation": "patchbay-protocol",
           "requirement_ids": [
             "PBY-001",

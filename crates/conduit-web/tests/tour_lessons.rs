@@ -2602,9 +2602,15 @@ fn bounded_filesystem_lesson_runs_exact_browser_providers_and_failure_paths() {
             .iter()
             .map(|contract| contract["id"].as_str().unwrap())
             .collect::<BTreeSet<_>>(),
-        ["fs/chunk/literal", "fs/read", "fs/watch", "fs/write"]
-            .into_iter()
-            .collect()
+        [
+            "fs/chunk/literal",
+            "fs/read",
+            "fs/watch",
+            "fs/write",
+            "fs/write-result/sink",
+        ]
+        .into_iter()
+        .collect()
     );
     let fields = lesson["presentation"]["patchbay_fields"]
         .as_array()
@@ -2641,9 +2647,18 @@ fn bounded_filesystem_lesson_runs_exact_browser_providers_and_failure_paths() {
     assert!(task_source.contains("conduit.resource-binding/copy-source"));
     assert!(task_source.contains("conduit.resource-binding/copy-destination"));
     assert!(!task_source.contains("conduit.resource/filesystem-example-read"));
-    assert_eq!(lesson["task_front"]["name"], "Copy file");
+    assert_eq!(lesson["task_front"]["name"], "Copy a file");
     assert_eq!(lesson["task_front"]["controls"][0]["label"], "From");
     assert_eq!(lesson["task_front"]["controls"][1]["label"], "To");
+    assert_eq!(lesson["task_front"]["controls"][2]["label"], "Mode");
+    assert_eq!(
+        lesson["task_front"]["controls"][3]["label"],
+        "Maximum bytes"
+    );
+    assert_eq!(
+        lesson["task_front"]["result"]["target"],
+        "root/copy/port/outgoing/result"
+    );
     for scenario in scenarios {
         let id = scenario["id"].as_str().unwrap();
         let source = scenario["source"].as_str().unwrap();

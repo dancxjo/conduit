@@ -1,6 +1,10 @@
 //! Host-independent source lowering over explicitly supplied semantic schemas.
 
-use std::{collections::BTreeMap, convert::Infallible, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    convert::Infallible,
+    fmt,
+};
 
 use conduit_core::{
     CanonicalError, CanonicalValue, CompatibilityOutcome, ConfigContract, ConfigFieldContract,
@@ -1965,6 +1969,82 @@ fn definition_schema(
                 .map(|span| origin(&module.canonical_uri, &module.content_hash, span)),
         });
     }
+    for binding in &definition.bindings {
+        if fields.iter().any(|field| field.key == binding.parameter) {
+            continue;
+        }
+        let child = definition
+            .nodes
+            .iter()
+            .find(|node| node.id == binding.target.node)
+            .ok_or_else(|| {
+                diagnostic(
+                    "CND-LWR-001",
+                    format!(
+                        "{}/definition/{}/{}",
+                        module.canonical_uri, definition.id, binding.parameter
+                    ),
+                    None,
+                    Some(origin(
+                        &module.canonical_uri,
+                        &module.content_hash,
+                        binding.source_span,
+                    )),
+                    format!(
+                        "binding target node `{}` is unavailable",
+                        binding.target.node
+                    ),
+                )
+            })?;
+        let child_schema = catalog.node_schema(&child.kind).ok_or_else(|| {
+            diagnostic(
+                "CND-LWR-001",
+                format!(
+                    "{}/definition/{}/{}",
+                    module.canonical_uri, definition.id, binding.parameter
+                ),
+                None,
+                Some(origin(
+                    &module.canonical_uri,
+                    &module.content_hash,
+                    binding.source_span,
+                )),
+                format!("binding target schema `{}` is unavailable", child.kind),
+            )
+        })?;
+        let target = child_schema
+            .fields
+            .iter()
+            .find(|field| field.key == binding.target.port)
+            .ok_or_else(|| {
+                diagnostic(
+                    "CND-LWR-001",
+                    format!(
+                        "{}/definition/{}/{}",
+                        module.canonical_uri, definition.id, binding.parameter
+                    ),
+                    None,
+                    Some(origin(
+                        &module.canonical_uri,
+                        &module.content_hash,
+                        binding.source_span,
+                    )),
+                    format!(
+                        "binding target field `{}.{}` is unavailable",
+                        binding.target.node, binding.target.port
+                    ),
+                )
+            })?;
+        fields.push(OwnedConfigFieldSchema {
+            key: binding.parameter.clone(),
+            value_type: target.value_type.clone(),
+            requirement: OwnedConfigRequirement::Required,
+            sensitivity: target.sensitivity,
+            mutability: target.mutability,
+            identity: target.identity,
+            default_origin: None,
+        });
+    }
     Ok(OwnedNodeSchema {
         id: format!("{}#{}", source_identity(&module.panel), definition.id),
         fields,
@@ -1985,6 +2065,7 @@ fn lower_panel(
     let uri = &module.canonical_uri;
     let module_hash = &module.content_hash;
     for node in &panel.nodes {
+        let deferred_fields = BTreeSet::new();
         lower_node(
             node,
             &format!("{uri}/node/{}", node.id),
@@ -1993,12 +2074,19 @@ fn lower_panel(
             module,
             catalog,
             definitions,
+            &deferred_fields,
             nodes,
             source_map,
         )?;
     }
     for definition in &panel.definitions {
         for node in &definition.nodes {
+            let deferred_fields = definition
+                .bindings
+                .iter()
+                .filter(|binding| binding.target.node == node.id)
+                .map(|binding| binding.target.port.as_str())
+                .collect::<BTreeSet<_>>();
             lower_node(
                 node,
                 &format!("{uri}/definition/{}/node/{}", definition.id, node.id),
@@ -2007,6 +2095,7 @@ fn lower_panel(
                 module,
                 catalog,
                 definitions,
+                &deferred_fields,
                 nodes,
                 source_map,
             )?;
@@ -2072,6 +2161,7 @@ fn lower_node(
     module: &conduit_panel::ResolvedModule,
     catalog: &impl SourceContractCatalog,
     definitions: &BTreeMap<(String, String), OwnedNodeSchema>,
+    deferred_fields: &BTreeSet<&str>,
     nodes: &mut Vec<LoweredNode>,
     source_map: &mut Vec<SourceMapEntry>,
 ) -> Result<(), LoweringDiagnostic> {
@@ -2085,8 +2175,14 @@ fn lower_node(
                 format!("semantic node schema `{}` is unavailable", node.kind),
             )
         })?;
-    let config = lower_config(node, &schema, path, uri, module_hash, catalog)?;
     let contract_hash = schema.semantic_hash();
+    let mut lowering_schema = schema.clone();
+    for field in &mut lowering_schema.fields {
+        if deferred_fields.contains(field.key.as_str()) {
+            field.requirement = OwnedConfigRequirement::Optional;
+        }
+    }
+    let config = lower_config(node, &lowering_schema, path, uri, module_hash, catalog)?;
     let config_hash = hash_config(&schema.id, &config);
     let semantic_hash = hash_node(path, &schema.id, contract_hash, config_hash);
     source_map.push(SourceMapEntry {

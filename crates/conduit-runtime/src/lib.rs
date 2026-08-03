@@ -807,6 +807,14 @@ pub fn file_write_contract() -> &'static NodeContract<'static> {
         .expect("standard file-write contract is published")
 }
 
+/// Current published sink for retaining an exact file-write semantic result
+/// on a cord that task-facing projections may observe.
+#[must_use]
+pub fn file_write_result_sink_contract() -> &'static NodeContract<'static> {
+    conduit_std::standard_node_contract("fs/write-result/sink")
+        .expect("standard file-write-result sink contract is published")
+}
+
 /// Current published bounded file-watch contract.
 #[must_use]
 pub fn file_watch_contract() -> &'static NodeContract<'static> {
@@ -1073,6 +1081,13 @@ pub struct ExactRunIo {
     output_len: usize,
     error_len: usize,
     display_len: usize,
+}
+
+/// Owned host boundaries supplied together for an arranged exact session
+/// whose evidence provider is pinned by the plan.
+pub struct ExactEvidenceSessionResources {
+    pub io: ExactRunIo,
+    pub evidence_provider: Box<dyn ExactEvidenceProvider>,
 }
 
 #[derive(Clone, Copy)]
@@ -6697,8 +6712,7 @@ impl ResolvedPanel<'_> {
         bindings: &ExactHostedBindings,
         context: ExactRunContext<'p>,
         sessions: &ExactRunSessionRegistry,
-        io: ExactRunIo,
-        evidence_provider: Box<dyn ExactEvidenceProvider>,
+        resources: ExactEvidenceSessionResources,
     ) -> Result<ExactHostedRunSession, RuntimeError> {
         validate_run_arrangement(plan, arrangement, context.plan_epoch)?;
         self.start_exact_session_with_evidence_provider(
@@ -6706,8 +6720,8 @@ impl ResolvedPanel<'_> {
             bindings,
             context,
             sessions,
-            io,
-            evidence_provider,
+            resources.io,
+            resources.evidence_provider,
         )
     }
 

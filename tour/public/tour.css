@@ -2910,8 +2910,17 @@ path.patchbay-cord.compatibility-incompatible {
 
 .task-front {
   display: grid;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   gap: 1rem;
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.task-front > * {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .task-front[hidden] { display: none; }
@@ -2936,7 +2945,7 @@ path.patchbay-cord.compatibility-incompatible {
 
 .task-front-controls {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
   gap: 0.9rem;
 }
 
@@ -2973,6 +2982,14 @@ path.patchbay-cord.compatibility-incompatible {
   gap: 0.55rem;
 }
 
+.task-front-resource-binding .btn,
+.task-front-action .btn {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .task-front-resource-status {
   flex: 1 0 100%;
   overflow-wrap: anywhere;
@@ -2981,7 +2998,10 @@ path.patchbay-cord.compatibility-incompatible {
 
 .task-front-resource-providers {
   flex: 1 0 100%;
+  min-width: 0;
+  max-width: 100%;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .task-front-consequence {

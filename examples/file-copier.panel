@@ -1,32 +1,51 @@
 # Copy one bounded chunk between provider-owned opaque file resources.
 panel 0
 
-reader: fs/read {
-    resource = secret("conduit.resource/filesystem-example-read")
-    grant = secret("conduit.grant/filesystem-read")
-    offset = 0
-    maximum_bytes = 64
-    chunk_bytes = 64
-    consistency = "snapshot"
-    eof = "terminal"
-    cancellation = "discard"
+conduit.task/copy-file {
+    reader: fs/read {
+        resource = secret("conduit.resource/filesystem-example-read")
+        grant = secret("conduit.grant/filesystem-read")
+        offset = 0
+        maximum_bytes = 64
+        chunk_bytes = 64
+        consistency = "snapshot"
+        eof = "terminal"
+        cancellation = "discard"
+    }
+
+    writer: fs/write {
+        resource = secret("conduit.resource/filesystem-example-write")
+        grant = secret("conduit.grant/filesystem-write")
+        partial = "fail-without-commit"
+        flush = "provider-accepted"
+        cleanup = "close"
+        cancellation = "close"
+    }
+
+    reader.chunk > writer.chunk {
+        capacity = 1
+        max_value_bytes = 64
+        max_queued_bytes = 64
+        low_watermark = 0
+        high_watermark = 1
+        pressure = block
+    }
+
+    export result > = writer.result
+    bind mode = writer.mode
+    bind maximum_bytes = writer.maximum_bytes
 }
 
-writer: fs/write {
-    resource = secret("conduit.resource/filesystem-example-write")
-    grant = secret("conduit.grant/filesystem-write")
+copy: conduit.task/copy-file {
     mode = "replace"
     maximum_bytes = 64
-    partial = "fail-without-commit"
-    flush = "provider-accepted"
-    cleanup = "close"
-    cancellation = "close"
 }
+result_observer: fs/write-result/sink
 
-reader.chunk > writer.chunk {
+copy.result > result_observer.result {
     capacity = 1
-    max_value_bytes = 64
-    max_queued_bytes = 64
+    max_value_bytes = 19
+    max_queued_bytes = 19
     low_watermark = 0
     high_watermark = 1
     pressure = block

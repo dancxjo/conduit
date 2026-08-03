@@ -67,6 +67,7 @@ This file is generated from the exact published registry by `cargo xtask catalog
 | `fs/read` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.bounded-filesystem (published) | tour/lessons/current.json#library.bounded-filesystem (published) |
 | `fs/watch` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.bounded-filesystem (published) | tour/lessons/current.json#library.bounded-filesystem (published) |
 | `fs/write` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.bounded-filesystem (published) | tour/lessons/current.json#library.bounded-filesystem (published) |
+| `fs/write-result/sink` | optional-host-boundary | `conduit.host.fs` | 0 | tour/lessons/current.json#library.fs.write-result.sink.standalone (required) | tour/lessons/current.json#library.fs.write-result.sink.composition (required) |
 | `io/stderr` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.io.stderr.standalone (required) | tour/lessons/current.json#library.io.stderr.composition (required) |
 | `io/stderr-stream` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.bounded-process-exec (published) | tour/lessons/current.json#library.bounded-process-exec (published) |
 | `io/stdin` | optional-host-boundary | `conduit.host.io` | 1 | tour/lessons/current.json#library.io.stdin.standalone (required) | tour/lessons/current.json#library.io.stdin.composition (required) |
