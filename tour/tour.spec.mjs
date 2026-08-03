@@ -183,6 +183,12 @@ async function readWatchControl(watchToggle) {
   }));
 }
 
+async function postHostTaskActionPolicy(page, policy) {
+  await page.evaluate((update) => {
+    window.postMessage({ type: "conduit-task-action-policy", ...update }, "*");
+  }, policy);
+}
+
 async function actOnceAndWaitForWatchControl(
   watchToggle,
   action,
@@ -1547,6 +1553,43 @@ test("respects denied task-action policy for run availability", async ({ page })
     "/tour/public/index.html?lesson=panels.jacks-on-the-front&taskActionPolicyState=denied");
   await expect(page.locator("#task-front-state")).toHaveText("denied");
   await expect(page.locator("#run")).toBeDisabled();
+});
+
+test("updates task-action policy from runtime host signal", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await expect(page.locator("#task-front-state")).toHaveText("ready");
+  await expect(page.locator("#run")).toBeEnabled();
+
+  await postHostTaskActionPolicy(page, {
+    state: "denied",
+    generation: 2,
+    code: "CND-HOST-TASK-DENIED",
+    observedAtTick: 10,
+    validUntilTick: 100,
+  });
+  await expect(page.locator("#task-front-state")).toHaveText("denied");
+  await expect(page.locator("#run")).toBeDisabled();
+  await expect(page.locator("#result")).toContainText("Task-action policy updated to denied.");
+
+  await postHostTaskActionPolicy(page, {
+    state: "permitted",
+    generation: 3,
+    code: "CND-PBY-ACT-READY",
+    observedAtTick: 10,
+    validUntilTick: 100,
+  });
+  await expect(page.locator("#task-front-state")).toHaveText("ready");
+  await expect(page.locator("#run")).toBeEnabled();
+
+  await postHostTaskActionPolicy(page, {
+    state: "revoked",
+    generation: 2,
+    observedAtTick: 10,
+    validUntilTick: 100,
+  });
+  await expect(page.locator("#result")).toContainText("CND-PBY-ACT-006");
+  await expect(page.locator("#task-front-state")).toHaveText("ready");
+  await expect(page.locator("#run")).toBeEnabled();
 });
 
 test("navigates composite boundaries from canvas and structured controls", async ({ page }) => {

@@ -6,6 +6,7 @@ import init, {
   parse_panel,
   patchbay_apply_transaction,
   patchbay_open_session,
+  patchbay_update_task_action_policy,
   patchbay_request_resource_binding,
 } from "./conduit_web.js";
 import { PatchbayReactFlowRenderer } from "./patchbay-renderer.js";
@@ -157,6 +158,12 @@ async function sha256Hex(bytes) {
 
 const TASK_ACTION_POLICY_OBSERVATION_ID = "conduit.task-policy/tour-browser-host";
 const TASK_ACTION_POLICY_STATE_PARAM = "taskActionPolicyState";
+const TASK_ACTION_POLICY_MESSAGES = new Set([
+  "conduit-task-action-policy",
+  "conduit.task-action-policy",
+  "task-action-policy",
+  "task-action-policy-update",
+]);
 const TASK_ACTION_POLICY_CODES = {
   permitted: "CND-PBY-ACT-READY",
   denied: "CND-PBY-ACT-DENIED",
@@ -165,18 +172,35 @@ const TASK_ACTION_POLICY_CODES = {
 };
 const TASK_ACTION_POLICY_STATES = new Set(Object.keys(TASK_ACTION_POLICY_CODES));
 
-function tourTaskActionPolicy(state) {
+function asSafeInteger(value, fallback) {
+  return Number.isSafeInteger(value) ? value : fallback;
+}
+
+function taskActionPolicyMessageValue(payload, camelCase, snakeCase, fallback = undefined) {
+  return (payload?.[camelCase] === undefined ? payload?.[snakeCase] : payload[camelCase]) ??
+    fallback;
+}
+
+function tourTaskActionPolicy(state, {
+  generation = 1,
+  observationId = TASK_ACTION_POLICY_OBSERVATION_ID,
+  observedAtTick = 10,
+  validUntilTick = 100,
+  activeControls = ["cancel", "drain"],
+  code = TASK_ACTION_POLICY_CODES[state],
+  explanation = `The independent Tour host policy is ${state} for this exact task action.`,
+} = {}) {
   return {
     schemaVersion: 0,
-    observationId: TASK_ACTION_POLICY_OBSERVATION_ID,
-    generation: 1,
+    observationId,
+    generation,
     action: "run-exact-plan",
-    activeControls: ["cancel", "drain"],
+    activeControls,
     state,
-    observedAtTick: 10,
-    validUntilTick: 100,
-    code: TASK_ACTION_POLICY_CODES[state],
-    explanation: `The independent Tour host policy is ${state} for this exact task action.`,
+    observedAtTick,
+    validUntilTick,
+    code,
+    explanation,
   };
 }
 
@@ -186,6 +210,7 @@ const taskActionPolicyState = TASK_ACTION_POLICY_STATES.has(
   ? pageParameters.get(TASK_ACTION_POLICY_STATE_PARAM)
   : "permitted";
 const initialTaskActionPolicy = tourTaskActionPolicy(taskActionPolicyState);
+let hostTaskActionPolicy = { ...initialTaskActionPolicy };
 
 if (browserPlan.schema !== "conduit.tour-browser-plan") {
   throw new Error("unsupported Tour browser plan");
@@ -288,9 +313,134 @@ const hostReport = observeBrowserHost({
 if (hostReport.ok === false) {
   throw new Error(`${hostReport.code}:${hostReport.detail}`);
 }
-const hostTaskActionPolicy = hostReport.taskActionPolicies.find(
+hostTaskActionPolicy = hostReport.taskActionPolicies.find(
   (policy) => policy.action === "run-exact-plan",
 );
+if (!hostTaskActionPolicy) {
+  throw new Error("host task-action policy is missing");
+}
+
+function asPositiveSafeInteger(value, fallback) {
+  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
+
+function parseTaskActionControls(value) {
+  const raw = Array.isArray(value) ? value : [];
+  const controls = raw.filter((control) =>
+    control === "cancel" || control === "drain"
+  );
+  const uniqueControls = [...new Set(controls)];
+  return uniqueControls.length > 0 ? uniqueControls : ["cancel", "drain"];
+}
+
+function taskActionPolicyFromHostMessage(payload) {
+  const candidate = payload?.policy || payload?.taskActionPolicy || payload;
+  if (!candidate || typeof candidate !== "object") return null;
+  const state = candidate.state;
+  if (!TASK_ACTION_POLICY_STATES.has(state)) return null;
+  const generation = asPositiveSafeInteger(
+    candidate.generation,
+    (hostTaskActionPolicy?.generation ?? initialTaskActionPolicy.generation) + 1,
+  );
+  const observedAtTick = asSafeInteger(
+    taskActionPolicyMessageValue(
+      candidate,
+      "observedAtTick",
+      "observed_at_tick",
+      10,
+    ),
+    10,
+  );
+  const validUntilTick = asSafeInteger(
+    taskActionPolicyMessageValue(
+      candidate,
+      "validUntilTick",
+      "valid_until_tick",
+      100,
+    ),
+    100,
+  );
+  return tourTaskActionPolicy(state, {
+    generation,
+    observationId: taskActionPolicyMessageValue(
+      candidate,
+      "observationId",
+      "observation_id",
+      TASK_ACTION_POLICY_OBSERVATION_ID,
+    ),
+    observedAtTick,
+    validUntilTick,
+    activeControls: parseTaskActionControls(taskActionPolicyMessageValue(
+      candidate,
+      "activeControls",
+      "active_controls",
+      ["cancel", "drain"],
+    )),
+    code: taskActionPolicyMessageValue(
+      candidate,
+      "code",
+      "code",
+      TASK_ACTION_POLICY_CODES[state],
+    ),
+    explanation: taskActionPolicyMessageValue(
+      candidate,
+      "explanation",
+      "explanation",
+      `Task action policy was updated to ${state} by the Tour host.`,
+    ),
+  });
+}
+
+function applyTaskActionPolicy(policy, { notify = true } = {}) {
+  if (policy.generation <= hostTaskActionPolicy.generation ||
+      policy.observationId !== hostTaskActionPolicy.observationId) {
+    const rejection = {
+      ok: false,
+      code: "CND-PBY-ACT-006",
+      diagnostic: "task-action policy update has a stale generation or wrong observer",
+    };
+    if (notify) {
+      result.textContent = `${rejection.code}: ${rejection.diagnostic}`;
+    }
+    return rejection;
+  }
+  if (!patchbaySessionId || !patchbayView) {
+    hostTaskActionPolicy = policy;
+    if (notify) {
+      result.textContent = `Task-action policy set to ${policy.state}.`;
+    }
+    return { ok: true, view: patchbayView };
+  }
+  const responseText = patchbay_update_task_action_policy(
+    patchbaySessionId,
+    JSON.stringify(policy),
+  );
+  const response = JSON.parse(responseText);
+  if (!response.ok) {
+    if (notify) {
+      result.textContent = `${response.code || "CND-PBY-ACT-001"}: ${response.diagnostic || "task-action-policy update failed"}`;
+    }
+    return response;
+  }
+  hostTaskActionPolicy = policy;
+  patchbayView = response.view;
+  syncPresentationControls();
+  if (notify) {
+    result.textContent = `Task-action policy updated to ${policy.state}.`;
+  }
+  return response;
+}
+
+function handleTaskActionPolicyMessage(event) {
+  const data = event?.data;
+  if (!data || typeof data !== "object" || !TASK_ACTION_POLICY_MESSAGES.has(data.type)) return;
+  if (event.origin && event.origin !== "null" && event.origin !== location.origin) return;
+  const policy = taskActionPolicyFromHostMessage(data);
+  if (!policy) return;
+  applyTaskActionPolicy(policy);
+}
+
+window.addEventListener("message", handleTaskActionPolicyMessage);
 
 let current = lessons.lessons.find((lesson) => lesson.id === "book.origin-hidden-program")
   || lessons.lessons[0];
@@ -2394,8 +2544,7 @@ function syncPresentationControls() {
   renderSelectionInspector();
 
   const atRest = presentation.lens === "at-rest";
-  runButton.disabled ||= atRest;
-  runButton.disabled ||= patchbayRunBlocked();
+  runButton.disabled = atRest || patchbayRunBlocked() || Boolean(activeAdapter);
   stopButton.disabled = atRest || !activeAdapter;
 }
 
