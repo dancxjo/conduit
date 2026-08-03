@@ -1952,7 +1952,7 @@ fn run_shared_payload_sample(
     assert_eq!(args.timer_advance_ticks, 0);
     assert!(matches!(
         args.termination_request,
-        TerminationRequest::Complete
+        TerminationRequest::Complete | TerminationRequest::Abort
     ));
     assert!(matches!(args.session_mode, SessionMode::Finite));
     assert!(!args.identity_loop);
@@ -2087,6 +2087,25 @@ fn run_shared_payload_sample(
     MEASURING.store(true, Ordering::SeqCst);
     let steady_started = Instant::now();
     let mut pumps = 0_u64;
+    let mut abort_ns = None;
+    let mut pressured_items_at_stop = None;
+    if matches!(args.termination_request, TerminationRequest::Abort) {
+        session.pump(1, &use_observations).unwrap();
+        pumps += 1;
+        let published = session
+            .value_storage_usage()
+            .expect("hosted production drivers expose the fixed value arena");
+        assert_eq!(published.resident_slots, 1);
+        assert_eq!(published.resident_bytes, args.payload_bytes);
+        assert_eq!(
+            session.high_water().queue_items,
+            u64::from(args.fanout_branches)
+        );
+        pressured_items_at_stop = Some(session.high_water().queue_items);
+        let abort_started = Instant::now();
+        session.cancel(StopPolicy::Abort).unwrap();
+        abort_ns = Some(abort_started.elapsed().as_nanos() as u64);
+    }
     while matches!(session.state(), ExactRunState::Active) {
         if let Err(error) = session.pump(512, &use_observations) {
             panic!(
@@ -2099,19 +2118,25 @@ fn run_shared_payload_sample(
     }
     let steady_ns = steady_started.elapsed().as_nanos() as u64;
     MEASURING.store(false, Ordering::SeqCst);
-    assert_eq!(
-        session.state(),
-        ExactRunState::Terminal(conduit_core::TerminalClass::Succeeded)
-    );
+    let expected_terminal = if matches!(args.termination_request, TerminationRequest::Abort) {
+        conduit_core::TerminalClass::Cancelled
+    } else {
+        conduit_core::TerminalClass::Succeeded
+    };
+    assert_eq!(session.state(), ExactRunState::Terminal(expected_terminal));
     let high_water = session.high_water();
     let value_usage = session
         .value_storage_usage()
         .expect("hosted production drivers expose the fixed value arena");
     let display = session.with_io(|io| io.display().to_vec());
-    assert_eq!(
-        display,
-        payload.repeat(usize::from(args.fanout_branches)).as_bytes()
-    );
+    if matches!(args.termination_request, TerminationRequest::Abort) {
+        assert!(display.is_empty());
+    } else {
+        assert_eq!(
+            display,
+            payload.repeat(usize::from(args.fanout_branches)).as_bytes()
+        );
+    }
     let host_io_output_bytes = u64::try_from(display.len()).unwrap();
     let mut handles = BTreeSet::new();
     let mut branch_deliveries = 0_u64;
@@ -2140,7 +2165,12 @@ fn run_shared_payload_sample(
         1,
         "every production tee branch must retain one exact handle: {handles:?}"
     );
-    assert_eq!(branch_deliveries, u64::from(args.fanout_branches));
+    let expected_deliveries = if matches!(args.termination_request, TerminationRequest::Abort) {
+        0
+    } else {
+        u64::from(args.fanout_branches)
+    };
+    assert_eq!(branch_deliveries, expected_deliveries);
     assert!(maximum_cord_items <= args.queue_items);
     assert_eq!(value_usage.resident_slots, 0);
     assert_eq!(value_usage.resident_bytes, 0);
@@ -2176,15 +2206,26 @@ fn run_shared_payload_sample(
             queue_capacity_items: 1,
             ordering: "one source value reaches every branch",
             pressure: "one production finite-batch source handle across capacity-one cords",
-            terminal: "complete after every branch consumes the shared handle",
-            loss: "none",
+            terminal: if matches!(args.termination_request, TerminationRequest::Abort) {
+                "Abort after atomic publication and before branch consumption"
+            } else {
+                "complete after every branch consumes the shared handle"
+            },
+            loss: if matches!(args.termination_request, TerminationRequest::Abort) {
+                "one admitted shared value cancelled before branch consumption"
+            } else {
+                "none"
+            },
             slow_consumer_yields: 0,
             recovery_after_outputs: 0,
             fanout_branches: args.fanout_branches,
             fanout_mode: "coupled",
             slow_branches: "none",
-            termination_request: "complete",
-            cancel_after_offers: 0,
+            termination_request: args.termination_request.as_str(),
+            cancel_after_offers: u64::from(matches!(
+                args.termination_request,
+                TerminationRequest::Abort
+            )),
             consumer_pattern: "none",
             consumer_burst_items: 0,
             session_mode: "finite-exact-run-session",
@@ -2196,8 +2237,11 @@ fn run_shared_payload_sample(
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(
-                "comparative-shared-payload-fanout/{}/{}/{}",
-                args.fanout_branches, args.payload_bytes, args.queue_items
+                "comparative-shared-payload-fanout/{}/{}/{}/{}",
+                args.fanout_branches,
+                args.payload_bytes,
+                args.queue_items,
+                args.termination_request.as_str()
             ),
             plan_identity: Some(plan.identity.to_string()),
             source_semantic_hash: Some(plan.source_semantic_hash.to_string()),
@@ -2220,10 +2264,10 @@ fn run_shared_payload_sample(
             scheduler_decisions: Some(high_water.decisions),
             producer_stall_ns: Some(0),
             drain_ns: None,
-            abort_ns: None,
+            abort_ns,
             session_pumps: Some(pumps),
             session_reserved_bytes: Some(reserved_session_bytes),
-            pressured_items_at_stop: None,
+            pressured_items_at_stop,
             session_host_wakes: None,
             session_timer_wakes: None,
             residency_plateau_verified: None,
@@ -2243,7 +2287,10 @@ fn run_shared_payload_sample(
             sampled: 0,
             coalesced: 0,
             dropped: 0,
-            cancelled: 0,
+            cancelled: u64::from(matches!(
+                args.termination_request,
+                TerminationRequest::Abort
+            )),
             retried: 0,
             terminal: 1,
         },
@@ -2277,10 +2324,17 @@ fn run_shared_payload_sample(
             sample_stride: 1,
             samples_ns: vec![steady_ns.max(1)],
         },
-        semantic_notes: [
-            "The benchmark harness assembles the current exact coupled PlanFanOut fact for the full source topology; the production hosted literal then stores one finite-batch value in the fixed arena and publishes its generation-safe handle across every capacity-one output cord.",
-            "Exactly one 1 KiB value slot is resident at high water; every display sink verifies its branch through separately accounted preallocated host-I/O storage, while larger payload bindings and stream-specific fan-out modes remain unavailable.",
-        ],
+        semantic_notes: if matches!(args.termination_request, TerminationRequest::Abort) {
+            [
+                "The benchmark harness assembles the current exact coupled PlanFanOut fact for the full source topology; the production hosted literal then stores one finite-batch value in the fixed arena and publishes its generation-safe handle across every capacity-one output cord.",
+                "Abort is requested after atomic publication and before any sink consumes; terminal cleanup must reclaim the one 1 KiB value while queue charges remain visible and verifier output stays empty.",
+            ]
+        } else {
+            [
+                "The benchmark harness assembles the current exact coupled PlanFanOut fact for the full source topology; the production hosted literal then stores one finite-batch value in the fixed arena and publishes its generation-safe handle across every capacity-one output cord.",
+                "Exactly one 1 KiB value slot is resident at high water; every display sink verifies its branch through separately accounted preallocated host-I/O storage, while larger payload bindings and stream-specific fan-out modes remain unavailable.",
+            ]
+        },
     }
 }
 

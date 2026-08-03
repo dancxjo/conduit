@@ -181,6 +181,10 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         serde_json::json!([2, 8, 32])
     );
     assert_eq!(
+        manifest["shared_payload_fanout"]["termination_requests"],
+        serde_json::json!(["complete", "abort"])
+    );
+    assert_eq!(
         manifest["wall_clock_policy"]["gate"],
         "strict only for the separately versioned reviewed regression policy when machine class, architecture, input cardinality, and trial counts match exactly; otherwise report-only"
     );

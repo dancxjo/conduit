@@ -73,9 +73,10 @@
     "payload_bytes": [1024],
     "payload_representation": "hosted-generation-safe-shared-text-handle",
     "branches": [2, 8, 32],
+    "termination_requests": ["complete", "abort"],
     "queue_capacity_items": 1,
     "fanout_mode": "coupled",
-    "scope": "production hosted literal value-store handle through an exact coupled fan-out plan assembled by the benchmark harness; every branch is content-verified at a separately accounted display boundary"
+    "scope": "production hosted literal value-store handle through an exact coupled fan-out plan assembled by the benchmark harness; completion content-verifies every branch at a separately accounted display boundary, while Abort is requested after atomic publication and verifies bounded reclamation before any sink consumes"
   },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
@@ -138,6 +139,7 @@
     "persistent rows retain one finite session reservation across bounded host pumps, request termination with admitted work still pressured, and release the reservation only after terminal finalization",
     "persistent host-operation and timer residency rows perform the declared deterministic wake count without resetting the session, allocate zero times after Start, reach a strict internal high-water plateau, and reconcile the session reservation after Drain finalization",
     "shared-payload rows retain one generation-safe value handle and exactly one 1 KiB value-arena slot at high water across 2, 8, and 32 branches, deliver and content-verify every branch, allocate zero times after Start, and return value residency to zero after terminal completion",
+    "shared-payload Abort rows request cancellation after atomic publication fills every capacity-one branch cord, consume no branch payload, allocate zero times after Start, and return the shared value slot and bytes to zero residency",
     "shared-payload queue charges and display verification buffers scale separately from value-arena residency and are never described as zero-copy",
     "bounded FIFO retries in local-depth fixtures are reported and do not change admitted or completed-useful counts",
     "map, merge, and bounded-async complete one useful output per input",
