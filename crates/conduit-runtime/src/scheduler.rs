@@ -531,12 +531,30 @@ pub enum SchedulerStep {
     Failed { code: Id<'static> },
 }
 
+/// Implementation-owned values currently retained across scheduler steps.
+///
+/// The executor folds this live storage into [`StepUsage`] after every node
+/// step, so the execution profile's retained-value limits remain authoritative
+/// even when a node is waiting for an output cord.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct RetainedValueUsage {
+    pub values: u16,
+    pub bytes: u64,
+}
+
 /// Small synchronous interface adapted by native, process, WASM, or embedded
 /// implementation bindings. No async framework type crosses this boundary.
 pub trait SchedulerNode {
     fn prepare(&mut self) -> Result<LifecycleUsage, Id<'static>>;
     fn start(&mut self) -> Result<LifecycleUsage, Id<'static>>;
     fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep;
+
+    /// Reports implementation-owned values that remain live after this step.
+    /// Queue-owned values and staged transactions are accounted by the
+    /// executor and must not be included here.
+    fn retained_value_usage(&self) -> RetainedValueUsage {
+        RetainedValueUsage::default()
+    }
 
     fn cancel(&mut self, _stop: StopPolicy, _tick: u64) {}
 
@@ -2757,6 +2775,7 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
 
     fn step_usage(&self, node: usize, commit: bool) -> Result<StepUsage, SchedulerError> {
         let workspace = &self.workspaces[node];
+        let retained = self.drivers[node].retained_value_usage();
         let input_bytes = workspace.inputs.iter().try_fold(0_u64, |total, input| {
             total.checked_add(u64::from(input.value.accounted_bytes))
         });
@@ -2780,6 +2799,8 @@ impl<N: SchedulerNode> DeterministicExecutor<N> {
             committed_transactions: u16::from(
                 commit && (!workspace.inputs.is_empty() || !workspace.outputs.is_empty()),
             ),
+            retained_values: retained.values,
+            retained_bytes: retained.bytes,
             input_leases: if commit {
                 u16::try_from(workspace.inputs.len())
                     .map_err(|_| SchedulerError::StepContractViolation)?

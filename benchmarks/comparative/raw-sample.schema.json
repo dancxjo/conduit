@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://conduit.dev/schemas/comparative-raw-sample.json",
+  "title": "Conduit comparative benchmark raw sample",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "fixture_revision",
+    "runtime",
+    "workload",
+    "exact_identity",
+    "sample_kind",
+    "trial",
+    "thermal_state",
+    "phases",
+    "execution",
+    "outcomes",
+    "allocations",
+    "memory",
+    "latency",
+    "semantic_notes"
+  ],
+  "properties": {
+    "schema": { "const": "conduit.comparative-raw-sample" },
+    "schema_version": { "const": 0 },
+    "fixture_revision": { "const": 0 },
+    "sample_kind": { "enum": ["warmup", "measured"] },
+    "trial": { "type": "integer", "minimum": 0 },
+    "thermal_state": { "enum": ["cold", "warming", "warmed"] },
+    "outcomes": {
+      "type": "object",
+      "required": ["offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "cancelled", "retried", "terminal"],
+      "properties": {
+        "offered": { "type": "integer", "minimum": 0 },
+        "admitted": { "type": "integer", "minimum": 0 },
+        "completed_useful": { "type": "integer", "minimum": 0 },
+        "rejected": { "type": "integer", "minimum": 0 },
+        "sampled": { "type": "integer", "minimum": 0 },
+        "coalesced": { "type": "integer", "minimum": 0 },
+        "dropped": { "type": "integer", "minimum": 0 },
+        "cancelled": { "type": "integer", "minimum": 0 },
+        "retried": { "type": "integer", "minimum": 0 },
+        "terminal": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["id", "comparison_role", "execution_mode", "build_profile", "scheduler", "fusion", "batching", "concurrency"],
+      "properties": {
+        "comparison_role": { "enum": ["reactive-runtime", "language-lower-bound"] }
+      }
+    },
+    "workload": {
+      "type": "object",
+      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs", "fanout_branches", "fanout_mode", "slow_branches", "termination_request", "cancel_after_offers", "consumer_pattern", "consumer_burst_items", "session_mode", "session_pump_quantum", "residency_plateau_after_wakes", "timer_advance_ticks", "payload_bytes", "payload_representation", "watch_slots", "watch_preview_bytes", "watch_retention", "watch_lifecycle"]
+    },
+    "exact_identity": {
+      "type": "object",
+      "required": ["logical_fixture", "plan_identity", "source_semantic_hash", "artifact_digest"]
+    },
+    "phases": {
+      "type": "object",
+      "required": ["assembly_ns", "plan_seal_ns", "start_ns", "steady_ns", "pressure_ns", "recovery_ns", "pressure_cycles", "recovery_cycles"],
+      "properties": {
+        "pressure_cycles": { "type": ["integer", "null"], "minimum": 0 },
+        "recovery_cycles": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": ["scheduler_decisions", "producer_stall_ns", "drain_ns", "abort_ns", "session_pumps", "session_reserved_bytes", "pressured_items_at_stop", "session_host_wakes", "session_timer_wakes", "residency_plateau_verified", "residency_checkpoint_queue_items_high_water", "residency_checkpoint_queue_payload_bytes_high_water", "residency_checkpoint_ready_slots_high_water", "residency_checkpoint_evidence_slots_high_water", "unique_value_handles", "branch_deliveries", "shared_handle_publications", "payload_copy_operations", "payload_bytes_copied"],
+      "properties": {
+        "scheduler_decisions": { "type": ["integer", "null"], "minimum": 0 },
+        "producer_stall_ns": { "type": ["integer", "null"], "minimum": 0 },
+        "drain_ns": { "type": ["integer", "null"], "minimum": 0 },
+        "abort_ns": { "type": ["integer", "null"], "minimum": 0 },
+        "session_pumps": { "type": ["integer", "null"], "minimum": 1 },
+        "session_reserved_bytes": { "type": ["integer", "null"], "minimum": 1 },
+        "pressured_items_at_stop": { "type": ["integer", "null"], "minimum": 1 },
+        "session_host_wakes": { "type": ["integer", "null"], "minimum": 1 },
+        "session_timer_wakes": { "type": ["integer", "null"], "minimum": 1 },
+        "residency_plateau_verified": { "type": ["boolean", "null"] },
+        "residency_checkpoint_queue_items_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "residency_checkpoint_queue_payload_bytes_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "residency_checkpoint_ready_slots_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "residency_checkpoint_evidence_slots_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "unique_value_handles": { "type": ["integer", "null"], "minimum": 1 },
+        "branch_deliveries": { "type": ["integer", "null"], "minimum": 0 },
+        "shared_handle_publications": { "type": ["integer", "null"], "minimum": 0 },
+        "payload_copy_operations": { "type": ["integer", "null"], "minimum": 0 },
+        "payload_bytes_copied": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "memory": {
+      "type": "object",
+      "required": ["resident_before_bytes", "resident_after_bytes", "resident_peak_bytes", "planned_memory_bytes", "executor_overhead_bytes", "queue_items_high_water", "queue_max_cord_items_high_water", "queue_payload_bytes_high_water", "ready_slots_high_water", "evidence_slots_high_water", "value_resident_slots_after_terminal", "value_resident_bytes_after_terminal", "value_slots_high_water", "value_bytes_high_water", "value_slots_capacity", "value_bytes_capacity", "host_io_capacity_bytes", "host_io_output_bytes", "watch_admitted_slots", "watch_attached_slots", "watch_retained_observations", "watch_retained_preview_bytes", "watch_dropped_observations", "watch_maximum_observations", "watch_maximum_preview_bytes"],
+      "properties": {
+        "resident_before_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "resident_after_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "resident_peak_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "planned_memory_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "executor_overhead_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "queue_items_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "queue_max_cord_items_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "queue_payload_bytes_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "ready_slots_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "evidence_slots_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "value_resident_slots_after_terminal": { "type": ["integer", "null"], "minimum": 0 },
+        "value_resident_bytes_after_terminal": { "type": ["integer", "null"], "minimum": 0 },
+        "value_slots_high_water": { "type": ["integer", "null"], "minimum": 1 },
+        "value_bytes_high_water": { "type": ["integer", "null"], "minimum": 1 },
+        "value_slots_capacity": { "type": ["integer", "null"], "minimum": 1 },
+        "value_bytes_capacity": { "type": ["integer", "null"], "minimum": 1 },
+        "host_io_capacity_bytes": { "type": ["integer", "null"], "minimum": 1 },
+        "host_io_output_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "watch_admitted_slots": { "type": ["integer", "null"], "minimum": 0 },
+        "watch_attached_slots": { "type": ["integer", "null"], "minimum": 0 },
+        "watch_retained_observations": { "type": ["integer", "null"], "minimum": 0 },
+        "watch_retained_preview_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "watch_dropped_observations": { "type": ["integer", "null"], "minimum": 0 },
+        "watch_maximum_observations": { "type": ["integer", "null"], "minimum": 0 },
+        "watch_maximum_preview_bytes": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "latency": {
+      "type": "object",
+      "required": ["clock", "sample_stride", "samples_ns"]
+    }
+  },
+  "additionalProperties": true
+}

@@ -375,6 +375,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-benchmark"
+version = "0.0.0-dev"
+dependencies = [
+ "bumpalo",
+ "clap",
+ "conduit-compile",
+ "conduit-core",
+ "conduit-panel",
+ "conduit-runtime",
+ "libc",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-cache"
 version = "0.0.0-dev"
 dependencies = [

@@ -9,8 +9,8 @@ use crate::{
     ExecutionLimitsDocument, ExecutionPlacementObservationDocument, ExecutionProfileDocument,
     ExternalLeafContractDocument, HostCapabilityDocument, HostReportDocument,
     ImplementationDocument, ImplementationInterfaceDocument, MemoryClaimDocument, PinDocument,
-    ReportCapabilityDocument, ResourceLeaseDocument, WatchAdmissionDocument,
-    builtin_catalog_document,
+    ReportCapabilityDocument, ResourceLeaseDocument, ValueRepresentationDocument,
+    WatchAdmissionDocument, builtin_catalog_document,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, ExecutorKind,
@@ -496,7 +496,55 @@ impl InstalledProfile {
             let stdout_instance = (contract_id == "io/stdout")
                 .then(|| instances.first().cloned())
                 .flatten();
+            let topology_value_bytes = topology
+                .cords
+                .iter()
+                .filter(|cord| {
+                    instances
+                        .iter()
+                        .any(|instance| instance == &cord.from_node || instance == &cord.to_node)
+                })
+                .map(|cord| cord.max_value_bytes)
+                .max()
+                .unwrap_or(0);
             for installed in matching {
+                let required_value_bytes = if installed.implementation
+                    == HostedPrimitiveImplementation::Literal
+                {
+                    instances
+                        .iter()
+                        .filter_map(|instance| {
+                            panel.nodes.iter().find(|node| {
+                                node.id == *instance || instance.ends_with(&format!("/{}", node.id))
+                            })
+                        })
+                        .filter_map(|node| node.config("value"))
+                        .map(|value| u32::try_from(value.len()).unwrap_or(u32::MAX))
+                        .max()
+                        .unwrap_or(0)
+                } else {
+                    topology_value_bytes
+                };
+                if matches!(
+                    installed.implementation,
+                    HostedPrimitiveImplementation::Literal
+                        | HostedPrimitiveImplementation::Stdin
+                        | HostedPrimitiveImplementation::StdinStream
+                        | HostedPrimitiveImplementation::Stdout
+                        | HostedPrimitiveImplementation::Stderr
+                        | HostedPrimitiveImplementation::StdoutStream
+                        | HostedPrimitiveImplementation::StderrStream
+                        | HostedPrimitiveImplementation::DisplayText
+                        | HostedPrimitiveImplementation::Uppercase
+                ) && required_value_bytes > HOSTED_VALUE_BYTES_CEILING
+                {
+                    return Err(RuntimeError::new(
+                        "CND-RUN-007",
+                        format!(
+                            "installed hosted value binding for `{contract_id}` supports at most {HOSTED_VALUE_BYTES_CEILING} bytes, but the source requires {required_value_bytes}"
+                        ),
+                    ));
+                }
                 let host_service_instances = if installed.implementation
                     == HostedPrimitiveImplementation::HostedService
                 {
@@ -540,6 +588,7 @@ impl InstalledProfile {
                     stdout_granted,
                     observed_authorities,
                     host_observation,
+                    required_value_bytes,
                 ));
             }
         }
@@ -924,6 +973,7 @@ fn candidate(
     stdout_granted: bool,
     observed_authorities: &[ObservedHostServiceAuthority],
     host_observation: &InstalledHostObservationInput,
+    required_value_bytes: u32,
 ) -> CandidateDocument {
     let manifest = installed.manifest;
     let mut authorities = stdout_instance
@@ -959,9 +1009,17 @@ fn candidate(
         installed.implementation,
         HostedPrimitiveImplementation::Format | HostedPrimitiveImplementation::FormatValuesLiteral
     );
+    let literal_profile = matches!(
+        installed.implementation,
+        HostedPrimitiveImplementation::Literal
+    );
     let buffered_text_profile = matches!(
         installed.implementation,
         HostedPrimitiveImplementation::Lines | HostedPrimitiveImplementation::Join
+    );
+    let uppercase_profile = matches!(
+        installed.implementation,
+        HostedPrimitiveImplementation::Uppercase
     );
     let data_boundary_profile = matches!(
         installed.implementation,
@@ -1024,6 +1082,7 @@ fn candidate(
         .id
         .as_str()
         .starts_with("conduit.host/net/");
+    let hosted_value_bytes = bounded_hosted_value_bytes(required_value_bytes);
     CandidateDocument {
         implementation: ImplementationDocument {
             schema_version: IMPLEMENTATION_MANIFEST_SCHEMA_VERSION,
@@ -1100,7 +1159,11 @@ fn candidate(
         } else if has_host_service {
             host_service_execution_profile()
         } else if host_io_profile {
-            host_io_execution_profile()
+            host_io_execution_profile(hosted_value_bytes)
+        } else if literal_profile {
+            literal_execution_profile(hosted_value_bytes)
+        } else if uppercase_profile {
+            uppercase_execution_profile(hosted_value_bytes)
         } else if format_profile {
             format_execution_profile()
         } else if buffered_text_profile {
@@ -1187,7 +1250,11 @@ fn candidate(
             } else if has_host_service {
                 192 * 1024
             } else if host_io_profile {
-                3 * 1024
+                3 * u64::from(hosted_value_bytes)
+            } else if literal_profile {
+                u64::from(LITERAL_MAXIMUM_OUTPUTS) * u64::from(hosted_value_bytes)
+            } else if uppercase_profile {
+                4 * u64::from(hosted_value_bytes)
             } else if structural_validation_profile {
                 576 * 1024
             } else if format_profile || buffered_text_profile || data_boundary_profile {
@@ -1700,6 +1767,100 @@ fn execution_profile() -> ExecutionProfileDocument {
     }
 }
 
+const HOSTED_VALUE_BYTES_FLOOR: u32 = 1024;
+const HOSTED_VALUE_BYTES_CEILING: u32 = 1024 * 1024;
+const LITERAL_MAXIMUM_OUTPUTS: u16 = 32;
+
+fn bounded_hosted_value_bytes(required: u32) -> u32 {
+    required.max(HOSTED_VALUE_BYTES_FLOOR)
+}
+
+fn literal_execution_profile(value_bytes: u32) -> ExecutionProfileDocument {
+    let value_bytes = u64::from(value_bytes);
+    let memory_bytes = u64::from(LITERAL_MAXIMUM_OUTPUTS) * value_bytes;
+    let value_type = conduit_runtime::LITERAL_CONTRACT.outputs[0].value_type;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-literal-multicast-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: u32::from(LITERAL_MAXIMUM_OUTPUTS),
+            max_input_leases: 0,
+            max_input_bytes: 0,
+            max_output_reservations: LITERAL_MAXIMUM_OUTPUTS,
+            max_output_bytes: memory_bytes,
+            max_transactions: LITERAL_MAXIMUM_OUTPUTS,
+            max_fragments_per_step: LITERAL_MAXIMUM_OUTPUTS,
+            implementation_memory_bytes: memory_bytes,
+            cancellation_ticks: 1,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: vec![ValueRepresentationDocument {
+            direction: "output".to_owned(),
+            port: "value".to_owned(),
+            semantic_type: PinDocument {
+                id: value_type.contract_id.to_string(),
+                schema_version: value_type.schema_version,
+                semantic_hash: value_type.semantic_hash.to_string(),
+            },
+            representation: pin("conduit.representation/hosted-value-store-handle", 31),
+            ownership: "shared-handle".to_owned(),
+            disposition: "explicit-dispose".to_owned(),
+            max_bytes: value_bytes as u32,
+        }],
+        memory_claims: vec![MemoryClaimDocument {
+            category: "port-transactions".to_owned(),
+            accounting: "executor-allocated".to_owned(),
+            bytes: memory_bytes,
+        }],
+        checkpoint: None,
+    }
+}
+
+fn uppercase_execution_profile(value_bytes: u32) -> ExecutionProfileDocument {
+    let value_bytes = u64::from(value_bytes);
+    let scratch_bytes = 2 * value_bytes;
+    let memory_bytes = 4 * value_bytes;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-uppercase-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: 4,
+            max_input_leases: 1,
+            max_input_bytes: value_bytes,
+            max_output_reservations: 1,
+            max_output_bytes: value_bytes,
+            max_transactions: 1,
+            max_fragments_per_step: 1,
+            max_scratch_bytes: scratch_bytes as u32,
+            implementation_memory_bytes: memory_bytes,
+            cancellation_ticks: 1,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "step-scratch".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: scratch_bytes,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: memory_bytes - scratch_bytes,
+            },
+        ],
+        checkpoint: None,
+    }
+}
+
 fn audio_device_execution_profile() -> ExecutionProfileDocument {
     const HOST_BUFFER_BYTES: u64 = 4 * 1024;
     const MEMORY_BYTES: u64 = 32 * 1024;
@@ -1755,9 +1916,9 @@ fn audio_device_execution_profile() -> ExecutionProfileDocument {
     }
 }
 
-fn host_io_execution_profile() -> ExecutionProfileDocument {
-    const BUFFER_BYTES: u64 = 1024;
-    const MEMORY_BYTES: u64 = 3 * 1024;
+fn host_io_execution_profile(value_bytes: u32) -> ExecutionProfileDocument {
+    let value_bytes = u64::from(value_bytes);
+    let memory_bytes = 3 * value_bytes;
     ExecutionProfileDocument {
         id: "conduit/hosted-io-profile".to_owned(),
         schema_version: 0,
@@ -1768,13 +1929,13 @@ fn host_io_execution_profile() -> ExecutionProfileDocument {
         limits: ExecutionLimitsDocument {
             max_step_work: 4,
             max_input_leases: 1,
-            max_input_bytes: BUFFER_BYTES,
+            max_input_bytes: value_bytes,
             max_output_reservations: 1,
-            max_output_bytes: BUFFER_BYTES,
+            max_output_bytes: value_bytes,
             max_transactions: 1,
             max_fragments_per_step: 1,
-            max_host_buffer_bytes: BUFFER_BYTES,
-            implementation_memory_bytes: MEMORY_BYTES,
+            max_host_buffer_bytes: value_bytes,
+            implementation_memory_bytes: memory_bytes,
             cancellation_ticks: 1,
             ..ExecutionLimitsDocument::default()
         },
@@ -1783,12 +1944,12 @@ fn host_io_execution_profile() -> ExecutionProfileDocument {
             MemoryClaimDocument {
                 category: "host-services".to_owned(),
                 accounting: "executor-allocated".to_owned(),
-                bytes: BUFFER_BYTES,
+                bytes: value_bytes,
             },
             MemoryClaimDocument {
                 category: "port-transactions".to_owned(),
                 accounting: "executor-allocated".to_owned(),
-                bytes: MEMORY_BYTES - BUFFER_BYTES,
+                bytes: memory_bytes - value_bytes,
             },
         ],
         checkpoint: None,
