@@ -1,10 +1,38 @@
 use bumpalo::Bump;
 use conduit_compile::{InstalledProfile, compile_source};
 use conduit_core::{
-    Id, PlanValidationContext, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy,
-    TerminalClass,
+    Id, OwnershipModel, PlanValidationContext, ReadyQueueDiscipline, SCHEDULER_CONTRACT_VERSION,
+    SchedulerPolicy, TerminalClass,
 };
 use conduit_runtime::{AvailabilityState, ExactRunContext, Registry, RunIo, SchedulerReservation};
+
+#[test]
+fn hosted_literal_profile_pins_bounded_shared_handle_multicast() {
+    let source = "panel 0\nsource: std/literal { value = \"payload\" }\nsink: display/text\nsource.value > sink.text\n";
+    let installed = InstalledProfile::observe(source).unwrap();
+    let document = compile_source(source, &installed.input).unwrap();
+    let arena = Bump::new();
+    let plan = document.as_plan(&arena).unwrap();
+    let literal = plan
+        .nodes
+        .iter()
+        .find(|node| node.contract.id.as_str() == "std/literal")
+        .unwrap();
+    let profile = literal.execution_profile.unwrap();
+    assert_eq!(
+        profile.id.as_str(),
+        "conduit/hosted-literal-multicast-profile"
+    );
+    assert_eq!(profile.limits.max_output_reservations, 32);
+    assert_eq!(profile.limits.max_output_bytes, 32 * 1024);
+    assert_eq!(profile.representations.len(), 1);
+    assert_eq!(profile.representations[0].port.as_str(), "value");
+    assert_eq!(
+        profile.representations[0].ownership,
+        OwnershipModel::SharedHandle
+    );
+    assert_eq!(profile.representations[0].max_bytes, 1024);
+}
 
 fn exact_report(
     source: &str,

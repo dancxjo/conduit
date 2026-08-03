@@ -1,6 +1,8 @@
 use std::{
     alloc::{GlobalAlloc, Layout, System},
     cell::{Cell, RefCell},
+    collections::BTreeSet,
+    fmt::Write as _,
     hint::black_box,
     rc::Rc,
     sync::{
@@ -10,7 +12,9 @@ use std::{
     time::Instant,
 };
 
+use bumpalo::Bump;
 use clap::{Parser, ValueEnum};
+use conduit_compile::{InstalledProfile, compile_source};
 use conduit_core::{
     ArtifactDigest, AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee,
     CompatibilityOutcome, Direction, DuplicationRule, ExecutionLimits, ExecutionPlan,
@@ -23,9 +27,11 @@ use conduit_core::{
     validate_execution_plan,
 };
 use conduit_runtime::{
-    DeterministicExecutor, ExactRunIdentity, ExactRunSession, ExactRunSessionRegistry,
-    RetainedValueUsage, RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerNode,
-    SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
+    DeterministicExecutor, ExactRunContext, ExactRunIdentity, ExactRunIo, ExactRunSession,
+    ExactRunSessionRegistry, ExactRunState, Registry, RetainedValueUsage, RuntimeValue,
+    RuntimeValueEnvelope, ScheduledNode, SchedulerEventKind, SchedulerNode, SchedulerReservation,
+    SchedulerStatus, SchedulerStep, SchedulerSubject, SendStatus, StepIo,
+    hosted_service_use_observations,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -116,6 +122,7 @@ enum Workload {
     BoundedAsync,
     Overload,
     Fanout,
+    SharedPayloadFanout,
     PersistentWake,
     PersistentTimer,
 }
@@ -129,6 +136,7 @@ impl Workload {
             Self::BoundedAsync => "bounded-async",
             Self::Overload => "overload",
             Self::Fanout => "fanout",
+            Self::SharedPayloadFanout => "shared-payload-fanout",
             Self::PersistentWake => "persistent-wake",
             Self::PersistentTimer => "persistent-timer",
         }
@@ -324,6 +332,8 @@ struct Args {
     residency_plateau_after_wakes: u64,
     #[arg(long, default_value_t = 0)]
     timer_advance_ticks: u64,
+    #[arg(long, default_value_t = 0)]
+    payload_bytes: u64,
 }
 
 #[derive(Serialize)]
@@ -354,6 +364,8 @@ struct ExecutionMeasurement {
     residency_checkpoint_queue_payload_bytes_high_water: Option<u64>,
     residency_checkpoint_ready_slots_high_water: Option<u32>,
     residency_checkpoint_evidence_slots_high_water: Option<u32>,
+    unique_value_handles: Option<u64>,
+    branch_deliveries: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -375,6 +387,14 @@ struct MemoryMeasurement {
     queue_payload_bytes_high_water: Option<u64>,
     ready_slots_high_water: Option<u32>,
     evidence_slots_high_water: Option<u32>,
+    value_resident_slots_after_terminal: Option<u32>,
+    value_resident_bytes_after_terminal: Option<u64>,
+    value_slots_high_water: Option<u32>,
+    value_bytes_high_water: Option<u64>,
+    value_slots_capacity: Option<u32>,
+    value_bytes_capacity: Option<u64>,
+    host_io_capacity_bytes: Option<u64>,
+    host_io_output_bytes: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -419,6 +439,8 @@ struct WorkloadIdentity {
     session_pump_quantum: u64,
     residency_plateau_after_wakes: u64,
     timer_advance_ticks: u64,
+    payload_bytes: u64,
+    payload_representation: &'static str,
 }
 
 #[derive(Serialize)]
@@ -1771,6 +1793,7 @@ fn prepare(args: &Args) -> PreparedRun {
                 Workload::BoundedAsync => "bounded-async",
                 Workload::Overload => "overload",
                 Workload::Fanout => "fanout",
+                Workload::SharedPayloadFanout => "shared-payload-fanout",
                 Workload::PersistentWake => "persistent-wake",
                 Workload::PersistentTimer => "persistent-timer",
             },
@@ -1870,6 +1893,395 @@ fn proc_status_bytes(field: &str) -> Option<u64> {
     let line = status.lines().find(|line| line.starts_with(field))?;
     let kib = line.split_whitespace().nth(1)?.parse::<u64>().ok()?;
     kib.checked_mul(1024)
+}
+
+fn shared_payload_source(branches: u16, payload_bytes: usize) -> (String, String) {
+    assert!(matches!(branches, 1 | 2 | 8 | 32));
+    assert_eq!(
+        payload_bytes, 1024,
+        "the current hosted text binding is exactly 1 KiB"
+    );
+    let payload = (0..payload_bytes)
+        .map(|index| char::from(b'a' + u8::try_from(index % 26).unwrap()))
+        .collect::<String>();
+    let mut source = String::from("panel 0\n\nsource: std/literal {\n    value = \"");
+    source.push_str(&payload);
+    source.push_str("\"\n}\n");
+    for sink in 0..branches {
+        writeln!(source, "sink_{sink}: display/text").unwrap();
+    }
+    let cord = |source: &mut String, from: &str, to: &str| {
+        writeln!(
+            source,
+            "{from} > {to} {{ capacity = 1 max_value_bytes = {payload_bytes} max_queued_bytes = {payload_bytes} low_watermark = 0 high_watermark = 1 pressure = block }}"
+        )
+        .unwrap();
+    };
+    for sink in 0..branches {
+        cord(&mut source, "source.value", &format!("sink_{sink}.text"));
+    }
+    (source, payload)
+}
+
+fn run_shared_payload_sample(
+    args: &Args,
+    sample_kind: &'static str,
+    trial: u32,
+    thermal_state: &'static str,
+) -> RawSample {
+    assert!(matches!(args.workload, Workload::SharedPayloadFanout));
+    assert_eq!(
+        args.values, 1,
+        "shared payload trials publish one exact value"
+    );
+    assert_eq!(
+        args.operators, 1,
+        "shared payload fan-out is one logical publication boundary"
+    );
+    assert_eq!(
+        args.queue_items, 1,
+        "shared payload cords use exact capacity one"
+    );
+    assert!(matches!(args.fanout_branches, 2 | 8 | 32));
+    assert!(matches!(args.fanout_mode, FanoutPublication::Coupled));
+    assert_eq!(args.payload_bytes, 1024);
+    assert_eq!(args.slow_consumer_yields, 0);
+    assert_eq!(args.cancel_after_offers, 0);
+    assert_eq!(args.session_pump_quantum, 0);
+    assert_eq!(args.residency_plateau_after_wakes, 0);
+    assert_eq!(args.timer_advance_ticks, 0);
+    assert!(matches!(
+        args.termination_request,
+        TerminationRequest::Complete
+    ));
+    assert!(matches!(args.session_mode, SessionMode::Finite));
+    assert!(!args.identity_loop);
+
+    let assembly_started = Instant::now();
+    let payload_bytes = usize::try_from(args.payload_bytes).unwrap();
+    let (source, payload) = shared_payload_source(args.fanout_branches, payload_bytes);
+    let panel = conduit_panel::parse(&source).unwrap();
+    let registry = Registry::hosted_primitives();
+    let resolved = registry.resolve(&panel).unwrap();
+    let topology = resolved.exact_topology().unwrap();
+    let assembly_ns = assembly_started.elapsed().as_nanos() as u64;
+
+    let seal_started = Instant::now();
+    // ExactPlanDocument does not yet carry PlanFanOut. Seal the production
+    // provider/profile skeleton, then assemble the current core fan-out fact
+    // against the full source-derived topology without claiming compiler
+    // support that does not exist.
+    let (profile_source, _) = shared_payload_source(1, payload_bytes);
+    let mut installed = InstalledProfile::observe(&profile_source).unwrap();
+    installed.input.plan_budget.evidence_bytes = 256 * 1024;
+    installed.input.seal().unwrap();
+    let document = compile_source(&profile_source, &installed.input).unwrap();
+    let arena = Bump::new();
+    let mut plan = document.as_plan(&arena).unwrap();
+    let source_node = *plan
+        .nodes
+        .iter()
+        .find(|node| node.instance.as_str() == "root/source")
+        .unwrap();
+    let sink_template = *plan
+        .nodes
+        .iter()
+        .find(|node| node.instance.as_str() == "root/sink_0")
+        .unwrap();
+    let cord_template = plan.cords[0];
+    let mut nodes = Vec::with_capacity(usize::from(args.fanout_branches) + 1);
+    let mut cords = Vec::with_capacity(usize::from(args.fanout_branches));
+    let mut branch_ids = Vec::with_capacity(usize::from(args.fanout_branches));
+    nodes.push(source_node);
+    for branch in 0..args.fanout_branches {
+        let instance = InstancePath::new(leaked(format!("root/sink_{branch}"))).unwrap();
+        nodes.push(ResolvedPlanNode {
+            instance,
+            ..sink_template
+        });
+        let topology_cord = &topology.cords[usize::from(branch)];
+        assert_eq!(topology_cord.from_node, "root/source");
+        assert_eq!(topology_cord.to_node, format!("root/sink_{branch}"));
+        let id = Id(leaked(topology_cord.id.clone()));
+        branch_ids.push(id);
+        cords.push(ResolvedPlanCord {
+            id,
+            to: ResolvedPlanPort {
+                node: instance,
+                ..cord_template.to
+            },
+            ..cord_template
+        });
+    }
+    plan.nodes = arena.alloc_slice_copy(&nodes);
+    plan.cords = arena.alloc_slice_copy(&cords);
+    plan.fanouts = arena.alloc_slice_copy(&[PlanFanOut {
+        id: Id("benchmark/shared-payload/fanout"),
+        producer: cords[0].from,
+        mode: FanOutMode::Coupled,
+        branches: arena.alloc_slice_copy(&branch_ids),
+        duplicator: None,
+        duplicator_input: None,
+        duplication: DuplicationRule::SharedHandle,
+    }]);
+    plan.source_semantic_hash = topology.source_semantic_hash;
+    plan.identity = SemanticHash::from_bytes([0; 32]);
+    let mut identity_scratch =
+        vec![SemanticHash::from_bytes([0; 32]); plan.identity_fact_count().unwrap()];
+    plan.identity = plan.semantic_hash(&mut identity_scratch).unwrap();
+    validate_execution_plan(
+        &plan,
+        PlanValidationContext {
+            supported_schema_version: plan.schema_version,
+            now: plan.created_at,
+        },
+        &mut identity_scratch,
+    )
+    .unwrap();
+    let bindings = installed.bindings(&plan).unwrap();
+    let grant_observations = installed.grant_observations(&plan).unwrap();
+    let use_observations = hosted_service_use_observations(&grant_observations);
+    let seal_ns = seal_started.elapsed().as_nanos() as u64;
+    let sessions = ExactRunSessionRegistry::new(1, plan.budget.memory_bytes).unwrap();
+    let policy = SchedulerPolicy {
+        schema_version: SCHEDULER_CONTRACT_VERSION,
+        ready_queue: ReadyQueueDiscipline::RoundRobin,
+        max_decisions: u64::from(args.fanout_branches) * 128,
+        max_tick: u64::from(args.fanout_branches) * 256,
+        max_consecutive_yields: 8,
+        max_events: u32::from(args.fanout_branches) * 32,
+    };
+    let reservation = SchedulerReservation {
+        available_runtime_memory_bytes: plan.budget.memory_bytes,
+        executor_overhead_limit_bytes: plan.budget.memory_bytes,
+    };
+    let start_started = Instant::now();
+    let mut session = resolved
+        .start_exact_session(
+            &plan,
+            &bindings,
+            ExactRunContext {
+                semantic_source_hash: plan.source_semantic_hash,
+                plan_epoch: 1,
+                run_id: Id("benchmark/shared-payload-fanout"),
+                grant_observations: &grant_observations,
+                validation: PlanValidationContext {
+                    supported_schema_version: plan.schema_version,
+                    now: plan.created_at,
+                },
+                scheduler_policy: policy,
+                reservation,
+            },
+            &sessions,
+            ExactRunIo::for_plan(&plan).unwrap(),
+        )
+        .unwrap();
+    let start_ns = start_started.elapsed().as_nanos() as u64;
+    let allocation = session.allocation();
+    let reserved_session_bytes = session.reserved_session_bytes();
+    let host_io_capacity_bytes = session.with_io(ExactRunIo::capacity_bytes);
+    let resident_before = proc_status_bytes("VmRSS:");
+    let cpu_before = process_cpu_ns();
+    ALLOCATION_CALLS.store(0, Ordering::Relaxed);
+    ALLOCATED_BYTES.store(0, Ordering::Relaxed);
+    MEASURING.store(true, Ordering::SeqCst);
+    let steady_started = Instant::now();
+    let mut pumps = 0_u64;
+    while matches!(session.state(), ExactRunState::Active) {
+        if let Err(error) = session.pump(512, &use_observations) {
+            panic!(
+                "{error:?}; state={:?}; high_water={:?}; pumps={pumps}",
+                session.state(),
+                session.high_water()
+            );
+        }
+        pumps += 1;
+    }
+    let steady_ns = steady_started.elapsed().as_nanos() as u64;
+    MEASURING.store(false, Ordering::SeqCst);
+    assert_eq!(
+        session.state(),
+        ExactRunState::Terminal(conduit_core::TerminalClass::Succeeded)
+    );
+    let high_water = session.high_water();
+    let value_usage = session
+        .value_storage_usage()
+        .expect("hosted production drivers expose the fixed value arena");
+    let display = session.with_io(|io| io.display().to_vec());
+    assert_eq!(
+        display,
+        payload.repeat(usize::from(args.fanout_branches)).as_bytes()
+    );
+    let host_io_output_bytes = u64::try_from(display.len()).unwrap();
+    let mut handles = BTreeSet::new();
+    let mut branch_deliveries = 0_u64;
+    let mut maximum_cord_items = 0_u16;
+    for event in session.scheduler_events() {
+        if let SchedulerSubject::Cord(cord) = event.subject {
+            maximum_cord_items = maximum_cord_items.max(event.occupancy_items);
+            let cord = &plan.cords[usize::from(cord)];
+            if cord.from.node.as_str() == "root/source" {
+                if let Some(handle) = event.value_handle {
+                    handles.insert(handle);
+                }
+                if let Some(handle) = event.related_value_handle {
+                    handles.insert(handle);
+                }
+                if matches!(event.kind, SchedulerEventKind::ValueConsumed)
+                    && cord.to.node.as_str().starts_with("root/sink_")
+                {
+                    branch_deliveries += 1;
+                }
+            }
+        }
+    }
+    assert_eq!(
+        handles.len(),
+        1,
+        "every production tee branch must retain one exact handle: {handles:?}"
+    );
+    assert_eq!(branch_deliveries, u64::from(args.fanout_branches));
+    assert!(maximum_cord_items <= args.queue_items);
+    assert_eq!(value_usage.resident_slots, 0);
+    assert_eq!(value_usage.resident_bytes, 0);
+    assert_eq!(value_usage.high_water_slots, 1);
+    assert_eq!(value_usage.high_water_bytes, args.payload_bytes);
+    MEASURING.store(true, Ordering::SeqCst);
+    session.finalize().unwrap();
+    MEASURING.store(false, Ordering::SeqCst);
+    assert_eq!(sessions.active_sessions(), 0);
+    assert_eq!(sessions.reserved_bytes(), 0);
+    let cpu_ns = process_cpu_ns()
+        .zip(cpu_before)
+        .map(|(after, before)| after - before);
+
+    RawSample {
+        schema: "conduit.comparative-raw-sample",
+        schema_version: 0,
+        fixture_revision: 0,
+        runtime: RuntimeConfiguration {
+            id: "conduit-hosted-value-arena",
+            comparison_role: "reactive-runtime",
+            execution_mode: "production-hosted-exact-session",
+            build_profile: "release",
+            scheduler: "round-robin-bounded",
+            fusion: "disabled",
+            batching: "one-shared-value",
+            concurrency: 1,
+        },
+        workload: WorkloadIdentity {
+            id: args.workload,
+            operators: 1,
+            input_values: 1,
+            queue_capacity_items: 1,
+            ordering: "one source value reaches every branch",
+            pressure: "one production finite-batch source handle across capacity-one cords",
+            terminal: "complete after every branch consumes the shared handle",
+            loss: "none",
+            slow_consumer_yields: 0,
+            recovery_after_outputs: 0,
+            fanout_branches: args.fanout_branches,
+            fanout_mode: "coupled",
+            slow_branches: "none",
+            termination_request: "complete",
+            cancel_after_offers: 0,
+            consumer_pattern: "none",
+            consumer_burst_items: 0,
+            session_mode: "finite-exact-run-session",
+            session_pump_quantum: 512,
+            residency_plateau_after_wakes: 0,
+            timer_advance_ticks: 0,
+            payload_bytes: args.payload_bytes,
+            payload_representation: "hosted-generation-safe-shared-text-handle",
+        },
+        exact_identity: ExactIdentity {
+            logical_fixture: format!(
+                "comparative-shared-payload-fanout/{}/{}/{}",
+                args.fanout_branches, args.payload_bytes, args.queue_items
+            ),
+            plan_identity: Some(plan.identity.to_string()),
+            source_semantic_hash: Some(plan.source_semantic_hash.to_string()),
+            artifact_digest: Some(plan.artifacts[0].digest.to_string()),
+        },
+        sample_kind,
+        trial,
+        thermal_state,
+        phases: PhaseTimes {
+            assembly_ns,
+            plan_seal_ns: Some(seal_ns),
+            start_ns: Some(start_ns),
+            steady_ns,
+            pressure_ns: None,
+            recovery_ns: None,
+            pressure_cycles: None,
+            recovery_cycles: None,
+        },
+        execution: ExecutionMeasurement {
+            scheduler_decisions: Some(high_water.decisions),
+            producer_stall_ns: Some(0),
+            drain_ns: None,
+            abort_ns: None,
+            session_pumps: Some(pumps),
+            session_reserved_bytes: Some(reserved_session_bytes),
+            pressured_items_at_stop: None,
+            session_host_wakes: None,
+            session_timer_wakes: None,
+            residency_plateau_verified: None,
+            residency_checkpoint_queue_items_high_water: None,
+            residency_checkpoint_queue_payload_bytes_high_water: None,
+            residency_checkpoint_ready_slots_high_water: None,
+            residency_checkpoint_evidence_slots_high_water: None,
+            unique_value_handles: Some(u64::try_from(handles.len()).unwrap()),
+            branch_deliveries: Some(branch_deliveries),
+        },
+        process_cpu_ns: cpu_ns,
+        outcomes: OutcomeMeasurement {
+            offered: 1,
+            admitted: 1,
+            completed_useful: branch_deliveries,
+            rejected: 0,
+            sampled: 0,
+            coalesced: 0,
+            dropped: 0,
+            cancelled: 0,
+            retried: 0,
+            terminal: 1,
+        },
+        allocations: AllocationMeasurement {
+            scope: "after-start scheduler execution and finalization; caller verification excluded",
+            calls: ALLOCATION_CALLS.load(Ordering::Relaxed),
+            bytes: ALLOCATED_BYTES.load(Ordering::Relaxed),
+        },
+        memory: MemoryMeasurement {
+            resident_before_bytes: resident_before,
+            resident_after_bytes: proc_status_bytes("VmRSS:"),
+            resident_peak_bytes: proc_status_bytes("VmHWM:"),
+            planned_memory_bytes: Some(allocation.planned_memory_bytes),
+            executor_overhead_bytes: Some(allocation.executor_overhead_bytes),
+            queue_items_high_water: Some(high_water.queue_items),
+            queue_max_cord_items_high_water: Some(maximum_cord_items),
+            queue_payload_bytes_high_water: Some(high_water.queue_payload_bytes),
+            ready_slots_high_water: Some(high_water.ready_slots),
+            evidence_slots_high_water: Some(high_water.event_slots),
+            value_resident_slots_after_terminal: Some(value_usage.resident_slots),
+            value_resident_bytes_after_terminal: Some(value_usage.resident_bytes),
+            value_slots_high_water: Some(value_usage.high_water_slots),
+            value_bytes_high_water: Some(value_usage.high_water_bytes),
+            value_slots_capacity: Some(value_usage.maximum_slots),
+            value_bytes_capacity: Some(value_usage.maximum_bytes),
+            host_io_capacity_bytes: Some(host_io_capacity_bytes),
+            host_io_output_bytes: Some(host_io_output_bytes),
+        },
+        latency: LatencyMeasurement {
+            clock: "CLOCK_MONOTONIC via std::time::Instant",
+            sample_stride: 1,
+            samples_ns: vec![steady_ns.max(1)],
+        },
+        semantic_notes: [
+            "The benchmark harness assembles the current exact coupled PlanFanOut fact for the full source topology; the production hosted literal then stores one finite-batch value in the fixed arena and publishes its generation-safe handle across every capacity-one output cord.",
+            "Exactly one 1 KiB value slot is resident at high water; every display sink verifies its branch through separately accounted preallocated host-I/O storage, while larger payload bindings and stream-specific fan-out modes remain unavailable.",
+        ],
+    }
 }
 
 fn run_sample(
@@ -2335,6 +2747,8 @@ fn run_sample(
             session_pump_quantum: args.session_pump_quantum,
             residency_plateau_after_wakes: args.residency_plateau_after_wakes,
             timer_advance_ticks: args.timer_advance_ticks,
+            payload_bytes: 0,
+            payload_representation: "handle-backed-u64",
         },
         exact_identity: ExactIdentity {
             logical_fixture: if matches!(args.workload, Workload::Overload) {
@@ -2444,6 +2858,8 @@ fn run_sample(
             residency_checkpoint_queue_payload_bytes_high_water,
             residency_checkpoint_ready_slots_high_water,
             residency_checkpoint_evidence_slots_high_water,
+            unique_value_handles: None,
+            branch_deliveries: None,
         },
         process_cpu_ns: cpu_ns,
         outcomes: OutcomeMeasurement {
@@ -2485,6 +2901,14 @@ fn run_sample(
             queue_payload_bytes_high_water: Some(high_water.queue_payload_bytes),
             ready_slots_high_water: Some(high_water.ready_slots),
             evidence_slots_high_water: Some(high_water.event_slots),
+            value_resident_slots_after_terminal: None,
+            value_resident_bytes_after_terminal: None,
+            value_slots_high_water: None,
+            value_bytes_high_water: None,
+            value_slots_capacity: None,
+            value_bytes_capacity: None,
+            host_io_capacity_bytes: None,
+            host_io_output_bytes: None,
         },
         latency: LatencyMeasurement {
             clock: "CLOCK_MONOTONIC via std::time::Instant",
@@ -2526,6 +2950,7 @@ fn run_identity_sample(
             Workload::BoundedAsync
                 | Workload::Overload
                 | Workload::Fanout
+                | Workload::SharedPayloadFanout
                 | Workload::PersistentWake
                 | Workload::PersistentTimer
         ),
@@ -2617,6 +3042,8 @@ fn run_identity_sample(
             session_pump_quantum: 0,
             residency_plateau_after_wakes: 0,
             timer_advance_ticks: 0,
+            payload_bytes: 0,
+            payload_representation: "native-u64",
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(
@@ -2659,6 +3086,8 @@ fn run_identity_sample(
             residency_checkpoint_queue_payload_bytes_high_water: None,
             residency_checkpoint_ready_slots_high_water: None,
             residency_checkpoint_evidence_slots_high_water: None,
+            unique_value_handles: None,
+            branch_deliveries: None,
         },
         process_cpu_ns: cpu_ns,
         outcomes: OutcomeMeasurement {
@@ -2689,6 +3118,14 @@ fn run_identity_sample(
             queue_payload_bytes_high_water: None,
             ready_slots_high_water: None,
             evidence_slots_high_water: None,
+            value_resident_slots_after_terminal: None,
+            value_resident_bytes_after_terminal: None,
+            value_slots_high_water: None,
+            value_bytes_high_water: None,
+            value_slots_capacity: None,
+            value_bytes_capacity: None,
+            host_io_capacity_bytes: None,
+            host_io_output_bytes: None,
         },
         latency: LatencyMeasurement {
             clock: "CLOCK_MONOTONIC via std::time::Instant",
@@ -2714,7 +3151,9 @@ fn main() {
     );
     for trial in 0..args.warmup_trials {
         let thermal_state = if trial == 0 { "cold" } else { "warming" };
-        let raw = if args.identity_loop {
+        let raw = if matches!(args.workload, Workload::SharedPayloadFanout) {
+            run_shared_payload_sample(&args, "warmup", trial, thermal_state)
+        } else if args.identity_loop {
             run_identity_sample(&args, "warmup", trial, thermal_state)
         } else {
             run_sample(&args, "warmup", trial, thermal_state)
@@ -2722,7 +3161,9 @@ fn main() {
         println!("{}", serde_json::to_string(&raw).unwrap());
     }
     for trial in 0..args.measured_trials {
-        let raw = if args.identity_loop {
+        let raw = if matches!(args.workload, Workload::SharedPayloadFanout) {
+            run_shared_payload_sample(&args, "measured", trial, "warmed")
+        } else if args.identity_loop {
             run_identity_sample(&args, "measured", trial, "warmed")
         } else {
             run_sample(&args, "measured", trial, "warmed")

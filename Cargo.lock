@@ -378,8 +378,11 @@ dependencies = [
 name = "conduit-benchmark"
 version = "0.0.0-dev"
 dependencies = [
+ "bumpalo",
  "clap",
+ "conduit-compile",
  "conduit-core",
+ "conduit-panel",
  "conduit-runtime",
  "libc",
  "serde",
