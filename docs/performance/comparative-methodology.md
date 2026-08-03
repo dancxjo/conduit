@@ -154,6 +154,32 @@ For these rows, `input_values` names the bounded observation offer window, not
 the standing source's lifetime cardinality; `session_mode` prevents the two
 meanings from being conflated.
 
+The persistent host-wake residency slice is a distinct #249 fixture rather
+than another pressure-policy row. One release-profile production
+`ExactRunSession` first reaches an exact named host-operation wait, then
+receives 10,000 `benchmark/persistent-wake` notifications without a benchmark
+reset. Each notification admits one handle-backed value to one finite FIFO
+cord; bounded host pumps continue until the sink has consumed that value and
+the same source is standing again. At wake 1,000 the runner records the
+scheduler high water. Queue items, queue payload bytes, ready slots, and
+mandatory scheduler-evidence slots must have exactly the same high-water values
+after wake 10,000. A mismatch fails the run, so final-only reconciliation
+cannot hide monotonic growth. The raw row binds the checkpoint, reports the
+exact host-wake and pump counts, and marks the plateau proof explicitly.
+
+The global allocator counter covers the complete region after
+`DeterministicExecutor::start`: initial wait, every host notification and
+bounded pump, evidence acknowledgement, requested Drain, terminal pump, and
+session finalization. Its reviewed target for this exact reference-scheduler,
+handle-backed driver, release-profile path is zero calls and zero bytes. The
+fixture also requires every offered value to be admitted and consumed before
+the next wake, then checks the session registry returns both active sessions
+and reserved bytes to zero exactly once. It does not claim a hosted value arena,
+provider buffer, worker pool, timer/interrupt path, or all-Conduit
+zero-allocation result; those #249 workloads remain open. Process RSS is
+reported only as supplementary process telemetry and is never used to prove
+the internal plateau.
+
 The summary reports p50, p95, p99, p99.9, and maximum sampled latency. Useful
 outputs per second is summarized across at least nine measured repeats with a
 deterministic 10,000-resample percentile-bootstrap 95% interval. These noisy

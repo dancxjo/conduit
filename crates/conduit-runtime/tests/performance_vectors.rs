@@ -69,7 +69,7 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
     assert_eq!(manifest["schema"], "conduit.comparative-benchmark-manifest");
     assert_eq!(manifest["schema_version"], 0);
     assert_eq!(manifest["fixture_revision"], 0);
-    assert_eq!(manifest["issues"], serde_json::json!([243, 245]));
+    assert_eq!(manifest["issues"], serde_json::json!([243, 245, 249]));
     assert_eq!(manifest["values"], 1_000_000);
     assert_eq!(manifest["operator_depths"], serde_json::json!([1, 8, 32]));
     assert_eq!(
@@ -136,6 +136,19 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         serde_json::json!(["drain", "abort"])
     );
     assert_eq!(manifest["persistent_sessions"]["session_pump_quantum"], 8);
+    assert_eq!(
+        manifest["persistent_wake_residency"]["workload"],
+        "persistent-wake"
+    );
+    assert_eq!(manifest["persistent_wake_residency"]["host_wakes"], 10_000);
+    assert_eq!(
+        manifest["persistent_wake_residency"]["residency_plateau_after_wakes"],
+        1_000
+    );
+    assert_eq!(
+        manifest["persistent_wake_residency"]["stop_policy"],
+        "drain"
+    );
     assert_eq!(
         manifest["wall_clock_policy"]["gate"],
         "report-only until a reviewed machine-class baseline exists"
@@ -208,7 +221,8 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "consumer_pattern",
             "consumer_burst_items",
             "session_mode",
-            "session_pump_quantum"
+            "session_pump_quantum",
+            "residency_plateau_after_wakes"
         ]
         .iter()
         .all(|field| schema["properties"]["workload"]["required"]
@@ -240,7 +254,13 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "abort_ns",
             "session_pumps",
             "session_reserved_bytes",
-            "pressured_items_at_stop"
+            "pressured_items_at_stop",
+            "session_host_wakes",
+            "residency_plateau_verified",
+            "residency_checkpoint_queue_items_high_water",
+            "residency_checkpoint_queue_payload_bytes_high_water",
+            "residency_checkpoint_ready_slots_high_water",
+            "residency_checkpoint_evidence_slots_high_water"
         ])
     );
     assert_eq!(
