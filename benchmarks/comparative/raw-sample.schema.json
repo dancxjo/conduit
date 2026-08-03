@@ -52,7 +52,7 @@
     },
     "workload": {
       "type": "object",
-      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs"]
+      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs", "fanout_branches", "fanout_mode", "slow_branches"]
     },
     "exact_identity": {
       "type": "object",

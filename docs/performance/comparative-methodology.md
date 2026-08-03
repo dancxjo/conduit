@@ -67,11 +67,29 @@ as a useful completion; a sample-selected value that still cannot fit is a
 drop, distinct from schedule exclusion. Disconnect and fail stop at the first
 saturated offer and are terminal measurements, not throughput successes.
 
-This slice does not yet claim #245's fan-out or persistent-session matrix.
+The overload slice does not claim #245's persistent-session matrix or fan-out
+coverage beyond the coupled fixture described below.
 RxJS overload remains unavailable because synchronous push has no matching
 demand-bounded queue. Reactor overload also remains unavailable until its
 demand, buffer, and loss mappings receive a semantic review; the existing
 local-depth `publishOn` case is not substituted for either comparison.
+
+The coupled fan-out slice publishes each input atomically to 2, 8, or 32 exact
+branch cords at capacities 4, 64, and 1,024. It measures both one slow branch
+and all slow branches. Admission advances only when every branch reserves the
+value in the same scheduler transaction; a pressured attempt rolls back all
+earlier branch reservations and is counted once as a retry. Useful completion
+counts branch deliveries, so its strict invariant is admitted inputs multiplied
+by the branch count. Aggregate queue high water is checked against branch
+capacity multiplied by branch count, and the driver uses fixed stack arrays up
+to the reviewed 32-branch maximum rather than a hidden publication buffer.
+
+This does not substitute coupled publication for isolated fan-out. The latter
+requires an ordinary duplicator whose retained in-flight value and per-branch
+progress are exact plan/profile facts; it remains unavailable until that
+fixture exists. RxJS and Reactor fan-out comparisons likewise remain
+unavailable until their multicast, demand, buffering, and coupling semantics
+have reviewed mappings.
 
 ## Regions and metrics
 

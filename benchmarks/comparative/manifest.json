@@ -11,8 +11,17 @@
     "queue_capacity_items": [4, 64, 1024],
     "pressure_policies": ["block", "reject", "coalesce", "sample", "drop-disposable", "disconnect", "fail"],
     "slow_consumer_yields": 3,
-    "fanout": [1],
+    "branch_count": 1,
     "scope": "finite exact-run single-cord pressure and recovery; fan-out and persistent sessions remain unavailable in this slice"
+  },
+  "fanout": {
+    "queue_capacity_items": [4, 64, 1024],
+    "branches": [2, 8, 32],
+    "modes": ["coupled"],
+    "slow_branches": ["one", "all"],
+    "pressure_policy": "block",
+    "slow_consumer_yields": 3,
+    "scope": "finite exact-run coupled atomic publication; isolated ordinary-duplicator fan-out remains unavailable"
   },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
@@ -69,7 +78,10 @@
     "Conduit does not allocate after Start and never exceeds its exact queue, value, or evidence reservation",
     "overload queue item high water never exceeds the declared capacity",
     "overload accounting conserves offered values according to the exact pressure policy",
-    "block, reject, coalesce, sample, and disposable-drop fixtures enter a slow region and then clear into a recovery region"
+    "block, reject, coalesce, sample, and disposable-drop fixtures enter a slow region and then clear into a recovery region",
+    "coupled fan-out admits each input atomically to every branch or retries without partial publication",
+    "fan-out useful completion equals admitted inputs multiplied by exact branch count",
+    "aggregate fan-out queue high water never exceeds capacity multiplied by branch count"
   ],
   "wall_clock_policy": {
     "gate": "report-only until a reviewed machine-class baseline exists",

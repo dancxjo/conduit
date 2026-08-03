@@ -26,6 +26,7 @@ for (const sample of samples) {
   }
   const identityParts = sample.exact_identity.logical_fixture.split("/");
   const overload = sample.workload.id === "overload";
+  const fanout = sample.workload.id === "fanout";
   if (overload) {
     const pressureId = sample.workload.pressure.split("/")[0];
     if (identityParts.length !== 6
@@ -39,6 +40,21 @@ for (const sample of samples) {
     }
     if (sample.runtime.id !== "conduit-reference-scheduler") {
       throw new Error("the current overload slice has no cross-runtime substitute");
+    }
+  } else if (fanout) {
+    if (identityParts.length !== 8
+        || identityParts[0] !== "comparative-fanout"
+        || identityParts[1] !== sample.workload.fanout_mode
+        || identityParts[2] !== sample.workload.slow_branches
+        || Number(identityParts[3]) !== sample.workload.fanout_branches
+        || Number(identityParts[4]) !== sample.workload.input_values
+        || Number(identityParts[5]) !== sample.workload.queue_capacity_items
+        || Number(identityParts[6]) !== sample.workload.slow_consumer_yields
+        || Number(identityParts[7]) !== sample.latency.sample_stride) {
+      throw new Error("fan-out fixture identity does not match the raw sample");
+    }
+    if (sample.runtime.id !== "conduit-reference-scheduler") {
+      throw new Error("the current fan-out slice has no cross-runtime substitute");
     }
   } else if (identityParts.length !== 6
       || identityParts[0] !== "comparative-local-depth"
@@ -93,6 +109,28 @@ for (const sample of samples) {
       if (sample.phases.recovery_ns !== null) throw new Error("terminal overload unexpectedly entered recovery");
     } else if (sample.phases.pressure_ns === null || sample.phases.recovery_ns === null) {
       throw new Error("finite overload fixture did not expose both pressure and recovery regions");
+    }
+  } else if (fanout) {
+    const outcomes = sample.outcomes;
+    const maximumItems = sample.workload.queue_capacity_items * sample.workload.fanout_branches;
+    if (sample.workload.fanout_mode !== "coupled" || ![2, 8, 32].includes(sample.workload.fanout_branches)) {
+      throw new Error("fan-out identity does not name the current coupled matrix");
+    }
+    if (!["one", "all"].includes(sample.workload.slow_branches)) {
+      throw new Error("fan-out slow-branch mode is invalid");
+    }
+    if (sample.memory.queue_items_high_water > maximumItems) {
+      throw new Error("aggregate fan-out queues exceeded declared branch capacities");
+    }
+    if (outcomes.offered !== sample.workload.input_values
+        || outcomes.admitted !== outcomes.offered
+        || outcomes.completed_useful !== outcomes.admitted * sample.workload.fanout_branches
+        || outcomes.retried < 1
+        || [outcomes.rejected, outcomes.sampled, outcomes.coalesced, outcomes.dropped].some((value) => value !== 0)) {
+      throw new Error("coupled fan-out accounting is not atomic and conservative");
+    }
+    if (sample.phases.pressure_ns === null || sample.phases.recovery_ns === null) {
+      throw new Error("finite fan-out fixture did not expose both pressure and recovery regions");
     }
   } else {
     if (sample.outcomes.offered !== sample.workload.input_values) throw new Error("offered input count changed");
@@ -156,7 +194,8 @@ const groups = new Map();
 for (const sample of measured) {
   const key = [sample.runtime.id, sample.workload.id, sample.workload.operators,
     sample.workload.queue_capacity_items, sample.workload.pressure,
-    sample.workload.slow_consumer_yields].join("/");
+    sample.workload.slow_consumer_yields, sample.workload.fanout_branches,
+    sample.workload.fanout_mode, sample.workload.slow_branches].join("/");
   if (!groups.has(key)) groups.set(key, []);
   groups.get(key).push(sample);
 }
@@ -219,6 +258,8 @@ summaries.sort((left, right) =>
   || left.workload.operators - right.workload.operators
   || left.workload.queue_capacity_items - right.workload.queue_capacity_items
   || left.workload.pressure.localeCompare(right.workload.pressure)
+  || left.workload.fanout_branches - right.workload.fanout_branches
+  || left.workload.slow_branches.localeCompare(right.workload.slow_branches)
 );
 
 const result = {
@@ -258,6 +299,16 @@ const result = {
       workload: "overload",
       reason: "a reviewed demand/buffer and loss-policy mapping is not yet implemented; local-depth publishOn is not substituted",
     },
+    {
+      runtime: "conduit-reference-scheduler",
+      workload: "fanout/isolated",
+      reason: "an ordinary duplicator with exact retained-value accounting is not implemented; coupled publication is not substituted",
+    },
+    {
+      runtime: "rxjs/reactor-core",
+      workload: "fanout",
+      reason: "reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted",
+    },
   ],
   groups: summaries,
 };
@@ -279,18 +330,20 @@ if (reportOutput) {
     "- Conduit optimized hosted streaming: unavailable pending #214/#242; reference results are not substituted.",
     "- RxJS overload: synchronous push has no demand-bounded queue matching these pressure policies and is not substituted.",
     "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
+    "- Conduit isolated fan-out: no ordinary duplicator with exact retained-value accounting is implemented; coupled publication is not substituted.",
+    "- RxJS/Reactor fan-out: reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted.",
     "",
   ];
   for (const workload of [...new Set(summaries.map((group) => group.workload.id))].sort()) {
     const workloadGroups = summaries.filter((group) => group.workload.id === workload && group.runtime.comparison_role === "reactive-runtime");
-    report.push(`## ${workload}: preparation regions`, "", "| Runtime | Policy | Capacity | Depth | Assembly median ns | Plan seal median ns | Start median ns |", "| --- | --- | ---: | ---: | ---: | ---: | ---: |");
+    report.push(`## ${workload}: preparation regions`, "", "| Runtime | Policy | Capacity | Fan-out | Slow branches | Depth | Assembly median ns | Plan seal median ns | Start median ns |", "| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |");
     for (const group of workloadGroups) {
-      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${group.workload.operators} | ${duration(group.phases_ns.assembly)} | ${duration(group.phases_ns.plan_seal)} | ${duration(group.phases_ns.start)} |`);
+      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${group.workload.operators} | ${duration(group.phases_ns.assembly)} | ${duration(group.phases_ns.plan_seal)} | ${duration(group.phases_ns.start)} |`);
     }
-    report.push("", `## ${workload}: steady region`, "", "| Runtime | Policy | Capacity | Depth | Useful outputs/s median | 95% CI | p50 ns | p95 ns | p99 ns | p99.9 ns | max ns | Recovery median ns |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+    report.push("", `## ${workload}: steady region`, "", "| Runtime | Policy | Capacity | Fan-out | Slow branches | Depth | Useful outputs/s median | 95% CI | p50 ns | p95 ns | p99 ns | p99.9 ns | max ns | Recovery median ns |", "| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
     for (const group of workloadGroups) {
       const throughput = group.useful_outputs_per_second;
-      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${group.workload.operators} | ${integer.format(throughput.median)} | ${integer.format(throughput.median_confidence_95.low)}–${integer.format(throughput.median_confidence_95.high)} | ${integer.format(group.latency_ns.p50)} | ${integer.format(group.latency_ns.p95)} | ${integer.format(group.latency_ns.p99)} | ${integer.format(group.latency_ns.p99_9)} | ${integer.format(group.latency_ns.max)} | ${duration(group.phases_ns.recovery)} |`);
+      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${group.workload.operators} | ${integer.format(throughput.median)} | ${integer.format(throughput.median_confidence_95.low)}–${integer.format(throughput.median_confidence_95.high)} | ${integer.format(group.latency_ns.p50)} | ${integer.format(group.latency_ns.p95)} | ${integer.format(group.latency_ns.p99)} | ${integer.format(group.latency_ns.p99_9)} | ${integer.format(group.latency_ns.max)} | ${duration(group.phases_ns.recovery)} |`);
     }
     report.push("");
     if (workload === "overload") {
@@ -298,6 +351,14 @@ if (reportOutput) {
       for (const group of workloadGroups) {
         const outcome = (field) => integer.format(group.outcomes[field].median);
         report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${outcome("offered")} | ${outcome("admitted")} | ${outcome("completed_useful")} | ${outcome("rejected")} | ${outcome("sampled")} | ${outcome("coalesced")} | ${outcome("dropped")} | ${outcome("retried")} | ${outcome("terminal")} | ${duration(group.high_water.queue_items)} |`);
+      }
+      report.push("");
+    }
+    if (workload === "fanout") {
+      report.push("## fanout: atomic outcome accounting", "", "Completed-useful counts branch deliveries. Coupled admission is one all-branches transaction; a retry publishes to no branch.", "", "| Runtime | Capacity | Branches | Slow branches | Offered | Admitted atomically | Useful branch deliveries | Retried | Terminal | Aggregate queue high water |", "| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |");
+      for (const group of workloadGroups) {
+        const outcome = (field) => integer.format(group.outcomes[field].median);
+        report.push(`| ${group.runtime.id} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${outcome("offered")} | ${outcome("admitted")} | ${outcome("completed_useful")} | ${outcome("retried")} | ${outcome("terminal")} | ${duration(group.high_water.queue_items)} |`);
       }
       report.push("");
     }
