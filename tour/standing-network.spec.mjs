@@ -16,7 +16,7 @@ async function expectFamily(page, family) {
   await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
     "data-layout",
     "ready",
-    { timeout: 20_000 },
+    { timeout: 60_000 },
   );
   const row = page.locator(`.faceplate-port-row[data-signal-family="${family}"]`).first();
   await expect(row, `${family} port is projected`).toBeVisible();

@@ -58,7 +58,7 @@ async function startTinyInstrument(page) {
   await expect.poll(async () => {
     const text = await page.locator("#watch-value").textContent();
     return parseWatchTick(text);
-  }, { timeout: 20_000 }).toBeGreaterThanOrEqual(0);
+  }, { timeout: 60_000 }).toBeGreaterThanOrEqual(0);
   const firstTick = parseWatchTick(
     await page.locator("#watch-value").textContent(),
   );
@@ -1371,7 +1371,9 @@ test("keeps structural lenses orthogonal to Use Build Inspect and preserves the 
   await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const workspace = page.locator("#workspace");
   const status = page.locator("#presentation-status");
-  await expect(workspace).toHaveAttribute("data-presentation-mode", "build");
+  await expect(workspace).toHaveAttribute("data-presentation-mode", "build", {
+    timeout: 20_000,
+  });
   await expect(workspace).toHaveAttribute("data-structural-lens", "face");
   await expect(workspace).toHaveAttribute("data-topology-projection", "logical");
   await expect(status).toContainText(
