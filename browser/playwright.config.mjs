@@ -21,6 +21,7 @@ export default defineConfig({
     "tour/standing-network.spec.mjs",
     "tour/standing-signals.spec.mjs",
     "tour/tour.spec.mjs",
+    "tour/workbench.spec.mjs",
   ],
   // Keep ordinary runs in file order. CI's Firefox shards opt into test-level
   // distribution so the large Tour spec is divided instead of assigned whole

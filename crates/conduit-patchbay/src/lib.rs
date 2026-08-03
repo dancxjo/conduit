@@ -546,14 +546,39 @@ pub struct LibraryCatalogProjection {
 pub struct LibraryCatalogEntryProjection {
     pub semantic_identity: String,
     pub public_source_spelling: String,
+    pub purpose: String,
     pub classification: String,
     pub package_owner: String,
+    pub ports: Vec<LibraryCatalogPortProjection>,
+    pub config: Vec<LibraryCatalogConfigProjection>,
     pub compiler_exported: bool,
     pub known_provider_bundles: Vec<String>,
     pub current_provider_observation: String,
     pub conformance_fixture_owner: String,
     pub standalone_lesson: LibraryLessonProjection,
     pub composition_lesson: LibraryLessonProjection,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct LibraryCatalogPortProjection {
+    pub id: String,
+    pub direction: String,
+    pub value_type: String,
+    pub presence: String,
+    pub connections: String,
+    pub values: String,
+    pub delivery: String,
+    pub temporal: String,
+    pub terminal: String,
+    pub sensitivity: String,
+    pub loss: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct LibraryCatalogConfigProjection {
+    pub key: String,
+    pub value_type: String,
+    pub requirement: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -575,6 +600,8 @@ struct LibraryCatalogDocumentEntry {
     public_source_spelling: String,
     classification: String,
     package_owner: String,
+    ports: Vec<LibraryCatalogPortProjection>,
+    config: Vec<LibraryCatalogConfigProjection>,
     compiler_exported: bool,
     known_provider_bundles: Vec<LibraryProviderDocument>,
     current_provider_observation: String,
@@ -622,10 +649,16 @@ pub fn project_library_catalog(json: &str) -> Result<LibraryCatalogProjection, P
             ));
         }
         entries.push(LibraryCatalogEntryProjection {
+            purpose: format!(
+                "Authors the `{}` semantic contract from `{}`.",
+                entry.public_source_spelling, entry.package_owner
+            ),
             semantic_identity: entry.semantic_identity,
             public_source_spelling: entry.public_source_spelling,
             classification: entry.classification,
             package_owner: entry.package_owner,
+            ports: entry.ports,
+            config: entry.config,
             compiler_exported: entry.compiler_exported,
             known_provider_bundles: entry
                 .known_provider_bundles
@@ -4125,6 +4158,17 @@ impl ProjectionLog {
 pub enum EditOperation {
     /// Replaces editable source atomically after it parses through conduit-panel.
     ReplaceSource { source: String },
+    /// Authors one ordinary semantic node while recording its initial canvas
+    /// position only in presentation state.
+    AddNode {
+        node_id: String,
+        kind: String,
+        config: Vec<NodeConfigEdit>,
+        position: NodePosition,
+    },
+    /// Removes one ordinary semantic node and every cord that explicitly
+    /// names it. No provider, resource, or authority operation is implied.
+    DeleteNode { node_id: String },
     /// Updates layout only. The node name is validated against parsed source.
     MoveNode {
         node_id: String,
@@ -4163,6 +4207,16 @@ pub enum EditOperation {
     /// Changes only the workspace camera. The finite integer zoom is part of
     /// presentation identity, never source or plan identity.
     SetViewport { viewport: PresentationViewport },
+    /// Restores the preceding bounded authoritative workspace revision.
+    Undo,
+    /// Reapplies the next bounded authoritative workspace revision.
+    Redo,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct NodeConfigEdit {
+    pub key: String,
+    pub value: EditValue,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -4244,6 +4298,8 @@ pub struct Workspace {
     descriptor_identity: Option<String>,
     history_limit: usize,
     history: VecDeque<WorkspaceRevision>,
+    undo_history: VecDeque<WorkspaceRevision>,
+    redo_history: VecDeque<WorkspaceRevision>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -4337,6 +4393,8 @@ impl Workspace {
             descriptor_identity: None,
             history_limit,
             history,
+            undo_history: VecDeque::with_capacity(history_limit),
+            redo_history: VecDeque::with_capacity(history_limit),
         })
     }
 
@@ -4353,6 +4411,16 @@ impl Workspace {
     #[must_use]
     pub fn history(&self) -> &VecDeque<WorkspaceRevision> {
         &self.history
+    }
+
+    #[must_use]
+    pub fn can_undo(&self) -> bool {
+        !self.undo_history.is_empty()
+    }
+
+    #[must_use]
+    pub fn can_redo(&self) -> bool {
+        !self.redo_history.is_empty()
     }
 
     #[must_use]
@@ -4474,6 +4542,29 @@ impl Workspace {
             ));
         }
 
+        let history_operations = request
+            .operations
+            .iter()
+            .filter(|operation| matches!(operation, EditOperation::Undo | EditOperation::Redo))
+            .count();
+        if history_operations > 0 {
+            if request.operations.len() != 1 {
+                return Err(rejected(
+                    "CND-PBY-012",
+                    "undo or redo must be the only operation in a transaction",
+                ));
+            }
+            return match &request.operations[0] {
+                EditOperation::Undo => self.restore_history(false, lookup),
+                EditOperation::Redo => self.restore_history(true, lookup),
+                _ => unreachable!("history operation was counted"),
+            };
+        }
+
+        let previous_revision = WorkspaceRevision {
+            source: self.source.clone(),
+            presentation: self.presentation.clone(),
+        };
         let mut candidate_source = self.source.clone();
         let mut positions = self.presentation.node_positions.clone();
         let mut mode = self.presentation.mode;
@@ -4496,6 +4587,80 @@ impl Workspace {
                     candidate_source.semantic_hash = semantic_hash;
                     source_changed = true;
                     source_replaced = true;
+                }
+                EditOperation::AddNode {
+                    node_id,
+                    kind,
+                    config,
+                    position,
+                } => {
+                    let panel =
+                        conduit_panel::parse(&candidate_source.source).map_err(|error| {
+                            rejected_with_diagnostics(
+                                "CND-PBY-004",
+                                "current source is not editable",
+                                vec![error.to_string()],
+                            )
+                        })?;
+                    if panel.nodes.iter().any(|node| node.id == node_id) {
+                        return Err(rejected(
+                            "CND-PBY-005",
+                            "node addition collides with an existing source identity",
+                        ));
+                    }
+                    if config.len()
+                        > PatchbayProjectionBounds::default().maximum_config_fields_per_node
+                    {
+                        return Err(rejected(
+                            "CND-PBY-006",
+                            "node configuration exceeds its finite field budget",
+                        ));
+                    }
+                    let mut keys = BTreeSet::new();
+                    if config.iter().any(|entry| !keys.insert(entry.key.as_str())) {
+                        return Err(rejected(
+                            "CND-PBY-012",
+                            "node addition repeats a configuration field",
+                        ));
+                    }
+                    candidate_source
+                        .source
+                        .push_str(&canonical_node_source(&node_id, &kind, &config));
+                    positions.insert(node_id, position);
+                    source_changed = true;
+                    source_replaced = true;
+                    presentation_changed = true;
+                }
+                EditOperation::DeleteNode { node_id } => {
+                    let panel =
+                        conduit_panel::parse(&candidate_source.source).map_err(|error| {
+                            rejected_with_diagnostics(
+                                "CND-PBY-004",
+                                "current source is not editable",
+                                vec![error.to_string()],
+                            )
+                        })?;
+                    let node = panel
+                        .nodes
+                        .iter()
+                        .find(|node| node.id == node_id)
+                        .ok_or_else(|| rejected("CND-PBY-005", "delete names no source node"))?;
+                    let mut spans = panel
+                        .cords
+                        .iter()
+                        .filter(|cord| cord.from.node == node_id || cord.to.node == node_id)
+                        .map(|cord| cord.source_span)
+                        .collect::<Vec<_>>();
+                    spans.push(node.source_span);
+                    spans.sort_by_key(|span| std::cmp::Reverse((span.line, span.column)));
+                    for span in spans {
+                        remove_source_span(&mut candidate_source.source, span)?;
+                    }
+                    positions.remove(&node_id);
+                    collapsed_nodes.remove(&node_id);
+                    source_changed = true;
+                    source_replaced = true;
+                    presentation_changed = true;
                 }
                 EditOperation::MoveNode { node_id, position } => {
                     let document = conduit_panel::parse_document(&candidate_source.source);
@@ -4663,6 +4828,9 @@ impl Workspace {
                     presentation_changed |= viewport != next_viewport;
                     viewport = next_viewport;
                 }
+                EditOperation::Undo | EditOperation::Redo => {
+                    unreachable!("history operations are handled before candidate editing")
+                }
             }
         }
         let mut diagnostics = Vec::new();
@@ -4746,6 +4914,13 @@ impl Workspace {
                 presentation_changed = true;
             }
             let parsed = conduit_panel::parse(&candidate_source.source).ok();
+            if let Some(panel) = parsed.as_ref() {
+                let positions_before = positions.len();
+                positions.retain(|node_id, _| {
+                    panel.nodes.iter().any(|node| node.id == node_id.as_str())
+                });
+                presentation_changed |= positions.len() != positions_before;
+            }
             let collapsed_before = collapsed_nodes.len();
             collapsed_nodes.retain(|node_id| {
                 parsed
@@ -4771,6 +4946,11 @@ impl Workspace {
         );
         self.source = candidate_source;
         self.presentation = candidate_presentation;
+        self.undo_history.push_back(previous_revision);
+        while self.undo_history.len() > self.history_limit {
+            self.undo_history.pop_front();
+        }
+        self.redo_history.clear();
         self.history.push_back(WorkspaceRevision {
             source: self.source.clone(),
             presentation: self.presentation.clone(),
@@ -4788,6 +4968,83 @@ impl Workspace {
             },
             diagnostics,
             compatibility,
+            disposition: EditDisposition::Committed,
+        })
+    }
+
+    fn restore_history<F>(&mut self, redo: bool, lookup: F) -> Result<EditResult, ProtocolError>
+    where
+        F: Fn(&str) -> NodeAvailabilityProjection,
+    {
+        let target = if redo {
+            self.redo_history.pop_back()
+        } else {
+            self.undo_history.pop_back()
+        }
+        .ok_or_else(|| {
+            rejected(
+                "CND-PBY-017",
+                if redo {
+                    "no later workspace revision is retained"
+                } else {
+                    "no earlier workspace revision is retained"
+                },
+            )
+        })?;
+        let current = WorkspaceRevision {
+            source: self.source.clone(),
+            presentation: self.presentation.clone(),
+        };
+        if redo {
+            self.undo_history.push_back(current);
+        } else {
+            self.redo_history.push_back(current);
+        }
+        let source_revision = self.source.revision.saturating_add(1);
+        let presentation_revision = self.presentation.revision.saturating_add(1);
+        let mut source = target.source;
+        source.revision = source_revision;
+        let target_presentation = target.presentation;
+        let presentation = presentation_snapshot(
+            &source.document_id,
+            presentation_revision,
+            PresentationState {
+                node_positions: target_presentation.node_positions,
+                mode: target_presentation.mode,
+                lens: target_presentation.lens,
+                topology: target_presentation.topology,
+                selected_subject: target_presentation.selected_subject,
+                collapsed_nodes: target_presentation.collapsed_nodes,
+                viewport: target_presentation.viewport,
+            },
+            target_presentation.opening_reason,
+        );
+        self.source = source;
+        self.presentation = presentation;
+        self.history.push_back(WorkspaceRevision {
+            source: self.source.clone(),
+            presentation: self.presentation.clone(),
+        });
+        while self.history.len() > self.history_limit {
+            self.history.pop_front();
+        }
+        Ok(EditResult {
+            source: self.source.clone(),
+            presentation: self.presentation.clone(),
+            semantic: self.semantic_with_lookup(lookup),
+            candidate_revision: CandidateRevision {
+                source: self.source.revision,
+                presentation: self.presentation.revision,
+            },
+            diagnostics: Vec::new(),
+            compatibility: CompatibilityProof {
+                compatible: true,
+                code: if redo { "CND-PBY-REDO" } else { "CND-PBY-UNDO" }.to_owned(),
+                producer_type: None,
+                consumer_type: None,
+                candidate_plan_identity: None,
+                plan_disposition: "restored-authoring-revision".to_owned(),
+            },
             disposition: EditDisposition::Committed,
         })
     }
@@ -4958,6 +5215,22 @@ fn canonical_cord_source(
         bounds.high_watermark_items,
         bounds.pressure
     )
+}
+
+fn canonical_node_source(node_id: &str, kind: &str, config: &[NodeConfigEdit]) -> String {
+    if config.is_empty() {
+        return format!("\n{node_id}: {kind}\n");
+    }
+    let mut source = format!("\n{node_id}: {kind} {{\n");
+    for entry in config {
+        source.push_str(&format!(
+            "    {} = {}\n",
+            entry.key,
+            canonical_edit_value(&entry.value)
+        ));
+    }
+    source.push_str("}\n");
+    source
 }
 
 fn canonical_edit_value(value: &EditValue) -> String {

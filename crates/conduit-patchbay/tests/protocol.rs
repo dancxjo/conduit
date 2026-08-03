@@ -1766,6 +1766,59 @@ output: display/text\n";
 }
 
 #[test]
+fn node_authoring_delete_and_history_keep_source_and_layout_separate() {
+    let mut workspace = Workspace::new("workbench/history", "panel 0\n").unwrap();
+    let added = workspace
+        .apply(request(
+            &workspace,
+            vec![EditOperation::AddNode {
+                node_id: "message".to_owned(),
+                kind: "std/literal".to_owned(),
+                config: vec![conduit_patchbay::NodeConfigEdit {
+                    key: "value".to_owned(),
+                    value: conduit_patchbay::EditValue::Text("hello".to_owned()),
+                }],
+                position: NodePosition { x: 120, y: 80 },
+            }],
+        ))
+        .expect("node addition applies");
+    assert!(added.source.source.contains("message: std/literal"));
+    assert_eq!(added.presentation.node_positions["message"].x, 120);
+    assert_ne!(added.source.identity, added.presentation.identity);
+    assert!(workspace.can_undo());
+    assert!(!workspace.can_redo());
+
+    workspace
+        .apply(request(
+            &workspace,
+            vec![EditOperation::DeleteNode {
+                node_id: "message".to_owned(),
+            }],
+        ))
+        .expect("node deletion applies");
+    assert!(!workspace.source().source.contains("message: std/literal"));
+    assert!(
+        !workspace
+            .presentation()
+            .node_positions
+            .contains_key("message")
+    );
+
+    let undone = workspace
+        .apply(request(&workspace, vec![EditOperation::Undo]))
+        .expect("delete can be undone");
+    assert!(undone.source.source.contains("message: std/literal"));
+    assert_eq!(undone.presentation.node_positions["message"].y, 80);
+    assert!(workspace.can_redo());
+
+    let redone = workspace
+        .apply(request(&workspace, vec![EditOperation::Redo]))
+        .expect("delete can be redone");
+    assert!(!redone.source.source.contains("message: std/literal"));
+    assert!(!redone.presentation.node_positions.contains_key("message"));
+}
+
+#[test]
 fn invalid_typed_edits_do_not_mutate_the_workspace() {
     let mut workspace = Workspace::new("tour/negative", SOURCE).expect("source parses");
     let before = workspace.source().clone();

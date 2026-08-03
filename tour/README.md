@@ -123,3 +123,9 @@ commit-named artifact instead of checking out or rebuilding it, deploy its
 assembled site, and verify the live `BUILD_COMMIT` matches the triggering
 commit. A `v*` tag publishes the same tested archive and checksum as an
 attested GitHub release artifact.
+The ordinary authoring surface is available independently at
+`/tour/public/workbench.html`. From the repository root, `just workbench`
+rebuilds the same static browser/WASM artifact used by hosted deployment and
+serves that route at `http://127.0.0.1:4173/tour/public/workbench.html` until
+interrupted. The default is loopback-only. Deliberate LAN or container use may
+set `CONDUIT_WORKBENCH_HOST` and `CONDUIT_WORKBENCH_PORT` explicitly.

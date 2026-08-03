@@ -15,6 +15,7 @@ import init, {
   patchbay_session_view,
   patchbay_snapshot_exact_run,
   patchbay_start_exact_run,
+  patchbay_workbench_palette,
 } from "./conduit_web.js";
 import {
   BrowserHostReason,
@@ -46,6 +47,8 @@ function response(operation, value) {
       );
     case "patchbay-session-view":
       return patchbay_session_view(value.sessionId);
+    case "patchbay-workbench-palette":
+      return patchbay_workbench_palette();
     case "patchbay-apply-transaction":
       return patchbay_apply_transaction(value.sessionId, value.requestJson);
     case "patchbay-start-exact-run":

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en" data-workbench-ready="false">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Conduit Workbench</title>
+  <link rel="stylesheet" href="./tour.css">
+  <link rel="stylesheet" href="./react-flow.css">
+  <link rel="stylesheet" href="./workbench.css">
+  <script src="./react.min.js"></script>
+  <script src="./react-dom.min.js"></script>
+  <script src="./react-flow.min.js"></script>
+</head>
+<body class="workbench-body">
+  <a class="skip-link" href="#workbench-canvas">Skip to canvas</a>
+  <header class="workbench-header">
+    <div>
+      <p class="eyebrow">Conduit</p>
+      <h1>Workbench</h1>
+      <p>Make an ordinary Panel from authoritative semantic contracts.</p>
+    </div>
+    <nav aria-label="Conduit destinations">
+      <a href="./index.html">Tour</a>
+      <a aria-current="page" href="./workbench.html">Workbench</a>
+    </nav>
+  </header>
+
+  <main class="workbench-shell">
+    <section class="card workbench-document-bar" aria-label="Document and run controls">
+      <div class="button-row">
+        <button id="new-document" type="button" class="btn secondary">New</button>
+        <label for="saved-documents" class="sr-only">Saved work</label>
+        <select id="saved-documents" aria-label="Saved work"><option value="">Open saved work…</option></select>
+        <button id="open-document" type="button" class="btn secondary">Open</button>
+        <button id="save-document" type="button" class="btn secondary">Save</button>
+        <button id="undo" type="button" class="btn secondary" disabled>Undo</button>
+        <button id="redo" type="button" class="btn secondary" disabled>Redo</button>
+        <button id="run" type="button" class="btn primary" disabled>Run</button>
+        <button id="stop" type="button" class="btn danger" disabled>Stop</button>
+      </div>
+      <output id="workbench-status" role="status" aria-live="polite">Starting production worker…</output>
+    </section>
+
+    <div class="workbench-grid">
+      <aside class="card palette-card" aria-labelledby="palette-title">
+        <div class="card-header"><h2 id="palette-title">Node palette</h2><span id="palette-count" class="badge">0</span></div>
+        <label for="palette-search">Search contracts</label>
+        <input id="palette-search" type="search" placeholder="name, namespace, port, type…" autocomplete="off">
+        <div class="palette-filters">
+          <label>Category
+            <select id="palette-category"><option value="all">All categories</option></select>
+          </label>
+          <label>Support
+            <select id="palette-support">
+              <option value="all">All states</option>
+              <option value="available">Provider available</option>
+              <option value="unsupported">Known, unavailable here</option>
+            </select>
+          </label>
+        </div>
+        <p class="card-subtitle">Drag onto the canvas or use Add to canvas. This authors meaning only; it never installs, grants, acquires, or runs.</p>
+        <div id="palette-results" class="palette-results" role="list"></div>
+      </aside>
+
+      <section id="workbench-canvas" class="card workbench-canvas-card" aria-labelledby="canvas-title">
+        <div class="card-header">
+          <div><p class="eyebrow">Semantic source + presentation layout</p><h2 id="canvas-title">Canvas</h2></div>
+          <button id="delete-node" type="button" class="btn danger" disabled>Delete selected</button>
+        </div>
+        <p class="card-subtitle">Connect compatible jacks directly. Rejected connections remain explained below and are never coerced.</p>
+        <div id="cy" class="cytoscape-container" tabindex="0" aria-label="Patchbay topology canvas"></div>
+      </section>
+
+      <section class="card source-card workbench-source" aria-labelledby="source-title">
+        <div class="card-header"><div><p class="eyebrow">Synchronized Build view</p><h2 id="source-title">Panel source</h2></div><span class="badge">panel 0</span></div>
+        <div class="panel-source-editor">
+          <pre class="panel-source-highlight" aria-hidden="true"></pre>
+          <textarea id="source" rows="18" spellcheck="false" autocomplete="off" aria-label="Panel source"></textarea>
+        </div>
+      </section>
+
+      <aside class="card workbench-inspector" aria-labelledby="inspector-title">
+        <div class="card-header"><h2 id="inspector-title">Readiness and result</h2><span id="readiness" class="badge">Checking</span></div>
+        <p id="selection-summary">No node selected.</p>
+        <form id="connection-builder" class="connection-builder">
+          <h3>Connect ports</h3>
+          <label>Outgoing port <select id="connection-from"></select></label>
+          <label>Receiving port <select id="connection-to"></select></label>
+          <button id="connect-ports" type="submit" class="btn secondary">Connect</button>
+        </form>
+        <output id="run-result" class="workbench-result" aria-live="polite">No run yet.</output>
+        <h3>Diagnostics</h3>
+        <ol id="diagnostics" class="diagnostic-console"></ol>
+        <h3>Authoritative evidence</h3>
+        <pre id="evidence">No evidence yet.</pre>
+      </aside>
+    </div>
+  </main>
+  <script type="module" src="./workbench.js"></script>
+</body>
+</html>

@@ -2244,6 +2244,10 @@ pub fn patchbay_open_session(
             "ok": true,
             "session_id": document_id,
             "view": view,
+            "history": {
+                "can_undo": false,
+                "can_redo": false,
+            },
         })
         .to_string()
     })
@@ -2290,7 +2294,15 @@ pub fn patchbay_session_view(session_id: String) -> String {
             .to_string();
         };
         match browser_session_view(session) {
-            Ok(view) => serde_json::json!({"ok": true, "view": view}).to_string(),
+            Ok(view) => serde_json::json!({
+                "ok": true,
+                "view": view,
+                "history": {
+                    "can_undo": session.workspace.can_undo(),
+                    "can_redo": session.workspace.can_redo(),
+                },
+            })
+            .to_string(),
             Err(error) => patchbay_rejection(error, &session.workspace),
         }
     })
@@ -3575,10 +3587,15 @@ pub fn patchbay_apply_transaction(session_id: String, request_json: String) -> S
         };
         let registry = browser_registry();
         let previous_workspace = session.workspace.clone();
+        let permits_incremental_cord = request.operations.len() == 1
+            && matches!(
+                request.operations.first(),
+                Some(conduit_patchbay::EditOperation::Connect { .. })
+            );
         let result = session.workspace.apply_validated(
             request,
             |contract_id| availability_projection(&registry, contract_id),
-            validate_patchbay_candidate,
+            |source| validate_patchbay_candidate(source, permits_incremental_cord),
         );
         match result {
             Ok(result) => match browser_session_view(session) {
@@ -3604,6 +3621,10 @@ pub fn patchbay_apply_transaction(session_id: String, request_json: String) -> S
                     "result": result,
                     "view": view,
                     "history_retained": session.workspace.history().len(),
+                    "history": {
+                        "can_undo": session.workspace.can_undo(),
+                        "can_redo": session.workspace.can_redo(),
+                    },
                 })
                 .to_string(),
                 Err(error) => patchbay_rejection(error, &session.workspace),
@@ -3611,6 +3632,37 @@ pub fn patchbay_apply_transaction(session_id: String, request_json: String) -> S
             Err(error) => patchbay_rejection(error, &session.workspace),
         }
     })
+}
+
+/// Returns one bounded palette from the checked catalog plus observations from
+/// the active browser host registry. Catalog meaning and host availability
+/// remain separate fields; reading the palette installs or acquires nothing.
+#[wasm_bindgen]
+pub fn patchbay_workbench_palette() -> String {
+    let catalog = match conduit_patchbay::project_library_catalog(include_str!(
+        "../../../library/catalog.json"
+    )) {
+        Ok(catalog) => catalog,
+        Err(error) => return patchbay_error(error),
+    };
+    let registry = browser_registry();
+    let entries = catalog
+        .entries
+        .into_iter()
+        .map(|entry| {
+            let availability = availability_projection(&registry, &entry.semantic_identity);
+            serde_json::json!({
+                "catalog": entry,
+                "host_observation": availability,
+            })
+        })
+        .collect::<Vec<_>>();
+    serde_json::json!({
+        "ok": true,
+        "schema": catalog.schema,
+        "entries": entries,
+    })
+    .to_string()
 }
 
 fn availability_projection(
@@ -3630,6 +3682,7 @@ fn availability_projection(
 
 fn validate_patchbay_candidate(
     source: &str,
+    permits_incremental_cord: bool,
 ) -> Result<conduit_patchbay::CompatibilityProof, conduit_patchbay::ProtocolError> {
     let panel = conduit_panel::parse(source).map_err(|error| conduit_patchbay::ProtocolError {
         code: "CND-PBY-004",
@@ -3637,14 +3690,43 @@ fn validate_patchbay_candidate(
         diagnostics: vec![error.to_string()],
         disposition: conduit_patchbay::EditDisposition::Rejected,
     })?;
-    browser_registry()
-        .resolve(&panel)
-        .map_err(|error| conduit_patchbay::ProtocolError {
+    let registry = browser_registry();
+    if let Err(error) = registry.resolve(&panel) {
+        if permits_incremental_cord {
+            let assessment = panel
+                .cords
+                .last()
+                .map(|cord| registry.assess_authored_cord(&panel, cord))
+                .ok_or_else(|| conduit_patchbay::ProtocolError {
+                    code: "CND-PBY-010",
+                    message: "connection transaction authored no cord".to_owned(),
+                    diagnostics: Vec::new(),
+                    disposition: conduit_patchbay::EditDisposition::Rejected,
+                })?;
+            if assessment.state == "valid" {
+                return Ok(conduit_patchbay::CompatibilityProof {
+                    compatible: true,
+                    code: assessment.code.to_owned(),
+                    producer_type: assessment.producer_type,
+                    consumer_type: assessment.consumer_type,
+                    candidate_plan_identity: None,
+                    plan_disposition: "candidate-cord-only".to_owned(),
+                });
+            }
+            return Err(conduit_patchbay::ProtocolError {
+                code: assessment.code,
+                message: assessment.message,
+                diagnostics: vec![assessment.explanation],
+                disposition: conduit_patchbay::EditDisposition::Rejected,
+            });
+        }
+        return Err(conduit_patchbay::ProtocolError {
             code: "CND-PBY-010",
             message: "candidate source failed resolver compatibility validation".to_owned(),
             diagnostics: vec![format!("{}: {}", error.code, error.message)],
             disposition: conduit_patchbay::EditDisposition::Rejected,
-        })?;
+        });
+    }
     let candidate_plan_identity = exact_plan_snapshot(source).map(|plan| plan.identity);
     let plan_disposition = if candidate_plan_identity.is_some() {
         "candidate-only"

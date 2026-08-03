@@ -35,3 +35,7 @@ sup: fmt lint test embedded perf
 
 run panel="examples/hello.panel":
     cargo run -p conduct -- {{panel}}
+
+# Build and serve the production browser Workbench on loopback.
+workbench:
+    bash tour/workbench.sh

@@ -18,10 +18,16 @@ const mediaTypes = new Map([
 ]);
 
 const requestedPort = parseInt(process.argv[2] ?? process.env.PORT ?? "4173", 10);
+const requestedHost = process.env.CONDUIT_STATIC_HOST ?? "127.0.0.1";
+const landingPath = process.env.CONDUIT_STATIC_LANDING;
 
 const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname);
+    if (pathname === "/" && landingPath) {
+      response.writeHead(302, { Location: landingPath }).end();
+      return;
+    }
     const roots = artifactRoot ? [artifactRoot, sourceRoot] : [sourceRoot];
     let file;
     let metadata;
@@ -57,8 +63,16 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(requestedPort, "127.0.0.1", () => {
+server.listen(requestedPort, requestedHost, () => {
   const address = server.address();
   const actualPort = typeof address === "object" && address ? address.port : requestedPort;
-  console.log(`READY:${actualPort}`);
+  if (landingPath) {
+    console.log(`WORKBENCH_URL=http://${requestedHost}:${actualPort}${landingPath}`);
+  } else {
+    console.log(`READY:${actualPort}`);
+  }
 });
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, () => server.close(() => process.exit(0)));
+}

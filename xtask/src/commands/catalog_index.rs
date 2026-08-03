@@ -78,6 +78,7 @@ struct Port {
 struct ConfigField {
     key: String,
     value_type: String,
+    requirement: &'static str,
     type_schema_version: u32,
     type_hash: String,
 }
@@ -497,6 +498,11 @@ fn build() -> Result<Inventory, Box<dyn std::error::Error>> {
             .map(|field| ConfigField {
                 key: field.key.to_string(),
                 value_type: field.value_type.contract_id.to_string(),
+                requirement: match field.requirement {
+                    conduit_core::ConfigRequirement::Required => "required",
+                    conduit_core::ConfigRequirement::Optional => "optional",
+                    conduit_core::ConfigRequirement::Defaulted(_) => "defaulted",
+                },
                 type_schema_version: field.value_type.schema_version,
                 type_hash: field.value_type.semantic_hash.to_string(),
             })
