@@ -20,6 +20,7 @@ export default defineConfig({
     "browser/conduit-browser-host.spec.mjs",
     "tour/standing-network.spec.mjs",
     "tour/standing-signals.spec.mjs",
+    "tour/task-action-policy-proof.spec.mjs",
     "tour/task-action-proof.spec.mjs",
     "tour/tour.spec.mjs",
     "tour/workbench-responsive.spec.mjs",
