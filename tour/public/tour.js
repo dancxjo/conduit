@@ -175,6 +175,7 @@ const TASK_ACTION_POLICY_CODES = {
   unavailable: "CND-PBY-ACT-UNAVAILABLE",
 };
 const TASK_ACTION_POLICY_STATES = new Set(Object.keys(TASK_ACTION_POLICY_CODES));
+const TASK_ACTION_POLICY_ADAPTER_MAX_QUEUE = 8;
 const TASK_ACTION_TEST_MODE = pageParameters.get("tourTaskActionProof") === "1" ||
   pageParameters.get("tour-task-action-proof") === "1";
 
@@ -324,6 +325,10 @@ hostTaskActionPolicy = hostReport.taskActionPolicies.find(
 if (!hostTaskActionPolicy) {
   throw new Error("host task-action policy is missing");
 }
+const taskActionPolicyAdapter = createTaskActionPolicyAdapter({
+  initialPolicy: hostTaskActionPolicy,
+  onPolicy: applyTaskActionPolicy,
+});
 
 function parseTaskActionControls(value) {
   const raw = Array.isArray(value) ? value : [];
@@ -418,6 +423,46 @@ function taskActionRequestFromHostMessage(payload) {
   return { operationId, sourceIdentity, planIdentity, planEpoch };
 }
 
+function createTaskActionPolicyAdapter({
+  initialPolicy,
+  maximumQueuedPolicies = TASK_ACTION_POLICY_ADAPTER_MAX_QUEUE,
+  onPolicy,
+}) {
+  const queued = [];
+  let activePolicy = initialPolicy;
+  return {
+    offer(policy, { notify = true } = {}) {
+      if (!policy || typeof policy !== "object") {
+        return {
+          ok: false,
+          code: "CND-PBY-ACT-007",
+          diagnostic: "task-action policy update was malformed",
+        };
+      }
+      queued.push(policy);
+      if (queued.length > maximumQueuedPolicies) {
+        queued.splice(0, queued.length - maximumQueuedPolicies);
+      }
+      let result = { ok: true };
+      while (queued.length > 0) {
+        const candidate = queued.shift();
+        result = onPolicy(candidate, { notify });
+        if (result.ok) {
+          activePolicy = candidate;
+          continue;
+        }
+        if (result.code !== "CND-PBY-ACT-006") {
+          return result;
+        }
+      }
+      return result;
+    },
+    get current() {
+      return activePolicy;
+    },
+  };
+}
+
 function applyTaskActionPolicy(policy, { notify = true } = {}) {
   if (policy.generation <= hostTaskActionPolicy.generation ||
       policy.observationId !== hostTaskActionPolicy.observationId) {
@@ -471,7 +516,7 @@ function handleTaskActionPolicyMessage(event) {
   if (!TASK_ACTION_POLICY_MESSAGES.has(data.type)) return;
   const policy = taskActionPolicyFromHostMessage(data);
   if (!policy) return;
-  applyTaskActionPolicy(policy);
+  taskActionPolicyAdapter.offer(policy);
 }
 
 window.addEventListener("message", handleTaskActionPolicyMessage);

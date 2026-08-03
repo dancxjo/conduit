@@ -1710,8 +1710,8 @@ test("requires explicit host policy to enable task front execution", async ({ pa
   await expect(page.locator("#run")).toBeEnabled();
 });
 
-test("does not consume task-action policy from URL seed", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+test("does not consume task-action policy from URL or page-global seed", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front&taskActionPolicy=permitted");
   await page.evaluate(() => {
     window.taskActionPolicy = {
       observationId: "conduit.task-policy/global",
