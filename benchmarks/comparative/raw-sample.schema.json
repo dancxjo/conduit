@@ -54,7 +54,7 @@
     },
     "workload": {
       "type": "object",
-      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs", "fanout_branches", "fanout_mode", "slow_branches", "termination_request", "cancel_after_offers", "consumer_pattern", "consumer_burst_items", "session_mode", "session_pump_quantum"]
+      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs", "fanout_branches", "fanout_mode", "slow_branches", "termination_request", "cancel_after_offers", "consumer_pattern", "consumer_burst_items", "session_mode", "session_pump_quantum", "residency_plateau_after_wakes"]
     },
     "exact_identity": {
       "type": "object",
@@ -70,7 +70,7 @@
     },
     "execution": {
       "type": "object",
-      "required": ["scheduler_decisions", "producer_stall_ns", "drain_ns", "abort_ns", "session_pumps", "session_reserved_bytes", "pressured_items_at_stop"],
+      "required": ["scheduler_decisions", "producer_stall_ns", "drain_ns", "abort_ns", "session_pumps", "session_reserved_bytes", "pressured_items_at_stop", "session_host_wakes", "residency_plateau_verified", "residency_checkpoint_queue_items_high_water", "residency_checkpoint_queue_payload_bytes_high_water", "residency_checkpoint_ready_slots_high_water", "residency_checkpoint_evidence_slots_high_water"],
       "properties": {
         "scheduler_decisions": { "type": ["integer", "null"], "minimum": 0 },
         "producer_stall_ns": { "type": ["integer", "null"], "minimum": 0 },
@@ -78,7 +78,13 @@
         "abort_ns": { "type": ["integer", "null"], "minimum": 0 },
         "session_pumps": { "type": ["integer", "null"], "minimum": 1 },
         "session_reserved_bytes": { "type": ["integer", "null"], "minimum": 1 },
-        "pressured_items_at_stop": { "type": ["integer", "null"], "minimum": 1 }
+        "pressured_items_at_stop": { "type": ["integer", "null"], "minimum": 1 },
+        "session_host_wakes": { "type": ["integer", "null"], "minimum": 1 },
+        "residency_plateau_verified": { "type": ["boolean", "null"] },
+        "residency_checkpoint_queue_items_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "residency_checkpoint_queue_payload_bytes_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "residency_checkpoint_ready_slots_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "residency_checkpoint_evidence_slots_high_water": { "type": ["integer", "null"], "minimum": 0 }
       },
       "additionalProperties": false
     },

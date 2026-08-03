@@ -2,7 +2,7 @@
   "schema": "conduit.comparative-benchmark-manifest",
   "schema_version": 0,
   "fixture_revision": 0,
-  "issues": [243, 245],
+  "issues": [243, 245, 249],
   "values": 1000000,
   "operator_depths": [1, 8, 32],
   "workloads": ["map", "map-filter", "merge", "bounded-async"],
@@ -48,6 +48,15 @@
     "stop_policies": ["drain", "abort"],
     "session_pump_quantum": 8,
     "scope": "production ExactRunSession ownership through repeated bounded host pumps; Block stops with the final offer pending under pressure, while non-blocking policies stop from the standing source's observation boundary"
+  },
+  "persistent_wake_residency": {
+    "workload": "persistent-wake",
+    "host_wakes": 10000,
+    "residency_plateau_after_wakes": 1000,
+    "queue_capacity_items": 4,
+    "session_pump_quantum": 8,
+    "stop_policy": "drain",
+    "scope": "one production ExactRunSession waits for and consumes one exact host-operation wake per value without resetting; queue, payload, ready, and evidence high-water values at the declared checkpoint must equal those after the final wake"
   },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
@@ -101,6 +110,7 @@
     "pressured Drain preserves every retained admitted value while pressured Abort may discard retained admitted work and neither coalesced replacement nor aborted work counts as useful",
     "bursty consumers report exact repeated pressure and recovery cycle counts without a hidden timing source or buffer",
     "persistent rows retain one finite session reservation across bounded host pumps, request termination with admitted work still pressured, and release the reservation only after terminal finalization",
+    "persistent host-wake residency rows perform the declared deterministic wake count without resetting the session, allocate zero times after Start, reach a strict internal high-water plateau, and reconcile the session reservation after Drain finalization",
     "bounded FIFO retries in local-depth fixtures are reported and do not change admitted or completed-useful counts",
     "map, merge, and bounded-async complete one useful output per input",
     "map-filter completes one useful output per input until it contains a filter, then exactly half for the even input cardinality",

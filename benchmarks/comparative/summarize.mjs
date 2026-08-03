@@ -27,6 +27,7 @@ for (const sample of samples) {
   const identityParts = sample.exact_identity.logical_fixture.split("/");
   const overload = sample.workload.id === "overload";
   const fanout = sample.workload.id === "fanout";
+  const persistentWake = sample.workload.id === "persistent-wake";
   if (overload) {
     const pressureId = sample.workload.pressure.split("/")[0];
     if (identityParts.length !== 12
@@ -64,6 +65,19 @@ for (const sample of samples) {
     if (sample.runtime.id !== "conduit-reference-scheduler") {
       throw new Error("the current fan-out slice has no cross-runtime substitute");
     }
+  } else if (persistentWake) {
+    if (identityParts.length !== 6
+        || identityParts[0] !== "comparative-persistent-wake"
+        || Number(identityParts[1]) !== sample.workload.input_values
+        || Number(identityParts[2]) !== sample.workload.residency_plateau_after_wakes
+        || Number(identityParts[3]) !== sample.workload.queue_capacity_items
+        || Number(identityParts[4]) !== sample.workload.session_pump_quantum
+        || Number(identityParts[5]) !== sample.latency.sample_stride) {
+      throw new Error("persistent host-wake fixture identity does not match the raw sample");
+    }
+    if (sample.runtime.id !== "conduit-reference-scheduler") {
+      throw new Error("the current persistent host-wake slice has no cross-runtime substitute");
+    }
   } else if (identityParts.length !== 6
       || identityParts[0] !== "comparative-local-depth"
       || identityParts[1] !== sample.workload.id
@@ -82,18 +96,47 @@ for (const sample of samples) {
   }
   const persistent = sample.workload.session_mode === "persistent-exact-run-session";
   if (persistent) {
-    if (!overload || !["block", "reject", "coalesce/latest-wins", "sample/every-2-offset-0", "drop-disposable"].includes(sample.workload.pressure)
-        || sample.workload.session_pump_quantum <= 0
-        || sample.workload.cancel_after_offers !== sample.workload.input_values
+    if (sample.workload.session_pump_quantum <= 0
         || sample.execution.session_pumps <= 1
-        || sample.execution.session_reserved_bytes <= 0
-        || sample.execution.pressured_items_at_stop <= 0) {
-      throw new Error("persistent exact-run session identity or admission accounting changed");
+        || sample.execution.session_reserved_bytes <= 0) {
+      throw new Error("persistent exact-run session ownership accounting changed");
+    }
+    if (persistentWake) {
+      if (sample.workload.pressure !== "exact host wake to bounded FIFO"
+          || sample.workload.residency_plateau_after_wakes <= 0
+          || sample.workload.residency_plateau_after_wakes >= sample.workload.input_values
+          || sample.execution.session_host_wakes !== sample.workload.input_values
+          || sample.execution.residency_plateau_verified !== true
+          || sample.execution.pressured_items_at_stop !== null
+          || sample.execution.residency_checkpoint_queue_items_high_water !== sample.memory.queue_items_high_water
+          || sample.execution.residency_checkpoint_queue_payload_bytes_high_water !== sample.memory.queue_payload_bytes_high_water
+          || sample.execution.residency_checkpoint_ready_slots_high_water !== sample.memory.ready_slots_high_water
+          || sample.execution.residency_checkpoint_evidence_slots_high_water !== sample.memory.evidence_slots_high_water) {
+        throw new Error("persistent host-wake residency accounting changed");
+      }
+    } else if (!overload || !["block", "reject", "coalesce/latest-wins", "sample/every-2-offset-0", "drop-disposable"].includes(sample.workload.pressure)
+        || sample.workload.residency_plateau_after_wakes !== 0
+        || sample.workload.cancel_after_offers !== sample.workload.input_values
+        || sample.execution.pressured_items_at_stop <= 0
+        || sample.execution.session_host_wakes !== null
+        || sample.execution.residency_plateau_verified !== null
+        || [sample.execution.residency_checkpoint_queue_items_high_water,
+          sample.execution.residency_checkpoint_queue_payload_bytes_high_water,
+          sample.execution.residency_checkpoint_ready_slots_high_water,
+          sample.execution.residency_checkpoint_evidence_slots_high_water].some((value) => value !== null)) {
+      throw new Error("persistent pressure session identity or admission accounting changed");
     }
   } else if (sample.workload.session_mode !== "finite-executor"
       || sample.workload.session_pump_quantum !== 0
+      || sample.workload.residency_plateau_after_wakes !== 0
       || sample.execution.session_pumps !== null
-      || sample.execution.session_reserved_bytes !== null) {
+      || sample.execution.session_reserved_bytes !== null
+      || sample.execution.session_host_wakes !== null
+      || sample.execution.residency_plateau_verified !== null
+      || [sample.execution.residency_checkpoint_queue_items_high_water,
+        sample.execution.residency_checkpoint_queue_payload_bytes_high_water,
+        sample.execution.residency_checkpoint_ready_slots_high_water,
+        sample.execution.residency_checkpoint_evidence_slots_high_water].some((value) => value !== null)) {
     throw new Error("finite executor fixture carries persistent session state");
   }
   const pressured = overload || fanout;
@@ -122,6 +165,14 @@ for (const sample of samples) {
         || sample.execution.pressured_items_at_stop !== null
         || sample.outcomes.cancelled !== 0) {
       throw new Error("complete fixture carries cancellation state or timing");
+    }
+  } else if (persistentWake) {
+    if (sample.workload.termination_request !== "drain"
+        || sample.workload.cancel_after_offers !== sample.workload.input_values
+        || sample.execution.drain_ns === null || sample.execution.abort_ns !== null
+        || sample.execution.pressured_items_at_stop !== null
+        || sample.outcomes.cancelled !== 0) {
+      throw new Error("persistent host-wake Drain identity is invalid");
     }
   } else if (!["drain", "abort"].includes(sample.workload.termination_request)
       || sample.workload.cancel_after_offers <= sample.workload.queue_capacity_items
@@ -310,7 +361,8 @@ for (const sample of measured) {
     sample.workload.fanout_mode, sample.workload.slow_branches,
     sample.workload.termination_request, sample.workload.cancel_after_offers,
     sample.workload.consumer_pattern, sample.workload.consumer_burst_items,
-    sample.workload.session_mode, sample.workload.session_pump_quantum].join("/");
+    sample.workload.session_mode, sample.workload.session_pump_quantum,
+    sample.workload.residency_plateau_after_wakes].join("/");
   if (!groups.has(key)) groups.set(key, []);
   groups.get(key).push(sample);
 }
@@ -349,6 +401,14 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
       session_pumps: optionalStats(group.map((value) => value.execution.session_pumps)),
       session_reserved_bytes: optionalStats(group.map((value) => value.execution.session_reserved_bytes)),
       pressured_items_at_stop: optionalStats(group.map((value) => value.execution.pressured_items_at_stop)),
+      session_host_wakes: optionalStats(group.map((value) => value.execution.session_host_wakes)),
+      residency_plateau_verified: group.some((value) => value.execution.residency_plateau_verified !== null)
+        ? group.every((value) => value.execution.residency_plateau_verified === true)
+        : null,
+      residency_checkpoint_queue_items_high_water: optionalStats(group.map((value) => value.execution.residency_checkpoint_queue_items_high_water)),
+      residency_checkpoint_queue_payload_bytes_high_water: optionalStats(group.map((value) => value.execution.residency_checkpoint_queue_payload_bytes_high_water)),
+      residency_checkpoint_ready_slots_high_water: optionalStats(group.map((value) => value.execution.residency_checkpoint_ready_slots_high_water)),
+      residency_checkpoint_evidence_slots_high_water: optionalStats(group.map((value) => value.execution.residency_checkpoint_evidence_slots_high_water)),
     },
     outcomes: Object.fromEntries([
       "offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "cancelled", "retried", "terminal",
@@ -433,6 +493,11 @@ const result = {
       workload: "fanout",
       reason: "reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted",
     },
+    {
+      runtime: "rxjs/reactor-core",
+      workload: "persistent-wake",
+      reason: "no reviewed mapping for Conduit's exact named host-operation wait and production session reservation exists; a timer or subject is not substituted",
+    },
   ],
   groups: summaries,
 };
@@ -455,6 +520,7 @@ if (reportOutput) {
     "- RxJS overload: synchronous push has no demand-bounded queue matching these pressure policies and is not substituted.",
     "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
     "- RxJS/Reactor fan-out: reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted.",
+    "- RxJS/Reactor persistent wake: no reviewed mapping exists for Conduit's exact named host-operation wait and production session reservation; a timer or subject is not substituted.",
     "- Drain/Abort timing is present only on fixtures that explicitly request that transition; normal completion remains distinct and null.",
     "",
   ];
@@ -484,6 +550,20 @@ if (reportOutput) {
       for (const group of workloadGroups) {
         const outcome = (field) => integer.format(group.outcomes[field].median);
         report.push(`| ${group.runtime.id} | ${group.workload.fanout_mode} | ${group.workload.consumer_pattern} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${outcome("offered")} | ${outcome("admitted")} | ${outcome("completed_useful")} | ${outcome("retried")} | ${outcome("terminal")} | ${duration(group.high_water.queue_items)} | ${duration(group.high_water.queue_max_cord_items)} |`);
+      }
+      report.push("");
+    }
+    if (workload === "persistent-wake") {
+      report.push(
+        "## persistent-wake: residency plateau",
+        "",
+        "Checkpoint and final high-water values must match exactly in every raw row. Process RSS is supplementary and is not used for this proof.",
+        "",
+        "| Runtime | Host wakes | Checkpoint after wakes | Plateau verified | Alloc calls after Start | Alloc bytes after Start | Checkpoint/final queue items | Checkpoint/final payload bytes | Checkpoint/final ready slots | Checkpoint/final evidence slots | Reserved session bytes | Drain median ns |",
+        "| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+      );
+      for (const group of workloadGroups) {
+        report.push(`| ${group.runtime.id} | ${duration(group.execution.session_host_wakes)} | ${group.workload.residency_plateau_after_wakes} | ${group.execution.residency_plateau_verified} | ${duration(group.allocations_after_start.calls)} | ${duration(group.allocations_after_start.bytes)} | ${duration(group.execution.residency_checkpoint_queue_items_high_water)}/${duration(group.high_water.queue_items)} | ${duration(group.execution.residency_checkpoint_queue_payload_bytes_high_water)}/${duration(group.high_water.queue_payload_bytes)} | ${duration(group.execution.residency_checkpoint_ready_slots_high_water)}/${duration(group.high_water.ready_slots)} | ${duration(group.execution.residency_checkpoint_evidence_slots_high_water)}/${duration(group.high_water.evidence_slots)} | ${duration(group.execution.session_reserved_bytes)} | ${duration(group.execution.drain_ns)} |`);
       }
       report.push("");
     }
