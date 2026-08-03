@@ -94,6 +94,7 @@ function runIdentitySample(sampleKind, trial, thermalState) {
       session_mode: "finite-executor",
       session_pump_quantum: 0,
       residency_plateau_after_wakes: 0,
+      timer_advance_ticks: 0,
     },
     exact_identity: {
       logical_fixture: logicalFixture,
@@ -105,7 +106,7 @@ function runIdentitySample(sampleKind, trial, thermalState) {
     trial,
     thermal_state: thermalState,
     phases: { assembly_ns: assemblyNs, plan_seal_ns: null, start_ns: null, steady_ns: steadyNs, pressure_ns: null, recovery_ns: null, pressure_cycles: null, recovery_cycles: null },
-    execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null, session_pumps: null, session_reserved_bytes: null, pressured_items_at_stop: null, session_host_wakes: null, residency_plateau_verified: null, residency_checkpoint_queue_items_high_water: null, residency_checkpoint_queue_payload_bytes_high_water: null, residency_checkpoint_ready_slots_high_water: null, residency_checkpoint_evidence_slots_high_water: null },
+    execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null, session_pumps: null, session_reserved_bytes: null, pressured_items_at_stop: null, session_host_wakes: null, session_timer_wakes: null, residency_plateau_verified: null, residency_checkpoint_queue_items_high_water: null, residency_checkpoint_queue_payload_bytes_high_water: null, residency_checkpoint_ready_slots_high_water: null, residency_checkpoint_evidence_slots_high_water: null },
     process_cpu_ns: (cpu.user + cpu.system) * 1000,
     outcomes: {
       offered: values,
@@ -240,6 +241,7 @@ async function runSample(sampleKind, trial, thermalState) {
       session_mode: "finite-executor",
       session_pump_quantum: 0,
       residency_plateau_after_wakes: 0,
+      timer_advance_ticks: 0,
     },
     exact_identity: {
       logical_fixture: logicalFixture,
@@ -260,7 +262,7 @@ async function runSample(sampleKind, trial, thermalState) {
       pressure_cycles: null,
       recovery_cycles: null,
     },
-    execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null, session_pumps: null, session_reserved_bytes: null, pressured_items_at_stop: null, session_host_wakes: null, residency_plateau_verified: null, residency_checkpoint_queue_items_high_water: null, residency_checkpoint_queue_payload_bytes_high_water: null, residency_checkpoint_ready_slots_high_water: null, residency_checkpoint_evidence_slots_high_water: null },
+    execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null, session_pumps: null, session_reserved_bytes: null, pressured_items_at_stop: null, session_host_wakes: null, session_timer_wakes: null, residency_plateau_verified: null, residency_checkpoint_queue_items_high_water: null, residency_checkpoint_queue_payload_bytes_high_water: null, residency_checkpoint_ready_slots_high_water: null, residency_checkpoint_evidence_slots_high_water: null },
     process_cpu_ns: (cpu.user + cpu.system) * 1000,
     outcomes: {
       offered: values,

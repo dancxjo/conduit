@@ -167,15 +167,27 @@ after wake 10,000. A mismatch fails the run, so final-only reconciliation
 cannot hide monotonic growth. The raw row binds the checkpoint, reports the
 exact host-wake and pump counts, and marks the plateau proof explicitly.
 
-The global allocator counter covers the complete region after
-`DeterministicExecutor::start`: initial wait, every host notification and
-bounded pump, evidence acknowledgement, requested Drain, terminal pump, and
-session finalization. Its reviewed target for this exact reference-scheduler,
+The persistent timer residency row repeats the same 10,000-wake and
+wake-1,000 checkpoint contract through the production timer boundary. The
+source retains one exact `benchmark/persistent-timer` deadline at
+`io.tick() + 64`, which stays ahead of the eight-decision pump quantum; the
+host reads that retained deadline from the session and
+calls `ExactRunSession::advance_to` exactly once per value. No wall clock,
+sleep, interval adapter, callback queue, or session reset is involved. Its raw
+row reports timer wakes separately from host-operation wakes and applies the
+same exact checkpoint/final high-water equality and final Drain reconciliation
+gate.
+
+For both residency rows, the global allocator counter covers the complete
+region after `DeterministicExecutor::start`: initial wait, every host
+notification or exact timer advance and bounded pump, evidence acknowledgement,
+requested Drain, terminal pump, and session finalization. Its reviewed target
+for this exact reference-scheduler,
 handle-backed driver, release-profile path is zero calls and zero bytes. The
-fixture also requires every offered value to be admitted and consumed before
+fixtures also require every offered value to be admitted and consumed before
 the next wake, then checks the session registry returns both active sessions
 and reserved bytes to zero exactly once. It does not claim a hosted value arena,
-provider buffer, worker pool, timer/interrupt path, or all-Conduit
+provider buffer, worker pool, hosted timer provider, interrupt path, or all-Conduit
 zero-allocation result; those #249 workloads remain open. Process RSS is
 reported only as supplementary process telemetry and is never used to prove
 the internal plateau.

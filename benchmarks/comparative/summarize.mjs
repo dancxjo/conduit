@@ -28,6 +28,8 @@ for (const sample of samples) {
   const overload = sample.workload.id === "overload";
   const fanout = sample.workload.id === "fanout";
   const persistentWake = sample.workload.id === "persistent-wake";
+  const persistentTimer = sample.workload.id === "persistent-timer";
+  const persistentResidency = persistentWake || persistentTimer;
   if (overload) {
     const pressureId = sample.workload.pressure.split("/")[0];
     if (identityParts.length !== 12
@@ -78,6 +80,20 @@ for (const sample of samples) {
     if (sample.runtime.id !== "conduit-reference-scheduler") {
       throw new Error("the current persistent host-wake slice has no cross-runtime substitute");
     }
+  } else if (persistentTimer) {
+    if (identityParts.length !== 7
+        || identityParts[0] !== "comparative-persistent-timer"
+        || Number(identityParts[1]) !== sample.workload.input_values
+        || Number(identityParts[2]) !== sample.workload.residency_plateau_after_wakes
+        || Number(identityParts[3]) !== sample.workload.queue_capacity_items
+        || Number(identityParts[4]) !== sample.workload.session_pump_quantum
+        || Number(identityParts[5]) !== sample.workload.timer_advance_ticks
+        || Number(identityParts[6]) !== sample.latency.sample_stride) {
+      throw new Error("persistent timer fixture identity does not match the raw sample");
+    }
+    if (sample.runtime.id !== "conduit-reference-scheduler") {
+      throw new Error("the current persistent timer slice has no cross-runtime substitute");
+    }
   } else if (identityParts.length !== 6
       || identityParts[0] !== "comparative-local-depth"
       || identityParts[1] !== sample.workload.id
@@ -95,30 +111,48 @@ for (const sample of samples) {
     throw new Error("Conduit sample omitted scheduler decisions or producer stall time");
   }
   const persistent = sample.workload.session_mode === "persistent-exact-run-session";
+  if (persistentTimer) {
+    if (sample.workload.timer_advance_ticks <= sample.workload.session_pump_quantum) {
+      throw new Error("persistent timer advance does not stay ahead of a bounded pump");
+    }
+  } else if (sample.workload.timer_advance_ticks !== 0) {
+    throw new Error("non-timer fixture carries an unused timer advance");
+  }
   if (persistent) {
     if (sample.workload.session_pump_quantum <= 0
         || sample.execution.session_pumps <= 1
         || sample.execution.session_reserved_bytes <= 0) {
       throw new Error("persistent exact-run session ownership accounting changed");
     }
-    if (persistentWake) {
-      if (sample.workload.pressure !== "exact host wake to bounded FIFO"
+    if (persistentResidency) {
+      const wakeCount = persistentWake
+        ? sample.execution.session_host_wakes
+        : sample.execution.session_timer_wakes;
+      const unusedWakeCount = persistentWake
+        ? sample.execution.session_timer_wakes
+        : sample.execution.session_host_wakes;
+      const expectedPressure = persistentWake
+        ? "exact host wake to bounded FIFO"
+        : "exact timer wake to bounded FIFO";
+      if (sample.workload.pressure !== expectedPressure
           || sample.workload.residency_plateau_after_wakes <= 0
           || sample.workload.residency_plateau_after_wakes >= sample.workload.input_values
-          || sample.execution.session_host_wakes !== sample.workload.input_values
+          || wakeCount !== sample.workload.input_values
+          || unusedWakeCount !== null
           || sample.execution.residency_plateau_verified !== true
           || sample.execution.pressured_items_at_stop !== null
           || sample.execution.residency_checkpoint_queue_items_high_water !== sample.memory.queue_items_high_water
           || sample.execution.residency_checkpoint_queue_payload_bytes_high_water !== sample.memory.queue_payload_bytes_high_water
           || sample.execution.residency_checkpoint_ready_slots_high_water !== sample.memory.ready_slots_high_water
           || sample.execution.residency_checkpoint_evidence_slots_high_water !== sample.memory.evidence_slots_high_water) {
-        throw new Error("persistent host-wake residency accounting changed");
+        throw new Error("persistent wake residency accounting changed");
       }
     } else if (!overload || !["block", "reject", "coalesce/latest-wins", "sample/every-2-offset-0", "drop-disposable"].includes(sample.workload.pressure)
         || sample.workload.residency_plateau_after_wakes !== 0
         || sample.workload.cancel_after_offers !== sample.workload.input_values
         || sample.execution.pressured_items_at_stop <= 0
         || sample.execution.session_host_wakes !== null
+        || sample.execution.session_timer_wakes !== null
         || sample.execution.residency_plateau_verified !== null
         || [sample.execution.residency_checkpoint_queue_items_high_water,
           sample.execution.residency_checkpoint_queue_payload_bytes_high_water,
@@ -132,6 +166,7 @@ for (const sample of samples) {
       || sample.execution.session_pumps !== null
       || sample.execution.session_reserved_bytes !== null
       || sample.execution.session_host_wakes !== null
+      || sample.execution.session_timer_wakes !== null
       || sample.execution.residency_plateau_verified !== null
       || [sample.execution.residency_checkpoint_queue_items_high_water,
         sample.execution.residency_checkpoint_queue_payload_bytes_high_water,
@@ -166,13 +201,13 @@ for (const sample of samples) {
         || sample.outcomes.cancelled !== 0) {
       throw new Error("complete fixture carries cancellation state or timing");
     }
-  } else if (persistentWake) {
+  } else if (persistentResidency) {
     if (sample.workload.termination_request !== "drain"
         || sample.workload.cancel_after_offers !== sample.workload.input_values
         || sample.execution.drain_ns === null || sample.execution.abort_ns !== null
         || sample.execution.pressured_items_at_stop !== null
         || sample.outcomes.cancelled !== 0) {
-      throw new Error("persistent host-wake Drain identity is invalid");
+      throw new Error("persistent wake Drain identity is invalid");
     }
   } else if (!["drain", "abort"].includes(sample.workload.termination_request)
       || sample.workload.cancel_after_offers <= sample.workload.queue_capacity_items
@@ -402,6 +437,7 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
       session_reserved_bytes: optionalStats(group.map((value) => value.execution.session_reserved_bytes)),
       pressured_items_at_stop: optionalStats(group.map((value) => value.execution.pressured_items_at_stop)),
       session_host_wakes: optionalStats(group.map((value) => value.execution.session_host_wakes)),
+      session_timer_wakes: optionalStats(group.map((value) => value.execution.session_timer_wakes)),
       residency_plateau_verified: group.some((value) => value.execution.residency_plateau_verified !== null)
         ? group.every((value) => value.execution.residency_plateau_verified === true)
         : null,
@@ -498,6 +534,11 @@ const result = {
       workload: "persistent-wake",
       reason: "no reviewed mapping for Conduit's exact named host-operation wait and production session reservation exists; a timer or subject is not substituted",
     },
+    {
+      runtime: "rxjs/reactor-core",
+      workload: "persistent-timer",
+      reason: "no reviewed mapping for Conduit's exact retained timer deadline and production session reservation exists; an interval operator is not substituted",
+    },
   ],
   groups: summaries,
 };
@@ -521,6 +562,7 @@ if (reportOutput) {
     "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
     "- RxJS/Reactor fan-out: reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted.",
     "- RxJS/Reactor persistent wake: no reviewed mapping exists for Conduit's exact named host-operation wait and production session reservation; a timer or subject is not substituted.",
+    "- RxJS/Reactor persistent timer: no reviewed mapping exists for Conduit's exact retained timer deadline and production session reservation; an interval operator is not substituted.",
     "- Drain/Abort timing is present only on fixtures that explicitly request that transition; normal completion remains distinct and null.",
     "",
   ];
@@ -553,9 +595,12 @@ if (reportOutput) {
       }
       report.push("");
     }
-    if (workload === "persistent-wake") {
+    if (["persistent-wake", "persistent-timer"].includes(workload)) {
+      const wakeMetric = workload === "persistent-wake"
+        ? "session_host_wakes"
+        : "session_timer_wakes";
       report.push(
-        "## persistent-wake: residency plateau",
+        `## ${workload}: residency plateau`,
         "",
         "Checkpoint and final high-water values must match exactly in every raw row. Process RSS is supplementary and is not used for this proof.",
         "",
@@ -563,7 +608,7 @@ if (reportOutput) {
         "| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
       );
       for (const group of workloadGroups) {
-        report.push(`| ${group.runtime.id} | ${duration(group.execution.session_host_wakes)} | ${group.workload.residency_plateau_after_wakes} | ${group.execution.residency_plateau_verified} | ${duration(group.allocations_after_start.calls)} | ${duration(group.allocations_after_start.bytes)} | ${duration(group.execution.residency_checkpoint_queue_items_high_water)}/${duration(group.high_water.queue_items)} | ${duration(group.execution.residency_checkpoint_queue_payload_bytes_high_water)}/${duration(group.high_water.queue_payload_bytes)} | ${duration(group.execution.residency_checkpoint_ready_slots_high_water)}/${duration(group.high_water.ready_slots)} | ${duration(group.execution.residency_checkpoint_evidence_slots_high_water)}/${duration(group.high_water.evidence_slots)} | ${duration(group.execution.session_reserved_bytes)} | ${duration(group.execution.drain_ns)} |`);
+        report.push(`| ${group.runtime.id} | ${duration(group.execution[wakeMetric])} | ${group.workload.residency_plateau_after_wakes} | ${group.execution.residency_plateau_verified} | ${duration(group.allocations_after_start.calls)} | ${duration(group.allocations_after_start.bytes)} | ${duration(group.execution.residency_checkpoint_queue_items_high_water)}/${duration(group.high_water.queue_items)} | ${duration(group.execution.residency_checkpoint_queue_payload_bytes_high_water)}/${duration(group.high_water.queue_payload_bytes)} | ${duration(group.execution.residency_checkpoint_ready_slots_high_water)}/${duration(group.high_water.ready_slots)} | ${duration(group.execution.residency_checkpoint_evidence_slots_high_water)}/${duration(group.high_water.evidence_slots)} | ${duration(group.execution.session_reserved_bytes)} | ${duration(group.execution.drain_ns)} |`);
       }
       report.push("");
     }
