@@ -89,6 +89,8 @@ function runIdentitySample(sampleKind, trial, thermalState) {
       slow_branches: "none",
       termination_request: "complete",
       cancel_after_offers: 0,
+      consumer_pattern: "none",
+      consumer_burst_items: 0,
     },
     exact_identity: {
       logical_fixture: logicalFixture,
@@ -99,7 +101,7 @@ function runIdentitySample(sampleKind, trial, thermalState) {
     sample_kind: sampleKind,
     trial,
     thermal_state: thermalState,
-    phases: { assembly_ns: assemblyNs, plan_seal_ns: null, start_ns: null, steady_ns: steadyNs, pressure_ns: null, recovery_ns: null },
+    phases: { assembly_ns: assemblyNs, plan_seal_ns: null, start_ns: null, steady_ns: steadyNs, pressure_ns: null, recovery_ns: null, pressure_cycles: null, recovery_cycles: null },
     execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null },
     process_cpu_ns: (cpu.user + cpu.system) * 1000,
     outcomes: {
@@ -230,6 +232,8 @@ async function runSample(sampleKind, trial, thermalState) {
       slow_branches: "none",
       termination_request: "complete",
       cancel_after_offers: 0,
+      consumer_pattern: "none",
+      consumer_burst_items: 0,
     },
     exact_identity: {
       logical_fixture: logicalFixture,
@@ -247,6 +251,8 @@ async function runSample(sampleKind, trial, thermalState) {
       steady_ns: steadyNs,
       pressure_ns: null,
       recovery_ns: null,
+      pressure_cycles: null,
+      recovery_cycles: null,
     },
     execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null },
     process_cpu_ns: (cpu.user + cpu.system) * 1000,

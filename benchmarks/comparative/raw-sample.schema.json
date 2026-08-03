@@ -54,7 +54,7 @@
     },
     "workload": {
       "type": "object",
-      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs", "fanout_branches", "fanout_mode", "slow_branches", "termination_request", "cancel_after_offers"]
+      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss", "slow_consumer_yields", "recovery_after_outputs", "fanout_branches", "fanout_mode", "slow_branches", "termination_request", "cancel_after_offers", "consumer_pattern", "consumer_burst_items"]
     },
     "exact_identity": {
       "type": "object",
@@ -62,7 +62,11 @@
     },
     "phases": {
       "type": "object",
-      "required": ["assembly_ns", "plan_seal_ns", "start_ns", "steady_ns", "pressure_ns", "recovery_ns"]
+      "required": ["assembly_ns", "plan_seal_ns", "start_ns", "steady_ns", "pressure_ns", "recovery_ns", "pressure_cycles", "recovery_cycles"],
+      "properties": {
+        "pressure_cycles": { "type": ["integer", "null"], "minimum": 0 },
+        "recovery_cycles": { "type": ["integer", "null"], "minimum": 0 }
+      }
     },
     "execution": {
       "type": "object",

@@ -164,6 +164,22 @@ enum TerminationRequest {
     Abort,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+enum ConsumerPattern {
+    Sustained,
+    Bursty,
+}
+
+impl ConsumerPattern {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Sustained => "sustained-slow-then-recover",
+            Self::Bursty => "bursty",
+        }
+    }
+}
+
 impl TerminationRequest {
     const fn as_str(self) -> &'static str {
         match self {
@@ -268,6 +284,10 @@ struct Args {
     termination_request: TerminationRequest,
     #[arg(long, default_value_t = 0)]
     cancel_after_offers: u64,
+    #[arg(long, value_enum, default_value_t = ConsumerPattern::Sustained)]
+    consumer_pattern: ConsumerPattern,
+    #[arg(long, default_value_t = 0)]
+    consumer_burst_items: u64,
 }
 
 #[derive(Serialize)]
@@ -278,6 +298,8 @@ struct PhaseTimes {
     steady_ns: u64,
     pressure_ns: Option<u64>,
     recovery_ns: Option<u64>,
+    pressure_cycles: Option<u64>,
+    recovery_cycles: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -345,6 +367,8 @@ struct WorkloadIdentity {
     slow_branches: &'static str,
     termination_request: &'static str,
     cancel_after_offers: u64,
+    consumer_pattern: &'static str,
+    consumer_burst_items: u64,
 }
 
 #[derive(Serialize)]
@@ -406,6 +430,8 @@ struct Observations {
     recovery_started: Rc<RefCell<Option<Instant>>>,
     producer_stall_started: Rc<RefCell<Option<Instant>>>,
     producer_stall_ns: Rc<Cell<u64>>,
+    pressure_cycles: Rc<Cell<u64>>,
+    recovery_cycles: Rc<Cell<u64>>,
     stride: u64,
 }
 
@@ -476,6 +502,9 @@ enum BenchNode {
         recovery_after_outputs: u64,
         completed: u64,
         records_recovery: bool,
+        consumer_pattern: ConsumerPattern,
+        consumer_burst_items: u64,
+        burst_progress: u64,
     },
 }
 
@@ -823,15 +852,54 @@ impl SchedulerNode for BenchNode {
                 recovery_after_outputs,
                 completed,
                 records_recovery,
+                consumer_pattern,
+                consumer_burst_items,
+                burst_progress,
             } => {
-                if *completed < *recovery_after_outputs && *yields_remaining > 0 {
+                let pause_active = match consumer_pattern {
+                    ConsumerPattern::Sustained => *completed < *recovery_after_outputs,
+                    ConsumerPattern::Bursty => *burst_progress == *consumer_burst_items,
+                };
+                if pause_active
+                    && matches!(consumer_pattern, ConsumerPattern::Bursty)
+                    && matches!(
+                        io.input_state(*input),
+                        Ok(FlowQueueState::Completed
+                            | FlowQueueState::Cancelled
+                            | FlowQueueState::Failed
+                            | FlowQueueState::Disconnected)
+                    )
+                {
+                    return SchedulerStep::Completed;
+                }
+                if pause_active && *yields_remaining > 0 {
                     *yields_remaining -= 1;
                     io.consume_work(LIMITS.max_step_work).unwrap();
+                    if *yields_remaining == 0 && matches!(consumer_pattern, ConsumerPattern::Bursty)
+                    {
+                        *burst_progress = 0;
+                        if *records_recovery {
+                            observations
+                                .recovery_cycles
+                                .set(observations.recovery_cycles.get() + 1);
+                        }
+                    }
                     return SchedulerStep::Yielded;
                 }
                 match io.receive(*input) {
                     Ok(Some(value)) => {
                         *completed += 1;
+                        if matches!(consumer_pattern, ConsumerPattern::Bursty) {
+                            *burst_progress += 1;
+                            if *burst_progress == *consumer_burst_items {
+                                *yields_remaining = *slow_consumer_yields;
+                                if *records_recovery {
+                                    observations
+                                        .pressure_cycles
+                                        .set(observations.pressure_cycles.get() + 1);
+                                }
+                            }
+                        }
                         observations
                             .useful_outputs
                             .set(observations.useful_outputs.get() + 1);
@@ -851,7 +919,9 @@ impl SchedulerNode for BenchNode {
                                     .push(start.elapsed().as_nanos() as u64);
                             }
                         }
-                        *yields_remaining = *slow_consumer_yields;
+                        if matches!(consumer_pattern, ConsumerPattern::Sustained) {
+                            *yields_remaining = *slow_consumer_yields;
+                        }
                         SchedulerStep::Progress
                     }
                     _ if matches!(
@@ -889,6 +959,9 @@ fn semantic_digest(parts: &[&str]) -> SemanticHash {
 }
 
 fn recovery_after_outputs(args: &Args) -> u64 {
+    if matches!(args.consumer_pattern, ConsumerPattern::Bursty) {
+        return 0;
+    }
     if args.termination_request.stop_policy().is_some() {
         return args.values;
     }
@@ -1025,6 +1098,26 @@ fn prepare(args: &Args) -> PreparedRun {
             "complete fixtures do not carry an unused cancellation threshold"
         );
     }
+    if matches!(args.consumer_pattern, ConsumerPattern::Bursty) {
+        assert!(
+            matches!(args.workload, Workload::Overload | Workload::Fanout),
+            "bursty consumers require an overload or fan-out fixture"
+        );
+        assert!(
+            args.termination_request.stop_policy().is_none(),
+            "bursty and requested-cancellation identities are measured separately"
+        );
+        assert!(
+            args.consumer_burst_items > 0
+                && args.consumer_burst_items.saturating_mul(2) < args.values,
+            "bursty consumers require at least two complete bounded bursts"
+        );
+    } else {
+        assert_eq!(
+            args.consumer_burst_items, 0,
+            "sustained consumers do not carry an unused burst size"
+        );
+    }
     if matches!(args.workload, Workload::Overload) {
         assert_eq!(args.operators, 1, "overload uses one source/sink boundary");
         assert!(
@@ -1087,6 +1180,8 @@ fn prepare(args: &Args) -> PreparedRun {
         recovery_started: Rc::new(RefCell::new(None)),
         producer_stall_started: Rc::new(RefCell::new(None)),
         producer_stall_ns: Rc::new(Cell::new(0)),
+        pressure_cycles: Rc::new(Cell::new(0)),
+        recovery_cycles: Rc::new(Cell::new(0)),
         stride: args.latency_sample_stride,
     };
     assert_eq!(observations.values.borrow().len(), value_count);
@@ -1275,6 +1370,9 @@ fn prepare(args: &Args) -> PreparedRun {
             recovery_after_outputs: 0,
             completed: 0,
             records_recovery: false,
+            consumer_pattern: ConsumerPattern::Sustained,
+            consumer_burst_items: 0,
+            burst_progress: 0,
         });
     } else if matches!(args.workload, Workload::Fanout) {
         let branch_count = usize::from(args.fanout_branches);
@@ -1333,6 +1431,18 @@ fn prepare(args: &Args) -> PreparedRun {
                 recovery_after_outputs: recovery_after_outputs(args),
                 completed: 0,
                 records_recovery: slow && branch == 0,
+                consumer_pattern: if slow {
+                    args.consumer_pattern
+                } else {
+                    ConsumerPattern::Sustained
+                },
+                consumer_burst_items: if slow { args.consumer_burst_items } else { 0 },
+                burst_progress: if slow && matches!(args.consumer_pattern, ConsumerPattern::Bursty)
+                {
+                    args.consumer_burst_items
+                } else {
+                    0
+                },
             });
         }
         let branches = Box::leak(
@@ -1419,6 +1529,13 @@ fn prepare(args: &Args) -> PreparedRun {
             recovery_after_outputs: recovery_after_outputs(args),
             completed: 0,
             records_recovery: matches!(args.workload, Workload::Overload),
+            consumer_pattern: args.consumer_pattern,
+            consumer_burst_items: args.consumer_burst_items,
+            burst_progress: if matches!(args.consumer_pattern, ConsumerPattern::Bursty) {
+                args.consumer_burst_items
+            } else {
+                0
+            },
         });
     }
 
@@ -1447,6 +1564,8 @@ fn prepare(args: &Args) -> PreparedRun {
             &args.slow_consumer_yields.to_string(),
             &args.fanout_branches.to_string(),
             args.slow_branches.as_str(),
+            args.consumer_pattern.as_str(),
+            &args.consumer_burst_items.to_string(),
         ]),
         resolver: pin("benchmark/resolver", "resolver"),
         resolver_policy_hash: semantic_digest(&["resolver-policy", "exact-local-reference"]),
@@ -1736,13 +1855,26 @@ fn run_sample(
             },
             termination_request: args.termination_request.as_str(),
             cancel_after_offers: args.cancel_after_offers,
+            consumer_pattern: if matches!(args.workload, Workload::Overload | Workload::Fanout) {
+                args.consumer_pattern.as_str()
+            } else {
+                "none"
+            },
+            consumer_burst_items: if matches!(args.workload, Workload::Overload | Workload::Fanout)
+            {
+                args.consumer_burst_items
+            } else {
+                0
+            },
         },
         exact_identity: ExactIdentity {
             logical_fixture: if matches!(args.workload, Workload::Overload) {
                 format!(
-                    "comparative-overload/{}/{}/{}/{}/{}/{}/{}",
+                    "comparative-overload/{}/{}/{}/{}/{}/{}/{}/{}/{}",
                     args.pressure_policy.id(),
                     args.termination_request.as_str(),
+                    args.consumer_pattern.as_str(),
+                    args.consumer_burst_items,
                     args.values,
                     args.queue_items,
                     args.slow_consumer_yields,
@@ -1751,9 +1883,11 @@ fn run_sample(
                 )
             } else if matches!(args.workload, Workload::Fanout) {
                 format!(
-                    "comparative-fanout/{}/{}/{}/{}/{}/{}/{}",
+                    "comparative-fanout/{}/{}/{}/{}/{}/{}/{}/{}/{}",
                     args.fanout_mode.as_str(),
                     args.slow_branches.as_str(),
+                    args.consumer_pattern.as_str(),
+                    args.consumer_burst_items,
                     args.fanout_branches,
                     args.values,
                     args.queue_items,
@@ -1784,6 +1918,24 @@ fn run_sample(
             steady_ns,
             pressure_ns: recovery_ns.map(|recovery| steady_ns.saturating_sub(recovery)),
             recovery_ns,
+            pressure_cycles: matches!(args.workload, Workload::Overload | Workload::Fanout).then(
+                || {
+                    if matches!(args.consumer_pattern, ConsumerPattern::Bursty) {
+                        prepared.observations.pressure_cycles.get()
+                    } else {
+                        1
+                    }
+                },
+            ),
+            recovery_cycles: matches!(args.workload, Workload::Overload | Workload::Fanout).then(
+                || {
+                    if matches!(args.consumer_pattern, ConsumerPattern::Bursty) {
+                        prepared.observations.recovery_cycles.get()
+                    } else {
+                        u64::from(recovery_ns.is_some())
+                    }
+                },
+            ),
         },
         execution: ExecutionMeasurement {
             scheduler_decisions: Some(high_water.decisions),
@@ -1946,6 +2098,8 @@ fn run_identity_sample(
             slow_branches: "none",
             termination_request: "complete",
             cancel_after_offers: 0,
+            consumer_pattern: "none",
+            consumer_burst_items: 0,
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(
@@ -1970,6 +2124,8 @@ fn run_identity_sample(
             steady_ns,
             pressure_ns: None,
             recovery_ns: None,
+            pressure_cycles: None,
+            recovery_cycles: None,
         },
         execution: ExecutionMeasurement {
             scheduler_decisions: None,

@@ -20,6 +20,9 @@ fanout_slow_yields=$(jq -r .fanout.slow_consumer_yields "$manifest")
 cancellation_capacity=$(jq -r .cancellation.queue_capacity_items "$manifest")
 cancellation_pressure=$(jq -r .cancellation.pressure_policy "$manifest")
 cancellation_after=$(jq -r .cancellation.cancel_after_offers "$manifest")
+bursty_capacity=$(jq -r .bursty_consumers.queue_capacity_items "$manifest")
+bursty_items=$(jq -r .bursty_consumers.consumer_burst_items "$manifest")
+bursty_pause_yields=$(jq -r .bursty_consumers.consumer_pause_yields "$manifest")
 
 mkdir -p "$output_dir"
 for artifact in "$raw" "$summary" "$metadata" "$report" "$commands"; do
@@ -122,6 +125,42 @@ for stop in $(jq -r '.cancellation.stop_policies[]' "$manifest"); do
     --slow-consumer-yields "$overload_slow_yields" \
     --termination-request "$stop" \
     --cancel-after-offers "$cancellation_after"
+done
+
+for pressure in $(jq -r '.bursty_consumers.pressure_policies[]' "$manifest"); do
+  record_raw "$workspace_root/target/release/conduit-benchmark" \
+    --workload overload \
+    --operators 1 \
+    --values "$values" \
+    --queue-items "$bursty_capacity" \
+    --latency-sample-stride "$stride" \
+    --warmup-trials "$warmups" \
+    --measured-trials "$trials" \
+    --pressure-policy "$pressure" \
+    --slow-consumer-yields "$bursty_pause_yields" \
+    --consumer-pattern bursty \
+    --consumer-burst-items "$bursty_items"
+done
+
+for branches in $(jq -r '.bursty_consumers.fanout_branches[]' "$manifest"); do
+  for mode in $(jq -r '.bursty_consumers.fanout_modes[]' "$manifest"); do
+    for slow in $(jq -r '.bursty_consumers.fanout_slow_branches[]' "$manifest"); do
+      record_raw "$workspace_root/target/release/conduit-benchmark" \
+        --workload fanout \
+        --operators 1 \
+        --values "$values" \
+        --queue-items "$bursty_capacity" \
+        --latency-sample-stride "$stride" \
+        --warmup-trials "$warmups" \
+        --measured-trials "$trials" \
+        --fanout-branches "$branches" \
+        --fanout-mode "$mode" \
+        --slow-branches "$slow" \
+        --slow-consumer-yields "$bursty_pause_yields" \
+        --consumer-pattern bursty \
+        --consumer-burst-items "$bursty_items"
+    done
+  done
 done
 
 for capacity in $(jq -r '.fanout.queue_capacity_items[]' "$manifest"); do
