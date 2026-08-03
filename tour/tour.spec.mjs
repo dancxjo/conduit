@@ -2833,7 +2833,6 @@ test("filesystem reference panels use the explicit bounded browser provider", as
 });
 
 test("Copy task front binds From and To without exposing selected material", async ({ page }) => {
-  test.slow();
   await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem");
   const taskFront = page.locator("#task-front");
   await expect(taskFront).toBeVisible();
