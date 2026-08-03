@@ -62,6 +62,7 @@ jobs:
       - name: Run pinned comparative matrix
         env:
           CONDUIT_BENCHMARK_VALUES: ${{ steps.size.outputs.values }}
+          CONDUIT_BENCHMARK_MACHINE_CLASS: github-hosted-ubuntu-x86_64
         run: bash benchmarks/comparative/run.sh target/comparative-benchmark
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

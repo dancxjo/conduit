@@ -135,10 +135,12 @@
     "aggregate fan-out queue high water never exceeds capacity multiplied by branch count"
   ],
   "wall_clock_policy": {
-    "gate": "report-only until a reviewed machine-class baseline exists",
+    "gate": "strict only for the separately versioned reviewed regression policy when machine class, architecture, input cardinality, and trial counts match exactly; otherwise report-only",
     "summary": "median with deterministic percentile-bootstrap 95% confidence interval over measured trials",
     "minimum_measured_trials": 9,
     "bootstrap_resamples": 10000,
-    "seed": 241243
+    "seed": 241243,
+    "policy": "regression-policy.json",
+    "claim_boundary": "a broad alarm requests review and is not a deadline, admission, safety, portability, or performance guarantee"
   }
 }

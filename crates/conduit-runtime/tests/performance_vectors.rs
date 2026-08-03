@@ -5,6 +5,8 @@ const BASELINE: &str = include_str!("../../../benchmarks/baseline.json");
 const COMPARATIVE_MANIFEST: &str = include_str!("../../../benchmarks/comparative/manifest.json");
 const COMPARATIVE_RAW_SCHEMA: &str =
     include_str!("../../../benchmarks/comparative/raw-sample.schema.json");
+const COMPARATIVE_REGRESSION_POLICY: &str =
+    include_str!("../../../benchmarks/comparative/regression-policy.json");
 const RXJS_LOCK: &str =
     include_str!("../../../benchmarks/comparative/javascript/package-lock.json");
 
@@ -64,6 +66,7 @@ fn performance_fixture_and_reviewed_baseline_are_complete() {
 fn comparative_methodology_pins_matrix_schema_and_runtimes() {
     let manifest: Value = serde_json::from_str(COMPARATIVE_MANIFEST).unwrap();
     let schema: Value = serde_json::from_str(COMPARATIVE_RAW_SCHEMA).unwrap();
+    let regression: Value = serde_json::from_str(COMPARATIVE_REGRESSION_POLICY).unwrap();
     let rxjs_lock: Value = serde_json::from_str(RXJS_LOCK).unwrap();
 
     assert_eq!(manifest["schema"], "conduit.comparative-benchmark-manifest");
@@ -171,7 +174,11 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
     );
     assert_eq!(
         manifest["wall_clock_policy"]["gate"],
-        "report-only until a reviewed machine-class baseline exists"
+        "strict only for the separately versioned reviewed regression policy when machine class, architecture, input cardinality, and trial counts match exactly; otherwise report-only"
+    );
+    assert_eq!(
+        manifest["wall_clock_policy"]["policy"],
+        "regression-policy.json"
     );
     assert_eq!(
         manifest["runtimes"]
@@ -289,6 +296,69 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         rxjs_lock["packages"]["node_modules/rxjs"]["version"],
         "7.8.2"
     );
+
+    assert_eq!(
+        regression["schema"],
+        "conduit.comparative-regression-policy"
+    );
+    assert_eq!(regression["schema_version"], 0);
+    assert_eq!(regression["policy_revision"], 0);
+    assert_eq!(regression["issues"], serde_json::json!([241, 245]));
+    assert_eq!(
+        regression["scope"],
+        serde_json::json!({
+            "machine_class": "github-hosted-ubuntu-x86_64",
+            "architecture": "x86_64",
+            "input_values": 10_000,
+            "warmup_trials": 2,
+            "measured_trials": 9
+        })
+    );
+    assert_eq!(regression["provenance"]["artifact_id"], 8_854_832_510_u64);
+    assert_eq!(
+        regression["provenance"]["head_commit"],
+        "0f4c3eb5b74c7be31f7da50b2914e4616777661c"
+    );
+    assert_eq!(
+        regression["thresholds"]["throughput_confidence_high_minimum_ratio"],
+        0.5
+    );
+    assert_eq!(regression["thresholds"]["p99_maximum_ratio"], 3);
+    assert_eq!(regression["thresholds"]["p99_9"], "report-only");
+    assert_eq!(
+        regression["thresholds"]["alarm_metrics_by_runtime"],
+        serde_json::json!({
+            "conduit-reference-scheduler": ["useful-throughput", "p99"],
+            "rxjs": ["useful-throughput"],
+            "reactor-core": ["useful-throughput"]
+        })
+    );
+    assert_eq!(
+        regression["threshold_calibration"]
+            .as_array()
+            .unwrap()
+            .len(),
+        5
+    );
+    let baselines = regression["baselines"].as_array().unwrap();
+    assert_eq!(baselines.len(), 13);
+    assert!(baselines.iter().all(|baseline| {
+        baseline["match"]["runtime"]
+            .as_str()
+            .is_some_and(|runtime| !runtime.is_empty())
+            && baseline["match"]["workload"]
+                .as_str()
+                .is_some_and(|workload| !workload.is_empty())
+            && baseline["baseline"]["useful_outputs_per_second_median"]
+                .as_f64()
+                .is_some_and(|value| value > 0.0)
+            && baseline["baseline"]["p99_ns"]
+                .as_f64()
+                .is_some_and(|value| value > 0.0)
+            && baseline["baseline"]["p99_9_ns"]
+                .as_f64()
+                .is_some_and(|value| value > 0.0)
+    }));
 }
 
 #[test]
