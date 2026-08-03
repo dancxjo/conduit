@@ -4,19 +4,25 @@ use std::rc::Rc;
 use conduit_core::{
     ArtifactDigest, AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee,
     Direction, ExecutionLimits, ExecutionPlan, ExecutionProfile, FlowCapacity, FlowEventKind,
-    FlowPolicy, FlowQueueState, FlowWatermarks, Id, ImplementationMachine, InstancePath,
-    InstantiationContext, LifecycleUsage, MemoryAccounting, MemoryCategory, MemoryClaim,
-    PinnedDescriptor, PlanArtifact, PlanHostObservation, PlanResourceBudget, PlanValidationContext,
-    Pressure, ReadyQueueDiscipline, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
-    SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, SemanticHash, StopPolicy, TypeContractRef,
+    FlowPolicy, FlowQueueState, FlowWatermarks, HandleDisposition, Id, ImplementationMachine,
+    InstancePath, InstantiationContext, LifecycleUsage, MemoryAccounting, MemoryCategory,
+    MemoryClaim, OwnershipModel, PinnedDescriptor, PlanArtifact, PlanHostObservation,
+    PlanResourceBudget, PlanValidationContext, Pressure, ReadyQueueDiscipline, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION, SchedulerPolicy, SemanticHash,
+    StopPolicy, TypeContractRef, ValueRepresentation,
 };
 use conduit_embedded::{
     EmbeddedEventKind, EmbeddedHostServices, EmbeddedInterest, EmbeddedNode, EmbeddedOutcome,
-    EmbeddedProfile, EmbeddedStep, EmbeddedStorage, EmbeddedValue, HostReply, InterestSet,
-    RunControl, RunIdentity, RunStatus, STATIC_PLAN_SCHEMA_VERSION, StaticCord, StaticNode,
-    StaticPlan, StepContext, execute_static_plan,
+    EmbeddedStep, EmbeddedStorage, EmbeddedValue, HostReply, InterestSet, RunControl, RunIdentity,
+    RunStatus, StepContext, execute_static_plan,
 };
-use conduit_rp2040_hil::PLAN_HASH as FIRMWARE_PLAN_HASH;
+use conduit_embedded_build::{
+    EmbeddedNodeBinding, EmbeddedProgramIdentity, GeneratedEmbeddedPlan, generate_embedded_plan,
+};
+use conduit_rp2040_hil::{
+    CORDS as FIRMWARE_CORDS, GENERATED_PLAN_HASH as FIRMWARE_GENERATED_PLAN_HASH,
+    NODES as FIRMWARE_NODES, PLAN_HASH as FIRMWARE_PLAN_HASH, profile as firmware_profile,
+};
 use conduit_runtime::{
     DeterministicExecutor, RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerEventKind,
     SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
@@ -33,6 +39,34 @@ const CLAIMS: [MemoryClaim; 1] = [MemoryClaim {
     accounting: MemoryAccounting::ExecutorAllocated,
     bytes: 320,
 }];
+const REPRESENTATIONS: [ValueRepresentation<'static>; 2] = [
+    ValueRepresentation {
+        direction: Direction::Input,
+        port: Id("in"),
+        semantic_type: TYPE,
+        representation: PinnedDescriptor {
+            id: Id("fixture/fixed-bytes"),
+            schema_version: 0,
+            semantic_hash: SemanticHash::from_bytes([12; 32]),
+        },
+        ownership: OwnershipModel::Owned,
+        disposition: HandleDisposition::None,
+        max_bytes: 8,
+    },
+    ValueRepresentation {
+        direction: Direction::Output,
+        port: Id("out"),
+        semantic_type: TYPE,
+        representation: PinnedDescriptor {
+            id: Id("fixture/fixed-bytes"),
+            schema_version: 0,
+            semantic_hash: SemanticHash::from_bytes([12; 32]),
+        },
+        ownership: OwnershipModel::Owned,
+        disposition: HandleDisposition::None,
+        max_bytes: 8,
+    },
+];
 const LIMITS: ExecutionLimits = ExecutionLimits {
     max_step_work: 4,
     max_retained_values: 0,
@@ -55,54 +89,17 @@ const LIMITS: ExecutionLimits = ExecutionLimits {
     cancellation_ticks: 8,
 };
 const EQUIVALENCE_FIXTURE: &str = include_str!("../../../conformance/c5/embedded-equivalence.json");
-const STATIC_NODES: [StaticNode<'static>; 3] = [
-    StaticNode {
-        semantic_path: Id("fixture/sensor"),
-        implementation: Id("fixture/rp2040-sensor"),
-        input_ports: 0,
-        output_ports: 1,
-        maximum_step_work: 2,
-        nesting_depth: 1,
-    },
-    StaticNode {
-        semantic_path: Id("fixture/threshold"),
-        implementation: Id("fixture/rp2040-threshold"),
-        input_ports: 1,
-        output_ports: 1,
-        maximum_step_work: 2,
-        nesting_depth: 1,
-    },
-    StaticNode {
-        semantic_path: Id("fixture/indicator"),
-        implementation: Id("fixture/rp2040-indicator"),
-        input_ports: 1,
-        output_ports: 0,
-        maximum_step_work: 2,
-        nesting_depth: 1,
-    },
-];
-const STATIC_CORDS: [StaticCord<'static>; 2] = [
-    StaticCord {
-        semantic_id: Id("fixture/sample"),
-        producer_node: 0,
-        producer_port: 0,
-        consumer_node: 1,
-        consumer_port: 0,
-        slot_start: 0,
-        capacity: 1,
-        maximum_value_bytes: 4,
-    },
-    StaticCord {
-        semantic_id: Id("fixture/decision"),
-        producer_node: 1,
-        producer_port: 0,
-        consumer_node: 2,
-        consumer_port: 0,
-        slot_start: 1,
-        capacity: 1,
-        maximum_value_bytes: 1,
-    },
-];
+const fn static_pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
+    PinnedDescriptor {
+        id: Id(id),
+        schema_version: 0,
+        semantic_hash: SemanticHash::from_bytes([byte; 32]),
+    }
+}
+
+const NO_PORTS: &[Id<'static>] = &[];
+const INPUT_PORTS: &[Id<'static>] = &[Id("in")];
+const OUTPUT_PORTS: &[Id<'static>] = &[Id("out")];
 
 fn hash(byte: u8) -> SemanticHash {
     SemanticHash::from_bytes([byte; 32])
@@ -125,11 +122,11 @@ fn profile() -> ExecutionProfile<'static> {
         cancellation: CancellationGuarantee::Bounded,
         step_bound_enforced: true,
         limits: LIMITS,
-        representations: &[],
+        representations: &REPRESENTATIONS,
         memory_claims: &CLAIMS,
         checkpoint: None,
     };
-    profile.semantic_hash = profile.computed_semantic_hash(&mut [ZERO; 1]).unwrap();
+    profile.semantic_hash = profile.computed_semantic_hash(&mut [ZERO; 3]).unwrap();
     profile
 }
 
@@ -647,6 +644,14 @@ enum EmbeddedDriver {
 }
 
 impl EmbeddedNode<EmbeddedHost, 16, 4, 4> for EmbeddedDriver {
+    fn descriptor(&self) -> PinnedDescriptor<'static> {
+        match self {
+            Self::Sensor { .. } => static_pin("fixture/rp2040-sensor-driver", 80),
+            Self::Threshold => static_pin("fixture/rp2040-threshold-driver", 81),
+            Self::Indicator => static_pin("fixture/rp2040-indicator-driver", 82),
+        }
+    }
+
     fn step(&mut self, context: &mut StepContext<'_, EmbeddedHost, 16, 4>) -> EmbeddedStep<4> {
         match self {
             Self::Sensor { emitted } => {
@@ -701,27 +706,6 @@ fn failed() -> EmbeddedStep<4> {
     }
 }
 
-fn embedded_profile() -> EmbeddedProfile {
-    let mut profile = EmbeddedProfile {
-        identity: ZERO,
-        maximum_nodes: 3,
-        maximum_cords: 2,
-        maximum_ports: 4,
-        maximum_queue_slots: 2,
-        maximum_value_bytes: 16,
-        maximum_evidence_records: 64,
-        maximum_timers: 2,
-        maximum_interests_per_node: 4,
-        maximum_nesting: 1,
-        maximum_timer_delay: 64,
-        static_ram_budget_bytes: 64 * 1024,
-        stack_budget_bytes: 4 * 1024,
-        flash_budget_bytes: 64 * 1024,
-    };
-    profile.seal().unwrap();
-    profile
-}
-
 fn normalize_embedded(events: &[conduit_embedded::EmbeddedEvent<16>]) -> Normalized {
     let mut normalized = Normalized {
         prepared: 0,
@@ -770,6 +754,47 @@ fn equivalence_fixture_expected(id: &str) -> serde_json::Value {
         .clone()
 }
 
+fn generated_embedded_plan(plan: &ExecutionPlan<'_>) -> GeneratedEmbeddedPlan {
+    let bindings = [
+        EmbeddedNodeBinding {
+            instance: InstancePath::new("fixture/sensor").unwrap(),
+            driver: static_pin("fixture/rp2040-sensor-driver", 80),
+            input_ports: NO_PORTS,
+            output_ports: OUTPUT_PORTS,
+        },
+        EmbeddedNodeBinding {
+            instance: InstancePath::new("fixture/threshold").unwrap(),
+            driver: static_pin("fixture/rp2040-threshold-driver", 81),
+            input_ports: INPUT_PORTS,
+            output_ports: OUTPUT_PORTS,
+        },
+        EmbeddedNodeBinding {
+            instance: InstancePath::new("fixture/indicator").unwrap(),
+            driver: static_pin("fixture/rp2040-indicator-driver", 82),
+            input_ports: INPUT_PORTS,
+            output_ports: NO_PORTS,
+        },
+    ];
+    generate_embedded_plan(
+        plan,
+        PlanValidationContext {
+            supported_schema_version: plan.schema_version,
+            now: AuthorityTime {
+                basis: Id("clock/monotonic"),
+                tick: 1,
+            },
+        },
+        firmware_profile(),
+        EmbeddedProgramIdentity {
+            conduit_revision: "1111111111111111111111111111111111111111",
+            policy_package_hash: hash(70),
+            policy_lock_hash: hash(71),
+        },
+        &bindings,
+    )
+    .unwrap()
+}
+
 #[test]
 fn desktop_and_rp2040_execute_one_semantic_plan_with_normalized_equivalence() {
     let expected = equivalence_fixture_expected("same-plan-normalized-equivalence");
@@ -782,37 +807,47 @@ fn desktop_and_rp2040_execute_one_semantic_plan_with_normalized_equivalence() {
         );
         assert_eq!(desktop_indicator.get(), Some(1));
 
-        let embedded_profile = embedded_profile();
-        let static_plan = StaticPlan {
-            schema_version: STATIC_PLAN_SCHEMA_VERSION,
-            full_plan_hash: rp2040_plan.identity,
-            profile_hash: embedded_profile.identity,
-            nodes: &STATIC_NODES,
-            cords: &STATIC_CORDS,
-        };
-        let mut storage = EmbeddedStorage::<3, 2, 4, 2, 16, 64, 2, 4>::new();
+        let generated = generated_embedded_plan(&rp2040_plan);
+        let embedded_profile = generated.profile;
+        assert!(
+            generated
+                .cords
+                .iter()
+                .all(|cord| cord.maximum_value_bytes == 8)
+        );
+        assert_eq!(generated.identity, FIRMWARE_GENERATED_PLAN_HASH);
+        generated.with_static_plan(|static_plan| {
+            assert_eq!(static_plan.nodes, FIRMWARE_NODES);
+            assert_eq!(static_plan.cords, FIRMWARE_CORDS);
+        });
+        let rendered = generated.render_rust_module();
+        assert!(rendered.contains("pub const GENERATED_STATIC_PLAN"));
+        let mut storage = EmbeddedStorage::<3, 2, 4, 2, 16, 64, 4, 4>::new();
         let mut embedded_host = EmbeddedHost { indicator: None };
-        let summary = execute_static_plan(
-            &static_plan,
-            &embedded_profile,
-            &mut storage,
-            &mut [
-                EmbeddedDriver::Sensor { emitted: false },
-                EmbeddedDriver::Threshold,
-                EmbeddedDriver::Indicator,
-            ],
-            &mut embedded_host,
-            RunIdentity {
-                boot_id: [5; 16],
-                run_sequence: 1,
-            },
-            RunControl {
-                maximum_decisions: 64,
-                cancellation_at_decision: None,
-                initial_tick: 0,
-            },
-        )
-        .unwrap();
+        let summary = generated
+            .with_static_plan(|static_plan| {
+                execute_static_plan(
+                    &static_plan,
+                    &embedded_profile,
+                    &mut storage,
+                    &mut [
+                        EmbeddedDriver::Sensor { emitted: false },
+                        EmbeddedDriver::Threshold,
+                        EmbeddedDriver::Indicator,
+                    ],
+                    &mut embedded_host,
+                    RunIdentity {
+                        boot_id: [5; 16],
+                        run_sequence: 1,
+                    },
+                    RunControl {
+                        maximum_decisions: 64,
+                        cancellation_at_decision: None,
+                        initial_tick: 0,
+                    },
+                )
+            })
+            .unwrap();
         assert_eq!(summary.status, RunStatus::Succeeded);
         assert_eq!(embedded_host.indicator, Some(1));
         let normalized_equal = normalize_desktop(&desktop) == normalize_embedded(storage.events());
@@ -856,36 +891,33 @@ fn desktop_and_rp2040_abort_cancellation_are_both_terminal() {
             SchedulerEventKind::Terminal(conduit_core::TerminalClass::Cancelled)
         )));
 
-        let embedded_profile = embedded_profile();
-        let static_plan = StaticPlan {
-            schema_version: STATIC_PLAN_SCHEMA_VERSION,
-            full_plan_hash: rp2040_plan.identity,
-            profile_hash: embedded_profile.identity,
-            nodes: &STATIC_NODES,
-            cords: &STATIC_CORDS,
-        };
-        let mut storage = EmbeddedStorage::<3, 2, 4, 2, 16, 64, 2, 4>::new();
-        let summary = execute_static_plan(
-            &static_plan,
-            &embedded_profile,
-            &mut storage,
-            &mut [
-                EmbeddedDriver::Sensor { emitted: false },
-                EmbeddedDriver::Threshold,
-                EmbeddedDriver::Indicator,
-            ],
-            &mut EmbeddedHost { indicator: None },
-            RunIdentity {
-                boot_id: [5; 16],
-                run_sequence: 2,
-            },
-            RunControl {
-                maximum_decisions: 4,
-                cancellation_at_decision: Some(0),
-                initial_tick: 0,
-            },
-        )
-        .unwrap();
+        let generated = generated_embedded_plan(&rp2040_plan);
+        let embedded_profile = generated.profile;
+        let mut storage = EmbeddedStorage::<3, 2, 4, 2, 16, 64, 4, 4>::new();
+        let summary = generated
+            .with_static_plan(|static_plan| {
+                execute_static_plan(
+                    &static_plan,
+                    &embedded_profile,
+                    &mut storage,
+                    &mut [
+                        EmbeddedDriver::Sensor { emitted: false },
+                        EmbeddedDriver::Threshold,
+                        EmbeddedDriver::Indicator,
+                    ],
+                    &mut EmbeddedHost { indicator: None },
+                    RunIdentity {
+                        boot_id: [5; 16],
+                        run_sequence: 2,
+                    },
+                    RunControl {
+                        maximum_decisions: 4,
+                        cancellation_at_decision: Some(0),
+                        initial_tick: 0,
+                    },
+                )
+            })
+            .unwrap();
         assert_eq!(summary.status, RunStatus::Cancelled);
         assert!(
             storage

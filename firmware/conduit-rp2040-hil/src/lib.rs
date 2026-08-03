@@ -14,8 +14,16 @@ include!(concat!(env!("OUT_DIR"), "/firmware_identity.rs"));
 
 pub type ReferenceStorage = EmbeddedStorage<3, 2, 4, 2, 16, 64, 4, 4>;
 pub const PLAN_HASH: SemanticHash = SemanticHash::from_bytes([
-    0x70, 0xea, 0xda, 0x87, 0x20, 0x87, 0x75, 0xc2, 0xbc, 0xfe, 0x7c, 0xe2, 0xed, 0xbc, 0x82, 0x01,
-    0xd6, 0xcc, 0x18, 0xe4, 0x95, 0x5a, 0xa8, 0x16, 0x4e, 0x9b, 0x48, 0x51, 0x69, 0x91, 0x04, 0x54,
+    0xb9, 0x1b, 0x25, 0x99, 0xd5, 0x12, 0xed, 0x70, 0x53, 0x6c, 0x83, 0xf8, 0xff, 0x6f, 0x38, 0xbb,
+    0xd1, 0x89, 0xee, 0x3c, 0xd0, 0x93, 0xca, 0xed, 0xdb, 0xb1, 0xbf, 0x18, 0x5b, 0xd3, 0x71, 0x85,
+]);
+pub const PROGRAM_FIXTURE_CONDUIT_REVISION: &str = "1111111111111111111111111111111111111111";
+pub const PROGRAM_FIXTURE_PACKAGE_HASH: SemanticHash = SemanticHash::from_bytes([70; 32]);
+pub const PROGRAM_FIXTURE_LOCK_HASH: SemanticHash = SemanticHash::from_bytes([71; 32]);
+/// Identity of the exact fixed representation proven against the hosted plan.
+pub const GENERATED_PLAN_HASH: SemanticHash = SemanticHash::from_bytes([
+    77, 134, 112, 118, 123, 72, 208, 102, 94, 215, 167, 218, 96, 2, 219, 209, 138, 179, 136, 28,
+    192, 54, 216, 31, 24, 224, 153, 218, 230, 215, 97, 224,
 ]);
 /// Identity of the generic RP2040 board profile implemented by this artifact.
 ///
@@ -109,29 +117,40 @@ pub const FIXED_EXECUTOR_BUDGET: PlanResourceBudget = PlanResourceBudget {
     evidence_bytes: 16 * 1024,
 };
 
+const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
+    PinnedDescriptor {
+        id: Id(id),
+        schema_version: 0,
+        semantic_hash: SemanticHash::from_bytes([byte; 32]),
+    }
+}
+
 pub const NODES: [StaticNode<'static>; 3] = [
     StaticNode {
         semantic_path: Id("fixture/sensor"),
-        implementation: Id("fixture/rp2040-sensor"),
+        implementation: pin("fixture/rp2040-sensor", 40),
+        driver: pin("fixture/rp2040-sensor-driver", 80),
         input_ports: 0,
         output_ports: 1,
-        maximum_step_work: 2,
+        maximum_step_work: 4,
         nesting_depth: 1,
     },
     StaticNode {
         semantic_path: Id("fixture/threshold"),
-        implementation: Id("fixture/rp2040-threshold"),
+        implementation: pin("fixture/rp2040-threshold", 41),
+        driver: pin("fixture/rp2040-threshold-driver", 81),
         input_ports: 1,
         output_ports: 1,
-        maximum_step_work: 2,
+        maximum_step_work: 4,
         nesting_depth: 1,
     },
     StaticNode {
         semantic_path: Id("fixture/indicator"),
-        implementation: Id("fixture/rp2040-indicator"),
+        implementation: pin("fixture/rp2040-indicator", 42),
+        driver: pin("fixture/rp2040-indicator-driver", 82),
         input_ports: 1,
         output_ports: 0,
-        maximum_step_work: 2,
+        maximum_step_work: 4,
         nesting_depth: 1,
     },
 ];
@@ -144,7 +163,7 @@ pub const CORDS: [StaticCord<'static>; 2] = [
         consumer_port: 0,
         slot_start: 0,
         capacity: 1,
-        maximum_value_bytes: 4,
+        maximum_value_bytes: 8,
     },
     StaticCord {
         semantic_id: Id("fixture/decision"),
@@ -154,7 +173,7 @@ pub const CORDS: [StaticCord<'static>; 2] = [
         consumer_port: 0,
         slot_start: 1,
         capacity: 1,
-        maximum_value_bytes: 1,
+        maximum_value_bytes: 8,
     },
 ];
 
@@ -182,6 +201,7 @@ pub fn profile() -> EmbeddedProfile {
 pub fn plan(profile: &EmbeddedProfile) -> StaticPlan<'static> {
     StaticPlan {
         schema_version: STATIC_PLAN_SCHEMA_VERSION,
+        generated_plan_hash: GENERATED_PLAN_HASH,
         full_plan_hash: PLAN_HASH,
         profile_hash: profile.identity,
         nodes: &NODES,
@@ -451,6 +471,14 @@ pub fn drivers() -> [ReferenceDriver; 3] {
 }
 
 impl EmbeddedNode<ReferenceHost, 16, 4, 4> for ReferenceDriver {
+    fn descriptor(&self) -> PinnedDescriptor<'static> {
+        match self {
+            Self::Sensor { .. } => pin("fixture/rp2040-sensor-driver", 80),
+            Self::Threshold => pin("fixture/rp2040-threshold-driver", 81),
+            Self::Indicator => pin("fixture/rp2040-indicator-driver", 82),
+        }
+    }
+
     fn step(&mut self, context: &mut StepContext<'_, ReferenceHost, 16, 4>) -> EmbeddedStep<4> {
         match self {
             Self::Sensor { emitted } => {

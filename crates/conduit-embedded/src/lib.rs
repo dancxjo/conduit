@@ -10,7 +10,8 @@ use core::fmt;
 use core::mem::size_of;
 
 use conduit_core::{
-    CanonicalDescriptor, CanonicalValue, FieldDisposition, Id, MapField, SemanticHash,
+    CanonicalDescriptor, CanonicalValue, FieldDisposition, Id, MapField, PinnedDescriptor,
+    SemanticHash,
 };
 
 pub const EMBEDDED_PROFILE_SCHEMA_VERSION: u32 = 0;
@@ -165,7 +166,9 @@ fn validate_profile_shape(profile: &EmbeddedProfile) -> Result<(), EmbeddedError
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct StaticNode<'a> {
     pub semantic_path: Id<'a>,
-    pub implementation: Id<'a>,
+    pub implementation: PinnedDescriptor<'a>,
+    /// Exact firmware driver binding expected at this node ordinal.
+    pub driver: PinnedDescriptor<'a>,
     pub input_ports: u8,
     pub output_ports: u8,
     pub maximum_step_work: u16,
@@ -187,6 +190,8 @@ pub struct StaticCord<'a> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct StaticPlan<'a> {
     pub schema_version: u32,
+    /// Identity of the generated node/driver/port/queue representation.
+    pub generated_plan_hash: SemanticHash,
     pub full_plan_hash: SemanticHash,
     pub profile_hash: SemanticHash,
     pub nodes: &'a [StaticNode<'a>],
@@ -240,6 +245,7 @@ pub fn validate_static_plan(
 ) -> Result<PreflightReport, EmbeddedError> {
     profile.validate()?;
     if plan.schema_version != STATIC_PLAN_SCHEMA_VERSION
+        || plan.generated_plan_hash == ZERO_HASH
         || plan.full_plan_hash == ZERO_HASH
         || plan.profile_hash != profile.identity
         || plan.nodes.is_empty()
@@ -250,7 +256,9 @@ pub fn validate_static_plan(
     let cord_count = u16::try_from(plan.cords.len()).map_err(|_| EmbeddedError::ProfileExceeded)?;
     let mut ports = 0_u16;
     for (index, node) in plan.nodes.iter().enumerate() {
-        if node.maximum_step_work == 0
+        if !valid_pin(node.implementation)
+            || !valid_pin(node.driver)
+            || node.maximum_step_work == 0
             || node.nesting_depth == 0
             || node.nesting_depth > profile.maximum_nesting
         {
@@ -321,6 +329,7 @@ pub fn validate_static_plan(
         return Err(EmbeddedError::ProfileExceeded);
     }
     Ok(PreflightReport {
+        generated_plan_hash: plan.generated_plan_hash,
         full_plan_hash: plan.full_plan_hash,
         profile_hash: profile.identity,
         nodes: node_count,
@@ -335,6 +344,7 @@ pub fn validate_static_plan(
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PreflightReport {
+    pub generated_plan_hash: SemanticHash,
     pub full_plan_hash: SemanticHash,
     pub profile_hash: SemanticHash,
     pub nodes: u16,
@@ -482,6 +492,9 @@ pub trait EmbeddedNode<H, const V: usize, const P: usize, const I: usize>
 where
     H: EmbeddedHostServices<V>,
 {
+    /// Exact driver implementation bound into the generated static plan.
+    fn descriptor(&self) -> PinnedDescriptor<'static>;
+
     fn prepare(&mut self, _host: &mut H) -> Result<(), Id<'static>> {
         Ok(())
     }
@@ -798,6 +811,13 @@ where
             .is_some_and(|value| value > control.maximum_decisions)
     {
         return Err(EmbeddedError::InvalidRun);
+    }
+    if drivers
+        .iter()
+        .zip(plan.nodes)
+        .any(|(driver, node)| driver.descriptor() != node.driver)
+    {
+        return Err(EmbeddedError::DriverBindingMismatch);
     }
     storage.reset();
     let mut state = ExecutionState {
@@ -1653,6 +1673,7 @@ pub enum EmbeddedError {
     NodeFailed,
     ReplacementUnsupported,
     UnsupportedHilProtocol,
+    DriverBindingMismatch,
 }
 
 impl EmbeddedError {
@@ -1675,6 +1696,7 @@ impl EmbeddedError {
             Self::NodeFailed => "CND-EMB-011",
             Self::ReplacementUnsupported => "CND-EMB-012",
             Self::UnsupportedHilProtocol => "CND-EMB-013",
+            Self::DriverBindingMismatch => "CND-EMB-014",
         }
     }
 }
@@ -1705,8 +1727,15 @@ impl fmt::Display for EmbeddedError {
             Self::NodeFailed => "embedded node reported failure",
             Self::ReplacementUnsupported => "firmware replacement level or overlap is unsupported",
             Self::UnsupportedHilProtocol => "unsupported RP2040 HIL protocol",
+            Self::DriverBindingMismatch => {
+                "firmware driver identity does not match the generated node binding"
+            }
         })
     }
+}
+
+fn valid_pin(pin: PinnedDescriptor<'_>) -> bool {
+    Id::new(pin.id.as_str()).is_ok() && pin.semantic_hash != ZERO_HASH
 }
 
 fn semantic<'a>(name: &'static str, value: CanonicalValue<'a>) -> MapField<'a> {

@@ -93,6 +93,32 @@ A timeout is not termination. A cancellation request, regained control,
 effect fencing, stopped execution, and reclaimed resources are separate
 observations. Loading an implementation never grants it authority.
 
+## Constrained firmware generation
+
+`conduit-embedded-build` is the hosted boundary between an exact checked plan
+and the allocator-free `conduit-embedded` executor. A firmware build supplies
+the exact policy package and lock hashes, the full Conduit revision, and one
+driver/port-ordinal binding for each planned instance. The generator validates
+the complete `ExecutionPlan`, seals those identities with the embedded profile,
+and emits one fixed Rust module containing the node, driver, port, queue, and
+storage-facing plan data. Firmware includes that module; it does not parse
+source or resolve providers on the device.
+
+Lowering fails closed when the constrained executor would approximate a plan.
+The current supported subset requires hard-bounded implementations, bounded
+cancellation, enforced step limits, exact fixed queue bytes, full-capacity FIFO
+blocking pressure, and one cord per port. Authority, hazard closure, distributed
+cords, fan-out, merge, supervision, pools, runtime-evidence projection, and the
+other explicitly rejected features must gain production embedded semantics
+before a plan containing them can be generated. In particular, this generator
+does not yet make a hazardous robotics plan executable.
+
+Every embedded driver exposes its exact descriptor. The executor compares the
+ordered runtime driver set with the generated bindings before prepare or any
+host effect. The generated-representation identity is separate from the full
+logical plan hash and is returned by preflight alongside the selected embedded
+profile.
+
 ## Ownership
 
 The portable runtime owns region readiness, deterministic selection and

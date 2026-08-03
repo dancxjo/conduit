@@ -10,6 +10,7 @@ members = [
     "crates/conduit-core",
     "crates/conduit-diagnostics",
     "crates/conduit-embedded",
+    "crates/conduit-embedded-build",
     "crates/conduit-filesystem",
     "crates/conduit-http",
     "crates/conduit-inspect",

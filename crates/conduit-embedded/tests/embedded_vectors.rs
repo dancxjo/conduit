@@ -18,11 +18,21 @@ use conduit_embedded::{
 const FIXTURE: &str = include_str!("../../../conformance/c5/embedded-rp2040.json");
 const ZERO: SemanticHash = SemanticHash::from_bytes([0; 32]);
 const PLAN_HASH: SemanticHash = SemanticHash::from_bytes([7; 32]);
+const GENERATED_PLAN_HASH: SemanticHash = SemanticHash::from_bytes([8; 32]);
+
+const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
+    PinnedDescriptor {
+        id: Id(id),
+        schema_version: 0,
+        semantic_hash: SemanticHash::from_bytes([byte; 32]),
+    }
+}
 
 const NODES: [StaticNode<'static>; 3] = [
     StaticNode {
         semantic_path: Id("fixture/sensor"),
-        implementation: Id("fixture/rp2040-sensor"),
+        implementation: pin("fixture/rp2040-sensor", 40),
+        driver: pin("fixture/rp2040-sensor-driver", 80),
         input_ports: 0,
         output_ports: 1,
         maximum_step_work: 2,
@@ -30,7 +40,8 @@ const NODES: [StaticNode<'static>; 3] = [
     },
     StaticNode {
         semantic_path: Id("fixture/threshold"),
-        implementation: Id("fixture/rp2040-threshold"),
+        implementation: pin("fixture/rp2040-threshold", 41),
+        driver: pin("fixture/rp2040-threshold-driver", 81),
         input_ports: 1,
         output_ports: 1,
         maximum_step_work: 2,
@@ -38,7 +49,8 @@ const NODES: [StaticNode<'static>; 3] = [
     },
     StaticNode {
         semantic_path: Id("fixture/indicator"),
-        implementation: Id("fixture/rp2040-indicator"),
+        implementation: pin("fixture/rp2040-indicator", 42),
+        driver: pin("fixture/rp2040-indicator-driver", 82),
         input_ports: 1,
         output_ports: 0,
         maximum_step_work: 2,
@@ -203,6 +215,7 @@ fn plan<'a>(
 ) -> StaticPlan<'a> {
     StaticPlan {
         schema_version: STATIC_PLAN_SCHEMA_VERSION,
+        generated_plan_hash: GENERATED_PLAN_HASH,
         full_plan_hash: PLAN_HASH,
         profile_hash: profile.identity,
         nodes,
@@ -245,6 +258,14 @@ fn drivers() -> [Driver; 3] {
 }
 
 impl EmbeddedNode<Host, 16, 4, 4> for Driver {
+    fn descriptor(&self) -> PinnedDescriptor<'static> {
+        match self {
+            Self::Sensor { .. } => pin("fixture/rp2040-sensor-driver", 80),
+            Self::Threshold => pin("fixture/rp2040-threshold-driver", 81),
+            Self::Indicator => pin("fixture/rp2040-indicator-driver", 82),
+        }
+    }
+
     fn step(&mut self, context: &mut StepContext<'_, Host, 16, 4>) -> EmbeddedStep<4> {
         match self {
             Self::Sensor { emitted } => {
@@ -522,7 +543,8 @@ fn maximum_graph_case() -> serde_json::Value {
     for (index, node) in nodes.iter_mut().enumerate() {
         *node = StaticNode {
             semantic_path: MAX_NODE_IDS[index],
-            implementation: Id("fixture/rp2040-max-node"),
+            implementation: pin("fixture/rp2040-max-node", 83),
+            driver: pin("fixture/rp2040-max-node-driver", 84),
             input_ports: if (1..=16).contains(&index) { 2 } else { 1 },
             output_ports: if index < 16 { 2 } else { 1 },
             maximum_step_work: 1,
@@ -562,6 +584,10 @@ fn maximum_graph_case() -> serde_json::Value {
 struct IgnoredFaultDriver;
 
 impl EmbeddedNode<Host, 16, 1, 1> for IgnoredFaultDriver {
+    fn descriptor(&self) -> PinnedDescriptor<'static> {
+        pin("fixture/rp2040-ignored-fault-driver", 85)
+    }
+
     fn step(&mut self, context: &mut StepContext<'_, Host, 16, 1>) -> EmbeddedStep<1> {
         let _ignored = context.consume(0);
         EmbeddedStep::completed()
@@ -581,7 +607,8 @@ fn ignored_step_error_case() -> serde_json::Value {
     selected.seal().unwrap();
     let nodes = [StaticNode {
         semantic_path: Id("fixture/ignored-fault"),
-        implementation: Id("fixture/rp2040-ignored-fault"),
+        implementation: pin("fixture/rp2040-ignored-fault", 44),
+        driver: pin("fixture/rp2040-ignored-fault-driver", 85),
         input_ports: 0,
         output_ports: 0,
         maximum_step_work: 1,
@@ -621,6 +648,13 @@ enum ReservationDriver {
 }
 
 impl EmbeddedNode<CountingHost, 16, 2, 1> for ReservationDriver {
+    fn descriptor(&self) -> PinnedDescriptor<'static> {
+        match self {
+            Self::Producer => pin("fixture/rp2040-reservation-producer-driver", 86),
+            Self::Consumer => pin("fixture/rp2040-reservation-consumer-driver", 87),
+        }
+    }
+
     fn step(&mut self, context: &mut StepContext<'_, CountingHost, 16, 2>) -> EmbeddedStep<1> {
         match self {
             Self::Producer => {
@@ -646,7 +680,8 @@ fn evidence_reservation_case() -> serde_json::Value {
     let nodes = [
         StaticNode {
             semantic_path: Id("fixture/reservation-producer"),
-            implementation: Id("fixture/rp2040-reservation-producer"),
+            implementation: pin("fixture/rp2040-reservation-producer", 45),
+            driver: pin("fixture/rp2040-reservation-producer-driver", 86),
             input_ports: 0,
             output_ports: 1,
             maximum_step_work: 1,
@@ -654,7 +689,8 @@ fn evidence_reservation_case() -> serde_json::Value {
         },
         StaticNode {
             semantic_path: Id("fixture/reservation-consumer"),
-            implementation: Id("fixture/rp2040-reservation-consumer"),
+            implementation: pin("fixture/rp2040-reservation-consumer", 46),
+            driver: pin("fixture/rp2040-reservation-consumer-driver", 87),
             input_ports: 1,
             output_ports: 0,
             maximum_step_work: 1,
@@ -699,6 +735,10 @@ struct TimerDriver {
 }
 
 impl EmbeddedNode<Host, 16, 4, 4> for TimerDriver {
+    fn descriptor(&self) -> PinnedDescriptor<'static> {
+        pin("fixture/rp2040-timer-driver", 88)
+    }
+
     fn step(&mut self, _context: &mut StepContext<'_, Host, 16, 4>) -> EmbeddedStep<4> {
         if self.waiting {
             EmbeddedStep::completed()
@@ -721,7 +761,8 @@ fn timer_case(deadline: u32) -> serde_json::Value {
     selected.seal().unwrap();
     let nodes = [StaticNode {
         semantic_path: Id("fixture/timer"),
-        implementation: Id("fixture/rp2040-timer"),
+        implementation: pin("fixture/rp2040-timer", 47),
+        driver: pin("fixture/rp2040-timer-driver", 88),
         input_ports: 0,
         output_ports: 0,
         maximum_step_work: 1,
@@ -818,6 +859,34 @@ fn wraparound_comparison_has_one_unambiguous_half_range() {
     assert!(deadline_reached(1, 1));
     assert!(deadline_reached(2, 1));
     assert!(!deadline_reached(u32::MAX - 1, 1));
+}
+
+#[test]
+fn exact_driver_binding_is_checked_before_prepare_or_host_effects() {
+    let selected = profile();
+    let mut storage = Storage::new();
+    let mut host = Host::default();
+    let error = execute_static_plan(
+        &plan(&selected, &NODES, &CORDS),
+        &selected,
+        &mut storage,
+        &mut [
+            Driver::Threshold,
+            Driver::Sensor { emitted: false },
+            Driver::Indicator,
+        ],
+        &mut host,
+        RunIdentity {
+            boot_id: [1; 16],
+            run_sequence: 1,
+        },
+        standard_control(),
+    )
+    .unwrap_err();
+    assert_eq!(error, EmbeddedError::DriverBindingMismatch);
+    assert!(!host.indicator);
+    assert_eq!(host.cancelled, 0);
+    assert!(storage.events().is_empty());
 }
 
 #[test]

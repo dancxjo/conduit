@@ -1,0 +1,15 @@
+[package]
+name = "conduit-embedded-build"
+description = "Hosted exact-plan lowering and fixed Rust generation for Conduit firmware"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-embedded = { path = "../conduit-embedded" }
+
+[lints]
+workspace = true
