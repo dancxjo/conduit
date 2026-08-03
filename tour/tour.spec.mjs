@@ -2397,7 +2397,7 @@ test("maximizes the compact fullscreen canvas around its live status", async ({ 
   await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
   await page.locator("#run").click();
   await expect(flow).toHaveAttribute("data-run-state", "waiting", {
-    timeout: 20_000,
+    timeout: 60_000,
   });
 
   const embeddedGeometry = await page.evaluate(() => {

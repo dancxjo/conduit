@@ -842,7 +842,9 @@ mod tests {
                 maximum_processes: 1,
                 maximum_child_processes: 0,
                 maximum_threads: 1,
-                maximum_descriptors: 16,
+                // Keep this non-subject ceiling above transient native-loader
+                // descriptors so the requested stream bound owns the result.
+                maximum_descriptors: 64,
                 deadline_millis,
                 cleanup_millis: 100,
             },
