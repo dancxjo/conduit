@@ -1,0 +1,69 @@
+{
+  "schema": "conduit.comparative-benchmark-manifest",
+  "schema_version": 0,
+  "fixture_revision": 0,
+  "issue": 243,
+  "values": 1000000,
+  "operator_depths": [1, 8, 32],
+  "workloads": ["map", "map-filter", "merge", "bounded-async"],
+  "queue_capacity_items": 256,
+  "latency_sample_stride": 1024,
+  "warmup_trials": 2,
+  "measured_trials": 9,
+  "runtimes": [
+    {
+      "id": "conduit-reference-scheduler",
+      "version_source": "workspace commit",
+      "semantic_boundary": "public exact-plan validator and deterministic executor with handle-backed u64 conformance drivers",
+      "demand": "bounded FIFO block",
+      "bounded_async": "unavailable in the single-lane reference runner; no hosted streaming result is substituted",
+      "streaming_hosted_mode": "unavailable; tracked by #214/#242 and never substituted by the reference result"
+    },
+    {
+      "id": "rxjs",
+      "version": "7.8.2",
+      "semantic_boundary": "in-process JavaScript push pipeline",
+      "demand": "no Reactive Streams demand",
+      "bounded_async": "unavailable; omitted rather than replaced with an uncontrolled observeOn queue"
+    },
+    {
+      "id": "reactor-core",
+      "version": "3.8.6",
+      "reactive_streams_version": "1.0.4",
+      "semantic_boundary": "JVM Reactive Streams pipeline",
+      "demand": "subscriber demand; publishOn prefetch is pinned for the bounded asynchronous case"
+    }
+  ],
+  "language_lower_bounds": [
+    {
+      "id": "rust-identity-loop",
+      "for": "conduit-reference-scheduler",
+      "claim": "language-cost lower bound only; never a reactive-runtime competitor"
+    },
+    {
+      "id": "javascript-identity-loop",
+      "for": "rxjs",
+      "claim": "language-cost lower bound only; never a reactive-runtime competitor"
+    },
+    {
+      "id": "java-identity-loop",
+      "for": "reactor-core",
+      "claim": "language-cost lower bound only; never a reactive-runtime competitor"
+    }
+  ],
+  "strict_invariants": [
+    "every runner emits the current raw-sample schema and fixture revision",
+    "accepted values equal configured input values",
+    "map, merge, and bounded-async complete one useful output per input",
+    "map-filter completes one useful output per input until it contains a filter, then exactly half for the even input cardinality",
+    "all sampled values have a positive latency",
+    "Conduit does not allocate after Start and never exceeds its exact queue, value, or evidence reservation"
+  ],
+  "wall_clock_policy": {
+    "gate": "report-only until a reviewed machine-class baseline exists",
+    "summary": "median with deterministic percentile-bootstrap 95% confidence interval over measured trials",
+    "minimum_measured_trials": 9,
+    "bootstrap_resamples": 10000,
+    "seed": 241243
+  }
+}
