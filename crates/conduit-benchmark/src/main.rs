@@ -23,8 +23,9 @@ use conduit_core::{
     validate_execution_plan,
 };
 use conduit_runtime::{
-    DeterministicExecutor, RetainedValueUsage, RuntimeValue, RuntimeValueEnvelope, ScheduledNode,
-    SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
+    DeterministicExecutor, ExactRunIdentity, ExactRunSession, ExactRunSessionRegistry,
+    RetainedValueUsage, RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerNode,
+    SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -171,6 +172,22 @@ enum ConsumerPattern {
     Bursty,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+enum SessionMode {
+    Finite,
+    Persistent,
+}
+
+impl SessionMode {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Finite => "finite-executor",
+            Self::Persistent => "persistent-exact-run-session",
+        }
+    }
+}
+
 impl ConsumerPattern {
     const fn as_str(self) -> &'static str {
         match self {
@@ -288,6 +305,10 @@ struct Args {
     consumer_pattern: ConsumerPattern,
     #[arg(long, default_value_t = 0)]
     consumer_burst_items: u64,
+    #[arg(long, value_enum, default_value_t = SessionMode::Finite)]
+    session_mode: SessionMode,
+    #[arg(long, default_value_t = 0)]
+    session_pump_quantum: u64,
 }
 
 #[derive(Serialize)]
@@ -308,6 +329,9 @@ struct ExecutionMeasurement {
     producer_stall_ns: Option<u64>,
     drain_ns: Option<u64>,
     abort_ns: Option<u64>,
+    session_pumps: Option<u64>,
+    session_reserved_bytes: Option<u64>,
+    pressured_items_at_stop: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -369,6 +393,8 @@ struct WorkloadIdentity {
     cancel_after_offers: u64,
     consumer_pattern: &'static str,
     consumer_burst_items: u64,
+    session_mode: &'static str,
+    session_pump_quantum: u64,
 }
 
 #[derive(Serialize)]
@@ -462,6 +488,7 @@ enum BenchNode {
         retrying: bool,
         pressure: PressurePolicy,
         queue_capacity: u64,
+        standing: bool,
     },
     CoupledSource {
         next: u64,
@@ -540,8 +567,14 @@ impl SchedulerNode for BenchNode {
                 retrying,
                 pressure,
                 queue_capacity,
+                standing,
             } => {
                 if *next == *end {
+                    if *standing {
+                        io.wait_for_host_operation(Id("benchmark/observation-window"))
+                            .unwrap();
+                        return SchedulerStep::Pending;
+                    }
                     return SchedulerStep::Completed;
                 }
                 let index = *next;
@@ -1088,14 +1121,42 @@ fn prepare(args: &Args) -> PreparedRun {
             "cancellation is measured under FIFO block pressure"
         );
         assert!(
-            args.cancel_after_offers > u64::from(args.queue_items)
-                && args.cancel_after_offers < args.values,
-            "cancellation must occur after pressure begins and before source completion"
+            args.cancel_after_offers > u64::from(args.queue_items),
+            "cancellation must occur after pressure begins"
         );
+        match args.session_mode {
+            SessionMode::Finite => assert!(
+                args.cancel_after_offers < args.values,
+                "finite cancellation must occur before source completion"
+            ),
+            SessionMode::Persistent => assert_eq!(
+                args.cancel_after_offers, args.values,
+                "persistent cancellation begins at the exact observation offer boundary"
+            ),
+        }
     } else {
         assert_eq!(
             args.cancel_after_offers, 0,
             "complete fixtures do not carry an unused cancellation threshold"
+        );
+        assert!(
+            matches!(args.session_mode, SessionMode::Finite),
+            "persistent sessions require an explicit terminal request"
+        );
+    }
+    if matches!(args.session_mode, SessionMode::Persistent) {
+        assert!(
+            matches!(args.workload, Workload::Overload),
+            "the current persistent session fixture uses the exact single-cord overload plan"
+        );
+        assert!(
+            args.session_pump_quantum > 0,
+            "persistent sessions require a bounded positive host pump quantum"
+        );
+    } else {
+        assert_eq!(
+            args.session_pump_quantum, 0,
+            "finite executor fixtures do not carry an unused session pump quantum"
         );
     }
     if matches!(args.consumer_pattern, ConsumerPattern::Bursty) {
@@ -1320,6 +1381,7 @@ fn prepare(args: &Args) -> PreparedRun {
             retrying: false,
             pressure: args.pressure_policy,
             queue_capacity: u64::from(args.queue_items),
+            standing: false,
         });
         drivers.push(BenchNode::Source {
             next: split,
@@ -1329,6 +1391,7 @@ fn prepare(args: &Args) -> PreparedRun {
             retrying: false,
             pressure: args.pressure_policy,
             queue_capacity: u64::from(args.queue_items),
+            standing: false,
         });
         drivers.push(BenchNode::Merge {
             inputs: [0, 1],
@@ -1393,6 +1456,7 @@ fn prepare(args: &Args) -> PreparedRun {
                 retrying: false,
                 pressure: PressurePolicy::Block,
                 queue_capacity: u64::from(args.queue_items),
+                standing: false,
             });
             drivers.push(BenchNode::IsolatedDuplicator {
                 input: 0,
@@ -1479,6 +1543,7 @@ fn prepare(args: &Args) -> PreparedRun {
             retrying: false,
             pressure: args.pressure_policy,
             queue_capacity: u64::from(args.queue_items),
+            standing: matches!(args.session_mode, SessionMode::Persistent),
         });
         for transform in 0..transform_count {
             let from = transform;
@@ -1566,6 +1631,8 @@ fn prepare(args: &Args) -> PreparedRun {
             args.slow_branches.as_str(),
             args.consumer_pattern.as_str(),
             &args.consumer_burst_items.to_string(),
+            args.session_mode.as_str(),
+            &args.session_pump_quantum.to_string(),
         ]),
         resolver: pin("benchmark/resolver", "resolver"),
         resolver_policy_hash: semantic_digest(&["resolver-policy", "exact-local-reference"]),
@@ -1687,7 +1754,7 @@ fn run_sample(
         executor_overhead_limit_bytes: 256 * 1024 * 1024,
     };
     let start_started = Instant::now();
-    let mut executor = DeterministicExecutor::start(
+    let executor = DeterministicExecutor::start(
         prepared.plan,
         PlanValidationContext {
             supported_schema_version: prepared.plan.schema_version,
@@ -1701,8 +1768,32 @@ fn run_sample(
         scheduled,
     )
     .unwrap();
-    let start_ns = start_started.elapsed().as_nanos() as u64;
     let allocation = executor.allocation();
+    let mut executor = Some(executor);
+    let mut session_registry = None;
+    let mut persistent_session = None;
+    let mut session_reserved_bytes = None;
+    if matches!(args.session_mode, SessionMode::Persistent) {
+        let sessions =
+            ExactRunSessionRegistry::new(1, reservation.available_runtime_memory_bytes).unwrap();
+        let admission = sessions
+            .admit(reservation.available_runtime_memory_bytes)
+            .unwrap();
+        session_reserved_bytes = Some(reservation.available_runtime_memory_bytes);
+        let identity = ExactRunIdentity {
+            plan_identity: prepared.plan.identity,
+            source_semantic_hash: prepared.plan.source_semantic_hash,
+            plan_epoch: 1,
+            run_id: "benchmark/persistent-overload".to_owned(),
+        };
+        persistent_session = Some(ExactRunSession::new(
+            admission,
+            identity,
+            executor.take().unwrap(),
+        ));
+        session_registry = Some(sessions);
+    }
+    let start_ns = start_started.elapsed().as_nanos() as u64;
     let resident_before = proc_status_bytes("VmRSS:");
     let cpu_before = process_cpu_ns();
     ALLOCATION_CALLS.store(0, Ordering::Relaxed);
@@ -1711,34 +1802,104 @@ fn run_sample(
     let steady_started = Instant::now();
     let mut execution_error = None;
     let mut requested_stop_started = None;
-    let status = loop {
-        let status = match executor.run_one() {
-            Ok(status) => status,
-            Err(error) => {
-                execution_error = Some(error);
-                break None;
+    let mut session_pumps = None;
+    let mut pressured_items_at_stop = None;
+    let (status, executor) = if matches!(args.session_mode, SessionMode::Persistent) {
+        let mut session = persistent_session.take().unwrap();
+        let mut pumps = 0_u64;
+        let status = loop {
+            let pump = match session.pump(args.session_pump_quantum) {
+                Ok(pump) => pump,
+                Err(error) => {
+                    execution_error = Some(error);
+                    break None;
+                }
+            };
+            pumps += 1;
+            if session.scheduler_event_count() >= 768 {
+                session
+                    .acknowledge_scheduler_events_through(session.next_event_cursor())
+                    .unwrap();
+            }
+            if requested_stop_started.is_none()
+                && prepared.observations.offered.get() >= args.cancel_after_offers
+            {
+                let pressured = prepared
+                    .observations
+                    .accepted_values
+                    .get()
+                    .saturating_sub(prepared.observations.coalesced.get())
+                    .saturating_sub(prepared.observations.useful_outputs.get());
+                assert!(
+                    pressured > 0,
+                    "persistent terminal request must observe admitted work under pressure"
+                );
+                pressured_items_at_stop = Some(pressured);
+                requested_stop_started = Some(Instant::now());
+                session
+                    .cancel(args.termination_request.stop_policy().unwrap())
+                    .unwrap();
+            }
+            let scheduler_status = session.scheduler_status();
+            if !matches!(
+                scheduler_status,
+                SchedulerStatus::Running | SchedulerStatus::Stalled
+            ) {
+                break Some(scheduler_status);
+            }
+            if matches!(pump.state, conduit_runtime::ExactRunState::Waiting)
+                && requested_stop_started.is_none()
+            {
+                panic!("persistent session waited before its observation boundary");
             }
         };
-        if executor.event_count() >= 768 {
-            executor
-                .acknowledge_events_through(executor.next_event_cursor())
-                .unwrap();
-        }
-        if requested_stop_started.is_none()
-            && prepared.observations.offered.get() >= args.cancel_after_offers
-            && args.termination_request.stop_policy().is_some()
-        {
-            requested_stop_started = Some(Instant::now());
-            executor
-                .cancel(args.termination_request.stop_policy().unwrap())
-                .unwrap();
-            if !matches!(executor.status(), SchedulerStatus::Running) {
-                break Some(executor.status());
+        session_pumps = Some(pumps);
+        let executor = session
+            .finalize()
+            .expect("persistent session reached one terminal state");
+        assert_eq!(session_registry.as_ref().unwrap().active_sessions(), 0);
+        assert_eq!(session_registry.as_ref().unwrap().reserved_bytes(), 0);
+        (status, executor)
+    } else {
+        let mut executor = executor.take().unwrap();
+        let status = loop {
+            let status = match executor.run_one() {
+                Ok(status) => status,
+                Err(error) => {
+                    execution_error = Some(error);
+                    break None;
+                }
+            };
+            if executor.event_count() >= 768 {
+                executor
+                    .acknowledge_events_through(executor.next_event_cursor())
+                    .unwrap();
             }
-        }
-        if !matches!(status, SchedulerStatus::Running) {
-            break Some(status);
-        }
+            if requested_stop_started.is_none()
+                && prepared.observations.offered.get() >= args.cancel_after_offers
+                && args.termination_request.stop_policy().is_some()
+            {
+                pressured_items_at_stop = Some(
+                    prepared
+                        .observations
+                        .accepted_values
+                        .get()
+                        .saturating_sub(prepared.observations.coalesced.get())
+                        .saturating_sub(prepared.observations.useful_outputs.get()),
+                );
+                requested_stop_started = Some(Instant::now());
+                executor
+                    .cancel(args.termination_request.stop_policy().unwrap())
+                    .unwrap();
+                if !matches!(executor.status(), SchedulerStatus::Running) {
+                    break Some(executor.status());
+                }
+            }
+            if !matches!(status, SchedulerStatus::Running) {
+                break Some(status);
+            }
+        };
+        (status, executor)
     };
     finish_producer_stall(&prepared.observations);
     let requested_stop_ns =
@@ -1781,7 +1942,11 @@ fn run_sample(
         runtime: RuntimeConfiguration {
             id: "conduit-reference-scheduler",
             comparison_role: "reactive-runtime",
-            execution_mode: "deterministic-single-lane",
+            execution_mode: if matches!(args.session_mode, SessionMode::Persistent) {
+                "persistent-session-bounded-pump-single-lane"
+            } else {
+                "deterministic-single-lane"
+            },
             build_profile: "release",
             scheduler: "round-robin-bounded",
             fusion: "disabled",
@@ -1810,10 +1975,16 @@ fn run_sample(
                 "bounded FIFO block"
             },
             terminal: if args.termination_request.stop_policy().is_some() {
-                match args.termination_request {
-                    TerminationRequest::Drain => "requested Drain while pressured",
-                    TerminationRequest::Abort => "requested Abort while pressured",
-                    TerminationRequest::Complete => unreachable!(),
+                match (args.session_mode, args.termination_request) {
+                    (SessionMode::Persistent, TerminationRequest::Drain) => {
+                        "persistent session requested Drain at the observation boundary"
+                    }
+                    (SessionMode::Persistent, TerminationRequest::Abort) => {
+                        "persistent session requested Abort at the observation boundary"
+                    }
+                    (_, TerminationRequest::Drain) => "requested Drain while pressured",
+                    (_, TerminationRequest::Abort) => "requested Abort while pressured",
+                    (_, TerminationRequest::Complete) => unreachable!(),
                 }
             } else if matches!(args.workload, Workload::Overload) {
                 match args.pressure_policy {
@@ -1866,13 +2037,17 @@ fn run_sample(
             } else {
                 0
             },
+            session_mode: args.session_mode.as_str(),
+            session_pump_quantum: args.session_pump_quantum,
         },
         exact_identity: ExactIdentity {
             logical_fixture: if matches!(args.workload, Workload::Overload) {
                 format!(
-                    "comparative-overload/{}/{}/{}/{}/{}/{}/{}/{}/{}",
+                    "comparative-overload/{}/{}/{}/{}/{}/{}/{}/{}/{}/{}/{}",
                     args.pressure_policy.id(),
                     args.termination_request.as_str(),
+                    args.session_mode.as_str(),
+                    args.session_pump_quantum,
                     args.consumer_pattern.as_str(),
                     args.consumer_burst_items,
                     args.values,
@@ -1944,6 +2119,9 @@ fn run_sample(
                 .then(|| requested_stop_ns.expect("Drain was requested")),
             abort_ns: matches!(args.termination_request, TerminationRequest::Abort)
                 .then(|| requested_stop_ns.expect("Abort was requested")),
+            session_pumps,
+            session_reserved_bytes,
+            pressured_items_at_stop,
         },
         process_cpu_ns: cpu_ns,
         outcomes: OutcomeMeasurement {
@@ -1990,7 +2168,9 @@ fn run_sample(
         },
         semantic_notes: [
             "The public deterministic executor validates and preallocates the exact plan; timed execution does not disable contract checks.",
-            if matches!(args.workload, Workload::Overload) {
+            if matches!(args.session_mode, SessionMode::Persistent) {
+                "The production exact-run session owns one admitted reservation across bounded host pumps and releases it only after explicit terminal finalization."
+            } else if matches!(args.workload, Workload::Overload) {
                 "The pinned benchmark value type proves disposability and the exact latest-wins coalescer before the pressure plan is sealed."
             } else if matches!(args.workload, Workload::Fanout) {
                 if matches!(args.fanout_mode, FanoutPublication::Coupled) {
@@ -2100,6 +2280,8 @@ fn run_identity_sample(
             cancel_after_offers: 0,
             consumer_pattern: "none",
             consumer_burst_items: 0,
+            session_mode: "finite-executor",
+            session_pump_quantum: 0,
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(
@@ -2132,6 +2314,9 @@ fn run_identity_sample(
             producer_stall_ns: None,
             drain_ns: None,
             abort_ns: None,
+            session_pumps: None,
+            session_reserved_bytes: None,
+            pressured_items_at_stop: None,
         },
         process_cpu_ns: cpu_ns,
         outcomes: OutcomeMeasurement {
