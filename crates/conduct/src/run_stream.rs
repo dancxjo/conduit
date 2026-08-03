@@ -6,7 +6,9 @@
 use std::fmt;
 use std::io::{self, Write};
 
-use conduit_runtime::{ExactEvidenceRecord, ExecutionSummary, OwnedExecutionEvent};
+use conduit_runtime::{
+    ExactEvidenceRecord, ExecutionSummary, HostedLaneBatchEvidence, OwnedExecutionEvent,
+};
 use serde::Serialize;
 
 pub const RUN_STREAM_SCHEMA: &str = "conduit.run";
@@ -82,6 +84,15 @@ struct RunExactEvidenceRecord<'a> {
     sequence: u64,
     record: &'static str,
     evidence: &'a ExactEvidenceRecord,
+}
+
+#[derive(Serialize)]
+struct RunHostedLaneBatchRecord<'a> {
+    schema: &'static str,
+    schema_version: u16,
+    sequence: u64,
+    record: &'static str,
+    hosted_lane_batch: &'a HostedLaneBatchEvidence,
 }
 
 /// One globally ordered run-stream encoder.
@@ -163,6 +174,25 @@ impl<W: Write> RunNdjsonState<W> {
             sequence: self.sequence,
             record: "exact_execution_evidence",
             evidence,
+        };
+        self.write_record(&record, RUN_STRUCTURED_RECORD_MAX_BYTES)?;
+        self.sequence = next_sequence;
+        Ok(())
+    }
+
+    /// Direct bounded path for physical provider observations. The nested
+    /// arrangement evidence remains distinct from semantic execution events.
+    pub fn write_hosted_lane_batch(
+        &mut self,
+        hosted_lane_batch: &HostedLaneBatchEvidence,
+    ) -> io::Result<()> {
+        let next_sequence = checked_next_sequence(self.sequence)?;
+        let record = RunHostedLaneBatchRecord {
+            schema: RUN_STREAM_SCHEMA,
+            schema_version: RUN_STREAM_SCHEMA_VERSION,
+            sequence: self.sequence,
+            record: "hosted_lane_batch",
+            hosted_lane_batch,
         };
         self.write_record(&record, RUN_STRUCTURED_RECORD_MAX_BYTES)?;
         self.sequence = next_sequence;
@@ -438,5 +468,39 @@ mod tests {
             "conduit.exact-execution-evidence"
         );
         assert_eq!(record["evidence"]["pressure"], "block");
+    }
+
+    #[test]
+    fn hosted_lane_batch_uses_a_distinct_bounded_outer_path() {
+        let batch = HostedLaneBatchEvidence {
+            commit_domain: "commit/main".to_owned(),
+            proposal_slots_used: 3,
+            proposal_slots_capacity: 3,
+            proposal_bytes_used: 17,
+            proposal_bytes_capacity: 17,
+            committed_tickets: vec![1, 2, 3],
+            physical_completion_order: vec![conduit_runtime::HostedLaneObservation {
+                generation: 1,
+                batch: 1,
+                lane: 0,
+                ticket: 1,
+                entered_sequence: 1,
+                release_sequence: 4,
+                finished_sequence: 5,
+                faulted: false,
+            }],
+        };
+        let mut bytes = Vec::new();
+        RunNdjsonState::new(&mut bytes)
+            .write_hosted_lane_batch(&batch)
+            .unwrap();
+
+        let record: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(record["record"], "hosted_lane_batch");
+        assert_eq!(
+            record["hosted_lane_batch"]["committed_tickets"],
+            serde_json::json!([1, 2, 3])
+        );
+        assert_eq!(record.get("evidence"), None);
     }
 }

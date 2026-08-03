@@ -16,9 +16,14 @@
     {"id":"coordinator-cancellation-requires-readmission","runner":"fixed-hosted-lanes","expected":{"terminal":true,"readmission_required":true}},
     {"id":"hosted-repeated-batches-retain-fixed-storage","runner":"fixed-hosted-lanes","expected":{"batches":64,"lanes":3,"provider_batch_allocations":0}},
     {"id":"hosted-explicit-lane-placement-preserves-commit","runner":"fixed-hosted-lanes","expected":{"dispatch_lanes":[2,0,1],"commit_tickets":[1,2,3]}},
+    {"id":"hosted-observed-lane-loss-fails-closed","runner":"fixed-hosted-lanes","expected":{"error":"CND-LAN-005","fixed_population_preserved":true}},
     {"id":"production-arranged-three-lane-overlap","runner":"production-exact-executor","expected":{"lanes":3,"entered_before_any_finished":true,"commit_tickets":[1,2,3]}},
     {"id":"production-persistent-session-hosted-lanes","runner":"production-exact-executor","expected":{"persistent_session":true,"terminal":"succeeded"}},
     {"id":"production-hosted-lanes-match-serial-oracle","runner":"production-exact-executor","expected":{"scheduler_events_equal":true,"outputs_equal":true}},
-    {"id":"production-hosted-lanes-fill-proposal-capacity","runner":"production-exact-executor","expected":{"proposal_bytes_used":16,"proposal_bytes_capacity":16}}
+    {"id":"production-hosted-lanes-fill-proposal-capacity","runner":"production-exact-executor","expected":{"proposal_bytes_used":17,"proposal_bytes_capacity":17}},
+    {"id":"production-hosted-lane-loss-fails-session","runner":"production-exact-executor","expected":{"error":"CND-LAN-005","terminal":"failed"}},
+    {"id":"production-hosted-cancellation-fences-provider","runner":"production-exact-executor","expected":{"terminal":"cancelled","hosted_batch":false}},
+    {"id":"production-cross-lane-wake-reaches-serialized-sinks","runner":"production-exact-executor","expected":{"cross_lane_input_ready_wake":true,"serialized_sink_outputs":3,"serialized_effectful_output":"effect"}},
+    {"id":"canonical-conduct-projects-hosted-batch","runner":"conduct-ndjson","expected":{"record":"hosted_lane_batch","causal_overlap":true}}
   ]
 }

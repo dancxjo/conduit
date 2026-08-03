@@ -54,7 +54,7 @@ pub trait HostedLaneJob: Send + 'static {
     fn proposal_bytes(proposal: &Self::Proposal) -> u64;
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct HostedLaneObservation {
     pub generation: u64,
     pub batch: u64,
@@ -252,6 +252,13 @@ impl<J: HostedLaneJob> FixedHostedExecutionCoordinator<J> {
     #[must_use]
     pub const fn is_terminal(&self) -> bool {
         self.terminal
+    }
+
+    pub fn observe_lane_loss(&mut self, lane: u16) -> Result<(), HostedLaneError> {
+        if self.terminal {
+            return Err(HostedLaneError::CoordinatorTerminal);
+        }
+        self.provider.observe_lane_loss(lane)
     }
 
     pub fn compute_and_commit<I>(
@@ -480,9 +487,9 @@ struct LaneCompletion<P> {
 /// A fixed population of independently progressing hosted workers.
 pub struct FixedHostedLaneProvider<J: HostedLaneJob> {
     reservation: HostedLaneReservation,
-    commands: Vec<mpsc::SyncSender<LaneCommand<J>>>,
+    commands: Vec<Option<mpsc::SyncSender<LaneCommand<J>>>>,
     completions: mpsc::Receiver<LaneCompletion<J::Proposal>>,
-    workers: Vec<JoinHandle<()>>,
+    workers: Vec<Option<JoinHandle<()>>>,
     gate: Arc<BatchGate>,
     sequence: Arc<AtomicU64>,
     next_batch: u64,
@@ -600,7 +607,7 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
                 mpsc::SyncSender<LaneCommand<J>>,
                 mpsc::Receiver<LaneCommand<J>>,
             ) = mpsc::sync_channel(usize::from(reservation.command_slots_per_lane));
-            commands.push(command_tx);
+            commands.push(Some(command_tx));
             let completion_tx = completion_tx.clone();
             let worker_gate = Arc::clone(&gate);
             let worker_sequence = Arc::clone(&sequence);
@@ -643,10 +650,10 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
                     }
                 });
             match worker {
-                Ok(worker) => workers.push(worker),
+                Ok(worker) => workers.push(Some(worker)),
                 Err(_) => {
                     commands.clear();
-                    for worker in workers.drain(..) {
+                    for worker in workers.drain(..).flatten() {
                         let _ = worker.join();
                     }
                     return Err(HostedLaneError::ProviderStartupFailed);
@@ -671,6 +678,24 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
     #[must_use]
     pub const fn reservation(&self) -> HostedLaneReservation {
         self.reservation
+    }
+
+    /// Apply one host-observed lane loss to this admitted provider generation.
+    /// The worker is joined immediately and the next batch fails closed rather
+    /// than silently reducing the arrangement's fixed lane population.
+    pub fn observe_lane_loss(&mut self, lane: u16) -> Result<(), HostedLaneError> {
+        let lane = usize::from(lane);
+        let command = self
+            .commands
+            .get_mut(lane)
+            .ok_or(HostedLaneError::InvalidLaneAssignment)?;
+        if command.take().is_none() {
+            return Err(HostedLaneError::ProviderLost);
+        }
+        if let Some(worker) = self.workers.get_mut(lane).and_then(Option::take) {
+            worker.join().map_err(|_| HostedLaneError::ProviderLost)?;
+        }
+        Ok(())
     }
 
     /// Dispatch exactly one bounded region computation to every admitted lane.
@@ -738,10 +763,12 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
             let (ticket, job) = self.pending_jobs[lane]
                 .take()
                 .expect("validated batch fills every preallocated job slot");
-            if self.commands[lane]
-                .send(LaneCommand { batch, ticket, job })
-                .is_err()
-            {
+            let Some(command) = self.commands[lane].as_ref() else {
+                self.pending_jobs[lane + 1..].fill_with(|| None);
+                self.gate.abort(batch);
+                return Err(HostedLaneError::ProviderLost);
+            };
+            if command.send(LaneCommand { batch, ticket, job }).is_err() {
                 self.pending_jobs[lane + 1..].fill_with(|| None);
                 self.gate.abort(batch);
                 return Err(HostedLaneError::ProviderLost);
@@ -803,7 +830,7 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
 impl<J: HostedLaneJob> Drop for FixedHostedLaneProvider<J> {
     fn drop(&mut self) {
         self.commands.clear();
-        for worker in self.workers.drain(..) {
+        for worker in self.workers.drain(..).flatten() {
             let _ = worker.join();
         }
     }

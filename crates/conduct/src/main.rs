@@ -815,6 +815,15 @@ fn run(
                     }
                     if let Ok(outcome) = &summary {
                         if let RunOutcome::Exact(report) = outcome {
+                            if let Some(hosted_lane_batch) = &report.hosted_lane_batch
+                                && let Err(error) =
+                                    stream.write_hosted_lane_batch(hosted_lane_batch)
+                            {
+                                if stream.inner.broken_pipe {
+                                    return Ok(Completion::BrokenPipe);
+                                }
+                                return Err(output_error(error, presentation));
+                            }
                             for evidence in &report.evidence {
                                 if let Err(error) = stream.write_exact_evidence(evidence) {
                                     if stream.inner.broken_pipe {

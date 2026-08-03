@@ -2363,7 +2363,7 @@ pub struct ExactExecutionReport {
     pub hosted_lane_batch: Option<HostedLaneBatchEvidence>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct HostedLaneBatchEvidence {
     pub commit_domain: String,
     pub proposal_slots_used: u16,
@@ -2509,6 +2509,19 @@ impl ExactHostedRunSession {
             return Err(error);
         }
         Ok(pump)
+    }
+
+    /// Apply an observed loss of one admitted hosted lane. The arrangement is
+    /// not silently shrunk; the next production batch fails and fences the
+    /// exact session through the normal host-failure boundary.
+    pub fn observe_hosted_lane_loss(&mut self, lane: u16) -> Result<(), RuntimeError> {
+        let Some(parallel_lanes) = self.parallel_lanes.as_mut() else {
+            return Err(RuntimeError::new(
+                "CND-LAN-005",
+                "exact session has no active hosted lane provider",
+            ));
+        };
+        parallel_lanes.observe_lane_loss(lane)
     }
 
     #[must_use]
@@ -8877,6 +8890,12 @@ impl HostedProductionLanes {
         let _ = self.coordinator.cancel();
     }
 
+    fn observe_lane_loss(&mut self, lane: u16) -> Result<(), RuntimeError> {
+        self.coordinator
+            .observe_lane_loss(lane)
+            .map_err(|error| RuntimeError::new(error.code(), error.to_string()))
+    }
+
     fn batch_evidence(&self) -> Option<HostedLaneBatchEvidence> {
         (!self.observations.is_empty()).then(|| HostedLaneBatchEvidence {
             commit_domain: self.coordinator.commit_domain().to_owned(),
@@ -8913,6 +8932,13 @@ impl HostedProductionLanes {
     }
 
     fn cancel(&mut self) {}
+
+    fn observe_lane_loss(&mut self, _lane: u16) -> Result<(), RuntimeError> {
+        Err(RuntimeError::new(
+            "CND-LAN-005",
+            "hosted lanes are unavailable on this target",
+        ))
+    }
 
     fn batch_evidence(&self) -> Option<HostedLaneBatchEvidence> {
         None

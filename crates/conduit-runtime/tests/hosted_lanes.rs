@@ -455,6 +455,27 @@ fn provider_admission_consumes_the_portable_arrangement() {
 }
 
 #[test]
+fn observed_lane_loss_fails_the_fixed_population_closed() {
+    let mut provider = FixedHostedLaneProvider::start(reservation()).unwrap();
+    let active = Arc::new(AtomicUsize::new(0));
+    let peak = Arc::new(AtomicUsize::new(0));
+    let job = |value| Job {
+        value,
+        delay_ms: 0,
+        active: Arc::clone(&active),
+        peak: Arc::clone(&peak),
+        fault: false,
+    };
+    provider.observe_lane_loss(1).unwrap();
+    assert_eq!(
+        provider
+            .compute_proposals([(1, job(1)), (2, job(2)), (3, job(3))])
+            .unwrap_err(),
+        HostedLaneError::ProviderLost
+    );
+}
+
+#[test]
 fn hosted_provider_owns_its_portable_conformance_cases() {
     let fixture = include_str!("../../../conformance/c4/portable-execution.json");
     for id in [
@@ -467,12 +488,13 @@ fn hosted_provider_owns_its_portable_conformance_cases() {
         "coordinator-cancellation-requires-readmission",
         "hosted-repeated-batches-retain-fixed-storage",
         "hosted-explicit-lane-placement-preserves-commit",
+        "hosted-observed-lane-loss-fails-closed",
     ] {
         assert!(fixture.contains(&format!("\"id\":\"{id}\"")));
     }
     assert_eq!(
         fixture.matches("\"runner\":\"fixed-hosted-lanes\"").count(),
-        9
+        10
     );
 }
 
