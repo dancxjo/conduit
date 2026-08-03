@@ -40,6 +40,7 @@ persistent_timer_quantum=$(jq -r .persistent_timer_residency.session_pump_quantu
 persistent_timer_advance_ticks=$(jq -r .persistent_timer_residency.timer_advance_ticks "$manifest")
 shared_payload_capacity=$(jq -r .shared_payload_fanout.queue_capacity_items "$manifest")
 shared_watch_preview_bytes=$(jq -r .shared_payload_fanout.watch_preview_bytes "$manifest")
+copy_payload_capacity=$(jq -r .copy_required_payload_fanout.queue_capacity_items "$manifest")
 
 mkdir -p "$output_dir"
 for artifact in "$raw" "$summary" "$metadata" "$report" "$regression_evaluation" "$regression_report" "$commands"; do
@@ -292,6 +293,27 @@ for shared_payload_bytes in $(jq -r '.shared_payload_fanout.payload_bytes[]' "$m
           --watch-preview-bytes "$watch_preview_bytes"
       done
     done
+  done
+done
+
+for copy_payload_bytes in $(jq -r '.copy_required_payload_fanout.payload_bytes[]' "$manifest"); do
+  for branches in $(jq -r '.copy_required_payload_fanout.branches[]' "$manifest"); do
+    record_raw "$workspace_root/target/release/conduit-benchmark" \
+      --workload shared-payload-fanout \
+      --operators 1 \
+      --values 1 \
+      --queue-items "$copy_payload_capacity" \
+      --latency-sample-stride 1 \
+      --warmup-trials "$warmups" \
+      --measured-trials "$trials" \
+      --fanout-branches "$branches" \
+      --fanout-mode coupled \
+      --slow-consumer-yields 0 \
+      --termination-request complete \
+      --payload-bytes "$copy_payload_bytes" \
+      --payload-binding branch-local-uppercase-copy \
+      --watch-slots 0 \
+      --watch-preview-bytes 0
   done
 done
 

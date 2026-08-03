@@ -81,6 +81,18 @@
     "fanout_mode": "coupled",
     "scope": "production hosted literal value-store handle through an exact coupled fan-out plan assembled by the benchmark harness; zero, one, or every-branch exact-plan-admitted Watch retains a separately accounted 64-byte Latest preview; completion content-verifies every branch, while Abort follows atomic publication and both paths require zero terminal executor value residency"
   },
+  "copy_required_payload_fanout": {
+    "workload": "shared-payload-fanout",
+    "payload_bytes": [1024],
+    "payload_representation": "hosted-branch-local-uppercase-copy",
+    "branches": [2, 8, 32],
+    "termination_requests": ["complete"],
+    "watch_modes": ["none"],
+    "queue_capacity_items": 1,
+    "fanout_mode": "coupled",
+    "transformation": "production text/uppercase",
+    "scope": "one production hosted literal source handle is published through an exact coupled shared-handle fan-out, then every branch executes the production uppercase driver and stores one distinct copied value handle before content-verifying display; copy count, copied bytes, allocator cost, handle operations, residency, and terminal reclamation are exact, and no DuplicationRule::Copy execution is claimed"
+  },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
   "measured_trials": 9,

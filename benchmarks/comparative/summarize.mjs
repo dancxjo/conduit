@@ -28,6 +28,8 @@ for (const sample of samples) {
   const overload = sample.workload.id === "overload";
   const fanout = sample.workload.id === "fanout";
   const sharedPayload = sample.workload.id === "shared-payload-fanout";
+  const copyRequiredPayload = sharedPayload
+    && sample.workload.payload_representation === "hosted-branch-local-uppercase-copy";
   const persistentWake = sample.workload.id === "persistent-wake";
   const persistentTimer = sample.workload.id === "persistent-timer";
   const persistentResidency = persistentWake || persistentTimer;
@@ -36,6 +38,8 @@ for (const sample of samples) {
       || sample.workload.watch_slots !== 0
       || sample.workload.watch_preview_bytes !== 0
       || sample.workload.watch_retention !== "none"
+      || [sample.execution.shared_handle_publications, sample.execution.payload_copy_operations,
+        sample.execution.payload_bytes_copied].some((value) => value !== null)
       || [sample.memory.watch_admitted_slots, sample.memory.watch_attached_slots,
         sample.memory.watch_retained_observations, sample.memory.watch_retained_preview_bytes,
         sample.memory.watch_dropped_observations, sample.memory.watch_maximum_observations,
@@ -80,14 +84,15 @@ for (const sample of samples) {
       throw new Error("the current fan-out slice has no cross-runtime substitute");
     }
   } else if (sharedPayload) {
-    if (identityParts.length !== 7
+    if (identityParts.length !== 8
         || identityParts[0] !== "comparative-shared-payload-fanout"
         || Number(identityParts[1]) !== sample.workload.fanout_branches
         || Number(identityParts[2]) !== sample.workload.payload_bytes
-        || Number(identityParts[3]) !== sample.workload.queue_capacity_items
-        || identityParts[4] !== sample.workload.termination_request
-        || Number(identityParts[5]) !== sample.workload.watch_slots
-        || Number(identityParts[6]) !== sample.workload.watch_preview_bytes) {
+        || identityParts[3] !== sample.workload.payload_representation
+        || Number(identityParts[4]) !== sample.workload.queue_capacity_items
+        || identityParts[5] !== sample.workload.termination_request
+        || Number(identityParts[6]) !== sample.workload.watch_slots
+        || Number(identityParts[7]) !== sample.workload.watch_preview_bytes) {
       throw new Error("shared-payload fixture identity does not match the raw sample");
     }
     if (sample.runtime.id !== "conduit-hosted-value-arena") {
@@ -374,6 +379,7 @@ for (const sample of samples) {
   } else if (sharedPayload) {
     const branches = sample.workload.fanout_branches;
     const payloadBytes = sample.workload.payload_bytes;
+    const copyRequired = sample.workload.payload_representation === "hosted-branch-local-uppercase-copy";
     const aborted = sample.workload.termination_request === "abort";
     const expectedDeliveries = aborted ? 0 : branches;
     const expectedVerifierBytes = aborted ? 0 : branches * payloadBytes;
@@ -381,35 +387,40 @@ for (const sample of samples) {
     const watchPreviewBytes = sample.workload.watch_preview_bytes;
     const expectedWatchPreviewBytes = watchSlots * watchPreviewBytes;
     if (![2, 8, 32].includes(branches)
-        || ![1024, 1048576].includes(payloadBytes)
-        || sample.workload.payload_representation !== "hosted-generation-safe-shared-text-handle"
+        || (copyRequired ? payloadBytes !== 1024 : ![1024, 1048576].includes(payloadBytes))
+        || !["hosted-generation-safe-shared-text-handle", "hosted-branch-local-uppercase-copy"].includes(sample.workload.payload_representation)
         || sample.workload.fanout_mode !== "coupled"
         || sample.workload.queue_capacity_items !== 1
         || sample.workload.input_values !== 1
         || sample.workload.slow_consumer_yields !== 0
-        || ![0, 1, branches].includes(watchSlots)
+        || (copyRequired ? watchSlots !== 0 : ![0, 1, branches].includes(watchSlots))
         || watchPreviewBytes !== (watchSlots === 0 ? 0 : 64)
         || sample.workload.watch_retention !== (watchSlots === 0 ? "none" : "latest")
-        || !["complete", "abort"].includes(sample.workload.termination_request)
+        || (copyRequired ? sample.workload.termination_request !== "complete" : !["complete", "abort"].includes(sample.workload.termination_request))
         || sample.workload.cancel_after_offers !== (aborted ? 1 : 0)
         || sample.outcomes.offered !== 1
         || sample.outcomes.admitted !== 1
         || sample.outcomes.completed_useful !== expectedDeliveries
         || sample.outcomes.cancelled !== (aborted ? 1 : 0)
-        || sample.execution.unique_value_handles !== 1
+        || sample.execution.unique_value_handles !== (copyRequired ? branches + 1 : 1)
         || sample.execution.branch_deliveries !== expectedDeliveries
+        || sample.execution.shared_handle_publications !== branches
+        || sample.execution.payload_copy_operations !== (copyRequired ? branches : 0)
+        || sample.execution.payload_bytes_copied !== (copyRequired ? branches * payloadBytes : 0)
         || sample.execution.pressured_items_at_stop !== (aborted ? branches : null)
         || (aborted ? sample.execution.abort_ns === null : sample.execution.abort_ns !== null)
-        || sample.allocations.calls !== 0
-        || sample.allocations.bytes !== 0
+        || sample.allocations.calls !== (copyRequired ? branches : 0)
+        || sample.allocations.bytes !== (copyRequired ? branches * payloadBytes : 0)
         || sample.memory.value_resident_slots_after_terminal !== 0
         || sample.memory.value_resident_bytes_after_terminal !== 0
-        || sample.memory.value_slots_high_water !== 1
-        || sample.memory.value_bytes_high_water !== payloadBytes
+        || sample.memory.value_slots_high_water !== (copyRequired ? 2 : 1)
+        || sample.memory.value_bytes_high_water !== payloadBytes * (copyRequired ? 2 : 1)
         || sample.memory.value_slots_capacity < 1
         || sample.memory.value_bytes_capacity < payloadBytes
         || sample.memory.host_io_output_bytes !== expectedVerifierBytes
         || sample.memory.host_io_capacity_bytes < sample.memory.host_io_output_bytes
+        || (copyRequired && sample.memory.queue_items_high_water !== branches)
+        || (copyRequired && sample.memory.queue_payload_bytes_high_water !== branches * payloadBytes)
         || sample.memory.queue_max_cord_items_high_water > 1
         || sample.memory.watch_admitted_slots !== watchSlots
         || sample.memory.watch_attached_slots !== watchSlots
@@ -418,7 +429,7 @@ for (const sample of samples) {
         || sample.memory.watch_dropped_observations !== 0
         || sample.memory.watch_maximum_observations !== watchSlots
         || sample.memory.watch_maximum_preview_bytes !== expectedWatchPreviewBytes) {
-      throw new Error("shared-payload handle, residency, delivery, verifier, or Watch accounting changed");
+      throw new Error("payload handle, copy, residency, delivery, verifier, or Watch accounting changed");
     }
   } else {
     if (sample.outcomes.offered !== sample.workload.input_values) throw new Error("offered input count changed");
@@ -432,6 +443,7 @@ for (const sample of samples) {
     throw new Error("latency samples must be present and positive");
   }
   if (["conduit-reference-scheduler", "conduit-hosted-value-arena"].includes(sample.runtime.id)
+      && !copyRequiredPayload
       && sample.allocations.calls !== 0) {
     throw new Error("Conduit allocated after Start");
   }
@@ -540,6 +552,9 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
       residency_checkpoint_evidence_slots_high_water: optionalStats(group.map((value) => value.execution.residency_checkpoint_evidence_slots_high_water)),
       unique_value_handles: optionalStats(group.map((value) => value.execution.unique_value_handles)),
       branch_deliveries: optionalStats(group.map((value) => value.execution.branch_deliveries)),
+      shared_handle_publications: optionalStats(group.map((value) => value.execution.shared_handle_publications)),
+      payload_copy_operations: optionalStats(group.map((value) => value.execution.payload_copy_operations)),
+      payload_bytes_copied: optionalStats(group.map((value) => value.execution.payload_bytes_copied)),
     },
     outcomes: Object.fromEntries([
       "offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "cancelled", "retried", "terminal",
@@ -652,7 +667,7 @@ const result = {
     {
       runtime: "conduit-hosted-value-arena",
       workload: "shared-payload-fanout payloads above 1 MiB or non-text media",
-      reason: "the current production hosted literal binding is bounded to 1 MiB public text and Watch coverage is limited to exact pre-Start Latest previews; larger, PCM, image, encoded, fragment, browser, other Watch retention/lifecycle modes, coalesce, and slot-reuse slices remain unavailable",
+      reason: "the current production hosted literal binding is bounded to 1 MiB public text, the labeled production branch-copy comparison is bounded to 1 KiB, and Watch coverage is limited to exact pre-Start Latest previews; larger copy-required, PCM, image, encoded, fragment, browser, other Watch retention/lifecycle modes, coalesce, and slot-reuse slices remain unavailable",
     },
     {
       runtime: "rxjs/reactor-core",
@@ -687,7 +702,7 @@ if (reportOutput) {
     "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
     "- RxJS/Reactor fan-out: reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted.",
     "- RxJS/Reactor shared payloads: no reviewed generation-safe shared-handle and residency mapping exists; language object references are not substituted.",
-    "- Conduit shared payloads beyond 1 MiB public text: larger, PCM, image, encoded, fragment, browser, Watch retention/lifecycle modes beyond exact pre-Start Latest previews, coalesce, and slot-reuse slices remain unavailable.",
+    "- Conduit shared payloads beyond 1 MiB public text and copy-required payloads beyond 1 KiB: larger copy-required, PCM, image, encoded, fragment, browser, Watch retention/lifecycle modes beyond exact pre-Start Latest previews, coalesce, and slot-reuse slices remain unavailable.",
     "- RxJS/Reactor persistent wake: no reviewed mapping exists for Conduit's exact named host-operation wait and production session reservation; a timer or subject is not substituted.",
     "- RxJS/Reactor persistent timer: no reviewed mapping exists for Conduit's exact retained timer deadline and production session reservation; an interval operator is not substituted.",
     "- Drain/Abort timing is present only on fixtures that explicitly request that transition; normal completion remains distinct and null.",
@@ -723,9 +738,9 @@ if (reportOutput) {
       report.push("");
     }
     if (workload === "shared-payload-fanout") {
-      report.push("## shared-payload-fanout: handle, Watch, and residency accounting", "", "The value arena retains one generation-safe topology-sized handle across every branch for both the 1 KiB and 1 MiB cases. Queue byte charges, content-verifying display buffers, and fixed Watch preview copies are separate bounded storage and are not described as zero-copy. Watch reads verify the copied 64-byte prefix and full content hash after the timed region. Abort rows cancel after atomic publication and before verifier consumption; retained Watch previews must not extend terminal executor-value residency.", "", "| Runtime | Terminal request | Payload bytes | Branches | Watch slots | Watch preview bytes retained | Planned bytes | Executor overhead bytes | Unique handles | Branch deliveries | Value slots high water | Value bytes high water | Terminal value slots | Terminal value bytes | Queue payload bytes | Host verifier output bytes | Alloc calls after Start |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+      report.push("## shared-payload-fanout: handle, copy, Watch, and residency accounting", "", "Shared rows retain one generation-safe topology-sized source handle across every branch for the 1 KiB and 1 MiB cases. Labeled branch-copy rows run the production uppercase driver after that source publication and store one distinct copied handle per branch; their exact copy count, copied bytes, and allocator cost are reported. Queue byte charges, content-verifying display buffers, and fixed Watch preview copies are separate bounded storage and are not described as zero-copy. Watch and content verification run outside the timed region.", "", "| Runtime | Representation | Terminal request | Payload bytes | Branches | Shared publications | Copy operations | Bytes copied | Watch slots | Watch preview bytes retained | Planned bytes | Executor overhead bytes | Unique handles | Branch deliveries | Value slots high water | Value bytes high water | Terminal value slots | Terminal value bytes | Queue payload bytes | Host verifier output bytes | Alloc calls after Start | Alloc bytes after Start |", "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
       for (const group of workloadGroups) {
-        report.push(`| ${group.runtime.id} | ${group.workload.termination_request} | ${group.workload.payload_bytes} | ${group.workload.fanout_branches} | ${group.workload.watch_slots} | ${duration(group.high_water.watch_retained_preview_bytes)} | ${duration(group.memory_accounting.planned_bytes)} | ${duration(group.memory_accounting.executor_overhead_bytes)} | ${duration(group.execution.unique_value_handles)} | ${duration(group.execution.branch_deliveries)} | ${duration(group.high_water.value_slots)} | ${duration(group.high_water.value_bytes)} | ${duration(group.high_water.value_resident_slots_after_terminal)} | ${duration(group.high_water.value_resident_bytes_after_terminal)} | ${duration(group.high_water.queue_payload_bytes)} | ${duration(group.high_water.host_io_output_bytes)} | ${duration(group.allocations_after_start.calls)} |`);
+        report.push(`| ${group.runtime.id} | ${group.workload.payload_representation} | ${group.workload.termination_request} | ${group.workload.payload_bytes} | ${group.workload.fanout_branches} | ${duration(group.execution.shared_handle_publications)} | ${duration(group.execution.payload_copy_operations)} | ${duration(group.execution.payload_bytes_copied)} | ${group.workload.watch_slots} | ${duration(group.high_water.watch_retained_preview_bytes)} | ${duration(group.memory_accounting.planned_bytes)} | ${duration(group.memory_accounting.executor_overhead_bytes)} | ${duration(group.execution.unique_value_handles)} | ${duration(group.execution.branch_deliveries)} | ${duration(group.high_water.value_slots)} | ${duration(group.high_water.value_bytes)} | ${duration(group.high_water.value_resident_slots_after_terminal)} | ${duration(group.high_water.value_resident_bytes_after_terminal)} | ${duration(group.high_water.queue_payload_bytes)} | ${duration(group.high_water.host_io_output_bytes)} | ${duration(group.allocations_after_start.calls)} | ${duration(group.allocations_after_start.bytes)} |`);
       }
       report.push("");
     }

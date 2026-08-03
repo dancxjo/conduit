@@ -197,6 +197,26 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         "latest"
     );
     assert_eq!(
+        manifest["copy_required_payload_fanout"]["payload_bytes"],
+        serde_json::json!([1024])
+    );
+    assert_eq!(
+        manifest["copy_required_payload_fanout"]["payload_representation"],
+        "hosted-branch-local-uppercase-copy"
+    );
+    assert_eq!(
+        manifest["copy_required_payload_fanout"]["branches"],
+        serde_json::json!([2, 8, 32])
+    );
+    assert_eq!(
+        manifest["copy_required_payload_fanout"]["termination_requests"],
+        serde_json::json!(["complete"])
+    );
+    assert_eq!(
+        manifest["copy_required_payload_fanout"]["transformation"],
+        "production text/uppercase"
+    );
+    assert_eq!(
         manifest["wall_clock_policy"]["gate"],
         "strict only for the separately versioned reviewed regression policy when machine class, architecture, input cardinality, and trial counts match exactly; otherwise report-only"
     );
@@ -344,7 +364,10 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "residency_checkpoint_ready_slots_high_water",
             "residency_checkpoint_evidence_slots_high_water",
             "unique_value_handles",
-            "branch_deliveries"
+            "branch_deliveries",
+            "shared_handle_publications",
+            "payload_copy_operations",
+            "payload_bytes_copied"
         ])
     );
     assert_eq!(

@@ -170,6 +170,22 @@ enum FanoutPublication {
     Isolated,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+enum PayloadBinding {
+    SharedHandle,
+    BranchLocalUppercaseCopy,
+}
+
+impl PayloadBinding {
+    const fn representation(self) -> &'static str {
+        match self {
+            Self::SharedHandle => "hosted-generation-safe-shared-text-handle",
+            Self::BranchLocalUppercaseCopy => "hosted-branch-local-uppercase-copy",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Serialize, ValueEnum)]
 #[serde(rename_all = "kebab-case")]
 enum TerminationRequest {
@@ -335,6 +351,8 @@ struct Args {
     timer_advance_ticks: u64,
     #[arg(long, default_value_t = 0)]
     payload_bytes: u64,
+    #[arg(long, value_enum, default_value_t = PayloadBinding::SharedHandle)]
+    payload_binding: PayloadBinding,
     #[arg(long, default_value_t = 0)]
     watch_slots: u16,
     #[arg(long, default_value_t = 0)]
@@ -371,6 +389,9 @@ struct ExecutionMeasurement {
     residency_checkpoint_evidence_slots_high_water: Option<u32>,
     unique_value_handles: Option<u64>,
     branch_deliveries: Option<u64>,
+    shared_handle_publications: Option<u64>,
+    payload_copy_operations: Option<u64>,
+    payload_bytes_copied: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -1910,7 +1931,11 @@ fn proc_status_bytes(field: &str) -> Option<u64> {
     kib.checked_mul(1024)
 }
 
-fn shared_payload_source(branches: u16, payload_bytes: usize) -> (String, String) {
+fn shared_payload_source(
+    branches: u16,
+    payload_bytes: usize,
+    binding: PayloadBinding,
+) -> (String, String) {
     assert!(matches!(branches, 1 | 2 | 8 | 32));
     assert!(matches!(payload_bytes, 1024 | 1_048_576));
     let payload = (0..payload_bytes)
@@ -1920,6 +1945,9 @@ fn shared_payload_source(branches: u16, payload_bytes: usize) -> (String, String
     source.push_str(&payload);
     source.push_str("\"\n}\n");
     for sink in 0..branches {
+        if matches!(binding, PayloadBinding::BranchLocalUppercaseCopy) {
+            writeln!(source, "copy_{sink}: text/uppercase").unwrap();
+        }
         writeln!(source, "sink_{sink}: display/text").unwrap();
     }
     let cord = |source: &mut String, from: &str, to: &str| {
@@ -1930,7 +1958,16 @@ fn shared_payload_source(branches: u16, payload_bytes: usize) -> (String, String
         .unwrap();
     };
     for sink in 0..branches {
-        cord(&mut source, "source.value", &format!("sink_{sink}.text"));
+        if matches!(binding, PayloadBinding::BranchLocalUppercaseCopy) {
+            cord(&mut source, "source.value", &format!("copy_{sink}.text"));
+            cord(
+                &mut source,
+                &format!("copy_{sink}.text"),
+                &format!("sink_{sink}.text"),
+            );
+        } else {
+            cord(&mut source, "source.value", &format!("sink_{sink}.text"));
+        }
     }
     (source, payload)
 }
@@ -1957,6 +1994,17 @@ fn run_shared_payload_sample(
     assert!(matches!(args.fanout_branches, 2 | 8 | 32));
     assert!(matches!(args.fanout_mode, FanoutPublication::Coupled));
     assert!(matches!(args.payload_bytes, 1024 | 1_048_576));
+    if matches!(
+        args.payload_binding,
+        PayloadBinding::BranchLocalUppercaseCopy
+    ) {
+        assert_eq!(args.payload_bytes, 1024);
+        assert!(matches!(
+            args.termination_request,
+            TerminationRequest::Complete
+        ));
+        assert_eq!(args.watch_slots, 0);
+    }
     assert!(
         args.watch_slots == 0 || args.watch_slots == 1 || args.watch_slots == args.fanout_branches
     );
@@ -1979,7 +2027,8 @@ fn run_shared_payload_sample(
 
     let assembly_started = Instant::now();
     let payload_bytes = usize::try_from(args.payload_bytes).unwrap();
-    let (source, payload) = shared_payload_source(args.fanout_branches, payload_bytes);
+    let (source, payload) =
+        shared_payload_source(args.fanout_branches, payload_bytes, args.payload_binding);
     let panel = conduit_panel::parse(&source).unwrap();
     let registry = Registry::hosted_primitives();
     let resolved = registry.resolve(&panel).unwrap();
@@ -1991,7 +2040,7 @@ fn run_shared_payload_sample(
     // provider/profile skeleton, then assemble the current core fan-out fact
     // against the full source-derived topology without claiming compiler
     // support that does not exist.
-    let (profile_source, _) = shared_payload_source(1, payload_bytes);
+    let (profile_source, _) = shared_payload_source(1, payload_bytes, args.payload_binding);
     let plan_memory_bytes = (args
         .payload_bytes
         .checked_mul(64 + 6 * u64::from(args.fanout_branches))
@@ -2007,7 +2056,20 @@ fn run_shared_payload_sample(
     )
     .unwrap();
     installed.input.plan_budget.memory_bytes = plan_memory_bytes;
-    installed.input.plan_budget.evidence_bytes = 256 * 1024;
+    if matches!(
+        args.payload_binding,
+        PayloadBinding::BranchLocalUppercaseCopy
+    ) {
+        installed.input.plan_budget.cpu_units = 1 + 2 * u32::from(args.fanout_branches);
+    }
+    installed.input.plan_budget.evidence_bytes = if matches!(
+        args.payload_binding,
+        PayloadBinding::BranchLocalUppercaseCopy
+    ) {
+        1024 * 1024
+    } else {
+        256 * 1024
+    };
     installed.input.seal().unwrap();
     let document = compile_source(&profile_source, &installed.input).unwrap();
     let arena = Bump::new();
@@ -2022,35 +2084,96 @@ fn run_shared_payload_sample(
         .iter()
         .find(|node| node.instance.as_str() == "root/sink_0")
         .unwrap();
-    let cord_template = plan.cords[0];
-    let mut nodes = Vec::with_capacity(usize::from(args.fanout_branches) + 1);
-    let mut cords = Vec::with_capacity(usize::from(args.fanout_branches));
+    let copy_template = plan
+        .nodes
+        .iter()
+        .find(|node| node.instance.as_str() == "root/copy_0")
+        .copied();
+    let source_cord_template = *plan
+        .cords
+        .iter()
+        .find(|cord| cord.from.node.as_str() == "root/source")
+        .unwrap();
+    let copy_cord_template = plan
+        .cords
+        .iter()
+        .find(|cord| cord.from.node.as_str() == "root/copy_0")
+        .copied();
+    let nodes_per_branch = if matches!(
+        args.payload_binding,
+        PayloadBinding::BranchLocalUppercaseCopy
+    ) {
+        2
+    } else {
+        1
+    };
+    let cords_per_branch = nodes_per_branch;
+    let mut nodes = Vec::with_capacity(usize::from(args.fanout_branches) * nodes_per_branch + 1);
+    let mut cords = Vec::with_capacity(usize::from(args.fanout_branches) * cords_per_branch);
     let mut branch_ids = Vec::with_capacity(usize::from(args.fanout_branches));
     nodes.push(source_node);
     for branch in 0..args.fanout_branches {
-        let instance = InstancePath::new(leaked(format!("root/sink_{branch}"))).unwrap();
+        let sink_instance = InstancePath::new(leaked(format!("root/sink_{branch}"))).unwrap();
+        let copy_instance = matches!(
+            args.payload_binding,
+            PayloadBinding::BranchLocalUppercaseCopy
+        )
+        .then(|| InstancePath::new(leaked(format!("root/copy_{branch}"))).unwrap());
+        if let Some(instance) = copy_instance {
+            nodes.push(ResolvedPlanNode {
+                instance,
+                ..copy_template.unwrap()
+            });
+        }
         nodes.push(ResolvedPlanNode {
-            instance,
+            instance: sink_instance,
             ..sink_template
         });
-        let topology_cord = &topology.cords[usize::from(branch)];
-        assert_eq!(topology_cord.from_node, "root/source");
-        assert_eq!(topology_cord.to_node, format!("root/sink_{branch}"));
-        let id = Id(leaked(topology_cord.id.clone()));
-        branch_ids.push(id);
+        let source_destination = copy_instance
+            .map(|instance| instance.as_str())
+            .unwrap_or(sink_instance.as_str());
+        let topology_source_cord = topology
+            .cords
+            .iter()
+            .find(|cord| cord.from_node == "root/source" && cord.to_node == source_destination)
+            .unwrap();
+        let source_cord_id = Id(leaked(topology_source_cord.id.clone()));
+        branch_ids.push(source_cord_id);
         cords.push(ResolvedPlanCord {
-            id,
+            id: source_cord_id,
             to: ResolvedPlanPort {
-                node: instance,
-                ..cord_template.to
+                node: copy_instance.unwrap_or(sink_instance),
+                ..source_cord_template.to
             },
-            ..cord_template
+            ..source_cord_template
         });
+        if let Some(copy_instance) = copy_instance {
+            let topology_copy_cord = topology
+                .cords
+                .iter()
+                .find(|cord| {
+                    cord.from_node == copy_instance.as_str()
+                        && cord.to_node == sink_instance.as_str()
+                })
+                .unwrap();
+            cords.push(ResolvedPlanCord {
+                id: Id(leaked(topology_copy_cord.id.clone())),
+                from: ResolvedPlanPort {
+                    node: copy_instance,
+                    ..copy_cord_template.unwrap().from
+                },
+                to: ResolvedPlanPort {
+                    node: sink_instance,
+                    ..copy_cord_template.unwrap().to
+                },
+                ..copy_cord_template.unwrap()
+            });
+        }
     }
     plan.nodes = arena.alloc_slice_copy(&nodes);
     plan.cords = arena.alloc_slice_copy(&cords);
     plan.fanouts = arena.alloc_slice_copy(&[PlanFanOut {
-        id: Id("benchmark/shared-payload/fanout"),
+        id: Id("benchmark/payload/fanout"),
         producer: cords[0].from,
         mode: FanOutMode::Coupled,
         branches: arena.alloc_slice_copy(&branch_ids),
@@ -2238,12 +2361,22 @@ fn run_shared_payload_sample(
         u64::from(args.watch_slots) * u64::from(args.watch_preview_bytes)
     );
     let display = session.with_io(|io| io.display().to_vec());
+    let expected_branch_payload = if matches!(
+        args.payload_binding,
+        PayloadBinding::BranchLocalUppercaseCopy
+    ) {
+        payload.to_uppercase()
+    } else {
+        payload.clone()
+    };
     if matches!(args.termination_request, TerminationRequest::Abort) {
         assert!(display.is_empty());
     } else {
         assert_eq!(
             display,
-            payload.repeat(usize::from(args.fanout_branches)).as_bytes()
+            expected_branch_payload
+                .repeat(usize::from(args.fanout_branches))
+                .as_bytes()
         );
     }
     let host_io_output_bytes = u64::try_from(display.len()).unwrap();
@@ -2279,26 +2412,28 @@ fn run_shared_payload_sample(
         if let SchedulerSubject::Cord(cord) = event.subject {
             maximum_cord_items = maximum_cord_items.max(event.occupancy_items);
             let cord = &plan.cords[usize::from(cord)];
-            if cord.from.node.as_str() == "root/source" {
-                if let Some(handle) = event.value_handle {
-                    handles.insert(handle);
-                }
-                if let Some(handle) = event.related_value_handle {
-                    handles.insert(handle);
-                }
-                if matches!(event.kind, SchedulerEventKind::ValueConsumed)
-                    && cord.to.node.as_str().starts_with("root/sink_")
-                {
-                    branch_deliveries += 1;
-                }
+            if let Some(handle) = event.value_handle {
+                handles.insert(handle);
+            }
+            if let Some(handle) = event.related_value_handle {
+                handles.insert(handle);
+            }
+            if matches!(event.kind, SchedulerEventKind::ValueConsumed)
+                && cord.to.node.as_str().starts_with("root/sink_")
+            {
+                branch_deliveries += 1;
             }
         }
     }
-    assert_eq!(
-        handles.len(),
-        1,
-        "every production tee branch must retain one exact handle: {handles:?}"
-    );
+    let expected_handles = if matches!(
+        args.payload_binding,
+        PayloadBinding::BranchLocalUppercaseCopy
+    ) {
+        usize::from(args.fanout_branches) + 1
+    } else {
+        1
+    };
+    assert_eq!(handles.len(), expected_handles);
     if args.watch_slots == 0 {
         assert!(watched_handles.is_empty());
     } else {
@@ -2313,8 +2448,18 @@ fn run_shared_payload_sample(
     assert!(maximum_cord_items <= args.queue_items);
     assert_eq!(value_usage.resident_slots, 0);
     assert_eq!(value_usage.resident_bytes, 0);
-    assert_eq!(value_usage.high_water_slots, 1);
-    assert_eq!(value_usage.high_water_bytes, args.payload_bytes);
+    if matches!(args.payload_binding, PayloadBinding::SharedHandle) {
+        assert_eq!(value_usage.high_water_slots, 1);
+        assert_eq!(value_usage.high_water_bytes, args.payload_bytes);
+    } else {
+        assert!(value_usage.high_water_slots >= 2);
+        assert!(value_usage.high_water_slots <= u32::from(args.fanout_branches) + 1);
+        assert!(value_usage.high_water_bytes >= args.payload_bytes * 2);
+        assert!(
+            value_usage.high_water_bytes
+                <= args.payload_bytes * (u64::from(args.fanout_branches) + 1)
+        );
+    }
     MEASURING.store(true, Ordering::SeqCst);
     session.finalize().unwrap();
     MEASURING.store(false, Ordering::SeqCst);
@@ -2335,7 +2480,11 @@ fn run_shared_payload_sample(
             build_profile: "release",
             scheduler: "round-robin-bounded",
             fusion: "disabled",
-            batching: "one-shared-value",
+            batching: if matches!(args.payload_binding, PayloadBinding::SharedHandle) {
+                "one-shared-value"
+            } else {
+                "one-shared-source-value-plus-one-copy-per-branch"
+            },
             concurrency: 1,
         },
         workload: WorkloadIdentity {
@@ -2343,10 +2492,19 @@ fn run_shared_payload_sample(
             operators: 1,
             input_values: 1,
             queue_capacity_items: 1,
-            ordering: "one source value reaches every branch",
-            pressure: "one production finite-batch source handle across capacity-one cords",
+            ordering: "one source value reaches every branch in branch-number order",
+            pressure: if matches!(args.payload_binding, PayloadBinding::SharedHandle) {
+                "one production finite-batch source handle across capacity-one cords"
+            } else {
+                "one production source handle across capacity-one input cords; each branch produces one copied uppercase output handle"
+            },
             terminal: if matches!(args.termination_request, TerminationRequest::Abort) {
                 "Abort after atomic publication and before branch consumption"
+            } else if matches!(
+                args.payload_binding,
+                PayloadBinding::BranchLocalUppercaseCopy
+            ) {
+                "complete after every production branch copy reaches its sink"
             } else {
                 "complete after every branch consumes the shared handle"
             },
@@ -2372,7 +2530,7 @@ fn run_shared_payload_sample(
             residency_plateau_after_wakes: 0,
             timer_advance_ticks: 0,
             payload_bytes: args.payload_bytes,
-            payload_representation: "hosted-generation-safe-shared-text-handle",
+            payload_representation: args.payload_binding.representation(),
             watch_slots: args.watch_slots,
             watch_preview_bytes: args.watch_preview_bytes,
             watch_retention: if args.watch_slots == 0 {
@@ -2383,9 +2541,10 @@ fn run_shared_payload_sample(
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(
-                "comparative-shared-payload-fanout/{}/{}/{}/{}/{}/{}",
+                "comparative-shared-payload-fanout/{}/{}/{}/{}/{}/{}/{}",
                 args.fanout_branches,
                 args.payload_bytes,
+                args.payload_binding.representation(),
                 args.queue_items,
                 args.termination_request.as_str(),
                 args.watch_slots,
@@ -2425,6 +2584,27 @@ fn run_shared_payload_sample(
             residency_checkpoint_evidence_slots_high_water: None,
             unique_value_handles: Some(u64::try_from(handles.len()).unwrap()),
             branch_deliveries: Some(branch_deliveries),
+            shared_handle_publications: Some(u64::from(args.fanout_branches)),
+            payload_copy_operations: Some(
+                if matches!(
+                    args.payload_binding,
+                    PayloadBinding::BranchLocalUppercaseCopy
+                ) {
+                    u64::from(args.fanout_branches)
+                } else {
+                    0
+                },
+            ),
+            payload_bytes_copied: Some(
+                if matches!(
+                    args.payload_binding,
+                    PayloadBinding::BranchLocalUppercaseCopy
+                ) {
+                    args.payload_bytes * u64::from(args.fanout_branches)
+                } else {
+                    0
+                },
+            ),
         },
         process_cpu_ns: cpu_ns,
         outcomes: OutcomeMeasurement {
@@ -2479,7 +2659,15 @@ fn run_shared_payload_sample(
             sample_stride: 1,
             samples_ns: vec![steady_ns.max(1)],
         },
-        semantic_notes: if matches!(args.termination_request, TerminationRequest::Abort)
+        semantic_notes: if matches!(
+            args.payload_binding,
+            PayloadBinding::BranchLocalUppercaseCopy
+        ) {
+            [
+                "The benchmark harness assembles the current exact coupled shared-handle PlanFanOut for the source boundary; each branch then executes the production text/uppercase driver and stores one distinct copied handle before its display sink.",
+                "Copy counts and bytes are exact from the one-copy-per-branch graph, after-Start allocator calls include the production uppercase buffers, full uppercase content verification and event-handle inspection remain outside the timed region, and this row does not claim execution of DuplicationRule::Copy.",
+            ]
+        } else if matches!(args.termination_request, TerminationRequest::Abort)
             && args.watch_slots > 0
         {
             [
@@ -3084,6 +3272,9 @@ fn run_sample(
             residency_checkpoint_evidence_slots_high_water,
             unique_value_handles: None,
             branch_deliveries: None,
+            shared_handle_publications: None,
+            payload_copy_operations: None,
+            payload_bytes_copied: None,
         },
         process_cpu_ns: cpu_ns,
         outcomes: OutcomeMeasurement {
@@ -3322,6 +3513,9 @@ fn run_identity_sample(
             residency_checkpoint_evidence_slots_high_water: None,
             unique_value_handles: None,
             branch_deliveries: None,
+            shared_handle_publications: None,
+            payload_copy_operations: None,
+            payload_bytes_copied: None,
         },
         process_cpu_ns: cpu_ns,
         outcomes: OutcomeMeasurement {

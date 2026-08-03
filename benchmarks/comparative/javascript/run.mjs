@@ -111,7 +111,7 @@ function runIdentitySample(sampleKind, trial, thermalState) {
     trial,
     thermal_state: thermalState,
     phases: { assembly_ns: assemblyNs, plan_seal_ns: null, start_ns: null, steady_ns: steadyNs, pressure_ns: null, recovery_ns: null, pressure_cycles: null, recovery_cycles: null },
-    execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null, session_pumps: null, session_reserved_bytes: null, pressured_items_at_stop: null, session_host_wakes: null, session_timer_wakes: null, residency_plateau_verified: null, residency_checkpoint_queue_items_high_water: null, residency_checkpoint_queue_payload_bytes_high_water: null, residency_checkpoint_ready_slots_high_water: null, residency_checkpoint_evidence_slots_high_water: null, unique_value_handles: null, branch_deliveries: null },
+    execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null, session_pumps: null, session_reserved_bytes: null, pressured_items_at_stop: null, session_host_wakes: null, session_timer_wakes: null, residency_plateau_verified: null, residency_checkpoint_queue_items_high_water: null, residency_checkpoint_queue_payload_bytes_high_water: null, residency_checkpoint_ready_slots_high_water: null, residency_checkpoint_evidence_slots_high_water: null, unique_value_handles: null, branch_deliveries: null, shared_handle_publications: null, payload_copy_operations: null, payload_bytes_copied: null },
     process_cpu_ns: (cpu.user + cpu.system) * 1000,
     outcomes: {
       offered: values,
@@ -287,7 +287,7 @@ async function runSample(sampleKind, trial, thermalState) {
       pressure_cycles: null,
       recovery_cycles: null,
     },
-    execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null, session_pumps: null, session_reserved_bytes: null, pressured_items_at_stop: null, session_host_wakes: null, session_timer_wakes: null, residency_plateau_verified: null, residency_checkpoint_queue_items_high_water: null, residency_checkpoint_queue_payload_bytes_high_water: null, residency_checkpoint_ready_slots_high_water: null, residency_checkpoint_evidence_slots_high_water: null, unique_value_handles: null, branch_deliveries: null },
+    execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null, session_pumps: null, session_reserved_bytes: null, pressured_items_at_stop: null, session_host_wakes: null, session_timer_wakes: null, residency_plateau_verified: null, residency_checkpoint_queue_items_high_water: null, residency_checkpoint_queue_payload_bytes_high_water: null, residency_checkpoint_ready_slots_high_water: null, residency_checkpoint_evidence_slots_high_water: null, unique_value_handles: null, branch_deliveries: null, shared_handle_publications: null, payload_copy_operations: null, payload_bytes_copied: null },
     process_cpu_ns: (cpu.user + cpu.system) * 1000,
     outcomes: {
       offered: values,
