@@ -1,5 +1,15 @@
 import { expect, test } from "@playwright/test";
 
+async function readLiveFlowReceipt(status) {
+  return status.evaluate((element) => ({
+    runId: element.dataset.runId || null,
+    planIdentity: element.dataset.planIdentity || null,
+    sourceRevision: Number.parseInt(element.dataset.sourceRevision, 10),
+    lastSequence: Number.parseInt(element.dataset.lastSequence, 10),
+    text: element.textContent,
+  }));
+}
+
 async function readLayoutState(flowRoot) {
   return flowRoot.evaluate((element) => ({
     generation: Number.parseInt(element.dataset.layoutGeneration, 10),
@@ -8,22 +18,50 @@ async function readLayoutState(flowRoot) {
   }));
 }
 
-async function waitForTopologyLayoutReady(flowRoot, afterGeneration = 0, afterIdentity = null) {
+function isAuthoritativeAfter(previous, next) {
+  if (!previous) return false;
+  const hasSignals = (receipt) =>
+    Number.isSafeInteger(receipt.sourceRevision) ||
+    Number.isSafeInteger(receipt.lastSequence) ||
+    Boolean(receipt.runId) ||
+    Boolean(receipt.planIdentity);
+  if (!hasSignals(previous)) return true;
+  if (!hasSignals(next)) return false;
+  const sameSource = Number.isSafeInteger(previous.sourceRevision) &&
+    Number.isSafeInteger(next.sourceRevision);
+  const sourceAdvanced = sameSource && next.sourceRevision > previous.sourceRevision;
+  if (sourceAdvanced) return true;
+  const sameSequence = Number.isSafeInteger(previous.lastSequence) &&
+    Number.isSafeInteger(next.lastSequence);
+  if (sameSequence && next.lastSequence > previous.lastSequence) return true;
+  if (sameSource && next.sourceRevision === previous.sourceRevision) {
+    return next.runId !== previous.runId;
+  }
+  return next.text !== previous.text;
+}
+
+async function waitForTopologyLayoutReady(flowRoot, status, afterGeneration = 0, afterIdentity = null, previousReceipt = null) {
   await expect.poll(async () => {
     const layout = await readLayoutState(flowRoot);
+    const receipt = await readLiveFlowReceipt(status);
     return layout.state === "ready" &&
       layout.generation > afterGeneration &&
       layout.identity !== afterIdentity &&
+      (previousReceipt ? isAuthoritativeAfter(previousReceipt, receipt) : true) &&
       typeof layout.identity === "string" &&
       layout.identity.length > 0
       ? layout
       : null;
   }, { timeout: 60_000 }).not.toBeNull();
   const layout = await readLayoutState(flowRoot);
+  const receipt = await readLiveFlowReceipt(status);
   expect(layout.state).toBe("ready");
   expect(layout.generation).toBeGreaterThan(afterGeneration);
   expect(layout.identity).toEqual(expect.any(String));
   expect(layout.identity.length).toBeGreaterThan(0);
+  if (previousReceipt) {
+    expect(isAuthoritativeAfter(previousReceipt, receipt)).toBeTruthy();
+  }
   return layout;
 }
 
@@ -40,7 +78,11 @@ async function gotoStandingNetwork(page) {
 }
 
 async function expectFamily(page, family) {
-  await waitForTopologyLayoutReady(page.locator("#patchbay-flow-root"), 0);
+  await waitForTopologyLayoutReady(
+    page.locator("#patchbay-flow-root"),
+    page.locator("#live-flow-status"),
+    0,
+  );
   const row = page.locator(`.faceplate-port-row[data-signal-family="${family}"]`).first();
   await expect(row, `${family} port is projected`).toBeVisible();
   await expect(row.locator(".jack-label")).toHaveAttribute(
@@ -56,13 +98,15 @@ async function expectFamily(page, family) {
 test("distinguishes every standing network value family without color alone", async ({ page }) => {
   await gotoStandingNetwork(page);
   const flowRoot = page.locator("#patchbay-flow-root");
-  let layout = await waitForTopologyLayoutReady(flowRoot, 0);
+  const liveFlowStatus = page.locator("#live-flow-status");
+  let layout = await waitForTopologyLayoutReady(flowRoot, liveFlowStatus, 0);
 
   for (const family of ["network-link", "network-control", "network-state"]) {
     await expectFamily(page, family);
   }
 
   const source = page.locator("#source");
+  let priorReceipt = await readLiveFlowReceipt(liveFlowStatus);
   await source.fill(`panel 0
 frame_source: net/frame/source { lifecycle = "standing" interface = 1 period_ticks = 1000 payload_bytes = 64 maximum_frame_bytes = 1518 maximum_evidence_events = 64 }
 frame_sink: net/frame/sink { lifecycle = "standing" maximum_frames_per_step = 1 maximum_retained_items = 1 maximum_evidence_events = 64 }
@@ -74,7 +118,14 @@ frame_source.frame > frame_sink.frame { capacity = 2 max_value_bytes = 128 max_q
 datagram_source.datagram > datagram_sink.datagram { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
 stream_source.chunk > stream_sink.chunk { capacity = 2 max_value_bytes = 96 max_queued_bytes = 192 low_watermark = 0 high_watermark = 2 pressure = block }
   `);
-  layout = await waitForTopologyLayoutReady(flowRoot, layout.generation, layout.identity);
+  layout = await waitForTopologyLayoutReady(
+    flowRoot,
+    liveFlowStatus,
+    layout.generation,
+    layout.identity,
+    priorReceipt,
+  );
+  priorReceipt = await readLiveFlowReceipt(liveFlowStatus);
   for (const family of ["network-frame", "network-datagram", "network-stream"]) {
     await expectFamily(page, family);
     await expect(page.locator(`.patchbay-cord.type-family-${family}`).first()).toBeVisible();
@@ -85,7 +136,14 @@ source: net/packet/source { lifecycle = "standing" source = "10.0.0.2" destinati
 sink: net/packet/sink { lifecycle = "standing" maximum_packets_per_step = 1 maximum_retained_items = 1 maximum_evidence_events = 64 }
 source.packet > sink.packet { capacity = 2 max_value_bytes = 128 max_queued_bytes = 256 low_watermark = 0 high_watermark = 2 pressure = block }
   `);
-  layout = await waitForTopologyLayoutReady(flowRoot, layout.generation, layout.identity);
+  layout = await waitForTopologyLayoutReady(
+    flowRoot,
+    liveFlowStatus,
+    layout.generation,
+    layout.identity,
+    priorReceipt,
+  );
+  priorReceipt = await readLiveFlowReceipt(liveFlowStatus);
   await expectFamily(page, "network-packet");
   await expect(page.locator(".patchbay-cord.type-family-network-packet").first()).toBeVisible();
 
@@ -96,7 +154,13 @@ listener.session > observe.session { capacity = 8 max_value_bytes = 64 max_queue
 listener.event > observe.event { capacity = 8 max_value_bytes = 32 max_queued_bytes = 256 low_watermark = 2 high_watermark = 8 pressure = block }
 listener.state > observe.state { capacity = 1 max_value_bytes = 32 max_queued_bytes = 32 low_watermark = 0 high_watermark = 1 pressure = block }
   `);
-  layout = await waitForTopologyLayoutReady(flowRoot, layout.generation, layout.identity);
+  await waitForTopologyLayoutReady(
+    flowRoot,
+    liveFlowStatus,
+    layout.generation,
+    layout.identity,
+    priorReceipt,
+  );
   await expectFamily(page, "network-session");
   await expectFamily(page, "network-control");
   await expectFamily(page, "network-state");
