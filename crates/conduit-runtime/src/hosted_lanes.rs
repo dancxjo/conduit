@@ -77,17 +77,29 @@ pub struct HostedProposal<P> {
 }
 
 #[derive(Debug)]
-pub struct HostedProposalBatch<P> {
-    /// Proposals are ordered only by deterministic caller-assigned ticket.
-    pub proposals: Vec<HostedProposal<P>>,
-    /// Physical observations retain completion order and never choose commit.
-    pub physical_completion_order: Vec<HostedLaneObservation>,
+pub struct HostedProposalBatch<'a, P> {
+    proposals: &'a mut Vec<HostedProposal<P>>,
+    physical_completion_order: &'a [HostedLaneObservation],
 }
 
-#[derive(Debug)]
-pub struct HostedCommitBatch {
-    pub committed_tickets: Vec<u64>,
-    pub physical_completion_order: Vec<HostedLaneObservation>,
+impl<P> HostedProposalBatch<'_, P> {
+    /// Proposals are ordered only by deterministic caller-assigned ticket.
+    #[must_use]
+    pub fn proposals(&self) -> &[HostedProposal<P>] {
+        self.proposals
+    }
+
+    /// Physical observations retain completion order and never choose commit.
+    #[must_use]
+    pub const fn physical_completion_order(&self) -> &[HostedLaneObservation] {
+        self.physical_completion_order
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct HostedCommitBatch<'a> {
+    pub committed_tickets: &'a [u64],
+    pub physical_completion_order: &'a [HostedLaneObservation],
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -163,6 +175,7 @@ pub struct FixedHostedExecutionCoordinator<J: HostedLaneJob> {
     commit_domain: String,
     next_ticket: u64,
     maximum_batch_proposals: u16,
+    committed_tickets: Vec<u64>,
     terminal: bool,
     disposed_slots: u64,
 }
@@ -194,12 +207,18 @@ impl<J: HostedLaneJob> FixedHostedExecutionCoordinator<J> {
         if domain.proposal_slots < lanes || domain.commit_slots < lanes {
             return Err(HostedLaneError::CommitDomainMismatch);
         }
+        let maximum_batch_proposals = domain.proposal_slots.min(domain.commit_slots);
+        let mut committed_tickets = Vec::new();
+        committed_tickets
+            .try_reserve_exact(usize::from(maximum_batch_proposals))
+            .map_err(|_| HostedLaneError::InvalidReservation)?;
         Ok(Self {
             provider,
             plan_epoch: arrangement.plan_epoch,
             commit_domain: commit_domain.to_owned(),
             next_ticket: first_ticket,
-            maximum_batch_proposals: domain.proposal_slots.min(domain.commit_slots),
+            maximum_batch_proposals,
+            committed_tickets,
             terminal: false,
             disposed_slots: 0,
         })
@@ -225,64 +244,72 @@ impl<J: HostedLaneJob> FixedHostedExecutionCoordinator<J> {
         self.terminal
     }
 
-    pub fn compute_and_commit(
+    pub fn compute_and_commit<I>(
         &mut self,
-        jobs: Vec<J>,
+        jobs: I,
         mut commit: impl FnMut(u64, J::Proposal) -> Result<(), ()>,
-    ) -> Result<HostedCommitBatch, HostedLaneError> {
+    ) -> Result<HostedCommitBatch<'_>, HostedLaneError>
+    where
+        I: IntoIterator<Item = J>,
+        I::IntoIter: ExactSizeIterator,
+    {
         if self.terminal {
             return Err(HostedLaneError::CoordinatorTerminal);
         }
+        let jobs = jobs.into_iter();
         let lane_count = self.provider.reservation().lanes;
         if jobs.len() != usize::from(lane_count) || lane_count > self.maximum_batch_proposals {
             return Err(HostedLaneError::WrongBatchSize);
         }
-        let mut next = self.next_ticket;
-        let jobs = jobs
-            .into_iter()
-            .map(|job| {
-                let ticket = next;
-                next = next
+        let next = self
+            .next_ticket
+            .checked_add(u64::from(lane_count))
+            .ok_or(HostedLaneError::BatchSequenceExhausted)?;
+        let first_ticket = self.next_ticket;
+        let jobs = jobs.enumerate().map(move |(index, job)| {
+            (
+                first_ticket + u64::try_from(index).expect("admitted lane index fits u64"),
+                job,
+            )
+        });
+        {
+            let batch = match self.provider.compute_proposals(jobs) {
+                Ok(batch) => batch,
+                Err(error) => {
+                    self.terminal = true;
+                    self.disposed_slots = self.disposed_slots.saturating_add(u64::from(lane_count));
+                    return Err(error);
+                }
+            };
+            let mut expected = self.next_ticket;
+            let proposal_count = batch.proposals.len();
+            self.committed_tickets.clear();
+            for (index, proposal) in batch.proposals.drain(..).enumerate() {
+                if proposal.ticket != expected {
+                    self.terminal = true;
+                    self.disposed_slots = self
+                        .disposed_slots
+                        .saturating_add(u64::try_from(proposal_count - index).unwrap_or(u64::MAX));
+                    return Err(HostedLaneError::StaleProposal);
+                }
+                if commit(proposal.ticket, proposal.value).is_err() {
+                    self.terminal = true;
+                    self.disposed_slots = self
+                        .disposed_slots
+                        .saturating_add(u64::try_from(proposal_count - index).unwrap_or(u64::MAX));
+                    return Err(HostedLaneError::CommitRejected);
+                }
+                self.committed_tickets.push(proposal.ticket);
+                expected = expected
                     .checked_add(1)
                     .ok_or(HostedLaneError::BatchSequenceExhausted)?;
-                Ok((ticket, job))
-            })
-            .collect::<Result<Vec<_>, HostedLaneError>>()?;
-        let batch = match self.provider.compute_proposals(jobs) {
-            Ok(batch) => batch,
-            Err(error) => {
-                self.terminal = true;
-                self.disposed_slots = self.disposed_slots.saturating_add(u64::from(lane_count));
-                return Err(error);
             }
-        };
-        let mut expected = self.next_ticket;
-        let proposal_count = batch.proposals.len();
-        let mut committed_tickets = Vec::with_capacity(proposal_count);
-        for (index, proposal) in batch.proposals.into_iter().enumerate() {
-            if proposal.ticket != expected {
-                self.terminal = true;
-                self.disposed_slots = self
-                    .disposed_slots
-                    .saturating_add(u64::try_from(proposal_count - index).unwrap_or(u64::MAX));
-                return Err(HostedLaneError::StaleProposal);
-            }
-            if commit(proposal.ticket, proposal.value).is_err() {
-                self.terminal = true;
-                self.disposed_slots = self
-                    .disposed_slots
-                    .saturating_add(u64::try_from(proposal_count - index).unwrap_or(u64::MAX));
-                return Err(HostedLaneError::CommitRejected);
-            }
-            committed_tickets.push(proposal.ticket);
-            expected = expected
-                .checked_add(1)
-                .ok_or(HostedLaneError::BatchSequenceExhausted)?;
         }
-        self.next_ticket = expected;
+        self.next_ticket = next;
+        let physical_completion_order = self.provider.physical_completion_order();
         Ok(HostedCommitBatch {
-            committed_tickets,
-            physical_completion_order: batch.physical_completion_order,
+            committed_tickets: &self.committed_tickets,
+            physical_completion_order,
         })
     }
 
@@ -428,6 +455,9 @@ pub struct FixedHostedLaneProvider<J: HostedLaneJob> {
     gate: Arc<BatchGate>,
     sequence: Arc<AtomicU64>,
     next_batch: u64,
+    pending_jobs: Vec<Option<(u64, J)>>,
+    proposals: Vec<HostedProposal<J::Proposal>>,
+    physical_completion_order: Vec<HostedLaneObservation>,
 }
 
 impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
@@ -514,12 +544,25 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
             mpsc::sync_channel(usize::from(reservation.completion_slots));
         let mut commands = Vec::new();
         let mut workers = Vec::new();
+        let mut pending_jobs = Vec::new();
+        let mut proposals = Vec::new();
+        let mut physical_completion_order = Vec::new();
         commands
             .try_reserve_exact(lane_count)
             .map_err(|_| HostedLaneError::InvalidReservation)?;
         workers
             .try_reserve_exact(lane_count)
             .map_err(|_| HostedLaneError::InvalidReservation)?;
+        pending_jobs
+            .try_reserve_exact(lane_count)
+            .map_err(|_| HostedLaneError::InvalidReservation)?;
+        proposals
+            .try_reserve_exact(lane_count)
+            .map_err(|_| HostedLaneError::InvalidReservation)?;
+        physical_completion_order
+            .try_reserve_exact(lane_count)
+            .map_err(|_| HostedLaneError::InvalidReservation)?;
+        pending_jobs.resize_with(lane_count, || None);
         for lane in 0..reservation.lanes {
             let (command_tx, command_rx): (
                 mpsc::SyncSender<LaneCommand<J>>,
@@ -587,6 +630,9 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
             gate,
             sequence,
             next_batch: 1,
+            pending_jobs,
+            proposals,
+            physical_completion_order,
         })
     }
 
@@ -598,29 +644,48 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
     /// Dispatch exactly one bounded region computation to every admitted lane.
     /// The causal gate proves every lane entered before any proposal could
     /// finish. Returned proposals are sorted by deterministic ticket; physical
-    /// completion observations retain their actual provider order.
-    pub fn compute_proposals(
+    /// completion observations retain their actual provider order. Job,
+    /// proposal, completion-order, and sort storage was reserved at Start and
+    /// is reused by every batch.
+    pub fn compute_proposals<I>(
         &mut self,
-        jobs: Vec<(u64, J)>,
-    ) -> Result<HostedProposalBatch<J::Proposal>, HostedLaneError> {
+        jobs: I,
+    ) -> Result<HostedProposalBatch<'_, J::Proposal>, HostedLaneError>
+    where
+        I: IntoIterator<Item = (u64, J)>,
+        I::IntoIter: ExactSizeIterator,
+    {
+        let jobs = jobs.into_iter();
         if jobs.len() != usize::from(self.reservation.lanes) {
             return Err(HostedLaneError::WrongBatchSize);
         }
-        for (index, (ticket, _)) in jobs.iter().enumerate() {
-            if jobs[..index].iter().any(|(prior, _)| prior == ticket) {
+        self.proposals.clear();
+        self.physical_completion_order.clear();
+        for (index, job) in jobs.enumerate() {
+            if self.pending_jobs[..index]
+                .iter()
+                .flatten()
+                .any(|(prior, _)| prior == &job.0)
+            {
+                self.pending_jobs[..index].fill_with(|| None);
                 return Err(HostedLaneError::DuplicateTicket);
             }
+            self.pending_jobs[index] = Some(job);
         }
         let batch = self.next_batch;
         self.next_batch = batch
             .checked_add(1)
             .ok_or(HostedLaneError::BatchSequenceExhausted)?;
         self.gate.begin(batch, self.reservation.lanes)?;
-        for (lane, (ticket, job)) in jobs.into_iter().enumerate() {
+        for lane in 0..self.pending_jobs.len() {
+            let (ticket, job) = self.pending_jobs[lane]
+                .take()
+                .expect("validated batch fills every preallocated job slot");
             if self.commands[lane]
                 .send(LaneCommand { batch, ticket, job })
                 .is_err()
             {
+                self.pending_jobs[lane + 1..].fill_with(|| None);
                 self.gate.abort(batch);
                 return Err(HostedLaneError::ProviderLost);
             }
@@ -631,14 +696,6 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
         }
 
         let lane_count = usize::from(self.reservation.lanes);
-        let mut proposals = Vec::new();
-        let mut physical_completion_order = Vec::new();
-        proposals
-            .try_reserve_exact(lane_count)
-            .map_err(|_| HostedLaneError::InvalidReservation)?;
-        physical_completion_order
-            .try_reserve_exact(lane_count)
-            .map_err(|_| HostedLaneError::InvalidReservation)?;
         let mut first_fault = None;
         let mut proposal_bytes = 0_u64;
         for _ in 0..lane_count {
@@ -647,7 +704,7 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
                 .recv()
                 .map_err(|_| HostedLaneError::ProviderLost)?;
             let observation = completion.observation;
-            physical_completion_order.push(observation);
+            self.physical_completion_order.push(observation);
             let Some(value) = completion.proposal else {
                 first_fault.get_or_insert(HostedLaneError::WorkerFault {
                     lane: observation.lane,
@@ -665,7 +722,7 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
                 first_fault.get_or_insert(HostedLaneError::ProposalCapacityExceeded);
                 continue;
             }
-            proposals.push(HostedProposal {
+            self.proposals.push(HostedProposal {
                 ticket: observation.ticket,
                 lane: observation.lane,
                 value,
@@ -674,11 +731,15 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
         if let Some(fault) = first_fault {
             return Err(fault);
         }
-        proposals.sort_by_key(|proposal| proposal.ticket);
+        self.proposals.sort_by_key(|proposal| proposal.ticket);
         Ok(HostedProposalBatch {
-            proposals,
-            physical_completion_order,
+            proposals: &mut self.proposals,
+            physical_completion_order: &self.physical_completion_order,
         })
+    }
+
+    fn physical_completion_order(&self) -> &[HostedLaneObservation] {
+        &self.physical_completion_order
     }
 }
 

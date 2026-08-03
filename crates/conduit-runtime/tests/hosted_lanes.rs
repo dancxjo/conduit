@@ -190,28 +190,28 @@ fn run(delays: [u64; 3]) -> (Vec<u64>, Vec<u64>, usize) {
                         },
                     )
                 })
-                .collect(),
+                .collect::<Vec<_>>(),
         )
         .unwrap();
     let commits = batch
-        .proposals
+        .proposals()
         .iter()
         .map(|proposal| proposal.value)
         .collect();
     let physical = batch
-        .physical_completion_order
+        .physical_completion_order()
         .iter()
         .map(|observation| observation.ticket)
         .collect();
     let maximum_entered = batch
-        .physical_completion_order
+        .physical_completion_order()
         .iter()
         .map(|observation| observation.entered_sequence)
         .max()
         .unwrap();
-    let release = batch.physical_completion_order[0].release_sequence;
+    let release = batch.physical_completion_order()[0].release_sequence;
     let minimum_finished = batch
-        .physical_completion_order
+        .physical_completion_order()
         .iter()
         .map(|observation| observation.finished_sequence)
         .min()
@@ -220,7 +220,7 @@ fn run(delays: [u64; 3]) -> (Vec<u64>, Vec<u64>, usize) {
     assert!(release < minimum_finished);
     assert!(
         batch
-            .physical_completion_order
+            .physical_completion_order()
             .iter()
             .all(|observation| observation.generation == 9
                 && observation.release_sequence == release)
@@ -243,6 +243,36 @@ fn adversarial_completion_order_cannot_change_authoritative_order() {
     assert_ne!(first.1, second.1);
     assert_eq!(first.0, second.0);
     assert_eq!(first.0, [10, 20, 30]);
+}
+
+#[test]
+fn repeated_batches_reuse_the_fixed_provider_storage() {
+    let active = Arc::new(AtomicUsize::new(0));
+    let peak = Arc::new(AtomicUsize::new(0));
+    let mut provider = FixedHostedLaneProvider::start(reservation()).unwrap();
+    for batch in 0_u64..64 {
+        let job = |offset| Job {
+            value: batch * 3 + offset,
+            delay_ms: 1,
+            active: Arc::clone(&active),
+            peak: Arc::clone(&peak),
+            fault: false,
+        };
+        let first_ticket = batch * 3 + 1;
+        let proposals = provider
+            .compute_proposals([
+                (first_ticket, job(1)),
+                (first_ticket + 1, job(2)),
+                (first_ticket + 2, job(3)),
+            ])
+            .unwrap();
+        assert_eq!(proposals.proposals().len(), 3);
+        assert_eq!(proposals.proposals()[0].value, batch * 3 + 1);
+        assert_eq!(proposals.proposals()[1].value, batch * 3 + 2);
+        assert_eq!(proposals.proposals()[2].value, batch * 3 + 3);
+        assert_eq!(proposals.physical_completion_order().len(), 3);
+    }
+    assert_eq!(peak.load(Ordering::SeqCst), 3);
 }
 
 #[test]
@@ -375,12 +405,13 @@ fn hosted_provider_owns_its_portable_conformance_cases() {
         "commit-rejection-fences-coordinator",
         "provider-fault-disposes-reserved-slots",
         "coordinator-cancellation-requires-readmission",
+        "hosted-repeated-batches-retain-fixed-storage",
     ] {
         assert!(fixture.contains(&format!("\"id\":\"{id}\"")));
     }
     assert_eq!(
         fixture.matches("\"runner\":\"fixed-hosted-lanes\"").count(),
-        7
+        8
     );
 }
 
@@ -413,7 +444,7 @@ fn a_faulted_proposal_is_disposed_and_does_not_poison_the_next_batch() {
         .unwrap();
     assert_eq!(
         recovered
-            .proposals
+            .proposals()
             .iter()
             .map(|proposal| proposal.value)
             .collect::<Vec<_>>(),
