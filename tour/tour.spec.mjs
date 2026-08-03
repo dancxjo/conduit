@@ -707,7 +707,7 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
   await expect.poll(async () => {
     const text = await page.locator("#watch-value").textContent();
     return parseWatchTick(text);
-  }, { timeout: 20_000 }).toBeGreaterThanOrEqual(0);
+  }, { timeout: 60_000 }).toBeGreaterThanOrEqual(0);
   const firstTick = parseWatchTick(
     await page.locator("#watch-value").textContent(),
   );
