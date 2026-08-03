@@ -6,7 +6,6 @@ async function readLiveFlowReceipt(status) {
     planIdentity: element.dataset.planIdentity || null,
     sourceRevision: Number.parseInt(element.dataset.sourceRevision, 10),
     lastSequence: Number.parseInt(element.dataset.lastSequence, 10),
-    text: element.textContent,
   }));
 }
 
@@ -20,24 +19,34 @@ async function readLayoutState(flowRoot) {
 
 function isAuthoritativeAfter(previous, next) {
   if (!previous) return false;
-  const hasSignals = (receipt) =>
-    Number.isSafeInteger(receipt.sourceRevision) ||
-    Number.isSafeInteger(receipt.lastSequence) ||
-    Boolean(receipt.runId) ||
-    Boolean(receipt.planIdentity);
-  if (!hasSignals(previous)) return true;
-  if (!hasSignals(next)) return false;
-  const sameSource = Number.isSafeInteger(previous.sourceRevision) &&
+  const hasSource = Number.isSafeInteger(previous.sourceRevision) &&
     Number.isSafeInteger(next.sourceRevision);
-  const sourceAdvanced = sameSource && next.sourceRevision > previous.sourceRevision;
-  if (sourceAdvanced) return true;
-  const sameSequence = Number.isSafeInteger(previous.lastSequence) &&
+  if (hasSource && next.sourceRevision > previous.sourceRevision) return true;
+
+  const hasSequence = Number.isSafeInteger(previous.lastSequence) &&
     Number.isSafeInteger(next.lastSequence);
-  if (sameSequence && next.lastSequence > previous.lastSequence) return true;
-  if (sameSource && next.sourceRevision === previous.sourceRevision) {
-    return next.runId !== previous.runId;
-  }
-  return next.text !== previous.text;
+  if (hasSequence && next.lastSequence > previous.lastSequence) return true;
+
+  const hasRun = Boolean(previous.runId) && Boolean(next.runId);
+  if (hasRun && next.runId !== previous.runId) return true;
+
+  const hasPlan = Boolean(previous.planIdentity) && Boolean(next.planIdentity);
+  if (hasPlan && next.planIdentity !== previous.planIdentity) return true;
+
+  const hasSignals =
+    Number.isSafeInteger(previous.sourceRevision) ||
+    Number.isSafeInteger(previous.lastSequence) ||
+    Boolean(previous.runId) ||
+    Boolean(previous.planIdentity);
+  if (!hasSignals) return true;
+  const hasNextSignals =
+    Number.isSafeInteger(next.sourceRevision) ||
+    Number.isSafeInteger(next.lastSequence) ||
+    Boolean(next.runId) ||
+    Boolean(next.planIdentity);
+  if (!hasNextSignals) return true;
+
+  return false;
 }
 
 async function waitForTopologyLayoutReady(flowRoot, status, afterGeneration = 0, afterIdentity = null, previousReceipt = null) {
