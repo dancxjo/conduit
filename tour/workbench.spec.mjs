@@ -14,15 +14,31 @@ async function filterPalette(page, query) {
   return page.locator(".palette-item", { hasText: query }).first();
 }
 
-async function connect(page, fromNode, fromPort, toNode, toPort) {
+async function connect(
+  page,
+  fromNode,
+  fromPort,
+  toNode,
+  toPort,
+  { rejectionCode = null } = {},
+) {
   await page.locator("#connection-from").selectOption(`${fromNode}::${fromPort}`);
   await page.locator("#connection-to").selectOption(`${toNode}::${toPort}`);
   await page.locator("#connect-ports").click();
   const sourceConnection = `${fromNode}.${fromPort} > ${toNode}.${toPort}`;
-  await expect(page.locator("#source")).toHaveValue(
-    new RegExp(sourceConnection.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
-    { timeout: 20_000 },
+  const sourcePattern = new RegExp(
+    sourceConnection.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
   );
+  if (rejectionCode) {
+    await expect(page.locator("#workbench-status")).toContainText(rejectionCode, {
+      timeout: 20_000,
+    });
+    await expect(page.locator("#source")).not.toHaveValue(sourcePattern);
+  } else {
+    await expect(page.locator("#source")).toHaveValue(sourcePattern, {
+      timeout: 20_000,
+    });
+  }
 }
 
 test("Workbench authors, runs, saves, reopens, and round-trips one ordinary graph", async ({ page }) => {
@@ -142,7 +158,9 @@ test("Workbench exposes honest unsupported palette entries and remains usable na
   await expect(inspectorPanel).toHaveAttribute("data-panel-collapsed", "true");
   await inspectorPanel.locator("[data-panel-collapse-control]").click();
   await expect(inspectorPanel).toHaveAttribute("data-panel-collapsed", "false");
-  await connect(page, "literal", "value", "stdout", "bytes");
+  await connect(page, "literal", "value", "stdout", "bytes", {
+    rejectionCode: "CND-TYP-001",
+  });
   await expect(page.locator("#workbench-status")).toContainText("CND-TYP-001");
   await expect(page.locator("#source")).not.toHaveValue(/literal\.value > stdout\.bytes/);
 
