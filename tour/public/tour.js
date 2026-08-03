@@ -157,7 +157,6 @@ async function sha256Hex(bytes) {
 }
 
 const TASK_ACTION_POLICY_OBSERVATION_ID = "conduit.task-policy/tour-browser-host";
-const TASK_ACTION_POLICY_STATE_PARAM = "taskActionPolicyState";
 const TASK_ACTION_POLICY_MESSAGES = new Set([
   "conduit-task-action-policy",
   "conduit.task-action-policy",
@@ -204,12 +203,7 @@ function tourTaskActionPolicy(state, {
   };
 }
 
-const taskActionPolicyState = TASK_ACTION_POLICY_STATES.has(
-  pageParameters.get(TASK_ACTION_POLICY_STATE_PARAM),
-)
-  ? pageParameters.get(TASK_ACTION_POLICY_STATE_PARAM)
-  : "permitted";
-const initialTaskActionPolicy = tourTaskActionPolicy(taskActionPolicyState);
+const initialTaskActionPolicy = tourTaskActionPolicy("permitted");
 let hostTaskActionPolicy = { ...initialTaskActionPolicy };
 
 if (browserPlan.schema !== "conduit.tour-browser-plan") {
@@ -2649,7 +2643,7 @@ function activeRunnability() {
 
 function patchbayRunBlocked() {
   const front = patchbayView?.task_front;
-  if (!front || front.status !== "usable") return false;
+  if (!front || front.status !== "usable") return true;
   const readiness = front.front?.readiness?.state;
   const action = front.front?.primary_action;
   return readiness !== "ready" || action?.state !== "request-available" ||

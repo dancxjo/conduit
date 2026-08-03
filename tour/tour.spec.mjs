@@ -1549,8 +1549,14 @@ test("shows authoritative task readiness and outcome with the raw console closed
 });
 
 test("respects denied task-action policy for run availability", async ({ page }) => {
-  await gotoTour(page,
-    "/tour/public/index.html?lesson=panels.jacks-on-the-front&taskActionPolicyState=denied");
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await postHostTaskActionPolicy(page, {
+    state: "denied",
+    generation: 2,
+    code: "CND-HOST-TASK-DENIED",
+    observedAtTick: 10,
+    validUntilTick: 100,
+  });
   await expect(page.locator("#task-front-state")).toHaveText("denied");
   await expect(page.locator("#run")).toBeDisabled();
 });
