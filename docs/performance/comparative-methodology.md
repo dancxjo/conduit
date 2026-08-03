@@ -151,14 +151,16 @@ run pretending it consumed payload content.
 Each completion and Abort row also runs with no Watch, one watched branch, and
 every branch watched. Watched rows admit exact cord subjects into the plan and
 attach them before the timed region. Each admission has one fixed `Latest`
-record and a 64-byte public preview buffer, both included in planned/runtime
-memory accounting. A Watch observes only a committed production cord
+record and a 16-, 64-, or 256-byte public preview buffer, both included in
+planned/runtime memory accounting. The no-Watch baseline is emitted once per
+payload, branch, and terminal combination rather than once per preview size.
+A Watch observes only a committed production cord
 publication; it does not add demand, delay a cord, or change the graph.
 
 After terminal state, the runner first requires zero resident value slots and
 bytes, then reads each Watch outside the timed allocation scope. The read must
 return one record carrying the same generation-safe handle, the verified
-64-byte payload prefix, the full content hash, and a truncation marker.
+plan-sized payload prefix, the full content hash, and a truncation marker.
 Abort therefore retains the separately copied preview even though the original
 arena value and every queued reference have been reclaimed. The report exposes
 admitted and attached slots, retained records/bytes, drops, and maximum fixed

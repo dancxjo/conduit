@@ -2010,7 +2010,7 @@ fn run_shared_payload_sample(
     if args.watch_slots == 0 {
         assert_eq!(args.watch_preview_bytes, 0);
     } else {
-        assert_eq!(args.watch_preview_bytes, 64);
+        assert!(matches!(args.watch_preview_bytes, 16 | 64 | 256));
     }
     assert_eq!(args.slow_consumer_yields, 0);
     assert_eq!(args.cancel_after_offers, 0);
@@ -2688,7 +2688,7 @@ fn run_shared_payload_sample(
         {
             [
                 "The benchmark harness assembles the current exact coupled PlanFanOut plus pre-Start exact Watch admissions for the full source topology; the production hosted literal publishes one generation-safe handle across every capacity-one output cord.",
-                "Abort follows atomic publication; fixed Latest previews retain verified 64-byte copies after terminal cleanup reclaims the one exact executor value, while Watch reads and caller verification remain outside the timed allocation scope.",
+                "Abort follows atomic publication; fixed Latest previews retain verified plan-sized copies after terminal cleanup reclaims the one exact executor value, while Watch reads and caller verification remain outside the timed allocation scope.",
             ]
         } else if matches!(args.termination_request, TerminationRequest::Abort) {
             [
@@ -2698,7 +2698,7 @@ fn run_shared_payload_sample(
         } else if args.watch_slots > 0 {
             [
                 "The benchmark harness assembles the current exact coupled PlanFanOut plus pre-Start exact Watch admissions for the full source topology; the production hosted literal publishes one generation-safe handle across every capacity-one output cord.",
-                "Every display branch consumes the shared handle; fixed Latest previews retain separately accounted verified 64-byte copies while terminal executor value residency remains zero and Watch reads stay outside the timed allocation scope.",
+                "Every display branch consumes the shared handle; fixed Latest previews retain separately accounted verified plan-sized copies while terminal executor value residency remains zero and Watch reads stay outside the timed allocation scope.",
             ]
         } else {
             [

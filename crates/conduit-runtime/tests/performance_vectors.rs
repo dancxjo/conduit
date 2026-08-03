@@ -191,7 +191,10 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         manifest["shared_payload_fanout"]["watch_modes"],
         serde_json::json!(["none", "one", "every-branch"])
     );
-    assert_eq!(manifest["shared_payload_fanout"]["watch_preview_bytes"], 64);
+    assert_eq!(
+        manifest["shared_payload_fanout"]["watch_preview_bytes"],
+        serde_json::json!([16, 64, 256])
+    );
     assert_eq!(
         manifest["shared_payload_fanout"]["watch_retention"],
         "latest"

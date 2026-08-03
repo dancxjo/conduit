@@ -39,7 +39,7 @@ persistent_timer_capacity=$(jq -r .persistent_timer_residency.queue_capacity_ite
 persistent_timer_quantum=$(jq -r .persistent_timer_residency.session_pump_quantum "$manifest")
 persistent_timer_advance_ticks=$(jq -r .persistent_timer_residency.timer_advance_ticks "$manifest")
 shared_payload_capacity=$(jq -r .shared_payload_fanout.queue_capacity_items "$manifest")
-shared_watch_preview_bytes=$(jq -r .shared_payload_fanout.watch_preview_bytes "$manifest")
+shared_watch_preview_sizes=$(jq -r '.shared_payload_fanout.watch_preview_bytes[]' "$manifest")
 copy_payload_capacity=$(jq -r .copy_required_payload_fanout.queue_capacity_items "$manifest")
 
 mkdir -p "$output_dir"
@@ -261,36 +261,38 @@ for shared_payload_bytes in $(jq -r '.shared_payload_fanout.payload_bytes[]' "$m
         case "$watch_mode" in
           none)
             watch_slots=0
-            watch_preview_bytes=0
+            watch_preview_sizes=0
             ;;
           one)
             watch_slots=1
-            watch_preview_bytes=$shared_watch_preview_bytes
+            watch_preview_sizes=$shared_watch_preview_sizes
             ;;
           every-branch)
             watch_slots=$branches
-            watch_preview_bytes=$shared_watch_preview_bytes
+            watch_preview_sizes=$shared_watch_preview_sizes
             ;;
           *)
             echo "unsupported shared-payload Watch mode: $watch_mode" >&2
             exit 1
             ;;
         esac
-        record_raw "$workspace_root/target/release/conduit-benchmark" \
-          --workload shared-payload-fanout \
-          --operators 1 \
-          --values 1 \
-          --queue-items "$shared_payload_capacity" \
-          --latency-sample-stride 1 \
-          --warmup-trials "$warmups" \
-          --measured-trials "$trials" \
-          --fanout-branches "$branches" \
-          --fanout-mode coupled \
-          --slow-consumer-yields 0 \
-          --termination-request "$termination" \
-          --payload-bytes "$shared_payload_bytes" \
-          --watch-slots "$watch_slots" \
-          --watch-preview-bytes "$watch_preview_bytes"
+        for watch_preview_bytes in $watch_preview_sizes; do
+          record_raw "$workspace_root/target/release/conduit-benchmark" \
+            --workload shared-payload-fanout \
+            --operators 1 \
+            --values 1 \
+            --queue-items "$shared_payload_capacity" \
+            --latency-sample-stride 1 \
+            --warmup-trials "$warmups" \
+            --measured-trials "$trials" \
+            --fanout-branches "$branches" \
+            --fanout-mode coupled \
+            --slow-consumer-yields 0 \
+            --termination-request "$termination" \
+            --payload-bytes "$shared_payload_bytes" \
+            --watch-slots "$watch_slots" \
+            --watch-preview-bytes "$watch_preview_bytes"
+        done
       done
     done
   done

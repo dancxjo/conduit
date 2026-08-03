@@ -394,7 +394,7 @@ for (const sample of samples) {
         || sample.workload.input_values !== 1
         || sample.workload.slow_consumer_yields !== 0
         || (copyRequired ? watchSlots !== 0 : ![0, 1, branches].includes(watchSlots))
-        || watchPreviewBytes !== (watchSlots === 0 ? 0 : 64)
+        || (watchSlots === 0 ? watchPreviewBytes !== 0 : ![16, 64, 256].includes(watchPreviewBytes))
         || sample.workload.watch_retention !== (watchSlots === 0 ? "none" : "latest")
         || (copyRequired ? sample.workload.termination_request !== "complete" : !["complete", "abort"].includes(sample.workload.termination_request))
         || sample.workload.cancel_after_offers !== (aborted ? 1 : 0)
@@ -667,7 +667,7 @@ const result = {
     {
       runtime: "conduit-hosted-value-arena",
       workload: "shared-payload-fanout payloads above 1 MiB or non-text media",
-      reason: "the current production hosted literal and uppercase bindings are bounded to 1 MiB public text, and Watch coverage is limited to exact pre-Start Latest previews; larger copy-required, PCM, image, encoded, fragment, browser, other Watch retention/lifecycle modes, coalesce, and slot-reuse slices remain unavailable",
+      reason: "the current production hosted literal and uppercase bindings are bounded to 1 MiB public text, and Watch coverage is limited to exact pre-Start 16-, 64-, and 256-byte Latest previews; larger copy-required, PCM, image, encoded, fragment, browser, other Watch retention/lifecycle modes, coalesce, and slot-reuse slices remain unavailable",
     },
     {
       runtime: "rxjs/reactor-core",
