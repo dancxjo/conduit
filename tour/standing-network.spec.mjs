@@ -1,62 +1,99 @@
 import { expect, test } from "@playwright/test";
 
 async function readLiveFlowReceipt(status) {
-  return status.evaluate((element) => ({
-    runId: element.dataset.runId || null,
-    planIdentity: element.dataset.planIdentity || null,
-    sourceRevision: Number.parseInt(element.dataset.sourceRevision, 10),
-    lastSequence: Number.parseInt(element.dataset.lastSequence, 10),
-  }));
+  return status.evaluate((element) => {
+    const parseReceiptInteger = (value) => {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isSafeInteger(parsed) ? parsed : null;
+    };
+    return {
+      runId: element.dataset.runId || null,
+      planIdentity: element.dataset.planIdentity || null,
+      sourceRevision: parseReceiptInteger(element.dataset.sourceRevision),
+      lastSequence: parseReceiptInteger(element.dataset.lastSequence),
+    };
+  });
 }
 
 async function readLayoutState(flowRoot) {
-  return flowRoot.evaluate((element) => ({
-    generation: Number.parseInt(element.dataset.layoutGeneration, 10),
-    identity: element.dataset.layoutIdentity,
-    state: element.dataset.layout,
-  }));
+  return flowRoot.evaluate((element) => {
+    const parseReceiptInteger = (value) => {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isSafeInteger(parsed) ? parsed : null;
+    };
+    return {
+      generation: Number.parseInt(element.dataset.layoutGeneration, 10),
+      identity: element.dataset.layoutIdentity,
+      planIdentity: element.dataset.activeEpoch || null,
+      sourceRevision: parseReceiptInteger(element.dataset.candidateRevision),
+      state: element.dataset.layout,
+    };
+  });
 }
 
-function isAuthoritativeAfter(previous, next) {
+function hasReceiptSignals(receipt) {
+  return Number.isSafeInteger(receipt?.sourceRevision) ||
+    Number.isSafeInteger(receipt?.lastSequence) ||
+    Boolean(receipt?.runId) ||
+    Boolean(receipt?.planIdentity);
+}
+
+function isAuthoritativeAfter(previous, next, previousLayout = null, nextLayout = null) {
   if (!previous) return false;
-  const hasSource = Number.isSafeInteger(previous.sourceRevision) &&
-    Number.isSafeInteger(next.sourceRevision);
-  if (hasSource && next.sourceRevision > previous.sourceRevision) return true;
+  const hasPreviousSignals = hasReceiptSignals(previous);
+  const hasNextSignals = hasReceiptSignals(next);
+  if (!hasPreviousSignals || !hasNextSignals) {
+    const beforeRevision = Number.isSafeInteger(previousLayout?.sourceRevision)
+      ? previousLayout.sourceRevision
+      : null;
+    const afterRevision = Number.isSafeInteger(nextLayout?.sourceRevision)
+      ? nextLayout.sourceRevision
+      : null;
+    if (beforeRevision !== null && afterRevision !== null) return afterRevision > beforeRevision;
 
-  const hasSequence = Number.isSafeInteger(previous.lastSequence) &&
-    Number.isSafeInteger(next.lastSequence);
-  if (hasSequence && next.lastSequence > previous.lastSequence) return true;
+    const beforePlan = previousLayout?.planIdentity || null;
+    const afterPlan = nextLayout?.planIdentity || null;
+    if (beforePlan && afterPlan) return afterPlan !== beforePlan;
+    return false;
+  }
 
-  const hasRun = Boolean(previous.runId) && Boolean(next.runId);
-  if (hasRun && next.runId !== previous.runId) return true;
+  if (Number.isSafeInteger(previous.sourceRevision) &&
+    Number.isSafeInteger(next.sourceRevision) &&
+    next.sourceRevision > previous.sourceRevision
+  ) return true;
 
-  const hasPlan = Boolean(previous.planIdentity) && Boolean(next.planIdentity);
-  if (hasPlan && next.planIdentity !== previous.planIdentity) return true;
+  if (Number.isSafeInteger(previous.lastSequence) &&
+    Number.isSafeInteger(next.lastSequence) &&
+    next.lastSequence > previous.lastSequence
+  ) return true;
 
-  const hasSignals =
-    Number.isSafeInteger(previous.sourceRevision) ||
-    Number.isSafeInteger(previous.lastSequence) ||
-    Boolean(previous.runId) ||
-    Boolean(previous.planIdentity);
-  if (!hasSignals) return true;
-  const hasNextSignals =
-    Number.isSafeInteger(next.sourceRevision) ||
-    Number.isSafeInteger(next.lastSequence) ||
-    Boolean(next.runId) ||
-    Boolean(next.planIdentity);
-  if (!hasNextSignals) return true;
+  if (Boolean(previous.runId) && Boolean(next.runId) &&
+    next.runId !== previous.runId) return true;
+
+  if (Boolean(previous.planIdentity) && Boolean(next.planIdentity) &&
+    next.planIdentity !== previous.planIdentity) return true;
 
   return false;
 }
 
-async function waitForTopologyLayoutReady(flowRoot, status, afterGeneration = 0, afterIdentity = null, previousReceipt = null) {
+async function waitForTopologyLayoutReady(
+  flowRoot,
+  status,
+  afterGeneration = 0,
+  afterIdentity = null,
+  previousReceipt = null,
+  previousLayout = null,
+) {
   await expect.poll(async () => {
     const layout = await readLayoutState(flowRoot);
     const receipt = await readLiveFlowReceipt(status);
+    const hasAuthoritativeTransition = previousReceipt
+      ? isAuthoritativeAfter(previousReceipt, receipt, previousLayout, layout)
+      : true;
     return layout.state === "ready" &&
       layout.generation > afterGeneration &&
       layout.identity !== afterIdentity &&
-      (previousReceipt ? isAuthoritativeAfter(previousReceipt, receipt) : true) &&
+      hasAuthoritativeTransition &&
       typeof layout.identity === "string" &&
       layout.identity.length > 0
       ? layout
@@ -69,7 +106,7 @@ async function waitForTopologyLayoutReady(flowRoot, status, afterGeneration = 0,
   expect(layout.identity).toEqual(expect.any(String));
   expect(layout.identity.length).toBeGreaterThan(0);
   if (previousReceipt) {
-    expect(isAuthoritativeAfter(previousReceipt, receipt)).toBeTruthy();
+    expect(isAuthoritativeAfter(previousReceipt, receipt, previousLayout, layout)).toBeTruthy();
   }
   return layout;
 }
@@ -133,6 +170,7 @@ stream_source.chunk > stream_sink.chunk { capacity = 2 max_value_bytes = 96 max_
     layout.generation,
     layout.identity,
     priorReceipt,
+    layout,
   );
   priorReceipt = await readLiveFlowReceipt(liveFlowStatus);
   for (const family of ["network-frame", "network-datagram", "network-stream"]) {
@@ -151,6 +189,7 @@ source.packet > sink.packet { capacity = 2 max_value_bytes = 128 max_queued_byte
     layout.generation,
     layout.identity,
     priorReceipt,
+    layout,
   );
   priorReceipt = await readLiveFlowReceipt(liveFlowStatus);
   await expectFamily(page, "network-packet");
@@ -169,6 +208,7 @@ listener.state > observe.state { capacity = 1 max_value_bytes = 32 max_queued_by
     layout.generation,
     layout.identity,
     priorReceipt,
+    layout,
   );
   await expectFamily(page, "network-session");
   await expectFamily(page, "network-control");
