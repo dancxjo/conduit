@@ -251,6 +251,14 @@ struct PhaseTimes {
 }
 
 #[derive(Serialize)]
+struct ExecutionMeasurement {
+    scheduler_decisions: Option<u64>,
+    producer_stall_ns: Option<u64>,
+    drain_ns: Option<u64>,
+    abort_ns: Option<u64>,
+}
+
+#[derive(Serialize)]
 struct AllocationMeasurement {
     scope: &'static str,
     calls: u64,
@@ -340,6 +348,7 @@ struct RawSample {
     trial: u32,
     thermal_state: &'static str,
     phases: PhaseTimes,
+    execution: ExecutionMeasurement,
     process_cpu_ns: Option<u64>,
     outcomes: OutcomeMeasurement,
     allocations: AllocationMeasurement,
@@ -362,7 +371,27 @@ struct Observations {
     dropped: Rc<Cell<u64>>,
     retried: Rc<Cell<u64>>,
     recovery_started: Rc<RefCell<Option<Instant>>>,
+    producer_stall_started: Rc<RefCell<Option<Instant>>>,
+    producer_stall_ns: Rc<Cell<u64>>,
     stride: u64,
+}
+
+fn begin_producer_stall(observations: &Observations) {
+    let mut started = observations.producer_stall_started.borrow_mut();
+    if started.is_none() {
+        *started = Some(Instant::now());
+    }
+}
+
+fn finish_producer_stall(observations: &Observations) {
+    if let Some(started) = observations.producer_stall_started.borrow_mut().take() {
+        observations.producer_stall_ns.set(
+            observations
+                .producer_stall_ns
+                .get()
+                .saturating_add(started.elapsed().as_nanos() as u64),
+        );
+    }
 }
 
 enum BenchNode {
@@ -474,6 +503,7 @@ impl SchedulerNode for BenchNode {
                 let coalesce_target = matches!(pressure, PressurePolicy::Coalesce).then_some(0);
                 match io.send(*cord, value, coalesce_target) {
                     Ok(SendStatus::Reserved) => {
+                        finish_producer_stall(observations);
                         *next += 1;
                         *retrying = false;
                         observations
@@ -487,18 +517,21 @@ impl SchedulerNode for BenchNode {
                         SchedulerStep::Progress
                     }
                     Ok(SendStatus::WouldBlock) => {
+                        begin_producer_stall(observations);
                         observations.retried.set(observations.retried.get() + 1);
                         *retrying = true;
                         io.wait_for_output(*cord).unwrap();
                         SchedulerStep::Pending
                     }
                     Ok(SendStatus::Rejected) => {
+                        finish_producer_stall(observations);
                         observations.rejected.set(observations.rejected.get() + 1);
                         *next += 1;
                         *retrying = false;
                         SchedulerStep::Progress
                     }
                     Ok(SendStatus::Dropped) => {
+                        finish_producer_stall(observations);
                         let counter =
                             if matches!(pressure, PressurePolicy::Sample) && index % 2 != 0 {
                                 &observations.sampled
@@ -547,6 +580,7 @@ impl SchedulerNode for BenchNode {
                 let targets = [None; 32];
                 match io.send_coupled(0, &values[..*branch_count], &targets[..*branch_count]) {
                     Ok(SendStatus::Reserved) => {
+                        finish_producer_stall(observations);
                         *next += 1;
                         *retrying = false;
                         observations
@@ -555,6 +589,7 @@ impl SchedulerNode for BenchNode {
                         SchedulerStep::Progress
                     }
                     Ok(SendStatus::WouldBlock) => {
+                        begin_producer_stall(observations);
                         observations.retried.set(observations.retried.get() + 1);
                         *retrying = true;
                         for cord in 0..*branch_count {
@@ -979,6 +1014,8 @@ fn prepare(args: &Args) -> PreparedRun {
         dropped: Rc::new(Cell::new(0)),
         retried: Rc::new(Cell::new(0)),
         recovery_started: Rc::new(RefCell::new(None)),
+        producer_stall_started: Rc::new(RefCell::new(None)),
+        producer_stall_ns: Rc::new(Cell::new(0)),
         stride: args.latency_sample_stride,
     };
     assert_eq!(observations.values.borrow().len(), value_count);
@@ -1645,6 +1682,12 @@ fn run_sample(
             pressure_ns: recovery_ns.map(|recovery| steady_ns.saturating_sub(recovery)),
             recovery_ns,
         },
+        execution: ExecutionMeasurement {
+            scheduler_decisions: Some(high_water.decisions),
+            producer_stall_ns: Some(prepared.observations.producer_stall_ns.get()),
+            drain_ns: None,
+            abort_ns: None,
+        },
         process_cpu_ns: cpu_ns,
         outcomes: OutcomeMeasurement {
             offered: prepared.observations.offered.get(),
@@ -1811,6 +1854,12 @@ fn run_identity_sample(
             steady_ns,
             pressure_ns: None,
             recovery_ns: None,
+        },
+        execution: ExecutionMeasurement {
+            scheduler_decisions: None,
+            producer_stall_ns: None,
+            drain_ns: None,
+            abort_ns: None,
         },
         process_cpu_ns: cpu_ns,
         outcomes: OutcomeMeasurement {

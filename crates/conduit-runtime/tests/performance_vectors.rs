@@ -189,6 +189,15 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             .any(|field| field == "queue_max_cord_items_high_water")
     );
     assert_eq!(
+        schema["properties"]["execution"]["required"],
+        serde_json::json!([
+            "scheduler_decisions",
+            "producer_stall_ns",
+            "drain_ns",
+            "abort_ns"
+        ])
+    );
+    assert_eq!(
         rxjs_lock["packages"]["node_modules/rxjs"]["version"],
         "7.8.2"
     );

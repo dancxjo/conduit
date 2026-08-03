@@ -100,9 +100,13 @@ Steady time, process CPU, resident memory, outcome accounting,
 queue/value/evidence high water, post-Start allocations, and sampled end-to-end
 latency accompany every repeat. Outcomes always separate offered, admitted,
 completed-useful, rejected, sampled, coalesced, dropped, retried, and terminal
-values. Overload rows additionally split the slow pressure region from the
-recovery-to-terminal region. Unsupported measurements remain `null` with a
-reason instead of being reported as zero.
+values. The Conduit runner also reports exact scheduler decision count and wall
+time accumulated only while a source is blocked waiting for bounded output
+capacity. Overload rows additionally split the slow pressure region from the
+recovery-to-terminal region. `drain_ns` and `abort_ns` remain `null` until a
+fixture explicitly requests the corresponding cancellation transition;
+ordinary successful completion is not renamed. Other unsupported measurements
+remain `null` with a reason instead of being reported as zero.
 
 The summary reports p50, p95, p99, p99.9, and maximum sampled latency. Useful
 outputs per second is summarized across at least nine measured repeats with a
