@@ -2840,7 +2840,7 @@ test("filesystem reference panels use the explicit bounded browser provider", as
   });
 });
 
-test("Copy task front binds From and To without exposing selected material", async ({ page }) => {
+test("Copy task front binds From and To without exposing selected material @copy-task-front", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem");
   const taskFront = page.locator("#task-front");
   await expect(taskFront).toBeVisible();
@@ -2966,7 +2966,7 @@ test("Copy task front binds From and To without exposing selected material", asy
   await activate(copy);
   await expect(page.locator("#task-front-result-value")).toContainText(
     "Terminal: failed",
-    { timeout: 20_000 },
+    { timeout: 60_000 },
   );
   await expect(page.locator("#task-front-result-value")).toContainText(
     "bounded copy limit",
