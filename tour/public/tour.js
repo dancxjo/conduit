@@ -203,7 +203,7 @@ function tourTaskActionPolicy(state, {
   };
 }
 
-const initialTaskActionPolicy = tourTaskActionPolicy("permitted");
+const initialTaskActionPolicy = tourTaskActionPolicy("unavailable");
 let hostTaskActionPolicy = { ...initialTaskActionPolicy };
 
 if (browserPlan.schema !== "conduit.tour-browser-plan") {
@@ -2642,6 +2642,7 @@ function activeRunnability() {
 }
 
 function patchbayRunBlocked() {
+  if (hostTaskActionPolicy.state !== "permitted") return true;
   const front = patchbayView?.task_front;
   if (!front || front.status !== "usable") return true;
   const readiness = front.front?.readiness?.state;

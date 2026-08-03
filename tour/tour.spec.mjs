@@ -62,9 +62,18 @@ async function waitForTourReady(page) {
   );
 }
 
-async function gotoTour(page, path) {
+async function gotoTour(page, path, { authorize = true, state = "permitted" } = {}) {
   await page.goto(path);
   await waitForTourReady(page);
+  if (authorize) {
+    await postHostTaskActionPolicy(page, {
+      state,
+      generation: 2,
+      code: state === "permitted" ? "CND-PBY-ACT-READY" : "CND-HOST-TASK-DENIED",
+      observedAtTick: 10,
+      validUntilTick: 100,
+    });
+  }
 }
 
 function collectPageFailures(page) {
@@ -1552,13 +1561,29 @@ test("respects denied task-action policy for run availability", async ({ page })
   await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
   await postHostTaskActionPolicy(page, {
     state: "denied",
-    generation: 2,
+    generation: 3,
     code: "CND-HOST-TASK-DENIED",
     observedAtTick: 10,
     validUntilTick: 100,
   });
   await expect(page.locator("#task-front-state")).toHaveText("denied");
   await expect(page.locator("#run")).toBeDisabled();
+});
+
+test("requires explicit host policy to enable task front execution", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front", {
+    authorize: false,
+  });
+  await expect(page.locator("#run")).toBeDisabled();
+  await postHostTaskActionPolicy(page, {
+    state: "permitted",
+    generation: 2,
+    code: "CND-PBY-ACT-READY",
+    observedAtTick: 10,
+    validUntilTick: 100,
+  });
+  await expect(page.locator("#task-front-state")).toHaveText("ready");
+  await expect(page.locator("#run")).toBeEnabled();
 });
 
 test("updates task-action policy from runtime host signal", async ({ page }) => {
@@ -1568,7 +1593,7 @@ test("updates task-action policy from runtime host signal", async ({ page }) => 
 
   await postHostTaskActionPolicy(page, {
     state: "denied",
-    generation: 2,
+    generation: 3,
     code: "CND-HOST-TASK-DENIED",
     observedAtTick: 10,
     validUntilTick: 100,
@@ -1579,7 +1604,7 @@ test("updates task-action policy from runtime host signal", async ({ page }) => 
 
   await postHostTaskActionPolicy(page, {
     state: "permitted",
-    generation: 3,
+    generation: 4,
     code: "CND-PBY-ACT-READY",
     observedAtTick: 10,
     validUntilTick: 100,
@@ -1589,7 +1614,7 @@ test("updates task-action policy from runtime host signal", async ({ page }) => 
 
   await postHostTaskActionPolicy(page, {
     state: "revoked",
-    generation: 2,
+    generation: 3,
     observedAtTick: 10,
     validUntilTick: 100,
   });
