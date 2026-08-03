@@ -1,7 +1,7 @@
 # Copy a file first-time-user proof
 
-Status: automated and hosted implementation evidence complete; unfamiliar-person
-observation not yet performed.
+Status: automated browser-safe and hosted implementation evidence complete;
+unfamiliar-person observation not yet performed.
 
 This record keeps automated conformance separate from human usability evidence.
 The current `library.bounded-filesystem` Tour project opens in Use, requires
@@ -16,19 +16,22 @@ unfamiliar person can use it.
 - Rust tests cover missing choices, separate grants, same-resource rejection,
   exact action admission and identity, duplicate requests, cancellation,
   semantic result versus terminal state, runtime failure, and stale epochs.
-- Chromium, Firefox, and WebKit tests cover the complete deterministic Copy
-  interaction, recognizable bounded failure and success with the console
-  closed, Build and Inside disclosure, return to Use, keyboard operation, an
-  ordinary viewport, and 200 percent zoom.
+- Browser source selection uses an actual file input. Selected bytes remain
+  worker-memory-only behind the opaque protected binding; neither the bytes nor
+  its resource or grant identity enter shared source or task-front projection.
+  Destination selection is a separate explicit Replace-and-download ceremony,
+  and the resulting download is released only for the exact accepted request,
+  run, plan identity, and plan epoch that committed it.
+- Chromium, Firefox, and WebKit tests cover the actual browser file-input and
+  download interaction, recognizable bounded failure and success with the
+  console closed, Build and Inside disclosure, return to Use, keyboard
+  operation, an ordinary viewport, and 200 percent zoom.
 - The `conduct` runnability inventory executes `examples/file-copier.panel`
   through the production hosted read/write providers and compares the written
   destination bytes with the installed source fixture.
 
 ## Open blocking evidence
 
-- [#326](https://github.com/dancxjo/conduit/issues/326) tracks the missing
-  browser-safe user-selected file input and destination download/create
-  provider. The deterministic fixture is not presented as that capability.
 - [#327](https://github.com/dancxjo/conduit/issues/327) tracks the required
   unfamiliar-person study. Until an observation is recorded there, no human
   usability claim has been established.
