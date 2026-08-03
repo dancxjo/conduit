@@ -105,6 +105,37 @@ also includes the isolated duplicator's input cord. RxJS and Reactor fan-out
 comparisons remain unavailable until their multicast, demand, buffering, and
 coupling semantics have reviewed mappings.
 
+The shared-payload slice is a separate #244 production-hosted boundary. It
+authors one 1 KiB public-text `std/literal` and 2, 8, or 32 `display/text`
+consumers. The hosted literal profile pins a hard 32-reservation output bound,
+32 KiB aggregate output bound, and a generation-safe shared-handle
+representation for `source.value`. Because the current checked-in compile
+document cannot yet represent `PlanFanOut`, the benchmark compiler seals the
+one-branch provider/profile skeleton and the harness assembles the exact
+current core fan-out fact for the full source-derived topology. The production
+registry still resolves every authored node, production drivers execute every
+step, and the raw row binds the full source semantic hash, recomputed plan
+identity, implementation artifact, and exact scheduler evidence. This is
+runtime evidence, not a claim that the general compile-document producer now
+supports fan-out.
+
+Every branch receives the same opaque generation-safe arena handle. The runner
+requires one unique branch handle, one resident value slot and 1,024 resident
+value bytes at high water, exact 2/8/32 branch-delivery counts, zero value
+residency after terminal completion, and zero allocator calls after Start.
+Each display sink checks the actual payload bytes. Its preallocated host-output
+storage therefore scales to 2/8/32 KiB, and each capacity-one cord separately
+charges 1 KiB of queue payload capacity even though all cords name one arena
+value. Those verifier and queue charges are reported beside arena residency;
+the suite does not call the end-to-end path zero-copy.
+
+This first slice does not substitute 1 MiB payloads, PCM, images, encoded
+frames, fragments, isolated subscribers, Watch, coalescing, cancellation, slot
+reuse, or browser execution. The current hosted literal value binding is
+bounded to 1 KiB, and RxJS/Reactor object references have no reviewed mapping
+to Conduit's generation-safe handle and arena-residency evidence. Those cases
+remain explicitly unavailable and #244 remains open.
+
 ## Regions and metrics
 
 Assembly, exact-plan sealing where applicable, Start/subscription where it can

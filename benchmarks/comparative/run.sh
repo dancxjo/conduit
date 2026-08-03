@@ -38,6 +38,8 @@ persistent_timer_plateau=$(jq -r .persistent_timer_residency.residency_plateau_a
 persistent_timer_capacity=$(jq -r .persistent_timer_residency.queue_capacity_items "$manifest")
 persistent_timer_quantum=$(jq -r .persistent_timer_residency.session_pump_quantum "$manifest")
 persistent_timer_advance_ticks=$(jq -r .persistent_timer_residency.timer_advance_ticks "$manifest")
+shared_payload_bytes=$(jq -r '.shared_payload_fanout.payload_bytes[0]' "$manifest")
+shared_payload_capacity=$(jq -r .shared_payload_fanout.queue_capacity_items "$manifest")
 
 mkdir -p "$output_dir"
 for artifact in "$raw" "$summary" "$metadata" "$report" "$regression_evaluation" "$regression_report" "$commands"; do
@@ -249,6 +251,21 @@ for capacity in $(jq -r '.fanout.queue_capacity_items[]' "$manifest"); do
       done
     done
   done
+done
+
+for branches in $(jq -r '.shared_payload_fanout.branches[]' "$manifest"); do
+  record_raw "$workspace_root/target/release/conduit-benchmark" \
+    --workload shared-payload-fanout \
+    --operators 1 \
+    --values 1 \
+    --queue-items "$shared_payload_capacity" \
+    --latency-sample-stride 1 \
+    --warmup-trials "$warmups" \
+    --measured-trials "$trials" \
+    --fanout-branches "$branches" \
+    --fanout-mode coupled \
+    --slow-consumer-yields 0 \
+    --payload-bytes "$shared_payload_bytes"
 done
 
 node "$workspace_root/benchmarks/comparative/summarize.mjs" "$raw" "$summary" "$report"

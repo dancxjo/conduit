@@ -27,9 +27,14 @@ for (const sample of samples) {
   const identityParts = sample.exact_identity.logical_fixture.split("/");
   const overload = sample.workload.id === "overload";
   const fanout = sample.workload.id === "fanout";
+  const sharedPayload = sample.workload.id === "shared-payload-fanout";
   const persistentWake = sample.workload.id === "persistent-wake";
   const persistentTimer = sample.workload.id === "persistent-timer";
   const persistentResidency = persistentWake || persistentTimer;
+  if (!sharedPayload && (sample.workload.payload_bytes !== 0
+      || !["handle-backed-u64", "native-u64", "native-number", "native-long"].includes(sample.workload.payload_representation))) {
+    throw new Error("non-payload fixture carries shared-payload identity");
+  }
   if (overload) {
     const pressureId = sample.workload.pressure.split("/")[0];
     if (identityParts.length !== 12
@@ -67,6 +72,17 @@ for (const sample of samples) {
     if (sample.runtime.id !== "conduit-reference-scheduler") {
       throw new Error("the current fan-out slice has no cross-runtime substitute");
     }
+  } else if (sharedPayload) {
+    if (identityParts.length !== 4
+        || identityParts[0] !== "comparative-shared-payload-fanout"
+        || Number(identityParts[1]) !== sample.workload.fanout_branches
+        || Number(identityParts[2]) !== sample.workload.payload_bytes
+        || Number(identityParts[3]) !== sample.workload.queue_capacity_items) {
+      throw new Error("shared-payload fixture identity does not match the raw sample");
+    }
+    if (sample.runtime.id !== "conduit-hosted-value-arena") {
+      throw new Error("the current shared-payload slice has no cross-runtime substitute");
+    }
   } else if (persistentWake) {
     if (identityParts.length !== 6
         || identityParts[0] !== "comparative-persistent-wake"
@@ -102,11 +118,11 @@ for (const sample of samples) {
       || Number(identityParts[5]) !== sample.latency.sample_stride) {
     throw new Error("local-depth fixture identity does not match the raw sample");
   }
-  if (sample.runtime.id === "conduit-reference-scheduler"
+  if (["conduit-reference-scheduler", "conduit-hosted-value-arena"].includes(sample.runtime.id)
       && [sample.exact_identity.plan_identity, sample.exact_identity.source_semantic_hash, sample.exact_identity.artifact_digest].some((value) => !value)) {
     throw new Error("Conduit sample omitted exact plan, source, or artifact identity");
   }
-  if (sample.runtime.id === "conduit-reference-scheduler"
+  if (["conduit-reference-scheduler", "conduit-hosted-value-arena"].includes(sample.runtime.id)
       && (sample.execution.scheduler_decisions === null || sample.execution.producer_stall_ns === null)) {
     throw new Error("Conduit sample omitted scheduler decisions or producer stall time");
   }
@@ -159,6 +175,13 @@ for (const sample of samples) {
           sample.execution.residency_checkpoint_ready_slots_high_water,
           sample.execution.residency_checkpoint_evidence_slots_high_water].some((value) => value !== null)) {
       throw new Error("persistent pressure session identity or admission accounting changed");
+    }
+  } else if (sharedPayload) {
+    if (sample.workload.session_mode !== "finite-exact-run-session"
+        || sample.workload.session_pump_quantum !== 512
+        || sample.execution.session_pumps < 1
+        || sample.execution.session_reserved_bytes <= 0) {
+      throw new Error("shared-payload exact session ownership accounting changed");
     }
   } else if (sample.workload.session_mode !== "finite-executor"
       || sample.workload.session_pump_quantum !== 0
@@ -330,6 +353,34 @@ for (const sample of samples) {
         && (sample.phases.pressure_ns === null || sample.phases.recovery_ns === null)) {
       throw new Error("finite fan-out fixture did not expose both pressure and recovery regions");
     }
+  } else if (sharedPayload) {
+    const branches = sample.workload.fanout_branches;
+    const payloadBytes = sample.workload.payload_bytes;
+    if (![2, 8, 32].includes(branches)
+        || payloadBytes !== 1024
+        || sample.workload.payload_representation !== "hosted-generation-safe-shared-text-handle"
+        || sample.workload.fanout_mode !== "coupled"
+        || sample.workload.queue_capacity_items !== 1
+        || sample.workload.input_values !== 1
+        || sample.workload.slow_consumer_yields !== 0
+        || sample.outcomes.offered !== 1
+        || sample.outcomes.admitted !== 1
+        || sample.outcomes.completed_useful !== branches
+        || sample.execution.unique_value_handles !== 1
+        || sample.execution.branch_deliveries !== branches
+        || sample.allocations.calls !== 0
+        || sample.allocations.bytes !== 0
+        || sample.memory.value_resident_slots_after_terminal !== 0
+        || sample.memory.value_resident_bytes_after_terminal !== 0
+        || sample.memory.value_slots_high_water !== 1
+        || sample.memory.value_bytes_high_water !== payloadBytes
+        || sample.memory.value_slots_capacity < 1
+        || sample.memory.value_bytes_capacity < payloadBytes
+        || sample.memory.host_io_output_bytes !== branches * payloadBytes
+        || sample.memory.host_io_capacity_bytes < sample.memory.host_io_output_bytes
+        || sample.memory.queue_max_cord_items_high_water > 1) {
+      throw new Error("shared-payload handle, residency, delivery, or verifier accounting changed");
+    }
   } else {
     if (sample.outcomes.offered !== sample.workload.input_values) throw new Error("offered input count changed");
     if (sample.outcomes.admitted !== sample.workload.input_values) throw new Error("admitted input count changed");
@@ -341,7 +392,8 @@ for (const sample of samples) {
   if (sample.latency.samples_ns.length === 0 || sample.latency.samples_ns.some((value) => value <= 0)) {
     throw new Error("latency samples must be present and positive");
   }
-  if (sample.runtime.id === "conduit-reference-scheduler" && sample.allocations.calls !== 0) {
+  if (["conduit-reference-scheduler", "conduit-hosted-value-arena"].includes(sample.runtime.id)
+      && sample.allocations.calls !== 0) {
     throw new Error("Conduit allocated after Start");
   }
 }
@@ -397,7 +449,8 @@ for (const sample of measured) {
     sample.workload.termination_request, sample.workload.cancel_after_offers,
     sample.workload.consumer_pattern, sample.workload.consumer_burst_items,
     sample.workload.session_mode, sample.workload.session_pump_quantum,
-    sample.workload.residency_plateau_after_wakes].join("/");
+    sample.workload.residency_plateau_after_wakes, sample.workload.payload_bytes,
+    sample.workload.payload_representation].join("/");
   if (!groups.has(key)) groups.set(key, []);
   groups.get(key).push(sample);
 }
@@ -445,6 +498,8 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
       residency_checkpoint_queue_payload_bytes_high_water: optionalStats(group.map((value) => value.execution.residency_checkpoint_queue_payload_bytes_high_water)),
       residency_checkpoint_ready_slots_high_water: optionalStats(group.map((value) => value.execution.residency_checkpoint_ready_slots_high_water)),
       residency_checkpoint_evidence_slots_high_water: optionalStats(group.map((value) => value.execution.residency_checkpoint_evidence_slots_high_water)),
+      unique_value_handles: optionalStats(group.map((value) => value.execution.unique_value_handles)),
+      branch_deliveries: optionalStats(group.map((value) => value.execution.branch_deliveries)),
     },
     outcomes: Object.fromEntries([
       "offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "cancelled", "retried", "terminal",
@@ -464,6 +519,14 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
       queue_payload_bytes: optionalStats(group.map((value) => value.memory.queue_payload_bytes_high_water)),
       ready_slots: optionalStats(group.map((value) => value.memory.ready_slots_high_water)),
       evidence_slots: optionalStats(group.map((value) => value.memory.evidence_slots_high_water)),
+      value_resident_slots_after_terminal: optionalStats(group.map((value) => value.memory.value_resident_slots_after_terminal)),
+      value_resident_bytes_after_terminal: optionalStats(group.map((value) => value.memory.value_resident_bytes_after_terminal)),
+      value_slots: optionalStats(group.map((value) => value.memory.value_slots_high_water)),
+      value_bytes: optionalStats(group.map((value) => value.memory.value_bytes_high_water)),
+      value_slots_capacity: optionalStats(group.map((value) => value.memory.value_slots_capacity)),
+      value_bytes_capacity: optionalStats(group.map((value) => value.memory.value_bytes_capacity)),
+      host_io_capacity_bytes: optionalStats(group.map((value) => value.memory.host_io_capacity_bytes)),
+      host_io_output_bytes: optionalStats(group.map((value) => value.memory.host_io_output_bytes)),
     },
     latency_ns: {
       samples: latency.length,
@@ -531,6 +594,16 @@ const result = {
     },
     {
       runtime: "rxjs/reactor-core",
+      workload: "shared-payload-fanout",
+      reason: "no reviewed generation-safe shared-handle and residency mapping exists; language object references are not substituted",
+    },
+    {
+      runtime: "conduit-hosted-value-arena",
+      workload: "shared-payload-fanout payloads above 1 KiB or non-text media",
+      reason: "the current production hosted literal binding is bounded to 1 KiB public text; larger, PCM, image, encoded, fragment, browser, Watch, coalesce, cancellation, and slot-reuse slices remain unavailable",
+    },
+    {
+      runtime: "rxjs/reactor-core",
       workload: "persistent-wake",
       reason: "no reviewed mapping for Conduit's exact named host-operation wait and production session reservation exists; a timer or subject is not substituted",
     },
@@ -561,6 +634,8 @@ if (reportOutput) {
     "- RxJS overload: synchronous push has no demand-bounded queue matching these pressure policies and is not substituted.",
     "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
     "- RxJS/Reactor fan-out: reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted.",
+    "- RxJS/Reactor shared payloads: no reviewed generation-safe shared-handle and residency mapping exists; language object references are not substituted.",
+    "- Conduit shared payloads beyond 1 KiB public text: larger, PCM, image, encoded, fragment, browser, Watch, coalesce, cancellation, and slot-reuse slices remain unavailable.",
     "- RxJS/Reactor persistent wake: no reviewed mapping exists for Conduit's exact named host-operation wait and production session reservation; a timer or subject is not substituted.",
     "- RxJS/Reactor persistent timer: no reviewed mapping exists for Conduit's exact retained timer deadline and production session reservation; an interval operator is not substituted.",
     "- Drain/Abort timing is present only on fixtures that explicitly request that transition; normal completion remains distinct and null.",
@@ -592,6 +667,13 @@ if (reportOutput) {
       for (const group of workloadGroups) {
         const outcome = (field) => integer.format(group.outcomes[field].median);
         report.push(`| ${group.runtime.id} | ${group.workload.fanout_mode} | ${group.workload.consumer_pattern} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${outcome("offered")} | ${outcome("admitted")} | ${outcome("completed_useful")} | ${outcome("retried")} | ${outcome("terminal")} | ${duration(group.high_water.queue_items)} | ${duration(group.high_water.queue_max_cord_items)} |`);
+      }
+      report.push("");
+    }
+    if (workload === "shared-payload-fanout") {
+      report.push("## shared-payload-fanout: handle and residency accounting", "", "The value arena retains one generation-safe 1 KiB handle across every branch. Queue byte charges and content-verifying display buffers are separate bounded storage and are not described as zero-copy.", "", "| Runtime | Payload bytes | Branches | Unique handles | Branch deliveries | Value slots high water | Value bytes high water | Terminal value slots | Terminal value bytes | Queue payload bytes | Host verifier output bytes | Alloc calls after Start |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+      for (const group of workloadGroups) {
+        report.push(`| ${group.runtime.id} | ${group.workload.payload_bytes} | ${group.workload.fanout_branches} | ${duration(group.execution.unique_value_handles)} | ${duration(group.execution.branch_deliveries)} | ${duration(group.high_water.value_slots)} | ${duration(group.high_water.value_bytes)} | ${duration(group.high_water.value_resident_slots_after_terminal)} | ${duration(group.high_water.value_resident_bytes_after_terminal)} | ${duration(group.high_water.queue_payload_bytes)} | ${duration(group.high_water.host_io_output_bytes)} | ${duration(group.allocations_after_start.calls)} |`);
       }
       report.push("");
     }

@@ -2,7 +2,7 @@
   "schema": "conduit.comparative-benchmark-manifest",
   "schema_version": 0,
   "fixture_revision": 0,
-  "issues": [243, 245, 249],
+  "issues": [243, 244, 245, 249],
   "values": 1000000,
   "operator_depths": [1, 8, 32],
   "workloads": ["map", "map-filter", "merge", "bounded-async"],
@@ -68,6 +68,15 @@
     "stop_policy": "drain",
     "scope": "one production ExactRunSession advances to and consumes one exact retained timer deadline per value without resetting; queue, payload, ready, and evidence high-water values at the declared checkpoint must equal those after the final wake"
   },
+  "shared_payload_fanout": {
+    "workload": "shared-payload-fanout",
+    "payload_bytes": [1024],
+    "payload_representation": "hosted-generation-safe-shared-text-handle",
+    "branches": [2, 8, 32],
+    "queue_capacity_items": 1,
+    "fanout_mode": "coupled",
+    "scope": "production hosted literal value-store handle through an exact coupled fan-out plan assembled by the benchmark harness; every branch is content-verified at a separately accounted display boundary"
+  },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
   "measured_trials": 9,
@@ -79,6 +88,13 @@
       "demand": "bounded FIFO block",
       "bounded_async": "unavailable in the single-lane reference runner; no hosted streaming result is substituted",
       "streaming_hosted_mode": "unavailable; tracked by #214/#242 and never substituted by the reference result"
+    },
+    {
+      "id": "conduit-hosted-value-arena",
+      "version_source": "workspace commit",
+      "semantic_boundary": "production hosted std/literal driver, fixed generation-safe value arena, exact coupled fan-out plan, and content-verifying display sinks",
+      "demand": "capacity-one lossless cords",
+      "payload_boundary": "exactly 1 KiB public text in this slice; larger payloads and other media kinds remain unavailable"
     },
     {
       "id": "rxjs",
@@ -121,6 +137,8 @@
     "bursty consumers report exact repeated pressure and recovery cycle counts without a hidden timing source or buffer",
     "persistent rows retain one finite session reservation across bounded host pumps, request termination with admitted work still pressured, and release the reservation only after terminal finalization",
     "persistent host-operation and timer residency rows perform the declared deterministic wake count without resetting the session, allocate zero times after Start, reach a strict internal high-water plateau, and reconcile the session reservation after Drain finalization",
+    "shared-payload rows retain one generation-safe value handle and exactly one 1 KiB value-arena slot at high water across 2, 8, and 32 branches, deliver and content-verify every branch, allocate zero times after Start, and return value residency to zero after terminal completion",
+    "shared-payload queue charges and display verification buffers scale separately from value-arena residency and are never described as zero-copy",
     "bounded FIFO retries in local-depth fixtures are reported and do not change admitted or completed-useful counts",
     "map, merge, and bounded-async complete one useful output per input",
     "map-filter completes one useful output per input until it contains a filter, then exactly half for the even input cardinality",

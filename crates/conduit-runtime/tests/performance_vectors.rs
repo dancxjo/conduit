@@ -72,7 +72,7 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
     assert_eq!(manifest["schema"], "conduit.comparative-benchmark-manifest");
     assert_eq!(manifest["schema_version"], 0);
     assert_eq!(manifest["fixture_revision"], 0);
-    assert_eq!(manifest["issues"], serde_json::json!([243, 245, 249]));
+    assert_eq!(manifest["issues"], serde_json::json!([243, 244, 245, 249]));
     assert_eq!(manifest["values"], 1_000_000);
     assert_eq!(manifest["operator_depths"], serde_json::json!([1, 8, 32]));
     assert_eq!(
@@ -173,6 +173,14 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         64
     );
     assert_eq!(
+        manifest["shared_payload_fanout"]["payload_bytes"],
+        serde_json::json!([1024])
+    );
+    assert_eq!(
+        manifest["shared_payload_fanout"]["branches"],
+        serde_json::json!([2, 8, 32])
+    );
+    assert_eq!(
         manifest["wall_clock_policy"]["gate"],
         "strict only for the separately versioned reviewed regression policy when machine class, architecture, input cardinality, and trial counts match exactly; otherwise report-only"
     );
@@ -187,7 +195,12 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             .iter()
             .map(|runtime| runtime["id"].as_str().unwrap())
             .collect::<Vec<_>>(),
-        ["conduit-reference-scheduler", "rxjs", "reactor-core"]
+        [
+            "conduit-reference-scheduler",
+            "conduit-hosted-value-arena",
+            "rxjs",
+            "reactor-core"
+        ]
     );
     assert_eq!(
         manifest["language_lower_bounds"]
@@ -250,7 +263,9 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "session_mode",
             "session_pump_quantum",
             "residency_plateau_after_wakes",
-            "timer_advance_ticks"
+            "timer_advance_ticks",
+            "payload_bytes",
+            "payload_representation"
         ]
         .iter()
         .all(|field| schema["properties"]["workload"]["required"]
@@ -267,11 +282,23 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             .any(|required| required == field)
     }));
     assert!(
-        schema["properties"]["memory"]["required"]
+        [
+            "queue_max_cord_items_high_water",
+            "value_resident_slots_after_terminal",
+            "value_resident_bytes_after_terminal",
+            "value_slots_high_water",
+            "value_bytes_high_water",
+            "value_slots_capacity",
+            "value_bytes_capacity",
+            "host_io_capacity_bytes",
+            "host_io_output_bytes"
+        ]
+        .iter()
+        .all(|field| schema["properties"]["memory"]["required"]
             .as_array()
             .unwrap()
             .iter()
-            .any(|field| field == "queue_max_cord_items_high_water")
+            .any(|required| required == field))
     );
     assert_eq!(
         schema["properties"]["execution"]["required"],
@@ -289,7 +316,9 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "residency_checkpoint_queue_items_high_water",
             "residency_checkpoint_queue_payload_bytes_high_water",
             "residency_checkpoint_ready_slots_high_water",
-            "residency_checkpoint_evidence_slots_high_water"
+            "residency_checkpoint_evidence_slots_high_water",
+            "unique_value_handles",
+            "branch_deliveries"
         ])
     );
     assert_eq!(

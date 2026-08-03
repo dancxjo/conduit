@@ -9,8 +9,8 @@ use crate::{
     ExecutionLimitsDocument, ExecutionPlacementObservationDocument, ExecutionProfileDocument,
     ExternalLeafContractDocument, HostCapabilityDocument, HostReportDocument,
     ImplementationDocument, ImplementationInterfaceDocument, MemoryClaimDocument, PinDocument,
-    ReportCapabilityDocument, ResourceLeaseDocument, WatchAdmissionDocument,
-    builtin_catalog_document,
+    ReportCapabilityDocument, ResourceLeaseDocument, ValueRepresentationDocument,
+    WatchAdmissionDocument, builtin_catalog_document,
 };
 use conduit_core::{
     ARTIFACT_MANIFEST_SCHEMA_VERSION, EXECUTION_PLAN_SCHEMA_VERSION, ExecutionPlan, ExecutorKind,
@@ -959,6 +959,10 @@ fn candidate(
         installed.implementation,
         HostedPrimitiveImplementation::Format | HostedPrimitiveImplementation::FormatValuesLiteral
     );
+    let literal_profile = matches!(
+        installed.implementation,
+        HostedPrimitiveImplementation::Literal
+    );
     let buffered_text_profile = matches!(
         installed.implementation,
         HostedPrimitiveImplementation::Lines | HostedPrimitiveImplementation::Join
@@ -1101,6 +1105,8 @@ fn candidate(
             host_service_execution_profile()
         } else if host_io_profile {
             host_io_execution_profile()
+        } else if literal_profile {
+            literal_execution_profile()
         } else if format_profile {
             format_execution_profile()
         } else if buffered_text_profile {
@@ -1188,6 +1194,8 @@ fn candidate(
                 192 * 1024
             } else if host_io_profile {
                 3 * 1024
+            } else if literal_profile {
+                32 * 1024
             } else if structural_validation_profile {
                 576 * 1024
             } else if format_profile || buffered_text_profile || data_boundary_profile {
@@ -1695,6 +1703,52 @@ fn execution_profile() -> ExecutionProfileDocument {
             category: "port-transactions".to_owned(),
             accounting: "executor-allocated".to_owned(),
             bytes: 2048,
+        }],
+        checkpoint: None,
+    }
+}
+
+fn literal_execution_profile() -> ExecutionProfileDocument {
+    const MAXIMUM_OUTPUTS: u16 = 32;
+    const VALUE_BYTES: u64 = 1024;
+    const MEMORY_BYTES: u64 = 32 * 1024;
+    let value_type = conduit_runtime::LITERAL_CONTRACT.outputs[0].value_type;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-literal-multicast-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: u32::from(MAXIMUM_OUTPUTS),
+            max_input_leases: 0,
+            max_input_bytes: 0,
+            max_output_reservations: MAXIMUM_OUTPUTS,
+            max_output_bytes: u64::from(MAXIMUM_OUTPUTS) * VALUE_BYTES,
+            max_transactions: MAXIMUM_OUTPUTS,
+            max_fragments_per_step: MAXIMUM_OUTPUTS,
+            implementation_memory_bytes: MEMORY_BYTES,
+            cancellation_ticks: 1,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: vec![ValueRepresentationDocument {
+            direction: "output".to_owned(),
+            port: "value".to_owned(),
+            semantic_type: PinDocument {
+                id: value_type.contract_id.to_string(),
+                schema_version: value_type.schema_version,
+                semantic_hash: value_type.semantic_hash.to_string(),
+            },
+            representation: pin("conduit.representation/hosted-value-store-handle", 31),
+            ownership: "shared-handle".to_owned(),
+            disposition: "explicit-dispose".to_owned(),
+            max_bytes: VALUE_BYTES as u32,
+        }],
+        memory_claims: vec![MemoryClaimDocument {
+            category: "port-transactions".to_owned(),
+            accounting: "executor-allocated".to_owned(),
+            bytes: MEMORY_BYTES,
         }],
         checkpoint: None,
     }
