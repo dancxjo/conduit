@@ -387,7 +387,7 @@ for (const sample of samples) {
     const watchPreviewBytes = sample.workload.watch_preview_bytes;
     const expectedWatchPreviewBytes = watchSlots * watchPreviewBytes;
     if (![2, 8, 32].includes(branches)
-        || (copyRequired ? payloadBytes !== 1024 : ![1024, 1048576].includes(payloadBytes))
+        || ![1024, 1048576].includes(payloadBytes)
         || !["hosted-generation-safe-shared-text-handle", "hosted-branch-local-uppercase-copy"].includes(sample.workload.payload_representation)
         || sample.workload.fanout_mode !== "coupled"
         || sample.workload.queue_capacity_items !== 1
@@ -667,7 +667,7 @@ const result = {
     {
       runtime: "conduit-hosted-value-arena",
       workload: "shared-payload-fanout payloads above 1 MiB or non-text media",
-      reason: "the current production hosted literal binding is bounded to 1 MiB public text, the labeled production branch-copy comparison is bounded to 1 KiB, and Watch coverage is limited to exact pre-Start Latest previews; larger copy-required, PCM, image, encoded, fragment, browser, other Watch retention/lifecycle modes, coalesce, and slot-reuse slices remain unavailable",
+      reason: "the current production hosted literal and uppercase bindings are bounded to 1 MiB public text, and Watch coverage is limited to exact pre-Start Latest previews; larger copy-required, PCM, image, encoded, fragment, browser, other Watch retention/lifecycle modes, coalesce, and slot-reuse slices remain unavailable",
     },
     {
       runtime: "rxjs/reactor-core",
@@ -702,7 +702,7 @@ if (reportOutput) {
     "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
     "- RxJS/Reactor fan-out: reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted.",
     "- RxJS/Reactor shared payloads: no reviewed generation-safe shared-handle and residency mapping exists; language object references are not substituted.",
-    "- Conduit shared payloads beyond 1 MiB public text and copy-required payloads beyond 1 KiB: larger copy-required, PCM, image, encoded, fragment, browser, Watch retention/lifecycle modes beyond exact pre-Start Latest previews, coalesce, and slot-reuse slices remain unavailable.",
+    "- Conduit shared and copy-required payloads beyond 1 MiB public text: larger copy-required, PCM, image, encoded, fragment, browser, Watch retention/lifecycle modes beyond exact pre-Start Latest previews, coalesce, and slot-reuse slices remain unavailable.",
     "- RxJS/Reactor persistent wake: no reviewed mapping exists for Conduit's exact named host-operation wait and production session reservation; a timer or subject is not substituted.",
     "- RxJS/Reactor persistent timer: no reviewed mapping exists for Conduit's exact retained timer deadline and production session reservation; an interval operator is not substituted.",
     "- Drain/Abort timing is present only on fixtures that explicitly request that transition; normal completion remains distinct and null.",

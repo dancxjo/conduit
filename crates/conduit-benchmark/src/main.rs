@@ -1998,7 +1998,6 @@ fn run_shared_payload_sample(
         args.payload_binding,
         PayloadBinding::BranchLocalUppercaseCopy
     ) {
-        assert_eq!(args.payload_bytes, 1024);
         assert!(matches!(
             args.termination_request,
             TerminationRequest::Complete
@@ -2041,13 +2040,30 @@ fn run_shared_payload_sample(
     // against the full source-derived topology without claiming compiler
     // support that does not exist.
     let (profile_source, _) = shared_payload_source(1, payload_bytes, args.payload_binding);
-    let plan_memory_bytes = (args
+    let plan_memory_multiplier = if matches!(
+        args.payload_binding,
+        PayloadBinding::BranchLocalUppercaseCopy
+    ) {
+        40 + 10 * u64::from(args.fanout_branches)
+    } else {
+        64 + 6 * u64::from(args.fanout_branches)
+    };
+    let plan_memory_bytes = args
         .payload_bytes
-        .checked_mul(64 + 6 * u64::from(args.fanout_branches))
-        .unwrap())
-    .max(4 * 1024 * 1024);
+        .checked_mul(plan_memory_multiplier)
+        .unwrap()
+        .max(4 * 1024 * 1024);
     let mut host_observation = InstalledHostObservationInput::conduct_host();
     host_observation.available.memory_bytes = plan_memory_bytes;
+    if matches!(
+        args.payload_binding,
+        PayloadBinding::BranchLocalUppercaseCopy
+    ) {
+        let scratch_bytes = u32::try_from(args.payload_bytes.checked_mul(2).unwrap()).unwrap();
+        for lane in &mut host_observation.execution_lanes {
+            lane.scratch_bytes = scratch_bytes;
+        }
+    }
     let mut installed = InstalledProfile::observe_registry_on_host(
         &profile_source,
         &registry,

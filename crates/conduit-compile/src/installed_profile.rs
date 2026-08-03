@@ -535,6 +535,7 @@ impl InstalledProfile {
                         | HostedPrimitiveImplementation::StdoutStream
                         | HostedPrimitiveImplementation::StderrStream
                         | HostedPrimitiveImplementation::DisplayText
+                        | HostedPrimitiveImplementation::Uppercase
                 ) && required_value_bytes > HOSTED_VALUE_BYTES_CEILING
                 {
                     return Err(RuntimeError::new(
@@ -1016,6 +1017,10 @@ fn candidate(
         installed.implementation,
         HostedPrimitiveImplementation::Lines | HostedPrimitiveImplementation::Join
     );
+    let uppercase_profile = matches!(
+        installed.implementation,
+        HostedPrimitiveImplementation::Uppercase
+    );
     let data_boundary_profile = matches!(
         installed.implementation,
         HostedPrimitiveImplementation::DataEncodeUtf8
@@ -1157,6 +1162,8 @@ fn candidate(
             host_io_execution_profile(hosted_value_bytes)
         } else if literal_profile {
             literal_execution_profile(hosted_value_bytes)
+        } else if uppercase_profile {
+            uppercase_execution_profile(hosted_value_bytes)
         } else if format_profile {
             format_execution_profile()
         } else if buffered_text_profile {
@@ -1246,6 +1253,8 @@ fn candidate(
                 3 * u64::from(hosted_value_bytes)
             } else if literal_profile {
                 u64::from(LITERAL_MAXIMUM_OUTPUTS) * u64::from(hosted_value_bytes)
+            } else if uppercase_profile {
+                4 * u64::from(hosted_value_bytes)
             } else if structural_validation_profile {
                 576 * 1024
             } else if format_profile || buffered_text_profile || data_boundary_profile {
@@ -1807,6 +1816,47 @@ fn literal_execution_profile(value_bytes: u32) -> ExecutionProfileDocument {
             accounting: "executor-allocated".to_owned(),
             bytes: memory_bytes,
         }],
+        checkpoint: None,
+    }
+}
+
+fn uppercase_execution_profile(value_bytes: u32) -> ExecutionProfileDocument {
+    let value_bytes = u64::from(value_bytes);
+    let scratch_bytes = 2 * value_bytes;
+    let memory_bytes = 4 * value_bytes;
+    ExecutionProfileDocument {
+        id: "conduit/hosted-uppercase-profile".to_owned(),
+        schema_version: 0,
+        semantic_hash: String::new(),
+        boundedness: "hard".to_owned(),
+        cancellation: "bounded".to_owned(),
+        step_bound_enforced: true,
+        limits: ExecutionLimitsDocument {
+            max_step_work: 4,
+            max_input_leases: 1,
+            max_input_bytes: value_bytes,
+            max_output_reservations: 1,
+            max_output_bytes: value_bytes,
+            max_transactions: 1,
+            max_fragments_per_step: 1,
+            max_scratch_bytes: scratch_bytes as u32,
+            implementation_memory_bytes: memory_bytes,
+            cancellation_ticks: 1,
+            ..ExecutionLimitsDocument::default()
+        },
+        representations: Vec::new(),
+        memory_claims: vec![
+            MemoryClaimDocument {
+                category: "step-scratch".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: scratch_bytes,
+            },
+            MemoryClaimDocument {
+                category: "port-transactions".to_owned(),
+                accounting: "executor-allocated".to_owned(),
+                bytes: memory_bytes - scratch_bytes,
+            },
+        ],
         checkpoint: None,
     }
 }

@@ -165,25 +165,31 @@ admitted and attached slots, retained records/bytes, drops, and maximum fixed
 Watch storage so copied observability cost cannot be mistaken for executor
 value residency or zero-copy delivery.
 
-The labeled copy-required comparison currently covers 1 KiB public text with
+The labeled copy-required comparison covers 1 KiB and 1 MiB public text with
 2, 8, and 32 branches. It keeps the same exact coupled shared-handle
 publication at the source boundary, then places one production
 `text/uppercase` node and one `display/text` sink on every branch. Each
-uppercase driver reads the source handle, allocates its accounted 1 KiB
-transformation buffer after Start, stores the transformed bytes in the fixed
-generation-safe arena, and publishes a distinct output handle. Full uppercase
-content verification happens outside the timed region. Raw rows require
+uppercase driver has a topology-sized hard execution profile through the
+reviewed 1 MiB hosted-value ceiling. The observed benchmark lanes reserve
+twice the payload bytes of transformation scratch, and the exact-session memory
+ceiling grows as `(40 + 10 * branches) * payload bytes` (with a 4 MiB floor),
+covering the production node allocations, two capacity-one cords per branch,
+the value arena, and executor metadata. Raw planned and executor-overhead bytes
+remain separately reported. Each driver reads the source handle, allocates its
+accounted transformation buffer after Start, stores the transformed bytes in
+the fixed generation-safe arena, and publishes a distinct output handle. Full
+uppercase content verification happens outside the timed region. Raw rows require
 exactly the branch count in shared source-handle publications, branch copy
 operations, after-Start allocation calls, and distinct branch output handles;
-copied and allocated bytes both equal branch count times 1,024. Together with
+copied and allocated bytes both equal branch count times payload bytes. Together with
 the source, unique handles equal branches plus one. Scheduling reclaims each
 branch copy promptly, so value-store high water remains exactly two slots and
-2,048 bytes while terminal residency returns to zero. This is a plan-visible
+twice the payload bytes while terminal residency returns to zero. This is a plan-visible
 production branch transformation, not a claim that the runtime executes
 `DuplicationRule::Copy`.
 
 This slice does not substitute payloads above 1 MiB, PCM, images, encoded
-frames, fragments, copy-required payloads above 1 KiB, isolated subscribers,
+frames, fragments, isolated subscribers,
 ring/sample Watch retention,
 mid-run attach/detach/reconnect, coalescing, slot reuse, or browser execution.
 The current hosted literal value binding is bounded to 1 MiB, and RxJS/Reactor

@@ -35,11 +35,11 @@ fn hosted_literal_profile_pins_bounded_shared_handle_multicast() {
 }
 
 #[test]
-fn hosted_literal_and_display_profiles_scale_to_exact_source_bounds() {
+fn hosted_literal_uppercase_and_display_profiles_scale_to_exact_source_bounds() {
     const VALUE_BYTES: usize = 64 * 1024;
     let payload = "x".repeat(VALUE_BYTES);
     let source = format!(
-        "panel 0\nsource: std/literal {{ value = \"{payload}\" }}\nsink: display/text\nsource.value > sink.text {{ capacity = 1 max_value_bytes = {VALUE_BYTES} max_queued_bytes = {VALUE_BYTES} low_watermark = 0 high_watermark = 1 pressure = block }}\n"
+        "panel 0\nsource: std/literal {{ value = \"{payload}\" }}\nupper: text/uppercase\nsink: display/text\nsource.value > upper.text {{ capacity = 1 max_value_bytes = {VALUE_BYTES} max_queued_bytes = {VALUE_BYTES} low_watermark = 0 high_watermark = 1 pressure = block }}\nupper.text > sink.text {{ capacity = 1 max_value_bytes = {VALUE_BYTES} max_queued_bytes = {VALUE_BYTES} low_watermark = 0 high_watermark = 1 pressure = block }}\n"
     );
     let installed = InstalledProfile::observe(&source).unwrap();
     let document = compile_source(&source, &installed.input).unwrap();
@@ -59,11 +59,39 @@ fn hosted_literal_and_display_profiles_scale_to_exact_source_bounds() {
         .unwrap()
         .execution_profile
         .unwrap();
+    let uppercase = plan
+        .nodes
+        .iter()
+        .find(|node| node.contract.id.as_str() == "text/uppercase")
+        .unwrap()
+        .execution_profile
+        .unwrap();
 
     assert_eq!(literal.limits.max_output_bytes, 32 * VALUE_BYTES as u64);
     assert_eq!(literal.representations[0].max_bytes, VALUE_BYTES as u32);
+    assert_eq!(uppercase.id.as_str(), "conduit/hosted-uppercase-profile");
+    assert_eq!(uppercase.limits.max_input_bytes, VALUE_BYTES as u64);
+    assert_eq!(uppercase.limits.max_output_bytes, VALUE_BYTES as u64);
+    assert_eq!(uppercase.limits.max_scratch_bytes, 2 * VALUE_BYTES as u32);
+    assert_eq!(
+        uppercase.limits.implementation_memory_bytes,
+        4 * VALUE_BYTES as u64
+    );
     assert_eq!(display.limits.max_input_bytes, VALUE_BYTES as u64);
     assert_eq!(display.limits.max_host_buffer_bytes, VALUE_BYTES as u64);
+}
+
+#[test]
+fn hosted_uppercase_profile_rejects_bounds_above_the_reviewed_ceiling() {
+    let source = "panel 0\nsource: std/literal { value = \"payload\" }\nupper_a: text/uppercase\nupper_b: text/uppercase\nsink: display/text\nsource.value > upper_a.text { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\nupper_a.text > upper_b.text { capacity = 1 max_value_bytes = 1048577 max_queued_bytes = 1048577 low_watermark = 0 high_watermark = 1 pressure = block }\nupper_b.text > sink.text { capacity = 1 max_value_bytes = 1024 max_queued_bytes = 1024 low_watermark = 0 high_watermark = 1 pressure = block }\n";
+    let error = match InstalledProfile::observe(source) {
+        Ok(_) => panic!("oversized uppercase binding was accepted"),
+        Err(error) => error,
+    };
+
+    assert_eq!(error.code, "CND-RUN-007");
+    assert!(error.message.contains("text/uppercase"));
+    assert!(error.message.contains("supports at most 1048576 bytes"));
 }
 
 #[test]

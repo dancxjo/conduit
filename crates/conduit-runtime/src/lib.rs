@@ -7492,7 +7492,7 @@ impl ResolvedPanel<'_> {
                     }
                 }
             };
-            let maximum_input_bytes = out_cords
+            let maximum_output_bytes = out_cords
                 .iter()
                 .map(|index| plan.cords[*index].flow.capacity.max_value_bytes())
                 .min()
@@ -7556,7 +7556,7 @@ impl ResolvedPanel<'_> {
                     io: io.clone(),
                     in_cords,
                     out_cords,
-                    maximum_input_bytes,
+                    maximum_output_bytes,
                     cancellation_ticks: profile.limits.cancellation_ticks,
                     host_failure: Rc::clone(&host_failure),
                 },
@@ -8527,7 +8527,7 @@ struct HostedSchedulerDriver<'r, 'i> {
     io: HostedRunIo<'r, 'i>,
     in_cords: Vec<usize>,
     out_cords: Vec<usize>,
-    maximum_input_bytes: u32,
+    maximum_output_bytes: u32,
     cancellation_ticks: u64,
     host_failure: Rc<RefCell<Option<RuntimeError>>>,
 }
@@ -10005,7 +10005,7 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                 let mut bytes = Vec::new();
                 let mut chunk = [0_u8; 4096];
                 loop {
-                    let remaining = usize::try_from(self.maximum_input_bytes)
+                    let remaining = usize::try_from(self.maximum_output_bytes)
                         .unwrap_or(usize::MAX)
                         .saturating_sub(bytes.len());
                     if remaining == 0 {
@@ -10465,6 +10465,24 @@ impl SchedulerNode for HostedSchedulerDriver<'_, '_> {
                     let store = self.store.borrow();
                     let bytes = store.get(val.handle).unwrap_or(&[]);
                     let text = std::str::from_utf8(bytes).unwrap_or("");
+                    let upper_len = text
+                        .chars()
+                        .flat_map(char::to_uppercase)
+                        .try_fold(0_usize, |total, character| {
+                            total.checked_add(character.len_utf8())
+                        });
+                    if upper_len.is_none_or(|length| {
+                        length > usize::try_from(self.maximum_output_bytes).unwrap_or(usize::MAX)
+                    }) {
+                        drop(store);
+                        *self.host_failure.borrow_mut() = Some(RuntimeError::new(
+                            "CND-RUN-004",
+                            "uppercase output exceeded the exact output cord bound",
+                        ));
+                        return SchedulerStep::Failed {
+                            code: Id("conduit/uppercase-output-bound-exceeded"),
+                        };
+                    }
                     let upper_bytes = text.to_uppercase().into_bytes();
                     drop(store);
                     let Some(handle) = self.store.borrow_mut().store(&upper_bytes) else {

@@ -83,7 +83,7 @@
   },
   "copy_required_payload_fanout": {
     "workload": "shared-payload-fanout",
-    "payload_bytes": [1024],
+    "payload_bytes": [1024, 1048576],
     "payload_representation": "hosted-branch-local-uppercase-copy",
     "branches": [2, 8, 32],
     "termination_requests": ["complete"],
@@ -91,7 +91,7 @@
     "queue_capacity_items": 1,
     "fanout_mode": "coupled",
     "transformation": "production text/uppercase",
-    "scope": "one production hosted literal source handle is published through an exact coupled shared-handle fan-out, then every branch executes the production uppercase driver and stores one distinct copied value handle before content-verifying display; copy count, copied bytes, allocator cost, handle operations, residency, and terminal reclamation are exact, and no DuplicationRule::Copy execution is claimed"
+    "scope": "one production hosted literal source handle is published through an exact coupled shared-handle fan-out, then every branch executes the production uppercase driver with a topology-sized hard execution profile through the reviewed 1 MiB hosted-value ceiling and stores one distinct copied value handle before content-verifying display; copy count, copied bytes, allocator cost, handle operations, residency, and terminal reclamation are exact, and no DuplicationRule::Copy execution is claimed"
   },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
