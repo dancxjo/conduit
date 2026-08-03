@@ -134,12 +134,14 @@ The persistent overload slice uses the production `ExactRunSessionRegistry`
 and `ExactRunSession`, not a benchmark-owned loop renamed as a session. One
 admission reserves the finite runtime-memory budget before Start and remains
 owned across repeated host pumps of at most eight scheduler decisions. The
-standing source pauses at the exact configured observation-offer boundary
-rather than completing. While a positive bounded number of admitted values
-remain pressured, the host requests Drain or Abort through the session API;
-that exact cancellation wake lets the standing source observe the request and
-complete. The raw row reports pump count, retained reservation bytes, and
-pressured items at the request. Drain preserves retained admitted work;
+source has a standing wait at the configured observation-offer boundary rather
+than natural completion. FIFO Block requests termination when the final offer
+is pending against a full cord; the non-blocking policies resolve every offer,
+enter the standing wait, and then request termination. In both cases a positive
+bounded number of admitted values remain pressured. The exact cancellation wake
+lets a waiting source observe the request and complete. The raw row reports
+pump count, retained reservation bytes, and pressured items at the request.
+Drain preserves retained admitted work;
 coalesced replacements remain separately excluded. Abort leaves
 admitted-but-aborted work outside useful completion. Terminal finalization
 returns the scheduler and releases the session admission; the runner checks

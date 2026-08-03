@@ -459,6 +459,7 @@ struct Observations {
     pressure_cycles: Rc<Cell<u64>>,
     recovery_cycles: Rc<Cell<u64>>,
     terminal_requested: Rc<Cell<bool>>,
+    observation_window_waiting: Rc<Cell<bool>>,
     stride: u64,
 }
 
@@ -575,6 +576,7 @@ impl SchedulerNode for BenchNode {
                         if observations.terminal_requested.get() {
                             return SchedulerStep::Completed;
                         }
+                        observations.observation_window_waiting.set(true);
                         io.wait_for_host_operation(Id("benchmark/observation-window"))
                             .unwrap();
                         return SchedulerStep::Pending;
@@ -1263,6 +1265,7 @@ fn prepare(args: &Args) -> PreparedRun {
         pressure_cycles: Rc::new(Cell::new(0)),
         recovery_cycles: Rc::new(Cell::new(0)),
         terminal_requested: Rc::new(Cell::new(false)),
+        observation_window_waiting: Rc::new(Cell::new(false)),
         stride: args.latency_sample_stride,
     };
     assert_eq!(observations.values.borrow().len(), value_count);
@@ -1613,7 +1616,8 @@ fn prepare(args: &Args) -> PreparedRun {
             },
             recovery_after_outputs: recovery_after_outputs(args),
             completed: 0,
-            records_recovery: matches!(args.workload, Workload::Overload),
+            records_recovery: matches!(args.workload, Workload::Overload)
+                && args.termination_request.stop_policy().is_none(),
             consumer_pattern: args.consumer_pattern,
             consumer_burst_items: args.consumer_burst_items,
             burst_progress: if matches!(args.consumer_pattern, ConsumerPattern::Bursty) {
@@ -1843,6 +1847,8 @@ fn run_sample(
             }
             if requested_stop_started.is_none()
                 && prepared.observations.offered.get() >= args.cancel_after_offers
+                && (matches!(args.pressure_policy, PressurePolicy::Block)
+                    || prepared.observations.observation_window_waiting.get())
             {
                 let pressured = prepared
                     .observations
