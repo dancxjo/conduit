@@ -81,7 +81,12 @@ test("Workbench authors, runs, saves, reopens, and round-trips one ordinary grap
   await expect(page.locator("#cy .react-flow__node")).toHaveCount(0);
   await page.locator("#saved-documents").selectOption("vertical-slice");
   await page.locator("#open-document").click();
-  await expect(page.locator("#cy .react-flow__node")).toHaveCount(3);
+  await expect(page.locator("#workbench-status")).toContainText("Saved work reopened.", {
+    timeout: 60_000,
+  });
+  await expect(page.locator("#cy .react-flow__node")).toHaveCount(3, {
+    timeout: 60_000,
+  });
   await expect(page.locator("#source")).toHaveValue(/Workbench says hello/);
 
   await page.locator('[data-panel="source"] [data-panel-collapse-control]').click();
