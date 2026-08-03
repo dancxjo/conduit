@@ -75,6 +75,19 @@ test("Workbench authors, runs, saves, reopens, and round-trips one ordinary grap
   });
   await expect(page.locator("#evidence")).not.toHaveText("No evidence yet.");
 
+  await page.locator("#source").evaluate((element) => {
+    element.value = element.value.replace("Workbench says hello.", "Immediate run says hello.");
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.locator("#run").click();
+  await expect(page.locator("#run-result")).toContainText("IMMEDIATE RUN SAYS HELLO.", {
+    timeout: 20_000,
+  });
+
+  await page.locator("#source").evaluate((element) => {
+    element.value = element.value.replace("Immediate run says hello.", "Immediate save says hello.");
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
   page.once("dialog", (dialog) => dialog.accept("vertical-slice"));
   await page.locator("#save-document").click();
   await page.locator("#new-document").click();
@@ -87,12 +100,12 @@ test("Workbench authors, runs, saves, reopens, and round-trips one ordinary grap
   await expect(page.locator("#cy .react-flow__node")).toHaveCount(3, {
     timeout: 60_000,
   });
-  await expect(page.locator("#source")).toHaveValue(/Workbench says hello/);
+  await expect(page.locator("#source")).toHaveValue(/Immediate save says hello/);
 
   await page.locator('[data-panel="source"] [data-panel-collapse-control]').click();
   await expect(page.locator("#source")).toBeVisible();
   await page.locator("#source").evaluate((element) => {
-    element.value = element.value.replace("Workbench says hello.", "Source says hello.");
+    element.value = element.value.replace("Immediate save says hello.", "Source says hello.");
     element.dispatchEvent(new Event("input", { bubbles: true }));
   });
   await expect(page.locator("#source")).toHaveValue(/Source says hello/);

@@ -348,7 +348,7 @@ function enqueueOperations(operations, options = {}) {
 }
 
 function flushSourceEdit() {
-  if (pendingSourceEdit === null) return Promise.resolve();
+  if (pendingSourceEdit === null) return operationQueue;
   clearTimeout(sourceTimer);
   sourceTimer = null;
   const candidate = pendingSourceEdit;
@@ -585,6 +585,7 @@ function renderPalette() {
 }
 
 async function runPanel() {
+  await flushSourceEdit();
   if (!view?.plan || running) return;
   running = true;
   renderView(view, { syncSource: false });
@@ -658,7 +659,8 @@ elements.source.addEventListener("input", () => {
   sourceTimer = setTimeout(() => void flushSourceEdit(), 220);
 });
 elements.new_document.onclick = () => void openSession();
-elements.save_document.onclick = () => {
+elements.save_document.onclick = async () => {
+  await flushSourceEdit();
   const suggested = elements.saved_documents.value || "untitled";
   const name = window.prompt("Save this Workbench document as:", suggested)?.trim();
   if (!name || !view) return;
