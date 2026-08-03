@@ -160,23 +160,85 @@ async function readLayoutState(flowRoot) {
   return flowRoot.evaluate((element) => ({
     generation: Number.parseInt(element.dataset.layoutGeneration, 10),
     identity: element.dataset.layoutIdentity,
+    topologyIdentity: element.dataset.layoutIdentity,
     state: element.dataset.layout,
+    planIdentity: element.dataset.activeEpoch || null,
+    sourceRevision: Number.parseInt(element.dataset.candidateRevision, 10),
+    sourceIdentity: (document
+      .querySelector("#patchbay-editor-status")
+      ?.textContent || "")
+      .split(" · ")[2]
+      ?.trim() || null,
   }));
 }
 
-async function waitForLayoutReady(flowRoot, afterGeneration = 0) {
+function layoutReadinessCriteria(layout, afterGeneration, options = {}) {
+  if (!layout || layout.state !== "ready") return false;
+  if (!(Number.isSafeInteger(layout.generation) && layout.generation > afterGeneration)) {
+    return false;
+  }
+  if (typeof options.afterTopologyIdentity === "string" &&
+    layout.topologyIdentity === options.afterTopologyIdentity
+  ) {
+    return false;
+  }
+  if (typeof options.expectedTopologyIdentity === "string" &&
+    layout.topologyIdentity !== options.expectedTopologyIdentity
+  ) {
+    return false;
+  }
+  if (typeof options.expectedPlanIdentity === "string" &&
+    layout.planIdentity !== options.expectedPlanIdentity
+  ) {
+    return false;
+  }
+  if (
+    typeof options.expectedSourceRevision === "number" &&
+    Number.isSafeInteger(layout.sourceRevision) &&
+    layout.sourceRevision !== options.expectedSourceRevision
+  ) {
+    return false;
+  }
+  if (
+    typeof options.expectedSourceIdentity === "string" &&
+    layout.sourceIdentity !== options.expectedSourceIdentity
+  ) {
+    return false;
+  }
+  return true;
+}
+
+async function waitForLayoutReady(flowRoot, afterGeneration = 0, options = {}) {
+  const nextGeneration = Number(afterGeneration);
   await expect.poll(async () => {
     const layout = await readLayoutState(flowRoot);
-    return layout.state === "ready" &&
-      layout.generation > afterGeneration &&
-      typeof layout.identity === "string"
+    return layoutReadinessCriteria(layout, nextGeneration, options)
       ? layout.identity
       : null;
   }, { timeout: 20_000 }).not.toBeNull();
   const layout = await readLayoutState(flowRoot);
-  expect(layout.generation).toBeGreaterThan(afterGeneration);
-  expect(layout.identity).toEqual(expect.any(String));
+  expect(layout.generation).toBeGreaterThan(nextGeneration);
   expect(layout.state).toBe("ready");
+  if (typeof options.afterTopologyIdentity === "string") {
+    expect(layout.topologyIdentity).not.toBe(options.afterTopologyIdentity);
+  }
+  if (typeof options.expectedTopologyIdentity === "string") {
+    expect(layout.topologyIdentity).toBe(options.expectedTopologyIdentity);
+  }
+  if (typeof options.expectedPlanIdentity === "string") {
+    expect(layout.planIdentity).toBe(options.expectedPlanIdentity);
+  }
+  if (
+    typeof options.expectedSourceRevision === "number" &&
+    Number.isSafeInteger(layout.sourceRevision)
+  ) {
+    expect(layout.sourceRevision).toBe(options.expectedSourceRevision);
+  }
+  if (typeof options.expectedSourceIdentity === "string") {
+    expect(layout.sourceIdentity).toBe(options.expectedSourceIdentity);
+  }
+  expect(layout.topologyIdentity).toEqual(expect.any(String));
+  expect(layout.topologyIdentity.length).toBeGreaterThan(0);
   return layout;
 }
 
@@ -1824,15 +1886,18 @@ test("draws bounded cords and exposes draggable rewire ends", async ({ page }) =
   await gotoTour(page, "/tour/public/index.html?lesson=welcome.hello-panel");
   const source = page.locator("#source");
   await expect(source).toHaveValue(/greeting/, { timeout: 20_000 });
-  await expect(page.locator("#patchbay-flow-root")).toHaveAttribute(
-    "data-layout",
-    "ready",
-  );
+  const flowRoot = page.locator("#patchbay-flow-root");
+  const initialLayout = await waitForLayoutReady(flowRoot);
   await source.fill(
     "panel 0\n\n" +
     "first: std/literal { value = \"first\" }\n" +
     "primary: display/text\n",
   );
+  const editedLayout = await waitForLayoutReady(flowRoot, initialLayout.generation, {
+    afterTopologyIdentity: initialLayout.topologyIdentity,
+    expectedPlanIdentity: initialLayout.planIdentity,
+  });
+  expect(editedLayout.topologyIdentity).not.toBe(initialLayout.topologyIdentity);
   await expect(page.locator(".react-flow__node")).toHaveCount(2);
 
   const dragHandle = async (from, to) => {
@@ -1894,7 +1959,11 @@ test("renders composite exports as public faceplate ports", async ({ page }) => 
   await page.locator("#expanded-view").click();
   await expect(page.locator(".composite-faceplate")).toHaveCount(0);
   await expect(page.locator('.react-flow__node[data-id="root/box.worker"]')).toHaveCount(1);
-  await waitForLayoutReady(flowRoot, logicalLayout.generation);
+  await waitForLayoutReady(flowRoot, logicalLayout.generation, {
+    expectedPlanIdentity: logicalLayout.planIdentity,
+    expectedSourceIdentity: logicalLayout.sourceIdentity,
+    expectedSourceRevision: logicalLayout.sourceRevision,
+  });
   await page.locator(".react-flow__edge-textwrapper").first().click();
   await expect(page.locator(".faceplate-port-row.selected-cord-endpoint")).toHaveCount(2);
 });
@@ -2948,6 +3017,12 @@ test("routes cords through free space by default and keeps labels off node faces
   const movedLayout = await waitForLayoutReady(
     flowRoot,
     initialLayout.generation,
+    {
+      afterTopologyIdentity: initialLayout.topologyIdentity,
+      expectedPlanIdentity: initialLayout.planIdentity,
+      expectedSourceIdentity: initialLayout.sourceIdentity,
+      expectedSourceRevision: initialLayout.sourceRevision,
+    },
   );
   expect(movedLayout.identity).not.toBe(initialLayout.identity);
   await expect.poll(async () =>
