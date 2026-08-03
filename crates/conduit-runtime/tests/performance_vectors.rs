@@ -112,6 +112,11 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         serde_json::json!(["one", "all"])
     );
     assert_eq!(
+        manifest["cancellation"]["stop_policies"],
+        serde_json::json!(["drain", "abort"])
+    );
+    assert_eq!(manifest["cancellation"]["pressure_policy"], "block");
+    assert_eq!(
         manifest["wall_clock_policy"]["gate"],
         "report-only until a reviewed machine-class baseline exists"
     );
@@ -168,18 +173,25 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "sampled",
             "coalesced",
             "dropped",
+            "cancelled",
             "retried",
             "terminal"
         ])
     );
     assert!(
-        ["fanout_branches", "fanout_mode", "slow_branches"]
+        [
+            "fanout_branches",
+            "fanout_mode",
+            "slow_branches",
+            "termination_request",
+            "cancel_after_offers"
+        ]
+        .iter()
+        .all(|field| schema["properties"]["workload"]["required"]
+            .as_array()
+            .unwrap()
             .iter()
-            .all(|field| schema["properties"]["workload"]["required"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|required| required == field))
+            .any(|required| required == field))
     );
     assert!(
         schema["properties"]["memory"]["required"]

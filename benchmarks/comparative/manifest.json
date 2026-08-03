@@ -23,6 +23,14 @@
     "slow_consumer_yields": 3,
     "scope": "finite exact-run coupled atomic publication and isolated ordinary-duplicator publication with one profile-accounted retained value"
   },
+  "cancellation": {
+    "workload": "overload",
+    "queue_capacity_items": 4,
+    "pressure_policy": "block",
+    "stop_policies": ["drain", "abort"],
+    "cancel_after_offers": 16,
+    "scope": "finite exact-run cancellation requested after block pressure begins"
+  },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
   "measured_trials": 9,
@@ -70,8 +78,9 @@
   "strict_invariants": [
     "every runner emits the current raw-sample schema and fixture revision",
     "offered and admitted values equal configured input values for the lossless local-depth fixtures",
-    "offered, admitted, completed-useful, rejected, sampled, coalesced, dropped, retried, and terminal outcomes are always reported separately",
+    "offered, admitted, completed-useful, rejected, sampled, coalesced, dropped, cancelled, retried, and terminal outcomes are always reported separately",
     "Conduit reports exact scheduler decisions and producer stall duration; Drain and Abort timing stay unavailable until those transitions are explicitly requested",
+    "pressured Drain preserves every admitted value while pressured Abort may discard admitted work and neither counts discarded work as useful",
     "bounded FIFO retries in local-depth fixtures are reported and do not change admitted or completed-useful counts",
     "map, merge, and bounded-async complete one useful output per input",
     "map-filter completes one useful output per input until it contains a filter, then exactly half for the even input cardinality",

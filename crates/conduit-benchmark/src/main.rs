@@ -19,7 +19,7 @@ use conduit_core::{
     MemoryAccounting, MemoryCategory, MemoryClaim, PinnedDescriptor, PlanArtifact, PlanFanOut,
     PlanHostObservation, PlanResourceBudget, PlanValidationContext, Pressure, ReadyQueueDiscipline,
     ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION,
-    SampleSchedule, SchedulerPolicy, SemanticHash, TraitProof, TypeContractRef,
+    SampleSchedule, SchedulerPolicy, SemanticHash, StopPolicy, TraitProof, TypeContractRef,
     validate_execution_plan,
 };
 use conduit_runtime::{
@@ -156,6 +156,32 @@ enum FanoutPublication {
     Isolated,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+enum TerminationRequest {
+    Complete,
+    Drain,
+    Abort,
+}
+
+impl TerminationRequest {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Complete => "complete",
+            Self::Drain => "drain",
+            Self::Abort => "abort",
+        }
+    }
+
+    const fn stop_policy(self) -> Option<StopPolicy> {
+        match self {
+            Self::Complete => None,
+            Self::Drain => Some(StopPolicy::Drain),
+            Self::Abort => Some(StopPolicy::Abort),
+        }
+    }
+}
+
 impl FanoutPublication {
     const fn as_str(self) -> &'static str {
         match self {
@@ -238,6 +264,10 @@ struct Args {
     fanout_mode: FanoutPublication,
     #[arg(long, value_enum, default_value_t = SlowBranches::One)]
     slow_branches: SlowBranches,
+    #[arg(long, value_enum, default_value_t = TerminationRequest::Complete)]
+    termination_request: TerminationRequest,
+    #[arg(long, default_value_t = 0)]
+    cancel_after_offers: u64,
 }
 
 #[derive(Serialize)]
@@ -313,6 +343,8 @@ struct WorkloadIdentity {
     fanout_branches: u16,
     fanout_mode: &'static str,
     slow_branches: &'static str,
+    termination_request: &'static str,
+    cancel_after_offers: u64,
 }
 
 #[derive(Serialize)]
@@ -332,6 +364,7 @@ struct OutcomeMeasurement {
     sampled: u64,
     coalesced: u64,
     dropped: u64,
+    cancelled: u64,
     retried: u64,
     terminal: u64,
 }
@@ -547,7 +580,10 @@ impl SchedulerNode for BenchNode {
                     Ok(SendStatus::Failed) => SchedulerStep::Failed {
                         code: Id("benchmark/pressure-failed"),
                     },
-                    Ok(SendStatus::Terminated) => SchedulerStep::Completed,
+                    Ok(SendStatus::Terminated) => {
+                        finish_producer_stall(observations);
+                        SchedulerStep::Completed
+                    }
                     Err(_) => SchedulerStep::Failed {
                         code: Id("benchmark/source-send-error"),
                     },
@@ -818,7 +854,14 @@ impl SchedulerNode for BenchNode {
                         *yields_remaining = *slow_consumer_yields;
                         SchedulerStep::Progress
                     }
-                    _ if matches!(io.input_state(*input), Ok(FlowQueueState::Completed)) => {
+                    _ if matches!(
+                        io.input_state(*input),
+                        Ok(FlowQueueState::Completed
+                            | FlowQueueState::Cancelled
+                            | FlowQueueState::Failed
+                            | FlowQueueState::Disconnected)
+                    ) =>
+                    {
                         SchedulerStep::Completed
                     }
                     _ => {
@@ -846,6 +889,9 @@ fn semantic_digest(parts: &[&str]) -> SemanticHash {
 }
 
 fn recovery_after_outputs(args: &Args) -> u64 {
+    if args.termination_request.stop_policy().is_some() {
+        return args.values;
+    }
     if matches!(args.workload, Workload::Overload | Workload::Fanout) {
         (u64::from(args.queue_items) * 2)
             .min(args.values / 2)
@@ -879,6 +925,11 @@ fn pin(id: &'static str, kind: &'static str) -> PinnedDescriptor<'static> {
 
 fn profile(args: &Args) -> ExecutionProfile<'static> {
     let mut limits = LIMITS;
+    if args.termination_request.stop_policy().is_some() {
+        limits.cancellation_ticks = u64::from(args.queue_items)
+            .saturating_mul(u64::from(args.slow_consumer_yields) + 2)
+            .saturating_add(8);
+    }
     if matches!(args.workload, Workload::Fanout) {
         if matches!(args.fanout_mode, FanoutPublication::Coupled) {
             limits.max_output_reservations = args.fanout_branches;
@@ -954,6 +1005,26 @@ fn prepare(args: &Args) -> PreparedRun {
         !matches!(args.workload, Workload::BoundedAsync),
         "the single-lane reference executor cannot claim an asynchronous boundary"
     );
+    if args.termination_request.stop_policy().is_some() {
+        assert!(
+            matches!(args.workload, Workload::Overload),
+            "the current cancellation fixture is the exact single-cord overload plan"
+        );
+        assert!(
+            matches!(args.pressure_policy, PressurePolicy::Block),
+            "cancellation is measured under FIFO block pressure"
+        );
+        assert!(
+            args.cancel_after_offers > u64::from(args.queue_items)
+                && args.cancel_after_offers < args.values,
+            "cancellation must occur after pressure begins and before source completion"
+        );
+    } else {
+        assert_eq!(
+            args.cancel_after_offers, 0,
+            "complete fixtures do not carry an unused cancellation threshold"
+        );
+    }
     if matches!(args.workload, Workload::Overload) {
         assert_eq!(args.operators, 1, "overload uses one source/sink boundary");
         assert!(
@@ -1520,6 +1591,7 @@ fn run_sample(
     MEASURING.store(true, Ordering::SeqCst);
     let steady_started = Instant::now();
     let mut execution_error = None;
+    let mut requested_stop_started = None;
     let status = loop {
         let status = match executor.run_one() {
             Ok(status) => status,
@@ -1533,10 +1605,25 @@ fn run_sample(
                 .acknowledge_events_through(executor.next_event_cursor())
                 .unwrap();
         }
+        if requested_stop_started.is_none()
+            && prepared.observations.offered.get() >= args.cancel_after_offers
+            && args.termination_request.stop_policy().is_some()
+        {
+            requested_stop_started = Some(Instant::now());
+            executor
+                .cancel(args.termination_request.stop_policy().unwrap())
+                .unwrap();
+            if !matches!(executor.status(), SchedulerStatus::Running) {
+                break Some(executor.status());
+            }
+        }
         if !matches!(status, SchedulerStatus::Running) {
             break Some(status);
         }
     };
+    finish_producer_stall(&prepared.observations);
+    let requested_stop_ns =
+        requested_stop_started.map(|started| started.elapsed().as_nanos() as u64);
     let steady_ns = steady_started.elapsed().as_nanos() as u64;
     let recovery_ns = prepared
         .observations
@@ -1547,7 +1634,13 @@ fn run_sample(
     let cpu_ns = process_cpu_ns()
         .zip(cpu_before)
         .map(|(after, before)| after - before);
-    if matches!(args.workload, Workload::Overload)
+    if args.termination_request.stop_policy().is_some() {
+        assert!(
+            execution_error.is_none(),
+            "cancellation execution failed: {execution_error:?}"
+        );
+        assert_eq!(status, Some(SchedulerStatus::Cancelled));
+    } else if matches!(args.workload, Workload::Overload)
         && matches!(args.pressure_policy, PressurePolicy::Fail)
     {
         assert!(execution_error.is_some());
@@ -1597,7 +1690,13 @@ fn run_sample(
             } else {
                 "bounded FIFO block"
             },
-            terminal: if matches!(args.workload, Workload::Overload) {
+            terminal: if args.termination_request.stop_policy().is_some() {
+                match args.termination_request {
+                    TerminationRequest::Drain => "requested Drain while pressured",
+                    TerminationRequest::Abort => "requested Abort while pressured",
+                    TerminationRequest::Complete => unreachable!(),
+                }
+            } else if matches!(args.workload, Workload::Overload) {
                 match args.pressure_policy {
                     PressurePolicy::Disconnect => "disconnect on first saturated offer",
                     PressurePolicy::Fail => "fail execution on first saturated offer",
@@ -1635,15 +1734,19 @@ fn run_sample(
             } else {
                 "none"
             },
+            termination_request: args.termination_request.as_str(),
+            cancel_after_offers: args.cancel_after_offers,
         },
         exact_identity: ExactIdentity {
             logical_fixture: if matches!(args.workload, Workload::Overload) {
                 format!(
-                    "comparative-overload/{}/{}/{}/{}/{}",
+                    "comparative-overload/{}/{}/{}/{}/{}/{}/{}",
                     args.pressure_policy.id(),
+                    args.termination_request.as_str(),
                     args.values,
                     args.queue_items,
                     args.slow_consumer_yields,
+                    args.cancel_after_offers,
                     args.latency_sample_stride
                 )
             } else if matches!(args.workload, Workload::Fanout) {
@@ -1685,8 +1788,10 @@ fn run_sample(
         execution: ExecutionMeasurement {
             scheduler_decisions: Some(high_water.decisions),
             producer_stall_ns: Some(prepared.observations.producer_stall_ns.get()),
-            drain_ns: None,
-            abort_ns: None,
+            drain_ns: matches!(args.termination_request, TerminationRequest::Drain)
+                .then(|| requested_stop_ns.expect("Drain was requested")),
+            abort_ns: matches!(args.termination_request, TerminationRequest::Abort)
+                .then(|| requested_stop_ns.expect("Abort was requested")),
         },
         process_cpu_ns: cpu_ns,
         outcomes: OutcomeMeasurement {
@@ -1697,6 +1802,15 @@ fn run_sample(
             sampled: prepared.observations.sampled.get(),
             coalesced: prepared.observations.coalesced.get(),
             dropped: prepared.observations.dropped.get(),
+            cancelled: if args.termination_request.stop_policy().is_some() {
+                prepared
+                    .observations
+                    .offered
+                    .get()
+                    .saturating_sub(prepared.observations.accepted_values.get())
+            } else {
+                0
+            },
             retried: prepared.observations.retried.get(),
             terminal: 1,
         },
@@ -1830,6 +1944,8 @@ fn run_identity_sample(
             fanout_branches: 1,
             fanout_mode: "none",
             slow_branches: "none",
+            termination_request: "complete",
+            cancel_after_offers: 0,
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(
@@ -1870,6 +1986,7 @@ fn run_identity_sample(
             sampled: 0,
             coalesced: 0,
             dropped: 0,
+            cancelled: 0,
             retried: 0,
             terminal: 1,
         },

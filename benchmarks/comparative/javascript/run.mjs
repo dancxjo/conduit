@@ -87,6 +87,8 @@ function runIdentitySample(sampleKind, trial, thermalState) {
       fanout_branches: 1,
       fanout_mode: "none",
       slow_branches: "none",
+      termination_request: "complete",
+      cancel_after_offers: 0,
     },
     exact_identity: {
       logical_fixture: logicalFixture,
@@ -108,6 +110,7 @@ function runIdentitySample(sampleKind, trial, thermalState) {
       sampled: 0,
       coalesced: 0,
       dropped: 0,
+      cancelled: 0,
       retried: 0,
       terminal: 1,
     },
@@ -225,6 +228,8 @@ async function runSample(sampleKind, trial, thermalState) {
       fanout_branches: 1,
       fanout_mode: "none",
       slow_branches: "none",
+      termination_request: "complete",
+      cancel_after_offers: 0,
     },
     exact_identity: {
       logical_fixture: logicalFixture,
@@ -253,6 +258,7 @@ async function runSample(sampleKind, trial, thermalState) {
       sampled: 0,
       coalesced: 0,
       dropped: 0,
+      cancelled: 0,
       retried: 0,
       terminal: 1,
     },
