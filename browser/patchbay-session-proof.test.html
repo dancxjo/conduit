@@ -87,7 +87,9 @@ greeting.value > output.text {
         },
       }]),
     ));
-    assert(!incompatible.ok && incompatible.code === "CND-PBY-010",
+    assert(!incompatible.ok && incompatible.disposition === "rejected" &&
+      incompatible.compatibility?.compatible === false &&
+      incompatible.compatibility?.plan_disposition === "rejected",
       "incompatible connection was not resolver-rejected");
 
     const invalidConfig = JSON.parse(patchbay_apply_transaction(
