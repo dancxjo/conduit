@@ -16,6 +16,7 @@ trials=${CONDUIT_BENCHMARK_TRIALS:-$(jq -r .measured_trials "$manifest")}
 stride=$(jq -r .latency_sample_stride "$manifest")
 queue=$(jq -r .queue_capacity_items "$manifest")
 overload_slow_yields=$(jq -r .overload.slow_consumer_yields "$manifest")
+fanout_slow_yields=$(jq -r .fanout.slow_consumer_yields "$manifest")
 
 mkdir -p "$output_dir"
 for artifact in "$raw" "$summary" "$metadata" "$report" "$commands"; do
@@ -102,6 +103,24 @@ for capacity in $(jq -r '.overload.queue_capacity_items[]' "$manifest"); do
       --measured-trials "$trials" \
       --pressure-policy "$pressure" \
       --slow-consumer-yields "$overload_slow_yields"
+  done
+done
+
+for capacity in $(jq -r '.fanout.queue_capacity_items[]' "$manifest"); do
+  for branches in $(jq -r '.fanout.branches[]' "$manifest"); do
+    for slow in $(jq -r '.fanout.slow_branches[]' "$manifest"); do
+      record_raw "$workspace_root/target/release/conduit-benchmark" \
+        --workload fanout \
+        --operators 1 \
+        --values "$values" \
+        --queue-items "$capacity" \
+        --latency-sample-stride "$stride" \
+        --warmup-trials "$warmups" \
+        --measured-trials "$trials" \
+        --fanout-branches "$branches" \
+        --slow-branches "$slow" \
+        --slow-consumer-yields "$fanout_slow_yields"
+    done
   done
 done
 

@@ -13,13 +13,14 @@ use std::{
 use clap::{Parser, ValueEnum};
 use conduit_core::{
     ArtifactDigest, AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee,
-    CompatibilityOutcome, Direction, ExecutionLimits, ExecutionPlan, ExecutionProfile,
-    FlowCapacity, FlowPolicy, FlowQueueState, FlowTypeFacts, FlowWatermarks, Id,
-    ImplementationMachine, InstancePath, InstantiationContext, LifecycleUsage, MemoryAccounting,
-    MemoryCategory, MemoryClaim, PinnedDescriptor, PlanArtifact, PlanHostObservation,
-    PlanResourceBudget, PlanValidationContext, Pressure, ReadyQueueDiscipline, ResolvedPlanCord,
-    ResolvedPlanNode, ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION, SampleSchedule,
-    SchedulerPolicy, SemanticHash, TraitProof, TypeContractRef,
+    CompatibilityOutcome, Direction, DuplicationRule, ExecutionLimits, ExecutionPlan,
+    ExecutionProfile, FanOutMode, FlowCapacity, FlowPolicy, FlowQueueState, FlowTypeFacts,
+    FlowWatermarks, Id, ImplementationMachine, InstancePath, InstantiationContext, LifecycleUsage,
+    MemoryAccounting, MemoryCategory, MemoryClaim, PinnedDescriptor, PlanArtifact, PlanFanOut,
+    PlanHostObservation, PlanResourceBudget, PlanValidationContext, Pressure, ReadyQueueDiscipline,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION,
+    SampleSchedule, SchedulerPolicy, SemanticHash, TraitProof, TypeContractRef,
+    validate_execution_plan,
 };
 use conduit_runtime::{
     DeterministicExecutor, RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerNode,
@@ -73,7 +74,7 @@ const VALUE_TYPE: TypeContractRef<'static> = TypeContractRef {
 const CLAIMS: [MemoryClaim; 1] = [MemoryClaim {
     category: MemoryCategory::PortTransactions,
     accounting: MemoryAccounting::ExecutorAllocated,
-    bytes: 256,
+    bytes: 512,
 }];
 const LIMITS: ExecutionLimits = ExecutionLimits {
     max_step_work: 4,
@@ -93,7 +94,7 @@ const LIMITS: ExecutionLimits = ExecutionLimits {
     max_foreign_queue_items: 0,
     max_foreign_queue_bytes: 0,
     max_checkpoint_bytes: 0,
-    implementation_memory_bytes: 256,
+    implementation_memory_bytes: 512,
     cancellation_ticks: 8,
 };
 
@@ -105,6 +106,7 @@ enum Workload {
     Merge,
     BoundedAsync,
     Overload,
+    Fanout,
 }
 
 impl Workload {
@@ -115,6 +117,7 @@ impl Workload {
             Self::Merge => "merge",
             Self::BoundedAsync => "bounded-async",
             Self::Overload => "overload",
+            Self::Fanout => "fanout",
         }
     }
 }
@@ -129,6 +132,22 @@ enum PressurePolicy {
     DropDisposable,
     Disconnect,
     Fail,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+enum SlowBranches {
+    One,
+    All,
+}
+
+impl SlowBranches {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::One => "one",
+            Self::All => "all",
+        }
+    }
 }
 
 impl PressurePolicy {
@@ -189,6 +208,10 @@ struct Args {
     pressure_policy: PressurePolicy,
     #[arg(long, default_value_t = 3)]
     slow_consumer_yields: u32,
+    #[arg(long, default_value_t = 1)]
+    fanout_branches: u16,
+    #[arg(long, value_enum, default_value_t = SlowBranches::One)]
+    slow_branches: SlowBranches,
 }
 
 #[derive(Serialize)]
@@ -252,6 +275,9 @@ struct WorkloadIdentity {
     loss: &'static str,
     slow_consumer_yields: u32,
     recovery_after_outputs: u64,
+    fanout_branches: u16,
+    fanout_mode: &'static str,
+    slow_branches: &'static str,
 }
 
 #[derive(Serialize)]
@@ -322,6 +348,13 @@ enum BenchNode {
         pressure: PressurePolicy,
         queue_capacity: u64,
     },
+    CoupledSource {
+        next: u64,
+        end: u64,
+        branch_count: usize,
+        observations: Observations,
+        retrying: bool,
+    },
     Map {
         input: usize,
         output: usize,
@@ -343,6 +376,8 @@ enum BenchNode {
         slow_consumer_yields: u32,
         yields_remaining: u32,
         recovery_after_outputs: u64,
+        completed: u64,
+        records_recovery: bool,
     },
 }
 
@@ -433,6 +468,62 @@ impl SchedulerNode for BenchNode {
                     Ok(SendStatus::Terminated) => SchedulerStep::Completed,
                     Err(_) => SchedulerStep::Failed {
                         code: Id("benchmark/source-send-error"),
+                    },
+                }
+            }
+            Self::CoupledSource {
+                next,
+                end,
+                branch_count,
+                observations,
+                retrying,
+            } => {
+                if *next == *end {
+                    return SchedulerStep::Completed;
+                }
+                let index = *next;
+                if !*retrying {
+                    observations.offered.set(observations.offered.get() + 1);
+                }
+                if !*retrying && index % observations.stride == 0 {
+                    let sample = usize::try_from(index / observations.stride).unwrap();
+                    observations.starts.borrow_mut()[sample] = Some(Instant::now());
+                }
+                let value = RuntimeValue {
+                    handle: index,
+                    accounted_bytes: 8,
+                    envelope: RuntimeValueEnvelope::EMPTY,
+                };
+                let values = [value; 32];
+                let targets = [None; 32];
+                match io.send_coupled(0, &values[..*branch_count], &targets[..*branch_count]) {
+                    Ok(SendStatus::Reserved) => {
+                        *next += 1;
+                        *retrying = false;
+                        observations
+                            .accepted_values
+                            .set(observations.accepted_values.get() + 1);
+                        SchedulerStep::Progress
+                    }
+                    Ok(SendStatus::WouldBlock) => {
+                        observations.retried.set(observations.retried.get() + 1);
+                        *retrying = true;
+                        for cord in 0..*branch_count {
+                            io.wait_for_output(cord).unwrap();
+                        }
+                        SchedulerStep::Pending
+                    }
+                    Ok(SendStatus::Terminated) => SchedulerStep::Completed,
+                    Ok(
+                        SendStatus::Rejected
+                        | SendStatus::Dropped
+                        | SendStatus::Disconnected
+                        | SendStatus::Failed,
+                    ) => SchedulerStep::Failed {
+                        code: Id("benchmark/coupled-fanout-publication-failed"),
+                    },
+                    Err(_) => SchedulerStep::Failed {
+                        code: Id("benchmark/coupled-fanout-send-error"),
                     },
                 }
             }
@@ -537,20 +628,24 @@ impl SchedulerNode for BenchNode {
                 slow_consumer_yields,
                 yields_remaining,
                 recovery_after_outputs,
+                completed,
+                records_recovery,
             } => {
-                if observations.useful_outputs.get() < *recovery_after_outputs
-                    && *yields_remaining > 0
-                {
+                if *completed < *recovery_after_outputs && *yields_remaining > 0 {
                     *yields_remaining -= 1;
                     io.consume_work(LIMITS.max_step_work).unwrap();
                     return SchedulerStep::Yielded;
                 }
                 match io.receive(*input) {
                     Ok(Some(value)) => {
+                        *completed += 1;
                         observations
                             .useful_outputs
                             .set(observations.useful_outputs.get() + 1);
-                        if observations.useful_outputs.get() == *recovery_after_outputs {
+                        if *records_recovery
+                            && *completed == *recovery_after_outputs
+                            && observations.recovery_started.borrow().is_none()
+                        {
                             *observations.recovery_started.borrow_mut() = Some(Instant::now());
                         }
                         if value.handle % observations.stride == 0 {
@@ -594,7 +689,7 @@ fn semantic_digest(parts: &[&str]) -> SemanticHash {
 }
 
 fn recovery_after_outputs(args: &Args) -> u64 {
-    if matches!(args.workload, Workload::Overload) {
+    if matches!(args.workload, Workload::Overload | Workload::Fanout) {
         (u64::from(args.queue_items) * 2)
             .min(args.values / 2)
             .max(1)
@@ -625,7 +720,12 @@ fn pin(id: &'static str, kind: &'static str) -> PinnedDescriptor<'static> {
     }
 }
 
-fn profile() -> ExecutionProfile<'static> {
+fn profile(args: &Args) -> ExecutionProfile<'static> {
+    let mut limits = LIMITS;
+    if matches!(args.workload, Workload::Fanout) {
+        limits.max_output_reservations = args.fanout_branches;
+        limits.max_output_bytes = u64::from(args.fanout_branches) * 8;
+    }
     let mut value = ExecutionProfile {
         id: Id("benchmark/reference-profile"),
         schema_version: 0,
@@ -633,7 +733,7 @@ fn profile() -> ExecutionProfile<'static> {
         boundedness: BoundednessProfile::Hard,
         cancellation: CancellationGuarantee::Bounded,
         step_bound_enforced: true,
-        limits: LIMITS,
+        limits,
         representations: &[],
         memory_claims: &CLAIMS,
         checkpoint: None,
@@ -654,7 +754,7 @@ fn machine(
             artifact: node.artifact,
             execution_profile_hash: profile.semantic_hash,
             configuration_validated: true,
-            caller_memory_bytes: 256,
+            caller_memory_bytes: CLAIMS[0].bytes,
             required_resource_bindings: &[],
             provided_resource_bindings: &[],
             required_grants: &[],
@@ -691,6 +791,20 @@ fn prepare(args: &Args) -> PreparedRun {
             args.slow_consumer_yields > 0,
             "overload requires a slow consumer region"
         );
+    } else if matches!(args.workload, Workload::Fanout) {
+        assert_eq!(args.operators, 1, "fan-out uses one publication boundary");
+        assert!(
+            matches!(args.fanout_branches, 2 | 8 | 32),
+            "fan-out branches must be 2, 8, or 32"
+        );
+        assert!(
+            matches!(args.pressure_policy, PressurePolicy::Block),
+            "the current coupled fan-out slice uses FIFO block pressure"
+        );
+        assert!(
+            args.slow_consumer_yields > 0,
+            "fan-out requires at least one slow branch"
+        );
     } else {
         assert!(
             matches!(args.pressure_policy, PressurePolicy::Block),
@@ -699,7 +813,7 @@ fn prepare(args: &Args) -> PreparedRun {
     }
 
     let assembly_started = Instant::now();
-    let profile = Box::leak(Box::new(profile()));
+    let profile = Box::leak(Box::new(profile(args)));
     let observation = Box::leak(Box::new([PlanHostObservation {
         id: Id("benchmark/host-observation"),
         host: Id("host/local"),
@@ -712,10 +826,16 @@ fn prepare(args: &Args) -> PreparedRun {
     let value_count = usize::try_from(args.values).expect("value count fits usize");
     let sample_count = usize::try_from(args.values.div_ceil(args.latency_sample_stride))
         .expect("sample count fits usize");
+    let latency_capacity =
+        sample_count.saturating_mul(if matches!(args.workload, Workload::Fanout) {
+            usize::from(args.fanout_branches)
+        } else {
+            1
+        });
     let observations = Observations {
         values: Rc::new(RefCell::new((0..args.values).collect())),
         starts: Rc::new(RefCell::new(vec![None; sample_count])),
-        latencies: Rc::new(RefCell::new(Vec::with_capacity(sample_count))),
+        latencies: Rc::new(RefCell::new(Vec::with_capacity(latency_capacity))),
         accepted_values: Rc::new(Cell::new(0)),
         useful_outputs: Rc::new(Cell::new(0)),
         offered: Rc::new(Cell::new(0)),
@@ -732,10 +852,15 @@ fn prepare(args: &Args) -> PreparedRun {
     let transform_count = match args.workload {
         Workload::Merge => args.operators.saturating_sub(1),
         Workload::Overload => 0,
+        Workload::Fanout => 0,
         _ => args.operators,
     };
     let mut node_roles = if matches!(args.workload, Workload::Merge) {
         vec!["source", "source", "merge"]
+    } else if matches!(args.workload, Workload::Fanout) {
+        let mut roles = vec!["source"];
+        roles.resize(usize::from(args.fanout_branches) + 1, "sink");
+        roles
     } else {
         vec!["source"]
     };
@@ -748,7 +873,9 @@ fn prepare(args: &Args) -> PreparedRun {
             },
         );
     }
-    node_roles.push("sink");
+    if !matches!(args.workload, Workload::Fanout) {
+        node_roles.push("sink");
+    }
     let node_count = node_roles.len();
     let cord_count = node_count - 1;
     let artifact_id = Id("benchmark/conduit-benchmark-binary");
@@ -771,7 +898,7 @@ fn prepare(args: &Args) -> PreparedRun {
             host_observation: observation[0].id,
             host: observation[0].host,
             allocation: PlanResourceBudget {
-                memory_bytes: 512,
+                memory_bytes: 2_048,
                 cpu_units: 1,
                 ..PlanResourceBudget::ZERO
             },
@@ -826,6 +953,7 @@ fn prepare(args: &Args) -> PreparedRun {
     };
     let mut cords = Vec::with_capacity(cord_count);
     let mut drivers = Vec::with_capacity(node_count);
+    let mut fanouts = Vec::new();
 
     if matches!(args.workload, Workload::Merge) {
         cords.push(ResolvedPlanCord {
@@ -899,6 +1027,53 @@ fn prepare(args: &Args) -> PreparedRun {
             slow_consumer_yields: 0,
             yields_remaining: 0,
             recovery_after_outputs: 0,
+            completed: 0,
+            records_recovery: false,
+        });
+    } else if matches!(args.workload, Workload::Fanout) {
+        let branch_count = usize::from(args.fanout_branches);
+        drivers.push(BenchNode::CoupledSource {
+            next: 0,
+            end: args.values,
+            branch_count,
+            observations: observations.clone(),
+            retrying: false,
+        });
+        for branch in 0..branch_count {
+            let sink_node = branch + 1;
+            cords.push(ResolvedPlanCord {
+                id: Id(leaked(format!("benchmark/branch-{branch}"))),
+                from: port(&nodes[0], Direction::Output, "out"),
+                to: port(&nodes[sink_node], Direction::Input, "in"),
+                flow,
+                queue_memory_bytes: u64::from(args.queue_items) * 16,
+            });
+            let slow = matches!(args.slow_branches, SlowBranches::All) || branch == 0;
+            drivers.push(BenchNode::Sink {
+                input: branch,
+                observations: observations.clone(),
+                slow_consumer_yields: if slow { args.slow_consumer_yields } else { 0 },
+                yields_remaining: if slow { args.slow_consumer_yields } else { 0 },
+                recovery_after_outputs: recovery_after_outputs(args),
+                completed: 0,
+                records_recovery: slow && branch == 0,
+            });
+        }
+        let branches = Box::leak(
+            cords
+                .iter()
+                .map(|cord| cord.id)
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+        );
+        fanouts.push(PlanFanOut {
+            id: Id("benchmark/coupled-fanout"),
+            producer: port(&nodes[0], Direction::Output, "out"),
+            mode: FanOutMode::Coupled,
+            branches,
+            duplicator: None,
+            duplicator_input: None,
+            duplication: DuplicationRule::Copy(pin("benchmark/u64-copy", "duplication-rule")),
         });
     } else {
         drivers.push(BenchNode::Source {
@@ -957,6 +1132,8 @@ fn prepare(args: &Args) -> PreparedRun {
                 0
             },
             recovery_after_outputs: recovery_after_outputs(args),
+            completed: 0,
+            records_recovery: matches!(args.workload, Workload::Overload),
         });
     }
 
@@ -964,6 +1141,7 @@ fn prepare(args: &Args) -> PreparedRun {
     let artifacts = Box::leak(artifacts.into_boxed_slice());
     let nodes = Box::leak(nodes.into_boxed_slice());
     let cords = Box::leak(cords.into_boxed_slice());
+    let fanouts = Box::leak(fanouts.into_boxed_slice());
     let mut plan = ExecutionPlan {
         schema_version: 0,
         identity: ZERO,
@@ -975,12 +1153,15 @@ fn prepare(args: &Args) -> PreparedRun {
                 Workload::Merge => "merge",
                 Workload::BoundedAsync => "bounded-async",
                 Workload::Overload => "overload",
+                Workload::Fanout => "fanout",
             },
             &args.operators.to_string(),
             &args.values.to_string(),
             &args.queue_items.to_string(),
             args.pressure_policy.as_str(),
             &args.slow_consumer_yields.to_string(),
+            &args.fanout_branches.to_string(),
+            args.slow_branches.as_str(),
         ]),
         resolver: pin("benchmark/resolver", "resolver"),
         resolver_policy_hash: semantic_digest(&["resolver-policy", "exact-local-reference"]),
@@ -1007,7 +1188,7 @@ fn prepare(args: &Args) -> PreparedRun {
         clock_conversions: &[],
         feedback_boundaries: &[],
         distributed_cords: &[],
-        fanouts: &[],
+        fanouts,
         merges: &[],
         event_streams: &[],
         runtime_evidence: None,
@@ -1026,6 +1207,18 @@ fn prepare(args: &Args) -> PreparedRun {
     let seal_started = Instant::now();
     let scratch_count = plan.validation_scratch_count().unwrap().max(1);
     plan.identity = plan.semantic_hash(&mut vec![ZERO; scratch_count]).unwrap();
+    validate_execution_plan(
+        &plan,
+        PlanValidationContext {
+            supported_schema_version: plan.schema_version,
+            now: AuthorityTime {
+                basis: Id("clock/monotonic"),
+                tick: 2,
+            },
+        },
+        &mut vec![ZERO; scratch_count],
+    )
+    .unwrap_or_else(|error| panic!("benchmark plan validation failed: {error}"));
     let seal_ns = seal_started.elapsed().as_nanos() as u64;
     let plan = Box::leak(Box::new(plan));
     PreparedRun {
@@ -1070,15 +1263,18 @@ fn run_sample(
             machine: machine(node.execution_profile.unwrap(), node),
         })
         .collect();
+    let decisions_per_value = if matches!(args.workload, Workload::Fanout) {
+        u64::from(args.fanout_branches)
+            .saturating_mul(u64::from(args.slow_consumer_yields) + 4)
+            .saturating_add(16)
+    } else {
+        u64::try_from(args.operators + 9).unwrap()
+    };
     let policy = SchedulerPolicy {
         schema_version: SCHEDULER_CONTRACT_VERSION,
         ready_queue: ReadyQueueDiscipline::RoundRobin,
-        max_decisions: args
-            .values
-            .saturating_mul(u64::try_from(args.operators + 8).unwrap()),
-        max_tick: args
-            .values
-            .saturating_mul(u64::try_from(args.operators + 9).unwrap()),
+        max_decisions: args.values.saturating_mul(decisions_per_value),
+        max_tick: args.values.saturating_mul(decisions_per_value + 1),
         max_consecutive_yields: 8,
         max_events: 1024,
     };
@@ -1171,9 +1367,15 @@ fn run_sample(
             operators: args.operators,
             input_values: args.values,
             queue_capacity_items: args.queue_items,
-            ordering: "source-order; merge uses retained round-robin",
+            ordering: if matches!(args.workload, Workload::Fanout) {
+                "source order independently at every coupled branch"
+            } else {
+                "source-order; merge uses retained round-robin"
+            },
             pressure: if matches!(args.workload, Workload::Overload) {
                 args.pressure_policy.as_str()
+            } else if matches!(args.workload, Workload::Fanout) {
+                "complete after every coupled branch drains"
             } else {
                 "bounded FIFO block"
             },
@@ -1191,18 +1393,46 @@ fn run_sample(
             } else {
                 "none"
             },
-            slow_consumer_yields: if matches!(args.workload, Workload::Overload) {
+            slow_consumer_yields: if matches!(args.workload, Workload::Overload | Workload::Fanout)
+            {
                 args.slow_consumer_yields
             } else {
                 0
             },
             recovery_after_outputs: recovery_after_outputs(args),
+            fanout_branches: if matches!(args.workload, Workload::Fanout) {
+                args.fanout_branches
+            } else {
+                1
+            },
+            fanout_mode: if matches!(args.workload, Workload::Fanout) {
+                "coupled"
+            } else {
+                "none"
+            },
+            slow_branches: if matches!(args.workload, Workload::Fanout) {
+                args.slow_branches.as_str()
+            } else if matches!(args.workload, Workload::Overload) {
+                "one"
+            } else {
+                "none"
+            },
         },
         exact_identity: ExactIdentity {
             logical_fixture: if matches!(args.workload, Workload::Overload) {
                 format!(
                     "comparative-overload/{}/{}/{}/{}/{}",
                     args.pressure_policy.id(),
+                    args.values,
+                    args.queue_items,
+                    args.slow_consumer_yields,
+                    args.latency_sample_stride
+                )
+            } else if matches!(args.workload, Workload::Fanout) {
+                format!(
+                    "comparative-fanout/coupled/{}/{}/{}/{}/{}/{}",
+                    args.slow_branches.as_str(),
+                    args.fanout_branches,
                     args.values,
                     args.queue_items,
                     args.slow_consumer_yields,
@@ -1270,6 +1500,8 @@ fn run_sample(
             "The public deterministic executor validates and preallocates the exact plan; timed execution does not disable contract checks.",
             if matches!(args.workload, Workload::Overload) {
                 "The pinned benchmark value type proves disposability and the exact latest-wins coalescer before the pressure plan is sealed."
+            } else if matches!(args.workload, Workload::Fanout) {
+                "The exact plan pins coupled atomic copy publication; every branch has its own finite cord and no benchmark-side buffer."
             } else {
                 "The handle-backed u64 fixture isolates scheduler cost and is not the optimized hosted streaming mode, which is not yet available."
             },
@@ -1284,8 +1516,11 @@ fn run_identity_sample(
     thermal_state: &'static str,
 ) -> RawSample {
     assert!(
-        !matches!(args.workload, Workload::BoundedAsync),
-        "an identity loop cannot model a bounded asynchronous boundary"
+        !matches!(
+            args.workload,
+            Workload::BoundedAsync | Workload::Overload | Workload::Fanout
+        ),
+        "an identity loop cannot model an asynchronous, overload, or fan-out boundary"
     );
     let assembly_started = Instant::now();
     let sample_count = usize::try_from(args.values.div_ceil(args.latency_sample_stride)).unwrap();
@@ -1362,6 +1597,9 @@ fn run_identity_sample(
             loss: "none",
             slow_consumer_yields: 0,
             recovery_after_outputs: 0,
+            fanout_branches: 1,
+            fanout_mode: "none",
+            slow_branches: "none",
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(

@@ -84,6 +84,9 @@ function runIdentitySample(sampleKind, trial, thermalState) {
       loss: "none",
       slow_consumer_yields: 0,
       recovery_after_outputs: 0,
+      fanout_branches: 1,
+      fanout_mode: "none",
+      slow_branches: "none",
     },
     exact_identity: {
       logical_fixture: logicalFixture,
@@ -217,6 +220,9 @@ async function runSample(sampleKind, trial, thermalState) {
       loss: "none",
       slow_consumer_yields: 0,
       recovery_after_outputs: 0,
+      fanout_branches: 1,
+      fanout_mode: "none",
+      slow_branches: "none",
     },
     exact_identity: {
       logical_fixture: logicalFixture,

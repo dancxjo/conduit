@@ -94,7 +94,20 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "fail"
         ])
     );
-    assert_eq!(manifest["overload"]["fanout"], serde_json::json!([1]));
+    assert_eq!(manifest["overload"]["branch_count"], 1);
+    assert_eq!(
+        manifest["fanout"]["queue_capacity_items"],
+        serde_json::json!([4, 64, 1024])
+    );
+    assert_eq!(
+        manifest["fanout"]["branches"],
+        serde_json::json!([2, 8, 32])
+    );
+    assert_eq!(manifest["fanout"]["modes"], serde_json::json!(["coupled"]));
+    assert_eq!(
+        manifest["fanout"]["slow_branches"],
+        serde_json::json!(["one", "all"])
+    );
     assert_eq!(
         manifest["wall_clock_policy"]["gate"],
         "report-only until a reviewed machine-class baseline exists"
@@ -155,6 +168,15 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "retried",
             "terminal"
         ])
+    );
+    assert!(
+        ["fanout_branches", "fanout_mode", "slow_branches"]
+            .iter()
+            .all(|field| schema["properties"]["workload"]["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|required| required == field))
     );
     assert_eq!(
         rxjs_lock["packages"]["node_modules/rxjs"]["version"],
