@@ -164,11 +164,8 @@ async function readLayoutState(flowRoot) {
     state: element.dataset.layout,
     planIdentity: element.dataset.activeEpoch || null,
     sourceRevision: Number.parseInt(element.dataset.candidateRevision, 10),
-    sourceIdentity: (document
-      .querySelector("#patchbay-editor-status")
-      ?.textContent || "")
-      .split(" · ")[2]
-      ?.trim() || null,
+    sourceIdentity: element.dataset.sourceIdentity || null,
+    semanticSourceIdentity: element.dataset.semanticSourceIdentity || null,
   }));
 }
 
@@ -205,6 +202,12 @@ function layoutReadinessCriteria(layout, afterGeneration, options = {}) {
   ) {
     return false;
   }
+  if (
+    typeof options.expectedSemanticSourceIdentity === "string" &&
+    layout.semanticSourceIdentity !== options.expectedSemanticSourceIdentity
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -236,6 +239,9 @@ async function waitForLayoutReady(flowRoot, afterGeneration = 0, options = {}) {
   }
   if (typeof options.expectedSourceIdentity === "string") {
     expect(layout.sourceIdentity).toBe(options.expectedSourceIdentity);
+  }
+  if (typeof options.expectedSemanticSourceIdentity === "string") {
+    expect(layout.semanticSourceIdentity).toBe(options.expectedSemanticSourceIdentity);
   }
   expect(layout.topologyIdentity).toEqual(expect.any(String));
   expect(layout.topologyIdentity.length).toBeGreaterThan(0);

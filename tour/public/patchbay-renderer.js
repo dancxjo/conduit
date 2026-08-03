@@ -333,6 +333,8 @@ export class PatchbayReactFlowRenderer {
     const run = viewModel?.run;
     const state = run?.state || "Prepared";
     const sourceRevision = viewModel?.source?.revision;
+    const sourceIdentity = viewModel?.source?.identity;
+    const sourceSemanticIdentity = viewModel?.semantic?.source_semantic_hash;
     const activeSource = run?.source_semantic_hash;
     const candidateSource = viewModel?.semantic?.source_semantic_hash;
     const candidateChanged = Boolean(
@@ -342,6 +344,8 @@ export class PatchbayReactFlowRenderer {
     );
     this.flowWrapper.dataset.runState = state.toLowerCase();
     this.flowWrapper.dataset.activeEpoch = run?.plan_identity || "";
+    this.flowWrapper.dataset.sourceIdentity = sourceIdentity || "";
+    this.flowWrapper.dataset.semanticSourceIdentity = sourceSemanticIdentity || "";
     this.flowWrapper.dataset.candidateRevision = String(sourceRevision ?? "");
     this.flowWrapper.dataset.candidateChanged = String(candidateChanged);
     const physical = viewModel?.physical_execution;
