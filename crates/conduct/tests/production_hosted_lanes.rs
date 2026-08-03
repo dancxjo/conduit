@@ -4,8 +4,9 @@ use conduit_core::{
     SchedulerDecisionReason, SchedulerPolicy, StopPolicy, TerminalClass,
 };
 use conduit_runtime::{
-    ExactRunContext, ExactRunIo, ExactRunSessionRegistry, ExactRunState, Registry, RunIo,
-    SchedulerEventKind, SchedulerReservation, SchedulerSubject,
+    ExactRunContext, ExactRunIo, ExactRunSessionRegistry, ExactRunState,
+    FIXED_HOSTED_LANE_PROVIDER_ID, Registry, RunIo, SchedulerEventKind, SchedulerReservation,
+    SchedulerSubject,
 };
 use std::process::Command;
 
@@ -81,6 +82,47 @@ fn canonical_runs_use_three_hosted_lanes_and_match_the_serial_oracle() {
     let arena = bumpalo::Bump::new();
     let plan = document.as_plan(&arena).unwrap();
     let arrangement = document.execution_arrangement().unwrap();
+    assert!(
+        arrangement
+            .placements
+            .iter()
+            .any(|placement| { placement.provider.id == FIXED_HOSTED_LANE_PROVIDER_ID })
+    );
+    let pure_lanes = ["first", "second", "third"]
+        .into_iter()
+        .map(|instance| {
+            let region = arrangement
+                .regions
+                .iter()
+                .find(|region| {
+                    region
+                        .members
+                        .iter()
+                        .any(|member| member.rsplit('/').next() == Some(instance))
+                })
+                .unwrap();
+            assert!(region.independent);
+            region.lane.as_str()
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(pure_lanes.len(), 3);
+    let effect_region = arrangement
+        .regions
+        .iter()
+        .find(|region| {
+            region
+                .members
+                .iter()
+                .any(|member| member.rsplit('/').next() == Some("effect_sink"))
+        })
+        .unwrap();
+    assert!(!effect_region.independent);
+    assert!(
+        plan.nodes
+            .iter()
+            .find(|node| node.instance.as_str().rsplit('/').next() == Some("effect_sink"))
+            .is_some_and(|node| !node.required_effects.is_empty())
+    );
     let panel = conduit_panel::parse(SOURCE).unwrap();
     let resolved = registry.resolve(&panel).unwrap();
     let bindings = installed.bindings(&plan).unwrap();

@@ -304,6 +304,8 @@ fn repeated_batches_reuse_the_fixed_provider_storage() {
     let active = Arc::new(AtomicUsize::new(0));
     let peak = Arc::new(AtomicUsize::new(0));
     let mut provider = FixedHostedLaneProvider::start(reservation()).unwrap();
+    let mut proposal_storage = None;
+    let mut observation_storage = None;
     for batch in 0_u64..64 {
         let job = |offset| Job {
             value: batch * 3 + offset,
@@ -325,6 +327,18 @@ fn repeated_batches_reuse_the_fixed_provider_storage() {
         assert_eq!(proposals.proposals()[1].value, batch * 3 + 2);
         assert_eq!(proposals.proposals()[2].value, batch * 3 + 3);
         assert_eq!(proposals.physical_completion_order().len(), 3);
+        let proposal_pointer = proposals.proposals().as_ptr();
+        let observation_pointer = proposals.physical_completion_order().as_ptr();
+        if let Some(expected) = proposal_storage {
+            assert_eq!(proposal_pointer, expected);
+        } else {
+            proposal_storage = Some(proposal_pointer);
+        }
+        if let Some(expected) = observation_storage {
+            assert_eq!(observation_pointer, expected);
+        } else {
+            observation_storage = Some(observation_pointer);
+        }
     }
     assert_eq!(peak.load(Ordering::SeqCst), 3);
 }
