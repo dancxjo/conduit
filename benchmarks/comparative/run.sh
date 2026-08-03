@@ -5,11 +5,15 @@ workspace_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 output_dir=${1:-"$workspace_root/target/comparative-benchmark"}
 javascript_runtime="$output_dir.runtime/javascript"
 manifest="$workspace_root/benchmarks/comparative/manifest.json"
+regression_policy="$workspace_root/benchmarks/comparative/regression-policy.json"
 raw="$output_dir/raw.ndjson"
 summary="$output_dir/summary.json"
 metadata="$output_dir/metadata.json"
 report="$output_dir/report.md"
+regression_evaluation="$output_dir/regressions.json"
+regression_report="$output_dir/regression-report.md"
 commands="$output_dir/commands.txt"
+machine_class=${CONDUIT_BENCHMARK_MACHINE_CLASS:-local-unclassified}
 values=${CONDUIT_BENCHMARK_VALUES:-$(jq -r .values "$manifest")}
 warmups=${CONDUIT_BENCHMARK_WARMUPS:-$(jq -r .warmup_trials "$manifest")}
 trials=${CONDUIT_BENCHMARK_TRIALS:-$(jq -r .measured_trials "$manifest")}
@@ -36,7 +40,7 @@ persistent_timer_quantum=$(jq -r .persistent_timer_residency.session_pump_quantu
 persistent_timer_advance_ticks=$(jq -r .persistent_timer_residency.timer_advance_ticks "$manifest")
 
 mkdir -p "$output_dir"
-for artifact in "$raw" "$summary" "$metadata" "$report" "$commands"; do
+for artifact in "$raw" "$summary" "$metadata" "$report" "$regression_evaluation" "$regression_report" "$commands"; do
   if [[ -e "$artifact" ]]; then
     echo "refusing to overwrite existing benchmark artifact: $artifact" >&2
     exit 1
@@ -72,6 +76,7 @@ jq -n \
   --arg worktree_status "$worktree_status" \
   --arg fixture_sha256 "$fixture_sha256" \
   --arg machine "$(uname -m)" \
+  --arg machine_class "$machine_class" \
   --arg kernel "$(uname -sr)" \
   --arg cpu "${cpu:-unknown}" \
   --arg rustc "$(rustc -Vv)" \
@@ -87,10 +92,11 @@ jq -n \
   --argjson values "$values" \
   --argjson warmups "$warmups" \
   --argjson trials "$trials" \
-  '{schema:"conduit.comparative-benchmark-metadata",schema_version:0,commit:$commit,workspace_root:$workspace_root,worktree:{clean:($worktree_status == ""),status:$worktree_status},fixture_sha256:$fixture_sha256,runner_sha256:$runner_sha256,binaries:{conduit_benchmark_sha256:$conduit_binary_sha256,javascript_runner_sha256:$javascript_runner_sha256,java_runner_sha256:$java_runner_sha256},machine:$machine,kernel:$kernel,cpu:$cpu,toolchains:{rustc:$rustc,node:$node,java:$java},dependencies:{rxjs_lock_sha256:$rxjs_sha256,reactor_core_sha256:$reactor_sha256,reactive_streams_sha256:$reactive_streams_sha256},run:{values:$values,warmup_trials:$warmups,measured_trials:$trials,exact_commands:"commands.txt"}}' \
+  '{schema:"conduit.comparative-benchmark-metadata",schema_version:0,commit:$commit,workspace_root:$workspace_root,worktree:{clean:($worktree_status == ""),status:$worktree_status},fixture_sha256:$fixture_sha256,runner_sha256:$runner_sha256,binaries:{conduit_benchmark_sha256:$conduit_binary_sha256,javascript_runner_sha256:$javascript_runner_sha256,java_runner_sha256:$java_runner_sha256},machine:$machine,execution_environment:{machine_class:$machine_class},kernel:$kernel,cpu:$cpu,toolchains:{rustc:$rustc,node:$node,java:$java},dependencies:{rxjs_lock_sha256:$rxjs_sha256,reactor_core_sha256:$reactor_sha256,reactive_streams_sha256:$reactive_streams_sha256},run:{values:$values,warmup_trials:$warmups,measured_trials:$trials,exact_commands:"commands.txt"}}' \
   > "$metadata"
 cp "$manifest" "$output_dir/manifest.json"
 cp "$workspace_root/benchmarks/comparative/raw-sample.schema.json" "$output_dir/raw-sample.schema.json"
+cp "$regression_policy" "$output_dir/regression-policy.json"
 
 for workload in $(jq -r '.workloads[]' "$manifest"); do
   for operators in $(jq -r '.operator_depths[]' "$manifest"); do
@@ -246,4 +252,10 @@ for capacity in $(jq -r '.fanout.queue_capacity_items[]' "$manifest"); do
 done
 
 node "$workspace_root/benchmarks/comparative/summarize.mjs" "$raw" "$summary" "$report"
+node "$workspace_root/benchmarks/comparative/evaluate-regressions.mjs" \
+  "$metadata" \
+  "$summary" \
+  "$output_dir/regression-policy.json" \
+  "$regression_evaluation" \
+  "$regression_report"
 printf 'comparative benchmark artifacts: %s\n' "$output_dir"

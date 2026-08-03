@@ -11,12 +11,15 @@ bash benchmarks/comparative/run.sh target/comparative-benchmark
 
 Compilation and dependency installation finish before any timed region. The
 runner refuses to overwrite an earlier result. It emits `metadata.json`, every
-repeat in `raw.ndjson`, derived `summary.json`, and preparation/steady-state
-tables in `report.md`. `commands.txt` records every resolved runner invocation,
-and the exact manifest and raw schema are copied beside the results. Metadata binds the commit,
+repeat in `raw.ndjson`, derived `summary.json`, preparation/steady-state tables
+in `report.md`, and a separate `regressions.json`/`regression-report.md`
+evaluation. `commands.txt` records every resolved runner invocation, and the
+exact manifest, raw schema, and regression policy are copied beside the results. Metadata binds the commit,
 fixture digest, machine, CPU, kernel, Rust, Node, Java, and pinned comparison
-dependencies. Warm-up repeats are retained in the raw artifact; they are never
-silently discarded.
+dependencies. It also records an explicit execution-environment machine class;
+local runs default to `local-unclassified` rather than borrowing the CI gate.
+Warm-up repeats are retained in the raw artifact; they are never silently
+discarded.
 
 Pinned JavaScript packages are installed in a generated sibling under
 `target/`, never beneath the source tree; repository-wide schema gates therefore
@@ -194,12 +197,38 @@ the internal plateau.
 
 The summary reports p50, p95, p99, p99.9, and maximum sampled latency. Useful
 outputs per second is summarized across at least nine measured repeats with a
-deterministic 10,000-resample percentile-bootstrap 95% interval. These noisy
-wall-clock values are report-only until a reviewed machine-class baseline and
-broad alarm are committed. Exact output and loss conservation, schema identity,
-bounded high-water facts, presence of both overload regions where the policy
-does not terminate, and Conduit's zero-allocation-after-Start result are strict
-checks.
+deterministic 10,000-resample percentile-bootstrap 95% interval. The separate
+`regression-policy.json` carries its source workflow, artifact, merge, head,
+observed CPU/kernel, exact applicability scope, baseline values, and broad
+threshold rationale. The source artifact predates the explicit machine-class
+field; the policy records that its class was derived from the cited workflow's
+`ubuntu-latest` declaration and the artifact's `x86_64` observation rather than
+from a developer-local assumption. Its current smoke policy applies only when
+the recorded machine class is `github-hosted-ubuntu-x86_64`, the architecture
+is `x86_64`, the input cardinality is 10,000, and warm-up/measured trial counts
+are exactly 2/9. A local, full-cardinality, differently classified, or otherwise
+mismatched run produces a `not-applicable` evaluation and remains report-only.
+
+On a matching run, useful-throughput collapse alarms only when the current
+bootstrap 95% median-confidence upper bound falls below half the reviewed
+baseline. Conduit p99 alarms permit threefold growth. RxJS/Reactor p99 and all
+p99.9 ratios remain visible but report-only: the policy's cited calibration
+artifacts span AMD EPYC 7763/9V74 and Intel Xeon 8573C runners and show
+outlier-heavy comparison-runtime tails that do not track useful-throughput
+collapse. The selected groups cover Conduit/RxJS/Reactor map depth, Conduit
+bounded overload, 32-branch coupled fan-out, and persistent host/timer wake
+paths. The evaluator
+fails the matching CI job if a selected group disappears, has fewer than nine
+measured trials, or crosses a threshold; its artifact retains every ratio and
+alarm for review. CPU and kernel observations are provenance rather than hidden
+selectors, so runner-pool drift is visible while the broad thresholds absorb
+ordinary variation. Passing or alarming never establishes a performance,
+deadline, admission, safety, or portability guarantee.
+
+Exact output and loss conservation, schema identity, bounded high-water facts,
+presence of both overload regions where the policy does not terminate, and
+Conduit's zero-allocation-after-Start result remain strict deterministic checks
+on every machine.
 
 ## Claim boundary
 

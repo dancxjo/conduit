@@ -184,6 +184,8 @@
         "conduit.bounded-control-fixtures",
         "conduit.comparative-benchmark-manifest",
         "conduit.comparative-benchmark-metadata",
+        "conduit.comparative-regression-evaluation",
+        "conduit.comparative-regression-policy",
         "conduit.comparative-benchmark-summary",
         "conduit.comparative-raw-sample",
         "conduit.standing-signal-conformance",

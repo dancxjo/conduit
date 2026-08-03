@@ -493,7 +493,7 @@ const result = {
   fixture_revision: 0,
   policy: {
     deterministic_invariants: "strict",
-    wall_clock: "report-only",
+    wall_clock: "report-only unless a separate reviewed regression policy exactly matches the recorded machine class, architecture, input cardinality, and trial counts",
     confidence_interval: "deterministic percentile bootstrap of the per-trial median; 10000 resamples",
     claim_boundary: "measurements are not deadline, admission, safety, or portability guarantees",
   },
@@ -551,7 +551,7 @@ if (reportOutput) {
   const report = [
     "# Comparative benchmark report",
     "",
-    "Wall-clock results are report-only measurements for the exact metadata artifact. They are not semantic, deadline, admission, safety, or portability guarantees.",
+    "Wall-clock results are measurements for the exact metadata artifact. A separate regression evaluation may apply reviewed broad alarms only when its machine class, architecture, input cardinality, and trial counts match exactly. Neither a result nor an alarm is a semantic, deadline, admission, safety, or portability guarantee.",
     "",
     "## Unavailable comparisons",
     "",

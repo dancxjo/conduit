@@ -1,0 +1,98 @@
+{
+  "schema": "conduit.comparative-regression-policy",
+  "schema_version": 0,
+  "policy_revision": 0,
+  "id": "github-hosted-ubuntu-x86_64-smoke",
+  "issues": [241, 245],
+  "scope": {
+    "machine_class": "github-hosted-ubuntu-x86_64",
+    "architecture": "x86_64",
+    "input_values": 10000,
+    "warmup_trials": 2,
+    "measured_trials": 9
+  },
+  "provenance": {
+    "workflow_run": 30811056026,
+    "artifact_id": 8854832510,
+    "artifact_name": "comparative-benchmark-6937dfbc8d1a492c1cd0c298b71a4027f7ed4856-1",
+    "synthetic_merge": "6937dfbc8d1a492c1cd0c298b71a4027f7ed4856",
+    "head_commit": "0f4c3eb5b74c7be31f7da50b2914e4616777661c",
+    "cpu_observation": "AMD EPYC 9V74 80-Core Processor",
+    "kernel_observation": "Linux 6.17.0-1020-azure",
+    "note": "This source artifact predates the explicit machine_class metadata field; its class is derived from the recorded x86_64 observation and the cited workflow's ubuntu-latest runner declaration. The CPU and kernel are provenance, not applicability selectors; broad alarms tolerate runner-pool variation inside the named machine class."
+  },
+  "thresholds": {
+    "throughput_confidence_high_minimum_ratio": 0.5,
+    "p99_maximum_ratio": 3,
+    "minimum_measured_trials": 9,
+    "alarm_metrics_by_runtime": {
+      "conduit-reference-scheduler": ["useful-throughput", "p99"],
+      "rxjs": ["useful-throughput"],
+      "reactor-core": ["useful-throughput"]
+    },
+    "p99_9": "report-only",
+    "rationale": "Throughput alarms only when the current 95% median-confidence upper bound is below half the reviewed baseline. Conduit p99 allows threefold growth. RxJS/Reactor p99 and every p99.9 remain visible but report-only because prior hosted artifacts show outlier-heavy comparison-runtime tails that do not track useful-throughput collapse. These are broad regression alarms, not performance guarantees."
+  },
+  "threshold_calibration": [
+    {"workflow_run":30806055432,"artifact_id":8852852901,"synthetic_merge":"d3faf59945dba03807b4a639d2c9b2da87fd1ec6","cpu_observation":"INTEL(R) XEON(R) PLATINUM 8573C"},
+    {"workflow_run":30807010542,"artifact_id":8853229031,"synthetic_merge":"0b47ff9e6624635f93c650781ee9a1e2e3cead23","cpu_observation":"AMD EPYC 7763 64-Core Processor"},
+    {"workflow_run":30807891376,"artifact_id":8853574677,"synthetic_merge":"0a193464b3ada883ac0b7a53c15f3806135979d7","cpu_observation":"AMD EPYC 9V74 80-Core Processor"},
+    {"workflow_run":30809955158,"artifact_id":8854386215,"synthetic_merge":"24559eea6e422058595a8782839f9ab236eb8abc","cpu_observation":"AMD EPYC 7763 64-Core Processor"},
+    {"workflow_run":30811056026,"artifact_id":8854832510,"synthetic_merge":"6937dfbc8d1a492c1cd0c298b71a4027f7ed4856","cpu_observation":"AMD EPYC 9V74 80-Core Processor"}
+  ],
+  "baselines": [
+    {
+      "match": {"runtime":"conduit-reference-scheduler","workload":"fanout","operators":1,"queue_capacity_items":4,"pressure":"atomic publication waits for every branch","fanout_branches":32,"fanout_mode":"coupled","slow_branches":"one","consumer_pattern":"sustained-slow-then-recover","session_mode":"finite-executor","termination_request":"complete"},
+      "baseline": {"useful_outputs_per_second_median":1988847.6610436765,"p99_ns":57067.31,"p99_9_ns":70822.67100000005}
+    },
+    {
+      "match": {"runtime":"conduit-reference-scheduler","workload":"map","operators":1,"queue_capacity_items":256,"pressure":"bounded FIFO block","fanout_branches":1,"fanout_mode":"none","slow_branches":"none","consumer_pattern":"none","session_mode":"finite-executor","termination_request":"complete"},
+      "baseline": {"useful_outputs_per_second_median":1408974.8031626975,"p99_ns":1502.11,"p99_9_ns":1502.911}
+    },
+    {
+      "match": {"runtime":"conduit-reference-scheduler","workload":"map","operators":8,"queue_capacity_items":256,"pressure":"bounded FIFO block","fanout_branches":1,"fanout_mode":"none","slow_branches":"none","consumer_pattern":"none","session_mode":"finite-executor","termination_request":"complete"},
+      "baseline": {"useful_outputs_per_second_median":302575.96230048744,"p99_ns":5005.7,"p99_9_ns":5141.87}
+    },
+    {
+      "match": {"runtime":"conduit-reference-scheduler","workload":"map","operators":32,"queue_capacity_items":256,"pressure":"bounded FIFO block","fanout_branches":1,"fanout_mode":"none","slow_branches":"none","consumer_pattern":"none","session_mode":"finite-executor","termination_request":"complete"},
+      "baseline": {"useful_outputs_per_second_median":60848.61054327526,"p99_ns":25536.22,"p99_9_ns":26178.622}
+    },
+    {
+      "match": {"runtime":"reactor-core","workload":"map","operators":1,"queue_capacity_items":0,"pressure":"synchronous Reactive Streams demand","fanout_branches":1,"fanout_mode":"none","slow_branches":"none","consumer_pattern":"none","session_mode":"finite-executor","termination_request":"complete"},
+      "baseline": {"useful_outputs_per_second_median":11372579.3464861,"p99_ns":183.40999999999997,"p99_9_ns":208.24100000000004}
+    },
+    {
+      "match": {"runtime":"reactor-core","workload":"map","operators":8,"queue_capacity_items":0,"pressure":"synchronous Reactive Streams demand","fanout_branches":1,"fanout_mode":"none","slow_branches":"none","consumer_pattern":"none","session_mode":"finite-executor","termination_request":"complete"},
+      "baseline": {"useful_outputs_per_second_median":5117005.446540598,"p99_ns":939.5899999999999,"p99_9_ns":994.8590000000002}
+    },
+    {
+      "match": {"runtime":"reactor-core","workload":"map","operators":32,"queue_capacity_items":0,"pressure":"synchronous Reactive Streams demand","fanout_branches":1,"fanout_mode":"none","slow_branches":"none","consumer_pattern":"none","session_mode":"finite-executor","termination_request":"complete"},
+      "baseline": {"useful_outputs_per_second_median":3157526.4695443944,"p99_ns":13167.7,"p99_9_ns":13223.77}
+    },
+    {
+      "match": {"runtime":"rxjs","workload":"map","operators":1,"queue_capacity_items":0,"pressure":"synchronous push; no demand contract","fanout_branches":1,"fanout_mode":"none","slow_branches":"none","consumer_pattern":"none","session_mode":"finite-executor","termination_request":"complete"},
+      "baseline": {"useful_outputs_per_second_median":21002932.0093085,"p99_ns":898.9199999999994,"p99_9_ns":1757.5920000000015}
+    },
+    {
+      "match": {"runtime":"rxjs","workload":"map","operators":8,"queue_capacity_items":0,"pressure":"synchronous push; no demand contract","fanout_branches":1,"fanout_mode":"none","slow_branches":"none","consumer_pattern":"none","session_mode":"finite-executor","termination_request":"complete"},
+      "baseline": {"useful_outputs_per_second_median":5887111.112157709,"p99_ns":974.2,"p99_9_ns":990.22}
+    },
+    {
+      "match": {"runtime":"rxjs","workload":"map","operators":32,"queue_capacity_items":0,"pressure":"synchronous push; no demand contract","fanout_branches":1,"fanout_mode":"none","slow_branches":"none","consumer_pattern":"none","session_mode":"finite-executor","termination_request":"complete"},
+      "baseline": {"useful_outputs_per_second_median":1125196.0654143984,"p99_ns":2026.8099999999997,"p99_9_ns":2564.281000000001}
+    },
+    {
+      "match": {"runtime":"conduit-reference-scheduler","workload":"overload","operators":1,"queue_capacity_items":4,"pressure":"block","fanout_branches":1,"fanout_mode":"none","slow_branches":"one","consumer_pattern":"sustained-slow-then-recover","session_mode":"finite-executor","termination_request":"complete"},
+      "baseline": {"useful_outputs_per_second_median":2505102.2670423985,"p99_ns":1780.9099999999999,"p99_9_ns":1845.7910000000002}
+    },
+    {
+      "match": {"runtime":"conduit-reference-scheduler","workload":"persistent-timer","operators":1,"queue_capacity_items":4,"pressure":"exact timer wake to bounded FIFO","fanout_branches":1,"fanout_mode":"none","slow_branches":"none","consumer_pattern":"none","session_mode":"persistent-exact-run-session","termination_request":"drain"},
+      "baseline": {"useful_outputs_per_second_median":1607620.6362544496,"p99_ns":732.1,"p99_9_ns":740.11}
+    },
+    {
+      "match": {"runtime":"conduit-reference-scheduler","workload":"persistent-wake","operators":1,"queue_capacity_items":4,"pressure":"exact host wake to bounded FIFO","fanout_branches":1,"fanout_mode":"none","slow_branches":"none","consumer_pattern":"none","session_mode":"persistent-exact-run-session","termination_request":"drain"},
+      "baseline": {"useful_outputs_per_second_median":1612605.4140001563,"p99_ns":1693.2199999999953,"p99_9_ns":8263.022000000012}
+    }
+  ],
+  "claim_boundary": "An alarm requests review of one matching machine-class measurement. Passing is not a deadline, admission, safety, portability, or general performance guarantee."
+}
