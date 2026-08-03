@@ -100,17 +100,17 @@ public final class ComparativeBenchmark {
         System.out.printf(Locale.ROOT,
             "{\"schema\":\"conduit.comparative-raw-sample\",\"schema_version\":0,\"fixture_revision\":0," +
             "\"runtime\":{\"id\":\"java-identity-loop\",\"comparison_role\":\"language-lower-bound\",\"version\":\"%s\",\"execution_mode\":\"single-threaded-for-loop\",\"build_profile\":\"JVM default\",\"scheduler\":\"none\",\"fusion\":\"not-applicable\",\"batching\":\"none\",\"concurrency\":1}," +
-            "\"workload\":{\"id\":\"%s\",\"operators\":%d,\"input_values\":%d,\"queue_capacity_items\":0,\"ordering\":\"ascending input order; merge boundary omitted\",\"pressure\":\"not-applicable\",\"terminal\":\"loop exhaustion\",\"loss\":\"none\"}," +
+            "\"workload\":{\"id\":\"%s\",\"operators\":%d,\"input_values\":%d,\"queue_capacity_items\":0,\"ordering\":\"ascending input order; merge boundary omitted\",\"pressure\":\"not-applicable\",\"terminal\":\"loop exhaustion\",\"loss\":\"none\",\"slow_consumer_yields\":0,\"recovery_after_outputs\":0}," +
             "\"exact_identity\":{\"logical_fixture\":\"comparative-local-depth/%s/%d/%d/%d/%d\",\"plan_identity\":null,\"source_semantic_hash\":null,\"artifact_digest\":null}," +
-            "\"sample_kind\":\"%s\",\"trial\":%d,\"thermal_state\":\"%s\",\"phases\":{\"assembly_ns\":%d,\"plan_seal_ns\":null,\"start_ns\":null,\"steady_ns\":%d}," +
-            "\"process_cpu_ns\":%d,\"accepted_values\":%d,\"useful_outputs\":%d," +
+            "\"sample_kind\":\"%s\",\"trial\":%d,\"thermal_state\":\"%s\",\"phases\":{\"assembly_ns\":%d,\"plan_seal_ns\":null,\"start_ns\":null,\"steady_ns\":%d,\"pressure_ns\":null,\"recovery_ns\":null}," +
+            "\"process_cpu_ns\":%d,\"outcomes\":{\"offered\":%d,\"admitted\":%d,\"completed_useful\":%d,\"rejected\":0,\"sampled\":0,\"coalesced\":0,\"dropped\":0,\"retried\":0,\"terminal\":1}," +
             "\"allocations\":{\"scope\":\"unavailable-without-JVM-agent\",\"calls\":null,\"bytes\":null}," +
             "\"memory\":{\"resident_before_bytes\":%s,\"resident_after_bytes\":%s,\"resident_peak_bytes\":%s,\"planned_memory_bytes\":null,\"executor_overhead_bytes\":null,\"queue_items_high_water\":null,\"queue_payload_bytes_high_water\":null,\"ready_slots_high_water\":null,\"evidence_slots_high_water\":null}," +
             "\"latency\":{\"clock\":\"System.nanoTime monotonic\",\"sample_stride\":%d,\"samples_ns\":%s}," +
             "\"semantic_notes\":[\"This no-framework Java loop is a language-cost lower bound, not a reactive-runtime competitor.\",\"It has no subscription, scheduler, demand, queue, evidence, or merge boundary and cannot support runtime claims.\"]}%n",
             System.getProperty("java.version"), workload, operators, values,
             workload, operators, values, queueItems, stride, sampleKind, trial, thermalState,
-            assemblyNs, steadyNs, cpuNs, acceptedValues, usefulOutputs, nullableLong(residentBefore),
+            assemblyNs, steadyNs, cpuNs, values, acceptedValues, usefulOutputs, nullableLong(residentBefore),
             nullableLong(residentAfter), nullableLong(residentPeak), stride, latencyJson(latencies));
     }
 
@@ -189,10 +189,10 @@ public final class ComparativeBenchmark {
         System.out.printf(Locale.ROOT,
             "{\"schema\":\"conduit.comparative-raw-sample\",\"schema_version\":0,\"fixture_revision\":0," +
             "\"runtime\":{\"id\":\"reactor-core\",\"comparison_role\":\"reactive-runtime\",\"version\":\"3.8.6\",\"execution_mode\":\"%s\",\"build_profile\":\"JVM default\",\"scheduler\":\"%s\",\"fusion\":\"implementation-default\",\"batching\":\"implementation-default\",\"concurrency\":1}," +
-            "\"workload\":{\"id\":\"%s\",\"operators\":%d,\"input_values\":%d,\"queue_capacity_items\":%d,\"ordering\":\"source order; merge uses Reactor merge ordering\",\"pressure\":\"%s\",\"terminal\":\"complete after all requested values drain\",\"loss\":\"none\"}," +
+            "\"workload\":{\"id\":\"%s\",\"operators\":%d,\"input_values\":%d,\"queue_capacity_items\":%d,\"ordering\":\"source order; merge uses Reactor merge ordering\",\"pressure\":\"%s\",\"terminal\":\"complete after all requested values drain\",\"loss\":\"none\",\"slow_consumer_yields\":0,\"recovery_after_outputs\":0}," +
             "\"exact_identity\":{\"logical_fixture\":\"comparative-local-depth/%s/%d/%d/%d/%d\",\"plan_identity\":null,\"source_semantic_hash\":null,\"artifact_digest\":null}," +
-            "\"sample_kind\":\"%s\",\"trial\":%d,\"thermal_state\":\"%s\",\"phases\":{\"assembly_ns\":%d,\"plan_seal_ns\":null,\"start_ns\":null,\"steady_ns\":%d}," +
-            "\"process_cpu_ns\":%d,\"accepted_values\":%d,\"useful_outputs\":%d," +
+            "\"sample_kind\":\"%s\",\"trial\":%d,\"thermal_state\":\"%s\",\"phases\":{\"assembly_ns\":%d,\"plan_seal_ns\":null,\"start_ns\":null,\"steady_ns\":%d,\"pressure_ns\":null,\"recovery_ns\":null}," +
+            "\"process_cpu_ns\":%d,\"outcomes\":{\"offered\":%d,\"admitted\":%d,\"completed_useful\":%d,\"rejected\":0,\"sampled\":0,\"coalesced\":0,\"dropped\":0,\"retried\":0,\"terminal\":1}," +
             "\"allocations\":{\"scope\":\"unavailable-without-JVM-agent\",\"calls\":null,\"bytes\":null}," +
             "\"memory\":{\"resident_before_bytes\":%s,\"resident_after_bytes\":%s,\"resident_peak_bytes\":%s,\"planned_memory_bytes\":null,\"executor_overhead_bytes\":null,\"queue_items_high_water\":null,\"queue_payload_bytes_high_water\":null,\"ready_slots_high_water\":null,\"evidence_slots_high_water\":null}," +
             "\"latency\":{\"clock\":\"System.nanoTime monotonic\",\"sample_stride\":%d,\"samples_ns\":%s},\"semantic_notes\":%s}%n",
@@ -200,7 +200,7 @@ public final class ComparativeBenchmark {
             scheduler, workload, operators, values, workload.equals("bounded-async") ? queueItems : 0,
             pressure, workload, operators, values, queueItems, stride,
             sampleKind, trial, thermalState, assemblyNs, steadyNs, cpuNs,
-            acceptedValues.get(), usefulOutputs, nullableLong(residentBefore), nullableLong(residentAfter),
+            values, acceptedValues.get(), usefulOutputs, nullableLong(residentBefore), nullableLong(residentAfter),
             nullableLong(residentPeak), stride, latencyJson(latencies), notes);
     }
 

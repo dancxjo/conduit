@@ -29,10 +29,10 @@ identity fields explicitly `null` instead of fabricating plan identities.
 
 ## What is compared
 
-Every case starts with the same integer domain, applies the same `+2` maps,
-uses parity-preserving filters, retains source ordering except for each
-runtime's reported merge policy, loses no accepted values, and observes the
-same terminal path. Depth means logical map/filter/merge operators; latency
+The local-depth cases start with the same integer domain, apply the same `+2`
+maps, use parity-preserving filters, retain source ordering except for each
+runtime's reported merge policy, lose no admitted values, and observe the same
+terminal path. Depth means logical map/filter/merge operators; latency
 observation taps and sinks are reported separately and are not counted as
 operators. Rust, JavaScript, and Java identity loops are emitted in separately
 labelled lower-bound tables. They isolate language-loop cost and are never
@@ -55,23 +55,45 @@ inventing demand. Reactor is the demand-aware comparison; its `publishOn`
 prefetch is pinned to the manifest queue capacity. Default fusion and batching
 are reported rather than disabled.
 
+The finite overload slice drives the Conduit reference scheduler through a
+single exact cord at capacities 4, 64, and 1,024. A consumer yields three
+bounded scheduler quanta per value until twice the cord capacity (or half of a
+short source) has completed, then clears the delay so the artifact contains
+separate pressure and recovery regions. It runs block, reject,
+latest-wins coalesce, deterministic sample, type-declared disposable drop,
+disconnect, and fail policies. The runner reports every policy outcome
+separately. A coalesced admission replaces one queued value and does not count
+as a useful completion; a sample-selected value that still cannot fit is a
+drop, distinct from schedule exclusion. Disconnect and fail stop at the first
+saturated offer and are terminal measurements, not throughput successes.
+
+This slice does not yet claim #245's fan-out or persistent-session matrix.
+RxJS overload remains unavailable because synchronous push has no matching
+demand-bounded queue. Reactor overload also remains unavailable until its
+demand, buffer, and loss mappings receive a semantic review; the existing
+local-depth `publishOn` case is not substituted for either comparison.
+
 ## Regions and metrics
 
 Assembly, exact-plan sealing where applicable, Start/subscription where it can
 be separated, and steady execution are distinct fields. A synchronous RxJS or
 Reactor subscription executes the graph inside the subscription call, so its
 Start time is `null`; fabricating a separate value would change the graph.
-Steady time, process CPU, resident memory, accepted inputs, useful outputs,
-queue/value/evidence high water, post-Start allocations, and sampled
-end-to-end latency accompany every repeat. Unsupported measurements remain
-`null` with a reason instead of being reported as zero.
+Steady time, process CPU, resident memory, outcome accounting,
+queue/value/evidence high water, post-Start allocations, and sampled end-to-end
+latency accompany every repeat. Outcomes always separate offered, admitted,
+completed-useful, rejected, sampled, coalesced, dropped, retried, and terminal
+values. Overload rows additionally split the slow pressure region from the
+recovery-to-terminal region. Unsupported measurements remain `null` with a
+reason instead of being reported as zero.
 
 The summary reports p50, p95, p99, p99.9, and maximum sampled latency. Useful
 outputs per second is summarized across at least nine measured repeats with a
 deterministic 10,000-resample percentile-bootstrap 95% interval. These noisy
 wall-clock values are report-only until a reviewed machine-class baseline and
-broad alarm are committed. Exact output counts, schema identity, bounded
-high-water facts, and Conduit's zero-allocation-after-Start result are strict
+broad alarm are committed. Exact output and loss conservation, schema identity,
+bounded high-water facts, presence of both overload regions where the policy
+does not terminate, and Conduit's zero-allocation-after-Start result are strict
 checks.
 
 ## Claim boundary

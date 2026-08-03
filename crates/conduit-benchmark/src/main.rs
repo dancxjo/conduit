@@ -13,12 +13,13 @@ use std::{
 use clap::{Parser, ValueEnum};
 use conduit_core::{
     ArtifactDigest, AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee,
-    Direction, ExecutionLimits, ExecutionPlan, ExecutionProfile, FlowCapacity, FlowPolicy,
-    FlowQueueState, FlowWatermarks, Id, ImplementationMachine, InstancePath, InstantiationContext,
-    LifecycleUsage, MemoryAccounting, MemoryCategory, MemoryClaim, PinnedDescriptor, PlanArtifact,
-    PlanHostObservation, PlanResourceBudget, PlanValidationContext, Pressure, ReadyQueueDiscipline,
-    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION,
-    SchedulerPolicy, SemanticHash, TypeContractRef,
+    CompatibilityOutcome, Direction, ExecutionLimits, ExecutionPlan, ExecutionProfile,
+    FlowCapacity, FlowPolicy, FlowQueueState, FlowTypeFacts, FlowWatermarks, Id,
+    ImplementationMachine, InstancePath, InstantiationContext, LifecycleUsage, MemoryAccounting,
+    MemoryCategory, MemoryClaim, PinnedDescriptor, PlanArtifact, PlanHostObservation,
+    PlanResourceBudget, PlanValidationContext, Pressure, ReadyQueueDiscipline, ResolvedPlanCord,
+    ResolvedPlanNode, ResolvedPlanPort, SCHEDULER_CONTRACT_VERSION, SampleSchedule,
+    SchedulerPolicy, SemanticHash, TraitProof, TypeContractRef,
 };
 use conduit_runtime::{
     DeterministicExecutor, RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerNode,
@@ -103,6 +104,7 @@ enum Workload {
     MapFilter,
     Merge,
     BoundedAsync,
+    Overload,
 }
 
 impl Workload {
@@ -112,6 +114,54 @@ impl Workload {
             Self::MapFilter => "map-filter",
             Self::Merge => "merge",
             Self::BoundedAsync => "bounded-async",
+            Self::Overload => "overload",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+enum PressurePolicy {
+    Block,
+    Reject,
+    Coalesce,
+    Sample,
+    DropDisposable,
+    Disconnect,
+    Fail,
+}
+
+impl PressurePolicy {
+    const fn id(self) -> &'static str {
+        match self {
+            Self::Block => "block",
+            Self::Reject => "reject",
+            Self::Coalesce => "coalesce",
+            Self::Sample => "sample",
+            Self::DropDisposable => "drop-disposable",
+            Self::Disconnect => "disconnect",
+            Self::Fail => "fail",
+        }
+    }
+
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Block => "block",
+            Self::Reject => "reject",
+            Self::Coalesce => "coalesce/latest-wins",
+            Self::Sample => "sample/every-2-offset-0",
+            Self::DropDisposable => "drop-disposable",
+            Self::Disconnect => "disconnect",
+            Self::Fail => "fail",
+        }
+    }
+
+    const fn loss(self) -> &'static str {
+        match self {
+            Self::Block | Self::Reject | Self::Disconnect | Self::Fail => "none",
+            Self::Coalesce => "replaced queued values are counted as coalesced",
+            Self::Sample => "schedule exclusions are sampled; selected saturation loss is dropped",
+            Self::DropDisposable => "type-proven disposable values are counted as dropped",
         }
     }
 }
@@ -135,6 +185,10 @@ struct Args {
     measured_trials: u32,
     #[arg(long)]
     identity_loop: bool,
+    #[arg(long, value_enum, default_value_t = PressurePolicy::Block)]
+    pressure_policy: PressurePolicy,
+    #[arg(long, default_value_t = 3)]
+    slow_consumer_yields: u32,
 }
 
 #[derive(Serialize)]
@@ -143,6 +197,8 @@ struct PhaseTimes {
     plan_seal_ns: Option<u64>,
     start_ns: Option<u64>,
     steady_ns: u64,
+    pressure_ns: Option<u64>,
+    recovery_ns: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -194,6 +250,8 @@ struct WorkloadIdentity {
     pressure: &'static str,
     terminal: &'static str,
     loss: &'static str,
+    slow_consumer_yields: u32,
+    recovery_after_outputs: u64,
 }
 
 #[derive(Serialize)]
@@ -202,6 +260,19 @@ struct ExactIdentity {
     plan_identity: Option<String>,
     source_semantic_hash: Option<String>,
     artifact_digest: Option<String>,
+}
+
+#[derive(Serialize)]
+struct OutcomeMeasurement {
+    offered: u64,
+    admitted: u64,
+    completed_useful: u64,
+    rejected: u64,
+    sampled: u64,
+    coalesced: u64,
+    dropped: u64,
+    retried: u64,
+    terminal: u64,
 }
 
 #[derive(Serialize)]
@@ -217,8 +288,7 @@ struct RawSample {
     thermal_state: &'static str,
     phases: PhaseTimes,
     process_cpu_ns: Option<u64>,
-    accepted_values: u64,
-    useful_outputs: u64,
+    outcomes: OutcomeMeasurement,
     allocations: AllocationMeasurement,
     memory: MemoryMeasurement,
     latency: LatencyMeasurement,
@@ -232,6 +302,13 @@ struct Observations {
     latencies: Rc<RefCell<Vec<u64>>>,
     accepted_values: Rc<Cell<u64>>,
     useful_outputs: Rc<Cell<u64>>,
+    offered: Rc<Cell<u64>>,
+    rejected: Rc<Cell<u64>>,
+    sampled: Rc<Cell<u64>>,
+    coalesced: Rc<Cell<u64>>,
+    dropped: Rc<Cell<u64>>,
+    retried: Rc<Cell<u64>>,
+    recovery_started: Rc<RefCell<Option<Instant>>>,
     stride: u64,
 }
 
@@ -241,6 +318,9 @@ enum BenchNode {
         end: u64,
         cord: usize,
         observations: Observations,
+        retrying: bool,
+        pressure: PressurePolicy,
+        queue_capacity: u64,
     },
     Map {
         input: usize,
@@ -260,6 +340,9 @@ enum BenchNode {
     Sink {
         input: usize,
         observations: Observations,
+        slow_consumer_yields: u32,
+        yields_remaining: u32,
+        recovery_after_outputs: u64,
     },
 }
 
@@ -279,12 +362,18 @@ impl SchedulerNode for BenchNode {
                 end,
                 cord,
                 observations,
+                retrying,
+                pressure,
+                queue_capacity,
             } => {
                 if *next == *end {
                     return SchedulerStep::Completed;
                 }
                 let index = *next;
-                if index % observations.stride == 0 {
+                if !*retrying {
+                    observations.offered.set(observations.offered.get() + 1);
+                }
+                if !*retrying && index % observations.stride == 0 {
                     let sample = usize::try_from(index / observations.stride).unwrap();
                     observations.starts.borrow_mut()[sample] = Some(Instant::now());
                 }
@@ -293,20 +382,57 @@ impl SchedulerNode for BenchNode {
                     accounted_bytes: 8,
                     envelope: RuntimeValueEnvelope::EMPTY,
                 };
-                match io.send(*cord, value, None) {
+                let outstanding = observations
+                    .accepted_values
+                    .get()
+                    .saturating_sub(observations.coalesced.get())
+                    .saturating_sub(observations.useful_outputs.get());
+                let coalesce_target = matches!(pressure, PressurePolicy::Coalesce).then_some(0);
+                match io.send(*cord, value, coalesce_target) {
                     Ok(SendStatus::Reserved) => {
                         *next += 1;
+                        *retrying = false;
                         observations
                             .accepted_values
                             .set(observations.accepted_values.get() + 1);
+                        if matches!(pressure, PressurePolicy::Coalesce)
+                            && outstanding >= *queue_capacity
+                        {
+                            observations.coalesced.set(observations.coalesced.get() + 1);
+                        }
                         SchedulerStep::Progress
                     }
                     Ok(SendStatus::WouldBlock) => {
+                        observations.retried.set(observations.retried.get() + 1);
+                        *retrying = true;
                         io.wait_for_output(*cord).unwrap();
                         SchedulerStep::Pending
                     }
-                    _ => SchedulerStep::Failed {
-                        code: Id("benchmark/source-output-rejected"),
+                    Ok(SendStatus::Rejected) => {
+                        observations.rejected.set(observations.rejected.get() + 1);
+                        *next += 1;
+                        *retrying = false;
+                        SchedulerStep::Progress
+                    }
+                    Ok(SendStatus::Dropped) => {
+                        let counter =
+                            if matches!(pressure, PressurePolicy::Sample) && index % 2 != 0 {
+                                &observations.sampled
+                            } else {
+                                &observations.dropped
+                            };
+                        counter.set(counter.get() + 1);
+                        *next += 1;
+                        *retrying = false;
+                        SchedulerStep::Progress
+                    }
+                    Ok(SendStatus::Disconnected) => SchedulerStep::Completed,
+                    Ok(SendStatus::Failed) => SchedulerStep::Failed {
+                        code: Id("benchmark/pressure-failed"),
+                    },
+                    Ok(SendStatus::Terminated) => SchedulerStep::Completed,
+                    Err(_) => SchedulerStep::Failed {
+                        code: Id("benchmark/source-send-error"),
                     },
                 }
             }
@@ -408,30 +534,47 @@ impl SchedulerNode for BenchNode {
             Self::Sink {
                 input,
                 observations,
-            } => match io.receive(*input) {
-                Ok(Some(value)) => {
-                    observations
-                        .useful_outputs
-                        .set(observations.useful_outputs.get() + 1);
-                    if value.handle % observations.stride == 0 {
-                        let sample = usize::try_from(value.handle / observations.stride).unwrap();
-                        if let Some(start) = observations.starts.borrow()[sample] {
-                            observations
-                                .latencies
-                                .borrow_mut()
-                                .push(start.elapsed().as_nanos() as u64);
+                slow_consumer_yields,
+                yields_remaining,
+                recovery_after_outputs,
+            } => {
+                if observations.useful_outputs.get() < *recovery_after_outputs
+                    && *yields_remaining > 0
+                {
+                    *yields_remaining -= 1;
+                    io.consume_work(LIMITS.max_step_work).unwrap();
+                    return SchedulerStep::Yielded;
+                }
+                match io.receive(*input) {
+                    Ok(Some(value)) => {
+                        observations
+                            .useful_outputs
+                            .set(observations.useful_outputs.get() + 1);
+                        if observations.useful_outputs.get() == *recovery_after_outputs {
+                            *observations.recovery_started.borrow_mut() = Some(Instant::now());
                         }
+                        if value.handle % observations.stride == 0 {
+                            let sample =
+                                usize::try_from(value.handle / observations.stride).unwrap();
+                            if let Some(start) = observations.starts.borrow()[sample] {
+                                observations
+                                    .latencies
+                                    .borrow_mut()
+                                    .push(start.elapsed().as_nanos() as u64);
+                            }
+                        }
+                        *yields_remaining = *slow_consumer_yields;
+                        SchedulerStep::Progress
                     }
-                    SchedulerStep::Progress
+                    _ if matches!(io.input_state(*input), Ok(FlowQueueState::Completed)) => {
+                        SchedulerStep::Completed
+                    }
+                    _ => {
+                        io.wait_for_input(*input).unwrap();
+                        SchedulerStep::Pending
+                    }
                 }
-                _ if matches!(io.input_state(*input), Ok(FlowQueueState::Completed)) => {
-                    SchedulerStep::Completed
-                }
-                _ => {
-                    io.wait_for_input(*input).unwrap();
-                    SchedulerStep::Pending
-                }
-            },
+            }
         }
     }
 }
@@ -448,6 +591,16 @@ fn semantic_digest(parts: &[&str]) -> SemanticHash {
         digest.update(part.as_bytes());
     }
     SemanticHash::from_bytes(digest.finalize().into())
+}
+
+fn recovery_after_outputs(args: &Args) -> u64 {
+    if matches!(args.workload, Workload::Overload) {
+        (u64::from(args.queue_items) * 2)
+            .min(args.values / 2)
+            .max(1)
+    } else {
+        0
+    }
 }
 
 fn current_binary_digest() -> ArtifactDigest {
@@ -523,6 +676,7 @@ struct PreparedRun {
 fn prepare(args: &Args) -> PreparedRun {
     assert!(args.operators > 0, "operators must be positive");
     assert!(args.values > 0, "values must be positive");
+    assert!(args.queue_items > 0, "queue capacity must be positive");
     assert!(
         args.latency_sample_stride > 0,
         "sample stride must be positive"
@@ -531,6 +685,18 @@ fn prepare(args: &Args) -> PreparedRun {
         !matches!(args.workload, Workload::BoundedAsync),
         "the single-lane reference executor cannot claim an asynchronous boundary"
     );
+    if matches!(args.workload, Workload::Overload) {
+        assert_eq!(args.operators, 1, "overload uses one source/sink boundary");
+        assert!(
+            args.slow_consumer_yields > 0,
+            "overload requires a slow consumer region"
+        );
+    } else {
+        assert!(
+            matches!(args.pressure_policy, PressurePolicy::Block),
+            "local-depth workloads use the fixed FIFO block policy"
+        );
+    }
 
     let assembly_started = Instant::now();
     let profile = Box::leak(Box::new(profile()));
@@ -552,12 +718,20 @@ fn prepare(args: &Args) -> PreparedRun {
         latencies: Rc::new(RefCell::new(Vec::with_capacity(sample_count))),
         accepted_values: Rc::new(Cell::new(0)),
         useful_outputs: Rc::new(Cell::new(0)),
+        offered: Rc::new(Cell::new(0)),
+        rejected: Rc::new(Cell::new(0)),
+        sampled: Rc::new(Cell::new(0)),
+        coalesced: Rc::new(Cell::new(0)),
+        dropped: Rc::new(Cell::new(0)),
+        retried: Rc::new(Cell::new(0)),
+        recovery_started: Rc::new(RefCell::new(None)),
         stride: args.latency_sample_stride,
     };
     assert_eq!(observations.values.borrow().len(), value_count);
 
     let transform_count = match args.workload {
         Workload::Merge => args.operators.saturating_sub(1),
+        Workload::Overload => 0,
         _ => args.operators,
     };
     let mut node_roles = if matches!(args.workload, Workload::Merge) {
@@ -608,12 +782,37 @@ fn prepare(args: &Args) -> PreparedRun {
 
     let capacity =
         FlowCapacity::new(args.queue_items, 16, u64::from(args.queue_items) * 16).unwrap();
+    let pressure = if matches!(args.workload, Workload::Overload) {
+        match args.pressure_policy {
+            PressurePolicy::Block => Pressure::Block(BlockingFairness::Fifo),
+            PressurePolicy::Reject => Pressure::Reject,
+            PressurePolicy::Coalesce => Pressure::Coalesce {
+                relation: Id("benchmark/latest-wins"),
+            },
+            PressurePolicy::Sample => Pressure::Sample(SampleSchedule::new(2, 0).unwrap()),
+            PressurePolicy::DropDisposable => Pressure::DropDisposable,
+            PressurePolicy::Disconnect => Pressure::Disconnect,
+            PressurePolicy::Fail => Pressure::Fail,
+        }
+    } else {
+        Pressure::Block(BlockingFairness::Fifo)
+    };
     let flow = FlowPolicy::new(
         capacity,
-        Pressure::Block(BlockingFairness::Fifo),
+        pressure,
         FlowWatermarks::new(0, args.queue_items, capacity).unwrap(),
     )
     .unwrap();
+    let coalescers = [Id("benchmark/latest-wins")];
+    let type_facts = FlowTypeFacts {
+        disposable: TraitProof::Proven,
+        coalescers: Some(&coalescers),
+    };
+    assert_eq!(
+        flow.assess_type_facts(type_facts).outcome,
+        CompatibilityOutcome::Compatible,
+        "the exact benchmark value type must prove every selected loss policy"
+    );
     let port = |node: &ResolvedPlanNode<'static>, direction, name| ResolvedPlanPort {
         node: node.instance,
         port: Id(name),
@@ -649,12 +848,18 @@ fn prepare(args: &Args) -> PreparedRun {
             end: split,
             cord: 0,
             observations: observations.clone(),
+            retrying: false,
+            pressure: args.pressure_policy,
+            queue_capacity: u64::from(args.queue_items),
         });
         drivers.push(BenchNode::Source {
             next: split,
             end: args.values,
             cord: 1,
             observations: observations.clone(),
+            retrying: false,
+            pressure: args.pressure_policy,
+            queue_capacity: u64::from(args.queue_items),
         });
         drivers.push(BenchNode::Merge {
             inputs: [0, 1],
@@ -691,6 +896,9 @@ fn prepare(args: &Args) -> PreparedRun {
         drivers.push(BenchNode::Sink {
             input: previous_cord,
             observations: observations.clone(),
+            slow_consumer_yields: 0,
+            yields_remaining: 0,
+            recovery_after_outputs: 0,
         });
     } else {
         drivers.push(BenchNode::Source {
@@ -698,6 +906,9 @@ fn prepare(args: &Args) -> PreparedRun {
             end: args.values,
             cord: 0,
             observations: observations.clone(),
+            retrying: false,
+            pressure: args.pressure_policy,
+            queue_capacity: u64::from(args.queue_items),
         });
         for transform in 0..transform_count {
             let from = transform;
@@ -735,6 +946,17 @@ fn prepare(args: &Args) -> PreparedRun {
         drivers.push(BenchNode::Sink {
             input: transform_count,
             observations: observations.clone(),
+            slow_consumer_yields: if matches!(args.workload, Workload::Overload) {
+                args.slow_consumer_yields
+            } else {
+                0
+            },
+            yields_remaining: if matches!(args.workload, Workload::Overload) {
+                args.slow_consumer_yields
+            } else {
+                0
+            },
+            recovery_after_outputs: recovery_after_outputs(args),
         });
     }
 
@@ -752,10 +974,13 @@ fn prepare(args: &Args) -> PreparedRun {
                 Workload::MapFilter => "map-filter",
                 Workload::Merge => "merge",
                 Workload::BoundedAsync => "bounded-async",
+                Workload::Overload => "overload",
             },
             &args.operators.to_string(),
             &args.values.to_string(),
             &args.queue_items.to_string(),
+            args.pressure_policy.as_str(),
+            &args.slow_consumer_yields.to_string(),
         ]),
         resolver: pin("benchmark/resolver", "resolver"),
         resolver_policy_hash: semantic_digest(&["resolver-policy", "exact-local-reference"]),
@@ -884,23 +1109,48 @@ fn run_sample(
     ALLOCATED_BYTES.store(0, Ordering::Relaxed);
     MEASURING.store(true, Ordering::SeqCst);
     let steady_started = Instant::now();
+    let mut execution_error = None;
     let status = loop {
-        let status = executor.run_one().unwrap();
+        let status = match executor.run_one() {
+            Ok(status) => status,
+            Err(error) => {
+                execution_error = Some(error);
+                break None;
+            }
+        };
         if executor.event_count() >= 768 {
             executor
                 .acknowledge_events_through(executor.next_event_cursor())
                 .unwrap();
         }
         if !matches!(status, SchedulerStatus::Running) {
-            break status;
+            break Some(status);
         }
     };
     let steady_ns = steady_started.elapsed().as_nanos() as u64;
+    let recovery_ns = prepared
+        .observations
+        .recovery_started
+        .borrow()
+        .map(|started| started.elapsed().as_nanos() as u64);
     MEASURING.store(false, Ordering::SeqCst);
     let cpu_ns = process_cpu_ns()
         .zip(cpu_before)
         .map(|(after, before)| after - before);
-    assert_eq!(status, SchedulerStatus::Succeeded);
+    if matches!(args.workload, Workload::Overload)
+        && matches!(args.pressure_policy, PressurePolicy::Fail)
+    {
+        assert!(execution_error.is_some());
+    } else {
+        assert!(execution_error.is_none());
+        if matches!(args.workload, Workload::Overload)
+            && matches!(args.pressure_policy, PressurePolicy::Disconnect)
+        {
+            assert_eq!(status, Some(SchedulerStatus::Disconnected));
+        } else {
+            assert_eq!(status, Some(SchedulerStatus::Succeeded));
+        }
+    }
     let high_water = executor.high_water();
     RawSample {
         schema: "conduit.comparative-raw-sample",
@@ -922,19 +1172,52 @@ fn run_sample(
             input_values: args.values,
             queue_capacity_items: args.queue_items,
             ordering: "source-order; merge uses retained round-robin",
-            pressure: "bounded FIFO block",
-            terminal: "complete after all accepted values drain",
-            loss: "none",
+            pressure: if matches!(args.workload, Workload::Overload) {
+                args.pressure_policy.as_str()
+            } else {
+                "bounded FIFO block"
+            },
+            terminal: if matches!(args.workload, Workload::Overload) {
+                match args.pressure_policy {
+                    PressurePolicy::Disconnect => "disconnect on first saturated offer",
+                    PressurePolicy::Fail => "fail execution on first saturated offer",
+                    _ => "complete after admitted values drain",
+                }
+            } else {
+                "complete after all admitted values drain"
+            },
+            loss: if matches!(args.workload, Workload::Overload) {
+                args.pressure_policy.loss()
+            } else {
+                "none"
+            },
+            slow_consumer_yields: if matches!(args.workload, Workload::Overload) {
+                args.slow_consumer_yields
+            } else {
+                0
+            },
+            recovery_after_outputs: recovery_after_outputs(args),
         },
         exact_identity: ExactIdentity {
-            logical_fixture: format!(
-                "comparative-local-depth/{}/{}/{}/{}/{}",
-                args.workload.as_str(),
-                args.operators,
-                args.values,
-                args.queue_items,
-                args.latency_sample_stride
-            ),
+            logical_fixture: if matches!(args.workload, Workload::Overload) {
+                format!(
+                    "comparative-overload/{}/{}/{}/{}/{}",
+                    args.pressure_policy.id(),
+                    args.values,
+                    args.queue_items,
+                    args.slow_consumer_yields,
+                    args.latency_sample_stride
+                )
+            } else {
+                format!(
+                    "comparative-local-depth/{}/{}/{}/{}/{}",
+                    args.workload.as_str(),
+                    args.operators,
+                    args.values,
+                    args.queue_items,
+                    args.latency_sample_stride
+                )
+            },
             plan_identity: Some(prepared.plan.identity.to_string()),
             source_semantic_hash: Some(prepared.plan.source_semantic_hash.to_string()),
             artifact_digest: Some(prepared.plan.artifacts[0].digest.to_string()),
@@ -947,10 +1230,21 @@ fn run_sample(
             plan_seal_ns: Some(prepared.seal_ns),
             start_ns: Some(start_ns),
             steady_ns,
+            pressure_ns: recovery_ns.map(|recovery| steady_ns.saturating_sub(recovery)),
+            recovery_ns,
         },
         process_cpu_ns: cpu_ns,
-        accepted_values: prepared.observations.accepted_values.get(),
-        useful_outputs: prepared.observations.useful_outputs.get(),
+        outcomes: OutcomeMeasurement {
+            offered: prepared.observations.offered.get(),
+            admitted: prepared.observations.accepted_values.get(),
+            completed_useful: prepared.observations.useful_outputs.get(),
+            rejected: prepared.observations.rejected.get(),
+            sampled: prepared.observations.sampled.get(),
+            coalesced: prepared.observations.coalesced.get(),
+            dropped: prepared.observations.dropped.get(),
+            retried: prepared.observations.retried.get(),
+            terminal: 1,
+        },
         allocations: AllocationMeasurement {
             scope: "after-start-through-terminal",
             calls: ALLOCATION_CALLS.load(Ordering::Relaxed),
@@ -974,7 +1268,11 @@ fn run_sample(
         },
         semantic_notes: [
             "The public deterministic executor validates and preallocates the exact plan; timed execution does not disable contract checks.",
-            "The handle-backed u64 fixture isolates scheduler cost and is not the optimized hosted streaming mode, which is not yet available.",
+            if matches!(args.workload, Workload::Overload) {
+                "The pinned benchmark value type proves disposability and the exact latest-wins coalescer before the pressure plan is sealed."
+            } else {
+                "The handle-backed u64 fixture isolates scheduler cost and is not the optimized hosted streaming mode, which is not yet available."
+            },
         ],
     }
 }
@@ -1062,6 +1360,8 @@ fn run_identity_sample(
             pressure: "not-applicable",
             terminal: "loop exhaustion",
             loss: "none",
+            slow_consumer_yields: 0,
+            recovery_after_outputs: 0,
         },
         exact_identity: ExactIdentity {
             logical_fixture: format!(
@@ -1084,10 +1384,21 @@ fn run_identity_sample(
             plan_seal_ns: None,
             start_ns: None,
             steady_ns,
+            pressure_ns: None,
+            recovery_ns: None,
         },
         process_cpu_ns: cpu_ns,
-        accepted_values,
-        useful_outputs,
+        outcomes: OutcomeMeasurement {
+            offered: args.values,
+            admitted: accepted_values,
+            completed_useful: useful_outputs,
+            rejected: 0,
+            sampled: 0,
+            coalesced: 0,
+            dropped: 0,
+            retried: 0,
+            terminal: 1,
+        },
         allocations: AllocationMeasurement {
             scope: "steady-loop",
             calls: ALLOCATION_CALLS.load(Ordering::Relaxed),

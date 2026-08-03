@@ -2,11 +2,18 @@
   "schema": "conduit.comparative-benchmark-manifest",
   "schema_version": 0,
   "fixture_revision": 0,
-  "issue": 243,
+  "issues": [243, 245],
   "values": 1000000,
   "operator_depths": [1, 8, 32],
   "workloads": ["map", "map-filter", "merge", "bounded-async"],
   "queue_capacity_items": 256,
+  "overload": {
+    "queue_capacity_items": [4, 64, 1024],
+    "pressure_policies": ["block", "reject", "coalesce", "sample", "drop-disposable", "disconnect", "fail"],
+    "slow_consumer_yields": 3,
+    "fanout": [1],
+    "scope": "finite exact-run single-cord pressure and recovery; fan-out and persistent sessions remain unavailable in this slice"
+  },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
   "measured_trials": 9,
@@ -53,11 +60,16 @@
   ],
   "strict_invariants": [
     "every runner emits the current raw-sample schema and fixture revision",
-    "accepted values equal configured input values",
+    "offered and admitted values equal configured input values for the lossless local-depth fixtures",
+    "offered, admitted, completed-useful, rejected, sampled, coalesced, dropped, retried, and terminal outcomes are always reported separately",
+    "bounded FIFO retries in local-depth fixtures are reported and do not change admitted or completed-useful counts",
     "map, merge, and bounded-async complete one useful output per input",
     "map-filter completes one useful output per input until it contains a filter, then exactly half for the even input cardinality",
     "all sampled values have a positive latency",
-    "Conduit does not allocate after Start and never exceeds its exact queue, value, or evidence reservation"
+    "Conduit does not allocate after Start and never exceeds its exact queue, value, or evidence reservation",
+    "overload queue item high water never exceeds the declared capacity",
+    "overload accounting conserves offered values according to the exact pressure policy",
+    "block, reject, coalesce, sample, and disposable-drop fixtures enter a slow region and then clear into a recovery region"
   ],
   "wall_clock_policy": {
     "gate": "report-only until a reviewed machine-class baseline exists",

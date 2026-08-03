@@ -15,6 +15,7 @@ warmups=${CONDUIT_BENCHMARK_WARMUPS:-$(jq -r .warmup_trials "$manifest")}
 trials=${CONDUIT_BENCHMARK_TRIALS:-$(jq -r .measured_trials "$manifest")}
 stride=$(jq -r .latency_sample_stride "$manifest")
 queue=$(jq -r .queue_capacity_items "$manifest")
+overload_slow_yields=$(jq -r .overload.slow_consumer_yields "$manifest")
 
 mkdir -p "$output_dir"
 for artifact in "$raw" "$summary" "$metadata" "$report" "$commands"; do
@@ -86,6 +87,21 @@ for workload in $(jq -r '.workloads[]' "$manifest"); do
       record_raw node "$javascript_runtime/run.mjs" "${common[@]}" --identity-loop
       record_raw java -cp "$output_dir/classes:$output_dir/dependencies/*" ComparativeBenchmark "${common[@]}" --identity-loop
     fi
+  done
+done
+
+for capacity in $(jq -r '.overload.queue_capacity_items[]' "$manifest"); do
+  for pressure in $(jq -r '.overload.pressure_policies[]' "$manifest"); do
+    record_raw "$workspace_root/target/release/conduit-benchmark" \
+      --workload overload \
+      --operators 1 \
+      --values "$values" \
+      --queue-items "$capacity" \
+      --latency-sample-stride "$stride" \
+      --warmup-trials "$warmups" \
+      --measured-trials "$trials" \
+      --pressure-policy "$pressure" \
+      --slow-consumer-yields "$overload_slow_yields"
   done
 done
 

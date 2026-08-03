@@ -69,7 +69,7 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
     assert_eq!(manifest["schema"], "conduit.comparative-benchmark-manifest");
     assert_eq!(manifest["schema_version"], 0);
     assert_eq!(manifest["fixture_revision"], 0);
-    assert_eq!(manifest["issue"], 243);
+    assert_eq!(manifest["issues"], serde_json::json!([243, 245]));
     assert_eq!(manifest["values"], 1_000_000);
     assert_eq!(manifest["operator_depths"], serde_json::json!([1, 8, 32]));
     assert_eq!(
@@ -78,6 +78,23 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
     );
     assert_eq!(manifest["warmup_trials"], 2);
     assert_eq!(manifest["measured_trials"], 9);
+    assert_eq!(
+        manifest["overload"]["queue_capacity_items"],
+        serde_json::json!([4, 64, 1024])
+    );
+    assert_eq!(
+        manifest["overload"]["pressure_policies"],
+        serde_json::json!([
+            "block",
+            "reject",
+            "coalesce",
+            "sample",
+            "drop-disposable",
+            "disconnect",
+            "fail"
+        ])
+    );
+    assert_eq!(manifest["overload"]["fanout"], serde_json::json!([1]));
     assert_eq!(
         manifest["wall_clock_policy"]["gate"],
         "report-only until a reviewed machine-class baseline exists"
@@ -117,6 +134,27 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             .unwrap()
             .iter()
             .any(|field| field == "sample_kind")
+    );
+    assert!(
+        schema["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "outcomes")
+    );
+    assert_eq!(
+        schema["properties"]["outcomes"]["required"],
+        serde_json::json!([
+            "offered",
+            "admitted",
+            "completed_useful",
+            "rejected",
+            "sampled",
+            "coalesced",
+            "dropped",
+            "retried",
+            "terminal"
+        ])
     );
     assert_eq!(
         rxjs_lock["packages"]["node_modules/rxjs"]["version"],
