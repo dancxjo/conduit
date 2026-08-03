@@ -26,47 +26,71 @@ fn run_cmd(cmd: &[&str], cwd: &Path, capture: bool) -> Result<String, String> {
     }
 }
 
-fn one_artifact(pattern_dir: &Path, prefix: &str, suffix: &str) -> Result<PathBuf, String> {
-    let mut matches = Vec::new();
-    if let Ok(entries) = fs::read_dir(pattern_dir) {
-        for entry in entries.flatten() {
-            let name = entry.file_name();
-            let s = name.to_string_lossy();
-            if s.starts_with(prefix) && s.ends_with(suffix) {
-                if let Ok(meta) = entry.metadata() {
-                    matches.push((entry.path(), meta.modified().ok()));
-                }
-            }
-        }
+fn cargo_build_messages(args: &[&str], cwd: &Path) -> Result<Vec<Value>, String> {
+    let output = Command::new("cargo")
+        .args(args)
+        .arg("--message-format=json-render-diagnostics")
+        .current_dir(cwd)
+        .output()
+        .map_err(|error| format!("failed to execute Cargo build: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "Cargo build failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
-    matches.sort_by_key(|m| m.1);
-    matches.last().map(|m| m.0.clone()).ok_or_else(|| {
-        format!(
-            "missing built artifact matching {prefix}*{suffix} in {}",
-            pattern_dir.display()
-        )
-    })
+    Ok(String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter_map(|line| serde_json::from_str(line).ok())
+        .collect())
+}
+
+fn cargo_artifact(
+    messages: &[Value],
+    target_name: &str,
+    target_kind: &str,
+    suffix: &str,
+) -> Result<PathBuf, String> {
+    messages
+        .iter()
+        .filter(|message| {
+            message.get("reason").and_then(Value::as_str) == Some("compiler-artifact")
+        })
+        .filter(|message| {
+            message.pointer("/target/name").and_then(Value::as_str) == Some(target_name)
+        })
+        .filter(|message| {
+            message
+                .pointer("/target/kind")
+                .and_then(Value::as_array)
+                .is_some_and(|kinds| kinds.iter().any(|kind| kind.as_str() == Some(target_kind)))
+        })
+        .flat_map(|message| {
+            message
+                .get("filenames")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+        })
+        .filter_map(Value::as_str)
+        .find(|filename| filename.ends_with(suffix))
+        .map(PathBuf::from)
+        .ok_or_else(|| {
+            format!(
+                "Cargo did not report the {target_name} {target_kind} artifact ending in {suffix}"
+            )
+        })
 }
 
 fn build_artifacts(
     workspace_root: &Path,
 ) -> Result<std::collections::BTreeMap<String, PathBuf>, String> {
-    run_cmd(
-        &[
-            "cargo",
-            "build",
-            "--release",
-            "-p",
-            "conduct",
-            "-p",
-            "conduit-core",
-        ],
+    let host_messages = cargo_build_messages(
+        &["build", "--release", "-p", "conduct", "-p", "conduit-core"],
         workspace_root,
-        false,
     )?;
-    run_cmd(
+    let thumb_messages = cargo_build_messages(
         &[
-            "cargo",
             "build",
             "--release",
             "-p",
@@ -76,20 +100,11 @@ fn build_artifacts(
             "thumbv6m-none-eabi",
         ],
         workspace_root,
-        false,
     )?;
 
     let conduct_bin = workspace_root.join("target/release/conduct");
-    let core_rlib = one_artifact(
-        &workspace_root.join("target/release/deps"),
-        "libconduit_core-",
-        ".rlib",
-    )?;
-    let thumb_rlib = one_artifact(
-        &workspace_root.join("target/thumbv6m-none-eabi/release/deps"),
-        "libconduit_core-",
-        ".rlib",
-    )?;
+    let core_rlib = cargo_artifact(&host_messages, "conduit_core", "lib", ".rlib")?;
+    let thumb_rlib = cargo_artifact(&thumb_messages, "conduit_core", "lib", ".rlib")?;
 
     let mut res = std::collections::BTreeMap::new();
     res.insert("conduct-release".to_string(), conduct_bin);
@@ -347,7 +362,7 @@ pub fn run(workspace_root: &Path, update: bool) -> Result<(), Box<dyn std::error
 
 #[cfg(test)]
 mod tests {
-    use super::workload_test_targets;
+    use super::{cargo_artifact, workload_test_targets};
     use serde_json::json;
     use std::collections::{BTreeMap, BTreeSet};
 
@@ -387,6 +402,32 @@ mod tests {
         assert_eq!(
             workload_test_targets(workloads.as_array().unwrap()),
             expected
+        );
+    }
+
+    #[test]
+    fn selects_the_artifact_reported_by_the_exact_cargo_build() {
+        let messages = json!([
+            {
+                "reason": "compiler-artifact",
+                "target": { "name": "conduit_core", "kind": ["lib"] },
+                "filenames": [
+                    "/workspace/target/release/deps/libconduit_core-current.rlib",
+                    "/workspace/target/release/deps/libconduit_core-current.rmeta"
+                ]
+            },
+            {
+                "reason": "compiler-artifact",
+                "target": { "name": "unrelated", "kind": ["lib"] },
+                "filenames": [
+                    "/workspace/target/release/deps/libconduit_core-newer-stale.rlib"
+                ]
+            }
+        ]);
+
+        assert_eq!(
+            cargo_artifact(messages.as_array().unwrap(), "conduit_core", "lib", ".rlib").unwrap(),
+            std::path::PathBuf::from("/workspace/target/release/deps/libconduit_core-current.rlib")
         );
     }
 }
