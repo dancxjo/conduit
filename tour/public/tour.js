@@ -6,6 +6,7 @@ import init, {
   parse_panel,
   patchbay_apply_transaction,
   patchbay_open_session,
+  patchbay_request_resource_binding,
 } from "./conduit_web.js";
 import { PatchbayReactFlowRenderer } from "./patchbay-renderer.js";
 import { patchbayFeatures } from "./patchbay-features.js";
@@ -260,6 +261,8 @@ let selectedNode = null;
 let selectedCord = null;
 let positions = {};
 let patchbaySessionId = "";
+let resourceBindingCommands = [];
+const MAXIMUM_RESOURCE_BINDING_COMMANDS = 64;
 let patchbaySourceRevision = 0;
 let patchbayPresentationRevision = 0;
 let patchbayView = null;
@@ -1624,7 +1627,17 @@ function renderStructuredTopology() {
 
 function openPatchbaySession() {
   patchbaySessionId = `tour/${current.id}`;
-  const opened = JSON.parse(patchbay_open_session(
+  const storageKey = `conduit.protected-site-bindings/${current.id}`;
+  try {
+    const stored = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    resourceBindingCommands = Array.isArray(stored) &&
+      stored.length <= MAXIMUM_RESOURCE_BINDING_COMMANDS
+      ? stored
+      : [];
+  } catch {
+    resourceBindingCommands = [];
+  }
+  let opened = JSON.parse(patchbay_open_session(
     patchbaySessionId,
     acceptedSource,
     current.task_front ? JSON.stringify(current.task_front) : "",
@@ -1634,6 +1647,23 @@ function openPatchbaySession() {
     updateCytoscapeGraph();
     result.textContent = opened.diagnostic;
     return false;
+  }
+  for (const command of resourceBindingCommands) {
+    const replayed = JSON.parse(patchbay_request_resource_binding(
+      patchbaySessionId,
+      JSON.stringify(command),
+    ));
+    if (!replayed.ok) {
+      resourceBindingCommands = [];
+      localStorage.removeItem(storageKey);
+      opened = JSON.parse(patchbay_open_session(
+        patchbaySessionId,
+        acceptedSource,
+        current.task_front ? JSON.stringify(current.task_front) : "",
+      ));
+      break;
+    }
+    opened.view = replayed.view;
   }
   patchbayView = opened.view;
   patchbaySourceRevision = opened.view.source.revision;
@@ -1773,6 +1803,130 @@ function taskFrontEditValue(control, rawValue, checked = false) {
   return { kind: "text", value: rawValue };
 }
 
+async function requestResourceBinding(control, action) {
+  const provider = (patchbayView?.resource_selection_providers || []).find(
+    (candidate) => candidate.kind === "deterministic-memory" &&
+      candidate.state === "available",
+  );
+  const slot = (patchbayView?.protected_bindings?.slots || []).find(
+    (candidate) => candidate.id === control.target,
+  );
+  if (!patchbaySessionId || !provider || !slot) return;
+  if (resourceBindingCommands.length >= MAXIMUM_RESOURCE_BINDING_COMMANDS) {
+    result.textContent = "CND-BND-003: finite resource-binding command history exhausted.";
+    return;
+  }
+  const selectionAccess = (slot.selection_access || []).find(
+    (profile) => profile.operation === action,
+  )?.access;
+  const completingSelection = control.binding_state === "selection-pending" &&
+    ["choose", "create-new", "replace-existing"].includes(action);
+  const command = {
+    request: {
+      protocol_version: 0,
+      request_id: `conduit.request/r${crypto.randomUUID()}`,
+      operation_id: slot.pending_operation_id || "conduit.operation/resource-binding",
+      slot_id: slot.id,
+      expected_binding_revision: slot.binding_revision,
+      provider_id: provider.id,
+      provider_generation: provider.generation,
+      action,
+      requested_access: selectionAccess || slot.required_access || [],
+    },
+  };
+  if (slot.pending_request_id && (completingSelection || action === "cancel")) {
+    command.request.selection_request_id = slot.pending_request_id;
+  }
+  if (completingSelection) {
+    command.choice = slot.id.endsWith("source-file")
+      ? "bounded-input"
+      : "bounded-output";
+  }
+  const response = JSON.parse(patchbay_request_resource_binding(
+    patchbaySessionId,
+    JSON.stringify(command),
+  ));
+  if (!response.ok) {
+    result.textContent = response.diagnostic || response.code ||
+      "Resource binding request was rejected.";
+    if (response.view) applyResourceBindingProjection(response.view);
+    return;
+  }
+  resourceBindingCommands.push(command);
+  localStorage.setItem(
+    `conduit.protected-site-bindings/${current.id}`,
+    JSON.stringify(resourceBindingCommands),
+  );
+  applyResourceBindingProjection(response.view);
+  result.textContent = response.binding_receipt?.explanation ||
+    "Protected resource binding updated.";
+}
+
+function applyResourceBindingProjection(projection) {
+  if (!projection?.source || !projection.semantic || !projection.presentation ||
+      (projection.evidence !== undefined && !Array.isArray(projection.evidence))) {
+    throw new Error("CND-PBY-009: incomplete resource-binding projection");
+  }
+  patchbayView = { ...projection, evidence: projection.evidence || [] };
+  patchbaySourceRevision = projection.source.revision;
+  patchbayPresentationRevision = projection.presentation.revision;
+  positions = projection.presentation.node_positions;
+  topologyView = projection.presentation.topology;
+  runButton.disabled = activeRunnability()?.state !== "runnable" ||
+    !projection.plan || Boolean(activeAdapter);
+  syncPresentationControls();
+  updateCytoscapeGraph();
+}
+
+function renderResourceBindingEditor(control) {
+  const editor = document.createElement("div");
+  editor.className = "task-front-resource-binding";
+  editor.setAttribute("role", "group");
+  editor.setAttribute("aria-label", control.accessibility_name);
+  const status = document.createElement("output");
+  status.className = "task-front-resource-status";
+  status.setAttribute("aria-live", "polite");
+  status.textContent = control.display_value
+    ? `${control.display_value} — ${control.binding_state}`
+    : control.binding_state || "selection-required";
+  editor.append(status);
+  const providers = document.createElement("small");
+  providers.className = "task-front-resource-providers";
+  providers.textContent = (patchbayView?.resource_selection_providers || [])
+    .map((provider) => `${provider.kind}: ${provider.state}`)
+    .join("; ");
+  editor.append(providers);
+  const actionLabels = {
+    "choose": control.target.endsWith("source-file") ? "Choose source" : "Choose destination",
+    "create-new": "Create destination",
+    "replace-existing": "Replace destination",
+    "confirm-grant": `Grant ${(patchbayView?.protected_bindings?.slots || []).find(
+      (slot) => slot.id === control.target,
+    )?.required_access?.join(" + ") || "required access"}`,
+    "inspect": "Inspect",
+    "revoke": "Revoke grant",
+    "forget": "Forget selection",
+    "cancel": "Cancel chooser",
+  };
+  for (const action of control.binding_actions || []) {
+    if (!actionLabels[action]) continue;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = action === "confirm-grant" ? "btn primary" : "btn secondary";
+    const label = control.binding_state === "selection-pending" &&
+      ["choose", "create-new", "replace-existing"].includes(action)
+      ? (control.target.endsWith("source-file")
+          ? "Use bounded input"
+          : "Use bounded output")
+      : actionLabels[action];
+    button.textContent = label;
+    button.setAttribute("aria-label", `${label} for ${control.label}`);
+    button.onclick = () => void requestResourceBinding(control, action);
+    editor.append(button);
+  }
+  return editor;
+}
+
 function renderTaskFrontControl(control) {
   const field = document.createElement("div");
   field.className = "task-front-control";
@@ -1787,7 +1941,9 @@ function renderTaskFrontControl(control) {
     `${control.requirement}; ${control.value_origin}; persists in ${control.persistence}; ` +
     `takes effect at ${control.activation}.`;
   let editor;
-  if (control.renderer === "enum") {
+  if (control.renderer === "resource") {
+    editor = renderResourceBindingEditor(control);
+  } else if (control.renderer === "enum") {
     editor = document.createElement("select");
     for (const choice of control.choices || []) {
       const option = document.createElement("option");
@@ -1801,12 +1957,14 @@ function renderTaskFrontControl(control) {
       : control.renderer === "number" ? "number" : "text";
   }
   editor.id = inputId;
-  editor.setAttribute("aria-label", control.accessibility_name);
-  editor.disabled = !control.editable;
-  if (editor.type === "checkbox") editor.checked = control.display_value === "true";
-  else editor.value = control.display_value || "";
-  if (!control.editable) editor.setAttribute("aria-readonly", "true");
-  if (control.editable) {
+  if (control.renderer !== "resource") {
+    editor.setAttribute("aria-label", control.accessibility_name);
+    editor.disabled = !control.editable;
+    if (editor.type === "checkbox") editor.checked = control.display_value === "true";
+    else editor.value = control.display_value || "";
+    if (!control.editable) editor.setAttribute("aria-readonly", "true");
+  }
+  if (control.editable && control.renderer !== "resource") {
     editor.onchange = () => {
       const path = control.target.split("/");
       const changed = applyPatchbayOperations([{
@@ -1821,7 +1979,7 @@ function renderTaskFrontControl(control) {
   }
   const help = document.createElement("p");
   help.className = "card-subtitle";
-  help.textContent = control.help;
+  help.textContent = [control.help, ...(control.binding_explanations || [])].join(" ");
   field.append(label, editor, consequence, help);
   return field;
 }
@@ -1915,17 +2073,19 @@ function renderTaskFront() {
       taskFrontAction.append(lifecycle);
     }
   }
-  if (front.result) {
+  if (front.result || front.terminal) {
     taskFrontResult.hidden = false;
-    taskFrontResultTitle.textContent = front.result.label;
-    const semantic = front.result.display_value
-      ? `${front.result.display_value} (${front.result.semantic_status})`
-      : `${front.result.observation_state}. ${front.result.help}`;
+    taskFrontResultTitle.textContent = front.result?.label || "Task outcome";
+    const semantic = front.result
+      ? (front.result.display_value
+          ? `${front.result.display_value} (${front.result.semantic_status})`
+          : `${front.result.observation_state}. ${front.result.help}`)
+      : "No semantic result was exported by this task front";
     const terminal = front.terminal
       ? ` Terminal: ${front.terminal.state}; cleanup: ${front.terminal.cleanup_state}; ` +
         `evidence: ${front.terminal.evidence_state}.`
       : " Terminal evidence is pending.";
-    const warnings = [...(front.result.warnings || []), ...(front.terminal?.warnings || [])];
+    const warnings = [...(front.result?.warnings || []), ...(front.terminal?.warnings || [])];
     taskFrontResultValue.textContent = `${semantic}.${terminal}${warnings.length
       ? ` Warnings: ${warnings.join(" ")}`
       : ""}`;
@@ -3241,8 +3401,22 @@ async function run(requestedTaskAction = null) {
     }
     sessionId = opened.value.session_id;
     activeWorkerSessionId = sessionId;
+    let workerView = opened.value.view;
+    for (const command of resourceBindingCommands) {
+      const bound = await adapter.request("patchbay-request-resource-binding", {
+        sessionId,
+        command,
+      });
+      if (!bound.ok || !bound.value?.ok) {
+        throw new Error(
+          `${bound.code || bound.value?.code || "binding-replay-failed"}: ` +
+          `${bound.value?.diagnostic || "protected binding replay failed"}`,
+        );
+      }
+      workerView = bound.value.view;
+    }
     const taskAction = requestedTaskAction || (() => {
-      const front = opened.value?.view?.task_front?.front;
+      const front = workerView?.task_front?.front;
       const action = front?.primary_action;
       if (!action || action.state !== "request-available") return null;
       return {

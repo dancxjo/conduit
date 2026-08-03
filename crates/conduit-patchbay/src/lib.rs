@@ -4,6 +4,10 @@
 //! projections.  It never makes layout part of `.panel` semantics, resolves a
 //! plan, executes a node, or appends executor evidence.
 
+mod resource_binding;
+
+pub use resource_binding::*;
+
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
@@ -387,6 +391,14 @@ pub struct TaskFrontControlProjection {
     pub persistence: String,
     pub sensitivity: String,
     pub activation: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binding_revision: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binding_state: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub binding_actions: Vec<ResourceBindingRequestAction>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub binding_explanations: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -1702,6 +1714,12 @@ pub struct PatchbayViewModel {
     pub at_rest: Option<PatchbayAtRestProjection>,
     pub task_front: TaskFrontStateProjection,
     pub configuration_layers: Vec<PatchbayConfigurationLayerProjection>,
+    /// Safe, bounded projection of the protected user/site binding artifact.
+    /// Exact handles and grants are deliberately absent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub protected_bindings: Option<ProtectedBindingProfileProjection>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub resource_selection_providers: Vec<SelectionProviderObservation>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub diagnostics: Vec<PatchbayDiagnosticProjection>,
     pub bounds: PatchbayProjectionBounds,
@@ -2016,6 +2034,42 @@ pub fn project_task_front(
     renderer_profiles: &[TaskFrontRendererProfile],
     bounds: PatchbayProjectionBounds,
 ) -> TaskFrontStateProjection {
+    project_task_front_with_bindings(
+        descriptor_json,
+        source,
+        semantic,
+        topology,
+        configuration_layers,
+        None,
+        plan,
+        run,
+        action_export,
+        action_receipt,
+        result_observation,
+        terminal_observation,
+        renderer_profiles,
+        bounds,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+#[must_use]
+pub fn project_task_front_with_bindings(
+    descriptor_json: Option<&str>,
+    source: &SourceSnapshot,
+    semantic: &SemanticSnapshot,
+    topology: &PatchbayTopologyProjection,
+    _configuration_layers: &[PatchbayConfigurationLayerProjection],
+    protected_bindings: Option<&ProtectedBindingProfileProjection>,
+    plan: Option<&PlanSnapshot>,
+    run: Option<&RunSnapshot>,
+    action_export: Option<&TaskActionExport>,
+    action_receipt: Option<&TaskActionReceipt>,
+    result_observation: Option<&TaskFrontResultObservation>,
+    terminal_observation: Option<&TaskTerminalObservation>,
+    renderer_profiles: &[TaskFrontRendererProfile],
+    bounds: PatchbayProjectionBounds,
+) -> TaskFrontStateProjection {
     let Some(descriptor_json) = descriptor_json.filter(|value| !value.trim().is_empty()) else {
         return task_front_state(
             "not-declared",
@@ -2168,6 +2222,10 @@ pub fn project_task_front(
                     persistence: "source-document".to_owned(),
                     sensitivity: if protected { "protected" } else { "public" }.to_owned(),
                     activation: "re-resolution-or-plan-transition".to_owned(),
+                    binding_revision: None,
+                    binding_state: None,
+                    binding_actions: Vec::new(),
+                    binding_explanations: Vec::new(),
                 }
             }
             TaskFrontControlSource::LiveInput => {
@@ -2220,21 +2278,16 @@ pub fn project_task_front(
                     persistence: "run-only".to_owned(),
                     sensitivity: port.sensitivity.clone(),
                     activation: "current-run-delivery".to_owned(),
+                    binding_revision: None,
+                    binding_state: None,
+                    binding_actions: Vec::new(),
+                    binding_explanations: Vec::new(),
                 }
             }
             TaskFrontControlSource::SiteBinding => {
-                let binding = configuration_layers.iter().find_map(|layer| {
-                    (layer.owner == "site-binding-profile")
-                        .then(|| {
-                            layer
-                                .fields
-                                .iter()
-                                .find(|field| field.id == control.target)
-                                .map(|field| (layer, field))
-                        })
-                        .flatten()
-                });
-                let Some((layer, field)) = binding else {
+                let Some(slot) = protected_bindings.and_then(|profile| {
+                    profile.slots.iter().find(|slot| slot.id == control.target)
+                }) else {
                     return task_front_invalid(
                         "A site-binding control names no authorized site-binding slot.",
                     );
@@ -2257,18 +2310,31 @@ pub fn project_task_front(
                     visibility: control.visibility.clone(),
                     accessibility_name: control.accessibility_name.clone(),
                     type_id: "conduit/resource-binding".to_owned(),
-                    requirement: "required-by-binding-slot".to_owned(),
-                    value_origin: "site-binding-profile".to_owned(),
-                    display_value: Some(field.display_value.clone()),
+                    requirement: "required".to_owned(),
+                    value_origin: if slot.state == "ready" {
+                        "site-binding-profile"
+                    } else {
+                        "missing"
+                    }
+                    .to_owned(),
+                    display_value: slot.safe_label.clone(),
                     renderer_profile: renderer.id.clone(),
                     renderer: renderer.renderer.clone(),
                     choices: renderer.choices.clone(),
-                    editable: layer.mutability != "immutable",
+                    editable: true,
                     edit_kind: "authorized-site-binding-operation".to_owned(),
-                    owner: layer.owner.clone(),
-                    persistence: layer.persistence.clone(),
-                    sensitivity: layer.sensitivity.clone(),
-                    activation: layer.activation.clone(),
+                    owner: "site-binding-profile".to_owned(),
+                    persistence: match slot.principal {
+                        BindingPrincipal::User => "protected-user-profile",
+                        BindingPrincipal::Site => "protected-site-profile",
+                    }
+                    .to_owned(),
+                    sensitivity: "opaque-handles-redacted".to_owned(),
+                    activation: "candidate-plan-re-resolution".to_owned(),
+                    binding_revision: Some(slot.binding_revision),
+                    binding_state: Some(slot.state.clone()),
+                    binding_actions: slot.available_actions.clone(),
+                    binding_explanations: slot.explanations.clone(),
                 }
             }
         };

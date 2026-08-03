@@ -40,6 +40,19 @@
     {"id":"two-instances-retain-distinct-config-and-enclosing-cords","expected":{"same_definition":true,"distinct_instance_config":true,"distinct_external_cords":true,"external_owner":"enclosing-panel"}},
     {"id":"configuration-runtime-plan-and-evidence-layers-stay-distinct","expected":{"owner_visible":true,"persistence_visible":true,"revision_visible":true,"sensitivity_visible":true,"mutability_visible":true,"activation_visible":true}},
     {"id":"lens-navigation-has-keyboard-and-screen-reader-equivalents","expected":{"canvas_controls":true,"structured_controls":true,"aria_pressed":true,"status_announced":true}},
-    {"id":"use-view-information-budget-survives-two-hundred-percent-zoom","expected":{"primary_controls_visible":true,"primary_action_visible":true,"semantic_result_visible":true,"implementation_details_hidden":true}}
+    {"id":"use-view-information-budget-survives-two-hundred-percent-zoom","expected":{"primary_controls_visible":true,"primary_action_visible":true,"semantic_result_visible":true,"implementation_details_hidden":true}},
+    {"id":"typed-resource-selection-requires-separate-exact-grant","expected":{"selection_without_grant_not_ready":true,"os_permission_distinct":true,"conduit_grant_distinct":true,"exact_scope_required":true,"code":"CND-BND-012"}},
+    {"id":"resource-selection-cancel-and-late-callback-fail-closed","expected":{"cancelled_without_binding":true,"late_callback_rejected":true,"prior_revision_rejected":true,"code":"CND-BND-009"}},
+    {"id":"resource-binding-denial-outcomes-remain-distinct","expected":{"user_cancel_distinct":true,"os_deny":"CND-BND-010","grant_deny":"CND-BND-008","resource_disappeared":"CND-BND-011","provider_disappeared":"CND-BND-011"}},
+    {"id":"copy-source-and-destination-are-incompatible-resources","expected":{"same_handle_rejected":true,"same_safe_label_allowed":true,"read_scope_distinct":true,"write_replace_scope_distinct":true}},
+    {"id":"selection-provider-profiles-are-honest","expected":{"deterministic_enumeration":true,"browser_enumeration":false,"hosted_enumeration_requires_authority":true,"unsupported_explicit":true}},
+    {"id":"binding-change-invalidates-candidate-not-active-run","expected":{"source_identity_unchanged":true,"candidate_plan_invalidated":true,"active_plan_unchanged":true,"binding_revision_changed":true}},
+    {"id":"resource-binding-projection-redacts-protected-material","expected":{"safe_label_visible":true,"opaque_handle_absent":true,"grant_absent":true,"path_absent":true,"content_absent":true}},
+    {"id":"protected-binding-export-redacts-or-refuses","expected":{"redacted_metadata_allowed":true,"authority_not_transferred":true,"refusal_supported":true,"code":"CND-BND-013"}},
+    {"id":"same-source-resolves-through-distinct-site-profiles","expected":{"source_identity_equal":true,"binding_identity_distinct":true,"plan_identity_distinct":true}},
+    {"id":"hosted-selector-rejects-scope-escape-and-symlink","expected":{"outside_scope":"CND-HFS-006","symlink":"CND-HFS-007","non_recursive_enumeration":true}},
+    {"id":"create-replace-and-read-only-destination-remain-distinct","expected":{"create_existing_rejected":true,"replace_missing_rejected":true,"read_only_not_writable":true}},
+    {"id":"provider-generation-or-resource-loss-requires-reselection","expected":{"stale_provider":"CND-BND-005","resource_loss":"CND-BND-011","previous_grant_not_reused":true}},
+    {"id":"copy-task-front-needs-no-console-for-binding-or-outcome","expected":{"from_visible":true,"to_visible":true,"readiness_visible":true,"grant_state_visible":true,"terminal_visible":true,"console_required":false}}
   ]
 }

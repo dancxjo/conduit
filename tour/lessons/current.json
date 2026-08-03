@@ -3694,8 +3694,43 @@
         "watch gap",
         "rename identity"
       ],
-      "source": "panel 0\n\nreader: fs/read {\n    resource = secret(\"conduit.resource/filesystem-example-read\")\n    grant = secret(\"conduit.grant/filesystem-read\")\n    offset = 0\n    maximum_bytes = 64\n    chunk_bytes = 64\n    consistency = \"snapshot\"\n    eof = \"terminal\"\n    cancellation = \"discard\"\n}\n",
-      "command": "conduct --run examples/filesystem-read.panel",
+      "source": "panel 0\n\nreader: fs/read {\n    resource = secret(\"conduit.resource-binding/copy-source\")\n    grant = secret(\"conduit.grant-binding/copy-source-read\")\n    offset = 0\n    maximum_bytes = 64\n    chunk_bytes = 64\n    consistency = \"snapshot\"\n    eof = \"terminal\"\n    cancellation = \"discard\"\n}\n\nwriter: fs/write {\n    resource = secret(\"conduit.resource-binding/copy-destination\")\n    grant = secret(\"conduit.grant-binding/copy-destination-write\")\n    mode = \"replace\"\n    maximum_bytes = 64\n    partial = \"fail-without-commit\"\n    flush = \"provider-accepted\"\n    cleanup = \"close\"\n    cancellation = \"close\"\n}\n\nreader.chunk > writer.chunk {\n    capacity = 1\n    max_value_bytes = 64\n    max_queued_bytes = 64\n    low_watermark = 0\n    high_watermark = 1\n    pressure = block\n}\n",
+      "task_front": {
+        "schema": "conduit.patchbay-task-front",
+        "schema_version": 0,
+        "root": "root/reader",
+        "name": "Copy file",
+        "purpose": "Copy one bounded chunk between explicitly selected resources.",
+        "controls": [
+          {
+            "id": "copy-from",
+            "source": "site-binding",
+            "target": "conduit.binding/copy/source-file",
+            "label": "From",
+            "help": "Choose a readable source through an authorized provider.",
+            "group": "Files",
+            "visibility": "primary",
+            "accessibility_name": "Choose Copy source file"
+          },
+          {
+            "id": "copy-to",
+            "source": "site-binding",
+            "target": "conduit.binding/copy/destination-file",
+            "label": "To",
+            "help": "Choose or create a writable destination through an authorized provider.",
+            "group": "Files",
+            "visibility": "primary",
+            "accessibility_name": "Choose Copy destination file"
+          }
+        ],
+        "primary_action": {
+          "request": "run-exact-plan",
+          "label": "Copy",
+          "help": "Run the exact plan resolved from the protected binding revision.",
+          "accessibility_name": "Copy selected file"
+        }
+      },
+      "command": "conduct --enable-file-write examples/file-copier.panel",
       "commands": [
         "conduct --check examples/filesystem-read.panel",
         "conduct --run examples/filesystem-read.panel",

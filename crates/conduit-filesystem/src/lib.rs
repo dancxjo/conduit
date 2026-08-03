@@ -3,7 +3,8 @@
 //! Semantic panels contain only resource identities. Operating-system paths
 //! are provider installation facts supplied through [`LinuxFilesystem`].
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
@@ -37,7 +38,7 @@ pub const EXAMPLE_WATCH_RESOURCE: &str = "conduit.resource/filesystem-example-wa
 const FILESYSTEM_WATCH_HOST_OPERATION: Id<'static> = Id("conduit/filesystem-watch-event");
 
 /// Provider-owned mapping for one opaque semantic resource.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct LinuxResourceBinding {
     pub resource: String,
     pub path: PathBuf,
@@ -46,6 +47,362 @@ pub struct LinuxResourceBinding {
     pub writable: bool,
     pub watchable: bool,
     pub sensitive: bool,
+}
+
+impl fmt::Debug for LinuxResourceBinding {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("LinuxResourceBinding")
+            .field("resource", &self.resource)
+            .field("path", &"[PROTECTED]")
+            .field("scope_root", &"[PROTECTED]")
+            .field("readable", &self.readable)
+            .field("writable", &self.writable)
+            .field("watchable", &self.watchable)
+            .field("sensitive", &self.sensitive)
+            .finish()
+    }
+}
+
+pub const HOSTED_SELECTOR_MAX_RESOURCES: usize = 64;
+pub const HOSTED_SELECTOR_MAX_RECEIPTS: usize = 128;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HostedFileSelectionOperation {
+    ChooseReadable,
+    CreateWritable,
+    ReplaceWritable,
+    SelectContainer,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HostedFileSelectionProjection {
+    pub safe_label: String,
+    pub broker_generation: u64,
+    pub readable: bool,
+    pub writable: bool,
+    pub container: bool,
+}
+
+#[derive(Clone, Eq, PartialEq)]
+pub struct HostedFileSelection {
+    resource: String,
+    pub projection: HostedFileSelectionProjection,
+}
+
+impl HostedFileSelection {
+    #[must_use]
+    pub fn resource_for_protected_binding(&self) -> &str {
+        &self.resource
+    }
+}
+
+impl fmt::Debug for HostedFileSelection {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("HostedFileSelection")
+            .field("resource", &"[PROTECTED]")
+            .field("projection", &self.projection)
+            .finish()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HostedFileSelectionError {
+    Malformed,
+    StaleBroker,
+    DuplicateRequest,
+    EnumerationDenied,
+    Unsupported,
+    OutsideScope,
+    SymlinkRejected,
+    Missing,
+    AlreadyExists,
+    WrongKind,
+    Capacity,
+    Disappeared,
+    Io,
+}
+
+impl HostedFileSelectionError {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Malformed => "CND-HFS-001",
+            Self::StaleBroker => "CND-HFS-002",
+            Self::DuplicateRequest => "CND-HFS-003",
+            Self::EnumerationDenied => "CND-HFS-004",
+            Self::Unsupported => "CND-HFS-005",
+            Self::OutsideScope => "CND-HFS-006",
+            Self::SymlinkRejected => "CND-HFS-007",
+            Self::Missing => "CND-HFS-008",
+            Self::AlreadyExists => "CND-HFS-009",
+            Self::WrongKind => "CND-HFS-010",
+            Self::Capacity => "CND-HFS-011",
+            Self::Disappeared => "CND-HFS-012",
+            Self::Io => "CND-HFS-013",
+        }
+    }
+}
+
+/// Protected hosted-local selector. Paths enter only through the explicit
+/// user-mediated method and remain inside the broker-owned resource table.
+/// Normal projections contain a safe label and opaque resource identity only.
+pub struct HostedFileSelectorBroker {
+    id: String,
+    scope_root: PathBuf,
+    generation: u64,
+    next_resource: u64,
+    maximum_resources: usize,
+    enumeration_authorized: bool,
+    resources: BTreeMap<String, LinuxResourceBinding>,
+    labels: BTreeMap<String, String>,
+    requests: BTreeSet<String>,
+    materialized_resources: BTreeSet<String>,
+}
+
+impl HostedFileSelectorBroker {
+    pub fn new(
+        id: impl Into<String>,
+        scope_root: impl AsRef<Path>,
+        enumeration_authorized: bool,
+        maximum_resources: usize,
+    ) -> Result<Self, HostedFileSelectionError> {
+        let id = id.into();
+        if Id::new(&id).is_err()
+            || maximum_resources == 0
+            || maximum_resources > HOSTED_SELECTOR_MAX_RESOURCES
+        {
+            return Err(HostedFileSelectionError::Malformed);
+        }
+        let scope_root = fs::canonicalize(scope_root).map_err(|_| HostedFileSelectionError::Io)?;
+        if !scope_root.is_dir() {
+            return Err(HostedFileSelectionError::WrongKind);
+        }
+        Ok(Self {
+            id,
+            scope_root,
+            generation: 1,
+            next_resource: 1,
+            maximum_resources,
+            enumeration_authorized,
+            resources: BTreeMap::new(),
+            labels: BTreeMap::new(),
+            requests: BTreeSet::new(),
+            materialized_resources: BTreeSet::new(),
+        })
+    }
+
+    #[must_use]
+    pub const fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    pub fn select_path(
+        &mut self,
+        request_id: &str,
+        expected_generation: u64,
+        selected_path: impl AsRef<Path>,
+        operation: HostedFileSelectionOperation,
+    ) -> Result<HostedFileSelection, HostedFileSelectionError> {
+        if Id::new(request_id).is_err() {
+            return Err(HostedFileSelectionError::Malformed);
+        }
+        if expected_generation != self.generation {
+            return Err(HostedFileSelectionError::StaleBroker);
+        }
+        if self.requests.contains(request_id) {
+            return Err(HostedFileSelectionError::DuplicateRequest);
+        }
+        if self.resources.len() >= self.maximum_resources
+            || self.requests.len() >= HOSTED_SELECTOR_MAX_RECEIPTS
+        {
+            return Err(HostedFileSelectionError::Capacity);
+        }
+        let selected_path = selected_path.as_ref();
+        if !selected_path.is_absolute() || !selected_path.starts_with(&self.scope_root) {
+            return Err(HostedFileSelectionError::OutsideScope);
+        }
+        let allow_missing_final = operation == HostedFileSelectionOperation::CreateWritable;
+        reject_selector_symlinks(&self.scope_root, selected_path, allow_missing_final)?;
+        let exists = selected_path.exists();
+        match operation {
+            HostedFileSelectionOperation::ChooseReadable
+            | HostedFileSelectionOperation::ReplaceWritable => {
+                if !exists {
+                    return Err(HostedFileSelectionError::Missing);
+                }
+                if !selected_path.is_file() {
+                    return Err(HostedFileSelectionError::WrongKind);
+                }
+            }
+            HostedFileSelectionOperation::CreateWritable => {
+                if exists {
+                    return Err(HostedFileSelectionError::AlreadyExists);
+                }
+            }
+            HostedFileSelectionOperation::SelectContainer => {
+                if !exists {
+                    return Err(HostedFileSelectionError::Missing);
+                }
+                if !selected_path.is_dir() {
+                    return Err(HostedFileSelectionError::WrongKind);
+                }
+            }
+        }
+        let parent = if operation == HostedFileSelectionOperation::SelectContainer {
+            selected_path
+        } else {
+            selected_path
+                .parent()
+                .ok_or(HostedFileSelectionError::OutsideScope)?
+        };
+        let canonical_parent =
+            fs::canonicalize(parent).map_err(|_| HostedFileSelectionError::Io)?;
+        if !canonical_parent.starts_with(&self.scope_root) {
+            return Err(HostedFileSelectionError::OutsideScope);
+        }
+        let safe_label = selected_path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .filter(|value| safe_selector_label(value))
+            .ok_or(HostedFileSelectionError::Malformed)?
+            .to_owned();
+        let resource = format!("{}/resource-r{}", self.id, self.next_resource);
+        Id::new(&resource).map_err(|_| HostedFileSelectionError::Malformed)?;
+        let (readable, writable, container) = match operation {
+            HostedFileSelectionOperation::ChooseReadable => (true, false, false),
+            HostedFileSelectionOperation::CreateWritable
+            | HostedFileSelectionOperation::ReplaceWritable => (false, true, false),
+            HostedFileSelectionOperation::SelectContainer => (false, false, true),
+        };
+        self.resources.insert(
+            resource.clone(),
+            LinuxResourceBinding {
+                resource: resource.clone(),
+                path: selected_path.to_path_buf(),
+                scope_root: self.scope_root.clone(),
+                readable,
+                writable,
+                watchable: container,
+                sensitive: true,
+            },
+        );
+        self.labels.insert(resource.clone(), safe_label.clone());
+        if exists {
+            self.materialized_resources.insert(resource.clone());
+        }
+        self.requests.insert(request_id.to_owned());
+        self.next_resource = self.next_resource.saturating_add(1);
+        self.generation = self.generation.saturating_add(1);
+        Ok(HostedFileSelection {
+            resource,
+            projection: HostedFileSelectionProjection {
+                safe_label,
+                broker_generation: self.generation,
+                readable,
+                writable,
+                container,
+            },
+        })
+    }
+
+    pub fn enumerate_safe_labels(&self) -> Result<Vec<String>, HostedFileSelectionError> {
+        if !self.enumeration_authorized {
+            return Err(HostedFileSelectionError::EnumerationDenied);
+        }
+        let mut labels = fs::read_dir(&self.scope_root)
+            .map_err(|_| HostedFileSelectionError::Io)?
+            .take(LINUX_FILESYSTEM_MAX_SCAN_ENTRIES + 1)
+            .map(|entry| {
+                let entry = entry.map_err(|_| HostedFileSelectionError::Io)?;
+                if entry
+                    .file_type()
+                    .map_err(|_| HostedFileSelectionError::Io)?
+                    .is_symlink()
+                {
+                    return Err(HostedFileSelectionError::SymlinkRejected);
+                }
+                entry
+                    .file_name()
+                    .to_str()
+                    .filter(|value| safe_selector_label(value))
+                    .map(str::to_owned)
+                    .ok_or(HostedFileSelectionError::Malformed)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if labels.len() > LINUX_FILESYSTEM_MAX_SCAN_ENTRIES {
+            return Err(HostedFileSelectionError::Capacity);
+        }
+        labels.sort();
+        Ok(labels)
+    }
+
+    pub fn exact_binding(
+        &self,
+        resource: &str,
+    ) -> Result<&LinuxResourceBinding, HostedFileSelectionError> {
+        let binding = self
+            .resources
+            .get(resource)
+            .ok_or(HostedFileSelectionError::Malformed)?;
+        if self.materialized_resources.contains(resource) && !binding.path.exists() {
+            return Err(HostedFileSelectionError::Disappeared);
+        }
+        Ok(binding)
+    }
+
+    #[must_use]
+    pub fn safe_projection(&self) -> Vec<HostedFileSelectionProjection> {
+        self.resources
+            .values()
+            .map(|binding| HostedFileSelectionProjection {
+                safe_label: self.labels[&binding.resource].clone(),
+                broker_generation: self.generation,
+                readable: binding.readable,
+                writable: binding.writable,
+                container: binding.watchable,
+            })
+            .collect()
+    }
+}
+
+fn reject_selector_symlinks(
+    scope_root: &Path,
+    selected_path: &Path,
+    allow_missing_final: bool,
+) -> Result<(), HostedFileSelectionError> {
+    let relative = selected_path
+        .strip_prefix(scope_root)
+        .map_err(|_| HostedFileSelectionError::OutsideScope)?;
+    let mut current = scope_root.to_path_buf();
+    let components = relative.components().collect::<Vec<_>>();
+    for (index, component) in components.iter().enumerate() {
+        current.push(component.as_os_str());
+        match fs::symlink_metadata(&current) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                return Err(HostedFileSelectionError::SymlinkRejected);
+            }
+            Ok(_) => {}
+            Err(error)
+                if allow_missing_final
+                    && index + 1 == components.len()
+                    && error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Err(HostedFileSelectionError::Missing);
+            }
+            Err(_) => return Err(HostedFileSelectionError::Io),
+        }
+    }
+    Ok(())
+}
+
+fn safe_selector_label(value: &str) -> bool {
+    !value.is_empty()
+        && value != "."
+        && value != ".."
+        && value.len() <= 255
+        && !value.chars().any(char::is_control)
 }
 
 /// Stable hosted-provider failure reasons.
@@ -1048,6 +1405,177 @@ mod tests {
 
     fn filesystem(binding: LinuxResourceBinding) -> LinuxFilesystem {
         LinuxFilesystem::new(vec![binding], 16, 8).unwrap()
+    }
+
+    #[test]
+    fn hosted_selector_keeps_paths_protected_and_scopes_read_and_write_separately() {
+        let directory = tempdir().unwrap();
+        let source = directory.path().join("same-name.txt");
+        fs::write(&source, b"source").unwrap();
+        let destination_directory = directory.path().join("destination");
+        fs::create_dir(&destination_directory).unwrap();
+        let destination = destination_directory.join("same-name.txt");
+        fs::write(&destination, b"old").unwrap();
+        let mut broker = HostedFileSelectorBroker::new(
+            "conduit.selector/hosted-test",
+            directory.path(),
+            false,
+            4,
+        )
+        .unwrap();
+
+        assert_eq!(
+            broker.enumerate_safe_labels(),
+            Err(HostedFileSelectionError::EnumerationDenied)
+        );
+        let source_projection = broker
+            .select_path(
+                "conduit.request/select-source",
+                1,
+                &source,
+                HostedFileSelectionOperation::ChooseReadable,
+            )
+            .unwrap();
+        assert!(source_projection.projection.readable);
+        assert!(!source_projection.projection.writable);
+        let destination_projection = broker
+            .select_path(
+                "conduit.request/select-destination",
+                source_projection.projection.broker_generation,
+                &destination,
+                HostedFileSelectionOperation::ReplaceWritable,
+            )
+            .unwrap();
+        assert!(!destination_projection.projection.readable);
+        assert!(destination_projection.projection.writable);
+        assert_eq!(
+            source_projection.projection.safe_label,
+            destination_projection.projection.safe_label
+        );
+        assert_ne!(
+            source_projection.resource_for_protected_binding(),
+            destination_projection.resource_for_protected_binding()
+        );
+        assert!(
+            !format!("{source_projection:?}")
+                .contains(source_projection.resource_for_protected_binding())
+        );
+
+        let safe = format!("{:?}", broker.safe_projection());
+        let source_path = source.display().to_string();
+        assert!(!safe.contains(&source_path));
+        let exact = broker
+            .exact_binding(source_projection.resource_for_protected_binding())
+            .unwrap();
+        let protected_debug = format!("{exact:?}");
+        assert!(!protected_debug.contains(&source_path));
+        assert!(protected_debug.contains("[PROTECTED]"));
+        assert_eq!(exact.path, source);
+    }
+
+    #[test]
+    fn hosted_selector_rejects_stale_duplicate_out_of_scope_and_symlink_requests() {
+        let directory = tempdir().unwrap();
+        let outside = tempdir().unwrap();
+        let source = directory.path().join("source.txt");
+        fs::write(&source, b"source").unwrap();
+        let link = directory.path().join("link.txt");
+        symlink(&source, &link).unwrap();
+        let mut broker = HostedFileSelectorBroker::new(
+            "conduit.selector/hosted-denials",
+            directory.path(),
+            true,
+            4,
+        )
+        .unwrap();
+
+        assert_eq!(
+            broker.select_path(
+                "conduit.request/stale",
+                0,
+                &source,
+                HostedFileSelectionOperation::ChooseReadable,
+            ),
+            Err(HostedFileSelectionError::StaleBroker)
+        );
+        assert_eq!(
+            broker.select_path(
+                "conduit.request/outside",
+                1,
+                outside.path().join("outside.txt"),
+                HostedFileSelectionOperation::CreateWritable,
+            ),
+            Err(HostedFileSelectionError::OutsideScope)
+        );
+        assert_eq!(
+            broker.select_path(
+                "conduit.request/symlink",
+                1,
+                &link,
+                HostedFileSelectionOperation::ChooseReadable,
+            ),
+            Err(HostedFileSelectionError::SymlinkRejected)
+        );
+        assert_eq!(
+            broker.select_path(
+                "conduit.request/create-existing",
+                1,
+                &source,
+                HostedFileSelectionOperation::CreateWritable,
+            ),
+            Err(HostedFileSelectionError::AlreadyExists)
+        );
+        assert_eq!(
+            broker.select_path(
+                "conduit.request/replace-missing",
+                1,
+                directory.path().join("missing.txt"),
+                HostedFileSelectionOperation::ReplaceWritable,
+            ),
+            Err(HostedFileSelectionError::Missing)
+        );
+        let selected = broker
+            .select_path(
+                "conduit.request/accepted",
+                1,
+                &source,
+                HostedFileSelectionOperation::ChooseReadable,
+            )
+            .unwrap();
+        assert_eq!(
+            broker.select_path(
+                "conduit.request/accepted",
+                selected.projection.broker_generation,
+                &source,
+                HostedFileSelectionOperation::ChooseReadable,
+            ),
+            Err(HostedFileSelectionError::DuplicateRequest)
+        );
+        fs::remove_file(&source).unwrap();
+        assert_eq!(
+            broker.exact_binding(selected.resource_for_protected_binding()),
+            Err(HostedFileSelectionError::Disappeared)
+        );
+    }
+
+    #[test]
+    fn hosted_selector_enumerates_only_safe_non_recursive_labels_when_authorized() {
+        let directory = tempdir().unwrap();
+        fs::write(directory.path().join("b.txt"), b"b").unwrap();
+        fs::write(directory.path().join("a.txt"), b"a").unwrap();
+        let nested = directory.path().join("nested");
+        fs::create_dir(&nested).unwrap();
+        fs::write(nested.join("secret.txt"), b"secret").unwrap();
+        let broker = HostedFileSelectorBroker::new(
+            "conduit.selector/hosted-enumeration",
+            directory.path(),
+            true,
+            4,
+        )
+        .unwrap();
+        let labels = broker.enumerate_safe_labels().unwrap();
+        assert_eq!(labels, ["a.txt", "b.txt", "nested"]);
+        assert!(!labels.iter().any(|label| label.contains("secret")));
     }
 
     #[test]

@@ -1279,6 +1279,19 @@ fn fixture_names_each_required_protocol_boundary() {
         "configuration-runtime-plan-and-evidence-layers-stay-distinct",
         "lens-navigation-has-keyboard-and-screen-reader-equivalents",
         "use-view-information-budget-survives-two-hundred-percent-zoom",
+        "typed-resource-selection-requires-separate-exact-grant",
+        "resource-selection-cancel-and-late-callback-fail-closed",
+        "resource-binding-denial-outcomes-remain-distinct",
+        "copy-source-and-destination-are-incompatible-resources",
+        "selection-provider-profiles-are-honest",
+        "binding-change-invalidates-candidate-not-active-run",
+        "resource-binding-projection-redacts-protected-material",
+        "protected-binding-export-redacts-or-refuses",
+        "same-source-resolves-through-distinct-site-profiles",
+        "hosted-selector-rejects-scope-escape-and-symlink",
+        "create-replace-and-read-only-destination-remain-distinct",
+        "provider-generation-or-resource-loss-requires-reselection",
+        "copy-task-front-needs-no-console-for-binding-or-outcome",
     ] {
         assert!(ids.contains(required), "fixture covers {required}");
     }

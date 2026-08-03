@@ -2636,7 +2636,14 @@ fn bounded_filesystem_lesson_runs_exact_browser_providers_and_failure_paths() {
 
     let scenarios = lesson["library"]["scenarios"].as_array().unwrap();
     assert_eq!(scenarios.len(), 6);
-    assert_eq!(lesson["source"], scenarios[0]["source"]);
+    let task_source = lesson["source"].as_str().expect("Copy task source");
+    assert_current_panel_source("copy-task", task_source);
+    assert!(task_source.contains("conduit.resource-binding/copy-source"));
+    assert!(task_source.contains("conduit.resource-binding/copy-destination"));
+    assert!(!task_source.contains("conduit.resource/filesystem-example-read"));
+    assert_eq!(lesson["task_front"]["name"], "Copy file");
+    assert_eq!(lesson["task_front"]["controls"][0]["label"], "From");
+    assert_eq!(lesson["task_front"]["controls"][1]["label"], "To");
     for scenario in scenarios {
         let id = scenario["id"].as_str().unwrap();
         let source = scenario["source"].as_str().unwrap();

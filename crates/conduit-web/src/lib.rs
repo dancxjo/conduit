@@ -56,6 +56,12 @@ const BROWSER_EVIDENCE_HOST_OBSERVATION: &str = "conduit/browser-worker-evidence
 const BROWSER_EVIDENCE_HOST: &str = "conduit/browser-worker";
 const BROWSER_WATCH_OPERATOR: &str = "operator/browser-patchbay";
 const BROWSER_FILE_BYTES: &[u8] = b"bounded filesystem fixture\n";
+const COPY_SOURCE_SLOT: &str = "conduit.binding/copy/source-file";
+const COPY_DESTINATION_SLOT: &str = "conduit.binding/copy/destination-file";
+const COPY_SOURCE_RESOURCE_REFERENCE: &str = "conduit.resource-binding/copy-source";
+const COPY_SOURCE_GRANT_REFERENCE: &str = "conduit.grant-binding/copy-source-read";
+const COPY_DESTINATION_RESOURCE_REFERENCE: &str = "conduit.resource-binding/copy-destination";
+const COPY_DESTINATION_GRANT_REFERENCE: &str = "conduit.grant-binding/copy-destination-write";
 const MONOTONIC_CLOCK_HASH: &[u8; 32] = &[
     0x6b, 0x9c, 0x68, 0x72, 0x26, 0xd4, 0xa1, 0x96, 0x5e, 0x78, 0x0b, 0x63, 0xb4, 0xbd, 0xc0, 0x92,
     0x2d, 0xe2, 0xa6, 0x86, 0xc3, 0xc1, 0x36, 0x5f, 0x4f, 0x68, 0xf7, 0x21, 0x9f, 0x30, 0xcc, 0x48,
@@ -85,10 +91,14 @@ fn browser_evidence_hash(domain: &[u8], facts: &[&[u8]]) -> SemanticHash {
     SemanticHash::from_bytes(hasher.finalize().into())
 }
 
-fn browser_exact_run_id(session_id: &str, source_revision: u64) -> String {
+fn browser_exact_run_id(session_id: &str, source_revision: u64, plan_epoch: u64) -> String {
     let identity = browser_evidence_hash(
         b"exact-run-id",
-        &[session_id.as_bytes(), &source_revision.to_be_bytes()],
+        &[
+            session_id.as_bytes(),
+            &source_revision.to_be_bytes(),
+            &plan_epoch.to_be_bytes(),
+        ],
     )
     .to_string();
     let digest = identity
@@ -501,12 +511,252 @@ struct BrowserPatchbaySession {
     task_front_descriptor: Option<String>,
     task_action_receipts: VecDeque<conduit_patchbay::TaskActionReceipt>,
     next_task_action_sequence: u64,
+    protected_bindings: Option<conduit_patchbay::ProtectedBindingProfile>,
+}
+
+fn copy_binding_profile(
+    descriptor_json: Option<&str>,
+) -> Option<conduit_patchbay::ProtectedBindingProfile> {
+    let descriptor =
+        serde_json::from_str::<conduit_patchbay::TaskFrontDescriptor>(descriptor_json?).ok()?;
+    let site_targets = descriptor
+        .controls
+        .iter()
+        .filter(|control| control.source == conduit_patchbay::TaskFrontControlSource::SiteBinding)
+        .map(|control| control.target.as_str())
+        .collect::<BTreeSet<_>>();
+    if site_targets != BTreeSet::from([COPY_SOURCE_SLOT, COPY_DESTINATION_SLOT]) {
+        return None;
+    }
+    conduit_patchbay::ProtectedBindingProfile::new(
+        "conduit.binding-profile/copy-files",
+        vec![
+            conduit_patchbay::ResourceBindingSlot {
+                id: COPY_SOURCE_SLOT.to_owned(),
+                resource_reference: COPY_SOURCE_RESOURCE_REFERENCE.to_owned(),
+                grant_reference: COPY_SOURCE_GRANT_REFERENCE.to_owned(),
+                resource_kind: "conduit.resource/filesystem-file".to_owned(),
+                required_profile: "conduit.filesystem/read-file".to_owned(),
+                principal: conduit_patchbay::BindingPrincipal::Site,
+                allowed_selection: vec![conduit_patchbay::ResourceSelectionOperation::Choose],
+                selection_access: vec![conduit_patchbay::ResourceSelectionAccessProfile {
+                    operation: conduit_patchbay::ResourceSelectionOperation::Choose,
+                    access: vec![conduit_patchbay::ResourceAccessScope::Read],
+                }],
+                disallow_same_resource_as: vec![COPY_DESTINATION_SLOT.to_owned()],
+            },
+            conduit_patchbay::ResourceBindingSlot {
+                id: COPY_DESTINATION_SLOT.to_owned(),
+                resource_reference: COPY_DESTINATION_RESOURCE_REFERENCE.to_owned(),
+                grant_reference: COPY_DESTINATION_GRANT_REFERENCE.to_owned(),
+                resource_kind: "conduit.resource/filesystem-file".to_owned(),
+                required_profile: "conduit.filesystem/write-file".to_owned(),
+                principal: conduit_patchbay::BindingPrincipal::Site,
+                allowed_selection: vec![
+                    conduit_patchbay::ResourceSelectionOperation::CreateNew,
+                    conduit_patchbay::ResourceSelectionOperation::ReplaceExisting,
+                ],
+                selection_access: vec![
+                    conduit_patchbay::ResourceSelectionAccessProfile {
+                        operation: conduit_patchbay::ResourceSelectionOperation::CreateNew,
+                        access: vec![
+                            conduit_patchbay::ResourceAccessScope::Write,
+                            conduit_patchbay::ResourceAccessScope::Create,
+                        ],
+                    },
+                    conduit_patchbay::ResourceSelectionAccessProfile {
+                        operation: conduit_patchbay::ResourceSelectionOperation::ReplaceExisting,
+                        access: vec![
+                            conduit_patchbay::ResourceAccessScope::Write,
+                            conduit_patchbay::ResourceAccessScope::Replace,
+                        ],
+                    },
+                ],
+                disallow_same_resource_as: vec![COPY_SOURCE_SLOT.to_owned()],
+            },
+        ],
+    )
+    .ok()
+}
+
+fn browser_binding_providers() -> Vec<conduit_patchbay::SelectionProviderObservation> {
+    let mut browser = conduit_patchbay::SelectionProviderObservation::browser_files(10);
+    browser.state = conduit_patchbay::SelectionProviderState::Unsupported;
+    browser.supported_operations.clear();
+    let mut hosted = conduit_patchbay::SelectionProviderObservation::hosted_local_files(10);
+    hosted.state = conduit_patchbay::SelectionProviderState::Unsupported;
+    hosted.supported_operations.clear();
+    vec![
+        conduit_patchbay::SelectionProviderObservation::deterministic_files(10),
+        browser,
+        hosted,
+        conduit_patchbay::SelectionProviderObservation::unsupported_files(10),
+    ]
+}
+
+fn browser_plan_epoch(session: &BrowserPatchbaySession) -> Option<u64> {
+    session
+        .workspace
+        .source()
+        .revision
+        .checked_add(
+            session
+                .protected_bindings
+                .as_ref()
+                .map_or(0, |profile| profile.revision()),
+        )
+        .and_then(|value| value.checked_add(1))
+}
+
+fn browser_resolved_source(session: &BrowserPatchbaySession) -> Option<String> {
+    let source = &session.workspace.source().source;
+    let Some(profile) = session.protected_bindings.as_ref() else {
+        return Some(source.clone());
+    };
+    if !profile.is_ready() {
+        return None;
+    }
+    let exact_references = [
+        (
+            COPY_SOURCE_RESOURCE_REFERENCE,
+            profile
+                .resolve_resource_reference(COPY_SOURCE_RESOURCE_REFERENCE)
+                .ok()?,
+        ),
+        (
+            COPY_SOURCE_GRANT_REFERENCE,
+            profile
+                .resolve_grant_reference(COPY_SOURCE_GRANT_REFERENCE)
+                .ok()?,
+        ),
+        (
+            COPY_DESTINATION_RESOURCE_REFERENCE,
+            profile
+                .resolve_resource_reference(COPY_DESTINATION_RESOURCE_REFERENCE)
+                .ok()?,
+        ),
+        (
+            COPY_DESTINATION_GRANT_REFERENCE,
+            profile
+                .resolve_grant_reference(COPY_DESTINATION_GRANT_REFERENCE)
+                .ok()?,
+        ),
+    ];
+    let panel = conduit_panel::parse_document(source).ast?;
+    let mut replacements = Vec::new();
+    let mut seen = BTreeSet::new();
+    for node in panel.nodes.iter().chain(
+        panel
+            .definitions
+            .iter()
+            .flat_map(|definition| &definition.nodes),
+    ) {
+        for entry in &node.config {
+            let SourceValue::SecretReference(reference) = &entry.value else {
+                continue;
+            };
+            let Some((_, exact)) = exact_references
+                .iter()
+                .find(|(candidate, _)| candidate == reference)
+            else {
+                continue;
+            };
+            let (start, end) = source_span_offsets(source, entry.source_span)?;
+            replacements.push((start, end, format!("secret(\"{exact}\")")));
+            seen.insert(reference.as_str());
+        }
+    }
+    if exact_references
+        .iter()
+        .any(|(reference, _)| !seen.contains(reference))
+    {
+        return None;
+    }
+    replacements.sort_by_key(|(start, _, _)| std::cmp::Reverse(*start));
+    let mut resolved = source.clone();
+    for (start, end, replacement) in replacements {
+        resolved.replace_range(start..end, &replacement);
+    }
+    Some(resolved)
+}
+
+fn browser_candidate_plan(
+    session: &BrowserPatchbaySession,
+) -> Option<conduit_patchbay::PlanSnapshot> {
+    let source = browser_resolved_source(session)?;
+    let mut plan = exact_plan_snapshot_at_epoch(&source, browser_plan_epoch(session)?)?;
+    plan.source_semantic_hash = session.workspace.semantic().source_semantic_hash?;
+    redact_protected_plan(&mut plan, session.protected_bindings.as_ref());
+    Some(plan)
+}
+
+fn redact_protected_plan(
+    plan: &mut conduit_patchbay::PlanSnapshot,
+    profile: Option<&conduit_patchbay::ProtectedBindingProfile>,
+) {
+    let Some(profile) = profile else {
+        return;
+    };
+    let protected_resources = [
+        profile
+            .resolve_resource_reference(COPY_SOURCE_RESOURCE_REFERENCE)
+            .ok(),
+        profile
+            .resolve_resource_reference(COPY_DESTINATION_RESOURCE_REFERENCE)
+            .ok(),
+    ];
+    let protected_grants = [
+        profile
+            .resolve_grant_reference(COPY_SOURCE_GRANT_REFERENCE)
+            .ok(),
+        profile
+            .resolve_grant_reference(COPY_DESTINATION_GRANT_REFERENCE)
+            .ok(),
+    ];
+    for binding in &mut plan.bindings {
+        for resource in &mut binding.resources {
+            let protected = protected_resources.iter().flatten().any(|protected| {
+                *protected == resource.resource_id || *protected == resource.binding_id
+            });
+            if protected {
+                resource.binding_id = "protected-resource".to_owned();
+                resource.resource_id = "protected-resource".to_owned();
+            }
+        }
+        for authority in &mut binding.authorities {
+            if authority.resource_id.as_ref().is_some_and(|resource| {
+                protected_resources
+                    .iter()
+                    .flatten()
+                    .any(|protected| *protected == resource)
+            }) {
+                authority.resource_id = Some("protected-resource".to_owned());
+            }
+            if protected_grants
+                .iter()
+                .flatten()
+                .any(|protected| *protected == authority.grant_id)
+            {
+                authority.grant_id = "protected-grant".to_owned();
+            }
+        }
+    }
+    for lease in &mut plan.resource_leases {
+        if protected_resources
+            .iter()
+            .flatten()
+            .any(|protected| *protected == lease.resource_binding)
+        {
+            lease.resource_binding = "protected-resource".to_owned();
+        }
+    }
 }
 
 fn browser_task_action_export(
-    workspace: &conduit_patchbay::Workspace,
-    descriptor_json: Option<&str>,
+    session: &BrowserPatchbaySession,
 ) -> Option<conduit_patchbay::TaskActionExport> {
+    let workspace = &session.workspace;
+    let descriptor_json = session.task_front_descriptor.as_deref();
     let descriptor = descriptor_json.and_then(|value| {
         serde_json::from_str::<conduit_patchbay::TaskFrontDescriptor>(value).ok()
     })?;
@@ -515,8 +765,13 @@ fn browser_task_action_export(
         return None;
     }
     let source = workspace.source();
-    let plan_epoch = source.revision.checked_add(1)?;
-    let plan = exact_plan_snapshot_at_epoch(&source.source, plan_epoch)?;
+    let plan_epoch = browser_plan_epoch(session)?;
+    let plan = browser_candidate_plan(session)?;
+    let binding_identity = session
+        .protected_bindings
+        .as_ref()
+        .map(|profile| profile.projection().identity)
+        .unwrap_or_default();
     let operation_id = browser_evidence_hash(
         b"task-action-operation",
         &[
@@ -524,6 +779,7 @@ fn browser_task_action_export(
             plan.identity.as_bytes(),
             &source.revision.to_be_bytes(),
             descriptor.root.as_bytes(),
+            binding_identity.as_bytes(),
         ],
     )
     .to_string();
@@ -1542,7 +1798,7 @@ fn browser_task_terminal_observation(
         cleanup_state: if run.terminal.is_some() {
             "complete"
         } else {
-            "unavailable"
+            "incomplete-choices"
         }
         .to_owned(),
         evidence_state: if browser_run_evidence(run).is_ok() {
@@ -1572,8 +1828,7 @@ fn browser_session_view(
         ),
         None => (None, None, None, Vec::new()),
     };
-    let mut action_export =
-        browser_task_action_export(&session.workspace, session.task_front_descriptor.as_deref());
+    let mut action_export = browser_task_action_export(session);
     if let Some(export) = action_export.as_mut()
         && session.run.as_ref().is_some_and(|run| {
             matches!(
@@ -1594,9 +1849,12 @@ fn browser_session_view(
         browser_task_start_receipt(session).or_else(|| session.task_action_receipts.back());
     let result_observation = browser_task_result_observation(session);
     let terminal_observation = browser_task_terminal_observation(session);
+    let candidate_plan = (session.run.is_none())
+        .then(|| browser_candidate_plan(session))
+        .flatten();
     authoritative_patchbay_view(
         &session.workspace,
-        plan,
+        plan.or(candidate_plan),
         run,
         high_water,
         &evidence,
@@ -1606,6 +1864,7 @@ fn browser_session_view(
             action_receipt,
             result_observation: result_observation.as_ref(),
             terminal_observation: terminal_observation.as_ref(),
+            protected_bindings: session.protected_bindings.as_ref(),
         },
     )
 }
@@ -1725,20 +1984,18 @@ fn browser_installed_profile(
 fn start_browser_exact_run(
     source: &str,
     source_revision: u64,
+    plan_epoch: u64,
     session_id: &str,
 ) -> Result<BrowserExactRun, RuntimeError> {
     let panel = conduit_panel::parse(source)
         .map_err(|error| RuntimeError::new("CND-SRC-001", error.to_string()))?;
-    let run_id = browser_exact_run_id(session_id, source_revision);
+    let run_id = browser_exact_run_id(session_id, source_revision, plan_epoch);
     let registry = browser_registry();
     let topology = registry
         .resolve(&panel)
         .and_then(|resolved| resolved.exact_topology())
         .map_err(|error| RuntimeError::new(error.code, error.message))?;
     let mut installed = browser_installed_profile(source, &registry, &topology)?;
-    let plan_epoch = source_revision
-        .checked_add(1)
-        .ok_or_else(|| RuntimeError::new("CND-PBY-ACT-006", "plan epoch exhausted"))?;
     installed.input.execution_arrangement.plan_epoch = plan_epoch;
     installed
         .input
@@ -1909,6 +2166,7 @@ pub fn patchbay_open_session(
     }
     let task_front_descriptor =
         (!task_front_descriptor.trim().is_empty()).then_some(task_front_descriptor);
+    let protected_bindings = copy_binding_profile(task_front_descriptor.as_deref());
     let preliminary_workspace = match conduit_patchbay::Workspace::new_with_history(
         document_id.clone(),
         source.clone(),
@@ -1923,6 +2181,7 @@ pub fn patchbay_open_session(
         task_front_descriptor: task_front_descriptor.clone(),
         task_action_receipts: VecDeque::new(),
         next_task_action_sequence: 1,
+        protected_bindings: protected_bindings.clone(),
     };
     let preliminary_view = match browser_session_view(&preliminary_session) {
         Ok(view) => view,
@@ -1974,6 +2233,7 @@ pub fn patchbay_open_session(
             task_front_descriptor,
             task_action_receipts: VecDeque::new(),
             next_task_action_sequence: 1,
+            protected_bindings,
         };
         let view = match browser_session_view(&session) {
             Ok(view) => view,
@@ -2239,10 +2499,7 @@ pub fn patchbay_request_task_action(session_id: String, request_json: String) ->
             })
             .to_string();
         }
-        let Some(mut export) = browser_task_action_export(
-            &session.workspace,
-            session.task_front_descriptor.as_deref(),
-        ) else {
+        let Some(mut export) = browser_task_action_export(session) else {
             return serde_json::json!({
                 "ok": false,
                 "code": "CND-PBY-ACT-005",
@@ -2297,11 +2554,34 @@ pub fn patchbay_request_task_action(session_id: String, request_json: String) ->
         session.next_task_action_sequence = session.next_task_action_sequence.saturating_add(1);
         let dispatch = match request.action {
             conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan => {
-                let source = session.workspace.source().source.clone();
+                let Some(source) = browser_resolved_source(session) else {
+                    return serde_json::json!({
+                        "ok": false,
+                        "code": "CND-BND-012",
+                        "diagnostic": "all protected resource bindings and exact grants must be ready",
+                        "view": browser_session_view(session).ok(),
+                    })
+                    .to_string();
+                };
                 let source_revision = session.workspace.source().revision;
-                start_browser_exact_run(&source, source_revision, &session_id).and_then(|mut run| {
+                let plan_epoch = browser_plan_epoch(session)
+                    .ok_or_else(|| RuntimeError::new("CND-PBY-ACT-006", "plan epoch exhausted"));
+                plan_epoch.and_then(|plan_epoch| start_browser_exact_run(
+                    &source,
+                    source_revision,
+                    plan_epoch,
+                    &session_id,
+                )).and_then(|mut run| {
+                    if let Some(authored_hash) = session.workspace.semantic().source_semantic_hash {
+                        run.plan.source_semantic_hash = authored_hash;
+                    }
+                    redact_protected_plan(&mut run.plan, session.protected_bindings.as_ref());
                     if let Some(descriptor) = session.task_front_descriptor.as_deref() {
-                        attach_browser_task_result_watch(&mut run, &source, descriptor)?;
+                        attach_browser_task_result_watch(
+                            &mut run,
+                            &session.workspace.source().source,
+                            descriptor,
+                        )?;
                     }
                     receipt.run_id = Some(run.run_id.clone());
                     session.run = Some(run);
@@ -2373,6 +2653,180 @@ pub fn patchbay_request_task_action(session_id: String, request_json: String) ->
     })
 }
 
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BrowserResourceBindingCommand {
+    request: conduit_patchbay::ResourceBindingRequestEnvelope,
+    #[serde(default)]
+    choice: Option<String>,
+}
+
+/// Applies one exact protected resource-binding operation. The browser client
+/// sends a bounded chooser identity, never a path, resource handle, grant, or
+/// selected content. This deterministic provider maps that ceremony to its
+/// own opaque resources behind the worker boundary.
+#[wasm_bindgen]
+pub fn patchbay_request_resource_binding(session_id: String, request_json: String) -> String {
+    if request_json.len() > MAXIMUM_PATCHBAY_REQUEST_BYTES {
+        return serde_json::json!({
+            "ok": false,
+            "code": "CND-BND-001",
+            "diagnostic": "resource binding request exceeds its finite byte bound",
+        })
+        .to_string();
+    }
+    let command = match serde_json::from_str::<BrowserResourceBindingCommand>(&request_json) {
+        Ok(command) => command,
+        Err(error) => {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-BND-001",
+                "diagnostic": format!("invalid resource binding request: {error}"),
+            })
+            .to_string();
+        }
+    };
+    PATCHBAY_SESSIONS.with(|sessions| {
+        let mut sessions = sessions.borrow_mut();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-011",
+                "diagnostic": "unknown Patchbay session",
+            })
+            .to_string();
+        };
+        let providers = browser_binding_providers();
+        let provider = providers
+            .iter()
+            .find(|provider| provider.id == command.request.provider_id)
+            .cloned();
+        let Some(profile) = session.protected_bindings.as_mut() else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-BND-004",
+                "diagnostic": "this task front declares no protected binding profile",
+                "view": browser_session_view(session).ok(),
+            })
+            .to_string();
+        };
+        let action = command.request.action;
+        let result = match action {
+            conduit_patchbay::ResourceBindingRequestAction::Choose
+            | conduit_patchbay::ResourceBindingRequestAction::CreateNew
+            | conduit_patchbay::ResourceBindingRequestAction::ReplaceExisting => {
+                let provider = provider
+                    .as_ref()
+                    .ok_or(conduit_patchbay::ResourceBindingError::WrongProvider);
+                provider.and_then(|provider| {
+                    if provider.kind != conduit_patchbay::SelectionProviderKind::DeterministicMemory
+                    {
+                        return Err(conduit_patchbay::ResourceBindingError::Unsupported);
+                    }
+                    let Some(selection_request_id) = command.request.selection_request_id.as_ref()
+                    else {
+                        if command.choice.is_some() {
+                            return Err(conduit_patchbay::ResourceBindingError::Malformed);
+                        }
+                        return profile.begin_selection(&command.request, provider, 10);
+                    };
+                    let (handle, label) =
+                        match (command.request.slot_id.as_str(), command.choice.as_deref()) {
+                            (COPY_SOURCE_SLOT, Some("bounded-input")) => {
+                                (BROWSER_READ_RESOURCE, "bounded-input.txt")
+                            }
+                            (COPY_DESTINATION_SLOT, Some("bounded-output")) => {
+                                (BROWSER_WRITE_RESOURCE, "bounded-output.txt")
+                            }
+                            _ => return Err(conduit_patchbay::ResourceBindingError::Malformed),
+                        };
+                    profile.complete_selection(
+                        conduit_patchbay::ProtectedSelectionCompletion {
+                            request_id: selection_request_id.clone(),
+                            operation_id: command.request.operation_id.clone(),
+                            provider_id: provider.id.clone(),
+                            provider_observation_id: provider.observation_id.clone(),
+                            provider_generation: provider.generation,
+                            completed_at_tick: 10,
+                            outcome: conduit_patchbay::SelectionCompletionOutcome::Selected,
+                            opaque_handle: Some(conduit_patchbay::ProtectedValue::new(handle)?),
+                            safe_label: Some(label.to_owned()),
+                        },
+                        provider,
+                    )
+                })
+            }
+            conduit_patchbay::ResourceBindingRequestAction::ConfirmGrant => {
+                let grant = match command.request.slot_id.as_str() {
+                    COPY_SOURCE_SLOT => "conduit.grant/filesystem-read",
+                    COPY_DESTINATION_SLOT => "conduit.grant/filesystem-write",
+                    _ => {
+                        return binding_error_response(
+                            conduit_patchbay::ResourceBindingError::UnknownSlot,
+                            session,
+                        );
+                    }
+                };
+                profile.confirm_grant(
+                    &command.request,
+                    conduit_patchbay::ProtectedGrantConfirmation {
+                        slot_id: command.request.slot_id.clone(),
+                        expected_binding_revision: command.request.expected_binding_revision,
+                        authority_observation_id: "conduit.authority-observation/browser-site"
+                            .to_owned(),
+                        authority_generation: 1,
+                        outcome: conduit_patchbay::GrantConfirmationOutcome::Granted,
+                        grant: Some(
+                            conduit_patchbay::ProtectedValue::new(grant)
+                                .expect("browser grants are valid protected identifiers"),
+                        ),
+                        access: command.request.requested_access.clone(),
+                    },
+                )
+            }
+            conduit_patchbay::ResourceBindingRequestAction::Inspect => {
+                profile.inspect(&command.request)
+            }
+            conduit_patchbay::ResourceBindingRequestAction::Revoke => {
+                profile.revoke(&command.request)
+            }
+            conduit_patchbay::ResourceBindingRequestAction::Forget => {
+                profile.forget(&command.request)
+            }
+            conduit_patchbay::ResourceBindingRequestAction::Cancel => {
+                profile.cancel_selection(&command.request)
+            }
+            conduit_patchbay::ResourceBindingRequestAction::Enumerate
+            | conduit_patchbay::ResourceBindingRequestAction::SelectContainer
+            | conduit_patchbay::ResourceBindingRequestAction::DownloadExport => {
+                Err(conduit_patchbay::ResourceBindingError::Unsupported)
+            }
+        };
+        match result {
+            Ok(receipt) => serde_json::json!({
+                "ok": true,
+                "binding_receipt": receipt,
+                "view": browser_session_view(session).ok(),
+            })
+            .to_string(),
+            Err(error) => binding_error_response(error, session),
+        }
+    })
+}
+
+fn binding_error_response(
+    error: conduit_patchbay::ResourceBindingError,
+    session: &BrowserPatchbaySession,
+) -> String {
+    serde_json::json!({
+        "ok": false,
+        "code": error.code(),
+        "diagnostic": format!("resource binding operation failed: {error:?}"),
+        "view": browser_session_view(session).ok(),
+    })
+    .to_string()
+}
+
 /// Low-level exact-run start retained for non-task Patchbay clients. Task
 /// fronts must use `patchbay_request_task_action` and its exact receipt.
 #[wasm_bindgen]
@@ -2401,7 +2855,15 @@ pub fn patchbay_start_exact_run(session_id: String) -> String {
         }
         let source = session.workspace.source().source.clone();
         let source_revision = session.workspace.source().revision;
-        match start_browser_exact_run(&source, source_revision, &session_id) {
+        let Some(plan_epoch) = source_revision.checked_add(1) else {
+            return serde_json::json!({
+                "ok": false,
+                "code": "CND-PBY-ACT-006",
+                "diagnostic": "plan epoch exhausted",
+            })
+            .to_string();
+        };
+        match start_browser_exact_run(&source, source_revision, plan_epoch, &session_id) {
             Ok(run) => {
                 session.run = Some(run);
                 browser_run_result(session)
@@ -3399,6 +3861,7 @@ struct BrowserTaskRuntimeProjection<'a> {
     action_receipt: Option<&'a conduit_patchbay::TaskActionReceipt>,
     result_observation: Option<&'a conduit_patchbay::TaskFrontResultObservation>,
     terminal_observation: Option<&'a conduit_patchbay::TaskTerminalObservation>,
+    protected_bindings: Option<&'a conduit_patchbay::ProtectedBindingProfile>,
 }
 
 fn authoritative_patchbay_view(
@@ -3415,6 +3878,7 @@ fn authoritative_patchbay_view(
         action_receipt: task_action_receipt,
         result_observation: task_result_observation,
         terminal_observation: task_terminal_observation,
+        protected_bindings,
     } = task_runtime;
     let document = conduit_panel::parse_document(&workspace.source().source);
     let recovered = conduit_panel::recover_document(&workspace.source().source);
@@ -4343,12 +4807,38 @@ fn authoritative_patchbay_view(
         }
         .to_owned(),
     };
-    let task_front = conduit_patchbay::project_task_front(
+    let protected_binding_projection = protected_bindings.map(|profile| profile.projection());
+    if let Some(profile) = protected_binding_projection.as_ref() {
+        configuration_layers.push(conduit_patchbay::PatchbayConfigurationLayerProjection {
+            id: profile.profile_id.clone(),
+            owner: "site-binding-profile".to_owned(),
+            persistence: "protected-user-site-artifact".to_owned(),
+            revision: profile.revision.to_string(),
+            sensitivity: "opaque-handles-redacted".to_owned(),
+            mutability: "authorized-binding-operations".to_owned(),
+            activation: "candidate-plan-re-resolution".to_owned(),
+            fields: profile
+                .slots
+                .iter()
+                .map(
+                    |slot| conduit_patchbay::PatchbayConfigurationFieldProjection {
+                        id: slot.id.clone(),
+                        display_value: slot
+                            .safe_label
+                            .clone()
+                            .unwrap_or_else(|| slot.state.clone()),
+                    },
+                )
+                .collect(),
+        });
+    }
+    let task_front = conduit_patchbay::project_task_front_with_bindings(
         task_front_descriptor,
         workspace.source(),
         &semantic,
         &topology,
         &configuration_layers,
+        protected_binding_projection.as_ref(),
         plan.as_ref(),
         matching_run.as_ref(),
         task_action_export,
@@ -4387,6 +4877,12 @@ fn authoritative_patchbay_view(
         at_rest: conduit_patchbay::project_at_rest(workspace.source()).ok(),
         task_front,
         configuration_layers,
+        protected_bindings: protected_binding_projection,
+        resource_selection_providers: if protected_bindings.is_some() {
+            browser_binding_providers()
+        } else {
+            Vec::new()
+        },
         diagnostics,
         bounds,
         truncated: truncated || recovered.recovery_limited,
@@ -6152,8 +6648,9 @@ mod tests {
         patchbay_dispose_exact_run, patchbay_inspect_at_rest, patchbay_move_node,
         patchbay_notify_host_operation, patchbay_open_session as patchbay_open_session_with_front,
         patchbay_pump_exact_run, patchbay_read_exact_evidence, patchbay_read_exact_watch,
-        patchbay_replace_source, patchbay_request_task_action, patchbay_session_view,
-        patchbay_snapshot_exact_run, patchbay_start_exact_run, planned_realization_projection,
+        patchbay_replace_source, patchbay_request_resource_binding, patchbay_request_task_action,
+        patchbay_session_view, patchbay_snapshot_exact_run, patchbay_start_exact_run,
+        planned_realization_projection,
     };
 
     const SOURCE: &str = "panel 0\ngreeting: std/literal { value = \"hello\\n\" }\noutput: display/text\ngreeting.value > output.text\n";
@@ -6193,6 +6690,65 @@ mod tests {
             }
         })
         .to_string()
+    }
+
+    fn copy_task_front_descriptor() -> String {
+        serde_json::json!({
+            "schema": "conduit.patchbay-task-front",
+            "schema_version": 0,
+            "root": "root/reader",
+            "name": "Copy file",
+            "purpose": "Copy one bounded chunk between explicitly selected resources.",
+            "controls": [
+                {
+                    "id": "copy-from",
+                    "source": "site-binding",
+                    "target": "conduit.binding/copy/source-file",
+                    "label": "From",
+                    "help": "Choose a readable source through an authorized provider.",
+                    "group": "Files",
+                    "visibility": "primary",
+                    "accessibility_name": "Choose Copy source file"
+                },
+                {
+                    "id": "copy-to",
+                    "source": "site-binding",
+                    "target": "conduit.binding/copy/destination-file",
+                    "label": "To",
+                    "help": "Choose or create a writable destination through an authorized provider.",
+                    "group": "Files",
+                    "visibility": "primary",
+                    "accessibility_name": "Choose Copy destination file"
+                }
+            ],
+            "primary_action": {
+                "request": "run-exact-plan",
+                "label": "Copy",
+                "help": "Run the exact plan resolved from the protected binding revision.",
+                "accessibility_name": "Copy selected file"
+            }
+        })
+        .to_string()
+    }
+
+    fn copy_binding_source() -> String {
+        include_str!("../../../examples/file-copier.panel")
+            .replace(
+                "conduit.resource/filesystem-example-read",
+                "conduit.resource-binding/copy-source",
+            )
+            .replace(
+                "conduit.grant/filesystem-read",
+                "conduit.grant-binding/copy-source-read",
+            )
+            .replace(
+                "conduit.resource/filesystem-example-write",
+                "conduit.resource-binding/copy-destination",
+            )
+            .replace(
+                "conduit.grant/filesystem-write",
+                "conduit.grant-binding/copy-destination-write",
+            )
     }
 
     #[derive(Clone)]
@@ -6955,6 +7511,265 @@ output.value > sink.result\n\
     }
 
     #[test]
+    fn copy_task_front_requires_protected_selection_and_separate_grants() {
+        let session = "test/copy-resource-bindings";
+        let opened: Value = serde_json::from_str(&patchbay_open_session_with_front(
+            session.to_owned(),
+            copy_binding_source(),
+            copy_task_front_descriptor(),
+        ))
+        .expect("Copy task-front open JSON");
+        assert_eq!(opened["ok"], true, "{opened}");
+        assert_eq!(opened["view"]["task_front"]["status"], "usable");
+        assert_eq!(
+            opened["view"]["task_front"]["front"]["readiness"]["state"],
+            "incomplete-choices"
+        );
+        assert_eq!(
+            opened["view"]["task_front"]["front"]["primary_action"]["state"],
+            "incomplete-choices"
+        );
+        assert!(opened["view"]["plan"].is_null());
+        let available_providers = opened["view"]["resource_selection_providers"]
+            .as_array()
+            .expect("provider observations")
+            .iter()
+            .filter(|provider| provider["state"] == "available")
+            .collect::<Vec<_>>();
+        assert_eq!(available_providers.len(), 1);
+        assert_eq!(available_providers[0]["kind"], "deterministic-memory");
+        let source_identity = opened["view"]["source"]["identity"].clone();
+        let source_revision = opened["view"]["source"]["revision"].clone();
+
+        let operation_id = "conduit.operation/copy-resource-bindings";
+        let provider_id = "conduit.selector/deterministic-files";
+        let select_source = serde_json::json!({
+            "request": {
+                "protocol_version": 0,
+                "request_id": "conduit.request/copy-source-select",
+                "operation_id": operation_id,
+                "slot_id": "conduit.binding/copy/source-file",
+                "expected_binding_revision": 0,
+                "provider_id": provider_id,
+                "provider_generation": 1,
+                "action": "choose",
+                "requested_access": ["read"]
+            }
+        });
+        let pending_source: Value = serde_json::from_str(&patchbay_request_resource_binding(
+            session.to_owned(),
+            select_source.to_string(),
+        ))
+        .expect("source selection begin JSON");
+        assert_eq!(pending_source["ok"], true, "{pending_source}");
+        assert_eq!(
+            pending_source["view"]["protected_bindings"]["slots"][0]["state"],
+            "selection-pending"
+        );
+
+        let complete_source = serde_json::json!({
+            "request": {
+                "protocol_version": 0,
+                "request_id": "conduit.request/copy-source-complete",
+                "operation_id": operation_id,
+                "slot_id": "conduit.binding/copy/source-file",
+                "expected_binding_revision": 0,
+                "provider_id": provider_id,
+                "provider_generation": 1,
+                "action": "choose",
+                "requested_access": ["read"],
+                "selection_request_id": "conduit.request/copy-source-select"
+            },
+            "choice": "bounded-input"
+        });
+        let selected_source: Value = serde_json::from_str(&patchbay_request_resource_binding(
+            session.to_owned(),
+            complete_source.to_string(),
+        ))
+        .expect("source selection completion JSON");
+        assert_eq!(selected_source["ok"], true, "{selected_source}");
+        assert_eq!(
+            selected_source["view"]["protected_bindings"]["slots"][0]["state"],
+            "required"
+        );
+        assert_eq!(
+            selected_source["view"]["task_front"]["front"]["primary_action"]["state"],
+            "incomplete-choices"
+        );
+        assert!(selected_source["view"]["protected_bindings"]["slots"][0]
+            ["available_actions"]
+            .as_array()
+            .is_some_and(|actions| actions.contains(&Value::String("confirm-grant".to_owned()))));
+
+        let grant_source = serde_json::json!({
+            "request": {
+                "protocol_version": 0,
+                "request_id": "conduit.request/copy-source-grant",
+                "operation_id": operation_id,
+                "slot_id": "conduit.binding/copy/source-file",
+                "expected_binding_revision": 1,
+                "provider_id": provider_id,
+                "provider_generation": 1,
+                "action": "confirm-grant",
+                "requested_access": ["read"]
+            }
+        });
+        let granted_source: Value = serde_json::from_str(&patchbay_request_resource_binding(
+            session.to_owned(),
+            grant_source.to_string(),
+        ))
+        .expect("source grant JSON");
+        assert_eq!(granted_source["ok"], true, "{granted_source}");
+        assert_eq!(
+            granted_source["view"]["protected_bindings"]["slots"][0]["state"],
+            "ready"
+        );
+
+        let select_destination = serde_json::json!({
+            "request": {
+                "protocol_version": 0,
+                "request_id": "conduit.request/copy-destination-select",
+                "operation_id": operation_id,
+                "slot_id": "conduit.binding/copy/destination-file",
+                "expected_binding_revision": 0,
+                "provider_id": provider_id,
+                "provider_generation": 1,
+                "action": "replace-existing",
+                "requested_access": ["write", "replace"]
+            }
+        });
+        let pending_destination: Value = serde_json::from_str(&patchbay_request_resource_binding(
+            session.to_owned(),
+            select_destination.to_string(),
+        ))
+        .expect("destination selection begin JSON");
+        assert_eq!(pending_destination["ok"], true, "{pending_destination}");
+        assert_eq!(
+            pending_destination["view"]["protected_bindings"]["slots"][1]["state"],
+            "selection-pending"
+        );
+
+        let complete_destination = serde_json::json!({
+            "request": {
+                "protocol_version": 0,
+                "request_id": "conduit.request/copy-destination-complete",
+                "operation_id": operation_id,
+                "slot_id": "conduit.binding/copy/destination-file",
+                "expected_binding_revision": 0,
+                "provider_id": provider_id,
+                "provider_generation": 1,
+                "action": "replace-existing",
+                "requested_access": ["write", "replace"],
+                "selection_request_id": "conduit.request/copy-destination-select"
+            },
+            "choice": "bounded-output"
+        });
+        let selected_destination: Value = serde_json::from_str(&patchbay_request_resource_binding(
+            session.to_owned(),
+            complete_destination.to_string(),
+        ))
+        .expect("destination selection completion JSON");
+        assert_eq!(selected_destination["ok"], true, "{selected_destination}");
+        let destination_revision = selected_destination["binding_receipt"]["binding_revision"]
+            .as_u64()
+            .expect("destination binding revision");
+
+        let grant_destination = serde_json::json!({
+            "request": {
+                "protocol_version": 0,
+                "request_id": "conduit.request/copy-destination-grant",
+                "operation_id": operation_id,
+                "slot_id": "conduit.binding/copy/destination-file",
+                "expected_binding_revision": destination_revision,
+                "provider_id": provider_id,
+                "provider_generation": 1,
+                "action": "confirm-grant",
+                "requested_access": ["write", "replace"]
+            }
+        });
+        let ready: Value = serde_json::from_str(&patchbay_request_resource_binding(
+            session.to_owned(),
+            grant_destination.to_string(),
+        ))
+        .expect("destination grant JSON");
+        assert_eq!(ready["ok"], true, "{ready}");
+        assert_eq!(
+            ready["view"]["task_front"]["front"]["readiness"]["state"], "ready",
+            "{ready}"
+        );
+        assert_eq!(
+            ready["view"]["task_front"]["front"]["primary_action"]["state"],
+            "request-available"
+        );
+        assert!(ready["view"]["plan"].is_object());
+        assert_eq!(ready["view"]["source"]["identity"], source_identity);
+        assert_eq!(ready["view"]["source"]["revision"], source_revision);
+        let safe_view = ready["view"].to_string();
+        assert!(
+            !safe_view.contains("conduit.resource/filesystem-example-read"),
+            "{safe_view}"
+        );
+        assert!(!safe_view.contains("conduit.resource/filesystem-example-write"));
+        assert!(!safe_view.contains("conduit.grant/filesystem-read"));
+        assert!(!safe_view.contains("conduit.grant/filesystem-write"));
+        assert!(safe_view.contains("bounded-input.txt"));
+        assert!(safe_view.contains("bounded-output.txt"));
+
+        let front = &ready["view"]["task_front"]["front"];
+        let start_request = serde_json::json!({
+            "protocol_version": 0,
+            "request_id": "request/copy-ready-run",
+            "operation_id": front["primary_action"]["operation_id"],
+            "action": "run-exact-plan",
+            "source_identity": front["identities"]["source_identity"],
+            "plan_identity": front["identities"]["plan_identity"],
+            "plan_epoch": front["primary_action"]["plan_epoch"],
+        });
+        let started: Value = serde_json::from_str(&patchbay_request_task_action(
+            session.to_owned(),
+            start_request.to_string(),
+        ))
+        .expect("Copy task start JSON");
+        assert_eq!(started["ok"], true, "{started}");
+        assert_eq!(started["action_receipt"]["disposition"], "accepted");
+        let active_plan_identity = started["plan_identity"].clone();
+
+        let ready_destination_revision =
+            ready["view"]["protected_bindings"]["slots"][1]["binding_revision"]
+                .as_u64()
+                .expect("ready destination revision");
+        let revoke_destination = serde_json::json!({
+            "request": {
+                "protocol_version": 0,
+                "request_id": "conduit.request/copy-destination-revoke",
+                "operation_id": operation_id,
+                "slot_id": "conduit.binding/copy/destination-file",
+                "expected_binding_revision": ready_destination_revision,
+                "provider_id": provider_id,
+                "provider_generation": 1,
+                "action": "revoke",
+                "requested_access": ["write", "replace"]
+            }
+        });
+        let revoked: Value = serde_json::from_str(&patchbay_request_resource_binding(
+            session.to_owned(),
+            revoke_destination.to_string(),
+        ))
+        .expect("destination revocation JSON");
+        assert_eq!(revoked["ok"], true, "{revoked}");
+        assert_eq!(
+            revoked["view"]["protected_bindings"]["slots"][1]["state"],
+            "revoked"
+        );
+        assert_eq!(revoked["view"]["plan"]["identity"], active_plan_identity);
+        assert_eq!(revoked["view"]["source"]["identity"], source_identity);
+        assert_eq!(
+            revoked["view"]["topology"]["planned_realization"]["selection"],
+            "active-run"
+        );
+    }
+
+    #[test]
     fn task_front_dispatches_exact_action_and_projects_semantic_result_separately() {
         let session = "test/task-front-action";
         let source = "panel 0\n\nexample/front-panel {\n    private_worker: text/uppercase\n    export > text = private_worker.text\n    export result > = private_worker.text\n}\n\nsource: std/literal { value = \"jacks\" }\nfaceplate: example/front-panel\nsink: display/text\nsource.value > faceplate.text\nfaceplate.result > sink.text\n";
@@ -7643,8 +8458,8 @@ second.value > sink_two.text
 
     #[test]
     fn browser_run_identity_is_valid_bounded_and_revision_specific() {
-        let first = browser_exact_run_id("tour/worker-run/1", 0);
-        let second = browser_exact_run_id("tour/worker-run/1", 1);
+        let first = browser_exact_run_id("tour/worker-run/1", 0, 1);
+        let second = browser_exact_run_id("tour/worker-run/1", 1, 2);
         assert_eq!(first.len(), 36);
         assert!(conduit_core::Id::new(&first).is_ok());
         assert_ne!(first, second);

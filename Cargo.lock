@@ -675,6 +675,7 @@ dependencies = [
  "conduit-runtime",
  "conduit-spatial",
  "conduit-std",
+ "serde",
  "serde_json",
  "sha2",
  "wasm-bindgen",

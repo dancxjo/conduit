@@ -11,6 +11,7 @@ import init, {
   patchbay_read_exact_evidence,
   patchbay_read_exact_watch,
   patchbay_request_task_action,
+  patchbay_request_resource_binding,
   patchbay_session_view,
   patchbay_snapshot_exact_run,
   patchbay_start_exact_run,
@@ -51,6 +52,11 @@ function response(operation, value) {
       return patchbay_start_exact_run(value.sessionId);
     case "patchbay-request-task-action":
       return patchbay_request_task_action(value.sessionId, JSON.stringify(value.request));
+    case "patchbay-request-resource-binding":
+      return patchbay_request_resource_binding(
+        value.sessionId,
+        JSON.stringify(value.command),
+      );
     case "patchbay-pump-exact-run":
       return patchbay_pump_exact_run(
         value.sessionId,

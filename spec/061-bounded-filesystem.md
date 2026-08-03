@@ -16,6 +16,36 @@ implementation, artifact, host observation, resource, lease, grant, execution
 limits, pending-operation limit, queue memory, and evidence budget. Provider
 availability is not authority, and authority is not a resource handle.
 
+## Typed selection and protected binding profiles
+
+A task front may name a typed user/site binding slot. That slot identity is
+authored semantic configuration; its current value is not. Selection is a
+versioned Patchbay request against one fresh provider observation and an exact
+binding revision. The provider returns only an opaque handle plus a bounded
+safe label. Operating-system permission and a Conduit grant are confirmed as
+separate facts. A selected handle without the exact required read or write
+grant cannot resolve into a candidate plan.
+
+The current Copy profile has two incompatible slots:
+
+- `conduit.binding/copy/source-file` requires read authority;
+- `conduit.binding/copy/destination-file` requires write and replace authority.
+
+The same protected resource cannot fill both slots, even when two resources
+have the same safe label. Choosing, replacing, revoking, forgetting, changing
+provider generation, or losing a resource increments or invalidates the
+protected profile without editing the shared `.panel` source. An active run
+continues against its already pinned exact resource, grant, lease, plan, and
+epoch; only candidate resolution follows the new binding revision.
+
+Provider profiles remain explicit and unequal. The deterministic provider may
+enumerate its finite fixtures. Browser selection exposes only chooser/create
+or download ceremonies supported by that browser host. The hosted-local broker
+accepts picker-mediated paths inside its configured root, rejects symlinks and
+scope escape, and does not enumerate unless the broker was explicitly granted
+that operation. An unsupported host reports unsupported rather than presenting
+an inert chooser.
+
 ## Read
 
 One `fs/read` operation declares:
@@ -72,6 +102,20 @@ in-memory provider and has no host filesystem access.
 Sensitive provider mappings project only a redaction marker. Protected source
 bindings remain unresolved secret references through lowering; diagnostics and
 Tour presentation never expose a mapped path or protected content.
+
+Normal binding inspection and redacted export may contain slot identity,
+revision, provider class/state, safe label, permission/grant state, and allowed
+operations. They never contain the opaque resource, exact grant, path,
+credential, selected bytes, or unrestricted provider metadata. A stricter
+export policy refuses the protected artifact entirely. Exact resolution is the
+only API which can expose handle and grant material to plan construction.
+
+Cancellation consumes the pending chooser identity. Duplicate requests replay
+no second effect. A late callback from a cancelled request, prior binding
+revision, different provider observation, different generation, or disappeared
+provider fails closed. User cancellation, OS permission denial, Conduit grant
+denial, stale binding, resource disappearance, unsupported operation, and plan
+rejection remain distinguishable outcomes.
 
 ## Conformance
 
