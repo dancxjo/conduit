@@ -31,6 +31,16 @@
     "cancel_after_offers": 16,
     "scope": "finite exact-run cancellation requested after block pressure begins"
   },
+  "bursty_consumers": {
+    "queue_capacity_items": 4,
+    "pressure_policies": ["block", "reject", "coalesce", "sample", "drop-disposable"],
+    "fanout_branches": [2, 8, 32],
+    "fanout_modes": ["coupled", "isolated"],
+    "fanout_slow_branches": ["one", "all"],
+    "consumer_burst_items": 8,
+    "consumer_pause_yields": 8,
+    "scope": "finite exact runs alternating explicit cooperative consumer pauses and bounded consume bursts"
+  },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
   "measured_trials": 9,
@@ -81,6 +91,7 @@
     "offered, admitted, completed-useful, rejected, sampled, coalesced, dropped, cancelled, retried, and terminal outcomes are always reported separately",
     "Conduit reports exact scheduler decisions and producer stall duration; Drain and Abort timing stay unavailable until those transitions are explicitly requested",
     "pressured Drain preserves every admitted value while pressured Abort may discard admitted work and neither counts discarded work as useful",
+    "bursty consumers report exact repeated pressure and recovery cycle counts without a hidden timing source or buffer",
     "bounded FIFO retries in local-depth fixtures are reported and do not change admitted or completed-useful counts",
     "map, merge, and bounded-async complete one useful output per input",
     "map-filter completes one useful output per input until it contains a filter, then exactly half for the even input cardinality",

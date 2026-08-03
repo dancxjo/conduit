@@ -116,6 +116,17 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         serde_json::json!(["drain", "abort"])
     );
     assert_eq!(manifest["cancellation"]["pressure_policy"], "block");
+    assert_eq!(manifest["bursty_consumers"]["queue_capacity_items"], 4);
+    assert_eq!(manifest["bursty_consumers"]["consumer_burst_items"], 8);
+    assert_eq!(manifest["bursty_consumers"]["consumer_pause_yields"], 8);
+    assert_eq!(
+        manifest["bursty_consumers"]["pressure_policies"],
+        serde_json::json!(["block", "reject", "coalesce", "sample", "drop-disposable"])
+    );
+    assert_eq!(
+        manifest["bursty_consumers"]["fanout_branches"],
+        serde_json::json!([2, 8, 32])
+    );
     assert_eq!(
         manifest["wall_clock_policy"]["gate"],
         "report-only until a reviewed machine-class baseline exists"
@@ -184,7 +195,9 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "fanout_mode",
             "slow_branches",
             "termination_request",
-            "cancel_after_offers"
+            "cancel_after_offers",
+            "consumer_pattern",
+            "consumer_burst_items"
         ]
         .iter()
         .all(|field| schema["properties"]["workload"]["required"]
@@ -193,6 +206,13 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             .iter()
             .any(|required| required == field))
     );
+    assert!(["pressure_cycles", "recovery_cycles"].iter().all(|field| {
+        schema["properties"]["phases"]["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|required| required == field)
+    }));
     assert!(
         schema["properties"]["memory"]["required"]
             .as_array()

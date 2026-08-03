@@ -67,6 +67,19 @@ as a useful completion; a sample-selected value that still cannot fit is a
 drop, distinct from schedule exclusion. Disconnect and fail stop at the first
 saturated offer and are terminal measurements, not throughput successes.
 
+The bursty-consumer slice is separate from that one-way slow-to-recovered
+shape. At capacity four, one selected slow consumer begins with eight explicit
+cooperative pause yields, consumes a burst of eight values, and repeats that
+bounded pattern. The five nonterminal pressure policies run against the same
+pattern; terminal disconnect and fail remain in the sustained matrix because
+they intentionally stop at first saturation and therefore cannot exhibit
+repeated bursts. Coupled and isolated fan-out repeat the bursty pattern at
+2, 8, and 32 branches with both one and all branches slow. Raw rows identify
+the consumer pattern and burst size, while exact pressure/recovery cycle counts
+describe the repeated regime. The report leaves the single contiguous
+`pressure_ns`/`recovery_ns` pair null for bursty rows instead of pretending
+several alternating regions are one phase.
+
 The overload slice does not claim #245's persistent-session matrix.
 RxJS overload remains unavailable because synchronous push has no matching
 demand-bounded queue. Reactor overload also remains unavailable until its
@@ -103,7 +116,10 @@ completed-useful, rejected, sampled, coalesced, dropped, cancelled, retried, and
 values. The Conduit runner also reports exact scheduler decision count and wall
 time accumulated only while a source is blocked waiting for bounded output
 capacity. Overload rows additionally split the slow pressure region from the
-recovery-to-terminal region. `drain_ns` and `abort_ns` remain `null` until a
+recovery-to-terminal region. Bursty rows instead carry exact repeated
+`pressure_cycles` and `recovery_cycles`; a final partial burst can leave one
+more entered recovery cycle than completed pressure cycle. `drain_ns` and
+`abort_ns` remain `null` until a
 fixture explicitly requests the corresponding cancellation transition;
 ordinary successful completion is not renamed. Other unsupported measurements
 remain `null` with a reason instead of being reported as zero.
