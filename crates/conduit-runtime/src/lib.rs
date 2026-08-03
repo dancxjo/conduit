@@ -104,7 +104,7 @@ pub use host_resolution::{
 };
 pub use hosted_lanes::{
     FIXED_HOSTED_LANE_PROVIDER_ID, FixedHostedExecutionCoordinator, FixedHostedLaneProvider,
-    HostedCommitBatch, HostedLaneError, HostedLaneJob, HostedLaneObservation,
+    HostedCommitBatch, HostedLaneAssignment, HostedLaneError, HostedLaneJob, HostedLaneObservation,
     HostedLaneReservation, HostedProposal, HostedProposalBatch,
 };
 pub use implementation_binding::{

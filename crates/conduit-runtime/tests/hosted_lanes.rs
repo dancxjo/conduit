@@ -10,9 +10,9 @@ use conduit_core::{
 };
 use conduit_runtime::{
     FIXED_HOSTED_LANE_PROVIDER_ID, FixedHostedExecutionCoordinator, FixedHostedLaneProvider,
-    HostedLaneError, HostedLaneJob, HostedLaneReservation, ResolvedExecutionArrangement,
-    ResolvedExecutionCommitDomain, ResolvedExecutionDescriptor, ResolvedExecutionLane,
-    ResolvedExecutionPlacement, ResolvedExecutionRegion,
+    HostedLaneAssignment, HostedLaneError, HostedLaneJob, HostedLaneReservation,
+    ResolvedExecutionArrangement, ResolvedExecutionCommitDomain, ResolvedExecutionDescriptor,
+    ResolvedExecutionLane, ResolvedExecutionPlacement, ResolvedExecutionRegion,
 };
 
 struct Job {
@@ -246,6 +246,60 @@ fn adversarial_completion_order_cannot_change_authoritative_order() {
 }
 
 #[test]
+fn deterministic_tickets_dispatch_to_explicit_physical_lanes() {
+    let active = Arc::new(AtomicUsize::new(0));
+    let peak = Arc::new(AtomicUsize::new(0));
+    let job = |value, delay_ms| Job {
+        value,
+        delay_ms,
+        active: Arc::clone(&active),
+        peak: Arc::clone(&peak),
+        fault: false,
+    };
+    let mut coordinator = FixedHostedExecutionCoordinator::admit(
+        &resolved_arrangement(),
+        "placement-hosted",
+        "commit-main",
+        1,
+    )
+    .unwrap();
+    let mut committed = Vec::new();
+    let batch = coordinator
+        .compute_assigned_and_commit(
+            [
+                HostedLaneAssignment {
+                    lane: 2,
+                    job: job(100, 30),
+                },
+                HostedLaneAssignment {
+                    lane: 0,
+                    job: job(200, 20),
+                },
+                HostedLaneAssignment {
+                    lane: 1,
+                    job: job(300, 10),
+                },
+            ],
+            |ticket, value| {
+                committed.push((ticket, value));
+                Ok(())
+            },
+        )
+        .unwrap();
+    assert_eq!(committed, [(1, 100), (2, 200), (3, 300)]);
+    assert_eq!(batch.committed_tickets, [1, 2, 3]);
+    assert_eq!(
+        batch
+            .physical_completion_order
+            .iter()
+            .map(|observation| (observation.ticket, observation.lane))
+            .collect::<Vec<_>>(),
+        [(3, 1), (2, 0), (1, 2)]
+    );
+    assert_eq!(peak.load(Ordering::SeqCst), 3);
+}
+
+#[test]
 fn repeated_batches_reuse_the_fixed_provider_storage() {
     let active = Arc::new(AtomicUsize::new(0));
     let peak = Arc::new(AtomicUsize::new(0));
@@ -300,6 +354,12 @@ fn admission_and_ticket_sets_fail_closed() {
             .compute_proposals(vec![(1, job(1)), (1, job(2)), (3, job(3))])
             .unwrap_err(),
         HostedLaneError::DuplicateTicket
+    );
+    assert_eq!(
+        provider
+            .compute_assigned_proposals([(0, 1, job(1)), (0, 2, job(2)), (2, 3, job(3))])
+            .unwrap_err(),
+        HostedLaneError::InvalidLaneAssignment
     );
 }
 
@@ -406,12 +466,13 @@ fn hosted_provider_owns_its_portable_conformance_cases() {
         "provider-fault-disposes-reserved-slots",
         "coordinator-cancellation-requires-readmission",
         "hosted-repeated-batches-retain-fixed-storage",
+        "hosted-explicit-lane-placement-preserves-commit",
     ] {
         assert!(fixture.contains(&format!("\"id\":\"{id}\"")));
     }
     assert_eq!(
         fixture.matches("\"runner\":\"fixed-hosted-lanes\"").count(),
-        8
+        9
     );
 }
 

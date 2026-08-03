@@ -76,6 +76,11 @@ pub struct HostedProposal<P> {
     pub value: P,
 }
 
+pub struct HostedLaneAssignment<J> {
+    pub lane: u16,
+    pub job: J,
+}
+
 #[derive(Debug)]
 pub struct HostedProposalBatch<'a, P> {
     proposals: &'a mut Vec<HostedProposal<P>>,
@@ -117,6 +122,7 @@ pub enum HostedLaneError {
     StaleProposal,
     CommitRejected,
     ProposalCapacityExceeded,
+    InvalidLaneAssignment,
 }
 
 impl HostedLaneError {
@@ -136,6 +142,7 @@ impl HostedLaneError {
             Self::StaleProposal => "CND-LAN-011",
             Self::CommitRejected => "CND-LAN-012",
             Self::ProposalCapacityExceeded => "CND-LAN-013",
+            Self::InvalidLaneAssignment => "CND-LAN-014",
         }
     }
 }
@@ -161,6 +168,9 @@ impl fmt::Display for HostedLaneError {
             Self::CommitRejected => "authoritative deterministic commit rejected a proposal",
             Self::ProposalCapacityExceeded => {
                 "hosted lane proposals exceeded their pre-admitted byte reservation"
+            }
+            Self::InvalidLaneAssignment => {
+                "hosted proposal batch does not assign exactly one job to every admitted lane"
             }
         })
     }
@@ -247,10 +257,30 @@ impl<J: HostedLaneJob> FixedHostedExecutionCoordinator<J> {
     pub fn compute_and_commit<I>(
         &mut self,
         jobs: I,
-        mut commit: impl FnMut(u64, J::Proposal) -> Result<(), ()>,
+        commit: impl FnMut(u64, J::Proposal) -> Result<(), ()>,
     ) -> Result<HostedCommitBatch<'_>, HostedLaneError>
     where
         I: IntoIterator<Item = J>,
+        I::IntoIter: ExactSizeIterator,
+    {
+        self.compute_assigned_and_commit(
+            jobs.into_iter()
+                .enumerate()
+                .map(|(lane, job)| HostedLaneAssignment {
+                    lane: u16::try_from(lane).expect("admitted lane index fits u16"),
+                    job,
+                }),
+            commit,
+        )
+    }
+
+    pub fn compute_assigned_and_commit<I>(
+        &mut self,
+        jobs: I,
+        mut commit: impl FnMut(u64, J::Proposal) -> Result<(), ()>,
+    ) -> Result<HostedCommitBatch<'_>, HostedLaneError>
+    where
+        I: IntoIterator<Item = HostedLaneAssignment<J>>,
         I::IntoIter: ExactSizeIterator,
     {
         if self.terminal {
@@ -266,14 +296,15 @@ impl<J: HostedLaneJob> FixedHostedExecutionCoordinator<J> {
             .checked_add(u64::from(lane_count))
             .ok_or(HostedLaneError::BatchSequenceExhausted)?;
         let first_ticket = self.next_ticket;
-        let jobs = jobs.enumerate().map(move |(index, job)| {
+        let jobs = jobs.enumerate().map(move |(index, assignment)| {
             (
+                assignment.lane,
                 first_ticket + u64::try_from(index).expect("admitted lane index fits u64"),
-                job,
+                assignment.job,
             )
         });
         {
-            let batch = match self.provider.compute_proposals(jobs) {
+            let batch = match self.provider.compute_assigned_proposals(jobs) {
                 Ok(batch) => batch,
                 Err(error) => {
                     self.terminal = true;
@@ -655,22 +686,47 @@ impl<J: HostedLaneJob> FixedHostedLaneProvider<J> {
         I: IntoIterator<Item = (u64, J)>,
         I::IntoIter: ExactSizeIterator,
     {
+        self.compute_assigned_proposals(jobs.into_iter().enumerate().map(
+            |(lane, (ticket, job))| {
+                (
+                    u16::try_from(lane).expect("admitted lane index fits u16"),
+                    ticket,
+                    job,
+                )
+            },
+        ))
+    }
+
+    pub fn compute_assigned_proposals<I>(
+        &mut self,
+        jobs: I,
+    ) -> Result<HostedProposalBatch<'_, J::Proposal>, HostedLaneError>
+    where
+        I: IntoIterator<Item = (u16, u64, J)>,
+        I::IntoIter: ExactSizeIterator,
+    {
         let jobs = jobs.into_iter();
         if jobs.len() != usize::from(self.reservation.lanes) {
             return Err(HostedLaneError::WrongBatchSize);
         }
         self.proposals.clear();
         self.physical_completion_order.clear();
-        for (index, job) in jobs.enumerate() {
-            if self.pending_jobs[..index]
+        for (lane, ticket, job) in jobs {
+            let lane = usize::from(lane);
+            if self
+                .pending_jobs
                 .iter()
                 .flatten()
-                .any(|(prior, _)| prior == &job.0)
+                .any(|(prior, _)| prior == &ticket)
             {
-                self.pending_jobs[..index].fill_with(|| None);
+                self.pending_jobs.fill_with(|| None);
                 return Err(HostedLaneError::DuplicateTicket);
             }
-            self.pending_jobs[index] = Some(job);
+            if lane >= self.pending_jobs.len() || self.pending_jobs[lane].is_some() {
+                self.pending_jobs.fill_with(|| None);
+                return Err(HostedLaneError::InvalidLaneAssignment);
+            }
+            self.pending_jobs[lane] = Some((ticket, job));
         }
         let batch = self.next_batch;
         self.next_batch = batch

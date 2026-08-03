@@ -14,6 +14,7 @@
     {"id":"commit-rejection-fences-coordinator","runner":"fixed-hosted-lanes","expected":{"error":"CND-LAN-012","terminal":true,"disposed_slots":2}},
     {"id":"provider-fault-disposes-reserved-slots","runner":"fixed-hosted-lanes","expected":{"error":"CND-LAN-006","disposed_slots":3}},
     {"id":"coordinator-cancellation-requires-readmission","runner":"fixed-hosted-lanes","expected":{"terminal":true,"readmission_required":true}},
-    {"id":"hosted-repeated-batches-retain-fixed-storage","runner":"fixed-hosted-lanes","expected":{"batches":64,"lanes":3,"provider_batch_allocations":0}}
+    {"id":"hosted-repeated-batches-retain-fixed-storage","runner":"fixed-hosted-lanes","expected":{"batches":64,"lanes":3,"provider_batch_allocations":0}},
+    {"id":"hosted-explicit-lane-placement-preserves-commit","runner":"fixed-hosted-lanes","expected":{"dispatch_lanes":[2,0,1],"commit_tickets":[1,2,3]}}
   ]
 }
