@@ -1314,7 +1314,14 @@ test("covers every published chapter and exposes production topology projections
   await expect(plannedWorker.locator('[data-clue="implementation"]')).toHaveCount(1);
   await expect(plannedWorker.locator('[data-clue="provider"]')).toHaveCount(1);
   await expect(plannedWorker.locator('[data-clue="artifact"]')).toHaveCount(1);
-  await plannedWorker.locator(".faceplate-header").click();
+  const plannedWorkerHeader = plannedWorker.locator(".faceplate-header");
+  await plannedWorkerHeader.evaluate((element) =>
+    element.scrollIntoView({ block: "center", inline: "center" })
+  );
+  await plannedWorkerHeader.click();
+  await expect(page.locator("#selected-node-label")).toContainText(
+    "Selected planned instance: root/box.worker",
+  );
   await expect(page.locator("#selection-inspector")).toBeVisible();
   await expect(page.locator('[data-section="realization"]')).toContainText(
     "implementation",
