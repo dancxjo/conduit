@@ -1542,6 +1542,13 @@ test("shows authoritative task readiness and outcome with the raw console closed
   await expect(page.locator("#console-body")).toBeHidden();
 });
 
+test("respects denied task-action policy for run availability", async ({ page }) => {
+  await gotoTour(page,
+    "/tour/public/index.html?lesson=panels.jacks-on-the-front&taskActionPolicyState=denied");
+  await expect(page.locator("#task-front-state")).toHaveText("denied");
+  await expect(page.locator("#run")).toBeDisabled();
+});
+
 test("navigates composite boundaries from canvas and structured controls", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=panels.inside-outside");
   const workspace = page.locator("#workspace");

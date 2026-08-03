@@ -22,6 +22,7 @@ const source = document.querySelector("#source");
 const syncSourceHighlight = attachPanelSourceHighlighting(source);
 const result = document.querySelector("#result");
 const runButton = document.querySelector("#run");
+const pageParameters = new URLSearchParams(location.search);
 const stopButton = document.querySelector("#stop");
 const undoResetButton = document.querySelector("#undo-reset");
 const arrangeButton = document.querySelector("#arrange");
@@ -154,6 +155,38 @@ async function sha256Hex(bytes) {
     .join("");
 }
 
+const TASK_ACTION_POLICY_OBSERVATION_ID = "conduit.task-policy/tour-browser-host";
+const TASK_ACTION_POLICY_STATE_PARAM = "taskActionPolicyState";
+const TASK_ACTION_POLICY_CODES = {
+  permitted: "CND-PBY-ACT-READY",
+  denied: "CND-PBY-ACT-DENIED",
+  revoked: "CND-PBY-ACT-REVOKED",
+  unavailable: "CND-PBY-ACT-UNAVAILABLE",
+};
+const TASK_ACTION_POLICY_STATES = new Set(Object.keys(TASK_ACTION_POLICY_CODES));
+
+function tourTaskActionPolicy(state) {
+  return {
+    schemaVersion: 0,
+    observationId: TASK_ACTION_POLICY_OBSERVATION_ID,
+    generation: 1,
+    action: "run-exact-plan",
+    activeControls: ["cancel", "drain"],
+    state,
+    observedAtTick: 10,
+    validUntilTick: 100,
+    code: TASK_ACTION_POLICY_CODES[state],
+    explanation: `The independent Tour host policy is ${state} for this exact task action.`,
+  };
+}
+
+const taskActionPolicyState = TASK_ACTION_POLICY_STATES.has(
+  pageParameters.get(TASK_ACTION_POLICY_STATE_PARAM),
+)
+  ? pageParameters.get(TASK_ACTION_POLICY_STATE_PARAM)
+  : "permitted";
+const initialTaskActionPolicy = tourTaskActionPolicy(taskActionPolicyState);
+
 if (browserPlan.schema !== "conduit.tour-browser-plan") {
   throw new Error("unsupported Tour browser plan");
 }
@@ -244,16 +277,7 @@ const hostReport = observeBrowserHost({
   ],
   permissions: [],
   taskActionPolicies: [{
-    schemaVersion: 0,
-    observationId: "conduit.task-policy/tour-browser-host",
-    generation: 1,
-    action: "run-exact-plan",
-    activeControls: ["cancel", "drain"],
-    state: "permitted",
-    observedAtTick: 10,
-    validUntilTick: 100,
-    code: "CND-PBY-ACT-READY",
-    explanation: "The independent Tour host policy permits one exact task action.",
+    ...initialTaskActionPolicy,
   }],
   activation: false,
   resources: {
@@ -264,7 +288,7 @@ const hostReport = observeBrowserHost({
 if (hostReport.ok === false) {
   throw new Error(`${hostReport.code}:${hostReport.detail}`);
 }
-const taskActionPolicy = hostReport.taskActionPolicies.find(
+const hostTaskActionPolicy = hostReport.taskActionPolicies.find(
   (policy) => policy.action === "run-exact-plan",
 );
 
@@ -1683,7 +1707,7 @@ function openPatchbaySession() {
     patchbaySessionId,
     acceptedSource,
     current.task_front ? JSON.stringify(current.task_front) : "",
-    taskActionPolicy ? JSON.stringify(taskActionPolicy) : "",
+        hostTaskActionPolicy ? JSON.stringify(hostTaskActionPolicy) : "",
   ));
   if (!opened.ok) {
     patchbayView = null;
@@ -1703,7 +1727,7 @@ function openPatchbaySession() {
         patchbaySessionId,
         acceptedSource,
         current.task_front ? JSON.stringify(current.task_front) : "",
-        taskActionPolicy ? JSON.stringify(taskActionPolicy) : "",
+        hostTaskActionPolicy ? JSON.stringify(hostTaskActionPolicy) : "",
       ));
       break;
     }
@@ -1803,7 +1827,10 @@ function applyPatchbayOperations(operations, options = {}) {
   topologyView = transaction.result.presentation.topology;
   syncDiagnosticSourceHighlights();
   runButton.disabled =
-    activeRunnability()?.state !== "runnable" || !patchbayView.plan || Boolean(activeAdapter);
+    activeRunnability()?.state !== "runnable" ||
+    !patchbayView.plan ||
+    patchbayRunBlocked() ||
+    Boolean(activeAdapter);
   syncPresentationControls();
   rememberLayout(current.id, positions, patchbayView);
   if (!options.preserveFaceplateFocus && !options.skipRender) {
@@ -1936,7 +1963,9 @@ function applyResourceBindingProjection(projection) {
   positions = projection.presentation.node_positions;
   topologyView = projection.presentation.topology;
   runButton.disabled = activeRunnability()?.state !== "runnable" ||
-    !projection.plan || Boolean(activeAdapter);
+    !projection.plan ||
+    patchbayRunBlocked() ||
+    Boolean(activeAdapter);
   syncPresentationControls();
   updateCytoscapeGraph();
 }
@@ -2366,6 +2395,7 @@ function syncPresentationControls() {
 
   const atRest = presentation.lens === "at-rest";
   runButton.disabled ||= atRest;
+  runButton.disabled ||= patchbayRunBlocked();
   stopButton.disabled = atRest || !activeAdapter;
 }
 
@@ -2466,6 +2496,15 @@ function activeScenario() {
 
 function activeRunnability() {
   return activeScenario()?.runnability || current?.runnability;
+}
+
+function patchbayRunBlocked() {
+  const front = patchbayView?.task_front;
+  if (!front || front.status !== "usable") return false;
+  const readiness = front.front?.readiness?.state;
+  const action = front.front?.primary_action;
+  return readiness !== "ready" || action?.state !== "request-available" ||
+    !action?.operation_id;
 }
 
 function authoredSource() {
@@ -2856,7 +2895,8 @@ async function stopExactSession(cause, message) {
   freezeDisplay.setAttribute("aria-pressed", "false");
   freezeDisplay.textContent = "Freeze Display (F)";
   displayFreezeStatus.textContent = "Display follows authoritative live deltas.";
-  runButton.disabled = activeRunnability()?.state !== "runnable";
+  runButton.disabled = activeRunnability()?.state !== "runnable" ||
+    patchbayRunBlocked();
   stopButton.disabled = true;
   consoleBadge.textContent = "Ready";
   consoleBadge.className = "badge status-badge idle";
@@ -2918,7 +2958,7 @@ function show(lesson) {
   renderPlan();
   openPatchbaySession();
   check();
-  runButton.disabled = availability.state !== "runnable";
+  runButton.disabled = availability.state !== "runnable" || patchbayRunBlocked();
   syncPresentationControls();
 }
 
@@ -3154,7 +3194,9 @@ function check() {
   updateCytoscapeGraph();
   renderTopology();
   runButton.disabled =
-    activeRunnability()?.state !== "runnable" || !patchbayView?.plan;
+    activeRunnability()?.state !== "runnable" ||
+    !patchbayView?.plan ||
+    patchbayRunBlocked();
 }
 
 function renderTopology() {
@@ -3497,6 +3539,10 @@ function scheduleContinuousWatch({
 }
 
 async function run(requestedTaskAction = null) {
+  if (patchbayRunBlocked()) {
+    result.textContent = "Task-action policy is not currently request-available.";
+    return;
+  }
   const runnability = activeRunnability();
   if (runnability?.state !== "runnable") {
     result.textContent =
@@ -3564,7 +3610,7 @@ async function run(requestedTaskAction = null) {
       documentId: `tour/worker-run/${epoch}`,
       source: source.value,
       taskFront: current.task_front || null,
-      taskActionPolicy,
+      taskActionPolicy: hostTaskActionPolicy,
     });
     if (!opened.ok || !opened.value?.ok) {
       throw new Error(`${opened.code || opened.value?.code || "open-failed"}: ${opened.value?.diagnostic || ""}`);
@@ -3864,7 +3910,8 @@ async function run(requestedTaskAction = null) {
       freezeDisplay.setAttribute("aria-pressed", "false");
       freezeDisplay.textContent = "Freeze Display (F)";
       disableWatchControl();
-      runButton.disabled = activeRunnability()?.state !== "runnable";
+      runButton.disabled = activeRunnability()?.state !== "runnable" ||
+        patchbayRunBlocked();
       stopButton.disabled = true;
       consoleBadge.textContent = "Idle";
       consoleBadge.className = "badge status-badge idle";
@@ -4081,7 +4128,6 @@ function applyReaderRoute({ restoreReading = false } = {}) {
   }
 }
 
-const pageParameters = new URLSearchParams(location.search);
 if (readerContent) {
   expandLabButton.onclick = () => {
     setLabExpanded(expandLabButton.getAttribute("aria-expanded") !== "true");
