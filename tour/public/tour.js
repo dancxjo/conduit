@@ -47,6 +47,7 @@ const displayFreezeStatus = document.querySelector("#display-freeze-status");
 const watchObservationLead = document.querySelector("#watch-observation-lead");
 const instrumentResult = document.querySelector("#instrument-result");
 const instrumentResultText = document.querySelector("#instrument-result-text");
+const instrumentAudioControls = document.querySelector("#instrument-audio-controls");
 const instrumentAudioToggle = document.querySelector("#instrument-audio-toggle");
 const instrumentAudioStatus = document.querySelector("#instrument-audio-status");
 const liveFlowStatus = document.querySelector("#live-flow-status");
@@ -159,18 +160,16 @@ async function sha256Hex(bytes) {
 }
 
 const TASK_ACTION_POLICY_OBSERVATION_ID = "conduit.task-policy/tour-browser-host";
-const TASK_ACTION_POLICY_MESSAGES = new Set([
-  "conduit-task-action-policy",
-  "conduit.task-action-policy",
-  "task-action-policy",
-  "task-action-policy-update",
-]);
 const TASK_ACTION_POLICY_CODES = {
   permitted: "CND-PBY-ACT-READY",
   denied: "CND-PBY-ACT-DENIED",
   revoked: "CND-PBY-ACT-REVOKED",
   unavailable: "CND-PBY-ACT-UNAVAILABLE",
 };
+const TASK_ACTION_POLICY_ENDPOINT = "/__conduit/host-policy/task-action";
+const TASK_ACTION_POLICY_ADAPTER_ID = "conduit.task-action-policy/0";
+const TASK_ACTION_POLICY_MAXIMUM_BYTES = 8 * 1024;
+const TASK_ACTION_POLICY_POLL_INTERVAL_MS = 100;
 const INSTRUMENT_AUDIO_GAIN_NODE_ID = "audio_gain";
 const INSTRUMENT_AUDIO_GAIN_MUTED = 0;
 const INSTRUMENT_AUDIO_GAIN_ENABLED = 16384;
@@ -183,11 +182,6 @@ function asSafeInteger(value, fallback) {
 function parseSafeInteger(value) {
   const parsed = Number.parseInt(value, 10);
   return Number.isSafeInteger(parsed) ? parsed : null;
-}
-
-function taskActionPolicyMessageValue(payload, camelCase, snakeCase, fallback = undefined) {
-  return (payload?.[camelCase] === undefined ? payload?.[snakeCase] : payload[camelCase]) ??
-    fallback;
 }
 
 function tourTaskActionPolicy(state, {
@@ -337,65 +331,32 @@ function parseTaskActionControls(value) {
   return uniqueControls.length > 0 ? uniqueControls : ["cancel", "drain"];
 }
 
-function taskActionPolicyFromHostMessage(payload) {
-  const candidate = payload?.policy || payload?.taskActionPolicy || payload;
-  if (!candidate || typeof candidate !== "object") return null;
-  const state = candidate.state;
-  if (!TASK_ACTION_POLICY_STATES.has(state)) return null;
-  const generation = asPositiveSafeInteger(
-    candidate.generation,
-    (hostTaskActionPolicy?.generation ?? initialTaskActionPolicy.generation) + 1,
-  );
-  const observedAtTick = asSafeInteger(
-    taskActionPolicyMessageValue(
-      candidate,
-      "observedAtTick",
-      "observed_at_tick",
-      10,
-    ),
-    10,
-  );
-  const validUntilTick = asSafeInteger(
-    taskActionPolicyMessageValue(
-      candidate,
-      "validUntilTick",
-      "valid_until_tick",
-      100,
-    ),
-    100,
-  );
-  return tourTaskActionPolicy(state, {
-    generation,
-    observationId: taskActionPolicyMessageValue(
-      candidate,
-      "observationId",
-      "observation_id",
-      TASK_ACTION_POLICY_OBSERVATION_ID,
-    ),
-    observedAtTick,
-    validUntilTick,
-    activeControls: parseTaskActionControls(taskActionPolicyMessageValue(
-      candidate,
-      "activeControls",
-      "active_controls",
-      ["cancel", "drain"],
-    )),
-    code: taskActionPolicyMessageValue(
-      candidate,
-      "code",
-      "code",
-      TASK_ACTION_POLICY_CODES[state],
-    ),
-    explanation: taskActionPolicyMessageValue(
-      candidate,
-      "explanation",
-      "explanation",
-      `Task action policy was updated to ${state} by the Tour host.`,
-    ),
+function taskActionPolicyFromHostObservation(candidate) {
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate) ||
+      candidate.schemaVersion !== 0 ||
+      candidate.observationId !== TASK_ACTION_POLICY_OBSERVATION_ID ||
+      candidate.action !== "run-exact-plan" ||
+      !TASK_ACTION_POLICY_STATES.has(candidate.state) ||
+      !Number.isSafeInteger(candidate.generation) || candidate.generation <= 0 ||
+      !Number.isSafeInteger(candidate.observedAtTick) ||
+      !Number.isSafeInteger(candidate.validUntilTick) ||
+      candidate.observedAtTick >= candidate.validUntilTick ||
+      typeof candidate.code !== "string" || candidate.code.length === 0 ||
+      typeof candidate.explanation !== "string" || candidate.explanation.length === 0) {
+    return null;
+  }
+  return tourTaskActionPolicy(candidate.state, {
+    generation: candidate.generation,
+    observationId: candidate.observationId,
+    observedAtTick: candidate.observedAtTick,
+    validUntilTick: candidate.validUntilTick,
+    activeControls: parseTaskActionControls(candidate.activeControls),
+    code: candidate.code,
+    explanation: candidate.explanation,
   });
 }
 
-function applyTaskActionPolicy(policy, { notify = true } = {}) {
+function applyTaskActionPolicy(policy) {
   if (policy.generation <= hostTaskActionPolicy.generation ||
       policy.observationId !== hostTaskActionPolicy.observationId) {
     const rejection = {
@@ -431,22 +392,88 @@ function applyTaskActionPolicy(policy, { notify = true } = {}) {
   patchbayView = response.view;
   syncPresentationControls();
   refreshRunButtonState();
-  if (notify) {
-    result.textContent = `Task-action policy updated to ${policy.state}.`;
-  }
   return response;
 }
 
-function handleTaskActionPolicyMessage(event) {
-  const data = event?.data;
-  if (!data || typeof data !== "object" || !TASK_ACTION_POLICY_MESSAGES.has(data.type)) return;
-  if (event.origin && event.origin !== "null" && event.origin !== location.origin) return;
-  const policy = taskActionPolicyFromHostMessage(data);
-  if (!policy) return;
-  applyTaskActionPolicy(policy);
+async function readBoundedTaskActionPolicy(response) {
+  const declaredLength = Number.parseInt(response.headers.get("content-length") || "", 10);
+  if (Number.isSafeInteger(declaredLength) &&
+      declaredLength > TASK_ACTION_POLICY_MAXIMUM_BYTES) {
+    throw new Error("host-policy-response-too-large");
+  }
+  if (!response.body) throw new Error("host-policy-response-missing");
+  const reader = response.body.getReader();
+  const chunks = [];
+  let length = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    length += value.byteLength;
+    if (length > TASK_ACTION_POLICY_MAXIMUM_BYTES) {
+      await reader.cancel();
+      throw new Error("host-policy-response-too-large");
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return JSON.parse(new TextDecoder().decode(bytes));
 }
 
-window.addEventListener("message", handleTaskActionPolicyMessage);
+function createTaskActionPolicyAdapter(onPolicy) {
+  let lastObservation = null;
+  let stopped = false;
+  const schedule = () => {
+    if (!stopped) setTimeout(poll, TASK_ACTION_POLICY_POLL_INTERVAL_MS);
+  };
+  const poll = async () => {
+    try {
+      const response = await fetch(TASK_ACTION_POLICY_ENDPOINT, {
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      if (response.headers.get("x-conduit-host-policy-adapter") !==
+          TASK_ACTION_POLICY_ADAPTER_ID) {
+        stopped = true;
+        return;
+      }
+      if (response.status === 204) {
+        schedule();
+        return;
+      }
+      if (!response.ok ||
+          !response.headers.get("content-type")?.startsWith("application/json")) {
+        throw new Error("host-policy-response-invalid");
+      }
+      const candidate = await readBoundedTaskActionPolicy(response);
+      const policy = taskActionPolicyFromHostObservation(candidate);
+      if (!policy) throw new Error("host-policy-observation-invalid");
+      const observation = JSON.stringify(policy);
+      if (observation !== lastObservation) {
+        lastObservation = observation;
+        onPolicy(policy);
+      }
+    } catch {
+      // Transport loss never creates authority. The last accepted observation
+      // remains subject to its own bounded validity and generation checks.
+    }
+    schedule();
+  };
+  const initialPoll = poll();
+  return Object.freeze({
+    initialPoll,
+    stop: () => { stopped = true; },
+  });
+}
+
+const taskActionPolicyAdapter = createTaskActionPolicyAdapter(
+  (policy) => applyTaskActionPolicy(policy),
+);
 
 let current = lessons.lessons.find((lesson) => lesson.id === "book.origin-hidden-program")
   || lessons.lessons[0];
@@ -1217,12 +1244,14 @@ function applyInstrumentAudioGain(enabled) {
 }
 
 function syncInstrumentAudioControls() {
-  if (!instrumentAudioToggle || !instrumentAudioStatus) return;
+  if (!instrumentAudioControls || !instrumentAudioToggle || !instrumentAudioStatus) return;
   if (!instrumentResult || instrumentResult.hidden || !instrumentAudioNodeAvailable()) {
+    instrumentAudioControls.hidden = true;
     instrumentAudioToggle.hidden = true;
     instrumentAudioStatus.hidden = true;
     return;
   }
+  instrumentAudioControls.hidden = false;
   instrumentAudioToggle.hidden = false;
   instrumentAudioStatus.hidden = false;
   instrumentAudioToggle.disabled = !patchbaySessionId;
@@ -3075,8 +3104,11 @@ function renderExactResultTimeline(value) {
     values.textContent =
       `Exact run rejection: ${value.code || "unknown"}\n${value.diagnostic || ""}`;
   }
-  if (Array.isArray(value.evidence) && value.evidence.length > 0) {
-    renderTimeline(value.evidence);
+  const exactEvidence = Array.isArray(value.evidence)
+    ? value.evidence
+    : value.view?.evidence;
+  if (Array.isArray(exactEvidence) && exactEvidence.length > 0) {
+    renderTimeline(exactEvidence);
     return;
   }
   if (!value.ok) {
@@ -4609,4 +4641,7 @@ if (requestedScenario && scenarioSelect &&
   scenarioSelect.dispatchEvent(new Event("change"));
 }
 document.documentElement.dataset.tourReady = "true";
-if (pageParameters.has("autorun") && !workspace.hidden) await run();
+if (pageParameters.has("autorun") && !workspace.hidden) {
+  await taskActionPolicyAdapter.initialPoll;
+  await run();
+}

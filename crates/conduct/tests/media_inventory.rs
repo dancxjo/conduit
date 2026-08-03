@@ -72,6 +72,7 @@ fn living_instrument_signal_graph_is_sealed_and_cli_checkable() {
     let source = include_str!("../../../examples/living-instrument.panel");
     let mut registry = Registry::hosted_primitives();
     register_deterministic_signal_providers(&mut registry).unwrap();
+    register_deterministic_audio_processing_providers(&mut registry).unwrap();
     let installed = InstalledProfile::observe_registry(source, &registry).unwrap();
     let document = compile_source(source, &installed.input).unwrap();
     let contracts = document
@@ -88,6 +89,10 @@ fn living_instrument_signal_graph_is_sealed_and_cli_checkable() {
         "conduit.media/control/merge",
         "conduit.media/control/mixer",
         "conduit.media/control/register",
+        "conduit.media/control/tee",
+        "conduit.media/audio/from-control",
+        "conduit.media/audio/gain",
+        "conduit.media/audio/playback",
         "conduit.media/control/scope",
     ] {
         assert!(contracts.contains(required), "instrument seals {required}");
@@ -103,7 +108,7 @@ fn living_instrument_signal_graph_is_sealed_and_cli_checkable() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    assert!(String::from_utf8_lossy(&output.stdout).contains("14 root nodes; 14 root cords"));
+    assert!(String::from_utf8_lossy(&output.stdout).contains("18 root nodes; 18 root cords"));
 }
 
 #[test]

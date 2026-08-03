@@ -47,6 +47,7 @@ memory: conduit.media/control/register {
     initial = 0
     maximum_value = 1024
 }
+memory_outputs: conduit.media/control/tee
 audio: conduit.media/audio/from-control {
     lifecycle = "standing"
     numeric_profile = "pcm-s16-q15-round-nearest-away-saturate-no-nan-no-denormal-bit-exact"
@@ -93,7 +94,7 @@ playback: conduit.media/audio/playback {
     lifecycle = "standing"
     underrun = "wait-evidenced"
     overrun = "fail-terminal-evidenced"
-    drift = "reject-rate-or-discontinuity"
+    drift = "reject-evidenced"
     discontinuity = "fail-terminal-evidenced"
     provider_loss = "fail-terminal-evidenced"
     cancellation = "before-open-after-open-running-drain-distinct"
@@ -208,7 +209,7 @@ blend.control > memory.control {
     high_watermark = 1
     pressure = block
 }
-memory.control > scope.control {
+memory.control > memory_outputs.control {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16
@@ -216,7 +217,15 @@ memory.control > scope.control {
     high_watermark = 1
     pressure = block
 }
-memory.control > audio.control {
+memory_outputs.left > scope.control {
+    capacity = 1
+    max_value_bytes = 16
+    max_queued_bytes = 16
+    low_watermark = 0
+    high_watermark = 1
+    pressure = block
+}
+memory_outputs.right > audio.level {
     capacity = 1
     max_value_bytes = 16
     max_queued_bytes = 16

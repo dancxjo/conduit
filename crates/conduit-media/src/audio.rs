@@ -1577,7 +1577,10 @@ impl Handler for Meter {
     }
 }
 
-struct FromControl;
+#[derive(Default)]
+struct FromControl {
+    next_frame: u64,
+}
 impl Handler for FromControl {
     fn step(
         &mut self,
@@ -1595,7 +1598,7 @@ impl Handler for FromControl {
         {
             return Err(runtime_reason(AudioProcessingReason::Representation));
         }
-        let tick = u64::from_le_bytes(
+        let _tick = u64::from_le_bytes(
             input.bytes[4..12]
                 .try_into()
                 .map_err(|_| runtime_reason(AudioProcessingReason::Representation))?,
@@ -1619,14 +1622,13 @@ impl Handler for FromControl {
             let signed = if frame % 2 == 0 { sample } else { -sample };
             samples.extend_from_slice(&[signed, signed]);
         }
-        let chunk = PcmChunk::new(
-            tick.saturating_mul(frames as u64),
-            48_000,
-            ChannelLayout::StereoLr,
-            false,
-            samples,
-        )
-        .map_err(runtime_reason)?;
+        let start_frame = self.next_frame;
+        self.next_frame = self
+            .next_frame
+            .checked_add(frames as u64)
+            .ok_or_else(|| runtime_reason(AudioProcessingReason::Bounds))?;
+        let chunk = PcmChunk::new(start_frame, 48_000, ChannelLayout::StereoLr, false, samples)
+            .map_err(runtime_reason)?;
         Ok(step_outcome(node, vec![pcm_value(&chunk)?]))
     }
 }
@@ -1757,7 +1759,7 @@ fn meter() -> Box<dyn Handler> {
     Box::new(Meter)
 }
 fn from_control() -> Box<dyn Handler> {
-    Box::new(FromControl)
+    Box::new(FromControl::default())
 }
 fn virtual_capture() -> Box<dyn Handler> {
     Box::new(VirtualCapture::default())

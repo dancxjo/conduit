@@ -2793,7 +2793,8 @@ pub fn project_task_front_with_bindings(
                 .unwrap_or_default(),
             request_id: matching_observation.map(|observation| observation.request_id.clone()),
             operation_id: matching_observation.map(|observation| observation.operation_id.clone()),
-            plan_identity: matching_observation.map(|observation| observation.plan_identity.clone()),
+            plan_identity: matching_observation
+                .map(|observation| observation.plan_identity.clone()),
             plan_epoch: matching_observation.map(|observation| observation.plan_epoch),
             run_id: matching_observation.map(|observation| observation.run_id.clone()),
         })

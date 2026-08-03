@@ -2908,17 +2908,6 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
     };
     let state = browser_run_state(run);
     let (output, error, display) = browser_run_io(run);
-    let evidence = match browser_run_evidence(run) {
-        Ok(evidence) => evidence,
-        Err(error) => {
-            return serde_json::json!({
-                "ok": false,
-                "code": error.code,
-                "diagnostic": error.to_string(),
-            })
-            .to_string();
-        }
-    };
     let terminal = match state {
         ExactRunState::Terminal(class) => Some(terminal_name(class)),
         ExactRunState::Active
@@ -2975,7 +2964,6 @@ fn browser_run_result(session: &BrowserPatchbaySession) -> String {
             "stdout": String::from_utf8_lossy(&output),
             "stderr": String::from_utf8_lossy(&error),
             "display": String::from_utf8_lossy(&display),
-            "evidence": evidence,
             "view": view,
         })
         .to_string(),
@@ -10286,7 +10274,7 @@ clock.tick > drain.item {
             "{cancelled}"
         );
         assert!(
-            cancelled["evidence"]
+            cancelled["view"]["evidence"]
                 .as_array()
                 .is_some_and(|events| events.len() <= 32),
             "Patchbay projection exceeded its separate presentation bound: {cancelled}"

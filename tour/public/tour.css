@@ -2924,7 +2924,7 @@ path.patchbay-cord.compatibility-incompatible {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  gap: 1rem;
+  gap: 0.8rem;
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
 }
 

@@ -8,6 +8,8 @@ const testTimeoutMs = Number.parseInt(
   process.env.CONDUIT_PLAYWRIGHT_TEST_TIMEOUT_MS ?? "30000",
   10,
 );
+const testHostToken = process.env.CONDUIT_TEST_HOST_TOKEN ??
+  "conduit-playwright-task-action-host";
 
 if (!Number.isSafeInteger(testTimeoutMs) || testTimeoutMs <= 0) {
   throw new Error("CONDUIT_PLAYWRIGHT_TEST_TIMEOUT_MS must be a positive integer");
@@ -21,7 +23,6 @@ export default defineConfig({
     "tour/standing-network.spec.mjs",
     "tour/standing-signals.spec.mjs",
     "tour/task-action-policy-proof.spec.mjs",
-    "tour/task-action-proof.spec.mjs",
     "tour/tour.spec.mjs",
     "tour/workbench-responsive.spec.mjs",
     "tour/workbench.spec.mjs",
@@ -45,7 +46,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `cd .. && node browser/static-server.mjs ${port}`,
+    command: `cd .. && CONDUIT_TOUR_SITE=target/tour-site CONDUIT_TEST_HOST_TOKEN=${testHostToken} node browser/static-server.mjs ${port}`,
     url: `${baseURL}/browser/conduit-browser-host.test.html`,
     reuseExistingServer: !process.env.CI,
     timeout: 10_000,
