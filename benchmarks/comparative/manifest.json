@@ -71,6 +71,7 @@
     "every runner emits the current raw-sample schema and fixture revision",
     "offered and admitted values equal configured input values for the lossless local-depth fixtures",
     "offered, admitted, completed-useful, rejected, sampled, coalesced, dropped, retried, and terminal outcomes are always reported separately",
+    "Conduit reports exact scheduler decisions and producer stall duration; Drain and Abort timing stay unavailable until those transitions are explicitly requested",
     "bounded FIFO retries in local-depth fixtures are reported and do not change admitted or completed-useful counts",
     "map, merge, and bounded-async complete one useful output per input",
     "map-filter completes one useful output per input until it contains a filter, then exactly half for the even input cardinality",

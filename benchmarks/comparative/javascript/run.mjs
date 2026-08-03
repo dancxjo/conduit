@@ -98,6 +98,7 @@ function runIdentitySample(sampleKind, trial, thermalState) {
     trial,
     thermal_state: thermalState,
     phases: { assembly_ns: assemblyNs, plan_seal_ns: null, start_ns: null, steady_ns: steadyNs, pressure_ns: null, recovery_ns: null },
+    execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null },
     process_cpu_ns: (cpu.user + cpu.system) * 1000,
     outcomes: {
       offered: values,
@@ -242,6 +243,7 @@ async function runSample(sampleKind, trial, thermalState) {
       pressure_ns: null,
       recovery_ns: null,
     },
+    execution: { scheduler_decisions: null, producer_stall_ns: null, drain_ns: null, abort_ns: null },
     process_cpu_ns: (cpu.user + cpu.system) * 1000,
     outcomes: {
       offered: values,

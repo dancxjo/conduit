@@ -14,6 +14,7 @@
     "trial",
     "thermal_state",
     "phases",
+    "execution",
     "outcomes",
     "allocations",
     "memory",
@@ -61,6 +62,17 @@
     "phases": {
       "type": "object",
       "required": ["assembly_ns", "plan_seal_ns", "start_ns", "steady_ns", "pressure_ns", "recovery_ns"]
+    },
+    "execution": {
+      "type": "object",
+      "required": ["scheduler_decisions", "producer_stall_ns", "drain_ns", "abort_ns"],
+      "properties": {
+        "scheduler_decisions": { "type": ["integer", "null"], "minimum": 0 },
+        "producer_stall_ns": { "type": ["integer", "null"], "minimum": 0 },
+        "drain_ns": { "type": ["integer", "null"], "minimum": 0 },
+        "abort_ns": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false
     },
     "memory": {
       "type": "object",

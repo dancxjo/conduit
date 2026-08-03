@@ -68,7 +68,15 @@ for (const sample of samples) {
       && [sample.exact_identity.plan_identity, sample.exact_identity.source_semantic_hash, sample.exact_identity.artifact_digest].some((value) => !value)) {
     throw new Error("Conduit sample omitted exact plan, source, or artifact identity");
   }
+  if (sample.runtime.id === "conduit-reference-scheduler"
+      && (sample.execution.scheduler_decisions === null || sample.execution.producer_stall_ns === null)) {
+    throw new Error("Conduit sample omitted scheduler decisions or producer stall time");
+  }
   if (sample.outcomes.terminal !== 1) throw new Error("fixture must report one terminal signal");
+  if (sample.runtime.id === "conduit-reference-scheduler"
+      && sample.outcomes.retried > 0 && sample.execution.producer_stall_ns <= 0) {
+    throw new Error("a blocked Conduit producer reported no stall duration");
+  }
   if (overload) {
     const outcomes = sample.outcomes;
     const capacity = sample.workload.queue_capacity_items;
@@ -228,6 +236,12 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
       recovery: optionalStats(group.map((value) => value.phases.recovery_ns)),
     },
     process_cpu_ns: optionalStats(group.map((value) => value.process_cpu_ns)),
+    execution: {
+      scheduler_decisions: optionalStats(group.map((value) => value.execution.scheduler_decisions)),
+      producer_stall_ns: optionalStats(group.map((value) => value.execution.producer_stall_ns)),
+      drain_ns: optionalStats(group.map((value) => value.execution.drain_ns)),
+      abort_ns: optionalStats(group.map((value) => value.execution.abort_ns)),
+    },
     outcomes: Object.fromEntries([
       "offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "retried", "terminal",
     ].map((field) => [field, optionalStats(group.map((value) => value.outcomes[field]))])),
@@ -331,6 +345,7 @@ if (reportOutput) {
     "- RxJS overload: synchronous push has no demand-bounded queue matching these pressure policies and is not substituted.",
     "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
     "- RxJS/Reactor fan-out: reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted.",
+    "- Drain/Abort timing: unavailable until explicit cancellation fixtures request those transitions; normal completion is not relabelled.",
     "",
   ];
   for (const workload of [...new Set(summaries.map((group) => group.workload.id))].sort()) {
@@ -339,10 +354,10 @@ if (reportOutput) {
     for (const group of workloadGroups) {
       report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${group.workload.operators} | ${duration(group.phases_ns.assembly)} | ${duration(group.phases_ns.plan_seal)} | ${duration(group.phases_ns.start)} |`);
     }
-    report.push("", `## ${workload}: steady region`, "", "| Runtime | Policy | Capacity | Fan-out | Slow branches | Depth | Useful outputs/s median | 95% CI | p50 ns | p95 ns | p99 ns | p99.9 ns | max ns | Recovery median ns |", "| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+    report.push("", `## ${workload}: steady region`, "", "| Runtime | Policy | Capacity | Fan-out | Slow branches | Depth | Useful outputs/s median | 95% CI | p50 ns | p95 ns | p99 ns | p99.9 ns | max ns | Producer stall median ns | Scheduler decisions median | Recovery median ns |", "| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
     for (const group of workloadGroups) {
       const throughput = group.useful_outputs_per_second;
-      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${group.workload.operators} | ${integer.format(throughput.median)} | ${integer.format(throughput.median_confidence_95.low)}–${integer.format(throughput.median_confidence_95.high)} | ${integer.format(group.latency_ns.p50)} | ${integer.format(group.latency_ns.p95)} | ${integer.format(group.latency_ns.p99)} | ${integer.format(group.latency_ns.p99_9)} | ${integer.format(group.latency_ns.max)} | ${duration(group.phases_ns.recovery)} |`);
+      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${group.workload.operators} | ${integer.format(throughput.median)} | ${integer.format(throughput.median_confidence_95.low)}–${integer.format(throughput.median_confidence_95.high)} | ${integer.format(group.latency_ns.p50)} | ${integer.format(group.latency_ns.p95)} | ${integer.format(group.latency_ns.p99)} | ${integer.format(group.latency_ns.p99_9)} | ${integer.format(group.latency_ns.max)} | ${duration(group.execution.producer_stall_ns)} | ${duration(group.execution.scheduler_decisions)} | ${duration(group.phases_ns.recovery)} |`);
     }
     report.push("");
     if (workload === "overload") {
