@@ -1,94 +1,73 @@
 use std::{fs, path::Path, process::Command};
 
 use serde_json::{Value, json};
-use sha2::Digest;
 
 pub fn current_firmware_identity(
     workspace_root: &Path,
     target: &str,
     profile: &str,
 ) -> Result<Vec<u8>, String> {
-    let firmware_root = workspace_root.join("firmware/conduit-rp2040-hil");
-    let firmware_inputs = [
-        "../../Cargo.lock",
-        "../../Cargo.toml",
-        "../../crates/conduit-core/Cargo.toml",
-        "../../crates/conduit-core/src",
-        "../../crates/conduit-embedded/Cargo.toml",
-        "../../crates/conduit-embedded/src/lib.rs",
-        "Cargo.toml",
-        "build.rs",
-        "memory.x",
-        "src/lib.rs",
-        "src/main.rs",
-    ];
-
-    let mut hasher = sha2::Sha256::new();
-
-    for relative in firmware_inputs {
-        let source = firmware_root.join(relative);
-        let mut inputs: Vec<(String, std::path::PathBuf)> = Vec::new();
-        if source.is_dir() {
-            fn collect_files(
-                base: &Path,
-                current: &Path,
-                inputs: &mut Vec<(String, std::path::PathBuf)>,
-                rel_prefix: &str,
-            ) {
-                if let Ok(entries) = fs::read_dir(current) {
-                    let mut sorted_entries: Vec<_> = entries.flatten().collect();
-                    sorted_entries.sort_by_key(|e| e.path());
-                    for entry in sorted_entries {
-                        let path = entry.path();
-                        if path.is_dir() {
-                            collect_files(base, &path, inputs, rel_prefix);
-                        } else if path.is_file() {
-                            let rel = path
-                                .strip_prefix(base)
-                                .unwrap()
-                                .to_string_lossy()
-                                .to_string();
-                            let key = format!("{rel_prefix}/{rel}");
-                            inputs.push((key, path));
-                        }
-                    }
-                }
-            }
-            collect_files(&source, &source, &mut inputs, relative);
-        } else if source.is_file() {
-            inputs.push((relative.to_string(), source));
-        }
-
-        inputs.sort_by(|a, b| a.0.cmp(&b.0));
-
-        for (label, path) in inputs {
-            let content = fs::read(&path).map_err(|e| format!("read {}: {e}", path.display()))?;
-            Digest::update(&mut hasher, label.as_bytes());
-            Digest::update(&mut hasher, b"\0");
-            Digest::update(&mut hasher, (content.len() as u64).to_be_bytes());
-            Digest::update(&mut hasher, &content);
-        }
+    let mut args = vec!["build", "-p", "conduit-rp2040-hil", "--target", target];
+    if profile == "release" {
+        args.push("--release");
+    } else {
+        args.extend(["--profile", profile]);
     }
-
-    let rustc_vv = Command::new("rustc")
-        .arg("-vV")
+    args.push("--message-format=json-render-diagnostics");
+    let output = Command::new("cargo")
+        .args(args)
         .current_dir(workspace_root)
         .output()
-        .map_err(|e| format!("rustc exec: {e}"))?
-        .stdout;
-
-    for (label, content) in [
-        ("cargo-target", target.as_bytes()),
-        ("cargo-profile", profile.as_bytes()),
-        ("rustc-version", rustc_vv.as_slice()),
-    ] {
-        Digest::update(&mut hasher, label.as_bytes());
-        Digest::update(&mut hasher, b"\0");
-        Digest::update(&mut hasher, (content.len() as u64).to_be_bytes());
-        Digest::update(&mut hasher, content);
+        .map_err(|error| format!("failed to build exact RP2040 firmware: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "RP2040 firmware build failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
+    let out_dir = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .find(|message| {
+            message.get("reason").and_then(Value::as_str) == Some("build-script-executed")
+                && message
+                    .get("package_id")
+                    .and_then(Value::as_str)
+                    .is_some_and(|package| package.contains("/conduit-rp2040-hil#"))
+        })
+        .and_then(|message| {
+            message
+                .get("out_dir")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        })
+        .ok_or("Cargo did not report the RP2040 firmware build output directory")?;
+    let identity_path = Path::new(&out_dir).join("firmware_identity.rs");
+    let source = fs::read_to_string(&identity_path)
+        .map_err(|error| format!("read {}: {error}", identity_path.display()))?;
+    parse_firmware_identity(&source)
+}
 
-    Ok(Digest::finalize(hasher).to_vec())
+fn parse_firmware_identity(source: &str) -> Result<Vec<u8>, String> {
+    let bytes = source
+        .split_once("SemanticHash::from_bytes([")
+        .and_then(|(_, tail)| tail.split_once("])").map(|(bytes, _)| bytes))
+        .ok_or("generated firmware identity has an unexpected shape")?
+        .split(',')
+        .map(str::trim)
+        .filter(|byte| !byte.is_empty())
+        .map(|byte| {
+            byte.parse::<u8>()
+                .map_err(|error| format!("invalid firmware identity byte {byte}: {error}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if bytes.len() != 32 {
+        return Err(format!(
+            "generated firmware identity must contain 32 bytes, found {}",
+            bytes.len()
+        ));
+    }
+    Ok(bytes)
 }
 
 pub fn run(workspace_root: &Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -104,21 +83,7 @@ pub fn run(workspace_root: &Path) -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or("thumbv6m-none-eabi");
     let artifact_rel = budget.get("artifact").and_then(Value::as_str).unwrap_or("");
 
-    let build_status = Command::new("cargo")
-        .args([
-            "build",
-            "-p",
-            "conduit-rp2040-hil",
-            "--target",
-            target,
-            "--release",
-        ])
-        .current_dir(workspace_root)
-        .status()?;
-
-    if !build_status.success() {
-        return Err("cargo build conduit-rp2040-hil failed".into());
-    }
+    let firmware_id = current_firmware_identity(workspace_root, target, "release")?;
 
     let artifact = workspace_root.join(artifact_rel);
     if !artifact.exists() {
@@ -253,8 +218,6 @@ pub fn run(workspace_root: &Path) -> Result<(), Box<dyn std::error::Error>> {
         ).into());
     }
 
-    let firmware_id = current_firmware_identity(workspace_root, target, "release")?;
-
     let report = json!({
         "schema": "conduit.rp2040-budget-report",
         "target": target,
@@ -284,4 +247,30 @@ pub fn run(workspace_root: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
     println!("{}", serde_json::to_string_pretty(&report)?);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_firmware_identity;
+
+    #[test]
+    fn parses_only_the_exact_generated_firmware_identity_shape() {
+        let bytes = (0_u8..32)
+            .map(|byte| byte.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let source = format!(
+            "pub const FIRMWARE_IDENTITY: conduit_core::SemanticHash = \
+             conduit_core::SemanticHash::from_bytes([{bytes}]);\n"
+        );
+
+        assert_eq!(
+            parse_firmware_identity(&source).unwrap(),
+            (0_u8..32).collect::<Vec<_>>()
+        );
+        assert!(parse_firmware_identity("const OTHER: u8 = 1;").is_err());
+        assert!(
+            parse_firmware_identity("conduit_core::SemanticHash::from_bytes([1,2,3]);").is_err()
+        );
+    }
 }
