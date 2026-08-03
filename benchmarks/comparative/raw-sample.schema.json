@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://conduit.dev/schemas/comparative-raw-sample.json",
+  "title": "Conduit comparative benchmark raw sample",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "fixture_revision",
+    "runtime",
+    "workload",
+    "exact_identity",
+    "sample_kind",
+    "trial",
+    "thermal_state",
+    "phases",
+    "accepted_values",
+    "useful_outputs",
+    "allocations",
+    "memory",
+    "latency",
+    "semantic_notes"
+  ],
+  "properties": {
+    "schema": { "const": "conduit.comparative-raw-sample" },
+    "schema_version": { "const": 0 },
+    "fixture_revision": { "const": 0 },
+    "sample_kind": { "enum": ["warmup", "measured"] },
+    "trial": { "type": "integer", "minimum": 0 },
+    "thermal_state": { "enum": ["cold", "warming", "warmed"] },
+    "accepted_values": { "type": "integer", "minimum": 0 },
+    "useful_outputs": { "type": "integer", "minimum": 0 },
+    "runtime": {
+      "type": "object",
+      "required": ["id", "comparison_role", "execution_mode", "build_profile", "scheduler", "fusion", "batching", "concurrency"],
+      "properties": {
+        "comparison_role": { "enum": ["reactive-runtime", "language-lower-bound"] }
+      }
+    },
+    "workload": {
+      "type": "object",
+      "required": ["id", "operators", "input_values", "queue_capacity_items", "ordering", "pressure", "terminal", "loss"]
+    },
+    "exact_identity": {
+      "type": "object",
+      "required": ["logical_fixture", "plan_identity", "source_semantic_hash", "artifact_digest"]
+    },
+    "phases": {
+      "type": "object",
+      "required": ["assembly_ns", "plan_seal_ns", "start_ns", "steady_ns"]
+    },
+    "latency": {
+      "type": "object",
+      "required": ["clock", "sample_stride", "samples_ns"]
+    }
+  },
+  "additionalProperties": true
+}

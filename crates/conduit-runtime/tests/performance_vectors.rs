@@ -2,6 +2,11 @@ use serde_json::Value;
 
 const FIXTURE: &str = include_str!("../../../conformance/c4/performance.json");
 const BASELINE: &str = include_str!("../../../benchmarks/baseline.json");
+const COMPARATIVE_MANIFEST: &str = include_str!("../../../benchmarks/comparative/manifest.json");
+const COMPARATIVE_RAW_SCHEMA: &str =
+    include_str!("../../../benchmarks/comparative/raw-sample.schema.json");
+const RXJS_LOCK: &str =
+    include_str!("../../../benchmarks/comparative/javascript/package-lock.json");
 
 #[test]
 fn performance_fixture_and_reviewed_baseline_are_complete() {
@@ -52,6 +57,70 @@ fn performance_fixture_and_reviewed_baseline_are_complete() {
     assert_eq!(
         baseline["deferred_workloads"]["plan_transition_overlap"],
         "issue #57"
+    );
+}
+
+#[test]
+fn comparative_methodology_pins_matrix_schema_and_runtimes() {
+    let manifest: Value = serde_json::from_str(COMPARATIVE_MANIFEST).unwrap();
+    let schema: Value = serde_json::from_str(COMPARATIVE_RAW_SCHEMA).unwrap();
+    let rxjs_lock: Value = serde_json::from_str(RXJS_LOCK).unwrap();
+
+    assert_eq!(manifest["schema"], "conduit.comparative-benchmark-manifest");
+    assert_eq!(manifest["schema_version"], 0);
+    assert_eq!(manifest["fixture_revision"], 0);
+    assert_eq!(manifest["issue"], 243);
+    assert_eq!(manifest["values"], 1_000_000);
+    assert_eq!(manifest["operator_depths"], serde_json::json!([1, 8, 32]));
+    assert_eq!(
+        manifest["workloads"],
+        serde_json::json!(["map", "map-filter", "merge", "bounded-async"])
+    );
+    assert_eq!(manifest["warmup_trials"], 2);
+    assert_eq!(manifest["measured_trials"], 9);
+    assert_eq!(
+        manifest["wall_clock_policy"]["gate"],
+        "report-only until a reviewed machine-class baseline exists"
+    );
+    assert_eq!(
+        manifest["runtimes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|runtime| runtime["id"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["conduit-reference-scheduler", "rxjs", "reactor-core"]
+    );
+    assert_eq!(
+        manifest["language_lower_bounds"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|runtime| runtime["id"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "rust-identity-loop",
+            "javascript-identity-loop",
+            "java-identity-loop"
+        ]
+    );
+
+    assert_eq!(
+        schema["properties"]["schema"]["const"],
+        "conduit.comparative-raw-sample"
+    );
+    assert_eq!(schema["properties"]["schema_version"]["const"], 0);
+    assert_eq!(schema["properties"]["fixture_revision"]["const"], 0);
+    assert!(
+        schema["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "sample_kind")
+    );
+    assert_eq!(
+        rxjs_lock["packages"]["node_modules/rxjs"]["version"],
+        "7.8.2"
     );
 }
 
