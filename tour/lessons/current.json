@@ -4369,7 +4369,7 @@
         "library.bounded-control-composites"
       ],
       "objective": "Compare real Linux and Pico W describe-only implementations of one robotics profile and its portable command policy while an unchanged real node still runs only on an executable provider-bearing host.",
-      "prose": "The audited Pete profile is one semantic contract. Netherwick's Linux and Pico W builds implement its effect-free description through distinct exact implementation, artifact, provider-bundle, adapter, build, and target facts on the generic host path. The profile separates one ordinary ingress slot, one latest-motion slot, and a sixteen-entry execution queue; its pure transition returns exact replacement and stop-preemption outcomes while each host still chooses synchronization, scheduling, and dispatch. Neither report contains a current boot, initialized provider, path observation, possession, authority, device handle, secret, actuation, or physical safety evidence. This unchanged gain panel remains a real executable node composition on the browser host and is rejected before work by either describe-only profile; the profile does not invent a robot node or teaching executor.",
+      "prose": "The audited Pete profile is one semantic contract. Netherwick's Linux and Pico W builds implement its effect-free description through distinct exact implementation, artifact, provider-bundle, adapter, build, and target facts on the generic host path. The profile separates one ordinary ingress slot, one latest-motion slot, and a sixteen-entry execution queue. Its allocator-free transitions reject full without mutation, coalesce latest motion and recovery, renew equal active motion without dispatch, return every displaced lifecycle, and let stop preempt the complete command flow while each host still chooses synchronization, scheduling, wakes, and dispatch. An explicit independent-recovery observation prevents program policy from superseding the physical safety floor. Neither report contains a current boot, initialized provider, path observation, possession, authority, device handle, secret, actuation, or physical safety evidence. This unchanged gain panel remains a real executable node composition on the browser host and is rejected before work by either describe-only profile; the profile does not invent a robot node or teaching executor.",
       "vocabulary": [
         "describe-only profile",
         "generic implementation",
@@ -4448,10 +4448,11 @@
       "hints": [
         "Compare the two describe-only rows: contract and domain profile stay identical while implementation, artifact, bundle, build, target, and compiled provider facts differ.",
         "A compiled USB, CYW43, network, or control provider is not an initialized observation; both describe-only rows intentionally publish no current path.",
-        "The two single-slot ingress lanes and the sixteen-entry execution queue are distinct bounds; stop policy can name at most two displaced ingress lifecycles.",
+        "The two single-slot ingress lanes and the sixteen-entry execution queue are distinct bounds; stop policy can name at most two displaced ingress and sixteen distinct queued lifecycles.",
+        "A policy transition can report that independent physical recovery is active, but it cannot sense a hazard, write a motor, or count as safety or HIL evidence.",
         "Select the executable browser row to run the unchanged real panel, then a describe-only row to see generic CND-HCF-003 rejection before work."
       ],
-      "solution": "Keep one exact domain profile, publish each host's implementation and static facts through generic host conformance, classify commands in the checked program, apply the pure bounded ingress transition, and require a fresh observation and exact plan before any executable binding.",
+      "solution": "Keep one exact domain profile, publish each host's implementation and static facts through generic host conformance, classify commands in the checked program, apply the bounded ingress and execution transitions under host-selected synchronization, preserve the independent safety floor, and require a fresh observation and exact plan before any executable binding.",
       "accessibility": {
         "non_audio": "An ordered text table exposes every profile, implementation, host fact, quantity, safety requirement, command-flow bound, policy transition, admission decision, effect count, error, and terminal result; no sound, motion, graph position, or color is required.",
         "reduced_motion": true,

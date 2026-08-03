@@ -46,10 +46,10 @@ perform synchronization, dispatch, or actuation.
 
 ## Portable command flow
 
-The exact `conduit.robotics/command-flow/two-ingress-lanes` policy separates a
-single ordinary ingress slot, a single latest-motion ingress slot, and the
-sixteen-entry downstream execution queue. No one-slot value is presented as a
-bound for the complete command flow.
+The exact `conduit.robotics/command-flow/two-lane-bounded-execution` policy
+separates a single ordinary ingress slot, a single latest-motion ingress slot,
+and the sixteen-entry downstream execution queue. No one-slot value is
+presented as a bound for the complete command flow.
 
 The checked program classifies a command as ordinary, replace-same-kind,
 latest-motion, stop, or emergency stop. A pure allocator-free transition reads
@@ -62,10 +62,24 @@ Stop and emergency stop clear both ingress lanes before occupying the ordinary
 lane, and a later motion command begins a new sequence epoch.
 
 The host chooses atomics, locks, interrupts, tasks, threads, wakes, and queue
-storage. It must install the returned transition atomically, close every named
-interrupted lifecycle, and never exceed the separately pinned execution-queue
-bound. Physical hazard response, device access, and the independent safety
-floor remain outside this policy and outside the checked program.
+storage. The allocator-free execution queue retains opaque host payloads while
+Conduit owns the configured arbitration: ordinary work rejects full before
+mutation; latest motion removes queued motion, renews an equal active motion
+without dispatch, or interrupts changed active motion and runs first; latest
+safety recovery replaces queued recovery; and stop or emergency stop returns
+every distinct queued lifecycle, interrupts active work, clears the queue, and
+runs first. Active implementation preemption is reported separately from
+lifecycle interruption so a same-identity replacement still stops the old
+action without falsely closing its lifecycle. No rejected transition mutates
+queue state.
+
+The independent physical safety floor supplies an explicit active-recovery
+observation. While it is active, program commands cannot supersede it; stop and
+emergency stop remain the only portable preemption. The host must apply each
+transition while holding its chosen synchronization boundary, close every
+named interrupted lifecycle, and perform any returned active deadline renewal
+or dispatch. Physical hazard detection and response, device access, clocks,
+and motor writes remain outside this policy and outside the checked program.
 
 ## Static description versus current observation
 
@@ -115,6 +129,8 @@ or presentation-owned authority.
 - `CND-RBT-014`: required capability absent
 - `CND-RBT-015`: ordinary ingress is busy
 - `CND-RBT-016`: motion sequence is stale
+- `CND-RBT-017`: execution queue is full
+- `CND-RBT-018`: independent physical safety recovery is active
 
 ## Requirements
 
@@ -128,4 +144,4 @@ or presentation-owned authority.
 | RBT-006 | Keep compiled inventory, current initialization, logical relationships, and observed paths distinct |
 | RBT-007 | Make describe and check effect-free and incapable of enrollment, possession, promotion, activation, or actuation |
 | RBT-008 | Reject hidden handles and secret or sensitive topology in inspectable reports |
-| RBT-009 | Decide two-lane command ingress with one pure bounded transaction while the host owns synchronization, scheduling, dispatch, actuation, and the independent physical safety floor |
+| RBT-009 | Decide two-lane ingress and bounded execution arbitration with deterministic allocator-free transitions while the host owns synchronization, scheduling, dispatch, actuation, and the independent physical safety floor |

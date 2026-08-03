@@ -3,23 +3,28 @@
   "schema_version": 0,
   "issue": 142,
   "contract": "conduit.robotics/profile",
-  "contract_identity": "sha256:64435faec70f0fe772ba9f01561839c75726789966c569b2bd6fc6afcfd1d86d",
-  "profile_identity": "sha256:2841daa4642cde33a8a3f8b3503e44568f329f30154a0ad3cd1d7d00b3811707",
+  "contract_identity": "sha256:1a9417e4b30996b5b3575560f487994c52615db0bf94a1c4591b4419bccad4d7",
+  "profile_identity": "sha256:cdeafc4f628bf64bb73020f1d90f7d456cfd44b16ff439b9465530795d3be9a7",
   "command_flow": {
-    "policy": "conduit.robotics/command-flow/two-ingress-lanes",
-    "policy_identity": "sha256:a3ddc8b47c618ab304afe4eccff22d939c1db1f1de4e6a847cccb49c435ead33",
+    "policy": "conduit.robotics/command-flow/two-lane-bounded-execution",
+    "policy_identity": "sha256:e06c7ad2d466d3a133728d42af4bb72fa798ae6279d8838d7ff786d6cdae8c41",
     "ordinary_ingress_capacity": 1,
     "motion_ingress_capacity": 1,
     "execution_queue_capacity": 16,
-    "maximum_interrupted_command_ids": 2,
+    "maximum_interrupted_ingress_ids": 2,
+    "maximum_interrupted_execution_ids": 16,
     "ordinary_pressure": "reject-busy-except-replace-same-kind",
     "motion_pressure": "replace-current-or-newer-u32-half-range",
-    "stop_preemption": "clear-both-ingress-lanes"
+    "execution_pressure": "reject-full-before-mutation",
+    "motion_execution": "remove-queued-renew-equal-active-preempt-changed-active",
+    "recovery_execution": "replace-queued-protect-independent-active-recovery",
+    "active_preemption": "separate-from-lifecycle-interruption",
+    "stop_preemption": "clear-both-ingress-lanes-active-and-execution-queue"
   },
   "hosts": [
     {
       "id": "netherwick/pete-linux-describe-only",
-      "profile_identity": "sha256:8697317f0a0c663530c06737067b095f61e7b8e18f3a0d0d48979ee9df261878",
+      "profile_identity": "sha256:1d112a01fa0963a7025fb30f04482177f459ef30f0014cd1c9660f0c256f8f3a",
       "class": "describe-only",
       "implementation": "netherwick/implementation/pete-linux-robotics-describe",
       "artifact": "netherwick/artifact/pete-brainstem-linux",
@@ -28,7 +33,7 @@
     },
     {
       "id": "netherwick/pete-pico-w-describe-only",
-      "profile_identity": "sha256:8972194080a4e8c19b3109d39643e1be7052d2dbe47eea749ba75ebb2d0d4e09",
+      "profile_identity": "sha256:ac75476c3f8bff8498c3c88b36afa5afa6d079300956f11ffcb41b58ac0012a2",
       "class": "describe-only",
       "implementation": "netherwick/implementation/pete-pico-robotics-describe",
       "artifact": "netherwick/artifact/pete-brainstem-pico-w",
@@ -49,7 +54,8 @@
     "ordinary_ingress": 1,
     "motion_ingress": 1,
     "execution_queue": 16,
-    "command_interruption_ids": 2
+    "ingress_interruption_ids": 2,
+    "execution_interruption_ids": 16
   },
   "cases": [
     {"id":"descriptor-hash","expected":"accepted"},
@@ -62,6 +68,11 @@
     {"id":"active-motion-renewal","expected":"accepted-renewed"},
     {"id":"stop-preempts-both-ingress","expected":"accepted-safety-preempted"},
     {"id":"stop-resets-motion-sequence","expected":"accepted"},
+    {"id":"bounded-execution-queue","expected":"accepted"},
+    {"id":"active-motion-execution-renewal","expected":"accepted-renewed"},
+    {"id":"changed-motion-execution-preempts","expected":"accepted-enqueued-front"},
+    {"id":"latest-safety-recovery-replaces","expected":"accepted-replaced"},
+    {"id":"stop-preempts-execution","expected":"accepted-safety-preempted"},
     {"id":"linux-same-contract","expected":"accepted-describe-only"},
     {"id":"pico-same-contract","expected":"accepted-describe-only"},
     {"id":"distinct-exact-implementations","expected":"accepted"},
@@ -86,6 +97,8 @@
     {"id":"missing-capability","expected":"CND-RBT-014"},
     {"id":"ordinary-ingress-busy","expected":"CND-RBT-015"},
     {"id":"stale-motion-sequence","expected":"CND-RBT-016"},
+    {"id":"execution-queue-full","expected":"CND-RBT-017"},
+    {"id":"independent-safety-recovery-active","expected":"CND-RBT-018"},
     {"id":"descriptor-hash-mismatch","expected":"CND-RBT-002"}
   ]
 }

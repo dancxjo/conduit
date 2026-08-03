@@ -2315,8 +2315,20 @@ fn audited_robotics_profile_reuses_generic_host_presentation_without_runtime_inv
     assert_eq!(fixture["command_flow"]["motion_ingress_capacity"], 1);
     assert_eq!(fixture["command_flow"]["execution_queue_capacity"], 16);
     assert_eq!(
-        fixture["command_flow"]["maximum_interrupted_command_ids"],
+        fixture["command_flow"]["maximum_interrupted_ingress_ids"],
         2
+    );
+    assert_eq!(
+        fixture["command_flow"]["maximum_interrupted_execution_ids"],
+        16
+    );
+    assert_eq!(
+        fixture["command_flow"]["execution_pressure"],
+        "reject-full-before-mutation"
+    );
+    assert_eq!(
+        fixture["command_flow"]["active_preemption"],
+        "separate-from-lifecycle-interruption"
     );
     assert_ne!(hosts[0]["implementation"], hosts[1]["implementation"]);
     assert_ne!(hosts[0]["artifact"], hosts[1]["artifact"]);

@@ -11,6 +11,13 @@
 #[cfg(test)]
 extern crate std;
 
+mod command_flow;
+
+pub use command_flow::{
+    ActiveExecutionCommand, ExecutionCommand, ExecutionCommandClass, ExecutionQueue,
+    ExecutionQueueClear, ExecutionQueueDisposition, ExecutionQueueTransition,
+};
+
 use conduit_core::{
     CanonicalDescriptor, CanonicalError, CanonicalValue, FieldDisposition,
     HOST_CONFORMANCE_PROFILE_SCHEMA_VERSION, HostClass, HostConformanceProfile,
@@ -27,11 +34,11 @@ pub const MAXIMUM_LOGICAL_RELATIONSHIPS: usize = 8;
 pub const MAXIMUM_PROVIDER_STATES: usize = 8;
 pub const MAXIMUM_CARRIER_CANDIDATES: usize = 8;
 pub const MAXIMUM_PATH_OBSERVATIONS: usize = 8;
-pub const MAXIMUM_COMMAND_INTERRUPTION_IDS: usize = 2;
+pub const MAXIMUM_INGRESS_INTERRUPTION_IDS: usize = 2;
 
 pub const ROBOTICS_PROFILE_CONTRACT: PinnedDescriptor<'static> = pin(
     "conduit.robotics/profile",
-    hash_bytes("64435faec70f0fe772ba9f01561839c75726789966c569b2bd6fc6afcfd1d86d"),
+    hash_bytes("1a9417e4b30996b5b3575560f487994c52615db0bf94a1c4591b4419bccad4d7"),
 );
 pub const LINUX_IMPLEMENTATION: PinnedDescriptor<'static> = pin(
     "netherwick/implementation/pete-linux-robotics-describe",
@@ -62,8 +69,8 @@ pub const DESCRIBE_ADAPTER: PinnedDescriptor<'static> = pin(
     hash_bytes("a446ad531079a0f5e8622302ed6f59592d2594b4eb5ed314060f09fede2f4c51"),
 );
 pub const COMMAND_FLOW_POLICY: PinnedDescriptor<'static> = pin(
-    "conduit.robotics/command-flow/two-ingress-lanes",
-    hash_bytes("a3ddc8b47c618ab304afe4eccff22d939c1db1f1de4e6a847cccb49c435ead33"),
+    "conduit.robotics/command-flow/two-lane-bounded-execution",
+    hash_bytes("e06c7ad2d466d3a133728d42af4bb72fa798ae6279d8838d7ff786d6cdae8c41"),
 );
 
 pub const OBSERVATION_TYPE: PinnedDescriptor<'static> = pin(
@@ -854,7 +861,7 @@ pub struct CommandIngressTransition<'a> {
     pub state: CommandIngressState<'a>,
     pub lane: CommandIngressLane,
     pub disposition: CommandIngressDisposition,
-    pub interrupted: [Option<u32>; MAXIMUM_COMMAND_INTERRUPTION_IDS],
+    pub interrupted: [Option<u32>; MAXIMUM_INGRESS_INTERRUPTION_IDS],
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -875,6 +882,8 @@ pub enum RoboticsReason {
     CapabilityMissing,
     CommandIngressBusy,
     CommandSequenceStale,
+    ExecutionQueueFull,
+    IndependentSafetyRecoveryActive,
 }
 
 impl RoboticsReason {
@@ -897,8 +906,21 @@ impl RoboticsReason {
             Self::CapabilityMissing => "CND-RBT-014",
             Self::CommandIngressBusy => "CND-RBT-015",
             Self::CommandSequenceStale => "CND-RBT-016",
+            Self::ExecutionQueueFull => "CND-RBT-017",
+            Self::IndependentSafetyRecoveryActive => "CND-RBT-018",
         }
     }
+}
+
+pub fn validate_command_flow_policy(policy: CommandFlowPolicy<'_>) -> Result<(), RoboticsReason> {
+    if policy.descriptor != COMMAND_FLOW_POLICY
+        || policy.maximum_ordinary_ingress != 1
+        || policy.maximum_motion_ingress != 1
+        || policy.maximum_execution_queue == 0
+    {
+        return Err(RoboticsReason::InvalidDescriptor);
+    }
+    Ok(())
 }
 
 pub fn validate_profile(profile: RoboticsProfile<'_>) -> Result<(), RoboticsReason> {
@@ -918,10 +940,7 @@ pub fn validate_profile(profile: RoboticsProfile<'_>) -> Result<(), RoboticsReas
             .safety
             .maximum_angular_velocity_milliradians_per_second
             == 0
-        || profile.command_flow.maximum_ordinary_ingress != 1
-        || profile.command_flow.maximum_motion_ingress != 1
-        || profile.command_flow.maximum_execution_queue == 0
-        || profile.command_flow.descriptor != COMMAND_FLOW_POLICY
+        || validate_command_flow_policy(profile.command_flow).is_err()
         || profile.quantities.iter().any(|quantity| {
             quantity.id.as_str().is_empty()
                 || quantity.units.as_str().is_empty()
@@ -1081,11 +1100,11 @@ pub const fn command_sequence_is_current_or_newer(sequence: u32, current: u32) -
 /// how that transaction is synchronized and how accepted commands are woken
 /// and dispatched.
 pub fn transition_command_ingress<'a>(
-    profile: RoboticsProfile<'_>,
+    policy: CommandFlowPolicy<'_>,
     state: CommandIngressState<'a>,
     request: CommandIngressRequest<'a>,
 ) -> Result<CommandIngressTransition<'a>, RoboticsReason> {
-    validate_profile(profile)?;
+    validate_command_flow_policy(policy)?;
     validate_ingress_state(state, request)?;
 
     let replacement = request.command;
@@ -1427,8 +1446,8 @@ fn computed_profile_contract_hash() -> Result<SemanticHash, CanonicalError<Infal
                 CanonicalValue::Identifier(Id("conduit.robotics/command-flow")),
             ),
             semantic(
-                "maximum-command-interruption-ids",
-                CanonicalValue::Integer(MAXIMUM_COMMAND_INTERRUPTION_IDS as i128),
+                "maximum-ingress-interruption-ids",
+                CanonicalValue::Integer(MAXIMUM_INGRESS_INTERRUPTION_IDS as i128),
             ),
         ]),
     }
@@ -1656,7 +1675,7 @@ mod tests {
         validate_profile(profile).unwrap();
         assert_eq!(
             profile.identity.to_string(),
-            "sha256:2841daa4642cde33a8a3f8b3503e44568f329f30154a0ad3cd1d7d00b3811707"
+            "sha256:cdeafc4f628bf64bb73020f1d90f7d456cfd44b16ff439b9465530795d3be9a7"
         );
         assert_ne!(profile.identity, ZERO_HASH);
         assert_eq!(profile.value_types.len(), 7);
@@ -1701,11 +1720,11 @@ mod tests {
         validate_describe_only_report(pico).unwrap();
         assert_eq!(
             linux.generic_host.identity.to_string(),
-            "sha256:8697317f0a0c663530c06737067b095f61e7b8e18f3a0d0d48979ee9df261878"
+            "sha256:1d112a01fa0963a7025fb30f04482177f459ef30f0014cd1c9660f0c256f8f3a"
         );
         assert_eq!(
             pico.generic_host.identity.to_string(),
-            "sha256:8972194080a4e8c19b3109d39643e1be7052d2dbe47eea749ba75ebb2d0d4e09"
+            "sha256:ac75476c3f8bff8498c3c88b36afa5afa6d079300956f11ffcb41b58ac0012a2"
         );
         assert_eq!(
             linux.generic_host.optional_providers[0].contract,
@@ -1828,14 +1847,18 @@ mod tests {
             class: CommandIngressClass::ReplaceSameKind,
             command: pending(10, "heartbeat-stop", 10),
         };
-        let first =
-            transition_command_ingress(profile, CommandIngressState::default(), heartbeat).unwrap();
+        let first = transition_command_ingress(
+            profile.command_flow,
+            CommandIngressState::default(),
+            heartbeat,
+        )
+        .unwrap();
         assert_eq!(first.disposition, CommandIngressDisposition::Accepted);
         assert_eq!(first.state.ordinary, Some(heartbeat.command));
 
         assert_eq!(
             transition_command_ingress(
-                profile,
+                profile.command_flow,
                 first.state,
                 CommandIngressRequest {
                     class: CommandIngressClass::Ordinary,
@@ -1846,7 +1869,7 @@ mod tests {
         );
         assert_eq!(
             transition_command_ingress(
-                profile,
+                profile.command_flow,
                 first.state,
                 CommandIngressRequest {
                     class: CommandIngressClass::ReplaceSameKind,
@@ -1857,7 +1880,7 @@ mod tests {
         );
 
         let refreshed = transition_command_ingress(
-            profile,
+            profile.command_flow,
             first.state,
             CommandIngressRequest {
                 command: pending(12, "heartbeat-stop", 12),
@@ -1879,7 +1902,7 @@ mod tests {
         };
         assert_eq!(
             transition_command_ingress(
-                profile,
+                profile.command_flow,
                 state,
                 CommandIngressRequest {
                     class: CommandIngressClass::MotionLatest,
@@ -1890,7 +1913,7 @@ mod tests {
         );
 
         let wrapped = transition_command_ingress(
-            profile,
+            profile.command_flow,
             state,
             CommandIngressRequest {
                 class: CommandIngressClass::MotionLatest,
@@ -1906,7 +1929,7 @@ mod tests {
             ..pending(43, "cmd-vel", 2)
         };
         let renewed = transition_command_ingress(
-            profile,
+            profile.command_flow,
             CommandIngressState {
                 ordinary: None,
                 motion: Some(PendingIngressCommand {
@@ -1932,7 +1955,7 @@ mod tests {
             motion: Some(pending(71, "cmd-vel", 10_000)),
         };
         let stopped = transition_command_ingress(
-            profile,
+            profile.command_flow,
             state,
             CommandIngressRequest {
                 class: CommandIngressClass::Stop,
@@ -1949,7 +1972,7 @@ mod tests {
         assert_eq!(stopped.state.motion, None);
 
         let emergency_stopped = transition_command_ingress(
-            profile,
+            profile.command_flow,
             state,
             CommandIngressRequest {
                 class: CommandIngressClass::EmergencyStop,
@@ -1965,7 +1988,7 @@ mod tests {
         assert_eq!(emergency_stopped.state.motion, None);
 
         let restarted = transition_command_ingress(
-            profile,
+            profile.command_flow,
             stopped.state,
             CommandIngressRequest {
                 class: CommandIngressClass::MotionLatest,
@@ -2063,6 +2086,8 @@ mod tests {
             "missing-capability",
             "ordinary-ingress-busy",
             "stale-motion-sequence",
+            "execution-queue-full",
+            "independent-safety-recovery-active",
             "descriptor-hash-mismatch",
         ] {
             assert!(
@@ -2088,8 +2113,12 @@ mod tests {
             COMMAND_FLOW.maximum_execution_queue
         );
         assert_eq!(
-            value["command_flow"]["maximum_interrupted_command_ids"],
-            MAXIMUM_COMMAND_INTERRUPTION_IDS
+            value["command_flow"]["maximum_interrupted_ingress_ids"],
+            MAXIMUM_INGRESS_INTERRUPTION_IDS
+        );
+        assert_eq!(
+            value["command_flow"]["maximum_interrupted_execution_ids"],
+            COMMAND_FLOW.maximum_execution_queue
         );
     }
 }
