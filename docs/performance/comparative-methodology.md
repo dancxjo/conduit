@@ -80,7 +80,6 @@ describe the repeated regime. The report leaves the single contiguous
 `pressure_ns`/`recovery_ns` pair null for bursty rows instead of pretending
 several alternating regions are one phase.
 
-The overload slice does not claim #245's persistent-session matrix.
 RxJS overload remains unavailable because synchronous push has no matching
 demand-bounded queue. Reactor overload also remains unavailable until its
 demand, buffer, and loss mappings receive a semantic review; the existing
@@ -117,7 +116,7 @@ values. The Conduit runner also reports exact scheduler decision count and wall
 time accumulated only while a source is blocked waiting for bounded output
 capacity. Overload rows additionally split the slow pressure region from the
 recovery-to-terminal region. Bursty rows instead carry exact repeated
-`pressure_cycles` and `recovery_cycles`; a final partial burst can leave one
+`pressure_cycles` and `recovery_cycles`; terminal scheduling can leave one
 more entered recovery cycle than completed pressure cycle. `drain_ns` and
 `abort_ns` remain `null` until a
 fixture explicitly requests the corresponding cancellation transition;
@@ -130,6 +129,23 @@ admitted before the request; Abort may discard admitted queue contents, which
 remain excluded from completed-useful. The request-to-terminal duration is
 reported only in the matching `drain_ns` or `abort_ns` field. These are finite
 exact-run cancellation measurements, not persistent-session results.
+
+The persistent overload slice uses the production `ExactRunSessionRegistry`
+and `ExactRunSession`, not a benchmark-owned loop renamed as a session. One
+admission reserves the finite runtime-memory budget before Start and remains
+owned across repeated host pumps of at most eight scheduler decisions. The
+standing source pauses at the exact configured observation-offer boundary
+rather than completing. While four admitted values remain pressured, the host
+requests Drain or Abort through the session API. The raw row reports pump
+count, retained reservation bytes, and pressured items at the request. Drain
+preserves admitted work; Abort leaves admitted-but-aborted work outside useful
+completion. Terminal finalization returns the scheduler and releases the
+session admission; the runner checks both active-session and reserved-byte
+counts return to zero. This slice covers persistent block-pressure ownership;
+persistent mappings for the other loss policies remain open work in #245.
+For these rows, `input_values` names the bounded observation offer window, not
+the standing source's lifetime cardinality; `session_mode` prevents the two
+meanings from being conflated.
 
 The summary reports p50, p95, p99, p99.9, and maximum sampled latency. Useful
 outputs per second is summarized across at least nine measured repeats with a

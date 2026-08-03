@@ -29,17 +29,19 @@ for (const sample of samples) {
   const fanout = sample.workload.id === "fanout";
   if (overload) {
     const pressureId = sample.workload.pressure.split("/")[0];
-    if (identityParts.length !== 10
+    if (identityParts.length !== 12
         || identityParts[0] !== "comparative-overload"
         || identityParts[1] !== pressureId
         || identityParts[2] !== sample.workload.termination_request
-        || identityParts[3] !== sample.workload.consumer_pattern
-        || Number(identityParts[4]) !== sample.workload.consumer_burst_items
-        || Number(identityParts[5]) !== sample.workload.input_values
-        || Number(identityParts[6]) !== sample.workload.queue_capacity_items
-        || Number(identityParts[7]) !== sample.workload.slow_consumer_yields
-        || Number(identityParts[8]) !== sample.workload.cancel_after_offers
-        || Number(identityParts[9]) !== sample.latency.sample_stride) {
+        || identityParts[3] !== sample.workload.session_mode
+        || Number(identityParts[4]) !== sample.workload.session_pump_quantum
+        || identityParts[5] !== sample.workload.consumer_pattern
+        || Number(identityParts[6]) !== sample.workload.consumer_burst_items
+        || Number(identityParts[7]) !== sample.workload.input_values
+        || Number(identityParts[8]) !== sample.workload.queue_capacity_items
+        || Number(identityParts[9]) !== sample.workload.slow_consumer_yields
+        || Number(identityParts[10]) !== sample.workload.cancel_after_offers
+        || Number(identityParts[11]) !== sample.latency.sample_stride) {
       throw new Error("overload fixture identity does not match the raw sample");
     }
     if (sample.runtime.id !== "conduit-reference-scheduler") {
@@ -78,6 +80,22 @@ for (const sample of samples) {
       && (sample.execution.scheduler_decisions === null || sample.execution.producer_stall_ns === null)) {
     throw new Error("Conduit sample omitted scheduler decisions or producer stall time");
   }
+  const persistent = sample.workload.session_mode === "persistent-exact-run-session";
+  if (persistent) {
+    if (!overload || sample.workload.pressure !== "block"
+        || sample.workload.session_pump_quantum <= 0
+        || sample.workload.cancel_after_offers !== sample.workload.input_values
+        || sample.execution.session_pumps <= 1
+        || sample.execution.session_reserved_bytes <= 0
+        || sample.execution.pressured_items_at_stop <= 0) {
+      throw new Error("persistent exact-run session identity or admission accounting changed");
+    }
+  } else if (sample.workload.session_mode !== "finite-executor"
+      || sample.workload.session_pump_quantum !== 0
+      || sample.execution.session_pumps !== null
+      || sample.execution.session_reserved_bytes !== null) {
+    throw new Error("finite executor fixture carries persistent session state");
+  }
   const pressured = overload || fanout;
   if (pressured && sample.workload.consumer_pattern === "bursty") {
     if (sample.workload.consumer_burst_items <= 0
@@ -101,11 +119,13 @@ for (const sample of samples) {
   if (sample.workload.termination_request === "complete") {
     if (sample.workload.cancel_after_offers !== 0
         || sample.execution.drain_ns !== null || sample.execution.abort_ns !== null
+        || sample.execution.pressured_items_at_stop !== null
         || sample.outcomes.cancelled !== 0) {
       throw new Error("complete fixture carries cancellation state or timing");
     }
   } else if (!["drain", "abort"].includes(sample.workload.termination_request)
-      || sample.workload.cancel_after_offers <= sample.workload.queue_capacity_items) {
+      || sample.workload.cancel_after_offers <= sample.workload.queue_capacity_items
+      || sample.execution.pressured_items_at_stop <= 0) {
     throw new Error("cancellation fixture identity is invalid");
   }
   if (sample.outcomes.terminal !== 1) throw new Error("fixture must report one terminal signal");
@@ -270,7 +290,8 @@ for (const sample of measured) {
     sample.workload.slow_consumer_yields, sample.workload.fanout_branches,
     sample.workload.fanout_mode, sample.workload.slow_branches,
     sample.workload.termination_request, sample.workload.cancel_after_offers,
-    sample.workload.consumer_pattern, sample.workload.consumer_burst_items].join("/");
+    sample.workload.consumer_pattern, sample.workload.consumer_burst_items,
+    sample.workload.session_mode, sample.workload.session_pump_quantum].join("/");
   if (!groups.has(key)) groups.set(key, []);
   groups.get(key).push(sample);
 }
@@ -306,6 +327,9 @@ for (const [key, group] of [...groups].sort(([left], [right]) => left.localeComp
       producer_stall_ns: optionalStats(group.map((value) => value.execution.producer_stall_ns)),
       drain_ns: optionalStats(group.map((value) => value.execution.drain_ns)),
       abort_ns: optionalStats(group.map((value) => value.execution.abort_ns)),
+      session_pumps: optionalStats(group.map((value) => value.execution.session_pumps)),
+      session_reserved_bytes: optionalStats(group.map((value) => value.execution.session_reserved_bytes)),
+      pressured_items_at_stop: optionalStats(group.map((value) => value.execution.pressured_items_at_stop)),
     },
     outcomes: Object.fromEntries([
       "offered", "admitted", "completed_useful", "rejected", "sampled", "coalesced", "dropped", "cancelled", "retried", "terminal",
@@ -342,6 +366,7 @@ summaries.sort((left, right) =>
   || left.workload.operators - right.workload.operators
   || left.workload.queue_capacity_items - right.workload.queue_capacity_items
   || left.workload.pressure.localeCompare(right.workload.pressure)
+  || left.workload.session_mode.localeCompare(right.workload.session_mode)
   || left.workload.consumer_pattern.localeCompare(right.workload.consumer_pattern)
   || left.workload.fanout_branches - right.workload.fanout_branches
   || left.workload.slow_branches.localeCompare(right.workload.slow_branches)
@@ -416,22 +441,22 @@ if (reportOutput) {
   ];
   for (const workload of [...new Set(summaries.map((group) => group.workload.id))].sort()) {
     const workloadGroups = summaries.filter((group) => group.workload.id === workload && group.runtime.comparison_role === "reactive-runtime");
-    report.push(`## ${workload}: preparation regions`, "", "| Runtime | Policy | Consumer pattern | Capacity | Fan-out | Slow branches | Depth | Assembly median ns | Plan seal median ns | Start median ns |", "| --- | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |");
+    report.push(`## ${workload}: preparation regions`, "", "| Runtime | Policy | Session | Consumer pattern | Capacity | Fan-out | Slow branches | Depth | Assembly median ns | Plan seal median ns | Start median ns |", "| --- | --- | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |");
     for (const group of workloadGroups) {
-      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.consumer_pattern} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${group.workload.operators} | ${duration(group.phases_ns.assembly)} | ${duration(group.phases_ns.plan_seal)} | ${duration(group.phases_ns.start)} |`);
+      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.session_mode} | ${group.workload.consumer_pattern} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${group.workload.operators} | ${duration(group.phases_ns.assembly)} | ${duration(group.phases_ns.plan_seal)} | ${duration(group.phases_ns.start)} |`);
     }
-    report.push("", `## ${workload}: steady region`, "", "| Runtime | Policy | Consumer pattern | Capacity | Fan-out | Slow branches | Depth | Useful outputs/s median | 95% CI | p50 ns | p95 ns | p99 ns | p99.9 ns | max ns | Producer stall median ns | Scheduler decisions median | Recovery median ns | Pressure cycles | Recovery cycles |", "| --- | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+    report.push("", `## ${workload}: steady region`, "", "| Runtime | Policy | Session | Consumer pattern | Capacity | Fan-out | Slow branches | Depth | Useful outputs/s median | 95% CI | p50 ns | p95 ns | p99 ns | p99.9 ns | max ns | Producer stall median ns | Scheduler decisions median | Session pumps | Pressured at stop | Recovery median ns | Pressure cycles | Recovery cycles |", "| --- | --- | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
     for (const group of workloadGroups) {
       const throughput = group.useful_outputs_per_second;
-      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.consumer_pattern} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${group.workload.operators} | ${integer.format(throughput.median)} | ${integer.format(throughput.median_confidence_95.low)}–${integer.format(throughput.median_confidence_95.high)} | ${integer.format(group.latency_ns.p50)} | ${integer.format(group.latency_ns.p95)} | ${integer.format(group.latency_ns.p99)} | ${integer.format(group.latency_ns.p99_9)} | ${integer.format(group.latency_ns.max)} | ${duration(group.execution.producer_stall_ns)} | ${duration(group.execution.scheduler_decisions)} | ${duration(group.phases_ns.recovery)} | ${duration(group.phases_ns.pressure_cycles)} | ${duration(group.phases_ns.recovery_cycles)} |`);
+      report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.session_mode} | ${group.workload.consumer_pattern} | ${group.workload.queue_capacity_items} | ${group.workload.fanout_branches} | ${group.workload.slow_branches} | ${group.workload.operators} | ${integer.format(throughput.median)} | ${integer.format(throughput.median_confidence_95.low)}–${integer.format(throughput.median_confidence_95.high)} | ${integer.format(group.latency_ns.p50)} | ${integer.format(group.latency_ns.p95)} | ${integer.format(group.latency_ns.p99)} | ${integer.format(group.latency_ns.p99_9)} | ${integer.format(group.latency_ns.max)} | ${duration(group.execution.producer_stall_ns)} | ${duration(group.execution.scheduler_decisions)} | ${duration(group.execution.session_pumps)} | ${duration(group.execution.pressured_items_at_stop)} | ${duration(group.phases_ns.recovery)} | ${duration(group.phases_ns.pressure_cycles)} | ${duration(group.phases_ns.recovery_cycles)} |`);
     }
     report.push("");
     if (workload === "overload") {
-      report.push("## overload: outcome accounting", "", "Counts are per-trial medians. Completed-useful is the throughput numerator; admitted, replaced, aborted, cancelled-before-admission, or discarded work is never counted as success.", "", "| Runtime | Policy | Consumer pattern | Stop | Capacity | Offered | Admitted | Useful | Rejected | Sampled | Coalesced | Dropped | Cancelled | Retried | Terminal | Stop median ns | Queue high water |", "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+      report.push("## overload: outcome accounting", "", "Counts are per-trial medians. Completed-useful is the throughput numerator; admitted, replaced, aborted, cancelled-before-admission, or discarded work is never counted as success.", "", "| Runtime | Policy | Session | Consumer pattern | Stop | Capacity | Offered | Admitted | Useful | Rejected | Sampled | Coalesced | Dropped | Cancelled | Retried | Terminal | Stop median ns | Queue high water |", "| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
       for (const group of workloadGroups) {
         const outcome = (field) => integer.format(group.outcomes[field].median);
         const stopTime = group.workload.termination_request === "drain" ? group.execution.drain_ns : group.execution.abort_ns;
-        report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.consumer_pattern} | ${group.workload.termination_request} | ${group.workload.queue_capacity_items} | ${outcome("offered")} | ${outcome("admitted")} | ${outcome("completed_useful")} | ${outcome("rejected")} | ${outcome("sampled")} | ${outcome("coalesced")} | ${outcome("dropped")} | ${outcome("cancelled")} | ${outcome("retried")} | ${outcome("terminal")} | ${duration(stopTime)} | ${duration(group.high_water.queue_items)} |`);
+        report.push(`| ${group.runtime.id} | ${group.workload.pressure} | ${group.workload.session_mode} | ${group.workload.consumer_pattern} | ${group.workload.termination_request} | ${group.workload.queue_capacity_items} | ${outcome("offered")} | ${outcome("admitted")} | ${outcome("completed_useful")} | ${outcome("rejected")} | ${outcome("sampled")} | ${outcome("coalesced")} | ${outcome("dropped")} | ${outcome("cancelled")} | ${outcome("retried")} | ${outcome("terminal")} | ${duration(stopTime)} | ${duration(group.high_water.queue_items)} |`);
       }
       report.push("");
     }

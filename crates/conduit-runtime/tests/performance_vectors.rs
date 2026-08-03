@@ -127,6 +127,12 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         manifest["bursty_consumers"]["fanout_branches"],
         serde_json::json!([2, 8, 32])
     );
+    assert_eq!(manifest["persistent_sessions"]["pressure_policy"], "block");
+    assert_eq!(
+        manifest["persistent_sessions"]["stop_policies"],
+        serde_json::json!(["drain", "abort"])
+    );
+    assert_eq!(manifest["persistent_sessions"]["session_pump_quantum"], 8);
     assert_eq!(
         manifest["wall_clock_policy"]["gate"],
         "report-only until a reviewed machine-class baseline exists"
@@ -197,7 +203,9 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "termination_request",
             "cancel_after_offers",
             "consumer_pattern",
-            "consumer_burst_items"
+            "consumer_burst_items",
+            "session_mode",
+            "session_pump_quantum"
         ]
         .iter()
         .all(|field| schema["properties"]["workload"]["required"]
@@ -226,7 +234,10 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
             "scheduler_decisions",
             "producer_stall_ns",
             "drain_ns",
-            "abort_ns"
+            "abort_ns",
+            "session_pumps",
+            "session_reserved_bytes",
+            "pressured_items_at_stop"
         ])
     );
     assert_eq!(
