@@ -47,7 +47,7 @@
     "pressure_policies": ["block", "reject", "coalesce", "sample", "drop-disposable"],
     "stop_policies": ["drain", "abort"],
     "session_pump_quantum": 8,
-    "scope": "production ExactRunSession ownership of one standing source through repeated bounded host pumps and an explicit pressured terminal request at the observation offer boundary for every nonterminal pressure policy"
+    "scope": "production ExactRunSession ownership through repeated bounded host pumps; Block stops with the final offer pending under pressure, while non-blocking policies stop from the standing source's observation boundary"
   },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
