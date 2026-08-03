@@ -135,14 +135,19 @@ and `ExactRunSession`, not a benchmark-owned loop renamed as a session. One
 admission reserves the finite runtime-memory budget before Start and remains
 owned across repeated host pumps of at most eight scheduler decisions. The
 standing source pauses at the exact configured observation-offer boundary
-rather than completing. While four admitted values remain pressured, the host
-requests Drain or Abort through the session API. The raw row reports pump
-count, retained reservation bytes, and pressured items at the request. Drain
-preserves admitted work; Abort leaves admitted-but-aborted work outside useful
-completion. Terminal finalization returns the scheduler and releases the
-session admission; the runner checks both active-session and reserved-byte
-counts return to zero. This slice covers persistent block-pressure ownership;
-persistent mappings for the other loss policies remain open work in #245.
+rather than completing. While a positive bounded number of admitted values
+remain pressured, the host requests Drain or Abort through the session API;
+that exact cancellation wake lets the standing source observe the request and
+complete. The raw row reports pump count, retained reservation bytes, and
+pressured items at the request. Drain preserves retained admitted work;
+coalesced replacements remain separately excluded. Abort leaves
+admitted-but-aborted work outside useful completion. Terminal finalization
+returns the scheduler and releases the session admission; the runner checks
+both active-session and reserved-byte counts return to zero. The matrix repeats
+this ownership boundary for FIFO
+block, reject, latest-wins coalesce, deterministic sample, and type-proven
+disposable drop. Disconnect and Fail are excluded because they terminate on
+the first saturated offer instead of reaching a standing observation boundary.
 For these rows, `input_values` names the bounded observation offer window, not
 the standing source's lifetime cardinality; `session_mode` prevents the two
 meanings from being conflated.

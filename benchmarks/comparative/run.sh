@@ -24,7 +24,6 @@ bursty_capacity=$(jq -r .bursty_consumers.queue_capacity_items "$manifest")
 bursty_items=$(jq -r .bursty_consumers.consumer_burst_items "$manifest")
 bursty_pause_yields=$(jq -r .bursty_consumers.consumer_pause_yields "$manifest")
 persistent_capacity=$(jq -r .persistent_sessions.queue_capacity_items "$manifest")
-persistent_pressure=$(jq -r .persistent_sessions.pressure_policy "$manifest")
 persistent_quantum=$(jq -r .persistent_sessions.session_pump_quantum "$manifest")
 
 mkdir -p "$output_dir"
@@ -130,21 +129,23 @@ for stop in $(jq -r '.cancellation.stop_policies[]' "$manifest"); do
     --cancel-after-offers "$cancellation_after"
 done
 
-for stop in $(jq -r '.persistent_sessions.stop_policies[]' "$manifest"); do
-  record_raw "$workspace_root/target/release/conduit-benchmark" \
-    --workload overload \
-    --operators 1 \
-    --values "$values" \
-    --queue-items "$persistent_capacity" \
-    --latency-sample-stride "$stride" \
-    --warmup-trials "$warmups" \
-    --measured-trials "$trials" \
-    --pressure-policy "$persistent_pressure" \
-    --slow-consumer-yields "$overload_slow_yields" \
-    --termination-request "$stop" \
-    --cancel-after-offers "$values" \
-    --session-mode persistent \
-    --session-pump-quantum "$persistent_quantum"
+for pressure in $(jq -r '.persistent_sessions.pressure_policies[]' "$manifest"); do
+  for stop in $(jq -r '.persistent_sessions.stop_policies[]' "$manifest"); do
+    record_raw "$workspace_root/target/release/conduit-benchmark" \
+      --workload overload \
+      --operators 1 \
+      --values "$values" \
+      --queue-items "$persistent_capacity" \
+      --latency-sample-stride "$stride" \
+      --warmup-trials "$warmups" \
+      --measured-trials "$trials" \
+      --pressure-policy "$pressure" \
+      --slow-consumer-yields "$overload_slow_yields" \
+      --termination-request "$stop" \
+      --cancel-after-offers "$values" \
+      --session-mode persistent \
+      --session-pump-quantum "$persistent_quantum"
+  done
 done
 
 for pressure in $(jq -r '.bursty_consumers.pressure_policies[]' "$manifest"); do

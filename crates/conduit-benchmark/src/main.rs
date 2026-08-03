@@ -458,6 +458,7 @@ struct Observations {
     producer_stall_ns: Rc<Cell<u64>>,
     pressure_cycles: Rc<Cell<u64>>,
     recovery_cycles: Rc<Cell<u64>>,
+    terminal_requested: Rc<Cell<bool>>,
     stride: u64,
 }
 
@@ -571,6 +572,9 @@ impl SchedulerNode for BenchNode {
             } => {
                 if *next == *end {
                     if *standing {
+                        if observations.terminal_requested.get() {
+                            return SchedulerStep::Completed;
+                        }
                         io.wait_for_host_operation(Id("benchmark/observation-window"))
                             .unwrap();
                         return SchedulerStep::Pending;
@@ -1117,22 +1121,37 @@ fn prepare(args: &Args) -> PreparedRun {
             "the current cancellation fixture is the exact single-cord overload plan"
         );
         assert!(
-            matches!(args.pressure_policy, PressurePolicy::Block),
-            "cancellation is measured under FIFO block pressure"
-        );
-        assert!(
             args.cancel_after_offers > u64::from(args.queue_items),
             "cancellation must occur after pressure begins"
         );
         match args.session_mode {
-            SessionMode::Finite => assert!(
-                args.cancel_after_offers < args.values,
-                "finite cancellation must occur before source completion"
-            ),
-            SessionMode::Persistent => assert_eq!(
-                args.cancel_after_offers, args.values,
-                "persistent cancellation begins at the exact observation offer boundary"
-            ),
+            SessionMode::Finite => {
+                assert!(
+                    matches!(args.pressure_policy, PressurePolicy::Block),
+                    "finite cancellation is measured under FIFO block pressure"
+                );
+                assert!(
+                    args.cancel_after_offers < args.values,
+                    "finite cancellation must occur before source completion"
+                );
+            }
+            SessionMode::Persistent => {
+                assert!(
+                    matches!(
+                        args.pressure_policy,
+                        PressurePolicy::Block
+                            | PressurePolicy::Reject
+                            | PressurePolicy::Coalesce
+                            | PressurePolicy::Sample
+                            | PressurePolicy::DropDisposable
+                    ),
+                    "persistent cancellation requires a nonterminal pressure policy"
+                );
+                assert_eq!(
+                    args.cancel_after_offers, args.values,
+                    "persistent cancellation begins at the exact observation offer boundary"
+                );
+            }
         }
     } else {
         assert_eq!(
@@ -1243,6 +1262,7 @@ fn prepare(args: &Args) -> PreparedRun {
         producer_stall_ns: Rc::new(Cell::new(0)),
         pressure_cycles: Rc::new(Cell::new(0)),
         recovery_cycles: Rc::new(Cell::new(0)),
+        terminal_requested: Rc::new(Cell::new(false)),
         stride: args.latency_sample_stride,
     };
     assert_eq!(observations.values.borrow().len(), value_count);
@@ -1836,6 +1856,7 @@ fn run_sample(
                 );
                 pressured_items_at_stop = Some(pressured);
                 requested_stop_started = Some(Instant::now());
+                prepared.observations.terminal_requested.set(true);
                 session
                     .cancel(args.termination_request.stop_policy().unwrap())
                     .unwrap();
@@ -1888,6 +1909,7 @@ fn run_sample(
                         .saturating_sub(prepared.observations.useful_outputs.get()),
                 );
                 requested_stop_started = Some(Instant::now());
+                prepared.observations.terminal_requested.set(true);
                 executor
                     .cancel(args.termination_request.stop_policy().unwrap())
                     .unwrap();
@@ -2138,6 +2160,9 @@ fn run_sample(
                     .offered
                     .get()
                     .saturating_sub(prepared.observations.accepted_values.get())
+                    .saturating_sub(prepared.observations.rejected.get())
+                    .saturating_sub(prepared.observations.sampled.get())
+                    .saturating_sub(prepared.observations.dropped.get())
             } else {
                 0
             },
