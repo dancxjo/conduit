@@ -94,18 +94,9 @@ async function readTaskFrontIdentities(page) {
   }));
 }
 
-async function gotoTour(page, path, { authorize = false, state = "permitted" } = {}) {
+async function gotoTour(page, path) {
   await page.goto(path);
   await waitForTourReady(page);
-  if (authorize) {
-    await postHostTaskActionPolicy(page, {
-      state,
-      generation: 2,
-      code: state === "permitted" ? "CND-PBY-ACT-READY" : "CND-HOST-TASK-DENIED",
-      observedAtTick: 10,
-      validUntilTick: 100,
-    });
-  }
 }
 
 function collectPageFailures(page) {
@@ -118,8 +109,13 @@ function collectPageFailures(page) {
 }
 
 async function openTinyInstrument(page) {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.tiny-instrument", {
-    authorize: true,
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.tiny-instrument");
+  await postHostTaskActionPolicy(page, {
+    state: "permitted",
+    generation: 2,
+    code: "CND-PBY-ACT-READY",
+    observedAtTick: 10,
+    validUntilTick: 100,
   });
   await page.locator("#accounting-drawer > summary").click();
   await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
@@ -1610,8 +1606,13 @@ test("keeps structural lenses orthogonal to Use Build Inspect and preserves the 
 });
 
 test("keeps the Use information budget usable at two hundred percent zoom", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front", {
-    authorize: true,
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await postHostTaskActionPolicy(page, {
+    state: "permitted",
+    generation: 2,
+    code: "CND-PBY-ACT-READY",
+    observedAtTick: 10,
+    validUntilTick: 100,
   });
   const workspace = page.locator("#workspace");
   const front = page.locator("#task-front");
@@ -1649,8 +1650,13 @@ test("keeps the Use information budget usable at two hundred percent zoom", asyn
 });
 
 test("shows authoritative task readiness and outcome with the raw console closed", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front", {
-    authorize: true,
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await postHostTaskActionPolicy(page, {
+    state: "permitted",
+    generation: 2,
+    code: "CND-PBY-ACT-READY",
+    observedAtTick: 10,
+    validUntilTick: 100,
   });
   await expect(page.locator("#task-front-state")).toHaveText("ready");
   await expect(page.locator("#console-body")).toBeHidden();
@@ -1691,9 +1697,7 @@ test("respects denied task-action policy for run availability", async ({ page })
 });
 
 test("requires explicit host policy to enable task front execution", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front", {
-    authorize: false,
-  });
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
   await expect(page.locator("#run")).toBeDisabled();
   await postHostTaskActionPolicy(page, {
     state: "permitted",
@@ -1707,11 +1711,27 @@ test("requires explicit host policy to enable task front execution", async ({ pa
 });
 
 test("does not consume task-action policy from URL seed", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front&taskActionPolicy=permitted", {
-    authorize: false,
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await page.evaluate(() => {
+    window.taskActionPolicy = {
+      observationId: "conduit.task-policy/global",
+      generation: 2,
+      action: "run-exact-plan",
+      state: "permitted",
+      observedAtTick: 10,
+      validUntilTick: 100,
+      activeControls: ["cancel", "drain"],
+      code: "CND-PBY-ACT-READY",
+      explanation: "mutable-page policy seed",
+    };
+    window.taskActionPolicyState = "permitted";
   });
   await expect(page.locator("#task-front-state")).toHaveText("denied");
   await expect(page.locator("#run")).toBeDisabled();
+  await page.getByRole("button", { name: "Run the checked uppercase-text plan" }).click();
+  await expect.poll(() => page.locator("#result").textContent(), {
+    timeout: 10_000,
+  }).toContain("Task-action policy is not currently request-available.");
   await postHostTaskActionPolicy(page, {
     state: "permitted",
     generation: 2,
@@ -1724,9 +1744,7 @@ test("does not consume task-action policy from URL seed", async ({ page }) => {
 });
 
 test("proves exact task-action identity binding across lifecycle and policy transitions", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front", {
-    authorize: false,
-  });
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
   await expect(page.locator("#task-front-state")).toHaveText("denied");
   await expect(page.locator("#run")).toBeDisabled();
   await postHostTaskActionPolicy(page, {
@@ -1806,8 +1824,13 @@ test("proves exact task-action identity binding across lifecycle and policy tran
 });
 
 test("updates task-action policy from runtime host signal", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front", {
-    authorize: true,
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await postHostTaskActionPolicy(page, {
+    state: "permitted",
+    generation: 2,
+    code: "CND-PBY-ACT-READY",
+    observedAtTick: 10,
+    validUntilTick: 100,
   });
   await expect(page.locator("#task-front-state")).toHaveText("ready");
   await expect(page.locator("#run")).toBeEnabled();
@@ -3218,9 +3241,7 @@ test("filesystem reference panels use the explicit bounded browser provider", as
 });
 
 test("Copy task front binds From and To without exposing selected material @copy-task-front", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem", {
-    authorize: true,
-  });
+  await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem");
   const taskFront = page.locator("#task-front");
   await expect(taskFront).toBeVisible();
   await expect(page.locator("#task-front-title")).toHaveText("Copy a file");
@@ -3402,9 +3423,7 @@ test("Copy task front binds From and To without exposing selected material @copy
 
 test("Copy task front fits an ordinary viewport and remains usable at 200 percent", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem", {
-    authorize: true,
-  });
+  await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem");
   const taskFront = page.locator("#task-front");
   await taskFront.scrollIntoViewIfNeeded();
   const ordinary = await taskFront.boundingBox();
