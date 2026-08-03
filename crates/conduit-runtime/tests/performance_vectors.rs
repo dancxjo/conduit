@@ -177,7 +177,7 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
     );
     assert_eq!(
         manifest["shared_payload_fanout"]["payload_bytes"],
-        serde_json::json!([1024])
+        serde_json::json!([1024, 1_048_576])
     );
     assert_eq!(
         manifest["shared_payload_fanout"]["branches"],

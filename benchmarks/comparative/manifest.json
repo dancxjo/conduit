@@ -70,7 +70,7 @@
   },
   "shared_payload_fanout": {
     "workload": "shared-payload-fanout",
-    "payload_bytes": [1024],
+    "payload_bytes": [1024, 1048576],
     "payload_representation": "hosted-generation-safe-shared-text-handle",
     "branches": [2, 8, 32],
     "termination_requests": ["complete", "abort"],
@@ -98,7 +98,7 @@
       "version_source": "workspace commit",
       "semantic_boundary": "production hosted std/literal driver, fixed generation-safe value arena, exact coupled fan-out plan, and content-verifying display sinks",
       "demand": "capacity-one lossless cords",
-      "payload_boundary": "exactly 1 KiB public text in this slice; larger payloads and other media kinds remain unavailable"
+      "payload_boundary": "exactly 1 KiB and 1 MiB public text in this slice; payloads above 1 MiB and other media kinds remain unavailable"
     },
     {
       "id": "rxjs",
@@ -141,7 +141,7 @@
     "bursty consumers report exact repeated pressure and recovery cycle counts without a hidden timing source or buffer",
     "persistent rows retain one finite session reservation across bounded host pumps, request termination with admitted work still pressured, and release the reservation only after terminal finalization",
     "persistent host-operation and timer residency rows perform the declared deterministic wake count without resetting the session, allocate zero times after Start, reach a strict internal high-water plateau, and reconcile the session reservation after Drain finalization",
-    "shared-payload rows retain one generation-safe value handle and exactly one 1 KiB value-arena slot at high water across 2, 8, and 32 branches, deliver and content-verify every branch, allocate zero times after Start, and return value residency to zero after terminal completion",
+    "shared-payload rows retain one generation-safe value handle and exactly one topology-sized 1 KiB or 1 MiB value-arena slot at high water across 2, 8, and 32 branches, deliver and content-verify every branch, allocate zero times after Start, and return value residency to zero after terminal completion",
     "shared-payload Abort rows request cancellation after atomic publication fills every capacity-one branch cord, consume no branch payload, allocate zero times after Start, and return the shared value slot and bytes to zero residency",
     "shared-payload queue charges and display verification buffers scale separately from value-arena residency and are never described as zero-copy",
     "bounded FIFO retries in local-depth fixtures are reported and do not change admitted or completed-useful counts",

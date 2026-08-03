@@ -106,10 +106,12 @@ comparisons remain unavailable until their multicast, demand, buffering, and
 coupling semantics have reviewed mappings.
 
 The shared-payload slice is a separate #244 production-hosted boundary. It
-authors one 1 KiB public-text `std/literal` and 2, 8, or 32 `display/text`
-consumers. The hosted literal profile pins a hard 32-reservation output bound,
-32 KiB aggregate output bound, and a generation-safe shared-handle
-representation for `source.value`. Because the current checked-in compile
+authors one 1 KiB or 1 MiB public-text `std/literal` and 2, 8, or 32
+`display/text` consumers. The hosted literal profile pins a hard 32-reservation
+output bound and derives its aggregate output and shared-handle representation
+bounds from the exact configured literal bytes. The display host-I/O profile
+derives its per-value bound from the exact cord topology. Both reject values
+above the reviewed 1 MiB ceiling. Because the current checked-in compile
 document cannot yet represent `PlanFanOut`, the benchmark compiler seals the
 one-branch provider/profile skeleton and the harness assembles the exact
 current core fan-out fact for the full source-derived topology. The production
@@ -119,25 +121,32 @@ identity, implementation artifact, and exact scheduler evidence. This is
 runtime evidence, not a claim that the general compile-document producer now
 supports fan-out.
 
+The benchmark caller supplies a host snapshot whose available-memory fact and
+plan budget cover the selected payload/branch matrix before sealing. Panel
+source cannot manufacture that host fact. The raw sample separately reports
+the executor's exact planned allocation and the process resident-memory
+observations; neither is presented as physical admission evidence.
+
 Every branch receives the same opaque generation-safe arena handle. The runner
-requires one unique branch handle, one resident value slot and 1,024 resident
-value bytes at high water, exact 2/8/32 branch-delivery counts, zero value
-residency after terminal completion, and zero allocator calls after Start.
+requires one unique branch handle, one resident value slot and exactly 1,024 or
+1,048,576 resident value bytes at high water, exact 2/8/32 branch-delivery
+counts, zero value residency after terminal completion, and zero allocator
+calls after Start.
 Each display sink checks the actual payload bytes. Its preallocated host-output
-storage therefore scales to 2/8/32 KiB, and each capacity-one cord separately
-charges 1 KiB of queue payload capacity even though all cords name one arena
-value. Those verifier and queue charges are reported beside arena residency;
-the suite does not call the end-to-end path zero-copy.
+storage therefore scales with branch count and payload size, and each
+capacity-one cord separately charges the exact payload capacity even though
+all cords name one arena value. Those verifier and queue charges are reported
+beside arena residency; the suite does not call the end-to-end path zero-copy.
 
 The same 2/8/32 matrix has a distinct Abort case. One bounded scheduler
 decision performs the exact atomic coupled publication, leaving the same handle
 on every capacity-one branch cord. The host then requests Abort before a sink
 can consume. The runner requires the terminal class to be cancelled, zero
-branch deliveries and verifier bytes, the full 2/8/32 KiB queue-payload high
-water, zero allocator calls after Start, and zero value slots/bytes after
-terminal cleanup. Completion content verification and cancellation reclamation
-are separate measurements rather than a cancellation run pretending it
-consumed payload content.
+branch deliveries and verifier bytes, the full branch-count-times-payload
+queue-payload high water, zero allocator calls after Start, and zero value
+slots/bytes after terminal cleanup. Completion content verification and
+cancellation reclamation are separate measurements rather than a cancellation
+run pretending it consumed payload content.
 
 Each completion and Abort row also runs with no Watch, one watched branch, and
 every branch watched. Watched rows admit exact cord subjects into the plan and
@@ -149,17 +158,17 @@ publication; it does not add demand, delay a cord, or change the graph.
 After terminal state, the runner first requires zero resident value slots and
 bytes, then reads each Watch outside the timed allocation scope. The read must
 return one record carrying the same generation-safe handle, the verified
-64-byte payload prefix, the full 1 KiB content hash, and a truncation marker.
+64-byte payload prefix, the full content hash, and a truncation marker.
 Abort therefore retains the separately copied preview even though the original
 arena value and every queued reference have been reclaimed. The report exposes
 admitted and attached slots, retained records/bytes, drops, and maximum fixed
 Watch storage so copied observability cost cannot be mistaken for executor
 value residency or zero-copy delivery.
 
-This first slice does not substitute 1 MiB payloads, PCM, images, encoded
+This slice does not substitute payloads above 1 MiB, PCM, images, encoded
 frames, fragments, isolated subscribers, ring/sample Watch retention,
 mid-run attach/detach/reconnect, coalescing, slot reuse, or browser execution.
-The current hosted literal value binding is bounded to 1 KiB, and RxJS/Reactor
+The current hosted literal value binding is bounded to 1 MiB, and RxJS/Reactor
 object references have no reviewed mapping to Conduit's generation-safe handle,
 Watch, and arena-residency evidence. Those cases remain explicitly unavailable
 and #244/#248 remain open.

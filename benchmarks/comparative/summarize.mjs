@@ -381,7 +381,7 @@ for (const sample of samples) {
     const watchPreviewBytes = sample.workload.watch_preview_bytes;
     const expectedWatchPreviewBytes = watchSlots * watchPreviewBytes;
     if (![2, 8, 32].includes(branches)
-        || payloadBytes !== 1024
+        || ![1024, 1048576].includes(payloadBytes)
         || sample.workload.payload_representation !== "hosted-generation-safe-shared-text-handle"
         || sample.workload.fanout_mode !== "coupled"
         || sample.workload.queue_capacity_items !== 1
@@ -651,8 +651,8 @@ const result = {
     },
     {
       runtime: "conduit-hosted-value-arena",
-      workload: "shared-payload-fanout payloads above 1 KiB or non-text media",
-      reason: "the current production hosted literal binding is bounded to 1 KiB public text and Watch coverage is limited to exact pre-Start Latest previews; larger, PCM, image, encoded, fragment, browser, other Watch retention/lifecycle modes, coalesce, and slot-reuse slices remain unavailable",
+      workload: "shared-payload-fanout payloads above 1 MiB or non-text media",
+      reason: "the current production hosted literal binding is bounded to 1 MiB public text and Watch coverage is limited to exact pre-Start Latest previews; larger, PCM, image, encoded, fragment, browser, other Watch retention/lifecycle modes, coalesce, and slot-reuse slices remain unavailable",
     },
     {
       runtime: "rxjs/reactor-core",
@@ -687,7 +687,7 @@ if (reportOutput) {
     "- Reactor overload: a reviewed demand/buffer and loss-policy mapping is not yet implemented; `publishOn` is not substituted.",
     "- RxJS/Reactor fan-out: reviewed coupled and isolated semantic mappings are not implemented; ordinary multicast is not substituted.",
     "- RxJS/Reactor shared payloads: no reviewed generation-safe shared-handle and residency mapping exists; language object references are not substituted.",
-    "- Conduit shared payloads beyond 1 KiB public text: larger, PCM, image, encoded, fragment, browser, Watch retention/lifecycle modes beyond exact pre-Start Latest previews, coalesce, and slot-reuse slices remain unavailable.",
+    "- Conduit shared payloads beyond 1 MiB public text: larger, PCM, image, encoded, fragment, browser, Watch retention/lifecycle modes beyond exact pre-Start Latest previews, coalesce, and slot-reuse slices remain unavailable.",
     "- RxJS/Reactor persistent wake: no reviewed mapping exists for Conduit's exact named host-operation wait and production session reservation; a timer or subject is not substituted.",
     "- RxJS/Reactor persistent timer: no reviewed mapping exists for Conduit's exact retained timer deadline and production session reservation; an interval operator is not substituted.",
     "- Drain/Abort timing is present only on fixtures that explicitly request that transition; normal completion remains distinct and null.",
@@ -723,7 +723,7 @@ if (reportOutput) {
       report.push("");
     }
     if (workload === "shared-payload-fanout") {
-      report.push("## shared-payload-fanout: handle, Watch, and residency accounting", "", "The value arena retains one generation-safe 1 KiB handle across every branch. Queue byte charges, content-verifying display buffers, and fixed Watch preview copies are separate bounded storage and are not described as zero-copy. Watch reads verify the copied 64-byte prefix and full content hash after the timed region. Abort rows cancel after atomic publication and before verifier consumption; retained Watch previews must not extend terminal executor-value residency.", "", "| Runtime | Terminal request | Payload bytes | Branches | Watch slots | Watch preview bytes retained | Planned bytes | Executor overhead bytes | Unique handles | Branch deliveries | Value slots high water | Value bytes high water | Terminal value slots | Terminal value bytes | Queue payload bytes | Host verifier output bytes | Alloc calls after Start |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+      report.push("## shared-payload-fanout: handle, Watch, and residency accounting", "", "The value arena retains one generation-safe topology-sized handle across every branch for both the 1 KiB and 1 MiB cases. Queue byte charges, content-verifying display buffers, and fixed Watch preview copies are separate bounded storage and are not described as zero-copy. Watch reads verify the copied 64-byte prefix and full content hash after the timed region. Abort rows cancel after atomic publication and before verifier consumption; retained Watch previews must not extend terminal executor-value residency.", "", "| Runtime | Terminal request | Payload bytes | Branches | Watch slots | Watch preview bytes retained | Planned bytes | Executor overhead bytes | Unique handles | Branch deliveries | Value slots high water | Value bytes high water | Terminal value slots | Terminal value bytes | Queue payload bytes | Host verifier output bytes | Alloc calls after Start |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
       for (const group of workloadGroups) {
         report.push(`| ${group.runtime.id} | ${group.workload.termination_request} | ${group.workload.payload_bytes} | ${group.workload.fanout_branches} | ${group.workload.watch_slots} | ${duration(group.high_water.watch_retained_preview_bytes)} | ${duration(group.memory_accounting.planned_bytes)} | ${duration(group.memory_accounting.executor_overhead_bytes)} | ${duration(group.execution.unique_value_handles)} | ${duration(group.execution.branch_deliveries)} | ${duration(group.high_water.value_slots)} | ${duration(group.high_water.value_bytes)} | ${duration(group.high_water.value_resident_slots_after_terminal)} | ${duration(group.high_water.value_resident_bytes_after_terminal)} | ${duration(group.high_water.queue_payload_bytes)} | ${duration(group.high_water.host_io_output_bytes)} | ${duration(group.allocations_after_start.calls)} |`);
       }

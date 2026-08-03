@@ -34,6 +34,50 @@ fn hosted_literal_profile_pins_bounded_shared_handle_multicast() {
     assert_eq!(profile.representations[0].max_bytes, 1024);
 }
 
+#[test]
+fn hosted_literal_and_display_profiles_scale_to_exact_source_bounds() {
+    const VALUE_BYTES: usize = 64 * 1024;
+    let payload = "x".repeat(VALUE_BYTES);
+    let source = format!(
+        "panel 0\nsource: std/literal {{ value = \"{payload}\" }}\nsink: display/text\nsource.value > sink.text {{ capacity = 1 max_value_bytes = {VALUE_BYTES} max_queued_bytes = {VALUE_BYTES} low_watermark = 0 high_watermark = 1 pressure = block }}\n"
+    );
+    let installed = InstalledProfile::observe(&source).unwrap();
+    let document = compile_source(&source, &installed.input).unwrap();
+    let arena = Bump::new();
+    let plan = document.as_plan(&arena).unwrap();
+    let literal = plan
+        .nodes
+        .iter()
+        .find(|node| node.contract.id.as_str() == "std/literal")
+        .unwrap()
+        .execution_profile
+        .unwrap();
+    let display = plan
+        .nodes
+        .iter()
+        .find(|node| node.contract.id.as_str() == "display/text")
+        .unwrap()
+        .execution_profile
+        .unwrap();
+
+    assert_eq!(literal.limits.max_output_bytes, 32 * VALUE_BYTES as u64);
+    assert_eq!(literal.representations[0].max_bytes, VALUE_BYTES as u32);
+    assert_eq!(display.limits.max_input_bytes, VALUE_BYTES as u64);
+    assert_eq!(display.limits.max_host_buffer_bytes, VALUE_BYTES as u64);
+}
+
+#[test]
+fn hosted_value_profiles_reject_bounds_above_the_reviewed_ceiling() {
+    let source = "panel 0\nsource: std/literal { value = \"payload\" }\nsink: display/text\nsource.value > sink.text { capacity = 1 max_value_bytes = 1048577 max_queued_bytes = 1048577 low_watermark = 0 high_watermark = 1 pressure = block }\n";
+    let error = match InstalledProfile::observe(source) {
+        Ok(_) => panic!("oversized hosted value binding was accepted"),
+        Err(error) => error,
+    };
+
+    assert_eq!(error.code, "CND-RUN-007");
+    assert!(error.message.contains("supports at most 1048576 bytes"));
+}
+
 fn exact_report(
     source: &str,
     run_id: &'static str,

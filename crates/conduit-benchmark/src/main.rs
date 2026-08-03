@@ -14,7 +14,7 @@ use std::{
 
 use bumpalo::Bump;
 use clap::{Parser, ValueEnum};
-use conduit_compile::{InstalledProfile, compile_source};
+use conduit_compile::{InstalledHostObservationInput, InstalledProfile, compile_source};
 use conduit_core::{
     ArtifactDigest, AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee,
     CompatibilityOutcome, Direction, DuplicationRule, EvidenceCursorStatus, ExecutionLimits,
@@ -1912,10 +1912,7 @@ fn proc_status_bytes(field: &str) -> Option<u64> {
 
 fn shared_payload_source(branches: u16, payload_bytes: usize) -> (String, String) {
     assert!(matches!(branches, 1 | 2 | 8 | 32));
-    assert_eq!(
-        payload_bytes, 1024,
-        "the current hosted text binding is exactly 1 KiB"
-    );
+    assert!(matches!(payload_bytes, 1024 | 1_048_576));
     let payload = (0..payload_bytes)
         .map(|index| char::from(b'a' + u8::try_from(index % 26).unwrap()))
         .collect::<String>();
@@ -1959,7 +1956,7 @@ fn run_shared_payload_sample(
     );
     assert!(matches!(args.fanout_branches, 2 | 8 | 32));
     assert!(matches!(args.fanout_mode, FanoutPublication::Coupled));
-    assert_eq!(args.payload_bytes, 1024);
+    assert!(matches!(args.payload_bytes, 1024 | 1_048_576));
     assert!(
         args.watch_slots == 0 || args.watch_slots == 1 || args.watch_slots == args.fanout_branches
     );
@@ -1995,7 +1992,21 @@ fn run_shared_payload_sample(
     // against the full source-derived topology without claiming compiler
     // support that does not exist.
     let (profile_source, _) = shared_payload_source(1, payload_bytes);
-    let mut installed = InstalledProfile::observe(&profile_source).unwrap();
+    let plan_memory_bytes = (args
+        .payload_bytes
+        .checked_mul(64 + 6 * u64::from(args.fanout_branches))
+        .unwrap())
+    .max(4 * 1024 * 1024);
+    let mut host_observation = InstalledHostObservationInput::conduct_host();
+    host_observation.available.memory_bytes = plan_memory_bytes;
+    let mut installed = InstalledProfile::observe_registry_on_host(
+        &profile_source,
+        &registry,
+        &host_observation,
+        &[],
+    )
+    .unwrap();
+    installed.input.plan_budget.memory_bytes = plan_memory_bytes;
     installed.input.plan_budget.evidence_bytes = 256 * 1024;
     installed.input.seal().unwrap();
     let document = compile_source(&profile_source, &installed.input).unwrap();
@@ -2473,12 +2484,12 @@ fn run_shared_payload_sample(
         {
             [
                 "The benchmark harness assembles the current exact coupled PlanFanOut plus pre-Start exact Watch admissions for the full source topology; the production hosted literal publishes one generation-safe handle across every capacity-one output cord.",
-                "Abort follows atomic publication; fixed Latest previews retain verified 64-byte copies after terminal cleanup reclaims the one 1 KiB executor value, while Watch reads and caller verification remain outside the timed allocation scope.",
+                "Abort follows atomic publication; fixed Latest previews retain verified 64-byte copies after terminal cleanup reclaims the one exact executor value, while Watch reads and caller verification remain outside the timed allocation scope.",
             ]
         } else if matches!(args.termination_request, TerminationRequest::Abort) {
             [
                 "The benchmark harness assembles the current exact coupled PlanFanOut fact for the full source topology; the production hosted literal then stores one finite-batch value in the fixed arena and publishes its generation-safe handle across every capacity-one output cord.",
-                "Abort is requested after atomic publication and before any sink consumes; terminal cleanup must reclaim the one 1 KiB value while queue charges remain visible and verifier output stays empty.",
+                "Abort is requested after atomic publication and before any sink consumes; terminal cleanup must reclaim the one exact value while queue charges remain visible and verifier output stays empty.",
             ]
         } else if args.watch_slots > 0 {
             [
@@ -2488,7 +2499,7 @@ fn run_shared_payload_sample(
         } else {
             [
                 "The benchmark harness assembles the current exact coupled PlanFanOut fact for the full source topology; the production hosted literal then stores one finite-batch value in the fixed arena and publishes its generation-safe handle across every capacity-one output cord.",
-                "Exactly one 1 KiB value slot is resident at high water; every display sink verifies its branch through separately accounted preallocated host-I/O storage, while larger payload bindings and stream-specific fan-out modes remain unavailable.",
+                "Exactly one topology-sized value slot is resident at high water; every display sink verifies its branch through separately accounted preallocated host-I/O storage, while payloads above the reviewed production ceiling and stream-specific fan-out modes remain unavailable.",
             ]
         },
     }
