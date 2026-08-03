@@ -4800,6 +4800,7 @@ impl Workspace {
                         })?;
                     remove_source_span(&mut candidate_source.source, cord.source_span)?;
                     source_changed = true;
+                    source_replaced = true;
                 }
                 EditOperation::SetConfig {
                     node_id,
@@ -4852,6 +4853,7 @@ impl Workspace {
                         )?;
                     }
                     source_changed = true;
+                    source_replaced = true;
                 }
                 EditOperation::Navigate {
                     mode: next_mode,

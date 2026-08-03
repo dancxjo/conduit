@@ -861,7 +861,11 @@ export class PatchbayReactFlowRenderer {
 
     const topologyIdentity = layoutTopologyIdentity(nodes, edges);
     let layoutGeneration = this.layoutGeneration;
+    let preservedViewport = null;
     if (topologyIdentity !== this.renderedTopologyIdentity) {
+      if (this.options.preserveViewportOnTopologyChange) {
+        preservedViewport = this.getViewport();
+      }
       this.renderedTopologyIdentity = topologyIdentity;
       layoutGeneration = this.beginLayout(topologyIdentity);
     }
@@ -984,13 +988,25 @@ export class PatchbayReactFlowRenderer {
           }
         },
         snapToGrid: false,
-        defaultViewport: { x: 0, y: 0, zoom: 1 },
+        defaultViewport: preservedViewport || { x: 0, y: 0, zoom: 1 },
         minZoom: 0.2,
         maxZoom: 3,
-        fitView: true,
+        fitView: !preservedViewport,
         fitViewOptions: { maxZoom: 1.2 },
         onInit: (instance) => {
           this.flowInstance = instance;
+          if (preservedViewport) {
+            requestAnimationFrame(() => requestAnimationFrame(async () => {
+              if (this.flowInstance !== instance) return;
+              await instance.setViewport(preservedViewport, { duration: 0 });
+              this.markLayoutReady(
+                instance,
+                layoutGeneration,
+                topologyIdentity,
+              );
+            }));
+            return;
+          }
           // React Flow's initial fit can run before WebKit has reported the
           // intrinsic height of the semantic-promise faceplates. Refit once
           // those ResizeObserver measurements have crossed two paint frames;

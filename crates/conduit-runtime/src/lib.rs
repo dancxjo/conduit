@@ -6705,6 +6705,7 @@ impl ResolvedPanel<'_> {
 
     /// Evidence-provider session start with exact physical-arrangement
     /// admission.
+    #[allow(clippy::too_many_arguments)]
     pub fn start_exact_session_with_evidence_provider_arranged<'p>(
         &self,
         plan: &'p ExecutionPlan<'p>,

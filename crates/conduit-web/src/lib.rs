@@ -6954,6 +6954,26 @@ mod tests {
         patchbay_open_session_with_front(document_id, source, String::new())
     }
 
+    #[test]
+    fn workbench_vertical_slice_has_an_exact_candidate_plan() {
+        let source = r#"panel 0
+
+literal: std/literal { value = "Workbench says hello.\n" }
+uppercase: text/uppercase
+text: display/text
+
+literal.value > uppercase.text { capacity = 8 max_value_bytes = 65536 max_queued_bytes = 524288 low_watermark = 4 high_watermark = 8 pressure = block }
+uppercase.text > text.text { capacity = 8 max_value_bytes = 65536 max_queued_bytes = 524288 low_watermark = 4 high_watermark = 8 pressure = block }
+"#;
+        let opened: Value = serde_json::from_str(&patchbay_open_session(
+            "test/workbench-vertical".to_owned(),
+            source.to_owned(),
+        ))
+        .unwrap();
+        assert_eq!(opened["ok"], true, "{opened:#}");
+        assert!(opened["view"]["plan"].is_object(), "{opened:#}");
+    }
+
     fn jacks_task_front_descriptor() -> String {
         serde_json::json!({
             "schema": "conduit.patchbay-task-front",

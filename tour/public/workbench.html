@@ -42,7 +42,7 @@
     </section>
 
     <div class="workbench-grid">
-      <aside class="card palette-card" aria-labelledby="palette-title">
+      <aside class="card palette-card workbench-panel" data-panel="palette" data-panel-mode="docked" data-panel-dock="left" aria-labelledby="palette-title">
         <div class="card-header"><h2 id="palette-title">Node palette</h2><span id="palette-count" class="badge">0</span></div>
         <label for="palette-search">Search contracts</label>
         <input id="palette-search" type="search" placeholder="name, namespace, port, type…" autocomplete="off">
@@ -71,7 +71,7 @@
         <div id="cy" class="cytoscape-container" tabindex="0" aria-label="Patchbay topology canvas"></div>
       </section>
 
-      <section class="card source-card workbench-source" aria-labelledby="source-title">
+      <section class="card source-card workbench-source workbench-panel" data-panel="source" data-panel-mode="docked" data-panel-dock="bottom" aria-labelledby="source-title">
         <div class="card-header"><div><p class="eyebrow">Synchronized Build view</p><h2 id="source-title">Panel source</h2></div><span class="badge">panel 0</span></div>
         <div class="panel-source-editor">
           <pre class="panel-source-highlight" aria-hidden="true"></pre>
@@ -79,15 +79,17 @@
         </div>
       </section>
 
-      <aside class="card workbench-inspector" aria-labelledby="inspector-title">
+      <aside class="card workbench-inspector workbench-panel" data-panel="inspector" data-panel-mode="docked" data-panel-dock="right" aria-labelledby="inspector-title">
         <div class="card-header"><h2 id="inspector-title">Readiness and result</h2><span id="readiness" class="badge">Checking</span></div>
         <p id="selection-summary">No node selected.</p>
+        <div id="node-config" class="node-config"></div>
         <form id="connection-builder" class="connection-builder">
           <h3>Connect ports</h3>
           <label>Outgoing port <select id="connection-from"></select></label>
           <label>Receiving port <select id="connection-to"></select></label>
           <button id="connect-ports" type="submit" class="btn secondary">Connect</button>
         </form>
+        <div id="cord-actions" class="cord-actions"></div>
         <output id="run-result" class="workbench-result" aria-live="polite">No run yet.</output>
         <h3>Diagnostics</h3>
         <ol id="diagnostics" class="diagnostic-console"></ol>

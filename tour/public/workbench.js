@@ -3,6 +3,7 @@ import { PatchbayReactFlowRenderer } from "./patchbay-renderer.js";
 
 const SESSION_ID = "workbench/current";
 const STORAGE_KEY = "conduit-workbench/documents/0";
+const PANEL_STORAGE_KEY = "conduit-workbench/panels/0";
 const EMPTY_SOURCE = "panel 0\n";
 const MAXIMUM_PUMP_TURNS = 512;
 
@@ -12,6 +13,7 @@ const elements = Object.fromEntries([
   "palette-support", "palette-count", "palette-results", "workbench-canvas", "cy",
   "delete-node", "source", "selection-summary", "readiness", "run-result",
   "diagnostics", "evidence", "connection-builder", "connection-from", "connection-to",
+  "node-config", "cord-actions",
 ].map((id) => [id.replaceAll("-", "_"), document.getElementById(id)]));
 
 class WorkerBridge {
@@ -47,12 +49,170 @@ let palette = [];
 let history = { can_undo: false, can_redo: false };
 let selectedNodeId = null;
 let sourceTimer = null;
+let pendingSourceEdit = null;
 let running = false;
 let operationQueue = Promise.resolve();
+let panelZ = 30;
 
 attachPanelSourceHighlighting(elements.source);
 
+function readPanelStates() {
+  try {
+    const value = JSON.parse(localStorage.getItem(PANEL_STORAGE_KEY) || "{}");
+    return value && typeof value === "object" ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+function documentZoom() {
+  const zoom = Number.parseFloat(getComputedStyle(document.documentElement).zoom);
+  return Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+}
+
+function savePanelState(panel) {
+  const states = readPanelStates();
+  states[panel.dataset.panel] = {
+    schema: "conduit.workbench-panel-state",
+    schema_version: 0,
+    mode: panel.dataset.panelMode,
+    dock: panel.dataset.panelDock,
+    collapsed: panel.dataset.panelCollapsed === "true",
+    left: panel.style.left,
+    top: panel.style.top,
+    width: panel.style.width,
+    height: panel.style.height,
+  };
+  localStorage.setItem(PANEL_STORAGE_KEY, JSON.stringify(states));
+}
+
+function clampPanel(panel) {
+  if (panel.dataset.panelMode !== "floating") return;
+  const zoom = documentZoom();
+  const rect = panel.getBoundingClientRect();
+  const left = Math.max(8, Math.min(rect.left, window.innerWidth - Math.min(rect.width, 280) - 8));
+  const top = Math.max(8, Math.min(rect.top, window.innerHeight - 56));
+  panel.style.left = `${Math.round(left / zoom)}px`;
+  panel.style.top = `${Math.round(top / zoom)}px`;
+}
+
+function setPanelMode(panel, mode, rect = panel.getBoundingClientRect()) {
+  const zoom = documentZoom();
+  panel.dataset.panelMode = mode;
+  const modeButton = panel.querySelector("[data-panel-mode-control]");
+  if (mode === "floating") {
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+    panel.style.left = `${Math.round(rect.left / zoom)}px`;
+    panel.style.top = `${Math.round(rect.top / zoom)}px`;
+    panel.style.width = `${Math.round(Math.max(288, rect.width) / zoom)}px`;
+    panel.style.height = `${Math.round(Math.max(180, rect.height) / zoom)}px`;
+    modeButton.textContent = "Dock";
+    modeButton.setAttribute("aria-label", `Dock ${panel.dataset.panel} panel`);
+  } else {
+    for (const property of ["left", "right", "top", "bottom", "width", "height"]) {
+      panel.style[property] = "";
+    }
+    modeButton.textContent = "Detach";
+    modeButton.setAttribute("aria-label", `Detach ${panel.dataset.panel} panel`);
+  }
+  clampPanel(panel);
+  savePanelState(panel);
+}
+
+function enhanceWorkbenchPanel(panel, saved) {
+  const header = panel.querySelector(":scope > .card-header");
+  if (!header) return;
+  const controls = document.createElement("div");
+  controls.className = "workbench-panel-controls";
+  const collapse = document.createElement("button");
+  collapse.type = "button";
+  collapse.className = "btn small secondary";
+  collapse.dataset.panelCollapseControl = "true";
+  const mode = document.createElement("button");
+  mode.type = "button";
+  mode.className = "btn small secondary";
+  mode.dataset.panelModeControl = "true";
+  controls.append(collapse, mode);
+  header.append(controls);
+
+  const setCollapsed = (collapsed) => {
+    panel.dataset.panelCollapsed = String(collapsed);
+    collapse.textContent = collapsed ? "Expand" : "Collapse";
+    collapse.setAttribute("aria-expanded", String(!collapsed));
+    collapse.setAttribute("aria-label", `${collapsed ? "Expand" : "Collapse"} ${panel.dataset.panel} panel`);
+    savePanelState(panel);
+  };
+  collapse.onclick = () => setCollapsed(panel.dataset.panelCollapsed !== "true");
+  mode.onclick = () => setPanelMode(
+    panel,
+    panel.dataset.panelMode === "floating" ? "docked" : "floating",
+  );
+
+  if (saved?.schema === "conduit.workbench-panel-state" && saved.schema_version === 0) {
+    panel.dataset.panelDock = saved.dock || panel.dataset.panelDock;
+    panel.dataset.panelMode = saved.mode === "floating" ? "floating" : "docked";
+    if (panel.dataset.panelMode === "floating") {
+      panel.style.left = saved.left || "24px";
+      panel.style.top = saved.top || "120px";
+      panel.style.width = saved.width || "360px";
+      panel.style.height = saved.height || "480px";
+    }
+    setCollapsed(Boolean(saved.collapsed));
+  } else {
+    setCollapsed(panel.dataset.panel !== "palette");
+  }
+  mode.textContent = panel.dataset.panelMode === "floating" ? "Dock" : "Detach";
+  mode.setAttribute(
+    "aria-label",
+    `${panel.dataset.panelMode === "floating" ? "Dock" : "Detach"} ${panel.dataset.panel} panel`,
+  );
+  clampPanel(panel);
+
+  let drag = null;
+  header.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || event.target.closest("button")) return;
+    const rect = panel.getBoundingClientRect();
+    if (panel.dataset.panelMode !== "floating") setPanelMode(panel, "floating", rect);
+    panel.style.zIndex = String(++panelZ);
+    const zoom = documentZoom();
+    drag = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      left: rect.left / zoom,
+      top: rect.top / zoom,
+      zoom,
+    };
+    header.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+  header.addEventListener("pointermove", (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    panel.style.left = `${Math.round(drag.left + (event.clientX - drag.x) / drag.zoom)}px`;
+    panel.style.top = `${Math.round(drag.top + (event.clientY - drag.y) / drag.zoom)}px`;
+    clampPanel(panel);
+  });
+  const finishDrag = (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    drag = null;
+    savePanelState(panel);
+  };
+  header.addEventListener("pointerup", finishDrag);
+  header.addEventListener("pointercancel", finishDrag);
+  panel.addEventListener("pointerdown", () => { panel.style.zIndex = String(++panelZ); });
+}
+
+const savedPanelStates = readPanelStates();
+document.querySelectorAll(".workbench-panel").forEach((panel) =>
+  enhanceWorkbenchPanel(panel, savedPanelStates[panel.dataset.panel])
+);
+window.addEventListener("resize", () =>
+  document.querySelectorAll('.workbench-panel[data-panel-mode="floating"]').forEach(clampPanel)
+);
+
 const renderer = new PatchbayReactFlowRenderer(elements.cy, {
+  preserveViewportOnTopologyChange: true,
   onTransaction: (operation, options) =>
     void applyOperations(Array.isArray(operation) ? operation : [operation], options),
   onNodeSelect: (nodeId) => selectNode(nodeId),
@@ -124,6 +284,8 @@ function renderView(nextView, { syncSource = true } = {}) {
     ? JSON.stringify(view.evidence, null, 2)
     : "No evidence yet.";
   renderConnectionBuilder();
+  renderSelectedNode();
+  renderCordActions();
   updateHistory();
 }
 
@@ -173,9 +335,27 @@ async function openSession(source = EMPTY_SOURCE, positions = {}) {
 }
 
 function applyOperations(operations, options = {}) {
+  if (pendingSourceEdit !== null && !options.sourceEdit) {
+    return flushSourceEdit().then(() => enqueueOperations(operations, options));
+  }
+  return enqueueOperations(operations, options);
+}
+
+function enqueueOperations(operations, options = {}) {
   const execute = () => applyOperationsNow(operations, options);
   operationQueue = operationQueue.then(execute, execute);
   return operationQueue;
+}
+
+function flushSourceEdit() {
+  if (pendingSourceEdit === null) return Promise.resolve();
+  clearTimeout(sourceTimer);
+  sourceTimer = null;
+  const candidate = pendingSourceEdit;
+  pendingSourceEdit = null;
+  return enqueueOperations([
+    { ReplaceSource: { source: candidate } },
+  ], { syncSource: false, sourceEdit: true });
 }
 
 async function applyOperationsNow(operations, options = {}) {
@@ -259,6 +439,80 @@ function selectNode(nodeId) {
   elements.selection_summary.textContent = node
     ? `${node.id}: ${node.kind || node.contract_id || "semantic node"}`
     : "No node selected.";
+  renderSelectedNode();
+}
+
+function editValue(kind, input) {
+  if (kind === "boolean") return { kind: "boolean", value: input.checked };
+  if (kind === "integer") return { kind: "integer", value: Number(input.value) };
+  if (kind === "exact-decimal") return { kind: "exact-decimal", value: input.value };
+  if (kind === "reference") return { kind: "reference", value: input.value };
+  if (kind === "contract-reference") return { kind: "contract-reference", value: input.value };
+  return { kind: "text", value: input.value };
+}
+
+function configInputValue(field) {
+  if (field.kind === "text") {
+    try { return JSON.parse(field.display_value); } catch { return field.display_value; }
+  }
+  return field.display_value;
+}
+
+function renderSelectedNode() {
+  elements.node_config.replaceChildren();
+  const node = view?.topology?.logical_nodes?.find((candidate) => candidate.id === selectedNodeId);
+  if (!node || !Object.keys(node.config || {}).length) return;
+  const title = document.createElement("h3");
+  title.textContent = "Semantic configuration";
+  elements.node_config.append(title);
+  for (const [key, field] of Object.entries(node.config)) {
+    const form = document.createElement("form");
+    const label = document.createElement("label");
+    label.textContent = key;
+    const input = document.createElement("input");
+    input.type = field.kind === "boolean" ? "checkbox" : field.kind === "integer" ? "number" : "text";
+    if (input.type === "checkbox") input.checked = field.display_value === "true";
+    else input.value = configInputValue(field);
+    input.disabled = !field.editable || running;
+    const save = document.createElement("button");
+    save.type = "submit";
+    save.className = "btn small secondary";
+    save.textContent = `Set ${key}`;
+    save.disabled = input.disabled;
+    label.append(input);
+    form.append(label, save);
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      void applyOperations([{ SetConfig: {
+        node_id: node.id,
+        key,
+        value: editValue(field.kind, input),
+      } }]);
+    };
+    elements.node_config.append(form);
+  }
+}
+
+function renderCordActions() {
+  elements.cord_actions.replaceChildren();
+  const cords = view?.topology?.cords || [];
+  if (!cords.length) return;
+  const title = document.createElement("h3");
+  title.textContent = "Authored cords";
+  elements.cord_actions.append(title);
+  for (const cord of cords) {
+    const row = document.createElement("div");
+    row.className = "cord-action";
+    const label = document.createElement("span");
+    label.textContent = `${cord.from_node || cord.from_anchor} → ${cord.to_node || cord.to_anchor}`;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "btn small danger";
+    remove.textContent = "Disconnect";
+    remove.onclick = () => void applyOperations([{ Disconnect: { cord_id: cord.id } }]);
+    row.append(label, remove);
+    elements.cord_actions.append(row);
+  }
 }
 
 function isSupported(entry) {
@@ -400,9 +654,8 @@ elements.workbench_canvas.addEventListener("drop", (event) => {
 });
 elements.source.addEventListener("input", () => {
   clearTimeout(sourceTimer);
-  sourceTimer = setTimeout(() => void applyOperations([
-    { ReplaceSource: { source: elements.source.value } },
-  ], { syncSource: false }), 220);
+  pendingSourceEdit = elements.source.value;
+  sourceTimer = setTimeout(() => void flushSourceEdit(), 220);
 });
 elements.new_document.onclick = () => void openSession();
 elements.save_document.onclick = () => {
