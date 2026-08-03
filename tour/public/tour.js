@@ -163,6 +163,11 @@ const TASK_ACTION_POLICY_MESSAGES = new Set([
   "task-action-policy",
   "task-action-policy-update",
 ]);
+const TASK_ACTION_REQUEST_MESSAGES = new Set([
+  "conduit-task-action-request",
+  "task-action-request",
+  "run-task-action-request",
+]);
 const TASK_ACTION_POLICY_CODES = {
   permitted: "CND-PBY-ACT-READY",
   denied: "CND-PBY-ACT-DENIED",
@@ -170,115 +175,11 @@ const TASK_ACTION_POLICY_CODES = {
   unavailable: "CND-PBY-ACT-UNAVAILABLE",
 };
 const TASK_ACTION_POLICY_STATES = new Set(Object.keys(TASK_ACTION_POLICY_CODES));
+const TASK_ACTION_TEST_MODE = pageParameters.get("tourTaskActionProof") === "1" ||
+  pageParameters.get("tour-task-action-proof") === "1";
 
 function asPositiveSafeInteger(value, fallback) {
   return Number.isSafeInteger(value) && value > 0 ? value : fallback;
-}
-
-function parseTaskActionPolicySeed(candidate, {
-  fallbackState = "unavailable",
-  fallbackGeneration = 1,
-  fallbackObservationId = TASK_ACTION_POLICY_OBSERVATION_ID,
-  fallbackObservedAtTick = 10,
-  fallbackValidUntilTick = 100,
-} = {}) {
-  if (!candidate || typeof candidate !== "object") return null;
-  const state = taskActionPolicyMessageValue(candidate, "state", "state", fallbackState);
-  if (!TASK_ACTION_POLICY_STATES.has(state)) return null;
-  return tourTaskActionPolicy(state, {
-    generation: asPositiveSafeInteger(
-      taskActionPolicyMessageValue(candidate, "generation", "generation"),
-      fallbackGeneration,
-    ),
-    observationId: taskActionPolicyMessageValue(
-      candidate,
-      "observationId",
-      "observation_id",
-      fallbackObservationId,
-    ),
-    observedAtTick: asSafeInteger(
-      taskActionPolicyMessageValue(
-        candidate,
-        "observedAtTick",
-        "observed_at_tick",
-        fallbackObservedAtTick,
-      ),
-      fallbackObservedAtTick,
-    ),
-    validUntilTick: asSafeInteger(
-      taskActionPolicyMessageValue(
-        candidate,
-        "validUntilTick",
-        "valid_until_tick",
-        fallbackValidUntilTick,
-      ),
-      fallbackValidUntilTick,
-    ),
-    activeControls: parseTaskActionControls(
-      taskActionPolicyMessageValue(candidate, "activeControls", "active_controls"),
-    ),
-    code: taskActionPolicyMessageValue(
-      candidate,
-      "code",
-      "code",
-      TASK_ACTION_POLICY_CODES[state],
-    ),
-    explanation: taskActionPolicyMessageValue(
-      candidate,
-      "explanation",
-      "explanation",
-      `The independent Tour host policy is ${state} for this exact task action.`,
-    ),
-  });
-}
-
-function parseTaskActionPolicySeedFromSearch() {
-  const rawState = pageParameters.get("taskActionPolicy") ||
-    pageParameters.get("task-action-policy") ||
-    pageParameters.get("task_action_policy");
-  if (typeof rawState !== "string" || rawState.length === 0) return null;
-  if (rawState.startsWith("{") && rawState.endsWith("}")) {
-    try {
-      const parsed = JSON.parse(rawState);
-      return parseTaskActionPolicySeed(parsed);
-    } catch {
-      return null;
-    }
-  }
-  const candidate = {
-    state: rawState,
-    generation: Number(pageParameters.get("taskActionPolicyGeneration")) ||
-      Number(pageParameters.get("task_action_policy_generation")) ||
-      undefined,
-  };
-  const observedAtTick = Number(pageParameters.get("taskActionPolicyObservedAtTick")) ||
-    Number(pageParameters.get("task_action_policy_observed_at_tick")) ||
-    Number(pageParameters.get("observedAtTick")) ||
-    Number(pageParameters.get("observed_at_tick"));
-  const validUntilTick = Number(pageParameters.get("taskActionPolicyValidUntilTick")) ||
-    Number(pageParameters.get("task_action_policy_valid_until_tick")) ||
-    Number(pageParameters.get("validUntilTick")) ||
-    Number(pageParameters.get("valid_until_tick"));
-  const observationId =
-    pageParameters.get("taskActionPolicyObservationId") ||
-    pageParameters.get("task_action_policy_observation_id");
-  const code = pageParameters.get("taskActionPolicyCode") ||
-    pageParameters.get("task_action_policy_code");
-  const explanation = pageParameters.get("taskActionPolicyExplanation") ||
-    pageParameters.get("task_action_policy_explanation");
-  if (observedAtTick) candidate.observedAtTick = observedAtTick;
-  if (validUntilTick) candidate.validUntilTick = validUntilTick;
-  if (observationId) candidate.observationId = observationId;
-  if (code) candidate.code = code;
-  if (explanation) candidate.explanation = explanation;
-  return parseTaskActionPolicySeed(candidate);
-}
-
-function parseTaskActionPolicySeedFromWindow() {
-  const candidate = globalThis.__conduitTourTaskActionPolicy ||
-    globalThis.conduitTourTaskActionPolicy ||
-    globalThis.__conduitTaskActionPolicy;
-  return parseTaskActionPolicySeed(candidate);
 }
 
 function asSafeInteger(value, fallback) {
@@ -313,9 +214,7 @@ function tourTaskActionPolicy(state, {
   };
 }
 
-const initialTaskActionPolicy = parseTaskActionPolicySeedFromSearch() ||
-  parseTaskActionPolicySeedFromWindow() ||
-  tourTaskActionPolicy("unavailable");
+const initialTaskActionPolicy = tourTaskActionPolicy("unavailable");
 let hostTaskActionPolicy = { ...initialTaskActionPolicy };
 
 if (browserPlan.schema !== "conduit.tour-browser-plan") {
@@ -426,10 +325,6 @@ if (!hostTaskActionPolicy) {
   throw new Error("host task-action policy is missing");
 }
 
-function asPositiveSafeInteger(value, fallback) {
-  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
-}
-
 function parseTaskActionControls(value) {
   const raw = Array.isArray(value) ? value : [];
   const controls = raw.filter((control) =>
@@ -497,6 +392,32 @@ function taskActionPolicyFromHostMessage(payload) {
   });
 }
 
+function taskActionRequestFromHostMessage(payload) {
+  const request = payload?.request || payload;
+  if (!request || typeof request !== "object") return null;
+  if (request.action && request.action !== "run-exact-plan") return null;
+  const operationId = taskActionPolicyMessageValue(request, "operationId", "operation_id");
+  const sourceIdentity = taskActionPolicyMessageValue(
+    request,
+    "sourceIdentity",
+    "source_identity",
+  );
+  const planIdentity = taskActionPolicyMessageValue(
+    request,
+    "planIdentity",
+    "plan_identity",
+  );
+  const planEpoch = taskActionPolicyMessageValue(request, "planEpoch", "plan_epoch");
+  if (typeof operationId !== "string" || operationId.length === 0 ||
+      typeof sourceIdentity !== "string" || sourceIdentity.length === 0 ||
+      typeof planIdentity !== "string" || planIdentity.length === 0 ||
+      !Number.isSafeInteger(planEpoch) || planEpoch <= 0
+  ) {
+    return null;
+  }
+  return { operationId, sourceIdentity, planIdentity, planEpoch };
+}
+
 function applyTaskActionPolicy(policy, { notify = true } = {}) {
   if (policy.generation <= hostTaskActionPolicy.generation ||
       policy.observationId !== hostTaskActionPolicy.observationId) {
@@ -539,8 +460,15 @@ function applyTaskActionPolicy(policy, { notify = true } = {}) {
 
 function handleTaskActionPolicyMessage(event) {
   const data = event?.data;
-  if (!data || typeof data !== "object" || !TASK_ACTION_POLICY_MESSAGES.has(data.type)) return;
+  if (!data || typeof data !== "object") return;
   if (event.origin && event.origin !== "null" && event.origin !== location.origin) return;
+  if (TASK_ACTION_REQUEST_MESSAGES.has(data.type) && TASK_ACTION_TEST_MODE) {
+    const request = taskActionRequestFromHostMessage(data);
+    if (!request) return;
+    void run(request);
+    return;
+  }
+  if (!TASK_ACTION_POLICY_MESSAGES.has(data.type)) return;
   const policy = taskActionPolicyFromHostMessage(data);
   if (!policy) return;
   applyTaskActionPolicy(policy);
@@ -2446,13 +2374,45 @@ function renderTaskFront() {
   taskFrontAction.replaceChildren();
   taskFrontAdvanced.hidden = true;
   taskFrontResult.hidden = true;
-  if (!front) return;
+  if (!front) {
+    delete taskFrontSection.dataset.descriptorIdentity;
+    delete taskFrontSection.dataset.sourceIdentity;
+    delete taskFrontSection.dataset.planIdentity;
+    delete taskFrontSection.dataset.semanticIdentity;
+    delete taskFrontSection.dataset.readinessState;
+    delete taskFrontSection.dataset.terminalState;
+    delete taskFrontSection.dataset.cleanupState;
+    delete taskFrontSection.dataset.evidenceState;
+    delete taskFrontSection.dataset.resultObservationState;
+    delete taskFrontSection.dataset.resultSemanticStatus;
+    delete taskFrontSection.dataset.resultRequestId;
+    delete taskFrontSection.dataset.resultOperationId;
+    delete taskFrontSection.dataset.resultPlanIdentity;
+    delete taskFrontSection.dataset.resultPlanEpoch;
+    delete taskFrontSection.dataset.resultRunId;
+    delete taskFrontSection.dataset.terminalRequestId;
+    delete taskFrontSection.dataset.terminalOperationId;
+    delete taskFrontSection.dataset.terminalPlanIdentity;
+    delete taskFrontSection.dataset.terminalPlanEpoch;
+    delete taskFrontSection.dataset.terminalRunId;
+    delete taskFrontSection.dataset.resultTypedDetails;
+    delete taskFrontSection.dataset.taskRequestId;
+    delete taskFrontSection.dataset.runId;
+    delete taskFrontSection.dataset.primaryActionRequestId;
+    delete taskFrontSection.dataset.primaryActionPlanEpoch;
+    return;
+  }
   taskFrontSection.dataset.descriptorIdentity = front.descriptor_identity;
   taskFrontSection.dataset.sourceIdentity = front.identities.source_identity;
+  taskFrontSection.dataset.semanticIdentity = front.identities.semantic_identity || "";
+  taskFrontSection.dataset.planIdentity = front.identities.plan_identity;
+  taskFrontSection.dataset.readinessState = front.readiness.state;
   taskFrontTitle.textContent = front.name;
   taskFrontPurpose.textContent = front.purpose;
   taskFrontState.textContent = state.status;
   taskFrontExplanation.textContent = state.explanation;
+  taskFrontSection.dataset.primaryActionRequestId = "";
+  taskFrontSection.dataset.primaryActionPlanEpoch = "";
   for (const control of front.controls) {
     const field = renderTaskFrontControl(control);
     if (control.visibility === "advanced") {
@@ -2469,7 +2429,11 @@ function renderTaskFront() {
     action.textContent = front.primary_action.label;
     action.setAttribute("aria-label", front.primary_action.accessibility_name);
     action.dataset.actionState = front.primary_action.state;
+    action.dataset.operationPlanEpoch = String(front.primary_action.plan_epoch);
     action.dataset.operationId = front.primary_action.operation_id || "";
+    action.dataset.requestId = front.primary_action.request_id || "";
+    taskFrontSection.dataset.primaryActionRequestId = front.primary_action.request_id || "";
+    taskFrontSection.dataset.primaryActionPlanEpoch = String(front.primary_action.plan_epoch || "");
     const exactRunActive = Boolean(
       activeAdapter && activeRunProjection?.run?.state !== "Terminal"
     );
@@ -2498,9 +2462,31 @@ function renderTaskFront() {
       taskFrontAction.append(lifecycle);
     }
   }
+  taskFrontSection.dataset.resultObservationState = "";
+  taskFrontSection.dataset.resultSemanticStatus = "";
+  taskFrontSection.dataset.resultRequestId = "";
+  taskFrontSection.dataset.resultOperationId = "";
+  taskFrontSection.dataset.resultPlanIdentity = "";
+  taskFrontSection.dataset.resultPlanEpoch = "";
+  taskFrontSection.dataset.resultRunId = "";
+  taskFrontSection.dataset.terminalState = "";
+  taskFrontSection.dataset.cleanupState = "";
+  taskFrontSection.dataset.evidenceState = "";
+  taskFrontSection.dataset.terminalRequestId = "";
+  taskFrontSection.dataset.terminalOperationId = "";
+  taskFrontSection.dataset.terminalPlanIdentity = "";
+  taskFrontSection.dataset.terminalPlanEpoch = "";
+  taskFrontSection.dataset.terminalRunId = "";
   if (front.result || front.terminal) {
     taskFrontResult.hidden = false;
     taskFrontResultTitle.textContent = front.result?.label || "Task outcome";
+    taskFrontSection.dataset.resultObservationState = front.result?.observation_state || "";
+    taskFrontSection.dataset.resultSemanticStatus = front.result?.semantic_status || "";
+    taskFrontSection.dataset.resultRequestId = front.result?.request_id || "";
+    taskFrontSection.dataset.resultOperationId = front.result?.operation_id || "";
+    taskFrontSection.dataset.resultPlanIdentity = front.result?.plan_identity || "";
+    taskFrontSection.dataset.resultPlanEpoch = front.result?.plan_epoch?.toString() || "";
+    taskFrontSection.dataset.resultRunId = front.result?.run_id || "";
     const semantic = front.result
       ? (front.result.display_value
           ? `${front.result.display_value} (${front.result.semantic_status})`
@@ -2509,11 +2495,25 @@ function renderTaskFront() {
     const terminal = front.terminal
       ? ` Terminal: ${front.terminal.state}; cleanup: ${front.terminal.cleanup_state}; ` +
         `evidence: ${front.terminal.evidence_state}.`
-      : " Terminal evidence is pending.";
-    const warnings = [...(front.result?.warnings || []), ...(front.terminal?.warnings || [])];
+      : "Terminal evidence is pending.";
+    taskFrontSection.dataset.terminalRequestId = front.terminal?.request_id || "";
+    taskFrontSection.dataset.terminalOperationId = front.terminal?.operation_id || "";
+    taskFrontSection.dataset.terminalPlanIdentity = front.terminal?.plan_identity || "";
+    taskFrontSection.dataset.terminalPlanEpoch = front.terminal?.plan_epoch?.toString() || "";
+    taskFrontSection.dataset.terminalRunId = front.terminal?.run_id || "";
+    const warnings = [
+      ...(front.result?.warnings || []),
+      ...(front.terminal?.warnings || []),
+    ];
     taskFrontResultValue.textContent = `${semantic}.${terminal}${warnings.length
       ? ` Warnings: ${warnings.join(" ")}`
       : ""}`;
+    taskFrontSection.dataset.terminalState = front.terminal?.state || "";
+    taskFrontSection.dataset.cleanupState = front.terminal?.cleanup_state || "";
+    taskFrontSection.dataset.evidenceState = front.terminal?.evidence_state || "";
+    if (front.result?.typed_details?.length) {
+      taskFrontSection.dataset.resultTypedDetails = front.result.typed_details.join(" · ");
+    }
   }
   taskFrontState.textContent = front.readiness.state;
   taskFrontExplanation.textContent = [
@@ -3964,6 +3964,8 @@ async function run(requestedTaskAction = null) {
       planEpoch: taskAction?.planEpoch ?? started.value.view?.run?.plan_epoch,
       taskRequestId,
     };
+    taskFrontSection.dataset.taskRequestId = taskRequestId || "";
+    taskFrontSection.dataset.runId = runIdentity.runId;
     activeWorkerRunIdentity = runIdentity;
     setLivePresentationActive();
     if ((activeScenario()?.execution || current.execution) === "continuous-watch") {

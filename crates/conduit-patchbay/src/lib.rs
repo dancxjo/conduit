@@ -482,6 +482,16 @@ pub struct TaskFrontResultProjection {
     pub typed_details: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub warnings: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operation_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_identity: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_epoch: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -491,6 +501,16 @@ pub struct TaskFrontTerminalProjection {
     pub evidence_state: String,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub warnings: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operation_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_identity: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_epoch: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -2771,6 +2791,11 @@ pub fn project_task_front_with_bindings(
             warnings: matching_observation
                 .map(|observation| observation.warnings.clone())
                 .unwrap_or_default(),
+            request_id: matching_observation.map(|observation| observation.request_id.clone()),
+            operation_id: matching_observation.map(|observation| observation.operation_id.clone()),
+            plan_identity: matching_observation.map(|observation| observation.plan_identity.clone()),
+            plan_epoch: matching_observation.map(|observation| observation.plan_epoch),
+            run_id: matching_observation.map(|observation| observation.run_id.clone()),
         })
     } else {
         None
@@ -2802,6 +2827,11 @@ pub fn project_task_front_with_bindings(
         cleanup_state: terminal.cleanup_state.clone(),
         evidence_state: terminal.evidence_state.clone(),
         warnings: terminal.warnings.clone(),
+        request_id: Some(terminal.request_id.clone()),
+        operation_id: Some(terminal.operation_id.clone()),
+        plan_identity: Some(terminal.plan_identity.clone()),
+        plan_epoch: Some(terminal.plan_epoch),
+        run_id: Some(terminal.run_id.clone()),
     });
     let action_state = primary_action
         .as_ref()
@@ -2852,10 +2882,15 @@ pub fn project_task_front_with_bindings(
             "CND-PBY-ACT-006",
             "The action permission is stale for this task generation.",
         ),
-        "action-denied" | "request-rejected" => (
+        "action-denied" => (
             "denied",
             "CND-PBY-ACT-007",
             "The exact action request was denied.",
+        ),
+        "request-rejected" => (
+            "start-request-rejected",
+            "CND-PBY-ACT-007",
+            "The exact start request was rejected.",
         ),
         "request-pending" => (
             "start-request-pending",

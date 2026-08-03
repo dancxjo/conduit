@@ -603,6 +603,117 @@ fn task_action_admission_denies_stale_duplicate_and_conflicting_requests() {
 }
 
 #[test]
+fn task_front_projection_rejects_start_request_with_start_request_rejected_readiness() {
+    let source = r#"panel 0
+example/task(enabled: std/boolean = true) {
+  inner: std/literal { value = "inside" }
+  export result > = inner.value
+}
+first: example/task
+"#;
+    let workspace = Workspace::new("task-front", source).expect("source parses");
+    let topology = conduit_patchbay::PatchbayTopologyProjection {
+        contract_imports: Vec::new(),
+        logical_nodes: vec![conduit_patchbay::PatchbayNodeProjection {
+            id: "first".to_owned(),
+            semantic_id: "root/first".to_owned(),
+            contract_id: Some("example/task".to_owned()),
+            contract_identity: None,
+            semantic_effects: Vec::new(),
+            source_range: None,
+            inputs: Vec::new(),
+            outputs: vec![task_front_port("result", "root/first/port/outgoing/result")],
+            config: BTreeMap::new(),
+            availability: None,
+            validity: "valid".to_owned(),
+            diagnostic_ids: Vec::new(),
+            placement: None,
+            activity: None,
+        }],
+        planned_realization: None,
+        planned_realization_status: "not-checked".to_owned(),
+        cords: Vec::new(),
+        composites: Vec::new(),
+        diagnostic_anchors: Vec::new(),
+        source_state: "exact".to_owned(),
+    };
+    let descriptor = serde_json::json!({
+        "schema": "conduit.patchbay-task-front",
+        "schema_version": 0,
+        "root": "root/first",
+        "name": "Task start request",
+        "purpose": "Project rejected starts consistently.",
+        "controls": [],
+        "primary_action": {
+            "request": "run-exact-plan",
+            "label": "Run task",
+            "help": "Run once.",
+            "accessibility_name": "Run task",
+        }
+    });
+    let profiles = Vec::new();
+    let plan = PlanSnapshot {
+        identity: "sha256:plan-reject".to_owned(),
+        source_semantic_hash: workspace.semantic().source_semantic_hash.clone().unwrap(),
+        bindings: Vec::new(),
+        cords: Vec::new(),
+        composites: Vec::new(),
+        value_envelopes: Vec::new(),
+        watch_admissions: Vec::new(),
+        clock_conversions: Vec::new(),
+        feedback_boundaries: Vec::new(),
+        resource_leases: Vec::new(),
+        effect_commit_profiles: Vec::new(),
+        workloads: Vec::new(),
+    };
+    let action_export = conduit_patchbay::TaskActionExport {
+        operation_id: "operation/task-1".to_owned(),
+        source_identity: workspace.source().identity.clone(),
+        plan_identity: plan.identity.clone(),
+        plan_epoch: 7,
+        request: conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan,
+        permission: "denied".to_owned(),
+        code: "CND-AUT-006".to_owned(),
+        explanations: Vec::new(),
+        active_controls: Vec::new(),
+    };
+    let request = conduit_patchbay::TaskActionRequestEnvelope {
+        protocol_version: PATCHBAY_PROTOCOL_VERSION,
+        request_id: "request/task-1".to_owned(),
+        operation_id: action_export.operation_id.clone(),
+        action: conduit_patchbay::TaskRuntimeControlRequest::RunExactPlan,
+        source_identity: action_export.source_identity.clone(),
+        plan_identity: action_export.plan_identity.clone(),
+        plan_epoch: action_export.plan_epoch,
+        run_id: None,
+    };
+    let admission = conduit_patchbay::admit_task_action(&action_export, &request, None, &[], 1);
+    assert!(!admission.dispatch);
+    assert_eq!(admission.receipt.disposition, "rejected");
+
+    let projection = conduit_patchbay::project_task_front(
+        Some(&descriptor.to_string()),
+        workspace.source(),
+        &workspace.semantic(),
+        &topology,
+        &[],
+        Some(&plan),
+        None,
+        Some(&action_export),
+        Some(&admission.receipt),
+        None,
+        None,
+        &profiles,
+        conduit_patchbay::PatchbayProjectionBounds::default(),
+    );
+    assert_eq!(projection.status, "usable");
+    let front = projection.front.expect("rejected-front");
+    let primary = front.primary_action.expect("start primary action");
+    assert_eq!(primary.state, "request-rejected");
+    assert_eq!(front.readiness.state, "start-request-rejected");
+}
+
+#[test]
 fn checked_contract_import_projection_keeps_alias_identity_and_hash_distinct() {
     let panel = conduit_panel::parse(include_str!(
         "../../../fixtures/contract-package-imports/alias.panel"

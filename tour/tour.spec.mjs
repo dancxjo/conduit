@@ -62,7 +62,39 @@ async function waitForTourReady(page) {
   );
 }
 
-async function gotoTour(page, path, { authorize = true, state = "permitted" } = {}) {
+async function readTaskFrontIdentities(page) {
+  return page.locator("#task-front").evaluate((element) => ({
+    descriptorIdentity: element.dataset.descriptorIdentity || null,
+    sourceIdentity: element.dataset.sourceIdentity || null,
+    semanticIdentity: element.dataset.semanticIdentity || null,
+    planIdentity: element.dataset.planIdentity || null,
+    readinessState: element.dataset.readinessState || null,
+    runId: element.dataset.runId || null,
+    taskRequestId: element.dataset.taskRequestId || null,
+    primaryActionRequestId: element.dataset.primaryActionRequestId || null,
+    primaryActionPlanEpoch: Number.parseInt(
+      element.dataset.primaryActionPlanEpoch || "",
+      10,
+    ),
+    resultObservationState: element.dataset.resultObservationState || null,
+    resultSemanticStatus: element.dataset.resultSemanticStatus || null,
+    resultRequestId: element.dataset.resultRequestId || null,
+    resultOperationId: element.dataset.resultOperationId || null,
+    resultPlanIdentity: element.dataset.resultPlanIdentity || null,
+    resultPlanEpoch: Number.parseInt(element.dataset.resultPlanEpoch || "", 10),
+    resultRunId: element.dataset.resultRunId || null,
+    terminalState: element.dataset.terminalState || null,
+    cleanupState: element.dataset.cleanupState || null,
+    evidenceState: element.dataset.evidenceState || null,
+    terminalRequestId: element.dataset.terminalRequestId || null,
+    terminalOperationId: element.dataset.terminalOperationId || null,
+    terminalPlanIdentity: element.dataset.terminalPlanIdentity || null,
+    terminalPlanEpoch: Number.parseInt(element.dataset.terminalPlanEpoch || "", 10),
+    terminalRunId: element.dataset.terminalRunId || null,
+  }));
+}
+
+async function gotoTour(page, path, { authorize = false, state = "permitted" } = {}) {
   await page.goto(path);
   await waitForTourReady(page);
   if (authorize) {
@@ -86,7 +118,9 @@ function collectPageFailures(page) {
 }
 
 async function openTinyInstrument(page) {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.tiny-instrument");
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.tiny-instrument", {
+    authorize: true,
+  });
   await page.locator("#accounting-drawer > summary").click();
   await expect(page.locator("#run")).toBeEnabled({ timeout: 20_000 });
 }
@@ -1576,7 +1610,9 @@ test("keeps structural lenses orthogonal to Use Build Inspect and preserves the 
 });
 
 test("keeps the Use information budget usable at two hundred percent zoom", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front", {
+    authorize: true,
+  });
   const workspace = page.locator("#workspace");
   const front = page.locator("#task-front");
   await expect(workspace).toHaveAttribute("data-presentation-mode", "use");
@@ -1613,15 +1649,31 @@ test("keeps the Use information budget usable at two hundred percent zoom", asyn
 });
 
 test("shows authoritative task readiness and outcome with the raw console closed", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front", {
+    authorize: true,
+  });
   await expect(page.locator("#task-front-state")).toHaveText("ready");
   await expect(page.locator("#console-body")).toBeHidden();
+  const frontIdentities = await readTaskFrontIdentities(page);
+  expect(frontIdentities.descriptorIdentity).toMatch(/^sha256:/);
+  expect(frontIdentities.sourceIdentity).toMatch(/^sha256:/);
+  expect(frontIdentities.planIdentity).toMatch(/^sha256:/);
+  expect(frontIdentities.readinessState).toBe("ready");
   await page.getByRole("button", { name: "Run the checked uppercase-text plan" }).click();
   const taskResult = page.locator("#task-front-result-value");
   await expect(taskResult).toContainText("JACKS (succeeded)", { timeout: 60_000 });
   await expect(taskResult).toContainText("Terminal: succeeded");
   await expect(taskResult).toContainText("cleanup: complete");
   await expect(taskResult).toContainText("evidence: published");
+  const liveRunId = await page.locator("#live-flow-status").getAttribute("data-run-id");
+  expect(typeof liveRunId).toBe("string");
+  const runIdentity = await readTaskFrontIdentities(page);
+  expect(runIdentity.runId).toBeTruthy();
+  expect(runIdentity.runId).toBe(liveRunId);
+  expect(runIdentity.taskRequestId).toMatch(/^request\//);
+  expect(
+    await page.locator("#live-flow-status").getAttribute("data-plan-identity"),
+  ).toBe(frontIdentities.planIdentity);
   await expect(page.locator("#console-body")).toBeHidden();
 });
 
@@ -1654,16 +1706,109 @@ test("requires explicit host policy to enable task front execution", async ({ pa
   await expect(page.locator("#run")).toBeEnabled();
 });
 
-test("loads task-action policy from URL seed", async ({ page }) => {
+test("does not consume task-action policy from URL seed", async ({ page }) => {
   await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front&taskActionPolicy=permitted", {
     authorize: false,
+  });
+  await expect(page.locator("#task-front-state")).toHaveText("denied");
+  await expect(page.locator("#run")).toBeDisabled();
+  await postHostTaskActionPolicy(page, {
+    state: "permitted",
+    generation: 2,
+    code: "CND-PBY-ACT-READY",
+    observedAtTick: 10,
+    validUntilTick: 100,
   });
   await expect(page.locator("#task-front-state")).toHaveText("ready");
   await expect(page.locator("#run")).toBeEnabled();
 });
 
+test("proves exact task-action identity binding across lifecycle and policy transitions", async ({ page }) => {
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front", {
+    authorize: false,
+  });
+  await expect(page.locator("#task-front-state")).toHaveText("denied");
+  await expect(page.locator("#run")).toBeDisabled();
+  await postHostTaskActionPolicy(page, {
+    state: "permitted",
+    generation: 2,
+    code: "CND-PBY-ACT-READY",
+    observedAtTick: 10,
+    validUntilTick: 100,
+  });
+  await expect(page.locator("#task-front-state")).toHaveText("ready");
+  await expect(page.locator("#run")).toBeEnabled();
+  const afterPermitted = await readTaskFrontIdentities(page);
+  expect(afterPermitted.primaryActionRequestId).toBe(null);
+  expect(afterPermitted.primaryActionPlanEpoch).toBeGreaterThanOrEqual(1);
+
+  await postHostTaskActionPolicy(page, {
+    state: "permitted",
+    generation: 2,
+    code: "CND-PBY-ACT-READY",
+    observedAtTick: 10,
+    validUntilTick: 100,
+  });
+  await expect(page.locator("#result")).toContainText("CND-PBY-ACT-006");
+
+  await postHostTaskActionPolicy(page, {
+    state: "denied",
+    generation: 3,
+    code: "CND-HOST-TASK-DENIED",
+    observedAtTick: 10,
+    validUntilTick: 100,
+  });
+  await expect(page.locator("#task-front-state")).toHaveText("denied");
+  await expect(page.locator("#run")).toBeDisabled();
+
+  await postHostTaskActionPolicy(page, {
+    state: "permitted",
+    generation: 4,
+    code: "CND-PBY-ACT-READY",
+    observedAtTick: 10,
+    validUntilTick: 100,
+  });
+  await expect(page.locator("#task-front-state")).toHaveText("ready");
+  await expect(page.locator("#run")).toBeEnabled();
+
+  await page.getByRole("button", { name: "Run the checked uppercase-text plan" }).click();
+  const liveRunId = await page.locator("#live-flow-status").getAttribute("data-run-id");
+  expect(typeof liveRunId).toBe("string");
+  const taskResult = page.locator("#task-front-result-value");
+  await expect(taskResult).toContainText("JACKS (succeeded)", { timeout: 60_000 });
+  await expect(taskResult).toContainText("Terminal: succeeded");
+  await expect(taskResult).toContainText("cleanup: complete");
+  await expect(taskResult).toContainText("evidence: published");
+
+  const identities = await readTaskFrontIdentities(page);
+  expect(identities.descriptorIdentity).toMatch(/^sha256:/);
+  expect(identities.sourceIdentity).toMatch(/^sha256:/);
+  expect(identities.planIdentity).toMatch(/^sha256:/);
+  expect(identities.readinessState).toBe("terminal");
+  expect(identities.runId).toBe(liveRunId);
+  expect(identities.taskRequestId).toMatch(/^request\//);
+  expect(identities.primaryActionRequestId).toBe(identities.taskRequestId);
+  expect(identities.primaryActionPlanEpoch).toBe(identities.resultPlanEpoch);
+  expect(identities.resultRequestId).toBe(identities.taskRequestId);
+  expect(identities.resultPlanIdentity).toBe(identities.planIdentity);
+  expect(identities.resultRunId).toBe(liveRunId);
+  expect(identities.resultPlanEpoch).toBe(identities.primaryActionPlanEpoch);
+  expect(identities.resultObservationState).toBe("authoritative-result");
+  expect(identities.resultSemanticStatus).toBe("succeeded");
+  expect(identities.terminalState).toBe("succeeded");
+  expect(identities.cleanupState).toBe("complete");
+  expect(identities.evidenceState).toBe("published");
+  expect(identities.terminalRequestId).toBe(identities.taskRequestId);
+  expect(identities.terminalPlanIdentity).toBe(identities.planIdentity);
+  expect(identities.terminalRunId).toBe(liveRunId);
+  expect(identities.terminalPlanEpoch).toBe(identities.primaryActionPlanEpoch);
+  expect(identities.terminalOperationId).toBeTruthy();
+});
+
 test("updates task-action policy from runtime host signal", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front");
+  await gotoTour(page, "/tour/public/index.html?lesson=panels.jacks-on-the-front", {
+    authorize: true,
+  });
   await expect(page.locator("#task-front-state")).toHaveText("ready");
   await expect(page.locator("#run")).toBeEnabled();
 
@@ -3073,7 +3218,9 @@ test("filesystem reference panels use the explicit bounded browser provider", as
 });
 
 test("Copy task front binds From and To without exposing selected material @copy-task-front", async ({ page }) => {
-  await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem");
+  await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem", {
+    authorize: true,
+  });
   const taskFront = page.locator("#task-front");
   await expect(taskFront).toBeVisible();
   await expect(page.locator("#task-front-title")).toHaveText("Copy a file");
@@ -3255,7 +3402,9 @@ test("Copy task front binds From and To without exposing selected material @copy
 
 test("Copy task front fits an ordinary viewport and remains usable at 200 percent", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem");
+  await gotoTour(page, "/tour/public/index.html?lesson=library.bounded-filesystem", {
+    authorize: true,
+  });
   const taskFront = page.locator("#task-front");
   await taskFront.scrollIntoViewIfNeeded();
   const ordinary = await taskFront.boundingBox();
