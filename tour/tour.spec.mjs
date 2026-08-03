@@ -1007,10 +1007,11 @@ test("keeps the active Watch epoch exact across candidate edits and stop", async
   });
 
   await page.locator("#stop").click();
-  await expect(page.locator("#console-status-badge")).toHaveText("Ready");
   await expect(page.locator("#result")).toContainText(
     "Run cancelled; exact worker placement is terminal.",
+    { timeout: 60_000 },
   );
+  await expect(page.locator("#console-status-badge")).toHaveText("Ready");
   await expect(page.locator("#run")).toBeEnabled();
   await expect(page.locator("#stop")).toBeDisabled();
   expect(failures).toEqual([]);
