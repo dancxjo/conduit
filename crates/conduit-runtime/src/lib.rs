@@ -2365,6 +2365,11 @@ pub struct ExactExecutionReport {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HostedLaneBatchEvidence {
+    pub commit_domain: String,
+    pub proposal_slots_used: u16,
+    pub proposal_slots_capacity: u16,
+    pub proposal_bytes_used: u64,
+    pub proposal_bytes_capacity: u64,
     pub committed_tickets: Vec<u64>,
     pub physical_completion_order: Vec<HostedLaneObservation>,
 }
@@ -8626,6 +8631,19 @@ impl HostedLaneJob for HostedRunLaneJob {
 }
 
 #[cfg(not(target_family = "wasm"))]
+impl HostedRunLaneJob {
+    fn proposal_bytes(&self) -> u64 {
+        match self {
+            Self::Step {
+                job: HostedParallelJob::Literal(value),
+                ..
+            } => u64::try_from(value.len()).unwrap_or(u64::MAX),
+            Self::Idle => 0,
+        }
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
 struct HostedProductionLanes {
     coordinator: FixedHostedExecutionCoordinator<HostedRunLaneJob>,
     node_lanes: Vec<Option<u16>>,
@@ -8634,6 +8652,9 @@ struct HostedProductionLanes {
     assignments: Vec<HostedLaneAssignment<HostedRunLaneJob>>,
     committed_tickets: Vec<u64>,
     observations: Vec<HostedLaneObservation>,
+    proposal_slots_capacity: u16,
+    proposal_bytes_used: u64,
+    proposal_bytes_capacity: u64,
     host_failure: Rc<RefCell<Option<RuntimeError>>>,
 }
 
@@ -8737,6 +8758,9 @@ impl HostedProductionLanes {
             assignments,
             committed_tickets,
             observations,
+            proposal_slots_capacity: domain.proposal_slots,
+            proposal_bytes_used: 0,
+            proposal_bytes_capacity: domain.maximum_proposal_bytes,
             host_failure,
         }))
     }
@@ -8792,6 +8816,17 @@ impl HostedProductionLanes {
                 });
             }
         }
+        let proposal_bytes_used = self
+            .assignments
+            .iter()
+            .try_fold(0_u64, |total, assignment| {
+                total.checked_add(assignment.job.proposal_bytes())
+            });
+        let Some(proposal_bytes_used) = proposal_bytes_used else {
+            return executor
+                .fail_proposed_execution(SchedulerError::ArithmeticOverflow)
+                .map(|_| false);
+        };
 
         let mut scheduler_error = None;
         let result = self.coordinator.compute_assigned_and_commit(
@@ -8822,6 +8857,7 @@ impl HostedProductionLanes {
                 self.observations.clear();
                 self.observations
                     .extend_from_slice(batch.physical_completion_order);
+                self.proposal_bytes_used = proposal_bytes_used;
                 Ok(true)
             }
             Err(error) => {
@@ -8843,6 +8879,11 @@ impl HostedProductionLanes {
 
     fn batch_evidence(&self) -> Option<HostedLaneBatchEvidence> {
         (!self.observations.is_empty()).then(|| HostedLaneBatchEvidence {
+            commit_domain: self.coordinator.commit_domain().to_owned(),
+            proposal_slots_used: u16::try_from(self.observations.len()).unwrap_or(u16::MAX),
+            proposal_slots_capacity: self.proposal_slots_capacity,
+            proposal_bytes_used: self.proposal_bytes_used,
+            proposal_bytes_capacity: self.proposal_bytes_capacity,
             committed_tickets: self.committed_tickets.clone(),
             physical_completion_order: self.observations.clone(),
         })

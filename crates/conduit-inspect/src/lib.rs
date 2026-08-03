@@ -1412,6 +1412,26 @@ pub fn inspect_execution_arrangement(
             .ok_or_else(|| failure("CND-INSP-007", "commit-slot budget overflow"))?,
     );
     budgets.insert(
+        "wake_slots".to_owned(),
+        arrangement
+            .lanes
+            .iter()
+            .try_fold(0_u64, |total, lane| {
+                total.checked_add(u64::from(lane.wake_slots))
+            })
+            .ok_or_else(|| failure("CND-INSP-007", "wake-slot budget overflow"))?,
+    );
+    budgets.insert(
+        "maximum_proposal_bytes".to_owned(),
+        arrangement
+            .commit_domains
+            .iter()
+            .try_fold(0_u64, |total, domain| {
+                total.checked_add(domain.maximum_proposal_bytes)
+            })
+            .ok_or_else(|| failure("CND-INSP-007", "proposal-byte budget overflow"))?,
+    );
+    budgets.insert(
         "lane_scratch_bytes".to_owned(),
         arrangement
             .lanes
@@ -1465,6 +1485,50 @@ pub fn inspect_execution_arrangement(
         category: "execution-lane".to_owned(),
         value: format!("{}@{}", lane.id, lane.generation),
     }));
+    references.extend(
+        arrangement
+            .regions
+            .iter()
+            .map(|region| InspectionReference {
+                category: "execution-region-placement".to_owned(),
+                value: format!(
+                    "{}:{}:{}:{}:{}",
+                    region.id,
+                    region.placement,
+                    region.lane,
+                    region.commit_domain,
+                    if region.independent {
+                        "independent"
+                    } else {
+                        "serialized"
+                    }
+                ),
+            }),
+    );
+    references.extend(
+        arrangement
+            .commit_domains
+            .iter()
+            .map(|domain| InspectionReference {
+                category: "execution-commit-domain".to_owned(),
+                value: format!("{}:{}", domain.id, domain.ordering.as_str()),
+            }),
+    );
+    references.extend(
+        arrangement
+            .boundaries
+            .iter()
+            .map(|boundary| InspectionReference {
+                category: "execution-boundary".to_owned(),
+                value: format!(
+                    "{}:{}:{}:{}",
+                    boundary.cord,
+                    boundary.from_region,
+                    boundary.to_region,
+                    boundary.realization.id
+                ),
+            }),
+    );
     stable_references(&mut references);
     enforce_collection_bound(references.len(), limits, "execution arrangement references")?;
     Ok(base_report(

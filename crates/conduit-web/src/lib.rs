@@ -223,6 +223,7 @@ struct ExactBrowserResult {
 /// admitted runtime state that was pinned at Start.
 struct BrowserExactRun {
     plan: conduit_patchbay::PlanSnapshot,
+    execution_arrangement: conduit_runtime::ResolvedExecutionArrangement,
     run_id: String,
     source_revision: u64,
     plan_epoch: u64,
@@ -514,6 +515,7 @@ fn browser_watch_use_authority(
 struct BrowserExactRunTerminal {
     state: ExactRunState,
     high_water: conduit_runtime::SchedulerHighWater,
+    hosted_lane_batch: Option<conduit_runtime::HostedLaneBatchEvidence>,
     watches: BTreeMap<String, ExactWatchBatch>,
     output: Vec<u8>,
     error: Vec<u8>,
@@ -1475,6 +1477,122 @@ fn patchbay_high_water(
     }
 }
 
+fn patchbay_physical_execution(
+    arrangement: &conduit_runtime::ResolvedExecutionArrangement,
+    latest_batch: Option<conduit_runtime::HostedLaneBatchEvidence>,
+) -> conduit_patchbay::PhysicalExecutionProjection {
+    let latest_batch = latest_batch.and_then(|batch| {
+        let first = batch.physical_completion_order.first()?;
+        let overlapped = batch.physical_completion_order.len() >= 2
+            && batch.physical_completion_order.iter().all(|observation| {
+                observation.entered_sequence < observation.release_sequence
+                    && observation.release_sequence < observation.finished_sequence
+            });
+        Some(conduit_patchbay::PhysicalLaneBatchProjection {
+            generation: first.generation,
+            batch: first.batch,
+            commit_domain: batch.commit_domain,
+            overlapped,
+            proposal_slots_used: batch.proposal_slots_used,
+            proposal_slots_capacity: batch.proposal_slots_capacity,
+            proposal_bytes_used: batch.proposal_bytes_used,
+            proposal_bytes_capacity: batch.proposal_bytes_capacity,
+            pressure: if batch.proposal_slots_used >= batch.proposal_slots_capacity
+                || batch.proposal_bytes_used >= batch.proposal_bytes_capacity
+            {
+                "at-capacity"
+            } else {
+                "within-capacity"
+            }
+            .to_owned(),
+            committed_tickets: batch.committed_tickets,
+            physical_completion_order: batch
+                .physical_completion_order
+                .into_iter()
+                .map(
+                    |observation| conduit_patchbay::PhysicalLaneActivityProjection {
+                        lane: observation.lane,
+                        ticket: observation.ticket,
+                        entered_sequence: observation.entered_sequence,
+                        release_sequence: observation.release_sequence,
+                        finished_sequence: observation.finished_sequence,
+                        faulted: observation.faulted,
+                    },
+                )
+                .collect(),
+        })
+    });
+    conduit_patchbay::PhysicalExecutionProjection {
+        arrangement_identity: arrangement.identity.to_string(),
+        plan_identity: arrangement.plan_identity.to_string(),
+        resolution_identity: arrangement.resolution_identity.to_string(),
+        plan_epoch: arrangement.plan_epoch,
+        placements: arrangement
+            .placements
+            .iter()
+            .map(|placement| conduit_patchbay::PhysicalPlacementProjection {
+                id: placement.id.clone(),
+                provider_id: placement.provider.id.clone(),
+                generation: placement.generation,
+            })
+            .collect(),
+        lanes: arrangement
+            .lanes
+            .iter()
+            .map(|lane| conduit_patchbay::PhysicalLaneProjection {
+                id: lane.id.clone(),
+                placement: lane.placement.clone(),
+                generation: lane.generation,
+                ready_slots: lane.ready_slots,
+                wake_slots: lane.wake_slots,
+                proposal_slots: lane.proposal_slots,
+                commit_slots: lane.commit_slots,
+                scratch_bytes: lane.scratch_bytes,
+                stack_bytes: lane.stack_bytes,
+            })
+            .collect(),
+        regions: arrangement
+            .regions
+            .iter()
+            .map(|region| conduit_patchbay::PhysicalRegionProjection {
+                id: region.id.clone(),
+                placement: region.placement.clone(),
+                lane: region.lane.clone(),
+                commit_domain: region.commit_domain.clone(),
+                independent: region.independent,
+                members: region.members.clone(),
+            })
+            .collect(),
+        commit_domains: arrangement
+            .commit_domains
+            .iter()
+            .map(|domain| conduit_patchbay::PhysicalCommitDomainProjection {
+                id: domain.id.clone(),
+                ordering: domain.ordering.as_str().to_owned(),
+                proposal_slots: domain.proposal_slots,
+                commit_slots: domain.commit_slots,
+                maximum_proposal_bytes: domain.maximum_proposal_bytes,
+            })
+            .collect(),
+        latest_batch,
+    }
+}
+
+fn browser_physical_execution(
+    run: &BrowserExactRun,
+) -> conduit_patchbay::PhysicalExecutionProjection {
+    let latest_batch = run
+        .session
+        .as_ref()
+        .and_then(|session| session.hosted_lane_batch())
+        .or_else(|| {
+            run.terminal
+                .as_ref()
+                .and_then(|terminal| terminal.hosted_lane_batch.clone())
+        });
+    patchbay_physical_execution(&run.execution_arrangement, latest_batch)
+}
+
 fn patchbay_run_snapshot(run: &BrowserExactRun) -> conduit_patchbay::RunSnapshot {
     let state = match browser_run_state(run) {
         ExactRunState::Terminal(_) => conduit_patchbay::RunState::Terminal,
@@ -2105,6 +2223,7 @@ fn browser_session_view(
         browser_task_start_receipt(session).or_else(|| session.task_action_receipts.back());
     let result_observation = browser_task_result_observation(session);
     let terminal_observation = browser_task_terminal_observation(session);
+    let physical_execution = session.run.as_ref().map(browser_physical_execution);
     let candidate_plan = (session.run.is_none())
         .then(|| browser_candidate_plan(session))
         .flatten();
@@ -2121,6 +2240,7 @@ fn browser_session_view(
             result_observation: result_observation.as_ref(),
             terminal_observation: terminal_observation.as_ref(),
             protected_bindings: session.protected_bindings.as_ref(),
+            physical_execution: physical_execution.as_ref(),
         },
     )
 }
@@ -2141,6 +2261,7 @@ fn finalize_browser_run_if_terminal(run: &mut BrowserExactRun) -> Result<(), Run
         let terminal = BrowserExactRunTerminal {
             state: session.state(),
             high_water: session.high_water(),
+            hosted_lane_batch: session.hosted_lane_batch(),
             watches: run
                 .watch_admissions
                 .iter()
@@ -2380,6 +2501,7 @@ fn start_browser_exact_run(
     )?;
     let mut run = BrowserExactRun {
         plan: plan_snapshot,
+        execution_arrangement,
         run_id,
         source_revision,
         plan_epoch,
@@ -4463,6 +4585,7 @@ struct BrowserTaskRuntimeProjection<'a> {
     result_observation: Option<&'a conduit_patchbay::TaskFrontResultObservation>,
     terminal_observation: Option<&'a conduit_patchbay::TaskTerminalObservation>,
     protected_bindings: Option<&'a conduit_patchbay::ProtectedBindingProfile>,
+    physical_execution: Option<&'a conduit_patchbay::PhysicalExecutionProjection>,
 }
 
 fn authoritative_patchbay_view(
@@ -4480,6 +4603,7 @@ fn authoritative_patchbay_view(
         result_observation: task_result_observation,
         terminal_observation: task_terminal_observation,
         protected_bindings,
+        physical_execution,
     } = task_runtime;
     let document = conduit_panel::parse_document(&workspace.source().source);
     let recovered = conduit_panel::recover_document(&workspace.source().source);
@@ -5464,6 +5588,7 @@ fn authoritative_patchbay_view(
         plan,
         run: matching_run.clone(),
         high_water: matching_run.as_ref().and(high_water),
+        physical_execution: matching_run.as_ref().and(physical_execution).cloned(),
         evidence: if matching_run.is_some() {
             evidence
         } else {
@@ -7207,6 +7332,8 @@ fn run_panel_exact_inner(
                 .map_err(|error| RuntimeError::new("CND-PBY-009", error.to_string()))
         })
         .collect::<Result<Vec<_>, _>>()?;
+    let physical_execution =
+        patchbay_physical_execution(&execution_arrangement, report.hosted_lane_batch.clone());
     let patchbay = serde_json::to_value(
         authoritative_patchbay_view(
             &workspace,
@@ -7221,7 +7348,10 @@ fn run_panel_exact_inner(
             }),
             &evidence,
             None,
-            BrowserTaskRuntimeProjection::default(),
+            BrowserTaskRuntimeProjection {
+                physical_execution: Some(&physical_execution),
+                ..BrowserTaskRuntimeProjection::default()
+            },
         )
         .map_err(|error| RuntimeError::new(error.code, error.to_string()))?,
     )
@@ -7284,6 +7414,66 @@ uppercase.text > text.text { capacity = 8 max_value_bytes = 65536 max_queued_byt
         .unwrap();
         assert_eq!(opened["ok"], true, "{opened:#}");
         assert!(opened["view"]["plan"].is_object(), "{opened:#}");
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    #[test]
+    fn browser_exact_run_projects_hosted_placement_overlap_pressure_and_commit_order() {
+        let source = r#"panel 0
+first: std/literal { value = "first" }
+second: std/literal { value = "second" }
+third: std/literal { value = "third" }
+first_display: display/text
+second_display: display/text
+third_display: display/text
+first.value > first_display.text
+second.value > second_display.text
+third.value > third_display.text
+"#;
+        let result: Value = serde_json::from_str(&super::run_panel(source.to_owned())).unwrap();
+        assert_eq!(result["ok"], true, "{result:#}");
+        let physical = &result["patchbay"]["physical_execution"];
+        assert_ne!(physical["arrangement_identity"], physical["plan_identity"]);
+        assert_eq!(
+            physical["plan_identity"],
+            result["patchbay"]["plan"]["identity"]
+        );
+        assert!(physical["regions"].as_array().is_some_and(|regions| {
+            regions
+                .iter()
+                .filter(|region| region["independent"] == true)
+                .count()
+                >= 3
+        }));
+        assert_eq!(physical["latest_batch"]["overlapped"], true);
+        let proposal_slots_used = physical["latest_batch"]["proposal_slots_used"]
+            .as_u64()
+            .unwrap();
+        assert!(proposal_slots_used >= 3);
+        assert!(
+            physical["latest_batch"]["proposal_slots_capacity"]
+                .as_u64()
+                .is_some_and(|capacity| capacity >= 3)
+        );
+        assert!(matches!(
+            physical["latest_batch"]["pressure"].as_str(),
+            Some("at-capacity" | "within-capacity")
+        ));
+        let committed = physical["latest_batch"]["committed_tickets"]
+            .as_array()
+            .unwrap();
+        assert_eq!(committed.len() as u64, proposal_slots_used);
+        assert!(
+            committed.iter().enumerate().all(|(index, ticket)| {
+                ticket.as_u64() == Some(u64::try_from(index).unwrap() + 1)
+            })
+        );
+        assert_eq!(
+            physical["latest_batch"]["physical_completion_order"]
+                .as_array()
+                .map(Vec::len),
+            Some(usize::try_from(proposal_slots_used).unwrap())
+        );
     }
 
     fn jacks_task_front_descriptor() -> String {

@@ -56,14 +56,17 @@ fn canonical_runs_use_three_hosted_lanes_and_match_the_serial_oracle() {
         "production-arranged-three-lane-overlap",
         "production-persistent-session-hosted-lanes",
         "production-hosted-lanes-match-serial-oracle",
+        "production-hosted-lanes-fill-proposal-capacity",
     ] {
         assert!(conformance.contains(&format!("\"id\":\"{id}\"")));
     }
     let registry = Registry::hosted_primitives();
     let mut host = InstalledHostObservationInput::conduct_host();
     host.execution_lanes.truncate(3);
-    let installed =
+    let mut installed =
         InstalledProfile::observe_registry_on_host(SOURCE, &registry, &host, &[]).unwrap();
+    installed.input.execution_arrangement.maximum_proposal_bytes = 16;
+    installed.input.seal().unwrap();
     let document = compile_source(SOURCE, &installed.input).unwrap();
     let arena = bumpalo::Bump::new();
     let plan = document.as_plan(&arena).unwrap();
@@ -93,6 +96,10 @@ fn canonical_runs_use_three_hosted_lanes_and_match_the_serial_oracle() {
         .unwrap();
     let lane_batch = arranged.hosted_lane_batch.as_ref().unwrap();
     assert_eq!(lane_batch.committed_tickets, [1, 2, 3]);
+    assert_eq!(lane_batch.proposal_slots_used, 3);
+    assert_eq!(lane_batch.proposal_bytes_used, 16);
+    assert_eq!(lane_batch.proposal_bytes_capacity, 16);
+    assert_eq!(lane_batch.commit_domain, arrangement.commit_domains[0].id);
     assert_eq!(lane_batch.physical_completion_order.len(), 3);
     let release = lane_batch.physical_completion_order[0].release_sequence;
     assert!(

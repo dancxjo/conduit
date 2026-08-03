@@ -12,7 +12,7 @@ const elements = Object.fromEntries([
   "run", "stop", "workbench-status", "palette-search", "palette-category",
   "palette-support", "palette-count", "palette-results", "workbench-canvas", "cy",
   "delete-node", "source", "selection-summary", "readiness", "run-result",
-  "diagnostics", "evidence", "connection-builder", "connection-from", "connection-to",
+  "diagnostics", "evidence", "physical-execution", "connection-builder", "connection-from", "connection-to",
   "node-config", "cord-actions",
 ].map((id) => [id.replaceAll("-", "_"), document.getElementById(id)]));
 
@@ -283,6 +283,9 @@ function renderView(nextView, { syncSource = true } = {}) {
   elements.evidence.textContent = view.evidence?.length
     ? JSON.stringify(view.evidence, null, 2)
     : "No evidence yet.";
+  elements.physical_execution.textContent = view.physical_execution
+    ? JSON.stringify(view.physical_execution, null, 2)
+    : "No hosted lane activity yet.";
   renderConnectionBuilder();
   renderSelectedNode();
   renderCordActions();

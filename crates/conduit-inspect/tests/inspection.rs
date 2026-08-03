@@ -876,9 +876,23 @@ fn physical_arrangement_inspection_preserves_separate_identity_and_provider_fact
         assert_eq!(report.counts["lanes"], 2);
         assert_eq!(report.counts["independent_regions"], 2);
         assert_eq!(report.budgets["proposal_slots"], 2);
+        assert_eq!(report.budgets["wake_slots"], 2);
+        assert_eq!(report.budgets["maximum_proposal_bytes"], 16);
         assert!(report.references.iter().any(|reference| {
             reference.category == "execution-provider"
                 && reference.value.contains("provider/fixed-hosted-lanes")
+        }));
+        assert!(report.references.iter().any(|reference| {
+            reference.category == "execution-region-placement"
+                && reference.value.contains(":lane/a:commit/main:independent")
+        }));
+        assert!(report.references.iter().any(|reference| {
+            reference.category == "execution-commit-domain"
+                && reference.value == "commit/main:deterministic-frontier"
+        }));
+        assert!(report.references.iter().any(|reference| {
+            reference.category == "execution-boundary"
+                && reference.value.starts_with("cord/a:region/root/source:")
         }));
 
         arrangement.plan_epoch = 8;

@@ -1733,6 +1733,8 @@ pub struct PatchbayViewModel {
     pub run: Option<RunSnapshot>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub high_water: Option<PatchbayHighWaterProjection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub physical_execution: Option<PhysicalExecutionProjection>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub evidence: Vec<serde_json::Value>,
     pub topology: PatchbayTopologyProjection,
@@ -1869,6 +1871,87 @@ pub struct PatchbayHighWaterProjection {
     pub ready_slots: u32,
     pub event_slots: u32,
     pub decisions: u64,
+}
+
+/// Bounded presentation of one separately identified physical execution
+/// arrangement and its latest provider observation. These facts never become
+/// logical-plan semantics or scheduler authority.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PhysicalExecutionProjection {
+    pub arrangement_identity: String,
+    pub plan_identity: String,
+    pub resolution_identity: String,
+    pub plan_epoch: u64,
+    pub placements: Vec<PhysicalPlacementProjection>,
+    pub lanes: Vec<PhysicalLaneProjection>,
+    pub regions: Vec<PhysicalRegionProjection>,
+    pub commit_domains: Vec<PhysicalCommitDomainProjection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latest_batch: Option<PhysicalLaneBatchProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PhysicalPlacementProjection {
+    pub id: String,
+    pub provider_id: String,
+    pub generation: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PhysicalLaneProjection {
+    pub id: String,
+    pub placement: String,
+    pub generation: u64,
+    pub ready_slots: u16,
+    pub wake_slots: u16,
+    pub proposal_slots: u16,
+    pub commit_slots: u16,
+    pub scratch_bytes: u32,
+    pub stack_bytes: u32,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PhysicalRegionProjection {
+    pub id: String,
+    pub placement: String,
+    pub lane: String,
+    pub commit_domain: String,
+    pub independent: bool,
+    pub members: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PhysicalCommitDomainProjection {
+    pub id: String,
+    pub ordering: String,
+    pub proposal_slots: u16,
+    pub commit_slots: u16,
+    pub maximum_proposal_bytes: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PhysicalLaneBatchProjection {
+    pub generation: u64,
+    pub batch: u64,
+    pub commit_domain: String,
+    pub overlapped: bool,
+    pub proposal_slots_used: u16,
+    pub proposal_slots_capacity: u16,
+    pub proposal_bytes_used: u64,
+    pub proposal_bytes_capacity: u64,
+    pub pressure: String,
+    pub committed_tickets: Vec<u64>,
+    pub physical_completion_order: Vec<PhysicalLaneActivityProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PhysicalLaneActivityProjection {
+    pub lane: u16,
+    pub ticket: u64,
+    pub entered_sequence: u64,
+    pub release_sequence: u64,
+    pub finished_sequence: u64,
+    pub faulted: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]

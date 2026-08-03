@@ -111,6 +111,10 @@ export class PatchbayInspectorElement extends HTMLElement {
           <pre id="evidence">No run evidence yet.</pre>
         </details>
         <details class="card inspector-card" open>
+          <summary>⚙ Physical Execution</summary>
+          <pre id="physical-execution">No hosted lane activity yet.</pre>
+        </details>
+        <details class="card inspector-card" open>
           <summary>⌁ Live latest-value Watch</summary>
           <p class="watch-semantics"><strong>Watch</strong> is isolated instrumentation. A semantic <strong>tee</strong> changes this panel and its exact plan; a lossless <strong>recorder</strong> is a plan-visible node or evidence stream that may apply declared pressure.</p>
           <div class="button-row live-presentation-controls" role="group" aria-label="Live observation presentation controls">

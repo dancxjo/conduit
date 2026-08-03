@@ -313,6 +313,7 @@ export class PatchbayReactFlowRenderer {
       viewModel?.presentation?.identity,
       viewModel?.plan?.identity,
       viewModel?.run?.run_id,
+      viewModel?.physical_execution?.latest_batch?.batch,
       topologyView,
       (viewModel?.diagnostics || []).map((diagnostic) => diagnostic.id),
       (viewModel?.topology?.cords || []).map((cord) => [
@@ -343,6 +344,11 @@ export class PatchbayReactFlowRenderer {
     this.flowWrapper.dataset.activeEpoch = run?.plan_identity || "";
     this.flowWrapper.dataset.candidateRevision = String(sourceRevision ?? "");
     this.flowWrapper.dataset.candidateChanged = String(candidateChanged);
+    const physical = viewModel?.physical_execution;
+    const batch = physical?.latest_batch;
+    this.flowWrapper.dataset.arrangementIdentity = physical?.arrangement_identity || "";
+    this.flowWrapper.dataset.hostedOverlap = String(batch?.overlapped || false);
+    this.flowWrapper.dataset.hostedPressure = batch?.pressure || "none";
     if (!this.liveRunStatus) return;
     if (!run) {
       this.liveRunStatus.textContent = "No exact run started.";
@@ -353,9 +359,12 @@ export class PatchbayReactFlowRenderer {
     const candidate = candidateChanged
       ? ` Candidate revision ${sourceRevision} is separate from this active epoch.`
       : "";
+    const hosted = batch
+      ? ` Hosted batch ${batch.batch} used ${batch.proposal_slots_used}/${batch.proposal_slots_capacity} proposal slots; overlap ${batch.overlapped ? "observed" : "not observed"}; commit order ${batch.committed_tickets.join(", ")}.`
+      : "";
     this.liveRunStatus.textContent =
       `Exact run ${run.run_id} is ${lifecycle}; active plan ${run.plan_identity}; ` +
-      `active source revision ${activeRevision}; edited draft revision ${sourceRevision}.${candidate}`;
+      `active source revision ${activeRevision}; edited draft revision ${sourceRevision}.${candidate}${hosted}`;
   }
 
   presentLiveEvidence(viewModel, records, watchRecord) {

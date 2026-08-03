@@ -2675,6 +2675,14 @@ function renderPlan(projection = null) {
     : "No Rust-resolved plan for this source yet.";
 }
 
+function renderPhysicalExecution(projection = null) {
+  const element = document.querySelector("#physical-execution");
+  if (!element) return;
+  element.textContent = projection?.physical_execution
+    ? JSON.stringify(projection.physical_execution, null, 2)
+    : "No hosted lane activity yet.";
+}
+
 function renderRustProjection(projection) {
   if (!projection?.source || !projection.semantic || !projection.plan ||
       !projection.presentation || !projection.run || !Array.isArray(projection.evidence)) {
@@ -2730,6 +2738,7 @@ function renderRustProjection(projection) {
       .filter(([nodeId]) => survivingNodes.has(nodeId)),
   );
   renderPlan(projection);
+  renderPhysicalExecution(projection);
   patchbayView = {
     ...projection,
     source: patchbayView.source,
@@ -2760,6 +2769,7 @@ function renderLiveRunProjection(projection) {
     },
   };
   activeRunProjection = projection;
+  renderPhysicalExecution(projection);
   return authoritativeEvidenceDelta(projection.evidence);
 }
 
