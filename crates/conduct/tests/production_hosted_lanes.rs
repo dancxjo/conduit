@@ -277,6 +277,7 @@ fn canonical_conduct_ndjson_projects_the_production_hosted_batch() {
         .unwrap();
     let observations = batch["physical_completion_order"].as_array().unwrap();
     assert!(observations.len() >= 3);
+    assert_eq!(batch["active_lanes"].as_array().map(Vec::len), Some(3));
     assert!(observations.iter().all(|observation| {
         observation["entered_sequence"].as_u64().unwrap()
             < observation["release_sequence"].as_u64().unwrap()

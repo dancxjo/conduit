@@ -1512,6 +1512,7 @@ fn patchbay_physical_execution(
                 .map(
                     |observation| conduit_patchbay::PhysicalLaneActivityProjection {
                         lane: observation.lane,
+                        active: batch.active_lanes.contains(&observation.lane),
                         ticket: observation.ticket,
                         entered_sequence: observation.entered_sequence,
                         release_sequence: observation.release_sequence,
@@ -7449,7 +7450,7 @@ third.value > third_display.text
         let proposal_slots_used = physical["latest_batch"]["proposal_slots_used"]
             .as_u64()
             .unwrap();
-        assert!(proposal_slots_used >= 3);
+        assert_eq!(proposal_slots_used, 3);
         assert!(
             physical["latest_batch"]["proposal_slots_capacity"]
                 .as_u64()
@@ -7468,11 +7469,16 @@ third.value > third_display.text
                 ticket.as_u64() == Some(u64::try_from(index).unwrap() + 1)
             })
         );
+        let activity = physical["latest_batch"]["physical_completion_order"]
+            .as_array()
+            .unwrap();
+        assert!(activity.len() >= 3);
         assert_eq!(
-            physical["latest_batch"]["physical_completion_order"]
-                .as_array()
-                .map(Vec::len),
-            Some(usize::try_from(proposal_slots_used).unwrap())
+            activity
+                .iter()
+                .filter(|observation| observation["active"] == true)
+                .count(),
+            3
         );
     }
 

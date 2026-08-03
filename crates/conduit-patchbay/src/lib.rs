@@ -1947,6 +1947,7 @@ pub struct PhysicalLaneBatchProjection {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PhysicalLaneActivityProjection {
     pub lane: u16,
+    pub active: bool,
     pub ticket: u64,
     pub entered_sequence: u64,
     pub release_sequence: u64,

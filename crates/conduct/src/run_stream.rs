@@ -474,6 +474,7 @@ mod tests {
     fn hosted_lane_batch_uses_a_distinct_bounded_outer_path() {
         let batch = HostedLaneBatchEvidence {
             commit_domain: "commit/main".to_owned(),
+            active_lanes: vec![0, 1, 2],
             proposal_slots_used: 3,
             proposal_slots_capacity: 3,
             proposal_bytes_used: 17,

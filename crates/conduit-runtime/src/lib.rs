@@ -2366,6 +2366,7 @@ pub struct ExactExecutionReport {
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct HostedLaneBatchEvidence {
     pub commit_domain: String,
+    pub active_lanes: Vec<u16>,
     pub proposal_slots_used: u16,
     pub proposal_slots_capacity: u16,
     pub proposal_bytes_used: u64,
@@ -8664,6 +8665,7 @@ struct HostedProductionLanes {
     selected: Vec<(usize, u16)>,
     assignments: Vec<HostedLaneAssignment<HostedRunLaneJob>>,
     committed_tickets: Vec<u64>,
+    active_lanes: Vec<u16>,
     observations: Vec<HostedLaneObservation>,
     proposal_slots_capacity: u16,
     proposal_bytes_used: u64,
@@ -8750,6 +8752,7 @@ impl HostedProductionLanes {
         let mut selected = Vec::new();
         let mut assignments = Vec::new();
         let mut committed_tickets = Vec::new();
+        let mut active_lanes = Vec::new();
         let mut observations = Vec::new();
         selected
             .try_reserve_exact(usize::from(lane_count))
@@ -8760,6 +8763,9 @@ impl HostedProductionLanes {
         committed_tickets
             .try_reserve_exact(usize::from(lane_count))
             .map_err(|_| RuntimeError::new("CND-LAN-001", "lane commit storage unavailable"))?;
+        active_lanes
+            .try_reserve_exact(usize::from(lane_count))
+            .map_err(|_| RuntimeError::new("CND-LAN-001", "lane activity storage unavailable"))?;
         observations
             .try_reserve_exact(usize::from(lane_count))
             .map_err(|_| RuntimeError::new("CND-LAN-001", "lane evidence storage unavailable"))?;
@@ -8770,6 +8776,7 @@ impl HostedProductionLanes {
             selected,
             assignments,
             committed_tickets,
+            active_lanes,
             observations,
             proposal_slots_capacity: domain.proposal_slots,
             proposal_bytes_used: 0,
@@ -8865,8 +8872,16 @@ impl HostedProductionLanes {
         match result {
             Ok(batch) => {
                 self.committed_tickets.clear();
-                self.committed_tickets
-                    .extend_from_slice(batch.committed_tickets);
+                self.committed_tickets.extend(
+                    batch
+                        .committed_tickets
+                        .iter()
+                        .take(self.selected.len())
+                        .copied(),
+                );
+                self.active_lanes.clear();
+                self.active_lanes
+                    .extend(self.selected.iter().map(|(_, lane)| *lane));
                 self.observations.clear();
                 self.observations
                     .extend_from_slice(batch.physical_completion_order);
@@ -8899,7 +8914,8 @@ impl HostedProductionLanes {
     fn batch_evidence(&self) -> Option<HostedLaneBatchEvidence> {
         (!self.observations.is_empty()).then(|| HostedLaneBatchEvidence {
             commit_domain: self.coordinator.commit_domain().to_owned(),
-            proposal_slots_used: u16::try_from(self.observations.len()).unwrap_or(u16::MAX),
+            active_lanes: self.active_lanes.clone(),
+            proposal_slots_used: u16::try_from(self.active_lanes.len()).unwrap_or(u16::MAX),
             proposal_slots_capacity: self.proposal_slots_capacity,
             proposal_bytes_used: self.proposal_bytes_used,
             proposal_bytes_capacity: self.proposal_bytes_capacity,
