@@ -6,7 +6,8 @@ use std::process::Command;
 
 use conduit_core::{AuthorityTime, Id, InstancePath, PinnedDescriptor, SemanticHash};
 use conduit_embedded_build::{
-    EmbeddedNodeBinding, EmbeddedProgramIdentity, generate_embedded_plan,
+    EmbeddedHostOperationBinding, EmbeddedNodeBinding, EmbeddedProgramIdentity,
+    generate_embedded_plan,
 };
 use sha2::{Digest, Sha256};
 
@@ -128,27 +129,40 @@ fn generated_embedded_plan(conduit_revision: &str) -> String {
     const NO_PORTS: &[Id<'static>] = &[];
     const INPUT_PORTS: &[Id<'static>] = &[Id("in")];
     const OUTPUT_PORTS: &[Id<'static>] = &[Id("out")];
-    let bindings = [
-        EmbeddedNodeBinding {
-            instance: InstancePath::new("fixture/sensor").expect("reference instance"),
-            driver: pin("fixture/rp2040-sensor-driver", 80),
-            input_ports: NO_PORTS,
-            output_ports: OUTPUT_PORTS,
-        },
-        EmbeddedNodeBinding {
-            instance: InstancePath::new("fixture/threshold").expect("reference instance"),
-            driver: pin("fixture/rp2040-threshold-driver", 81),
-            input_ports: INPUT_PORTS,
-            output_ports: OUTPUT_PORTS,
-        },
-        EmbeddedNodeBinding {
-            instance: InstancePath::new("fixture/indicator").expect("reference instance"),
-            driver: pin("fixture/rp2040-indicator-driver", 82),
-            input_ports: INPUT_PORTS,
-            output_ports: NO_PORTS,
-        },
-    ];
     reference_plan::with_equivalence_plans(|_, rp2040_plan, _| {
+        let sensor_host_operations = [EmbeddedHostOperationBinding {
+            ordinal: 0,
+            effect_hash: rp2040_plan.nodes[0].required_effects[0],
+            resource_binding: rp2040_plan.nodes[0].required_resources[0],
+        }];
+        let indicator_host_operations = [EmbeddedHostOperationBinding {
+            ordinal: 1,
+            effect_hash: rp2040_plan.nodes[2].required_effects[0],
+            resource_binding: rp2040_plan.nodes[2].required_resources[0],
+        }];
+        let bindings = [
+            EmbeddedNodeBinding {
+                instance: InstancePath::new("fixture/sensor").expect("reference instance"),
+                driver: pin("fixture/rp2040-sensor-driver", 80),
+                input_ports: NO_PORTS,
+                output_ports: OUTPUT_PORTS,
+                host_operations: &sensor_host_operations,
+            },
+            EmbeddedNodeBinding {
+                instance: InstancePath::new("fixture/threshold").expect("reference instance"),
+                driver: pin("fixture/rp2040-threshold-driver", 81),
+                input_ports: INPUT_PORTS,
+                output_ports: OUTPUT_PORTS,
+                host_operations: &[],
+            },
+            EmbeddedNodeBinding {
+                instance: InstancePath::new("fixture/indicator").expect("reference instance"),
+                driver: pin("fixture/rp2040-indicator-driver", 82),
+                input_ports: INPUT_PORTS,
+                output_ports: NO_PORTS,
+                host_operations: &indicator_host_operations,
+            },
+        ];
         generate_embedded_plan(
             &rp2040_plan,
             conduit_core::PlanValidationContext {

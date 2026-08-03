@@ -5,8 +5,9 @@ use conduit_core::{
     PlanResourceBudget, ReportResource, ResourceRef, SemanticHash, validate_capability_report,
 };
 use conduit_embedded::{
-    EmbeddedHostServices, EmbeddedInterest, EmbeddedNode, EmbeddedOutcome, EmbeddedProfile,
-    EmbeddedStep, EmbeddedStorage, EmbeddedValue, HostReply, InterestSet, StaticPlan, StepContext,
+    EmbeddedHostCall, EmbeddedHostServices, EmbeddedInterest, EmbeddedNode, EmbeddedOutcome,
+    EmbeddedProfile, EmbeddedStep, EmbeddedStorage, EmbeddedValue, HostReply, InterestSet,
+    StaticPlan, StepContext,
 };
 
 include!(concat!(env!("OUT_DIR"), "/firmware_identity.rs"));
@@ -328,18 +329,15 @@ pub mod pico_w {
     }
 
     impl EmbeddedHostServices<16> for PicoWHostServices {
-        fn invoke(&mut self, binding: u16, request: EmbeddedValue<16>) -> HostReply<16> {
-            match binding {
-                0 => HostReply::Completed(
+        fn invoke(&mut self, call: EmbeddedHostCall<'_, 16>) -> HostReply<16> {
+            match call.binding.operation.as_str() {
+                "fixture/read-sample" => HostReply::Completed(
                     EmbeddedValue::from_slice(&42_u32.to_be_bytes()).expect("fixed sample"),
                 ),
-                1 if request.length == 1 => {
-                    self.indicator = request.bytes[0] != 0;
+                "fixture/write-indicator" if call.request.length == 1 => {
+                    self.indicator = call.request.bytes[0] != 0;
                     HostReply::Completed(EmbeddedValue::EMPTY)
                 }
-                2 => HostReply::Completed(
-                    EmbeddedValue::from_slice(&[u8::from(self.wifi_ap_active)]).expect("ap status"),
-                ),
                 _ => HostReply::Failed(Id("fixture/pico-w-operation")),
             }
         }
@@ -351,13 +349,13 @@ pub struct ReferenceHost {
 }
 
 impl EmbeddedHostServices<16> for ReferenceHost {
-    fn invoke(&mut self, binding: u16, request: EmbeddedValue<16>) -> HostReply<16> {
-        match binding {
-            0 => HostReply::Completed(
+    fn invoke(&mut self, call: EmbeddedHostCall<'_, 16>) -> HostReply<16> {
+        match call.binding.operation.as_str() {
+            "fixture/read-sample" => HostReply::Completed(
                 EmbeddedValue::from_slice(&42_u32.to_be_bytes()).expect("fixed sample"),
             ),
-            1 if request.length == 1 => {
-                self.indicator = request.bytes[0] != 0;
+            "fixture/write-indicator" if call.request.length == 1 => {
+                self.indicator = call.request.bytes[0] != 0;
                 HostReply::Completed(EmbeddedValue::EMPTY)
             }
             _ => HostReply::Failed(Id("fixture/host-operation")),
@@ -388,7 +386,7 @@ impl EmbeddedNode<ReferenceHost, 16, 4, 4> for ReferenceDriver {
         }
     }
 
-    fn step(&mut self, context: &mut StepContext<'_, ReferenceHost, 16, 4>) -> EmbeddedStep<4> {
+    fn step(&mut self, context: &mut StepContext<'_, '_, ReferenceHost, 16, 4>) -> EmbeddedStep<4> {
         match self {
             Self::Sensor { emitted } => {
                 if *emitted {

@@ -8,9 +8,9 @@ use conduit_core::{
     SchedulerPolicy, SemanticHash, StopPolicy,
 };
 use conduit_embedded::{
-    EmbeddedEventKind, EmbeddedHostServices, EmbeddedInterest, EmbeddedNode, EmbeddedOutcome,
-    EmbeddedStep, EmbeddedStorage, EmbeddedValue, HostReply, InterestSet, RunControl, RunIdentity,
-    RunStatus, StepContext, execute_static_plan,
+    EmbeddedEventKind, EmbeddedHostCall, EmbeddedHostServices, EmbeddedInterest, EmbeddedNode,
+    EmbeddedOutcome, EmbeddedStep, EmbeddedStorage, EmbeddedValue, HostReply, InterestSet,
+    RunControl, RunIdentity, RunStatus, StepContext, execute_static_plan,
 };
 use conduit_rp2040_hil::{
     FULL_PLAN_HASH as FIRMWARE_PLAN_HASH, GENERATED_EMBEDDED_PLAN_IDENTITY, GENERATED_NODES,
@@ -235,11 +235,13 @@ struct EmbeddedHost {
 }
 
 impl EmbeddedHostServices<16> for EmbeddedHost {
-    fn invoke(&mut self, binding: u16, request: EmbeddedValue<16>) -> HostReply<16> {
-        match binding {
-            0 => HostReply::Completed(EmbeddedValue::from_slice(&42_u32.to_be_bytes()).unwrap()),
-            1 => {
-                self.indicator = Some(u64::from(request.bytes[0]));
+    fn invoke(&mut self, call: EmbeddedHostCall<'_, 16>) -> HostReply<16> {
+        match call.binding.operation.as_str() {
+            "fixture/read-sample" => {
+                HostReply::Completed(EmbeddedValue::from_slice(&42_u32.to_be_bytes()).unwrap())
+            }
+            "fixture/write-indicator" => {
+                self.indicator = Some(u64::from(call.request.bytes[0]));
                 HostReply::Completed(EmbeddedValue::EMPTY)
             }
             _ => HostReply::Failed(Id("fixture/host")),
@@ -262,7 +264,7 @@ impl EmbeddedNode<EmbeddedHost, 16, 4, 4> for EmbeddedDriver {
         }
     }
 
-    fn step(&mut self, context: &mut StepContext<'_, EmbeddedHost, 16, 4>) -> EmbeddedStep<4> {
+    fn step(&mut self, context: &mut StepContext<'_, '_, EmbeddedHost, 16, 4>) -> EmbeddedStep<4> {
         match self {
             Self::Sensor { emitted } => {
                 if *emitted {
@@ -388,6 +390,52 @@ fn desktop_and_rp2040_execute_one_semantic_plan_with_normalized_equivalence() {
             GENERATED_EMBEDDED_PLAN_IDENTITY
         );
         assert_eq!(static_plan.full_plan_hash, rp2040_plan.identity);
+        assert_eq!(embedded_profile.maximum_host_operations, 2);
+        assert_eq!(static_plan.nodes[0].host_operations.len(), 1);
+        assert!(static_plan.nodes[1].host_operations.is_empty());
+        assert_eq!(static_plan.nodes[2].host_operations.len(), 1);
+        for (node_index, ordinal) in [(0_usize, 0_u16), (2, 1)] {
+            let generated = static_plan.nodes[node_index].host_operations[0];
+            let authority = rp2040_plan
+                .authorities
+                .iter()
+                .find(|authority| {
+                    authority.node == rp2040_plan.nodes[node_index].instance
+                        && authority.effect_hash == generated.effect_hash
+                })
+                .expect("generated operation names an exact plan authority");
+            let resource = rp2040_plan
+                .resources
+                .iter()
+                .find(|resource| {
+                    resource.node == authority.node && resource.id == generated.resource_binding
+                })
+                .expect("generated operation names an exact plan resource");
+            assert_eq!(generated.ordinal, ordinal);
+            assert_eq!(generated.operation, authority.effect.action);
+            assert_eq!(generated.resource, resource.resource);
+            assert_eq!(generated.grant_hash, authority.grant_hash);
+            assert_eq!(generated.capability_id, authority.capability.id);
+            assert_eq!(generated.grant_id, authority.grant.id);
+            assert_eq!(generated.host, authority.binding.host);
+            assert_eq!(generated.check_at_use, authority.binding.check_at_use);
+            assert_eq!(
+                generated.resource_lease_hash,
+                resource
+                    .lease
+                    .expect("ordinary embedded authority has a finite lease")
+                    .semantic_hash()
+                    .unwrap()
+            );
+            assert_eq!(
+                generated.commit_profile_hash,
+                authority
+                    .commit_profile
+                    .expect("ordinary embedded authority has commit semantics")
+                    .semantic_hash()
+                    .unwrap()
+            );
+        }
         assert_ne!(
             GENERATED_EMBEDDED_PLAN_IDENTITY,
             SemanticHash::from_bytes([0; 32])

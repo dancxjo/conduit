@@ -100,18 +100,32 @@ and the allocator-free `conduit-embedded` executor. A firmware build supplies
 the exact policy package and lock hashes, the full Conduit revision, and one
 driver/port-ordinal binding for each planned instance. The generator validates
 the complete `ExecutionPlan`, seals those identities with the embedded profile,
-and emits one fixed Rust module containing the node, driver, port, queue, and
-storage-facing plan data. Firmware includes that module; it does not parse
-source or resolve providers on the device.
+and emits one fixed Rust module containing the node, driver, host-operation,
+port, queue, and storage-facing plan data. Firmware includes that module; it
+does not parse source or resolve providers on the device.
+
+Each driver host-operation ordinal is build input, not firmware-owned meaning.
+Generation resolves it to one required effect and resource from the checked
+plan and emits the semantic action, concrete resource, effect and grant
+identities, lease and commit-profile identities, capability and grant IDs,
+selected host, and use-time-check requirement. The executor refuses an ordinal
+that is absent from that node's generated bindings before calling the host.
+Host adapters dispatch on the generated semantic action and receive the exact
+binding plus run and tick attribution; private numeric switch tables are not a
+second authority or resource model.
 
 Lowering fails closed when the constrained executor would approximate a plan.
 The current supported subset requires hard-bounded implementations, bounded
 cancellation, enforced step limits, exact fixed queue bytes, full-capacity FIFO
-blocking pressure, and one cord per port. Authority, hazard closure, distributed
-cords, fan-out, merge, supervision, pools, runtime-evidence projection, and the
-other explicitly rejected features must gain production embedded semantics
-before a plan containing them can be generated. In particular, this generator
-does not yet make a hazardous robotics plan executable.
+blocking pressure, and one cord per port. Ordinary exact authority bindings
+with finite resource leases and effect commit profiles are supported. Policy
+budget authority, constraint-bearing authority, administrative containment,
+and required resources that are not owned by a generated host operation remain
+unsupported, as do hazard closure, distributed cords, fan-out, merge,
+supervision, pools, runtime-evidence projection, and the other explicitly
+rejected features. Each must gain production embedded semantics before a plan
+containing it can be generated. In particular, this generator does not yet make
+a hazardous robotics plan executable.
 
 Every embedded driver exposes its exact descriptor. The executor compares the
 ordered runtime driver set with the generated bindings before prepare or any

@@ -4,14 +4,15 @@ use conduit_core::{
     validate_capability_report,
 };
 use conduit_embedded::{
-    EmbeddedError, EmbeddedEvent, EmbeddedEventKind, EmbeddedHostServices, EmbeddedInterest,
-    EmbeddedNode, EmbeddedOutcome, EmbeddedProfile, EmbeddedStep, EmbeddedStorage, EmbeddedSubject,
-    EmbeddedValue, FirmwareReplacementLevel, HIL_PROTOCOL_VERSION, HilEventFrame, HilRequest,
-    HilRunHeader, HilRunStatus, HostReply, InterestSet, MAXIMUM_CORDS, MAXIMUM_EVIDENCE_RECORDS,
+    EmbeddedError, EmbeddedEvent, EmbeddedEventKind, EmbeddedHostCall, EmbeddedHostServices,
+    EmbeddedInterest, EmbeddedNode, EmbeddedOutcome, EmbeddedProfile, EmbeddedStep,
+    EmbeddedStorage, EmbeddedSubject, EmbeddedValue, FirmwareReplacementLevel,
+    HIL_PROTOCOL_VERSION, HilEventFrame, HilRequest, HilRunHeader, HilRunStatus, HostReply,
+    InterestSet, MAXIMUM_CORDS, MAXIMUM_EVIDENCE_RECORDS, MAXIMUM_HOST_OPERATIONS,
     MAXIMUM_INTERESTS_PER_NODE, MAXIMUM_NESTING, MAXIMUM_NODES, MAXIMUM_PORTS, MAXIMUM_QUEUE_SLOTS,
     MAXIMUM_TIMER_DELAY, MAXIMUM_TIMERS, MAXIMUM_VALUE_BYTES, RP2040_SRAM_BYTES, RunControl,
-    RunIdentity, RunStatus, STATIC_PLAN_SCHEMA_VERSION, StaticCord, StaticNode, StaticPlan,
-    StepContext, StorageShape, deadline_reached, execute_static_plan,
+    RunIdentity, RunStatus, STATIC_PLAN_SCHEMA_VERSION, StaticCord, StaticHostOperation,
+    StaticNode, StaticPlan, StepContext, StorageShape, deadline_reached, execute_static_plan,
     validate_firmware_replacement, validate_static_plan,
 };
 
@@ -28,11 +29,63 @@ const fn pin(id: &'static str, byte: u8) -> PinnedDescriptor<'static> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
+const fn host_operation(
+    ordinal: u16,
+    operation: &'static str,
+    resource_binding: &'static str,
+    resource_kind: &'static str,
+    resource_id: &'static str,
+    capability_id: &'static str,
+    grant_id: &'static str,
+    byte: u8,
+) -> StaticHostOperation<'static> {
+    StaticHostOperation {
+        ordinal,
+        operation: Id(operation),
+        resource_binding: Id(resource_binding),
+        resource: ResourceRef {
+            kind: Id(resource_kind),
+            id: Id(resource_id),
+        },
+        effect_hash: SemanticHash::from_bytes([byte; 32]),
+        grant_hash: SemanticHash::from_bytes([byte + 1; 32]),
+        resource_lease_hash: SemanticHash::from_bytes([byte + 2; 32]),
+        commit_profile_hash: SemanticHash::from_bytes([byte + 3; 32]),
+        capability_id: Id(capability_id),
+        grant_id: Id(grant_id),
+        host: Id("fixture/rp2040"),
+        check_at_use: true,
+    }
+}
+
+const SENSOR_HOST_OPERATIONS: &[StaticHostOperation<'static>] = &[host_operation(
+    0,
+    "fixture/read-sample",
+    "fixture/sensor-resource",
+    "fixture/sensor",
+    "fixture/reference-sensor",
+    "fixture/rp2040-sensor-capability",
+    "fixture/rp2040-sensor-grant",
+    90,
+)];
+const INDICATOR_HOST_OPERATIONS: &[StaticHostOperation<'static>] = &[host_operation(
+    1,
+    "fixture/write-indicator",
+    "fixture/indicator-resource",
+    "fixture/indicator",
+    "fixture/reference-indicator",
+    "fixture/rp2040-indicator-capability",
+    "fixture/rp2040-indicator-grant",
+    94,
+)];
+
 const NODES: [StaticNode<'static>; 3] = [
     StaticNode {
         semantic_path: Id("fixture/sensor"),
         implementation: pin("fixture/rp2040-sensor", 40),
         driver: pin("fixture/rp2040-sensor-driver", 80),
+        host_operations: SENSOR_HOST_OPERATIONS,
         input_ports: 0,
         output_ports: 1,
         maximum_step_work: 2,
@@ -42,6 +95,7 @@ const NODES: [StaticNode<'static>; 3] = [
         semantic_path: Id("fixture/threshold"),
         implementation: pin("fixture/rp2040-threshold", 41),
         driver: pin("fixture/rp2040-threshold-driver", 81),
+        host_operations: &[],
         input_ports: 1,
         output_ports: 1,
         maximum_step_work: 2,
@@ -51,6 +105,7 @@ const NODES: [StaticNode<'static>; 3] = [
         semantic_path: Id("fixture/indicator"),
         implementation: pin("fixture/rp2040-indicator", 42),
         driver: pin("fixture/rp2040-indicator-driver", 82),
+        host_operations: INDICATOR_HOST_OPERATIONS,
         input_ports: 1,
         output_ports: 0,
         maximum_step_work: 2,
@@ -172,6 +227,7 @@ fn profile() -> EmbeddedProfile {
         maximum_nodes: 3,
         maximum_cords: 2,
         maximum_ports: 4,
+        maximum_host_operations: 2,
         maximum_queue_slots: 2,
         maximum_value_bytes: 16,
         maximum_evidence_records: 64,
@@ -193,6 +249,7 @@ fn maximum_profile() -> EmbeddedProfile {
         maximum_nodes: MAXIMUM_NODES,
         maximum_cords: MAXIMUM_CORDS,
         maximum_ports: MAXIMUM_PORTS,
+        maximum_host_operations: MAXIMUM_HOST_OPERATIONS,
         maximum_queue_slots: MAXIMUM_QUEUE_SLOTS,
         maximum_value_bytes: MAXIMUM_VALUE_BYTES,
         maximum_evidence_records: MAXIMUM_EVIDENCE_RECORDS,
@@ -230,11 +287,13 @@ struct Host {
 }
 
 impl EmbeddedHostServices<16> for Host {
-    fn invoke(&mut self, binding: u16, request: EmbeddedValue<16>) -> HostReply<16> {
-        match binding {
-            0 => HostReply::Completed(EmbeddedValue::from_slice(&42_u32.to_be_bytes()).unwrap()),
-            1 if request.length == 1 => {
-                self.indicator = request.bytes[0] != 0;
+    fn invoke(&mut self, call: EmbeddedHostCall<'_, 16>) -> HostReply<16> {
+        match call.binding.operation.as_str() {
+            "fixture/read-sample" => {
+                HostReply::Completed(EmbeddedValue::from_slice(&42_u32.to_be_bytes()).unwrap())
+            }
+            "fixture/write-indicator" if call.request.length == 1 => {
+                self.indicator = call.request.bytes[0] != 0;
                 HostReply::Completed(EmbeddedValue::EMPTY)
             }
             _ => HostReply::Failed(Id("fixture/host-failed")),
@@ -266,7 +325,7 @@ impl EmbeddedNode<Host, 16, 4, 4> for Driver {
         }
     }
 
-    fn step(&mut self, context: &mut StepContext<'_, Host, 16, 4>) -> EmbeddedStep<4> {
+    fn step(&mut self, context: &mut StepContext<'_, '_, Host, 16, 4>) -> EmbeddedStep<4> {
         match self {
             Self::Sensor { emitted } => {
                 if *emitted {
@@ -375,6 +434,10 @@ fn preflight_case(id: &str) -> serde_json::Value {
         }
         "port-maximum-rejected-before-start" => {
             selected.maximum_ports = 3;
+            selected.seal().unwrap();
+        }
+        "host-operation-maximum-rejected-before-start" => {
+            selected.maximum_host_operations = 1;
             selected.seal().unwrap();
         }
         "queue-maximum-rejected-before-start" => {
@@ -533,6 +596,7 @@ fn executor_case(id: &str) -> serde_json::Value {
         }
         "ignored-step-context-error-is-terminal" => ignored_step_error_case(),
         "evidence-reservation-precedes-host-effects" => evidence_reservation_case(),
+        "unbound-host-operation-fails-before-host" => unbound_host_operation_case(),
         other => panic!("unimplemented embedded executor vector `{other}`"),
     }
 }
@@ -545,6 +609,7 @@ fn maximum_graph_case() -> serde_json::Value {
             semantic_path: MAX_NODE_IDS[index],
             implementation: pin("fixture/rp2040-max-node", 83),
             driver: pin("fixture/rp2040-max-node-driver", 84),
+            host_operations: &[],
             input_ports: if (1..=16).contains(&index) { 2 } else { 1 },
             output_ports: if index < 16 { 2 } else { 1 },
             maximum_step_work: 1,
@@ -588,7 +653,7 @@ impl EmbeddedNode<Host, 16, 1, 1> for IgnoredFaultDriver {
         pin("fixture/rp2040-ignored-fault-driver", 85)
     }
 
-    fn step(&mut self, context: &mut StepContext<'_, Host, 16, 1>) -> EmbeddedStep<1> {
+    fn step(&mut self, context: &mut StepContext<'_, '_, Host, 16, 1>) -> EmbeddedStep<1> {
         let _ignored = context.consume(0);
         EmbeddedStep::completed()
     }
@@ -609,6 +674,7 @@ fn ignored_step_error_case() -> serde_json::Value {
         semantic_path: Id("fixture/ignored-fault"),
         implementation: pin("fixture/rp2040-ignored-fault", 44),
         driver: pin("fixture/rp2040-ignored-fault-driver", 85),
+        host_operations: &[],
         input_ports: 0,
         output_ports: 0,
         maximum_step_work: 1,
@@ -636,7 +702,7 @@ struct CountingHost {
 }
 
 impl EmbeddedHostServices<16> for CountingHost {
-    fn invoke(&mut self, _binding: u16, _request: EmbeddedValue<16>) -> HostReply<16> {
+    fn invoke(&mut self, _call: EmbeddedHostCall<'_, 16>) -> HostReply<16> {
         self.calls += 1;
         HostReply::Completed(EmbeddedValue::EMPTY)
     }
@@ -655,7 +721,7 @@ impl EmbeddedNode<CountingHost, 16, 2, 1> for ReservationDriver {
         }
     }
 
-    fn step(&mut self, context: &mut StepContext<'_, CountingHost, 16, 2>) -> EmbeddedStep<1> {
+    fn step(&mut self, context: &mut StepContext<'_, '_, CountingHost, 16, 2>) -> EmbeddedStep<1> {
         match self {
             Self::Producer => {
                 let _ = context.invoke_host(0, EmbeddedValue::EMPTY);
@@ -682,6 +748,7 @@ fn evidence_reservation_case() -> serde_json::Value {
             semantic_path: Id("fixture/reservation-producer"),
             implementation: pin("fixture/rp2040-reservation-producer", 45),
             driver: pin("fixture/rp2040-reservation-producer-driver", 86),
+            host_operations: SENSOR_HOST_OPERATIONS,
             input_ports: 0,
             output_ports: 1,
             maximum_step_work: 1,
@@ -691,6 +758,7 @@ fn evidence_reservation_case() -> serde_json::Value {
             semantic_path: Id("fixture/reservation-consumer"),
             implementation: pin("fixture/rp2040-reservation-consumer", 46),
             driver: pin("fixture/rp2040-reservation-consumer-driver", 87),
+            host_operations: &[],
             input_ports: 1,
             output_ports: 0,
             maximum_step_work: 1,
@@ -728,6 +796,61 @@ fn evidence_reservation_case() -> serde_json::Value {
     })
 }
 
+struct UnboundHostDriver;
+
+impl EmbeddedNode<CountingHost, 16, 1, 1> for UnboundHostDriver {
+    fn descriptor(&self) -> PinnedDescriptor<'static> {
+        pin("fixture/rp2040-unbound-host-driver", 89)
+    }
+
+    fn step(&mut self, context: &mut StepContext<'_, '_, CountingHost, 16, 1>) -> EmbeddedStep<1> {
+        let _ignored = context.invoke_host(99, EmbeddedValue::EMPTY);
+        EmbeddedStep::completed()
+    }
+}
+
+fn unbound_host_operation_case() -> serde_json::Value {
+    type UnboundStorage = EmbeddedStorage<1, 1, 1, 1, 16, 16, 1, 1>;
+    let mut selected = profile();
+    selected.maximum_nodes = 1;
+    selected.maximum_cords = 1;
+    selected.maximum_ports = 1;
+    selected.maximum_queue_slots = 1;
+    selected.maximum_evidence_records = 16;
+    selected.maximum_timers = 1;
+    selected.maximum_interests_per_node = 1;
+    selected.seal().unwrap();
+    let nodes = [StaticNode {
+        semantic_path: Id("fixture/unbound-host"),
+        implementation: pin("fixture/rp2040-unbound-host", 48),
+        driver: pin("fixture/rp2040-unbound-host-driver", 89),
+        host_operations: &[],
+        input_ports: 0,
+        output_ports: 0,
+        maximum_step_work: 1,
+        nesting_depth: 1,
+    }];
+    let mut host = CountingHost::default();
+    let error = execute_static_plan(
+        &plan(&selected, &nodes, &[]),
+        &selected,
+        &mut UnboundStorage::new(),
+        &mut [UnboundHostDriver],
+        &mut host,
+        RunIdentity {
+            boot_id: [1; 16],
+            run_sequence: 1,
+        },
+        standard_control(),
+    )
+    .unwrap_err();
+    serde_json::json!({
+        "accepted": false,
+        "code": error.code(),
+        "host_calls": host.calls
+    })
+}
+
 #[derive(Clone, Copy)]
 struct TimerDriver {
     deadline: u32,
@@ -739,7 +862,7 @@ impl EmbeddedNode<Host, 16, 4, 4> for TimerDriver {
         pin("fixture/rp2040-timer-driver", 88)
     }
 
-    fn step(&mut self, _context: &mut StepContext<'_, Host, 16, 4>) -> EmbeddedStep<4> {
+    fn step(&mut self, _context: &mut StepContext<'_, '_, Host, 16, 4>) -> EmbeddedStep<4> {
         if self.waiting {
             EmbeddedStep::completed()
         } else {
@@ -763,6 +886,7 @@ fn timer_case(deadline: u32) -> serde_json::Value {
         semantic_path: Id("fixture/timer"),
         implementation: pin("fixture/rp2040-timer", 47),
         driver: pin("fixture/rp2040-timer-driver", 88),
+        host_operations: &[],
         input_ports: 0,
         output_ports: 0,
         maximum_step_work: 1,
@@ -851,7 +975,7 @@ fn every_embedded_fixture_case_executes() {
         assert_eq!(actual, case["expected"], "case `{id}`");
         executed += 1;
     }
-    assert_eq!(executed, 28);
+    assert_eq!(executed, 30);
 }
 
 #[test]

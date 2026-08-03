@@ -1,12 +1,17 @@
 //! Host/build-only construction of the exact RP2040 reference plan.
 
 use conduit_core::{
-    ArtifactDigest, AuthorityTime, BlockingFairness, BoundednessProfile, CancellationGuarantee,
-    Direction, ExecutionLimits, ExecutionPlan, ExecutionProfile, FlowCapacity, FlowPolicy,
-    FlowWatermarks, HandleDisposition, Id, InstancePath, MemoryAccounting, MemoryCategory,
-    MemoryClaim, OwnershipModel, PinnedDescriptor, PlanArtifact, PlanHostObservation,
-    PlanResourceBudget, Pressure, ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort,
-    SemanticHash, TypeContractRef, ValueRepresentation,
+    ArtifactDigest, AuthorityGrant, AuthorityScope, AuthorityTime, BlockingFairness,
+    BoundednessProfile, CancellationGuarantee, DelegationPolicy, Direction,
+    EFFECT_COMMIT_PROFILE_SCHEMA_VERSION, EffectCommitProfile, EffectDiscontinuity,
+    EffectIdempotency, EffectRequirement, ExecutionLimits, ExecutionPlan, ExecutionProfile,
+    FlowCapacity, FlowPolicy, FlowWatermarks, ForeignRetention, GrantStatus, HandleDisposition,
+    HostCapability, Id, InstancePath, MemoryAccounting, MemoryCategory, MemoryClaim, ObservedGrant,
+    OwnershipModel, PinnedDescriptor, PlanArtifact, PlanAuthority, PlanHostObservation,
+    PlanResourceBinding, PlanResourceBudget, Pressure, RESOURCE_LEASE_SCHEMA_VERSION,
+    ResolvedPlanCord, ResolvedPlanNode, ResolvedPlanPort, ResourceLeaseContract, ResourceRef,
+    ResourceSelector, ResourceSharingMode, SemanticHash, StopPolicy, TypeContractRef,
+    UnknownCommitPolicy, ValueRepresentation, resolve_authority,
 };
 use conduit_embedded::EmbeddedProfile;
 
@@ -81,6 +86,7 @@ pub fn embedded_profile() -> EmbeddedProfile {
         maximum_nodes: 3,
         maximum_cords: 2,
         maximum_ports: 4,
+        maximum_host_operations: 2,
         maximum_queue_slots: 2,
         maximum_value_bytes: 16,
         maximum_evidence_records: 64,
@@ -118,6 +124,116 @@ pub fn with_equivalence_plans<R>(
         InstancePath::new("fixture/threshold").expect("reference instance"),
         InstancePath::new("fixture/indicator").expect("reference instance"),
     ];
+    let sensor_effect = effect(
+        Id("fixture/sample-read"),
+        Id("fixture/read-sample"),
+        instances[0],
+        SENSOR_RESOURCE,
+    );
+    let indicator_effect = effect(
+        Id("fixture/indicator-write"),
+        Id("fixture/write-indicator"),
+        instances[2],
+        INDICATOR_RESOURCE,
+    );
+    let sensor_effects = [sensor_effect
+        .semantic_hash()
+        .expect("sensor effect identity")];
+    let indicator_effects = [indicator_effect
+        .semantic_hash()
+        .expect("indicator effect identity")];
+    let sensor_resources = [Id("fixture/sensor-resource")];
+    let indicator_resources = [Id("fixture/indicator-resource")];
+    let sensor_lease = lease(
+        Id("fixture/sensor-lease"),
+        sensor_resources[0],
+        instances[0],
+        Id("fixture/sensor-cleanup-escalation"),
+        72,
+    );
+    let indicator_lease = lease(
+        Id("fixture/indicator-lease"),
+        indicator_resources[0],
+        instances[2],
+        Id("fixture/indicator-cleanup-escalation"),
+        73,
+    );
+    let desktop_resources = [
+        resource(
+            sensor_resources[0],
+            instances[0],
+            SENSOR_RESOURCE,
+            desktop_observations[0].id,
+            sensor_lease,
+        ),
+        resource(
+            indicator_resources[0],
+            instances[2],
+            INDICATOR_RESOURCE,
+            desktop_observations[0].id,
+            indicator_lease,
+        ),
+    ];
+    let rp2040_resources = [
+        resource(
+            sensor_resources[0],
+            instances[0],
+            SENSOR_RESOURCE,
+            rp2040_observations[0].id,
+            sensor_lease,
+        ),
+        resource(
+            indicator_resources[0],
+            instances[2],
+            INDICATOR_RESOURCE,
+            rp2040_observations[0].id,
+            indicator_lease,
+        ),
+    ];
+    let desktop_authorities = [
+        authority(
+            sensor_effect,
+            desktop_observations[0].host,
+            Id("fixture/desktop-sensor-capability"),
+            Id("fixture/desktop-sensor-grant"),
+            sensor_effects[0],
+            sensor_lease,
+            Id("fixture/sensor-commit"),
+            74,
+        ),
+        authority(
+            indicator_effect,
+            desktop_observations[0].host,
+            Id("fixture/desktop-indicator-capability"),
+            Id("fixture/desktop-indicator-grant"),
+            indicator_effects[0],
+            indicator_lease,
+            Id("fixture/indicator-commit"),
+            75,
+        ),
+    ];
+    let rp2040_authorities = [
+        authority(
+            sensor_effect,
+            rp2040_observations[0].host,
+            Id("fixture/rp2040-sensor-capability"),
+            Id("fixture/rp2040-sensor-grant"),
+            sensor_effects[0],
+            sensor_lease,
+            Id("fixture/sensor-commit"),
+            74,
+        ),
+        authority(
+            indicator_effect,
+            rp2040_observations[0].host,
+            Id("fixture/rp2040-indicator-capability"),
+            Id("fixture/rp2040-indicator-grant"),
+            indicator_effects[0],
+            indicator_lease,
+            Id("fixture/indicator-commit"),
+            75,
+        ),
+    ];
     let desktop_nodes = [
         node(
             instances[0],
@@ -128,6 +244,8 @@ pub fn with_equivalence_plans<R>(
             desktop_artifacts[0].id,
             desktop_observations[0],
             &profile,
+            &sensor_resources,
+            &sensor_effects,
         ),
         node(
             instances[1],
@@ -138,6 +256,8 @@ pub fn with_equivalence_plans<R>(
             desktop_artifacts[1].id,
             desktop_observations[0],
             &profile,
+            &[],
+            &[],
         ),
         node(
             instances[2],
@@ -148,6 +268,8 @@ pub fn with_equivalence_plans<R>(
             desktop_artifacts[2].id,
             desktop_observations[0],
             &profile,
+            &indicator_resources,
+            &indicator_effects,
         ),
     ];
     let rp2040_nodes = [
@@ -160,6 +282,8 @@ pub fn with_equivalence_plans<R>(
             rp2040_artifacts[0].id,
             rp2040_observations[0],
             &profile,
+            &sensor_resources,
+            &sensor_effects,
         ),
         node(
             instances[1],
@@ -170,6 +294,8 @@ pub fn with_equivalence_plans<R>(
             rp2040_artifacts[1].id,
             rp2040_observations[0],
             &profile,
+            &[],
+            &[],
         ),
         node(
             instances[2],
@@ -180,6 +306,8 @@ pub fn with_equivalence_plans<R>(
             rp2040_artifacts[2].id,
             rp2040_observations[0],
             &profile,
+            &indicator_resources,
+            &indicator_effects,
         ),
     ];
     let capacity = FlowCapacity::new(1, 8, 8).expect("reference flow capacity");
@@ -224,12 +352,16 @@ pub fn with_equivalence_plans<R>(
     let mut desktop_plan = plan(
         &desktop_observations,
         &desktop_artifacts,
+        &desktop_resources,
+        &desktop_authorities,
         &desktop_nodes,
         &desktop_cords,
     );
     let mut rp2040_plan = plan(
         &rp2040_observations,
         &rp2040_artifacts,
+        &rp2040_resources,
+        &rp2040_authorities,
         &rp2040_nodes,
         &rp2040_cords,
     );
@@ -269,6 +401,8 @@ fn execution_profile() -> ExecutionProfile<'static> {
 fn plan<'a>(
     observations: &'a [PlanHostObservation<'a>],
     artifacts: &'a [PlanArtifact<'a>],
+    resources: &'a [PlanResourceBinding<'a>],
+    authorities: &'a [PlanAuthority<'a>],
     nodes: &'a [ResolvedPlanNode<'a>],
     cords: &'a [ResolvedPlanCord<'a>],
 ) -> ExecutionPlan<'a> {
@@ -292,7 +426,7 @@ fn plan<'a>(
             evidence_bytes: 32_000_000,
         },
         host_observations: observations,
-        resources: &[],
+        resources,
         workloads: &[],
         artifacts,
         nodes,
@@ -309,7 +443,7 @@ fn plan<'a>(
         watch_admissions: &[],
         jobs: &[],
         satisfaction_proofs: &[],
-        authorities: &[],
+        authorities,
         hazard_closure: None,
         composites: &[],
         port_groups: &[],
@@ -348,6 +482,8 @@ fn node<'a>(
     artifact: Id<'static>,
     observation: PlanHostObservation<'static>,
     profile: &'a ExecutionProfile<'static>,
+    required_resources: &'a [Id<'a>],
+    required_effects: &'a [SemanticHash],
 ) -> ResolvedPlanNode<'a> {
     ResolvedPlanNode {
         instance,
@@ -361,10 +497,176 @@ fn node<'a>(
         allocation: PlanResourceBudget {
             memory_bytes: 512,
             cpu_units: 1,
+            evidence_bytes: 4,
             ..PlanResourceBudget::ZERO
         },
-        required_resources: &[],
-        required_effects: &[],
+        required_resources,
+        required_effects,
+    }
+}
+
+const SENSOR_RESOURCE: ResourceRef<'static> = ResourceRef {
+    kind: Id("fixture/sensor"),
+    id: Id("fixture/reference-sensor"),
+};
+
+const INDICATOR_RESOURCE: ResourceRef<'static> = ResourceRef {
+    kind: Id("fixture/indicator"),
+    id: Id("fixture/reference-indicator"),
+};
+
+fn effect(
+    id: Id<'static>,
+    action: Id<'static>,
+    requester: InstancePath<'static>,
+    resource: ResourceRef<'static>,
+) -> EffectRequirement<'static> {
+    EffectRequirement {
+        id,
+        administrative_class: None,
+        policy_budget_class: None,
+        action,
+        resource: ResourceSelector::Exact(resource),
+        requester,
+        audience: Id("fixture/run"),
+        constraints: &[],
+        check_at_use: true,
+    }
+}
+
+fn lease(
+    id: Id<'static>,
+    resource_binding: Id<'static>,
+    holder: InstancePath<'static>,
+    cleanup_id: Id<'static>,
+    cleanup_byte: u8,
+) -> ResourceLeaseContract<'static> {
+    ResourceLeaseContract {
+        schema_version: RESOURCE_LEASE_SCHEMA_VERSION,
+        id,
+        resource_binding,
+        holder,
+        run: Id("fixture/run"),
+        epoch: 1,
+        scope: Id("fixture/reference-scope"),
+        sharing: ResourceSharingMode::Exclusive,
+        reservation: PlanResourceBudget {
+            memory_bytes: 64,
+            cpu_units: 1,
+            evidence_bytes: 4,
+            ..PlanResourceBudget::ZERO
+        },
+        time_basis: Id("clock/monotonic"),
+        issued_at_tick: 0,
+        expires_at_tick: 1_000,
+        revocation_grace_ticks: 1,
+        cleanup_ticks: 1,
+        maximum_operations: 1,
+        maximum_evidence_events: 4,
+        cleanup_escalation: PinnedDescriptor {
+            id: cleanup_id,
+            schema_version: 0,
+            semantic_hash: hash(cleanup_byte),
+        },
+        foreign_retention: ForeignRetention::None,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn authority(
+    effect: EffectRequirement<'static>,
+    host: Id<'static>,
+    capability_id: Id<'static>,
+    grant_id: Id<'static>,
+    effect_hash: SemanticHash,
+    resource_lease: ResourceLeaseContract<'static>,
+    commit_id: Id<'static>,
+    commit_byte: u8,
+) -> PlanAuthority<'static> {
+    let ResourceSelector::Exact(resource) = effect.resource else {
+        unreachable!("reference effects select exact resources")
+    };
+    let capability = HostCapability {
+        id: capability_id,
+        action: effect.action,
+        resource,
+        host,
+        time_basis: Id("clock/monotonic"),
+        observed_at_tick: 0,
+        valid_until_tick: 1_000,
+    };
+    let grant = AuthorityGrant {
+        id: grant_id,
+        action: effect.action,
+        resource,
+        scope: AuthorityScope {
+            root: effect.requester,
+            descendants: false,
+        },
+        audience: effect.audience,
+        constraints: &[],
+        time_basis: Id("clock/monotonic"),
+        not_before_tick: 0,
+        expires_at_tick: 1_000,
+        issued_for_host: host,
+        delegation: DelegationPolicy::None,
+        audit_id: Id("fixture/reference-audit"),
+        terminal_policy: StopPolicy::Abort,
+    };
+    let binding = resolve_authority(
+        effect,
+        host,
+        AuthorityTime {
+            basis: Id("clock/monotonic"),
+            tick: 1,
+        },
+        &[capability],
+        &[ObservedGrant {
+            grant,
+            status: GrantStatus::Active,
+        }],
+    )
+    .expect("reference authority resolves exactly");
+    PlanAuthority {
+        node: effect.requester,
+        effect_hash,
+        grant_hash: grant.semantic_hash().expect("reference grant identity"),
+        effect,
+        capability,
+        grant,
+        binding,
+        administrative_subject: None,
+        containment: None,
+        policy_budgets: &[],
+        commit_profile: Some(EffectCommitProfile {
+            schema_version: EFFECT_COMMIT_PROFILE_SCHEMA_VERSION,
+            id: commit_id,
+            operation: effect.action,
+            resource_lease: resource_lease.id,
+            commit_boundary: pin("fixture/reference-commit-boundary", commit_byte),
+            idempotency: EffectIdempotency::None,
+            unknown_commit: UnknownCommitPolicy::Fail,
+            discontinuity: EffectDiscontinuity::FailedBeforeCommit,
+            cleanup: pin("fixture/reference-cleanup", commit_byte + 1),
+            maximum_attempts: 1,
+            evidence_events_per_attempt: 2,
+        }),
+    }
+}
+
+fn resource(
+    id: Id<'static>,
+    node: InstancePath<'static>,
+    resource: ResourceRef<'static>,
+    host_observation: Id<'static>,
+    lease: ResourceLeaseContract<'static>,
+) -> PlanResourceBinding<'static> {
+    PlanResourceBinding {
+        id,
+        node,
+        resource,
+        host_observation,
+        lease: Some(lease),
     }
 }
 

@@ -17,6 +17,14 @@ profile. It does not parse `.panel` source, resolve a registry, discover a
 host, fetch or load an artifact, acquire authority, provision networking, or
 update firmware.
 
+Host-operation ordinals are build-time driver bindings only. Each ordinal is
+resolved to one exact ordinary plan authority and resource and generated with
+its semantic action, selected resource and host, effect, grant, lease, and
+commit-profile identities, and use-time-check requirement. An unbound ordinal
+terminates before the host adapter is called. Firmware adapters therefore
+dispatch on generated semantic actions rather than maintaining a private
+numeric operation registry.
+
 The full `ExecutionPlan` remains the semantic and execution identity. The
 compact representation is generated firmware input, not a second plan type.
 Firmware build identity, fresh capability report, boot/run identity, execution
@@ -31,7 +39,7 @@ USB, clocks, and peripheral bindings live in the separate
 
 `conduit/embedded-execution-profile` current schema pins finite maxima for:
 
-- nodes, cords, aggregate ports, and nesting;
+- nodes, cords, aggregate ports, host operations, and nesting;
 - queue slots and bytes in one fixed inline value representation;
 - normative evidence records;
 - timers and wake interests per node;
@@ -42,8 +50,9 @@ Every selected value must be nonzero and no larger than the exported
 implementation ceiling. The profile hash changes with every bound.
 
 The static representation contains semantic node paths, selected
-implementation IDs, port counts, step-work limits, nesting, exact cord
-endpoints, non-overlapping queue slot ranges, capacity, and value width.
+implementation IDs, exact host-operation bindings, port counts, step-work
+limits, nesting, exact cord endpoints, non-overlapping queue slot ranges,
+capacity, and value width.
 Preflight checks the schema, full plan/profile pins, all counts and checked
 totals, caller storage shape, endpoint/port validity, queue overlap, and the
 supported feature subset before `prepare` is called (`EMB-001` through
@@ -172,6 +181,8 @@ device enrollment remain explicit operator actions outside the resolver.
 - `CND-EMB-011` node-reported failure
 - `CND-EMB-012` unsupported replacement level or overlap
 - `CND-EMB-013` unsupported or malformed HIL protocol
+- `CND-EMB-014` runtime driver identity differs from the generated binding
+- `CND-EMB-015` driver requested a host operation absent from its generated binding
 
 ## Conformance and evidence status
 
@@ -192,8 +203,8 @@ fixture.
 | ID | Obligation |
 |---|---|
 | EMB-001 | Keep source parsing, resolution, allocation, loading, provisioning, and domain semantics out of firmware execution |
-| EMB-002 | Bind one compact static representation to the immutable full plan hash and exact embedded-profile hash |
-| EMB-003 | Make node, cord, port, queue, value, evidence, timer, interest, nesting, RAM, stack, and flash ceilings explicit |
+| EMB-002 | Bind one compact static representation to the immutable full plan hash and exact embedded-profile hash, and every host call to one exact plan authority and resource |
+| EMB-003 | Make node, cord, port, host-operation, queue, value, evidence, timer, interest, nesting, RAM, stack, and flash ceilings explicit |
 | EMB-004 | Reject unsupported counts, topology, features, and caller storage before prepare or start |
 | EMB-005 | Use only caller-owned fixed storage and retain no allocator linkage |
 | EMB-006 | Preserve bounded step, atomic transaction, exact wake, cancellation, and terminal semantics |

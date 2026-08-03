@@ -11,7 +11,7 @@ use core::mem::size_of;
 
 use conduit_core::{
     CanonicalDescriptor, CanonicalValue, FieldDisposition, Id, MapField, PinnedDescriptor,
-    SemanticHash,
+    ResourceRef, SemanticHash,
 };
 
 pub const EMBEDDED_PROFILE_SCHEMA_VERSION: u32 = 0;
@@ -20,6 +20,7 @@ pub const HIL_PROTOCOL_VERSION: u16 = 0;
 pub const MAXIMUM_NODES: u16 = 32;
 pub const MAXIMUM_CORDS: u16 = 48;
 pub const MAXIMUM_PORTS: u16 = 96;
+pub const MAXIMUM_HOST_OPERATIONS: u16 = 64;
 pub const MAXIMUM_QUEUE_SLOTS: u16 = 128;
 pub const MAXIMUM_VALUE_BYTES: u16 = 64;
 pub const MAXIMUM_EVIDENCE_RECORDS: u16 = 512;
@@ -38,6 +39,7 @@ pub struct EmbeddedProfile {
     pub maximum_nodes: u16,
     pub maximum_cords: u16,
     pub maximum_ports: u16,
+    pub maximum_host_operations: u16,
     pub maximum_queue_slots: u16,
     pub maximum_value_bytes: u16,
     pub maximum_evidence_records: u16,
@@ -64,6 +66,10 @@ impl EmbeddedProfile {
             semantic(
                 "maximum_ports",
                 CanonicalValue::Integer(i128::from(self.maximum_ports)),
+            ),
+            semantic(
+                "maximum_host_operations",
+                CanonicalValue::Integer(i128::from(self.maximum_host_operations)),
             ),
             semantic(
                 "maximum_queue_slots",
@@ -137,6 +143,8 @@ fn validate_profile_shape(profile: &EmbeddedProfile) -> Result<(), EmbeddedError
         || profile.maximum_cords > MAXIMUM_CORDS
         || profile.maximum_ports == 0
         || profile.maximum_ports > MAXIMUM_PORTS
+        || profile.maximum_host_operations == 0
+        || profile.maximum_host_operations > MAXIMUM_HOST_OPERATIONS
         || profile.maximum_queue_slots == 0
         || profile.maximum_queue_slots > MAXIMUM_QUEUE_SLOTS
         || profile.maximum_value_bytes == 0
@@ -169,10 +177,28 @@ pub struct StaticNode<'a> {
     pub implementation: PinnedDescriptor<'a>,
     /// Exact firmware driver binding expected at this node ordinal.
     pub driver: PinnedDescriptor<'a>,
+    /// Exact plan-derived operations this driver may ask the host to perform.
+    pub host_operations: &'a [StaticHostOperation<'a>],
     pub input_ports: u8,
     pub output_ports: u8,
     pub maximum_step_work: u16,
     pub nesting_depth: u8,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct StaticHostOperation<'a> {
+    pub ordinal: u16,
+    pub operation: Id<'a>,
+    pub resource_binding: Id<'a>,
+    pub resource: ResourceRef<'a>,
+    pub effect_hash: SemanticHash,
+    pub grant_hash: SemanticHash,
+    pub resource_lease_hash: SemanticHash,
+    pub commit_profile_hash: SemanticHash,
+    pub capability_id: Id<'a>,
+    pub grant_id: Id<'a>,
+    pub host: Id<'a>,
+    pub check_at_use: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -255,6 +281,7 @@ pub fn validate_static_plan(
     let node_count = u16::try_from(plan.nodes.len()).map_err(|_| EmbeddedError::ProfileExceeded)?;
     let cord_count = u16::try_from(plan.cords.len()).map_err(|_| EmbeddedError::ProfileExceeded)?;
     let mut ports = 0_u16;
+    let mut host_operations = 0_u16;
     for (index, node) in plan.nodes.iter().enumerate() {
         if !valid_pin(node.implementation)
             || !valid_pin(node.driver)
@@ -270,6 +297,31 @@ pub fn validate_static_plan(
         {
             return Err(EmbeddedError::InvalidStaticPlan);
         }
+        for (binding_index, binding) in node.host_operations.iter().enumerate() {
+            if Id::new(binding.operation.as_str()).is_err()
+                || Id::new(binding.resource_binding.as_str()).is_err()
+                || Id::new(binding.resource.kind.as_str()).is_err()
+                || Id::new(binding.resource.id.as_str()).is_err()
+                || Id::new(binding.capability_id.as_str()).is_err()
+                || Id::new(binding.grant_id.as_str()).is_err()
+                || Id::new(binding.host.as_str()).is_err()
+                || binding.effect_hash == ZERO_HASH
+                || binding.grant_hash == ZERO_HASH
+                || binding.resource_lease_hash == ZERO_HASH
+                || binding.commit_profile_hash == ZERO_HASH
+                || node.host_operations[..binding_index].iter().any(|prior| {
+                    prior.ordinal == binding.ordinal || prior.effect_hash == binding.effect_hash
+                })
+            {
+                return Err(EmbeddedError::InvalidStaticPlan);
+            }
+        }
+        host_operations = host_operations
+            .checked_add(
+                u16::try_from(node.host_operations.len())
+                    .map_err(|_| EmbeddedError::ArithmeticOverflow)?,
+            )
+            .ok_or(EmbeddedError::ArithmeticOverflow)?;
         ports = ports
             .checked_add(u16::from(node.input_ports))
             .and_then(|value| value.checked_add(u16::from(node.output_ports)))
@@ -318,6 +370,7 @@ pub fn validate_static_plan(
         || cord_count > storage.cords
         || ports > profile.maximum_ports
         || ports > storage.ports
+        || host_operations > profile.maximum_host_operations
         || slots > profile.maximum_queue_slots
         || slots > storage.queue_slots
         || profile.maximum_value_bytes > storage.value_bytes
@@ -335,6 +388,7 @@ pub fn validate_static_plan(
         nodes: node_count,
         cords: cord_count,
         ports,
+        host_operations,
         queue_slots: slots,
         static_storage_bytes: storage.static_bytes,
         stack_budget_bytes: profile.stack_budget_bytes,
@@ -350,6 +404,7 @@ pub struct PreflightReport {
     pub nodes: u16,
     pub cords: u16,
     pub ports: u16,
+    pub host_operations: u16,
     pub queue_slots: u16,
     pub static_storage_bytes: u32,
     pub stack_budget_bytes: u32,
@@ -484,8 +539,16 @@ pub enum HostReply<const V: usize> {
     Failed(Id<'static>),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EmbeddedHostCall<'a, const V: usize> {
+    pub binding: StaticHostOperation<'a>,
+    pub run: RunIdentity,
+    pub tick: u32,
+    pub request: EmbeddedValue<V>,
+}
+
 pub trait EmbeddedHostServices<const V: usize> {
-    fn invoke(&mut self, binding: u16, request: EmbeddedValue<V>) -> HostReply<V>;
+    fn invoke(&mut self, call: EmbeddedHostCall<'_, V>) -> HostReply<V>;
 }
 
 pub trait EmbeddedNode<H, const V: usize, const P: usize, const I: usize>
@@ -503,16 +566,18 @@ where
         Ok(())
     }
 
-    fn step(&mut self, context: &mut StepContext<'_, H, V, P>) -> EmbeddedStep<I>;
+    fn step(&mut self, context: &mut StepContext<'_, '_, H, V, P>) -> EmbeddedStep<I>;
 
     fn cancel(&mut self, _host: &mut H) {}
 }
 
-pub struct StepContext<'a, H, const V: usize, const P: usize>
+pub struct StepContext<'h, 'p, H, const V: usize, const P: usize>
 where
     H: EmbeddedHostServices<V>,
 {
-    host: &'a mut H,
+    host: &'h mut H,
+    host_operations: &'p [StaticHostOperation<'p>],
+    run: RunIdentity,
     tick: u32,
     maximum_work: u16,
     work: u16,
@@ -525,7 +590,7 @@ where
     fault: Option<EmbeddedError>,
 }
 
-impl<H, const V: usize, const P: usize> StepContext<'_, H, V, P>
+impl<H, const V: usize, const P: usize> StepContext<'_, '_, H, V, P>
 where
     H: EmbeddedHostServices<V>,
 {
@@ -583,11 +648,24 @@ where
 
     pub fn invoke_host(
         &mut self,
-        binding: u16,
+        ordinal: u16,
         request: EmbeddedValue<V>,
     ) -> Result<HostReply<V>, EmbeddedError> {
         self.charge_work(1)?;
-        let reply = self.host.invoke(binding, request);
+        let Some(binding) = self
+            .host_operations
+            .iter()
+            .find(|binding| binding.ordinal == ordinal)
+            .copied()
+        else {
+            return self.fail(EmbeddedError::HostBindingViolation);
+        };
+        let reply = self.host.invoke(EmbeddedHostCall {
+            binding,
+            run: self.run,
+            tick: self.tick,
+            request,
+        });
         self.host_progress |= matches!(reply, HostReply::Completed(_));
         Ok(reply)
     }
@@ -956,6 +1034,8 @@ struct ExecutionState<
 }
 
 impl<
+    'a,
+    'p,
     const N: usize,
     const C: usize,
     const P: usize,
@@ -964,7 +1044,7 @@ impl<
     const E: usize,
     const T: usize,
     const I: usize,
-> ExecutionState<'_, '_, N, C, P, Q, V, E, T, I>
+> ExecutionState<'a, 'p, N, C, P, Q, V, E, T, I>
 {
     fn summary(&self, status: RunStatus) -> RunSummary {
         RunSummary {
@@ -1048,7 +1128,7 @@ impl<
         node: usize,
         maximum_work: u16,
         host: &'h mut H,
-    ) -> Result<StepContext<'h, H, V, PORTS>, EmbeddedError>
+    ) -> Result<StepContext<'h, 'p, H, V, PORTS>, EmbeddedError>
     where
         H: EmbeddedHostServices<V>,
     {
@@ -1075,6 +1155,8 @@ impl<
         }
         Ok(StepContext {
             host,
+            host_operations: self.plan.nodes[node].host_operations,
+            run: self.identity,
             tick: self.tick,
             maximum_work,
             work: 0,
@@ -1674,6 +1756,7 @@ pub enum EmbeddedError {
     ReplacementUnsupported,
     UnsupportedHilProtocol,
     DriverBindingMismatch,
+    HostBindingViolation,
 }
 
 impl EmbeddedError {
@@ -1697,6 +1780,7 @@ impl EmbeddedError {
             Self::ReplacementUnsupported => "CND-EMB-012",
             Self::UnsupportedHilProtocol => "CND-EMB-013",
             Self::DriverBindingMismatch => "CND-EMB-014",
+            Self::HostBindingViolation => "CND-EMB-015",
         }
     }
 }
@@ -1729,6 +1813,9 @@ impl fmt::Display for EmbeddedError {
             Self::UnsupportedHilProtocol => "unsupported RP2040 HIL protocol",
             Self::DriverBindingMismatch => {
                 "firmware driver identity does not match the generated node binding"
+            }
+            Self::HostBindingViolation => {
+                "firmware driver invoked a host operation absent from its exact generated binding"
             }
         })
     }

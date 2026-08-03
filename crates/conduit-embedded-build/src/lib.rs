@@ -9,12 +9,13 @@ use std::fmt::{self, Write};
 use conduit_core::{
     BlockingFairness, BoundednessProfile, CancellationGuarantee, CanonicalDescriptor,
     CanonicalValue, Direction, ExecutionPlan, FieldDisposition, Id, InstancePath, MapField,
-    PinnedDescriptor, PlanValidationContext, PlanValidationError, Pressure, ResolvedPlanNode,
-    SemanticHash, ValueRepresentation, validate_execution_plan,
+    PinnedDescriptor, PlanAuthority, PlanResourceBinding, PlanValidationContext,
+    PlanValidationError, Pressure, ResolvedPlanNode, ResourceRef, SemanticHash,
+    ValueRepresentation, validate_execution_plan,
 };
 use conduit_embedded::{
-    EmbeddedError, EmbeddedProfile, STATIC_PLAN_SCHEMA_VERSION, StaticCord, StaticNode, StaticPlan,
-    StorageShape, validate_static_plan,
+    EmbeddedError, EmbeddedProfile, STATIC_PLAN_SCHEMA_VERSION, StaticCord, StaticHostOperation,
+    StaticNode, StaticPlan, StorageShape, validate_static_plan,
 };
 
 pub const GENERATED_EMBEDDED_PLAN_SCHEMA_VERSION: u32 = 0;
@@ -36,6 +37,15 @@ pub struct EmbeddedNodeBinding<'a> {
     pub driver: PinnedDescriptor<'a>,
     pub input_ports: &'a [Id<'a>],
     pub output_ports: &'a [Id<'a>],
+    pub host_operations: &'a [EmbeddedHostOperationBinding<'a>],
+}
+
+/// Firmware ordinal assigned to one exact effect and resource from the plan.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EmbeddedHostOperationBinding<'a> {
+    pub ordinal: u16,
+    pub effect_hash: SemanticHash,
+    pub resource_binding: Id<'a>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -52,10 +62,28 @@ pub struct GeneratedStaticNode {
     pub driver: GeneratedPin,
     pub input_port_ids: Vec<String>,
     pub output_port_ids: Vec<String>,
+    pub host_operations: Vec<GeneratedHostOperation>,
     pub input_ports: u8,
     pub output_ports: u8,
     pub maximum_step_work: u16,
     pub nesting_depth: u8,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GeneratedHostOperation {
+    pub ordinal: u16,
+    pub operation: String,
+    pub resource_binding: String,
+    pub resource_kind: String,
+    pub resource_id: String,
+    pub effect_hash: SemanticHash,
+    pub grant_hash: SemanticHash,
+    pub resource_lease_hash: SemanticHash,
+    pub commit_profile_hash: SemanticHash,
+    pub capability_id: String,
+    pub grant_id: String,
+    pub host: String,
+    pub check_at_use: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -88,13 +116,25 @@ pub struct GeneratedEmbeddedPlan {
 impl GeneratedEmbeddedPlan {
     /// Borrow the owned output through the allocator-free executor representation.
     pub fn with_static_plan<R>(&self, action: impl FnOnce(StaticPlan<'_>) -> R) -> R {
+        let host_operations = self
+            .nodes
+            .iter()
+            .map(|node| {
+                node.host_operations
+                    .iter()
+                    .map(borrowed_host_operation)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
         let nodes = self
             .nodes
             .iter()
-            .map(|node| StaticNode {
+            .zip(&host_operations)
+            .map(|(node, host_operations)| StaticNode {
                 semantic_path: Id(&node.semantic_path),
                 implementation: borrowed_pin(&node.implementation),
                 driver: borrowed_pin(&node.driver),
+                host_operations,
                 input_ports: node.input_ports,
                 output_ports: node.output_ports,
                 maximum_step_work: node.maximum_step_work,
@@ -182,6 +222,11 @@ impl GeneratedEmbeddedPlan {
             .expect("String writes cannot fail");
             render_pin(&mut output, "implementation", &node.implementation, 8);
             render_pin(&mut output, "driver", &node.driver, 8);
+            output.push_str("        host_operations: &[\n");
+            for binding in &node.host_operations {
+                render_host_operation(&mut output, binding, 12);
+            }
+            output.push_str("        ],\n");
             writeln!(output, "        input_ports: {},", node.input_ports)
                 .expect("String writes cannot fail");
             writeln!(output, "        output_ports: {},", node.output_ports)
@@ -262,7 +307,9 @@ pub enum UnsupportedPlanFeature {
     WatchAdmissions,
     Jobs,
     SatisfactionProofs,
-    Authorities,
+    AuthorityConstraints,
+    AuthorityAdministrativeContainment,
+    AuthorityPolicyBudgets,
     HazardClosure,
     InstancePools,
     Supervisions,
@@ -285,6 +332,12 @@ pub enum BindingError {
     InvalidPort,
     DuplicatePort,
     PortRepresentation,
+    HostOperationCount,
+    InvalidHostOperation,
+    DuplicateHostOperation,
+    HostEffect,
+    HostResource,
+    UnusedHostAuthority,
     CordEndpoint,
 }
 
@@ -376,6 +429,7 @@ pub fn generate_embedded_plan(
         if maximum_step_work == 0 {
             return Err(GenerationError::RangeExceeded);
         }
+        let host_operations = generate_host_operations(plan, node, binding)?;
         nodes.push(GeneratedStaticNode {
             semantic_path: node.instance.as_str().to_owned(),
             implementation: owned_pin(node.implementation),
@@ -390,6 +444,7 @@ pub fn generate_embedded_plan(
                 .iter()
                 .map(|port| port.as_str().to_owned())
                 .collect(),
+            host_operations,
             input_ports: u8::try_from(binding.input_ports.len())
                 .map_err(|_| GenerationError::RangeExceeded)?,
             output_ports: u8::try_from(binding.output_ports.len())
@@ -398,6 +453,14 @@ pub fn generate_embedded_plan(
             // The exact plan is already flattened to primitive nodes.
             nesting_depth: 1,
         });
+    }
+
+    let represented_authorities = nodes
+        .iter()
+        .map(|node| node.host_operations.len())
+        .sum::<usize>();
+    if represented_authorities != plan.authorities.len() {
+        return Err(GenerationError::Binding(BindingError::UnusedHostAuthority));
     }
 
     let mut cords = Vec::with_capacity(plan.cords.len());
@@ -546,10 +609,6 @@ fn reject_unrepresented_features(plan: &ExecutionPlan<'_>) -> Result<(), Generat
             UnsupportedPlanFeature::SatisfactionProofs,
         ),
         (
-            !plan.authorities.is_empty(),
-            UnsupportedPlanFeature::Authorities,
-        ),
-        (
             plan.hazard_closure.is_some(),
             UnsupportedPlanFeature::HazardClosure,
         ),
@@ -566,6 +625,136 @@ fn reject_unrepresented_features(plan: &ExecutionPlan<'_>) -> Result<(), Generat
         return Err(GenerationError::Unsupported(feature));
     }
     Ok(())
+}
+
+fn generate_host_operations(
+    plan: &ExecutionPlan<'_>,
+    node: &ResolvedPlanNode<'_>,
+    binding: &EmbeddedNodeBinding<'_>,
+) -> Result<Vec<GeneratedHostOperation>, GenerationError> {
+    if binding.host_operations.len() != node.required_effects.len()
+        || node.required_resources.iter().any(|required| {
+            !binding
+                .host_operations
+                .iter()
+                .any(|operation| operation.resource_binding == *required)
+        })
+    {
+        return Err(GenerationError::Binding(BindingError::HostOperationCount));
+    }
+    let mut generated = Vec::with_capacity(binding.host_operations.len());
+    for (index, requested) in binding.host_operations.iter().enumerate() {
+        if requested.effect_hash == ZERO_HASH
+            || Id::new(requested.resource_binding.as_str()).is_err()
+        {
+            return Err(GenerationError::Binding(BindingError::InvalidHostOperation));
+        }
+        if binding.host_operations[..index].iter().any(|prior| {
+            prior.ordinal == requested.ordinal || prior.effect_hash == requested.effect_hash
+        }) {
+            return Err(GenerationError::Binding(
+                BindingError::DuplicateHostOperation,
+            ));
+        }
+        if !node.required_effects.contains(&requested.effect_hash) {
+            return Err(GenerationError::Binding(BindingError::HostEffect));
+        }
+        if !node
+            .required_resources
+            .contains(&requested.resource_binding)
+        {
+            return Err(GenerationError::Binding(BindingError::HostResource));
+        }
+        let authority = unique_authority(plan.authorities, node.instance, requested.effect_hash)?;
+        if !authority.effect.constraints.is_empty() || !authority.grant.constraints.is_empty() {
+            return Err(GenerationError::Unsupported(
+                UnsupportedPlanFeature::AuthorityConstraints,
+            ));
+        }
+        if authority.effect.administrative_class.is_some()
+            || authority.administrative_subject.is_some()
+            || authority.containment.is_some()
+        {
+            return Err(GenerationError::Unsupported(
+                UnsupportedPlanFeature::AuthorityAdministrativeContainment,
+            ));
+        }
+        if !authority.policy_budgets.is_empty() {
+            return Err(GenerationError::Unsupported(
+                UnsupportedPlanFeature::AuthorityPolicyBudgets,
+            ));
+        }
+        let resource = unique_resource(plan.resources, node.instance, requested.resource_binding)?;
+        let resource_lease = resource
+            .lease
+            .ok_or(GenerationError::Binding(BindingError::HostResource))?;
+        let commit_profile = authority
+            .commit_profile
+            .ok_or(GenerationError::Binding(BindingError::HostEffect))?;
+        if resource.resource != authority.binding.resource
+            || authority.effect.id != authority.binding.effect_id
+            || authority.capability.id != authority.binding.capability_id
+            || authority.grant.id != authority.binding.grant_id
+            || authority.binding.host != node.host
+            || authority.binding.check_at_use != authority.effect.check_at_use
+        {
+            return Err(GenerationError::Binding(BindingError::HostEffect));
+        }
+        generated.push(GeneratedHostOperation {
+            ordinal: requested.ordinal,
+            operation: authority.effect.action.as_str().to_owned(),
+            resource_binding: resource.id.as_str().to_owned(),
+            resource_kind: resource.resource.kind.as_str().to_owned(),
+            resource_id: resource.resource.id.as_str().to_owned(),
+            effect_hash: requested.effect_hash,
+            grant_hash: authority.grant_hash,
+            resource_lease_hash: resource_lease
+                .semantic_hash()
+                .map_err(|_| GenerationError::Identity)?,
+            commit_profile_hash: commit_profile
+                .semantic_hash()
+                .map_err(|_| GenerationError::Identity)?,
+            capability_id: authority.capability.id.as_str().to_owned(),
+            grant_id: authority.grant.id.as_str().to_owned(),
+            host: authority.binding.host.as_str().to_owned(),
+            check_at_use: authority.binding.check_at_use,
+        });
+    }
+    Ok(generated)
+}
+
+fn unique_authority<'a>(
+    authorities: &'a [PlanAuthority<'a>],
+    instance: InstancePath<'_>,
+    effect_hash: SemanticHash,
+) -> Result<&'a PlanAuthority<'a>, GenerationError> {
+    let mut matches = authorities
+        .iter()
+        .filter(|authority| authority.node == instance && authority.effect_hash == effect_hash);
+    let authority = matches
+        .next()
+        .ok_or(GenerationError::Binding(BindingError::HostEffect))?;
+    if matches.next().is_some() {
+        return Err(GenerationError::Binding(BindingError::HostEffect));
+    }
+    Ok(authority)
+}
+
+fn unique_resource<'a>(
+    resources: &'a [PlanResourceBinding<'a>],
+    instance: InstancePath<'_>,
+    id: Id<'_>,
+) -> Result<&'a PlanResourceBinding<'a>, GenerationError> {
+    let mut matches = resources
+        .iter()
+        .filter(|resource| resource.node == instance && resource.id == id);
+    let resource = matches
+        .next()
+        .ok_or(GenerationError::Binding(BindingError::HostResource))?;
+    if matches.next().is_some() {
+        return Err(GenerationError::Binding(BindingError::HostResource));
+    }
+    Ok(resource)
 }
 
 fn unique_binding<'a>(
@@ -767,6 +956,15 @@ fn generated_node_identity(
         .iter()
         .map(|port| CanonicalValue::Identifier(Id(port)))
         .collect::<Vec<_>>();
+    let host_operation_hashes = node
+        .host_operations
+        .iter()
+        .map(generated_host_operation_identity)
+        .collect::<Result<Vec<_>, _>>()?;
+    let host_operations = host_operation_hashes
+        .iter()
+        .map(|hash| CanonicalValue::Bytes(hash.as_bytes()))
+        .collect::<Vec<_>>();
     CanonicalDescriptor {
         kind: Id("conduit/generated-embedded-node"),
         schema_version: GENERATED_EMBEDDED_PLAN_SCHEMA_VERSION,
@@ -807,6 +1005,7 @@ fn generated_node_identity(
                 CanonicalValue::Integer(i128::from(node.output_ports)),
             ),
             semantic("output_port_ids", CanonicalValue::List(&output_ports)),
+            semantic("host_operations", CanonicalValue::List(&host_operations)),
             semantic(
                 "maximum_step_work",
                 CanonicalValue::Integer(i128::from(node.maximum_step_work)),
@@ -814,6 +1013,68 @@ fn generated_node_identity(
             semantic(
                 "nesting_depth",
                 CanonicalValue::Integer(i128::from(node.nesting_depth)),
+            ),
+        ]),
+    }
+    .semantic_hash()
+    .map_err(|_| GenerationError::Identity)
+}
+
+fn generated_host_operation_identity(
+    binding: &GeneratedHostOperation,
+) -> Result<SemanticHash, GenerationError> {
+    CanonicalDescriptor {
+        kind: Id("conduit/generated-embedded-host-operation"),
+        schema_version: GENERATED_EMBEDDED_PLAN_SCHEMA_VERSION,
+        body: CanonicalValue::Map(&[
+            semantic(
+                "ordinal",
+                CanonicalValue::Integer(i128::from(binding.ordinal)),
+            ),
+            semantic(
+                "operation",
+                CanonicalValue::Identifier(Id(&binding.operation)),
+            ),
+            semantic(
+                "resource_binding",
+                CanonicalValue::Identifier(Id(&binding.resource_binding)),
+            ),
+            semantic(
+                "resource_kind",
+                CanonicalValue::Identifier(Id(&binding.resource_kind)),
+            ),
+            semantic(
+                "resource_id",
+                CanonicalValue::Identifier(Id(&binding.resource_id)),
+            ),
+            semantic(
+                "effect_hash",
+                CanonicalValue::Bytes(binding.effect_hash.as_bytes()),
+            ),
+            semantic(
+                "grant_hash",
+                CanonicalValue::Bytes(binding.grant_hash.as_bytes()),
+            ),
+            semantic(
+                "resource_lease_hash",
+                CanonicalValue::Bytes(binding.resource_lease_hash.as_bytes()),
+            ),
+            semantic(
+                "commit_profile_hash",
+                CanonicalValue::Bytes(binding.commit_profile_hash.as_bytes()),
+            ),
+            semantic(
+                "capability_id",
+                CanonicalValue::Identifier(Id(&binding.capability_id)),
+            ),
+            semantic(
+                "grant_id",
+                CanonicalValue::Identifier(Id(&binding.grant_id)),
+            ),
+            semantic("host", CanonicalValue::Identifier(Id(&binding.host))),
+            semantic(
+                "check_at_use",
+                CanonicalValue::Boolean(binding.check_at_use),
             ),
         ]),
     }
@@ -896,6 +1157,26 @@ fn borrowed_pin(pin: &GeneratedPin) -> PinnedDescriptor<'_> {
     }
 }
 
+fn borrowed_host_operation(binding: &GeneratedHostOperation) -> StaticHostOperation<'_> {
+    StaticHostOperation {
+        ordinal: binding.ordinal,
+        operation: Id(&binding.operation),
+        resource_binding: Id(&binding.resource_binding),
+        resource: ResourceRef {
+            kind: Id(&binding.resource_kind),
+            id: Id(&binding.resource_id),
+        },
+        effect_hash: binding.effect_hash,
+        grant_hash: binding.grant_hash,
+        resource_lease_hash: binding.resource_lease_hash,
+        commit_profile_hash: binding.commit_profile_hash,
+        capability_id: Id(&binding.capability_id),
+        grant_id: Id(&binding.grant_id),
+        host: Id(&binding.host),
+        check_at_use: binding.check_at_use,
+    }
+}
+
 fn render_profile(output: &mut String, profile: EmbeddedProfile) {
     output.push_str(
         "pub const GENERATED_EMBEDDED_PROFILE: conduit_embedded::EmbeddedProfile = \
@@ -910,6 +1191,12 @@ fn render_profile(output: &mut String, profile: EmbeddedProfile) {
         .expect("String writes cannot fail");
     writeln!(output, "    maximum_ports: {},", profile.maximum_ports)
         .expect("String writes cannot fail");
+    writeln!(
+        output,
+        "    maximum_host_operations: {},",
+        profile.maximum_host_operations
+    )
+    .expect("String writes cannot fail");
     writeln!(
         output,
         "    maximum_queue_slots: {},",
@@ -984,6 +1271,81 @@ fn render_pin(output: &mut String, field: &str, pin: &GeneratedPin, indent: usiz
     output.push_str("    semantic_hash: ");
     write_hash_expression(output, pin.semantic_hash);
     output.push_str(",\n");
+    writeln!(output, "{padding}}},").expect("String writes cannot fail");
+}
+
+fn render_host_operation(output: &mut String, binding: &GeneratedHostOperation, indent: usize) {
+    let padding = " ".repeat(indent);
+    writeln!(output, "{padding}conduit_embedded::StaticHostOperation {{")
+        .expect("String writes cannot fail");
+    writeln!(output, "{padding}    ordinal: {},", binding.ordinal)
+        .expect("String writes cannot fail");
+    writeln!(
+        output,
+        "{padding}    operation: conduit_core::Id({:?}),",
+        binding.operation
+    )
+    .expect("String writes cannot fail");
+    writeln!(
+        output,
+        "{padding}    resource_binding: conduit_core::Id({:?}),",
+        binding.resource_binding
+    )
+    .expect("String writes cannot fail");
+    writeln!(
+        output,
+        "{padding}    resource: conduit_core::ResourceRef {{"
+    )
+    .expect("String writes cannot fail");
+    writeln!(
+        output,
+        "{padding}        kind: conduit_core::Id({:?}),",
+        binding.resource_kind
+    )
+    .expect("String writes cannot fail");
+    writeln!(
+        output,
+        "{padding}        id: conduit_core::Id({:?}),",
+        binding.resource_id
+    )
+    .expect("String writes cannot fail");
+    writeln!(output, "{padding}    }},").expect("String writes cannot fail");
+    write!(output, "{padding}    effect_hash: ").expect("String writes cannot fail");
+    write_hash_expression(output, binding.effect_hash);
+    output.push_str(",\n");
+    write!(output, "{padding}    grant_hash: ").expect("String writes cannot fail");
+    write_hash_expression(output, binding.grant_hash);
+    output.push_str(",\n");
+    write!(output, "{padding}    resource_lease_hash: ").expect("String writes cannot fail");
+    write_hash_expression(output, binding.resource_lease_hash);
+    output.push_str(",\n");
+    write!(output, "{padding}    commit_profile_hash: ").expect("String writes cannot fail");
+    write_hash_expression(output, binding.commit_profile_hash);
+    output.push_str(",\n");
+    writeln!(
+        output,
+        "{padding}    capability_id: conduit_core::Id({:?}),",
+        binding.capability_id
+    )
+    .expect("String writes cannot fail");
+    writeln!(
+        output,
+        "{padding}    grant_id: conduit_core::Id({:?}),",
+        binding.grant_id
+    )
+    .expect("String writes cannot fail");
+    writeln!(
+        output,
+        "{padding}    host: conduit_core::Id({:?}),",
+        binding.host
+    )
+    .expect("String writes cannot fail");
+    writeln!(
+        output,
+        "{padding}    check_at_use: {},",
+        binding.check_at_use
+    )
+    .expect("String writes cannot fail");
     writeln!(output, "{padding}}},").expect("String writes cannot fail");
 }
 
