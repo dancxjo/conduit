@@ -3691,7 +3691,7 @@ async function run(requestedTaskAction = null) {
   }
 }
 
-runButton.onclick = run;
+runButton.onclick = () => void run();
 watchToggle.onclick = () => void toggleWatch();
 freezeDisplay.onclick = toggleDisplayFreeze;
 if (consoleDisclosure && consoleBody) {
