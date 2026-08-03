@@ -125,8 +125,14 @@ jobs:
             port: 4175
             shard: 1/1
             shard_name: whole
-            test_args: ""
+            test_args: --grep-invert=@webkit-watch-freeze
             test_timeout_ms: 30000
+          - browser: webkit
+            port: 4179
+            shard: 1/1
+            shard_name: watch-freeze
+            test_args: --grep=@webkit-watch-freeze
+            test_timeout_ms: 60000
     env:
       HOME: /root
       CONDUIT_PLAYWRIGHT_PORT: ${{ matrix.port }}

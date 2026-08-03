@@ -787,10 +787,10 @@ test("starts one public latest-value Watch with bounded accounting", async ({ pa
   expect(failures).toEqual([]);
 });
 
-test("freezes and resumes one exact live Watch while execution advances", async ({ page }) => {
+test("freezes and resumes one exact live Watch while execution advances @webkit-watch-freeze", async ({ page }) => {
   const failures = collectPageFailures(page);
-  const { first } = await startTinyInstrument(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
+  const { first } = await startTinyInstrument(page);
   const liveEdge = page.locator('.react-flow__edge[data-live-update="true"]').first();
   const freezeDisplay = page.locator("#freeze-display");
   await expect(freezeDisplay).toBeEnabled({ timeout: 20_000 });
