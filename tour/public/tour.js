@@ -2497,11 +2497,16 @@ function renderExactResultTimeline(value) {
   if (!executionStory) return;
   const values = document.querySelector("#timeline-values");
   if (value.ok) {
+    const runtimeFailure = value.runtime_failure
+      ? `\nExact runtime failure: ${value.runtime_failure.code}\n` +
+        `${value.runtime_failure.diagnostic}`
+      : "";
     values.textContent =
       `Exact terminal state: ${value.terminal}\n` +
       `Exact stdout: ${JSON.stringify(value.stdout || "")}\n` +
       `Exact display: ${JSON.stringify(value.display || "")}\n` +
-      `Exact stderr: ${JSON.stringify(value.stderr || "")}`;
+      `Exact stderr: ${JSON.stringify(value.stderr || "")}` +
+      runtimeFailure;
   } else {
     values.textContent =
       `Exact run rejection: ${value.code || "unknown"}\n${value.diagnostic || ""}`;
@@ -3606,11 +3611,13 @@ async function run(requestedTaskAction = null) {
       ? `\nEvidence: ${value.completed_nodes} nodes, ${value.cords_conducted} cords conducted.`
       : "";
     const validation = activeScenario()?.validation || current.validation;
-    const visibleValue = validation?.kind === "display"
-      ? value.display
-      : validation?.kind === "stdout"
-        ? value.stdout
-        : value.stdout || value.display;
+    const visibleValue = validation?.kind === "diagnostic"
+      ? value.runtime_failure?.diagnostic || value.stderr || value.diagnostic
+      : validation?.kind === "display"
+        ? value.display
+        : validation?.kind === "stdout"
+          ? value.stdout
+          : value.stdout || value.display;
     const visibleResult = value.ok
       ? `${visibleValue || (value.terminal
         ? `Run completed: ${value.terminal}.`

@@ -3077,7 +3077,7 @@ test("typed text lesson projects missing-value rejection", async ({ page }) => {
   await expect(result).toContainText("format/missing-value", { timeout: 20_000 });
   await expect(page.locator("#timeline-table")).toContainText(/failed|rejected/);
   await expect(page.locator("#timeline-values")).toContainText(
-    "Exact run rejection: format/missing-value",
+    "Exact runtime failure: format/missing-value",
   );
 });
 
