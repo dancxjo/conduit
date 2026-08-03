@@ -62,6 +62,23 @@
       "type": "object",
       "required": ["assembly_ns", "plan_seal_ns", "start_ns", "steady_ns", "pressure_ns", "recovery_ns"]
     },
+    "memory": {
+      "type": "object",
+      "required": ["resident_before_bytes", "resident_after_bytes", "resident_peak_bytes", "planned_memory_bytes", "executor_overhead_bytes", "queue_items_high_water", "queue_max_cord_items_high_water", "queue_payload_bytes_high_water", "ready_slots_high_water", "evidence_slots_high_water"],
+      "properties": {
+        "resident_before_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "resident_after_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "resident_peak_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "planned_memory_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "executor_overhead_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "queue_items_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "queue_max_cord_items_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "queue_payload_bytes_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "ready_slots_high_water": { "type": ["integer", "null"], "minimum": 0 },
+        "evidence_slots_high_water": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
     "latency": {
       "type": "object",
       "required": ["clock", "sample_stride", "samples_ns"]

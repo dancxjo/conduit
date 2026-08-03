@@ -23,8 +23,8 @@ use conduit_core::{
     validate_execution_plan,
 };
 use conduit_runtime::{
-    DeterministicExecutor, RuntimeValue, RuntimeValueEnvelope, ScheduledNode, SchedulerNode,
-    SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
+    DeterministicExecutor, RetainedValueUsage, RuntimeValue, RuntimeValueEnvelope, ScheduledNode,
+    SchedulerNode, SchedulerReservation, SchedulerStatus, SchedulerStep, SendStatus, StepIo,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -76,6 +76,14 @@ const CLAIMS: [MemoryClaim; 1] = [MemoryClaim {
     accounting: MemoryAccounting::ExecutorAllocated,
     bytes: 512,
 }];
+const ISOLATED_CLAIMS: [MemoryClaim; 2] = [
+    CLAIMS[0],
+    MemoryClaim {
+        category: MemoryCategory::Retained,
+        accounting: MemoryAccounting::ExecutorAllocated,
+        bytes: 64,
+    },
+];
 const LIMITS: ExecutionLimits = ExecutionLimits {
     max_step_work: 4,
     max_retained_values: 0,
@@ -139,6 +147,22 @@ enum PressurePolicy {
 enum SlowBranches {
     One,
     All,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+enum FanoutPublication {
+    Coupled,
+    Isolated,
+}
+
+impl FanoutPublication {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Coupled => "coupled",
+            Self::Isolated => "isolated",
+        }
+    }
 }
 
 impl SlowBranches {
@@ -210,6 +234,8 @@ struct Args {
     slow_consumer_yields: u32,
     #[arg(long, default_value_t = 1)]
     fanout_branches: u16,
+    #[arg(long, value_enum, default_value_t = FanoutPublication::Coupled)]
+    fanout_mode: FanoutPublication,
     #[arg(long, value_enum, default_value_t = SlowBranches::One)]
     slow_branches: SlowBranches,
 }
@@ -239,6 +265,7 @@ struct MemoryMeasurement {
     planned_memory_bytes: Option<u64>,
     executor_overhead_bytes: Option<u64>,
     queue_items_high_water: Option<u64>,
+    queue_max_cord_items_high_water: Option<u16>,
     queue_payload_bytes_high_water: Option<u64>,
     ready_slots_high_water: Option<u32>,
     evidence_slots_high_water: Option<u32>,
@@ -355,6 +382,15 @@ enum BenchNode {
         observations: Observations,
         retrying: bool,
     },
+    IsolatedDuplicator {
+        input: usize,
+        first_output: usize,
+        branch_count: usize,
+        retained_handle: Option<u64>,
+        delivered: [bool; 32],
+        cursor: usize,
+        observations: Observations,
+    },
     Map {
         input: usize,
         output: usize,
@@ -388,6 +424,19 @@ impl SchedulerNode for BenchNode {
 
     fn start(&mut self) -> Result<LifecycleUsage, Id<'static>> {
         Ok(LifecycleUsage::default())
+    }
+
+    fn retained_value_usage(&self) -> RetainedValueUsage {
+        match self {
+            Self::IsolatedDuplicator {
+                retained_handle: Some(_),
+                ..
+            } => RetainedValueUsage {
+                values: 1,
+                bytes: 8,
+            },
+            _ => RetainedValueUsage::default(),
+        }
     }
 
     fn step(&mut self, io: &mut StepIo<'_>) -> SchedulerStep {
@@ -526,6 +575,79 @@ impl SchedulerNode for BenchNode {
                         code: Id("benchmark/coupled-fanout-send-error"),
                     },
                 }
+            }
+            Self::IsolatedDuplicator {
+                input,
+                first_output,
+                branch_count,
+                retained_handle,
+                delivered,
+                cursor,
+                observations,
+            } => {
+                if retained_handle.is_none() {
+                    match io.receive(*input) {
+                        Ok(Some(value)) => {
+                            assert_eq!(value.accounted_bytes, 8);
+                            assert_eq!(value.envelope, RuntimeValueEnvelope::EMPTY);
+                            *retained_handle = Some(value.handle);
+                            delivered[..*branch_count].fill(false);
+                            *cursor = usize::try_from(value.handle).unwrap() % *branch_count;
+                            return SchedulerStep::Progress;
+                        }
+                        _ if matches!(io.input_state(*input), Ok(FlowQueueState::Completed)) => {
+                            return SchedulerStep::Completed;
+                        }
+                        _ => {
+                            io.wait_for_input(*input).unwrap();
+                            return SchedulerStep::Pending;
+                        }
+                    }
+                }
+
+                let value = RuntimeValue {
+                    handle: retained_handle.expect("isolated duplicator retains one input"),
+                    accounted_bytes: 8,
+                    envelope: RuntimeValueEnvelope::EMPTY,
+                };
+                for offset in 0..*branch_count {
+                    let branch = (*cursor + offset) % *branch_count;
+                    if delivered[branch] {
+                        continue;
+                    }
+                    let cord = *first_output + branch;
+                    match io.send(cord, value, None) {
+                        Ok(SendStatus::Reserved) => {
+                            delivered[branch] = true;
+                            *cursor = (branch + 1) % *branch_count;
+                            if delivered[..*branch_count].iter().all(|value| *value) {
+                                *retained_handle = None;
+                            }
+                            return SchedulerStep::Progress;
+                        }
+                        Ok(SendStatus::WouldBlock) => {
+                            observations.retried.set(observations.retried.get() + 1);
+                            io.wait_for_output(cord).unwrap();
+                        }
+                        Ok(SendStatus::Terminated) => return SchedulerStep::Completed,
+                        Ok(
+                            SendStatus::Rejected
+                            | SendStatus::Dropped
+                            | SendStatus::Disconnected
+                            | SendStatus::Failed,
+                        ) => {
+                            return SchedulerStep::Failed {
+                                code: Id("benchmark/isolated-fanout-publication-failed"),
+                            };
+                        }
+                        Err(_) => {
+                            return SchedulerStep::Failed {
+                                code: Id("benchmark/isolated-fanout-send-error"),
+                            };
+                        }
+                    }
+                }
+                SchedulerStep::Pending
             }
             Self::Map {
                 input,
@@ -723,8 +845,14 @@ fn pin(id: &'static str, kind: &'static str) -> PinnedDescriptor<'static> {
 fn profile(args: &Args) -> ExecutionProfile<'static> {
     let mut limits = LIMITS;
     if matches!(args.workload, Workload::Fanout) {
-        limits.max_output_reservations = args.fanout_branches;
-        limits.max_output_bytes = u64::from(args.fanout_branches) * 8;
+        if matches!(args.fanout_mode, FanoutPublication::Coupled) {
+            limits.max_output_reservations = args.fanout_branches;
+            limits.max_output_bytes = u64::from(args.fanout_branches) * 8;
+        } else {
+            limits.max_retained_values = 1;
+            limits.max_retained_bytes = 8;
+            limits.implementation_memory_bytes += ISOLATED_CLAIMS[1].bytes;
+        }
     }
     let mut value = ExecutionProfile {
         id: Id("benchmark/reference-profile"),
@@ -735,10 +863,16 @@ fn profile(args: &Args) -> ExecutionProfile<'static> {
         step_bound_enforced: true,
         limits,
         representations: &[],
-        memory_claims: &CLAIMS,
+        memory_claims: if matches!(args.workload, Workload::Fanout)
+            && matches!(args.fanout_mode, FanoutPublication::Isolated)
+        {
+            &ISOLATED_CLAIMS
+        } else {
+            &CLAIMS
+        },
         checkpoint: None,
     };
-    value.semantic_hash = value.computed_semantic_hash(&mut [ZERO; 1]).unwrap();
+    value.semantic_hash = value.computed_semantic_hash(&mut [ZERO; 2]).unwrap();
     value
 }
 
@@ -754,7 +888,7 @@ fn machine(
             artifact: node.artifact,
             execution_profile_hash: profile.semantic_hash,
             configuration_validated: true,
-            caller_memory_bytes: CLAIMS[0].bytes,
+            caller_memory_bytes: profile.limits.implementation_memory_bytes,
             required_resource_bindings: &[],
             provided_resource_bindings: &[],
             required_grants: &[],
@@ -799,7 +933,7 @@ fn prepare(args: &Args) -> PreparedRun {
         );
         assert!(
             matches!(args.pressure_policy, PressurePolicy::Block),
-            "the current coupled fan-out slice uses FIFO block pressure"
+            "the current fan-out slice uses FIFO block pressure"
         );
         assert!(
             args.slow_consumer_yields > 0,
@@ -859,7 +993,11 @@ fn prepare(args: &Args) -> PreparedRun {
         vec!["source", "source", "merge"]
     } else if matches!(args.workload, Workload::Fanout) {
         let mut roles = vec!["source"];
-        roles.resize(usize::from(args.fanout_branches) + 1, "sink");
+        if matches!(args.fanout_mode, FanoutPublication::Isolated) {
+            roles.push("duplicator");
+        }
+        let non_sink = roles.len();
+        roles.resize(non_sink + usize::from(args.fanout_branches), "sink");
         roles
     } else {
         vec!["source"]
@@ -1032,25 +1170,55 @@ fn prepare(args: &Args) -> PreparedRun {
         });
     } else if matches!(args.workload, Workload::Fanout) {
         let branch_count = usize::from(args.fanout_branches);
-        drivers.push(BenchNode::CoupledSource {
-            next: 0,
-            end: args.values,
-            branch_count,
-            observations: observations.clone(),
-            retrying: false,
-        });
+        let isolated = matches!(args.fanout_mode, FanoutPublication::Isolated);
+        if isolated {
+            cords.push(ResolvedPlanCord {
+                id: Id("benchmark/duplicator-input"),
+                from: port(&nodes[0], Direction::Output, "out"),
+                to: port(&nodes[1], Direction::Input, "in"),
+                flow,
+                queue_memory_bytes: u64::from(args.queue_items) * 16,
+            });
+            drivers.push(BenchNode::Source {
+                next: 0,
+                end: args.values,
+                cord: 0,
+                observations: observations.clone(),
+                retrying: false,
+                pressure: PressurePolicy::Block,
+                queue_capacity: u64::from(args.queue_items),
+            });
+            drivers.push(BenchNode::IsolatedDuplicator {
+                input: 0,
+                first_output: 1,
+                branch_count,
+                retained_handle: None,
+                delivered: [false; 32],
+                cursor: 0,
+                observations: observations.clone(),
+            });
+        } else {
+            drivers.push(BenchNode::CoupledSource {
+                next: 0,
+                end: args.values,
+                branch_count,
+                observations: observations.clone(),
+                retrying: false,
+            });
+        }
         for branch in 0..branch_count {
-            let sink_node = branch + 1;
+            let sink_node = branch + if isolated { 2 } else { 1 };
+            let cord_index = branch + usize::from(isolated);
             cords.push(ResolvedPlanCord {
                 id: Id(leaked(format!("benchmark/branch-{branch}"))),
-                from: port(&nodes[0], Direction::Output, "out"),
+                from: port(&nodes[usize::from(isolated)], Direction::Output, "out"),
                 to: port(&nodes[sink_node], Direction::Input, "in"),
                 flow,
                 queue_memory_bytes: u64::from(args.queue_items) * 16,
             });
             let slow = matches!(args.slow_branches, SlowBranches::All) || branch == 0;
             drivers.push(BenchNode::Sink {
-                input: branch,
+                input: cord_index,
                 observations: observations.clone(),
                 slow_consumer_yields: if slow { args.slow_consumer_yields } else { 0 },
                 yields_remaining: if slow { args.slow_consumer_yields } else { 0 },
@@ -1062,17 +1230,26 @@ fn prepare(args: &Args) -> PreparedRun {
         let branches = Box::leak(
             cords
                 .iter()
+                .skip(usize::from(isolated))
                 .map(|cord| cord.id)
                 .collect::<Vec<_>>()
                 .into_boxed_slice(),
         );
         fanouts.push(PlanFanOut {
-            id: Id("benchmark/coupled-fanout"),
-            producer: port(&nodes[0], Direction::Output, "out"),
-            mode: FanOutMode::Coupled,
+            id: Id(if isolated {
+                "benchmark/isolated-fanout"
+            } else {
+                "benchmark/coupled-fanout"
+            }),
+            producer: port(&nodes[usize::from(isolated)], Direction::Output, "out"),
+            mode: if isolated {
+                FanOutMode::Isolated
+            } else {
+                FanOutMode::Coupled
+            },
             branches,
-            duplicator: None,
-            duplicator_input: None,
+            duplicator: isolated.then_some(nodes[1].instance),
+            duplicator_input: isolated.then_some(cords[0].id),
             duplication: DuplicationRule::Copy(pin("benchmark/u64-copy", "duplication-rule")),
         });
     } else {
@@ -1368,14 +1545,18 @@ fn run_sample(
             input_values: args.values,
             queue_capacity_items: args.queue_items,
             ordering: if matches!(args.workload, Workload::Fanout) {
-                "source order independently at every coupled branch"
+                "source order independently at every exact branch"
             } else {
                 "source-order; merge uses retained round-robin"
             },
             pressure: if matches!(args.workload, Workload::Overload) {
                 args.pressure_policy.as_str()
             } else if matches!(args.workload, Workload::Fanout) {
-                "complete after every coupled branch drains"
+                if matches!(args.fanout_mode, FanoutPublication::Coupled) {
+                    "atomic publication waits for every branch"
+                } else {
+                    "ordinary duplicator publishes independently to finite branch cords"
+                }
             } else {
                 "bounded FIFO block"
             },
@@ -1406,7 +1587,7 @@ fn run_sample(
                 1
             },
             fanout_mode: if matches!(args.workload, Workload::Fanout) {
-                "coupled"
+                args.fanout_mode.as_str()
             } else {
                 "none"
             },
@@ -1430,7 +1611,8 @@ fn run_sample(
                 )
             } else if matches!(args.workload, Workload::Fanout) {
                 format!(
-                    "comparative-fanout/coupled/{}/{}/{}/{}/{}/{}",
+                    "comparative-fanout/{}/{}/{}/{}/{}/{}/{}",
+                    args.fanout_mode.as_str(),
                     args.slow_branches.as_str(),
                     args.fanout_branches,
                     args.values,
@@ -1487,6 +1669,7 @@ fn run_sample(
             planned_memory_bytes: Some(allocation.planned_memory_bytes),
             executor_overhead_bytes: Some(allocation.executor_overhead_bytes),
             queue_items_high_water: Some(high_water.queue_items),
+            queue_max_cord_items_high_water: Some(executor.max_cord_occupancy()),
             queue_payload_bytes_high_water: Some(high_water.queue_payload_bytes),
             ready_slots_high_water: Some(high_water.ready_slots),
             evidence_slots_high_water: Some(high_water.event_slots),
@@ -1501,7 +1684,11 @@ fn run_sample(
             if matches!(args.workload, Workload::Overload) {
                 "The pinned benchmark value type proves disposability and the exact latest-wins coalescer before the pressure plan is sealed."
             } else if matches!(args.workload, Workload::Fanout) {
-                "The exact plan pins coupled atomic copy publication; every branch has its own finite cord and no benchmark-side buffer."
+                if matches!(args.fanout_mode, FanoutPublication::Coupled) {
+                    "The exact plan pins coupled atomic copy publication; every branch has its own finite cord and no benchmark-side buffer."
+                } else {
+                    "The exact plan pins an ordinary isolated duplicator with one profile-accounted retained value and one finite cord per branch."
+                }
             } else {
                 "The handle-backed u64 fixture isolates scheduler cost and is not the optimized hosted streaming mode, which is not yet available."
             },
@@ -1649,6 +1836,7 @@ fn run_identity_sample(
             planned_memory_bytes: None,
             executor_overhead_bytes: None,
             queue_items_high_water: None,
+            queue_max_cord_items_high_water: None,
             queue_payload_bytes_high_water: None,
             ready_slots_high_water: None,
             evidence_slots_high_water: None,

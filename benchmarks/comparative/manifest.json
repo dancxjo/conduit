@@ -12,16 +12,16 @@
     "pressure_policies": ["block", "reject", "coalesce", "sample", "drop-disposable", "disconnect", "fail"],
     "slow_consumer_yields": 3,
     "branch_count": 1,
-    "scope": "finite exact-run single-cord pressure and recovery; fan-out and persistent sessions remain unavailable in this slice"
+    "scope": "finite exact-run single-cord pressure and recovery; persistent sessions remain unavailable in this slice"
   },
   "fanout": {
     "queue_capacity_items": [4, 64, 1024],
     "branches": [2, 8, 32],
-    "modes": ["coupled"],
+    "modes": ["coupled", "isolated"],
     "slow_branches": ["one", "all"],
     "pressure_policy": "block",
     "slow_consumer_yields": 3,
-    "scope": "finite exact-run coupled atomic publication; isolated ordinary-duplicator fan-out remains unavailable"
+    "scope": "finite exact-run coupled atomic publication and isolated ordinary-duplicator publication with one profile-accounted retained value"
   },
   "latency_sample_stride": 1024,
   "warmup_trials": 2,
@@ -80,6 +80,7 @@
     "overload accounting conserves offered values according to the exact pressure policy",
     "block, reject, coalesce, sample, and disposable-drop fixtures enter a slow region and then clear into a recovery region",
     "coupled fan-out admits each input atomically to every branch or retries without partial publication",
+    "isolated fan-out uses an explicit ordinary duplicator and reports its one retained input through the execution profile",
     "fan-out useful completion equals admitted inputs multiplied by exact branch count",
     "aggregate fan-out queue high water never exceeds capacity multiplied by branch count"
   ],

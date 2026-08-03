@@ -103,7 +103,10 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
         manifest["fanout"]["branches"],
         serde_json::json!([2, 8, 32])
     );
-    assert_eq!(manifest["fanout"]["modes"], serde_json::json!(["coupled"]));
+    assert_eq!(
+        manifest["fanout"]["modes"],
+        serde_json::json!(["coupled", "isolated"])
+    );
     assert_eq!(
         manifest["fanout"]["slow_branches"],
         serde_json::json!(["one", "all"])
@@ -177,6 +180,13 @@ fn comparative_methodology_pins_matrix_schema_and_runtimes() {
                 .unwrap()
                 .iter()
                 .any(|required| required == field))
+    );
+    assert!(
+        schema["properties"]["memory"]["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "queue_max_cord_items_high_water")
     );
     assert_eq!(
         rxjs_lock["packages"]["node_modules/rxjs"]["version"],
