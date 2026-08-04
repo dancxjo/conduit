@@ -1,0 +1,12 @@
+form 0
+
+signal-demo {
+    pulse: flow/pulse
+    show: display/show
+
+    pulse.count = 16
+    pulse.period-ms = 250
+    pulse.initial = false
+
+    pulse > show
+}

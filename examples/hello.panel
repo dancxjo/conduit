@@ -1,2 +1,12 @@
-panel 0
-part greeting = "hello"
+form 0
+
+signal-demo {
+	pulse: flow/pulse
+	show: display/show
+
+	pulse.count = 4
+	pulse.period-ms = 0
+	pulse.initial = false
+
+	pulse > show
+}

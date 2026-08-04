@@ -1,5 +1,11 @@
-hello:
-    cargo run -p conduit -- examples/hello.panel
+std-host:
+    cargo run -p conduit -- examples/signal-demo.form
+
+demo-std:
+    cargo run -p conduit -- examples/signal-demo.form
+
+demo-triple-local:
+    cargo run -p conduit -- examples/triple-signal.form
 
 check:
     cargo fmt --check

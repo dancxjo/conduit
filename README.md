@@ -20,3 +20,21 @@ The architecture, invariants, host profiles, planning model, bounded cord protoc
 > Forms describe meaning. Hosts offer implementations of that meaning. Plans make the mapping exact.
 
 The reboot intentionally begins with one finite, inspectable, cross-host source-to-sink flow before restoring broader libraries, robotics, durable body identity, or `.soul` recovery.
+
+## Current implementation slice
+
+This repository currently implements the Rust `std` host vertical slice from issue #347:
+
+- parses portable `form 0` files for `flow/pulse` and `display/show`;
+- builds an exact local plan from host capability advertisements;
+- validates bounded queue limits and host boot identity;
+- executes finite pulse signals;
+- manifests `display/show<Signal>` on stdout;
+- records machine-readable show receipts and prints a concise completion summary.
+
+Try the included forms:
+
+```bash
+just demo-std
+just demo-triple-local
+```

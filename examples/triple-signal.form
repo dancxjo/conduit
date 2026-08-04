@@ -1,0 +1,16 @@
+form 0
+
+triple-signal {
+    pulse: flow/pulse
+    local: display/show
+    web: display/show
+    light: display/show
+
+    pulse.count = 16
+    pulse.period-ms = 250
+    pulse.initial = false
+
+    pulse > local
+    pulse > web
+    pulse > light
+}
