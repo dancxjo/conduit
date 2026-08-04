@@ -10,9 +10,10 @@ The first foundation proof uses one unchanged signal form across three host plat
 - multiple independent browser hosts that show it in the DOM;
 - a Pico W host that shows it on the onboard LED.
 
-The architecture, invariants, host profiles, planning model, bounded cord protocol, and implementation rules are documented in:
+The architecture, invariants, host contract, planning model, bounded connection protocol, and implementation rules are documented in:
 
 - [Portable Host Architecture](docs/architecture/portable-hosts.md)
+- [Conduit Host Specification](docs/architecture/host-specification.md)
 - [Foundation implementation issue #347](https://github.com/dancxjo/conduit/issues/347)
 
 ## Reboot principle
