@@ -1,0 +1,5 @@
+placements 0
+pulse -> std-host-1/cap-pulse-1
+local -> std-host-1/cap-show-stdout-1
+web -> std-host-1/cap-show-stdout-1
+light -> std-host-1/cap-show-stdout-1

@@ -66,6 +66,17 @@ struct Form {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+struct PlacementChoice {
+    host_id: String,
+    capability_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PlacementChoices {
+    by_cell: BTreeMap<String, PlacementChoice>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct PlannedCell {
     cell_id: String,
     kind_id: String,
@@ -207,7 +218,7 @@ fn parse_form(source: &str) -> Result<Form, String> {
     let lines: Vec<&str> = source
         .lines()
         .map(str::trim)
-        .filter(|line| !line.is_empty() && !line.starts_with("#"))
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
         .collect();
 
     if lines.first().copied().unwrap_or("") != "form 0" {
@@ -308,6 +319,39 @@ fn parse_form(source: &str) -> Result<Form, String> {
     })
 }
 
+fn parse_placements(source: &str) -> Result<PlacementChoices, String> {
+    let lines: Vec<&str> = source
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .collect();
+
+    if lines.first().copied().unwrap_or("") != "placements 0" {
+        return Err("expected first non-comment line to be 'placements 0'".to_string());
+    }
+
+    let mut by_cell = BTreeMap::new();
+    for line in &lines[1..] {
+        let (cell_id, target) = line
+            .split_once("->")
+            .ok_or_else(|| format!("invalid placement statement '{line}'"))?;
+        let cell_id = cell_id.trim().to_string();
+        let (host_id, capability_id) = target
+            .trim()
+            .split_once('/')
+            .ok_or_else(|| format!("invalid placement target '{target}'"))?;
+        let choice = PlacementChoice {
+            host_id: host_id.trim().to_string(),
+            capability_id: capability_id.trim().to_string(),
+        };
+        if by_cell.insert(cell_id.clone(), choice).is_some() {
+            return Err(format!("duplicate placement for cell '{cell_id}'"));
+        }
+    }
+
+    Ok(PlacementChoices { by_cell })
+}
+
 fn select_capability<'a>(
     ad: &'a HostAdvertisement,
     kind_id: &str,
@@ -333,7 +377,95 @@ fn select_capability<'a>(
     }
 }
 
-fn plan_local(form: &Form, ad: &HostAdvertisement) -> Result<Plan, PlanError> {
+fn select_capability_by_id<'a>(
+    ad: &'a HostAdvertisement,
+    capability_id: &str,
+) -> Result<&'a CapabilityAdvertisement, PlanError> {
+    ad.capabilities
+        .iter()
+        .find(|cap| cap.capability_id == capability_id)
+        .ok_or_else(|| {
+            PlanError::DuplicateOrInvalidPlacement(format!(
+                "capability '{capability_id}' is not advertised by host '{}'",
+                ad.host_id
+            ))
+        })
+}
+
+fn default_placements(form: &Form, ad: &HostAdvertisement) -> Result<PlacementChoices, PlanError> {
+    let mut by_cell = BTreeMap::new();
+    let pulse_cap = select_capability(ad, PULSE_KIND_ID)?;
+    let show_cap = select_capability(ad, SHOW_KIND_ID)?;
+
+    for (cell_id, kind) in &form.cells {
+        let capability_id = match kind {
+            CellKind::Pulse => pulse_cap.capability_id.clone(),
+            CellKind::Show => show_cap.capability_id.clone(),
+        };
+        by_cell.insert(
+            cell_id.clone(),
+            PlacementChoice {
+                host_id: ad.host_id.clone(),
+                capability_id,
+            },
+        );
+    }
+
+    Ok(PlacementChoices { by_cell })
+}
+
+fn validate_placements(
+    form: &Form,
+    placements: &PlacementChoices,
+    ad: &HostAdvertisement,
+) -> Result<(), PlanError> {
+    for cell_id in placements.by_cell.keys() {
+        if !form.cells.contains_key(cell_id) {
+            return Err(PlanError::DuplicateOrInvalidPlacement(format!(
+                "placement references unknown cell '{cell_id}'"
+            )));
+        }
+    }
+
+    for (cell_id, kind) in &form.cells {
+        let choice = placements.by_cell.get(cell_id).ok_or_else(|| {
+            PlanError::DuplicateOrInvalidPlacement(format!(
+                "missing placement for cell '{cell_id}'"
+            ))
+        })?;
+        if choice.host_id != ad.host_id {
+            return Err(PlanError::DuplicateOrInvalidPlacement(format!(
+                "cell '{cell_id}' targets host '{}' but only '{}' is available in the current local planner",
+                choice.host_id, ad.host_id
+            )));
+        }
+        let capability = select_capability_by_id(ad, &choice.capability_id)?;
+        let expected_kind = match kind {
+            CellKind::Pulse => PULSE_KIND_ID,
+            CellKind::Show => SHOW_KIND_ID,
+        };
+        if capability.kind_id != expected_kind {
+            return Err(PlanError::DuplicateOrInvalidPlacement(format!(
+                "cell '{cell_id}' requires kind '{expected_kind}' but placement selects capability '{}' of kind '{}'",
+                capability.capability_id, capability.kind_id
+            )));
+        }
+        if capability.value_kind != SIGNAL_KIND_ID {
+            return Err(PlanError::IncompatibleValueKind {
+                capability_id: capability.capability_id.clone(),
+                got: capability.value_kind.clone(),
+            });
+        }
+    }
+
+    Ok(())
+}
+
+fn plan_local(
+    form: &Form,
+    ad: &HostAdvertisement,
+    placements: &PlacementChoices,
+) -> Result<Plan, PlanError> {
     if ad.protocol_version != PROTOCOL_VERSION {
         return Err(PlanError::DuplicateOrInvalidPlacement(format!(
             "protocol mismatch: expected {PROTOCOL_VERSION}, got {}",
@@ -341,19 +473,27 @@ fn plan_local(form: &Form, ad: &HostAdvertisement) -> Result<Plan, PlanError> {
         )));
     }
 
+    validate_placements(form, placements, ad)?;
+
     let mut cells: Vec<PlannedCell> = Vec::new();
     let mut planned_pulse: usize = 0;
     let mut planned_show: usize = 0;
 
     for (cell_id, kind) in &form.cells {
-        let (kind_id, cap) = match kind {
+        let choice = placements.by_cell.get(cell_id).ok_or_else(|| {
+            PlanError::DuplicateOrInvalidPlacement(format!(
+                "missing placement for cell '{cell_id}'"
+            ))
+        })?;
+        let cap = select_capability_by_id(ad, &choice.capability_id)?;
+        let kind_id = match kind {
             CellKind::Pulse => {
                 planned_pulse += 1;
-                (PULSE_KIND_ID, select_capability(ad, PULSE_KIND_ID)?)
+                PULSE_KIND_ID
             }
             CellKind::Show => {
                 planned_show += 1;
-                (SHOW_KIND_ID, select_capability(ad, SHOW_KIND_ID)?)
+                SHOW_KIND_ID
             }
         };
         cells.push(PlannedCell {
@@ -465,6 +605,34 @@ fn plan_local(form: &Form, ad: &HostAdvertisement) -> Result<Plan, PlanError> {
     })
 }
 
+fn print_operator_report(plan: &Plan, ad: &HostAdvertisement) {
+    println!(
+        "host {} boot {} profile {} protocol {}",
+        ad.host_id, ad.boot_id, ad.profile, ad.protocol_version
+    );
+    println!(
+        "plan {} form {} finite-source-count {}",
+        plan.plan_id, plan.form_name, plan.finite_source_count
+    );
+    for cell in &plan.cells {
+        println!(
+            "place {} kind={} host={} boot={} capability={} implementation={}",
+            cell.cell_id,
+            cell.kind_id,
+            cell.host_id,
+            cell.boot_id,
+            cell.capability_id,
+            cell.implementation_id
+        );
+    }
+    for cord in &plan.cords {
+        println!(
+            "cord {} {} -> {} via {} queue={}",
+            cord.cord_id, cord.from, cord.to, cord.provider, cord.queue_capacity
+        );
+    }
+}
+
 fn activate_local(
     plan: &Plan,
     form: &Form,
@@ -535,12 +703,21 @@ fn activate_local(
     })
 }
 
-fn run(path: &str) -> Result<(), String> {
+fn run_with_placements(path: &str, placements_path: Option<&str>) -> Result<(), String> {
     let source =
         fs::read_to_string(path).map_err(|err| format!("failed to read '{path}': {err}"))?;
     let form = parse_form(&source)?;
     let host_ad = std_host_advertisement();
-    let plan = plan_local(&form, &host_ad).map_err(|err| err.to_string())?;
+    let placements = match placements_path {
+        Some(path) => {
+            let source = fs::read_to_string(path)
+                .map_err(|err| format!("failed to read placements '{path}': {err}"))?;
+            parse_placements(&source)?
+        }
+        None => default_placements(&form, &host_ad).map_err(|err| err.to_string())?,
+    };
+    let plan = plan_local(&form, &host_ad, &placements).map_err(|err| err.to_string())?;
+    print_operator_report(&plan, &host_ad);
     let receipts = activate_local(&plan, &form, &host_ad).map_err(|err| err.to_string())?;
 
     let first = receipts.receipts.first().cloned();
@@ -567,12 +744,23 @@ fn main() {
     let path = match args.next() {
         Some(path) => path,
         None => {
-            eprintln!("usage: conduit <form-file>");
+            eprintln!("usage: conduit <form-file> [--placements <placements-file>]");
             std::process::exit(2);
         }
     };
 
-    if let Err(err) = run(&path) {
+    let placements_path = match (args.next().as_deref(), args.next()) {
+        (Some("--placements"), value) => value,
+        (Some(other), _) => {
+            eprintln!(
+                "usage: conduit <form-file> [--placements <placements-file>]\nunexpected argument: {other}"
+            );
+            std::process::exit(2);
+        }
+        (None, _) => None,
+    };
+
+    if let Err(err) = run_with_placements(&path, placements_path.as_deref()) {
         eprintln!("error: {err}");
         std::process::exit(1);
     }
@@ -596,12 +784,65 @@ mod tests {
     }
 
     #[test]
+    fn parses_placement_file() {
+        let placements = parse_placements(
+            "placements 0\npulse -> std-host-1/cap-pulse-1\nshow -> std-host-1/cap-show-stdout-1\n",
+        )
+        .expect("placements should parse");
+        assert_eq!(placements.by_cell.len(), 2);
+        assert_eq!(placements.by_cell["pulse"].capability_id, "cap-pulse-1");
+    }
+
+    #[test]
     fn planning_fails_without_show_capability() {
         let form = parse_form(fixture_form()).expect("form should parse");
         let mut ad = std_host_advertisement();
         ad.capabilities.retain(|cap| cap.kind_id != SHOW_KIND_ID);
-        let err = plan_local(&form, &ad).expect_err("planning must fail");
+        let err = default_placements(&form, &ad).expect_err("placements must fail");
         assert_eq!(err, PlanError::NoMatchingShowCapability);
+    }
+
+    #[test]
+    fn planning_fails_for_missing_placement() {
+        let form = parse_form(fixture_form()).expect("form should parse");
+        let ad = std_host_advertisement();
+        let placements = PlacementChoices {
+            by_cell: BTreeMap::from([(
+                "pulse".to_string(),
+                PlacementChoice {
+                    host_id: ad.host_id.clone(),
+                    capability_id: "cap-pulse-1".to_string(),
+                },
+            )]),
+        };
+        let err = plan_local(&form, &ad, &placements).expect_err("planning must fail");
+        assert!(matches!(err, PlanError::DuplicateOrInvalidPlacement(_)));
+    }
+
+    #[test]
+    fn planning_fails_for_wrong_capability_kind() {
+        let form = parse_form(fixture_form()).expect("form should parse");
+        let ad = std_host_advertisement();
+        let placements = PlacementChoices {
+            by_cell: BTreeMap::from([
+                (
+                    "pulse".to_string(),
+                    PlacementChoice {
+                        host_id: ad.host_id.clone(),
+                        capability_id: "cap-show-stdout-1".to_string(),
+                    },
+                ),
+                (
+                    "show".to_string(),
+                    PlacementChoice {
+                        host_id: ad.host_id.clone(),
+                        capability_id: "cap-show-stdout-1".to_string(),
+                    },
+                ),
+            ]),
+        };
+        let err = plan_local(&form, &ad, &placements).expect_err("planning must fail");
+        assert!(matches!(err, PlanError::DuplicateOrInvalidPlacement(_)));
     }
 
     #[test]
@@ -611,7 +852,8 @@ mod tests {
         for cap in &mut ad.capabilities {
             cap.max_queue_items = 2;
         }
-        let err = plan_local(&form, &ad).expect_err("planning must fail");
+        let placements = default_placements(&form, &ad).expect("placements should work");
+        let err = plan_local(&form, &ad, &placements).expect_err("planning must fail");
         assert!(matches!(
             err,
             PlanError::QueueRequirementAboveHostLimit { .. }
@@ -622,7 +864,8 @@ mod tests {
     fn activation_fails_on_stale_boot_id() {
         let form = parse_form(fixture_form()).expect("form should parse");
         let ad = std_host_advertisement();
-        let plan = plan_local(&form, &ad).expect("planning should pass");
+        let placements = default_placements(&form, &ad).expect("placements should work");
+        let plan = plan_local(&form, &ad, &placements).expect("planning should pass");
 
         let mut restarted = ad.clone();
         restarted.boot_id = "boot-2".to_string();
@@ -634,7 +877,8 @@ mod tests {
     fn local_plan_has_exact_finite_bound() {
         let form = parse_form(fixture_form()).expect("form should parse");
         let ad = std_host_advertisement();
-        let plan = plan_local(&form, &ad).expect("planning should pass");
+        let placements = default_placements(&form, &ad).expect("placements should work");
+        let plan = plan_local(&form, &ad, &placements).expect("planning should pass");
         assert_eq!(plan.finite_source_count, 3);
         assert_eq!(plan.cords.len(), 1);
         assert_eq!(plan.cords[0].provider, "local");

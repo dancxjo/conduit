@@ -1,11 +1,11 @@
 std-host:
-    cargo run -p conduit -- examples/signal-demo.form
+    cargo run -p conduit -- examples/signal-demo.form --placements examples/std-local.placements
 
 demo-std:
-    cargo run -p conduit -- examples/signal-demo.form
+    cargo run -p conduit -- examples/signal-demo.form --placements examples/std-local.placements
 
 demo-triple-local:
-    cargo run -p conduit -- examples/triple-signal.form
+    cargo run -p conduit -- examples/triple-signal.form --placements examples/triple-local.placements
 
 check:
     cargo fmt --check

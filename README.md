@@ -27,11 +27,12 @@ The reboot intentionally begins with one finite, inspectable, cross-host source-
 This repository currently implements the Rust `std` host vertical slice from issue #347:
 
 - parses portable `form 0` files for `flow/pulse` and `display/show`;
-- builds an exact local plan from host capability advertisements;
+- parses explicit operator placement files;
+- builds an exact local plan from host capability advertisements and placement choices;
 - validates bounded queue limits and host boot identity;
 - executes finite pulse signals;
 - manifests `display/show<Signal>` on stdout;
-- records machine-readable show receipts and prints a concise completion summary.
+- records machine-readable show receipts and prints an operator report plus a concise completion summary.
 
 Try the included forms:
 
@@ -39,3 +40,5 @@ Try the included forms:
 just demo-std
 just demo-triple-local
 ```
+
+The current local planner only accepts placements on the bundled `std-host-1` advertisement. The placement files in `examples/*.placements` make those selections explicit rather than relying on implicit local assignment.

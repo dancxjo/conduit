@@ -1,0 +1,3 @@
+placements 0
+pulse -> std-host-1/cap-pulse-1
+show -> std-host-1/cap-show-stdout-1
