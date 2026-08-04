@@ -101,7 +101,7 @@ A capability is a current offer by a host to realize a semantic kind under expli
 
 A capability advertisement says something like:
 
-> This host can currently realize `display/show<Signal>` using implementation `pico/onboard-led-v1`, for at most one active instance, with a queue capacity no greater than four values.
+> This host can currently realize `presentation/show<Signal>` using implementation `pico/onboard-led-v1`, for at most one active instance, with a queue capacity no greater than four values.
 
 A capability is more precise than a feature flag. It should identify:
 

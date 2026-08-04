@@ -1,9 +1,11 @@
 [package]
-name = "conduit-planner"
+name = "conduit-runtime"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
+
+[dev-dependencies]
 conduit-form = { path = "../conduit-form" }
-sha2 = "0.10"
+conduit-planner = { path = "../conduit-planner" }

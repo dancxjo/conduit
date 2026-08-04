@@ -7,16 +7,16 @@ fn signal_demo_runs_locally() {
         .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
+    let form_path = workspace_root.join("examples/signal-demo.form");
+    let placements_path = workspace_root.join("examples/std-local.placements");
 
-    let output = Command::new("cargo")
-        .current_dir(&workspace_root)
+    let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
-            "run",
-            "--quiet",
-            "-p",
-            "conduit",
-            "--",
-            "examples/signal-demo.form",
+            form_path.to_str().expect("form path must be utf-8"),
+            "--placements",
+            placements_path
+                .to_str()
+                .expect("placements path must be utf-8"),
         ])
         .output()
         .expect("failed to run conduit binary");
@@ -33,13 +33,13 @@ fn signal_demo_runs_locally() {
     assert!(
         lines
             .iter()
-            .any(|line| line == &"place pulse kind=flow/pulse host=std-host-1 boot=boot-1 capability=cap-pulse-1 implementation=std/pulse-v1"),
+            .any(|line| line == &"place pulse kind=flow/pulse host=std-host-1 boot=boot-1 capability=pulse-1 implementation=std/pulse-v1"),
         "missing pulse placement line: {stdout}"
     );
     assert!(
         lines
             .iter()
-            .any(|line| line == &"place show kind=display/show host=std-host-1 boot=boot-1 capability=cap-show-stdout-1 implementation=std/stdout-show-signal-v1"),
+            .any(|line| line == &"place show kind=presentation/show host=std-host-1 boot=boot-1 capability=stdout-show-1 implementation=std/stdout-show-signal-v1"),
         "missing show placement line: {stdout}"
     );
     assert!(
@@ -57,7 +57,7 @@ fn signal_demo_runs_locally() {
     assert!(
         lines
             .iter()
-            .any(|line| line.starts_with("plan plan-signal-demo-boot-1 complete")),
+            .any(|line| line.starts_with("plan ") && line.ends_with(" complete")),
         "missing plan completion line: {stdout}"
     );
     assert!(

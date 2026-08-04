@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-form = { path = "../conduit-form" }
+conduit-planner = { path = "../conduit-planner" }
+conduit-std-host = { path = "../../hosts/std" }
 
 [[test]]
 name = "hello"

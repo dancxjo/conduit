@@ -1,3 +1,9 @@
 placements 0
-pulse -> std-host-1/cap-pulse-1
-show -> std-host-1/cap-show-stdout-1
+
+pulse:
+	host = "std-host-1"
+	capability = "pulse-1"
+
+show:
+	host = "std-host-1"
+	capability = "stdout-show-1"

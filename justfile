@@ -5,7 +5,7 @@ demo-std:
     cargo run -p conduit -- examples/signal-demo.form --placements examples/std-local.placements
 
 demo-triple-local:
-    cargo run -p conduit -- examples/triple-signal.form --placements examples/triple-local.placements
+    cargo run -p conduit -- examples/fanout-std.form --placements examples/triple-local.placements
 
 check:
     cargo fmt --check

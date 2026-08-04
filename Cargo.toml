@@ -1,3 +1,10 @@
 [workspace]
-members = ["crates/conduit"]
+members = [
+	"crates/conduit-core",
+	"crates/conduit-form",
+	"crates/conduit-planner",
+	"crates/conduit-runtime",
+	"crates/conduit",
+	"hosts/std",
+]
 resolver = "2"

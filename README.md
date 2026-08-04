@@ -26,13 +26,14 @@ The reboot intentionally begins with one finite, inspectable, cross-host source-
 
 This repository currently implements the Rust `std` host vertical slice from issue #347:
 
-- parses portable `form 0` files for `flow/pulse` and `display/show`;
+- parses portable `form 0` files for `flow/pulse` and `presentation/show`;
+- compiles real `conduit-core`, `conduit-form`, `conduit-planner`, `conduit-runtime`, and `conduit-std-host` boundaries in the workspace;
 - parses explicit operator placement files;
 - builds an exact local plan from host capability advertisements and placement choices;
-- validates bounded queue limits and host boot identity;
-- executes finite pulse signals;
-- manifests `display/show<Signal>` on stdout;
-- records machine-readable show receipts and prints an operator report plus a concise completion summary.
+- validates bounded queue limits, boot identity, and offer generation at preparation time;
+- executes finite pulse signals through a platform-neutral runtime and a real bounded local connection;
+- manifests `presentation/show<Signal>` on stdout through the Rust `std` host adapter;
+- records structured observations and prints an operator report plus a concise completion summary.
 
 Try the included forms:
 

@@ -1,5 +1,17 @@
 placements 0
-pulse -> std-host-1/cap-pulse-1
-local -> std-host-1/cap-show-stdout-1
-web -> std-host-1/cap-show-stdout-1
-light -> std-host-1/cap-show-stdout-1
+
+pulse:
+	host = "std-host-1"
+	capability = "pulse-1"
+
+local:
+	host = "std-host-1"
+	capability = "stdout-show-1"
+
+web:
+	host = "std-host-1"
+	capability = "stdout-show-1"
+
+light:
+	host = "std-host-1"
+	capability = "stdout-show-1"
