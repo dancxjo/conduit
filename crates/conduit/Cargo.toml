@@ -1,0 +1,10 @@
+[package]
+name = "conduit"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[[test]]
+name = "hello"
+path = "../../tests/hello.rs"
