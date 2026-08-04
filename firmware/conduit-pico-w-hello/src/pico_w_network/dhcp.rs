@@ -88,14 +88,14 @@ impl DhcpRequest {
 
 pub fn hostname_is_reserved(hostname: &[u8]) -> bool {
     [
-        b"conduit",
-        b"hello",
-        b"gateway",
-        b"pete",
-        b"brainstem",
-        b"motherbrain",
-        b"forebrain",
-        b"control",
+        b"conduit".as_slice(),
+        b"hello".as_slice(),
+        b"gateway".as_slice(),
+        b"pete".as_slice(),
+        b"brainstem".as_slice(),
+        b"motherbrain".as_slice(),
+        b"forebrain".as_slice(),
+        b"control".as_slice(),
     ]
         .iter()
         .any(|reserved| {
@@ -174,27 +174,19 @@ impl DhcpLeaseState {
             }
         }
 
-        let preferred = self
-            .active
-            .iter()
-            .position(|lease| lease.is_none())?
-            .min(DHCP_POOL_SIZE - 1);
-        if let Some(slot_index) = preferred {
-            let ip = [
-                AP_NETWORK[0],
-                AP_NETWORK[1],
-                AP_NETWORK[2],
-                DHCP_POOL_FIRST_HOST + slot_index as u8,
-            ];
-            self.active[slot_index] = Some(DhcpLease {
-                client,
-                ip,
-                expires_at_ms,
-            });
-            Some(ip)
-        } else {
-            None
-        }
+        let slot_index = self.active.iter().position(|lease| lease.is_none())?;
+        let ip = [
+            AP_NETWORK[0],
+            AP_NETWORK[1],
+            AP_NETWORK[2],
+            DHCP_POOL_FIRST_HOST + slot_index as u8,
+        ];
+        self.active[slot_index] = Some(DhcpLease {
+            client,
+            ip,
+            expires_at_ms,
+        });
+        Some(ip)
     }
 
     fn release(&mut self, client: DhcpClient) {

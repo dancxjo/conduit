@@ -671,6 +671,7 @@ dependencies = [
 name = "conduit-pico-w-hello"
 version = "0.0.0-dev"
 dependencies = [
+ "aligned",
  "conduit-core",
  "conduit-embedded",
  "conduit-embedded-build",
@@ -683,8 +684,10 @@ dependencies = [
  "embassy-net",
  "embassy-rp",
  "embassy-time",
+ "embedded-io-async 0.7.0",
  "heapless 0.8.0",
  "panic-halt",
+ "portable-atomic",
  "serde_json",
  "sha2",
  "static_cell",
@@ -1209,6 +1212,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d0d3b15c9d7dc4fec1d8cb77112472fb008b3b28c51ad23838d83587a6d2f1e"
 dependencies = [
  "cordyceps",
+ "cortex-m",
  "critical-section",
  "document-features",
  "embassy-executor-macros",
@@ -2723,6 +2727,9 @@ name = "portable-atomic"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d20d5497ef88037a52ff98267d066e7f11fcc5e99bbfbd58a42336193aacec3"
+dependencies = [
+ "critical-section",
+]
 
 [[package]]
 name = "powerfmt"

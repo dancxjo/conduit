@@ -57,14 +57,14 @@ fn put_bytes(packet: &mut [u8], offset: usize, bytes: &[u8]) -> Option<usize> {
     Some(end)
 }
 
-pub fn build_dns_reply(
-    query: &[u8],
-    response: &mut [u8; 512],
+pub fn build_dns_reply<'a>(
+    query: &'a [u8],
+    response: &'a mut [u8; 512],
     gateway_ip: [u8; 4],
     _now_ms: u32,
-) -> Option<&[u8]> {
+) -> Option<&'a [u8]> {
     let question = parse_dns_question(query)?;
-    let answer_ip = dns_answer_ip(&query[DNS_QUESTION_OFFSET..question.name_end], gateway_ip)?;
+    let answer_ip = dns_answer_ip(&query[DNS_QUESTION_OFFSET..question.name_end], gateway_ip);
     if !matches!(question.qtype, 1 | 255) || !matches!(question.qclass, 1 | 255) {
         return None;
     }
@@ -79,40 +79,40 @@ pub fn build_dns_reply(
     response[10] = 0x00;
     response[11] = 0x00;
 
-    if answer_ip.is_none() {
+    if let Some(answer_ip) = answer_ip {
+        response[3] = 0x00;
+        response[7] = 0x01;
+
+        let mut i = question.end;
+        let answer = [
+            0xc0,
+            0x0c,
+            0x00,
+            0x01,
+            0x00,
+            0x01,
+            0x00,
+            0x00,
+            0x00,
+            0x3c,
+            0x00,
+            0x04,
+            answer_ip[0],
+            answer_ip[1],
+            answer_ip[2],
+            answer_ip[3],
+        ];
+        if i + answer.len() > response.len() {
+            return None;
+        }
+        response[i..i + answer.len()].copy_from_slice(&answer);
+        i += answer.len();
+        Some(&response[..i])
+    } else {
         response[3] = 0x03;
         response[7] = 0x00;
-        return Some(&response[..question.end]);
+        Some(&response[..question.end])
     }
-
-    response[3] = 0x00;
-    response[7] = 0x01;
-
-    let mut i = question.end;
-    let answer = [
-        0xc0,
-        0x0c,
-        0x00,
-        0x01,
-        0x00,
-        0x01,
-        0x00,
-        0x00,
-        0x00,
-        0x3c,
-        0x00,
-        0x04,
-        answer_ip[0],
-        answer_ip[1],
-        answer_ip[2],
-        answer_ip[3],
-    ];
-    if i + answer.len() > response.len() {
-        return None;
-    }
-    response[i..i + answer.len()].copy_from_slice(&answer);
-    i += answer.len();
-    Some(&response[..i])
 }
 
 struct DnsQuestion {

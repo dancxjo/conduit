@@ -1,8 +1,10 @@
 use self::dhcp::{DhcpGrant, DhcpLeaseState, DhcpRequest};
 use self::discovery::{build_dns_reply, build_mdns_announcement};
 use crate::{CONDUIT_REVISION, FIRMWARE_IDENTITY, FULL_PLAN_HASH};
+use aligned::{Aligned, A4};
 use core::fmt::Write as _;
-use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use embedded_io_async::Write as _;
+use portable_atomic::{AtomicBool, AtomicU32, Ordering};
 use cyw43::State;
 use cyw43_pio::{PioSpi, DEFAULT_CLOCK_DIVIDER};
 use embassy_executor::{Executor, Spawner};
@@ -97,23 +99,27 @@ static SESSION_EXPIRES_AT: [AtomicU32; SESSION_SLOT_COUNT] = [
 ];
 static SESSION_SEQUENCE: AtomicU32 = AtomicU32::new(1);
 
-const FIRMWARE: &[u8] = &[0x00, 0x00, 0x00, 0x00];
+const FIRMWARE: Aligned<A4, [u8; 4]> = Aligned([0x00, 0x00, 0x00, 0x00]);
 const CLM: &[u8] = &[0x00, 0x00, 0x00, 0x00];
-const NVRAM: &[u8] = &[0x00, 0x00, 0x00, 0x00];
+const NVRAM: Aligned<A4, [u8; 4]> = Aligned([0x00, 0x00, 0x00, 0x00]);
 
 pub fn run(peripherals: embassy_rp::Peripherals) -> ! {
     let executor = EXECUTOR.init(Executor::new());
     executor.run(|spawner| {
-        let _ = spawner.spawn(wifi_task(
-            spawner,
-            peripherals.PIO0,
-            peripherals.DMA_CH0,
-            peripherals.PIN_23,
-            peripherals.PIN_24,
-            peripherals.PIN_25,
-            peripherals.PIN_29,
-        ));
+        let _ = spawner.spawn(
+            wifi_task(
+                spawner,
+                peripherals.PIO0,
+                peripherals.DMA_CH0,
+                peripherals.PIN_23,
+                peripherals.PIN_24,
+                peripherals.PIN_25,
+                peripherals.PIN_29,
+            )
+            .expect("spawn wifi task"),
+        );
     });
+    loop {}
 }
 
 #[embassy_executor::task]
@@ -138,11 +144,11 @@ async fn wifi_task(
     .await
     {
         for _ in 0..HTTP_TASKS {
-            let _ = spawner.spawn(http_task(stack, ap_ssid.clone()));
+            let _ = spawner.spawn(http_task(stack, ap_ssid.clone()).expect("spawn http task"));
         }
-        let _ = spawner.spawn(dns_task(stack));
-        let _ = spawner.spawn(dhcp_task(stack));
-        let _ = spawner.spawn(mdns_task(stack));
+        let _ = spawner.spawn(dns_task(stack).expect("spawn dns task"));
+        let _ = spawner.spawn(dhcp_task(stack).expect("spawn dhcp task"));
+        let _ = spawner.spawn(mdns_task(stack).expect("spawn mdns task"));
         loop {
             Timer::after_secs(3600).await;
         }
@@ -177,8 +183,8 @@ async fn start_wifi_ap(
     );
 
     let state = STATE.init(State::new());
-    let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, FIRMWARE, NVRAM).await;
-    let _ = spawner.spawn(cyw43_runner_task(runner));
+    let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, &FIRMWARE, &NVRAM).await;
+    let _ = spawner.spawn(cyw43_runner_task(runner).expect("spawn cyw43 runner"));
 
     control.init(CLM).await;
     let _ = control
@@ -196,7 +202,7 @@ async fn start_wifi_ap(
         RESOURCES.init(StackResources::new()),
         0x5eed,
     );
-    let _ = spawner.spawn(net_runner_task(net_runner));
+    let _ = spawner.spawn(net_runner_task(net_runner).expect("spawn net runner"));
     let ssid = ap_ssid(stack.hardware_address());
     let _ = stack.join_multicast_group(IpAddress::Ipv4(Ipv4Address::new(224, 0, 0, 251)));
 
@@ -339,11 +345,10 @@ async fn http_task(stack: Stack<'static>, ap_ssid: heapless::String<16>) -> ! {
                             }
                         }
                         Some("admit") => {
-                            match admit_session(body, now_ms) {
+                            match admit_session(body, now_ms).await {
                                 Ok(session) => {
                                     ADMISSION_ACCEPTS.fetch_add(1, Ordering::Relaxed);
-                                        if let Some(body) = write_conduit_accept(&mut response, &session)
-                                    {
+                                    if let Some(body) = write_conduit_accept(&mut response, &session) {
                                         write_response(&mut socket, "application/json", body.as_bytes())
                                             .await
                                     } else {
@@ -380,12 +385,10 @@ async fn http_task(stack: Stack<'static>, ap_ssid: heapless::String<16>) -> ! {
                             }
                         }
                         _ => {
-                            match admit_session(body, now_ms) {
+                            match admit_session(body, now_ms).await {
                                 Ok(session) => {
                                     ADMISSION_ACCEPTS.fetch_add(1, Ordering::Relaxed);
-                                    if let Some(body) =
-                                        write_conduit_accept(&mut response, &session)
-                                    {
+                                    if let Some(body) = write_conduit_accept(&mut response, &session) {
                                         write_response(
                                             &mut socket,
                                             "application/json",
@@ -517,8 +520,12 @@ async fn dhcp_task(stack: Stack<'static>) -> ! {
                 continue;
             };
             match grant.reply_message_type() {
-                2 => DHCP_OFFERS.fetch_add(1, Ordering::Relaxed),
-                5 => DHCP_ACKS.fetch_add(1, Ordering::Relaxed),
+                2 => {
+                    DHCP_OFFERS.fetch_add(1, Ordering::Relaxed);
+                }
+                5 => {
+                    DHCP_ACKS.fetch_add(1, Ordering::Relaxed);
+                }
                 _ => {}
             }
             DHCP_ACTIVE_LEASES.store(leases.active_count(now_ms) as u32, Ordering::Release);
@@ -577,6 +584,7 @@ async fn admit_session(body: &str, now_ms: u32) -> Result<ConduitSession, &'stat
     if protocol_major != Some(CONDUIT_PROTOCOL_MAJOR) {
         return Err("unsupported_protocol");
     }
+    let protocol_major = CONDUIT_PROTOCOL_MAJOR;
 
     let protocol_minor = json_u32(body, "protocol_minor")
         .or_else(|| {
@@ -712,7 +720,7 @@ fn record_or_replay_session(
     let Some(slot) = claim_session_slot(now_ms) else {
         return Err("session_limit_reached");
     };
-    let generation = SESSION_SEQUENCE.fetch_add(1, Ordering::AcqRel).max(1);
+    let generation = SESSION_SEQUENCE.fetch_add(1, Ordering::AcqRel).wrapping_add(0).max(1);
     let session_hash = hello_hash(
         hello.protocol_minor,
         hello.protocol_major,
@@ -819,14 +827,14 @@ fn set_conduit_admission(accepted: bool) {
     CONDUIT_LEGACY_ACCEPTED.store(accepted, Ordering::Release);
 }
 
-fn write_status_json<'a>(buffer: &'a mut String<768>, ssid: &str) -> Option<&'a str> {
+fn write_status_json<'a>(buffer: &'a mut String<1024>, ssid: &str) -> Option<&'a str> {
     let now_ms = Instant::now().as_millis() as u32;
     let admitted = has_active_admission();
     let active_sessions = active_session_count(now_ms);
     buffer.clear();
     write!(
         buffer,
-        "{{\"kind\":\"status\",\"ssid\":\"{ssid}\",\"ip\":\"{AP_IP_TEXT}\",\"conduit_revision\":\"{CONDUIT_REVISION}\",\"firmware_identity\":\"{FIRMWARE_IDENTITY}\",\"full_plan_hash\":\"{FULL_PLAN_HASH}\",\"admitted\":{admitted},\"active_sessions\":{active_sessions},\"attempts\":{},\"accepts\":{},\"rejects\":{},\"replays\":{},\"http_requests\":{},\"http_response_errors\":{},\"dns_requests\":{},\"dns_misses\":{},\"dhcp_requests\":{},\"dhcp_offers\":{},\"dhcp_acks\":{},\"dhcp_active_leases\":{}}",
+        r#"{{"kind":"status","ssid":"{ssid}","ip":"{AP_IP_TEXT}","conduit_revision":"{CONDUIT_REVISION}","firmware_identity":"{FIRMWARE_IDENTITY}","full_plan_hash":"{FULL_PLAN_HASH}","admitted":{admitted},"active_sessions":{active_sessions},"attempts":{},"accepts":{},"rejects":{},"replays":{},"http_requests":{},"http_response_errors":{},"dns_requests":{},"dns_misses":{},"dhcp_requests":{},"dhcp_offers":{},"dhcp_acks":{},"dhcp_active_leases":{}}}"#,
         ADMISSION_ATTEMPTS.load(Ordering::Acquire),
         ADMISSION_ACCEPTS.load(Ordering::Acquire),
         ADMISSION_REJECTS.load(Ordering::Acquire),
@@ -845,7 +853,7 @@ fn write_status_json<'a>(buffer: &'a mut String<768>, ssid: &str) -> Option<&'a 
 }
 
 fn write_conduit_metadata<'a>(
-    buffer: &'a mut String<240>,
+    buffer: &'a mut String<1024>,
     ssid: &str,
     now_ms: u32,
 ) -> Option<&'a str> {
@@ -853,14 +861,14 @@ fn write_conduit_metadata<'a>(
     buffer.clear();
     write!(
         buffer,
-        "{{\"kind\":\"conduit\",\"ssid\":\"{ssid}\",\"ip\":\"{AP_IP_TEXT}\",\"active_sessions\":{active_sessions},\"capabilities\":{{\"http\":true,\"dns\":true,\"dhcp\":true}},\"session_slot_limit\":{SESSION_SLOT_COUNT},\"protocol_major\":{CONDUIT_PROTOCOL_MAJOR},\"protocol_minor_min\":{CONDUIT_PROTOCOL_MINOR_MIN},\"protocol_minor_max\":{CONDUIT_PROTOCOL_MINOR_MAX}}}"
+        r#"{{"kind":"conduit","ssid":"{ssid}","ip":"{AP_IP_TEXT}","active_sessions":{active_sessions},"capabilities":{{"http":true,"dns":true,"dhcp":true}},"session_slot_limit":{SESSION_SLOT_COUNT},"protocol_major":{CONDUIT_PROTOCOL_MAJOR},"protocol_minor_min":{CONDUIT_PROTOCOL_MINOR_MIN},"protocol_minor_max":{CONDUIT_PROTOCOL_MINOR_MAX}}}"#
     )
     .ok()?;
     Some(buffer.as_str())
 }
 
 fn write_network_json<'a>(
-    buffer: &'a mut String<256>,
+    buffer: &'a mut String<1024>,
     ssid: &str,
     now_ms: u32,
 ) -> Option<&'a str> {
@@ -868,7 +876,7 @@ fn write_network_json<'a>(
     buffer.clear();
     write!(
         buffer,
-        "{{\"ssid\":\"{ssid}\",\"ip\":\"{AP_IP_TEXT}\",\"dhcp\":\"offered\",\"active_sessions\":{active_sessions},\"dhcp_active_leases\":{}}",
+        r#"{{"ssid":"{ssid}","ip":"{AP_IP_TEXT}","dhcp":"offered","active_sessions":{active_sessions},"dhcp_active_leases":{}}}"#,
         DHCP_ACTIVE_LEASES.load(Ordering::Acquire),
     )
     .ok()?;
@@ -876,7 +884,7 @@ fn write_network_json<'a>(
 }
 
 fn write_conduit_ping<'a>(
-    buffer: &'a mut String<192>,
+    buffer: &'a mut String<1024>,
     ssid: &str,
     admitted: bool,
     now_ms: u32,
@@ -885,13 +893,13 @@ fn write_conduit_ping<'a>(
     let active_sessions = active_session_count(now_ms);
     write!(
         buffer,
-        "{{\"kind\":\"pong\",\"ssid\":\"{ssid}\",\"admitted\":{admitted},\"active_sessions\":{active_sessions}}}"
+        r#"{{"kind":"pong","ssid":"{ssid}","admitted":{admitted},"active_sessions":{active_sessions}}}"#
     )
     .ok()?;
     Some(buffer.as_str())
 }
 
-fn write_conduit_accept<'a>(buffer: &'a mut String<192>, session: &ConduitSession) -> Option<&'a str> {
+fn write_conduit_accept<'a>(buffer: &'a mut String<1024>, session: &ConduitSession) -> Option<&'a str> {
     buffer.clear();
     write!(
         buffer,
@@ -914,7 +922,7 @@ fn interface_is_supported(interface: &str) -> bool {
     matches!(interface.trim(), CONDUIT_SUPPORTED_INTERFACE_HTTP)
 }
 
-fn write_conduit_reject<'a>(buffer: &'a mut String<160>, reason: &str) -> Option<&'a str> {
+fn write_conduit_reject<'a>(buffer: &'a mut String<1024>, reason: &str) -> Option<&'a str> {
     buffer.clear();
     write!(buffer, "{{\"kind\":\"reject\",\"reason_code\":\"{reason}\"}}").ok()?;
     Some(buffer.as_str())
