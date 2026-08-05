@@ -2128,6 +2128,229 @@ mod tests {
         }
     }
 
+    #[derive(Clone, Copy, Debug)]
+    enum ConformanceOperation {
+        Tick {
+            request: u32,
+            input: ValueRef,
+            emitted: bool,
+        },
+        Tee {
+            value: Option<ValueRef>,
+            phase: u8,
+        },
+        Filter,
+        Latest {
+            held: Option<ValueRef>,
+            released: Option<ValueRef>,
+            retain_resumed: bool,
+            closing: bool,
+        },
+        Show {
+            seen: [Option<ValueRef>; 4],
+            len: usize,
+        },
+    }
+
+    impl Operation for ConformanceOperation {
+        fn start(&mut self) -> OperationAction {
+            match self {
+                Self::Tick { request, input, .. } => OperationAction::RequestHostOperation {
+                    request: RequestId(*request),
+                    operation: HostOperationId(0),
+                    input: BoundedValueRef::new(*input, 4).unwrap(),
+                },
+                _ => OperationAction::Await,
+            }
+        }
+
+        fn resume(&mut self, input: OperationInput) -> OperationAction {
+            match (self, input) {
+                (
+                    Self::Tick {
+                        request,
+                        input,
+                        emitted,
+                    },
+                    OperationInput::HostOperationCompleted {
+                        request: completed,
+                        outcome,
+                    },
+                ) if completed == RequestId(*request) => {
+                    let value = outcome.output.expect("tick host output").value;
+                    *input = value;
+                    *emitted = true;
+                    OperationAction::Emit {
+                        port: PortId(0),
+                        value,
+                    }
+                }
+                (
+                    Self::Tee { value, phase },
+                    OperationInput::Value {
+                        port: PortId(0),
+                        value: input,
+                    },
+                ) => {
+                    *value = Some(input);
+                    *phase = 1;
+                    OperationAction::Emit {
+                        port: PortId(0),
+                        value: input,
+                    }
+                }
+                (Self::Tee { .. }, OperationInput::Closed { port: PortId(0) }) => {
+                    OperationAction::Complete
+                }
+                (
+                    Self::Filter,
+                    OperationInput::Value {
+                        port: PortId(0),
+                        value,
+                    },
+                ) => {
+                    if value.byte_len == 1 {
+                        OperationAction::Emit {
+                            port: PortId(0),
+                            value,
+                        }
+                    } else {
+                        OperationAction::Await
+                    }
+                }
+                (Self::Filter, OperationInput::Closed { port: PortId(0) }) => {
+                    OperationAction::Complete
+                }
+                (
+                    Self::Latest {
+                        held,
+                        released,
+                        retain_resumed,
+                        ..
+                    },
+                    OperationInput::Value {
+                        port: PortId(0),
+                        value,
+                    },
+                ) => {
+                    *released = held.replace(value);
+                    *retain_resumed = true;
+                    OperationAction::Await
+                }
+                (
+                    Self::Latest {
+                        held,
+                        retain_resumed,
+                        closing,
+                        ..
+                    },
+                    OperationInput::Closed { port: PortId(0) },
+                ) => {
+                    *retain_resumed = false;
+                    let Some(value) = held.take() else {
+                        return OperationAction::Complete;
+                    };
+                    *closing = true;
+                    OperationAction::Emit {
+                        port: PortId(0),
+                        value,
+                    }
+                }
+                (
+                    Self::Show { seen, len },
+                    OperationInput::Value {
+                        port: PortId(0),
+                        value,
+                    },
+                ) => {
+                    seen[*len] = Some(value);
+                    *len += 1;
+                    OperationAction::Await
+                }
+                (Self::Show { .. }, OperationInput::Closed { port: PortId(0) }) => {
+                    OperationAction::Complete
+                }
+                _ => OperationAction::Fail(Failure {
+                    code: FailureCode::InvalidInput,
+                    detail: 92,
+                }),
+            }
+        }
+
+        fn advance(&mut self) -> OperationAction {
+            match self {
+                Self::Tick {
+                    request,
+                    input,
+                    emitted,
+                } if *emitted => {
+                    *emitted = false;
+                    if *request == 4 {
+                        OperationAction::Complete
+                    } else {
+                        *request += 1;
+                        OperationAction::RequestHostOperation {
+                            request: RequestId(*request),
+                            operation: HostOperationId(0),
+                            input: BoundedValueRef::new(*input, 4).unwrap(),
+                        }
+                    }
+                }
+                Self::Tee {
+                    value: Some(value),
+                    phase,
+                } if *phase == 1 => {
+                    *phase = 2;
+                    OperationAction::Emit {
+                        port: PortId(1),
+                        value: *value,
+                    }
+                }
+                Self::Tee { value, phase } if *phase == 2 => {
+                    *value = None;
+                    *phase = 0;
+                    OperationAction::Await
+                }
+                Self::Latest { closing, .. } if *closing => {
+                    *closing = false;
+                    OperationAction::Complete
+                }
+                _ => OperationAction::Await,
+            }
+        }
+
+        fn retains_resumed_value(&self) -> bool {
+            matches!(
+                self,
+                Self::Latest {
+                    retain_resumed: true,
+                    ..
+                }
+            )
+        }
+
+        fn take_released_value(&mut self) -> Option<ValueRef> {
+            match self {
+                Self::Latest { released, .. } => released.take(),
+                _ => None,
+            }
+        }
+
+        fn cancel(&mut self) {
+            if let Self::Latest {
+                held,
+                released,
+                retain_resumed,
+                ..
+            } = self
+            {
+                *held = None;
+                *released = None;
+                *retain_resumed = false;
+            }
+        }
+    }
+
     #[test]
     fn multi_value_port_graph_handles_pressure_closure_and_uneven_consumers() {
         let event_charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
@@ -2252,6 +2475,230 @@ mod tests {
         };
         assert_eq!(seen.slot, output.slot);
         assert_eq!(scheduler.values().used_items(), 0);
+    }
+
+    #[test]
+    fn full_multi_value_form_runs_through_public_operation_adapter() {
+        let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
+        let normalized = execute_full_operation_adapter(
+            FixedValueStore::<8, 4>::new(24).unwrap(),
+            FixedEvidenceLog::<256>::new(charge * 256).unwrap(),
+        );
+        assert_eq!(normalized.produced, 4);
+        assert_eq!(normalized.show_a_len, 2);
+        assert_eq!(normalized.show_a_bytes[..2], [1, 1]);
+        assert_eq!(normalized.show_b_len, 1);
+        assert_eq!(normalized.show_b_bytes[0], 2);
+        assert_eq!(normalized.used_items, 0);
+        assert_eq!(normalized.pending, 0);
+        assert!(normalized.saw_input_closed);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn hosted_and_fixed_full_operation_adapter_vectors_match() {
+        use crate::{HostedEvidenceLog, HostedValueStore};
+
+        let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
+        let fixed = execute_full_operation_adapter(
+            FixedValueStore::<8, 4>::new(24).unwrap(),
+            FixedEvidenceLog::<256>::new(charge * 256).unwrap(),
+        );
+        let hosted = execute_full_operation_adapter(
+            HostedValueStore::new(8, 4, 24).unwrap(),
+            HostedEvidenceLog::new(256, charge * 256).unwrap(),
+        );
+        assert_eq!(fixed, hosted);
+    }
+
+    #[derive(Debug, Eq, PartialEq)]
+    struct FullAdapterNormalized {
+        show_a_bytes: [u32; 4],
+        show_a_len: usize,
+        show_b_bytes: [u32; 4],
+        show_b_len: usize,
+        produced: usize,
+        decisions: u32,
+        evidence_len: u16,
+        evidence_bytes: u32,
+        used_items: u16,
+        pending: usize,
+        saw_input_closed: bool,
+    }
+
+    fn execute_full_operation_adapter<S, E>(mut values: S, evidence: E) -> FullAdapterNormalized
+    where
+        S: ValueStorage,
+        E: EvidenceSink + EvidenceQuery,
+    {
+        let seed = values.store(&[255]).unwrap();
+        let mut routes = FixedRoutes::<12, 5>::new(2);
+        for (source, port, cord_id, sink) in [
+            (0, 0, 0, 1),
+            (1, 0, 1, 2),
+            (1, 1, 2, 3),
+            (2, 0, 3, 4),
+            (3, 0, 4, 5),
+        ] {
+            routes
+                .install(
+                    NodeId(source),
+                    PortId(port),
+                    RouteRange {
+                        start: cord_id,
+                        len: 1,
+                    },
+                    &[RouteTarget {
+                        cord: CordId(cord_id),
+                        sink_node: NodeId(sink),
+                        sink_port: PortId(0),
+                    }],
+                )
+                .unwrap();
+        }
+        routes.seal().unwrap();
+        let mut bindings = FixedHostOperationBindings::<6>::new(1);
+        bindings
+            .install(
+                NodeId(0),
+                HostOperationBinding {
+                    operation: HostOperationId(0),
+                    maximum_input_bytes: 4,
+                    maximum_output_bytes: 4,
+                },
+            )
+            .unwrap();
+        bindings.seal().unwrap();
+        let mut scheduler =
+            FixedScheduler::<_, _, _, 6, 5, 2, 5, 12, 5, 6, 2>::new_with_host_operations(
+                [
+                    node([None, None]),
+                    node([Some(CordId(0)), None]),
+                    node([Some(CordId(1)), None]),
+                    node([Some(CordId(2)), None]),
+                    node([Some(CordId(3)), None]),
+                    node([Some(CordId(4)), None]),
+                ],
+                [
+                    cord(0, 0, 0, 1, 0),
+                    cord(1, 1, 0, 2, 0),
+                    cord(2, 1, 1, 3, 0),
+                    cord(3, 2, 0, 4, 0),
+                    cord(4, 3, 0, 5, 0),
+                ],
+                routes,
+                bindings,
+                [
+                    OperationDriver::new(ConformanceOperation::Tick {
+                        request: 1,
+                        input: seed,
+                        emitted: false,
+                    })
+                    .unwrap(),
+                    OperationDriver::new(ConformanceOperation::Tee {
+                        value: None,
+                        phase: 0,
+                    })
+                    .unwrap(),
+                    OperationDriver::new(ConformanceOperation::Filter).unwrap(),
+                    OperationDriver::new(ConformanceOperation::Latest {
+                        held: None,
+                        released: None,
+                        retain_resumed: false,
+                        closing: false,
+                    })
+                    .unwrap(),
+                    OperationDriver::new(ConformanceOperation::Show {
+                        seen: [None; 4],
+                        len: 0,
+                    })
+                    .unwrap(),
+                    OperationDriver::new(ConformanceOperation::Show {
+                        seen: [None; 4],
+                        len: 0,
+                    })
+                    .unwrap(),
+                ],
+                values,
+                evidence,
+            )
+            .unwrap();
+
+        let mut produced = 0_usize;
+        let mut complete = false;
+        for _ in 0..512 {
+            if let Some(request) = scheduler.next_host_request() {
+                assert_eq!(request.node, NodeId(0));
+                assert_eq!(request.operation, HostOperationId(0));
+                let bytes: &[u8] = match produced {
+                    0 => &[0],
+                    1 => &[1, 1],
+                    2 => &[2],
+                    3 => &[3, 3],
+                    _ => panic!("unexpected tick request"),
+                };
+                let output = scheduler.store_host_value(bytes).unwrap();
+                scheduler
+                    .complete_host_operation(
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(BoundedValueRef::new(output, 4).unwrap()),
+                            failure: None,
+                        },
+                    )
+                    .unwrap();
+                produced += 1;
+                continue;
+            }
+            match scheduler.step().unwrap() {
+                SchedulerStatus::Complete => {
+                    complete = true;
+                    break;
+                }
+                SchedulerStatus::Progress { .. } => {}
+                SchedulerStatus::Idle => panic!("adapter form became idle"),
+                SchedulerStatus::Cancelled => panic!("adapter form cancelled"),
+            }
+        }
+        assert!(complete, "adapter form exceeded decision bound");
+        let ConformanceOperation::Show {
+            seen: show_a,
+            len: show_a_len,
+        } = scheduler.drivers()[4].operation()
+        else {
+            panic!("show-a adapter");
+        };
+        let ConformanceOperation::Show {
+            seen: show_b,
+            len: show_b_len,
+        } = scheduler.drivers()[5].operation()
+        else {
+            panic!("show-b adapter");
+        };
+        let mut show_a_bytes = [0; 4];
+        for (index, value) in show_a[..*show_a_len].iter().enumerate() {
+            show_a_bytes[index] = value.expect("show-a value").byte_len;
+        }
+        let mut show_b_bytes = [0; 4];
+        for (index, value) in show_b[..*show_b_len].iter().enumerate() {
+            show_b_bytes[index] = value.expect("show-b value").byte_len;
+        }
+        FullAdapterNormalized {
+            show_a_bytes,
+            show_a_len: *show_a_len,
+            show_b_bytes,
+            show_b_len: *show_b_len,
+            produced,
+            decisions: scheduler.decisions(),
+            evidence_len: scheduler.evidence().len(),
+            evidence_bytes: scheduler.evidence().used_bytes(),
+            used_items: scheduler.values().used_items(),
+            pending: scheduler.pending_host_operation_count(),
+            saw_input_closed: scheduler
+                .evidence()
+                .contains_kind(KernelEventKind::InputClosed),
+        }
     }
 
     #[derive(Debug, Eq, PartialEq)]
