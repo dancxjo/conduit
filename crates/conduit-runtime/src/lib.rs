@@ -385,6 +385,7 @@ fn validate_fragment_execution_contract(
             || match connection.provider {
                 ConnectionProvider::Local => connection.link_binding.is_some(),
                 ConnectionProvider::InMemory
+                | ConnectionProvider::WebSocket
                 | ConnectionProvider::FixtureFrame
                 | ConnectionProvider::FixtureDatagram => connection
                     .link_binding
@@ -1285,6 +1286,8 @@ impl HostRuntime {
                 (ConnectionProvider::Local, true, true) => ConnectionRole::Local,
                 (ConnectionProvider::InMemory, true, false) => ConnectionRole::Outbound,
                 (ConnectionProvider::InMemory, false, true) => ConnectionRole::Inbound,
+                (ConnectionProvider::WebSocket, true, false) => ConnectionRole::Outbound,
+                (ConnectionProvider::WebSocket, false, true) => ConnectionRole::Inbound,
                 (ConnectionProvider::FixtureFrame, true, false) => ConnectionRole::Outbound,
                 (ConnectionProvider::FixtureFrame, false, true) => ConnectionRole::Inbound,
                 (ConnectionProvider::FixtureDatagram, true, false) => ConnectionRole::Outbound,

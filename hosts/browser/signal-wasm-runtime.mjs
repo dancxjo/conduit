@@ -162,6 +162,39 @@ export async function instantiateBrowserRuntime(wasmBytes, hostIndex) {
   return Object.freeze({ api, hostIndex });
 }
 
+export async function instantiateRemoteBrowserRuntime(wasmBytes) {
+  const { instance } = await WebAssembly.instantiate(wasmBytes, {});
+  const api = instance.exports;
+  const required = [
+    "memory",
+    "conduit_browser_start_remote",
+    "conduit_browser_accept_envelope",
+    "conduit_browser_accepted_sequence",
+    "conduit_browser_take_delivery_sequence",
+    "conduit_browser_close_remote",
+    "conduit_browser_input_ptr",
+    "conduit_browser_input_capacity",
+    "conduit_browser_receipt_count",
+  ];
+  if (required.some((name) => !(name in api))) {
+    throw new Error("CND-BRW-S4-007 incomplete remote browser runtime ABI");
+  }
+  const started = api.conduit_browser_start_remote();
+  if (started !== STATUS_RUNNING) {
+    throw new Error(`CND-BRW-S4-008 remote runtime start failed ${started}`);
+  }
+  return Object.freeze({ api, hostIndex: "remote" });
+}
+
+function writeRuntimeInput(runtime, bytes) {
+  const { api } = runtime;
+  const capacity = api.conduit_browser_input_capacity();
+  if (!(bytes instanceof Uint8Array) || bytes.length > capacity) {
+    throw new Error("CND-BRW-S4-006 input exceeds runtime capacity");
+  }
+  new Uint8Array(api.memory.buffer, api.conduit_browser_input_ptr(), bytes.length).set(bytes);
+}
+
 export function currentEffect(runtime) {
   const { api } = runtime;
   const kind = api.conduit_browser_effect_kind();
@@ -186,8 +219,75 @@ export function submitCompletion(runtime, effect, completion) {
   if (bytes.length > capacity) {
     throw new Error("CND-BRW-S4-006 completion exceeds runtime input capacity");
   }
-  new Uint8Array(api.memory.buffer, api.conduit_browser_input_ptr(), bytes.length).set(bytes);
+  writeRuntimeInput(runtime, bytes);
   return api.conduit_browser_complete(bytes.length);
+}
+
+function acknowledgement(kind, sequence) {
+  const bytes = new Uint8Array(9);
+  bytes[0] = kind;
+  new DataView(bytes.buffer).setBigUint64(1, sequence, true);
+  return bytes;
+}
+
+export function rejectMalformedEnvelope(runtime, bytes) {
+  writeRuntimeInput(runtime, bytes);
+  return runtime.api.conduit_browser_accept_envelope(bytes.length);
+}
+
+export function runWebSocketBrowserRuntime(runtime, domHost, url) {
+  return new Promise((resolve, reject) => {
+    const socket = new WebSocket(url);
+    socket.binaryType = "arraybuffer";
+    let completionCount = 0;
+    let messageCount = 0;
+    socket.onerror = () => reject(new Error("CND-BRW-S4-012 WebSocket carrier error"));
+    socket.onmessage = (event) => {
+      try {
+        const bytes = new Uint8Array(event.data);
+        if (bytes.length === 1 && bytes[0] === 0x43) {
+          const status = runtime.api.conduit_browser_close_remote();
+          if (status !== STATUS_COMPLETE) {
+            throw new Error(`CND-BRW-S4-011 remote runtime did not complete ${status}`);
+          }
+          socket.close(1000, "complete");
+          resolve(Object.freeze({
+            status,
+            completionCount,
+            messageCount,
+            receiptCount: runtime.api.conduit_browser_receipt_count(),
+          }));
+          return;
+        }
+        writeRuntimeInput(runtime, bytes);
+        const accepted = runtime.api.conduit_browser_accept_envelope(bytes.length);
+        if (accepted < 0) {
+          throw new Error(`CND-BRW-S4-013 runtime rejected envelope ${accepted}`);
+        }
+        const acceptedSequence = runtime.api.conduit_browser_accepted_sequence();
+        if (acceptedSequence < 0n) throw new Error("CND-BRW-S4-014 accepted sequence missing");
+        socket.send(acknowledgement(0x41, acceptedSequence));
+
+        const effect = currentEffect(runtime);
+        const result = domHost.completePresentation(effect);
+        if (!result.ok) throw new Error(`${result.code} ${result.detail}`);
+        const completed = submitCompletion(runtime, effect, result.completion);
+        if (completed < 0) {
+          throw new Error(`CND-BRW-S4-010 runtime rejected presentation ${completed}`);
+        }
+        const deliveredSequence = runtime.api.conduit_browser_take_delivery_sequence();
+        if (deliveredSequence !== acceptedSequence) {
+          throw new Error("CND-BRW-S4-014 delivered sequence mismatch");
+        }
+        socket.send(acknowledgement(0x44, deliveredSequence));
+        completionCount += 1;
+        messageCount += 1;
+      } catch (error) {
+        socket.close();
+        reject(error);
+      }
+    };
+  });
 }
 
 export async function runBrowserRuntime(runtime, domHost) {

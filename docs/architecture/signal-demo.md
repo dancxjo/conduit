@@ -1,8 +1,8 @@
 # Signal conformance fixtures
 
 This records the current implementation state for the portable signal proof
-tracked by GitHub issue #350. Most cross-host paths below remain simulations;
-the separately named DOM boundary is actual browser execution.
+tracked by GitHub issue #350. Pico paths remain simulations; the separately
+named browser paths are actual Rust/WASM and live loopback WebSocket execution.
 
 ## Current Slice
 
@@ -118,8 +118,7 @@ proof compares all three streams from the unchanged form.
 
 ## Current Stop Line
 
-The repository contains deterministic browser-shaped and Pico-shaped
-simulations plus frame/datagram relay fixtures and one actual Chromium DOM
-presentation adapter. It does not contain a browser-side planner/runtime, live
-WebSocket or UDP provider, Pico firmware, physical LED acceptance, or
-three-host manifestation proof.
+The repository also runs this unchanged form in actual browser WASM, both
+locally and with the pulse on a native std runtime over a bounded loopback
+WebSocket. The Pico paths remain simulations: there is no live UDP provider,
+Pico firmware, physical LED acceptance, or three-host manifestation proof.

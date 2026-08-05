@@ -5,10 +5,11 @@ Conduit is being rebuilt around one rule:
 > Forms describe meaning. Hosts offer implementations. Plans make realization exact.
 
 Current `main` contains a useful Rust `std` prototype and deterministic
-browser-shaped/Pico-shaped conformance fixtures. S4 also contains one actual
-Chromium DOM presentation adapter boundary. It does **not** yet contain a
-browser-side planner/runtime, Pico firmware, live WebSocket/UDP transport,
-three-platform proof, production BODY model, or production Observatory.
+browser-shaped/Pico-shaped conformance fixtures. S4 also contains actual
+Chromium-hosted Rust/WASM runtimes, DOM manifestation, and a live bounded
+WebSocket link from a native std source. It does **not** yet contain Pico
+firmware, live UDP transport, a three-platform proof, production BODY model,
+or production Observatory.
 [STATUS.md](STATUS.md) is the checked claim boundary.
 
 ## Salvage sequence

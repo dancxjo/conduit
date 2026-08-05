@@ -22,3 +22,10 @@ The Chromium test has one pinned project, one worker, no retries, and no forced 
 runs two independent page hosts concurrently, waits on all fifteen 250 ms intervals per host,
 retains sixteen nine-byte signal receipts per host, and verifies duplicate, malformed, item-bound,
 byte-bound, and mismatched-runtime-identity rejection.
+
+The same gate also starts the native `conduit-browser-link-host`. Its std runtime and the browser
+WASM runtime independently derive the same boot-scoped plan for the unchanged form. The std source
+sends sixteen deterministic `conduit-wire` envelopes as binary RFC 6455 messages over a live
+loopback socket. The planned link admits one in-flight item and 64 buffered bytes, the WebSocket
+implementation caps every frame/message at 512 bytes, and the semantic payload cap is nine bytes.
+The source retains each item until separate accepted and DOM-delivered acknowledgements arrive.

@@ -321,6 +321,8 @@ pub struct HostAdvertisement {
 pub enum ConnectionProvider {
     Local,
     InMemory,
+    /// Live RFC 6455 binary-message transit owned by actual std/browser hosts.
+    WebSocket,
     /// Deterministic bounded frame transit used only by conformance fixtures.
     FixtureFrame,
     /// Deterministic bounded datagram transit used only by conformance fixtures.
@@ -342,6 +344,8 @@ pub enum LinkCredentialReference {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LinkAuthorityReference {
     ProcessOwned,
+    /// Endpoint access is bounded to and supervised by the executing test harness.
+    HarnessOwned,
     Grant(AuthorityGrantId),
 }
 
@@ -788,6 +792,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             ConnectionProvider::InMemory => 1,
             ConnectionProvider::FixtureFrame => 2,
             ConnectionProvider::FixtureDatagram => 3,
+            ConnectionProvider::WebSocket => 4,
         });
         match &connection.link_binding {
             Some(binding) => {
@@ -804,6 +809,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                     ConnectionProvider::InMemory => 1,
                     ConnectionProvider::FixtureFrame => 2,
                     ConnectionProvider::FixtureDatagram => 3,
+                    ConnectionProvider::WebSocket => 4,
                 });
                 push_string(&mut canonical, binding.provider_instance_id.as_str());
                 canonical.push(match binding.availability {
@@ -823,6 +829,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                         canonical.push(1);
                         push_string(&mut canonical, grant_id.as_str());
                     }
+                    LinkAuthorityReference::HarnessOwned => canonical.push(2),
                 }
                 canonical.extend_from_slice(&binding.limits.maximum_in_flight_items.to_le_bytes());
                 push_u32(&mut canonical, binding.limits.maximum_buffered_bytes);

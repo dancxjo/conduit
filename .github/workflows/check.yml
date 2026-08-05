@@ -90,5 +90,7 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - run: cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
+      - run: cargo build -p conduit-browser-runtime --features native-link --bin conduit-browser-link-host
+      - run: cargo clippy -p conduit-browser-runtime --features native-link --bin conduit-browser-link-host -- -D warnings
       - run: npm ci --ignore-scripts
       - run: npm run test:browser-host

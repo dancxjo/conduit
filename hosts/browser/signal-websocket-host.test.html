@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit S4 std to browser WebSocket proof</title>
+<p id="result">running</p>
+<section id="remote-host" aria-label="remote browser host"></section>
+<section id="malformed-host" hidden></section>
+<script type="module">
+import { BrowserDomHost } from "./signal-dom-host.mjs";
+import {
+  instantiateRemoteBrowserRuntime,
+  rejectMalformedEnvelope,
+  runWebSocketBrowserRuntime,
+} from "./signal-wasm-runtime.mjs";
+
+const assert = (condition, message) => {
+  if (!condition) throw new Error(message);
+};
+
+try {
+  const wasmBytes = await fetch(
+    "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+  ).then((response) => {
+    assert(response.ok, "browser runtime WASM artifact loads");
+    return response.arrayBuffer();
+  });
+  const malformedRuntime = await instantiateRemoteBrowserRuntime(wasmBytes);
+  const malformedCode = rejectMalformedEnvelope(malformedRuntime, Uint8Array.of(1, 2, 3));
+  assert(malformedCode === -9, "malformed wire envelope fails closed");
+
+  const runtime = await instantiateRemoteBrowserRuntime(wasmBytes);
+  const domHost = new BrowserDomHost({
+    hostId: "browser-websocket-sink",
+    bootId: "browser-websocket-boot",
+    root: document.querySelector("#remote-host"),
+    maximumReceiptItems: 16,
+    maximumReceiptBytes: 144,
+  });
+  const port = new URL(location.href).searchParams.get("linkPort") ?? "4180";
+  const report = await runWebSocketBrowserRuntime(
+    runtime,
+    domHost,
+    `ws://127.0.0.1:${port}`,
+  );
+  assert(report.status === 1, "remote browser plan completes");
+  assert(report.completionCount === 16, "all remote presentations complete");
+  assert(report.messageCount === 16, "exactly sixteen bounded envelopes cross the socket");
+  assert(report.receiptCount === 16, "Rust correlates sixteen delivered receipts");
+  assert(domHost.receipts().length === 16, "DOM host retains sixteen receipts");
+  assert(domHost.receipts()[15].sequence === "15", "ordered receipts end at sequence fifteen");
+
+  globalThis.__conduitWebSocketResults = Object.freeze({
+    status: report.status,
+    completionCount: report.completionCount,
+    messageCount: report.messageCount,
+    receiptCount: report.receiptCount,
+    malformedCode,
+  });
+  document.querySelector("#result").textContent = "ok";
+} catch (error) {
+  document.querySelector("#result").textContent = `error:${error.stack ?? error}`;
+  throw error;
+}
+</script>

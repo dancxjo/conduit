@@ -89,6 +89,7 @@ check-form-s3:
 
 check-browser-s4:
     cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
+    cargo build -p conduit-browser-runtime --features native-link --bin conduit-browser-link-host
     npm run test:browser-host
 
 check-realm-readiness:

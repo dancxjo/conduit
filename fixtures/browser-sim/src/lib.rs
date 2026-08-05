@@ -1366,7 +1366,9 @@ mod tests {
                         ));
                         pending
                     }
-                    ConnectionProvider::Local | ConnectionProvider::InMemory => {
+                    ConnectionProvider::Local
+                    | ConnectionProvider::InMemory
+                    | ConnectionProvider::WebSocket => {
                         panic!("triple remote transmit used unsupported provider")
                     }
                 }

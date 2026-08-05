@@ -9,9 +9,9 @@ adapter or physical proof.
 | Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, correlated host operations, cancellation | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, no-growth-shape, and cancellation vectors | same scheduler with preallocated hosted storage; S1 accepted | no | no; Thumb kernel compiles | no | no |
 | Exact plan, play, evidence, and presentation identities | S2 planning plus S3 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued evidence identities; exact active-play/presentation correlation at the platform completion boundary | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/activation mutation, unique evidence, and wrong-presentation-identity vectors | yes, std runtime preparation enforces S2 truth and activation/evidence/presentation identities flow through hosted/composite adapters and Observatory | no | no | fixture providers only; no sockets | no |
 | Lossless form and composite boundary | S3 checkpoints: exact source, bounded lossless CST tokens, UTF-8 byte spans plus line/column locations, stable diagnostics, inline checked forms, and an exact checked export boundary shared by standalone/nested forms, composite offers, and parent kinds | round-trip, spelling/semantic identity separation, recoverable outer/inner invalid-line/EOF, source/token/depth ceilings, missing/duplicate export denial, standalone/nested boundary equality, derived-offer equality, and ordinary parent-cord planning | parser/checker, planner, and hosted composite fixture; broader grammar remains excluded | no | no | fixture in-memory links only | no |
-| Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
-| Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
-| Browser manifestation | partial | yes, `conduit-browser-sim` | test-only Rust fixture | actual Chromium DOM effect/completion adapter with two independent page hosts; browser-side planner/runtime remains open | no | no WebSocket | no |
+| Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | exact wire decode in browser WASM | no | bounded loopback WebSocket | no |
+| Portable Signal | yes | multi-value fixtures | yes, std stdout/timer and native WebSocket source | shared Rust implementation runs in browser WASM | no | std-to-browser | no |
+| Browser manifestation | partial | yes, `conduit-browser-sim` | native std source plus WASM host crate | actual Chromium planner/runtime and DOM adapter with independent local hosts and a remote sink | no | one-item/64-byte loopback WebSocket | no |
 | Pico-shaped manifestation | partial | yes, `conduit-pico-sim` | test-only | no | no BSP/image/driver | no UDP/TCP | no board run |
 | Realm membership | retired prototype | deterministic table tests | no production body model | no | no | no | no |
 | Observatory | report-schema prototype | synthetic fleet | synthetic command only | no | no | no | no |
@@ -35,15 +35,16 @@ The `check` workflow requires:
 - boot-scoped active-play issuance, runtime-issued evidence identities, exact
   presentation completion correlation, and Observatory identity projection;
 - deterministic wire and simulated-host conformance vectors;
-- one actual Chromium DOM adapter proof with two independent bounded host
-  instances and exact presentation completion identities;
+- actual Chromium Rust/WASM proofs with two independent local host instances,
+  one remote sink, exact presentation completion identities, and a bounded
+  native-std-to-browser WebSocket;
 - WASM compilation of the browser-shaped simulation;
 - Thumb compilation of allocator-free contracts and the Pico-shaped simulation.
 
-WASM compilation is not browser execution. Thumb compilation is not firmware
-or board acceptance. The Chromium DOM boundary is browser execution, but not a
-browser-side planner/runtime or a live link. Frame/datagram fixtures are not
-WebSocket or UDP sockets.
+WASM compilation alone is not browser execution. Thumb compilation is not
+firmware or board acceptance. The Chromium jobs execute the browser runtime and
+one live loopback WebSocket; frame/datagram fixtures remain distinct from live
+carriers, and no UDP or physical proof is claimed.
 
 ## Salvage stop line
 
@@ -98,5 +99,5 @@ different core identity types. Activation sequences are host/boot scoped;
 evidence IDs are issued by the recording host rather than synthesized from UI
 row indexes; and adapters must return the exact active-play and presentation
 IDs carried by each effect. S3 is accepted at this boundary.
-No browser-side runtime, actual Pico host, BODY, catalog expansion, Observatory
-acceptance, or useful task advances before their later salvage gates.
+No actual Pico host, BODY, catalog expansion, Observatory acceptance, or useful
+task advances before its later salvage gate.
