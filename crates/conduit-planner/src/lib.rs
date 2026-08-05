@@ -175,6 +175,26 @@ pub fn plan_with_connection_limits(
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
 ) -> Result<Plan, PlannerError> {
+    plan_with_connection_limits_and_provider_overrides(
+        form,
+        realm,
+        placements,
+        providers,
+        &BTreeMap::new(),
+        connection_item_capacity,
+        connection_byte_capacity,
+    )
+}
+
+pub fn plan_with_connection_limits_and_provider_overrides(
+    form: &CheckedForm,
+    realm: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    providers: &[ConnectionProvider],
+    connection_providers: &BTreeMap<(OperationId, OperationId), ConnectionProvider>,
+    connection_item_capacity: u16,
+    connection_byte_capacity: u32,
+) -> Result<Plan, PlannerError> {
     let realm_index = realm
         .iter()
         .map(|host| (host.host_id.clone(), host))
@@ -271,7 +291,17 @@ pub fn plan_with_connection_limits(
             .iter()
             .find(|item| &item.placement_id == sink_placement)
             .expect("sink placement must exist");
-        let provider = select_provider(source_plan, sink_plan, providers)?;
+        let provider = select_provider(
+            source_plan,
+            sink_plan,
+            providers,
+            connection_providers
+                .get(&(
+                    connection.source_operation_id.clone(),
+                    connection.sink_operation_id.clone(),
+                ))
+                .copied(),
+        )?;
         let source_capability =
             find_capability(realm, &source_plan.host_id, &source_plan.capability_id)?;
         let sink_capability = find_capability(realm, &sink_plan.host_id, &sink_plan.capability_id)?;
@@ -455,7 +485,25 @@ fn select_provider(
     source: &PlannedOperation,
     sink: &PlannedOperation,
     providers: &[ConnectionProvider],
+    requested: Option<ConnectionProvider>,
 ) -> Result<ConnectionProvider, PlannerError> {
+    if let Some(provider) = requested {
+        let supported = match provider {
+            ConnectionProvider::Local => source.host_id == sink.host_id,
+            ConnectionProvider::InMemory
+            | ConnectionProvider::WebSocket
+            | ConnectionProvider::Udp => source.host_id != sink.host_id,
+        };
+        if supported && providers.contains(&provider) {
+            return Ok(provider);
+        }
+        return Err(PlannerError::UnavailableConnectionProvider(format!(
+            "provider {:?} unavailable for '{}' -> '{}'",
+            provider,
+            source.operation_id.as_str(),
+            sink.operation_id.as_str()
+        )));
+    }
     if source.host_id == sink.host_id && providers.contains(&ConnectionProvider::Local) {
         return Ok(ConnectionProvider::Local);
     }

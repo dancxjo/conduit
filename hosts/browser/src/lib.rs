@@ -624,13 +624,18 @@ fn ensure_activated(output: &RuntimeOutput) -> Result<(), String> {
 mod tests {
     use super::{BoundedWebSocketRelay, BrowserHostConfig, BrowserPage};
     use conduit_core::{
-        kind_id, BootId, ConnectionProvider, HostCommand, HostEvent, HostId, OfferGeneration,
-        PlatformEffect, TerminalDisposition,
+        kind_id, BootId, ConnectionId, ConnectionOutcome, ConnectionProvider, HostCommand,
+        HostEvent, HostId, OfferGeneration, PlacementId, PlatformEffect, TerminalDisposition,
     };
     use conduit_form::parse;
+    use conduit_pico_host::{BoundedUdpRelay, PicoHost, PicoHostConfig};
+    use conduit_planner::{
+        plan_with_connection_limits_and_provider_overrides, PlacementChoice, PlacementChoices,
+    };
+    use conduit_runtime::RuntimeOutput;
     use conduit_signal::{signal_profile_catalog, PULSE_KIND, SHOW_KIND};
-    use conduit_std_host::{StdHost, StdHostConfig};
-    use std::collections::VecDeque;
+    use conduit_std_host::{SignalReceipt, StdHost, StdHostConfig};
+    use std::collections::{BTreeMap, VecDeque};
 
     fn page() -> BrowserPage {
         BrowserPage::with_hosts([
@@ -653,6 +658,14 @@ mod tests {
             &signal_profile_catalog(),
         )
         .expect("browser pair form parses")
+    }
+
+    fn triple_form() -> conduit_form::CheckedForm {
+        parse(
+            include_str!("../../../examples/triple-signal.form"),
+            &signal_profile_catalog(),
+        )
+        .expect("triple signal form parses")
     }
 
     #[test]
@@ -834,6 +847,596 @@ mod tests {
                 disposition: TerminalDisposition::Completed
             }
         )));
+    }
+
+    #[test]
+    fn triple_signal_form_fans_out_to_std_browser_and_pico_receipts() {
+        let mut std_host = StdHost::new_with_config(StdHostConfig {
+            host_id: HostId::from("std-host-triple"),
+            boot_id: BootId::from("std-boot-triple"),
+            offer_generation: OfferGeneration(1),
+        });
+        let mut page = BrowserPage::with_hosts([BrowserHostConfig {
+            host_id: HostId::from("browser-host-triple"),
+            boot_id: BootId::from("browser-boot-triple"),
+            offer_generation: OfferGeneration(1),
+        }]);
+        let mut pico = PicoHost::new(PicoHostConfig {
+            host_id: HostId::from("pico-host-triple"),
+            boot_id: BootId::from("pico-boot-triple"),
+            offer_generation: OfferGeneration(1),
+        });
+
+        let form = triple_form();
+        let browser_host = HostId::from("browser-host-triple");
+        let placements = PlacementChoices {
+            by_operation: BTreeMap::from([
+                (
+                    conduit_core::OperationId::from("pulse"),
+                    PlacementChoice {
+                        host_id: std_host.advertisement().host_id.clone(),
+                        capability_id: conduit_core::CapabilityId::from("pulse-1"),
+                    },
+                ),
+                (
+                    conduit_core::OperationId::from("local"),
+                    PlacementChoice {
+                        host_id: std_host.advertisement().host_id.clone(),
+                        capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
+                    },
+                ),
+                (
+                    conduit_core::OperationId::from("web"),
+                    PlacementChoice {
+                        host_id: browser_host.clone(),
+                        capability_id: conduit_core::CapabilityId::from("dom-show"),
+                    },
+                ),
+                (
+                    conduit_core::OperationId::from("light"),
+                    PlacementChoice {
+                        host_id: pico.advertisement().host_id.clone(),
+                        capability_id: conduit_core::CapabilityId::from("onboard-led"),
+                    },
+                ),
+            ]),
+        };
+        let connection_providers = BTreeMap::from([
+            (
+                (
+                    conduit_core::OperationId::from("pulse"),
+                    conduit_core::OperationId::from("local"),
+                ),
+                ConnectionProvider::Local,
+            ),
+            (
+                (
+                    conduit_core::OperationId::from("pulse"),
+                    conduit_core::OperationId::from("web"),
+                ),
+                ConnectionProvider::WebSocket,
+            ),
+            (
+                (
+                    conduit_core::OperationId::from("pulse"),
+                    conduit_core::OperationId::from("light"),
+                ),
+                ConnectionProvider::Udp,
+            ),
+        ]);
+        let realm = [
+            std_host.advertisement().clone(),
+            page.advertisements()
+                .into_iter()
+                .next()
+                .expect("browser advertisement exists"),
+            pico.advertisement().clone(),
+        ];
+        let plan = plan_with_connection_limits_and_provider_overrides(
+            &form,
+            &realm,
+            &placements,
+            &[
+                ConnectionProvider::Local,
+                ConnectionProvider::WebSocket,
+                ConnectionProvider::Udp,
+            ],
+            &connection_providers,
+            4,
+            64,
+        )
+        .expect("triple-host plan resolves");
+        let connection_provider_by_id = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .map(|connection| (connection.connection_id.clone(), connection.provider))
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(
+            connection_provider_by_id
+                .values()
+                .filter(|provider| **provider == ConnectionProvider::Local)
+                .count(),
+            1
+        );
+        assert_eq!(
+            connection_provider_by_id
+                .values()
+                .filter(|provider| **provider == ConnectionProvider::WebSocket)
+                .count(),
+            1
+        );
+        assert_eq!(
+            connection_provider_by_id
+                .values()
+                .filter(|provider| **provider == ConnectionProvider::Udp)
+                .count(),
+            1
+        );
+        let source_connection_by_sink = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .filter(|connection| connection.provider != ConnectionProvider::Local)
+            .map(|connection| {
+                (
+                    connection.sink_placement_id.clone(),
+                    connection.connection_id.clone(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        page.inbound_routes = super::inbound_routes(&plan.fragments);
+        page.delivery_ack_routes = super::delivery_ack_routes(&plan.fragments);
+        for fragment in &plan.fragments {
+            let output = if fragment.host_id == std_host.advertisement().host_id {
+                std_host.handle(HostCommand::Prepare(fragment.clone()))
+            } else if fragment.host_id == browser_host {
+                page.host_mut(&fragment.host_id)
+                    .expect("browser host exists")
+                    .handle(HostCommand::Prepare(fragment.clone()))
+            } else {
+                pico.handle(HostCommand::Prepare(fragment.clone()))
+            };
+            super::ensure_prepared(&output).expect("fragment prepares");
+        }
+
+        let mut pending = VecDeque::new();
+        for fragment in super::sink_fragments_first(&plan.fragments) {
+            let output = if fragment.host_id == std_host.advertisement().host_id {
+                std_host.handle(HostCommand::Activate(fragment.plan_id.clone()))
+            } else if fragment.host_id == browser_host {
+                page.host_mut(&fragment.host_id)
+                    .expect("browser host exists")
+                    .handle(HostCommand::Activate(fragment.plan_id.clone()))
+            } else {
+                pico.handle(HostCommand::Activate(fragment.plan_id.clone()))
+            };
+            super::ensure_activated(&output).expect("fragment activates");
+            pending.extend(
+                output
+                    .effects
+                    .into_iter()
+                    .map(|effect| (fragment.host_id.clone(), effect)),
+            );
+        }
+
+        let mut websocket = BoundedWebSocketRelay::new(64, 512);
+        let mut udp = BoundedUdpRelay::new(64, 512);
+        let mut stdout_receipts = Vec::new();
+        while let Some((host_id, effect)) = pending.pop_front() {
+            if host_id == std_host.advertisement().host_id {
+                pending.extend(drive_triple_std_effect(
+                    &mut std_host,
+                    &mut page,
+                    &mut pico,
+                    &connection_provider_by_id,
+                    &mut websocket,
+                    &mut udp,
+                    &mut stdout_receipts,
+                    effect,
+                ));
+            } else if host_id == browser_host {
+                pending.extend(drive_triple_browser_effect(
+                    &mut std_host,
+                    &mut page,
+                    &mut pico,
+                    &connection_provider_by_id,
+                    &source_connection_by_sink,
+                    &host_id,
+                    effect,
+                ));
+            } else {
+                pending.extend(drive_triple_pico_effect(
+                    &mut std_host,
+                    &mut page,
+                    &mut pico,
+                    &connection_provider_by_id,
+                    &source_connection_by_sink,
+                    effect,
+                ));
+            }
+        }
+
+        assert_eq!(stdout_receipts.len(), 16);
+        assert_eq!(websocket.frames().len(), 16);
+        assert_eq!(udp.datagrams().len(), 16);
+        let browser_receipts = page
+            .host_snapshots()
+            .into_iter()
+            .find(|snapshot| snapshot.host_id == browser_host)
+            .expect("browser sink snapshot exists")
+            .receipts;
+        assert_eq!(browser_receipts.len(), 16);
+        assert_eq!(pico.receipts().len(), 16);
+        for sequence in 0..16 {
+            let expected_level = sequence % 2 == 1;
+            assert_eq!(stdout_receipts[sequence].sequence, sequence as u64);
+            assert_eq!(browser_receipts[sequence].sequence, sequence as u64);
+            assert_eq!(pico.receipts()[sequence].sequence, sequence as u64);
+            assert_eq!(stdout_receipts[sequence].level, expected_level);
+            assert_eq!(browser_receipts[sequence].level, expected_level);
+            assert_eq!(pico.receipts()[sequence].level, expected_level);
+            assert_eq!(browser_receipts[sequence].indicator_on, expected_level);
+            assert_eq!(pico.receipts()[sequence].led_on, expected_level);
+        }
+        assert!(std_inspect(&mut std_host)
+            .iter()
+            .any(|observation| matches!(
+                observation.kind,
+                conduit_core::ObservationKind::PlanTerminal {
+                    disposition: TerminalDisposition::Completed
+                }
+            )));
+        assert!(page
+            .host_mut(&browser_host)
+            .expect("browser host exists")
+            .inspect()
+            .iter()
+            .any(|observation| matches!(
+                observation.kind,
+                conduit_core::ObservationKind::PlanTerminal {
+                    disposition: TerminalDisposition::Completed
+                }
+            )));
+        assert!(pico_inspect(&mut pico).iter().any(|observation| matches!(
+            observation.kind,
+            conduit_core::ObservationKind::PlanTerminal {
+                disposition: TerminalDisposition::Completed
+            }
+        )));
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn drive_triple_std_effect(
+        std_host: &mut StdHost,
+        page: &mut BrowserPage,
+        pico: &mut PicoHost,
+        connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
+        websocket: &mut BoundedWebSocketRelay,
+        udp: &mut BoundedUdpRelay,
+        stdout_receipts: &mut Vec<SignalReceipt>,
+        effect: PlatformEffect,
+    ) -> Vec<(HostId, PlatformEffect)> {
+        match effect {
+            PlatformEffect::Wait {
+                plan_id,
+                placement_id,
+                ..
+            } => {
+                let output = std_host.handle(HostCommand::CompleteWait {
+                    plan_id,
+                    placement_id,
+                });
+                triple_std_output_effects(std_host, page, pico, connection_provider_by_id, output)
+            }
+            PlatformEffect::PresentValue {
+                plan_id,
+                placement_id,
+                presentation_kind,
+                value,
+            } => {
+                assert_eq!(
+                    presentation_kind.as_str(),
+                    conduit_signal::SIGNAL_PRESENTATION_KIND
+                );
+                let signal = conduit_signal::decode_signal(&value).expect("signal decodes");
+                stdout_receipts.push(SignalReceipt {
+                    placement_id: placement_id.clone(),
+                    sequence: signal.sequence,
+                    level: signal.level,
+                });
+                let output = std_host.handle(HostCommand::CompletePresentation {
+                    plan_id,
+                    placement_id,
+                    value,
+                    success: true,
+                    message: None,
+                });
+                triple_std_output_effects(std_host, page, pico, connection_provider_by_id, output)
+            }
+            PlatformEffect::TransmitConnection { envelope } => {
+                match connection_provider_by_id
+                    .get(&envelope.connection_id)
+                    .copied()
+                    .expect("connection provider exists")
+                {
+                    ConnectionProvider::WebSocket => {
+                        let decoded = websocket.transmit(&envelope).expect("relay accepts frame");
+                        let sink_host_id = page
+                            .host_for_inbound_connection(&decoded.plan_id, &decoded.connection_id)
+                            .expect("browser inbound route exists");
+                        let accepted = page
+                            .host_mut(&sink_host_id)
+                            .expect("browser host exists")
+                            .handle(HostCommand::AcceptConnectionEnvelope(decoded.clone()));
+                        super::pending_success(&accepted, decoded.sequence)
+                            .expect("browser accepts frame");
+                        let source_accepted =
+                            std_host.handle(HostCommand::CompleteConnectionDelivery {
+                                plan_id: decoded.plan_id,
+                                connection_id: decoded.connection_id,
+                                sequence: decoded.sequence,
+                                outcome: ConnectionOutcome::Accepted,
+                            });
+                        let mut pending = accepted
+                            .effects
+                            .into_iter()
+                            .map(|effect| (sink_host_id.clone(), effect))
+                            .collect::<Vec<_>>();
+                        pending.extend(triple_std_output_effects(
+                            std_host,
+                            page,
+                            pico,
+                            connection_provider_by_id,
+                            source_accepted,
+                        ));
+                        pending
+                    }
+                    ConnectionProvider::Udp => {
+                        let decoded = udp.transmit(&envelope).expect("relay accepts datagram");
+                        let accepted =
+                            pico.handle(HostCommand::AcceptConnectionEnvelope(decoded.clone()));
+                        pending_success(&accepted, decoded.sequence)
+                            .expect("pico accepts datagram");
+                        let source_accepted =
+                            std_host.handle(HostCommand::CompleteConnectionDelivery {
+                                plan_id: decoded.plan_id,
+                                connection_id: decoded.connection_id,
+                                sequence: decoded.sequence,
+                                outcome: ConnectionOutcome::Accepted,
+                            });
+                        let mut pending = accepted
+                            .effects
+                            .into_iter()
+                            .map(|effect| (pico.advertisement().host_id.clone(), effect))
+                            .collect::<Vec<_>>();
+                        pending.extend(triple_std_output_effects(
+                            std_host,
+                            page,
+                            pico,
+                            connection_provider_by_id,
+                            source_accepted,
+                        ));
+                        pending
+                    }
+                    ConnectionProvider::Local | ConnectionProvider::InMemory => {
+                        panic!("triple remote transmit used unsupported provider")
+                    }
+                }
+            }
+        }
+    }
+
+    fn drive_triple_browser_effect(
+        std_host: &mut StdHost,
+        page: &mut BrowserPage,
+        pico: &mut PicoHost,
+        connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
+        source_connection_by_sink: &BTreeMap<PlacementId, ConnectionId>,
+        host_id: &HostId,
+        effect: PlatformEffect,
+    ) -> Vec<(HostId, PlatformEffect)> {
+        match effect {
+            PlatformEffect::PresentValue {
+                plan_id,
+                placement_id,
+                presentation_kind,
+                value,
+            } => {
+                assert_eq!(
+                    presentation_kind.as_str(),
+                    conduit_signal::SIGNAL_PRESENTATION_KIND
+                );
+                let signal = conduit_signal::decode_signal(&value).expect("signal decodes");
+                let connection_id = source_connection_by_sink
+                    .get(&placement_id)
+                    .cloned()
+                    .expect("browser sink connection exists");
+                let output = page
+                    .host_mut(host_id)
+                    .expect("browser host exists")
+                    .complete_dom_presentation(plan_id.clone(), placement_id, value)
+                    .expect("browser presentation completes");
+                let delivered = std_host.handle(HostCommand::CompleteConnectionDelivery {
+                    plan_id,
+                    connection_id,
+                    sequence: signal.sequence,
+                    outcome: ConnectionOutcome::Delivered,
+                });
+                let mut pending = output
+                    .effects
+                    .into_iter()
+                    .map(|effect| (host_id.clone(), effect))
+                    .collect::<Vec<_>>();
+                pending.extend(triple_std_output_effects(
+                    std_host,
+                    page,
+                    pico,
+                    connection_provider_by_id,
+                    delivered,
+                ));
+                pending
+            }
+            PlatformEffect::Wait { .. } | PlatformEffect::TransmitConnection { .. } => {
+                panic!("browser triple sink should only present received values")
+            }
+        }
+    }
+
+    fn drive_triple_pico_effect(
+        std_host: &mut StdHost,
+        page: &mut BrowserPage,
+        pico: &mut PicoHost,
+        connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
+        source_connection_by_sink: &BTreeMap<PlacementId, ConnectionId>,
+        effect: PlatformEffect,
+    ) -> Vec<(HostId, PlatformEffect)> {
+        match effect {
+            PlatformEffect::PresentValue {
+                plan_id,
+                placement_id,
+                presentation_kind,
+                value,
+            } => {
+                assert_eq!(
+                    presentation_kind.as_str(),
+                    conduit_signal::SIGNAL_PRESENTATION_KIND
+                );
+                let signal = conduit_signal::decode_signal(&value).expect("signal decodes");
+                let connection_id = source_connection_by_sink
+                    .get(&placement_id)
+                    .cloned()
+                    .expect("pico sink connection exists");
+                let output = pico
+                    .complete_led_presentation(plan_id.clone(), placement_id, value)
+                    .expect("pico led presentation completes");
+                let delivered = std_host.handle(HostCommand::CompleteConnectionDelivery {
+                    plan_id,
+                    connection_id,
+                    sequence: signal.sequence,
+                    outcome: ConnectionOutcome::Delivered,
+                });
+                let mut pending = output
+                    .effects
+                    .into_iter()
+                    .map(|effect| (pico.advertisement().host_id.clone(), effect))
+                    .collect::<Vec<_>>();
+                pending.extend(triple_std_output_effects(
+                    std_host,
+                    page,
+                    pico,
+                    connection_provider_by_id,
+                    delivered,
+                ));
+                pending
+            }
+            PlatformEffect::Wait { .. } | PlatformEffect::TransmitConnection { .. } => {
+                panic!("pico triple sink should only present received values")
+            }
+        }
+    }
+
+    fn triple_std_output_effects(
+        std_host: &mut StdHost,
+        page: &mut BrowserPage,
+        pico: &mut PicoHost,
+        connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
+        output: RuntimeOutput,
+    ) -> Vec<(HostId, PlatformEffect)> {
+        let mut pending = output
+            .effects
+            .into_iter()
+            .map(|effect| (std_host.advertisement().host_id.clone(), effect))
+            .collect::<Vec<_>>();
+        for event in output.events {
+            if let HostEvent::ConnectionTerminated {
+                plan_id,
+                connection_id,
+                disposition,
+            } = event
+            {
+                if matches!(disposition.disposition, TerminalDisposition::Completed) {
+                    match connection_provider_by_id.get(&connection_id).copied() {
+                        Some(ConnectionProvider::WebSocket) => {
+                            if let Some(sink_host_id) =
+                                page.host_for_inbound_connection(&plan_id, &connection_id)
+                            {
+                                let close = page
+                                    .host_mut(&sink_host_id)
+                                    .expect("browser host exists")
+                                    .handle(HostCommand::CloseConnection {
+                                        plan_id,
+                                        connection_id,
+                                    });
+                                pending.extend(
+                                    close
+                                        .effects
+                                        .into_iter()
+                                        .map(|effect| (sink_host_id.clone(), effect)),
+                                );
+                            }
+                        }
+                        Some(ConnectionProvider::Udp) => {
+                            let close = pico.handle(HostCommand::CloseConnection {
+                                plan_id,
+                                connection_id,
+                            });
+                            pending.extend(
+                                close
+                                    .effects
+                                    .into_iter()
+                                    .map(|effect| (pico.advertisement().host_id.clone(), effect)),
+                            );
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        pending
+    }
+
+    fn pending_success(output: &RuntimeOutput, sequence: u64) -> Result<(), String> {
+        output
+            .events
+            .iter()
+            .find_map(|event| match event {
+                HostEvent::ConnectionEnvelopeOutcome {
+                    sequence: event_sequence,
+                    outcome,
+                    ..
+                } if *event_sequence == sequence => Some(*outcome),
+                _ => None,
+            })
+            .filter(|outcome| matches!(outcome, ConnectionOutcome::Accepted))
+            .map_or_else(
+                || Err(format!("missing accepted delivery for sequence {sequence}")),
+                |_| Ok(()),
+            )
+    }
+
+    fn std_inspect(std_host: &mut StdHost) -> Vec<conduit_core::Observation> {
+        std_host
+            .handle(HostCommand::Inspect)
+            .events
+            .into_iter()
+            .find_map(|event| match event {
+                HostEvent::Observations { items } => Some(items),
+                _ => None,
+            })
+            .unwrap_or_default()
+    }
+
+    fn pico_inspect(pico: &mut PicoHost) -> Vec<conduit_core::Observation> {
+        pico.handle(HostCommand::Inspect)
+            .events
+            .into_iter()
+            .find_map(|event| match event {
+                HostEvent::Observations { items } => Some(items),
+                _ => None,
+            })
+            .unwrap_or_default()
     }
 
     fn drive_std_effect(

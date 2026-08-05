@@ -33,6 +33,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "conduit-pico-host",
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",

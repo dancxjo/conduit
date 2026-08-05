@@ -13,6 +13,9 @@ browser-host:
 browser-websocket-relay:
     cargo test -p conduit-browser-host std_host_sends_signal_to_browser_over_bounded_websocket_relay
 
+triple-host-proof:
+    cargo test -p conduit-browser-host triple_signal_form_fans_out_to_std_browser_and_pico_receipts
+
 browser-wasm-check:
     cargo check -p conduit-browser-host --target wasm32-unknown-unknown
 
@@ -37,6 +40,7 @@ check-browser-readiness:
     cargo test -p conduit-wire
     cargo test -p conduit-runtime --test host_contract
     cargo test -p conduit-browser-host
+    cargo test -p conduit-browser-host triple_signal_form_fans_out_to_std_browser_and_pico_receipts
     cargo check -p conduit-browser-host --target wasm32-unknown-unknown
     cargo test -p conduit-pico-host
     cargo test -p conduit-pico-host std_host_sends_signal_to_pico_over_bounded_udp_relay

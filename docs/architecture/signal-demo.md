@@ -77,6 +77,19 @@ That fixture plans the pair form across std and Pico advertisements with the
 `conduit-wire`, enforces datagram bounds, and compares retained onboard-LED
 receipts against the same sixteen ordered signal values.
 
+The same `examples/triple-signal.form` can now be planned across std, browser,
+and Pico host advertisements in one deterministic proof:
+
+```text
+cargo test -p conduit-browser-host triple_signal_form_fans_out_to_std_browser_and_pico_receipts
+```
+
+That proof keeps the authored form free of platform and transport facts while
+the plan places `local` on std stdout, `web` on browser DOM, and `light` on Pico
+LED. It uses local delivery for stdout, bounded `WebSocket` relay frames for
+DOM, and bounded `Udp` relay datagrams for LED, then compares all three retained
+receipt streams for the same sixteen ordered `Signal` values.
+
 ## Receipts
 
 Each completed std manifestation emits a machine-readable receipt line:
@@ -91,15 +104,16 @@ sinks. The deterministic browser pair fixture and std-to-browser WebSocket relay
 fixture each retain sixteen DOM-state receipts on the sink browser host
 instance. The deterministic Pico fixture retains sixteen onboard-LED receipts
 with the same sequence and level values; the std-to-Pico UDP relay fixture
-retains the same sixteen onboard-LED receipts after bounded wire transit.
+retains the same sixteen onboard-LED receipts after bounded wire transit. The
+triple-host proof compares sixteen stdout, DOM-state, and onboard-LED receipts
+from the same unchanged form.
 
 ## Current Stop Line
 
 The repository now contains deterministic browser and Pico host crates, a
 canonical `WebSocket` connection provider, and a bounded std-to-browser relay
 fixture. It also contains a canonical `Udp` connection provider and bounded
-std-to-Pico relay fixture. It does not yet contain a WASM operator page, browser
-socket client/server runtime, physical Pico LED acceptance, live std-to-Pico UDP
-sockets, or final std/browser/Pico fan-out proof. M1 remains open until the same
-`examples/triple-signal.form` can be planned across std, browser, and Pico W
-hosts, with matching ordered receipts from stdout, DOM, and LED manifestations.
+std-to-Pico relay fixture, plus a final deterministic std/browser/Pico fan-out
+proof over `examples/triple-signal.form`. It does not yet contain a WASM
+operator page, browser socket client/server runtime, physical Pico LED
+acceptance, or live std-to-Pico UDP sockets.

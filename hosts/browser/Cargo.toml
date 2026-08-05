@@ -12,4 +12,5 @@ conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profi
 conduit-wire = { path = "../../crates/conduit-wire" }
 
 [dev-dependencies]
+conduit-pico-host = { path = "../pico" }
 conduit-std-host = { path = "../std" }

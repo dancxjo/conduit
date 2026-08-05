@@ -24,6 +24,9 @@ fn dependency_and_profile_installation_drawbridge_is_explicit() {
         "cargo test -p conduit-pico-host std_host_sends_signal_to_pico_over_bounded_udp_relay"
     ));
     assert!(justfile.contains(
+        "cargo test -p conduit-browser-host triple_signal_form_fans_out_to_std_browser_and_pico_receipts"
+    ));
+    assert!(justfile.contains(
         "cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi"
     ));
     assert!(justfile.contains("--test host_contract"));
@@ -43,6 +46,8 @@ fn readiness_contract_names_the_platform_stop_line() {
         "multiple independent browser host instances",
         "wasm32-unknown-unknown",
         "bounded `WebSocket` relay using `conduit-wire`",
+        "examples/triple-signal.form",
+        "stdout, DOM-state, and onboard-LED receipts",
         "conduit-pico-host",
         "thumbv6m-none-eabi",
         "onboard-LED receipts",
