@@ -11,6 +11,7 @@ use conduit_core::{
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+pub mod lowering;
 pub mod providers;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

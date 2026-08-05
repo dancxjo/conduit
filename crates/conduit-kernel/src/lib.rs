@@ -34,6 +34,27 @@ pub struct RequestId(pub u32);
 #[repr(transparent)]
 pub struct HostOperationId(pub u16);
 
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[repr(transparent)]
+pub struct ResourceId(pub u16);
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[repr(transparent)]
+pub struct EvidenceExpectationId(pub u16);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ResourceBinding {
+    pub resource: ResourceId,
+    pub units: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EvidenceExpectationTarget {
+    Fragment,
+    Node(NodeId),
+    Cord(CordId),
+}
+
 /// Opaque reference into a plan-accounted value store.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ValueRef {
@@ -185,7 +206,7 @@ impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
         if self.sealed {
             return Err(ProtocolError::HostOperationTableSealed);
         }
-        if binding.maximum_input_bytes == 0 || binding.maximum_output_bytes == 0 {
+        if binding.maximum_input_bytes == 0 {
             return Err(ProtocolError::HostOperationTableInvalid);
         }
         let slot = self.slot(node, binding.operation)?;
@@ -1207,6 +1228,43 @@ mod tests {
             8
         );
         assert!(bindings.admit(NodeId(0), action).is_err());
+    }
+
+    #[test]
+    fn admitted_sink_host_operation_may_have_no_output_payload() {
+        let mut bindings = FixedHostOperationBindings::<1>::new(1);
+        bindings
+            .install(
+                NodeId(0),
+                HostOperationBinding {
+                    operation: HostOperationId(0),
+                    maximum_input_bytes: 8,
+                    maximum_output_bytes: 0,
+                },
+            )
+            .unwrap();
+        bindings.seal().unwrap();
+
+        let action = OperationAction::RequestHostOperation {
+            request: RequestId(1),
+            operation: HostOperationId(0),
+            input: BoundedValueRef::new(
+                super::ValueRef {
+                    slot: 0,
+                    generation: 1,
+                    byte_len: 4,
+                },
+                4,
+            )
+            .unwrap(),
+        };
+        assert_eq!(
+            bindings
+                .admit(NodeId(0), action)
+                .unwrap()
+                .maximum_output_bytes,
+            0
+        );
     }
 
     #[test]
