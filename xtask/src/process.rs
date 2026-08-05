@@ -2,14 +2,14 @@ use std::{
     fmt,
     path::Path,
     process::{Command, ExitStatus, Stdio},
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
 
-/// A single suite step with identity and provenance.
+/// A single read-only probe with stable identity and provenance.
 #[derive(Debug, Clone)]
 pub struct Step {
     /// Stable identifier used in JSON reports and error messages.
@@ -44,23 +44,6 @@ impl fmt::Display for Step {
     }
 }
 
-/// Outcome of a single executed step.
-#[derive(Debug)]
-pub struct StepOutcome {
-    pub id: String,
-    pub description: String,
-    pub command_line: String,
-    pub elapsed: Duration,
-    pub status: Option<ExitStatus>,
-    pub skipped: bool,
-}
-
-impl StepOutcome {
-    pub fn success(&self) -> bool {
-        self.skipped || self.status.map(|status| status.success()).unwrap_or(false)
-    }
-}
-
 /// Captured result of a read-only prerequisite probe.
 #[derive(Debug, Clone, Serialize)]
 pub struct ProbeOutcome {
@@ -76,7 +59,7 @@ pub struct ProbeOutcome {
     pub elapsed_ms: u128,
 }
 
-/// Error returned when a step fails or a prerequisite check fails.
+/// Error returned when a prerequisite command or report cannot be produced.
 #[derive(Debug)]
 pub struct StepError {
     pub id: String,
@@ -179,96 +162,6 @@ pub fn run_probe(step: &Step, working_dir: &Path, opts: &GlobalOpts) -> ProbeOut
     }
 }
 
-/// Run a sequence of steps, respecting global options.
-///
-/// Returns `Ok(outcomes)` when all steps pass, or the first `Err` when a step
-/// fails and keep-going is not set. With keep-going all steps run and the last
-/// error is returned if any failed.
-pub fn run_steps(
-    steps: &[Step],
-    working_dir: &Path,
-    opts: &GlobalOpts,
-) -> Result<Vec<StepOutcome>, StepError> {
-    let mut outcomes: Vec<StepOutcome> = Vec::new();
-    let mut last_err: Option<StepError> = None;
-
-    for step in steps {
-        let command_line = format!("{} {}", step.program, step.args.join(" "));
-
-        if !opts.quiet && !opts.json {
-            println!("» [{}] {}", step.id, step.description);
-            println!("  $ {command_line}");
-        }
-
-        if opts.dry_run {
-            outcomes.push(StepOutcome {
-                id: step.id.to_string(),
-                description: step.description.to_string(),
-                command_line,
-                elapsed: Duration::ZERO,
-                status: None,
-                skipped: true,
-            });
-            continue;
-        }
-
-        let start = Instant::now();
-        let status = Command::new(step.program)
-            .args(step.args)
-            .current_dir(working_dir)
-            .stdin(Stdio::null())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .status();
-        let elapsed = start.elapsed();
-
-        let outcome = match status {
-            Ok(status) => StepOutcome {
-                id: step.id.to_string(),
-                description: step.description.to_string(),
-                command_line: command_line.clone(),
-                elapsed,
-                status: Some(status),
-                skipped: false,
-            },
-            Err(error) => {
-                eprintln!("failed to launch '{}': {error}", step.program);
-                StepOutcome {
-                    id: step.id.to_string(),
-                    description: step.description.to_string(),
-                    command_line: command_line.clone(),
-                    elapsed,
-                    status: None,
-                    skipped: false,
-                }
-            }
-        };
-
-        let success = outcome.success();
-        outcomes.push(outcome);
-
-        if !success {
-            let err = StepError {
-                id: step.id.to_string(),
-                command_line,
-                status: outcomes.last().and_then(|outcome| outcome.status),
-                message: String::new(),
-            };
-            if opts.keep_going {
-                last_err = Some(err);
-            } else {
-                return Err(err);
-            }
-        }
-    }
-
-    if let Some(err) = last_err {
-        Err(err)
-    } else {
-        Ok(outcomes)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,24 +177,6 @@ mod tests {
             quiet: true,
             ..Default::default()
         }
-    }
-
-    #[test]
-    fn dry_run_skips_all_steps() {
-        let steps = [
-            Step::new("a", "desc a", "cargo", &["--version"]),
-            Step::new("b", "desc b", "cargo", &["--version"]),
-        ];
-        let outcomes = run_steps(&steps, &workspace(), &dry_opts()).unwrap();
-        assert_eq!(outcomes.len(), 2);
-        assert!(outcomes.iter().all(|outcome| outcome.skipped));
-    }
-
-    #[test]
-    fn dry_run_produces_correct_ids() {
-        let steps = [Step::new("my-step", "desc", "cargo", &["test"])];
-        let outcomes = run_steps(&steps, &workspace(), &dry_opts()).unwrap();
-        assert_eq!(outcomes[0].id, "my-step");
     }
 
     #[test]
@@ -330,34 +205,5 @@ mod tests {
     fn step_display_renders_command_line() {
         let step = Step::new("x", "d", "cargo", &["test", "--lib"]);
         assert_eq!(step.to_string(), "cargo test --lib");
-    }
-
-    #[test]
-    fn keep_going_runs_all_steps_and_returns_err() {
-        let steps = [
-            Step::new("fail-a", "d", "__no_such_binary__", &[]),
-            Step::new("fail-b", "d", "__no_such_binary__", &[]),
-        ];
-        let opts = GlobalOpts {
-            keep_going: true,
-            quiet: true,
-            ..Default::default()
-        };
-        let result = run_steps(&steps, &workspace(), &opts);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn first_failure_stops_early() {
-        let steps = [
-            Step::new("fail", "d", "__no_such_binary__", &[]),
-            Step::new("ok", "d", "cargo", &["--version"]),
-        ];
-        let opts = GlobalOpts {
-            quiet: true,
-            ..Default::default()
-        };
-        let result = run_steps(&steps, &workspace(), &opts);
-        assert!(result.is_err());
     }
 }
