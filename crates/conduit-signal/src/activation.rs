@@ -241,7 +241,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-                    max_queue_bytes: ACTIVATION_ENCODED_LEN,
+                    max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
                 },
             },
             CapabilityOffer {
