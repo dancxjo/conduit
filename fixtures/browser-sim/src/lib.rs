@@ -9,9 +9,10 @@ use conduit_planner::{plan_with_connection_limits, PlacementChoice, PlacementCho
 use conduit_runtime::{HostRuntime, RuntimeOutput};
 use conduit_signal::{
     decode_signal, pulse_contract_revision, pulse_execution_profile,
-    pulse_host_operation_requirements, pulse_outputs, show_contract_revision,
-    show_execution_profile, show_host_operation_requirements, show_inputs, signal_profile_catalog,
-    signal_registry, PULSE_KIND, SHOW_KIND, SIGNAL_PRESENTATION_KIND,
+    pulse_host_operation_requirements, pulse_outputs, pulse_resource_requirements,
+    show_contract_revision, show_execution_profile, show_host_operation_requirements, show_inputs,
+    show_resource_requirements, signal_profile_catalog, signal_registry, signal_resource_offers,
+    PULSE_KIND, SHOW_KIND, SIGNAL_PRESENTATION_KIND,
 };
 use std::collections::{BTreeMap, VecDeque};
 
@@ -482,6 +483,7 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
         boot_id: config.boot_id,
         offer_generation: config.offer_generation,
         profile: HostProfileId::from("browser/wasm-page-v1"),
+        resources: signal_resource_offers("browser/timer", "browser/presentation", 16),
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("pulse"),
@@ -493,6 +495,7 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
                 inputs: vec![],
                 outputs: pulse_outputs(),
                 host_operations: pulse_host_operation_requirements(),
+                resource_requirements: pulse_resource_requirements(),
                 limits: CapabilityLimits {
                     max_active_instances: 16,
                     max_queue_items: 4,
@@ -509,6 +512,7 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
                 inputs: show_inputs(),
                 outputs: vec![],
                 host_operations: show_host_operation_requirements(),
+                resource_requirements: show_resource_requirements(),
                 limits: CapabilityLimits {
                     max_active_instances: 16,
                     max_queue_items: 4,

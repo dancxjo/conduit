@@ -155,6 +155,7 @@ impl CompositeDefinition {
                 inputs: external_inputs,
                 outputs: external_outputs,
                 host_operations: Vec::new(),
+                resource_requirements: Vec::new(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: connection.item_capacity,
@@ -380,6 +381,7 @@ impl CompositeHost {
             boot_id: definition.boot_id,
             offer_generation: definition.offer_generation,
             profile: definition.profile,
+            resources: Vec::new(),
             capabilities: vec![external_capability],
         };
         let internal_plan_id = definition.internal_plan.plan_id.clone();
@@ -1038,9 +1040,10 @@ mod tests {
     use conduit_runtime::{providers::in_memory::InMemoryConnectionProvider, HostRuntime};
     use conduit_signal::{
         pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
-        pulse_outputs, show_contract_revision, show_execution_profile,
-        show_host_operation_requirements, show_inputs, signal_profile_catalog, signal_registry,
-        PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND,
+        pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
+        show_host_operation_requirements, show_inputs, show_resource_requirements,
+        signal_profile_catalog, signal_registry, signal_resource_offers, PULSE_KIND, SHOW_KIND,
+        SIGNAL_VALUE_KIND,
     };
     use std::collections::BTreeMap;
 
@@ -1081,6 +1084,11 @@ mod tests {
             boot_id: BootId::from(boot),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("rust-std"),
+            resources: signal_resource_offers(
+                &format!("{host}/timer"),
+                &format!("{host}/presentation"),
+                2,
+            ),
             capabilities: vec![CapabilityOffer {
                 capability_id: CapabilityId::from(if source { "pulse" } else { "show" }),
                 kind_id: kind_id(if source { PULSE_KIND } else { SHOW_KIND }),
@@ -1110,6 +1118,11 @@ mod tests {
                     pulse_host_operation_requirements()
                 } else {
                     show_host_operation_requirements()
+                },
+                resource_requirements: if source {
+                    pulse_resource_requirements()
+                } else {
+                    show_resource_requirements()
                 },
                 limits: CapabilityLimits {
                     max_active_instances: 2,
@@ -1576,6 +1589,7 @@ mod tests {
             inputs: vec![],
             outputs: vec![],
             host_operations: vec![],
+            resource_requirements: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 0,
                 max_queue_items: 0,
@@ -1819,6 +1833,7 @@ mod tests {
                 inputs: show_inputs(),
                 outputs: pulse_outputs(),
                 host_operations: vec![],
+                resource_requirements: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 5,
                     max_queue_items: 9,

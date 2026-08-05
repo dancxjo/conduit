@@ -25,7 +25,7 @@ jobs:
           cargo check -p conduit-signal --no-default-features
           cargo check -p conduit-wire --no-default-features
           cargo check -p conduit-std-catalog --no-default-features
-      - name: exact semantic planning and mutation negatives
+      - name: exact semantic resource planning and mutation negatives
         run: |
           cargo test -p conduit-form checked_form_identity_binds_contract_revision_and_ports
           cargo test -p conduit-form source_checked_and_expanded_form_identities_stay_distinct
@@ -36,6 +36,7 @@ jobs:
           cargo test -p conduit-runtime --test host_contract runtime_rejects_an_implementation_that_requests_an_unplanned_host_operation
           cargo test -p conduit-runtime --test host_contract runtime_rejects_a_host_operation_input_above_its_planned_bound
           cargo test -p conduit-runtime --test host_contract fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection
+          cargo test -p conduit-runtime --test host_contract preparation_reserves_resource_pool_capacity_until_release
           cargo test -p conduit-runtime --test host_contract planned_evidence_storage_survives_observation_overflow
           cargo check -p conduit-core --target thumbv6m-none-eabi
       - name: deterministic wire and simulated-host conformance

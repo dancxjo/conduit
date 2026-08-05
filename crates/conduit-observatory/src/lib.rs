@@ -10,8 +10,8 @@ use conduit_core::{
     BootId, CapabilityId, CapabilityLimits, CheckedFormId, ConnectionId, ConnectionProvider,
     ExecutionProfileId, ExpandedFormId, HostAdvertisement, HostId, HostOperationRequirement,
     HostProfileId, ImplementationId, KindContractRevision, KindId, Observation, ObservationKind,
-    OfferGeneration, PlacementId, Plan, PlanId, PortDescriptor, SourceDocumentId,
-    TerminalDisposition,
+    OfferGeneration, PlacementId, Plan, PlanId, PortDescriptor, ResourceBinding, ResourceOffer,
+    ResourceRequirement, SourceDocumentId, TerminalDisposition,
 };
 use conduit_realm::{LinkId, LinkState, MembershipState, RealmId, RealmView};
 use core::fmt::Write;
@@ -77,6 +77,7 @@ pub struct HostRow {
     pub membership: Option<MembershipState>,
     pub state: OperationalState,
     pub capability_count: usize,
+    pub resources: Vec<ResourceOffer>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,6 +92,7 @@ pub struct CapabilityRow {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub host_operations: Vec<HostOperationRequirement>,
+    pub resource_requirements: Vec<ResourceRequirement>,
     pub limits: CapabilityLimits,
     pub freshness: OfferFreshness,
     pub support: CapabilitySupport,
@@ -131,6 +133,7 @@ pub struct PlacementRow {
     pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
     pub host_operations: Vec<HostOperationRequirement>,
+    pub resources: Vec<ResourceBinding>,
     pub lifecycle: PlanLifecycle,
 }
 
@@ -221,6 +224,9 @@ pub fn build_report(
                 capability_count: advertisement
                     .map(|advertisement| advertisement.capabilities.len())
                     .unwrap_or(0),
+                resources: advertisement
+                    .map(|advertisement| advertisement.resources.clone())
+                    .unwrap_or_default(),
             }
         })
         .collect::<Vec<_>>();
@@ -256,6 +262,7 @@ pub fn build_report(
                     inputs: capability.inputs.clone(),
                     outputs: capability.outputs.clone(),
                     host_operations: capability.host_operations.clone(),
+                    resource_requirements: capability.resource_requirements.clone(),
                     limits: capability.limits.clone(),
                     freshness,
                     support: CapabilitySupport::Supported,
@@ -331,6 +338,7 @@ pub fn build_report(
                         execution_profile_id: placement.execution_profile_id.clone(),
                         implementation_id: placement.implementation_id.clone(),
                         host_operations: placement.host_operations.clone(),
+                        resources: placement.resources.clone(),
                         lifecycle: placement_lifecycle(
                             &plan.plan_id,
                             &placement.placement_id,
@@ -532,7 +540,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for host in &report.hosts {
         let _ = writeln!(
             output,
-            "host id={} boot={} realm={} state={:?} membership={:?} capabilities={}",
+            "host id={} boot={} realm={} state={:?} membership={:?} capabilities={} resources={:?}",
             host.host_id.as_str(),
             host.boot_id
                 .as_ref()
@@ -544,14 +552,15 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
                 .unwrap_or("unknown"),
             host.state,
             host.membership,
-            host.capability_count
+            host.capability_count,
+            host.resources
         );
     }
     let _ = writeln!(output, "capabilities {}", report.capabilities.len());
     for capability in &report.capabilities {
         let _ = writeln!(
             output,
-            "capability host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} input_ports={} output_ports={} host_operations={:?} active_limit={} queue_items={} queue_bytes={} freshness={:?} support={:?} availability={:?}",
+            "capability host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} input_ports={} output_ports={} host_operations={:?} resource_requirements={:?} active_limit={} queue_items={} queue_bytes={} freshness={:?} support={:?} availability={:?}",
             capability.host_id.as_str(),
             capability.boot_id.as_str(),
             capability.capability_id.as_str(),
@@ -562,6 +571,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             capability.inputs.len(),
             capability.outputs.len(),
             capability.host_operations,
+            capability.resource_requirements,
             capability.limits.max_active_instances,
             capability.limits.max_queue_items,
             capability.limits.max_queue_bytes,
@@ -602,7 +612,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for placement in &report.placements {
         let _ = writeln!(
             output,
-            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} host_operations={:?} lifecycle={:?}",
+            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} host_operations={:?} resources={:?} lifecycle={:?}",
             placement.plan_id.as_str(),
             placement.placement_id.as_str(),
             placement.host_id.as_str(),
@@ -613,6 +623,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             placement.execution_profile_id.as_str(),
             placement.implementation_id.as_str(),
             placement.host_operations,
+            placement.resources,
             placement.lifecycle
         );
     }
@@ -866,6 +877,8 @@ mod tests {
         assert!(rendered.contains("capability host=browser-sim-triple"));
         assert!(rendered.contains(conduit_core::PRESENT_HOST_OPERATION_CONTRACT));
         assert!(rendered.contains("presentation/signal"));
+        assert!(rendered.contains(conduit_core::PRESENTATION_RESOURCE_CLASS));
+        assert!(rendered.contains("browser/presentation"));
         assert!(rendered.contains("provider=FixtureFrame"));
         assert!(rendered.contains("provider=FixtureDatagram"));
         assert!(rendered.contains("evidence id=evidence/"));

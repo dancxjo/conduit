@@ -6,9 +6,11 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, wait_host_operation_requirement,
-    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
-    KindContractRevision, KindId, PortDescriptor, PortDirection, ValuePayload,
+    kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
+    wait_host_operation_requirement, ConfigurationEntry, ConfigurationValue, ExecutionProfileId,
+    HostOperationRequirement, KindContractRevision, KindId, PortDescriptor, PortDirection,
+    ResourceOffer, ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS,
+    TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
@@ -101,6 +103,31 @@ pub fn show_host_operation_requirements() -> Vec<HostOperationRequirement> {
         kind_id(SIGNAL_PRESENTATION_KIND),
         SIGNAL_ENCODED_LEN,
     )]
+}
+
+pub fn pulse_resource_requirements() -> Vec<ResourceRequirement> {
+    vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)]
+}
+
+pub fn show_resource_requirements() -> Vec<ResourceRequirement> {
+    vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)]
+}
+
+pub fn signal_resource_offers(
+    timer_pool_id: &str,
+    presentation_pool_id: &str,
+    capacity_units: u32,
+) -> Vec<ResourceOffer> {
+    let mut offers = vec![
+        resource_offer(timer_pool_id, TIMER_RESOURCE_CLASS, capacity_units),
+        resource_offer(
+            presentation_pool_id,
+            PRESENTATION_RESOURCE_CLASS,
+            capacity_units,
+        ),
+    ];
+    offers.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+    offers
 }
 
 pub fn pulse_outputs() -> Vec<PortDescriptor> {
@@ -204,9 +231,10 @@ mod host_profile {
     use super::{
         decode_signal, encode_signal, parse_pulse_configuration, pulse_contract_revision,
         pulse_execution_profile, pulse_host_operation_requirements, pulse_kind, pulse_outputs,
-        show_contract_revision, show_execution_profile, show_host_operation_requirements,
-        show_inputs, show_kind, signal_value_kind, PulseConfiguration, Signal, MAX_SIGNAL_COUNT,
-        SIGNAL_ENCODED_LEN, SIGNAL_PRESENTATION_KIND,
+        pulse_resource_requirements, show_contract_revision, show_execution_profile,
+        show_host_operation_requirements, show_inputs, show_kind, show_resource_requirements,
+        signal_value_kind, PulseConfiguration, Signal, MAX_SIGNAL_COUNT, SIGNAL_ENCODED_LEN,
+        SIGNAL_PRESENTATION_KIND,
     };
     use alloc::boxed::Box;
     use conduit_core::{
@@ -258,6 +286,10 @@ mod host_profile {
 
         fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
             pulse_host_operation_requirements()
+        }
+
+        fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
+            pulse_resource_requirements()
         }
 
         fn prepare(
@@ -371,6 +403,10 @@ mod host_profile {
 
         fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
             show_host_operation_requirements()
+        }
+
+        fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
+            show_resource_requirements()
         }
 
         fn prepare(

@@ -13,8 +13,9 @@ use conduit_core::{
 };
 use conduit_signal::{
     decode_signal, pulse_contract_revision, pulse_execution_profile,
-    pulse_host_operation_requirements, pulse_outputs, show_contract_revision,
-    show_execution_profile, show_host_operation_requirements, show_inputs, PULSE_KIND, SHOW_KIND,
+    pulse_host_operation_requirements, pulse_outputs, pulse_resource_requirements,
+    show_contract_revision, show_execution_profile, show_host_operation_requirements, show_inputs,
+    show_resource_requirements, signal_resource_offers, PULSE_KIND, SHOW_KIND,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,6 +81,7 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
         boot_id: config.boot_id,
         offer_generation: config.offer_generation,
         profile: HostProfileId::from("pico-w"),
+        resources: signal_resource_offers("pico/timer", "pico/presentation", 1),
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("pico-pulse"),
@@ -91,6 +93,7 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
                 inputs: vec![],
                 outputs: pulse_outputs(),
                 host_operations: pulse_host_operation_requirements(),
+                resource_requirements: pulse_resource_requirements(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 4,
@@ -107,6 +110,7 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
                 inputs: show_inputs(),
                 outputs: vec![],
                 host_operations: show_host_operation_requirements(),
+                resource_requirements: show_resource_requirements(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 4,

@@ -14,6 +14,8 @@ pub const DEFAULT_CONNECTION_BYTE_CAPACITY: u32 = 64;
 pub const WAIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/wait@1";
 pub const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
 pub const MAX_PRESENTATION_COMPLETION_BYTES: u32 = 256;
+pub const TIMER_RESOURCE_CLASS: &str = "conduit.resource/timer-slot@1";
+pub const PRESENTATION_RESOURCE_CLASS: &str = "conduit.resource/presentation-slot@1";
 
 macro_rules! identity_type {
     ($name:ident) => {
@@ -66,6 +68,10 @@ identity_type!(OperationId);
 identity_type!(HostProfileId);
 // Immutable identity of one host-operation boundary contract.
 identity_type!(HostOperationContractId);
+// Semantic identity of a countable host resource contract.
+identity_type!(ResourceClassId);
+// Boot-scoped identity of one concrete host resource pool.
+identity_type!(ResourcePoolId);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct OfferGeneration(pub u64);
@@ -130,6 +136,26 @@ pub struct HostOperationRequirement {
     pub maximum_output_bytes: u32,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ResourceRequirement {
+    pub class_id: ResourceClassId,
+    pub units: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ResourceOffer {
+    pub pool_id: ResourcePoolId,
+    pub class_id: ResourceClassId,
+    pub capacity_units: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ResourceBinding {
+    pub pool_id: ResourcePoolId,
+    pub class_id: ResourceClassId,
+    pub units: u32,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CapabilityOffer {
     pub capability_id: CapabilityId,
@@ -141,6 +167,7 @@ pub struct CapabilityOffer {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub host_operations: Vec<HostOperationRequirement>,
+    pub resource_requirements: Vec<ResourceRequirement>,
     pub limits: CapabilityLimits,
 }
 
@@ -151,6 +178,7 @@ pub struct HostAdvertisement {
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
     pub profile: HostProfileId,
+    pub resources: Vec<ResourceOffer>,
     pub capabilities: Vec<CapabilityOffer>,
 }
 
@@ -215,6 +243,7 @@ pub struct PlannedOperation {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub host_operations: Vec<HostOperationRequirement>,
+    pub resources: Vec<ResourceBinding>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -466,6 +495,12 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             push_u32(&mut canonical, requirement.maximum_input_bytes);
             push_u32(&mut canonical, requirement.maximum_output_bytes);
         }
+        push_u32(&mut canonical, operation.resources.len() as u32);
+        for binding in &operation.resources {
+            push_string(&mut canonical, binding.pool_id.as_str());
+            push_string(&mut canonical, binding.class_id.as_str());
+            push_u32(&mut canonical, binding.units);
+        }
     }
     push_u32(&mut canonical, fragment.connections.len() as u32);
     for connection in &fragment.connections {
@@ -634,6 +669,8 @@ pub enum FailureReason {
     HostOperationNotPlanned,
     HostOperationInputExceeded,
     HostOperationOutputExceeded,
+    ResourceContractMismatch,
+    ResourceCapacityExceeded,
     ConnectionDisconnected,
     MalformedConnectionEnvelope,
     StalePlan,
@@ -945,6 +982,21 @@ pub fn present_host_operation_requirement(
         maximum_in_flight: 1,
         maximum_input_bytes,
         maximum_output_bytes: MAX_PRESENTATION_COMPLETION_BYTES,
+    }
+}
+
+pub fn resource_requirement(class_id: &str, units: u32) -> ResourceRequirement {
+    ResourceRequirement {
+        class_id: ResourceClassId::from(class_id),
+        units,
+    }
+}
+
+pub fn resource_offer(pool_id: &str, class_id: &str, capacity_units: u32) -> ResourceOffer {
+    ResourceOffer {
+        pool_id: ResourcePoolId::from(pool_id),
+        class_id: ResourceClassId::from(class_id),
+        capacity_units,
     }
 }
 

@@ -84,6 +84,9 @@ pub trait OperationImplementation {
     fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
         Vec::new()
     }
+    fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
+        Vec::new()
+    }
     fn prepare(
         &self,
         placement: &PlannedOperation,
@@ -327,6 +330,21 @@ fn validate_fragment_execution_contract(
         return Some((
             FailureReason::HostOperationContractMismatch,
             "host-operation requirements must have non-empty identities, unique canonical ordering, and nonzero in-flight bounds".to_string(),
+        ));
+    }
+    if fragment.placements.iter().any(|placement| {
+        placement.resources.iter().any(|binding| {
+            binding.pool_id.as_str().is_empty()
+                || binding.class_id.as_str().is_empty()
+                || binding.units == 0
+        }) || placement
+            .resources
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+    }) {
+        return Some((
+            FailureReason::ResourceContractMismatch,
+            "resource bindings must have non-empty identities, positive units, and unique canonical ordering".to_string(),
         ));
     }
     if fragment.cancellation_policy != CancellationPolicy::CancelAllAndRejectLateCompletion {
@@ -622,6 +640,30 @@ impl HostRuntime {
             });
             return output;
         }
+        if self.plans.contains_key(&fragment.plan_id) {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(fragment.plan_id),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        }
+        if self.advertisement.resources.iter().any(|resource| {
+            resource.pool_id.as_str().is_empty()
+                || resource.class_id.as_str().is_empty()
+                || resource.capacity_units == 0
+        }) || self
+            .advertisement
+            .resources
+            .windows(2)
+            .any(|pair| pair[0].pool_id >= pair[1].pool_id)
+        {
+            output.events.push(HostEvent::PreparationRejected {
+                plan_id: fragment.plan_id,
+                reason: FailureReason::ResourceContractMismatch,
+                message: Some("current host resource offers are malformed".to_string()),
+            });
+            return output;
+        }
 
         let mut counts = BTreeMap::<_, u16>::new();
         for placement in &fragment.placements {
@@ -723,6 +765,33 @@ impl HostRuntime {
                 });
                 return output;
             }
+            let mut bound_requirements = placement
+                .resources
+                .iter()
+                .map(|binding| conduit_core::ResourceRequirement {
+                    class_id: binding.class_id.clone(),
+                    units: binding.units,
+                })
+                .collect::<Vec<_>>();
+            bound_requirements.sort();
+            if capability.resource_requirements != bound_requirements
+                || placement.resources.iter().any(|binding| {
+                    !self.advertisement.resources.iter().any(|resource| {
+                        resource.pool_id == binding.pool_id && resource.class_id == binding.class_id
+                    })
+                })
+            {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::ResourceContractMismatch,
+                    message: Some(format!(
+                        "capability '{}' resource requirements differ from placement '{}' or its pools are unavailable",
+                        capability.capability_id.as_str(),
+                        placement.placement_id.as_str()
+                    )),
+                });
+                return output;
+            }
             if capability.implementation_id != placement.implementation_id {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
@@ -812,6 +881,18 @@ impl HostRuntime {
                 });
                 return output;
             }
+            if implementation.resource_requirements() != bound_requirements {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::ResourceContractMismatch,
+                    message: Some(format!(
+                        "installed implementation '{}' resource requirements differ from placement '{}'",
+                        placement.implementation_id.as_str(),
+                        placement.placement_id.as_str()
+                    )),
+                });
+                return output;
+            }
             if implementation.artifact_id() != &placement.artifact_id {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
@@ -854,6 +935,55 @@ impl HostRuntime {
                     message: Some(format!(
                         "capability '{}' instance limit exceeded",
                         placement.capability_id.as_str()
+                    )),
+                });
+                return output;
+            }
+        }
+
+        let mut resource_usage = BTreeMap::<conduit_core::ResourcePoolId, u32>::new();
+        for binding in self
+            .plans
+            .values()
+            .flat_map(|plan| &plan.fragment.placements)
+            .flat_map(|placement| &placement.resources)
+            .chain(
+                fragment
+                    .placements
+                    .iter()
+                    .flat_map(|placement| &placement.resources),
+            )
+        {
+            let used = resource_usage.entry(binding.pool_id.clone()).or_insert(0);
+            let Some(total) = used.checked_add(binding.units) else {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::ResourceCapacityExceeded,
+                    message: Some(format!(
+                        "resource pool '{}' usage overflowed",
+                        binding.pool_id.as_str()
+                    )),
+                });
+                return output;
+            };
+            *used = total;
+        }
+        for (pool_id, used) in resource_usage {
+            let capacity = self
+                .advertisement
+                .resources
+                .iter()
+                .find(|resource| resource.pool_id == pool_id)
+                .map(|resource| resource.capacity_units);
+            if capacity.is_none_or(|capacity| used > capacity) {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::ResourceCapacityExceeded,
+                    message: Some(format!(
+                        "resource pool '{}' requires {} units above current capacity {:?}",
+                        pool_id.as_str(),
+                        used,
+                        capacity
                     )),
                 });
                 return output;
@@ -2342,12 +2472,13 @@ mod conformance {
         OperationCompletion, OperationImplementation, OperationState,
     };
     use conduit_core::{
-        kind_id, port_id, present_host_operation_requirement, wait_host_operation_requirement,
-        ArtifactId, BootId, CancellationReason, CapabilityId, CapabilityLimits, CapabilityOffer,
-        ConfigurationEntry, ConfigurationValue, ConnectionProvider, ExecutionProfileId,
-        FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId,
-        ImplementationId, KindContractRevision, ObservationKind, OfferGeneration, PlatformEffect,
-        PortDescriptor, PortDirection, TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
+        kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
+        wait_host_operation_requirement, ArtifactId, BootId, CancellationReason, CapabilityId,
+        CapabilityLimits, CapabilityOffer, ConfigurationEntry, ConfigurationValue,
+        ConnectionProvider, ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand,
+        HostEvent, HostId, HostProfileId, ImplementationId, KindContractRevision, ObservationKind,
+        OfferGeneration, PlatformEffect, PortDescriptor, PortDirection, TerminalDisposition,
+        ValuePayload, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
     };
     use conduit_form::{
         parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
@@ -2494,6 +2625,10 @@ mod conformance {
             boot_id: BootId::from(boot),
             offer_generation: OfferGeneration(offer_generation),
             profile: HostProfileId::from("rust-std"),
+            resources: vec![
+                resource_offer("test/presentation", PRESENTATION_RESOURCE_CLASS, 8),
+                resource_offer("test/timer", TIMER_RESOURCE_CLASS, 8),
+            ],
             capabilities: vec![
                 CapabilityOffer {
                     capability_id: CapabilityId::from("pulse-1"),
@@ -2505,6 +2640,7 @@ mod conformance {
                     inputs: vec![],
                     outputs: pulse_outputs(),
                     host_operations: vec![wait_host_operation_requirement()],
+                    resource_requirements: vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
                     limits: CapabilityLimits {
                         max_active_instances: 8,
                         max_queue_items: queue_items,
@@ -2523,6 +2659,10 @@ mod conformance {
                     host_operations: vec![present_host_operation_requirement(
                         kind_id(SIGNAL_PRESENTATION_KIND),
                         SIGNAL_ENCODED_LEN,
+                    )],
+                    resource_requirements: vec![resource_requirement(
+                        PRESENTATION_RESOURCE_CLASS,
+                        1,
                     )],
                     limits: CapabilityLimits {
                         max_active_instances: 8,
@@ -2582,6 +2722,10 @@ mod conformance {
 
         fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
             vec![wait_host_operation_requirement()]
+        }
+
+        fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
+            vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)]
         }
 
         fn prepare(
@@ -2688,6 +2832,10 @@ mod conformance {
                 kind_id(SIGNAL_PRESENTATION_KIND),
                 SIGNAL_ENCODED_LEN,
             )]
+        }
+
+        fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
+            vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)]
         }
 
         fn prepare(
