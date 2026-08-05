@@ -114,12 +114,17 @@ open S3 work. The third checkpoint adds `operation: capability { ... }` inline
 nesting with a hard depth limit. The child is an ordinary checked form whose
 selected authored export becomes the parent operation; standalone and nested
 spellings produce the same checked/expanded child and boundary identities, and
-inner errors remain located in the lossless outer document.
+inner errors remain located in the lossless outer document. Parent checked
+identity binds only the visible exported contract; parent expanded identity
+recursively binds canonical operation paths, selected exports, and child
+expanded identities. Omitted, duplicated, reordered, or substituted expansion
+rows fail before planning.
 The final S3 checkpoint keeps plan, active play, evidence, and presentation as
 different core identity types. Activation sequences are host/boot scoped;
 evidence IDs are issued by the recording host rather than synthesized from UI
 row indexes; and adapters must return the exact active-play and presentation
 IDs carried by each effect. S3 is accepted at this boundary.
-No browser-side runtime, actual Pico host, BODY, catalog expansion, Observatory
-acceptance, live transport, or useful task advances before kernel takeover
-[#389](https://github.com/dancxjo/conduit/issues/389) and their later salvage gates.
+No actual Pico host, BODY, catalog expansion, Observatory acceptance, live
+transport, or useful task advances before general named composite faces
+[#399](https://github.com/dancxjo/conduit/issues/399) and their later salvage
+gates.

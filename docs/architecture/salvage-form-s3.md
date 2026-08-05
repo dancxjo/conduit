@@ -24,8 +24,11 @@ unbounded or partial executable representation.
 
 Layout and comments change `SourceDocumentId` but do not change
 `CheckedFormId` or `ExpandedFormId`. A semantic edit changes all downstream
-semantic identities. Plan, play, evidence, and presentation identities are not
-conflated with this document and remain work for their own salvage checkpoints.
+semantic identities. Hidden nested implementation changes leave the parent's
+checked identity alone when its visible exported contract is unchanged, but
+change the parent expanded identity and therefore its plan/fragment identities.
+Plan, play, evidence, and presentation identities are not conflated with this
+document.
 
 ## Deliberate exclusions
 
@@ -38,9 +41,10 @@ document layer. Inline nesting remains later S3 work.
 
 `CheckedForm::export_boundary` is the sole conversion from an authored export
 to an externally consumable composite contract. It binds the authored
-capability and kind, the checked form identity as the contract revision, the
-exact internal source/sink endpoints, and the checked external ports. Missing
-or duplicate capability exports fail closed.
+capability and kind, a revision of the visible port contract, the exact internal
+source/sink endpoints, and the checked external ports. Hidden child
+implementation identity is deliberately not part of that visible contract
+revision. Missing or duplicate capability exports fail closed.
 
 Both `CompositeDefinition::from_authored_export` and
 `ProfileCatalog::insert_export` consume this same checked object. The composite
@@ -62,6 +66,20 @@ spans and all later tokens. A standalone child and the same inline child have
 different source-document identities but identical checked, expanded, and
 export-boundary identities. The parent retains the checked child rather than a
 parallel recovery AST.
+
+## Nested expansion identity correction
+
+Each parent expanded identity now binds a canonical row for every nested
+operation: its operation path, selected export capability, and the child's
+recursively expanded identity. Rows are sorted by operation identity, so source
+declaration order is spelling rather than semantics; swapping implementations
+between two paths still changes the expanded identity.
+
+`CheckedForm::validate_identities` recursively recomputes checked and expanded
+identities and checks each nested operation against its selected export.
+Planning invokes this validator before placement or resource work. Omitting,
+duplicating, reordering, or substituting a nested row while retaining a sealed
+identity therefore fails closed before a plan can be issued.
 
 ## Runtime identity checkpoint
 
