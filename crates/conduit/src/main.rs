@@ -17,11 +17,11 @@ use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, Plan
 use conduit_realm::{AdmissionRequest, LinkId, Realm, RealmId};
 #[cfg(feature = "sim-fixtures")]
 use conduit_signal::signal_profile_catalog;
-#[cfg(feature = "sim-fixtures")]
-use conduit_std_host::StdHostConfig;
 use conduit_std_host::{
     load_checked_form, load_placements, run_kernel_multivalue_path_to, StdHost, ThreadTimer,
 };
+#[cfg(feature = "sim-fixtures")]
+use conduit_std_host::{LegacyStdFixtureHost, StdHostConfig};
 #[cfg(feature = "sim-fixtures")]
 use std::collections::BTreeMap;
 use std::env;
@@ -46,7 +46,7 @@ fn run_with_placements(path: &str, placements_path: Option<&str>) -> Result<(), 
 
 #[cfg(feature = "sim-fixtures")]
 fn observatory_fixture_report() -> Result<String, String> {
-    let mut std_host = StdHost::new_with_config(StdHostConfig {
+    let mut std_host = LegacyStdFixtureHost::new_with_config(StdHostConfig {
         host_id: HostId::from("std-host-triple"),
         boot_id: BootId::from("std-boot-triple"),
         offer_generation: OfferGeneration(1),
@@ -211,7 +211,7 @@ trait HandleInspect {
 }
 
 #[cfg(feature = "sim-fixtures")]
-impl HandleInspect for StdHost {
+impl HandleInspect for LegacyStdFixtureHost {
     fn inspect(&mut self) -> Vec<conduit_core::Observation> {
         self.handle(HostCommand::Inspect)
             .events

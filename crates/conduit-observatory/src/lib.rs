@@ -710,11 +710,11 @@ mod tests {
     use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
     use conduit_realm::{AdmissionRequest, LinkId, Realm, RealmId};
     use conduit_signal::signal_profile_catalog;
-    use conduit_std_host::{StdHost, StdHostConfig};
+    use conduit_std_host::{LegacyStdFixtureHost, StdHostConfig};
 
     #[test]
     fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
-        let mut std_host = StdHost::new_with_config(StdHostConfig {
+        let mut std_host = LegacyStdFixtureHost::new_with_config(StdHostConfig {
             host_id: HostId::from("std-host-triple"),
             boot_id: BootId::from("std-boot-triple"),
             offer_generation: OfferGeneration(1),

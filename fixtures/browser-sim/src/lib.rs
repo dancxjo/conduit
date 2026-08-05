@@ -724,7 +724,7 @@ mod tests {
     use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
     use conduit_runtime::RuntimeOutput;
     use conduit_signal::{signal_profile_catalog, PULSE_KIND, SHOW_KIND};
-    use conduit_std_host::{SignalReceipt, StdHost, StdHostConfig};
+    use conduit_std_host::{LegacyStdFixtureHost, SignalReceipt, StdHostConfig};
     use std::collections::{BTreeMap, VecDeque};
 
     fn page() -> BrowserSimPage {
@@ -846,7 +846,7 @@ mod tests {
 
     #[test]
     fn std_host_sends_signal_to_browser_through_bounded_frame_fixture() {
-        let mut std_host = StdHost::new_with_config(StdHostConfig {
+        let mut std_host = LegacyStdFixtureHost::new_with_config(StdHostConfig {
             host_id: HostId::from("std-host-1"),
             boot_id: BootId::from("std-boot-1"),
             offer_generation: OfferGeneration(1),
@@ -960,7 +960,7 @@ mod tests {
 
     #[test]
     fn triple_signal_form_fans_out_to_std_and_simulated_receipts() {
-        let mut std_host = StdHost::new_with_config(StdHostConfig {
+        let mut std_host = LegacyStdFixtureHost::new_with_config(StdHostConfig {
             host_id: HostId::from("std-host-triple"),
             boot_id: BootId::from("std-boot-triple"),
             offer_generation: OfferGeneration(1),
@@ -1247,7 +1247,7 @@ mod tests {
 
     #[allow(clippy::too_many_arguments)]
     fn drive_triple_std_effect(
-        std_host: &mut StdHost,
+        std_host: &mut LegacyStdFixtureHost,
         page: &mut BrowserSimPage,
         pico: &mut PicoSim,
         connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
@@ -1375,7 +1375,7 @@ mod tests {
     }
 
     fn drive_triple_browser_effect(
-        std_host: &mut StdHost,
+        std_host: &mut LegacyStdFixtureHost,
         page: &mut BrowserSimPage,
         pico: &mut PicoSim,
         connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
@@ -1439,7 +1439,7 @@ mod tests {
     }
 
     fn drive_triple_pico_effect(
-        std_host: &mut StdHost,
+        std_host: &mut LegacyStdFixtureHost,
         page: &mut BrowserSimPage,
         pico: &mut PicoSim,
         connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
@@ -1500,7 +1500,7 @@ mod tests {
     }
 
     fn triple_std_output_effects(
-        std_host: &mut StdHost,
+        std_host: &mut LegacyStdFixtureHost,
         page: &mut BrowserSimPage,
         pico: &mut PicoSim,
         connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
@@ -1578,7 +1578,7 @@ mod tests {
             )
     }
 
-    fn std_inspect(std_host: &mut StdHost) -> Vec<conduit_core::Observation> {
+    fn std_inspect(std_host: &mut LegacyStdFixtureHost) -> Vec<conduit_core::Observation> {
         std_host
             .handle(HostCommand::Inspect)
             .events
@@ -1602,7 +1602,7 @@ mod tests {
     }
 
     fn drive_std_effect(
-        std_host: &mut StdHost,
+        std_host: &mut LegacyStdFixtureHost,
         page: &mut BrowserSimPage,
         relay: &mut BoundedFrameRelayFixture,
         effect: PlatformEffect,
@@ -1650,7 +1650,7 @@ mod tests {
     }
 
     fn drive_browser_effect_with_std_ack(
-        std_host: &mut StdHost,
+        std_host: &mut LegacyStdFixtureHost,
         page: &mut BrowserSimPage,
         host_id: &HostId,
         effect: PlatformEffect,
@@ -1717,7 +1717,7 @@ mod tests {
     }
 
     fn std_output_effects(
-        std_host: &mut StdHost,
+        std_host: &mut LegacyStdFixtureHost,
         page: &mut BrowserSimPage,
         output: conduit_runtime::RuntimeOutput,
     ) -> Vec<(HostId, PlatformEffect)> {

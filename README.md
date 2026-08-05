@@ -7,10 +7,11 @@ Conduit is being rebuilt around one rule:
 Current `main` contains a useful Rust `std` prototype and deterministic
 browser-shaped/Pico-shaped conformance fixtures. S4 also contains one actual
 Chromium DOM presentation adapter boundary. It does **not** yet contain a
-general std host executing exact plans through `conduit-kernel`, a browser-side
-planner/runtime, Pico firmware, live WebSocket/UDP transport, three-platform
-proof, production BODY model, or production Observatory. The exact two-node
-Signal pair is the first std path migrated to the kernel.
+general-purpose std execution engine, a browser-side planner/runtime, Pico
+firmware, live WebSocket/UDP transport, three-platform proof, production BODY
+model, or production Observatory. The installed std Signal pair, local
+three-sink fan-out, and typed multi-value conformance profile execute through
+`conduit-kernel`.
 [STATUS.md](STATUS.md) is the checked claim boundary.
 
 ## Salvage sequence
@@ -32,10 +33,11 @@ The archived pre-reboot tree and the reboot are both source quarries. Focused
 reuse is recorded in [docs/reuse-ledger.md](docs/reuse-ledger.md).
 
 Platform expansion is paused behind the kernel-takeover integration gate
-[#389](https://github.com/dancxjo/conduit/issues/389). The first checkpoint
-lowers one exact local `PlanFragment` into bounded numeric kernel tables; it
-also installs the unchanged `flow/pulse -> presentation/show` fragment into the
-hosted kernel scheduler. Broader std forms remain on the old runtime pump.
+[#389](https://github.com/dancxjo/conduit/issues/389). Exact local
+`PlanFragment`s for the installed profiles lower into bounded numeric kernel
+tables and run through the hosted scheduler. Unsupported std forms fail closed;
+production `StdHost` has no fallback operation pump. Cross-host simulation
+fixtures retain an explicitly named legacy compatibility driver.
 
 ## Current executable prototype
 
@@ -65,10 +67,11 @@ bounded manifestation adapter, not a complete browser host runtime.
 S1 slice provides exact input/output port identity, correlated generic
 host-operation actions, prebound numeric route/admission tables,
 item/byte-bounded fixed and preallocated hosted storage, and the accepted
-fixed-capacity scheduler. Exact local std plans now have a fail-closed numeric
-lowering seam, and the exact two-node Signal pair uses it for real timer/stdout
-execution. The old `HostRuntime` operation pump still executes unmigrated std
-forms.
+fixed-capacity scheduler. Installed local std profiles now use the fail-closed
+numeric lowering seam for real timer/stdout execution, reversible identity
+projection, exact resource reservation, and measured allocation-free
+activation. `HostRuntime` remains only in explicitly named simulation/composite
+compatibility paths, not production `StdHost`.
 
 Architecture and current salvage boundaries:
 

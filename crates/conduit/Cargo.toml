@@ -24,6 +24,7 @@ sim-fixtures = [
     "dep:conduit-planner",
     "dep:conduit-realm",
     "dep:conduit-signal",
+    "conduit-std-host/legacy-fixture-driver",
 ]
 
 [[test]]

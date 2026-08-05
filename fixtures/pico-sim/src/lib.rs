@@ -393,7 +393,7 @@ mod tests {
     use conduit_form::parse;
     use conduit_runtime::RuntimeOutput;
     use conduit_signal::signal_profile_catalog;
-    use conduit_std_host::{StdHost, StdHostConfig};
+    use conduit_std_host::{LegacyStdFixtureHost, StdHostConfig};
     use std::collections::VecDeque;
 
     #[test]
@@ -464,7 +464,7 @@ mod tests {
             &signal_profile_catalog(),
         )
         .expect("signal form parses");
-        let mut std_host = StdHost::new_with_config(StdHostConfig {
+        let mut std_host = LegacyStdFixtureHost::new_with_config(StdHostConfig {
             host_id: HostId::from("std-host-1"),
             boot_id: BootId::from("std-boot-1"),
             offer_generation: OfferGeneration(1),
@@ -556,7 +556,7 @@ mod tests {
     }
 
     fn drive_std_effect(
-        std_host: &mut StdHost,
+        std_host: &mut LegacyStdFixtureHost,
         pico: &mut PicoSim,
         relay: &mut BoundedDatagramRelayFixture,
         effect: PlatformEffect,
@@ -598,7 +598,7 @@ mod tests {
     }
 
     fn drive_pico_effect_with_std_ack(
-        std_host: &mut StdHost,
+        std_host: &mut LegacyStdFixtureHost,
         pico: &mut PicoSim,
         connection_id: &ConnectionId,
         effect: PlatformEffect,
@@ -647,7 +647,7 @@ mod tests {
     }
 
     fn std_output_effects(
-        std_host: &mut StdHost,
+        std_host: &mut LegacyStdFixtureHost,
         pico: &mut PicoSim,
         output: RuntimeOutput,
     ) -> Vec<(HostId, PlatformEffect)> {

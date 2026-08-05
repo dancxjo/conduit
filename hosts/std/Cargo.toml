@@ -3,6 +3,10 @@ name = "conduit-std-host"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+legacy-fixture-driver = []
+
 [dependencies]
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form" }

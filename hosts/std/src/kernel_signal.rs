@@ -24,16 +24,17 @@ use conduit_signal::{
 use std::io::Write;
 use std::time::Duration;
 
-const NODES: usize = 2;
-const CORDS: usize = 1;
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-const QUEUE_SLOTS: usize = 4;
-const ROUTE_SLOTS: usize = NODES * PORTS;
-const ROUTE_TARGETS: usize = 1;
-const HOST_BINDING_SLOTS: usize = NODES;
-const PENDING_REQUESTS: usize = NODES;
+const ROUTE_SLOTS: usize = 4 * PORTS;
 
-type SignalScheduler = FixedScheduler<
+type SignalScheduler<
+    const NODES: usize,
+    const CORDS: usize,
+    const QUEUE_SLOTS: usize,
+    const ROUTE_TARGETS: usize,
+    const HOST_BINDING_SLOTS: usize,
+    const PENDING_REQUESTS: usize,
+> = FixedScheduler<
     OperationDriver<SignalOperation, PORTS>,
     HostedValueStore,
     HostedEvidenceLog,
@@ -48,10 +49,12 @@ type SignalScheduler = FixedScheduler<
 >;
 
 struct PreparedSignalProjection {
+    node: conduit_kernel::NodeId,
     signal: Signal,
     presentation: conduit_core::PresentationIdentity,
     evidence: conduit_core::EvidenceIdentity,
     payload: ValuePayload,
+    connection_id: Option<conduit_core::ConnectionId>,
 }
 
 enum SignalOperation {
@@ -226,6 +229,45 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
     output: &mut W,
     timer: &mut T,
 ) -> Result<StdRunReport, String> {
+    match (fragment.placements.len(), fragment.connections.len()) {
+        (2, 1) => run_signal_profile::<W, T, 2, 1, 4, 1, 2, 2>(
+            advertisement,
+            fragment,
+            activation_sequence,
+            next_evidence_sequence,
+            output,
+            timer,
+        ),
+        (4, 3) => run_signal_profile::<W, T, 4, 3, 12, 3, 4, 4>(
+            advertisement,
+            fragment,
+            activation_sequence,
+            next_evidence_sequence,
+            output,
+            timer,
+        ),
+        _ => Err("fragment does not match an installed std signal kernel profile".to_string()),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_signal_profile<
+    W: Write,
+    T: TimerAdapter,
+    const NODES: usize,
+    const CORDS: usize,
+    const QUEUE_SLOTS: usize,
+    const ROUTE_TARGETS: usize,
+    const HOST_BINDING_SLOTS: usize,
+    const PENDING_REQUESTS: usize,
+>(
+    advertisement: &HostAdvertisement,
+    fragment: &PlanFragment,
+    activation_sequence: u64,
+    next_evidence_sequence: &mut u64,
+    output: &mut W,
+    timer: &mut T,
+) -> Result<StdRunReport, String> {
     let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
     if lowered.nodes.len() != NODES
         || lowered.cords.len() != CORDS
@@ -251,21 +293,25 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
                 == PULSE_KIND
         })
         .ok_or_else(|| "signal kernel profile has no pulse node".to_string())?;
-    let show_node = lowered
+    let mut show_nodes = lowered
         .nodes
         .iter()
-        .find(|node| {
+        .filter(|node| {
             fragment.placements[usize::from(node.node.0)]
                 .kind_id
                 .as_str()
                 == SHOW_KIND
         })
-        .ok_or_else(|| "signal kernel profile has no show node".to_string())?;
-    if pulse_node.node == show_node.node {
-        return Err("signal kernel placements are not distinct".to_string());
+        .collect::<Vec<_>>();
+    if show_nodes.len() != NODES.saturating_sub(1)
+        || show_nodes.iter().any(|show| show.node == pulse_node.node)
+    {
+        return Err("signal kernel profile has incomplete or duplicate show nodes".to_string());
     }
+    show_nodes.sort_by_key(|show| {
+        (usize::from(show.node.0) + NODES - usize::from(pulse_node.node.0)) % NODES
+    });
     let pulse_placement = &fragment.placements[usize::from(pulse_node.node.0)];
-    let show_placement = &fragment.placements[usize::from(show_node.node.0)];
     let configuration = parse_pulse_configuration(&pulse_placement.configuration)
         .map_err(|error| error.to_string())?;
     let count = usize::try_from(configuration.count)
@@ -331,10 +377,13 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
         .seal()
         .map_err(|error| format!("seal host operations: {error:?}"))?;
 
-    let mut operations = [None, None];
+    let mut operations: [Option<SignalOperation>; NODES] = core::array::from_fn(|_| None);
     operations[usize::from(pulse_node.node.0)] =
         Some(SignalOperation::pulse(signal_values.clone(), wait_values));
-    operations[usize::from(show_node.node.0)] = Some(SignalOperation::show(signal_values));
+    for show_node in &show_nodes {
+        operations[usize::from(show_node.node.0)] =
+            Some(SignalOperation::show(signal_values.clone()));
+    }
     let drivers: [OperationDriver<SignalOperation, PORTS>; NODES] = operations
         .map(|operation| {
             OperationDriver::new(
@@ -353,10 +402,18 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
         })
         .sum();
 
+    let evidence_events_per_signal = 10_u64
+        .checked_add(
+            u64::try_from(show_nodes.len())
+                .ok()
+                .and_then(|shows| shows.checked_mul(8))
+                .ok_or_else(|| "kernel evidence item budget overflow".to_string())?,
+        )
+        .ok_or_else(|| "kernel evidence item budget overflow".to_string())?;
     let evidence_items = u16::try_from(
         configuration
             .count
-            .checked_mul(15)
+            .checked_mul(evidence_events_per_signal)
             .and_then(|value| value.checked_add(64))
             .ok_or_else(|| "kernel evidence item budget overflow".to_string())?,
     )
@@ -380,7 +437,14 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
         .collect::<Vec<_>>()
         .try_into()
         .map_err(|_| "signal cord table width changed".to_string())?;
-    let mut scheduler = SignalScheduler::new_with_host_operations(
+    let mut scheduler = SignalScheduler::<
+        NODES,
+        CORDS,
+        QUEUE_SLOTS,
+        ROUTE_TARGETS,
+        HOST_BINDING_SLOTS,
+        PENDING_REQUESTS,
+    >::new_with_host_operations(
         node_specs,
         cord_specs,
         routes,
@@ -397,33 +461,36 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
         &advertisement.boot_id,
         activation_sequence,
     );
-    let request_capacity = count
+    let presentation_capacity = count
+        .checked_mul(show_nodes.len())
+        .ok_or_else(|| "presentation identity capacity overflow".to_string())?;
+    let request_capacity = presentation_capacity
         .checked_add(wait_count)
         .ok_or_else(|| "execution request identity capacity overflow".to_string())?;
-    let evidence_capacity = count
+    let evidence_capacity = presentation_capacity
         .checked_add(1)
         .ok_or_else(|| "execution evidence identity capacity overflow".to_string())?;
     let mut execution_identity = KernelExecutionIdentityMap::new(
         &lowered.identity,
         &active_play,
         request_capacity,
-        count,
+        presentation_capacity,
         evidence_capacity,
     )
     .map_err(|error| format!("prepare execution identity map: {error:?}"))?;
     let identity_capacity_before = execution_identity.allocation_capacities();
-    let mut receipts = Vec::with_capacity(count);
-    let mut observations = Vec::with_capacity(count.saturating_add(1));
-    let mut presentation_ids = Vec::with_capacity(count);
+    let mut receipts = Vec::with_capacity(presentation_capacity);
+    let mut observations = Vec::with_capacity(evidence_capacity);
+    let mut presentation_ids = Vec::with_capacity(presentation_capacity);
     let mut dispatched_requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
-    let mut manifested_requests = Vec::<HostOperationRequest>::with_capacity(count);
+    let mut manifested_requests = Vec::<HostOperationRequest>::with_capacity(presentation_capacity);
     let evidence_sequence_start = *next_evidence_sequence;
     let evidence_count = u64::try_from(evidence_capacity)
         .map_err(|_| "execution evidence count overflow".to_string())?;
     let evidence_sequence_end = evidence_sequence_start
         .checked_add(evidence_count)
         .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
-    let mut prepared_projections = Vec::with_capacity(count);
+    let mut prepared_projections = Vec::with_capacity(presentation_capacity);
     for index in 0..count {
         let sequence =
             u64::try_from(index).map_err(|_| "signal projection sequence overflow".to_string())?;
@@ -435,25 +502,37 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
                 !configuration.initial_level
             },
         };
-        let presentation = bind_presentation(
-            &active_play.active_play_id,
-            &show_placement.placement_id,
-            sequence,
-        );
-        let evidence = bind_evidence(
-            &advertisement.host_id,
-            &advertisement.boot_id,
-            Some(&active_play.active_play_id),
-            evidence_sequence_start
-                .checked_add(sequence)
-                .ok_or_else(|| "host evidence sequence exhausted".to_string())?,
-        );
-        prepared_projections.push(PreparedSignalProjection {
-            payload: encode_signal(&signal),
-            signal,
-            presentation,
-            evidence,
-        });
+        for show_node in &show_nodes {
+            let show_placement = &fragment.placements[usize::from(show_node.node.0)];
+            let presentation = bind_presentation(
+                &active_play.active_play_id,
+                &show_placement.placement_id,
+                sequence,
+            );
+            let evidence_offset = u64::try_from(prepared_projections.len())
+                .map_err(|_| "host evidence sequence exhausted".to_string())?;
+            let evidence = bind_evidence(
+                &advertisement.host_id,
+                &advertisement.boot_id,
+                Some(&active_play.active_play_id),
+                evidence_sequence_start
+                    .checked_add(evidence_offset)
+                    .ok_or_else(|| "host evidence sequence exhausted".to_string())?,
+            );
+            let connection_id = fragment
+                .connections
+                .iter()
+                .find(|connection| connection.sink_placement_id == show_placement.placement_id)
+                .map(|connection| connection.connection_id.clone());
+            prepared_projections.push(PreparedSignalProjection {
+                node: show_node.node,
+                payload: encode_signal(&signal),
+                signal: signal.clone(),
+                presentation,
+                evidence,
+                connection_id,
+            });
+        }
     }
     let terminal_evidence = bind_evidence(
         &advertisement.host_id,
@@ -476,15 +555,15 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
                     .map(u64::from_le_bytes)
                     .map_err(|_| "wait host operation input is not eight bytes".to_string())?;
                 timer.wait(Duration::from_millis(duration));
-            } else if request.node == show_node.node {
-                let signal = decode_signal_bytes(input).map_err(|error| error.to_string())?;
+            } else {
                 let expected = prepared_projections
                     .get(manifested_requests.len())
                     .ok_or_else(|| "signal manifestation exceeded sealed profile".to_string())?;
-                if signal != expected.signal {
+                let signal = decode_signal_bytes(input).map_err(|error| error.to_string())?;
+                if request.node != expected.node || signal != expected.signal {
                     return Err(format!(
-                        "expected signal {:?}, received {:?}",
-                        expected.signal, signal
+                        "expected node {} signal {:?}, received node {} signal {:?}",
+                        expected.node.0, expected.signal, request.node.0, signal
                     ));
                 }
                 writeln!(
@@ -497,17 +576,12 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
                 writeln!(
                     output,
                     "receipt signal placement={} sequence={} level={}",
-                    show_placement.placement_id.as_str(),
+                    expected.presentation.placement_id.as_str(),
                     signal.sequence,
                     signal.level
                 )
                 .map_err(|error| error.to_string())?;
                 manifested_requests.push(request);
-            } else {
-                return Err(format!(
-                    "unmapped kernel host request from node {}",
-                    request.node.0
-                ));
             }
             scheduler
                 .complete_host_operation(
@@ -535,7 +609,7 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
     #[cfg(test)]
     let post_activation_allocations = activation_probe.finish();
     if dispatched_requests.len() != request_capacity
-        || manifested_requests.len() != count
+        || manifested_requests.len() != presentation_capacity
         || scheduler.values().used_items() != 0
     {
         return Err("kernel completed with missing receipts or retained values".to_string());
@@ -580,7 +654,7 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
             )
             .map_err(|error| format!("bind presentation evidence identity: {error:?}"))?;
         receipts.push(SignalReceipt {
-            placement_id: show_placement.placement_id.clone(),
+            placement_id: prepared.presentation.placement_id.clone(),
             sequence: prepared.signal.sequence,
             level: prepared.signal.level,
         });
@@ -591,12 +665,8 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
             plan_id: Some(fragment.plan_id.clone()),
-            placement_id: Some(show_placement.placement_id.clone()),
-            connection_id: lowered
-                .identity
-                .connections
-                .first()
-                .map(|(_, connection)| connection.clone()),
+            placement_id: Some(prepared.presentation.placement_id.clone()),
+            connection_id: prepared.connection_id,
             kind: ObservationKind::ValuePresented {
                 value: prepared.payload,
             },
@@ -620,7 +690,7 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
             disposition: TerminalDisposition::Completed,
         },
     });
-    if execution_identity.lengths() != (request_capacity, count, evidence_capacity)
+    if execution_identity.lengths() != (request_capacity, presentation_capacity, evidence_capacity)
         || execution_identity.allocation_capacities() != identity_capacity_before
     {
         return Err("execution identity map is incomplete or grew after activation".to_string());

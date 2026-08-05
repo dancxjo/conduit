@@ -56,10 +56,14 @@ check-kernel-s1:
     cargo check -p conduit-kernel --target thumbv6m-none-eabi
 
 check-kernel-takeover:
+    cargo check -p conduit-std-host --no-default-features
     cargo test -p conduit-std-host exact_signal_fragment_lowers_to_numeric_kernel_tables
     cargo test -p conduit-std-host streamed_output_uses_a_virtual_clock_and_retains_terminal_evidence
+    cargo test -p conduit-std-host local_three_sink_signal_fanout_uses_only_the_sealed_kernel_profile
+    cargo test -p conduit-std-host unsupported_production_std_form_fails_closed_without_a_legacy_pump
     cargo test -p conduit-std-host kernel_multivalue
     cargo test -p conduit-std-host kernel_preparation
+    cargo test -p conduit-runtime --test browser_readiness dependency_and_profile_installation_drawbridge_is_explicit
     cargo test -p conduit --test hello typed_multi_value_form_runs_through_the_std_kernel
     cargo test -p conduit-kernel admitted_sink_host_operation_may_have_no_output_payload
     cargo check -p conduit-kernel --target thumbv6m-none-eabi

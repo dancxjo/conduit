@@ -37,12 +37,11 @@ This checkpoint deliberately rejects:
 Those are integration limits, not claims that the corresponding forms are
 invalid in the general model.
 
-## Accepted second checkpoint: real std Signal execution
+## Accepted std takeover
 
-The unchanged two-node `flow/pulse -> presentation/show` local plan now:
+The unchanged two-node `flow/pulse -> presentation/show` local plan and its
+three-sink local fan-out now:
 
-- passes the old runtime only through an effect-free, temporary preparation
-  validator;
 - installs the lowered node, cord, route, and host-operation rows into one
   fixed-capacity hosted kernel scheduler;
 - preallocates every signal and timer value before activation;
@@ -52,20 +51,23 @@ The unchanged two-node `flow/pulse -> presentation/show` local plan now:
 - completes waits through the std timer adapter and presentations through the
   stdout adapter;
 - binds a distinct active play and exact presentation/evidence identities; and
-- proves the hosted value and operation allocation capacities do not grow
-  after activation.
+- proves with an allocator probe that successful sealed activation performs
+  zero heap allocations and cannot re-enter graph, kind, provider, or registry
+  lookup.
 
-The ordinary `conduit` CLI uses this path for the exact pair. Unmigrated wider
-std forms explicitly retain the old runtime path rather than being silently
-claimed as kernel execution.
+The complete typed `tick -> tee -> filter/latest -> show` conformance form uses
+the same std/kernel boundary with exact pressure, closure, cancellation,
+resource, evidence, and identity proofs. The ordinary `conduit` CLI uses these
+installed profiles. Unsupported std forms fail closed; production `StdHost`
+does not contain `HostRuntime`, expose its command surface, or fall back to its
+operation/connection pump.
 
-## Still open
+## Compatibility boundary
 
-The complete multi-value `tick -> tee -> filter/latest -> show` form must run
-through the same actual std-host path. Mandatory plan evidence, resource
-reservation, pressure/cancellation/terminal projection, and full reverse
-identity mapping must then be unified before the old independent pump can be
-removed.
+Cross-host browser/Pico simulations are not production std execution. They opt
+into `LegacyStdFixtureHost` by name until their later host/link milestones
+migrate. Composite conformance likewise remains later work. Neither path is
+present in default production `StdHost`.
 
 ## Proof commands
 
