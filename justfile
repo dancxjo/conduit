@@ -55,6 +55,13 @@ check-kernel-s1:
     cargo test -p conduit-kernel --features alloc
     cargo check -p conduit-kernel --target thumbv6m-none-eabi
 
+check-planning-s2:
+    cargo test -p conduit-form checked_form_identity_binds_contract_revision_and_ports
+    cargo test -p conduit-planner planning_
+    cargo test -p conduit-runtime --test host_contract preparation_rejects_mutation_of_every_executable_identity_field_group
+    cargo test -p conduit-runtime --test host_contract preparation_rejects_resealed_contract_profile_and_port_lies
+    cargo check -p conduit-core --target thumbv6m-none-eabi
+
 check-realm-readiness:
     cargo test -p conduit-realm
     cargo check -p conduit-realm --target thumbv6m-none-eabi

@@ -1,7 +1,7 @@
 use conduit_core::{
-    kind_id, seal_plan, CapabilityId, ConnectionId, ConnectionProvider, ExpectedEvidence,
-    ExpectedTerminal, FragmentId, HostAdvertisement, HostId, OperationId, PlacementId, Plan,
-    PlanFragment, PlanId, PlannedConnection, PlannedOperation, DEFAULT_CONNECTION_BYTE_CAPACITY,
+    seal_plan, CapabilityId, ConnectionId, ConnectionProvider, ExpectedEvidence, ExpectedTerminal,
+    FragmentId, HostAdvertisement, HostId, OperationId, PlacementId, Plan, PlanFragment, PlanId,
+    PlannedConnection, PlannedOperation, DEFAULT_CONNECTION_BYTE_CAPACITY,
     DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedConnection, CheckedForm, CheckedOperation};
@@ -27,7 +27,8 @@ pub enum PlannerError {
     UnknownHost(String),
     UnknownCapability(String),
     WrongSemanticKind(String),
-    IncompatibleValueKind(String),
+    WrongKindContractRevision(String),
+    IncompatiblePortContract(String),
     UnavailableConnectionProvider(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
@@ -45,8 +46,11 @@ impl std::fmt::Display for PlannerError {
             PlannerError::UnknownHost(value) => write!(f, "unknown host '{value}'"),
             PlannerError::UnknownCapability(value) => write!(f, "unknown capability '{value}'"),
             PlannerError::WrongSemanticKind(value) => write!(f, "wrong semantic kind: {value}"),
-            PlannerError::IncompatibleValueKind(value) => {
-                write!(f, "incompatible value kind: {value}")
+            PlannerError::WrongKindContractRevision(value) => {
+                write!(f, "wrong kind contract revision: {value}")
+            }
+            PlannerError::IncompatiblePortContract(value) => {
+                write!(f, "incompatible port contract: {value}")
             }
             PlannerError::UnavailableConnectionProvider(value) => {
                 write!(f, "unavailable connection provider: {value}")
@@ -136,7 +140,12 @@ pub fn default_placements(
         let offer = host
             .capabilities
             .iter()
-            .find(|offer| offer.kind_id == operation.kind_id)
+            .find(|offer| {
+                offer.kind_id == operation.kind_id
+                    && offer.kind_contract_revision == operation.kind_contract_revision
+                    && offer.inputs == operation.inputs
+                    && offer.outputs == operation.outputs
+            })
             .ok_or_else(|| {
                 PlannerError::UnknownCapability(operation.kind_id.as_str().to_string())
             })?;
@@ -247,6 +256,8 @@ pub fn plan_with_connection_limits_and_provider_overrides(
             placement_id,
             operation_id: operation.operation_id.clone(),
             kind_id: operation.kind_id.clone(),
+            kind_contract_revision: operation.kind_contract_revision.clone(),
+            execution_profile_id: capability.execution_profile_id.clone(),
             configuration: operation.configuration.clone(),
             host_id: host.host_id.clone(),
             boot_id: host.boot_id.clone(),
@@ -446,20 +457,20 @@ fn validate_operation_capability(
             capability.kind_id.as_str()
         )));
     }
-
-    let value_kind = operation
-        .outputs
-        .first()
-        .or_else(|| operation.inputs.first())
-        .map(|port| port.value_kind.clone())
-        .unwrap_or_else(|| kind_id(""));
-    if capability.limits.value_kind != value_kind {
-        return Err(PlannerError::IncompatibleValueKind(format!(
-            "operation '{}' expects '{}', capability '{}' supports '{}'",
+    if capability.kind_contract_revision != operation.kind_contract_revision {
+        return Err(PlannerError::WrongKindContractRevision(format!(
+            "operation '{}' requires '{}', capability '{}' offers '{}'",
             operation.operation_id.as_str(),
-            value_kind.as_str(),
+            operation.kind_contract_revision.as_str(),
             capability.capability_id.as_str(),
-            capability.limits.value_kind.as_str()
+            capability.kind_contract_revision.as_str()
+        )));
+    }
+    if capability.inputs != operation.inputs || capability.outputs != operation.outputs {
+        return Err(PlannerError::IncompatiblePortContract(format!(
+            "operation '{}' ports differ from capability '{}'",
+            operation.operation_id.as_str(),
+            capability.capability_id.as_str()
         )));
     }
     Ok(())
@@ -550,7 +561,10 @@ mod tests {
         PROTOCOL_VERSION,
     };
     use conduit_form::parse;
-    use conduit_signal::{signal_profile_catalog, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
+    use conduit_signal::{
+        pulse_contract_revision, pulse_execution_profile, pulse_outputs, show_contract_revision,
+        show_execution_profile, show_inputs, signal_profile_catalog, PULSE_KIND, SHOW_KIND,
+    };
 
     fn form() -> conduit_form::CheckedForm {
         parse(
@@ -571,10 +585,13 @@ mod tests {
                 CapabilityOffer {
                     capability_id: conduit_core::CapabilityId::from("pulse-1"),
                     kind_id: kind_id(PULSE_KIND),
+                    kind_contract_revision: pulse_contract_revision(),
+                    execution_profile_id: pulse_execution_profile(),
                     implementation_id: ImplementationId::from("std/pulse-v1"),
                     artifact_id: ArtifactId::from("test/pulse-artifact-v1"),
+                    inputs: vec![],
+                    outputs: pulse_outputs(),
                     limits: CapabilityLimits {
-                        value_kind: kind_id(SIGNAL_VALUE_KIND),
                         max_active_instances: 4,
                         max_queue_items: 4,
                         max_queue_bytes: 64,
@@ -583,10 +600,13 @@ mod tests {
                 CapabilityOffer {
                     capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
                     kind_id: kind_id(SHOW_KIND),
+                    kind_contract_revision: show_contract_revision(),
+                    execution_profile_id: show_execution_profile(),
                     implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
                     artifact_id: ArtifactId::from("test/show-artifact-v1"),
+                    inputs: show_inputs(),
+                    outputs: vec![],
                     limits: CapabilityLimits {
-                        value_kind: kind_id(SIGNAL_VALUE_KIND),
                         max_active_instances: 4,
                         max_queue_items: 4,
                         max_queue_bytes: 64,
@@ -609,6 +629,86 @@ mod tests {
     fn default_placement_uses_realm() {
         let placements = default_placements(&form(), &[host()]).expect("placements must work");
         assert_eq!(placements.by_operation.len(), 2);
+    }
+
+    #[test]
+    fn planning_binds_exact_contract_profile_and_every_port() {
+        let form = form();
+        let host = host();
+        let placements = default_placements(&form, std::slice::from_ref(&host))
+            .expect("placements must resolve");
+        let plan = plan(
+            &form,
+            std::slice::from_ref(&host),
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("exact plan resolves");
+        for placement in &plan.fragments[0].placements {
+            let operation = form
+                .operations
+                .iter()
+                .find(|operation| operation.operation_id == placement.operation_id)
+                .expect("checked operation exists");
+            let capability = host
+                .capabilities
+                .iter()
+                .find(|capability| capability.capability_id == placement.capability_id)
+                .expect("capability exists");
+            assert_eq!(
+                placement.kind_contract_revision,
+                operation.kind_contract_revision
+            );
+            assert_eq!(
+                placement.kind_contract_revision,
+                capability.kind_contract_revision
+            );
+            assert_eq!(
+                placement.execution_profile_id,
+                capability.execution_profile_id
+            );
+            assert_eq!(placement.inputs, operation.inputs);
+            assert_eq!(placement.outputs, operation.outputs);
+        }
+    }
+
+    #[test]
+    fn planning_rejects_contract_revision_and_nonfirst_port_mismatch() {
+        let form = form();
+        let original_host = host();
+        let placements = default_placements(&form, std::slice::from_ref(&original_host))
+            .expect("placements must resolve");
+
+        let mut mismatched_revision = original_host.clone();
+        mismatched_revision.capabilities[0].kind_contract_revision =
+            conduit_core::KindContractRevision::from("mutated/flow-pulse@1");
+        assert!(matches!(
+            plan(
+                &form,
+                std::slice::from_ref(&mismatched_revision),
+                &placements,
+                &[ConnectionProvider::Local]
+            ),
+            Err(PlannerError::WrongKindContractRevision(_))
+        ));
+
+        let mut mismatched_ports = original_host;
+        mismatched_ports.capabilities[0]
+            .outputs
+            .push(conduit_core::PortDescriptor {
+                port_id: conduit_core::PortId::from("unexpected"),
+                value_kind: kind_id("value/unexpected"),
+                direction: conduit_core::PortDirection::Output,
+            });
+        assert!(matches!(
+            plan(
+                &form,
+                std::slice::from_ref(&mismatched_ports),
+                &placements,
+                &[ConnectionProvider::Local]
+            ),
+            Err(PlannerError::IncompatiblePortContract(_))
+        ));
     }
 
     #[test]

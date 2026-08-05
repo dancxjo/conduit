@@ -468,8 +468,9 @@ mod tests {
         RealmEvent, RealmId,
     };
     use conduit_core::{
-        ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement,
-        HostId, HostProfileId, ImplementationId, KindId, OfferGeneration, PROTOCOL_VERSION,
+        ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
+        HostAdvertisement, HostId, HostProfileId, ImplementationId, KindContractRevision, KindId,
+        OfferGeneration, PortDescriptor, PortDirection, PortId, PROTOCOL_VERSION,
     };
 
     fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
@@ -482,10 +483,17 @@ mod tests {
             capabilities: vec![CapabilityOffer {
                 capability_id: CapabilityId::from("capability-1"),
                 kind_id: KindId::from("test/kind"),
+                kind_contract_revision: KindContractRevision::from("test/kind@1"),
+                execution_profile_id: ExecutionProfileId::from("test/profile@1"),
                 implementation_id: ImplementationId::from("test/implementation"),
                 artifact_id: ArtifactId::from("test/artifact"),
-                limits: CapabilityLimits {
+                inputs: vec![],
+                outputs: vec![PortDescriptor {
+                    port_id: PortId::from("out"),
                     value_kind: KindId::from("test/value"),
+                    direction: PortDirection::Output,
+                }],
+                limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 4,
                     max_queue_bytes: 64,

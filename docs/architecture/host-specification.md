@@ -536,13 +536,21 @@ A capability offer is conceptually:
 struct CapabilityOffer {
     capability_id: CapabilityId,
     kind_id: KindId,
+    kind_contract_revision: KindContractRevision,
+    execution_profile_id: ExecutionProfileId,
     implementation_id: ImplementationId,
-    ports: BoundedList<PortDescription>,
+    inputs: BoundedList<PortDescription>,
+    outputs: BoundedList<PortDescription>,
     limits: CapabilityLimits,
     restrictions: CapabilityRestrictions,
     manifestation: ManifestationDescription,
 }
 ```
+
+The kind contract revision owns the exact ordered input and output contracts.
+An offer is compatible only when the advertised revision and every port agree
+with the checked operation; queue limits do not stand in for type or port
+compatibility.
 
 ### 10.1 Offer generation
 

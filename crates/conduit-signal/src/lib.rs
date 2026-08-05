@@ -6,8 +6,8 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, ConfigurationEntry, ConfigurationValue, KindId, PortDescriptor,
-    PortDirection, ValuePayload,
+    kind_id, port_id, ConfigurationEntry, ConfigurationValue, ExecutionProfileId,
+    KindContractRevision, KindId, PortDescriptor, PortDirection, ValuePayload,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +18,10 @@ pub const SIGNAL_PORT: &str = "signal";
 pub const SIGNAL_ENCODED_LEN: u32 = 9;
 pub const SIGNAL_PRESENTATION_KIND: &str = "presentation/signal";
 pub const MAX_SIGNAL_COUNT: u64 = 4_096;
+pub const PULSE_CONTRACT_REVISION: &str = "conduit.signal/flow-pulse@1";
+pub const SHOW_CONTRACT_REVISION: &str = "conduit.signal/presentation-show@1";
+pub const PULSE_EXECUTION_PROFILE: &str = "conduit.signal/pulse-hosted@1";
+pub const SHOW_EXECUTION_PROFILE: &str = "conduit.signal/show-hosted@1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signal {
@@ -69,6 +73,22 @@ pub fn show_kind() -> KindId {
 
 pub fn signal_value_kind() -> KindId {
     kind_id(SIGNAL_VALUE_KIND)
+}
+
+pub fn pulse_contract_revision() -> KindContractRevision {
+    KindContractRevision::from(PULSE_CONTRACT_REVISION)
+}
+
+pub fn show_contract_revision() -> KindContractRevision {
+    KindContractRevision::from(SHOW_CONTRACT_REVISION)
+}
+
+pub fn pulse_execution_profile() -> ExecutionProfileId {
+    ExecutionProfileId::from(PULSE_EXECUTION_PROFILE)
+}
+
+pub fn show_execution_profile() -> ExecutionProfileId {
+    ExecutionProfileId::from(SHOW_EXECUTION_PROFILE)
 }
 
 pub fn pulse_outputs() -> Vec<PortDescriptor> {
@@ -170,9 +190,10 @@ pub fn signal_payload_size() -> u32 {
 #[cfg(feature = "host-profile")]
 mod host_profile {
     use super::{
-        decode_signal, encode_signal, parse_pulse_configuration, pulse_kind, pulse_outputs,
-        show_inputs, show_kind, signal_value_kind, PulseConfiguration, Signal, MAX_SIGNAL_COUNT,
-        SIGNAL_ENCODED_LEN, SIGNAL_PRESENTATION_KIND,
+        decode_signal, encode_signal, parse_pulse_configuration, pulse_contract_revision,
+        pulse_execution_profile, pulse_kind, pulse_outputs, show_contract_revision,
+        show_execution_profile, show_inputs, show_kind, signal_value_kind, PulseConfiguration,
+        Signal, MAX_SIGNAL_COUNT, SIGNAL_ENCODED_LEN, SIGNAL_PRESENTATION_KIND,
     };
     use alloc::boxed::Box;
     use conduit_core::{
@@ -204,6 +225,14 @@ mod host_profile {
     impl OperationImplementation for PulseImplementation {
         fn kind_id(&self) -> &KindId {
             &self.kind_id
+        }
+
+        fn kind_contract_revision(&self) -> conduit_core::KindContractRevision {
+            pulse_contract_revision()
+        }
+
+        fn execution_profile_id(&self) -> conduit_core::ExecutionProfileId {
+            pulse_execution_profile()
         }
 
         fn implementation_id(&self) -> &ImplementationId {
@@ -305,6 +334,14 @@ mod host_profile {
     impl OperationImplementation for ShowImplementation {
         fn kind_id(&self) -> &KindId {
             &self.kind_id
+        }
+
+        fn kind_contract_revision(&self) -> conduit_core::KindContractRevision {
+            show_contract_revision()
+        }
+
+        fn execution_profile_id(&self) -> conduit_core::ExecutionProfileId {
+            show_execution_profile()
         }
 
         fn implementation_id(&self) -> &ImplementationId {
@@ -413,6 +450,7 @@ mod host_profile {
         catalog
             .insert(KindDefinition {
                 kind_id: pulse_kind(),
+                kind_contract_revision: pulse_contract_revision(),
                 inputs: Vec::new(),
                 outputs: pulse_outputs(),
                 configuration: vec![
@@ -443,6 +481,7 @@ mod host_profile {
         catalog
             .insert(KindDefinition {
                 kind_id: show_kind(),
+                kind_contract_revision: show_contract_revision(),
                 inputs: show_inputs(),
                 outputs: Vec::new(),
                 configuration: Vec::new(),

@@ -1,9 +1,9 @@
 use conduit_core::{
     kind_id, verify_plan, ArtifactId, BootId, CapabilityLimits, CapabilityOffer,
-    ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider, FailureReason,
-    HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
-    Observation, ObservationKind, OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect,
-    TerminalDisposition, PROTOCOL_VERSION,
+    ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider, ExecutionProfileId,
+    FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId,
+    ImplementationId, KindContractRevision, Observation, ObservationKind, OfferGeneration, Plan,
+    PlanFragment, PlanId, PlatformEffect, TerminalDisposition, PROTOCOL_VERSION,
 };
 use conduit_form::CheckedForm;
 use conduit_runtime::{
@@ -125,6 +125,17 @@ impl CompositeDefinition {
             })?;
         let source_child = source.host_id.clone();
         let sink_child = sink.host_id.clone();
+        let external_inputs = Vec::new();
+        let external_outputs = source
+            .outputs
+            .iter()
+            .filter(|port| port.port_id == export.source_port_id)
+            .cloned()
+            .collect();
+        let kind_contract_revision =
+            KindContractRevision::from(format!("{}@1", export.kind_id.as_str()));
+        let execution_profile_id =
+            ExecutionProfileId::from(format!("composite:{}@1", implementation_id.as_str()));
         Ok(Self {
             host_id,
             boot_id,
@@ -133,10 +144,13 @@ impl CompositeDefinition {
             external_capability: CapabilityOffer {
                 capability_id: export.capability_id.clone(),
                 kind_id: export.kind_id.clone(),
+                kind_contract_revision,
+                execution_profile_id,
                 implementation_id,
                 artifact_id,
+                inputs: external_inputs,
+                outputs: external_outputs,
                 limits: CapabilityLimits {
-                    value_kind: export.value_kind.clone(),
                     max_active_instances: 1,
                     max_queue_items: connection.item_capacity,
                     max_queue_bytes: connection.byte_capacity,
@@ -345,7 +359,12 @@ impl CompositeHost {
             .limits
             .max_queue_bytes
             .min(connection.byte_capacity);
-        if external_capability.limits.value_kind != connection.value_kind {
+        if external_capability
+            .inputs
+            .iter()
+            .chain(&external_capability.outputs)
+            .any(|port| port.value_kind != connection.value_kind)
+        {
             return Err(CompositeError::InvalidInternalPlan(
                 "external value kind does not match the internal boundary".to_string(),
             ));
@@ -1004,15 +1023,18 @@ mod tests {
     };
     use conduit_core::{
         kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-        ConnectionEnvelope, ConnectionOutcome, ConnectionProvider, FormId, HostAdvertisement,
-        HostCommand, HostEvent, HostId, HostProfileId, ImplementationId, KindId, OfferGeneration,
-        OperationId, PortDescriptor, PortDirection, TerminalDisposition, PROTOCOL_VERSION,
+        ConnectionEnvelope, ConnectionOutcome, ConnectionProvider, ExecutionProfileId, FormId,
+        HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
+        KindContractRevision, KindId, OfferGeneration, OperationId, PortDescriptor, PortDirection,
+        TerminalDisposition, PROTOCOL_VERSION,
     };
     use conduit_form::{parse, CheckedForm, CheckedOperation, KindDefinition, ProfileCatalog};
     use conduit_planner::{plan, plan_with_connection_limits, PlacementChoice, PlacementChoices};
     use conduit_runtime::{providers::in_memory::InMemoryConnectionProvider, HostRuntime};
     use conduit_signal::{
-        signal_profile_catalog, signal_registry, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND,
+        pulse_contract_revision, pulse_execution_profile, pulse_outputs, show_contract_revision,
+        show_execution_profile, show_inputs, signal_profile_catalog, signal_registry, PULSE_KIND,
+        SHOW_KIND, SIGNAL_VALUE_KIND,
     };
     use std::collections::BTreeMap;
 
@@ -1031,6 +1053,9 @@ mod tests {
         catalog
             .insert(KindDefinition {
                 kind_id: kind_id(COMPOSITE_DEMONSTRATION_KIND),
+                kind_contract_revision: KindContractRevision::from(format!(
+                    "{COMPOSITE_DEMONSTRATION_KIND}@1"
+                )),
                 inputs: Vec::new(),
                 outputs: vec![PortDescriptor {
                     port_id: port_id("signal"),
@@ -1053,6 +1078,16 @@ mod tests {
             capabilities: vec![CapabilityOffer {
                 capability_id: CapabilityId::from(if source { "pulse" } else { "show" }),
                 kind_id: kind_id(if source { PULSE_KIND } else { SHOW_KIND }),
+                kind_contract_revision: if source {
+                    pulse_contract_revision()
+                } else {
+                    show_contract_revision()
+                },
+                execution_profile_id: if source {
+                    pulse_execution_profile()
+                } else {
+                    show_execution_profile()
+                },
                 implementation_id: ImplementationId::from(if source {
                     "test/pulse-v1"
                 } else {
@@ -1063,8 +1098,9 @@ mod tests {
                 } else {
                     "conduit-signal/show-artifact-v1"
                 }),
+                inputs: if source { vec![] } else { show_inputs() },
+                outputs: if source { pulse_outputs() } else { vec![] },
                 limits: CapabilityLimits {
-                    value_kind: kind_id(SIGNAL_VALUE_KIND),
                     max_active_instances: 2,
                     max_queue_items: 8,
                     max_queue_bytes: 128,
@@ -1438,6 +1474,9 @@ mod tests {
             operations: vec![CheckedOperation {
                 operation_id: OperationId::from("run"),
                 kind_id: KindId::from(COMPOSITE_DEMONSTRATION_KIND),
+                kind_contract_revision: KindContractRevision::from(format!(
+                    "{COMPOSITE_DEMONSTRATION_KIND}@1"
+                )),
                 inputs: Vec::new(),
                 outputs: Vec::new(),
                 configuration: Vec::new(),
@@ -1517,10 +1556,13 @@ mod tests {
         source_ad.capabilities.push(CapabilityOffer {
             capability_id: CapabilityId::from("unrelated-narrow-capability"),
             kind_id: kind_id("unrelated/kind"),
+            kind_contract_revision: KindContractRevision::from("unrelated/kind@1"),
+            execution_profile_id: ExecutionProfileId::from("unrelated/profile@1"),
             implementation_id: ImplementationId::from("unrelated/implementation"),
             artifact_id: ArtifactId::from("unrelated/artifact"),
+            inputs: vec![],
+            outputs: vec![],
             limits: CapabilityLimits {
-                value_kind: kind_id("unrelated/value"),
                 max_active_instances: 0,
                 max_queue_items: 0,
                 max_queue_bytes: 0,
@@ -1756,10 +1798,13 @@ mod tests {
             external_capability: CapabilityOffer {
                 capability_id: CapabilityId::from("alternate-capability"),
                 kind_id: kind_id("demonstration/alternate"),
+                kind_contract_revision: KindContractRevision::from("demonstration/alternate@1"),
+                execution_profile_id: ExecutionProfileId::from("composite/alternate-hosted@1"),
                 implementation_id: ImplementationId::from("composite/alternate-v1"),
                 artifact_id: ArtifactId::from("composite/alternate-artifact-v1"),
+                inputs: show_inputs(),
+                outputs: pulse_outputs(),
                 limits: CapabilityLimits {
-                    value_kind: kind_id(SIGNAL_VALUE_KIND),
                     max_active_instances: 5,
                     max_queue_items: 9,
                     max_queue_bytes: 99,

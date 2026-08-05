@@ -1,6 +1,6 @@
 use conduit_core::{
-    CapabilityId, ConfigurationEntry, ConfigurationValue, FormId, KindId, OperationId,
-    PortDescriptor, PortId,
+    CapabilityId, ConfigurationEntry, ConfigurationValue, FormId, KindContractRevision, KindId,
+    OperationId, PortDescriptor, PortId,
 };
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 pub struct CheckedOperation {
     pub operation_id: OperationId,
     pub kind_id: KindId,
+    pub kind_contract_revision: KindContractRevision,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<ConfigurationEntry>,
@@ -71,6 +72,7 @@ impl ConfigurationRule {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KindDefinition {
     pub kind_id: KindId,
+    pub kind_contract_revision: KindContractRevision,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<ConfigurationField>,
@@ -281,6 +283,7 @@ pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedForm, Form
         .map(|(operation_name, draft)| CheckedOperation {
             operation_id: OperationId::from(operation_name.as_str()),
             kind_id: draft.definition.kind_id.clone(),
+            kind_contract_revision: draft.definition.kind_contract_revision.clone(),
             inputs: draft.definition.inputs.clone(),
             outputs: draft.definition.outputs.clone(),
             configuration: draft.configuration.clone(),
@@ -462,10 +465,23 @@ fn canonical_form_text(
     let mut text = format!("form:{name}\n");
     for operation in operations {
         text.push_str(&format!(
-            "op:{}:{}|",
+            "op:{}:{}:{}|",
             operation.operation_id.as_str(),
-            operation.kind_id.as_str()
+            operation.kind_id.as_str(),
+            operation.kind_contract_revision.as_str()
         ));
+        for port in operation.inputs.iter().chain(&operation.outputs) {
+            let direction = match port.direction {
+                conduit_core::PortDirection::Input => "input",
+                conduit_core::PortDirection::Output => "output",
+            };
+            text.push_str(&format!(
+                "port:{}:{}:{}|",
+                port.port_id.as_str(),
+                port.value_kind.as_str(),
+                direction
+            ));
+        }
         for entry in &operation.configuration {
             text.push_str(&format!(
                 "cfg:{}={}|",
@@ -526,17 +542,28 @@ fn hex(nibble: u8) -> char {
 #[cfg(test)]
 mod tests {
     use super::{parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
-    use conduit_core::{kind_id, port_id, ConfigurationValue, PortDescriptor, PortDirection};
+    use conduit_core::{
+        kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
+    };
 
     fn catalog() -> ProfileCatalog {
-        let value_kind = kind_id("test/value");
+        catalog_with_source_contract("test/source@1", "out", "test/value")
+    }
+
+    fn catalog_with_source_contract(
+        source_revision: &str,
+        source_port: &str,
+        value_kind: &str,
+    ) -> ProfileCatalog {
+        let value_kind = kind_id(value_kind);
         let mut catalog = ProfileCatalog::new();
         catalog
             .insert(KindDefinition {
                 kind_id: kind_id("test/source"),
+                kind_contract_revision: KindContractRevision::from(source_revision),
                 inputs: Vec::new(),
                 outputs: vec![PortDescriptor {
-                    port_id: port_id("out"),
+                    port_id: port_id(source_port),
                     value_kind: value_kind.clone(),
                     direction: PortDirection::Output,
                 }],
@@ -553,6 +580,7 @@ mod tests {
         catalog
             .insert(KindDefinition {
                 kind_id: kind_id("test/sink"),
+                kind_contract_revision: KindContractRevision::from("test/sink@1"),
                 inputs: vec![PortDescriptor {
                     port_id: port_id("in"),
                     value_kind,
@@ -563,6 +591,32 @@ mod tests {
             })
             .expect("sink kind installs");
         catalog
+    }
+
+    #[test]
+    fn checked_form_identity_binds_contract_revision_and_ports() {
+        let source =
+            "form 0\n\nidentity {\n source: test/source\n sink: test/sink\n source > sink\n}\n";
+        let baseline = parse(source, &catalog()).expect("baseline parses");
+        let revised = parse(
+            source,
+            &catalog_with_source_contract("test/source@2", "out", "test/value"),
+        )
+        .expect("revised contract parses");
+        let renamed_port = parse(
+            source,
+            &catalog_with_source_contract("test/source@1", "renamed", "test/value"),
+        )
+        .expect("renamed port parses");
+        let retyped_port = parse(
+            source,
+            &catalog_with_source_contract("test/source@1", "out", "test/value-v2"),
+        )
+        .expect("retyped port parses");
+
+        assert_ne!(baseline.form_id, revised.form_id);
+        assert_ne!(baseline.form_id, renamed_port.form_id);
+        assert_ne!(baseline.form_id, retyped_port.form_id);
     }
 
     #[test]

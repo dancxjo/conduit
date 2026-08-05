@@ -1,10 +1,11 @@
 use conduit_core::{
     kind_id, port_id, seal_plan, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConnectionOutcome, ConnectionProvider, ExpectedEvidence, ExpectedTerminal,
-    FailureReason, FormId, FragmentId, HostAdvertisement, HostCommand, HostEvent, HostId,
-    HostProfileId, ImplementationId, ObservationKind, OfferGeneration, OperationId, PlacementId,
-    PlanFragment, PlanId, PlannedOperation, PlatformEffect, PortDescriptor, PortDirection,
-    TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
+    CapabilityOffer, ConnectionOutcome, ConnectionProvider, ExecutionProfileId, ExpectedEvidence,
+    ExpectedTerminal, FailureReason, FormId, FragmentId, HostAdvertisement, HostCommand, HostEvent,
+    HostId, HostProfileId, ImplementationId, KindContractRevision, ObservationKind,
+    OfferGeneration, OperationId, PlacementId, PlanFragment, PlanId, PlannedOperation,
+    PlatformEffect, PortDescriptor, PortDirection, TerminalDisposition, ValuePayload,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
 use conduit_planner::{default_placements, plan, PlacementChoice, PlacementChoices};
@@ -18,29 +19,43 @@ const SOURCE_KIND: &str = "contract/source";
 const SINK_KIND: &str = "contract/sink";
 const VALUE_KIND: &str = "contract/value";
 const PRESENTATION_KIND: &str = "contract/presentation";
+const SOURCE_CONTRACT: &str = "contract/source@1";
+const SINK_CONTRACT: &str = "contract/sink@1";
+const SOURCE_PROFILE: &str = "contract/source-hosted@1";
+const SINK_PROFILE: &str = "contract/sink-hosted@1";
+
+fn source_outputs() -> Vec<PortDescriptor> {
+    vec![PortDescriptor {
+        port_id: port_id("value"),
+        value_kind: kind_id(VALUE_KIND),
+        direction: PortDirection::Output,
+    }]
+}
+
+fn sink_inputs() -> Vec<PortDescriptor> {
+    vec![PortDescriptor {
+        port_id: port_id("value"),
+        value_kind: kind_id(VALUE_KIND),
+        direction: PortDirection::Input,
+    }]
+}
 
 fn profile_catalog() -> ProfileCatalog {
     let mut catalog = ProfileCatalog::new();
     catalog
         .insert(KindDefinition {
             kind_id: kind_id(SOURCE_KIND),
+            kind_contract_revision: KindContractRevision::from(SOURCE_CONTRACT),
             inputs: Vec::new(),
-            outputs: vec![PortDescriptor {
-                port_id: port_id("value"),
-                value_kind: kind_id(VALUE_KIND),
-                direction: PortDirection::Output,
-            }],
+            outputs: source_outputs(),
             configuration: Vec::new(),
         })
         .expect("source kind installs");
     catalog
         .insert(KindDefinition {
             kind_id: kind_id(SINK_KIND),
-            inputs: vec![PortDescriptor {
-                port_id: port_id("value"),
-                value_kind: kind_id(VALUE_KIND),
-                direction: PortDirection::Input,
-            }],
+            kind_contract_revision: KindContractRevision::from(SINK_CONTRACT),
+            inputs: sink_inputs(),
             outputs: Vec::new(),
             configuration: Vec::new(),
         })
@@ -59,10 +74,13 @@ fn advertisement() -> HostAdvertisement {
             CapabilityOffer {
                 capability_id: CapabilityId::from("pulse"),
                 kind_id: kind_id(SOURCE_KIND),
+                kind_contract_revision: KindContractRevision::from(SOURCE_CONTRACT),
+                execution_profile_id: ExecutionProfileId::from(SOURCE_PROFILE),
                 implementation_id: ImplementationId::from("contract/source-v1"),
                 artifact_id: ArtifactId::from("contract/source-artifact-v1"),
+                inputs: vec![],
+                outputs: source_outputs(),
                 limits: CapabilityLimits {
-                    value_kind: kind_id(VALUE_KIND),
                     max_active_instances: 2,
                     max_queue_items: 4,
                     max_queue_bytes: 64,
@@ -71,10 +89,13 @@ fn advertisement() -> HostAdvertisement {
             CapabilityOffer {
                 capability_id: CapabilityId::from("show"),
                 kind_id: kind_id(SINK_KIND),
+                kind_contract_revision: KindContractRevision::from(SINK_CONTRACT),
+                execution_profile_id: ExecutionProfileId::from(SINK_PROFILE),
                 implementation_id: ImplementationId::from("contract/sink-v1"),
                 artifact_id: ArtifactId::from("contract/sink-artifact-v1"),
+                inputs: sink_inputs(),
+                outputs: vec![],
                 limits: CapabilityLimits {
-                    value_kind: kind_id(VALUE_KIND),
                     max_active_instances: 2,
                     max_queue_items: 4,
                     max_queue_bytes: 64,
@@ -139,6 +160,14 @@ impl SourceImplementation {
 impl OperationImplementation for SourceImplementation {
     fn kind_id(&self) -> &conduit_core::KindId {
         &self.kind_id
+    }
+
+    fn kind_contract_revision(&self) -> KindContractRevision {
+        KindContractRevision::from(SOURCE_CONTRACT)
+    }
+
+    fn execution_profile_id(&self) -> ExecutionProfileId {
+        ExecutionProfileId::from(SOURCE_PROFILE)
     }
 
     fn implementation_id(&self) -> &ImplementationId {
@@ -211,6 +240,14 @@ impl SinkImplementation {
 impl OperationImplementation for SinkImplementation {
     fn kind_id(&self) -> &conduit_core::KindId {
         &self.kind_id
+    }
+
+    fn kind_contract_revision(&self) -> KindContractRevision {
+        KindContractRevision::from(SINK_CONTRACT)
+    }
+
+    fn execution_profile_id(&self) -> ExecutionProfileId {
+        ExecutionProfileId::from(SINK_PROFILE)
     }
 
     fn implementation_id(&self) -> &ImplementationId {
@@ -372,6 +409,14 @@ impl OperationImplementation for UnsupportedValueImplementation {
         self.0.kind_id()
     }
 
+    fn kind_contract_revision(&self) -> KindContractRevision {
+        self.0.kind_contract_revision()
+    }
+
+    fn execution_profile_id(&self) -> ExecutionProfileId {
+        self.0.execution_profile_id()
+    }
+
     fn implementation_id(&self) -> &ImplementationId {
         self.0.implementation_id()
     }
@@ -389,16 +434,16 @@ impl OperationImplementation for UnsupportedValueImplementation {
 }
 
 #[test]
-fn preparation_requires_capability_and_implementation_value_kind_agreement() {
+fn preparation_requires_exact_capability_ports_and_implementation_value_support() {
     let advertised = advertisement();
     let planned = fragment(&advertised);
 
     let mut lying_capability = advertised.clone();
-    lying_capability.capabilities[0].limits.value_kind = kind_id("contract/other-value");
+    lying_capability.capabilities[0].outputs[0].value_kind = kind_id("contract/other-value");
     let mut runtime = HostRuntime::new(lying_capability, registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(planned.clone()))),
-        Some(FailureReason::UnsupportedValueKind)
+        Some(FailureReason::PortContractMismatch)
     );
 
     let mut unsupported_registry = ImplementationRegistry::new();
@@ -444,6 +489,14 @@ fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
+    mutated.placements[0].kind_contract_revision = KindContractRevision::from("mutated/contract@1");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.placements[0].execution_profile_id = ExecutionProfileId::from("mutated/profile@1");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
     mutated
         .placements
         .iter_mut()
@@ -451,6 +504,26 @@ fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
         .expect("source placement exists")
         .outputs[0]
         .port_id = port_id("mutated-output");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated
+        .placements
+        .iter_mut()
+        .find(|placement| !placement.outputs.is_empty())
+        .expect("source placement exists")
+        .outputs[0]
+        .value_kind = kind_id("mutated/port-value");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated
+        .placements
+        .iter_mut()
+        .find(|placement| !placement.outputs.is_empty())
+        .expect("source placement exists")
+        .outputs[0]
+        .direction = PortDirection::Input;
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
@@ -489,6 +562,40 @@ fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
             value: conduit_core::ConfigurationValue::U64(99),
         });
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
+}
+
+#[test]
+fn preparation_rejects_resealed_contract_profile_and_port_lies() {
+    let advertised = advertisement();
+
+    let mut mutated = fragment(&advertised);
+    mutated.placements[0].kind_contract_revision = KindContractRevision::from("mutated/contract@1");
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::KindContractRevisionMismatch)
+    );
+
+    let mut mutated = fragment(&advertised);
+    mutated.placements[0].execution_profile_id = ExecutionProfileId::from("mutated/profile@1");
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::ExecutionProfileMismatch)
+    );
+
+    let mut mutated = fragment(&advertised);
+    let placement = mutated
+        .placements
+        .iter_mut()
+        .find(|placement| !placement.outputs.is_empty())
+        .expect("source placement exists");
+    placement.outputs[0].port_id = port_id("mutated-output");
+    let mut runtime = HostRuntime::new(advertised, registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::PortContractMismatch)
+    );
 }
 
 #[test]
@@ -536,6 +643,14 @@ impl OperationImplementation for EchoImplementation {
         &self.kind_id
     }
 
+    fn kind_contract_revision(&self) -> KindContractRevision {
+        KindContractRevision::from("test/echo@1")
+    }
+
+    fn execution_profile_id(&self) -> ExecutionProfileId {
+        ExecutionProfileId::from("test/echo-hosted@1")
+    }
+
     fn implementation_id(&self) -> &ImplementationId {
         &self.implementation_id
     }
@@ -577,10 +692,13 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
         capabilities: vec![CapabilityOffer {
             capability_id: CapabilityId::from("echo-capability"),
             kind_id: echo_kind_id.clone(),
+            kind_contract_revision: KindContractRevision::from("test/echo@1"),
+            execution_profile_id: ExecutionProfileId::from("test/echo-hosted@1"),
             implementation_id: implementation_id.clone(),
             artifact_id: ArtifactId::from("test/echo-artifact-v1"),
+            inputs: vec![],
+            outputs: vec![],
             limits: CapabilityLimits {
-                value_kind: kind_id("value/none"),
                 max_active_instances: 1,
                 max_queue_items: 0,
                 max_queue_bytes: 0,
@@ -601,6 +719,8 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
                 placement_id: placement_id.clone(),
                 operation_id: OperationId::from("echo"),
                 kind_id: echo_kind_id.clone(),
+                kind_contract_revision: KindContractRevision::from("test/echo@1"),
+                execution_profile_id: ExecutionProfileId::from("test/echo-hosted@1"),
                 configuration: Vec::new(),
                 host_id: advertisement.host_id.clone(),
                 boot_id: advertisement.boot_id.clone(),
@@ -714,6 +834,14 @@ struct AdapterSourceImplementation {
 impl OperationImplementation for AdapterSourceImplementation {
     fn kind_id(&self) -> &conduit_core::KindId {
         &self.kind_id
+    }
+
+    fn kind_contract_revision(&self) -> KindContractRevision {
+        KindContractRevision::from(SOURCE_CONTRACT)
+    }
+
+    fn execution_profile_id(&self) -> ExecutionProfileId {
+        ExecutionProfileId::from(SOURCE_PROFILE)
     }
 
     fn implementation_id(&self) -> &ImplementationId {
