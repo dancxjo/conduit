@@ -218,6 +218,54 @@ pub enum ExpectedEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct StartupDependency {
+    pub prerequisite_placement_id: PlacementId,
+    pub dependent_placement_id: PlacementId,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CancellationPolicy {
+    CancelAllAndRejectLateCompletion,
+    DrainBeforeCancel,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TerminalPolicy {
+    RequireAllPlacementsAndConnections,
+    RequirePlacementsOnly,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EvidenceStorageBudget {
+    pub item_capacity: u16,
+    pub byte_capacity: u32,
+}
+
+pub fn mandatory_evidence_storage_requirement(
+    evidence: &[ExpectedEvidence],
+) -> Option<EvidenceStorageBudget> {
+    let item_capacity = u16::try_from(evidence.len()).ok()?;
+    let mut byte_capacity = 0u32;
+    for item in evidence {
+        let identity = match item {
+            ExpectedEvidence::PlanFragmentReceived | ExpectedEvidence::PlanTerminal => None,
+            ExpectedEvidence::PlacementPrepared(placement_id)
+            | ExpectedEvidence::PlacementTerminal(placement_id) => Some(placement_id.as_str()),
+            ExpectedEvidence::ConnectionTerminal(connection_id) => Some(connection_id.as_str()),
+        };
+        let identity_bytes = match identity {
+            Some(value) => u32::try_from(value.len()).ok()?,
+            None => 0,
+        };
+        byte_capacity = byte_capacity.checked_add(1)?.checked_add(identity_bytes)?;
+    }
+    Some(EvidenceStorageBudget {
+        item_capacity,
+        byte_capacity,
+    })
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct FragmentCommitment {
     pub host_id: HostId,
     pub fragment_id: FragmentId,
@@ -248,9 +296,13 @@ pub struct PlanFragment {
     pub offer_generation: OfferGeneration,
     pub placements: Vec<PlannedOperation>,
     pub connections: Vec<PlannedConnection>,
+    pub startup_dependencies: Vec<StartupDependency>,
     pub startup_order: Vec<PlacementId>,
+    pub cancellation_policy: CancellationPolicy,
+    pub terminal_policy: TerminalPolicy,
     pub expected_terminals: Vec<ExpectedTerminal>,
     pub expected_evidence: Vec<ExpectedEvidence>,
+    pub evidence_storage_budget: EvidenceStorageBudget,
     pub plan_fragments: Vec<FragmentCommitment>,
 }
 
@@ -391,10 +443,26 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         canonical.extend_from_slice(&connection.item_capacity.to_le_bytes());
         push_u32(&mut canonical, connection.byte_capacity);
     }
+    push_u32(&mut canonical, fragment.startup_dependencies.len() as u32);
+    for dependency in &fragment.startup_dependencies {
+        push_string(
+            &mut canonical,
+            dependency.prerequisite_placement_id.as_str(),
+        );
+        push_string(&mut canonical, dependency.dependent_placement_id.as_str());
+    }
     push_u32(&mut canonical, fragment.startup_order.len() as u32);
     for placement_id in &fragment.startup_order {
         push_string(&mut canonical, placement_id.as_str());
     }
+    canonical.push(match fragment.cancellation_policy {
+        CancellationPolicy::CancelAllAndRejectLateCompletion => 0,
+        CancellationPolicy::DrainBeforeCancel => 1,
+    });
+    canonical.push(match fragment.terminal_policy {
+        TerminalPolicy::RequireAllPlacementsAndConnections => 0,
+        TerminalPolicy::RequirePlacementsOnly => 1,
+    });
     push_u32(&mut canonical, fragment.expected_terminals.len() as u32);
     for terminal in &fragment.expected_terminals {
         match terminal {
@@ -428,6 +496,11 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             ExpectedEvidence::PlanTerminal => canonical.push(4),
         }
     }
+    canonical.extend_from_slice(&fragment.evidence_storage_budget.item_capacity.to_le_bytes());
+    push_u32(
+        &mut canonical,
+        fragment.evidence_storage_budget.byte_capacity,
+    );
     FragmentId::from(hash_bytes(&canonical))
 }
 
@@ -512,6 +585,10 @@ pub enum FailureReason {
     InvalidLifecycleCommand,
     LatePlatformCompletion,
     EvidenceGap,
+    InvalidStartupDependencies,
+    UnsupportedCancellationPolicy,
+    UnsupportedTerminalPolicy,
+    EvidenceBudgetExceeded,
     ConnectionDisconnected,
     MalformedConnectionEnvelope,
     StalePlan,
@@ -599,6 +676,9 @@ pub enum ObservationKind {
     },
 }
 
+// The allocator-free host boundary keeps the sealed preparation fragment inline. Boxing the
+// largest variant would make every no-std host provide allocation for command admission.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HostCommand {
     PublishAdvertisement(HostAdvertisement),
@@ -795,4 +875,30 @@ pub fn kind_id(value: &str) -> KindId {
 
 pub fn port_id(value: &str) -> PortId {
     PortId::from(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::vec;
+
+    use super::{
+        mandatory_evidence_storage_requirement, EvidenceStorageBudget, ExpectedEvidence,
+        PlacementId,
+    };
+
+    #[test]
+    fn mandatory_evidence_budget_counts_items_and_identity_bytes_independently() {
+        let evidence = vec![
+            ExpectedEvidence::PlanFragmentReceived,
+            ExpectedEvidence::PlacementPrepared(PlacementId::from("abc")),
+            ExpectedEvidence::PlanTerminal,
+        ];
+        assert_eq!(
+            mandatory_evidence_storage_requirement(&evidence),
+            Some(EvidenceStorageBudget {
+                item_capacity: 3,
+                byte_capacity: 6,
+            })
+        );
+    }
 }

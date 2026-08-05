@@ -61,6 +61,7 @@ check-planning-s2:
     cargo test -p conduit-planner planning_
     cargo test -p conduit-runtime --test host_contract preparation_rejects_mutation_of_every_executable_identity_field_group
     cargo test -p conduit-runtime --test host_contract preparation_rejects_resealed_contract_profile_and_port_lies
+    cargo test -p conduit-runtime --test host_contract preparation_rejects_resealed_policy_dependency_and_budget_lies
     cargo check -p conduit-core --target thumbv6m-none-eabi
 
 check-realm-readiness:
