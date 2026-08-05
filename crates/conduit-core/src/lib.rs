@@ -325,6 +325,9 @@ pub enum ConnectionProvider {
     FixtureFrame,
     /// Deterministic bounded datagram transit used only by conformance fixtures.
     FixtureDatagram,
+    /// Actual RFC 6455 binary-message carrier. Availability is valid only for
+    /// an initialized provider instance observed at exact boot-scoped endpoints.
+    WebSocket,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -355,7 +358,9 @@ pub struct LinkEndpoint {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LinkLimits {
     pub maximum_in_flight_items: u16,
+    pub maximum_payload_bytes: u32,
     pub maximum_buffered_bytes: u32,
+    pub maximum_frame_bytes: u32,
 }
 
 /// One observed, directional remote-link fact. It identifies an initialized
@@ -662,7 +667,9 @@ fn verify_plan_connections(plan: &Plan) -> bool {
                 || binding.sink.endpoint_id.as_str().is_empty()
                 || binding.source.endpoint_id == binding.sink.endpoint_id
                 || binding.limits.maximum_in_flight_items < connection.item_capacity
+                || binding.limits.maximum_payload_bytes < connection.byte_capacity
                 || binding.limits.maximum_buffered_bytes < connection.byte_capacity
+                || binding.limits.maximum_frame_bytes < binding.limits.maximum_payload_bytes
                 || matches!(
                     &binding.credential,
                     LinkCredentialReference::Opaque(reference) if reference.as_str().is_empty()
@@ -788,6 +795,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             ConnectionProvider::InMemory => 1,
             ConnectionProvider::FixtureFrame => 2,
             ConnectionProvider::FixtureDatagram => 3,
+            ConnectionProvider::WebSocket => 4,
         });
         match &connection.link_binding {
             Some(binding) => {
@@ -804,6 +812,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                     ConnectionProvider::InMemory => 1,
                     ConnectionProvider::FixtureFrame => 2,
                     ConnectionProvider::FixtureDatagram => 3,
+                    ConnectionProvider::WebSocket => 4,
                 });
                 push_string(&mut canonical, binding.provider_instance_id.as_str());
                 canonical.push(match binding.availability {
@@ -825,7 +834,9 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                     }
                 }
                 canonical.extend_from_slice(&binding.limits.maximum_in_flight_items.to_le_bytes());
+                push_u32(&mut canonical, binding.limits.maximum_payload_bytes);
                 push_u32(&mut canonical, binding.limits.maximum_buffered_bytes);
+                push_u32(&mut canonical, binding.limits.maximum_frame_bytes);
             }
             None => canonical.push(0),
         }
@@ -1370,6 +1381,29 @@ pub fn process_owned_link_binding(
     maximum_in_flight_items: u16,
     maximum_buffered_bytes: u32,
 ) -> LinkBinding {
+    process_owned_link_binding_with_limits(
+        binding_id,
+        provider,
+        provider_instance_id,
+        source,
+        sink,
+        LinkLimits {
+            maximum_in_flight_items,
+            maximum_payload_bytes: maximum_buffered_bytes,
+            maximum_buffered_bytes,
+            maximum_frame_bytes: maximum_buffered_bytes,
+        },
+    )
+}
+
+pub fn process_owned_link_binding_with_limits(
+    binding_id: &str,
+    provider: ConnectionProvider,
+    provider_instance_id: &str,
+    source: &HostAdvertisement,
+    sink: &HostAdvertisement,
+    limits: LinkLimits,
+) -> LinkBinding {
     LinkBinding {
         binding_id: LinkBindingId::from(binding_id),
         source: LinkEndpoint {
@@ -1387,10 +1421,7 @@ pub fn process_owned_link_binding(
         availability: LinkAvailability::Ready,
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
-        limits: LinkLimits {
-            maximum_in_flight_items,
-            maximum_buffered_bytes,
-        },
+        limits,
     }
 }
 
