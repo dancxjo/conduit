@@ -127,6 +127,14 @@ fn typed_multi_value_form_runs_through_the_std_kernel() {
     );
     assert!(stdout.contains("stable_allocations=true"), "{stdout}");
     assert!(
+        stdout.contains("pressure_items=1 pressure_bytes=8"),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains("input_closed=5 terminal_order_exact=true"),
+        "{stdout}"
+    );
+    assert!(
         stdout
             .lines()
             .any(|line| line.starts_with("plan ") && line.ends_with(" complete")),

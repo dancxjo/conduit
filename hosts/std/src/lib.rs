@@ -81,10 +81,8 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
         conduit_core::BootId::from(fresh_boot_id()),
         OfferGeneration(1),
     );
-    let realm = [advertisement.clone()];
-    let placements = default_placements(&form, &realm).map_err(|error| error.to_string())?;
-    let plan = plan(&form, &realm, &placements, &[ConnectionProvider::Local])
-        .map_err(|error| error.to_string())?;
+    let plan =
+        kernel_multivalue::plan_local(&form, &advertisement).map_err(|error| error.to_string())?;
     let fragment = plan
         .fragments
         .into_iter()
@@ -110,11 +108,16 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
     writeln!(output, "receipts 3 even=(0, 2) latest=(3)").map_err(|error| error.to_string())?;
     writeln!(
         output,
-        "kernel active_play={} decisions={} events={} stable_allocations={}",
+        "kernel active_play={} decisions={} events={} stable_allocations={} pressure_connection={} pressure_items={} pressure_bytes={} input_closed={} terminal_order_exact={}",
         report.active_play_id.as_str(),
         report.decisions,
         report.kernel_events,
-        report.value_allocation_capacity_before == report.value_allocation_capacity_after
+        report.value_allocation_capacity_before == report.value_allocation_capacity_after,
+        report.pressure_connection_id.as_str(),
+        report.pressure_items,
+        report.pressure_bytes,
+        report.input_closed_events,
+        report.terminal_order_exact,
     )
     .map_err(|error| error.to_string())?;
     Ok(report)

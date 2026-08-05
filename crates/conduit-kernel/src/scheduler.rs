@@ -272,7 +272,9 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
             AdapterEvent::Closed { port } => {
                 self.delivered_closed[usize::from(port.0)] = true;
                 self.input_cursor = (usize::from(port.0) + 1) % PORTS;
-                io.mark_internal_progress();
+                if io.consume_closed(port).is_err() {
+                    return StepOutcome::Fail(u16::MAX);
+                }
             }
             AdapterEvent::HostCompleted { request, .. } => {
                 if io.consume_host_completion().map(|completion| completion.0) != Ok(request) {
@@ -323,12 +325,12 @@ pub struct StepIo<const PORTS: usize> {
     output_maximum_bytes: [Option<u32>; PORTS],
     consumed: [bool; PORTS],
     retained_inputs: [bool; PORTS],
+    consumed_closed: [bool; PORTS],
     outputs: [Option<ValueRef>; PORTS],
     discards: [Option<ValueRef>; PORTS],
     host_completion: Option<(RequestId, HostOperationOutcome)>,
     consumed_host_completion: bool,
     host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
-    internal_progress: bool,
     maximum_work: u16,
     work: u16,
     fault: Option<SchedulerError>,
@@ -338,6 +340,7 @@ pub struct StepIo<const PORTS: usize> {
 struct StagedStep<const PORTS: usize> {
     consumed: [bool; PORTS],
     retained_inputs: [bool; PORTS],
+    consumed_closed: [bool; PORTS],
     outputs: [Option<ValueRef>; PORTS],
     discards: [Option<ValueRef>; PORTS],
     consumed_host_completion: bool,
@@ -362,6 +365,19 @@ impl<const PORTS: usize> StepIo<PORTS> {
 
     pub fn take_input(&mut self, port: PortId) -> Result<ValueRef, SchedulerError> {
         self.consume_input(port, true)
+    }
+
+    pub fn consume_closed(&mut self, port: PortId) -> Result<(), SchedulerError> {
+        self.charge_work(1)?;
+        let index = usize::from(port.0);
+        if !self.input_closed.get(index).copied().unwrap_or(false)
+            || self.inputs.get(index).copied().flatten().is_some()
+            || self.consumed_closed.get(index).copied().unwrap_or(true)
+        {
+            return self.fail(SchedulerError::InvalidPortAccess);
+        }
+        self.consumed_closed[index] = true;
+        Ok(())
     }
 
     fn consume_input(
@@ -463,10 +479,6 @@ impl<const PORTS: usize> StepIo<PORTS> {
         Ok(())
     }
 
-    pub fn mark_internal_progress(&mut self) {
-        self.internal_progress = true;
-    }
-
     pub fn charge_work(&mut self, units: u16) -> Result<(), SchedulerError> {
         let work = self
             .work
@@ -496,13 +508,14 @@ impl<const PORTS: usize> StepIo<PORTS> {
             || self.discards.iter().any(Option::is_some)
             || self.consumed_host_completion
             || self.host_request.is_some()
-            || self.internal_progress
+            || self.consumed_closed.iter().any(|value| *value)
     }
 
     fn staged_step(&self) -> StagedStep<PORTS> {
         StagedStep {
             consumed: self.consumed,
             retained_inputs: self.retained_inputs,
+            consumed_closed: self.consumed_closed,
             outputs: self.outputs,
             discards: self.discards,
             consumed_host_completion: self.consumed_host_completion,
@@ -763,6 +776,14 @@ where
         &self.evidence
     }
 
+    pub fn cord_usage(&self, cord: CordId) -> Result<(u16, u32), SchedulerError> {
+        let state = self
+            .cords
+            .get(usize::from(cord.0))
+            .ok_or(SchedulerError::InvalidPlan)?;
+        Ok((state.len, state.queued_bytes))
+    }
+
     pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
         let pending = self
             .pending_host_operations
@@ -898,7 +919,14 @@ where
     fn next_ready(&mut self) -> Option<usize> {
         for offset in 0..NODES {
             let node = (self.cursor + offset) % NODES;
-            if self.ready[node] && !self.completed[node] {
+            let waiting_for_host_completion =
+                self.pending_host_operations
+                    .iter()
+                    .flatten()
+                    .any(|pending| {
+                        usize::from(pending.request.node.0) == node && pending.completion.is_none()
+                    });
+            if self.ready[node] && !self.completed[node] && !waiting_for_host_completion {
                 self.cursor = (node + 1) % NODES;
                 return Some(node);
             }
@@ -968,12 +996,12 @@ where
             output_maximum_bytes,
             consumed: [false; PORTS],
             retained_inputs: [false; PORTS],
+            consumed_closed: [false; PORTS],
             outputs: [None; PORTS],
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
             host_request: None,
-            internal_progress: false,
             maximum_work: self.node_specs[node].maximum_step_work,
             work: 0,
             fault: None,
@@ -998,7 +1026,8 @@ where
         }
 
         if matches!(outcome, StepOutcome::Progress | StepOutcome::Complete) {
-            let mut evidence_records = self.commit_event_count(node, &io.consumed, &io.outputs)?;
+            let mut evidence_records =
+                self.commit_event_count(node, &io.consumed, &io.consumed_closed, &io.outputs)?;
             if io.host_request.is_some() {
                 evidence_records = evidence_records
                     .checked_add(1)
@@ -1040,6 +1069,7 @@ where
         let StagedStep {
             consumed,
             retained_inputs,
+            consumed_closed,
             outputs,
             discards,
             consumed_host_completion,
@@ -1054,6 +1084,17 @@ where
             }
         }
         let admitted_host_request = self.preflight_step(node, &staged, &retained_values)?;
+
+        for (port, consumed) in consumed_closed.iter().copied().enumerate() {
+            if consumed {
+                self.evidence.record(
+                    NodeId(as_u16(node)?),
+                    Some(PortId(as_u16(port)?)),
+                    None,
+                    KernelEventKind::InputClosed,
+                )?;
+            }
+        }
 
         let mut consumed_values = [None; PORTS];
         for (port, consume) in consumed.iter().copied().enumerate() {
@@ -1258,13 +1299,16 @@ where
         } else {
             None
         };
+        let node_id = NodeId(as_u16(node)?);
         let admitted_host_request = if let Some((request, operation, input)) = host_request {
             if self.last_host_request[node].is_some_and(|last| request <= last)
                 || self
                     .pending_host_operations
                     .iter()
                     .flatten()
-                    .any(|pending| pending.request.request == request)
+                    .any(|pending| {
+                        pending.request.node == node_id && pending.request.request == request
+                    })
             {
                 return Err(SchedulerError::HostOperationRequestDuplicate);
             }
@@ -1435,9 +1479,11 @@ where
         &self,
         node: usize,
         consumed: &[bool; PORTS],
+        consumed_closed: &[bool; PORTS],
         outputs: &[Option<ValueRef>; PORTS],
     ) -> Result<usize, SchedulerError> {
         let consumed = consumed.iter().filter(|value| **value).count();
+        let consumed_closed = consumed_closed.iter().filter(|value| **value).count();
         let mut routed = 0_usize;
         for (port, output) in outputs.iter().enumerate() {
             if output.is_some() {
@@ -1451,7 +1497,8 @@ where
             }
         }
         consumed
-            .checked_add(routed)
+            .checked_add(consumed_closed)
+            .and_then(|value| value.checked_add(routed))
             .ok_or(SchedulerError::InvalidPlan)
     }
 
@@ -1551,14 +1598,6 @@ where
                 let cord = usize::from(target.cord.0);
                 self.cords[cord].producer_closed = true;
                 self.ready[usize::from(target.sink_node.0)] = true;
-                if self.cords[cord].len == 0 {
-                    self.evidence.record(
-                        target.sink_node,
-                        Some(target.sink_port),
-                        None,
-                        KernelEventKind::InputClosed,
-                    )?;
-                }
             }
         }
         Ok(())
@@ -1809,6 +1848,7 @@ mod tests {
                         io.send(PortId(1), value).unwrap();
                         StepOutcome::Progress
                     } else if io.input_closed(PortId(0)) {
+                        io.consume_closed(PortId(0)).unwrap();
                         StepOutcome::Complete
                     } else {
                         StepOutcome::Await
@@ -1825,6 +1865,7 @@ mod tests {
                         }
                         StepOutcome::Progress
                     } else if io.input_closed(PortId(0)) {
+                        io.consume_closed(PortId(0)).unwrap();
                         StepOutcome::Complete
                     } else {
                         StepOutcome::Await
@@ -1840,12 +1881,14 @@ mod tests {
                         StepOutcome::Progress
                     } else if io.input_closed(PortId(0)) {
                         let Some(latest) = held.take() else {
+                            io.consume_closed(PortId(0)).unwrap();
                             return StepOutcome::Complete;
                         };
                         if !io.output_ready(PortId(0)) {
                             *held = Some(latest);
                             return StepOutcome::Await;
                         }
+                        io.consume_closed(PortId(0)).unwrap();
                         io.send(PortId(0), latest).unwrap();
                         StepOutcome::Complete
                     } else {
@@ -1865,6 +1908,7 @@ mod tests {
                         *stall = true;
                         StepOutcome::Progress
                     } else if io.input_closed(PortId(0)) {
+                        io.consume_closed(PortId(0)).unwrap();
                         StepOutcome::Complete
                     } else {
                         StepOutcome::Await
@@ -1955,6 +1999,7 @@ mod tests {
                         *seen = Some(value);
                         StepOutcome::Progress
                     } else if io.input_closed(PortId(0)) {
+                        io.consume_closed(PortId(0)).unwrap();
                         StepOutcome::Complete
                     } else {
                         StepOutcome::Await
@@ -1995,6 +2040,8 @@ mod tests {
                     let (Some(left), Some(_right)) = (io.input(PortId(0)), io.input(PortId(1)))
                     else {
                         return if io.input_closed(PortId(0)) && io.input_closed(PortId(1)) {
+                            io.consume_closed(PortId(0)).unwrap();
+                            io.consume_closed(PortId(1)).unwrap();
                             StepOutcome::Complete
                         } else {
                             StepOutcome::Await
@@ -2014,6 +2061,7 @@ mod tests {
                         *seen = Some(value);
                         StepOutcome::Progress
                     } else if io.input_closed(PortId(0)) {
+                        io.consume_closed(PortId(0)).unwrap();
                         StepOutcome::Complete
                     } else {
                         StepOutcome::Await
