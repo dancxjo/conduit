@@ -55,6 +55,12 @@ check-kernel-s1:
     cargo test -p conduit-kernel --features alloc
     cargo check -p conduit-kernel --target thumbv6m-none-eabi
 
+check-kernel-takeover:
+    cargo test -p conduit-std-host exact_signal_fragment_lowers_to_numeric_kernel_tables
+    cargo test -p conduit-kernel admitted_sink_host_operation_may_have_no_output_payload
+    cargo check -p conduit-kernel --target thumbv6m-none-eabi
+    cargo check -p conduit-core --target thumbv6m-none-eabi
+
 check-planning-s2:
     cargo test -p conduit-form checked_form_identity_binds_contract_revision_and_ports
     cargo test -p conduit-form source_checked_and_expanded_form_identities_stay_distinct

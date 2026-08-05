@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
+conduit-kernel = { path = "../conduit-kernel" }
 
 [dev-dependencies]
 conduit-form = { path = "../conduit-form" }

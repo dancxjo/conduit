@@ -7,8 +7,9 @@ Conduit is being rebuilt around one rule:
 Current `main` contains a useful Rust `std` prototype and deterministic
 browser-shaped/Pico-shaped conformance fixtures. S4 also contains one actual
 Chromium DOM presentation adapter boundary. It does **not** yet contain a
-browser-side planner/runtime, Pico firmware, live WebSocket/UDP transport,
-three-platform proof, production BODY model, or production Observatory.
+std host executing exact plans through `conduit-kernel`, a browser-side
+planner/runtime, Pico firmware, live WebSocket/UDP transport, three-platform
+proof, production BODY model, or production Observatory.
 [STATUS.md](STATUS.md) is the checked claim boundary.
 
 ## Salvage sequence
@@ -28,6 +29,11 @@ graphs. The forward salvage roadmap is tracked in
 
 The archived pre-reboot tree and the reboot are both source quarries. Focused
 reuse is recorded in [docs/reuse-ledger.md](docs/reuse-ledger.md).
+
+Platform expansion is paused behind the kernel-takeover integration gate
+[#389](https://github.com/dancxjo/conduit/issues/389). The first checkpoint
+lowers one exact local `PlanFragment` into bounded numeric kernel tables; it
+does not yet run that fragment through the kernel scheduler.
 
 ## Current executable prototype
 
@@ -54,10 +60,12 @@ bounded manifestation adapter, not a complete browser host runtime.
 ## Forward kernel
 
 `conduit-kernel` is the new `no_std`, port-aware execution contract. Its
-initial S1 slice provides exact input/output port identity, correlated generic
-host-operation actions, prebound numeric route/admission tables, and
-item/byte-bounded fixed and preallocated hosted storage. It is not yet the
-complete scheduler or an adapter for the reboot semantic kinds.
+S1 slice provides exact input/output port identity, correlated generic
+host-operation actions, prebound numeric route/admission tables,
+item/byte-bounded fixed and preallocated hosted storage, and the accepted
+fixed-capacity scheduler. Exact local std plans now have a fail-closed numeric
+lowering seam, but the old `HostRuntime` operation pump still executes the std
+path.
 
 Architecture and current salvage boundaries:
 
@@ -65,3 +73,4 @@ Architecture and current salvage boundaries:
 - [Portable host architecture quarry](docs/architecture/portable-hosts.md)
 - [Host specification quarry](docs/architecture/host-specification.md)
 - [S1 kernel notes](docs/architecture/salvage-kernel-s1.md)
+- [Kernel takeover gate](docs/architecture/kernel-takeover.md)

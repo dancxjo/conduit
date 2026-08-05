@@ -386,10 +386,123 @@ fn fresh_boot_id() -> String {
 #[cfg(test)]
 mod tests {
     use super::{StdHost, StdHostConfig, TimerAdapter};
-    use conduit_core::{BootId, HostId, OfferGeneration};
+    use conduit_core::{
+        seal_plan, BootId, ConnectionId, ConnectionProvider, FormIdentity, HostId, OfferGeneration,
+        PortDirection, PortId,
+    };
     use conduit_form::parse;
     use conduit_signal::signal_profile_catalog;
     use std::time::Duration;
+
+    #[test]
+    fn exact_signal_fragment_lowers_to_numeric_kernel_tables() {
+        let host = StdHost::new_with_config(StdHostConfig {
+            host_id: HostId::from("lowering-host"),
+            boot_id: BootId::from("lowering-boot"),
+            offer_generation: OfferGeneration(1),
+        });
+        let form = parse(
+            include_str!("../../../examples/signal-demo.form"),
+            &signal_profile_catalog(),
+        )
+        .expect("signal form parses");
+        let plan = host.plan_local(&form, None).expect("local plan resolves");
+        let fragment = &plan.fragments[0];
+        let lowered = conduit_runtime::lowering::lower_plan_fragment(fragment)
+            .expect("exact fragment lowers");
+
+        assert_eq!(lowered.identity.plan_id, fragment.plan_id);
+        assert_eq!(lowered.identity.fragment_id, fragment.fragment_id);
+        assert_eq!(lowered.nodes.len(), 2);
+        assert_eq!(lowered.cords.len(), 1);
+        assert_eq!(lowered.routes.len(), 1);
+        assert_eq!(lowered.host_operations.len(), 2);
+        assert_eq!(lowered.resources.len(), 2);
+        assert_eq!(lowered.value_slots, 4);
+        assert_eq!(lowered.value_bytes, 64);
+        assert_eq!(
+            lowered.evidence_items,
+            fragment.expected_evidence.len() as u16
+        );
+        assert_eq!(lowered.identity.placements.len(), 2);
+        assert_eq!(lowered.identity.connections.len(), 1);
+        assert_eq!(lowered.identity.ports.len(), 2);
+        assert!(lowered
+            .identity
+            .ports
+            .iter()
+            .any(|port| port.direction == PortDirection::Input));
+        assert!(lowered
+            .identity
+            .ports
+            .iter()
+            .any(|port| port.direction == PortDirection::Output));
+        assert_eq!(lowered.evidence.len(), fragment.expected_evidence.len());
+        assert!(lowered
+            .host_operations
+            .iter()
+            .any(|operation| operation.binding.maximum_output_bytes == 0));
+        assert_eq!(
+            lowered.node_specs[1].input_cords[0],
+            Some(lowered.cords[0].spec.cord)
+        );
+
+        let mut mutated = fragment.clone();
+        mutated.fragment_id = conduit_core::FragmentId::from("mutated-after-seal");
+        assert!(matches!(
+            conduit_runtime::lowering::lower_plan_fragment(&mutated),
+            Err(conduit_runtime::lowering::LoweringError::InvalidFragment)
+        ));
+
+        let form_identity = FormIdentity {
+            source_document_id: fragment.source_document_id.clone(),
+            checked_form_id: fragment.checked_form_id.clone(),
+            expanded_form_id: fragment.expanded_form_id.clone(),
+        };
+        let mut concurrent = fragment.clone();
+        concurrent.placements[0].host_operations[0].maximum_in_flight = 2;
+        let concurrent = seal_plan(form_identity.clone(), vec![concurrent]);
+        assert!(matches!(
+            conduit_runtime::lowering::lower_plan_fragment(&concurrent.fragments[0]),
+            Err(conduit_runtime::lowering::LoweringError::UnsupportedHostOperationConcurrency(_))
+        ));
+
+        let mut fan_in = fragment.clone();
+        let mut second = fan_in.connections[0].clone();
+        second.connection_id = ConnectionId::from("second-cord-to-same-input");
+        fan_in.connections.push(second);
+        let fan_in = seal_plan(form_identity, vec![fan_in]);
+        assert!(matches!(
+            conduit_runtime::lowering::lower_plan_fragment(&fan_in.fragments[0]),
+            Err(conduit_runtime::lowering::LoweringError::MultipleConnectionsToInput { .. })
+        ));
+
+        let form_identity = FormIdentity {
+            source_document_id: fragment.source_document_id.clone(),
+            checked_form_id: fragment.checked_form_id.clone(),
+            expanded_form_id: fragment.expanded_form_id.clone(),
+        };
+        let mut remote = fragment.clone();
+        remote.connections[0].provider = ConnectionProvider::InMemory;
+        let remote = seal_plan(form_identity.clone(), vec![remote]);
+        assert!(matches!(
+            conduit_runtime::lowering::lower_plan_fragment(&remote.fragments[0]),
+            Err(conduit_runtime::lowering::LoweringError::UnsupportedRemoteConnection(_))
+        ));
+
+        let mut too_wide = fragment.clone();
+        let output = too_wide.placements[0].outputs[0].clone();
+        for index in 1..=16 {
+            let mut extra = output.clone();
+            extra.port_id = PortId::from(format!("extra-output-{index}"));
+            too_wide.placements[0].outputs.push(extra);
+        }
+        let too_wide = seal_plan(form_identity, vec![too_wide]);
+        assert!(matches!(
+            conduit_runtime::lowering::lower_plan_fragment(&too_wide.fragments[0]),
+            Err(conduit_runtime::lowering::LoweringError::CapacityOverflow)
+        ));
+    }
 
     #[derive(Default)]
     struct VirtualTimer {
