@@ -20,6 +20,7 @@ use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub mod kernel_multivalue;
+mod kernel_preparation;
 mod kernel_signal;
 
 static BOOT_COUNTER: AtomicU64 = AtomicU64::new(1);
@@ -90,15 +91,20 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
         .find(|fragment| fragment.host_id == advertisement.host_id)
         .ok_or_else(|| "no local multi-value fragment for std host".to_string())?;
     write_operator_report(output, &advertisement, &fragment.plan_id, &fragment)?;
+    let mut resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+    let reservation = resources.prepare_and_reserve(&advertisement, &fragment)?;
     let mut evidence_sequence = 0;
-    let report = kernel_multivalue::execute_fragment(
+    let result = kernel_multivalue::execute_fragment(
         &advertisement,
         &fragment,
         0,
         &mut evidence_sequence,
         output,
         timer,
-    )?;
+    );
+    let release = resources.release(reservation);
+    let report = result?;
+    release?;
     writeln!(output, "plan {} complete", fragment.plan_id.as_str())
         .map_err(|error| error.to_string())?;
     writeln!(output, "receipts 3 even=(0, 2) latest=(3)").map_err(|error| error.to_string())?;
@@ -116,6 +122,7 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
 
 pub struct StdHost {
     runtime: HostRuntime,
+    kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_activation_sequence: u64,
     next_kernel_evidence_sequence: u64,
 }
@@ -137,6 +144,8 @@ impl StdHost {
 
     pub fn new_with_config(config: StdHostConfig) -> Self {
         let advertisement = build_advertisement(config);
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)
+            .expect("std kernel resource offers are exact and bounded");
         let registry = signal_registry(
             ImplementationId::from("std/pulse-v1"),
             ImplementationId::from("std/stdout-show-signal-v1"),
@@ -144,6 +153,7 @@ impl StdHost {
         .expect("std signal implementations have unique identities");
         Self {
             runtime: HostRuntime::new(advertisement, registry, 256),
+            kernel_resources,
             next_kernel_activation_sequence: 0,
             next_kernel_evidence_sequence: 0,
         }
@@ -191,33 +201,27 @@ impl StdHost {
             return self.run_fragment_legacy_to(fragment, output, timer);
         }
 
-        // The old runtime is used only as an effect-free S2 preparation
-        // validator. Dropping this temporary facade cannot leave an alternate
-        // operation pump or a resource reservation alive beside the kernel.
-        let registry = signal_registry(
-            ImplementationId::from("std/pulse-v1"),
-            ImplementationId::from("std/stdout-show-signal-v1"),
-        )
-        .map_err(|error| format!("signal registry: {error:?}"))?;
-        let mut preparation = HostRuntime::new(self.advertisement().clone(), registry, 256);
-        let prepare = preparation.handle(HostCommand::Prepare(fragment.clone()));
-        if let Some(reason) = preparation_rejection(&prepare) {
-            return Err(reason);
-        }
-        drop(preparation);
-        let activation_sequence = self.next_kernel_activation_sequence;
-        self.next_kernel_activation_sequence = activation_sequence
-            .checked_add(1)
-            .ok_or_else(|| "kernel activation sequence exhausted".to_string())?;
         let advertisement = self.advertisement().clone();
-        let report = kernel_signal::run_signal_fragment(
-            &advertisement,
-            &fragment,
-            activation_sequence,
-            &mut self.next_kernel_evidence_sequence,
-            output,
-            timer,
-        )?;
+        let reservation = self
+            .kernel_resources
+            .prepare_and_reserve(&advertisement, &fragment)?;
+        let result = (|| {
+            let activation_sequence = self.next_kernel_activation_sequence;
+            self.next_kernel_activation_sequence = activation_sequence
+                .checked_add(1)
+                .ok_or_else(|| "kernel activation sequence exhausted".to_string())?;
+            kernel_signal::run_signal_fragment(
+                &advertisement,
+                &fragment,
+                activation_sequence,
+                &mut self.next_kernel_evidence_sequence,
+                output,
+                timer,
+            )
+        })();
+        let release = self.kernel_resources.release(reservation);
+        let report = result?;
+        release?;
         writeln!(output, "plan {} complete", fragment.plan_id.as_str())
             .map_err(|error| error.to_string())?;
         if let (Some(first), Some(last)) = (report.receipts.first(), report.receipts.last()) {
