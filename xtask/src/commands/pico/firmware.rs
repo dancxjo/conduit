@@ -1,10 +1,11 @@
-use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use super::doctor::{repo_root, verify_sha256, CYW43_ASSETS, CYW43_ASSET_DIR, CYW43_COMMIT};
-use super::PicoArgs;
+use super::doctor::{
+    repo_root, sha256_file, verify_sha256, CYW43_ASSETS, CYW43_ASSET_DIR, CYW43_COMMIT,
+};
+use super::{PicoArgs, PicoResult};
 
 pub const FIRMWARE_PACKAGE: &str = "conduit-pico-w-signal";
 pub const TARGET: &str = "thumbv6m-none-eabi";
@@ -27,39 +28,42 @@ pub struct AssetEntry {
     pub sha256: String,
 }
 
-pub fn run_build(args: &PicoArgs) -> Result<()> {
+pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     println!("==> pico build: verifying CYW43 assets");
     let root = repo_root();
     let asset_dir = root.join(CYW43_ASSET_DIR);
     for (filename, expected) in CYW43_ASSETS {
-        let p = asset_dir.join(filename);
+        let path = asset_dir.join(filename);
         if args.dry_run {
-            println!("  (dry-run) would verify {}", p.display());
+            println!("  planned: verify {}", path.display());
         } else {
-            verify_sha256(&p, expected)?;
+            verify_sha256(&path, expected)?;
         }
     }
 
-    println!("==> pico build: building firmware");
-    let manifest = root.join("firmware").join(FIRMWARE_PACKAGE).join("Cargo.toml");
-    let cmd_args = [
+    let manifest = root
+        .join("firmware")
+        .join(FIRMWARE_PACKAGE)
+        .join("Cargo.toml");
+    let manifest_text = manifest
+        .to_str()
+        .ok_or("firmware manifest path is not UTF-8")?;
+    let build_args = [
         "build",
+        "--locked",
         "--manifest-path",
-        manifest.to_str().unwrap(),
+        manifest_text,
         "--package",
         FIRMWARE_PACKAGE,
         "--target",
         TARGET,
         "--release",
     ];
-    println!("  cargo {}", cmd_args.join(" "));
+    println!("==> pico build: cargo {}", build_args.join(" "));
     if !args.dry_run {
-        let status = Command::new("cargo")
-            .args(&cmd_args)
-            .status()
-            .map_err(|e| anyhow::anyhow!("failed to run cargo: {}", e))?;
+        let status = Command::new("cargo").args(build_args).status()?;
         if !status.success() {
-            bail!("cargo build failed");
+            return Err("cargo build for Pico W firmware failed".into());
         }
     }
 
@@ -70,56 +74,48 @@ pub fn run_build(args: &PicoArgs) -> Result<()> {
         .join(FIRMWARE_PACKAGE);
     let uf2 = elf.with_extension("uf2");
 
-    println!("==> pico build: converting ELF to UF2");
-    let uf2_cmd = ["elf2uf2-rs", elf.to_str().unwrap(), uf2.to_str().unwrap()];
-    println!("  {}", uf2_cmd.join(" "));
+    println!(
+        "==> pico build: elf2uf2-rs {} {}",
+        elf.display(),
+        uf2.display()
+    );
     if !args.dry_run {
         let status = Command::new("elf2uf2-rs")
             .arg(&elf)
             .arg(&uf2)
-            .status()
-            .map_err(|e| anyhow::anyhow!("elf2uf2-rs failed: {}", e))?;
+            .status()?;
         if !status.success() {
-            bail!("elf2uf2-rs conversion failed");
+            return Err("elf2uf2-rs conversion failed".into());
         }
-    }
-
-    if !args.dry_run {
         write_identity_manifest(&root, &elf)?;
-        println!("==> pico build: firmware identity manifest written");
     }
 
     println!("==> pico build: done — {}", uf2.display());
     Ok(())
 }
 
-fn write_identity_manifest(root: &Path, elf: &Path) -> Result<()> {
-    use sha2::{Digest, Sha256};
-
-    let git_rev = Command::new("git")
+fn write_identity_manifest(root: &Path, elf: &Path) -> PicoResult<()> {
+    let git_output = Command::new("git")
         .args(["rev-parse", "HEAD"])
-        .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-        .unwrap_or_else(|_| "unknown".into());
+        .current_dir(root)
+        .output()?;
+    if !git_output.status.success() {
+        return Err("git rev-parse HEAD failed".into());
+    }
+    let git_revision = String::from_utf8(git_output.stdout)?.trim().to_owned();
+    let firmware_sha256 = sha256_file(elf)?;
 
-    let firmware_sha256 = if elf.exists() {
-        let bytes = std::fs::read(elf)?;
-        hex::encode(Sha256::digest(&bytes))
-    } else {
-        "not-built".into()
-    };
-
-    let cyw43_assets: Vec<AssetEntry> = CYW43_ASSETS
+    let cyw43_assets = CYW43_ASSETS
         .iter()
         .map(|(filename, expected)| AssetEntry {
-            filename: filename.to_string(),
-            sha256: expected.to_string(),
+            filename: (*filename).to_string(),
+            sha256: (*expected).to_string(),
         })
         .collect();
 
     let identity = FirmwareIdentity {
         schema: "conduit-pico-w-signal/identity@1".into(),
-        git_revision: git_rev,
+        git_revision,
         target: TARGET.into(),
         profile: PROFILE.into(),
         firmware_sha256,
@@ -131,41 +127,41 @@ fn write_identity_manifest(root: &Path, elf: &Path) -> Result<()> {
         .join("target")
         .join(TARGET)
         .join(PROFILE)
-        .join(format!("{}.identity.json", FIRMWARE_PACKAGE));
-
-    std::fs::create_dir_all(manifest_path.parent().unwrap())?;
-    let json = serde_json::to_string_pretty(&identity)?;
-    std::fs::write(&manifest_path, json)?;
+        .join(format!("{FIRMWARE_PACKAGE}.identity.json"));
+    std::fs::create_dir_all(
+        manifest_path
+            .parent()
+            .ok_or("identity manifest path has no parent")?,
+    )?;
+    std::fs::write(&manifest_path, serde_json::to_string_pretty(&identity)?)?;
     println!("  identity manifest: {}", manifest_path.display());
     Ok(())
 }
 
-/// Download and verify CYW43 assets from the pinned Embassy commit.
-pub fn refresh_radio_assets(dry_run: bool) -> Result<()> {
-    let root = repo_root();
-    let asset_dir = root.join(CYW43_ASSET_DIR);
-    std::fs::create_dir_all(&asset_dir)?;
+pub fn refresh_radio_assets(dry_run: bool) -> PicoResult<()> {
+    let asset_dir = repo_root().join(CYW43_ASSET_DIR);
+    if !dry_run {
+        std::fs::create_dir_all(&asset_dir)?;
+    }
 
     for (filename, expected) in CYW43_ASSETS {
         let url = format!(
-            "https://raw.githubusercontent.com/embassy-rs/embassy/{}/cyw43-firmware/{}",
-            CYW43_COMMIT, filename
+            "https://raw.githubusercontent.com/embassy-rs/embassy/{CYW43_COMMIT}/cyw43-firmware/{filename}"
         );
-        let dest = asset_dir.join(filename);
-        println!("==> downloading {} -> {}", url, dest.display());
+        let destination = asset_dir.join(filename);
+        println!("==> downloading {url} -> {}", destination.display());
         if dry_run {
             continue;
         }
-        // Use curl or wget
         let status = Command::new("curl")
-            .args(["-fsSL", "-o", dest.to_str().unwrap(), &url])
-            .status()
-            .map_err(|e| anyhow::anyhow!("curl failed: {}", e))?;
+            .args(["-fL", "--retry", "3", "--retry-delay", "2", "-o"])
+            .arg(&destination)
+            .arg(&url)
+            .status()?;
         if !status.success() {
-            bail!("failed to download {}", url);
+            return Err(format!("failed to download {url}").into());
         }
-        verify_sha256(&dest, expected)?;
-        println!("  ✓ verified {}", filename);
+        verify_sha256(&destination, expected)?;
     }
     println!("==> CYW43 assets refreshed and verified");
     Ok(())
@@ -175,5 +171,5 @@ pub fn uf2_path(root: &PathBuf) -> PathBuf {
     root.join("target")
         .join(TARGET)
         .join(PROFILE)
-        .join(format!("{}.uf2", FIRMWARE_PACKAGE))
+        .join(format!("{FIRMWARE_PACKAGE}.uf2"))
 }
