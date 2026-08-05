@@ -93,6 +93,8 @@ check-form-s3:
     cargo test -p conduit-form source_checked_and_expanded_form_identities_stay_distinct
     cargo test -p conduit-form checked_export_is_the_only_source_of_a_parent_kind_boundary
     cargo test -p conduit-form duplicate_export_capabilities_are_rejected
+    cargo test -p conduit-form multiple_typed_and_zero_sided_faces_check_as_ordinary_kinds
+    cargo test -p conduit-form checked_face_mutations_fail_closed
     cargo test -p conduit-form inline_nested_form_uses_the_same_checked_boundary_as_a_standalone_form
     cargo test -p conduit-form parent_expanded_identity_binds_hidden_child_semantics_not_checked_boundary
     cargo test -p conduit-form nested_expansion_paths_are_canonical_and_substitution_fails_closed

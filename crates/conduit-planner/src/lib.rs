@@ -1787,12 +1787,18 @@ mod tests {
     #[test]
     fn planning_binds_nested_expansion_changes_beyond_the_checked_boundary() {
         let baseline = parse(
-            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n final: test/sink\n child.out -> final.in\n}\n",
+            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n final: test/sink\n child.out -> final.in\n}\n",
             &nested_identity_catalog(),
         )
         .expect("baseline nested parent checks");
         let changed = parse(
-            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n final: test/sink\n child.out -> final.in\n}\n",
+            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n final: test/sink\n child.out -> final.in\n}\n",
             &nested_identity_catalog(),
         )
         .expect("changed nested parent checks");
