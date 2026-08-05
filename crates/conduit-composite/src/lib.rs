@@ -13,6 +13,7 @@ use conduit_runtime::{
 };
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompositeError {
     InvalidInternalPlan(String),
@@ -287,7 +288,6 @@ pub struct CompositeHost {
     next_active_play_sequence: u64,
     next_evidence_sequence: u64,
 }
-
 impl CompositeHost {
     pub fn from_definition(
         definition: CompositeDefinition,
