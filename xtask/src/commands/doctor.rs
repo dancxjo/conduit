@@ -260,10 +260,8 @@ fn print_human_report(report: &DoctorReport) {
                 println!("    {line}");
             }
         }
-        if !probe.outcome.success {
-            if let Some(repair) = probe.repair {
-                println!("    repair: {repair}");
-            }
+        if !probe.outcome.success && let Some(repair) = probe.repair {
+            println!("    repair: {repair}");
         }
     }
 }
@@ -293,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn JSON_report_has_stable_schema_and_target() {
+    fn json_report_has_stable_schema_and_target() {
         let root = workspace_root().expect("workspace root");
         let report = build_report(DoctorTarget::Browser, &dry_json_opts(), &root);
         let value = serde_json::to_value(report).expect("serialize doctor report");
