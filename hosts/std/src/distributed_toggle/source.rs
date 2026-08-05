@@ -16,9 +16,9 @@ use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    CordId, EvidenceQuery, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
-    HostOperationId, HostOperationOutcome, HostedEvidenceLog, HostedValueStore, KernelEventKind,
-    RemoteEndpointId, RequestId, ValueStorage,
+    CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition, HostOperationId,
+    HostOperationOutcome, HostedEvidenceLog, HostedValueStore, RemoteEndpointId, RequestId,
+    ValueStorage,
 };
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -117,10 +117,9 @@ impl DistributedToggleSource {
 
         let mut activation_values = Vec::with_capacity(MAXIMUM_VALUES);
         for sequence in 0..activate_config.count {
-            let encoded = sequence.to_le_bytes();
             activation_values.push(
                 store
-                    .store(&encoded)
+                    .store(&sequence.to_le_bytes())
                     .map_err(|error| format!("{error:?}"))?,
             );
         }
@@ -401,23 +400,6 @@ impl DistributedToggleSource {
                 }
             }
         }
-    }
-
-    fn send(
-        &mut self,
-        carrier: &mut crate::websocket::NativeWebSocketCarrier,
-        message: conduit_wire::SessionMessage<'_>,
-        output: &mut [u8; DISTRIBUTED_MAXIMUM_FRAME_BYTES as usize],
-    ) -> Result<(), String> {
-        super::carrier::send(self, carrier, message, output)
-    }
-
-    fn receive<'a>(
-        &mut self,
-        carrier: &mut crate::websocket::NativeWebSocketCarrier,
-        input: &'a mut [u8; DISTRIBUTED_MAXIMUM_FRAME_BYTES as usize],
-    ) -> Result<conduit_wire::SessionMessage<'a>, String> {
-        super::carrier::receive(self, carrier, input)
     }
 
     pub fn run<R: BufRead, W: Write>(
