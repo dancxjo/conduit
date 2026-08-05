@@ -114,6 +114,31 @@ pub struct MultiValueRunReport {
     pub input_closed_events: u16,
     pub terminal_order_exact: bool,
     pub identity: KernelExecutionIdentityMap,
+    #[cfg(test)]
+    pub post_activation_allocations: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ManifestationBranch {
+    Even,
+    Latest,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct KernelManifestation {
+    request: HostOperationRequest,
+    branch: ManifestationBranch,
+    ordinal: u64,
+    tick: u64,
+}
+
+struct PreparedKernelProjection {
+    branch: ManifestationBranch,
+    ordinal: u64,
+    tick: u64,
+    presentation: conduit_core::PresentationIdentity,
+    evidence: conduit_core::EvidenceIdentity,
+    payload: ValuePayload,
 }
 
 enum MultiValueOperation {
@@ -846,22 +871,81 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     let identity_capacity_before = execution_identity.allocation_capacities();
     let show_even_placement = fragment.placements[usize::from(show_even_node.0)].clone();
     let show_latest_placement = fragment.placements[usize::from(show_latest_node.0)].clone();
+    let show_even_connection_id = fragment
+        .connections
+        .iter()
+        .find(|connection| connection.sink_placement_id == show_even_placement.placement_id)
+        .map(|connection| connection.connection_id.clone());
+    let show_latest_connection_id = fragment
+        .connections
+        .iter()
+        .find(|connection| connection.sink_placement_id == show_latest_placement.placement_id)
+        .map(|connection| connection.connection_id.clone());
     let mut receipts = Vec::with_capacity(3);
     let mut observations = Vec::with_capacity(4);
     let mut presentation_ids = Vec::with_capacity(3);
+    let mut dispatched_requests = Vec::<HostOperationRequest>::with_capacity(7);
+    let mut manifestations = Vec::<KernelManifestation>::with_capacity(3);
+    let evidence_sequence_start = *next_evidence_sequence;
+    let evidence_sequence_end = evidence_sequence_start
+        .checked_add(4)
+        .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
+    let mut prepared_projections = Vec::with_capacity(3);
+    for (index, (branch, ordinal, tick)) in [
+        (ManifestationBranch::Even, 0_u64, 0_u64),
+        (ManifestationBranch::Latest, 0_u64, 3_u64),
+        (ManifestationBranch::Even, 1_u64, 2_u64),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let placement = match branch {
+            ManifestationBranch::Even => &show_even_placement,
+            ManifestationBranch::Latest => &show_latest_placement,
+        };
+        let presentation = bind_presentation(
+            &active_play.active_play_id,
+            &placement.placement_id,
+            ordinal,
+        );
+        let evidence = bind_evidence(
+            &host.host_id,
+            &host.boot_id,
+            Some(&active_play.active_play_id),
+            evidence_sequence_start
+                .checked_add(
+                    u64::try_from(index)
+                        .map_err(|_| "host evidence sequence exhausted".to_string())?,
+                )
+                .ok_or_else(|| "host evidence sequence exhausted".to_string())?,
+        );
+        prepared_projections.push(PreparedKernelProjection {
+            branch,
+            ordinal,
+            tick,
+            presentation,
+            evidence,
+            payload: ValuePayload {
+                value_kind: kind_id(TICK_VALUE_KIND),
+                encoded: tick.to_le_bytes().to_vec(),
+            },
+        });
+    }
+    let terminal = bind_evidence(
+        &host.host_id,
+        &host.boot_id,
+        Some(&active_play.active_play_id),
+        evidence_sequence_end - 1,
+    );
     let mut deferred_even_completion: Option<HostOperationRequest> = None;
     let mut pressure_items = 0_u16;
     let mut pressure_bytes = 0_u32;
+    // SEALED PROFILE ACTIVATION BEGIN: numeric tables and preallocated capture only.
+    #[cfg(test)]
+    let activation_probe = crate::allocation_probe::begin();
     loop {
         while let Some(request) = scheduler.next_host_request() {
-            execution_identity
-                .bind_request(
-                    &lowered.identity,
-                    request.node,
-                    request.request,
-                    request.operation,
-                )
-                .map_err(|error| format!("bind host request identity: {error:?}"))?;
+            dispatched_requests.push(request);
             if options.fault == InjectedBoundaryFault::StaleCompletion {
                 let stale = RequestId(request.request.0.wrapping_add(1));
                 return match scheduler.complete_host_operation(
@@ -887,11 +971,16 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                     .map_err(|_| "wait input is not eight bytes".to_string())?;
                 timer.wait(Duration::from_millis(duration));
             } else if request.node == show_even_node || request.node == show_latest_node {
+                let manifestation_branch = if request.node == show_even_node {
+                    ManifestationBranch::Even
+                } else {
+                    ManifestationBranch::Latest
+                };
                 let defer_completion = request.node == show_even_node
                     && deferred_even_completion.is_none()
-                    && !receipts.iter().any(|receipt: &MultiValueReceipt| {
-                        receipt.placement_id == show_even_placement.placement_id
-                    });
+                    && !manifestations
+                        .iter()
+                        .any(|manifestation| manifestation.branch == ManifestationBranch::Even);
                 let tick = encoded
                     .try_into()
                     .map(u64::from_le_bytes)
@@ -901,25 +990,26 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                 } else {
                     ("latest", &show_latest_placement)
                 };
-                let ordinal = receipts
+                let ordinal = manifestations
                     .iter()
-                    .filter(|receipt: &&MultiValueReceipt| {
-                        receipt.placement_id == placement.placement_id
-                    })
+                    .filter(|manifestation| manifestation.branch == manifestation_branch)
                     .count() as u64;
-                let presentation = bind_presentation(
-                    &active_play.active_play_id,
-                    &placement.placement_id,
-                    ordinal,
-                );
-                execution_identity
-                    .bind_presentation(
-                        &lowered.identity,
-                        request.node,
-                        request.request,
-                        &presentation,
-                    )
-                    .map_err(|error| format!("bind presentation identity: {error:?}"))?;
+                let expected = prepared_projections
+                    .get(manifestations.len())
+                    .ok_or_else(|| "manifestation exceeded sealed profile".to_string())?;
+                if (manifestation_branch, ordinal, tick)
+                    != (expected.branch, expected.ordinal, expected.tick)
+                {
+                    return Err(format!(
+                        "expected manifestation {:?}/{}/{}, received {:?}/{}/{}",
+                        expected.branch,
+                        expected.ordinal,
+                        expected.tick,
+                        manifestation_branch,
+                        ordinal,
+                        tick
+                    ));
+                }
                 writeln!(output, "tick {branch} {tick}").map_err(|error| error.to_string())?;
                 writeln!(
                     output,
@@ -927,48 +1017,12 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                     placement.placement_id.as_str()
                 )
                 .map_err(|error| error.to_string())?;
-                receipts.push(MultiValueReceipt {
-                    placement_id: placement.placement_id.clone(),
+                manifestations.push(KernelManifestation {
+                    request,
+                    branch: manifestation_branch,
+                    ordinal,
                     tick,
                 });
-                let evidence = bind_evidence(
-                    &host.host_id,
-                    &host.boot_id,
-                    Some(&active_play.active_play_id),
-                    *next_evidence_sequence,
-                );
-                *next_evidence_sequence = next_evidence_sequence
-                    .checked_add(1)
-                    .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
-                execution_identity
-                    .bind_evidence(
-                        &evidence,
-                        Some(request.node),
-                        Some(request.request),
-                        Some(&presentation.presentation_id),
-                    )
-                    .map_err(|error| format!("bind presentation evidence identity: {error:?}"))?;
-                observations.push(Observation {
-                    evidence_id: evidence.evidence_id,
-                    active_play_id: Some(active_play.active_play_id.clone()),
-                    presentation_id: Some(presentation.presentation_id.clone()),
-                    host_id: host.host_id.clone(),
-                    boot_id: host.boot_id.clone(),
-                    plan_id: Some(fragment.plan_id.clone()),
-                    placement_id: Some(placement.placement_id.clone()),
-                    connection_id: fragment
-                        .connections
-                        .iter()
-                        .find(|connection| connection.sink_placement_id == placement.placement_id)
-                        .map(|connection| connection.connection_id.clone()),
-                    kind: ObservationKind::ValuePresented {
-                        value: ValuePayload {
-                            value_kind: kind_id(TICK_VALUE_KIND),
-                            encoded: tick.to_le_bytes().to_vec(),
-                        },
-                    },
-                });
-                presentation_ids.push(presentation.presentation_id);
                 if defer_completion {
                     deferred_even_completion = Some(request);
                     continue;
@@ -1028,17 +1082,25 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             }
         }
     }
-    let even_exact = receipts
+    // SEALED PROFILE ACTIVATION END: hosted identity/observation projection resumes.
+    #[cfg(test)]
+    let post_activation_allocations = activation_probe.finish();
+    let even_exact = manifestations
         .iter()
-        .filter(|receipt| receipt.placement_id == show_even_placement.placement_id)
-        .map(|receipt| receipt.tick)
+        .filter(|manifestation| manifestation.branch == ManifestationBranch::Even)
+        .map(|manifestation| manifestation.tick)
         .eq([0, 2]);
-    let latest_exact = receipts
+    let latest_exact = manifestations
         .iter()
-        .filter(|receipt| receipt.placement_id == show_latest_placement.placement_id)
-        .map(|receipt| receipt.tick)
+        .filter(|manifestation| manifestation.branch == ManifestationBranch::Latest)
+        .map(|manifestation| manifestation.tick)
         .eq([3]);
-    if receipts.len() != 3 || !even_exact || !latest_exact || scheduler.values().used_items() != 0 {
+    if dispatched_requests.len() != 7
+        || manifestations.len() != 3
+        || !even_exact
+        || !latest_exact
+        || scheduler.values().used_items() != 0
+    {
         return Err(
             "multi-value kernel completed with incorrect receipts or retained values".to_string(),
         );
@@ -1085,15 +1147,59 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     if input_closed_events != 5 || !terminal_order_exact {
         return Err("kernel closure evidence is missing or out of terminal order".to_string());
     }
-    let terminal = bind_evidence(
-        &host.host_id,
-        &host.boot_id,
-        Some(&active_play.active_play_id),
-        *next_evidence_sequence,
-    );
-    *next_evidence_sequence = next_evidence_sequence
-        .checked_add(1)
-        .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
+    for request in &dispatched_requests {
+        execution_identity
+            .bind_request(
+                &lowered.identity,
+                request.node,
+                request.request,
+                request.operation,
+            )
+            .map_err(|error| format!("bind host request identity: {error:?}"))?;
+    }
+    for (manifestation, prepared) in manifestations.into_iter().zip(prepared_projections) {
+        let (placement, connection_id) = match prepared.branch {
+            ManifestationBranch::Even => (&show_even_placement, show_even_connection_id.clone()),
+            ManifestationBranch::Latest => {
+                (&show_latest_placement, show_latest_connection_id.clone())
+            }
+        };
+        execution_identity
+            .bind_presentation(
+                &lowered.identity,
+                manifestation.request.node,
+                manifestation.request.request,
+                &prepared.presentation,
+            )
+            .map_err(|error| format!("bind presentation identity: {error:?}"))?;
+        execution_identity
+            .bind_evidence(
+                &prepared.evidence,
+                Some(manifestation.request.node),
+                Some(manifestation.request.request),
+                Some(&prepared.presentation.presentation_id),
+            )
+            .map_err(|error| format!("bind presentation evidence identity: {error:?}"))?;
+        receipts.push(MultiValueReceipt {
+            placement_id: placement.placement_id.clone(),
+            tick: prepared.tick,
+        });
+        observations.push(Observation {
+            evidence_id: prepared.evidence.evidence_id,
+            active_play_id: Some(active_play.active_play_id.clone()),
+            presentation_id: Some(prepared.presentation.presentation_id.clone()),
+            host_id: host.host_id.clone(),
+            boot_id: host.boot_id.clone(),
+            plan_id: Some(fragment.plan_id.clone()),
+            placement_id: Some(placement.placement_id.clone()),
+            connection_id,
+            kind: ObservationKind::ValuePresented {
+                value: prepared.payload,
+            },
+        });
+        presentation_ids.push(prepared.presentation.presentation_id);
+    }
+    *next_evidence_sequence = evidence_sequence_end;
     execution_identity
         .bind_evidence(&terminal, None, None, None)
         .map_err(|error| format!("bind terminal evidence identity: {error:?}"))?;
@@ -1131,6 +1237,8 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         input_closed_events,
         terminal_order_exact,
         identity: execution_identity,
+        #[cfg(test)]
+        post_activation_allocations,
     })
 }
 
@@ -1211,8 +1319,10 @@ mod tests {
     #[test]
     fn exact_multi_value_form_executes_real_host_operations_through_kernel() {
         let (host, fragment) = planned_fixture();
-        let mut output = Vec::new();
-        let mut timer = VirtualTimer::default();
+        let mut output = Vec::with_capacity(65_536);
+        let mut timer = VirtualTimer {
+            waits: Vec::with_capacity(4),
+        };
         let mut evidence_sequence = 0;
         let mut report = execute_fragment(
             &host,
@@ -1251,6 +1361,7 @@ mod tests {
         assert_eq!(report.identity.plan_id, fragment.plan_id);
         assert_eq!(report.identity.active_play_id, report.active_play_id);
         assert_eq!(report.identity.lengths(), (7, 3, 4));
+        assert_eq!(report.post_activation_allocations, 0);
         for observation in &report.observations {
             let evidence = report
                 .identity

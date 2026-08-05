@@ -5,7 +5,9 @@ use conduit_core::{
     bind_active_play, bind_evidence, bind_presentation, HostAdvertisement, Observation,
     ObservationKind, PlanFragment, TerminalDisposition, ValuePayload,
 };
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{
+    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+};
 use conduit_kernel::{
     BoundedValueRef, EvidenceSink, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
     HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedEvidenceLog,
@@ -16,8 +18,8 @@ use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
 use conduit_signal::{
-    decode_signal, encode_signal, parse_pulse_configuration, signal_value_kind, Signal, PULSE_KIND,
-    SHOW_KIND, SIGNAL_ENCODED_LEN,
+    decode_signal_bytes, encode_signal, parse_pulse_configuration, Signal, PULSE_KIND, SHOW_KIND,
+    SIGNAL_ENCODED_LEN,
 };
 use std::io::Write;
 use std::time::Duration;
@@ -44,6 +46,13 @@ type SignalScheduler = FixedScheduler<
     HOST_BINDING_SLOTS,
     PENDING_REQUESTS,
 >;
+
+struct PreparedSignalProjection {
+    signal: Signal,
+    presentation: conduit_core::PresentationIdentity,
+    evidence: conduit_core::EvidenceIdentity,
+    payload: ValuePayload,
+}
 
 enum SignalOperation {
     Pulse {
@@ -406,16 +415,58 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
     let mut receipts = Vec::with_capacity(count);
     let mut observations = Vec::with_capacity(count.saturating_add(1));
     let mut presentation_ids = Vec::with_capacity(count);
+    let mut dispatched_requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
+    let mut manifested_requests = Vec::<HostOperationRequest>::with_capacity(count);
+    let evidence_sequence_start = *next_evidence_sequence;
+    let evidence_count = u64::try_from(evidence_capacity)
+        .map_err(|_| "execution evidence count overflow".to_string())?;
+    let evidence_sequence_end = evidence_sequence_start
+        .checked_add(evidence_count)
+        .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
+    let mut prepared_projections = Vec::with_capacity(count);
+    for index in 0..count {
+        let sequence =
+            u64::try_from(index).map_err(|_| "signal projection sequence overflow".to_string())?;
+        let signal = Signal {
+            sequence,
+            level: if sequence.is_multiple_of(2) {
+                configuration.initial_level
+            } else {
+                !configuration.initial_level
+            },
+        };
+        let presentation = bind_presentation(
+            &active_play.active_play_id,
+            &show_placement.placement_id,
+            sequence,
+        );
+        let evidence = bind_evidence(
+            &advertisement.host_id,
+            &advertisement.boot_id,
+            Some(&active_play.active_play_id),
+            evidence_sequence_start
+                .checked_add(sequence)
+                .ok_or_else(|| "host evidence sequence exhausted".to_string())?,
+        );
+        prepared_projections.push(PreparedSignalProjection {
+            payload: encode_signal(&signal),
+            signal,
+            presentation,
+            evidence,
+        });
+    }
+    let terminal_evidence = bind_evidence(
+        &advertisement.host_id,
+        &advertisement.boot_id,
+        Some(&active_play.active_play_id),
+        evidence_sequence_end - 1,
+    );
+    // SEALED PROFILE ACTIVATION BEGIN: numeric tables and preallocated capture only.
+    #[cfg(test)]
+    let activation_probe = crate::allocation_probe::begin();
     loop {
         while let Some(request) = scheduler.next_host_request() {
-            execution_identity
-                .bind_request(
-                    &lowered.identity,
-                    request.node,
-                    request.request,
-                    request.operation,
-                )
-                .map_err(|error| format!("bind host request identity: {error:?}"))?;
+            dispatched_requests.push(request);
             let input = scheduler
                 .host_value(request.input.value)
                 .map_err(|error| format!("read host-operation input: {error:?}"))?;
@@ -426,31 +477,16 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
                     .map_err(|_| "wait host operation input is not eight bytes".to_string())?;
                 timer.wait(Duration::from_millis(duration));
             } else if request.node == show_node.node {
-                let payload = ValuePayload {
-                    value_kind: signal_value_kind(),
-                    encoded: input.to_vec(),
-                };
-                let signal = decode_signal(&payload).map_err(|error| error.to_string())?;
-                if signal.sequence != receipts.len() as u64 {
+                let signal = decode_signal_bytes(input).map_err(|error| error.to_string())?;
+                let expected = prepared_projections
+                    .get(manifested_requests.len())
+                    .ok_or_else(|| "signal manifestation exceeded sealed profile".to_string())?;
+                if signal != expected.signal {
                     return Err(format!(
-                        "expected signal sequence {}, received {}",
-                        receipts.len(),
-                        signal.sequence
+                        "expected signal {:?}, received {:?}",
+                        expected.signal, signal
                     ));
                 }
-                let presentation = bind_presentation(
-                    &active_play.active_play_id,
-                    &show_placement.placement_id,
-                    signal.sequence,
-                );
-                execution_identity
-                    .bind_presentation(
-                        &lowered.identity,
-                        request.node,
-                        request.request,
-                        &presentation,
-                    )
-                    .map_err(|error| format!("bind presentation identity: {error:?}"))?;
                 writeln!(
                     output,
                     "signal {} {}",
@@ -466,44 +502,7 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
                     signal.level
                 )
                 .map_err(|error| error.to_string())?;
-                receipts.push(SignalReceipt {
-                    placement_id: show_placement.placement_id.clone(),
-                    sequence: signal.sequence,
-                    level: signal.level,
-                });
-                let evidence = bind_evidence(
-                    &advertisement.host_id,
-                    &advertisement.boot_id,
-                    Some(&active_play.active_play_id),
-                    *next_evidence_sequence,
-                );
-                *next_evidence_sequence = next_evidence_sequence
-                    .checked_add(1)
-                    .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
-                execution_identity
-                    .bind_evidence(
-                        &evidence,
-                        Some(request.node),
-                        Some(request.request),
-                        Some(&presentation.presentation_id),
-                    )
-                    .map_err(|error| format!("bind presentation evidence identity: {error:?}"))?;
-                observations.push(Observation {
-                    evidence_id: evidence.evidence_id,
-                    active_play_id: Some(active_play.active_play_id.clone()),
-                    presentation_id: Some(presentation.presentation_id.clone()),
-                    host_id: advertisement.host_id.clone(),
-                    boot_id: advertisement.boot_id.clone(),
-                    plan_id: Some(fragment.plan_id.clone()),
-                    placement_id: Some(show_placement.placement_id.clone()),
-                    connection_id: lowered
-                        .identity
-                        .connections
-                        .first()
-                        .map(|(_, connection)| connection.clone()),
-                    kind: ObservationKind::ValuePresented { value: payload },
-                });
-                presentation_ids.push(presentation.presentation_id);
+                manifested_requests.push(request);
             } else {
                 return Err(format!(
                     "unmapped kernel host request from node {}",
@@ -532,7 +531,13 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
             SchedulerStatus::Cancelled => return Err("kernel was cancelled".to_string()),
         }
     }
-    if receipts.len() != count || scheduler.values().used_items() != 0 {
+    // SEALED PROFILE ACTIVATION END: hosted identity/observation projection resumes.
+    #[cfg(test)]
+    let post_activation_allocations = activation_probe.finish();
+    if dispatched_requests.len() != request_capacity
+        || manifested_requests.len() != count
+        || scheduler.values().used_items() != 0
+    {
         return Err("kernel completed with missing receipts or retained values".to_string());
     }
     let driver_capacity_after: usize = scheduler
@@ -547,15 +552,58 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
     if value_allocation_after != value_allocation_before {
         return Err("kernel value storage grew after activation".to_string());
     }
-    let terminal_evidence = bind_evidence(
-        &advertisement.host_id,
-        &advertisement.boot_id,
-        Some(&active_play.active_play_id),
-        *next_evidence_sequence,
-    );
-    *next_evidence_sequence = next_evidence_sequence
-        .checked_add(1)
-        .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
+    for request in &dispatched_requests {
+        execution_identity
+            .bind_request(
+                &lowered.identity,
+                request.node,
+                request.request,
+                request.operation,
+            )
+            .map_err(|error| format!("bind host request identity: {error:?}"))?;
+    }
+    for (request, prepared) in manifested_requests.into_iter().zip(prepared_projections) {
+        execution_identity
+            .bind_presentation(
+                &lowered.identity,
+                request.node,
+                request.request,
+                &prepared.presentation,
+            )
+            .map_err(|error| format!("bind presentation identity: {error:?}"))?;
+        execution_identity
+            .bind_evidence(
+                &prepared.evidence,
+                Some(request.node),
+                Some(request.request),
+                Some(&prepared.presentation.presentation_id),
+            )
+            .map_err(|error| format!("bind presentation evidence identity: {error:?}"))?;
+        receipts.push(SignalReceipt {
+            placement_id: show_placement.placement_id.clone(),
+            sequence: prepared.signal.sequence,
+            level: prepared.signal.level,
+        });
+        observations.push(Observation {
+            evidence_id: prepared.evidence.evidence_id,
+            active_play_id: Some(active_play.active_play_id.clone()),
+            presentation_id: Some(prepared.presentation.presentation_id.clone()),
+            host_id: advertisement.host_id.clone(),
+            boot_id: advertisement.boot_id.clone(),
+            plan_id: Some(fragment.plan_id.clone()),
+            placement_id: Some(show_placement.placement_id.clone()),
+            connection_id: lowered
+                .identity
+                .connections
+                .first()
+                .map(|(_, connection)| connection.clone()),
+            kind: ObservationKind::ValuePresented {
+                value: prepared.payload,
+            },
+        });
+        presentation_ids.push(prepared.presentation.presentation_id);
+    }
+    *next_evidence_sequence = evidence_sequence_end;
     execution_identity
         .bind_evidence(&terminal_evidence, None, None, None)
         .map_err(|error| format!("bind terminal evidence identity: {error:?}"))?;
@@ -589,6 +637,8 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids,
             identity: execution_identity,
+            #[cfg(test)]
+            post_activation_allocations,
         }),
     })
 }
