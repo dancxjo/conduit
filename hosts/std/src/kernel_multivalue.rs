@@ -13,15 +13,21 @@ use conduit_core::{
     PlacementId, PlanFragment, PortDescriptor, PortDirection, PresentationId, TerminalDisposition,
     ValuePayload, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
-use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_form::{
+    CheckedForm, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
+};
+use conduit_kernel::scheduler::{
+    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+};
 use conduit_kernel::{
     BoundedValueRef, EvidenceSink, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
     HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedEvidenceLog,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId as KernelPortId,
-    RequestId, ValueRef, ValueStorage,
+    HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput,
+    PortId as KernelPortId, RequestId, ValueRef, ValueStorage,
 };
+use conduit_planner::{default_placements, plan_with_options, PlannerError, PlanningOptions};
 use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use std::collections::BTreeMap;
 use std::io::Write;
 use std::time::Duration;
 
@@ -41,7 +47,7 @@ const RIGHT_PORT: &str = "right";
 const NODES: usize = 6;
 const CORDS: usize = 5;
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-const QUEUE_SLOTS: usize = 20;
+const QUEUE_SLOTS: usize = 5;
 const ROUTE_SLOTS: usize = NODES * PORTS;
 const ROUTE_TARGETS: usize = 5;
 const HOST_BINDING_SLOTS: usize = NODES;
@@ -100,6 +106,11 @@ pub struct MultiValueRunReport {
     pub value_allocation_capacity_before: (usize, usize),
     pub value_allocation_capacity_after: (usize, usize),
     pub presentation_ids: Vec<PresentationId>,
+    pub pressure_connection_id: conduit_core::ConnectionId,
+    pub pressure_items: u16,
+    pub pressure_bytes: u32,
+    pub input_closed_events: u16,
+    pub terminal_order_exact: bool,
 }
 
 enum MultiValueOperation {
@@ -126,6 +137,7 @@ enum MultiValueOperation {
         expected: Vec<ValueRef>,
         next: usize,
         pending: Option<RequestId>,
+        failure_detail: u16,
     },
 }
 
@@ -274,6 +286,7 @@ impl Operation for MultiValueOperation {
                     expected,
                     next,
                     pending,
+                    ..
                 },
                 OperationInput::Value {
                     port: KernelPortId(0),
@@ -308,12 +321,25 @@ impl Operation for MultiValueOperation {
                     expected,
                     next,
                     pending,
+                    ..
                 },
                 OperationInput::Closed {
                     port: KernelPortId(0),
                 },
             ) if pending.is_none() && *next == expected.len() => OperationAction::Complete,
-            _ => Self::fail(4),
+            (Self::Tick { .. }, _) => Self::fail(41),
+            (Self::Tee { .. }, _) => Self::fail(42),
+            (Self::FilterEven { .. }, _) => Self::fail(43),
+            (Self::Latest { .. }, _) => Self::fail(44),
+            (Self::Show { failure_detail, .. }, OperationInput::Value { .. }) => {
+                Self::fail(failure_detail.saturating_add(10))
+            }
+            (Self::Show { failure_detail, .. }, OperationInput::Closed { .. }) => {
+                Self::fail(failure_detail.saturating_add(20))
+            }
+            (Self::Show { failure_detail, .. }, OperationInput::HostOperationCompleted { .. }) => {
+                Self::fail(failure_detail.saturating_add(30))
+            }
         }
     }
 
@@ -484,6 +510,28 @@ pub fn advertisement(
     }
 }
 
+pub fn plan_local(
+    form: &CheckedForm,
+    host: &HostAdvertisement,
+) -> Result<conduit_core::Plan, PlannerError> {
+    let realm = core::slice::from_ref(host);
+    let placements = default_placements(form, realm)?;
+    let provider_choices = BTreeMap::new();
+    plan_with_options(
+        form,
+        realm,
+        &placements,
+        &[conduit_core::ConnectionProvider::Local],
+        PlanningOptions {
+            connection_providers: &provider_choices,
+            connection_item_capacity: 1,
+            connection_byte_capacity: 8,
+            authority_grants: &[],
+            link_bindings: &[],
+        },
+    )
+}
+
 fn definition(
     kind: &str,
     inputs: Vec<PortDescriptor>,
@@ -538,8 +586,8 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
         authority_requirements: vec![],
         limits: CapabilityLimits {
             max_active_instances: if kind == SHOW_KIND { 2 } else { 1 },
-            max_queue_items: 4,
-            max_queue_bytes: 64,
+            max_queue_items: 1,
+            max_queue_bytes: 8,
         },
     }
 }
@@ -642,6 +690,15 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     {
         return Err("multi-value profile node roles are not distinct".to_string());
     }
+    let pressure_cord = lowered
+        .cords
+        .iter()
+        .find(|cord| cord.spec.source_node == filter_node && cord.spec.sink_node == show_even_node)
+        .ok_or_else(|| "multi-value pressure cord is missing".to_string())?;
+    let pressure_cord_id = pressure_cord.spec.cord;
+    let pressure_connection_id = pressure_cord.connection_id.clone();
+    let pressure_item_capacity = pressure_cord.spec.item_capacity;
+    let pressure_byte_capacity = pressure_cord.spec.byte_capacity;
 
     let tick_placement = &fragment.placements[usize::from(tick_node.0)];
     let count = configuration_u64(&tick_placement.configuration, "count")?;
@@ -716,11 +773,13 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         expected: vec![tick_values[0], tick_values[2]],
         next: 0,
         pending: None,
+        failure_detail: 45,
     });
     operations[usize::from(show_latest_node.0)] = Some(MultiValueOperation::Show {
         expected: vec![tick_values[3]],
         next: 0,
         pending: None,
+        failure_detail: 46,
     });
     let drivers: [OperationDriver<MultiValueOperation, PORTS>; NODES] = operations
         .map(|operation| {
@@ -783,6 +842,9 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     let mut receipts = Vec::with_capacity(3);
     let mut observations = Vec::with_capacity(4);
     let mut presentation_ids = Vec::with_capacity(3);
+    let mut deferred_even_completion: Option<HostOperationRequest> = None;
+    let mut pressure_items = 0_u16;
+    let mut pressure_bytes = 0_u32;
     loop {
         while let Some(request) = scheduler.next_host_request() {
             if options.fault == InjectedBoundaryFault::StaleCompletion {
@@ -810,6 +872,11 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                     .map_err(|_| "wait input is not eight bytes".to_string())?;
                 timer.wait(Duration::from_millis(duration));
             } else if request.node == show_even_node || request.node == show_latest_node {
+                let defer_completion = request.node == show_even_node
+                    && deferred_even_completion.is_none()
+                    && !receipts.iter().any(|receipt: &MultiValueReceipt| {
+                        receipt.placement_id == show_even_placement.placement_id
+                    });
                 let tick = encoded
                     .try_into()
                     .map(u64::from_le_bytes)
@@ -871,6 +938,10 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                     },
                 });
                 presentation_ids.push(presentation.presentation_id);
+                if defer_completion {
+                    deferred_even_completion = Some(request);
+                    continue;
+                }
             } else {
                 return Err(format!(
                     "unmapped host request from node {}",
@@ -896,21 +967,47 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Complete => break,
             SchedulerStatus::Idle => {
-                return Err("multi-value kernel became idle before completion".to_string())
+                let Some(request) = deferred_even_completion.take() else {
+                    return Err("multi-value kernel became idle before completion".to_string());
+                };
+                (pressure_items, pressure_bytes) = scheduler
+                    .cord_usage(pressure_cord_id)
+                    .map_err(|error| format!("inspect pressure cord: {error:?}"))?;
+                if pressure_items != pressure_item_capacity
+                    || pressure_bytes != pressure_byte_capacity
+                {
+                    return Err(format!(
+                        "deferred consumer did not fill exact pressure cord: items={pressure_items}/{pressure_item_capacity} bytes={pressure_bytes}/{pressure_byte_capacity}"
+                    ));
+                }
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: None,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete deferred presentation: {error:?}"))?;
             }
             SchedulerStatus::Cancelled => {
                 return Err("multi-value kernel was cancelled".to_string())
             }
         }
     }
-    if receipts.len() != 3
-        || receipts
-            .iter()
-            .map(|receipt| receipt.tick)
-            .collect::<Vec<_>>()
-            != [0, 2, 3]
-        || scheduler.values().used_items() != 0
-    {
+    let even_exact = receipts
+        .iter()
+        .filter(|receipt| receipt.placement_id == show_even_placement.placement_id)
+        .map(|receipt| receipt.tick)
+        .eq([0, 2]);
+    let latest_exact = receipts
+        .iter()
+        .filter(|receipt| receipt.placement_id == show_latest_placement.placement_id)
+        .map(|receipt| receipt.tick)
+        .eq([3]);
+    if receipts.len() != 3 || !even_exact || !latest_exact || scheduler.values().used_items() != 0 {
         return Err(
             "multi-value kernel completed with incorrect receipts or retained values".to_string(),
         );
@@ -926,6 +1023,36 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     let value_allocation_after = scheduler.values().allocation_capacities();
     if value_allocation_after != value_allocation_before {
         return Err("multi-value value storage grew after activation".to_string());
+    }
+    let input_closed_events = u16::try_from(
+        scheduler
+            .evidence()
+            .events()
+            .filter(|event| event.kind == KernelEventKind::InputClosed)
+            .count(),
+    )
+    .map_err(|_| "input-closure evidence count overflow".to_string())?;
+    let terminal_order_exact = [
+        tee_node,
+        filter_node,
+        latest_node,
+        show_even_node,
+        show_latest_node,
+    ]
+    .iter()
+    .all(|node| {
+        let closed = scheduler.evidence().events().find(|event| {
+            event.node == *node
+                && event.port == Some(KernelPortId(0))
+                && event.kind == KernelEventKind::InputClosed
+        });
+        let completed = scheduler.evidence().events().find(|event| {
+            event.node == *node && event.kind == KernelEventKind::OperationCompleted
+        });
+        matches!((closed, completed), (Some(closed), Some(completed)) if closed.sequence < completed.sequence)
+    });
+    if input_closed_events != 5 || !terminal_order_exact {
+        return Err("kernel closure evidence is missing or out of terminal order".to_string());
     }
     let terminal = bind_evidence(
         &host.host_id,
@@ -959,6 +1086,11 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         value_allocation_capacity_before: value_allocation_before,
         value_allocation_capacity_after: value_allocation_after,
         presentation_ids,
+        pressure_connection_id,
+        pressure_items,
+        pressure_bytes,
+        input_closed_events,
+        terminal_order_exact,
     })
 }
 
@@ -976,15 +1108,12 @@ fn configuration_u64(configuration: &[ConfigurationEntry], key: &str) -> Result<
 #[cfg(test)]
 mod tests {
     use super::{
-        advertisement, execute_fragment, execute_fragment_with_options, profile_catalog,
-        ExecutionOptions, InjectedBoundaryFault,
+        advertisement, execute_fragment, execute_fragment_with_options, plan_local,
+        profile_catalog, ExecutionOptions, InjectedBoundaryFault,
     };
     use crate::TimerAdapter;
-    use conduit_core::{
-        BootId, ConnectionProvider, HostAdvertisement, HostId, OfferGeneration, PlanFragment,
-    };
+    use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration, PlanFragment};
     use conduit_form::parse;
-    use conduit_planner::{default_placements, plan};
     use conduit_runtime::lowering::lower_plan_fragment;
     use std::time::Duration;
 
@@ -1010,15 +1139,7 @@ mod tests {
             BootId::from("std-kernel-multivalue-boot"),
             OfferGeneration(1),
         );
-        let placements = default_placements(&form, core::slice::from_ref(&host))
-            .expect("one exact capability exists per operation");
-        let plan = plan(
-            &form,
-            core::slice::from_ref(&host),
-            &placements,
-            &[ConnectionProvider::Local],
-        )
-        .expect("typed multi-value form plans");
+        let plan = plan_local(&form, &host).expect("typed multi-value form plans");
         (host, plan.fragments[0].clone())
     }
 
@@ -1034,23 +1155,15 @@ mod tests {
             BootId::from("std-kernel-multivalue-boot"),
             OfferGeneration(1),
         );
-        let placements = default_placements(&form, core::slice::from_ref(&host))
-            .expect("one exact capability exists per operation");
-        let plan = plan(
-            &form,
-            core::slice::from_ref(&host),
-            &placements,
-            &[ConnectionProvider::Local],
-        )
-        .expect("typed multi-value form plans");
+        let plan = plan_local(&form, &host).expect("typed multi-value form plans");
         let lowered = lower_plan_fragment(&plan.fragments[0]).expect("fragment lowers");
         assert_eq!(lowered.nodes.len(), 6);
         assert_eq!(lowered.cords.len(), 5);
         assert_eq!(lowered.routes.len(), 5);
         assert_eq!(lowered.host_operations.len(), 3);
         assert_eq!(lowered.resources.len(), 3);
-        assert_eq!(lowered.cord_value_slots, 20);
-        assert_eq!(lowered.cord_value_bytes, 320);
+        assert_eq!(lowered.cord_value_slots, 5);
+        assert_eq!(lowered.cord_value_bytes, 40);
     }
 
     #[test]
@@ -1076,7 +1189,7 @@ mod tests {
                 .iter()
                 .map(|receipt| receipt.tick)
                 .collect::<Vec<_>>(),
-            [0, 2, 3]
+            [0, 3, 2]
         );
         let output = String::from_utf8(output).expect("output is utf-8");
         assert!(output.contains("tick even 0"));
@@ -1089,6 +1202,10 @@ mod tests {
             report.value_allocation_capacity_after
         );
         assert_eq!(report.presentation_ids.len(), 3);
+        assert_eq!(report.pressure_items, 1);
+        assert_eq!(report.pressure_bytes, 8);
+        assert_eq!(report.input_closed_events, 5);
+        assert!(report.terminal_order_exact);
         assert_eq!(report.observations.len(), 4);
         assert_eq!(evidence_sequence, 4);
     }

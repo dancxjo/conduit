@@ -220,13 +220,11 @@ fn requested_units(
 #[cfg(test)]
 mod tests {
     use super::KernelResourceLedger;
-    use crate::kernel_multivalue::{advertisement, profile_catalog};
+    use crate::kernel_multivalue::{advertisement, plan_local, profile_catalog};
     use conduit_core::{
-        seal_plan, BootId, ConnectionProvider, FormIdentity, HostId, ImplementationId,
-        OfferGeneration, ResourcePoolId,
+        seal_plan, BootId, FormIdentity, HostId, ImplementationId, OfferGeneration, ResourcePoolId,
     };
     use conduit_form::parse;
-    use conduit_planner::{default_placements, plan};
 
     #[test]
     fn exact_reservation_rejects_overlap_releases_and_does_not_grow() {
@@ -240,15 +238,7 @@ mod tests {
             &profile_catalog(),
         )
         .expect("multi-value form parses");
-        let placements = default_placements(&form, core::slice::from_ref(&host))
-            .expect("multi-value placements resolve");
-        let plan = plan(
-            &form,
-            core::slice::from_ref(&host),
-            &placements,
-            &[ConnectionProvider::Local],
-        )
-        .expect("multi-value plan resolves");
+        let plan = plan_local(&form, &host).expect("multi-value plan resolves");
         let fragment = &plan.fragments[0];
         let mut ledger = KernelResourceLedger::new(&host).expect("ledger installs");
         let capacity = ledger.allocation_capacity();
