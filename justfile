@@ -145,3 +145,8 @@ check-sim-readiness:
     cargo test -p conduit-pico-sim
     cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture
     cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
+
+# ── xtask smoke alias (PR 1 scaffold) ────────────────────────────────────────
+# Inspect xtask prerequisites. Full recipe migration follows in later PRs.
+doctor target="all" *args:
+    cargo xtask doctor {{target}} {{args}}
