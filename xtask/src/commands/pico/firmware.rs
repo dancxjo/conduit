@@ -80,10 +80,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         uf2.display()
     );
     if !args.dry_run {
-        let status = Command::new("elf2uf2-rs")
-            .arg(&elf)
-            .arg(&uf2)
-            .status()?;
+        let status = Command::new("elf2uf2-rs").arg(&elf).arg(&uf2).status()?;
         if !status.success() {
             return Err("elf2uf2-rs conversion failed".into());
         }
