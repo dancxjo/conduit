@@ -11,8 +11,8 @@
 //! All assertions here mirror `wire_corpus.rs`; if a fixture changes both
 //! files will fail in unison.
 
-use conduit_wire::{decode_envelope, encode_envelope, WireError, MAX_ID_BYTES};
 use conduit_core::{ConnectionEnvelope, ConnectionId, KindId, PlanId, PROTOCOL_VERSION};
+use conduit_wire::{decode_envelope, encode_envelope, WireError, MAX_ID_BYTES};
 
 /// The `MAX_PAYLOAD` used when generating the corpus.
 const MAX_PAYLOAD: u32 = 64;
@@ -70,7 +70,10 @@ fn empty_payload_vector_round_trips() {
     let bytes: &[u8] = corpus!("empty_payload.bin");
     let env = decode_envelope(bytes, MAX_PAYLOAD).expect("empty_payload.bin must decode");
     assert!(env.payload.is_empty());
-    assert_eq!(encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"), bytes);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes
+    );
 }
 
 #[test]
@@ -78,7 +81,10 @@ fn max_payload_vector_round_trips() {
     let bytes: &[u8] = corpus!("max_payload.bin");
     let env = decode_envelope(bytes, MAX_PAYLOAD).expect("max_payload.bin must decode");
     assert_eq!(env.payload.len(), MAX_PAYLOAD as usize);
-    assert_eq!(encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"), bytes);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes
+    );
 }
 
 #[test]
@@ -88,7 +94,10 @@ fn zero_capacity_ids_vector_round_trips() {
     assert_eq!(env.plan_id.as_str(), "");
     assert_eq!(env.connection_id.as_str(), "");
     assert_eq!(env.value_kind.as_str(), "");
-    assert_eq!(encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"), bytes);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes
+    );
 }
 
 #[test]
@@ -98,7 +107,10 @@ fn max_id_vector_round_trips() {
     assert_eq!(env.plan_id.as_str().len(), MAX_ID_BYTES);
     assert_eq!(env.connection_id.as_str().len(), MAX_ID_BYTES);
     assert_eq!(env.value_kind.as_str().len(), MAX_ID_BYTES);
-    assert_eq!(encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"), bytes);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +122,10 @@ fn wrong_plan_vector_decodes_to_mutated_plan() {
     let bytes: &[u8] = corpus!("wrong_plan.bin");
     let env = decode_envelope(bytes, MAX_PAYLOAD).expect("wrong_plan.bin must decode");
     assert_eq!(env.plan_id.as_str(), "other-plan");
-    assert_eq!(encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"), bytes);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes
+    );
 }
 
 #[test]
@@ -118,7 +133,10 @@ fn wrong_connection_vector_decodes_to_mutated_connection() {
     let bytes: &[u8] = corpus!("wrong_connection.bin");
     let env = decode_envelope(bytes, MAX_PAYLOAD).expect("wrong_connection.bin must decode");
     assert_eq!(env.connection_id.as_str(), "other-conn");
-    assert_eq!(encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"), bytes);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes
+    );
 }
 
 #[test]
@@ -126,7 +144,10 @@ fn wrong_kind_vector_decodes_to_mutated_kind() {
     let bytes: &[u8] = corpus!("wrong_kind.bin");
     let env = decode_envelope(bytes, MAX_PAYLOAD).expect("wrong_kind.bin must decode");
     assert_eq!(env.value_kind.as_str(), "other/kind");
-    assert_eq!(encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"), bytes);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes
+    );
 }
 
 #[test]
@@ -134,7 +155,10 @@ fn wrong_sequence_vector_decodes_and_re_encodes_identically() {
     let bytes: &[u8] = corpus!("wrong_sequence.bin");
     let env = decode_envelope(bytes, MAX_PAYLOAD).expect("wrong_sequence.bin must decode");
     assert_eq!(env.sequence, 0xDEAD_BEEF_CAFE_BABE_u64);
-    assert_eq!(encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"), bytes);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes
+    );
 }
 
 // ---------------------------------------------------------------------------
