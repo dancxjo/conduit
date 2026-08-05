@@ -8,7 +8,7 @@ use conduit_core::{
     PlannedOperation, PlatformEffect, PresentationId, StartupDependency, TerminalDisposition,
     TerminalPolicy, ValuePayload, PROTOCOL_VERSION,
 };
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
 pub mod lowering;
@@ -33,7 +33,10 @@ impl ImplementationFailure {
 pub enum OperationCompletion {
     Emitted,
     TimerElapsed,
-    Value(ValuePayload),
+    Value {
+        port: conduit_core::PortId,
+        value: ValuePayload,
+    },
     InputsClosed,
     PresentationCompleted {
         success: bool,
@@ -42,9 +45,17 @@ pub enum OperationCompletion {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OperationOutput {
+    pub port: conduit_core::PortId,
+    pub value: ValuePayload,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OperationAction {
     Idle,
-    Emit(ValuePayload),
+    /// One atomic emission step. All named output values are admitted or none
+    /// are, preserving exact-port fanout under pressure.
+    Emit(Vec<OperationOutput>),
     Wait {
         duration_ms: u64,
     },
@@ -163,6 +174,31 @@ pub struct RuntimeOutput {
     pub effects: Vec<PlatformEffect>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompositePortBinding {
+    pub external_port_id: conduit_core::PortId,
+    pub placement_id: PlacementId,
+    pub internal_port_id: conduit_core::PortId,
+    pub value_kind: conduit_core::KindId,
+    pub item_capacity: u16,
+    pub byte_capacity: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompositeBoundaryEffect {
+    Transmit {
+        plan_id: PlanId,
+        port_id: conduit_core::PortId,
+        sequence: u64,
+        value: ValuePayload,
+    },
+    Closed {
+        plan_id: PlanId,
+        port_id: conduit_core::PortId,
+        disposition: TerminalDisposition,
+    },
+}
+
 pub struct HostRuntime {
     advertisement: HostAdvertisement,
     observation_limit: usize,
@@ -174,6 +210,7 @@ pub struct HostRuntime {
     link_bindings: Vec<conduit_core::LinkBinding>,
     next_active_play_sequence: u64,
     next_evidence_sequence: u64,
+    composite_boundary_effects: VecDeque<CompositeBoundaryEffect>,
 }
 
 impl core::fmt::Debug for HostRuntime {
@@ -200,6 +237,28 @@ struct RuntimePlan {
     terminal: Option<TerminalDisposition>,
     terminal_emitted: bool,
     active_play_id: Option<ActivePlayId>,
+    composite_inputs: BTreeMap<conduit_core::PortId, CompositeInputState>,
+    composite_outputs: BTreeMap<conduit_core::PortId, CompositeOutputState>,
+}
+
+#[derive(Debug)]
+struct CompositeInputState {
+    binding: CompositePortBinding,
+    queue: BoundedQueue<QueuedValue>,
+    queued_bytes: u32,
+    next_expected_sequence: u64,
+    closed: bool,
+}
+
+#[derive(Debug)]
+struct CompositeOutputState {
+    binding: CompositePortBinding,
+    queue: BoundedQueue<QueuedValue>,
+    queued_bytes: u32,
+    next_send_sequence: u64,
+    transmission_in_flight: bool,
+    terminal: Option<TerminalDisposition>,
+    terminal_emitted: bool,
 }
 
 #[derive(Debug)]
@@ -289,6 +348,7 @@ struct RuntimePlacement {
     action: OperationAction,
     effect_issued: bool,
     pending_input_connection: Option<ConnectionId>,
+    pending_input_boundary: Option<conduit_core::PortId>,
     inputs_closed_notified: bool,
     pending_presentation_id: Option<PresentationId>,
     next_presentation_sequence: u64,
@@ -710,6 +770,7 @@ impl HostRuntime {
             link_bindings,
             next_active_play_sequence: 0,
             next_evidence_sequence: 0,
+            composite_boundary_effects: VecDeque::new(),
         };
         runtime.record_observation(None, None, None, ObservationKind::HostStarted);
         runtime.record_observation(None, None, None, ObservationKind::AdvertisementPublished);
@@ -718,6 +779,268 @@ impl HostRuntime {
 
     pub fn replace_link_bindings(&mut self, link_bindings: Vec<conduit_core::LinkBinding>) {
         self.link_bindings = link_bindings;
+    }
+
+    /// Installs the exact named composite seam after ordinary fragment
+    /// preparation and before activation. It is intentionally absent from the
+    /// production std path; only the temporary hosted composite facade uses it.
+    pub fn configure_composite_boundary(
+        &mut self,
+        plan_id: &PlanId,
+        inputs: Vec<CompositePortBinding>,
+        outputs: Vec<CompositePortBinding>,
+    ) -> Result<(), ImplementationFailure> {
+        let plan = self.plans.get_mut(plan_id).ok_or_else(|| {
+            ImplementationFailure::new(FailureReason::StalePlan, "unknown composite child plan")
+        })?;
+        if plan.state != PlanState::Prepared
+            || !plan.composite_inputs.is_empty()
+            || !plan.composite_outputs.is_empty()
+        {
+            return Err(ImplementationFailure::new(
+                FailureReason::InvalidLifecycleCommand,
+                "composite boundary must be configured once before activation",
+            ));
+        }
+        let mut names = BTreeSet::new();
+        let mut endpoints = BTreeSet::new();
+        let validate = |binding: &CompositePortBinding,
+                        direction: conduit_core::PortDirection|
+         -> Result<(), ImplementationFailure> {
+            if binding.external_port_id.as_str().is_empty()
+                || binding.item_capacity == 0
+                || binding.byte_capacity == 0
+            {
+                return Err(ImplementationFailure::new(
+                    FailureReason::InvalidOperationConfiguration,
+                    "composite port identity and capacities must be nonzero",
+                ));
+            }
+            let placement = plan.placements.get(&binding.placement_id).ok_or_else(|| {
+                ImplementationFailure::new(
+                    FailureReason::InvalidOperationConfiguration,
+                    "composite port names a missing placement",
+                )
+            })?;
+            let ports = match direction {
+                conduit_core::PortDirection::Input => &placement.spec.inputs,
+                conduit_core::PortDirection::Output => &placement.spec.outputs,
+            };
+            let port = ports
+                .iter()
+                .find(|port| port.port_id == binding.internal_port_id)
+                .ok_or_else(|| {
+                    ImplementationFailure::new(
+                        FailureReason::InvalidOperationConfiguration,
+                        "composite port names a missing or wrongly directed endpoint",
+                    )
+                })?;
+            if port.value_kind != binding.value_kind {
+                return Err(ImplementationFailure::new(
+                    FailureReason::InvalidOperationConfiguration,
+                    "composite port value kind differs from its endpoint",
+                ));
+            }
+            Ok(())
+        };
+        for binding in &inputs {
+            validate(binding, conduit_core::PortDirection::Input)?;
+            if !names.insert(binding.external_port_id.clone())
+                || !endpoints.insert((
+                    0u8,
+                    binding.placement_id.clone(),
+                    binding.internal_port_id.clone(),
+                ))
+            {
+                return Err(ImplementationFailure::new(
+                    FailureReason::InvalidOperationConfiguration,
+                    "duplicate composite input name or endpoint",
+                ));
+            }
+        }
+        for binding in &outputs {
+            validate(binding, conduit_core::PortDirection::Output)?;
+            if !names.insert(binding.external_port_id.clone())
+                || !endpoints.insert((
+                    1u8,
+                    binding.placement_id.clone(),
+                    binding.internal_port_id.clone(),
+                ))
+            {
+                return Err(ImplementationFailure::new(
+                    FailureReason::InvalidOperationConfiguration,
+                    "duplicate composite output name or endpoint",
+                ));
+            }
+        }
+        plan.composite_inputs = inputs
+            .into_iter()
+            .map(|binding| {
+                (
+                    binding.external_port_id.clone(),
+                    CompositeInputState {
+                        queue: BoundedQueue::new(usize::from(binding.item_capacity)),
+                        binding,
+                        queued_bytes: 0,
+                        next_expected_sequence: 0,
+                        closed: false,
+                    },
+                )
+            })
+            .collect();
+        plan.composite_outputs = outputs
+            .into_iter()
+            .map(|binding| {
+                (
+                    binding.external_port_id.clone(),
+                    CompositeOutputState {
+                        queue: BoundedQueue::new(usize::from(binding.item_capacity)),
+                        binding,
+                        queued_bytes: 0,
+                        next_send_sequence: 0,
+                        transmission_in_flight: false,
+                        terminal: None,
+                        terminal_emitted: false,
+                    },
+                )
+            })
+            .collect();
+        Ok(())
+    }
+
+    pub fn accept_composite_input(
+        &mut self,
+        plan_id: &PlanId,
+        port_id: &conduit_core::PortId,
+        sequence: u64,
+        value: ValuePayload,
+    ) -> (ConnectionOutcome, RuntimeOutput) {
+        let mut output = RuntimeOutput::default();
+        let outcome = {
+            let Some(plan) = self.plans.get_mut(plan_id) else {
+                return (ConnectionOutcome::Malformed, output);
+            };
+            let Some(input) = plan.composite_inputs.get_mut(port_id) else {
+                return (ConnectionOutcome::Malformed, output);
+            };
+            if plan.state != PlanState::Active || input.closed {
+                ConnectionOutcome::Terminal
+            } else if value.value_kind != input.binding.value_kind
+                || value.encoded_len() > input.binding.byte_capacity
+                || sequence != input.next_expected_sequence
+            {
+                ConnectionOutcome::Malformed
+            } else if input.queue.len() >= input.queue.capacity()
+                || input.queued_bytes + value.encoded_len() > input.binding.byte_capacity
+            {
+                ConnectionOutcome::Full
+            } else {
+                input.queued_bytes += value.encoded_len();
+                input
+                    .queue
+                    .push(QueuedValue { sequence, value })
+                    .expect("composite input capacity was checked");
+                input.next_expected_sequence += 1;
+                ConnectionOutcome::Accepted
+            }
+        };
+        if outcome == ConnectionOutcome::Accepted {
+            self.pump(plan_id, &mut output);
+        }
+        (outcome, output)
+    }
+
+    pub fn close_composite_input(
+        &mut self,
+        plan_id: &PlanId,
+        port_id: &conduit_core::PortId,
+    ) -> RuntimeOutput {
+        let mut output = RuntimeOutput::default();
+        let Some(plan) = self.plans.get_mut(plan_id) else {
+            return output;
+        };
+        let Some(input) = plan.composite_inputs.get_mut(port_id) else {
+            return output;
+        };
+        input.closed = true;
+        self.pump(plan_id, &mut output);
+        output
+    }
+
+    pub fn complete_composite_output(
+        &mut self,
+        plan_id: &PlanId,
+        port_id: &conduit_core::PortId,
+        sequence: u64,
+        outcome: ConnectionOutcome,
+    ) -> RuntimeOutput {
+        let mut output = RuntimeOutput::default();
+        let Some(plan) = self.plans.get_mut(plan_id) else {
+            return output;
+        };
+        let Some(boundary) = plan.composite_outputs.get_mut(port_id) else {
+            return output;
+        };
+        if !boundary.transmission_in_flight
+            || boundary.queue.front().map(|queued| queued.sequence) != Some(sequence)
+        {
+            return output;
+        }
+        let mut failed = None;
+        match outcome {
+            ConnectionOutcome::Delivered => {
+                let delivered = boundary
+                    .queue
+                    .pop()
+                    .expect("in-flight composite output has a queued value");
+                boundary.queued_bytes -= delivered.value.encoded_len();
+                boundary.transmission_in_flight = false;
+            }
+            ConnectionOutcome::Full => boundary.transmission_in_flight = false,
+            ConnectionOutcome::Malformed
+            | ConnectionOutcome::Disconnected
+            | ConnectionOutcome::Terminal => {
+                boundary.transmission_in_flight = false;
+                boundary.terminal = Some(TerminalDisposition::Failed {
+                    reason: if outcome == ConnectionOutcome::Malformed {
+                        FailureReason::MalformedConnectionEnvelope
+                    } else {
+                        FailureReason::ConnectionDisconnected
+                    },
+                });
+                failed = Some((
+                    boundary.binding.placement_id.clone(),
+                    if outcome == ConnectionOutcome::Malformed {
+                        FailureReason::MalformedConnectionEnvelope
+                    } else {
+                        FailureReason::ConnectionDisconnected
+                    },
+                ));
+            }
+            ConnectionOutcome::Ready | ConnectionOutcome::Accepted => return output,
+        }
+        if let Some((placement_id, reason)) = failed {
+            let mut observations = Vec::new();
+            let mut events = Vec::new();
+            fail_operation(
+                plan,
+                &placement_id,
+                ImplementationFailure::new(reason, "composite output delivery failed"),
+                &mut observations,
+                &mut events,
+                plan_id,
+            );
+            for item in observations {
+                self.record_observation(item.0, item.1, item.2, item.3);
+            }
+            output.events.extend(events);
+        }
+        self.pump(plan_id, &mut output);
+        output
+    }
+
+    pub fn drain_composite_boundary_effects(&mut self) -> Vec<CompositeBoundaryEffect> {
+        self.composite_boundary_effects.drain(..).collect()
     }
 
     pub fn advertisement(&self) -> &HostAdvertisement {
@@ -1271,6 +1594,7 @@ impl HostRuntime {
                     action: OperationAction::Idle,
                     effect_issued: false,
                     pending_input_connection: None,
+                    pending_input_boundary: None,
                     inputs_closed_notified: false,
                     pending_presentation_id: None,
                     next_presentation_sequence: 0,
@@ -1433,6 +1757,8 @@ impl HostRuntime {
                 terminal: None,
                 terminal_emitted: false,
                 active_play_id: None,
+                composite_inputs: BTreeMap::new(),
+                composite_outputs: BTreeMap::new(),
             },
         );
         self.record_observation(
@@ -1666,6 +1992,7 @@ impl HostRuntime {
                     connection.last_manifested_sequence = connection.last_accepted_sequence;
                 }
             }
+            placement.pending_input_boundary = None;
             output.events.push(HostEvent::ManifestationCompleted {
                 plan_id: plan_id.clone(),
                 active_play_id: active_play_id.clone(),
@@ -2091,6 +2418,7 @@ impl HostRuntime {
             let mut changed = false;
             let mut pending_observations = Vec::new();
             let mut pending_terminal_events = Vec::new();
+            let mut pending_boundary_effects = Vec::new();
             let Some(plan) = self.plans.get_mut(plan_id) else {
                 return;
             };
@@ -2213,15 +2541,80 @@ impl HostRuntime {
                             value,
                         });
                     }
-                    OperationAction::Emit(value) => {
-                        let outgoing = outgoing_connections(&placement_id, &plan.connections);
-                        let blocked = outgoing.iter().find(|connection_id| {
-                            let connection = &plan.connections[*connection_id];
-                            connection.terminal.is_none()
-                                && !connection.sink_failed
-                                && (connection.queue.len() >= connection.queue.capacity()
-                                    || connection.queued_bytes + value.encoded_len()
-                                        > connection.spec.byte_capacity)
+                    OperationAction::Emit(values) => {
+                        let declared_outputs = &plan
+                            .placements
+                            .get(&placement_id)
+                            .expect("placement exists")
+                            .spec
+                            .outputs;
+                        let invalid = values.is_empty()
+                            || values.iter().enumerate().any(|(index, output)| {
+                                values[..index]
+                                    .iter()
+                                    .any(|previous| previous.port == output.port)
+                                    || declared_outputs
+                                        .iter()
+                                        .find(|port| port.port_id == output.port)
+                                        .is_none_or(|port| {
+                                            port.value_kind != output.value.value_kind
+                                        })
+                            });
+                        if invalid {
+                            fail_operation(
+                                plan,
+                                &placement_id,
+                                ImplementationFailure::new(
+                                    FailureReason::InvalidOperationConfiguration,
+                                    "implementation emitted an empty, duplicate, unknown, or wrongly typed output port",
+                                ),
+                                &mut pending_observations,
+                                &mut pending_terminal_events,
+                                plan_id,
+                            );
+                            changed = true;
+                            continue;
+                        }
+                        let routes = values
+                            .iter()
+                            .map(|output_value| {
+                                (
+                                    output_value,
+                                    outgoing_connections(
+                                        &placement_id,
+                                        &output_value.port,
+                                        &plan.connections,
+                                    ),
+                                )
+                            })
+                            .collect::<Vec<_>>();
+                        let boundary_routes = values
+                            .iter()
+                            .map(|output_value| {
+                                (
+                                    output_value,
+                                    plan.composite_outputs
+                                        .iter()
+                                        .filter(|(_, boundary)| {
+                                            boundary.binding.placement_id == placement_id
+                                                && boundary.binding.internal_port_id
+                                                    == output_value.port
+                                        })
+                                        .map(|(external_port_id, _)| external_port_id.clone())
+                                        .collect::<Vec<_>>(),
+                                )
+                            })
+                            .collect::<Vec<_>>();
+                        let blocked = routes.iter().find_map(|(output_value, outgoing)| {
+                            outgoing.iter().find(|connection_id| {
+                                let connection = &plan.connections[*connection_id];
+                                connection.terminal.is_none()
+                                    && !connection.sink_failed
+                                    && (connection.queue.len() >= connection.queue.capacity()
+                                        || connection.queued_bytes
+                                            + output_value.value.encoded_len()
+                                            > connection.spec.byte_capacity)
+                            })
                         });
                         if let Some(connection_id) = blocked.cloned() {
                             let connection = plan
@@ -2237,38 +2630,85 @@ impl HostRuntime {
                             }
                             continue;
                         }
-                        for connection_id in outgoing {
-                            let connection = plan
-                                .connections
-                                .get_mut(&connection_id)
-                                .expect("connection exists");
-                            if connection.terminal.is_some() || connection.sink_failed {
-                                continue;
+                        let boundary_blocked =
+                            boundary_routes
+                                .iter()
+                                .any(|(output_value, boundary_ports)| {
+                                    boundary_ports.iter().any(|port_id| {
+                                        let boundary = &plan.composite_outputs[port_id];
+                                        boundary.terminal.is_none()
+                                            && (boundary.queue.len() >= boundary.queue.capacity()
+                                                || boundary.queued_bytes
+                                                    + output_value.value.encoded_len()
+                                                    > boundary.binding.byte_capacity)
+                                    })
+                                });
+                        if boundary_blocked {
+                            continue;
+                        }
+                        for (output_value, outgoing) in routes {
+                            for connection_id in outgoing {
+                                let connection = plan
+                                    .connections
+                                    .get_mut(&connection_id)
+                                    .expect("connection exists");
+                                if connection.terminal.is_some() || connection.sink_failed {
+                                    continue;
+                                }
+                                connection.blocked = false;
+                                connection.queued_bytes += output_value.value.encoded_len();
+                                let sequence = connection.next_send_sequence;
+                                connection.next_send_sequence += 1;
+                                connection
+                                    .queue
+                                    .push(QueuedValue {
+                                        sequence,
+                                        value: output_value.value.clone(),
+                                    })
+                                    .expect("capacity was checked before push");
+                                output.events.push(HostEvent::ValueDelivered {
+                                    plan_id: plan_id.clone(),
+                                    connection_id: connection_id.clone(),
+                                    value: output_value.value.clone(),
+                                });
+                                pending_observations.push((
+                                    Some(plan_id.clone()),
+                                    Some(placement_id.clone()),
+                                    Some(connection_id),
+                                    ObservationKind::ValueProduced {
+                                        value: output_value.value.clone(),
+                                    },
+                                ));
                             }
-                            connection.blocked = false;
-                            connection.queued_bytes += value.encoded_len();
-                            let sequence = connection.next_send_sequence;
-                            connection.next_send_sequence += 1;
-                            connection
-                                .queue
-                                .push(QueuedValue {
-                                    sequence,
-                                    value: value.clone(),
-                                })
-                                .expect("capacity was checked before push");
-                            output.events.push(HostEvent::ValueDelivered {
-                                plan_id: plan_id.clone(),
-                                connection_id: connection_id.clone(),
-                                value: value.clone(),
-                            });
-                            pending_observations.push((
-                                Some(plan_id.clone()),
-                                Some(placement_id.clone()),
-                                Some(connection_id),
-                                ObservationKind::ValueProduced {
-                                    value: value.clone(),
-                                },
-                            ));
+                        }
+                        for (output_value, boundary_ports) in boundary_routes {
+                            for port_id in boundary_ports {
+                                let boundary = plan
+                                    .composite_outputs
+                                    .get_mut(&port_id)
+                                    .expect("listed composite output exists");
+                                if boundary.terminal.is_some() {
+                                    continue;
+                                }
+                                let sequence = boundary.next_send_sequence;
+                                boundary.next_send_sequence += 1;
+                                boundary.queued_bytes += output_value.value.encoded_len();
+                                boundary
+                                    .queue
+                                    .push(QueuedValue {
+                                        sequence,
+                                        value: output_value.value.clone(),
+                                    })
+                                    .expect("composite output capacity was checked");
+                                pending_observations.push((
+                                    Some(plan_id.clone()),
+                                    Some(placement_id.clone()),
+                                    None,
+                                    ObservationKind::ValueProduced {
+                                        value: output_value.value.clone(),
+                                    },
+                                ));
+                            }
                         }
                         let placement = plan
                             .placements
@@ -2278,6 +2718,8 @@ impl HostRuntime {
                             .implementation_state
                             .resume(OperationCompletion::Emitted);
                         placement.effect_issued = false;
+                        placement.pending_input_connection = None;
+                        placement.pending_input_boundary = None;
                         changed = true;
                     }
                     OperationAction::Complete => {
@@ -2287,6 +2729,15 @@ impl HostRuntime {
                             .is_some_and(|placement| !placement.spec.outputs.is_empty());
                         if has_outputs {
                             mark_source_done(&placement_id, &mut plan.connections);
+                            for boundary in plan
+                                .composite_outputs
+                                .values_mut()
+                                .filter(|boundary| boundary.binding.placement_id == placement_id)
+                            {
+                                boundary
+                                    .terminal
+                                    .get_or_insert(TerminalDisposition::Completed);
+                            }
                         }
                         let incoming = incoming_connections(&placement_id, &plan.connections);
                         let placement = plan
@@ -2388,6 +2839,7 @@ impl HostRuntime {
                 if sink.lifecycle != PlacementLifecycleState::Active
                     || !matches!(sink.action, OperationAction::Idle)
                     || sink.pending_input_connection.is_some()
+                    || sink.pending_input_boundary.is_some()
                 {
                     continue;
                 }
@@ -2400,12 +2852,70 @@ impl HostRuntime {
                 sink.pending_input_connection = Some(connection_id.clone());
                 sink.action = sink
                     .implementation_state
-                    .resume(OperationCompletion::Value(queued.value.clone()));
+                    .resume(OperationCompletion::Value {
+                        port: connection.spec.sink_port_id.clone(),
+                        value: queued.value.clone(),
+                    });
                 sink.effect_issued = false;
                 pending_observations.push((
                     Some(plan_id.clone()),
                     Some(sink_id),
                     Some(connection_id),
+                    ObservationKind::ValueAccepted {
+                        value: queued.value,
+                    },
+                ));
+                changed = true;
+            }
+
+            let boundary_input_ids = plan.composite_inputs.keys().cloned().collect::<Vec<_>>();
+            for external_port_id in boundary_input_ids {
+                let Some(boundary) = plan.composite_inputs.get(&external_port_id) else {
+                    continue;
+                };
+                if boundary.queue.is_empty() {
+                    continue;
+                }
+                let sink_id = boundary.binding.placement_id.clone();
+                let internal_port_id = boundary.binding.internal_port_id.clone();
+                let Some(sink) = plan.placements.get(&sink_id) else {
+                    continue;
+                };
+                if sink.lifecycle != PlacementLifecycleState::Active
+                    || !matches!(sink.action, OperationAction::Idle)
+                    || sink.pending_input_connection.is_some()
+                    || sink.pending_input_boundary.is_some()
+                {
+                    continue;
+                }
+                let queued = {
+                    let boundary = plan
+                        .composite_inputs
+                        .get_mut(&external_port_id)
+                        .expect("listed composite input exists");
+                    let queued = boundary
+                        .queue
+                        .pop()
+                        .expect("composite input was checked non-empty");
+                    boundary.queued_bytes -= queued.value.encoded_len();
+                    queued
+                };
+                let sink = plan
+                    .placements
+                    .get_mut(&sink_id)
+                    .expect("composite input placement exists");
+                sink.pending_input_boundary = Some(external_port_id.clone());
+                sink.action = sink
+                    .implementation_state
+                    .resume(OperationCompletion::Value {
+                        port: internal_port_id,
+                        value: queued.value.clone(),
+                    });
+                sink.effect_issued = false;
+                pending_observations.push((
+                    Some(plan_id.clone()),
+                    Some(sink_id),
+                    None,
                     ObservationKind::ValueAccepted {
                         value: queued.value,
                     },
@@ -2426,6 +2936,7 @@ impl HostRuntime {
                 if consumer.lifecycle != PlacementLifecycleState::Active
                     || consumer.inputs_closed_notified
                     || consumer.pending_input_connection.is_some()
+                    || consumer.pending_input_boundary.is_some()
                     || !matches!(consumer.action, OperationAction::Idle)
                 {
                     continue;
@@ -2437,7 +2948,11 @@ impl HostRuntime {
                         || connection.sink_failed
                         || connection.terminal.is_some())
                         && connection.queue.is_empty()
-                });
+                }) && plan
+                    .composite_inputs
+                    .values()
+                    .filter(|input| input.binding.placement_id == consumer_id)
+                    .all(|input| input.closed && input.queue.is_empty());
                 if done {
                     let consumer = plan
                         .placements
@@ -2452,6 +2967,29 @@ impl HostRuntime {
                 }
             }
 
+            for (port_id, boundary) in &mut plan.composite_outputs {
+                if !boundary.transmission_in_flight {
+                    if let Some(queued) = boundary.queue.front() {
+                        boundary.transmission_in_flight = true;
+                        pending_boundary_effects.push(CompositeBoundaryEffect::Transmit {
+                            plan_id: plan_id.clone(),
+                            port_id: port_id.clone(),
+                            sequence: queued.sequence,
+                            value: queued.value.clone(),
+                        });
+                    } else if let Some(disposition) = boundary.terminal {
+                        if !boundary.terminal_emitted {
+                            boundary.terminal_emitted = true;
+                            pending_boundary_effects.push(CompositeBoundaryEffect::Closed {
+                                plan_id: plan_id.clone(),
+                                port_id: port_id.clone(),
+                                disposition,
+                            });
+                        }
+                    }
+                }
+            }
+
             let all_terminal = plan
                 .placements
                 .values()
@@ -2459,7 +2997,12 @@ impl HostRuntime {
                 && plan
                     .connections
                     .values()
-                    .all(|connection| connection.terminal.is_some());
+                    .all(|connection| connection.terminal.is_some())
+                && plan.composite_outputs.values().all(|boundary| {
+                    boundary.terminal.is_some()
+                        && boundary.queue.is_empty()
+                        && boundary.terminal_emitted
+                });
             let should_emit_completed = plan.state == PlanState::Active && all_terminal;
             let should_emit_failed = plan.state == PlanState::Failed && all_terminal;
 
@@ -2469,6 +3012,8 @@ impl HostRuntime {
                 self.record_observation(item.0, item.1, item.2, item.3);
             }
             output.events.extend(pending_terminal_events);
+            self.composite_boundary_effects
+                .extend(pending_boundary_effects);
 
             if should_emit_completed {
                 if let Some(plan) = self.plans.get_mut(plan_id) {
@@ -2774,7 +3319,7 @@ fn fail_operation(
             );
         }
     }
-    for connection_id in outgoing_connections(placement_id, &plan.connections) {
+    for connection_id in outgoing_connections_all(placement_id, &plan.connections) {
         if let Some(connection) = plan.connections.get_mut(&connection_id) {
             terminate_connection(
                 connection,
@@ -2787,6 +3332,13 @@ fn fail_operation(
             );
         }
     }
+    terminate_composite_outputs_for_placement(
+        plan,
+        placement_id,
+        TerminalDisposition::Failed {
+            reason: failure.reason,
+        },
+    );
     observations.push((
         Some(plan_id.clone()),
         Some(placement_id.clone()),
@@ -2835,6 +3387,11 @@ fn cancel_active_sources(
                 plan_id,
             );
             mark_source_done(&placement_id, &mut plan.connections);
+            terminate_composite_outputs_for_placement(
+                plan,
+                &placement_id,
+                TerminalDisposition::Cancelled { reason },
+            );
         }
     }
 }
@@ -2860,6 +3417,7 @@ fn cancel_all_placements_and_connections(
         placement.action = OperationAction::Idle;
         placement.effect_issued = false;
         placement.pending_input_connection = None;
+        placement.pending_input_boundary = None;
     }
     for connection in plan.connections.values_mut() {
         if connection.terminal.is_none() {
@@ -2872,21 +3430,63 @@ fn cancel_all_placements_and_connections(
             );
         }
     }
+    for input in plan.composite_inputs.values_mut() {
+        input.closed = true;
+        while input.queue.pop().is_some() {}
+        input.queued_bytes = 0;
+    }
+    for output in plan.composite_outputs.values_mut() {
+        while output.queue.pop().is_some() {}
+        output.queued_bytes = 0;
+        output.transmission_in_flight = false;
+        output.terminal = Some(TerminalDisposition::Cancelled { reason });
+    }
+}
+
+fn terminate_composite_outputs_for_placement(
+    plan: &mut RuntimePlan,
+    placement_id: &PlacementId,
+    disposition: TerminalDisposition,
+) {
+    for output in plan
+        .composite_outputs
+        .values_mut()
+        .filter(|output| output.binding.placement_id == *placement_id)
+    {
+        while output.queue.pop().is_some() {}
+        output.queued_bytes = 0;
+        output.transmission_in_flight = false;
+        output.terminal = Some(disposition);
+    }
 }
 
 fn outgoing_connections(
     placement_id: &PlacementId,
+    port_id: &conduit_core::PortId,
     connections: &BTreeMap<ConnectionId, RuntimeConnection>,
 ) -> Vec<ConnectionId> {
     connections
         .iter()
         .filter_map(|(connection_id, connection)| {
-            if &connection.spec.source_placement_id == placement_id {
+            if &connection.spec.source_placement_id == placement_id
+                && &connection.spec.source_port_id == port_id
+            {
                 Some(connection_id.clone())
             } else {
                 None
             }
         })
+        .collect()
+}
+
+fn outgoing_connections_all(
+    placement_id: &PlacementId,
+    connections: &BTreeMap<ConnectionId, RuntimeConnection>,
+) -> Vec<ConnectionId> {
+    connections
+        .iter()
+        .filter(|(_, connection)| &connection.spec.source_placement_id == placement_id)
+        .map(|(connection_id, _)| connection_id.clone())
         .collect()
 }
 
@@ -2921,7 +3521,7 @@ fn mark_source_done(
 mod conformance {
     use super::{
         HostRuntime, ImplementationFailure, ImplementationRegistry, OperationAction,
-        OperationCompletion, OperationImplementation, OperationState,
+        OperationCompletion, OperationImplementation, OperationOutput, OperationState,
     };
     use conduit_core::{
         kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
@@ -3214,14 +3814,17 @@ mod conformance {
             if self.next_sequence >= self.configuration.count {
                 OperationAction::Complete
             } else {
-                OperationAction::Emit(encode_signal(&Signal {
-                    sequence: self.next_sequence,
-                    level: if self.next_sequence.is_multiple_of(2) {
-                        self.configuration.initial_level
-                    } else {
-                        !self.configuration.initial_level
-                    },
-                }))
+                OperationAction::Emit(vec![OperationOutput {
+                    port: port_id("signal"),
+                    value: encode_signal(&Signal {
+                        sequence: self.next_sequence,
+                        level: if self.next_sequence.is_multiple_of(2) {
+                            self.configuration.initial_level
+                        } else {
+                            !self.configuration.initial_level
+                        },
+                    }),
+                }])
             }
         }
     }
@@ -3315,7 +3918,7 @@ mod conformance {
 
         fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
             match completion {
-                OperationCompletion::Value(value) => {
+                OperationCompletion::Value { port, value } if port.as_str() == "signal" => {
                     let signal = decode_signal(&value).expect("test signal decodes");
                     if signal.sequence != self.expected {
                         return OperationAction::Fail(ImplementationFailure::new(

@@ -18,7 +18,7 @@ use conduit_planner::{
 };
 use conduit_runtime::{
     HostRuntime, ImplementationFailure, ImplementationRegistry, OperationAction,
-    OperationCompletion, OperationImplementation, OperationState,
+    OperationCompletion, OperationImplementation, OperationOutput, OperationState,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -265,10 +265,13 @@ struct SourceState {
 
 impl OperationState for SourceState {
     fn start(&mut self) -> OperationAction {
-        OperationAction::Emit(ValuePayload {
-            value_kind: kind_id(VALUE_KIND),
-            encoded: vec![42],
-        })
+        OperationAction::Emit(vec![OperationOutput {
+            port: port_id("value"),
+            value: ValuePayload {
+                value_kind: kind_id(VALUE_KIND),
+                encoded: vec![42],
+            },
+        }])
     }
 
     fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
@@ -409,10 +412,12 @@ impl OperationState for SinkState {
 
     fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
         match completion {
-            OperationCompletion::Value(value) => OperationAction::Present {
-                presentation_kind: self.presentation_kind.clone(),
-                value,
-            },
+            OperationCompletion::Value { port, value } if port.as_str() == "value" => {
+                OperationAction::Present {
+                    presentation_kind: self.presentation_kind.clone(),
+                    value,
+                }
+            }
             OperationCompletion::PresentationCompleted { success: true, .. } => {
                 OperationAction::Idle
             }
@@ -1422,10 +1427,13 @@ impl OperationState for AdapterSourceState {
         match completion {
             OperationCompletion::TimerElapsed if !self.emitted => {
                 self.emitted = true;
-                OperationAction::Emit(ValuePayload {
-                    value_kind: kind_id(VALUE_KIND),
-                    encoded: vec![7],
-                })
+                OperationAction::Emit(vec![OperationOutput {
+                    port: port_id("value"),
+                    value: ValuePayload {
+                        value_kind: kind_id(VALUE_KIND),
+                        encoded: vec![7],
+                    },
+                }])
             }
             OperationCompletion::Emitted if self.emitted => OperationAction::Complete,
             _ => OperationAction::Fail(ImplementationFailure::new(
