@@ -90,6 +90,8 @@ pub enum AdmissionRejection {
     DuplicateHost,
     DeniedByPolicy,
     LinkAlreadyBound,
+    UnknownHost,
+    UnknownLink,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -127,6 +129,13 @@ pub enum RealmEvent {
         realm_id: RealmId,
         host_id: HostId,
         boot_id: BootId,
+    },
+    MemberRestored {
+        realm_id: RealmId,
+        host_id: HostId,
+        previous_boot_id: BootId,
+        restored_boot_id: BootId,
+        link_id: LinkId,
     },
     EvidenceGap {
         dropped: u64,
@@ -277,7 +286,7 @@ impl Realm {
         let member = self
             .members
             .get_mut(host_id)
-            .ok_or(AdmissionRejection::DeniedByPolicy)?;
+            .ok_or(AdmissionRejection::UnknownHost)?;
         member.links.push(RealmLink {
             link_id: link_id.clone(),
             remote_host_id: host_id.clone(),
@@ -300,12 +309,12 @@ impl Realm {
         let member = self
             .members
             .get_mut(host_id)
-            .ok_or(AdmissionRejection::DeniedByPolicy)?;
+            .ok_or(AdmissionRejection::UnknownHost)?;
         let link = member
             .links
             .iter_mut()
             .find(|link| &link.link_id == link_id)
-            .ok_or(AdmissionRejection::DeniedByPolicy)?;
+            .ok_or(AdmissionRejection::UnknownLink)?;
         link.state = state;
         self.record(RealmEvent::LinkStateChanged {
             realm_id: self.realm_id.clone(),
@@ -320,13 +329,53 @@ impl Realm {
         let member = self
             .members
             .get_mut(host_id)
-            .ok_or(AdmissionRejection::DeniedByPolicy)?;
+            .ok_or(AdmissionRejection::UnknownHost)?;
         member.state = MembershipState::Departed;
         let boot_id = member.boot_id.clone();
         self.record(RealmEvent::MemberDeparted {
             realm_id: self.realm_id.clone(),
             host_id: host_id.clone(),
             boot_id,
+        });
+        Ok(())
+    }
+
+    pub fn restore_member(
+        &mut self,
+        advertisement: HostAdvertisement,
+        link_id: LinkId,
+    ) -> Result<(), AdmissionRejection> {
+        if self
+            .members
+            .values()
+            .flat_map(|member| &member.links)
+            .any(|link| link.link_id == link_id)
+        {
+            return Err(AdmissionRejection::LinkAlreadyBound);
+        }
+
+        let member = self
+            .members
+            .get_mut(&advertisement.host_id)
+            .ok_or(AdmissionRejection::UnknownHost)?;
+        if member.boot_id == advertisement.boot_id {
+            return Err(AdmissionRejection::DuplicateHost);
+        }
+
+        let previous_boot_id = member.boot_id.clone();
+        member.boot_id = advertisement.boot_id.clone();
+        member.state = MembershipState::Active;
+        member.links.push(RealmLink {
+            link_id: link_id.clone(),
+            remote_host_id: advertisement.host_id.clone(),
+            state: LinkState::Up,
+        });
+        self.record(RealmEvent::MemberRestored {
+            realm_id: self.realm_id.clone(),
+            host_id: advertisement.host_id,
+            previous_boot_id,
+            restored_boot_id: advertisement.boot_id,
+            link_id,
         });
         Ok(())
     }
@@ -623,6 +672,62 @@ mod tests {
                 .state,
             LinkState::Down
         );
+    }
+
+    #[test]
+    fn restart_requires_explicit_restore_or_new_realm() {
+        let mut realm = Realm::found(
+            RealmId::from("realm-alpha"),
+            advertisement("host-a", "boot-a"),
+            LinkId::from("link-a"),
+            16,
+        );
+        assert_eq!(
+            realm.admit(AdmissionRequest {
+                advertisement: advertisement("host-a", "boot-restarted"),
+                link_id: LinkId::from("link-implicit-restart"),
+                allow: true,
+            }),
+            Err(AdmissionRejection::StaleBoot)
+        );
+
+        realm
+            .restore_member(
+                advertisement("host-a", "boot-restarted"),
+                LinkId::from("link-restored"),
+            )
+            .expect("operator explicitly restores host into existing realm");
+        let restored_view = realm
+            .view_for(&HostId::from("host-a"))
+            .expect("restored host sees existing realm");
+        assert_eq!(restored_view.realm_id, RealmId::from("realm-alpha"));
+        assert_eq!(
+            restored_view.observer_boot_id,
+            BootId::from("boot-restarted")
+        );
+        assert_eq!(restored_view.members.len(), 1);
+        assert_eq!(restored_view.members[0].links.len(), 2);
+        assert!(realm.evidence().iter().any(|event| matches!(
+            event,
+            RealmEvent::MemberRestored {
+                previous_boot_id,
+                restored_boot_id,
+                ..
+            } if previous_boot_id == &BootId::from("boot-a")
+                && restored_boot_id == &BootId::from("boot-restarted")
+        )));
+
+        let new_realm = Realm::found(
+            RealmId::from("realm-beta"),
+            advertisement("host-a", "boot-restarted"),
+            LinkId::from("link-new-realm"),
+            16,
+        );
+        let new_view = new_realm
+            .view_for(&HostId::from("host-a"))
+            .expect("host can intentionally found a new realm after restart");
+        assert_eq!(new_view.realm_id, RealmId::from("realm-beta"));
+        assert_ne!(new_view.realm_id, restored_view.realm_id);
     }
 
     #[test]

@@ -22,16 +22,19 @@ instances are in one realm now and why a requested host was or was not admitted.
   membership record remains active.
 - Membership and link evidence are serializable, bounded, and report dropped
   evidence with an explicit `EvidenceGap` marker.
+- Restart behavior is explicit. A same-host/different-boot admission is rejected
+  as `StaleBoot` until the operator chooses either to restore that member into
+  the existing realm or to found a new realm identity.
 
 ## Current boundary
 
 This crate is not a discovery service, a quorum protocol, a crypto admission
 system, an automatic placement optimizer, or `.soul` durable recovery.
 
-Restart behavior is intentionally explicit but conservative in this slice: a
-known host presenting a different boot identity is rejected as `StaleBoot`
-instead of being silently merged. A later slice must decide the authenticated
-restart/re-admission contract before replacing an existing member.
+Restart behavior is intentionally local in this slice. `restore_member` updates
+an existing member only when called explicitly. `Realm::found` creates a new
+realm identity when the operator intentionally starts over after restart.
+Neither path performs authenticated durable recovery.
 
 ## Checkpoint commands
 
