@@ -69,6 +69,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-observatory"
+version = "0.1.0"
+dependencies = [
+ "conduit-browser-host",
+ "conduit-core",
+ "conduit-form",
+ "conduit-pico-host",
+ "conduit-planner",
+ "conduit-realm",
+ "conduit-signal",
+ "conduit-std-host",
+ "serde",
+]
+
+[[package]]
 name = "conduit-pico-host"
 version = "0.1.0"
 dependencies = [

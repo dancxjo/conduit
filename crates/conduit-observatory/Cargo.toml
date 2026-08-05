@@ -1,0 +1,17 @@
+[package]
+name = "conduit-observatory"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-realm = { path = "../conduit-realm" }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+
+[dev-dependencies]
+conduit-browser-host = { path = "../../hosts/browser" }
+conduit-form = { path = "../conduit-form" }
+conduit-pico-host = { path = "../../hosts/pico" }
+conduit-planner = { path = "../conduit-planner" }
+conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
+conduit-std-host = { path = "../../hosts/std" }

@@ -56,6 +56,8 @@ For the first implementation, realm membership may be explicit and development-o
 
 The current implementation checkpoint is recorded in [Realm membership readiness](realm-membership.md).
 
+The first read-only operational projection is recorded in [Host Observatory readiness](host-observatory.md).
+
 A realm records or observes:
 
 - host identities;
