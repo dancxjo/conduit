@@ -1588,6 +1588,7 @@ mod tests {
             }],
             connections: Vec::new(),
             exports: Vec::new(),
+            nested_forms: Vec::new(),
         };
         let placements = PlacementChoices {
             by_operation: BTreeMap::from([(
