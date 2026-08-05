@@ -61,6 +61,29 @@ type MultiValueScheduler = FixedScheduler<
     PENDING_REQUESTS,
 >;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum InjectedBoundaryFault {
+    #[default]
+    None,
+    StaleCompletion,
+    CancelBeforeDispatch,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ExecutionOptions {
+    evidence_items: u16,
+    fault: InjectedBoundaryFault,
+}
+
+impl Default for ExecutionOptions {
+    fn default() -> Self {
+        Self {
+            evidence_items: 256,
+            fault: InjectedBoundaryFault::None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MultiValueReceipt {
     pub placement_id: PlacementId,
@@ -541,6 +564,27 @@ pub fn execute_fragment<W: Write, T: TimerAdapter>(
     output: &mut W,
     timer: &mut T,
 ) -> Result<MultiValueRunReport, String> {
+    execute_fragment_with_options(
+        host,
+        fragment,
+        activation_sequence,
+        next_evidence_sequence,
+        output,
+        timer,
+        ExecutionOptions::default(),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
+    host: &HostAdvertisement,
+    fragment: &PlanFragment,
+    activation_sequence: u64,
+    next_evidence_sequence: &mut u64,
+    output: &mut W,
+    timer: &mut T,
+    options: ExecutionOptions,
+) -> Result<MultiValueRunReport, String> {
     let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
     if lowered.nodes.len() != NODES
         || lowered.cords.len() != CORDS
@@ -696,8 +740,11 @@ pub fn execute_fragment<W: Write, T: TimerAdapter>(
 
     let event_charge = u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
         .map_err(|_| "kernel event charge overflow".to_string())?;
-    let evidence = HostedEvidenceLog::new(256, event_charge.saturating_mul(256))
-        .map_err(|error| format!("kernel evidence store: {error:?}"))?;
+    let evidence = HostedEvidenceLog::new(
+        options.evidence_items,
+        event_charge.saturating_mul(u32::from(options.evidence_items)),
+    )
+    .map_err(|error| format!("kernel evidence store: {error:?}"))?;
     let node_specs = lowered
         .node_specs
         .try_into()
@@ -719,6 +766,11 @@ pub fn execute_fragment<W: Write, T: TimerAdapter>(
         evidence,
     )
     .map_err(|error| format!("install multi-value scheduler: {error:?}"))?;
+    if options.fault == InjectedBoundaryFault::CancelBeforeDispatch {
+        scheduler
+            .cancel()
+            .map_err(|error| format!("cancel multi-value kernel: {error:?}"))?;
+    }
 
     let active_play = bind_active_play(
         &fragment.plan_id,
@@ -733,6 +785,21 @@ pub fn execute_fragment<W: Write, T: TimerAdapter>(
     let mut presentation_ids = Vec::with_capacity(3);
     loop {
         while let Some(request) = scheduler.next_host_request() {
+            if options.fault == InjectedBoundaryFault::StaleCompletion {
+                let stale = RequestId(request.request.0.wrapping_add(1));
+                return match scheduler.complete_host_operation(
+                    request.node,
+                    stale,
+                    HostOperationOutcome {
+                        disposition: HostOperationDisposition::Completed,
+                        output: None,
+                        failure: None,
+                    },
+                ) {
+                    Err(error) => Err(format!("stale completion rejected: {error:?}")),
+                    Ok(()) => Err("stale completion was accepted".to_string()),
+                };
+            }
             let encoded = scheduler
                 .host_value(request.input.value)
                 .map_err(|error| format!("read host-operation input: {error:?}"))?;
@@ -908,9 +975,14 @@ fn configuration_u64(configuration: &[ConfigurationEntry], key: &str) -> Result<
 
 #[cfg(test)]
 mod tests {
-    use super::{advertisement, execute_fragment, profile_catalog};
+    use super::{
+        advertisement, execute_fragment, execute_fragment_with_options, profile_catalog,
+        ExecutionOptions, InjectedBoundaryFault,
+    };
     use crate::TimerAdapter;
-    use conduit_core::{BootId, ConnectionProvider, HostId, OfferGeneration};
+    use conduit_core::{
+        BootId, ConnectionProvider, HostAdvertisement, HostId, OfferGeneration, PlanFragment,
+    };
     use conduit_form::parse;
     use conduit_planner::{default_placements, plan};
     use conduit_runtime::lowering::lower_plan_fragment;
@@ -925,6 +997,29 @@ mod tests {
         fn wait(&mut self, duration: Duration) {
             self.waits.push(duration);
         }
+    }
+
+    fn planned_fixture() -> (HostAdvertisement, PlanFragment) {
+        let form = parse(
+            include_str!("../../../examples/kernel-multivalue.form"),
+            &profile_catalog(),
+        )
+        .expect("typed multi-value form parses");
+        let host = advertisement(
+            HostId::from("std-kernel-multivalue"),
+            BootId::from("std-kernel-multivalue-boot"),
+            OfferGeneration(1),
+        );
+        let placements = default_placements(&form, core::slice::from_ref(&host))
+            .expect("one exact capability exists per operation");
+        let plan = plan(
+            &form,
+            core::slice::from_ref(&host),
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("typed multi-value form plans");
+        (host, plan.fragments[0].clone())
     }
 
     #[test]
@@ -960,31 +1055,13 @@ mod tests {
 
     #[test]
     fn exact_multi_value_form_executes_real_host_operations_through_kernel() {
-        let form = parse(
-            include_str!("../../../examples/kernel-multivalue.form"),
-            &profile_catalog(),
-        )
-        .expect("typed multi-value form parses");
-        let host = advertisement(
-            HostId::from("std-kernel-multivalue"),
-            BootId::from("std-kernel-multivalue-boot"),
-            OfferGeneration(1),
-        );
-        let placements = default_placements(&form, core::slice::from_ref(&host))
-            .expect("one exact capability exists per operation");
-        let plan = plan(
-            &form,
-            core::slice::from_ref(&host),
-            &placements,
-            &[ConnectionProvider::Local],
-        )
-        .expect("typed multi-value form plans");
+        let (host, fragment) = planned_fixture();
         let mut output = Vec::new();
         let mut timer = VirtualTimer::default();
         let mut evidence_sequence = 0;
         let report = execute_fragment(
             &host,
-            &plan.fragments[0],
+            &fragment,
             0,
             &mut evidence_sequence,
             &mut output,
@@ -1014,5 +1091,67 @@ mod tests {
         assert_eq!(report.presentation_ids.len(), 3);
         assert_eq!(report.observations.len(), 4);
         assert_eq!(evidence_sequence, 4);
+    }
+
+    #[test]
+    fn stale_completion_identity_fails_closed_before_host_effect() {
+        let (host, fragment) = planned_fixture();
+        let mut timer = VirtualTimer::default();
+        let error = execute_fragment_with_options(
+            &host,
+            &fragment,
+            0,
+            &mut 0,
+            &mut Vec::new(),
+            &mut timer,
+            ExecutionOptions {
+                fault: InjectedBoundaryFault::StaleCompletion,
+                ..ExecutionOptions::default()
+            },
+        )
+        .expect_err("stale request identity must fail closed");
+        assert!(error.contains("HostOperationCompletionRejected"), "{error}");
+        assert!(timer.waits.is_empty());
+    }
+
+    #[test]
+    fn cancellation_clears_pending_work_and_terminates_without_effects() {
+        let (host, fragment) = planned_fixture();
+        let mut timer = VirtualTimer::default();
+        let error = execute_fragment_with_options(
+            &host,
+            &fragment,
+            0,
+            &mut 0,
+            &mut Vec::new(),
+            &mut timer,
+            ExecutionOptions {
+                fault: InjectedBoundaryFault::CancelBeforeDispatch,
+                ..ExecutionOptions::default()
+            },
+        )
+        .expect_err("cancelled execution must not report completion");
+        assert!(error.contains("kernel was cancelled"), "{error}");
+        assert!(timer.waits.is_empty());
+    }
+
+    #[test]
+    fn evidence_exhaustion_fails_closed_inside_the_installed_scheduler() {
+        let (host, fragment) = planned_fixture();
+        let mut timer = VirtualTimer::default();
+        let error = execute_fragment_with_options(
+            &host,
+            &fragment,
+            0,
+            &mut 0,
+            &mut Vec::new(),
+            &mut timer,
+            ExecutionOptions {
+                evidence_items: 1,
+                ..ExecutionOptions::default()
+            },
+        )
+        .expect_err("evidence budget exhaustion must fail closed");
+        assert!(error.contains("ItemCapacityExceeded"), "{error}");
     }
 }
