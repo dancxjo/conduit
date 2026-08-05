@@ -2,9 +2,10 @@
 //! numeric tables consumed by `conduit-kernel`.
 
 use conduit_core::{
-    mandatory_evidence_storage_requirement, verify_plan_fragment, ConnectionId, ConnectionProvider,
-    ExpectedEvidence, FragmentId, HostOperationContractId, KindId, PlacementId, PlanFragment,
-    PlanId, PortDescriptor, PortDirection, PortId as PlanPortId,
+    mandatory_evidence_storage_requirement, verify_plan_fragment, ActivePlayId, ActivePlayIdentity,
+    BootId, ConnectionId, ConnectionProvider, EvidenceId, EvidenceIdentity, ExpectedEvidence,
+    FragmentId, HostId, HostOperationContractId, KindId, PlacementId, PlanFragment, PlanId,
+    PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId, PresentationIdentity,
     ResourceBinding as PlanResourceBinding,
 };
 use conduit_kernel::{
@@ -121,6 +122,341 @@ pub struct KernelIdentityMap {
     pub connections: Vec<(CordId, ConnectionId)>,
     pub host_operations: Vec<(NodeId, HostOperationId, HostOperationContractId)>,
     pub resources: Vec<(NodeId, ResourceId, PlanResourceBinding)>,
+}
+
+impl KernelIdentityMap {
+    pub fn placement_for_node(&self, node: NodeId) -> Option<&PlacementId> {
+        self.placements
+            .iter()
+            .find(|(candidate, _)| *candidate == node)
+            .map(|(_, placement)| placement)
+    }
+
+    pub fn node_for_placement(&self, placement: &PlacementId) -> Option<NodeId> {
+        self.placements
+            .iter()
+            .find(|(_, candidate)| candidate == placement)
+            .map(|(node, _)| *node)
+    }
+
+    pub fn connection_for_cord(&self, cord: CordId) -> Option<&ConnectionId> {
+        self.connections
+            .iter()
+            .find(|(candidate, _)| *candidate == cord)
+            .map(|(_, connection)| connection)
+    }
+
+    pub fn cord_for_connection(&self, connection: &ConnectionId) -> Option<CordId> {
+        self.connections
+            .iter()
+            .find(|(_, candidate)| candidate == connection)
+            .map(|(cord, _)| *cord)
+    }
+
+    pub fn port_identity(
+        &self,
+        node: NodeId,
+        direction: PortDirection,
+        port: PortId,
+    ) -> Option<&KernelPortIdentity> {
+        self.ports.iter().find(|identity| {
+            identity.node == node && identity.direction == direction && identity.port == port
+        })
+    }
+
+    pub fn port_for_identity(
+        &self,
+        node: NodeId,
+        direction: PortDirection,
+        port_id: &PlanPortId,
+    ) -> Option<PortId> {
+        self.ports
+            .iter()
+            .find(|identity| {
+                identity.node == node
+                    && identity.direction == direction
+                    && &identity.port_id == port_id
+            })
+            .map(|identity| identity.port)
+    }
+
+    pub fn host_operation_contract(
+        &self,
+        node: NodeId,
+        operation: HostOperationId,
+    ) -> Option<&HostOperationContractId> {
+        self.host_operations
+            .iter()
+            .find(|(candidate_node, candidate_operation, _)| {
+                *candidate_node == node && *candidate_operation == operation
+            })
+            .map(|(_, _, contract)| contract)
+    }
+
+    pub fn host_operation_for_contract(
+        &self,
+        node: NodeId,
+        contract: &HostOperationContractId,
+    ) -> Option<HostOperationId> {
+        self.host_operations
+            .iter()
+            .find(|(candidate_node, _, candidate_contract)| {
+                *candidate_node == node && candidate_contract == contract
+            })
+            .map(|(_, operation, _)| *operation)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExecutionIdentityError {
+    WrongPlan,
+    WrongActivePlay,
+    WrongHost,
+    UnknownNode,
+    UnknownHostOperation,
+    UnknownRequest,
+    UnknownPresentation,
+    DuplicateIdentity,
+    CapacityExceeded,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KernelHostRequestIdentity {
+    pub node: NodeId,
+    pub request: conduit_kernel::RequestId,
+    pub operation: HostOperationId,
+    pub contract_id: HostOperationContractId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KernelPresentationIdentity {
+    pub node: NodeId,
+    pub request: conduit_kernel::RequestId,
+    pub presentation_id: PresentationId,
+    pub placement_id: PlacementId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KernelEvidenceIdentity {
+    pub evidence_id: EvidenceId,
+    pub node: Option<NodeId>,
+    pub request: Option<conduit_kernel::RequestId>,
+    pub presentation_id: Option<PresentationId>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KernelExecutionIdentityMap {
+    pub plan_id: PlanId,
+    pub active_play_id: ActivePlayId,
+    host_id: HostId,
+    boot_id: BootId,
+    requests: Vec<KernelHostRequestIdentity>,
+    presentations: Vec<KernelPresentationIdentity>,
+    evidence: Vec<KernelEvidenceIdentity>,
+}
+
+impl KernelExecutionIdentityMap {
+    pub fn new(
+        lowered: &KernelIdentityMap,
+        active_play: &ActivePlayIdentity,
+        request_capacity: usize,
+        presentation_capacity: usize,
+        evidence_capacity: usize,
+    ) -> Result<Self, ExecutionIdentityError> {
+        if active_play.plan_id != lowered.plan_id {
+            return Err(ExecutionIdentityError::WrongPlan);
+        }
+        Ok(Self {
+            plan_id: lowered.plan_id.clone(),
+            active_play_id: active_play.active_play_id.clone(),
+            host_id: active_play.host_id.clone(),
+            boot_id: active_play.boot_id.clone(),
+            requests: Vec::with_capacity(request_capacity),
+            presentations: Vec::with_capacity(presentation_capacity),
+            evidence: Vec::with_capacity(evidence_capacity),
+        })
+    }
+
+    pub fn bind_request(
+        &mut self,
+        lowered: &KernelIdentityMap,
+        node: NodeId,
+        request: conduit_kernel::RequestId,
+        operation: HostOperationId,
+    ) -> Result<(), ExecutionIdentityError> {
+        let contract_id = lowered
+            .host_operation_contract(node, operation)
+            .ok_or(ExecutionIdentityError::UnknownHostOperation)?;
+        if self.requests.len() >= self.requests.capacity() {
+            return Err(ExecutionIdentityError::CapacityExceeded);
+        }
+        if self
+            .requests
+            .iter()
+            .any(|identity| identity.node == node && identity.request == request)
+        {
+            return Err(ExecutionIdentityError::DuplicateIdentity);
+        }
+        self.requests.push(KernelHostRequestIdentity {
+            node,
+            request,
+            operation,
+            contract_id: contract_id.clone(),
+        });
+        Ok(())
+    }
+
+    pub fn bind_presentation(
+        &mut self,
+        lowered: &KernelIdentityMap,
+        node: NodeId,
+        request: conduit_kernel::RequestId,
+        presentation: &PresentationIdentity,
+    ) -> Result<(), ExecutionIdentityError> {
+        if presentation.active_play_id != self.active_play_id {
+            return Err(ExecutionIdentityError::WrongActivePlay);
+        }
+        if lowered.node_for_placement(&presentation.placement_id) != Some(node) {
+            return Err(ExecutionIdentityError::UnknownNode);
+        }
+        if self.request(node, request).is_none() {
+            return Err(ExecutionIdentityError::UnknownRequest);
+        }
+        if self.presentations.len() >= self.presentations.capacity() {
+            return Err(ExecutionIdentityError::CapacityExceeded);
+        }
+        if self.presentations.iter().any(|identity| {
+            identity.presentation_id == presentation.presentation_id
+                || (identity.node == node && identity.request == request)
+        }) {
+            return Err(ExecutionIdentityError::DuplicateIdentity);
+        }
+        self.presentations.push(KernelPresentationIdentity {
+            node,
+            request,
+            presentation_id: presentation.presentation_id.clone(),
+            placement_id: presentation.placement_id.clone(),
+        });
+        Ok(())
+    }
+
+    pub fn bind_evidence(
+        &mut self,
+        evidence: &EvidenceIdentity,
+        node: Option<NodeId>,
+        request: Option<conduit_kernel::RequestId>,
+        presentation_id: Option<&PresentationId>,
+    ) -> Result<(), ExecutionIdentityError> {
+        if evidence.active_play_id.as_ref() != Some(&self.active_play_id) {
+            return Err(ExecutionIdentityError::WrongActivePlay);
+        }
+        if evidence.host_id != self.host_id || evidence.boot_id != self.boot_id {
+            return Err(ExecutionIdentityError::WrongHost);
+        }
+        if node.is_some() != request.is_some() {
+            return Err(ExecutionIdentityError::UnknownRequest);
+        }
+        if let Some((node, request)) = node.zip(request) {
+            if self.request(node, request).is_none() {
+                return Err(ExecutionIdentityError::UnknownRequest);
+            }
+        }
+        if let Some(presentation_id) = presentation_id {
+            let presentation = self
+                .presentation(presentation_id)
+                .ok_or(ExecutionIdentityError::UnknownPresentation)?;
+            if Some(presentation.node) != node || Some(presentation.request) != request {
+                return Err(ExecutionIdentityError::UnknownPresentation);
+            }
+        }
+        if self.evidence.len() >= self.evidence.capacity() {
+            return Err(ExecutionIdentityError::CapacityExceeded);
+        }
+        if self
+            .evidence
+            .iter()
+            .any(|identity| identity.evidence_id == evidence.evidence_id)
+        {
+            return Err(ExecutionIdentityError::DuplicateIdentity);
+        }
+        self.evidence.push(KernelEvidenceIdentity {
+            evidence_id: evidence.evidence_id.clone(),
+            node,
+            request,
+            presentation_id: presentation_id.cloned(),
+        });
+        Ok(())
+    }
+
+    pub fn request(
+        &self,
+        node: NodeId,
+        request: conduit_kernel::RequestId,
+    ) -> Option<&KernelHostRequestIdentity> {
+        self.requests
+            .iter()
+            .find(|identity| identity.node == node && identity.request == request)
+    }
+
+    pub fn request_for_contract<'a>(
+        &'a self,
+        node: NodeId,
+        contract: &'a HostOperationContractId,
+    ) -> impl Iterator<Item = &'a KernelHostRequestIdentity> + 'a {
+        self.requests
+            .iter()
+            .filter(move |identity| identity.node == node && &identity.contract_id == contract)
+    }
+
+    pub fn presentation(
+        &self,
+        presentation: &PresentationId,
+    ) -> Option<&KernelPresentationIdentity> {
+        self.presentations
+            .iter()
+            .find(|identity| &identity.presentation_id == presentation)
+    }
+
+    pub fn presentation_for_request(
+        &self,
+        node: NodeId,
+        request: conduit_kernel::RequestId,
+    ) -> Option<&KernelPresentationIdentity> {
+        self.presentations
+            .iter()
+            .find(|identity| identity.node == node && identity.request == request)
+    }
+
+    pub fn evidence(&self, evidence: &EvidenceId) -> Option<&KernelEvidenceIdentity> {
+        self.evidence
+            .iter()
+            .find(|identity| &identity.evidence_id == evidence)
+    }
+
+    pub fn evidence_for_presentation(
+        &self,
+        presentation: &PresentationId,
+    ) -> Option<&KernelEvidenceIdentity> {
+        self.evidence
+            .iter()
+            .find(|identity| identity.presentation_id.as_ref() == Some(presentation))
+    }
+
+    pub fn allocation_capacities(&self) -> (usize, usize, usize) {
+        (
+            self.requests.capacity(),
+            self.presentations.capacity(),
+            self.evidence.capacity(),
+        )
+    }
+
+    pub fn lengths(&self) -> (usize, usize, usize) {
+        (
+            self.requests.len(),
+            self.presentations.len(),
+            self.evidence.len(),
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

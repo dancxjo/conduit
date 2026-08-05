@@ -26,7 +26,9 @@ use conduit_kernel::{
     PortId as KernelPortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_planner::{default_placements, plan_with_options, PlannerError, PlanningOptions};
-use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_runtime::lowering::{
+    lower_plan_fragment, KernelExecutionIdentityMap, MAXIMUM_KERNEL_PORTS_PER_NODE,
+};
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::time::Duration;
@@ -111,6 +113,7 @@ pub struct MultiValueRunReport {
     pub pressure_bytes: u32,
     pub input_closed_events: u16,
     pub terminal_order_exact: bool,
+    pub identity: KernelExecutionIdentityMap,
 }
 
 enum MultiValueOperation {
@@ -837,6 +840,10 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         &host.boot_id,
         activation_sequence,
     );
+    let mut execution_identity =
+        KernelExecutionIdentityMap::new(&lowered.identity, &active_play, 7, 3, 4)
+            .map_err(|error| format!("prepare execution identity map: {error:?}"))?;
+    let identity_capacity_before = execution_identity.allocation_capacities();
     let show_even_placement = fragment.placements[usize::from(show_even_node.0)].clone();
     let show_latest_placement = fragment.placements[usize::from(show_latest_node.0)].clone();
     let mut receipts = Vec::with_capacity(3);
@@ -847,6 +854,14 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     let mut pressure_bytes = 0_u32;
     loop {
         while let Some(request) = scheduler.next_host_request() {
+            execution_identity
+                .bind_request(
+                    &lowered.identity,
+                    request.node,
+                    request.request,
+                    request.operation,
+                )
+                .map_err(|error| format!("bind host request identity: {error:?}"))?;
             if options.fault == InjectedBoundaryFault::StaleCompletion {
                 let stale = RequestId(request.request.0.wrapping_add(1));
                 return match scheduler.complete_host_operation(
@@ -897,6 +912,14 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                     &placement.placement_id,
                     ordinal,
                 );
+                execution_identity
+                    .bind_presentation(
+                        &lowered.identity,
+                        request.node,
+                        request.request,
+                        &presentation,
+                    )
+                    .map_err(|error| format!("bind presentation identity: {error:?}"))?;
                 writeln!(output, "tick {branch} {tick}").map_err(|error| error.to_string())?;
                 writeln!(
                     output,
@@ -917,6 +940,14 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                 *next_evidence_sequence = next_evidence_sequence
                     .checked_add(1)
                     .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
+                execution_identity
+                    .bind_evidence(
+                        &evidence,
+                        Some(request.node),
+                        Some(request.request),
+                        Some(&presentation.presentation_id),
+                    )
+                    .map_err(|error| format!("bind presentation evidence identity: {error:?}"))?;
                 observations.push(Observation {
                     evidence_id: evidence.evidence_id,
                     active_play_id: Some(active_play.active_play_id.clone()),
@@ -1063,6 +1094,9 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     *next_evidence_sequence = next_evidence_sequence
         .checked_add(1)
         .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
+    execution_identity
+        .bind_evidence(&terminal, None, None, None)
+        .map_err(|error| format!("bind terminal evidence identity: {error:?}"))?;
     observations.push(Observation {
         evidence_id: terminal.evidence_id,
         active_play_id: Some(active_play.active_play_id.clone()),
@@ -1076,6 +1110,11 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             disposition: TerminalDisposition::Completed,
         },
     });
+    if execution_identity.lengths() != (7, 3, 4)
+        || execution_identity.allocation_capacities() != identity_capacity_before
+    {
+        return Err("execution identity map is incomplete or grew after activation".to_string());
+    }
 
     Ok(MultiValueRunReport {
         observations,
@@ -1091,6 +1130,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         pressure_bytes,
         input_closed_events,
         terminal_order_exact,
+        identity: execution_identity,
     })
 }
 
@@ -1112,9 +1152,11 @@ mod tests {
         profile_catalog, ExecutionOptions, InjectedBoundaryFault,
     };
     use crate::TimerAdapter;
-    use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration, PlanFragment};
+    use conduit_core::{
+        bind_evidence, BootId, HostAdvertisement, HostId, OfferGeneration, PlanFragment,
+    };
     use conduit_form::parse;
-    use conduit_runtime::lowering::lower_plan_fragment;
+    use conduit_runtime::lowering::{lower_plan_fragment, ExecutionIdentityError};
     use std::time::Duration;
 
     #[derive(Default)]
@@ -1172,7 +1214,7 @@ mod tests {
         let mut output = Vec::new();
         let mut timer = VirtualTimer::default();
         let mut evidence_sequence = 0;
-        let report = execute_fragment(
+        let mut report = execute_fragment(
             &host,
             &fragment,
             0,
@@ -1206,8 +1248,62 @@ mod tests {
         assert_eq!(report.pressure_bytes, 8);
         assert_eq!(report.input_closed_events, 5);
         assert!(report.terminal_order_exact);
+        assert_eq!(report.identity.plan_id, fragment.plan_id);
+        assert_eq!(report.identity.active_play_id, report.active_play_id);
+        assert_eq!(report.identity.lengths(), (7, 3, 4));
+        for observation in &report.observations {
+            let evidence = report
+                .identity
+                .evidence(&observation.evidence_id)
+                .expect("host evidence reverses to its kernel identity row");
+            assert_eq!(
+                evidence.presentation_id.as_ref(),
+                observation.presentation_id.as_ref()
+            );
+            let Some(presentation) = observation.presentation_id.as_ref() else {
+                continue;
+            };
+            let dynamic = report
+                .identity
+                .presentation(presentation)
+                .expect("presentation reverses to one kernel request");
+            let request = report
+                .identity
+                .request(dynamic.node, dynamic.request)
+                .expect("presentation request reverses to its host-operation contract");
+            assert!(report
+                .identity
+                .request_for_contract(dynamic.node, &request.contract_id)
+                .any(|candidate| candidate == request));
+            assert_eq!(
+                report
+                    .identity
+                    .presentation_for_request(dynamic.node, dynamic.request)
+                    .map(|identity| &identity.presentation_id),
+                Some(presentation)
+            );
+            assert_eq!(
+                report
+                    .identity
+                    .evidence_for_presentation(presentation)
+                    .map(|identity| &identity.evidence_id),
+                Some(&observation.evidence_id)
+            );
+        }
         assert_eq!(report.observations.len(), 4);
         assert_eq!(evidence_sequence, 4);
+        let wrong_host_evidence = bind_evidence(
+            &HostId::from("wrong-host"),
+            &host.boot_id,
+            Some(&report.active_play_id),
+            99,
+        );
+        assert_eq!(
+            report
+                .identity
+                .bind_evidence(&wrong_host_evidence, None, None, None),
+            Err(ExecutionIdentityError::WrongHost)
+        );
     }
 
     #[test]
