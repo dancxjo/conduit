@@ -14,6 +14,24 @@ live WebSocket/UDP transport, three-platform proof, production BODY model, or
 production Observatory.
 [STATUS.md](STATUS.md) is the checked claim boundary.
 
+## Project guide
+
+Conduit separates durable direction from current proof and immediate sequencing:
+
+- [The Conduit canon](docs/conduit-canon.md) preserves the vision, vocabulary,
+  architectural invariants, future layers, and the status of dormant or
+  superseded ideas.
+- [AGENTS.md](AGENTS.md) is the working agreement for contributors and coding
+  agents, including scope ownership, parallel-work rules, proof discipline, and
+  PR expectations.
+- [STATUS.md](STATUS.md) states only what current code and named checks prove.
+- [Issue #361](https://github.com/dancxjo/conduit/issues/361) owns the forward
+  salvage order.
+
+The canon is a seed vault, not a demand to implement every good idea now. The
+archive and reboot remain quarries: concepts return only through focused,
+reviewed vertical slices with executable acceptance.
+
 ## Salvage sequence
 
 The reboot exposed valuable identity, planning, pressure, evidence, and wire
@@ -86,6 +104,8 @@ explicitly named simulation/composite compatibility paths, not production
 
 Architecture and current salvage boundaries:
 
+- [Project canon](docs/conduit-canon.md)
+- [Contributor and agent agreement](AGENTS.md)
 - [Salvage status](STATUS.md)
 - [Portable host architecture quarry](docs/architecture/portable-hosts.md)
 - [Host specification quarry](docs/architecture/host-specification.md)
