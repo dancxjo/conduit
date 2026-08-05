@@ -4,14 +4,14 @@ Conduit is being rebuilt around one rule:
 
 > Forms describe meaning. Hosts offer implementations. Plans make realization exact.
 
-Current `main` contains a useful Rust `std` prototype and deterministic
-browser-shaped/Pico-shaped conformance fixtures. S4 also contains one actual
-Chromium DOM presentation adapter boundary. It does **not** yet contain a
-general-purpose std execution engine, a browser-side planner/runtime, Pico
-firmware, live WebSocket/UDP transport, three-platform proof, production BODY
-model, or production Observatory. The installed std Signal pair, local
-three-sink fan-out, and typed multi-value conformance profile execute through
-`conduit-kernel`.
+Current `main` contains a useful Rust `std` prototype, deterministic
+browser-shaped/Pico-shaped conformance fixtures, and one actual browser-local
+Rust/WASM Signal host. Two independent Chromium-page instances parse and plan
+the unchanged Signal form, lower exact local fragments, and execute through
+`conduit-kernel` before driving real timers and bounded DOM presentation. It
+does **not** yet contain a general-purpose std execution engine, Pico firmware,
+live WebSocket/UDP transport, three-platform proof, production BODY model, or
+production Observatory.
 [STATUS.md](STATUS.md) is the checked claim boundary.
 
 ## Salvage sequence
@@ -36,11 +36,14 @@ Kernel takeover [#389](https://github.com/dancxjo/conduit/issues/389) is
 accepted. Exact local `PlanFragment`s for the installed profiles lower into
 bounded numeric kernel tables and run through the hosted scheduler. Unsupported
 std forms fail closed; production `StdHost` has no fallback operation pump.
-Platform expansion remains paused while nested expansion identity
-[#398](https://github.com/dancxjo/conduit/issues/398) and general named
-composite faces [#399](https://github.com/dancxjo/conduit/issues/399) are
-corrected. Cross-host simulation fixtures retain an explicitly named legacy
-compatibility driver.
+Nested expansion identity [#398](https://github.com/dancxjo/conduit/issues/398)
+and general named composite faces
+[#399](https://github.com/dancxjo/conduit/issues/399) are accepted. The
+browser-local kernel checkpoint under
+[#350](https://github.com/dancxjo/conduit/issues/350) is accepted at main
+`b7852eed1e784a27dcd78e700b2f89ddc01bc097`, workflow `31022565054`.
+Cross-host simulation fixtures retain an explicitly named legacy compatibility
+driver; they are not transport evidence.
 
 ## Current executable prototype
 
@@ -61,8 +64,10 @@ just demo-triple-local
 
 The browser-shaped and Pico-shaped crates live under `fixtures/`. Their
 frame/datagram relays are in-memory deterministic fixtures, not sockets.
-The actual DOM-only browser checkpoint lives under `hosts/browser/`; it is a
-bounded manifestation adapter, not a complete browser host runtime.
+The actual browser checkpoint lives under `hosts/browser-runtime` and
+`hosts/browser/`. Rust owns parsing, planning, exact lowering, kernel execution,
+bounds, lifecycle, and terminal truth; JavaScript is the thin real-timer/DOM
+adapter. This is browser-local execution, not a std-to-browser socket.
 
 ## Forward kernel
 
@@ -73,8 +78,11 @@ item/byte-bounded fixed and preallocated hosted storage, and the accepted
 fixed-capacity scheduler. Installed local std profiles now use the fail-closed
 numeric lowering seam for real timer/stdout execution, reversible identity
 projection, exact resource reservation, and measured allocation-free
-activation. `HostRuntime` remains only in explicitly named simulation/composite
-compatibility paths, not production `StdHost`.
+activation. The production browser Signal host uses the same scheduler and
+shared lowering boundary, with sealed capacity stability rather than an
+overstated browser allocation measurement. `HostRuntime` remains only in
+explicitly named simulation/composite compatibility paths, not production
+`StdHost` or the production browser host.
 
 Architecture and current salvage boundaries:
 

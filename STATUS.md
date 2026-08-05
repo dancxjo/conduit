@@ -11,7 +11,7 @@ adapter or physical proof.
 | Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal evidence, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
 | Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
 | Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
-| Browser manifestation | partial | yes, `conduit-browser-sim` | test-only Rust fixture | actual Chromium DOM effect/completion adapter with two independent page hosts; browser-side planner/runtime remains open | no | no WebSocket | no |
+| Browser manifestation | local Signal profile | yes, `conduit-browser-sim` | actual Rust/WASM planner plus exact-plan-lowered `conduit-kernel` execution for two independent hosts | thin real-timer/DOM adapter with exact fixed-frame completion correlation and sixteen receipts per host | no | no WebSocket | no |
 | Pico-shaped manifestation | partial | yes, `conduit-pico-sim` | test-only | no | no BSP/image/driver | no UDP/TCP | no board run |
 | Realm membership | retired prototype | deterministic table tests | no production body model | no | no | no | no |
 | Observatory | report-schema prototype | synthetic fleet | synthetic command only | no | no | no | no |
@@ -46,15 +46,17 @@ The `check` workflow requires:
   parent-to-child input/output routing, retry pressure, independent closure,
   cancellation/failure translation, terminal evidence, and mutation denial;
 - deterministic wire and simulated-host conformance vectors;
-- one actual Chromium DOM adapter proof with two independent bounded host
-  instances and exact presentation completion identities;
+- one actual Chromium browser-local kernel proof with two independent WASM
+  instances, exact source/checked/expanded/plan/fragment/play/request/
+  presentation/evidence identities, stable sealed capacity, sixteen ordered
+  receipts per host, and bounded failure negatives;
 - WASM compilation of the browser-shaped simulation;
 - Thumb compilation of allocator-free contracts and the Pico-shaped simulation.
 
-WASM compilation is not browser execution. Thumb compilation is not firmware
-or board acceptance. The Chromium DOM boundary is browser execution, but not a
-browser-side planner/runtime or a live link. Frame/datagram fixtures are not
-WebSocket or UDP sockets.
+WASM compilation is not browser execution by itself. Thumb compilation is not firmware or board
+acceptance. The accepted Chromium proof is browser-local
+planner and kernel execution with real timers and DOM manifestation, but it is
+not a live link. Frame/datagram fixtures are not WebSocket or UDP sockets.
 
 ## Salvage stop line
 
@@ -134,7 +136,19 @@ different core identity types. Activation sequences are host/boot scoped;
 evidence IDs are issued by the recording host rather than synthesized from UI
 row indexes; and adapters must return the exact active-play and presentation
 IDs carried by each effect. S3 is accepted at this boundary.
+The S4 browser-local kernel checkpoint is accepted at exact main
+`b7852eed1e784a27dcd78e700b2f89ddc01bc097`; workflow `31022565054` passed
+both the full Rust gate and the pinned Chromium job. Two independent WASM
+instances parse and plan unchanged `examples/signal-demo.form`, lower their
+exact local fragments through the shared contract, and execute through
+`conduit-kernel`. JavaScript remains the real-timer/DOM adapter. Fixed frames,
+exact completion correlation, item/byte limits, duplicate/malformed/wrong
+identity denial, cancellation, evidence exhaustion, terminal failure, and
+stable sealed capacity are executable proofs. WASM allocation is not claimed
+to be measured; the accepted claim is precise capacity stability.
+
 No actual Pico host, BODY, catalog expansion, Observatory acceptance, live
-transport, or useful task is implied by the named-face correction. Those
-surfaces remain behind their own later salvage gates; S4 sequencing resumes at
-[#350](https://github.com/dancxjo/conduit/issues/350).
+transport, or useful task is implied by browser-local kernel acceptance. Those
+surfaces remain behind their own later salvage gates; the next #350 checkpoint
+is one honestly bounded live std-to-browser WebSocket link with kernel
+execution on both ends.
