@@ -1,9 +1,9 @@
 use conduit_core::{
-    BoundedQueue, CancellationReason, ConnectionEnvelope, ConnectionId, ConnectionOutcome,
-    ConnectionProvider, ConnectionTerminalDisposition, FailureReason, HostAdvertisement,
-    HostCommand, HostEvent, Observation, ObservationKind, PlacementId, PlacementLifecycleState,
-    PlanFragment, PlanId, PlannedConnection, PlannedOperation, PlatformEffect, TerminalDisposition,
-    ValuePayload, PROTOCOL_VERSION,
+    verify_plan_fragment, BoundedQueue, CancellationReason, ConnectionEnvelope, ConnectionId,
+    ConnectionOutcome, ConnectionProvider, ConnectionTerminalDisposition, FailureReason,
+    HostAdvertisement, HostCommand, HostEvent, Observation, ObservationKind, PlacementId,
+    PlacementLifecycleState, PlanFragment, PlanId, PlannedConnection, PlannedOperation,
+    PlatformEffect, TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -76,6 +76,7 @@ pub trait OperationState {
 pub trait OperationImplementation {
     fn kind_id(&self) -> &conduit_core::KindId;
     fn implementation_id(&self) -> &conduit_core::ImplementationId;
+    fn artifact_id(&self) -> &conduit_core::ArtifactId;
     fn prepare(
         &self,
         placement: &PlannedOperation,
@@ -298,6 +299,14 @@ impl HostRuntime {
 
     fn prepare(&mut self, fragment: PlanFragment) -> RuntimeOutput {
         let mut output = RuntimeOutput::default();
+        if !verify_plan_fragment(&fragment) {
+            output.events.push(HostEvent::PreparationRejected {
+                plan_id: fragment.plan_id,
+                reason: FailureReason::PlanIdentityMismatch,
+                message: Some("plan fragment does not match its exact identity".to_string()),
+            });
+            return output;
+        }
         if self.released_plans.contains(&fragment.plan_id) {
             output.events.push(HostEvent::CommandRejected {
                 plan_id: Some(fragment.plan_id),
@@ -393,6 +402,19 @@ impl HostRuntime {
                 });
                 return output;
             }
+            if capability.artifact_id != placement.artifact_id {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::ArtifactIdentityMismatch,
+                    message: Some(format!(
+                        "capability '{}' advertises artifact '{}' but placement pins '{}'",
+                        capability.capability_id.as_str(),
+                        capability.artifact_id.as_str(),
+                        placement.artifact_id.as_str()
+                    )),
+                });
+                return output;
+            }
             let Some(implementation) = self.implementations.get(&placement.implementation_id)
             else {
                 output.events.push(HostEvent::PreparationRejected {
@@ -414,6 +436,19 @@ impl HostRuntime {
                         placement.implementation_id.as_str(),
                         implementation.kind_id().as_str(),
                         placement.kind_id.as_str()
+                    )),
+                });
+                return output;
+            }
+            if implementation.artifact_id() != &placement.artifact_id {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::ArtifactIdentityMismatch,
+                    message: Some(format!(
+                        "installed implementation '{}' uses artifact '{}' rather than '{}'",
+                        placement.implementation_id.as_str(),
+                        implementation.artifact_id().as_str(),
+                        placement.artifact_id.as_str()
                     )),
                 });
                 return output;
@@ -1884,7 +1919,7 @@ mod conformance {
         OperationCompletion, OperationImplementation, OperationState,
     };
     use conduit_core::{
-        kind_id, port_id, BootId, CancellationReason, CapabilityId, CapabilityLimits,
+        kind_id, port_id, ArtifactId, BootId, CancellationReason, CapabilityId, CapabilityLimits,
         CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionProvider, FailureReason,
         HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
         ObservationKind, OfferGeneration, PlatformEffect, PortDescriptor, PortDirection,
@@ -1893,7 +1928,7 @@ mod conformance {
     use conduit_form::{
         parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
     };
-    use conduit_planner::{default_placements, plan};
+    use conduit_planner::{default_placements, plan_with_connection_limits};
     use std::collections::{BTreeMap, VecDeque};
 
     const PULSE_KIND: &str = "flow/pulse";
@@ -2026,6 +2061,7 @@ mod conformance {
                     capability_id: CapabilityId::from("pulse-1"),
                     kind_id: kind_id(PULSE_KIND),
                     implementation_id: ImplementationId::from("std/pulse-v1"),
+                    artifact_id: ArtifactId::from("test/pulse-artifact-v1"),
                     limits: CapabilityLimits {
                         value_kind: kind_id(SIGNAL_VALUE_KIND),
                         max_active_instances: 8,
@@ -2037,6 +2073,7 @@ mod conformance {
                     capability_id: CapabilityId::from("stdout-show-1"),
                     kind_id: kind_id(SHOW_KIND),
                     implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
+                    artifact_id: ArtifactId::from("test/show-artifact-v1"),
                     limits: CapabilityLimits {
                         value_kind: kind_id(SIGNAL_VALUE_KIND),
                         max_active_instances: 8,
@@ -2054,12 +2091,14 @@ mod conformance {
             .install(TestPulseImplementation {
                 kind_id: kind_id(PULSE_KIND),
                 implementation_id: ImplementationId::from("std/pulse-v1"),
+                artifact_id: ArtifactId::from("test/pulse-artifact-v1"),
             })
             .expect("pulse implementation installs");
         registry
             .install(TestShowImplementation {
                 kind_id: kind_id(SHOW_KIND),
                 implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
+                artifact_id: ArtifactId::from("test/show-artifact-v1"),
             })
             .expect("show implementation installs");
         HostRuntime::new(advertisement, registry, observation_limit)
@@ -2068,6 +2107,7 @@ mod conformance {
     struct TestPulseImplementation {
         kind_id: conduit_core::KindId,
         implementation_id: ImplementationId,
+        artifact_id: ArtifactId,
     }
 
     impl OperationImplementation for TestPulseImplementation {
@@ -2077,6 +2117,10 @@ mod conformance {
 
         fn implementation_id(&self) -> &ImplementationId {
             &self.implementation_id
+        }
+
+        fn artifact_id(&self) -> &ArtifactId {
+            &self.artifact_id
         }
 
         fn prepare(
@@ -2154,6 +2198,7 @@ mod conformance {
     struct TestShowImplementation {
         kind_id: conduit_core::KindId,
         implementation_id: ImplementationId,
+        artifact_id: ArtifactId,
     }
 
     impl OperationImplementation for TestShowImplementation {
@@ -2163,6 +2208,10 @@ mod conformance {
 
         fn implementation_id(&self) -> &ImplementationId {
             &self.implementation_id
+        }
+
+        fn artifact_id(&self) -> &ArtifactId {
+            &self.artifact_id
         }
 
         fn prepare(
@@ -2230,19 +2279,16 @@ mod conformance {
         let advertisement = advertisement("boot-1", 1, 8, 256);
         let placements = default_placements(&form, std::slice::from_ref(&advertisement))
             .expect("placements work");
-        let mut plan = plan(
+        let plan = plan_with_connection_limits(
             &form,
             std::slice::from_ref(&advertisement),
             &placements,
             &[ConnectionProvider::Local],
+            queue_items,
+            queue_bytes,
         )
         .expect("plan should succeed");
-        let fragment = plan.fragments.get_mut(0).expect("fragment exists");
-        for connection in &mut fragment.connections {
-            connection.item_capacity = queue_items;
-            connection.byte_capacity = queue_bytes;
-        }
-        fragment.clone()
+        plan.fragments.first().expect("fragment exists").clone()
     }
 
     fn inspect(runtime: &mut HostRuntime) -> Vec<conduit_core::Observation> {

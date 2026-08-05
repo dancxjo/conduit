@@ -17,6 +17,7 @@ pub const SHOW_KIND: &str = "presentation/show";
 pub const SIGNAL_PORT: &str = "signal";
 pub const SIGNAL_ENCODED_LEN: u32 = 9;
 pub const SIGNAL_PRESENTATION_KIND: &str = "presentation/signal";
+pub const MAX_SIGNAL_COUNT: u64 = 4_096;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signal {
@@ -120,8 +121,14 @@ pub fn parse_pulse_configuration(
             _ => {}
         }
     }
+    let count = count.ok_or(SignalProfileError::MissingConfiguration("count"))?;
+    if count > MAX_SIGNAL_COUNT {
+        return Err(SignalProfileError::InvalidConfiguration(
+            "count".to_string(),
+        ));
+    }
     Ok(PulseConfiguration {
-        count: count.ok_or(SignalProfileError::MissingConfiguration("count"))?,
+        count,
         period_ms: period_ms.ok_or(SignalProfileError::MissingConfiguration("period-ms"))?,
         initial_level: initial_level.ok_or(SignalProfileError::MissingConfiguration("initial"))?,
     })
@@ -164,12 +171,13 @@ pub fn signal_payload_size() -> u32 {
 mod host_profile {
     use super::{
         decode_signal, encode_signal, parse_pulse_configuration, pulse_kind, pulse_outputs,
-        show_inputs, show_kind, signal_value_kind, PulseConfiguration, Signal, SIGNAL_ENCODED_LEN,
-        SIGNAL_PRESENTATION_KIND,
+        show_inputs, show_kind, signal_value_kind, PulseConfiguration, Signal, MAX_SIGNAL_COUNT,
+        SIGNAL_ENCODED_LEN, SIGNAL_PRESENTATION_KIND,
     };
     use alloc::boxed::Box;
     use conduit_core::{
-        kind_id, ConfigurationValue, FailureReason, ImplementationId, KindId, PlannedOperation,
+        kind_id, ArtifactId, ConfigurationValue, FailureReason, ImplementationId, KindId,
+        PlannedOperation,
     };
     use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
     use conduit_runtime::{
@@ -180,6 +188,7 @@ mod host_profile {
     pub struct PulseImplementation {
         kind_id: KindId,
         implementation_id: ImplementationId,
+        artifact_id: ArtifactId,
     }
 
     impl PulseImplementation {
@@ -187,6 +196,7 @@ mod host_profile {
             Self {
                 kind_id: pulse_kind(),
                 implementation_id,
+                artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
             }
         }
     }
@@ -198,6 +208,10 @@ mod host_profile {
 
         fn implementation_id(&self) -> &ImplementationId {
             &self.implementation_id
+        }
+
+        fn artifact_id(&self) -> &ArtifactId {
+            &self.artifact_id
         }
 
         fn prepare(
@@ -275,6 +289,7 @@ mod host_profile {
     pub struct ShowImplementation {
         kind_id: KindId,
         implementation_id: ImplementationId,
+        artifact_id: ArtifactId,
     }
 
     impl ShowImplementation {
@@ -282,6 +297,7 @@ mod host_profile {
             Self {
                 kind_id: show_kind(),
                 implementation_id,
+                artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
             }
         }
     }
@@ -293,6 +309,10 @@ mod host_profile {
 
         fn implementation_id(&self) -> &ImplementationId {
             &self.implementation_id
+        }
+
+        fn artifact_id(&self) -> &ArtifactId {
+            &self.artifact_id
         }
 
         fn prepare(
@@ -401,7 +421,7 @@ mod host_profile {
                         default_value: ConfigurationValue::U64(16),
                         validation: ConfigurationRule::U64Range {
                             minimum: 0,
-                            maximum: u64::MAX,
+                            maximum: MAX_SIGNAL_COUNT,
                         },
                     },
                     ConfigurationField {

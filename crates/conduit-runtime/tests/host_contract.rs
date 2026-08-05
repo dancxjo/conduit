@@ -1,6 +1,7 @@
 use conduit_core::{
-    kind_id, port_id, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionOutcome,
-    ConnectionProvider, FailureReason, FormId, HostAdvertisement, HostCommand, HostEvent, HostId,
+    kind_id, port_id, seal_plan, ArtifactId, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ConnectionOutcome, ConnectionProvider, ExpectedEvidence, ExpectedTerminal,
+    FailureReason, FormId, FragmentId, HostAdvertisement, HostCommand, HostEvent, HostId,
     HostProfileId, ImplementationId, ObservationKind, OfferGeneration, OperationId, PlacementId,
     PlanFragment, PlanId, PlannedOperation, PlatformEffect, PortDescriptor, PortDirection,
     TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
@@ -59,6 +60,7 @@ fn advertisement() -> HostAdvertisement {
                 capability_id: CapabilityId::from("pulse"),
                 kind_id: kind_id(SOURCE_KIND),
                 implementation_id: ImplementationId::from("contract/source-v1"),
+                artifact_id: ArtifactId::from("contract/source-artifact-v1"),
                 limits: CapabilityLimits {
                     value_kind: kind_id(VALUE_KIND),
                     max_active_instances: 2,
@@ -70,6 +72,7 @@ fn advertisement() -> HostAdvertisement {
                 capability_id: CapabilityId::from("show"),
                 kind_id: kind_id(SINK_KIND),
                 implementation_id: ImplementationId::from("contract/sink-v1"),
+                artifact_id: ArtifactId::from("contract/sink-artifact-v1"),
                 limits: CapabilityLimits {
                     value_kind: kind_id(VALUE_KIND),
                     max_active_instances: 2,
@@ -120,6 +123,7 @@ fn registry() -> ImplementationRegistry {
 struct SourceImplementation {
     kind_id: conduit_core::KindId,
     implementation_id: ImplementationId,
+    artifact_id: ArtifactId,
 }
 
 impl SourceImplementation {
@@ -127,6 +131,7 @@ impl SourceImplementation {
         Self {
             kind_id: kind_id(SOURCE_KIND),
             implementation_id,
+            artifact_id: ArtifactId::from("contract/source-artifact-v1"),
         }
     }
 }
@@ -138,6 +143,10 @@ impl OperationImplementation for SourceImplementation {
 
     fn implementation_id(&self) -> &ImplementationId {
         &self.implementation_id
+    }
+
+    fn artifact_id(&self) -> &ArtifactId {
+        &self.artifact_id
     }
 
     fn prepare(
@@ -186,6 +195,7 @@ impl OperationState for SourceState {
 struct SinkImplementation {
     kind_id: conduit_core::KindId,
     implementation_id: ImplementationId,
+    artifact_id: ArtifactId,
 }
 
 impl SinkImplementation {
@@ -193,6 +203,7 @@ impl SinkImplementation {
         Self {
             kind_id: kind_id(SINK_KIND),
             implementation_id,
+            artifact_id: ArtifactId::from("contract/sink-artifact-v1"),
         }
     }
 }
@@ -204,6 +215,10 @@ impl OperationImplementation for SinkImplementation {
 
     fn implementation_id(&self) -> &ImplementationId {
         &self.implementation_id
+    }
+
+    fn artifact_id(&self) -> &ArtifactId {
+        &self.artifact_id
     }
 
     fn prepare(
@@ -258,6 +273,17 @@ fn rejection_reason(output: &conduit_runtime::RuntimeOutput) -> Option<FailureRe
     })
 }
 
+fn reseal_fragment(mut fragment: PlanFragment) -> PlanFragment {
+    fragment.plan_id = PlanId::from("");
+    fragment.fragment_id = FragmentId::from("");
+    fragment.plan_fragments.clear();
+    seal_plan(fragment.form_id.clone(), vec![fragment])
+        .fragments
+        .into_iter()
+        .next()
+        .expect("single-fragment plan reseals")
+}
+
 #[test]
 fn prepare_is_effect_free_and_installed_profile_activates_generically() {
     let advertisement = advertisement();
@@ -300,6 +326,7 @@ fn preparation_rejects_uninstalled_and_mismatched_implementations_structurally()
         .find(|placement| placement.kind_id.as_str() == SINK_KIND)
         .expect("sink placement exists")
         .implementation_id = ImplementationId::from("other/sink-v1");
+    let mismatched_fragment = reseal_fragment(mismatched_fragment);
     let mut runtime = HostRuntime::new(advertised, registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(mismatched_fragment))),
@@ -312,6 +339,7 @@ fn preparation_rejects_unsupported_kind_and_invalid_configuration_structurally()
     let advertised = advertisement();
     let mut unsupported = fragment(&advertised);
     unsupported.placements[0].kind_id = kind_id("contract/not-installed");
+    let unsupported = reseal_fragment(unsupported);
     let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(unsupported))),
@@ -329,6 +357,7 @@ fn preparation_rejects_unsupported_kind_and_invalid_configuration_structurally()
             key: "unexpected".into(),
             value: conduit_core::ConfigurationValue::Bool(true),
         });
+    let invalid = reseal_fragment(invalid);
     let mut runtime = HostRuntime::new(advertised, registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(invalid))),
@@ -345,6 +374,10 @@ impl OperationImplementation for UnsupportedValueImplementation {
 
     fn implementation_id(&self) -> &ImplementationId {
         self.0.implementation_id()
+    }
+
+    fn artifact_id(&self) -> &ArtifactId {
+        self.0.artifact_id()
     }
 
     fn prepare(
@@ -386,6 +419,78 @@ fn preparation_requires_capability_and_implementation_value_kind_agreement() {
     );
 }
 
+fn assert_post_identity_mutation_is_rejected(
+    advertised: &HostAdvertisement,
+    fragment: PlanFragment,
+) {
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(fragment))),
+        Some(FailureReason::PlanIdentityMismatch)
+    );
+}
+
+#[test]
+fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
+    let advertised = advertisement();
+    let original = fragment(&advertised);
+
+    let mut mutated = original.clone();
+    mutated.placements[0].implementation_id = ImplementationId::from("mutated/implementation");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.placements[0].artifact_id = ArtifactId::from("mutated/artifact");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated
+        .placements
+        .iter_mut()
+        .find(|placement| !placement.outputs.is_empty())
+        .expect("source placement exists")
+        .outputs[0]
+        .port_id = port_id("mutated-output");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.connections[0].value_kind = kind_id("mutated/value");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.connections[0].item_capacity += 1;
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.connections[0].byte_capacity += 1;
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.startup_order.reverse();
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.expected_terminals.pop();
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.expected_evidence.pop();
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated
+        .placements
+        .iter_mut()
+        .find(|placement| placement.kind_id.as_str() == SOURCE_KIND)
+        .expect("source placement exists")
+        .configuration
+        .push(conduit_core::ConfigurationEntry {
+            key: "mutated".into(),
+            value: conduit_core::ConfigurationValue::U64(99),
+        });
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+}
+
 #[test]
 fn host_with_only_pulse_rejects_show_and_wrong_kind_registry_entries() {
     let advertised = advertisement();
@@ -423,6 +528,7 @@ fn host_with_only_pulse_rejects_show_and_wrong_kind_registry_entries() {
 struct EchoImplementation {
     kind_id: conduit_core::KindId,
     implementation_id: ImplementationId,
+    artifact_id: ArtifactId,
 }
 
 impl OperationImplementation for EchoImplementation {
@@ -432,6 +538,10 @@ impl OperationImplementation for EchoImplementation {
 
     fn implementation_id(&self) -> &ImplementationId {
         &self.implementation_id
+    }
+
+    fn artifact_id(&self) -> &ArtifactId {
+        &self.artifact_id
     }
 
     fn prepare(
@@ -468,6 +578,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
             capability_id: CapabilityId::from("echo-capability"),
             kind_id: echo_kind_id.clone(),
             implementation_id: implementation_id.clone(),
+            artifact_id: ArtifactId::from("test/echo-artifact-v1"),
             limits: CapabilityLimits {
                 value_kind: kind_id("value/none"),
                 max_active_instances: 1,
@@ -477,29 +588,46 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
         }],
     };
     let placement_id = PlacementId::from("echo-placement");
-    let plan_id = PlanId::from("echo-plan");
-    let fragment = PlanFragment {
-        plan_id: plan_id.clone(),
-        form_id: FormId::from("echo-form"),
-        host_id: advertisement.host_id.clone(),
-        boot_id: advertisement.boot_id.clone(),
-        offer_generation: advertisement.offer_generation,
-        placements: vec![PlannedOperation {
-            placement_id: placement_id.clone(),
-            operation_id: OperationId::from("echo"),
-            kind_id: echo_kind_id.clone(),
-            configuration: Vec::new(),
+    let mut echo_plan = seal_plan(
+        FormId::from("echo-form"),
+        vec![PlanFragment {
+            plan_id: PlanId::from(""),
+            fragment_id: FragmentId::from(""),
+            form_id: FormId::from("echo-form"),
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
             offer_generation: advertisement.offer_generation,
-            capability_id: CapabilityId::from("echo-capability"),
-            implementation_id: implementation_id.clone(),
-            inputs: Vec::new(),
-            outputs: Vec::new(),
+            placements: vec![PlannedOperation {
+                placement_id: placement_id.clone(),
+                operation_id: OperationId::from("echo"),
+                kind_id: echo_kind_id.clone(),
+                configuration: Vec::new(),
+                host_id: advertisement.host_id.clone(),
+                boot_id: advertisement.boot_id.clone(),
+                offer_generation: advertisement.offer_generation,
+                capability_id: CapabilityId::from("echo-capability"),
+                implementation_id: implementation_id.clone(),
+                artifact_id: ArtifactId::from("test/echo-artifact-v1"),
+                inputs: Vec::new(),
+                outputs: Vec::new(),
+            }],
+            connections: Vec::new(),
+            startup_order: vec![placement_id.clone()],
+            expected_terminals: vec![
+                ExpectedTerminal::PlacementCompleted(placement_id.clone()),
+                ExpectedTerminal::PlanCompleted,
+            ],
+            expected_evidence: vec![
+                ExpectedEvidence::PlanFragmentReceived,
+                ExpectedEvidence::PlacementPrepared(placement_id.clone()),
+                ExpectedEvidence::PlacementTerminal(placement_id),
+                ExpectedEvidence::PlanTerminal,
+            ],
+            plan_fragments: Vec::new(),
         }],
-        connections: Vec::new(),
-        startup_order: vec![placement_id],
-    };
+    );
+    let fragment = echo_plan.fragments.remove(0);
+    let plan_id = echo_plan.plan_id;
     let mut missing_runtime =
         HostRuntime::new(advertisement.clone(), ImplementationRegistry::new(), 32);
     assert_eq!(
@@ -512,6 +640,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
         .install(EchoImplementation {
             kind_id: echo_kind_id,
             implementation_id,
+            artifact_id: ArtifactId::from("test/echo-artifact-v1"),
         })
         .expect("echo implementation installs");
     let mut runtime = HostRuntime::new(advertisement, registry, 32);
@@ -579,6 +708,7 @@ fn fake_adapter_failure_is_structured_and_terminal() {
 struct AdapterSourceImplementation {
     kind_id: conduit_core::KindId,
     implementation_id: ImplementationId,
+    artifact_id: ArtifactId,
 }
 
 impl OperationImplementation for AdapterSourceImplementation {
@@ -588,6 +718,10 @@ impl OperationImplementation for AdapterSourceImplementation {
 
     fn implementation_id(&self) -> &ImplementationId {
         &self.implementation_id
+    }
+
+    fn artifact_id(&self) -> &ArtifactId {
+        &self.artifact_id
     }
 
     fn prepare(
@@ -656,6 +790,7 @@ fn adapter_registry() -> ImplementationRegistry {
         .install(AdapterSourceImplementation {
             kind_id: kind_id(SOURCE_KIND),
             implementation_id: ImplementationId::from("contract/source-v1"),
+            artifact_id: ArtifactId::from("contract/source-artifact-v1"),
         })
         .expect("adapter source installs");
     registry

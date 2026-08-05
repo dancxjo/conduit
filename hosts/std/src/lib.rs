@@ -1,8 +1,7 @@
 use conduit_core::{
-    kind_id, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionProvider, FormId,
-    HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
-    Observation, ObservationKind, OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect,
-    PROTOCOL_VERSION,
+    kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionProvider,
+    FormId, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
+    Observation, OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect, PROTOCOL_VERSION,
 };
 use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
@@ -11,8 +10,8 @@ use conduit_signal::{
     decode_signal, signal_profile_catalog, signal_registry, PULSE_KIND, SHOW_KIND,
     SIGNAL_PRESENTATION_KIND, SIGNAL_VALUE_KIND,
 };
-use std::fmt::Write as _;
 use std::fs;
+use std::io::Write;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -28,8 +27,19 @@ pub struct StdHostConfig {
 
 #[derive(Debug, Clone)]
 pub struct StdRunReport {
-    pub text: String,
     pub observations: Vec<Observation>,
+}
+
+pub trait TimerAdapter {
+    fn wait(&mut self, duration: Duration);
+}
+
+pub struct ThreadTimer;
+
+impl TimerAdapter for ThreadTimer {
+    fn wait(&mut self, duration: Duration) {
+        thread::sleep(duration);
+    }
 }
 
 pub struct StdHost {
@@ -85,28 +95,35 @@ impl StdHost {
         )?)
     }
 
-    pub fn run_fragment(&mut self, fragment: PlanFragment) -> Result<StdRunReport, String> {
-        let mut text = String::new();
+    pub fn run_fragment_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        output: &mut W,
+        timer: &mut T,
+    ) -> Result<StdRunReport, String> {
         write_operator_report(
-            &mut text,
+            output,
             self.advertisement(),
             &fragment.plan_id,
             &fragment.form_id,
             &fragment,
-        );
+        )?;
 
         let prepare = self.runtime.handle(HostCommand::Prepare(fragment.clone()));
         if let Some(reason) = preparation_rejection(&prepare) {
             return Err(reason);
         }
-        let output = self
+        let activated_output = self
             .runtime
             .handle(HostCommand::Activate(fragment.plan_id.clone()));
-        if let Some(reason) = activation_rejection(&output) {
+        if let Some(reason) = activation_rejection(&activated_output) {
             return Err(reason);
         }
 
-        let mut pending_effects = output.effects;
+        let mut pending_effects = activated_output.effects;
+        let mut receipt_count = 0u64;
+        let mut first_receipt = None;
+        let mut last_receipt = None;
         while let Some(effect) = pending_effects.pop() {
             let follow_up = match effect {
                 PlatformEffect::Wait {
@@ -114,7 +131,7 @@ impl StdHost {
                     placement_id,
                     duration_ms,
                 } => {
-                    thread::sleep(Duration::from_millis(duration_ms));
+                    timer.wait(Duration::from_millis(duration_ms));
                     self.runtime.handle(HostCommand::CompleteWait {
                         plan_id,
                         placement_id,
@@ -134,12 +151,17 @@ impl StdHost {
                     }
                     let signal = decode_signal(&value).map_err(|err| err.to_string())?;
                     writeln!(
-                        text,
+                        output,
                         "signal {} {}",
                         signal.sequence,
                         if signal.level { "on" } else { "off" }
                     )
-                    .expect("rendered output should be writable");
+                    .map_err(|error| error.to_string())?;
+                    receipt_count += 1;
+                    if first_receipt.is_none() {
+                        first_receipt = Some(signal.clone());
+                    }
+                    last_receipt = Some(signal);
                     self.runtime.handle(HostCommand::CompletePresentation {
                         plan_id,
                         placement_id,
@@ -156,32 +178,19 @@ impl StdHost {
         }
 
         let observations = inspect_observations(&mut self.runtime);
-        let receipts = observations
-            .iter()
-            .filter_map(|observation| match &observation.kind {
-                ObservationKind::ValuePresented { value } => {
-                    Some(decode_signal(value).expect("signal payload must decode"))
-                }
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-        writeln!(text, "plan {} complete", fragment.plan_id.as_str())
-            .expect("rendered output should be writable");
-        if let (Some(first), Some(last)) = (receipts.first(), receipts.last()) {
+        writeln!(output, "plan {} complete", fragment.plan_id.as_str())
+            .map_err(|error| error.to_string())?;
+        if let (Some(first), Some(last)) = (&first_receipt, &last_receipt) {
             writeln!(
-                text,
+                output,
                 "receipts {} first=({}, {}) last=({}, {})",
-                receipts.len(),
-                first.sequence,
-                first.level,
-                last.sequence,
-                last.level
+                receipt_count, first.sequence, first.level, last.sequence, last.level
             )
-            .expect("rendered output should be writable");
+            .map_err(|error| error.to_string())?;
         } else {
-            writeln!(text, "receipts 0").expect("rendered output should be writable");
+            writeln!(output, "receipts 0").map_err(|error| error.to_string())?;
         }
-        Ok(StdRunReport { text, observations })
+        Ok(StdRunReport { observations })
     }
 }
 
@@ -213,6 +222,7 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
                 capability_id: CapabilityId::from("pulse-1"),
                 kind_id: kind_id(PULSE_KIND),
                 implementation_id: ImplementationId::from("std/pulse-v1"),
+                artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
                 limits: CapabilityLimits {
                     value_kind: kind_id(SIGNAL_VALUE_KIND),
                     max_active_instances: 16,
@@ -224,6 +234,7 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
                 capability_id: CapabilityId::from("stdout-show-1"),
                 kind_id: kind_id(SHOW_KIND),
                 implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
+                artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
                 limits: CapabilityLimits {
                     value_kind: kind_id(SIGNAL_VALUE_KIND),
                     max_active_instances: 16,
@@ -235,13 +246,13 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
     }
 }
 
-fn write_operator_report(
-    out: &mut String,
+fn write_operator_report<W: Write>(
+    out: &mut W,
     advertisement: &HostAdvertisement,
     plan_id: &PlanId,
     form_id: &FormId,
     fragment: &PlanFragment,
-) {
+) -> Result<(), String> {
     writeln!(
         out,
         "host {} boot {} profile {} protocol {}",
@@ -250,21 +261,22 @@ fn write_operator_report(
         advertisement.profile.as_str(),
         advertisement.protocol_version
     )
-    .expect("rendered output should be writable");
+    .map_err(|error| error.to_string())?;
     writeln!(out, "plan {} form {}", plan_id.as_str(), form_id.as_str())
-        .expect("rendered output should be writable");
+        .map_err(|error| error.to_string())?;
     for placement in &fragment.placements {
         writeln!(
             out,
-            "place {} kind={} host={} boot={} capability={} implementation={}",
+            "place {} kind={} host={} boot={} capability={} implementation={} artifact={}",
             placement.operation_id.as_str(),
             placement.kind_id.as_str(),
             placement.host_id.as_str(),
             placement.boot_id.as_str(),
             placement.capability_id.as_str(),
-            placement.implementation_id.as_str()
+            placement.implementation_id.as_str(),
+            placement.artifact_id.as_str()
         )
-        .expect("rendered output should be writable");
+        .map_err(|error| error.to_string())?;
     }
     for connection in &fragment.connections {
         writeln!(
@@ -278,8 +290,9 @@ fn write_operator_report(
             connection.provider,
             connection.item_capacity
         )
-        .expect("rendered output should be writable");
+        .map_err(|error| error.to_string())?;
     }
+    Ok(())
 }
 
 fn inspect_observations(runtime: &mut HostRuntime) -> Vec<Observation> {
@@ -323,8 +336,22 @@ fn fresh_boot_id() -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{StdHost, StdHostConfig};
+    use super::{StdHost, StdHostConfig, TimerAdapter};
     use conduit_core::{BootId, HostId, OfferGeneration};
+    use conduit_form::parse;
+    use conduit_signal::signal_profile_catalog;
+    use std::time::Duration;
+
+    #[derive(Default)]
+    struct VirtualTimer {
+        waits: Vec<Duration>,
+    }
+
+    impl TimerAdapter for VirtualTimer {
+        fn wait(&mut self, duration: Duration) {
+            self.waits.push(duration);
+        }
+    }
 
     #[test]
     fn fresh_starts_get_fresh_boot_ids() {
@@ -345,5 +372,37 @@ mod tests {
         });
         assert_eq!(host.advertisement().boot_id.as_str(), "boot-test");
         assert_eq!(host.advertisement().offer_generation.0, 9);
+    }
+
+    #[test]
+    fn streamed_output_uses_a_virtual_clock_and_retains_terminal_evidence() {
+        let mut host = StdHost::new_with_config(StdHostConfig {
+            host_id: HostId::from("test-host"),
+            boot_id: BootId::from("virtual-clock-boot"),
+            offer_generation: OfferGeneration(1),
+        });
+        let form = parse(
+            "form 0\n\nvirtual {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 3\n pulse.period-ms = 7\n pulse.initial = false\n pulse > show\n}\n",
+            &signal_profile_catalog(),
+        )
+        .expect("virtual-clock form parses");
+        let plan = host.plan_local(&form, None).expect("local plan resolves");
+        let fragment = plan.fragments[0].clone();
+        let mut output = Vec::new();
+        let mut timer = VirtualTimer::default();
+        let report = host
+            .run_fragment_to(fragment, &mut output, &mut timer)
+            .expect("streamed run completes");
+
+        assert_eq!(timer.waits, vec![Duration::from_millis(7); 2]);
+        let output = String::from_utf8(output).expect("stream is utf-8");
+        assert!(output.contains("signal 0 off\nsignal 1 on\nsignal 2 off\n"));
+        assert!(output.contains("receipts 3 first=(0, false) last=(2, false)"));
+        assert!(report.observations.iter().any(|observation| matches!(
+            observation.kind,
+            conduit_core::ObservationKind::PlanTerminal {
+                disposition: conduit_core::TerminalDisposition::Completed
+            }
+        )));
     }
 }

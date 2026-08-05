@@ -1,5 +1,6 @@
 use conduit_core::{
-    ConfigurationEntry, ConfigurationValue, FormId, KindId, OperationId, PortDescriptor, PortId,
+    CapabilityId, ConfigurationEntry, ConfigurationValue, FormId, KindId, OperationId,
+    PortDescriptor, PortId,
 };
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -28,6 +29,18 @@ pub struct CheckedForm {
     pub name: String,
     pub operations: Vec<CheckedOperation>,
     pub connections: Vec<CheckedConnection>,
+    pub exports: Vec<CheckedExport>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedExport {
+    pub capability_id: CapabilityId,
+    pub kind_id: KindId,
+    pub source_operation_id: OperationId,
+    pub source_port_id: PortId,
+    pub sink_operation_id: OperationId,
+    pub sink_port_id: PortId,
+    pub value_kind: KindId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -109,6 +122,7 @@ pub enum FormError {
     UnsupportedKind { kind: String, supported: String },
     InvalidConfiguration(String),
     InvalidConnection(String),
+    InvalidExport(String),
     InvalidStatement(String),
 }
 
@@ -130,6 +144,7 @@ impl std::fmt::Display for FormError {
                 write!(f, "invalid configuration: {message}")
             }
             Self::InvalidConnection(message) => write!(f, "invalid connection: {message}"),
+            Self::InvalidExport(message) => write!(f, "invalid export: {message}"),
             Self::InvalidStatement(message) => write!(f, "invalid statement: {message}"),
         }
     }
@@ -195,8 +210,13 @@ pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedForm, Form
 
     let mut operations = BTreeMap::<String, OperationDraft>::new();
     let mut connections = Vec::<CheckedConnection>::new();
+    let mut exports = Vec::<CheckedExport>::new();
     for raw in &lines[2..lines.len() - 1] {
         let line = raw.trim();
+        if let Some(export) = line.strip_prefix("export ") {
+            exports.push(parse_export(export, &operations, &connections)?);
+            continue;
+        }
         if let Some((left, right)) = line.split_once(':') {
             let operation_id = left.trim().to_string();
             if operations.contains_key(&operation_id) {
@@ -270,12 +290,50 @@ pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedForm, Form
         &name,
         &checked_operations,
         &connections,
+        &exports,
     )));
     Ok(CheckedForm {
         form_id,
         name,
         operations: checked_operations,
         connections,
+        exports,
+    })
+}
+
+fn parse_export(
+    source: &str,
+    operations: &BTreeMap<String, OperationDraft>,
+    connections: &[CheckedConnection],
+) -> Result<CheckedExport, FormError> {
+    let (declaration, boundary) = source
+        .split_once('=')
+        .ok_or_else(|| FormError::InvalidExport(source.to_string()))?;
+    let (capability_id, kind_id) = declaration
+        .trim()
+        .split_once(':')
+        .ok_or_else(|| FormError::InvalidExport(source.to_string()))?;
+    let (left, right) = boundary
+        .trim()
+        .split_once("->")
+        .ok_or_else(|| FormError::InvalidExport(source.to_string()))?;
+    let checked = parse_connection(left.trim(), right.trim(), operations)?;
+    if !connections.contains(&checked) {
+        return Err(FormError::InvalidExport(
+            "export boundary must name an already-authored connection".to_string(),
+        ));
+    }
+    if capability_id.trim().is_empty() || kind_id.trim().is_empty() {
+        return Err(FormError::InvalidExport(source.to_string()));
+    }
+    Ok(CheckedExport {
+        capability_id: CapabilityId::from(capability_id.trim()),
+        kind_id: KindId::from(kind_id.trim()),
+        source_operation_id: checked.source_operation_id,
+        source_port_id: checked.source_port_id,
+        sink_operation_id: checked.sink_operation_id,
+        sink_port_id: checked.sink_port_id,
+        value_kind: checked.value_kind,
     })
 }
 
@@ -399,6 +457,7 @@ fn canonical_form_text(
     name: &str,
     operations: &[CheckedOperation],
     connections: &[CheckedConnection],
+    exports: &[CheckedExport],
 ) -> String {
     let mut text = format!("form:{name}\n");
     for operation in operations {
@@ -422,6 +481,18 @@ fn canonical_form_text(
             connection.source_port_id.as_str(),
             connection.sink_operation_id.as_str(),
             connection.sink_port_id.as_str()
+        ));
+    }
+    for export in exports {
+        text.push_str(&format!(
+            "export:{}:{}:{}:{}->{}:{}:{}|",
+            export.capability_id.as_str(),
+            export.kind_id.as_str(),
+            export.source_operation_id.as_str(),
+            export.source_port_id.as_str(),
+            export.sink_operation_id.as_str(),
+            export.sink_port_id.as_str(),
+            export.value_kind.as_str()
         ));
     }
     text
@@ -522,5 +593,25 @@ mod tests {
         )
         .expect_err("out-of-range catalog value fails");
         assert!(matches!(error, super::FormError::InvalidConfiguration(_)));
+    }
+
+    #[test]
+    fn checks_authored_exports_against_real_connections() {
+        let form = parse(
+            "form 0\n\ncomposite {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite = source.out -> sink.in\n}\n",
+            &catalog(),
+        )
+        .expect("authored export parses");
+        assert_eq!(form.exports.len(), 1);
+        assert_eq!(form.exports[0].capability_id.as_str(), "run");
+        assert_eq!(form.exports[0].kind_id.as_str(), "test/composite");
+        assert_eq!(form.exports[0].value_kind.as_str(), "test/value");
+
+        let error = parse(
+            "form 0\n\nbad {\n source: test/source\n sink: test/sink\n export run: test/composite = source.out -> sink.in\n}\n",
+            &catalog(),
+        )
+        .expect_err("an export cannot invent a connection");
+        assert!(matches!(error, super::FormError::InvalidExport(_)));
     }
 }

@@ -6,6 +6,7 @@ use alloc::collections::VecDeque;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
@@ -45,8 +46,10 @@ identity_type!(BootId);
 identity_type!(CapabilityId);
 identity_type!(KindId);
 identity_type!(ImplementationId);
+identity_type!(ArtifactId);
 identity_type!(FormId);
 identity_type!(PlanId);
+identity_type!(FragmentId);
 identity_type!(PlacementId);
 identity_type!(ConnectionId);
 identity_type!(PortId);
@@ -106,6 +109,7 @@ pub struct CapabilityOffer {
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
     pub implementation_id: ImplementationId,
+    pub artifact_id: ArtifactId,
     pub limits: CapabilityLimits,
 }
 
@@ -170,8 +174,31 @@ pub struct PlannedOperation {
     pub offer_generation: OfferGeneration,
     pub capability_id: CapabilityId,
     pub implementation_id: ImplementationId,
+    pub artifact_id: ArtifactId,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExpectedTerminal {
+    PlacementCompleted(PlacementId),
+    ConnectionCompleted(ConnectionId),
+    PlanCompleted,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExpectedEvidence {
+    PlanFragmentReceived,
+    PlacementPrepared(PlacementId),
+    PlacementTerminal(PlacementId),
+    ConnectionTerminal(ConnectionId),
+    PlanTerminal,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct FragmentCommitment {
+    pub host_id: HostId,
+    pub fragment_id: FragmentId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -190,6 +217,7 @@ pub struct PlannedConnection {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlanFragment {
     pub plan_id: PlanId,
+    pub fragment_id: FragmentId,
     pub form_id: FormId,
     pub host_id: HostId,
     pub boot_id: BootId,
@@ -197,6 +225,9 @@ pub struct PlanFragment {
     pub placements: Vec<PlannedOperation>,
     pub connections: Vec<PlannedConnection>,
     pub startup_order: Vec<PlacementId>,
+    pub expected_terminals: Vec<ExpectedTerminal>,
+    pub expected_evidence: Vec<ExpectedEvidence>,
+    pub plan_fragments: Vec<FragmentCommitment>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -204,6 +235,207 @@ pub struct Plan {
     pub plan_id: PlanId,
     pub form_id: FormId,
     pub fragments: Vec<PlanFragment>,
+}
+
+pub fn seal_plan(form_id: FormId, mut fragments: Vec<PlanFragment>) -> Plan {
+    for fragment in &mut fragments {
+        fragment.plan_id = PlanId::from("");
+        fragment.fragment_id = compute_fragment_id(fragment);
+        fragment.plan_fragments.clear();
+    }
+    let mut commitments = fragments
+        .iter()
+        .map(|fragment| FragmentCommitment {
+            host_id: fragment.host_id.clone(),
+            fragment_id: fragment.fragment_id.clone(),
+        })
+        .collect::<Vec<_>>();
+    commitments.sort();
+    let plan_id = compute_plan_id(&form_id, &commitments);
+    for fragment in &mut fragments {
+        fragment.plan_id = plan_id.clone();
+        fragment.plan_fragments = commitments.clone();
+    }
+    Plan {
+        plan_id,
+        form_id,
+        fragments,
+    }
+}
+
+pub fn verify_plan(plan: &Plan) -> bool {
+    plan.fragments.iter().all(verify_plan_fragment)
+        && plan
+            .fragments
+            .iter()
+            .all(|fragment| fragment.plan_id == plan.plan_id && fragment.form_id == plan.form_id)
+        && plan
+            .fragments
+            .first()
+            .is_none_or(|first| first.plan_fragments.len() == plan.fragments.len())
+}
+
+pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
+    if compute_fragment_id(fragment) != fragment.fragment_id {
+        return false;
+    }
+    let mut commitments = fragment.plan_fragments.clone();
+    commitments.sort();
+    if commitments != fragment.plan_fragments
+        || commitments
+            .windows(2)
+            .any(|pair| pair[0].host_id == pair[1].host_id)
+    {
+        return false;
+    }
+    let own_matches = commitments
+        .iter()
+        .filter(|item| item.host_id == fragment.host_id && item.fragment_id == fragment.fragment_id)
+        .count();
+    own_matches == 1 && compute_plan_id(&fragment.form_id, &commitments) == fragment.plan_id
+}
+
+pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
+    let mut canonical = Vec::new();
+    push_string(&mut canonical, fragment.form_id.as_str());
+    push_string(&mut canonical, fragment.host_id.as_str());
+    push_string(&mut canonical, fragment.boot_id.as_str());
+    push_u64(&mut canonical, fragment.offer_generation.0);
+    push_u32(&mut canonical, fragment.placements.len() as u32);
+    for operation in &fragment.placements {
+        push_string(&mut canonical, operation.placement_id.as_str());
+        push_string(&mut canonical, operation.operation_id.as_str());
+        push_string(&mut canonical, operation.kind_id.as_str());
+        push_u32(&mut canonical, operation.configuration.len() as u32);
+        for entry in &operation.configuration {
+            push_string(&mut canonical, &entry.key);
+            match entry.value {
+                ConfigurationValue::Bool(value) => {
+                    canonical.push(0);
+                    canonical.push(u8::from(value));
+                }
+                ConfigurationValue::U64(value) => {
+                    canonical.push(1);
+                    push_u64(&mut canonical, value);
+                }
+            }
+        }
+        push_string(&mut canonical, operation.host_id.as_str());
+        push_string(&mut canonical, operation.boot_id.as_str());
+        push_u64(&mut canonical, operation.offer_generation.0);
+        push_string(&mut canonical, operation.capability_id.as_str());
+        push_string(&mut canonical, operation.implementation_id.as_str());
+        push_string(&mut canonical, operation.artifact_id.as_str());
+        push_ports(&mut canonical, &operation.inputs);
+        push_ports(&mut canonical, &operation.outputs);
+    }
+    push_u32(&mut canonical, fragment.connections.len() as u32);
+    for connection in &fragment.connections {
+        push_string(&mut canonical, connection.connection_id.as_str());
+        push_string(&mut canonical, connection.source_placement_id.as_str());
+        push_string(&mut canonical, connection.source_port_id.as_str());
+        push_string(&mut canonical, connection.sink_placement_id.as_str());
+        push_string(&mut canonical, connection.sink_port_id.as_str());
+        push_string(&mut canonical, connection.value_kind.as_str());
+        canonical.push(match connection.provider {
+            ConnectionProvider::Local => 0,
+            ConnectionProvider::InMemory => 1,
+        });
+        canonical.extend_from_slice(&connection.item_capacity.to_le_bytes());
+        push_u32(&mut canonical, connection.byte_capacity);
+    }
+    push_u32(&mut canonical, fragment.startup_order.len() as u32);
+    for placement_id in &fragment.startup_order {
+        push_string(&mut canonical, placement_id.as_str());
+    }
+    push_u32(&mut canonical, fragment.expected_terminals.len() as u32);
+    for terminal in &fragment.expected_terminals {
+        match terminal {
+            ExpectedTerminal::PlacementCompleted(placement_id) => {
+                canonical.push(0);
+                push_string(&mut canonical, placement_id.as_str());
+            }
+            ExpectedTerminal::ConnectionCompleted(connection_id) => {
+                canonical.push(1);
+                push_string(&mut canonical, connection_id.as_str());
+            }
+            ExpectedTerminal::PlanCompleted => canonical.push(2),
+        }
+    }
+    push_u32(&mut canonical, fragment.expected_evidence.len() as u32);
+    for evidence in &fragment.expected_evidence {
+        match evidence {
+            ExpectedEvidence::PlanFragmentReceived => canonical.push(0),
+            ExpectedEvidence::PlacementPrepared(placement_id) => {
+                canonical.push(1);
+                push_string(&mut canonical, placement_id.as_str());
+            }
+            ExpectedEvidence::PlacementTerminal(placement_id) => {
+                canonical.push(2);
+                push_string(&mut canonical, placement_id.as_str());
+            }
+            ExpectedEvidence::ConnectionTerminal(connection_id) => {
+                canonical.push(3);
+                push_string(&mut canonical, connection_id.as_str());
+            }
+            ExpectedEvidence::PlanTerminal => canonical.push(4),
+        }
+    }
+    FragmentId::from(hash_bytes(&canonical))
+}
+
+fn compute_plan_id(form_id: &FormId, commitments: &[FragmentCommitment]) -> PlanId {
+    let mut canonical = Vec::new();
+    push_string(&mut canonical, form_id.as_str());
+    push_u32(&mut canonical, commitments.len() as u32);
+    for commitment in commitments {
+        push_string(&mut canonical, commitment.host_id.as_str());
+        push_string(&mut canonical, commitment.fragment_id.as_str());
+    }
+    PlanId::from(hash_bytes(&canonical))
+}
+
+fn push_ports(canonical: &mut Vec<u8>, ports: &[PortDescriptor]) {
+    push_u32(canonical, ports.len() as u32);
+    for port in ports {
+        push_string(canonical, port.port_id.as_str());
+        push_string(canonical, port.value_kind.as_str());
+        canonical.push(match port.direction {
+            PortDirection::Input => 0,
+            PortDirection::Output => 1,
+        });
+    }
+}
+
+fn push_string(canonical: &mut Vec<u8>, value: &str) {
+    push_u32(canonical, value.len() as u32);
+    canonical.extend_from_slice(value.as_bytes());
+}
+
+fn push_u32(canonical: &mut Vec<u8>, value: u32) {
+    canonical.extend_from_slice(&value.to_le_bytes());
+}
+
+fn push_u64(canonical: &mut Vec<u8>, value: u64) {
+    canonical.extend_from_slice(&value.to_le_bytes());
+}
+
+fn hash_bytes(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut encoded = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        encoded.push(hex(byte >> 4));
+        encoded.push(hex(byte & 0x0f));
+    }
+    encoded
+}
+
+fn hex(nibble: u8) -> char {
+    match nibble {
+        0..=9 => (b'0' + nibble) as char,
+        10..=15 => (b'a' + (nibble - 10)) as char,
+        _ => unreachable!(),
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -239,6 +471,8 @@ pub enum FailureReason {
     UnsupportedKind,
     ImplementationKindMismatch,
     AdvertisedImplementationMismatch,
+    ArtifactIdentityMismatch,
+    PlanIdentityMismatch,
     InvalidOperationConfiguration,
     UnsupportedValueKind,
 }

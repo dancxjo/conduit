@@ -1,0 +1,13 @@
+form 0
+
+signal-composite {
+    pulse: flow/pulse
+    show: presentation/show
+
+    pulse.count = 3
+    pulse.period-ms = 0
+    pulse.initial = false
+
+    pulse > show
+    export run-signal: demonstration/run-signal = pulse.signal -> show.signal
+}

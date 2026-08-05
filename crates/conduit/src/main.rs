@@ -1,15 +1,11 @@
-use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_std_host::{load_checked_form, load_placements, StdHost, StdHostConfig};
+use conduit_std_host::{load_checked_form, load_placements, StdHost, ThreadTimer};
 use std::env;
+use std::io;
 
 fn run_with_placements(path: &str, placements_path: Option<&str>) -> Result<(), String> {
     let form = load_checked_form(path).map_err(|err| err.to_string())?;
     let placements = load_placements(placements_path).map_err(|err| err.to_string())?;
-    let mut host = StdHost::new_with_config(StdHostConfig {
-        host_id: HostId::from("std-host-1"),
-        boot_id: BootId::from("boot-1"),
-        offer_generation: OfferGeneration(1),
-    });
+    let mut host = StdHost::new();
     let plan = host
         .plan_local(&form, placements.as_ref())
         .map_err(|err| err.to_string())?;
@@ -18,8 +14,8 @@ fn run_with_placements(path: &str, placements_path: Option<&str>) -> Result<(), 
         .into_iter()
         .find(|fragment| fragment.host_id == host.advertisement().host_id)
         .ok_or_else(|| "no local fragment for std host".to_string())?;
-    let report = host.run_fragment(fragment)?;
-    print!("{}", report.text);
+    let mut stdout = io::stdout().lock();
+    host.run_fragment_to(fragment, &mut stdout, &mut ThreadTimer)?;
     Ok(())
 }
 

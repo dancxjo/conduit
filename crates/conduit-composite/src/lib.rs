@@ -1,16 +1,15 @@
 use conduit_core::{
-    kind_id, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionEnvelope,
-    ConnectionId, ConnectionOutcome, ConnectionProvider, FailureReason, HostAdvertisement,
-    HostCommand, HostEvent, HostId, HostProfileId, ImplementationId, Observation, ObservationKind,
-    OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect, TerminalDisposition,
-    PROTOCOL_VERSION,
+    kind_id, verify_plan, ArtifactId, BootId, CapabilityLimits, CapabilityOffer,
+    ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider, FailureReason,
+    HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
+    Observation, ObservationKind, OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect,
+    TerminalDisposition, PROTOCOL_VERSION,
 };
+use conduit_form::CheckedForm;
 use conduit_runtime::{
     providers::in_memory::InMemoryConnectionProvider, HostRuntime, RuntimeOutput,
 };
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-
-pub const COMPOSITE_DEMONSTRATION_KIND: &str = "demonstration/run-signal";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompositeError {
@@ -69,6 +68,98 @@ pub struct CompositeDefinition {
     pub failure_translation: FailureReason,
 }
 
+impl CompositeDefinition {
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_authored_export(
+        host_id: HostId,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+        profile: HostProfileId,
+        implementation_id: ImplementationId,
+        artifact_id: ArtifactId,
+        form: &CheckedForm,
+        export_capability_id: &conduit_core::CapabilityId,
+        internal_plan: Plan,
+        failure_translation: FailureReason,
+    ) -> Result<Self, CompositeError> {
+        if internal_plan.form_id != form.form_id || !verify_plan(&internal_plan) {
+            return Err(CompositeError::InvalidInternalPlan(
+                "authored form and exact internal plan do not agree".into(),
+            ));
+        }
+        let export = form
+            .exports
+            .iter()
+            .find(|export| &export.capability_id == export_capability_id)
+            .ok_or_else(|| CompositeError::InvalidInternalPlan("missing authored export".into()))?;
+        let placement_for = |operation_id: &conduit_core::OperationId| {
+            internal_plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .find(|placement| &placement.operation_id == operation_id)
+        };
+        let source = placement_for(&export.source_operation_id).ok_or_else(|| {
+            CompositeError::InvalidInternalPlan("export source is absent from plan".into())
+        })?;
+        let sink = placement_for(&export.sink_operation_id).ok_or_else(|| {
+            CompositeError::InvalidInternalPlan("export sink is absent from plan".into())
+        })?;
+        let connection = internal_plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .find(|connection| {
+                connection.source_placement_id == source.placement_id
+                    && connection.source_port_id == export.source_port_id
+                    && connection.sink_placement_id == sink.placement_id
+                    && connection.sink_port_id == export.sink_port_id
+                    && connection.value_kind == export.value_kind
+                    && connection.provider == ConnectionProvider::InMemory
+            })
+            .cloned()
+            .ok_or_else(|| {
+                CompositeError::InvalidInternalPlan(
+                    "authored export does not resolve to an exact in-memory plan boundary".into(),
+                )
+            })?;
+        let source_child = source.host_id.clone();
+        let sink_child = sink.host_id.clone();
+        Ok(Self {
+            host_id,
+            boot_id,
+            offer_generation,
+            profile,
+            external_capability: CapabilityOffer {
+                capability_id: export.capability_id.clone(),
+                kind_id: export.kind_id.clone(),
+                implementation_id,
+                artifact_id,
+                limits: CapabilityLimits {
+                    value_kind: export.value_kind.clone(),
+                    max_active_instances: 1,
+                    max_queue_items: connection.item_capacity,
+                    max_queue_bytes: connection.byte_capacity,
+                },
+            },
+            children: internal_plan
+                .fragments
+                .iter()
+                .map(|fragment| ChildHostBinding {
+                    host_id: fragment.host_id.clone(),
+                })
+                .collect(),
+            internal_plan,
+            boundary: CompositeBoundary {
+                source_child,
+                sink_child,
+                connection_id: connection.connection_id,
+            },
+            failure_translation,
+        })
+    }
+}
+
 #[derive(Debug)]
 struct ExternalPlan {
     state: ExternalState,
@@ -101,63 +192,6 @@ pub struct CompositeHost {
 }
 
 impl CompositeHost {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        host_id: HostId,
-        boot_id: BootId,
-        offer_generation: OfferGeneration,
-        capability_id: CapabilityId,
-        source: HostRuntime,
-        sink: HostRuntime,
-        internal_plan: Plan,
-        observation_limit: usize,
-    ) -> Result<Self, CompositeError> {
-        let source_host_id = source.advertisement().host_id.clone();
-        let sink_host_id = sink.advertisement().host_id.clone();
-        let connection = internal_plan
-            .fragments
-            .iter()
-            .flat_map(|fragment| &fragment.connections)
-            .find(|connection| connection.provider == ConnectionProvider::InMemory)
-            .cloned()
-            .ok_or_else(|| {
-                CompositeError::InvalidInternalPlan("missing in-memory boundary".into())
-            })?;
-        let definition = CompositeDefinition {
-            host_id,
-            boot_id,
-            offer_generation,
-            profile: HostProfileId::from("composite/in-memory-v1"),
-            external_capability: CapabilityOffer {
-                capability_id,
-                kind_id: kind_id(COMPOSITE_DEMONSTRATION_KIND),
-                implementation_id: ImplementationId::from("composite/pulse-show-v1"),
-                limits: CapabilityLimits {
-                    value_kind: connection.value_kind.clone(),
-                    max_active_instances: 1,
-                    max_queue_items: connection.item_capacity,
-                    max_queue_bytes: connection.byte_capacity,
-                },
-            },
-            children: vec![
-                ChildHostBinding {
-                    host_id: source_host_id.clone(),
-                },
-                ChildHostBinding {
-                    host_id: sink_host_id.clone(),
-                },
-            ],
-            internal_plan,
-            boundary: CompositeBoundary {
-                source_child: source_host_id,
-                sink_child: sink_host_id,
-                connection_id: connection.connection_id.clone(),
-            },
-            failure_translation: FailureReason::CompositeCapabilityFailed,
-        };
-        Self::from_definition(definition, vec![source, sink], observation_limit)
-    }
-
     pub fn from_definition(
         definition: CompositeDefinition,
         child_runtimes: Vec<HostRuntime>,
@@ -967,21 +1001,47 @@ fn preparation_failure(output: &RuntimeOutput) -> Option<(FailureReason, Option<
 mod tests {
     use super::{
         ChildHostBinding, CompositeBoundary, CompositeDefinition, CompositeHost, DeliveryMode,
-        COMPOSITE_DEMONSTRATION_KIND,
     };
     use conduit_core::{
-        kind_id, port_id, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
+        kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
         ConnectionEnvelope, ConnectionOutcome, ConnectionProvider, FormId, HostAdvertisement,
         HostCommand, HostEvent, HostId, HostProfileId, ImplementationId, KindId, OfferGeneration,
         OperationId, PortDescriptor, PortDirection, TerminalDisposition, PROTOCOL_VERSION,
     };
-    use conduit_form::{parse, CheckedForm, CheckedOperation};
-    use conduit_planner::{plan, PlacementChoice, PlacementChoices};
+    use conduit_form::{parse, CheckedForm, CheckedOperation, KindDefinition, ProfileCatalog};
+    use conduit_planner::{plan, plan_with_connection_limits, PlacementChoice, PlacementChoices};
     use conduit_runtime::{providers::in_memory::InMemoryConnectionProvider, HostRuntime};
     use conduit_signal::{
         signal_profile_catalog, signal_registry, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND,
     };
     use std::collections::BTreeMap;
+
+    const COMPOSITE_DEMONSTRATION_KIND: &str = "demonstration/run-signal";
+
+    fn authored_internal_form() -> conduit_form::CheckedForm {
+        parse(
+            include_str!("../../../examples/signal-composite.form"),
+            &signal_profile_catalog(),
+        )
+        .expect("authored composite form parses")
+    }
+
+    fn parent_catalog() -> ProfileCatalog {
+        let mut catalog = ProfileCatalog::new();
+        catalog
+            .insert(KindDefinition {
+                kind_id: kind_id(COMPOSITE_DEMONSTRATION_KIND),
+                inputs: Vec::new(),
+                outputs: vec![PortDescriptor {
+                    port_id: port_id("signal"),
+                    value_kind: kind_id(SIGNAL_VALUE_KIND),
+                    direction: PortDirection::Output,
+                }],
+                configuration: Vec::new(),
+            })
+            .expect("parent composite kind installs");
+        catalog
+    }
 
     fn child_advertisement(host: &str, boot: &str, source: bool) -> HostAdvertisement {
         HostAdvertisement {
@@ -998,6 +1058,11 @@ mod tests {
                 } else {
                     "test/show-v1"
                 }),
+                artifact_id: ArtifactId::from(if source {
+                    "conduit-signal/pulse-artifact-v1"
+                } else {
+                    "conduit-signal/show-artifact-v1"
+                }),
                 limits: CapabilityLimits {
                     value_kind: kind_id(SIGNAL_VALUE_KIND),
                     max_active_instances: 2,
@@ -1009,11 +1074,7 @@ mod tests {
     }
 
     fn internal_plan(item_capacity: u16, byte_capacity: u32) -> conduit_core::Plan {
-        let form = parse(
-            "form 0\n\ninternal {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 3\n pulse.period-ms = 0\n pulse.initial = false\n pulse > show\n}\n",
-            &signal_profile_catalog(),
-        )
-        .expect("internal form parses");
+        let form = authored_internal_form();
         let source = child_advertisement("child-source", "source-boot", true);
         let sink = child_advertisement("child-sink", "sink-boot", false);
         let placements = PlacementChoices {
@@ -1034,25 +1095,20 @@ mod tests {
                 ),
             ]),
         };
-        let mut plan = plan(
+        plan_with_connection_limits(
             &form,
             &[source, sink],
             &placements,
             &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+            item_capacity,
+            byte_capacity,
         )
-        .expect("cross-host plan succeeds");
-        for fragment in &mut plan.fragments {
-            for connection in &mut fragment.connections {
-                connection.item_capacity = item_capacity;
-                connection.byte_capacity = byte_capacity;
-            }
-        }
-        plan
+        .expect("cross-host plan succeeds")
     }
 
     fn three_child_internal_plan() -> conduit_core::Plan {
         let form = parse(
-            "form 0\n\ninternal {\n pulse: flow/pulse\n show: presentation/show\n auxiliary: flow/pulse\n pulse.count = 1\n pulse.period-ms = 0\n pulse.initial = false\n auxiliary.count = 0\n auxiliary.period-ms = 0\n auxiliary.initial = false\n pulse > show\n}\n",
+            "form 0\n\ninternal {\n pulse: flow/pulse\n show: presentation/show\n auxiliary: flow/pulse\n pulse.count = 1\n pulse.period-ms = 0\n pulse.initial = false\n auxiliary.count = 0\n auxiliary.period-ms = 0\n auxiliary.initial = false\n pulse > show\n export run-signal: demonstration/run-signal = pulse.signal -> show.signal\n}\n",
             &signal_profile_catalog(),
         )
         .expect("three-child internal form parses");
@@ -1132,70 +1188,33 @@ mod tests {
     }
 
     fn composite_definition(item_capacity: u16, byte_capacity: u32) -> CompositeDefinition {
+        let form = authored_internal_form();
         let plan = internal_plan(item_capacity, byte_capacity);
-        let connection = plan
-            .fragments
-            .iter()
-            .flat_map(|fragment| &fragment.connections)
-            .next()
-            .expect("composite plan has its exposed boundary")
-            .clone();
-        CompositeDefinition {
-            host_id: HostId::from("composite-host"),
-            boot_id: BootId::from("composite-boot"),
-            offer_generation: OfferGeneration(7),
-            profile: HostProfileId::from("composite/in-memory-v1"),
-            external_capability: CapabilityOffer {
-                capability_id: CapabilityId::from("run-signal"),
-                kind_id: kind_id(COMPOSITE_DEMONSTRATION_KIND),
-                implementation_id: ImplementationId::from("composite/pulse-show-v1"),
-                limits: CapabilityLimits {
-                    value_kind: connection.value_kind.clone(),
-                    max_active_instances: 1,
-                    max_queue_items: connection.item_capacity,
-                    max_queue_bytes: connection.byte_capacity,
-                },
-            },
-            children: vec![
-                ChildHostBinding {
-                    host_id: HostId::from("child-source"),
-                },
-                ChildHostBinding {
-                    host_id: HostId::from("child-sink"),
-                },
-            ],
-            internal_plan: plan,
-            boundary: CompositeBoundary {
-                source_child: HostId::from("child-source"),
-                sink_child: HostId::from("child-sink"),
-                connection_id: connection.connection_id,
-            },
-            failure_translation: conduit_core::FailureReason::CompositeCapabilityFailed,
-        }
+        CompositeDefinition::from_authored_export(
+            HostId::from("composite-host"),
+            BootId::from("composite-boot"),
+            OfferGeneration(7),
+            HostProfileId::from("composite/in-memory-v1"),
+            ImplementationId::from("composite/pulse-show-v1"),
+            ArtifactId::from("composite/pulse-show-artifact-v1"),
+            &form,
+            &CapabilityId::from("run-signal"),
+            plan,
+            conduit_core::FailureReason::CompositeCapabilityFailed,
+        )
+        .expect("authored export derives the composite definition")
     }
 
     fn parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragment {
-        let operation = CheckedOperation {
-            operation_id: OperationId::from("demonstration"),
-            kind_id: KindId::from(COMPOSITE_DEMONSTRATION_KIND),
-            inputs: vec![PortDescriptor {
-                port_id: port_id("signal"),
-                value_kind: kind_id(SIGNAL_VALUE_KIND),
-                direction: PortDirection::Input,
-            }],
-            outputs: Vec::new(),
-            configuration: Vec::new(),
-        };
-        let form = CheckedForm {
-            form_id: FormId::from("parent-form"),
-            name: "parent".into(),
-            operations: vec![operation],
-            connections: Vec::new(),
-        };
+        let form = parse(
+            include_str!("../../../examples/composite-parent.form"),
+            &parent_catalog(),
+        )
+        .expect("authored parent form parses");
         let ordinary = child_advertisement("ordinary-host", "ordinary-boot", true);
         let placements = PlacementChoices {
             by_operation: BTreeMap::from([(
-                OperationId::from("demonstration"),
+                OperationId::from("run"),
                 PlacementChoice {
                     host_id: composite.advertisement().host_id.clone(),
                     capability_id: CapabilityId::from("run-signal"),
@@ -1417,17 +1436,18 @@ mod tests {
             form_id: FormId::from("parent-child-leak-form"),
             name: "parent-child-leak".into(),
             operations: vec![CheckedOperation {
-                operation_id: OperationId::from("demonstration"),
+                operation_id: OperationId::from("run"),
                 kind_id: KindId::from(COMPOSITE_DEMONSTRATION_KIND),
                 inputs: Vec::new(),
                 outputs: Vec::new(),
                 configuration: Vec::new(),
             }],
             connections: Vec::new(),
+            exports: Vec::new(),
         };
         let placements = PlacementChoices {
             by_operation: BTreeMap::from([(
-                OperationId::from("demonstration"),
+                OperationId::from("run"),
                 PlacementChoice {
                     host_id: HostId::from("child-source"),
                     capability_id: CapabilityId::from("pulse"),
@@ -1498,6 +1518,7 @@ mod tests {
             capability_id: CapabilityId::from("unrelated-narrow-capability"),
             kind_id: kind_id("unrelated/kind"),
             implementation_id: ImplementationId::from("unrelated/implementation"),
+            artifact_id: ArtifactId::from("unrelated/artifact"),
             limits: CapabilityLimits {
                 value_kind: kind_id("unrelated/value"),
                 max_active_instances: 0,
@@ -1736,6 +1757,7 @@ mod tests {
                 capability_id: CapabilityId::from("alternate-capability"),
                 kind_id: kind_id("demonstration/alternate"),
                 implementation_id: ImplementationId::from("composite/alternate-v1"),
+                artifact_id: ArtifactId::from("composite/alternate-artifact-v1"),
                 limits: CapabilityLimits {
                     value_kind: kind_id(SIGNAL_VALUE_KIND),
                     max_active_instances: 5,

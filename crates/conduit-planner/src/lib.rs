@@ -1,7 +1,8 @@
 use conduit_core::{
-    kind_id, CapabilityId, ConnectionId, ConnectionProvider, FormId, HostAdvertisement, HostId,
-    OperationId, PlacementId, Plan, PlanFragment, PlanId, PlannedConnection, PlannedOperation,
-    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
+    kind_id, seal_plan, CapabilityId, ConnectionId, ConnectionProvider, ExpectedEvidence,
+    ExpectedTerminal, FragmentId, HostAdvertisement, HostId, OperationId, PlacementId, Plan,
+    PlanFragment, PlanId, PlannedConnection, PlannedOperation, DEFAULT_CONNECTION_BYTE_CAPACITY,
+    DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedConnection, CheckedForm, CheckedOperation};
 use sha2::{Digest, Sha256};
@@ -156,6 +157,24 @@ pub fn plan(
     placements: &PlacementChoices,
     providers: &[ConnectionProvider],
 ) -> Result<Plan, PlannerError> {
+    plan_with_connection_limits(
+        form,
+        realm,
+        placements,
+        providers,
+        DEFAULT_CONNECTION_ITEM_CAPACITY,
+        DEFAULT_CONNECTION_BYTE_CAPACITY,
+    )
+}
+
+pub fn plan_with_connection_limits(
+    form: &CheckedForm,
+    realm: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    providers: &[ConnectionProvider],
+    connection_item_capacity: u16,
+    connection_byte_capacity: u32,
+) -> Result<Plan, PlannerError> {
     let realm_index = realm
         .iter()
         .map(|host| (host.host_id.clone(), host))
@@ -214,6 +233,7 @@ pub fn plan(
             offer_generation: host.offer_generation,
             capability_id: capability.capability_id.clone(),
             implementation_id: capability.implementation_id.clone(),
+            artifact_id: capability.artifact_id.clone(),
             inputs: operation.inputs.clone(),
             outputs: operation.outputs.clone(),
         });
@@ -255,33 +275,35 @@ pub fn plan(
         let source_capability =
             find_capability(realm, &source_plan.host_id, &source_plan.capability_id)?;
         let sink_capability = find_capability(realm, &sink_plan.host_id, &sink_plan.capability_id)?;
-        if DEFAULT_CONNECTION_ITEM_CAPACITY > source_capability.limits.max_queue_items
-            || DEFAULT_CONNECTION_ITEM_CAPACITY > sink_capability.limits.max_queue_items
+        if connection_item_capacity > source_capability.limits.max_queue_items
+            || connection_item_capacity > sink_capability.limits.max_queue_items
         {
             return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
                 "connection from '{}' to '{}' requires item capacity {}",
                 source_plan.operation_id.as_str(),
                 sink_plan.operation_id.as_str(),
-                DEFAULT_CONNECTION_ITEM_CAPACITY
+                connection_item_capacity
             )));
         }
-        if DEFAULT_CONNECTION_BYTE_CAPACITY > source_capability.limits.max_queue_bytes
-            || DEFAULT_CONNECTION_BYTE_CAPACITY > sink_capability.limits.max_queue_bytes
+        if connection_byte_capacity > source_capability.limits.max_queue_bytes
+            || connection_byte_capacity > sink_capability.limits.max_queue_bytes
         {
             return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
                 "connection from '{}' to '{}' requires byte capacity {}",
                 source_plan.operation_id.as_str(),
                 sink_plan.operation_id.as_str(),
-                DEFAULT_CONNECTION_BYTE_CAPACITY
+                connection_byte_capacity
             )));
         }
         planned_connections.push(PlannedConnection {
             connection_id: ConnectionId::from(hash_string(&format!(
-                "connection:{}:{}:{}:{}",
+                "connection:{}:{}:{}:{}:{}:{}",
                 form.form_id.as_str(),
                 connection.source_operation_id.as_str(),
                 connection.source_port_id.as_str(),
-                connection.sink_operation_id.as_str()
+                connection.sink_operation_id.as_str(),
+                connection.sink_port_id.as_str(),
+                connection.value_kind.as_str()
             ))),
             source_placement_id: source_plan.placement_id.clone(),
             source_port_id: connection.source_port_id.clone(),
@@ -289,16 +311,11 @@ pub fn plan(
             sink_port_id: connection.sink_port_id.clone(),
             value_kind: connection.value_kind.clone(),
             provider,
-            item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
-            byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
+            item_capacity: connection_item_capacity,
+            byte_capacity: connection_byte_capacity,
         });
     }
 
-    let plan_id = PlanId::from(hash_string(&canonical_plan_text(
-        &form.form_id,
-        &planned_operations,
-        &planned_connections,
-    )));
     let fragments = realm
         .iter()
         .filter_map(|host| {
@@ -323,8 +340,31 @@ pub fn plan(
                 .cloned()
                 .collect::<Vec<_>>();
             let startup_order = startup_order(&placements, &form.connections);
+            let expected_terminals = placements
+                .iter()
+                .map(|placement| {
+                    ExpectedTerminal::PlacementCompleted(placement.placement_id.clone())
+                })
+                .chain(connections.iter().map(|connection| {
+                    ExpectedTerminal::ConnectionCompleted(connection.connection_id.clone())
+                }))
+                .chain(core::iter::once(ExpectedTerminal::PlanCompleted))
+                .collect();
+            let expected_evidence = core::iter::once(ExpectedEvidence::PlanFragmentReceived)
+                .chain(placements.iter().map(|placement| {
+                    ExpectedEvidence::PlacementPrepared(placement.placement_id.clone())
+                }))
+                .chain(placements.iter().map(|placement| {
+                    ExpectedEvidence::PlacementTerminal(placement.placement_id.clone())
+                }))
+                .chain(connections.iter().map(|connection| {
+                    ExpectedEvidence::ConnectionTerminal(connection.connection_id.clone())
+                }))
+                .chain(core::iter::once(ExpectedEvidence::PlanTerminal))
+                .collect();
             Some(PlanFragment {
-                plan_id: plan_id.clone(),
+                plan_id: PlanId::from(""),
+                fragment_id: FragmentId::from(""),
                 form_id: form.form_id.clone(),
                 host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(),
@@ -332,15 +372,14 @@ pub fn plan(
                 placements,
                 connections,
                 startup_order,
+                expected_terminals,
+                expected_evidence,
+                plan_fragments: Vec::new(),
             })
         })
         .collect::<Vec<_>>();
 
-    Ok(Plan {
-        plan_id,
-        form_id: form.form_id.clone(),
-        fragments,
-    })
+    Ok(seal_plan(form.form_id.clone(), fragments))
 }
 
 fn startup_order(
@@ -430,60 +469,6 @@ fn select_provider(
     )))
 }
 
-fn canonical_plan_text(
-    form_id: &FormId,
-    operations: &[PlannedOperation],
-    connections: &[PlannedConnection],
-) -> String {
-    let mut text = format!("form:{}\n", form_id.as_str());
-    for operation in operations {
-        text.push_str(&format!(
-            "placement:{}:{}:{}:{}:{}:{}|",
-            operation.operation_id.as_str(),
-            operation.kind_id.as_str(),
-            operation.host_id.as_str(),
-            operation.boot_id.as_str(),
-            operation.offer_generation.0,
-            operation.capability_id.as_str()
-        ));
-        for entry in &operation.configuration {
-            text.push_str(&format!(
-                "cfg:{}={}|",
-                entry.key,
-                render_value(&entry.value)
-            ));
-        }
-    }
-    for connection in connections {
-        text.push_str(&format!(
-            "conn:{}:{}:{}:{}:{}:{}:{}:{}|",
-            connection.connection_id.as_str(),
-            connection.source_placement_id.as_str(),
-            connection.source_port_id.as_str(),
-            connection.sink_placement_id.as_str(),
-            connection.sink_port_id.as_str(),
-            render_provider(connection.provider),
-            connection.item_capacity,
-            connection.byte_capacity
-        ));
-    }
-    text
-}
-
-fn render_provider(provider: ConnectionProvider) -> &'static str {
-    match provider {
-        ConnectionProvider::Local => "local",
-        ConnectionProvider::InMemory => "in-memory",
-    }
-}
-
-fn render_value(value: &conduit_core::ConfigurationValue) -> String {
-    match value {
-        conduit_core::ConfigurationValue::Bool(value) => value.to_string(),
-        conduit_core::ConfigurationValue::U64(value) => value.to_string(),
-    }
-}
-
 fn hash_string(text: &str) -> String {
     let digest = Sha256::digest(text.as_bytes());
     let mut encoded = String::with_capacity(digest.len() * 2);
@@ -506,8 +491,9 @@ fn hex(nibble: u8) -> char {
 mod tests {
     use super::{default_placements, parse_placements, plan, PlannerError};
     use conduit_core::{
-        kind_id, CapabilityLimits, CapabilityOffer, ConnectionProvider, HostAdvertisement, HostId,
-        HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
+        kind_id, ArtifactId, CapabilityLimits, CapabilityOffer, ConnectionProvider,
+        HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration,
+        PROTOCOL_VERSION,
     };
     use conduit_form::parse;
     use conduit_signal::{signal_profile_catalog, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
@@ -532,6 +518,7 @@ mod tests {
                     capability_id: conduit_core::CapabilityId::from("pulse-1"),
                     kind_id: kind_id(PULSE_KIND),
                     implementation_id: ImplementationId::from("std/pulse-v1"),
+                    artifact_id: ArtifactId::from("test/pulse-artifact-v1"),
                     limits: CapabilityLimits {
                         value_kind: kind_id(SIGNAL_VALUE_KIND),
                         max_active_instances: 4,
@@ -543,6 +530,7 @@ mod tests {
                     capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
                     kind_id: kind_id(SHOW_KIND),
                     implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
+                    artifact_id: ArtifactId::from("test/show-artifact-v1"),
                     limits: CapabilityLimits {
                         value_kind: kind_id(SIGNAL_VALUE_KIND),
                         max_active_instances: 4,
