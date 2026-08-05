@@ -721,7 +721,10 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     let pressure_cord = lowered
         .cords
         .iter()
-        .find(|cord| cord.spec.source_node == filter_node && cord.spec.sink_node == show_even_node)
+        .find(|cord| {
+            cord.spec.source_local().map(|(node, _)| node) == Some(filter_node)
+                && cord.spec.sink_local().map(|(node, _)| node) == Some(show_even_node)
+        })
         .ok_or_else(|| "multi-value pressure cord is missing".to_string())?;
     let pressure_cord_id = pressure_cord.spec.cord;
     let pressure_connection_id = pressure_cord.connection_id.clone();

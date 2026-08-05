@@ -4,15 +4,15 @@
 use conduit_core::{
     mandatory_evidence_storage_requirement, verify_plan_fragment, ActivePlayId, ActivePlayIdentity,
     BootId, ConnectionId, ConnectionProvider, EvidenceId, EvidenceIdentity, ExpectedEvidence,
-    FragmentId, HostId, HostOperationContractId, KindId, PlacementId, PlanFragment, PlanId,
-    PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId, PresentationIdentity,
-    ResourceBinding as PlanResourceBinding,
+    FragmentId, HostId, HostOperationContractId, KindId, LinkBinding, LinkEndpoint, PlacementId,
+    PlanFragment, PlanId, PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId,
+    PresentationIdentity, ResourceBinding as PlanResourceBinding,
 };
 use conduit_kernel::{
-    scheduler::{CordSpec, NodeSpec},
+    scheduler::{CordCapacity, CordSpec, NodeSpec},
     CordId, EvidenceExpectationId, EvidenceExpectationTarget, HostOperationBinding,
-    HostOperationId, NodeId, PortId, ResourceBinding as KernelResourceBinding, ResourceId,
-    RouteRange, RouteTarget,
+    HostOperationId, NodeId, PortId, RemoteEndpointId, ResourceBinding as KernelResourceBinding,
+    ResourceId, RouteRange, RouteTarget,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -35,7 +35,7 @@ pub enum LoweringError {
     UnknownConnectionPort(ConnectionId),
     ConnectionValueKindMismatch(ConnectionId),
     InvalidConnectionBudget(ConnectionId),
-    UnsupportedRemoteConnection(ConnectionId),
+    InvalidRemoteConnection(ConnectionId),
     MultipleConnectionsToInput {
         placement_id: PlacementId,
         port_id: PlanPortId,
@@ -72,6 +72,27 @@ pub struct LoweredNode {
 pub struct LoweredCord {
     pub connection_id: ConnectionId,
     pub spec: CordSpec,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum RemoteCordDirection {
+    Egress,
+    Ingress,
+}
+
+/// Exact identity binding retained outside the allocation-independent kernel.
+/// The host must bind this numeric endpoint to this observed link before
+/// activation; the carrier is not allowed to choose or rewrite any fact here.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoweredRemoteEndpoint {
+    pub endpoint: RemoteEndpointId,
+    pub cord: CordId,
+    pub connection_id: ConnectionId,
+    pub direction: RemoteCordDirection,
+    pub local: LinkEndpoint,
+    pub peer: LinkEndpoint,
+    pub value_kind: KindId,
+    pub binding: LinkBinding,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -120,6 +141,7 @@ pub struct KernelIdentityMap {
     pub placements: Vec<(NodeId, PlacementId)>,
     pub ports: Vec<KernelPortIdentity>,
     pub connections: Vec<(CordId, ConnectionId)>,
+    pub remote_endpoints: Vec<(RemoteEndpointId, ConnectionId)>,
     pub host_operations: Vec<(NodeId, HostOperationId, HostOperationContractId)>,
     pub resources: Vec<(NodeId, ResourceId, PlanResourceBinding)>,
 }
@@ -151,6 +173,26 @@ impl KernelIdentityMap {
             .iter()
             .find(|(_, candidate)| candidate == connection)
             .map(|(cord, _)| *cord)
+    }
+
+    pub fn connection_for_remote_endpoint(
+        &self,
+        endpoint: RemoteEndpointId,
+    ) -> Option<&ConnectionId> {
+        self.remote_endpoints
+            .iter()
+            .find(|(candidate, _)| *candidate == endpoint)
+            .map(|(_, connection)| connection)
+    }
+
+    pub fn remote_endpoint_for_connection(
+        &self,
+        connection: &ConnectionId,
+    ) -> Option<RemoteEndpointId> {
+        self.remote_endpoints
+            .iter()
+            .find(|(_, candidate)| candidate == connection)
+            .map(|(endpoint, _)| *endpoint)
     }
 
     pub fn port_identity(
@@ -465,6 +507,7 @@ pub struct LoweredPlanFragment {
     pub nodes: Vec<LoweredNode>,
     pub node_specs: Vec<NodeSpec<MAXIMUM_KERNEL_PORTS_PER_NODE>>,
     pub cords: Vec<LoweredCord>,
+    pub remote_endpoints: Vec<LoweredRemoteEndpoint>,
     pub routes: Vec<LoweredRoute>,
     pub host_operations: Vec<LoweredHostOperation>,
     pub resources: Vec<LoweredResource>,
@@ -549,16 +592,12 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
 
     let mut connection_ids = BTreeSet::new();
     let mut cords = Vec::with_capacity(fragment.connections.len());
+    let mut remote_endpoints = Vec::new();
     let mut value_slots = 0u16;
     let mut value_bytes = 0u32;
     for (cord_index, connection) in fragment.connections.iter().enumerate() {
         if !connection_ids.insert(connection.connection_id.clone()) {
             return Err(LoweringError::DuplicateConnection(
-                connection.connection_id.clone(),
-            ));
-        }
-        if connection.provider != ConnectionProvider::Local {
-            return Err(LoweringError::UnsupportedRemoteConnection(
                 connection.connection_id.clone(),
             ));
         }
@@ -568,31 +607,35 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
             ));
         }
         let cord = CordId(as_u16(cord_index)?);
-        let source_node = *placement_nodes
+        let source_node = placement_nodes
             .get(&connection.source_placement_id)
-            .ok_or_else(|| {
-                LoweringError::UnknownConnectionEndpoint(connection.connection_id.clone())
-            })?;
-        let sink_node = *placement_nodes
-            .get(&connection.sink_placement_id)
-            .ok_or_else(|| {
-                LoweringError::UnknownConnectionEndpoint(connection.connection_id.clone())
-            })?;
-        let source_port = find_port(
-            &nodes[usize::from(source_node.0)].outputs,
-            &connection.source_port_id,
-        )
-        .ok_or_else(|| LoweringError::UnknownConnectionPort(connection.connection_id.clone()))?;
-        let sink_port = find_port(
-            &nodes[usize::from(sink_node.0)].inputs,
-            &connection.sink_port_id,
-        )
-        .ok_or_else(|| LoweringError::UnknownConnectionPort(connection.connection_id.clone()))?;
-        if nodes[usize::from(source_node.0)].outputs[usize::from(source_port.0)].value_kind
-            != connection.value_kind
-            || nodes[usize::from(sink_node.0)].inputs[usize::from(sink_port.0)].value_kind
+            .copied();
+        let sink_node = placement_nodes.get(&connection.sink_placement_id).copied();
+        let source_port = source_node
+            .map(|node| {
+                find_port(
+                    &nodes[usize::from(node.0)].outputs,
+                    &connection.source_port_id,
+                )
+                .ok_or_else(|| {
+                    LoweringError::UnknownConnectionPort(connection.connection_id.clone())
+                })
+            })
+            .transpose()?;
+        let sink_port = sink_node
+            .map(|node| {
+                find_port(&nodes[usize::from(node.0)].inputs, &connection.sink_port_id).ok_or_else(
+                    || LoweringError::UnknownConnectionPort(connection.connection_id.clone()),
+                )
+            })
+            .transpose()?;
+        if source_node.zip(source_port).is_some_and(|(node, port)| {
+            nodes[usize::from(node.0)].outputs[usize::from(port.0)].value_kind
                 != connection.value_kind
-        {
+        }) || sink_node.zip(sink_port).is_some_and(|(node, port)| {
+            nodes[usize::from(node.0)].inputs[usize::from(port.0)].value_kind
+                != connection.value_kind
+        }) {
             return Err(LoweringError::ConnectionValueKindMismatch(
                 connection.connection_id.clone(),
             ));
@@ -604,27 +647,116 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         value_bytes = value_bytes
             .checked_add(connection.byte_capacity)
             .ok_or(LoweringError::CapacityOverflow)?;
-        let sink_slot =
-            &mut node_specs[usize::from(sink_node.0)].input_cords[usize::from(sink_port.0)];
-        if sink_slot.is_some() {
-            return Err(LoweringError::MultipleConnectionsToInput {
-                placement_id: connection.sink_placement_id.clone(),
-                port_id: connection.sink_port_id.clone(),
-            });
+        if let Some((sink_node, sink_port)) = sink_node.zip(sink_port) {
+            let sink_slot =
+                &mut node_specs[usize::from(sink_node.0)].input_cords[usize::from(sink_port.0)];
+            if sink_slot.is_some() {
+                return Err(LoweringError::MultipleConnectionsToInput {
+                    placement_id: connection.sink_placement_id.clone(),
+                    port_id: connection.sink_port_id.clone(),
+                });
+            }
+            *sink_slot = Some(cord);
         }
-        *sink_slot = Some(cord);
+        let spec = match (source_node.zip(source_port), sink_node.zip(sink_port)) {
+            (Some((source_node, source_port)), Some((sink_node, sink_port))) => {
+                if connection.provider != ConnectionProvider::Local
+                    || connection.link_binding.is_some()
+                {
+                    return Err(LoweringError::InvalidRemoteConnection(
+                        connection.connection_id.clone(),
+                    ));
+                }
+                CordSpec::local(
+                    cord,
+                    (source_node, source_port),
+                    (sink_node, sink_port),
+                    CordCapacity {
+                        slot_start,
+                        item_capacity: connection.item_capacity,
+                        byte_capacity: connection.byte_capacity,
+                    },
+                )
+            }
+            (Some((source_node, source_port)), None) => {
+                let binding = connection.link_binding.as_ref().ok_or_else(|| {
+                    LoweringError::InvalidRemoteConnection(connection.connection_id.clone())
+                })?;
+                if connection.provider == ConnectionProvider::Local
+                    || binding.provider != connection.provider
+                    || binding.source.host_id != fragment.host_id
+                    || binding.source.boot_id != fragment.boot_id
+                {
+                    return Err(LoweringError::InvalidRemoteConnection(
+                        connection.connection_id.clone(),
+                    ));
+                }
+                let endpoint = RemoteEndpointId(as_u16(remote_endpoints.len())?);
+                remote_endpoints.push(LoweredRemoteEndpoint {
+                    endpoint,
+                    cord,
+                    connection_id: connection.connection_id.clone(),
+                    direction: RemoteCordDirection::Egress,
+                    local: binding.source.clone(),
+                    peer: binding.sink.clone(),
+                    value_kind: connection.value_kind.clone(),
+                    binding: binding.clone(),
+                });
+                CordSpec::remote_egress(
+                    cord,
+                    (source_node, source_port),
+                    endpoint,
+                    CordCapacity {
+                        slot_start,
+                        item_capacity: connection.item_capacity,
+                        byte_capacity: connection.byte_capacity,
+                    },
+                )
+            }
+            (None, Some((sink_node, sink_port))) => {
+                let binding = connection.link_binding.as_ref().ok_or_else(|| {
+                    LoweringError::InvalidRemoteConnection(connection.connection_id.clone())
+                })?;
+                if connection.provider == ConnectionProvider::Local
+                    || binding.provider != connection.provider
+                    || binding.sink.host_id != fragment.host_id
+                    || binding.sink.boot_id != fragment.boot_id
+                {
+                    return Err(LoweringError::InvalidRemoteConnection(
+                        connection.connection_id.clone(),
+                    ));
+                }
+                let endpoint = RemoteEndpointId(as_u16(remote_endpoints.len())?);
+                remote_endpoints.push(LoweredRemoteEndpoint {
+                    endpoint,
+                    cord,
+                    connection_id: connection.connection_id.clone(),
+                    direction: RemoteCordDirection::Ingress,
+                    local: binding.sink.clone(),
+                    peer: binding.source.clone(),
+                    value_kind: connection.value_kind.clone(),
+                    binding: binding.clone(),
+                });
+                CordSpec::remote_ingress(
+                    cord,
+                    endpoint,
+                    (sink_node, sink_port),
+                    CordCapacity {
+                        slot_start,
+                        item_capacity: connection.item_capacity,
+                        byte_capacity: connection.byte_capacity,
+                    },
+                )
+            }
+            (None, None) => {
+                return Err(LoweringError::UnknownConnectionEndpoint(
+                    connection.connection_id.clone(),
+                ));
+            }
+        };
         cords.push(LoweredCord {
             connection_id: connection.connection_id.clone(),
-            spec: CordSpec {
-                cord,
-                source_node,
-                source_port,
-                sink_node,
-                sink_port,
-                slot_start,
-                item_capacity: connection.item_capacity,
-                byte_capacity: connection.byte_capacity,
-            },
+            spec,
         });
     }
 
@@ -709,6 +841,10 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
                 .iter()
                 .map(|cord| (cord.spec.cord, cord.connection_id.clone()))
                 .collect(),
+            remote_endpoints: remote_endpoints
+                .iter()
+                .map(|item| (item.endpoint, item.connection_id.clone()))
+                .collect(),
             host_operations: host_operations
                 .iter()
                 .map(|item| (item.node, item.operation, item.contract_id.clone()))
@@ -727,6 +863,7 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         nodes,
         node_specs,
         cords,
+        remote_endpoints,
         routes,
         host_operations,
         resources,
@@ -782,14 +919,15 @@ fn find_port(ports: &[LoweredPort], id: &PlanPortId) -> Option<PortId> {
 fn lower_routes(cords: &[LoweredCord]) -> Result<Vec<LoweredRoute>, LoweringError> {
     let mut grouped = BTreeMap::<(NodeId, PortId), Vec<RouteTarget>>::new();
     for cord in cords {
-        grouped
-            .entry((cord.spec.source_node, cord.spec.source_port))
-            .or_default()
-            .push(RouteTarget {
-                cord: cord.spec.cord,
-                sink_node: cord.spec.sink_node,
-                sink_port: cord.spec.sink_port,
-            });
+        if let Some((source_node, source_port)) = cord.spec.source_local() {
+            grouped
+                .entry((source_node, source_port))
+                .or_default()
+                .push(RouteTarget {
+                    cord: cord.spec.cord,
+                    sink: cord.spec.sink,
+                });
+        }
     }
     let mut next_target = 0u16;
     grouped
