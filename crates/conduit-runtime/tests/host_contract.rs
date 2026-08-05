@@ -20,7 +20,7 @@ use conduit_runtime::{
     HostRuntime, ImplementationFailure, ImplementationRegistry, OperationAction,
     OperationCompletion, OperationImplementation, OperationState,
 };
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 const SOURCE_KIND: &str = "contract/source";
 const SINK_KIND: &str = "contract/sink";
@@ -512,21 +512,38 @@ fn planned_evidence_storage_survives_observation_overflow() {
     assert!(allocated_item_slots >= u32::from(fragment.evidence_storage_budget.item_capacity));
 
     let activated = runtime.handle(HostCommand::Activate(plan_id));
-    let (plan_id, placement_id, value) = activated
+    let (plan_id, active_play_id, presentation_id, placement_id, value) = activated
         .effects
         .into_iter()
         .find_map(|effect| match effect {
             PlatformEffect::PresentValue {
                 plan_id,
+                active_play_id,
+                presentation_id,
                 placement_id,
                 value,
                 ..
-            } => Some((plan_id, placement_id, value)),
+            } => Some((
+                plan_id,
+                active_play_id,
+                presentation_id,
+                placement_id,
+                value,
+            )),
             _ => None,
         })
         .expect("presentation effect exists");
+    assert!(activated.events.iter().any(|event| matches!(
+        event,
+        HostEvent::Activated {
+            active_play_id: activated_id,
+            ..
+        } if activated_id == &active_play_id
+    )));
     runtime.handle(HostCommand::CompletePresentation {
         plan_id,
+        active_play_id,
+        presentation_id,
         placement_id,
         value,
         success: true,
@@ -1258,21 +1275,50 @@ fn fake_adapter_failure_is_structured_and_terminal() {
     let mut runtime = HostRuntime::new(advertisement, registry(), 128);
     runtime.handle(HostCommand::Prepare(fragment));
     let activated = runtime.handle(HostCommand::Activate(plan_id));
-    let (plan_id, placement_id, value) = activated
+    let (plan_id, active_play_id, presentation_id, placement_id, value) = activated
         .effects
         .into_iter()
         .find_map(|effect| match effect {
             PlatformEffect::PresentValue {
                 plan_id,
+                active_play_id,
+                presentation_id,
                 placement_id,
                 value,
                 ..
-            } => Some((plan_id, placement_id, value)),
+            } => Some((
+                plan_id,
+                active_play_id,
+                presentation_id,
+                placement_id,
+                value,
+            )),
             _ => None,
         })
         .expect("presentation effect exists");
+    assert_ne!(active_play_id.as_str(), plan_id.as_str());
+    assert_ne!(presentation_id.as_str(), plan_id.as_str());
+    assert_ne!(presentation_id.as_str(), active_play_id.as_str());
+    let wrong_identity = runtime.handle(HostCommand::CompletePresentation {
+        plan_id: plan_id.clone(),
+        active_play_id: active_play_id.clone(),
+        presentation_id: conduit_core::PresentationId::from("wrong-presentation"),
+        placement_id: placement_id.clone(),
+        value: value.clone(),
+        success: false,
+        message: Some("must not consume the pending presentation".to_string()),
+    });
+    assert!(wrong_identity.events.iter().any(|event| matches!(
+        event,
+        HostEvent::CommandRejected {
+            reason: FailureReason::LatePlatformCompletion,
+            ..
+        }
+    )));
     let failed = runtime.handle(HostCommand::CompletePresentation {
         plan_id,
+        active_play_id: active_play_id.clone(),
+        presentation_id: presentation_id.clone(),
         placement_id,
         value,
         success: false,
@@ -1285,6 +1331,19 @@ fn fake_adapter_failure_is_structured_and_terminal() {
             ..
         }
     )));
+    let evidence = observations(&mut runtime);
+    assert!(evidence.iter().any(|observation| {
+        observation.active_play_id.as_ref() == Some(&active_play_id)
+            && observation.presentation_id.as_ref() == Some(&presentation_id)
+    }));
+    assert_eq!(
+        evidence
+            .iter()
+            .map(|observation| observation.evidence_id.clone())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        evidence.len()
+    );
     assert!(failed.events.iter().any(|event| matches!(
         event,
         HostEvent::PlanTerminated {
@@ -1926,10 +1985,18 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
         .find_map(|effect| match effect {
             PlatformEffect::PresentValue {
                 plan_id,
+                active_play_id,
+                presentation_id,
                 placement_id,
                 value,
                 ..
-            } => Some((plan_id.clone(), placement_id.clone(), value.clone())),
+            } => Some((
+                plan_id.clone(),
+                active_play_id.clone(),
+                presentation_id.clone(),
+                placement_id.clone(),
+                value.clone(),
+            )),
             _ => None,
         })
         .expect("wait completion reaches presentation adapter");
@@ -1937,8 +2004,10 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
     assert!(adapter.saw_presentation);
     let oversized = local_runtime.handle(HostCommand::CompletePresentation {
         plan_id: presentation.0.clone(),
-        placement_id: presentation.1.clone(),
-        value: presentation.2.clone(),
+        active_play_id: presentation.1.clone(),
+        presentation_id: presentation.2.clone(),
+        placement_id: presentation.3.clone(),
+        value: presentation.4.clone(),
         success: false,
         message: Some(
             "x".repeat(
@@ -1956,8 +2025,10 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
     )));
     let failed = local_runtime.handle(HostCommand::CompletePresentation {
         plan_id: presentation.0,
-        placement_id: presentation.1,
-        value: presentation.2,
+        active_play_id: presentation.1,
+        presentation_id: presentation.2,
+        placement_id: presentation.3,
+        value: presentation.4,
         success: false,
         message: Some("injected adapter failure".into()),
     });

@@ -62,6 +62,9 @@ identity_type!(SourceDocumentId);
 identity_type!(CheckedFormId);
 identity_type!(ExpandedFormId);
 identity_type!(PlanId);
+identity_type!(ActivePlayId);
+identity_type!(EvidenceId);
+identity_type!(PresentationId);
 identity_type!(FragmentId);
 identity_type!(PlacementId);
 identity_type!(ConnectionId);
@@ -94,6 +97,95 @@ pub struct FormIdentity {
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ActivePlayIdentity {
+    pub active_play_id: ActivePlayId,
+    pub plan_id: PlanId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub activation_sequence: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EvidenceIdentity {
+    pub evidence_id: EvidenceId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub active_play_id: Option<ActivePlayId>,
+    pub sequence: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PresentationIdentity {
+    pub presentation_id: PresentationId,
+    pub active_play_id: ActivePlayId,
+    pub placement_id: PlacementId,
+    pub sequence: u64,
+}
+
+pub fn bind_active_play(
+    plan_id: &PlanId,
+    host_id: &HostId,
+    boot_id: &BootId,
+    activation_sequence: u64,
+) -> ActivePlayIdentity {
+    let mut canonical = Vec::new();
+    push_string(&mut canonical, "active-play");
+    push_string(&mut canonical, plan_id.as_str());
+    push_string(&mut canonical, host_id.as_str());
+    push_string(&mut canonical, boot_id.as_str());
+    push_u64(&mut canonical, activation_sequence);
+    ActivePlayIdentity {
+        active_play_id: ActivePlayId::from(hash_bytes(&canonical)),
+        plan_id: plan_id.clone(),
+        host_id: host_id.clone(),
+        boot_id: boot_id.clone(),
+        activation_sequence,
+    }
+}
+
+pub fn bind_evidence(
+    host_id: &HostId,
+    boot_id: &BootId,
+    active_play_id: Option<&ActivePlayId>,
+    sequence: u64,
+) -> EvidenceIdentity {
+    let mut canonical = Vec::new();
+    push_string(&mut canonical, "evidence");
+    push_string(&mut canonical, host_id.as_str());
+    push_string(&mut canonical, boot_id.as_str());
+    push_string(
+        &mut canonical,
+        active_play_id.map_or("no-active-play", ActivePlayId::as_str),
+    );
+    push_u64(&mut canonical, sequence);
+    EvidenceIdentity {
+        evidence_id: EvidenceId::from(hash_bytes(&canonical)),
+        host_id: host_id.clone(),
+        boot_id: boot_id.clone(),
+        active_play_id: active_play_id.cloned(),
+        sequence,
+    }
+}
+
+pub fn bind_presentation(
+    active_play_id: &ActivePlayId,
+    placement_id: &PlacementId,
+    sequence: u64,
+) -> PresentationIdentity {
+    let mut canonical = Vec::new();
+    push_string(&mut canonical, "presentation");
+    push_string(&mut canonical, active_play_id.as_str());
+    push_string(&mut canonical, placement_id.as_str());
+    push_u64(&mut canonical, sequence);
+    PresentationIdentity {
+        presentation_id: PresentationId::from(hash_bytes(&canonical)),
+        active_play_id: active_play_id.clone(),
+        placement_id: placement_id.clone(),
+        sequence,
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -937,6 +1029,9 @@ pub struct ConnectionTerminalDisposition {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Observation {
+    pub evidence_id: EvidenceId,
+    pub active_play_id: Option<ActivePlayId>,
+    pub presentation_id: Option<PresentationId>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub plan_id: Option<PlanId>,
@@ -997,6 +1092,8 @@ pub enum HostCommand {
     },
     CompletePresentation {
         plan_id: PlanId,
+        active_play_id: ActivePlayId,
+        presentation_id: PresentationId,
         placement_id: PlacementId,
         value: ValuePayload,
         success: bool,
@@ -1030,6 +1127,7 @@ pub enum HostEvent {
     },
     Activated {
         plan_id: PlanId,
+        active_play_id: ActivePlayId,
     },
     ActivationRejected {
         plan_id: PlanId,
@@ -1043,6 +1141,8 @@ pub enum HostEvent {
     },
     PresentValueRequested {
         plan_id: PlanId,
+        active_play_id: ActivePlayId,
+        presentation_id: PresentationId,
         placement_id: PlacementId,
         presentation_kind: KindId,
         value: ValuePayload,
@@ -1064,11 +1164,15 @@ pub enum HostEvent {
     },
     ManifestationCompleted {
         plan_id: PlanId,
+        active_play_id: ActivePlayId,
+        presentation_id: PresentationId,
         placement_id: PlacementId,
         value: ValuePayload,
     },
     ManifestationFailed {
         plan_id: PlanId,
+        active_play_id: ActivePlayId,
+        presentation_id: PresentationId,
         placement_id: PlacementId,
         value: ValuePayload,
         reason: FailureReason,
@@ -1127,6 +1231,8 @@ pub enum PlatformEffect {
     },
     PresentValue {
         plan_id: PlanId,
+        active_play_id: ActivePlayId,
+        presentation_id: PresentationId,
         placement_id: PlacementId,
         presentation_kind: KindId,
         value: ValuePayload,
@@ -1293,8 +1399,8 @@ mod tests {
     use alloc::vec;
 
     use super::{
-        mandatory_evidence_storage_requirement, EvidenceStorageBudget, ExpectedEvidence,
-        PlacementId,
+        bind_active_play, bind_evidence, bind_presentation, mandatory_evidence_storage_requirement,
+        BootId, EvidenceStorageBudget, ExpectedEvidence, HostId, PlacementId, PlanId,
     };
 
     #[test]
@@ -1310,6 +1416,39 @@ mod tests {
                 item_capacity: 3,
                 byte_capacity: 6,
             })
+        );
+    }
+
+    #[test]
+    fn execution_identity_chain_keeps_plan_play_evidence_and_presentation_distinct() {
+        let plan_id = PlanId::from("plan/exact");
+        let host_id = HostId::from("host/exact");
+        let boot_id = BootId::from("boot/exact");
+        let active = bind_active_play(&plan_id, &host_id, &boot_id, 7);
+        let evidence = bind_evidence(&host_id, &boot_id, Some(&active.active_play_id), 11);
+        let presentation = bind_presentation(
+            &active.active_play_id,
+            &PlacementId::from("placement/show"),
+            3,
+        );
+
+        assert_eq!(active.plan_id, plan_id);
+        assert_eq!(evidence.active_play_id, Some(active.active_play_id.clone()));
+        assert_eq!(presentation.active_play_id, active.active_play_id);
+        assert_ne!(active.active_play_id.as_str(), plan_id.as_str());
+        assert_ne!(evidence.evidence_id.as_str(), plan_id.as_str());
+        assert_ne!(presentation.presentation_id.as_str(), plan_id.as_str());
+        assert_ne!(
+            evidence.evidence_id.as_str(),
+            presentation.presentation_id.as_str()
+        );
+        assert_ne!(
+            bind_active_play(&plan_id, &host_id, &boot_id, 8).active_play_id,
+            active.active_play_id
+        );
+        assert_ne!(
+            bind_active_play(&plan_id, &host_id, &BootId::from("boot/restarted"), 7).active_play_id,
+            active.active_play_id
         );
     }
 }

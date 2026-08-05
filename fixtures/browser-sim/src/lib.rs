@@ -120,6 +120,8 @@ impl BrowserSim {
     fn complete_dom_presentation(
         &mut self,
         plan_id: conduit_core::PlanId,
+        active_play_id: conduit_core::ActivePlayId,
+        presentation_id: conduit_core::PresentationId,
         placement_id: PlacementId,
         value: conduit_core::ValuePayload,
     ) -> Result<RuntimeOutput, String> {
@@ -138,6 +140,8 @@ impl BrowserSim {
         });
         Ok(self.handle(HostCommand::CompletePresentation {
             plan_id,
+            active_play_id,
+            presentation_id,
             placement_id,
             value,
             success: true,
@@ -398,6 +402,8 @@ impl BrowserSimPage {
             }
             PlatformEffect::PresentValue {
                 plan_id,
+                active_play_id,
+                presentation_id,
                 placement_id,
                 presentation_kind,
                 value,
@@ -410,6 +416,8 @@ impl BrowserSimPage {
                 }
                 let output = self.host_mut(host_id)?.complete_dom_presentation(
                     plan_id,
+                    active_play_id,
+                    presentation_id,
                     placement_id,
                     value,
                 )?;
@@ -481,6 +489,7 @@ impl BrowserSimPage {
                     plan_id,
                     placement_id,
                     value,
+                    ..
                 } => {
                     if let Some((source_host_id, connection_id)) = self
                         .delivery_ack_routes
@@ -1261,6 +1270,8 @@ mod tests {
             }
             PlatformEffect::PresentValue {
                 plan_id,
+                active_play_id,
+                presentation_id,
                 placement_id,
                 presentation_kind,
                 value,
@@ -1277,6 +1288,8 @@ mod tests {
                 });
                 let output = std_host.handle(HostCommand::CompletePresentation {
                     plan_id,
+                    active_play_id,
+                    presentation_id,
                     placement_id,
                     value,
                     success: true,
@@ -1373,6 +1386,8 @@ mod tests {
         match effect {
             PlatformEffect::PresentValue {
                 plan_id,
+                active_play_id,
+                presentation_id,
                 placement_id,
                 presentation_kind,
                 value,
@@ -1389,7 +1404,13 @@ mod tests {
                 let output = page
                     .host_mut(host_id)
                     .expect("browser simulation exists")
-                    .complete_dom_presentation(plan_id.clone(), placement_id, value)
+                    .complete_dom_presentation(
+                        plan_id.clone(),
+                        active_play_id,
+                        presentation_id,
+                        placement_id,
+                        value,
+                    )
                     .expect("browser presentation completes");
                 let delivered = std_host.handle(HostCommand::CompleteConnectionDelivery {
                     plan_id,
@@ -1428,6 +1449,8 @@ mod tests {
         match effect {
             PlatformEffect::PresentValue {
                 plan_id,
+                active_play_id,
+                presentation_id,
                 placement_id,
                 presentation_kind,
                 value,
@@ -1442,7 +1465,13 @@ mod tests {
                     .cloned()
                     .expect("pico sink connection exists");
                 let output = pico
-                    .complete_led_presentation(plan_id.clone(), placement_id, value)
+                    .complete_led_presentation(
+                        plan_id.clone(),
+                        active_play_id,
+                        presentation_id,
+                        placement_id,
+                        value,
+                    )
                     .expect("pico led presentation completes");
                 let delivered = std_host.handle(HostCommand::CompleteConnectionDelivery {
                     plan_id,
@@ -1629,6 +1658,8 @@ mod tests {
         match effect {
             PlatformEffect::PresentValue {
                 plan_id,
+                active_play_id,
+                presentation_id,
                 placement_id,
                 presentation_kind,
                 value,
@@ -1640,7 +1671,13 @@ mod tests {
                 let output = page
                     .host_mut(host_id)
                     .expect("browser simulation exists")
-                    .complete_dom_presentation(plan_id, placement_id, value)
+                    .complete_dom_presentation(
+                        plan_id,
+                        active_play_id,
+                        presentation_id,
+                        placement_id,
+                        value,
+                    )
                     .expect("browser presentation completes");
                 let mut pending = output
                     .effects
@@ -1652,6 +1689,7 @@ mod tests {
                         plan_id,
                         placement_id,
                         value,
+                        ..
                     } = event
                     {
                         let (source_host_id, connection_id) = page

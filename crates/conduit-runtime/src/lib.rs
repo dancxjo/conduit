@@ -1,11 +1,12 @@
 use conduit_core::{
-    mandatory_evidence_storage_requirement, verify_plan_fragment, BoundedQueue, CancellationPolicy,
-    CancellationReason, ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider,
+    bind_active_play, bind_evidence, bind_presentation, mandatory_evidence_storage_requirement,
+    verify_plan_fragment, ActivePlayId, BoundedQueue, CancellationPolicy, CancellationReason,
+    ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider,
     ConnectionTerminalDisposition, EvidenceStorageBudget, ExpectedEvidence, ExpectedTerminal,
     FailureReason, HostAdvertisement, HostCommand, HostEvent, MandatoryEvidenceReport, Observation,
     ObservationKind, PlacementId, PlacementLifecycleState, PlanFragment, PlanId, PlannedConnection,
-    PlannedOperation, PlatformEffect, StartupDependency, TerminalDisposition, TerminalPolicy,
-    ValuePayload, PROTOCOL_VERSION,
+    PlannedOperation, PlatformEffect, PresentationId, StartupDependency, TerminalDisposition,
+    TerminalPolicy, ValuePayload, PROTOCOL_VERSION,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -170,6 +171,8 @@ pub struct HostRuntime {
     implementations: ImplementationRegistry,
     authority_grants: Vec<conduit_core::AuthorityGrant>,
     link_bindings: Vec<conduit_core::LinkBinding>,
+    next_active_play_sequence: u64,
+    next_evidence_sequence: u64,
 }
 
 impl core::fmt::Debug for HostRuntime {
@@ -195,6 +198,7 @@ struct RuntimePlan {
     state: PlanState,
     terminal: Option<TerminalDisposition>,
     terminal_emitted: bool,
+    active_play_id: Option<ActivePlayId>,
 }
 
 #[derive(Debug)]
@@ -285,6 +289,8 @@ struct RuntimePlacement {
     effect_issued: bool,
     pending_input_connection: Option<ConnectionId>,
     inputs_closed_notified: bool,
+    pending_presentation_id: Option<PresentationId>,
+    next_presentation_sequence: u64,
 }
 
 #[derive(Debug)]
@@ -309,6 +315,15 @@ struct RuntimeConnection {
 struct QueuedValue {
     sequence: u64,
     value: ValuePayload,
+}
+
+struct PresentationCompletion {
+    active_play_id: ActivePlayId,
+    presentation_id: PresentationId,
+    placement_id: PlacementId,
+    value: ValuePayload,
+    success: bool,
+    message: Option<String>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -692,6 +707,8 @@ impl HostRuntime {
             implementations,
             authority_grants,
             link_bindings,
+            next_active_play_sequence: 0,
+            next_evidence_sequence: 0,
         };
         runtime.record_observation(None, None, None, ObservationKind::HostStarted);
         runtime.record_observation(None, None, None, ObservationKind::AdvertisementPublished);
@@ -721,11 +738,23 @@ impl HostRuntime {
             } => self.complete_wait(&plan_id, &placement_id),
             HostCommand::CompletePresentation {
                 plan_id,
+                active_play_id,
+                presentation_id,
                 placement_id,
                 value,
                 success,
                 message,
-            } => self.complete_presentation(&plan_id, &placement_id, value, success, message),
+            } => self.complete_presentation(
+                &plan_id,
+                PresentationCompletion {
+                    active_play_id,
+                    presentation_id,
+                    placement_id,
+                    value,
+                    success,
+                    message,
+                },
+            ),
             HostCommand::AcceptConnectionEnvelope(envelope) => {
                 self.accept_connection_envelope(envelope)
             }
@@ -1242,6 +1271,8 @@ impl HostRuntime {
                     effect_issued: false,
                     pending_input_connection: None,
                     inputs_closed_notified: false,
+                    pending_presentation_id: None,
+                    next_presentation_sequence: 0,
                 },
             );
         }
@@ -1400,6 +1431,7 @@ impl HostRuntime {
                 state: PlanState::Prepared,
                 terminal: None,
                 terminal_emitted: false,
+                active_play_id: None,
             },
         );
         self.record_observation(
@@ -1447,6 +1479,22 @@ impl HostRuntime {
             });
             return output;
         }
+        let Some(next_active_play_sequence) = self.next_active_play_sequence.checked_add(1) else {
+            output.events.push(HostEvent::ActivationRejected {
+                plan_id: plan_id.clone(),
+                reason: FailureReason::InvalidLifecycleCommand,
+                message: Some("active-play identity sequence exhausted".to_string()),
+            });
+            return output;
+        };
+        let active_play = bind_active_play(
+            plan_id,
+            &self.advertisement.host_id,
+            &self.advertisement.boot_id,
+            self.next_active_play_sequence,
+        );
+        self.next_active_play_sequence = next_active_play_sequence;
+        plan.active_play_id = Some(active_play.active_play_id.clone());
         plan.state = PlanState::Active;
         for placement_id in &plan.fragment.startup_order {
             if let Some(placement) = plan.placements.get_mut(placement_id) {
@@ -1463,6 +1511,7 @@ impl HostRuntime {
         );
         output.events.push(HostEvent::Activated {
             plan_id: plan_id.clone(),
+            active_play_id: active_play.active_play_id,
         });
         self.pump(plan_id, &mut output);
         output
@@ -1519,11 +1568,16 @@ impl HostRuntime {
     fn complete_presentation(
         &mut self,
         plan_id: &PlanId,
-        placement_id: &PlacementId,
-        value: ValuePayload,
-        success: bool,
-        message: Option<String>,
+        completion: PresentationCompletion,
     ) -> RuntimeOutput {
+        let PresentationCompletion {
+            active_play_id,
+            presentation_id,
+            placement_id,
+            value,
+            success,
+            message,
+        } = completion;
         let mut output = RuntimeOutput::default();
         if self.released_plans.contains(plan_id) {
             output.events.push(HostEvent::CommandRejected {
@@ -1546,7 +1600,14 @@ impl HostRuntime {
             });
             return output;
         }
-        let Some(placement) = plan.placements.get_mut(placement_id) else {
+        if plan.active_play_id.as_ref() != Some(&active_play_id) {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::LatePlatformCompletion,
+            });
+            return output;
+        }
+        let Some(placement) = plan.placements.get_mut(&placement_id) else {
             output.events.push(HostEvent::CommandRejected {
                 plan_id: Some(plan_id.clone()),
                 reason: FailureReason::InvalidLifecycleCommand,
@@ -1564,7 +1625,10 @@ impl HostRuntime {
             OperationAction::Present {
                 presentation_kind,
                 value: action_value,
-            } if placement.effect_issued && action_value == &value => {
+            } if placement.effect_issued
+                && action_value == &value
+                && placement.pending_presentation_id.as_ref() == Some(&presentation_id) =>
+            {
                 (action_value.clone(), presentation_kind)
             }
             _ => {
@@ -1603,12 +1667,16 @@ impl HostRuntime {
             }
             output.events.push(HostEvent::ManifestationCompleted {
                 plan_id: plan_id.clone(),
+                active_play_id: active_play_id.clone(),
+                presentation_id: presentation_id.clone(),
                 placement_id: placement_id.clone(),
                 value: presented_value.clone(),
             });
         } else {
             output.events.push(HostEvent::ManifestationFailed {
                 plan_id: plan_id.clone(),
+                active_play_id: active_play_id.clone(),
+                presentation_id: presentation_id.clone(),
                 placement_id: placement_id.clone(),
                 value: presented_value.clone(),
                 reason: FailureReason::ManifestationFailed,
@@ -1619,14 +1687,27 @@ impl HostRuntime {
             .implementation_state
             .resume(OperationCompletion::PresentationCompleted { success, message });
         placement.effect_issued = false;
+        placement.pending_presentation_id = None;
         let _ = plan;
         if success {
-            self.record_observation(
+            self.record_presentation_observation(
                 Some(plan_id.clone()),
                 Some(placement_id.clone()),
                 None,
+                presentation_id.clone(),
                 ObservationKind::ValuePresented {
                     value: presented_value,
+                },
+            );
+        } else {
+            self.record_presentation_observation(
+                Some(plan_id.clone()),
+                Some(placement_id.clone()),
+                None,
+                presentation_id.clone(),
+                ObservationKind::Failure {
+                    reason: FailureReason::ManifestationFailed,
+                    message: Some("presentation completion reported failure".to_string()),
                 },
             );
         }
@@ -2068,25 +2149,68 @@ impl HostRuntime {
                         presentation_kind,
                         value,
                     } => {
+                        if plan
+                            .placements
+                            .get(&placement_id)
+                            .expect("placement exists")
+                            .effect_issued
+                        {
+                            continue;
+                        }
+                        let active_play_id = plan
+                            .active_play_id
+                            .clone()
+                            .expect("only an active play is pumped");
+                        let presentation_sequence = plan
+                            .placements
+                            .get(&placement_id)
+                            .expect("placement exists")
+                            .next_presentation_sequence;
+                        let Some(next_presentation_sequence) = presentation_sequence.checked_add(1)
+                        else {
+                            fail_operation(
+                                plan,
+                                &placement_id,
+                                ImplementationFailure::new(
+                                    FailureReason::InvalidLifecycleCommand,
+                                    "presentation identity sequence exhausted",
+                                ),
+                                &mut pending_observations,
+                                &mut pending_terminal_events,
+                                plan_id,
+                            );
+                            changed = true;
+                            continue;
+                        };
+                        let presentation = bind_presentation(
+                            &active_play_id,
+                            &placement_id,
+                            presentation_sequence,
+                        );
                         let placement = plan
                             .placements
                             .get_mut(&placement_id)
                             .expect("placement exists");
-                        if !placement.effect_issued {
-                            placement.effect_issued = true;
-                            output.events.push(HostEvent::PresentValueRequested {
-                                plan_id: plan_id.clone(),
-                                placement_id: placement_id.clone(),
-                                presentation_kind: presentation_kind.clone(),
-                                value: value.clone(),
-                            });
-                            output.effects.push(PlatformEffect::PresentValue {
-                                plan_id: plan_id.clone(),
-                                placement_id: placement_id.clone(),
-                                presentation_kind,
-                                value,
-                            });
-                        }
+                        placement.effect_issued = true;
+                        placement.pending_presentation_id =
+                            Some(presentation.presentation_id.clone());
+                        placement.next_presentation_sequence = next_presentation_sequence;
+                        output.events.push(HostEvent::PresentValueRequested {
+                            plan_id: plan_id.clone(),
+                            active_play_id: active_play_id.clone(),
+                            presentation_id: presentation.presentation_id.clone(),
+                            placement_id: placement_id.clone(),
+                            presentation_kind: presentation_kind.clone(),
+                            value: value.clone(),
+                        });
+                        output.effects.push(PlatformEffect::PresentValue {
+                            plan_id: plan_id.clone(),
+                            active_play_id,
+                            presentation_id: presentation.presentation_id,
+                            placement_id: placement_id.clone(),
+                            presentation_kind,
+                            value,
+                        });
                     }
                     OperationAction::Emit(value) => {
                         let outgoing = outgoing_connections(&placement_id, &plan.connections);
@@ -2397,6 +2521,34 @@ impl HostRuntime {
         connection_id: Option<ConnectionId>,
         kind: ObservationKind,
     ) {
+        self.record_observation_with_presentation(plan_id, placement_id, connection_id, None, kind);
+    }
+
+    fn record_presentation_observation(
+        &mut self,
+        plan_id: Option<PlanId>,
+        placement_id: Option<PlacementId>,
+        connection_id: Option<ConnectionId>,
+        presentation_id: PresentationId,
+        kind: ObservationKind,
+    ) {
+        self.record_observation_with_presentation(
+            plan_id,
+            placement_id,
+            connection_id,
+            Some(presentation_id),
+            kind,
+        );
+    }
+
+    fn record_observation_with_presentation(
+        &mut self,
+        plan_id: Option<PlanId>,
+        placement_id: Option<PlacementId>,
+        connection_id: Option<ConnectionId>,
+        presentation_id: Option<PresentationId>,
+        kind: ObservationKind,
+    ) {
         let mandatory_evidence = match (&kind, &placement_id, &connection_id) {
             (ObservationKind::PlanFragmentReceived, _, _) => {
                 Some(ExpectedEvidence::PlanFragmentReceived)
@@ -2422,8 +2574,16 @@ impl HostRuntime {
         if self.observation_limit == 0 {
             return;
         }
+        let active_play_id = plan_id
+            .as_ref()
+            .and_then(|plan_id| self.plans.get(plan_id))
+            .and_then(|plan| plan.active_play_id.clone());
         if self.observations.len() < self.observation_limit {
+            let evidence_id = self.issue_evidence_id(active_play_id.as_ref());
             self.observations.push(Observation {
+                evidence_id,
+                active_play_id,
+                presentation_id,
                 host_id: self.advertisement.host_id.clone(),
                 boot_id: self.advertisement.boot_id.clone(),
                 plan_id,
@@ -2447,7 +2607,11 @@ impl HostRuntime {
         }
         if self.observation_limit == 1 {
             self.observations.clear();
+            let gap_evidence_id = self.issue_evidence_id(None);
             self.observations.push(Observation {
+                evidence_id: gap_evidence_id,
+                active_play_id: None,
+                presentation_id: None,
                 host_id: self.advertisement.host_id.clone(),
                 boot_id: self.advertisement.boot_id.clone(),
                 plan_id: None,
@@ -2461,9 +2625,13 @@ impl HostRuntime {
             self.observations.remove(0);
             dropped += 1;
         }
+        let gap_evidence_id = self.issue_evidence_id(None);
         self.observations.insert(
             0,
             Observation {
+                evidence_id: gap_evidence_id,
+                active_play_id: None,
+                presentation_id: None,
                 host_id: self.advertisement.host_id.clone(),
                 boot_id: self.advertisement.boot_id.clone(),
                 plan_id: None,
@@ -2472,7 +2640,11 @@ impl HostRuntime {
                 kind: ObservationKind::EvidenceGap { dropped },
             },
         );
+        let evidence_id = self.issue_evidence_id(active_play_id.as_ref());
         self.observations.push(Observation {
+            evidence_id,
+            active_play_id,
+            presentation_id,
             host_id: self.advertisement.host_id.clone(),
             boot_id: self.advertisement.boot_id.clone(),
             plan_id,
@@ -2480,6 +2652,23 @@ impl HostRuntime {
             connection_id,
             kind,
         });
+    }
+
+    fn issue_evidence_id(
+        &mut self,
+        active_play_id: Option<&ActivePlayId>,
+    ) -> conduit_core::EvidenceId {
+        let evidence = bind_evidence(
+            &self.advertisement.host_id,
+            &self.advertisement.boot_id,
+            active_play_id,
+            self.next_evidence_sequence,
+        );
+        self.next_evidence_sequence = self
+            .next_evidence_sequence
+            .checked_add(1)
+            .expect("evidence identity sequence exhausted");
+        evidence.evidence_id
     }
 }
 
@@ -3207,6 +3396,8 @@ mod conformance {
                 }),
                 PlatformEffect::PresentValue {
                     plan_id,
+                    active_play_id,
+                    presentation_id,
                     placement_id,
                     value,
                     ..
@@ -3214,6 +3405,8 @@ mod conformance {
                     presented.push(decode_signal(&value).expect("signal payload must decode"));
                     runtime.handle(HostCommand::CompletePresentation {
                         plan_id,
+                        active_play_id,
+                        presentation_id,
                         placement_id,
                         value,
                         success: true,
@@ -3251,6 +3444,8 @@ mod conformance {
                 }),
                 PlatformEffect::PresentValue {
                     plan_id,
+                    active_play_id,
+                    presentation_id,
                     placement_id,
                     value,
                     ..
@@ -3260,6 +3455,8 @@ mod conformance {
                         &placement_id == failed_placement && signal.sequence == failed_sequence;
                     runtime.handle(HostCommand::CompletePresentation {
                         plan_id,
+                        active_play_id,
+                        presentation_id,
                         placement_id,
                         value,
                         success: !fail,
@@ -3474,17 +3671,24 @@ mod conformance {
         let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
         runtime.handle(HostCommand::Prepare(fragment.clone()));
         let output = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
-        let value = output
+        let (active_play_id, presentation_id, value) = output
             .effects
             .into_iter()
             .find_map(|effect| match effect {
-                PlatformEffect::PresentValue { value, .. } => Some(value),
+                PlatformEffect::PresentValue {
+                    active_play_id,
+                    presentation_id,
+                    value,
+                    ..
+                } => Some((active_play_id, presentation_id, value)),
                 _ => None,
             })
             .expect("present effect must exist");
         runtime.handle(HostCommand::Cancel(fragment.plan_id.clone()));
         let late = runtime.handle(HostCommand::CompletePresentation {
             plan_id: fragment.plan_id,
+            active_play_id,
+            presentation_id,
             placement_id: show,
             value,
             success: true,
@@ -3809,6 +4013,8 @@ mod conformance {
             }
             let late = runtime.handle(HostCommand::CompletePresentation {
                 plan_id,
+                active_play_id: conduit_core::ActivePlayId::from("released-play"),
+                presentation_id: conduit_core::PresentationId::from("released-presentation"),
                 placement_id: show,
                 value: encode_signal(&Signal {
                     sequence: 0,

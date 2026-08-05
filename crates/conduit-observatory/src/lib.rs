@@ -3,29 +3,19 @@
 extern crate alloc;
 
 use alloc::collections::{BTreeMap, BTreeSet};
-use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{
-    AuthorityBinding, AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CheckedFormId,
-    ConnectionId, ConnectionProvider, ExecutionProfileId, ExpandedFormId, HostAdvertisement,
-    HostId, HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision,
-    KindId, LinkBinding, Observation, ObservationKind, OfferGeneration, PlacementId, Plan, PlanId,
-    PortDescriptor, ResourceBinding, ResourceOffer, ResourceRequirement, SourceDocumentId,
-    TerminalDisposition,
+    ActivePlayId, AuthorityBinding, AuthorityRequirement, BootId, CapabilityId, CapabilityLimits,
+    CheckedFormId, ConnectionId, ConnectionProvider, EvidenceId, ExecutionProfileId,
+    ExpandedFormId, HostAdvertisement, HostId, HostOperationRequirement, HostProfileId,
+    ImplementationId, KindContractRevision, KindId, LinkBinding, Observation, ObservationKind,
+    OfferGeneration, PlacementId, Plan, PlanId, PortDescriptor, PresentationId, ResourceBinding,
+    ResourceOffer, ResourceRequirement, SourceDocumentId, TerminalDisposition,
 };
 use conduit_realm::{LinkId, LinkState, MembershipState, RealmId, RealmView};
 use core::fmt::Write;
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct EvidenceId(String);
-
-impl EvidenceId {
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OperationalState {
@@ -157,6 +147,8 @@ pub struct ConnectionRow {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EvidenceRow {
     pub evidence_id: EvidenceId,
+    pub active_play_id: Option<ActivePlayId>,
+    pub presentation_id: Option<PresentationId>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub plan_id: Option<PlanId>,
@@ -393,9 +385,10 @@ pub fn build_report(
 
     let evidence = observations
         .iter()
-        .enumerate()
-        .map(|(index, observation)| EvidenceRow {
-            evidence_id: EvidenceId(format!("evidence/{index}")),
+        .map(|observation| EvidenceRow {
+            evidence_id: observation.evidence_id.clone(),
+            active_play_id: observation.active_play_id.clone(),
+            presentation_id: observation.presentation_id.clone(),
             host_id: observation.host_id.clone(),
             boot_id: observation.boot_id.clone(),
             plan_id: observation.plan_id.clone(),
@@ -657,8 +650,18 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for evidence in &report.evidence {
         let _ = writeln!(
             output,
-            "evidence id={} host={} boot={} plan={} placement={} connection={} kind={:?}",
+            "evidence id={} active_play={} presentation={} host={} boot={} plan={} placement={} connection={} kind={:?}",
             evidence.evidence_id.as_str(),
+            evidence
+                .active_play_id
+                .as_ref()
+                .map(ActivePlayId::as_str)
+                .unwrap_or("none"),
+            evidence
+                .presentation_id
+                .as_ref()
+                .map(PresentationId::as_str)
+                .unwrap_or("none"),
             evidence.host_id.as_str(),
             evidence.boot_id.as_str(),
             evidence
@@ -938,6 +941,7 @@ mod tests {
             .all(|row| !row.evidence_id.as_str().is_empty()));
         assert!(report.evidence.iter().any(|row| {
             row.plan_id == Some(report.plans[0].plan_id.clone())
+                && row.active_play_id.is_some()
                 && matches!(row.kind, ObservationKind::PlanActivated)
         }));
         assert!(report.retention.bounded);
@@ -957,7 +961,8 @@ mod tests {
         assert!(rendered.contains("link/std-browser"));
         assert!(rendered.contains("fixture/datagram/std-pico"));
         assert!(rendered.contains("authority: ProcessOwned"));
-        assert!(rendered.contains("evidence id=evidence/"));
+        assert!(rendered.contains("active_play="));
+        assert!(!rendered.contains("evidence id=evidence/"));
     }
 
     #[test]
