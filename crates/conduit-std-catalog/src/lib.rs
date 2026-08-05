@@ -9,8 +9,7 @@ use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, CapabilityLimits, ConfigurationValue, ExecutionProfileId,
     HostOperationRequirement, KindContractRevision, KindId, PortDescriptor, PortDirection,
-    ResourceOffer, ResourceRequirement, INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS,
-    TIMER_RESOURCE_CLASS,
+    ResourceOffer, ResourceRequirement, PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,18 +21,14 @@ pub const TEE_KIND: &str = "flow/tee";
 pub const FORMAT_KIND: &str = "text/format";
 pub const TICK_KIND: &str = "time/tick";
 pub const LATEST_KIND: &str = "state/latest";
-pub const ACTIVATE_KIND: &str = "interaction/activate";
-pub const TOGGLE_KIND: &str = "state/toggle";
 
 pub const SIGNAL_VALUE_KIND: &str = "value/signal";
-pub const ACTIVATION_VALUE_KIND: &str = "value/activation";
 pub const GENERIC_VALUE_KIND: &str = "value/any";
 pub const TEXT_VALUE_KIND: &str = "value/text";
 
 pub const IN_PORT: &str = "in";
 pub const OUT_PORT: &str = "out";
 pub const SIGNAL_PORT: &str = "signal";
-pub const ACTIVATE_PORT: &str = "activate";
 pub const TEXT_PORT: &str = "text";
 pub const TICK_PORT: &str = "tick";
 pub const LEFT_PORT: &str = "left";
@@ -201,42 +196,6 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             pico_manifestation_honest: false,
             example: "latest: state/latest".to_string(),
         },
-        StandardKindContract {
-            kind_id: kind_id(ACTIVATE_KIND),
-            plain_name: "Activate".to_string(),
-            summary: "Emit a bounded sequence of deliberate human activations.".to_string(),
-            inputs: Vec::new(),
-            outputs: vec![port(
-                ACTIVATE_PORT,
-                ACTIVATION_VALUE_KIND,
-                PortDirection::Output,
-            )],
-            configuration: vec![u64_field("count", 16, 0, 4_096)],
-            limits: limits(16, 4, 64),
-            terminal_behavior: TerminalBehavior::CompletesAfterConfiguredCount,
-            hosted_implementation_required: true,
-            browser_manifestation_honest: false,
-            pico_manifestation_honest: false,
-            example: "activate: interaction/activate".to_string(),
-        },
-        StandardKindContract {
-            kind_id: kind_id(TOGGLE_KIND),
-            plain_name: "Toggle".to_string(),
-            summary: "Flip a boolean signal on each received activation.".to_string(),
-            inputs: vec![port(
-                ACTIVATE_PORT,
-                ACTIVATION_VALUE_KIND,
-                PortDirection::Input,
-            )],
-            outputs: vec![port(SIGNAL_PORT, SIGNAL_VALUE_KIND, PortDirection::Output)],
-            configuration: vec![bool_field("initial", false)],
-            limits: limits(16, 4, 64),
-            terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
-            hosted_implementation_required: true,
-            browser_manifestation_honest: false,
-            pico_manifestation_honest: false,
-            example: "toggle: state/toggle".to_string(),
-        },
     ]
 }
 
@@ -378,7 +337,7 @@ pub fn standard_host_operation_requirements(
     maximum_value_bytes: u32,
 ) -> Vec<HostOperationRequirement> {
     match operation_kind.as_str() {
-        PULSE_KIND | TICK_KIND | ACTIVATE_KIND => vec![wait_host_operation_requirement()],
+        PULSE_KIND | TICK_KIND => vec![wait_host_operation_requirement()],
         SHOW_KIND => vec![present_host_operation_requirement(
             kind_id("presentation/stdout"),
             maximum_value_bytes,
@@ -389,9 +348,7 @@ pub fn standard_host_operation_requirements(
 
 pub fn standard_resource_requirements(kind_id: &KindId) -> Vec<ResourceRequirement> {
     match kind_id.as_str() {
-        PULSE_KIND | TICK_KIND | ACTIVATE_KIND => {
-            vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)]
-        }
+        PULSE_KIND | TICK_KIND => vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
         SHOW_KIND => vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
         _ => Vec::new(),
     }
@@ -399,7 +356,6 @@ pub fn standard_resource_requirements(kind_id: &KindId) -> Vec<ResourceRequireme
 
 pub fn standard_resource_offers(capacity_units: u32) -> Vec<ResourceOffer> {
     vec![
-        resource_offer("std-catalog/input", INPUT_RESOURCE_CLASS, capacity_units),
         resource_offer(
             "std-catalog/presentation",
             PRESENTATION_RESOURCE_CLASS,
@@ -433,9 +389,9 @@ fn capability_slug(kind: &str) -> String {
 mod host_profile {
     use super::{
         capability_slug, contract_revision, execution_profile, standard_contracts,
-        standard_host_operation_requirements, standard_resource_requirements, ACTIVATE_KIND,
-        ACTIVATION_VALUE_KIND, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND,
-        PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND, TEE_KIND, TICK_KIND, TOGGLE_KIND,
+        standard_host_operation_requirements, standard_resource_requirements, FILTER_KIND,
+        FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND,
+        SIGNAL_VALUE_KIND, TEE_KIND, TICK_KIND,
     };
     use alloc::boxed::Box;
     use alloc::format;
@@ -547,33 +503,6 @@ mod host_profile {
                     latest: None,
                     output_port: only_output(placement)?,
                 })),
-                ACTIVATE_KIND => Ok(Box::new(ActivateState {
-                    output_port: only_output(placement)?,
-                    next_sequence: 0,
-                    count: u64_config(placement, "count", 16)?,
-                    waiting: false,
-                })),
-                TOGGLE_KIND => {
-                    let initial = bool_config(placement, "initial", false)?;
-                    let input_port = placement
-                        .inputs
-                        .first()
-                        .filter(|_| placement.inputs.len() == 1)
-                        .map(|port| port.port_id.clone())
-                        .ok_or_else(|| {
-                            ImplementationFailure::new(
-                                FailureReason::InvalidOperationConfiguration,
-                                "toggle requires one exact input",
-                            )
-                        })?;
-                    let output_port = only_output(placement)?;
-                    Ok(Box::new(ToggleState {
-                        input_port,
-                        output_port,
-                        level: initial,
-                        expected_sequence: 0,
-                    }))
-                }
                 _ => Err(ImplementationFailure::new(
                     FailureReason::UnsupportedKind,
                     format!("unsupported standard kind '{}'", self.kind_id.as_str()),
@@ -583,7 +512,7 @@ mod host_profile {
 
         fn minimum_value_size(&self, value_kind: &KindId) -> Option<u32> {
             match value_kind.as_str() {
-                SIGNAL_VALUE_KIND | GENERIC_VALUE_KIND | ACTIVATION_VALUE_KIND => Some(8),
+                SIGNAL_VALUE_KIND | GENERIC_VALUE_KIND => Some(8),
                 super::TEXT_VALUE_KIND => Some(1),
                 _ => None,
             }
@@ -905,124 +834,6 @@ mod host_profile {
         number.copy_from_slice(bytes);
         Some(u64::from_le_bytes(number))
     }
-
-    fn bool_config(
-        placement: &PlannedOperation,
-        key: &str,
-        default_value: bool,
-    ) -> Result<bool, ImplementationFailure> {
-        placement
-            .configuration
-            .iter()
-            .find(|entry| entry.key == key)
-            .map_or(Ok(default_value), |entry| match entry.value {
-                ConfigurationValue::Bool(value) => Ok(value),
-                _ => Err(ImplementationFailure::new(
-                    FailureReason::InvalidOperationConfiguration,
-                    format!("configuration '{key}' must be bool"),
-                )),
-            })
-    }
-
-    struct ActivateState {
-        output_port: PortId,
-        next_sequence: u64,
-        count: u64,
-        waiting: bool,
-    }
-
-    impl OperationState for ActivateState {
-        fn start(&mut self) -> OperationAction {
-            if self.next_sequence >= self.count {
-                return OperationAction::Complete;
-            }
-            self.waiting = true;
-            OperationAction::Wait { duration_ms: 0 }
-        }
-
-        fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
-            match completion {
-                OperationCompletion::TimerElapsed if self.waiting => {
-                    self.waiting = false;
-                    if self.next_sequence >= self.count {
-                        return OperationAction::Complete;
-                    }
-                    OperationAction::Emit(alloc::vec![OperationOutput {
-                        port: self.output_port.clone(),
-                        value: number_payload(&kind_id(ACTIVATION_VALUE_KIND), self.next_sequence),
-                    }])
-                }
-                OperationCompletion::Emitted => {
-                    self.next_sequence += 1;
-                    if self.next_sequence >= self.count {
-                        OperationAction::Complete
-                    } else {
-                        self.waiting = true;
-                        OperationAction::Wait { duration_ms: 0 }
-                    }
-                }
-                _ => OperationAction::Fail(ImplementationFailure::new(
-                    FailureReason::InvalidLifecycleCommand,
-                    "activate operation received invalid completion",
-                )),
-            }
-        }
-    }
-
-    struct ToggleState {
-        input_port: PortId,
-        output_port: PortId,
-        level: bool,
-        expected_sequence: u64,
-    }
-
-    impl OperationState for ToggleState {
-        fn start(&mut self) -> OperationAction {
-            OperationAction::Idle
-        }
-
-        fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
-            match completion {
-                OperationCompletion::Value { port, value } if port == self.input_port => {
-                    match decode_number(&value) {
-                        Some(sequence) if sequence == self.expected_sequence => {
-                            self.level = !self.level;
-                            let mut encoded = alloc::vec![0u8; 9];
-                            encoded[..8].copy_from_slice(&self.expected_sequence.to_le_bytes());
-                            encoded[8] = u8::from(self.level);
-                            OperationAction::Emit(alloc::vec![OperationOutput {
-                                port: self.output_port.clone(),
-                                value: ValuePayload {
-                                    value_kind: kind_id(SIGNAL_VALUE_KIND),
-                                    encoded,
-                                },
-                            }])
-                        }
-                        Some(sequence) => OperationAction::Fail(ImplementationFailure::new(
-                            FailureReason::MalformedConnectionEnvelope,
-                            format!(
-                                "expected activation sequence {}, received {sequence}",
-                                self.expected_sequence
-                            ),
-                        )),
-                        None => OperationAction::Fail(ImplementationFailure::new(
-                            FailureReason::UnsupportedValueKind,
-                            "toggle received undecodable activation value",
-                        )),
-                    }
-                }
-                OperationCompletion::Emitted => {
-                    self.expected_sequence += 1;
-                    OperationAction::Idle
-                }
-                OperationCompletion::InputsClosed => OperationAction::Complete,
-                _ => OperationAction::Fail(ImplementationFailure::new(
-                    FailureReason::InvalidLifecycleCommand,
-                    "toggle operation received invalid completion",
-                )),
-            }
-        }
-    }
 }
 
 #[cfg(feature = "host-profile")]
@@ -1037,9 +848,8 @@ mod tests {
         contract_revision, execution_profile, find_contract, standard_contracts,
         standard_host_advertisement, standard_host_operation_requirements,
         standard_profile_catalog, standard_registry, standard_resource_offers,
-        standard_resource_requirements, ACTIVATE_KIND, FILTER_KIND, FORMAT_KIND,
-        GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND,
-        TOGGLE_KIND,
+        standard_resource_requirements, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND,
+        MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND,
     };
     use conduit_core::{
         kind_id, ArtifactId, CapabilityId, CapabilityOffer, ConnectionProvider, HostAdvertisement,
@@ -1067,9 +877,7 @@ mod tests {
                 TEE_KIND,
                 FORMAT_KIND,
                 TICK_KIND,
-                LATEST_KIND,
-                ACTIVATE_KIND,
-                TOGGLE_KIND,
+                LATEST_KIND
             ]
         );
         for contract in &contracts {
