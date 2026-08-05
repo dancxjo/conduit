@@ -164,7 +164,7 @@ pub fn refresh_radio_assets(dry_run: bool) -> PicoResult<()> {
     Ok(())
 }
 
-pub fn uf2_path(root: &PathBuf) -> PathBuf {
+pub fn uf2_path(root: &Path) -> PathBuf {
     root.join("target")
         .join(TARGET)
         .join(PROFILE)
