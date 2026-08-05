@@ -128,7 +128,10 @@ fn resolve_port(args: &PicoArgs) -> PicoResult<PathBuf> {
             .collect::<Vec<_>>();
         return match matches.len() {
             1 => Ok(matches[0].clone()),
-            0 => Err("no Conduit Pico W serial device found; pass --port after connecting the board".into()),
+            0 => Err(
+                "no Conduit Pico W serial device found; pass --port after connecting the board"
+                    .into(),
+            ),
             count => Err(format!(
                 "{count} matching serial devices found under {}; pass --port",
                 by_id.display()
@@ -158,13 +161,19 @@ mod tests {
         for sequence in 0..EXPECTED_RECEIPTS {
             input.push_str(&receipt(sequence));
         }
-        input.push_str("{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":true}\n");
+        input.push_str(
+            "{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":true}\n",
+        );
         verify_receipts(Cursor::new(input)).expect("valid receipt stream");
     }
 
     #[test]
     fn rejects_reordered_receipt() {
-        let input = format!("{}{}", receipt(1), "{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":true}\n");
+        let input = format!(
+            "{}{}",
+            receipt(1),
+            "{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":true}\n"
+        );
         assert!(verify_receipts(Cursor::new(input)).is_err());
     }
 }
