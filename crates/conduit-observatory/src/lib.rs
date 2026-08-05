@@ -644,13 +644,13 @@ mod tests {
         build_report, render_text_report, unsupported_state, CapabilityAvailability,
         CapabilitySupport, OfferFreshness, OperationalState, PlanLifecycle,
     };
-    use conduit_browser_host::{BrowserHostConfig, BrowserPage};
+    use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
     use conduit_core::{
         BootId, CapabilityId, ConnectionProvider, HostCommand, HostId, ObservationKind,
         OfferGeneration, OperationId, TerminalDisposition,
     };
     use conduit_form::parse;
-    use conduit_pico_host::{pico_advertisement, PicoHostConfig};
+    use conduit_pico_sim::{pico_advertisement, PicoSimConfig};
     use conduit_planner::{
         plan_with_connection_limits_and_provider_overrides, PlacementChoice, PlacementChoices,
     };
@@ -665,14 +665,14 @@ mod tests {
             boot_id: BootId::from("std-boot-triple"),
             offer_generation: OfferGeneration(1),
         });
-        let page = BrowserPage::with_hosts([BrowserHostConfig {
-            host_id: HostId::from("browser-host-triple"),
-            boot_id: BootId::from("browser-boot-triple"),
+        let page = BrowserSimPage::with_hosts([BrowserSimConfig {
+            host_id: HostId::from("browser-sim-triple"),
+            boot_id: BootId::from("browser-sim-boot-triple"),
             offer_generation: OfferGeneration(1),
         }]);
-        let pico_ad = pico_advertisement(PicoHostConfig {
-            host_id: HostId::from("pico-host-triple"),
-            boot_id: BootId::from("pico-boot-triple"),
+        let pico_ad = pico_advertisement(PicoSimConfig {
+            host_id: HostId::from("pico-sim-triple"),
+            boot_id: BootId::from("pico-sim-boot-triple"),
             offer_generation: OfferGeneration(1),
         });
         let browser_ad = page
@@ -734,14 +734,14 @@ mod tests {
                 (
                     OperationId::from("web"),
                     PlacementChoice {
-                        host_id: HostId::from("browser-host-triple"),
+                        host_id: HostId::from("browser-sim-triple"),
                         capability_id: CapabilityId::from("dom-show"),
                     },
                 ),
                 (
                     OperationId::from("light"),
                     PlacementChoice {
-                        host_id: HostId::from("pico-host-triple"),
+                        host_id: HostId::from("pico-sim-triple"),
                         capability_id: CapabilityId::from("onboard-led"),
                     },
                 ),
@@ -754,11 +754,11 @@ mod tests {
             ),
             (
                 (OperationId::from("pulse"), OperationId::from("web")),
-                ConnectionProvider::WebSocket,
+                ConnectionProvider::FixtureFrame,
             ),
             (
                 (OperationId::from("pulse"), OperationId::from("light")),
-                ConnectionProvider::Udp,
+                ConnectionProvider::FixtureDatagram,
             ),
         ]);
         let plan = plan_with_connection_limits_and_provider_overrides(
@@ -767,14 +767,14 @@ mod tests {
             &placements,
             &[
                 ConnectionProvider::Local,
-                ConnectionProvider::WebSocket,
-                ConnectionProvider::Udp,
+                ConnectionProvider::FixtureFrame,
+                ConnectionProvider::FixtureDatagram,
             ],
             &connection_providers,
             4,
             64,
         )
-        .expect("M1 triple-host plan resolves");
+        .expect("M1 triple-simulation plan resolves");
         let fragment = plan
             .fragments
             .iter()
@@ -814,11 +814,11 @@ mod tests {
         assert!(report
             .connections
             .iter()
-            .any(|connection| connection.provider == ConnectionProvider::WebSocket));
+            .any(|connection| connection.provider == ConnectionProvider::FixtureFrame));
         assert!(report
             .connections
             .iter()
-            .any(|connection| connection.provider == ConnectionProvider::Udp));
+            .any(|connection| connection.provider == ConnectionProvider::FixtureDatagram));
         assert!(report
             .evidence
             .iter()
@@ -832,8 +832,9 @@ mod tests {
         let rendered = render_text_report(&report);
         assert!(rendered.contains("host observatory report"));
         assert!(rendered.contains("host id=std-host-triple boot=std-boot-triple"));
-        assert!(rendered.contains("capability host=browser-host-triple"));
-        assert!(rendered.contains("provider=WebSocket"));
+        assert!(rendered.contains("capability host=browser-sim-triple"));
+        assert!(rendered.contains("provider=FixtureFrame"));
+        assert!(rendered.contains("provider=FixtureDatagram"));
         assert!(rendered.contains("evidence id=evidence/"));
     }
 

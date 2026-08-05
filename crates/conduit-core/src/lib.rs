@@ -127,8 +127,10 @@ pub struct HostAdvertisement {
 pub enum ConnectionProvider {
     Local,
     InMemory,
-    WebSocket,
-    Udp,
+    /// Deterministic bounded frame transit used only by conformance fixtures.
+    FixtureFrame,
+    /// Deterministic bounded datagram transit used only by conformance fixtures.
+    FixtureDatagram,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -342,8 +344,8 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         canonical.push(match connection.provider {
             ConnectionProvider::Local => 0,
             ConnectionProvider::InMemory => 1,
-            ConnectionProvider::WebSocket => 2,
-            ConnectionProvider::Udp => 3,
+            ConnectionProvider::FixtureFrame => 2,
+            ConnectionProvider::FixtureDatagram => 3,
         });
         canonical.extend_from_slice(&connection.item_capacity.to_le_bytes());
         push_u32(&mut canonical, connection.byte_capacity);

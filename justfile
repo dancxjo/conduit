@@ -7,26 +7,26 @@ demo-std:
 demo-triple-local:
     cargo run -p conduit -- examples/triple-signal.form --placements examples/triple-local.placements
 
-browser-host:
-    cargo test -p conduit-browser-host
+browser-sim:
+    cargo test -p conduit-browser-sim
 
-browser-websocket-relay:
-    cargo test -p conduit-browser-host std_host_sends_signal_to_browser_over_bounded_websocket_relay
+browser-frame-fixture:
+    cargo test -p conduit-browser-sim std_host_sends_signal_to_browser_through_bounded_frame_fixture
 
-triple-host-proof:
-    cargo test -p conduit-browser-host triple_signal_form_fans_out_to_std_browser_and_pico_receipts
+triple-sim-proof:
+    cargo test -p conduit-browser-sim triple_signal_form_fans_out_to_std_and_simulated_receipts
 
-browser-wasm-check:
-    cargo check -p conduit-browser-host --target wasm32-unknown-unknown
+browser-sim-wasm-check:
+    cargo check -p conduit-browser-sim --target wasm32-unknown-unknown
 
-pico-host:
-    cargo test -p conduit-pico-host
+pico-sim:
+    cargo test -p conduit-pico-sim
 
-pico-udp-relay:
-    cargo test -p conduit-pico-host std_host_sends_signal_to_pico_over_bounded_udp_relay
+pico-datagram-fixture:
+    cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture
 
-pico-thumb-check:
-    cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi
+pico-sim-thumb-check:
+    cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
 
 realm:
     cargo test -p conduit-realm
@@ -63,16 +63,16 @@ check-std-catalog-readiness:
     cargo test -p conduit-std-catalog
     cargo check -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
 
-check-browser-readiness:
+check-sim-readiness:
     @if cargo tree -p conduit-runtime --edges normal --prefix none | rg -q '^conduit-signal '; then echo 'conduit-runtime must not depend on conduit-signal'; exit 1; fi
     cargo check -p conduit-signal --no-default-features
     cargo check -p conduit-wire --no-default-features
     cargo test -p conduit-wire
     cargo test -p conduit-runtime --test host_contract
-    cargo test -p conduit-browser-host
-    cargo test -p conduit-browser-host triple_signal_form_fans_out_to_std_browser_and_pico_receipts
-    cargo check -p conduit-browser-host --target wasm32-unknown-unknown
-    cargo test -p conduit-pico-host
-    cargo test -p conduit-pico-host std_host_sends_signal_to_pico_over_bounded_udp_relay
-    cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi
+    cargo test -p conduit-browser-sim
+    cargo test -p conduit-browser-sim triple_signal_form_fans_out_to_std_and_simulated_receipts
+    cargo check -p conduit-browser-sim --target wasm32-unknown-unknown
+    cargo test -p conduit-pico-sim
+    cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture
+    cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
     @if rg -i 'playwright' -g 'Cargo.toml' -g 'package.json' -g 'package-lock.json' .; then echo 'Playwright dependency is forbidden before browser host work'; exit 1; fi

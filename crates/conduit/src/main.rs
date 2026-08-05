@@ -1,17 +1,28 @@
-use conduit_browser_host::{BrowserHostConfig, BrowserPage};
+#[cfg(feature = "sim-fixtures")]
+use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
+#[cfg(feature = "sim-fixtures")]
 use conduit_core::{
     BootId, CapabilityId, ConnectionProvider, HostCommand, HostEvent, HostId, OfferGeneration,
     OperationId,
 };
+#[cfg(feature = "sim-fixtures")]
 use conduit_form::parse;
+#[cfg(feature = "sim-fixtures")]
 use conduit_observatory::{build_report, render_text_report};
-use conduit_pico_host::{pico_advertisement, PicoHost, PicoHostConfig};
+#[cfg(feature = "sim-fixtures")]
+use conduit_pico_sim::{pico_advertisement, PicoSim, PicoSimConfig};
+#[cfg(feature = "sim-fixtures")]
 use conduit_planner::{
     plan_with_connection_limits_and_provider_overrides, PlacementChoice, PlacementChoices,
 };
+#[cfg(feature = "sim-fixtures")]
 use conduit_realm::{AdmissionRequest, LinkId, Realm, RealmId};
+#[cfg(feature = "sim-fixtures")]
 use conduit_signal::signal_profile_catalog;
-use conduit_std_host::{load_checked_form, load_placements, StdHost, StdHostConfig, ThreadTimer};
+#[cfg(feature = "sim-fixtures")]
+use conduit_std_host::StdHostConfig;
+use conduit_std_host::{load_checked_form, load_placements, StdHost, ThreadTimer};
+#[cfg(feature = "sim-fixtures")]
 use std::collections::BTreeMap;
 use std::env;
 use std::io;
@@ -33,20 +44,21 @@ fn run_with_placements(path: &str, placements_path: Option<&str>) -> Result<(), 
     Ok(())
 }
 
-fn observatory_report() -> Result<String, String> {
+#[cfg(feature = "sim-fixtures")]
+fn observatory_fixture_report() -> Result<String, String> {
     let mut std_host = StdHost::new_with_config(StdHostConfig {
         host_id: HostId::from("std-host-triple"),
         boot_id: BootId::from("std-boot-triple"),
         offer_generation: OfferGeneration(1),
     });
-    let page = BrowserPage::with_hosts([BrowserHostConfig {
-        host_id: HostId::from("browser-host-triple"),
-        boot_id: BootId::from("browser-boot-triple"),
+    let page = BrowserSimPage::with_hosts([BrowserSimConfig {
+        host_id: HostId::from("browser-sim-triple"),
+        boot_id: BootId::from("browser-sim-boot-triple"),
         offer_generation: OfferGeneration(1),
     }]);
-    let mut pico = PicoHost::new(PicoHostConfig {
-        host_id: HostId::from("pico-host-triple"),
-        boot_id: BootId::from("pico-boot-triple"),
+    let mut pico = PicoSim::new(PicoSimConfig {
+        host_id: HostId::from("pico-sim-triple"),
+        boot_id: BootId::from("pico-sim-boot-triple"),
         offer_generation: OfferGeneration(1),
     });
     let browser_advertisement = page
@@ -54,9 +66,9 @@ fn observatory_report() -> Result<String, String> {
         .into_iter()
         .next()
         .ok_or_else(|| "browser advertisement missing".to_string())?;
-    let pico_advertisement = pico_advertisement(PicoHostConfig {
-        host_id: HostId::from("pico-host-triple"),
-        boot_id: BootId::from("pico-boot-triple"),
+    let pico_advertisement = pico_advertisement(PicoSimConfig {
+        host_id: HostId::from("pico-sim-triple"),
+        boot_id: BootId::from("pico-sim-boot-triple"),
         offer_generation: OfferGeneration(1),
     });
     let advertisements = vec![
@@ -113,14 +125,14 @@ fn observatory_report() -> Result<String, String> {
             (
                 OperationId::from("web"),
                 PlacementChoice {
-                    host_id: HostId::from("browser-host-triple"),
+                    host_id: HostId::from("browser-sim-triple"),
                     capability_id: CapabilityId::from("dom-show"),
                 },
             ),
             (
                 OperationId::from("light"),
                 PlacementChoice {
-                    host_id: HostId::from("pico-host-triple"),
+                    host_id: HostId::from("pico-sim-triple"),
                     capability_id: CapabilityId::from("onboard-led"),
                 },
             ),
@@ -133,11 +145,11 @@ fn observatory_report() -> Result<String, String> {
         ),
         (
             (OperationId::from("pulse"), OperationId::from("web")),
-            ConnectionProvider::WebSocket,
+            ConnectionProvider::FixtureFrame,
         ),
         (
             (OperationId::from("pulse"), OperationId::from("light")),
-            ConnectionProvider::Udp,
+            ConnectionProvider::FixtureDatagram,
         ),
     ]);
     let plan = plan_with_connection_limits_and_provider_overrides(
@@ -146,8 +158,8 @@ fn observatory_report() -> Result<String, String> {
         &placements,
         &[
             ConnectionProvider::Local,
-            ConnectionProvider::WebSocket,
-            ConnectionProvider::Udp,
+            ConnectionProvider::FixtureFrame,
+            ConnectionProvider::FixtureDatagram,
         ],
         &connection_providers,
         4,
@@ -158,17 +170,23 @@ fn observatory_report() -> Result<String, String> {
     let mut observations = inspect(&mut std_host);
     observations.extend(inspect(&mut pico));
     let report = build_report(&advertisements, Some(&realm_view), &[plan], &observations);
-    Ok(render_text_report(&report))
+    Ok(format!(
+        "SIMULATION ONLY: synthetic observatory fixture; not connected-host evidence\n{}",
+        render_text_report(&report)
+    ))
 }
 
+#[cfg(feature = "sim-fixtures")]
 fn inspect(host: &mut impl HandleInspect) -> Vec<conduit_core::Observation> {
     host.inspect()
 }
 
+#[cfg(feature = "sim-fixtures")]
 trait HandleInspect {
     fn inspect(&mut self) -> Vec<conduit_core::Observation>;
 }
 
+#[cfg(feature = "sim-fixtures")]
 impl HandleInspect for StdHost {
     fn inspect(&mut self) -> Vec<conduit_core::Observation> {
         self.handle(HostCommand::Inspect)
@@ -182,7 +200,8 @@ impl HandleInspect for StdHost {
     }
 }
 
-impl HandleInspect for PicoHost {
+#[cfg(feature = "sim-fixtures")]
+impl HandleInspect for PicoSim {
     fn inspect(&mut self) -> Vec<conduit_core::Observation> {
         self.handle(HostCommand::Inspect)
             .events
@@ -201,16 +220,17 @@ fn main() {
     let path = match args.next() {
         Some(path) => path,
         None => {
-            eprintln!("usage: conduit <form-file> [--placements <placements-file>]\n       conduit observatory-report");
+            eprintln!("usage: conduit <form-file> [--placements <placements-file>]");
             std::process::exit(2);
         }
     };
-    if path == "observatory-report" {
+    #[cfg(feature = "sim-fixtures")]
+    if path == "observatory-fixture-report" {
         if args.next().is_some() {
-            eprintln!("usage: conduit observatory-report");
+            eprintln!("usage: conduit observatory-fixture-report");
             std::process::exit(2);
         }
-        match observatory_report() {
+        match observatory_fixture_report() {
             Ok(report) => {
                 print!("{report}");
                 return;

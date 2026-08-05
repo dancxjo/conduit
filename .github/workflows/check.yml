@@ -10,10 +10,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown,thumbv6m-none-eabi
       - uses: Swatinem/rust-cache@v2
       - name: cargo fmt
         run: cargo fmt --check
       - name: cargo clippy
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
       - name: cargo test
-        run: cargo test
+        run: cargo test --workspace
+      - name: no-std contracts
+        run: |
+          cargo check -p conduit-signal --no-default-features
+          cargo check -p conduit-wire --no-default-features
+          cargo check -p conduit-std-catalog --no-default-features
+      - name: exact-plan mutation negatives
+        run: cargo test -p conduit-runtime --test host_contract preparation_rejects_mutation_of_every_executable_identity_field_group
+      - name: deterministic wire and simulated-host conformance
+        run: |
+          cargo test -p conduit-wire
+          cargo test -p conduit-browser-sim std_host_sends_signal_to_browser_through_bounded_frame_fixture
+          cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture
+          cargo test -p conduit-browser-sim triple_signal_form_fans_out_to_std_and_simulated_receipts
+          cargo test -p conduit --features sim-fixtures --test hello observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work
+      - name: WASM fixture compilation
+        run: cargo check -p conduit-browser-sim --target wasm32-unknown-unknown
+      - name: Thumb contract and fixture compilation
+        run: |
+          cargo check -p conduit-core --target thumbv6m-none-eabi
+          cargo check -p conduit-realm --target thumbv6m-none-eabi
+          cargo check -p conduit-observatory --target thumbv6m-none-eabi
+          cargo check -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
+          cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi

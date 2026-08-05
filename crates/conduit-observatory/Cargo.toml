@@ -9,9 +9,9 @@ conduit-realm = { path = "../conduit-realm" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
 [dev-dependencies]
-conduit-browser-host = { path = "../../hosts/browser" }
+conduit-browser-sim = { path = "../../fixtures/browser-sim" }
 conduit-form = { path = "../conduit-form" }
-conduit-pico-host = { path = "../../hosts/pico" }
+conduit-pico-sim = { path = "../../fixtures/pico-sim" }
 conduit-planner = { path = "../conduit-planner" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
 conduit-std-host = { path = "../../hosts/std" }

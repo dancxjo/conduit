@@ -151,15 +151,20 @@ fn triple_signal_form_runs_against_local_std_fixture() {
 }
 
 #[test]
-fn observatory_report_is_operator_openable_without_running_work() {
+#[cfg(feature = "sim-fixtures")]
+fn observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work() {
     let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
-        .arg("observatory-report")
+        .arg("observatory-fixture-report")
         .output()
         .expect("failed to run conduit observatory report");
 
     assert!(output.status.success(), "process failed: {output:?}");
 
     let stdout = String::from_utf8(output.stdout).expect("stdout must be utf-8");
+    assert!(
+        stdout.contains("SIMULATION ONLY: synthetic observatory fixture"),
+        "{stdout}"
+    );
     assert!(stdout.contains("host observatory report"), "{stdout}");
     assert!(stdout.contains("hosts 3"), "{stdout}");
     assert!(
@@ -167,11 +172,11 @@ fn observatory_report_is_operator_openable_without_running_work() {
         "{stdout}"
     );
     assert!(
-        stdout.contains("host id=browser-host-triple boot=browser-boot-triple"),
+        stdout.contains("host id=browser-sim-triple boot=browser-sim-boot-triple"),
         "{stdout}"
     );
     assert!(
-        stdout.contains("host id=pico-host-triple boot=pico-boot-triple"),
+        stdout.contains("host id=pico-sim-triple boot=pico-sim-boot-triple"),
         "{stdout}"
     );
     assert!(stdout.contains("capabilities 6"), "{stdout}");
@@ -179,8 +184,8 @@ fn observatory_report_is_operator_openable_without_running_work() {
     assert!(stdout.contains("plans 1"), "{stdout}");
     assert!(stdout.contains("placements 4"), "{stdout}");
     assert!(stdout.contains("connections 3"), "{stdout}");
-    assert!(stdout.contains("provider=WebSocket"), "{stdout}");
-    assert!(stdout.contains("provider=Udp"), "{stdout}");
+    assert!(stdout.contains("provider=FixtureFrame"), "{stdout}");
+    assert!(stdout.contains("provider=FixtureDatagram"), "{stdout}");
     assert!(stdout.contains("evidence id=evidence/"), "{stdout}");
     assert!(stdout.contains("retention bounded=true"), "{stdout}");
     assert!(
