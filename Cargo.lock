@@ -74,6 +74,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-kernel"
+version = "0.1.0"
+
+[[package]]
 name = "conduit-observatory"
 version = "0.1.0"
 dependencies = [

@@ -1,49 +1,64 @@
 # Conduit
 
-Conduit runs semantic forms across software hosts.
+Conduit is being rebuilt around one rule:
 
-A realm contains host instances. Hosts advertise the capabilities they can currently provide. A form describes typed work without naming machines, operating systems, transports, or devices. A planner combines the form with current capability offers and produces an exact plan. Activating that plan runs the same semantic work wherever the selected hosts can faithfully realize it.
+> Forms describe meaning. Hosts offer implementations. Plans make realization exact.
 
-The first foundation proof uses one unchanged signal form across three host platforms:
+Current `main` contains a useful Rust `std` prototype and deterministic
+browser-shaped/Pico-shaped conformance fixtures. It does **not** yet contain an
+actual browser adapter, Pico firmware, live WebSocket/UDP transport,
+three-platform proof, production BODY model, or production Observatory.
+[STATUS.md](STATUS.md) is the checked claim boundary.
 
-- a portable Rust `std` host that shows the signal on stdout;
-- multiple independent browser hosts that show it in the DOM;
-- a Pico W host that shows it on the onboard LED.
+## Salvage sequence
 
-The architecture, invariants, host contract, planning model, bounded connection protocol, and implementation rules are documented in:
+The reboot exposed valuable identity, planning, pressure, evidence, and wire
+sketches, but its broadcast operation protocol cannot express general typed
+graphs. The forward salvage roadmap is tracked in
+[#361](https://github.com/dancxjo/conduit/issues/361):
 
-- [Portable Host Architecture](docs/architecture/portable-hosts.md)
-- [Conduit Host Specification](docs/architecture/host-specification.md)
-- [Foundation implementation issue #347](https://github.com/dancxjo/conduit/issues/347)
+1. port-aware bounded kernel;
+2. exact semantic/resource/authority/link planning;
+3. a small lossless form language and explicit composite faces;
+4. actual std/browser/Pico hosts and observed bounded links;
+5. a genuinely executable small standard catalog;
+6. BODY/PART/GEAR/ROLE/CAST/LINK/SOUL;
+7. Observatory over real reports, then useful tasks through host operations.
 
-## Reboot principle
+The archived pre-reboot tree and the reboot are both source quarries. Focused
+reuse is recorded in [docs/reuse-ledger.md](docs/reuse-ledger.md).
 
-> Forms describe meaning. Hosts offer implementations of that meaning. Plans make the mapping exact.
+## Current executable prototype
 
-The reboot intentionally begins with one finite, inspectable, cross-host source-to-sink flow before restoring broader libraries, robotics, durable body identity, or `.soul` recovery.
+The Rust `std` path can:
 
-## Current implementation slice
+- parse the small reboot `form 0` grammar;
+- validate explicit placements and exact reboot plan fragments;
+- execute finite `flow/pulse -> presentation/show` demonstrations;
+- stream bounded stdout receipts;
+- exercise deterministic item/byte pressure and cancellation fixtures.
 
-This repository currently implements the Rust `std` host vertical slice from issue #347:
-
-- parses portable `form 0` files for `flow/pulse` and `presentation/show`;
-- compiles real `conduit-core`, `conduit-signal`, `conduit-form`, `conduit-planner`, `conduit-runtime`, `conduit-composite`, and `conduit-std-host` boundaries in the workspace;
-- parses explicit operator placement files;
-- builds an exact local plan from host capability advertisements and placement choices;
-- validates bounded queue limits, boot identity, and offer generation at preparation time;
-- supplies semantic kinds to the parser through a small profile catalog rather than a closed parser list;
-- installs exact operation implementations into a generic runtime registry and validates their pinned IDs during preparation;
-- executes finite pulse signals through opaque implementation-owned state and real bounded connections;
-- manifests `presentation/show<Signal>` on stdout through the Rust `std` host adapter;
-- records structured observations and prints an operator report plus a concise completion summary;
-- executes a cross-host internal plan through a bounded, versioned in-memory provider with controlled delivery, pressure, and disconnect behavior;
-- wraps child runtimes from a data-driven composite definition whose capability can be selected by a parent plan without exposing child topology.
-
-Try the included forms:
+Run the local std demonstrations with:
 
 ```bash
 just demo-std
 just demo-triple-local
 ```
 
-The planner supports local connections and the deterministic in-memory provider used by composite-host conformance tests. Browser, WebSocket, Pico W, and physical manifestations remain later checkpoints. The placement files in `examples/*.placements` make the current std-host selections explicit rather than relying on implicit local assignment.
+The browser-shaped and Pico-shaped crates live under `fixtures/`. Their
+frame/datagram relays are in-memory deterministic fixtures, not sockets.
+
+## Forward kernel
+
+`conduit-kernel` is the new `no_std`, port-aware execution contract. Its
+initial S1 slice provides exact input/output port identity, correlated generic
+host-operation actions, prebound numeric route/admission tables, and
+item/byte-bounded fixed and preallocated hosted storage. It is not yet the
+complete scheduler or an adapter for the reboot semantic kinds.
+
+Architecture and current salvage boundaries:
+
+- [Salvage status](STATUS.md)
+- [Portable host architecture quarry](docs/architecture/portable-hosts.md)
+- [Host specification quarry](docs/architecture/host-specification.md)
+- [S1 kernel notes](docs/architecture/salvage-kernel-s1.md)

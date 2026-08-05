@@ -21,6 +21,7 @@ jobs:
         run: cargo test --workspace
       - name: no-std contracts
         run: |
+          cargo check -p conduit-kernel --no-default-features
           cargo check -p conduit-signal --no-default-features
           cargo check -p conduit-wire --no-default-features
           cargo check -p conduit-std-catalog --no-default-features
@@ -28,6 +29,7 @@ jobs:
         run: cargo test -p conduit-runtime --test host_contract preparation_rejects_mutation_of_every_executable_identity_field_group
       - name: deterministic wire and simulated-host conformance
         run: |
+          cargo test -p conduit-kernel --features alloc
           cargo test -p conduit-wire
           cargo test -p conduit-browser-sim std_host_sends_signal_to_browser_through_bounded_frame_fixture
           cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture
@@ -37,6 +39,7 @@ jobs:
         run: cargo check -p conduit-browser-sim --target wasm32-unknown-unknown
       - name: Thumb contract and fixture compilation
         run: |
+          cargo check -p conduit-kernel --target thumbv6m-none-eabi
           cargo check -p conduit-core --target thumbv6m-none-eabi
           cargo check -p conduit-realm --target thumbv6m-none-eabi
           cargo check -p conduit-observatory --target thumbv6m-none-eabi
