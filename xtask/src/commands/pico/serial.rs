@@ -1,14 +1,13 @@
-use anyhow::{bail, Result};
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::Command;
 
-use super::PicoArgs;
+use super::{PicoArgs, PicoResult};
 
 const EXPECTED_RECEIPTS: usize = 16;
 const DEVICE_ID_NEEDLE: &str = "conduit-pico-w-signal";
 
-pub fn run_verify(args: &PicoArgs) -> Result<()> {
+pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
     if args.dry_run {
         println!("==> pico verify (dry-run)");
         println!(
@@ -23,11 +22,10 @@ pub fn run_verify(args: &PicoArgs) -> Result<()> {
     let port = resolve_port(args)?;
     println!("==> pico verify: reading receipts from {}", port.display());
 
-    // Configure the serial port via stty for 115200 baud raw mode
-    let stty_status = Command::new("stty")
+    let _ = Command::new("stty")
         .args([
             "-F",
-            port.to_str().unwrap(),
+            port.to_str().ok_or("serial path is not UTF-8")?,
             "115200",
             "cs8",
             "-cstopb",
@@ -36,121 +34,137 @@ pub fn run_verify(args: &PicoArgs) -> Result<()> {
             "-echo",
         ])
         .status();
-    if let Ok(status) = stty_status {
-        if !status.success() {
-            println!("  warning: stty configuration returned non-zero (may still work)");
-        }
-    }
 
-    // Open the serial port as a regular file
-    let file = std::fs::OpenOptions::new()
-        .read(true)
-        .open(&port)
-        .map_err(|e| anyhow::anyhow!("cannot open serial port {}: {}", port.display(), e))?;
-
-    // Set a read timeout using a background thread
-    let reader = BufReader::new(file);
-    verify_receipts(reader)
+    let file = std::fs::OpenOptions::new().read(true).open(&port)?;
+    verify_receipts(BufReader::new(file))
 }
 
-fn verify_receipts(reader: impl BufRead) -> Result<()> {
-    let mut receipts: Vec<serde_json::Value> = Vec::new();
+fn verify_receipts(reader: impl BufRead) -> PicoResult<()> {
+    let mut receipts = Vec::new();
     let mut terminal_seen = false;
 
     for line in reader.lines() {
-        let line = line.map_err(|e| anyhow::anyhow!("serial read error: {}", e))?;
-        let line = line.trim().to_string();
+        let line = line?;
+        let line = line.trim();
         if line.is_empty() {
             continue;
         }
-        let record: serde_json::Value = serde_json::from_str(&line)
-            .map_err(|e| anyhow::anyhow!("malformed receipt JSON: {}\nline: {}", e, line))?;
-
-        let schema = record["schema"].as_str().unwrap_or("").to_string();
+        let record: serde_json::Value = serde_json::from_str(line)
+            .map_err(|error| format!("malformed receipt JSON: {error}; line: {line}"))?;
+        let schema = record["schema"].as_str().unwrap_or_default();
 
         if schema.starts_with("conduit-pico-w-signal/terminal") {
+            if record["success"].as_bool() != Some(true) {
+                return Err(format!("firmware reported terminal failure: {line}").into());
+            }
             terminal_seen = true;
-            println!("  terminal: {}", line);
             break;
         }
 
         if schema.starts_with("conduit-pico-w-signal/receipt") {
-            let seq = record["sequence"]
+            let sequence = record["sequence"]
                 .as_u64()
-                .ok_or_else(|| anyhow::anyhow!("receipt missing sequence"))?;
-            let expected_seq = receipts.len() as u64;
-            if seq != expected_seq {
-                bail!(
-                    "out-of-order receipt: expected sequence {}, got {}",
-                    expected_seq,
-                    seq
-                );
+                .ok_or("receipt missing sequence")?;
+            let expected = receipts.len() as u64;
+            if sequence != expected {
+                return Err(format!(
+                    "out-of-order receipt: expected sequence {expected}, got {sequence}"
+                )
+                .into());
             }
             receipts.push(record);
         }
     }
 
     if receipts.len() != EXPECTED_RECEIPTS {
-        bail!(
-            "expected {} receipts, got {}",
-            EXPECTED_RECEIPTS,
+        return Err(format!(
+            "expected {EXPECTED_RECEIPTS} receipts, got {}",
             receipts.len()
-        );
+        )
+        .into());
     }
     if !terminal_seen {
-        bail!("no terminal completion record received");
+        return Err("no successful terminal completion record received".into());
     }
 
-    // Verify signal levels: initial=false, alternating thereafter
-    let mut expected_level = false;
-    for (i, receipt) in receipts.iter().enumerate() {
+    for (index, receipt) in receipts.iter().enumerate() {
+        let expected_level = index % 2 == 1;
         let level = receipt["level"]
             .as_bool()
-            .ok_or_else(|| anyhow::anyhow!("receipt {} missing level", i))?;
+            .ok_or_else(|| format!("receipt {index} missing level"))?;
         if level != expected_level {
-            bail!(
-                "receipt {}: expected level={}, got level={}",
-                i,
-                expected_level,
-                level
-            );
+            return Err(format!(
+                "receipt {index}: expected level={expected_level}, got level={level}"
+            )
+            .into());
         }
-        expected_level = !expected_level;
     }
 
-    println!("==> pico verify: all {} receipts valid", EXPECTED_RECEIPTS);
+    println!("==> pico verify: all {EXPECTED_RECEIPTS} receipts valid");
     Ok(())
 }
 
-fn resolve_port(args: &PicoArgs) -> Result<PathBuf> {
-    if let Some(p) = &args.port {
-        return Ok(PathBuf::from(p));
+fn resolve_port(args: &PicoArgs) -> PicoResult<PathBuf> {
+    if let Some(port) = &args.port {
+        let path = PathBuf::from(port);
+        if path.exists() {
+            return Ok(path);
+        }
+        return Err(format!("serial port does not exist: {}", path.display()).into());
     }
 
-    // Discover via /dev/serial/by-id
     let by_id = PathBuf::from("/dev/serial/by-id");
     if by_id.is_dir() {
-        let matches: Vec<_> = std::fs::read_dir(&by_id)?
-            .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.file_name()
+        let matches = std::fs::read_dir(&by_id)?
+            .filter_map(Result::ok)
+            .filter(|entry| {
+                entry
+                    .file_name()
                     .to_string_lossy()
+                    .to_ascii_lowercase()
                     .contains(DEVICE_ID_NEEDLE)
             })
-            .collect();
-        match matches.len() {
-            0 => {}
-            1 => return Ok(matches[0].path()),
-            n => bail!(
-                "{} matching serial devices found under {}. Use --port to specify one.",
-                n,
+            .map(|entry| entry.path())
+            .collect::<Vec<_>>();
+        return match matches.len() {
+            1 => Ok(matches[0].clone()),
+            0 => Err("no Conduit Pico W serial device found; pass --port after connecting the board".into()),
+            count => Err(format!(
+                "{count} matching serial devices found under {}; pass --port",
                 by_id.display()
-            ),
-        }
+            )
+            .into()),
+        };
     }
 
-    bail!(
-        "No Conduit Pico W serial device found. Ensure the Pico W is running and connected, \
-         then retry, or pass --port <path>."
-    )
+    Err("/dev/serial/by-id is unavailable; pass --port explicitly".into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+
+    fn receipt(sequence: usize) -> String {
+        format!(
+            "{{\"schema\":\"conduit-pico-w-signal/receipt@1\",\"sequence\":{sequence},\"level\":{}}}\n",
+            sequence % 2 == 1
+        )
+    }
+
+    #[test]
+    fn accepts_exact_sixteen_receipts_and_terminal() {
+        let mut input = String::new();
+        for sequence in 0..EXPECTED_RECEIPTS {
+            input.push_str(&receipt(sequence));
+        }
+        input.push_str("{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":true}\n");
+        verify_receipts(Cursor::new(input)).expect("valid receipt stream");
+    }
+
+    #[test]
+    fn rejects_reordered_receipt() {
+        let input = format!("{}{}", receipt(1), "{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":true}\n");
+        assert!(verify_receipts(Cursor::new(input)).is_err());
+    }
 }
