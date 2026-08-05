@@ -1,129 +1,171 @@
 # Conduit
 
-Conduit is being rebuilt around one rule:
+Conduit is an experimental portable execution substrate for finite, typed flows
+of work.
 
 > Forms describe meaning. Hosts offer implementations. Plans make realization exact.
 
-Current `main` contains a useful Rust `std` prototype, deterministic
-browser-shaped/Pico-shaped conformance fixtures, actual browser-local
-Rust/WASM Signal hosts, and one deliberately narrow live std-to-browser proof.
-The unchanged Signal form is split into exact std-source and browser-sink plan
-fragments; both execute through `conduit-kernel`, while an actual bounded
-loopback WebSocket carries only the remote-cord protocol. It does **not** yet
-contain a general-purpose std execution engine, Pico firmware, UDP or public
-network transport, three-platform proof, production BODY model, or production
-Observatory.
-[STATUS.md](STATUS.md) is the checked claim boundary.
+A Conduit **form** describes what should happen: named cells, typed cords,
+semantic configuration, explicit boundaries, and finite work limits. It does not
+hard-code which operating system, browser, microcontroller, process, transport,
+device, or service must realize that work.
 
-## Project guide
+Running **hosts** report the implementations, resources, authority, and links
+they can currently provide. The planner binds those concrete facts to the form
+and produces an immutable **plan**. Each host receives its exact plan fragment,
+and the Conduit kernel executes it with bounded, deterministic scheduling and
+explicit pressure, failure, cancellation, and evidence semantics.
 
-Conduit separates durable direction from current proof and immediate sequencing:
+The goal is for one authored form to be realizable:
 
-- [The Conduit canon](docs/conduit-canon.md) preserves the vision, vocabulary,
-  architectural invariants, future layers, and the status of dormant or
-  superseded ideas.
-- [AGENTS.md](AGENTS.md) is the working agreement for contributors and coding
-  agents, including scope ownership, parallel-work rules, proof discipline, and
-  PR expectations.
-- [STATUS.md](STATUS.md) states only what current code and named checks prove.
-- [Issue #361](https://github.com/dancxjo/conduit/issues/361) owns the forward
-  salvage order.
+- inside a native Rust process;
+- in an actual browser through Rust/WASM;
+- on a constrained microcontroller;
+- across several connected hosts;
+- or as part of a larger machine whose parts can take on different work.
 
-The canon is a seed vault, not a demand to implement every good idea now. The
-archive and reboot remain quarries: concepts return only through focused,
-reviewed vertical slices with executable acceptance.
+Portability does not pretend these environments are identical. Memory, clocks,
+devices, links, permissions, physical effects, and failure modes remain explicit
+parts of planning and execution.
 
-## Salvage sequence
+## The model
 
-The reboot exposed valuable identity, planning, pressure, evidence, and wire
-sketches, but its broadcast operation protocol cannot express general typed
-graphs. The forward salvage roadmap is tracked in
-[#361](https://github.com/dancxjo/conduit/issues/361):
+```text
+KIND   semantic contract
+FORM   authored composition of semantic work
+CELL   one named occurrence in a form
+CORD   typed flow between cells
+FACE   explicit visible boundary of a form
 
-1. port-aware bounded kernel;
-2. exact semantic/resource/authority/link planning;
-3. a small lossless form language and explicit composite faces;
-4. actual std/browser/Pico hosts and observed bounded links;
-5. a genuinely executable small standard catalog;
-6. BODY/PART/GEAR/ROLE/CAST/LINK/SOUL;
-7. Observatory over real reports, then useful tasks through host operations.
+IMPL   platform-specific realization of a kind
+HOST   running environment that offers implementations
+PLAN   exact immutable realization of a form
+PLAY   one active execution of a plan
+```
 
-The archived pre-reboot tree and the reboot are both source quarries. Focused
-reuse is recorded in [docs/reuse-ledger.md](docs/reuse-ledger.md).
+Several separations are fundamental:
 
-Kernel takeover [#389](https://github.com/dancxjo/conduit/issues/389) is
-accepted. Exact local `PlanFragment`s for the installed profiles lower into
-bounded numeric kernel tables and run through the hosted scheduler. Unsupported
-std forms fail closed; production `StdHost` has no fallback operation pump.
-Nested expansion identity [#398](https://github.com/dancxjo/conduit/issues/398)
-and general named composite faces
-[#399](https://github.com/dancxjo/conduit/issues/399) are accepted. The
-live std-to-browser kernel checkpoint under
-[#350](https://github.com/dancxjo/conduit/issues/350) is accepted at main
-`a1f479dfa58b8537427b5747da73795628504913`, workflow `31031406945`.
-It produces sixteen exact DOM receipts over a one-item/nine-byte remote cord
-and one actual loopback RFC 6455 connection, including a real `Full` and exact
-same-sequence retry. Cross-host simulation fixtures retain an explicitly named
-legacy compatibility driver; they are not transport evidence.
+- meaning is not deployment configuration;
+- a capability being available is not authority to use it;
+- a selected implementation is not an active execution;
+- source, checked form, expanded form, plan, play, evidence, and presentation
+  have distinct identities;
+- platform adapters perform admitted effects, but do not become a second
+  scheduler;
+- pressure, disconnects, exhausted bounds, cancellation, and terminal failure
+  remain visible runtime facts.
 
-## Current executable prototype
+Before activation, a host must know and admit the finite execution shape it is
+responsible for: operations, ports, cords, queue items, bytes, host operations,
+resources, and mandatory evidence. Hosted implementations may allocate while
+preparing a plan; admitted execution paths must not quietly grow without bound.
 
-The Rust `std` path can:
+## A small form
 
-- parse the small reboot `form 0` grammar;
-- validate explicit placements and exact reboot plan fragments;
-- execute finite `flow/pulse -> presentation/show` demonstrations;
-- stream bounded stdout receipts;
-- exercise deterministic item/byte pressure and cancellation fixtures.
+```text
+form 0
 
-Run the local std demonstrations with:
+signal-demo {
+    pulse: flow/pulse
+    show: presentation/show
+
+    pulse.count = 16
+    pulse.period-ms = 250
+    pulse.initial = false
+
+    pulse > show
+}
+```
+
+This form says that a finite pulse source feeds a presentation sink. It does not
+say whether the sink is stdout, a browser DOM adapter, an LED, or another
+implementation. Placement and realization belong to the plan, not the form.
+
+## What exists today
+
+The repository is a Rust workspace containing:
+
+- a `no_std`, port-aware bounded execution kernel;
+- a lossless form parser and checker;
+- exact planning, identity, resource, authority, link, and evidence contracts;
+- native std-host execution;
+- an actual Rust/WASM browser host and thin DOM adapter;
+- a bounded loopback WebSocket path between native and browser kernels;
+- Pico W firmware and typed build/flash/verify tooling;
+- deterministic browser-shaped and Pico-shaped conformance fixtures;
+- early composite, catalog, body/realm, and Observatory contracts.
+
+Conduit is still under active development. Compile checks, simulations, hosted
+execution, browser execution, live transport, firmware, and physical hardware
+proof are deliberately treated as different evidence classes. See
+[STATUS.md](STATUS.md) for the exact claims established by current code and named
+checks.
+
+## Run the examples
+
+Install a recent Rust toolchain and [`just`](https://github.com/casey/just), then
+run:
 
 ```bash
 just demo-std
 just demo-triple-local
 ```
 
-The browser-shaped and Pico-shaped crates live under `fixtures/`. Their
-frame/datagram relays are in-memory deterministic fixtures, not sockets.
-The actual browser checkpoint lives under `hosts/browser-runtime` and
-`hosts/browser/`. Rust owns parsing, planning, exact lowering, kernel execution,
-bounds, lifecycle, and terminal truth; JavaScript is the thin real-timer/DOM
-adapter. Run the accepted live distributed proof with:
+Run the accepted native-to-browser loopback demonstration with:
 
 ```bash
 just prove-std-browser-s4
 ```
 
-That command binds the native provider only to loopback, starts the browser
-artifact server, runs one pinned Chromium worker with zero retries, and prints
-the selected WebSocket URL plus the final receipt/pressure/terminal summary.
-It is a narrow std-to-browser checkpoint, not a general network stack.
+That command also requires the repository's Node and Playwright dependencies.
+It is a deliberately bounded local proof, not a claim of a general network
+stack.
 
-## Forward kernel
+Inspect host prerequisites with:
 
-`conduit-kernel` is the new `no_std`, port-aware execution contract. Its
-S1 slice provides exact input/output port identity, correlated generic
-host-operation actions, prebound numeric route/admission tables,
-item/byte-bounded fixed and preallocated hosted storage, and the accepted
-fixed-capacity scheduler. Installed local std profiles now use the fail-closed
-numeric lowering seam for real timer/stdout execution, reversible identity
-projection, exact resource reservation, and measured allocation-free
-activation. The production browser Signal host uses the same scheduler and
-shared lowering boundary, with sealed capacity stability rather than an
-overstated browser allocation measurement. `HostRuntime` remains only in
-explicitly named simulation/composite compatibility paths, not production
-`StdHost` or the production browser host. Exact distributed fragments now
-lower to kernel-owned remote ingress/egress cords. The WebSocket adapter owns
-carrier I/O only; kernel queues retain pressure, byte accounting, closure,
-cancellation, terminal state, evidence, and source value ownership through
-exact delivery acknowledgement.
+```bash
+just doctor
+```
 
-Architecture and current salvage boundaries:
+Build the Pico W firmware with:
 
-- [Project canon](docs/conduit-canon.md)
-- [Contributor and agent agreement](AGENTS.md)
-- [Salvage status](STATUS.md)
-- [Portable host architecture quarry](docs/architecture/portable-hosts.md)
-- [Host specification quarry](docs/architecture/host-specification.md)
-- [S1 kernel notes](docs/architecture/salvage-kernel-s1.md)
-- [Kernel takeover gate](docs/architecture/kernel-takeover.md)
+```bash
+just pico-build
+```
+
+The flash and verification commands require a connected board and the host-side
+tools reported by `just doctor pico`.
+
+## Repository guide
+
+- [`crates/`](crates/) contains the portable contracts, parser, planner, kernel,
+  runtime, standard catalog, and command-line surfaces.
+- [`hosts/`](hosts/) contains actual platform hosts and adapters.
+- [`firmware/`](firmware/) contains constrained firmware targets.
+- [`fixtures/`](fixtures/) contains deterministic conformance fixtures, not live
+  transports.
+- [`examples/`](examples/) contains forms and placement examples.
+- [`xtask/`](xtask/) owns typed repository workflows.
+- [`docs/`](docs/) contains the architectural direction and design records.
+
+Start with:
+
+- [The Conduit canon](docs/conduit-canon.md) for the durable project model and
+  architectural invariants;
+- [STATUS.md](STATUS.md) for the current executable claim boundary;
+- [roadmap issue #361](https://github.com/dancxjo/conduit/issues/361) for the
+  implementation sequence;
+- [AGENTS.md](AGENTS.md) for contribution, review, proof, and module-size rules.
+
+## Contributing
+
+Keep changes narrow, keep runtime claims tied to executable evidence, and do not
+promote compilation or simulation into proof of a platform or physical effect.
+The repository's primary local gate is:
+
+```bash
+just check
+```
+
+Additional target-specific gates are documented in the `justfile`,
+[STATUS.md](STATUS.md), and the relevant roadmap issues.
