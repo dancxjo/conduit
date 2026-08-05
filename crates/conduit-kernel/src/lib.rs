@@ -12,6 +12,8 @@ extern crate alloc;
 
 use core::mem::size_of;
 
+pub mod scheduler;
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct NodeId(pub u16);
@@ -362,6 +364,7 @@ pub trait ValueStorage {
     fn used_bytes(&self) -> u32;
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError>;
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError>;
+    fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError>;
     fn retain(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn release(&mut self, value: ValueRef) -> Result<(), StorageError>;
 }
@@ -501,6 +504,10 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError> {
         let slot = self.slot(value)?;
         Ok(&slot.bytes[..usize::try_from(slot.len).map_err(|_| StorageError::StaleReference)?])
+    }
+
+    fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError> {
+        Ok(self.slot(value)?.references)
     }
 
     fn retain(&mut self, value: ValueRef) -> Result<(), StorageError> {
@@ -668,6 +675,10 @@ mod hosted {
             Ok(self.slot(value)?.bytes.as_slice())
         }
 
+        fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError> {
+            Ok(self.slot(value)?.references)
+        }
+
         fn retain(&mut self, value: ValueRef) -> Result<(), StorageError> {
             let slot = self.slot_mut(value)?;
             slot.references = slot
@@ -698,8 +709,10 @@ pub use hosted::Store as HostedValueStore;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KernelEventKind {
+    Decision,
     ValueStored,
     ValueRouted,
+    ValueConsumed,
     InputClosed,
     HostOperationRequested,
     HostOperationCompleted,
@@ -740,6 +753,10 @@ pub trait EvidenceSink {
         request: Option<RequestId>,
         kind: KernelEventKind,
     ) -> Result<KernelEvent, EvidenceError>;
+}
+
+pub trait EvidenceQuery {
+    fn contains_kind(&self, kind: KernelEventKind) -> bool;
 }
 
 pub struct FixedEvidenceLog<const EVENTS: usize> {
@@ -833,6 +850,12 @@ impl<const EVENTS: usize> EvidenceSink for FixedEvidenceLog<EVENTS> {
     }
 }
 
+impl<const EVENTS: usize> EvidenceQuery for FixedEvidenceLog<EVENTS> {
+    fn contains_kind(&self, kind: KernelEventKind) -> bool {
+        self.events().any(|event| event.kind == kind)
+    }
+}
+
 #[cfg(feature = "alloc")]
 pub struct HostedEvidenceLog {
     entries: alloc::vec::Vec<Option<KernelEvent>>,
@@ -922,6 +945,13 @@ impl EvidenceSink for HostedEvidenceLog {
         self.used_bytes += charge;
         self.next_sequence = next_sequence;
         Ok(event)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl EvidenceQuery for HostedEvidenceLog {
+    fn contains_kind(&self, kind: KernelEventKind) -> bool {
+        self.events().any(|event| event.kind == kind)
     }
 }
 
