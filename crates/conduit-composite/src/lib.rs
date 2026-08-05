@@ -1030,14 +1030,14 @@ mod tests {
         ChildHostBinding, CompositeBoundary, CompositeDefinition, CompositeHost, DeliveryMode,
     };
     use conduit_core::{
-        kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-        CheckedFormId, ConnectionEnvelope, ConnectionOutcome, ConnectionProvider,
-        ExecutionProfileId, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId,
-        ImplementationId, KindContractRevision, KindId, OfferGeneration, OperationId,
-        PortDescriptor, PortDirection, TerminalDisposition, PROTOCOL_VERSION,
+        kind_id, port_id, process_owned_link_binding, ArtifactId, BootId, CapabilityId,
+        CapabilityLimits, CapabilityOffer, CheckedFormId, ConnectionEnvelope, ConnectionOutcome,
+        ConnectionProvider, ExecutionProfileId, HostAdvertisement, HostCommand, HostEvent, HostId,
+        HostProfileId, ImplementationId, KindContractRevision, KindId, OfferGeneration,
+        OperationId, PortDescriptor, PortDirection, TerminalDisposition, PROTOCOL_VERSION,
     };
     use conduit_form::{parse, CheckedForm, CheckedOperation, KindDefinition, ProfileCatalog};
-    use conduit_planner::{plan, plan_with_connection_limits, PlacementChoice, PlacementChoices};
+    use conduit_planner::{plan, plan_with_link_bindings, PlacementChoice, PlacementChoices};
     use conduit_runtime::{providers::in_memory::InMemoryConnectionProvider, HostRuntime};
     use conduit_signal::{
         pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
@@ -1157,13 +1157,23 @@ mod tests {
                 ),
             ]),
         };
-        plan_with_connection_limits(
+        let links = [process_owned_link_binding(
+            "link/composite-children",
+            ConnectionProvider::InMemory,
+            "fixture/in-memory/composite-children",
+            &source,
+            &sink,
+            8,
+            128,
+        )];
+        plan_with_link_bindings(
             &form,
             &[source, sink],
             &placements,
             &[ConnectionProvider::Local, ConnectionProvider::InMemory],
             item_capacity,
             byte_capacity,
+            &links,
         )
         .expect("cross-host plan succeeds")
     }
@@ -1202,11 +1212,23 @@ mod tests {
                 ),
             ]),
         };
-        plan(
+        let links = [process_owned_link_binding(
+            "link/composite-children",
+            ConnectionProvider::InMemory,
+            "fixture/in-memory/composite-children",
+            &source,
+            &sink,
+            8,
+            128,
+        )];
+        plan_with_link_bindings(
             &form,
             &[source, sink, auxiliary],
             &placements,
             &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+            conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
+            conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+            &links,
         )
         .expect("three-child plan succeeds")
     }
@@ -1227,8 +1249,17 @@ mod tests {
         source_ad: HostAdvertisement,
         sink_ad: HostAdvertisement,
     ) -> Vec<HostRuntime> {
+        let link = process_owned_link_binding(
+            "link/composite-children",
+            ConnectionProvider::InMemory,
+            "fixture/in-memory/composite-children",
+            &source_ad,
+            &sink_ad,
+            8,
+            128,
+        );
         vec![
-            HostRuntime::new(
+            HostRuntime::new_with_external_state(
                 source_ad,
                 signal_registry(
                     ImplementationId::from("test/pulse-v1"),
@@ -1236,8 +1267,10 @@ mod tests {
                 )
                 .expect("source registry installs"),
                 128,
+                vec![],
+                vec![link.clone()],
             ),
-            HostRuntime::new(
+            HostRuntime::new_with_external_state(
                 sink_ad,
                 signal_registry(
                     ImplementationId::from("unused/pulse-v1"),
@@ -1245,6 +1278,8 @@ mod tests {
                 )
                 .expect("sink registry installs"),
                 128,
+                vec![],
+                vec![link],
             ),
         ]
     }

@@ -92,6 +92,10 @@ impl StdHost {
         self.runtime.handle(command)
     }
 
+    pub fn replace_link_bindings(&mut self, bindings: Vec<conduit_core::LinkBinding>) {
+        self.runtime.replace_link_bindings(bindings);
+    }
+
     pub fn plan_local(
         &self,
         form: &CheckedForm,

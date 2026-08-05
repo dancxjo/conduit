@@ -10,7 +10,7 @@ use conduit_core::{
     AuthorityBinding, AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CheckedFormId,
     ConnectionId, ConnectionProvider, ExecutionProfileId, ExpandedFormId, HostAdvertisement,
     HostId, HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision,
-    KindId, Observation, ObservationKind, OfferGeneration, PlacementId, Plan, PlanId,
+    KindId, LinkBinding, Observation, ObservationKind, OfferGeneration, PlacementId, Plan, PlanId,
     PortDescriptor, ResourceBinding, ResourceOffer, ResourceRequirement, SourceDocumentId,
     TerminalDisposition,
 };
@@ -148,6 +148,7 @@ pub struct ConnectionRow {
     pub sink_placement_id: PlacementId,
     pub value_kind: KindId,
     pub provider: ConnectionProvider,
+    pub link_binding: Option<LinkBinding>,
     pub item_capacity: u16,
     pub byte_capacity: u32,
     pub lifecycle: PlanLifecycle,
@@ -368,6 +369,7 @@ pub fn build_report(
                         sink_placement_id: connection.sink_placement_id.clone(),
                         value_kind: connection.value_kind.clone(),
                         provider: connection.provider,
+                        link_binding: connection.link_binding.clone(),
                         item_capacity: connection.item_capacity,
                         byte_capacity: connection.byte_capacity,
                         lifecycle: connection_lifecycle(
@@ -638,13 +640,14 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for connection in &report.connections {
         let _ = writeln!(
             output,
-            "connection plan={} connection={} source={} sink={} value_kind={} provider={:?} queue_items={} queue_bytes={} lifecycle={:?}",
+            "connection plan={} connection={} source={} sink={} value_kind={} provider={:?} link_binding={:?} queue_items={} queue_bytes={} lifecycle={:?}",
             connection.plan_id.as_str(),
             connection.connection_id.as_str(),
             connection.source_placement_id.as_str(),
             connection.sink_placement_id.as_str(),
             connection.value_kind.as_str(),
             connection.provider,
+            connection.link_binding,
             connection.item_capacity,
             connection.byte_capacity,
             connection.lifecycle
@@ -695,8 +698,9 @@ mod tests {
     };
     use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
     use conduit_core::{
-        authority_grant, present_authority_requirement, BootId, CapabilityId, ConnectionProvider,
-        HostCommand, HostId, ObservationKind, OfferGeneration, OperationId, TerminalDisposition,
+        authority_grant, present_authority_requirement, process_owned_link_binding, BootId,
+        CapabilityId, ConnectionProvider, HostCommand, HostId, ObservationKind, OfferGeneration,
+        OperationId, TerminalDisposition,
     };
     use conduit_form::parse;
     use conduit_pico_sim::{pico_advertisement, PicoSimConfig};
@@ -831,6 +835,26 @@ mod tests {
                 ConnectionProvider::FixtureDatagram,
             ),
         ]);
+        let link_bindings = vec![
+            process_owned_link_binding(
+                "link/std-browser",
+                ConnectionProvider::FixtureFrame,
+                "fixture/frame/std-browser",
+                &advertisements[0],
+                &advertisements[1],
+                4,
+                64,
+            ),
+            process_owned_link_binding(
+                "link/std-pico",
+                ConnectionProvider::FixtureDatagram,
+                "fixture/datagram/std-pico",
+                &advertisements[0],
+                &advertisements[2],
+                4,
+                64,
+            ),
+        ];
         let plan = plan_with_options(
             &form,
             &advertisements,
@@ -845,9 +869,11 @@ mod tests {
                 connection_item_capacity: 4,
                 connection_byte_capacity: 64,
                 authority_grants: core::slice::from_ref(&browser_authority_grant),
+                link_bindings: &link_bindings,
             },
         )
         .expect("M1 triple-simulation plan resolves");
+        std_host.replace_link_bindings(link_bindings);
         let fragment = plan
             .fragments
             .iter()
@@ -901,6 +927,11 @@ mod tests {
             .connections
             .iter()
             .any(|connection| connection.provider == ConnectionProvider::FixtureDatagram));
+        assert!(report.connections.iter().all(|connection| {
+            (connection.provider == ConnectionProvider::Local && connection.link_binding.is_none())
+                || (connection.provider != ConnectionProvider::Local
+                    && connection.link_binding.is_some())
+        }));
         assert!(report
             .evidence
             .iter()
@@ -923,6 +954,9 @@ mod tests {
         assert!(rendered.contains("grant/browser-presentation"));
         assert!(rendered.contains("provider=FixtureFrame"));
         assert!(rendered.contains("provider=FixtureDatagram"));
+        assert!(rendered.contains("link/std-browser"));
+        assert!(rendered.contains("fixture/datagram/std-pico"));
+        assert!(rendered.contains("authority: ProcessOwned"));
         assert!(rendered.contains("evidence id=evidence/"));
     }
 

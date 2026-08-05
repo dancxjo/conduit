@@ -2,8 +2,8 @@
 use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
 #[cfg(feature = "sim-fixtures")]
 use conduit_core::{
-    BootId, CapabilityId, ConnectionProvider, HostCommand, HostEvent, HostId, OfferGeneration,
-    OperationId,
+    process_owned_link_binding, BootId, CapabilityId, ConnectionProvider, HostCommand, HostEvent,
+    HostId, OfferGeneration, OperationId,
 };
 #[cfg(feature = "sim-fixtures")]
 use conduit_form::parse;
@@ -12,9 +12,7 @@ use conduit_observatory::{build_report, render_text_report};
 #[cfg(feature = "sim-fixtures")]
 use conduit_pico_sim::{pico_advertisement, PicoSim, PicoSimConfig};
 #[cfg(feature = "sim-fixtures")]
-use conduit_planner::{
-    plan_with_connection_limits_and_provider_overrides, PlacementChoice, PlacementChoices,
-};
+use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
 #[cfg(feature = "sim-fixtures")]
 use conduit_realm::{AdmissionRequest, LinkId, Realm, RealmId};
 #[cfg(feature = "sim-fixtures")]
@@ -152,7 +150,27 @@ fn observatory_fixture_report() -> Result<String, String> {
             ConnectionProvider::FixtureDatagram,
         ),
     ]);
-    let plan = plan_with_connection_limits_and_provider_overrides(
+    let link_bindings = [
+        process_owned_link_binding(
+            "link/std-browser",
+            ConnectionProvider::FixtureFrame,
+            "fixture/frame/std-browser",
+            &advertisements[0],
+            &advertisements[1],
+            4,
+            64,
+        ),
+        process_owned_link_binding(
+            "link/std-pico",
+            ConnectionProvider::FixtureDatagram,
+            "fixture/datagram/std-pico",
+            &advertisements[0],
+            &advertisements[2],
+            4,
+            64,
+        ),
+    ];
+    let plan = plan_with_options(
         &form,
         &advertisements,
         &placements,
@@ -161,9 +179,13 @@ fn observatory_fixture_report() -> Result<String, String> {
             ConnectionProvider::FixtureFrame,
             ConnectionProvider::FixtureDatagram,
         ],
-        &connection_providers,
-        4,
-        64,
+        PlanningOptions {
+            connection_providers: &connection_providers,
+            connection_item_capacity: 4,
+            connection_byte_capacity: 64,
+            authority_grants: &[],
+            link_bindings: &link_bindings,
+        },
     )
     .map_err(|err| err.to_string())?;
 
