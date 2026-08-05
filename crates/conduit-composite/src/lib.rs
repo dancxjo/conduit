@@ -8,7 +8,8 @@ use conduit_core::{
 };
 use conduit_form::{CheckedForm, CompositeFaceTerminal};
 use conduit_runtime::{
-    providers::in_memory::InMemoryConnectionProvider, HostRuntime, RuntimeOutput,
+    providers::in_memory::InMemoryConnectionProvider, CompositeBoundaryEffect,
+    CompositePortBinding, HostRuntime, RuntimeOutput,
 };
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
@@ -215,6 +216,44 @@ struct ExternalPlan {
     terminal_emitted: bool,
     child_terminals: BTreeMap<HostId, TerminalDisposition>,
     active_play_id: Option<ActivePlayId>,
+    connections: BTreeMap<ConnectionId, ExternalConnection>,
+    pending_outputs: BTreeMap<(PortId, u64), PendingFaceOutput>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ExternalConnectionRole {
+    Input,
+    Output,
+}
+
+#[derive(Debug)]
+struct ExternalConnection {
+    spec: conduit_core::PlannedConnection,
+    role: ExternalConnectionRole,
+    face_port_id: PortId,
+    next_expected_sequence: u64,
+    next_send_sequence: u64,
+    terminal: Option<TerminalDisposition>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ExternalDeliveryState {
+    Offered,
+    Accepted,
+    Delivered,
+}
+
+#[derive(Debug)]
+struct ExternalOutputBranch {
+    sequence: u64,
+    state: ExternalDeliveryState,
+    value: conduit_core::ValuePayload,
+}
+
+#[derive(Debug)]
+struct PendingFaceOutput {
+    child: HostId,
+    branches: BTreeMap<ConnectionId, ExternalOutputBranch>,
 }
 
 #[derive(Debug)]
@@ -318,10 +357,7 @@ impl CompositeHost {
             .chain(&definition.boundary.output_faces)
         {
             if !declared_ids.contains(&face.internal_child)
-                || !mapped_ports.insert((
-                    face.external_port.direction as u8,
-                    face.external_port.port_id.clone(),
-                ))
+                || !mapped_ports.insert(face.external_port.port_id.clone())
                 || face.terminal != CompositeFaceTerminal::Independent
             {
                 return Err(CompositeError::InvalidInternalPlan(
@@ -712,6 +748,19 @@ impl CompositeHost {
         match command {
             HostCommand::Prepare(fragment) => self.prepare(fragment),
             HostCommand::Activate(plan_id) => self.activate(plan_id),
+            HostCommand::AcceptConnectionEnvelope(envelope) => {
+                self.accept_external_envelope(envelope)
+            }
+            HostCommand::CompleteConnectionDelivery {
+                plan_id,
+                connection_id,
+                sequence,
+                outcome,
+            } => self.complete_external_delivery(plan_id, connection_id, sequence, outcome),
+            HostCommand::CloseConnection {
+                plan_id,
+                connection_id,
+            } => self.close_external_connection(plan_id, connection_id),
             HostCommand::Cancel(plan_id) => self.cancel(plan_id),
             HostCommand::Release(plan_id) => self.release(plan_id),
             HostCommand::Inspect => RuntimeOutput {
@@ -733,6 +782,268 @@ impl CompositeHost {
                 effects: Vec::new(),
             },
         }
+    }
+
+    fn accept_external_envelope(&mut self, envelope: ConnectionEnvelope) -> RuntimeOutput {
+        let mut external = RuntimeOutput::default();
+        let plan_id = envelope.plan_id.clone();
+        let connection_id = envelope.connection_id.clone();
+        let sequence = envelope.sequence;
+        let Some(plan) = self.external_plans.get(&plan_id) else {
+            external.events.push(HostEvent::ConnectionEnvelopeOutcome {
+                plan_id,
+                connection_id,
+                sequence,
+                outcome: ConnectionOutcome::Malformed,
+            });
+            return external;
+        };
+        let Some(connection) = plan.connections.get(&connection_id) else {
+            external.events.push(HostEvent::ConnectionEnvelopeOutcome {
+                plan_id,
+                connection_id,
+                sequence,
+                outcome: ConnectionOutcome::Malformed,
+            });
+            return external;
+        };
+        if plan.state != ExternalState::Active || connection.terminal.is_some() {
+            external.events.push(HostEvent::ConnectionEnvelopeOutcome {
+                plan_id,
+                connection_id,
+                sequence,
+                outcome: ConnectionOutcome::Terminal,
+            });
+            return external;
+        }
+        let malformed = envelope.protocol_version != PROTOCOL_VERSION
+            || connection.role != ExternalConnectionRole::Input
+            || envelope.value_kind != connection.spec.value_kind
+            || envelope.encoded_len() > connection.spec.byte_capacity
+            || sequence != connection.next_expected_sequence;
+        if malformed {
+            external.events.push(HostEvent::ConnectionEnvelopeOutcome {
+                plan_id,
+                connection_id,
+                sequence,
+                outcome: ConnectionOutcome::Malformed,
+            });
+            return external;
+        }
+        let face_port_id = connection.face_port_id.clone();
+        let child_id = self
+            .boundary
+            .input_faces
+            .iter()
+            .find(|face| face.external_port.port_id == face_port_id)
+            .expect("prepared external connection has a checked input face")
+            .internal_child
+            .clone();
+        let (outcome, child_output) = self
+            .children
+            .get_mut(&child_id)
+            .expect("checked input face child exists")
+            .runtime
+            .accept_composite_input(
+                &self.internal_plan_id,
+                &face_port_id,
+                sequence,
+                envelope.into_value(),
+            );
+        if outcome == ConnectionOutcome::Accepted {
+            self.external_plans
+                .get_mut(&plan_id)
+                .expect("external plan was checked")
+                .connections
+                .get_mut(&connection_id)
+                .expect("external connection was checked")
+                .next_expected_sequence += 1;
+        }
+        external.events.push(HostEvent::ConnectionEnvelopeOutcome {
+            plan_id: plan_id.clone(),
+            connection_id,
+            sequence,
+            outcome,
+        });
+        self.drive_internal(&plan_id, vec![(child_id, child_output)], &mut external);
+        external
+    }
+
+    fn close_external_connection(
+        &mut self,
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+    ) -> RuntimeOutput {
+        let mut external = RuntimeOutput::default();
+        let Some(plan) = self.external_plans.get_mut(&plan_id) else {
+            external.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id),
+                reason: FailureReason::StalePlan,
+            });
+            return external;
+        };
+        if plan.state != ExternalState::Active {
+            external.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return external;
+        }
+        let Some(connection) = plan.connections.get_mut(&connection_id) else {
+            external.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id),
+                reason: FailureReason::MalformedConnectionEnvelope,
+            });
+            return external;
+        };
+        if connection.role != ExternalConnectionRole::Input || connection.terminal.is_some() {
+            external.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return external;
+        }
+        connection.terminal = Some(TerminalDisposition::Completed);
+        let face_port_id = connection.face_port_id.clone();
+        let last_sequence = connection.next_expected_sequence.checked_sub(1);
+        let child_id = self
+            .boundary
+            .input_faces
+            .iter()
+            .find(|face| face.external_port.port_id == face_port_id)
+            .expect("prepared connection has an input face")
+            .internal_child
+            .clone();
+        let child_output = self
+            .children
+            .get_mut(&child_id)
+            .expect("checked input child exists")
+            .runtime
+            .close_composite_input(&self.internal_plan_id, &face_port_id);
+        external.events.push(HostEvent::ConnectionTerminated {
+            plan_id: plan_id.clone(),
+            connection_id,
+            disposition: conduit_core::ConnectionTerminalDisposition {
+                disposition: TerminalDisposition::Completed,
+                last_accepted_sequence: last_sequence,
+                last_manifested_sequence: last_sequence,
+                undeliverable_items: 0,
+            },
+        });
+        self.drive_internal(&plan_id, vec![(child_id, child_output)], &mut external);
+        external
+    }
+
+    fn complete_external_delivery(
+        &mut self,
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+        sequence: u64,
+        outcome: ConnectionOutcome,
+    ) -> RuntimeOutput {
+        let mut external = RuntimeOutput::default();
+        let pending_key = self.external_plans.get(&plan_id).and_then(|plan| {
+            plan.pending_outputs.iter().find_map(|(key, pending)| {
+                pending
+                    .branches
+                    .get(&connection_id)
+                    .filter(|branch| branch.sequence == sequence)
+                    .map(|_| key.clone())
+            })
+        });
+        let Some((port_id, boundary_sequence)) = pending_key else {
+            external.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id),
+                reason: FailureReason::MalformedConnectionEnvelope,
+            });
+            return external;
+        };
+        let mut retry = None;
+        let mut finish = None;
+        let mut invalid_completion = false;
+        {
+            let plan = self
+                .external_plans
+                .get_mut(&plan_id)
+                .expect("pending output has an external plan");
+            let pending = plan
+                .pending_outputs
+                .get_mut(&(port_id.clone(), boundary_sequence))
+                .expect("pending output key was found");
+            let branch = pending
+                .branches
+                .get_mut(&connection_id)
+                .expect("pending output branch was found");
+            match outcome {
+                ConnectionOutcome::Accepted if branch.state == ExternalDeliveryState::Offered => {
+                    branch.state = ExternalDeliveryState::Accepted;
+                }
+                ConnectionOutcome::Delivered
+                    if matches!(
+                        branch.state,
+                        ExternalDeliveryState::Offered | ExternalDeliveryState::Accepted
+                    ) =>
+                {
+                    branch.state = ExternalDeliveryState::Delivered;
+                }
+                ConnectionOutcome::Full if branch.state == ExternalDeliveryState::Offered => {
+                    retry = Some(ConnectionEnvelope {
+                        protocol_version: PROTOCOL_VERSION,
+                        plan_id: plan_id.clone(),
+                        connection_id: connection_id.clone(),
+                        sequence,
+                        value_kind: branch.value.value_kind.clone(),
+                        payload: branch.value.encoded.clone(),
+                    });
+                }
+                ConnectionOutcome::Malformed
+                | ConnectionOutcome::Disconnected
+                | ConnectionOutcome::Terminal => finish = Some(outcome),
+                _ => invalid_completion = true,
+            }
+            if finish.is_none()
+                && pending
+                    .branches
+                    .values()
+                    .all(|branch| branch.state == ExternalDeliveryState::Delivered)
+            {
+                finish = Some(ConnectionOutcome::Delivered);
+            }
+        }
+        if invalid_completion {
+            external.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return external;
+        }
+        if let Some(envelope) = retry {
+            external
+                .effects
+                .push(PlatformEffect::TransmitConnection { envelope });
+        }
+        if let Some(final_outcome) = finish {
+            let pending = self
+                .external_plans
+                .get_mut(&plan_id)
+                .expect("pending output has a plan")
+                .pending_outputs
+                .remove(&(port_id.clone(), boundary_sequence))
+                .expect("pending output exists");
+            let child_output = self
+                .children
+                .get_mut(&pending.child)
+                .expect("pending output child exists")
+                .runtime
+                .complete_composite_output(
+                    &self.internal_plan_id,
+                    &port_id,
+                    boundary_sequence,
+                    final_outcome,
+                );
+            self.drive_internal(&plan_id, vec![(pending.child, child_output)], &mut external);
+        }
+        external
     }
 
     pub fn internal_observations(&mut self) -> BTreeMap<HostId, Vec<Observation>> {
@@ -760,16 +1071,24 @@ impl CompositeHost {
     fn prepare(&mut self, fragment: PlanFragment) -> RuntimeOutput {
         let mut output = RuntimeOutput::default();
         let plan_id = fragment.plan_id.clone();
-        if self.released_plans.contains(&plan_id)
+        if !conduit_core::verify_plan_fragment(&fragment)
+            || self.released_plans.contains(&plan_id)
             || fragment.host_id != self.advertisement.host_id
             || fragment.boot_id != self.advertisement.boot_id
             || fragment.offer_generation != self.advertisement.offer_generation
             || fragment.placements.len() != 1
             || fragment.placements[0].kind_id != self.advertisement.capabilities[0].kind_id
+            || fragment.placements[0].kind_contract_revision
+                != self.advertisement.capabilities[0].kind_contract_revision
+            || fragment.placements[0].execution_profile_id
+                != self.advertisement.capabilities[0].execution_profile_id
             || fragment.placements[0].capability_id
                 != self.advertisement.capabilities[0].capability_id
             || fragment.placements[0].implementation_id
                 != self.advertisement.capabilities[0].implementation_id
+            || fragment.placements[0].artifact_id != self.advertisement.capabilities[0].artifact_id
+            || fragment.placements[0].inputs != self.advertisement.capabilities[0].inputs
+            || fragment.placements[0].outputs != self.advertisement.capabilities[0].outputs
             || self
                 .external_plans
                 .values()
@@ -781,6 +1100,70 @@ impl CompositeHost {
                 message: Some("external fragment does not match the composite offer".into()),
             });
             return output;
+        }
+        let placement_id = fragment.placements[0].placement_id.clone();
+        let mut external_connections = BTreeMap::new();
+        for connection in &fragment.connections {
+            let (role, face_port_id) = if connection.sink_placement_id == placement_id
+                && connection.source_placement_id != placement_id
+            {
+                (
+                    ExternalConnectionRole::Input,
+                    connection.sink_port_id.clone(),
+                )
+            } else if connection.source_placement_id == placement_id
+                && connection.sink_placement_id != placement_id
+            {
+                (
+                    ExternalConnectionRole::Output,
+                    connection.source_port_id.clone(),
+                )
+            } else {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id,
+                    reason: FailureReason::InvalidOperationConfiguration,
+                    message: Some(
+                        "external connection must have exactly one composite endpoint".into(),
+                    ),
+                });
+                return output;
+            };
+            let face = match role {
+                ExternalConnectionRole::Input => self
+                    .boundary
+                    .input_faces
+                    .iter()
+                    .find(|face| face.external_port.port_id == face_port_id),
+                ExternalConnectionRole::Output => self
+                    .boundary
+                    .output_faces
+                    .iter()
+                    .find(|face| face.external_port.port_id == face_port_id),
+            };
+            if connection.provider == ConnectionProvider::Local
+                || face.is_none_or(|face| face.external_port.value_kind != connection.value_kind)
+                || external_connections.contains_key(&connection.connection_id)
+            {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id,
+                    reason: FailureReason::InvalidOperationConfiguration,
+                    message: Some(
+                        "external connection differs from an exact named composite face".into(),
+                    ),
+                });
+                return output;
+            }
+            external_connections.insert(
+                connection.connection_id.clone(),
+                ExternalConnection {
+                    spec: connection.clone(),
+                    role,
+                    face_port_id,
+                    next_expected_sequence: 0,
+                    next_send_sequence: 0,
+                    terminal: None,
+                },
+            );
         }
         let preparation_failure = self.children.values_mut().find_map(|child| {
             let result = child
@@ -796,6 +1179,48 @@ impl CompositeHost {
             });
             return output;
         }
+        let external_limits = &self.advertisement.capabilities[0].limits;
+        for (host_id, child) in &mut self.children {
+            let bindings = |faces: &[CompositeFaceBinding], role: ExternalConnectionRole| {
+                faces
+                    .iter()
+                    .filter(|face| &face.internal_child == host_id)
+                    .map(|face| {
+                        let mut item_capacity = external_limits.max_queue_items;
+                        let mut byte_capacity = external_limits.max_queue_bytes;
+                        for connection in external_connections.values().filter(|connection| {
+                            connection.role == role
+                                && connection.face_port_id == face.external_port.port_id
+                        }) {
+                            item_capacity = item_capacity.min(connection.spec.item_capacity);
+                            byte_capacity = byte_capacity.min(connection.spec.byte_capacity);
+                        }
+                        CompositePortBinding {
+                            external_port_id: face.external_port.port_id.clone(),
+                            placement_id: face.internal_placement_id.clone(),
+                            internal_port_id: face.internal_port_id.clone(),
+                            value_kind: face.external_port.value_kind.clone(),
+                            item_capacity,
+                            byte_capacity,
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            };
+            let inputs = bindings(&self.boundary.input_faces, ExternalConnectionRole::Input);
+            let outputs = bindings(&self.boundary.output_faces, ExternalConnectionRole::Output);
+            if child
+                .runtime
+                .configure_composite_boundary(&self.internal_plan_id, inputs, outputs)
+                .is_err()
+            {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id,
+                    reason: self.failure_translation,
+                    message: Some("composite child boundary configuration failed".into()),
+                });
+                return output;
+            }
+        }
         self.external_plans.insert(
             plan_id.clone(),
             ExternalPlan {
@@ -803,6 +1228,8 @@ impl CompositeHost {
                 terminal_emitted: false,
                 child_terminals: BTreeMap::new(),
                 active_play_id: None,
+                connections: external_connections,
+                pending_outputs: BTreeMap::new(),
             },
         );
         self.record(Some(plan_id.clone()), ObservationKind::PlanFragmentReceived);
@@ -850,6 +1277,25 @@ impl CompositeHost {
             plan_id: plan_id.clone(),
             active_play_id: active_play.active_play_id,
         });
+        let connected_inputs = self
+            .external_plans
+            .get(&plan_id)
+            .expect("active external plan exists")
+            .connections
+            .values()
+            .filter(|connection| connection.role == ExternalConnectionRole::Input)
+            .map(|connection| connection.face_port_id.clone())
+            .collect::<BTreeSet<_>>();
+        for face in &self.boundary.input_faces {
+            if !connected_inputs.contains(&face.external_port.port_id) {
+                let _ = self
+                    .children
+                    .get_mut(&face.internal_child)
+                    .expect("checked input child exists")
+                    .runtime
+                    .close_composite_input(&self.internal_plan_id, &face.external_port.port_id);
+            }
+        }
         let source_children = self
             .internal_connections
             .values()
@@ -912,6 +1358,31 @@ impl CompositeHost {
                     HostEvent::PlanTerminated { disposition, .. } => {
                         if let Some(plan) = self.external_plans.get_mut(external_plan_id) {
                             plan.child_terminals.insert(child.clone(), disposition);
+                            if matches!(disposition, TerminalDisposition::Failed { .. }) {
+                                plan.pending_outputs.clear();
+                                for (connection_id, connection) in &mut plan.connections {
+                                    if connection.terminal.is_none() {
+                                        connection.terminal = Some(TerminalDisposition::Failed {
+                                            reason: self.failure_translation,
+                                        });
+                                        external.events.push(HostEvent::ConnectionTerminated {
+                                            plan_id: external_plan_id.clone(),
+                                            connection_id: connection_id.clone(),
+                                            disposition:
+                                                conduit_core::ConnectionTerminalDisposition {
+                                                    disposition: TerminalDisposition::Failed {
+                                                        reason: self.failure_translation,
+                                                    },
+                                                    last_accepted_sequence: connection
+                                                        .next_expected_sequence
+                                                        .checked_sub(1),
+                                                    last_manifested_sequence: None,
+                                                    undeliverable_items: 0,
+                                                },
+                                        });
+                                    }
+                                }
+                            }
                         }
                         if matches!(disposition, TerminalDisposition::Failed { .. }) {
                             let other_ids = self
@@ -1077,15 +1548,168 @@ impl CompositeHost {
                     }
                 }
             }
+            let boundary_effects = self
+                .children
+                .get_mut(&child)
+                .expect("output came from a known child")
+                .runtime
+                .drain_composite_boundary_effects();
+            for effect in boundary_effects {
+                self.process_boundary_effect(
+                    external_plan_id,
+                    &child,
+                    effect,
+                    &mut pending,
+                    external,
+                );
+            }
         }
         self.finish_external_if_terminal(external_plan_id, external);
+    }
+
+    fn process_boundary_effect(
+        &mut self,
+        external_plan_id: &PlanId,
+        child: &HostId,
+        effect: CompositeBoundaryEffect,
+        pending: &mut VecDeque<(HostId, RuntimeOutput)>,
+        external: &mut RuntimeOutput,
+    ) {
+        match effect {
+            CompositeBoundaryEffect::Transmit {
+                plan_id,
+                port_id,
+                sequence,
+                value,
+            } => {
+                if plan_id != self.internal_plan_id {
+                    return;
+                }
+                let key = (port_id.clone(), sequence);
+                let mut branches = BTreeMap::new();
+                let Some(plan) = self.external_plans.get_mut(external_plan_id) else {
+                    return;
+                };
+                if plan.pending_outputs.contains_key(&key) {
+                    return;
+                }
+                let connection_ids = plan
+                    .connections
+                    .iter()
+                    .filter(|(_, connection)| {
+                        connection.role == ExternalConnectionRole::Output
+                            && connection.face_port_id == port_id
+                            && connection.terminal.is_none()
+                    })
+                    .map(|(connection_id, _)| connection_id.clone())
+                    .collect::<Vec<_>>();
+                for connection_id in connection_ids {
+                    let connection = plan
+                        .connections
+                        .get_mut(&connection_id)
+                        .expect("listed external output exists");
+                    let external_sequence = connection.next_send_sequence;
+                    connection.next_send_sequence += 1;
+                    external.effects.push(PlatformEffect::TransmitConnection {
+                        envelope: ConnectionEnvelope {
+                            protocol_version: PROTOCOL_VERSION,
+                            plan_id: external_plan_id.clone(),
+                            connection_id: connection_id.clone(),
+                            sequence: external_sequence,
+                            value_kind: value.value_kind.clone(),
+                            payload: value.encoded.clone(),
+                        },
+                    });
+                    branches.insert(
+                        connection_id,
+                        ExternalOutputBranch {
+                            sequence: external_sequence,
+                            state: ExternalDeliveryState::Offered,
+                            value: value.clone(),
+                        },
+                    );
+                }
+                if branches.is_empty() {
+                    let child_output = self
+                        .children
+                        .get_mut(child)
+                        .expect("boundary effect child exists")
+                        .runtime
+                        .complete_composite_output(
+                            &self.internal_plan_id,
+                            &port_id,
+                            sequence,
+                            ConnectionOutcome::Delivered,
+                        );
+                    pending.push_back((child.clone(), child_output));
+                } else {
+                    plan.pending_outputs.insert(
+                        key,
+                        PendingFaceOutput {
+                            child: child.clone(),
+                            branches,
+                        },
+                    );
+                }
+                self.record(
+                    Some(external_plan_id.clone()),
+                    ObservationKind::ValueProduced { value },
+                );
+            }
+            CompositeBoundaryEffect::Closed {
+                plan_id,
+                port_id,
+                disposition,
+            } => {
+                if plan_id != self.internal_plan_id {
+                    return;
+                }
+                let Some(plan) = self.external_plans.get_mut(external_plan_id) else {
+                    return;
+                };
+                let connection_ids = plan
+                    .connections
+                    .iter()
+                    .filter(|(_, connection)| {
+                        connection.role == ExternalConnectionRole::Output
+                            && connection.face_port_id == port_id
+                            && connection.terminal.is_none()
+                    })
+                    .map(|(connection_id, _)| connection_id.clone())
+                    .collect::<Vec<_>>();
+                for connection_id in connection_ids {
+                    let connection = plan
+                        .connections
+                        .get_mut(&connection_id)
+                        .expect("listed external output exists");
+                    connection.terminal = Some(disposition);
+                    external.events.push(HostEvent::ConnectionTerminated {
+                        plan_id: external_plan_id.clone(),
+                        connection_id,
+                        disposition: conduit_core::ConnectionTerminalDisposition {
+                            disposition,
+                            last_accepted_sequence: connection.next_send_sequence.checked_sub(1),
+                            last_manifested_sequence: connection.next_send_sequence.checked_sub(1),
+                            undeliverable_items: 0,
+                        },
+                    });
+                }
+            }
+        }
     }
 
     fn finish_external_if_terminal(&mut self, plan_id: &PlanId, output: &mut RuntimeOutput) {
         let Some(plan) = self.external_plans.get_mut(plan_id) else {
             return;
         };
-        if plan.terminal_emitted || plan.child_terminals.len() != self.children.len() {
+        if plan.terminal_emitted
+            || plan.child_terminals.len() != self.children.len()
+            || !plan.pending_outputs.is_empty()
+            || plan
+                .connections
+                .values()
+                .any(|connection| connection.terminal.is_none())
+        {
             return;
         }
         let failed = plan
@@ -1141,6 +1765,26 @@ impl CompositeHost {
             return output;
         }
         plan.state = ExternalState::Cancelled;
+        plan.pending_outputs.clear();
+        for (connection_id, connection) in &mut plan.connections {
+            if connection.terminal.is_none() {
+                connection.terminal = Some(TerminalDisposition::Cancelled {
+                    reason: conduit_core::CancellationReason::OperatorRequested,
+                });
+                output.events.push(HostEvent::ConnectionTerminated {
+                    plan_id: plan_id.clone(),
+                    connection_id: connection_id.clone(),
+                    disposition: conduit_core::ConnectionTerminalDisposition {
+                        disposition: TerminalDisposition::Cancelled {
+                            reason: conduit_core::CancellationReason::OperatorRequested,
+                        },
+                        last_accepted_sequence: connection.next_expected_sequence.checked_sub(1),
+                        last_manifested_sequence: None,
+                        undeliverable_items: 0,
+                    },
+                });
+            }
+        }
         let child_ids = self.children.keys().cloned().collect::<Vec<_>>();
         let initial = child_ids
             .into_iter()
@@ -1293,15 +1937,20 @@ mod tests {
     use conduit_core::{
         kind_id, process_owned_link_binding, ArtifactId, BootId, CapabilityId, CapabilityLimits,
         CapabilityOffer, CheckedFormId, ConnectionEnvelope, ConnectionOutcome, ConnectionProvider,
-        ExecutionProfileId, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId,
-        ImplementationId, KindContractRevision, KindId, OfferGeneration, OperationId,
-        TerminalDisposition, PROTOCOL_VERSION,
+        ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId,
+        HostProfileId, ImplementationId, KindContractRevision, KindId, ObservationKind,
+        OfferGeneration, OperationId, PlannedOperation, PlatformEffect, PortDescriptor,
+        PortDirection, TerminalDisposition, PROTOCOL_VERSION,
     };
     use conduit_form::{
-        parse, CheckedForm, CheckedOperation, CompositeFaceTerminal, ProfileCatalog,
+        parse, CheckedForm, CheckedOperation, CompositeFaceTerminal, KindDefinition, ProfileCatalog,
     };
     use conduit_planner::{plan, plan_with_link_bindings, PlacementChoice, PlacementChoices};
-    use conduit_runtime::{providers::in_memory::InMemoryConnectionProvider, HostRuntime};
+    use conduit_runtime::{
+        providers::in_memory::InMemoryConnectionProvider, HostRuntime, ImplementationFailure,
+        ImplementationRegistry, OperationAction, OperationCompletion, OperationImplementation,
+        OperationOutput, OperationState,
+    };
     use conduit_signal::{
         pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
         pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
@@ -1311,6 +1960,424 @@ mod tests {
     use std::collections::BTreeMap;
 
     const COMPOSITE_DEMONSTRATION_KIND: &str = "demonstration/run-signal";
+    const NUMBER_KIND: &str = "value/number";
+    const BYTES_KIND: &str = "value/bytes";
+
+    fn descriptor(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
+        PortDescriptor {
+            port_id: conduit_core::port_id(name),
+            value_kind: kind_id(value_kind),
+            direction,
+        }
+    }
+
+    fn definition(
+        kind: &str,
+        revision: &str,
+        inputs: Vec<PortDescriptor>,
+        outputs: Vec<PortDescriptor>,
+    ) -> KindDefinition {
+        KindDefinition {
+            kind_id: kind_id(kind),
+            kind_contract_revision: KindContractRevision::from(revision),
+            inputs,
+            outputs,
+            configuration: Vec::new(),
+        }
+    }
+
+    fn multi_catalog() -> ProfileCatalog {
+        let mut catalog = ProfileCatalog::new();
+        for item in [
+            definition(
+                "test/number-echo",
+                "test/number-echo@1",
+                vec![descriptor("in", NUMBER_KIND, PortDirection::Input)],
+                vec![descriptor("out", NUMBER_KIND, PortDirection::Output)],
+            ),
+            definition(
+                "test/bytes-echo",
+                "test/bytes-echo@1",
+                vec![descriptor("in", BYTES_KIND, PortDirection::Input)],
+                vec![descriptor("out", BYTES_KIND, PortDirection::Output)],
+            ),
+            definition(
+                "test/number-source",
+                "test/number-source@1",
+                Vec::new(),
+                vec![descriptor("out", NUMBER_KIND, PortDirection::Output)],
+            ),
+            definition(
+                "test/bytes-source",
+                "test/bytes-source@1",
+                Vec::new(),
+                vec![descriptor("out", BYTES_KIND, PortDirection::Output)],
+            ),
+            definition(
+                "test/number-sink",
+                "test/number-sink@1",
+                vec![descriptor("in", NUMBER_KIND, PortDirection::Input)],
+                Vec::new(),
+            ),
+            definition(
+                "test/bytes-sink",
+                "test/bytes-sink@1",
+                vec![descriptor("in", BYTES_KIND, PortDirection::Input)],
+                Vec::new(),
+            ),
+        ] {
+            catalog.insert(item).expect("multi kind installs");
+        }
+        catalog
+    }
+
+    fn multi_internal_form() -> CheckedForm {
+        parse(
+            "form 0\nmulti {\n number: test/number-echo\n bytes: test/bytes-echo\n export run: demonstration/multi-echo {\n  input control-in: value/number = number.in terminal independent\n  input data-in: value/bytes = bytes.in terminal independent\n  output control-out: value/number = number.out terminal independent\n  output data-out: value/bytes = bytes.out terminal independent\n }\n}\n",
+            &multi_catalog(),
+        )
+        .expect("multi-face internal form checks")
+    }
+
+    struct EchoImplementation {
+        kind_id: KindId,
+        revision: KindContractRevision,
+        profile: ExecutionProfileId,
+        implementation_id: ImplementationId,
+        artifact_id: ArtifactId,
+    }
+
+    impl OperationImplementation for EchoImplementation {
+        fn kind_id(&self) -> &KindId {
+            &self.kind_id
+        }
+
+        fn kind_contract_revision(&self) -> KindContractRevision {
+            self.revision.clone()
+        }
+
+        fn execution_profile_id(&self) -> ExecutionProfileId {
+            self.profile.clone()
+        }
+
+        fn implementation_id(&self) -> &ImplementationId {
+            &self.implementation_id
+        }
+
+        fn artifact_id(&self) -> &ArtifactId {
+            &self.artifact_id
+        }
+
+        fn prepare(
+            &self,
+            placement: &PlannedOperation,
+        ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
+            if placement.inputs.len() != 1 || placement.outputs.len() != 1 {
+                return Err(ImplementationFailure::new(
+                    FailureReason::InvalidOperationConfiguration,
+                    "echo requires one exact input and output",
+                ));
+            }
+            Ok(Box::new(EchoState {
+                input: placement.inputs[0].port_id.clone(),
+                output: placement.outputs[0].port_id.clone(),
+            }))
+        }
+
+        fn minimum_value_size(&self, value_kind: &KindId) -> Option<u32> {
+            (value_kind == &kind_id(NUMBER_KIND) || value_kind == &kind_id(BYTES_KIND)).then_some(1)
+        }
+    }
+
+    struct EchoState {
+        input: conduit_core::PortId,
+        output: conduit_core::PortId,
+    }
+
+    impl OperationState for EchoState {
+        fn start(&mut self) -> OperationAction {
+            OperationAction::Idle
+        }
+
+        fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
+            match completion {
+                OperationCompletion::Value { port, value } if port == self.input => {
+                    OperationAction::Emit(vec![OperationOutput {
+                        port: self.output.clone(),
+                        value,
+                    }])
+                }
+                OperationCompletion::Emitted => OperationAction::Idle,
+                OperationCompletion::InputsClosed => OperationAction::Complete,
+                _ => OperationAction::Fail(ImplementationFailure::new(
+                    FailureReason::InvalidLifecycleCommand,
+                    "echo received a wrong port or completion",
+                )),
+            }
+        }
+    }
+
+    fn hosted_offer(
+        capability: &str,
+        kind: &str,
+        revision: &str,
+        inputs: Vec<PortDescriptor>,
+        outputs: Vec<PortDescriptor>,
+    ) -> CapabilityOffer {
+        CapabilityOffer {
+            capability_id: CapabilityId::from(capability),
+            kind_id: kind_id(kind),
+            kind_contract_revision: KindContractRevision::from(revision),
+            execution_profile_id: ExecutionProfileId::from(format!("{kind}/hosted@1")),
+            implementation_id: ImplementationId::from(format!("test/{capability}-v1")),
+            artifact_id: ArtifactId::from(format!("test/{capability}-artifact-v1")),
+            inputs,
+            outputs,
+            host_operations: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+            limits: CapabilityLimits {
+                max_active_instances: 4,
+                max_queue_items: 4,
+                max_queue_bytes: 64,
+            },
+        }
+    }
+
+    fn multi_child_advertisement() -> HostAdvertisement {
+        HostAdvertisement {
+            protocol_version: PROTOCOL_VERSION,
+            host_id: HostId::from("multi-child"),
+            boot_id: BootId::from("multi-child-boot"),
+            offer_generation: OfferGeneration(1),
+            profile: HostProfileId::from("test/multi-child"),
+            resources: Vec::new(),
+            capabilities: vec![
+                hosted_offer(
+                    "number-echo",
+                    "test/number-echo",
+                    "test/number-echo@1",
+                    vec![descriptor("in", NUMBER_KIND, PortDirection::Input)],
+                    vec![descriptor("out", NUMBER_KIND, PortDirection::Output)],
+                ),
+                hosted_offer(
+                    "bytes-echo",
+                    "test/bytes-echo",
+                    "test/bytes-echo@1",
+                    vec![descriptor("in", BYTES_KIND, PortDirection::Input)],
+                    vec![descriptor("out", BYTES_KIND, PortDirection::Output)],
+                ),
+            ],
+        }
+    }
+
+    fn multi_internal_plan() -> conduit_core::Plan {
+        let child = multi_child_advertisement();
+        let placements = PlacementChoices {
+            by_operation: BTreeMap::from([
+                (
+                    OperationId::from("number"),
+                    PlacementChoice {
+                        host_id: child.host_id.clone(),
+                        capability_id: CapabilityId::from("number-echo"),
+                    },
+                ),
+                (
+                    OperationId::from("bytes"),
+                    PlacementChoice {
+                        host_id: child.host_id.clone(),
+                        capability_id: CapabilityId::from("bytes-echo"),
+                    },
+                ),
+            ]),
+        };
+        plan(
+            &multi_internal_form(),
+            &[child],
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("multi internal plan succeeds")
+    }
+
+    fn multi_definition() -> CompositeDefinition {
+        let internal_form = multi_internal_form();
+        CompositeDefinition::from_authored_export(
+            HostId::from("multi-composite"),
+            BootId::from("multi-composite-boot"),
+            OfferGeneration(1),
+            HostProfileId::from("composite/multi-test"),
+            ImplementationId::from("composite/multi-echo-v1"),
+            ArtifactId::from("composite/multi-echo-artifact-v1"),
+            &internal_form,
+            &CapabilityId::from("run"),
+            multi_internal_plan(),
+            FailureReason::CompositeCapabilityFailed,
+        )
+        .expect("multi composite definition derives from faces without a cord")
+    }
+
+    fn multi_child_runtime() -> HostRuntime {
+        let child_ad = multi_child_advertisement();
+        let mut registry = ImplementationRegistry::new();
+        for offer in &child_ad.capabilities {
+            registry
+                .install(EchoImplementation {
+                    kind_id: offer.kind_id.clone(),
+                    revision: offer.kind_contract_revision.clone(),
+                    profile: offer.execution_profile_id.clone(),
+                    implementation_id: offer.implementation_id.clone(),
+                    artifact_id: offer.artifact_id.clone(),
+                })
+                .expect("echo implementation installs");
+        }
+        HostRuntime::new(child_ad, registry, 128)
+    }
+
+    fn multi_composite() -> CompositeHost {
+        CompositeHost::from_definition(multi_definition(), vec![multi_child_runtime()], 128)
+            .expect("multi composite host builds")
+    }
+
+    fn parent_endpoint_advertisement(host: &str, source: bool) -> HostAdvertisement {
+        let (boot, capabilities) = if source {
+            (
+                "parent-source-boot",
+                vec![
+                    hosted_offer(
+                        "number-source",
+                        "test/number-source",
+                        "test/number-source@1",
+                        Vec::new(),
+                        vec![descriptor("out", NUMBER_KIND, PortDirection::Output)],
+                    ),
+                    hosted_offer(
+                        "bytes-source",
+                        "test/bytes-source",
+                        "test/bytes-source@1",
+                        Vec::new(),
+                        vec![descriptor("out", BYTES_KIND, PortDirection::Output)],
+                    ),
+                ],
+            )
+        } else {
+            (
+                "parent-sink-boot",
+                vec![
+                    hosted_offer(
+                        "number-sink",
+                        "test/number-sink",
+                        "test/number-sink@1",
+                        vec![descriptor("in", NUMBER_KIND, PortDirection::Input)],
+                        Vec::new(),
+                    ),
+                    hosted_offer(
+                        "bytes-sink",
+                        "test/bytes-sink",
+                        "test/bytes-sink@1",
+                        vec![descriptor("in", BYTES_KIND, PortDirection::Input)],
+                        Vec::new(),
+                    ),
+                ],
+            )
+        };
+        HostAdvertisement {
+            protocol_version: PROTOCOL_VERSION,
+            host_id: HostId::from(host),
+            boot_id: BootId::from(boot),
+            offer_generation: OfferGeneration(1),
+            profile: HostProfileId::from("test/parent-endpoint"),
+            resources: Vec::new(),
+            capabilities,
+        }
+    }
+
+    fn multi_parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragment {
+        let mut catalog = multi_catalog();
+        catalog
+            .insert_export(&multi_internal_form(), &CapabilityId::from("run"))
+            .expect("multi export installs in parent catalog");
+        let form = parse(
+            "form 0\nparent {\n number-source: test/number-source\n bytes-source: test/bytes-source\n child: demonstration/multi-echo\n number-sink: test/number-sink\n bytes-sink: test/bytes-sink\n number-source.out -> child.control-in\n bytes-source.out -> child.data-in\n child.control-out -> number-sink.in\n child.data-out -> bytes-sink.in\n}\n",
+            &catalog,
+        )
+        .expect("multi parent checks ordinary faces");
+        let source = parent_endpoint_advertisement("parent-source", true);
+        let sink = parent_endpoint_advertisement("parent-sink", false);
+        let placements = PlacementChoices {
+            by_operation: BTreeMap::from([
+                (
+                    OperationId::from("number-source"),
+                    PlacementChoice {
+                        host_id: source.host_id.clone(),
+                        capability_id: CapabilityId::from("number-source"),
+                    },
+                ),
+                (
+                    OperationId::from("bytes-source"),
+                    PlacementChoice {
+                        host_id: source.host_id.clone(),
+                        capability_id: CapabilityId::from("bytes-source"),
+                    },
+                ),
+                (
+                    OperationId::from("child"),
+                    PlacementChoice {
+                        host_id: composite.advertisement().host_id.clone(),
+                        capability_id: CapabilityId::from("run"),
+                    },
+                ),
+                (
+                    OperationId::from("number-sink"),
+                    PlacementChoice {
+                        host_id: sink.host_id.clone(),
+                        capability_id: CapabilityId::from("number-sink"),
+                    },
+                ),
+                (
+                    OperationId::from("bytes-sink"),
+                    PlacementChoice {
+                        host_id: sink.host_id.clone(),
+                        capability_id: CapabilityId::from("bytes-sink"),
+                    },
+                ),
+            ]),
+        };
+        let links = [
+            process_owned_link_binding(
+                "link/source-composite",
+                ConnectionProvider::InMemory,
+                "fixture/in-memory/source-composite",
+                &source,
+                composite.advertisement(),
+                2,
+                32,
+            ),
+            process_owned_link_binding(
+                "link/composite-sink",
+                ConnectionProvider::InMemory,
+                "fixture/in-memory/composite-sink",
+                composite.advertisement(),
+                &sink,
+                2,
+                32,
+            ),
+        ];
+        plan_with_link_bindings(
+            &form,
+            &[source, composite.advertisement().clone(), sink],
+            &placements,
+            &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+            2,
+            32,
+            &links,
+        )
+        .expect("multi parent plans ordinary remote faces")
+        .fragments
+        .into_iter()
+        .find(|fragment| fragment.host_id == composite.advertisement().host_id)
+        .expect("multi composite fragment exists")
+    }
 
     fn authored_internal_form() -> conduit_form::CheckedForm {
         parse(
@@ -1645,6 +2712,409 @@ mod tests {
         assert_eq!(connection.source_port_id.as_str(), "signal");
         assert_eq!(connection.sink_port_id.as_str(), "signal");
         assert_eq!(connection.value_kind, boundary.outputs[0].value_kind);
+    }
+
+    #[test]
+    fn two_input_two_output_multi_kind_faces_execute_with_exact_pressure_and_closure() {
+        let mut composite = multi_composite();
+        let fragment = multi_parent_fragment(&composite);
+        let plan_id = fragment.plan_id.clone();
+        let placement_id = fragment.placements[0].placement_id.clone();
+        let connection = |input: bool, port: &str| {
+            fragment
+                .connections
+                .iter()
+                .find(|connection| {
+                    if input {
+                        connection.sink_placement_id == placement_id
+                            && connection.sink_port_id.as_str() == port
+                    } else {
+                        connection.source_placement_id == placement_id
+                            && connection.source_port_id.as_str() == port
+                    }
+                })
+                .expect("named parent connection exists")
+                .connection_id
+                .clone()
+        };
+        let number_in = connection(true, "control-in");
+        let bytes_in = connection(true, "data-in");
+        let number_out = connection(false, "control-out");
+        let bytes_out = connection(false, "data-out");
+
+        let prepared = composite.handle(HostCommand::Prepare(fragment));
+        assert!(matches!(
+            prepared.events.first(),
+            Some(HostEvent::Prepared { .. })
+        ));
+        let activated = composite.handle(HostCommand::Activate(plan_id.clone()));
+        assert!(activated
+            .events
+            .iter()
+            .any(|event| matches!(event, HostEvent::Activated { .. })));
+
+        let malformed =
+            composite.handle(HostCommand::AcceptConnectionEnvelope(ConnectionEnvelope {
+                protocol_version: PROTOCOL_VERSION,
+                plan_id: plan_id.clone(),
+                connection_id: number_in.clone(),
+                sequence: 0,
+                value_kind: kind_id(BYTES_KIND),
+                payload: vec![9],
+            }));
+        assert!(malformed.events.iter().any(|event| matches!(
+            event,
+            HostEvent::ConnectionEnvelopeOutcome {
+                outcome: ConnectionOutcome::Malformed,
+                ..
+            }
+        )));
+        assert!(malformed.effects.is_empty());
+
+        let number = composite.handle(HostCommand::AcceptConnectionEnvelope(ConnectionEnvelope {
+            protocol_version: PROTOCOL_VERSION,
+            plan_id: plan_id.clone(),
+            connection_id: number_in.clone(),
+            sequence: 0,
+            value_kind: kind_id(NUMBER_KIND),
+            payload: 42u64.to_le_bytes().to_vec(),
+        }));
+        let number_envelope = number
+            .effects
+            .iter()
+            .find_map(|effect| match effect {
+                PlatformEffect::TransmitConnection { envelope }
+                    if envelope.connection_id == number_out =>
+                {
+                    Some(envelope.clone())
+                }
+                _ => None,
+            })
+            .expect("control value exits only through control-out");
+        assert_eq!(number_envelope.value_kind.as_str(), NUMBER_KIND);
+        assert_eq!(number_envelope.payload, 42u64.to_le_bytes());
+        assert!(!format!("{number:?}").contains("multi-child"));
+
+        let retry = composite.handle(HostCommand::CompleteConnectionDelivery {
+            plan_id: plan_id.clone(),
+            connection_id: number_out.clone(),
+            sequence: number_envelope.sequence,
+            outcome: ConnectionOutcome::Full,
+        });
+        assert!(retry.effects.iter().any(|effect| matches!(
+            effect,
+            PlatformEffect::TransmitConnection { envelope } if envelope == &number_envelope
+        )));
+        composite.handle(HostCommand::CompleteConnectionDelivery {
+            plan_id: plan_id.clone(),
+            connection_id: number_out.clone(),
+            sequence: number_envelope.sequence,
+            outcome: ConnectionOutcome::Delivered,
+        });
+
+        let bytes = composite.handle(HostCommand::AcceptConnectionEnvelope(ConnectionEnvelope {
+            protocol_version: PROTOCOL_VERSION,
+            plan_id: plan_id.clone(),
+            connection_id: bytes_in.clone(),
+            sequence: 0,
+            value_kind: kind_id(BYTES_KIND),
+            payload: vec![1, 2, 3, 4],
+        }));
+        let bytes_envelope = bytes
+            .effects
+            .iter()
+            .find_map(|effect| match effect {
+                PlatformEffect::TransmitConnection { envelope }
+                    if envelope.connection_id == bytes_out =>
+                {
+                    Some(envelope.clone())
+                }
+                _ => None,
+            })
+            .expect("data value exits only through data-out");
+        assert_eq!(bytes_envelope.value_kind.as_str(), BYTES_KIND);
+        assert_eq!(bytes_envelope.payload, vec![1, 2, 3, 4]);
+        composite.handle(HostCommand::CompleteConnectionDelivery {
+            plan_id: plan_id.clone(),
+            connection_id: bytes_out.clone(),
+            sequence: bytes_envelope.sequence,
+            outcome: ConnectionOutcome::Delivered,
+        });
+
+        let first_closed = composite.handle(HostCommand::CloseConnection {
+            plan_id: plan_id.clone(),
+            connection_id: number_in,
+        });
+        assert!(first_closed.events.iter().any(|event| matches!(
+            event,
+            HostEvent::ConnectionTerminated { connection_id, .. }
+                if connection_id == &number_out
+        )));
+        assert!(!first_closed
+            .events
+            .iter()
+            .any(|event| matches!(event, HostEvent::PlanTerminated { .. })));
+
+        let completed = composite.handle(HostCommand::CloseConnection {
+            plan_id: plan_id.clone(),
+            connection_id: bytes_in,
+        });
+        assert!(completed.events.iter().any(|event| matches!(
+            event,
+            HostEvent::ConnectionTerminated { connection_id, .. }
+                if connection_id == &bytes_out
+        )));
+        assert!(completed.events.iter().any(|event| matches!(
+            event,
+            HostEvent::PlanTerminated {
+                plan_id: terminal_plan,
+                disposition: TerminalDisposition::Completed,
+            } if terminal_plan == &plan_id
+        )));
+        assert!(!format!("{completed:?}").contains("multi-child"));
+    }
+
+    #[test]
+    fn input_only_and_output_only_exports_plan_as_ordinary_operations() {
+        let catalog = multi_catalog();
+        let input_only = parse(
+            "form 0\ninput-only {\n echo: test/number-echo\n export ingest: demonstration/input-only {\n  input value: value/number = echo.in terminal independent\n }\n}\n",
+            &catalog,
+        )
+        .expect("input-only checks");
+        let output_only = parse(
+            "form 0\noutput-only {\n echo: test/number-echo\n export produce: demonstration/output-only {\n  output value: value/number = echo.out terminal independent\n }\n}\n",
+            &catalog,
+        )
+        .expect("output-only checks");
+        let input_boundary = input_only
+            .export_boundary(&CapabilityId::from("ingest"))
+            .expect("input-only boundary derives");
+        let output_boundary = output_only
+            .export_boundary(&CapabilityId::from("produce"))
+            .expect("output-only boundary derives");
+        let mut parent_catalog = multi_catalog();
+        parent_catalog
+            .insert_export(&input_only, &CapabilityId::from("ingest"))
+            .expect("input-only installs");
+        parent_catalog
+            .insert_export(&output_only, &CapabilityId::from("produce"))
+            .expect("output-only installs");
+        let parent = parse(
+            "form 0\nparent {\n source: test/number-source\n input-only: demonstration/input-only\n output-only: demonstration/output-only\n sink: test/number-sink\n source.out -> input-only.value\n output-only.value -> sink.in\n}\n",
+            &parent_catalog,
+        )
+        .expect("zero-sided parent checks");
+        let mut advertisement = parent_endpoint_advertisement("zero-sided-host", true);
+        advertisement.boot_id = BootId::from("zero-sided-boot");
+        advertisement.capabilities.push(hosted_offer(
+            "number-sink",
+            "test/number-sink",
+            "test/number-sink@1",
+            vec![descriptor("in", NUMBER_KIND, PortDirection::Input)],
+            Vec::new(),
+        ));
+        for (capability, boundary) in [
+            ("input-only", input_boundary),
+            ("output-only", output_boundary),
+        ] {
+            advertisement.capabilities.push(CapabilityOffer {
+                capability_id: CapabilityId::from(capability),
+                kind_id: boundary.kind_id,
+                kind_contract_revision: boundary.kind_contract_revision,
+                execution_profile_id: ExecutionProfileId::from(format!(
+                    "test/{capability}-hosted@1"
+                )),
+                implementation_id: ImplementationId::from(format!("test/{capability}-v1")),
+                artifact_id: ArtifactId::from(format!("test/{capability}-artifact-v1")),
+                inputs: boundary.inputs,
+                outputs: boundary.outputs,
+                host_operations: Vec::new(),
+                resource_requirements: Vec::new(),
+                authority_requirements: Vec::new(),
+                limits: CapabilityLimits {
+                    max_active_instances: 2,
+                    max_queue_items: 4,
+                    max_queue_bytes: 64,
+                },
+            });
+        }
+        let placements = PlacementChoices {
+            by_operation: BTreeMap::from([
+                (
+                    OperationId::from("source"),
+                    PlacementChoice {
+                        host_id: advertisement.host_id.clone(),
+                        capability_id: CapabilityId::from("number-source"),
+                    },
+                ),
+                (
+                    OperationId::from("input-only"),
+                    PlacementChoice {
+                        host_id: advertisement.host_id.clone(),
+                        capability_id: CapabilityId::from("input-only"),
+                    },
+                ),
+                (
+                    OperationId::from("output-only"),
+                    PlacementChoice {
+                        host_id: advertisement.host_id.clone(),
+                        capability_id: CapabilityId::from("output-only"),
+                    },
+                ),
+                (
+                    OperationId::from("sink"),
+                    PlacementChoice {
+                        host_id: advertisement.host_id.clone(),
+                        capability_id: CapabilityId::from("number-sink"),
+                    },
+                ),
+            ]),
+        };
+        let planned = plan(
+            &parent,
+            &[advertisement],
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("input-only and output-only parent plans normally");
+        assert_eq!(planned.fragments.len(), 1);
+        assert_eq!(planned.fragments[0].connections.len(), 2);
+        assert!(planned.fragments[0].connections.iter().any(|connection| {
+            connection.sink_port_id.as_str() == "value"
+                && connection.source_port_id.as_str() == "out"
+        }));
+        assert!(planned.fragments[0].connections.iter().any(|connection| {
+            connection.source_port_id.as_str() == "value"
+                && connection.sink_port_id.as_str() == "in"
+        }));
+    }
+
+    #[test]
+    fn composite_definition_rejects_every_face_mapping_mutation() {
+        let rejects = |definition: CompositeDefinition| {
+            CompositeHost::from_definition(definition, vec![multi_child_runtime()], 32).is_err()
+        };
+
+        let mut name = multi_definition();
+        name.boundary.input_faces[0].external_port.port_id = conduit_core::port_id("renamed");
+        assert!(rejects(name));
+
+        let mut direction = multi_definition();
+        direction.boundary.input_faces[0].external_port.direction = PortDirection::Output;
+        assert!(rejects(direction));
+
+        let mut kind = multi_definition();
+        kind.boundary.output_faces[0].external_port.value_kind = kind_id(BYTES_KIND);
+        assert!(rejects(kind));
+
+        let mut endpoint = multi_definition();
+        endpoint.boundary.output_faces[0].internal_port_id = conduit_core::port_id("missing");
+        assert!(rejects(endpoint));
+
+        let mut terminal = multi_definition();
+        terminal.boundary.output_faces[0].terminal = CompositeFaceTerminal::Coupled;
+        assert!(rejects(terminal));
+
+        let mut hidden_child = multi_definition();
+        hidden_child.boundary.input_faces[0].internal_child = HostId::from("hidden-child");
+        assert!(rejects(hidden_child));
+    }
+
+    #[test]
+    fn named_face_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks() {
+        let mut failed_composite = multi_composite();
+        let failed_fragment = multi_parent_fragment(&failed_composite);
+        let failed_plan_id = failed_fragment.plan_id.clone();
+        let placement = failed_fragment.placements[0].placement_id.clone();
+        let number_in = failed_fragment
+            .connections
+            .iter()
+            .find(|connection| {
+                connection.sink_placement_id == placement
+                    && connection.sink_port_id.as_str() == "control-in"
+            })
+            .expect("number input exists")
+            .connection_id
+            .clone();
+        failed_composite.handle(HostCommand::Prepare(failed_fragment));
+        failed_composite.handle(HostCommand::Activate(failed_plan_id.clone()));
+        let emitted =
+            failed_composite.handle(HostCommand::AcceptConnectionEnvelope(ConnectionEnvelope {
+                protocol_version: PROTOCOL_VERSION,
+                plan_id: failed_plan_id.clone(),
+                connection_id: number_in,
+                sequence: 0,
+                value_kind: kind_id(NUMBER_KIND),
+                payload: vec![7],
+            }));
+        let envelope = emitted
+            .effects
+            .iter()
+            .find_map(|effect| match effect {
+                PlatformEffect::TransmitConnection { envelope } => Some(envelope.clone()),
+                _ => None,
+            })
+            .expect("named output is offered");
+        let failed = failed_composite.handle(HostCommand::CompleteConnectionDelivery {
+            plan_id: failed_plan_id.clone(),
+            connection_id: envelope.connection_id,
+            sequence: envelope.sequence,
+            outcome: ConnectionOutcome::Malformed,
+        });
+        assert!(failed.events.iter().any(|event| matches!(
+            event,
+            HostEvent::PlanTerminated {
+                disposition: TerminalDisposition::Failed {
+                    reason: FailureReason::CompositeCapabilityFailed,
+                },
+                ..
+            }
+        )));
+        assert_eq!(
+            failed
+                .events
+                .iter()
+                .filter(|event| matches!(event, HostEvent::ConnectionTerminated { .. }))
+                .count(),
+            4
+        );
+        assert!(!format!("{failed:?}").contains("multi-child"));
+        let evidence = failed_composite.handle(HostCommand::Inspect);
+        assert!(evidence.events.iter().any(|event| match event {
+            HostEvent::Observations { items } => items.iter().any(|observation| matches!(
+                observation.kind,
+                ObservationKind::PlanTerminal {
+                    disposition: TerminalDisposition::Failed {
+                        reason: FailureReason::CompositeCapabilityFailed,
+                    }
+                }
+            )),
+            _ => false,
+        }));
+
+        let mut cancelled_composite = multi_composite();
+        let cancelled_fragment = multi_parent_fragment(&cancelled_composite);
+        let cancelled_plan_id = cancelled_fragment.plan_id.clone();
+        cancelled_composite.handle(HostCommand::Prepare(cancelled_fragment));
+        cancelled_composite.handle(HostCommand::Activate(cancelled_plan_id.clone()));
+        let cancelled = cancelled_composite.handle(HostCommand::Cancel(cancelled_plan_id));
+        assert!(cancelled.events.iter().any(|event| matches!(
+            event,
+            HostEvent::PlanTerminated {
+                disposition: TerminalDisposition::Cancelled { .. },
+                ..
+            }
+        )));
+        assert_eq!(
+            cancelled
+                .events
+                .iter()
+                .filter(|event| matches!(event, HostEvent::ConnectionTerminated { .. }))
+                .count(),
+            4
+        );
+        assert!(!format!("{cancelled:?}").contains("multi-child"));
     }
 
     #[test]
@@ -2190,6 +3660,8 @@ mod tests {
         let connection = plan.fragments[0].connections[0].clone();
         let source_ad = child_advertisement("child-source", "source-boot", true);
         let sink_ad = child_advertisement("child-sink", "sink-boot", false);
+        let mut alternate_input = show_inputs()[0].clone();
+        alternate_input.port_id = conduit_core::port_id("signal-in");
         let definition = CompositeDefinition {
             host_id: HostId::from("alternate-composite"),
             boot_id: BootId::from("alternate-boot"),
@@ -2202,7 +3674,7 @@ mod tests {
                 execution_profile_id: ExecutionProfileId::from("composite/alternate-hosted@1"),
                 implementation_id: ImplementationId::from("composite/alternate-v1"),
                 artifact_id: ArtifactId::from("composite/alternate-artifact-v1"),
-                inputs: show_inputs(),
+                inputs: vec![alternate_input.clone()],
                 outputs: pulse_outputs(),
                 host_operations: vec![],
                 resource_requirements: vec![],
@@ -2224,7 +3696,7 @@ mod tests {
             internal_plan: plan,
             boundary: CompositeBoundary {
                 input_faces: vec![CompositeFaceBinding {
-                    external_port: show_inputs()[0].clone(),
+                    external_port: alternate_input,
                     internal_child: sink_ad.host_id.clone(),
                     internal_placement_id: connection.sink_placement_id.clone(),
                     internal_port_id: connection.sink_port_id.clone(),
