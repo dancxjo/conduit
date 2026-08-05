@@ -3,8 +3,9 @@ mod firmware;
 mod flash;
 mod serial;
 
-use anyhow::Result;
 use clap::{Args, Subcommand};
+
+pub type PicoResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 pub use doctor::run_doctor;
 pub use firmware::run_build;
@@ -65,8 +66,7 @@ pub fn apply_environment_defaults(args: &mut PicoArgs) {
     }
 }
 
-/// Entry point for `cargo xtask pico <subcommand>`.
-pub fn run(mut args: PicoArgs) -> Result<()> {
+pub fn run(mut args: PicoArgs) -> PicoResult<()> {
     apply_environment_defaults(&mut args);
     if args.refresh_radio_assets {
         firmware::refresh_radio_assets(args.dry_run)?;
@@ -81,8 +81,7 @@ pub fn run(mut args: PicoArgs) -> Result<()> {
     }
 }
 
-/// Entry point for `cargo xtask pico-local` (full workflow).
-pub fn run_local(mut args: PicoArgs) -> Result<()> {
+pub fn run_local(mut args: PicoArgs) -> PicoResult<()> {
     apply_environment_defaults(&mut args);
     run_doctor(args.dry_run)?;
     run_build(&args)?;
