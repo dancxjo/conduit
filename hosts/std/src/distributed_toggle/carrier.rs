@@ -90,9 +90,7 @@ pub(super) fn run_source<R: BufRead, W: Write>(
     }
 
     let mut activation_index = 0usize;
-    while let Some((sequence, payload)) =
-        src.next_offer(report, stdin, &mut activation_index)?
-    {
+    while let Some((sequence, payload)) = src.next_offer(report, stdin, &mut activation_index)? {
         loop {
             send(
                 &mut src,
@@ -104,9 +102,7 @@ pub(super) fn run_source<R: BufRead, W: Write>(
                 &mut outbound,
             )?;
             match receive(&mut src, &mut carrier, &mut inbound).map_err(|detail| {
-                format!(
-                    "CND-TOG-S4-202 phase=value-in-flight sequence={sequence} detail={detail}"
-                )
+                format!("CND-TOG-S4-202 phase=value-in-flight sequence={sequence} detail={detail}")
             })? {
                 SessionMessage::Pressure {
                     sequence: pressured,
@@ -123,9 +119,7 @@ pub(super) fn run_source<R: BufRead, W: Write>(
                 other => return Err(format!("unexpected offer response {other:?}")),
             }
             match receive(&mut src, &mut carrier, &mut inbound).map_err(|detail| {
-                format!(
-                    "CND-TOG-S4-202 phase=value-in-flight sequence={sequence} detail={detail}"
-                )
+                format!("CND-TOG-S4-202 phase=value-in-flight sequence={sequence} detail={detail}")
             })? {
                 SessionMessage::Delivered {
                     sequence: delivered,
