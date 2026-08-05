@@ -1,6 +1,7 @@
-use conduit_core::{
-    kind_id, port_id, FormId, KindId, OperationConfiguration, OperationId, PortDescriptor,
-    PortDirection, PulseConfiguration, PULSE_KIND, SHOW_KIND, SIGNAL_PORT, SIGNAL_VALUE_KIND,
+use conduit_core::{port_id, ConfigurationEntry, FormId, KindId, OperationId};
+use conduit_signal::{
+    pulse_configuration_entries, pulse_kind, pulse_outputs, show_inputs, show_kind,
+    signal_value_kind, PulseConfiguration, PULSE_KIND, SHOW_KIND, SIGNAL_PORT,
 };
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -9,9 +10,9 @@ use std::collections::BTreeMap;
 pub struct CheckedOperation {
     pub operation_id: OperationId,
     pub kind_id: KindId,
-    pub inputs: Vec<PortDescriptor>,
-    pub outputs: Vec<PortDescriptor>,
-    pub configuration: OperationConfiguration,
+    pub inputs: Vec<conduit_core::PortDescriptor>,
+    pub outputs: Vec<conduit_core::PortDescriptor>,
+    pub configuration: Vec<ConfigurationEntry>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -83,7 +84,7 @@ impl OperationDraft {
     fn new(kind: &str) -> Result<Self, FormError> {
         match kind {
             PULSE_KIND => Ok(Self {
-                kind: kind_id(PULSE_KIND),
+                kind: pulse_kind(),
                 pulse: PulseConfiguration {
                     count: 16,
                     period_ms: 250,
@@ -91,7 +92,7 @@ impl OperationDraft {
                 },
             }),
             SHOW_KIND => Ok(Self {
-                kind: kind_id(SHOW_KIND),
+                kind: show_kind(),
                 pulse: PulseConfiguration {
                     count: 16,
                     period_ms: 250,
@@ -159,7 +160,7 @@ pub fn parse(source: &str) -> Result<CheckedForm, FormError> {
             match key.trim() {
                 "count" => {
                     operation.pulse.count = right.trim().parse().map_err(|_| {
-                        FormError::InvalidConfiguration(format!("invalid count '{}", right.trim()))
+                        FormError::InvalidConfiguration(format!("invalid count '{}'", right.trim()))
                     })?
                 }
                 "period-ms" => {
@@ -214,25 +215,17 @@ pub fn parse(source: &str) -> Result<CheckedForm, FormError> {
         .map(|(operation_name, draft)| match draft.kind.as_str() {
             PULSE_KIND => CheckedOperation {
                 operation_id: OperationId::from(operation_name),
-                kind_id: kind_id(PULSE_KIND),
+                kind_id: pulse_kind(),
                 inputs: Vec::new(),
-                outputs: vec![PortDescriptor {
-                    port_id: port_id(SIGNAL_PORT),
-                    value_kind: kind_id(SIGNAL_VALUE_KIND),
-                    direction: PortDirection::Output,
-                }],
-                configuration: OperationConfiguration::Pulse(draft.pulse),
+                outputs: pulse_outputs(),
+                configuration: pulse_configuration_entries(&draft.pulse),
             },
             SHOW_KIND => CheckedOperation {
                 operation_id: OperationId::from(operation_name),
-                kind_id: kind_id(SHOW_KIND),
-                inputs: vec![PortDescriptor {
-                    port_id: port_id(SIGNAL_PORT),
-                    value_kind: kind_id(SIGNAL_VALUE_KIND),
-                    direction: PortDirection::Input,
-                }],
+                kind_id: show_kind(),
+                inputs: show_inputs(),
                 outputs: Vec::new(),
-                configuration: OperationConfiguration::Show,
+                configuration: Vec::new(),
             },
             _ => unreachable!("kind validation already performed"),
         })
@@ -284,7 +277,7 @@ fn parse_connection(
         source_port_id: port_id(source_port),
         sink_operation_id: OperationId::from(sink_operation),
         sink_port_id: port_id(sink_port),
-        value_kind: kind_id(SIGNAL_VALUE_KIND),
+        value_kind: signal_value_kind(),
     })
 }
 
@@ -306,12 +299,12 @@ fn canonical_form_text(
             operation.operation_id.as_str(),
             operation.kind_id.as_str()
         ));
-        match &operation.configuration {
-            OperationConfiguration::Pulse(pulse) => text.push_str(&format!(
-                "pulse:{}:{}:{}|",
-                pulse.count, pulse.period_ms, pulse.initial_level
-            )),
-            OperationConfiguration::Show => text.push_str("show|"),
+        for entry in &operation.configuration {
+            text.push_str(&format!(
+                "cfg:{}={}|",
+                entry.key,
+                render_value(&entry.value)
+            ));
         }
     }
     for connection in connections {
@@ -324,6 +317,13 @@ fn canonical_form_text(
         ));
     }
     text
+}
+
+fn render_value(value: &conduit_core::ConfigurationValue) -> String {
+    match value {
+        conduit_core::ConfigurationValue::Bool(value) => value.to_string(),
+        conduit_core::ConfigurationValue::U64(value) => value.to_string(),
+    }
 }
 
 fn hash_string(text: &str) -> String {
@@ -347,7 +347,7 @@ fn hex(nibble: u8) -> char {
 #[cfg(test)]
 mod tests {
     use super::parse;
-    use conduit_core::{PULSE_KIND, SHOW_KIND};
+    use conduit_signal::{PULSE_KIND, SHOW_KIND};
 
     #[test]
     fn parses_port_aware_form() {

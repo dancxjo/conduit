@@ -1,8 +1,9 @@
 use conduit_core::{
     BoundedQueue, ConnectionId, HostAdvertisement, HostCommand, HostEvent, Observation,
-    ObservationKind, OperationConfiguration, PlacementId, PlacementLifecycleState, PlanFragment,
-    PlanId, PlannedConnection, PlannedOperation, PlatformEffect, Signal,
+    ObservationKind, PlacementId, PlacementLifecycleState, PlanFragment, PlanId, PlannedConnection,
+    PlannedOperation, PlatformEffect, ValuePayload,
 };
+use conduit_signal::{encode_signal, parse_pulse_configuration, Signal, PULSE_KIND, SHOW_KIND};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Default)]
@@ -54,13 +55,13 @@ struct PulseState {
 
 #[derive(Debug)]
 struct ShowState {
-    pending: Option<Signal>,
+    pending: Option<ValuePayload>,
 }
 
 #[derive(Debug)]
 struct RuntimeConnection {
     spec: PlannedConnection,
-    queue: BoundedQueue<Signal>,
+    queue: BoundedQueue<ValuePayload>,
     source_done: bool,
     sink_failed: bool,
     blocked: bool,
@@ -99,10 +100,10 @@ impl HostRuntime {
             HostCommand::CompletePresentation {
                 plan_id,
                 placement_id,
-                signal,
+                value,
                 success,
                 message,
-            } => self.complete_presentation(&plan_id, &placement_id, signal, success, message),
+            } => self.complete_presentation(&plan_id, &placement_id, value, success, message),
             HostCommand::Cancel(plan_id) => self.cancel(&plan_id),
             HostCommand::Release(plan_id) => self.release(&plan_id),
             HostCommand::Inspect => RuntimeOutput {
@@ -177,17 +178,19 @@ impl HostRuntime {
             .iter()
             .cloned()
             .map(|spec| {
-                let pulse = match &spec.configuration {
-                    OperationConfiguration::Pulse(_) => Some(PulseState {
+                let pulse = if spec.kind_id.as_str() == PULSE_KIND {
+                    Some(PulseState {
                         next_sequence: 0,
                         waiting: false,
                         emission_complete: false,
-                    }),
-                    OperationConfiguration::Show => None,
+                    })
+                } else {
+                    None
                 };
-                let show = match &spec.configuration {
-                    OperationConfiguration::Show => Some(ShowState { pending: None }),
-                    OperationConfiguration::Pulse(_) => None,
+                let show = if spec.kind_id.as_str() == SHOW_KIND {
+                    Some(ShowState { pending: None })
+                } else {
+                    None
                 };
                 (
                     spec.placement_id.clone(),
@@ -335,7 +338,7 @@ impl HostRuntime {
         &mut self,
         plan_id: &PlanId,
         placement_id: &PlacementId,
-        signal: Signal,
+        value: ValuePayload,
         success: bool,
         message: Option<String>,
     ) -> RuntimeOutput {
@@ -350,14 +353,14 @@ impl HostRuntime {
                             Some(plan_id.clone()),
                             Some(placement_id.clone()),
                             None,
-                            ObservationKind::SignalPresented {
-                                signal: signal.clone(),
+                            ObservationKind::ValuePresented {
+                                value: value.clone(),
                             },
                         ));
                         output.events.push(HostEvent::ManifestationCompleted {
                             plan_id: plan_id.clone(),
                             placement_id: placement_id.clone(),
-                            signal,
+                            value,
                         });
                     } else {
                         placement.lifecycle = PlacementLifecycleState::Failed;
@@ -379,7 +382,7 @@ impl HostRuntime {
                         output.events.push(HostEvent::ManifestationFailed {
                             plan_id: plan_id.clone(),
                             placement_id: placement_id.clone(),
-                            signal,
+                            value,
                             reason,
                         });
                     }
@@ -452,10 +455,8 @@ impl HostRuntime {
                     continue;
                 }
                 if let Some(pulse) = placement.pulse.as_mut() {
-                    let OperationConfiguration::Pulse(config) = &placement.spec.configuration
-                    else {
-                        continue;
-                    };
+                    let config = parse_pulse_configuration(&placement.spec.configuration)
+                        .expect("planned pulse configuration must be valid");
                     if pulse.emission_complete || pulse.waiting {
                         continue;
                     }
@@ -477,14 +478,14 @@ impl HostRuntime {
                         continue;
                     }
 
-                    let signal = Signal {
+                    let value = encode_signal(&Signal {
                         sequence: pulse.next_sequence,
                         level: if pulse.next_sequence % 2 == 0 {
                             config.initial_level
                         } else {
                             !config.initial_level
                         },
-                    };
+                    });
                     let outgoing =
                         outgoing_connections(&placement.spec.placement_id, &plan.connections);
                     let mut blocked = None;
@@ -521,19 +522,19 @@ impl HostRuntime {
                         connection.blocked = false;
                         connection
                             .queue
-                            .push(signal.clone())
+                            .push(value.clone())
                             .expect("capacity was checked before push");
-                        output.events.push(HostEvent::SignalDelivered {
+                        output.events.push(HostEvent::ValueDelivered {
                             plan_id: plan_id.clone(),
                             connection_id: connection_id.clone(),
-                            signal: signal.clone(),
+                            value: value.clone(),
                         });
                         pending_observations.push((
                             Some(plan_id.clone()),
                             Some(placement.spec.placement_id.clone()),
                             Some(connection_id),
-                            ObservationKind::SignalProduced {
-                                signal: signal.clone(),
+                            ObservationKind::ValueProduced {
+                                value: value.clone(),
                             },
                         ));
                     }
@@ -573,26 +574,26 @@ impl HostRuntime {
                 if show.pending.is_some() || sink.lifecycle != PlacementLifecycleState::Active {
                     continue;
                 }
-                let signal = connection
+                let value = connection
                     .queue
                     .pop()
                     .expect("queue was checked before pop");
-                show.pending = Some(signal.clone());
-                output.events.push(HostEvent::PresentSignalRequested {
+                show.pending = Some(value.clone());
+                output.events.push(HostEvent::PresentValueRequested {
                     plan_id: plan_id.clone(),
                     placement_id: sink_id.clone(),
-                    signal: signal.clone(),
+                    value: value.clone(),
                 });
-                output.effects.push(PlatformEffect::PresentSignal {
+                output.effects.push(PlatformEffect::PresentValue {
                     plan_id: plan_id.clone(),
                     placement_id: sink_id.clone(),
-                    signal: signal.clone(),
+                    value: value.clone(),
                 });
                 pending_observations.push((
                     Some(plan_id.clone()),
                     Some(sink_id),
                     Some(connection_id),
-                    ObservationKind::SignalAccepted { signal },
+                    ObservationKind::ValueAccepted { value },
                 ));
                 changed = true;
             }
@@ -744,11 +745,12 @@ mod tests {
     use conduit_core::{
         kind_id, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionProvider,
         HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
-        ObservationKind, OfferGeneration, PlatformEffect, PROTOCOL_VERSION, PULSE_KIND, SHOW_KIND,
-        SIGNAL_VALUE_KIND,
+        ObservationKind, OfferGeneration, PlatformEffect, PROTOCOL_VERSION,
     };
     use conduit_form::parse;
     use conduit_planner::{default_placements, plan};
+    use conduit_signal::{decode_signal, Signal, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
+    use std::collections::BTreeMap;
 
     fn advertisement(boot: &str, offer_generation: u64, queue_items: u16) -> HostAdvertisement {
         HostAdvertisement {
@@ -784,11 +786,8 @@ mod tests {
         }
     }
 
-    fn demo_fragment(count: u64) -> conduit_core::PlanFragment {
-        let form = parse(&format!(
-            "form 0\n\ndemo {{\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = {count}\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}}\n"
-        ))
-        .expect("form should parse");
+    fn demo_fragment(form_source: &str) -> conduit_core::PlanFragment {
+        let form = parse(form_source).expect("form should parse");
         let advertisement = advertisement("boot-1", 1, 4);
         let placements = default_placements(&form, std::slice::from_ref(&advertisement))
             .expect("placements work");
@@ -802,9 +801,45 @@ mod tests {
         plan.fragments.into_iter().next().expect("fragment exists")
     }
 
+    fn drive_plan(runtime: &mut HostRuntime, plan_id: conduit_core::PlanId) -> Vec<Signal> {
+        let output = runtime.handle(HostCommand::Activate(plan_id));
+        let mut presented = Vec::new();
+        let mut pending_effects = output.effects;
+        while let Some(effect) = pending_effects.pop() {
+            let follow_up = match effect {
+                PlatformEffect::Wait {
+                    plan_id,
+                    placement_id,
+                    ..
+                } => runtime.handle(HostCommand::CompleteWait {
+                    plan_id,
+                    placement_id,
+                }),
+                PlatformEffect::PresentValue {
+                    plan_id,
+                    placement_id,
+                    value,
+                } => {
+                    presented.push(decode_signal(&value).expect("signal payload must decode"));
+                    runtime.handle(HostCommand::CompletePresentation {
+                        plan_id,
+                        placement_id,
+                        value,
+                        success: true,
+                        message: None,
+                    })
+                }
+            };
+            pending_effects.extend(follow_up.effects.into_iter().rev());
+        }
+        presented
+    }
+
     #[test]
     fn preparation_rejects_stale_boot() {
-        let fragment = demo_fragment(2);
+        let fragment = demo_fragment(
+            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
+        );
         let mut runtime = HostRuntime::new(advertisement("boot-2", 1, 4), 128);
         let output = runtime.handle(HostCommand::Prepare(fragment));
         assert!(matches!(
@@ -816,7 +851,9 @@ mod tests {
 
     #[test]
     fn preparation_rejects_stale_offer_generation() {
-        let fragment = demo_fragment(2);
+        let fragment = demo_fragment(
+            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
+        );
         let mut runtime = HostRuntime::new(advertisement("boot-1", 2, 4), 128);
         let output = runtime.handle(HostCommand::Prepare(fragment));
         assert!(matches!(
@@ -827,7 +864,9 @@ mod tests {
 
     #[test]
     fn preparation_emits_no_effects() {
-        let fragment = demo_fragment(2);
+        let fragment = demo_fragment(
+            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
+        );
         let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4), 128);
         let output = runtime.handle(HostCommand::Prepare(fragment));
         assert!(matches!(
@@ -849,7 +888,9 @@ mod tests {
 
     #[test]
     fn full_queue_applies_backpressure() {
-        let mut fragment = demo_fragment(3);
+        let mut fragment = demo_fragment(
+            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
+        );
         fragment.connections[0].item_capacity = 1;
         let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 1), 128);
         let prepared = runtime.handle(HostCommand::Prepare(fragment.clone()));
@@ -865,12 +906,14 @@ mod tests {
         assert!(output
             .effects
             .iter()
-            .any(|effect| matches!(effect, PlatformEffect::PresentSignal { .. })));
+            .any(|effect| matches!(effect, PlatformEffect::PresentValue { .. })));
     }
 
     #[test]
     fn duplicate_activation_is_rejected() {
-        let fragment = demo_fragment(2);
+        let fragment = demo_fragment(
+            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
+        );
         let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4), 128);
         runtime.handle(HostCommand::Prepare(fragment.clone()));
         let first = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
@@ -887,38 +930,13 @@ mod tests {
 
     #[test]
     fn plan_executes_after_form_is_discarded() {
-        let fragment = demo_fragment(3);
+        let fragment = demo_fragment(
+            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
+        );
         let plan_id = fragment.plan_id.clone();
         let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4), 128);
         runtime.handle(HostCommand::Prepare(fragment));
-        let mut output = runtime.handle(HostCommand::Activate(plan_id.clone()));
-        let mut presented = Vec::new();
-        while let Some(effect) = output.effects.pop() {
-            output = match effect {
-                PlatformEffect::Wait {
-                    plan_id,
-                    placement_id,
-                    ..
-                } => runtime.handle(HostCommand::CompleteWait {
-                    plan_id,
-                    placement_id,
-                }),
-                PlatformEffect::PresentSignal {
-                    plan_id,
-                    placement_id,
-                    signal,
-                } => {
-                    presented.push(signal.clone());
-                    runtime.handle(HostCommand::CompletePresentation {
-                        plan_id,
-                        placement_id,
-                        signal,
-                        success: true,
-                        message: None,
-                    })
-                }
-            };
-        }
+        let presented = drive_plan(&mut runtime, plan_id.clone());
 
         let inspected = runtime.handle(HostCommand::Inspect);
         let observations = inspected
@@ -936,5 +954,135 @@ mod tests {
         assert!(observations
             .iter()
             .any(|item| matches!(item.kind, ObservationKind::PlanCompleted)));
+    }
+
+    #[test]
+    fn multiple_sources_remain_independent() {
+        let fragment = demo_fragment(
+            "form 0\n\ndouble-demo {\n    pulse-a: flow/pulse\n    show-a: presentation/show\n    pulse-b: flow/pulse\n    show-b: presentation/show\n\n    pulse-a.count = 3\n    pulse-a.period-ms = 0\n    pulse-a.initial = false\n    pulse-b.count = 5\n    pulse-b.period-ms = 0\n    pulse-b.initial = true\n\n    pulse-a > show-a\n    pulse-b > show-b\n}\n",
+        );
+        let placement_by_operation = fragment
+            .placements
+            .iter()
+            .map(|placement| {
+                (
+                    placement.operation_id.as_str().to_string(),
+                    placement.placement_id.clone(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let connection_by_source = fragment
+            .connections
+            .iter()
+            .map(|connection| {
+                (
+                    connection.source_placement_id.clone(),
+                    connection.connection_id.clone(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let plan_id = fragment.plan_id.clone();
+        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4), 256);
+        runtime.handle(HostCommand::Prepare(fragment));
+        let presented = drive_plan(&mut runtime, plan_id.clone());
+        assert_eq!(presented.len(), 8);
+
+        let observations = runtime
+            .handle(HostCommand::Inspect)
+            .events
+            .into_iter()
+            .find_map(|event| match event {
+                HostEvent::Observations { items } => Some(items),
+                _ => None,
+            })
+            .expect("observations must exist");
+
+        let pulse_a = placement_by_operation["pulse-a"].clone();
+        let pulse_b = placement_by_operation["pulse-b"].clone();
+        let show_a = placement_by_operation["show-a"].clone();
+        let show_b = placement_by_operation["show-b"].clone();
+        let conn_a = connection_by_source[&pulse_a].clone();
+        let conn_b = connection_by_source[&pulse_b].clone();
+
+        let produced_a = observations
+            .iter()
+            .filter_map(|item| match &item.kind {
+                ObservationKind::ValueProduced { value }
+                    if item.placement_id.as_ref() == Some(&pulse_a)
+                        && item.connection_id.as_ref() == Some(&conn_a) =>
+                {
+                    Some(decode_signal(value).expect("signal payload must decode"))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let produced_b = observations
+            .iter()
+            .filter_map(|item| match &item.kind {
+                ObservationKind::ValueProduced { value }
+                    if item.placement_id.as_ref() == Some(&pulse_b)
+                        && item.connection_id.as_ref() == Some(&conn_b) =>
+                {
+                    Some(decode_signal(value).expect("signal payload must decode"))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let shown_a = observations
+            .iter()
+            .filter_map(|item| match &item.kind {
+                ObservationKind::ValuePresented { value }
+                    if item.placement_id.as_ref() == Some(&show_a) =>
+                {
+                    Some(decode_signal(value).expect("signal payload must decode"))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let shown_b = observations
+            .iter()
+            .filter_map(|item| match &item.kind {
+                ObservationKind::ValuePresented { value }
+                    if item.placement_id.as_ref() == Some(&show_b) =>
+                {
+                    Some(decode_signal(value).expect("signal payload must decode"))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            produced_a
+                .iter()
+                .map(|value| value.sequence)
+                .collect::<Vec<_>>(),
+            vec![0, 1, 2]
+        );
+        assert_eq!(
+            produced_b
+                .iter()
+                .map(|value| value.sequence)
+                .collect::<Vec<_>>(),
+            vec![0, 1, 2, 3, 4]
+        );
+        assert_eq!(
+            shown_a.iter().map(|value| value.level).collect::<Vec<_>>(),
+            vec![false, true, false]
+        );
+        assert_eq!(
+            shown_b.iter().map(|value| value.level).collect::<Vec<_>>(),
+            vec![true, false, true, false, true]
+        );
+        assert!(
+            observations
+                .iter()
+                .filter(|item| matches!(item.kind, ObservationKind::PlacementCompleted))
+                .count()
+                >= 4
+        );
+        assert!(observations
+            .iter()
+            .any(|item| item.plan_id.as_ref() == Some(&plan_id)
+                && matches!(item.kind, ObservationKind::PlanCompleted)));
     }
 }

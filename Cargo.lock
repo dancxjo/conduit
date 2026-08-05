@@ -39,6 +39,7 @@ name = "conduit-form"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-signal",
  "sha2",
 ]
 
@@ -48,6 +49,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "conduit-signal",
  "sha2",
 ]
 
@@ -58,6 +60,15 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
+ "conduit-signal",
+]
+
+[[package]]
+name = "conduit-signal"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "serde",
 ]
 
 [[package]]
@@ -68,6 +79,7 @@ dependencies = [
  "conduit-form",
  "conduit-planner",
  "conduit-runtime",
+ "conduit-signal",
 ]
 
 [[package]]

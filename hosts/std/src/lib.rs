@@ -2,11 +2,12 @@ use conduit_core::{
     kind_id, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionProvider, FormId,
     HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
     Observation, ObservationKind, OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect,
-    PROTOCOL_VERSION, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND,
+    PROTOCOL_VERSION,
 };
 use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
 use conduit_runtime::{HostRuntime, RuntimeOutput};
+use conduit_signal::{decode_signal, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
 use std::fmt::Write as _;
 use std::fs;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -110,11 +111,12 @@ impl StdHost {
                         placement_id,
                     })
                 }
-                PlatformEffect::PresentSignal {
+                PlatformEffect::PresentValue {
                     plan_id,
                     placement_id,
-                    signal,
+                    value,
                 } => {
+                    let signal = decode_signal(&value).map_err(|err| err.to_string())?;
                     writeln!(
                         text,
                         "signal {} {}",
@@ -125,7 +127,7 @@ impl StdHost {
                     self.runtime.handle(HostCommand::CompletePresentation {
                         plan_id,
                         placement_id,
-                        signal,
+                        value,
                         success: true,
                         message: None,
                     })
@@ -138,7 +140,9 @@ impl StdHost {
         let receipts = observations
             .iter()
             .filter_map(|observation| match &observation.kind {
-                ObservationKind::SignalPresented { signal } => Some(signal.clone()),
+                ObservationKind::ValuePresented { value } => {
+                    Some(decode_signal(value).expect("signal payload must decode"))
+                }
                 _ => None,
             })
             .collect::<Vec<_>>();

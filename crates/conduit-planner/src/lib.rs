@@ -1,10 +1,10 @@
 use conduit_core::{
     kind_id, CapabilityId, ConnectionId, ConnectionProvider, FormId, HostAdvertisement, HostId,
-    OperationConfiguration, OperationId, PlacementId, Plan, PlanFragment, PlanId,
-    PlannedConnection, PlannedOperation, DEFAULT_CONNECTION_BYTE_CAPACITY,
-    DEFAULT_CONNECTION_ITEM_CAPACITY, PULSE_KIND,
+    OperationId, PlacementId, Plan, PlanFragment, PlanId, PlannedConnection, PlannedOperation,
+    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedConnection, CheckedForm, CheckedOperation};
+use conduit_signal::PULSE_KIND;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
@@ -437,12 +437,12 @@ fn canonical_plan_text(
             operation.offer_generation.0,
             operation.capability_id.as_str()
         ));
-        match &operation.configuration {
-            OperationConfiguration::Pulse(pulse) => text.push_str(&format!(
-                "pulse:{}:{}:{}|",
-                pulse.count, pulse.period_ms, pulse.initial_level
-            )),
-            OperationConfiguration::Show => text.push_str("show|"),
+        for entry in &operation.configuration {
+            text.push_str(&format!(
+                "cfg:{}={}|",
+                entry.key,
+                render_value(&entry.value)
+            ));
         }
     }
     for connection in connections {
@@ -457,6 +457,13 @@ fn canonical_plan_text(
         ));
     }
     text
+}
+
+fn render_value(value: &conduit_core::ConfigurationValue) -> String {
+    match value {
+        conduit_core::ConfigurationValue::Bool(value) => value.to_string(),
+        conduit_core::ConfigurationValue::U64(value) => value.to_string(),
+    }
 }
 
 fn hash_string(text: &str) -> String {
@@ -482,10 +489,10 @@ mod tests {
     use super::{default_placements, parse_placements, plan, PlannerError};
     use conduit_core::{
         kind_id, CapabilityLimits, CapabilityOffer, ConnectionProvider, HostAdvertisement, HostId,
-        HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION, PULSE_KIND, SHOW_KIND,
-        SIGNAL_VALUE_KIND,
+        HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
     };
     use conduit_form::parse;
+    use conduit_signal::{PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
 
     fn form() -> conduit_form::CheckedForm {
         parse(

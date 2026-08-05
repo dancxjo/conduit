@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form" }
+conduit-signal = { path = "../conduit-signal" }
 sha2 = "0.10"

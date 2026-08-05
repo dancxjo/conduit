@@ -8,12 +8,8 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 pub const PROTOCOL_VERSION: u16 = 1;
-pub const SIGNAL_VALUE_KIND: &str = "value/signal";
-pub const PULSE_KIND: &str = "flow/pulse";
-pub const SHOW_KIND: &str = "presentation/show";
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
 pub const DEFAULT_CONNECTION_BYTE_CAPACITY: u32 = 64;
-pub const SIGNAL_PORT: &str = "signal";
 
 macro_rules! identity_type {
     ($name:ident) => {
@@ -74,22 +70,27 @@ pub struct PortDescriptor {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Signal {
-    pub sequence: u64,
-    pub level: bool,
+pub enum ConfigurationValue {
+    Bool(bool),
+    U64(u64),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PulseConfiguration {
-    pub count: u64,
-    pub period_ms: u64,
-    pub initial_level: bool,
+pub struct ConfigurationEntry {
+    pub key: String,
+    pub value: ConfigurationValue,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum OperationConfiguration {
-    Pulse(PulseConfiguration),
-    Show,
+pub struct ValuePayload {
+    pub value_kind: KindId,
+    pub encoded: Vec<u8>,
+}
+
+impl ValuePayload {
+    pub fn encoded_len(&self) -> u32 {
+        self.encoded.len() as u32
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -128,7 +129,7 @@ pub struct PlannedOperation {
     pub placement_id: PlacementId,
     pub operation_id: OperationId,
     pub kind_id: KindId,
-    pub configuration: OperationConfiguration,
+    pub configuration: Vec<ConfigurationEntry>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -198,9 +199,9 @@ pub enum ObservationKind {
     PlanFragmentReceived,
     PlacementPrepared,
     PlanActivated,
-    SignalProduced { signal: Signal },
-    SignalAccepted { signal: Signal },
-    SignalPresented { signal: Signal },
+    ValueProduced { value: ValuePayload },
+    ValueAccepted { value: ValuePayload },
+    ValuePresented { value: ValuePayload },
     PlacementCompleted,
     PlanCompleted,
     Failure { reason: String },
@@ -220,7 +221,7 @@ pub enum HostCommand {
     CompletePresentation {
         plan_id: PlanId,
         placement_id: PlacementId,
-        signal: Signal,
+        value: ValuePayload,
         success: bool,
         message: Option<String>,
     },
@@ -250,29 +251,29 @@ pub enum HostEvent {
         placement_id: PlacementId,
         duration_ms: u64,
     },
-    PresentSignalRequested {
+    PresentValueRequested {
         plan_id: PlanId,
         placement_id: PlacementId,
-        signal: Signal,
+        value: ValuePayload,
     },
     ConnectionBlocked {
         plan_id: PlanId,
         connection_id: ConnectionId,
     },
-    SignalDelivered {
+    ValueDelivered {
         plan_id: PlanId,
         connection_id: ConnectionId,
-        signal: Signal,
+        value: ValuePayload,
     },
     ManifestationCompleted {
         plan_id: PlanId,
         placement_id: PlacementId,
-        signal: Signal,
+        value: ValuePayload,
     },
     ManifestationFailed {
         plan_id: PlanId,
         placement_id: PlacementId,
-        signal: Signal,
+        value: ValuePayload,
         reason: String,
     },
     PlacementCompleted {
@@ -300,10 +301,10 @@ pub enum PlatformEffect {
         placement_id: PlacementId,
         duration_ms: u64,
     },
-    PresentSignal {
+    PresentValue {
         plan_id: PlanId,
         placement_id: PlacementId,
-        signal: Signal,
+        value: ValuePayload,
     },
 }
 
