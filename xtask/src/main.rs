@@ -1,3 +1,8 @@
+//! Repository-only orchestration entry point for Conduit development and proof tooling.
+//!
+//! Product-facing form execution remains in the Conduit CLI; this binary owns only
+//! checked-out repository workflows and read-only environment inspection.
+
 mod cli;
 mod commands;
 mod process;
