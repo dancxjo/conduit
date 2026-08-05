@@ -148,6 +148,38 @@ allows planning and reservation only; it does not grant permission to operate
 on an external subject. Authority grants remain the next S2 slice. These hosted
 bindings are also not yet lowered into an S1 fixed-storage resource table.
 
+## Exact authority requirements and grants
+
+Authority is supplied to planning independently of `HostAdvertisement`.
+Capabilities and installed implementations may declare ordered
+`AuthorityRequirement` values that name an authority contract, the admitted
+host-operation contract, and the exact subject kind. Each requirement must
+refer to a targeted host operation already declared by that execution profile;
+an advertisement cannot manufacture or imply a grant.
+
+An immutable `AuthorityGrant` additionally scopes the requirement to one exact
+host, boot, and capability. Planning rejects malformed grants, a missing or
+stale scope, duplicate grant identity, and more than one otherwise matching
+grant. It seals the selected grant identity and complete scope as an
+`AuthorityBinding` in the placement and fragment identity.
+
+Preparation reconstructs the requirements from those bindings, compares them
+with both capability and installed implementation truth, checks placement
+scope, and requires exactly one current grant with the same immutable facts.
+Effect admission then checks the requested host-operation subject against the
+bound authority before emitting a platform effect. A deterministic adversarial
+vector advertises two presentation subjects while granting only one; an
+implementation request for the other subject terminates with
+`AuthorityDenied` and emits no effect.
+
+The first profile intentionally omits expiry, revocation observations,
+delegation, constraints, audit envelopes, and secret material. Those facts must
+be added only with corresponding runtime semantics. Existing stdout and
+simulated presentation profiles remain process-owned manifestations and do not
+claim external DOM, device, or physical authority. Actual adapters must declare
+and receive suitable grants when they are introduced. Authority bindings are
+not yet lowered into an S1 fixed-storage authority table.
+
 ## Deterministic proof
 
 The focused vectors prove:
@@ -173,17 +205,22 @@ The focused vectors prove:
   and byte bounds; and
 - planning rejects malformed, unavailable, ambiguous, overflowing, and
   exhausted resource contracts; resource binding mutations fail identity or
-  preparation; and hosted reservations remain occupied until explicit release.
+  preparation; and hosted reservations remain occupied until explicit release;
+  and
+- planning keeps grants separate from advertisements and rejects malformed,
+  missing, stale, duplicate, or ambiguous authority; every binding field is
+  identity-covered; preparation requires the exact current grant; and
+  ungranted subjects fail before effects.
 
 ## Acceptance boundary
 
 This satisfies the first acceptance item and the three-form-identity portion
 of the second item in #363. It also binds the startup dependency,
 cancellation, terminal, mandatory-evidence, and evidence-storage-budget parts
-of that item, plus exact hosted host-operation and resource requirements. S2
-remains open. Plans do not yet bind authority grants or observed `LinkBinding`
-values, and the planned evidence, host-operation, and resource commitments are
-not yet lowered into the S1 kernel stores. The existing
+of that item, plus exact hosted host-operation, resource, and authority
+requirements. S2 remains open for observed `LinkBinding` values. The planned
+evidence, host-operation, resource, and authority commitments are not yet
+lowered into the S1 kernel stores. The existing
 `ConnectionProvider` remains a prototype until the remote-link slice replaces
 it.
 

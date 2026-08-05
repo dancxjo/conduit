@@ -7,11 +7,12 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{
-    BootId, CapabilityId, CapabilityLimits, CheckedFormId, ConnectionId, ConnectionProvider,
-    ExecutionProfileId, ExpandedFormId, HostAdvertisement, HostId, HostOperationRequirement,
-    HostProfileId, ImplementationId, KindContractRevision, KindId, Observation, ObservationKind,
-    OfferGeneration, PlacementId, Plan, PlanId, PortDescriptor, ResourceBinding, ResourceOffer,
-    ResourceRequirement, SourceDocumentId, TerminalDisposition,
+    AuthorityBinding, AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CheckedFormId,
+    ConnectionId, ConnectionProvider, ExecutionProfileId, ExpandedFormId, HostAdvertisement,
+    HostId, HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision,
+    KindId, Observation, ObservationKind, OfferGeneration, PlacementId, Plan, PlanId,
+    PortDescriptor, ResourceBinding, ResourceOffer, ResourceRequirement, SourceDocumentId,
+    TerminalDisposition,
 };
 use conduit_realm::{LinkId, LinkState, MembershipState, RealmId, RealmView};
 use core::fmt::Write;
@@ -93,6 +94,7 @@ pub struct CapabilityRow {
     pub outputs: Vec<PortDescriptor>,
     pub host_operations: Vec<HostOperationRequirement>,
     pub resource_requirements: Vec<ResourceRequirement>,
+    pub authority_requirements: Vec<AuthorityRequirement>,
     pub limits: CapabilityLimits,
     pub freshness: OfferFreshness,
     pub support: CapabilitySupport,
@@ -134,6 +136,7 @@ pub struct PlacementRow {
     pub implementation_id: ImplementationId,
     pub host_operations: Vec<HostOperationRequirement>,
     pub resources: Vec<ResourceBinding>,
+    pub authority: Vec<AuthorityBinding>,
     pub lifecycle: PlanLifecycle,
 }
 
@@ -263,6 +266,7 @@ pub fn build_report(
                     outputs: capability.outputs.clone(),
                     host_operations: capability.host_operations.clone(),
                     resource_requirements: capability.resource_requirements.clone(),
+                    authority_requirements: capability.authority_requirements.clone(),
                     limits: capability.limits.clone(),
                     freshness,
                     support: CapabilitySupport::Supported,
@@ -339,6 +343,7 @@ pub fn build_report(
                         implementation_id: placement.implementation_id.clone(),
                         host_operations: placement.host_operations.clone(),
                         resources: placement.resources.clone(),
+                        authority: placement.authority.clone(),
                         lifecycle: placement_lifecycle(
                             &plan.plan_id,
                             &placement.placement_id,
@@ -560,7 +565,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for capability in &report.capabilities {
         let _ = writeln!(
             output,
-            "capability host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} input_ports={} output_ports={} host_operations={:?} resource_requirements={:?} active_limit={} queue_items={} queue_bytes={} freshness={:?} support={:?} availability={:?}",
+            "capability host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} input_ports={} output_ports={} host_operations={:?} resource_requirements={:?} authority_requirements={:?} active_limit={} queue_items={} queue_bytes={} freshness={:?} support={:?} availability={:?}",
             capability.host_id.as_str(),
             capability.boot_id.as_str(),
             capability.capability_id.as_str(),
@@ -572,6 +577,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             capability.outputs.len(),
             capability.host_operations,
             capability.resource_requirements,
+            capability.authority_requirements,
             capability.limits.max_active_instances,
             capability.limits.max_queue_items,
             capability.limits.max_queue_bytes,
@@ -612,7 +618,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for placement in &report.placements {
         let _ = writeln!(
             output,
-            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} host_operations={:?} resources={:?} lifecycle={:?}",
+            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} host_operations={:?} resources={:?} authority={:?} lifecycle={:?}",
             placement.plan_id.as_str(),
             placement.placement_id.as_str(),
             placement.host_id.as_str(),
@@ -624,6 +630,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             placement.implementation_id.as_str(),
             placement.host_operations,
             placement.resources,
+            placement.authority,
             placement.lifecycle
         );
     }
@@ -688,14 +695,12 @@ mod tests {
     };
     use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
     use conduit_core::{
-        BootId, CapabilityId, ConnectionProvider, HostCommand, HostId, ObservationKind,
-        OfferGeneration, OperationId, TerminalDisposition,
+        authority_grant, present_authority_requirement, BootId, CapabilityId, ConnectionProvider,
+        HostCommand, HostId, ObservationKind, OfferGeneration, OperationId, TerminalDisposition,
     };
     use conduit_form::parse;
     use conduit_pico_sim::{pico_advertisement, PicoSimConfig};
-    use conduit_planner::{
-        plan_with_connection_limits_and_provider_overrides, PlacementChoice, PlacementChoices,
-    };
+    use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
     use conduit_realm::{AdmissionRequest, LinkId, Realm, RealmId};
     use conduit_signal::signal_profile_catalog;
     use conduit_std_host::{StdHost, StdHostConfig};
@@ -717,11 +722,34 @@ mod tests {
             boot_id: BootId::from("pico-sim-boot-triple"),
             offer_generation: OfferGeneration(1),
         });
-        let browser_ad = page
+        let mut browser_ad = page
             .advertisements()
             .into_iter()
             .next()
             .expect("browser advertisement exists");
+        let browser_host_id = browser_ad.host_id.clone();
+        let browser_boot_id = browser_ad.boot_id.clone();
+        let browser_capability = browser_ad
+            .capabilities
+            .iter_mut()
+            .find(|capability| capability.capability_id == CapabilityId::from("dom-show"))
+            .expect("browser presentation capability exists");
+        let presentation_subject = browser_capability
+            .host_operations
+            .iter()
+            .find_map(|requirement| requirement.target_kind.clone())
+            .expect("browser presentation declares a target subject");
+        let authority_requirement = present_authority_requirement(presentation_subject);
+        browser_capability
+            .authority_requirements
+            .push(authority_requirement.clone());
+        let browser_authority_grant = authority_grant(
+            "grant/browser-presentation",
+            &authority_requirement,
+            browser_host_id,
+            browser_boot_id,
+            browser_capability.capability_id.clone(),
+        );
         let advertisements = vec![
             std_host.advertisement().clone(),
             browser_ad.clone(),
@@ -803,7 +831,7 @@ mod tests {
                 ConnectionProvider::FixtureDatagram,
             ),
         ]);
-        let plan = plan_with_connection_limits_and_provider_overrides(
+        let plan = plan_with_options(
             &form,
             &advertisements,
             &placements,
@@ -812,9 +840,12 @@ mod tests {
                 ConnectionProvider::FixtureFrame,
                 ConnectionProvider::FixtureDatagram,
             ],
-            &connection_providers,
-            4,
-            64,
+            PlanningOptions {
+                connection_providers: &connection_providers,
+                connection_item_capacity: 4,
+                connection_byte_capacity: 64,
+                authority_grants: core::slice::from_ref(&browser_authority_grant),
+            },
         )
         .expect("M1 triple-simulation plan resolves");
         let fragment = plan
@@ -852,6 +883,15 @@ mod tests {
         assert_eq!(report.plans[0].placement_count, 4);
         assert_eq!(report.plans[0].connection_count, 3);
         assert_eq!(report.placements.len(), 4);
+        assert!(report.capabilities.iter().any(|capability| {
+            capability.capability_id == CapabilityId::from("dom-show")
+                && capability.authority_requirements == vec![authority_requirement.clone()]
+        }));
+        assert!(report.placements.iter().any(|placement| {
+            placement.capability_id == CapabilityId::from("dom-show")
+                && placement.authority.len() == 1
+                && placement.authority[0].grant_id == browser_authority_grant.grant_id
+        }));
         assert_eq!(report.connections.len(), 3);
         assert!(report
             .connections
@@ -879,6 +919,8 @@ mod tests {
         assert!(rendered.contains("presentation/signal"));
         assert!(rendered.contains(conduit_core::PRESENTATION_RESOURCE_CLASS));
         assert!(rendered.contains("browser/presentation"));
+        assert!(rendered.contains(conduit_core::PRESENT_AUTHORITY_CONTRACT));
+        assert!(rendered.contains("grant/browser-presentation"));
         assert!(rendered.contains("provider=FixtureFrame"));
         assert!(rendered.contains("provider=FixtureDatagram"));
         assert!(rendered.contains("evidence id=evidence/"));

@@ -326,6 +326,7 @@ pub fn standard_capability_offers(
                 contract.limits.max_queue_bytes,
             ),
             resource_requirements: standard_resource_requirements(&contract.kind_id),
+            authority_requirements: Vec::new(),
             limits: contract.limits,
         })
         .collect()
@@ -994,6 +995,7 @@ mod tests {
                 contract.limits.max_queue_bytes,
             ),
             resource_requirements: standard_resource_requirements(&kind_id),
+            authority_requirements: vec![],
             limits: conduit_core::CapabilityLimits {
                 max_active_instances: 16,
                 max_queue_items: 4,

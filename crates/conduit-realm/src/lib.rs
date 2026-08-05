@@ -496,6 +496,7 @@ mod tests {
                 }],
                 host_operations: vec![],
                 resource_requirements: vec![],
+                authority_requirements: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 4,

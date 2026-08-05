@@ -7,7 +7,7 @@ adapter or physical proof.
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, correlated host operations, cancellation | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, no-growth-shape, and cancellation vectors | same scheduler with preallocated hosted storage; S1 accepted | no | no; Thumb kernel compiles | no | no |
-| Exact plan and fragment identities | S2 slices: separate source/checked/expanded identity; exact kind revision, execution profile, every port, hosted host-operation/resource requirements, startup/cancellation/terminal/evidence-budget contracts; authority/link facts remain open | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, and observation-overflow evidence vectors | yes, std runtime preparation enforces current offer, installed profile, exact host-operation contract/target/bounds, exact boot-scoped resource pool/class/units, supported policy/budget minimums, and fixed mandatory-evidence allocation | no | no | no | no |
+| Exact plan and fragment identities | S2 slices: separate source/checked/expanded identity; exact kind revision, execution profile, every port, hosted host-operation/resource/authority requirements, startup/cancellation/terminal/evidence-budget contracts; observed link facts remain open | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority denial-before-effect, and observation-overflow evidence vectors | yes, std runtime preparation enforces current offer, installed profile, exact host-operation contract/target/bounds, exact boot-scoped resource pool/class/units, independently supplied exact authority grants where declared, supported policy/budget minimums, and fixed mandatory-evidence allocation | no | no | no | no |
 | Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
 | Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
 | Browser-shaped manifestation | partial | yes, `conduit-browser-sim` | test-only | no DOM adapter | no | no WebSocket | no |
@@ -25,10 +25,10 @@ The `check` workflow requires:
 - no-std checks for the salvage kernel, semantic, wire, and std-catalog contracts;
 - hosted/fixed salvage-kernel protocol, storage, scheduler, pressure, atomic
   join, retained-state/latest, host lifecycle, closure, and cancellation vectors;
-- exact semantic-contract/profile/port, host-operation/resource, and
-  policy/budget planning with cycle, mutation-negative, action/completion
-  admission, reservation/release, and executable mandatory-evidence storage
-  tests;
+- exact semantic-contract/profile/port, host-operation/resource/authority, and
+  policy/budget planning with cycle, mutation-negative, action/completion and
+  authority admission, reservation/release, and executable mandatory-evidence
+  storage tests;
 - deterministic wire and simulated-host conformance vectors;
 - WASM compilation of the browser-shaped simulation;
 - Thumb compilation of allocator-free contracts and the Pico-shaped simulation.
@@ -63,5 +63,8 @@ finite units, and an exact selected pool through
 planning and hosted reservation until release; availability is explicitly not
 authority, and S1 resource-table lowering remains open. S2 remains the forward
 stop line until every remaining plan fact and observed remote `LinkBinding` is
-committed. No actual browser/Pico host, BODY, catalog expansion, Observatory
+committed. Authority grants now enter planning independently of advertisements,
+bind exact host/boot/capability/action/subject scope, and fail closed during
+preparation and effect admission; expiry/revocation/delegation and S1 lowering
+remain open. No actual browser/Pico host, BODY, catalog expansion, Observatory
 acceptance, or useful task advances before their later salvage gates.

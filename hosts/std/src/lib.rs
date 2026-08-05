@@ -252,6 +252,7 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
                 outputs: pulse_outputs(),
                 host_operations: pulse_host_operation_requirements(),
                 resource_requirements: pulse_resource_requirements(),
+                authority_requirements: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 16,
                     max_queue_items: 4,
@@ -269,6 +270,7 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
                 outputs: vec![],
                 host_operations: show_host_operation_requirements(),
                 resource_requirements: show_resource_requirements(),
+                authority_requirements: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 16,
                     max_queue_items: 4,
