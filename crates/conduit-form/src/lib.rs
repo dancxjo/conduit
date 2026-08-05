@@ -107,10 +107,79 @@ impl CheckedForm {
         }
     }
 
+    /// Recomputes the checked and recursively expanded identities from the
+    /// checked structure. This is the drawbridge between mutable hosted data
+    /// and planning: callers may not substitute or omit nested expansion rows
+    /// while retaining a previously sealed identity.
+    pub fn validate_identities(&self) -> Result<(), FormError> {
+        for pair in self.nested_forms.windows(2) {
+            if pair[0].operation_id >= pair[1].operation_id {
+                return Err(FormError::InvalidIdentity(
+                    "nested expansion rows are not unique canonical paths".into(),
+                ));
+            }
+        }
+        for nested in &self.nested_forms {
+            nested.form.validate_identities()?;
+            let operation = self
+                .operations
+                .iter()
+                .find(|operation| operation.operation_id == nested.operation_id)
+                .ok_or_else(|| {
+                    FormError::InvalidIdentity(format!(
+                        "nested expansion path '{}' has no checked operation",
+                        nested.operation_id.as_str()
+                    ))
+                })?;
+            let boundary = nested
+                .form
+                .export_boundary_unvalidated(&nested.export_capability_id)?;
+            let definition = boundary.kind_definition();
+            if operation.kind_id != definition.kind_id
+                || operation.kind_contract_revision != definition.kind_contract_revision
+                || operation.inputs != definition.inputs
+                || operation.outputs != definition.outputs
+                || !operation.configuration.is_empty()
+            {
+                return Err(FormError::InvalidIdentity(format!(
+                    "nested expansion path '{}' differs from its selected export",
+                    nested.operation_id.as_str()
+                )));
+            }
+        }
+
+        let expected_checked = checked_form_id(
+            &self.name,
+            &self.operations,
+            &self.connections,
+            &self.exports,
+        );
+        if self.checked_form_id != expected_checked {
+            return Err(FormError::InvalidIdentity(
+                "checked form identity differs from its canonical semantic form".into(),
+            ));
+        }
+        let expected_expanded = expanded_form_id(&expected_checked, &self.nested_forms);
+        if self.expanded_form_id != expected_expanded {
+            return Err(FormError::InvalidIdentity(
+                "expanded form identity omits or substitutes a nested expansion".into(),
+            ));
+        }
+        Ok(())
+    }
+
     /// Derives the only composite boundary contract this form may expose for
     /// `capability_id`. Every field comes from a checked authored export and
     /// its checked endpoint descriptors.
     pub fn export_boundary(
+        &self,
+        capability_id: &CapabilityId,
+    ) -> Result<CheckedCompositeBoundary, FormError> {
+        self.validate_identities()?;
+        self.export_boundary_unvalidated(capability_id)
+    }
+
+    fn export_boundary_unvalidated(
         &self,
         capability_id: &CapabilityId,
     ) -> Result<CheckedCompositeBoundary, FormError> {
@@ -157,11 +226,11 @@ impl CheckedForm {
         Ok(CheckedCompositeBoundary {
             capability_id: export.capability_id.clone(),
             kind_id: export.kind_id.clone(),
-            kind_contract_revision: KindContractRevision::from(format!(
-                "checked-form:{}:export:{}",
-                self.checked_form_id.as_str(),
-                export.capability_id.as_str()
-            )),
+            kind_contract_revision: exported_contract_revision(
+                &export.kind_id,
+                &[],
+                std::slice::from_ref(&output),
+            ),
             inputs: Vec::new(),
             outputs: vec![output],
             source_operation_id: export.source_operation_id.clone(),
@@ -312,6 +381,7 @@ pub enum FormError {
     InvalidConfiguration(String),
     InvalidConnection(String),
     InvalidExport(String),
+    InvalidIdentity(String),
     InvalidStatement(String),
 }
 
@@ -347,6 +417,7 @@ impl std::fmt::Display for FormError {
             }
             Self::InvalidConnection(message) => write!(f, "invalid connection: {message}"),
             Self::InvalidExport(message) => write!(f, "invalid export: {message}"),
+            Self::InvalidIdentity(message) => write!(f, "invalid form identity: {message}"),
             Self::InvalidStatement(message) => write!(f, "invalid statement: {message}"),
         }
     }
@@ -502,6 +573,7 @@ fn parse_form_block(
         let located = lines[index];
         let line = located.text;
         if line == "}" {
+            nested_forms.sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
             let checked_operations = operations
                 .iter()
                 .map(|(operation_name, draft)| CheckedOperation {
@@ -513,20 +585,13 @@ fn parse_form_block(
                     configuration: draft.configuration.clone(),
                 })
                 .collect::<Vec<_>>();
-            let checked_form_id = CheckedFormId::from(hash_string(&canonical_form_text(
-                &name,
-                &checked_operations,
-                &connections,
-                &exports,
-            )));
+            let checked_form_id =
+                checked_form_id(&name, &checked_operations, &connections, &exports);
             let checked_source =
                 identity_source.unwrap_or_else(|| &source[header.span.start..located.span.end]);
             let source_document_id =
                 SourceDocumentId::from(hash_string(&format!("source-document:{checked_source}")));
-            let expanded_form_id = ExpandedFormId::from(hash_string(&format!(
-                "expanded-form:{}",
-                checked_form_id.as_str()
-            )));
+            let expanded_form_id = expanded_form_id(&checked_form_id, &nested_forms);
             return Ok((
                 CheckedForm {
                     source_document_id,
@@ -857,6 +922,7 @@ fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
         FormError::TokenLimitExceeded => "CND-FRM-015",
         FormError::NestingLimitExceeded => "CND-FRM-016",
         FormError::InvalidNestedForm(_) => "CND-FRM-017",
+        FormError::InvalidIdentity(_) => "CND-FRM-018",
     };
     FormDiagnostic {
         code,
@@ -1073,6 +1139,58 @@ fn canonical_form_text(
         ));
     }
     text
+}
+
+fn checked_form_id(
+    name: &str,
+    operations: &[CheckedOperation],
+    connections: &[CheckedConnection],
+    exports: &[CheckedExport],
+) -> CheckedFormId {
+    CheckedFormId::from(hash_string(&canonical_form_text(
+        name,
+        operations,
+        connections,
+        exports,
+    )))
+}
+
+fn expanded_form_id(
+    checked_form_id: &CheckedFormId,
+    nested_forms: &[CheckedNestedForm],
+) -> ExpandedFormId {
+    let mut canonical = format!("expanded-form:{}", checked_form_id.as_str());
+    for nested in nested_forms {
+        canonical.push_str("|nested:");
+        push_identity_field(&mut canonical, nested.operation_id.as_str());
+        push_identity_field(&mut canonical, nested.export_capability_id.as_str());
+        push_identity_field(&mut canonical, nested.form.expanded_form_id.as_str());
+    }
+    ExpandedFormId::from(hash_string(&canonical))
+}
+
+fn exported_contract_revision(
+    kind_id: &KindId,
+    inputs: &[PortDescriptor],
+    outputs: &[PortDescriptor],
+) -> KindContractRevision {
+    let mut canonical = String::from("checked-export-contract:");
+    push_identity_field(&mut canonical, kind_id.as_str());
+    for (direction, ports) in [("input", inputs), ("output", outputs)] {
+        for port in ports {
+            push_identity_field(&mut canonical, direction);
+            push_identity_field(&mut canonical, port.port_id.as_str());
+            push_identity_field(&mut canonical, port.value_kind.as_str());
+        }
+    }
+    KindContractRevision::from(format!("checked-export:{}", hash_string(&canonical)))
+}
+
+fn push_identity_field(canonical: &mut String, value: &str) {
+    canonical.push_str(&value.len().to_string());
+    canonical.push(':');
+    canonical.push_str(value);
+    canonical.push('|');
 }
 
 fn render_value(value: &ConfigurationValue) -> String {
@@ -1402,13 +1520,15 @@ mod tests {
             &catalog(),
         )
         .expect("semantic change checks");
-        assert_ne!(
+        assert_eq!(
             boundary.kind_contract_revision,
             changed
                 .export_boundary(&capability_id)
                 .expect("changed export derives a boundary")
                 .kind_contract_revision
         );
+        assert_ne!(child.checked_form_id, changed.checked_form_id);
+        assert_ne!(child.expanded_form_id, changed.expanded_form_id);
     }
 
     #[test]
@@ -1451,6 +1571,99 @@ mod tests {
         assert_eq!(parent.connections[0].source_operation_id.as_str(), "child");
         assert_eq!(parent.connections[0].source_port_id.as_str(), "out");
         assert_eq!(parent.connections[0].sink_operation_id.as_str(), "final");
+    }
+
+    #[test]
+    fn parent_expanded_identity_binds_hidden_child_semantics_not_checked_boundary() {
+        let baseline = parse(
+            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n final: test/sink\n child.out -> final.in\n}\n",
+            &catalog(),
+        )
+        .expect("baseline nested parent checks");
+        let changed = parse(
+            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n final: test/sink\n child.out -> final.in\n}\n",
+            &catalog(),
+        )
+        .expect("changed nested parent checks");
+
+        assert_ne!(
+            baseline.nested_forms[0].form.checked_form_id,
+            changed.nested_forms[0].form.checked_form_id
+        );
+        assert_eq!(
+            baseline.operations[0].kind_contract_revision,
+            changed.operations[0].kind_contract_revision
+        );
+        assert_eq!(baseline.checked_form_id, changed.checked_form_id);
+        assert_ne!(baseline.expanded_form_id, changed.expanded_form_id);
+        baseline
+            .validate_identities()
+            .expect("baseline identities validate");
+        changed
+            .validate_identities()
+            .expect("changed identities validate");
+    }
+
+    #[test]
+    fn nested_expansion_paths_are_canonical_and_substitution_fails_closed() {
+        let baseline = parse(
+            "form 0\nparent {\n left: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n right: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n left-sink: test/sink\n right-sink: test/sink\n left.out -> left-sink.in\n right.out -> right-sink.in\n}\n",
+            &catalog(),
+        )
+        .expect("two nested paths check");
+        let source_reordered = parse(
+            "form 0\nparent {\n right: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n left: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n left-sink: test/sink\n right-sink: test/sink\n left.out -> left-sink.in\n right.out -> right-sink.in\n}\n",
+            &catalog(),
+        )
+        .expect("source-reordered nested paths check");
+        let implementations_swapped = parse(
+            "form 0\nparent {\n left: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n right: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n left-sink: test/sink\n right-sink: test/sink\n left.out -> left-sink.in\n right.out -> right-sink.in\n}\n",
+            &catalog(),
+        )
+        .expect("swapped nested implementations check");
+
+        assert_eq!(baseline.checked_form_id, source_reordered.checked_form_id);
+        assert_eq!(baseline.expanded_form_id, source_reordered.expanded_form_id);
+        assert_eq!(
+            baseline.checked_form_id,
+            implementations_swapped.checked_form_id
+        );
+        assert_ne!(
+            baseline.expanded_form_id,
+            implementations_swapped.expanded_form_id
+        );
+        assert_eq!(baseline.nested_forms[0].operation_id.as_str(), "left");
+        assert_eq!(baseline.nested_forms[1].operation_id.as_str(), "right");
+
+        let mut omitted = baseline.clone();
+        omitted.nested_forms.remove(0);
+        assert!(matches!(
+            omitted.validate_identities(),
+            Err(FormError::InvalidIdentity(_))
+        ));
+
+        let mut duplicated = baseline.clone();
+        duplicated
+            .nested_forms
+            .push(duplicated.nested_forms[0].clone());
+        assert!(matches!(
+            duplicated.validate_identities(),
+            Err(FormError::InvalidIdentity(_))
+        ));
+
+        let mut reordered = baseline.clone();
+        reordered.nested_forms.swap(0, 1);
+        assert!(matches!(
+            reordered.validate_identities(),
+            Err(FormError::InvalidIdentity(_))
+        ));
+
+        let mut substituted = baseline;
+        substituted.nested_forms[0].form = implementations_swapped.nested_forms[0].form.clone();
+        assert!(matches!(
+            substituted.validate_identities(),
+            Err(FormError::InvalidIdentity(_))
+        ));
     }
 
     #[test]

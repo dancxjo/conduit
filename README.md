@@ -32,12 +32,15 @@ graphs. The forward salvage roadmap is tracked in
 The archived pre-reboot tree and the reboot are both source quarries. Focused
 reuse is recorded in [docs/reuse-ledger.md](docs/reuse-ledger.md).
 
-Platform expansion is paused behind the kernel-takeover integration gate
-[#389](https://github.com/dancxjo/conduit/issues/389). Exact local
-`PlanFragment`s for the installed profiles lower into bounded numeric kernel
-tables and run through the hosted scheduler. Unsupported std forms fail closed;
-production `StdHost` has no fallback operation pump. Cross-host simulation
-fixtures retain an explicitly named legacy compatibility driver.
+Kernel takeover [#389](https://github.com/dancxjo/conduit/issues/389) is
+accepted. Exact local `PlanFragment`s for the installed profiles lower into
+bounded numeric kernel tables and run through the hosted scheduler. Unsupported
+std forms fail closed; production `StdHost` has no fallback operation pump.
+Platform expansion remains paused while nested expansion identity
+[#398](https://github.com/dancxjo/conduit/issues/398) and general named
+composite faces [#399](https://github.com/dancxjo/conduit/issues/399) are
+corrected. Cross-host simulation fixtures retain an explicitly named legacy
+compatibility driver.
 
 ## Current executable prototype
 

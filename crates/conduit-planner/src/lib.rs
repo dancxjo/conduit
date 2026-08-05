@@ -32,6 +32,7 @@ pub struct PlanningOptions<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlannerError {
+    InvalidFormIdentity(String),
     UnknownOperation(String),
     MissingPlacement(String),
     DuplicatePlacement(String),
@@ -62,6 +63,9 @@ pub enum PlannerError {
 impl std::fmt::Display for PlannerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            PlannerError::InvalidFormIdentity(value) => {
+                write!(f, "invalid form identity: {value}")
+            }
             PlannerError::UnknownOperation(value) => write!(f, "unknown operation '{value}'"),
             PlannerError::MissingPlacement(value) => write!(f, "missing placement for '{value}'"),
             PlannerError::DuplicatePlacement(value) => {
@@ -335,6 +339,8 @@ pub fn plan_with_options(
     providers: &[ConnectionProvider],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
+    form.validate_identities()
+        .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
     let PlanningOptions {
         connection_providers,
         connection_item_capacity,
@@ -998,11 +1004,14 @@ mod tests {
         authority_grant, kind_id, mandatory_evidence_storage_requirement,
         present_authority_requirement, process_owned_link_binding, verify_plan,
         verify_plan_fragment, ArtifactId, CancellationPolicy, CapabilityLimits, CapabilityOffer,
-        ConnectionProvider, ExpandedFormId, HostAdvertisement, HostId, HostProfileId,
-        ImplementationId, OfferGeneration, SourceDocumentId, StartupDependency, TerminalPolicy,
+        ConfigurationValue, ConnectionProvider, ExpandedFormId, HostAdvertisement, HostId,
+        HostProfileId, ImplementationId, KindContractRevision, KindId, OfferGeneration,
+        PortDescriptor, PortDirection, PortId, SourceDocumentId, StartupDependency, TerminalPolicy,
         PROTOCOL_VERSION,
     };
-    use conduit_form::parse;
+    use conduit_form::{
+        parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
+    };
     use conduit_signal::{
         pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
         pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
@@ -1066,6 +1075,89 @@ mod tests {
                     },
                 },
             ],
+        }
+    }
+
+    fn nested_identity_catalog() -> ProfileCatalog {
+        let mut catalog = ProfileCatalog::new();
+        catalog
+            .insert(KindDefinition {
+                kind_id: KindId::from("test/source"),
+                kind_contract_revision: KindContractRevision::from("test/source@1"),
+                inputs: vec![],
+                outputs: vec![PortDescriptor {
+                    port_id: PortId::from("out"),
+                    value_kind: KindId::from("test/value"),
+                    direction: PortDirection::Output,
+                }],
+                configuration: vec![ConfigurationField {
+                    key: "count".into(),
+                    default_value: ConfigurationValue::U64(1),
+                    validation: ConfigurationRule::U64Range {
+                        minimum: 1,
+                        maximum: 4,
+                    },
+                }],
+            })
+            .expect("source kind is unique");
+        catalog
+            .insert(KindDefinition {
+                kind_id: KindId::from("test/sink"),
+                kind_contract_revision: KindContractRevision::from("test/sink@1"),
+                inputs: vec![PortDescriptor {
+                    port_id: PortId::from("in"),
+                    value_kind: KindId::from("test/value"),
+                    direction: PortDirection::Input,
+                }],
+                outputs: vec![],
+                configuration: vec![],
+            })
+            .expect("sink kind is unique");
+        catalog
+    }
+
+    fn host_for_checked_form(form: &conduit_form::CheckedForm) -> HostAdvertisement {
+        HostAdvertisement {
+            protocol_version: PROTOCOL_VERSION,
+            host_id: HostId::from("nested-host"),
+            boot_id: conduit_core::BootId::from("nested-boot"),
+            offer_generation: OfferGeneration(1),
+            profile: HostProfileId::from("nested-test"),
+            resources: vec![],
+            capabilities: form
+                .operations
+                .iter()
+                .map(|operation| CapabilityOffer {
+                    capability_id: conduit_core::CapabilityId::from(format!(
+                        "capability/{}",
+                        operation.operation_id.as_str()
+                    )),
+                    kind_id: operation.kind_id.clone(),
+                    kind_contract_revision: operation.kind_contract_revision.clone(),
+                    execution_profile_id: conduit_core::ExecutionProfileId::from(format!(
+                        "profile/{}",
+                        operation.operation_id.as_str()
+                    )),
+                    implementation_id: ImplementationId::from(format!(
+                        "implementation/{}",
+                        operation.operation_id.as_str()
+                    )),
+                    artifact_id: ArtifactId::from(format!(
+                        "artifact/{}",
+                        operation.operation_id.as_str()
+                    )),
+                    inputs: operation.inputs.clone(),
+                    outputs: operation.outputs.clone(),
+                    host_operations: vec![],
+                    resource_requirements: vec![],
+                    authority_requirements: vec![],
+                    limits: CapabilityLimits {
+                        max_active_instances: 1,
+                        max_queue_items: 4,
+                        max_queue_bytes: 64,
+                    },
+                })
+                .collect(),
         }
     }
 
@@ -1657,25 +1749,27 @@ mod tests {
 
         let mut checked_changed = form.clone();
         checked_changed.checked_form_id = conduit_core::CheckedFormId::from("changed-checked");
-        let checked_plan = plan(
-            &checked_changed,
-            std::slice::from_ref(&host),
-            &placements,
-            &[ConnectionProvider::Local],
-        )
-        .expect("checked-identity plan resolves");
-        assert_ne!(original.plan_id, checked_plan.plan_id);
+        assert!(matches!(
+            plan(
+                &checked_changed,
+                std::slice::from_ref(&host),
+                &placements,
+                &[ConnectionProvider::Local],
+            ),
+            Err(PlannerError::InvalidFormIdentity(_))
+        ));
 
         let mut expanded_changed = form.clone();
         expanded_changed.expanded_form_id = ExpandedFormId::from("changed-expanded");
-        let expanded_plan = plan(
-            &expanded_changed,
-            std::slice::from_ref(&host),
-            &placements,
-            &[ConnectionProvider::Local],
-        )
-        .expect("expanded-identity plan resolves");
-        assert_ne!(original.plan_id, expanded_plan.plan_id);
+        assert!(matches!(
+            plan(
+                &expanded_changed,
+                std::slice::from_ref(&host),
+                &placements,
+                &[ConnectionProvider::Local],
+            ),
+            Err(PlannerError::InvalidFormIdentity(_))
+        ));
 
         let mut mutated = original.clone();
         mutated.source_document_id = SourceDocumentId::from("mutated-source");
@@ -1688,6 +1782,64 @@ mod tests {
         let mut mutated = original;
         mutated.expanded_form_id = ExpandedFormId::from("mutated-expanded");
         assert!(!verify_plan(&mutated));
+    }
+
+    #[test]
+    fn planning_binds_nested_expansion_changes_beyond_the_checked_boundary() {
+        let baseline = parse(
+            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n final: test/sink\n child.out -> final.in\n}\n",
+            &nested_identity_catalog(),
+        )
+        .expect("baseline nested parent checks");
+        let changed = parse(
+            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n final: test/sink\n child.out -> final.in\n}\n",
+            &nested_identity_catalog(),
+        )
+        .expect("changed nested parent checks");
+        assert_eq!(baseline.checked_form_id, changed.checked_form_id);
+        assert_ne!(baseline.expanded_form_id, changed.expanded_form_id);
+        assert_eq!(baseline.operations, changed.operations);
+
+        let host = host_for_checked_form(&baseline);
+        let placements = default_placements(&baseline, std::slice::from_ref(&host))
+            .expect("visible parent contract places");
+        let baseline_plan = plan(
+            &baseline,
+            std::slice::from_ref(&host),
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("baseline parent plans");
+        let changed_plan = plan(
+            &changed,
+            std::slice::from_ref(&host),
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("changed expansion plans against the same visible offers");
+
+        assert_eq!(baseline_plan.checked_form_id, changed_plan.checked_form_id);
+        assert_ne!(
+            baseline_plan.expanded_form_id,
+            changed_plan.expanded_form_id
+        );
+        assert_ne!(baseline_plan.plan_id, changed_plan.plan_id);
+        assert_ne!(
+            baseline_plan.fragments[0].fragment_id,
+            changed_plan.fragments[0].fragment_id
+        );
+
+        let mut omitted = baseline;
+        omitted.nested_forms.clear();
+        assert!(matches!(
+            plan(
+                &omitted,
+                std::slice::from_ref(&host),
+                &placements,
+                &[ConnectionProvider::Local],
+            ),
+            Err(PlannerError::InvalidFormIdentity(_))
+        ));
     }
 
     #[test]
