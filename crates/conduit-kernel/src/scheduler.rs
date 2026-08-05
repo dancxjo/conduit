@@ -1,10 +1,10 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
 
 use crate::{
-    BoundedValueRef, CordId, EvidenceError, EvidenceSink, FixedHostOperationBindings, FixedRoutes,
-    HostOperationBinding, HostOperationId, HostOperationOutcome, KernelEventKind, NodeId,
-    Operation, OperationAction, OperationInput, PortId, ProtocolError, RequestId, RouteTarget,
-    StorageError, ValueRef, ValueStorage,
+    BoundedValueRef, CordEndpoint, CordId, EvidenceError, EvidenceSink, FixedHostOperationBindings,
+    FixedRoutes, HostOperationBinding, HostOperationId, HostOperationOutcome, KernelEventKind,
+    NodeId, Operation, OperationAction, OperationInput, PortId, ProtocolError, RemoteEndpointId,
+    RequestId, RouteTarget, StorageError, ValueRef, ValueStorage,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -17,13 +17,104 @@ pub struct NodeSpec<const PORTS: usize> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CordSpec {
     pub cord: CordId,
-    pub source_node: NodeId,
-    pub source_port: PortId,
-    pub sink_node: NodeId,
-    pub sink_port: PortId,
+    pub source: CordEndpoint,
+    pub sink: CordEndpoint,
     pub slot_start: u16,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CordCapacity {
+    pub slot_start: u16,
+    pub item_capacity: u16,
+    pub byte_capacity: u32,
+}
+
+impl CordSpec {
+    pub const fn local(
+        cord: CordId,
+        source: (NodeId, PortId),
+        sink: (NodeId, PortId),
+        capacity: CordCapacity,
+    ) -> Self {
+        Self {
+            cord,
+            source: CordEndpoint::local(source.0, source.1),
+            sink: CordEndpoint::local(sink.0, sink.1),
+            slot_start: capacity.slot_start,
+            item_capacity: capacity.item_capacity,
+            byte_capacity: capacity.byte_capacity,
+        }
+    }
+
+    pub const fn remote_egress(
+        cord: CordId,
+        source: (NodeId, PortId),
+        endpoint: RemoteEndpointId,
+        capacity: CordCapacity,
+    ) -> Self {
+        Self {
+            cord,
+            source: CordEndpoint::local(source.0, source.1),
+            sink: CordEndpoint::Remote(endpoint),
+            slot_start: capacity.slot_start,
+            item_capacity: capacity.item_capacity,
+            byte_capacity: capacity.byte_capacity,
+        }
+    }
+
+    pub const fn remote_ingress(
+        cord: CordId,
+        endpoint: RemoteEndpointId,
+        sink: (NodeId, PortId),
+        capacity: CordCapacity,
+    ) -> Self {
+        Self {
+            cord,
+            source: CordEndpoint::Remote(endpoint),
+            sink: CordEndpoint::local(sink.0, sink.1),
+            slot_start: capacity.slot_start,
+            item_capacity: capacity.item_capacity,
+            byte_capacity: capacity.byte_capacity,
+        }
+    }
+
+    pub const fn source_local(self) -> Option<(NodeId, PortId)> {
+        match self.source {
+            CordEndpoint::Local { node, port } => Some((node, port)),
+            CordEndpoint::Remote(_) => None,
+        }
+    }
+
+    pub const fn sink_local(self) -> Option<(NodeId, PortId)> {
+        match self.sink {
+            CordEndpoint::Local { node, port } => Some((node, port)),
+            CordEndpoint::Remote(_) => None,
+        }
+    }
+
+    pub const fn remote_endpoint(self) -> Option<RemoteEndpointId> {
+        match (self.source, self.sink) {
+            (CordEndpoint::Remote(endpoint), CordEndpoint::Local { .. })
+            | (CordEndpoint::Local { .. }, CordEndpoint::Remote(endpoint)) => Some(endpoint),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RemoteValueOffer {
+    pub endpoint: RemoteEndpointId,
+    pub cord: CordId,
+    pub sequence: u64,
+    pub value: ValueRef,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RemoteIngressOutcome {
+    Accepted { sequence: u64 },
+    Full { sequence: u64 },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -549,6 +640,10 @@ pub enum SchedulerError {
     HostOperationRequestDuplicate,
     HostOperationCompletionRejected,
     HostOperationOutputExceeded,
+    InvalidRemoteCordAccess,
+    RemoteSequenceRejected,
+    RemoteDeliveryRejected,
+    ValueOwnershipViolation,
     Cancelled,
     Storage(StorageError),
     Evidence(EvidenceError),
@@ -579,6 +674,9 @@ struct CordState {
     len: u16,
     queued_bytes: u32,
     producer_closed: bool,
+    next_remote_sequence: u64,
+    offered_remote_sequence: Option<u64>,
+    remote_accepted: bool,
 }
 
 impl CordState {
@@ -587,6 +685,9 @@ impl CordState {
         len: 0,
         queued_bytes: 0,
         producer_closed: false,
+        next_remote_sequence: 0,
+        offered_remote_sequence: None,
+        remote_accepted: false,
     };
 }
 
@@ -784,6 +885,267 @@ where
         Ok((state.len, state.queued_bytes))
     }
 
+    /// Offers the head of a remote egress cord without transferring ownership.
+    /// Repeated calls return the same sequence and value until exact delivery
+    /// is acknowledged.
+    pub fn remote_egress_offer(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+    ) -> Result<Option<RemoteValueOffer>, SchedulerError> {
+        if self.cancelled {
+            return Err(SchedulerError::Cancelled);
+        }
+        let cord_index = usize::from(cord.0);
+        let spec = *self
+            .cord_specs
+            .get(cord_index)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
+        let (source_node, source_port) = match (spec.source, spec.sink) {
+            (CordEndpoint::Local { node, port }, CordEndpoint::Remote(candidate))
+                if candidate == endpoint =>
+            {
+                (node, port)
+            }
+            _ => return Err(SchedulerError::InvalidRemoteCordAccess),
+        };
+        let Some(value) = self.peek(cord_index)? else {
+            return Ok(None);
+        };
+        let existing = self.cords[cord_index].offered_remote_sequence;
+        let sequence = existing.unwrap_or(self.cords[cord_index].next_remote_sequence);
+        if existing.is_none() {
+            self.ensure_evidence_capacity(1)?;
+            self.cords[cord_index].offered_remote_sequence = Some(sequence);
+            self.evidence.record(
+                source_node,
+                Some(source_port),
+                None,
+                KernelEventKind::RemoteValueOffered,
+            )?;
+        }
+        Ok(Some(RemoteValueOffer {
+            endpoint,
+            cord,
+            sequence,
+            value,
+        }))
+    }
+
+    pub fn remote_egress_accept(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        sequence: u64,
+    ) -> Result<(), SchedulerError> {
+        if self.cancelled {
+            return Err(SchedulerError::Cancelled);
+        }
+        let cord_index = usize::from(cord.0);
+        let spec = *self
+            .cord_specs
+            .get(cord_index)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
+        let (source_node, source_port) = match (spec.source, spec.sink) {
+            (CordEndpoint::Local { node, port }, CordEndpoint::Remote(candidate))
+                if candidate == endpoint =>
+            {
+                (node, port)
+            }
+            _ => return Err(SchedulerError::InvalidRemoteCordAccess),
+        };
+        let state = self
+            .cords
+            .get(cord_index)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
+        if state.offered_remote_sequence != Some(sequence) {
+            return Err(SchedulerError::RemoteSequenceRejected);
+        }
+        if state.remote_accepted {
+            return Ok(());
+        }
+        self.ensure_evidence_capacity(1)?;
+        self.cords[cord_index].remote_accepted = true;
+        self.evidence.record(
+            source_node,
+            Some(source_port),
+            None,
+            KernelEventKind::RemoteValueAccepted,
+        )?;
+        Ok(())
+    }
+
+    /// Releases the source value only after the carrier reports the exact
+    /// sequence as delivered by the peer kernel.
+    pub fn remote_egress_delivered(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        sequence: u64,
+    ) -> Result<(), SchedulerError> {
+        if self.cancelled {
+            return Err(SchedulerError::RemoteDeliveryRejected);
+        }
+        let cord_index = usize::from(cord.0);
+        let spec = *self
+            .cord_specs
+            .get(cord_index)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
+        let (source_node, source_port) = match (spec.source, spec.sink) {
+            (CordEndpoint::Local { node, port }, CordEndpoint::Remote(candidate))
+                if candidate == endpoint =>
+            {
+                (node, port)
+            }
+            _ => return Err(SchedulerError::InvalidRemoteCordAccess),
+        };
+        let state = self
+            .cords
+            .get(cord_index)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
+        if state.offered_remote_sequence != Some(sequence) || !state.remote_accepted {
+            return Err(SchedulerError::RemoteDeliveryRejected);
+        }
+        let next_sequence = state
+            .next_remote_sequence
+            .checked_add(1)
+            .ok_or(SchedulerError::RemoteSequenceRejected)?;
+        self.ensure_evidence_capacity(1)?;
+        let value = self.pop(cord_index)?;
+        self.values.release(value)?;
+        let state = &mut self.cords[cord_index];
+        state.next_remote_sequence = next_sequence;
+        state.offered_remote_sequence = None;
+        state.remote_accepted = false;
+        self.ready[usize::from(source_node.0)] = true;
+        self.evidence.record(
+            source_node,
+            Some(source_port),
+            None,
+            KernelEventKind::RemoteValueDelivered,
+        )?;
+        Ok(())
+    }
+
+    /// Admits bytes through a remote ingress cord into the kernel-owned value
+    /// store and queue. `Full` performs no allocation or sequence advance, so
+    /// the carrier must retry the same sequence.
+    pub fn admit_remote_input(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        sequence: u64,
+        bytes: &[u8],
+    ) -> Result<RemoteIngressOutcome, SchedulerError> {
+        if self.cancelled {
+            return Err(SchedulerError::Cancelled);
+        }
+        let cord_index = usize::from(cord.0);
+        let spec = *self
+            .cord_specs
+            .get(cord_index)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
+        let (sink_node, sink_port) = match (spec.source, spec.sink) {
+            (CordEndpoint::Remote(candidate), CordEndpoint::Local { node, port })
+                if candidate == endpoint =>
+            {
+                (node, port)
+            }
+            _ => return Err(SchedulerError::InvalidRemoteCordAccess),
+        };
+        let state = self
+            .cords
+            .get(cord_index)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
+        if state.producer_closed || state.next_remote_sequence != sequence {
+            return Err(SchedulerError::RemoteSequenceRejected);
+        }
+        let byte_len =
+            u32::try_from(bytes.len()).map_err(|_| SchedulerError::QueueByteCapacityExceeded)?;
+        if state.len >= spec.item_capacity
+            || byte_len > spec.byte_capacity.saturating_sub(state.queued_bytes)
+        {
+            return Ok(RemoteIngressOutcome::Full { sequence });
+        }
+        let next_sequence = sequence
+            .checked_add(1)
+            .ok_or(SchedulerError::RemoteSequenceRejected)?;
+        self.ensure_evidence_capacity(1)?;
+        let value = self.values.store(bytes)?;
+        if let Err(error) = self.push(cord_index, value) {
+            self.values.release(value)?;
+            return Err(error);
+        }
+        self.cords[cord_index].next_remote_sequence = next_sequence;
+        self.ready[usize::from(sink_node.0)] = true;
+        self.evidence.record(
+            sink_node,
+            Some(sink_port),
+            None,
+            KernelEventKind::RemoteInputAdmitted,
+        )?;
+        Ok(RemoteIngressOutcome::Accepted { sequence })
+    }
+
+    pub fn close_remote_input(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+    ) -> Result<(), SchedulerError> {
+        if self.cancelled {
+            return Err(SchedulerError::Cancelled);
+        }
+        let cord_index = usize::from(cord.0);
+        let spec = *self
+            .cord_specs
+            .get(cord_index)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
+        let (sink_node, sink_port) = match (spec.source, spec.sink) {
+            (CordEndpoint::Remote(candidate), CordEndpoint::Local { node, port })
+                if candidate == endpoint =>
+            {
+                (node, port)
+            }
+            _ => return Err(SchedulerError::InvalidRemoteCordAccess),
+        };
+        if self.cords[cord_index].producer_closed {
+            return Ok(());
+        }
+        self.ensure_evidence_capacity(1)?;
+        self.cords[cord_index].producer_closed = true;
+        self.ready[usize::from(sink_node.0)] = true;
+        self.evidence.record(
+            sink_node,
+            Some(sink_port),
+            None,
+            KernelEventKind::RemoteInputClosed,
+        )?;
+        Ok(())
+    }
+
+    pub fn remote_egress_terminal(
+        &self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+    ) -> Result<bool, SchedulerError> {
+        let cord_index = usize::from(cord.0);
+        let spec = *self
+            .cord_specs
+            .get(cord_index)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
+        if !matches!(
+            (spec.source, spec.sink),
+            (
+                CordEndpoint::Local { .. },
+                CordEndpoint::Remote(candidate)
+            ) if candidate == endpoint
+        ) {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
+        let state = self.cords[cord_index];
+        Ok(state.producer_closed && state.len == 0)
+    }
+
     pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
         let pending = self
             .pending_host_operations
@@ -871,8 +1233,13 @@ where
                         .map(|output| output.value)
                         == Some(value)
             })
+            || self
+                .queue_slots
+                .iter()
+                .flatten()
+                .any(|queued| *queued == value)
         {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::ValueOwnershipViolation);
         }
         Ok(self.values.release(value)?)
     }
@@ -908,6 +1275,8 @@ where
             cord.len = 0;
             cord.queued_bytes = 0;
             cord.producer_closed = true;
+            cord.offered_remote_sequence = None;
+            cord.remote_accepted = false;
         }
         self.ready.fill(false);
         self.cancelled = true;
@@ -1106,7 +1475,9 @@ where
             let value = self.pop(usize::from(cord.0))?;
             consumed_values[port] = Some(value);
             let spec = self.cord_specs[usize::from(cord.0)];
-            self.ready[usize::from(spec.source_node.0)] = true;
+            if let Some((source_node, _)) = spec.source_local() {
+                self.ready[usize::from(source_node.0)] = true;
+            }
             self.evidence.record(
                 NodeId(as_u16(node)?),
                 Some(PortId(as_u16(port)?)),
@@ -1248,7 +1619,9 @@ where
             let targets = targets.collect_targets::<ROUTE_TARGETS>()?;
             for target in targets.iter() {
                 self.push(usize::from(target.cord.0), value)?;
-                self.ready[usize::from(target.sink_node.0)] = true;
+                if let CordEndpoint::Local { node, .. } = target.sink {
+                    self.ready[usize::from(node.0)] = true;
+                }
                 self.evidence.record(
                     NodeId(as_u16(node)?),
                     Some(PortId(as_u16(port)?)),
@@ -1597,7 +1970,16 @@ where
             for target in targets.iter() {
                 let cord = usize::from(target.cord.0);
                 self.cords[cord].producer_closed = true;
-                self.ready[usize::from(target.sink_node.0)] = true;
+                if let CordEndpoint::Local { node, .. } = target.sink {
+                    self.ready[usize::from(node.0)] = true;
+                } else {
+                    self.evidence.record(
+                        NodeId(as_u16(node)?),
+                        Some(PortId(as_u16(port)?)),
+                        None,
+                        KernelEventKind::RemoteOutputClosed,
+                    )?;
+                }
             }
         }
         Ok(())
@@ -1678,8 +2060,7 @@ fn validate_plan<
             let spec = cords
                 .get(usize::from(cord.0))
                 .ok_or(SchedulerError::InvalidPlan)?;
-            if usize::from(spec.sink_node.0) != node_index || usize::from(spec.sink_port.0) != port
-            {
+            if spec.sink_local() != Some((NodeId(as_u16(node_index)?), PortId(as_u16(port)?))) {
                 return Err(SchedulerError::InvalidPlan);
             }
         }
@@ -1693,10 +2074,9 @@ fn validate_plan<
                 let cord = usize::from(target.cord.0);
                 let spec = cords.get(cord).ok_or(SchedulerError::InvalidPlan)?;
                 if seen[cord]
-                    || usize::from(spec.source_node.0) != node_index
-                    || usize::from(spec.source_port.0) != port
-                    || spec.sink_node != target.sink_node
-                    || spec.sink_port != target.sink_port
+                    || spec.source_local()
+                        != Some((NodeId(as_u16(node_index)?), PortId(as_u16(port)?)))
+                    || spec.sink != target.sink
                 {
                     return Err(SchedulerError::InvalidPlan);
                 }
@@ -1706,14 +2086,55 @@ fn validate_plan<
     }
     for (cord_index, cord) in cords.iter().copied().enumerate() {
         if usize::from(cord.cord.0) != cord_index
-            || usize::from(cord.source_node.0) >= NODES
-            || usize::from(cord.sink_node.0) >= NODES
-            || usize::from(cord.source_port.0) >= PORTS
-            || usize::from(cord.sink_port.0) >= PORTS
             || cord.item_capacity == 0
             || cord.byte_capacity == 0
         {
             return Err(SchedulerError::InvalidPlan);
+        }
+        match (cord.source, cord.sink) {
+            (
+                CordEndpoint::Local {
+                    node: source_node,
+                    port: source_port,
+                },
+                CordEndpoint::Local {
+                    node: sink_node,
+                    port: sink_port,
+                },
+            ) => {
+                if usize::from(source_node.0) >= NODES
+                    || usize::from(sink_node.0) >= NODES
+                    || usize::from(source_port.0) >= PORTS
+                    || usize::from(sink_port.0) >= PORTS
+                {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+            }
+            (
+                CordEndpoint::Local {
+                    node: source_node,
+                    port: source_port,
+                },
+                CordEndpoint::Remote(_),
+            ) => {
+                if usize::from(source_node.0) >= NODES || usize::from(source_port.0) >= PORTS {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+            }
+            (
+                CordEndpoint::Remote(_),
+                CordEndpoint::Local {
+                    node: sink_node,
+                    port: sink_port,
+                },
+            ) => {
+                if usize::from(sink_node.0) >= NODES || usize::from(sink_port.0) >= PORTS {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+            }
+            (CordEndpoint::Remote(_), CordEndpoint::Remote(_)) => {
+                return Err(SchedulerError::InvalidPlan);
+            }
         }
         let end = usize::from(cord.slot_start)
             .checked_add(usize::from(cord.item_capacity))
@@ -1721,25 +2142,33 @@ fn validate_plan<
         if end > QUEUE_SLOTS {
             return Err(SchedulerError::InvalidPlan);
         }
-        if nodes[usize::from(cord.sink_node.0)].input_cords[usize::from(cord.sink_port.0)]
-            != Some(cord.cord)
-        {
-            return Err(SchedulerError::InvalidPlan);
+        if let Some((sink_node, sink_port)) = cord.sink_local() {
+            if nodes[usize::from(sink_node.0)].input_cords[usize::from(sink_port.0)]
+                != Some(cord.cord)
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
         }
-        let routed = routes
-            .route(cord.source_node, cord.source_port)?
-            .any(|target| {
+        if let Some((source_node, source_port)) = cord.source_local() {
+            let routed = routes.route(source_node, source_port)?.any(|target| {
                 target
                     == RouteTarget {
                         cord: cord.cord,
-                        sink_node: cord.sink_node,
-                        sink_port: cord.sink_port,
+                        sink: cord.sink,
                     }
             });
-        if !routed {
-            return Err(SchedulerError::InvalidPlan);
+            if !routed {
+                return Err(SchedulerError::InvalidPlan);
+            }
         }
         for other in &cords[..cord_index] {
+            if cord
+                .remote_endpoint()
+                .zip(other.remote_endpoint())
+                .is_some_and(|(left, right)| left == right)
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
             let other_end = usize::from(other.slot_start) + usize::from(other.item_capacity);
             if usize::from(cord.slot_start) < other_end && usize::from(other.slot_start) < end {
                 return Err(SchedulerError::InvalidPlan);
@@ -1788,15 +2217,15 @@ impl<I: Iterator<Item = RouteTarget>> CollectTargets for I {}
 #[cfg(test)]
 mod tests {
     use super::{
-        CordSpec, FixedScheduler, NodeSpec, OperationDriver, SchedulerStatus, StepIo,
-        StepOperation, StepOutcome,
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, RemoteIngressOutcome,
+        SchedulerError, SchedulerStatus, StepIo, StepOperation, StepOutcome,
     };
     use crate::{
         BoundedValueRef, CordId, EvidenceQuery, EvidenceSink, Failure, FailureCode,
         FixedEvidenceLog, FixedHostOperationBindings, FixedRoutes, FixedValueStore,
         HostOperationBinding, HostOperationDisposition, HostOperationId, HostOperationOutcome,
         KernelEventKind, NodeId, Operation, OperationAction, OperationInput, PortId, ProtocolError,
-        RequestId, RouteRange, RouteTarget, ValueRef, ValueStorage,
+        RemoteEndpointId, RequestId, RouteRange, RouteTarget, ValueRef, ValueStorage,
     };
 
     const NODES: usize = 6;
@@ -2463,8 +2892,7 @@ mod tests {
                     },
                     &[RouteTarget {
                         cord: CordId(cord_id),
-                        sink_node: NodeId(sink),
-                        sink_port: PortId(0),
+                        sink: crate::CordEndpoint::local(NodeId(sink), PortId(0)),
                     }],
                 )
                 .unwrap();
@@ -2602,8 +3030,7 @@ mod tests {
                     },
                     &[RouteTarget {
                         cord: CordId(cord_id),
-                        sink_node: NodeId(sink),
-                        sink_port: PortId(0),
+                        sink: crate::CordEndpoint::local(NodeId(sink), PortId(0)),
                     }],
                 )
                 .unwrap();
@@ -2782,8 +3209,7 @@ mod tests {
                     },
                     &[RouteTarget {
                         cord: CordId(cord_id),
-                        sink_node: NodeId(sink),
-                        sink_port: PortId(0),
+                        sink: crate::CordEndpoint::local(NodeId(sink), PortId(0)),
                     }],
                 )
                 .unwrap();
@@ -2894,8 +3320,7 @@ mod tests {
                     },
                     &[RouteTarget {
                         cord: CordId(target),
-                        sink_node: NodeId(sink),
-                        sink_port: PortId(sink_port),
+                        sink: crate::CordEndpoint::local(NodeId(sink), PortId(sink_port)),
                     }],
                 )
                 .unwrap();
@@ -3286,8 +3711,7 @@ mod tests {
                     },
                     &[RouteTarget {
                         cord: CordId(cord),
-                        sink_node: NodeId(sink),
-                        sink_port: PortId(0),
+                        sink: crate::CordEndpoint::local(NodeId(sink), PortId(0)),
                     }],
                 )
                 .unwrap();
@@ -3390,8 +3814,7 @@ mod tests {
                 RouteRange { start: 0, len: 1 },
                 &[RouteTarget {
                     cord: CordId(0),
-                    sink_node: NodeId(1),
-                    sink_port: PortId(0),
+                    sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
                 }],
             )
             .unwrap();
@@ -3407,16 +3830,16 @@ mod tests {
                     maximum_step_work: 1,
                 },
             ],
-            [CordSpec {
-                cord: CordId(0),
-                source_node: NodeId(0),
-                source_port: PortId(0),
-                sink_node: NodeId(1),
-                sink_port: PortId(0),
-                slot_start: 0,
-                item_capacity: 1,
-                byte_capacity: 4,
-            }],
+            [CordSpec::local(
+                CordId(0),
+                (NodeId(0), PortId(0)),
+                (NodeId(1), PortId(0)),
+                CordCapacity {
+                    slot_start: 0,
+                    item_capacity: 1,
+                    byte_capacity: 4,
+                },
+            )],
             routes,
             [
                 Driver::Source {
@@ -3487,8 +3910,7 @@ mod tests {
                 0,
                 RouteTarget {
                     cord: CordId(0),
-                    sink_node: NodeId(1),
-                    sink_port: PortId(0),
+                    sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
                 },
             ),
             (
@@ -3496,8 +3918,7 @@ mod tests {
                 0,
                 RouteTarget {
                     cord: CordId(1),
-                    sink_node: NodeId(2),
-                    sink_port: PortId(0),
+                    sink: crate::CordEndpoint::local(NodeId(2), PortId(0)),
                 },
             ),
             (
@@ -3505,8 +3926,7 @@ mod tests {
                 1,
                 RouteTarget {
                     cord: CordId(2),
-                    sink_node: NodeId(3),
-                    sink_port: PortId(0),
+                    sink: crate::CordEndpoint::local(NodeId(3), PortId(0)),
                 },
             ),
             (
@@ -3514,8 +3934,7 @@ mod tests {
                 0,
                 RouteTarget {
                     cord: CordId(3),
-                    sink_node: NodeId(4),
-                    sink_port: PortId(0),
+                    sink: crate::CordEndpoint::local(NodeId(4), PortId(0)),
                 },
             ),
             (
@@ -3523,8 +3942,7 @@ mod tests {
                 0,
                 RouteTarget {
                     cord: CordId(4),
-                    sink_node: NodeId(5),
-                    sink_port: PortId(0),
+                    sink: crate::CordEndpoint::local(NodeId(5), PortId(0)),
                 },
             ),
         ] {
@@ -3620,6 +4038,255 @@ mod tests {
         }
     }
 
+    #[test]
+    fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth() {
+        let endpoint = RemoteEndpointId(0);
+        let mut source_values = FixedValueStore::<3, 12>::new(12).unwrap();
+        let first = source_values.store(b"abcd").unwrap();
+        let second = source_values.store(b"efgh").unwrap();
+        let mut source_routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+        source_routes
+            .install(
+                NodeId(0),
+                PortId(0),
+                RouteRange { start: 0, len: 1 },
+                &[RouteTarget {
+                    cord: CordId(0),
+                    sink: crate::CordEndpoint::Remote(endpoint),
+                }],
+            )
+            .unwrap();
+        source_routes.seal().unwrap();
+        let source_evidence =
+            FixedEvidenceLog::<64>::new((64 * core::mem::size_of::<crate::KernelEvent>()) as u32)
+                .unwrap();
+        let mut source = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
+            [node([None; PORTS])],
+            [CordSpec::remote_egress(
+                CordId(0),
+                (NodeId(0), PortId(0)),
+                endpoint,
+                CordCapacity {
+                    slot_start: 0,
+                    item_capacity: 1,
+                    byte_capacity: 4,
+                },
+            )],
+            source_routes,
+            [Driver::Source {
+                values: [Some(first), Some(second), None, None],
+                next: 0,
+            }],
+            source_values,
+            source_evidence,
+        )
+        .unwrap();
+
+        let mut sink_routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+        sink_routes.seal().unwrap();
+        let sink_evidence =
+            FixedEvidenceLog::<64>::new((64 * core::mem::size_of::<crate::KernelEvent>()) as u32)
+                .unwrap();
+        let mut sink = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
+            [node([Some(CordId(0)), None])],
+            [CordSpec::remote_ingress(
+                CordId(0),
+                endpoint,
+                (NodeId(0), PortId(0)),
+                CordCapacity {
+                    slot_start: 0,
+                    item_capacity: 1,
+                    byte_capacity: 4,
+                },
+            )],
+            sink_routes,
+            [Driver::Sink {
+                seen: [None; 4],
+                len: 0,
+                stall: false,
+            }],
+            FixedValueStore::<1, 4>::new(4).unwrap(),
+            sink_evidence,
+        )
+        .unwrap();
+
+        assert!(matches!(
+            source.step().unwrap(),
+            SchedulerStatus::Progress { .. }
+        ));
+        let offer = source
+            .remote_egress_offer(endpoint, CordId(0))
+            .unwrap()
+            .unwrap();
+        assert_eq!(offer.sequence, 0);
+        assert_eq!(
+            source.remote_egress_offer(endpoint, CordId(0)).unwrap(),
+            Some(offer)
+        );
+        assert_eq!(
+            source.remote_egress_offer(RemoteEndpointId(1), CordId(0)),
+            Err(SchedulerError::InvalidRemoteCordAccess)
+        );
+        assert_eq!(source.values().reference_count(first).unwrap(), 1);
+        assert_eq!(
+            source.discard_host_value(first),
+            Err(SchedulerError::ValueOwnershipViolation)
+        );
+        let first_bytes = *source
+            .host_value(offer.value)
+            .unwrap()
+            .first_chunk::<4>()
+            .unwrap();
+        assert!(matches!(
+            sink.admit_remote_input(endpoint, CordId(0), 0, &first_bytes)
+                .unwrap(),
+            RemoteIngressOutcome::Accepted { sequence: 0, .. }
+        ));
+        assert_eq!(
+            sink.admit_remote_input(endpoint, CordId(0), 0, &first_bytes),
+            Err(SchedulerError::RemoteSequenceRejected)
+        );
+        assert_eq!(
+            sink.admit_remote_input(endpoint, CordId(0), 2, b"ijkl"),
+            Err(SchedulerError::RemoteSequenceRejected)
+        );
+        assert_eq!(sink.cord_usage(CordId(0)).unwrap(), (1, 4));
+        assert_eq!(
+            sink.admit_remote_input(endpoint, CordId(0), 1, b"efgh")
+                .unwrap(),
+            RemoteIngressOutcome::Full { sequence: 1 }
+        );
+        assert_eq!(sink.cord_usage(CordId(0)).unwrap(), (1, 4));
+        assert_eq!(sink.values().used_items(), 1);
+
+        assert_eq!(
+            source.remote_egress_accept(endpoint, CordId(0), 1),
+            Err(SchedulerError::RemoteSequenceRejected)
+        );
+        source.remote_egress_accept(endpoint, CordId(0), 0).unwrap();
+        source.remote_egress_accept(endpoint, CordId(0), 0).unwrap();
+        source
+            .remote_egress_delivered(endpoint, CordId(0), 0)
+            .unwrap();
+        assert_eq!(source.values().used_items(), 1);
+        assert_eq!(
+            source.remote_egress_delivered(endpoint, CordId(0), 0),
+            Err(SchedulerError::RemoteDeliveryRejected)
+        );
+        sink.step().unwrap();
+        assert_eq!(sink.values().used_items(), 0);
+
+        source.step().unwrap();
+        let offer = source
+            .remote_egress_offer(endpoint, CordId(0))
+            .unwrap()
+            .unwrap();
+        assert_eq!(offer.sequence, 1);
+        let second_bytes = *source
+            .host_value(offer.value)
+            .unwrap()
+            .first_chunk::<4>()
+            .unwrap();
+        assert!(matches!(
+            sink.admit_remote_input(endpoint, CordId(0), 1, &second_bytes)
+                .unwrap(),
+            RemoteIngressOutcome::Accepted { sequence: 1, .. }
+        ));
+        source.remote_egress_accept(endpoint, CordId(0), 1).unwrap();
+        source
+            .remote_egress_delivered(endpoint, CordId(0), 1)
+            .unwrap();
+        source.step().unwrap();
+        assert!(source.remote_egress_terminal(endpoint, CordId(0)).unwrap());
+
+        sink.close_remote_input(endpoint, CordId(0)).unwrap();
+        sink.step().unwrap();
+        sink.step().unwrap();
+        assert_eq!(sink.step().unwrap(), SchedulerStatus::Complete);
+        assert_eq!(sink.values().used_items(), 0);
+        assert_eq!(sink.cord_usage(CordId(0)).unwrap(), (0, 0));
+        assert!(source
+            .evidence()
+            .contains_kind(KernelEventKind::RemoteValueDelivered));
+        assert!(sink
+            .evidence()
+            .contains_kind(KernelEventKind::RemoteInputClosed));
+        source.cancel().unwrap();
+        assert_eq!(
+            source.remote_egress_accept(endpoint, CordId(0), 1),
+            Err(SchedulerError::Cancelled)
+        );
+        assert_eq!(
+            source.remote_egress_delivered(endpoint, CordId(0), 1),
+            Err(SchedulerError::RemoteDeliveryRejected)
+        );
+    }
+
+    #[test]
+    fn remote_delivery_evidence_exhaustion_preserves_the_in_flight_value() {
+        let endpoint = RemoteEndpointId(0);
+        let mut values = FixedValueStore::<1, 4>::new(4).unwrap();
+        let value = values.store(b"data").unwrap();
+        let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+        routes
+            .install(
+                NodeId(0),
+                PortId(0),
+                RouteRange { start: 0, len: 1 },
+                &[RouteTarget {
+                    cord: CordId(0),
+                    sink: crate::CordEndpoint::Remote(endpoint),
+                }],
+            )
+            .unwrap();
+        routes.seal().unwrap();
+        let evidence =
+            FixedEvidenceLog::<4>::new((4 * core::mem::size_of::<crate::KernelEvent>()) as u32)
+                .unwrap();
+        let mut scheduler = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
+            [node([None; PORTS])],
+            [CordSpec::remote_egress(
+                CordId(0),
+                (NodeId(0), PortId(0)),
+                endpoint,
+                CordCapacity {
+                    slot_start: 0,
+                    item_capacity: 1,
+                    byte_capacity: 4,
+                },
+            )],
+            routes,
+            [Driver::Source {
+                values: [Some(value), None, None, None],
+                next: 0,
+            }],
+            values,
+            evidence,
+        )
+        .unwrap();
+
+        scheduler.step().unwrap();
+        let offer = scheduler
+            .remote_egress_offer(endpoint, CordId(0))
+            .unwrap()
+            .unwrap();
+        scheduler
+            .remote_egress_accept(endpoint, CordId(0), offer.sequence)
+            .unwrap();
+        assert_eq!(
+            scheduler.remote_egress_delivered(endpoint, CordId(0), offer.sequence),
+            Err(SchedulerError::Evidence(
+                crate::EvidenceError::ItemCapacityExceeded
+            ))
+        );
+        assert_eq!(scheduler.cord_usage(CordId(0)).unwrap(), (1, 4));
+        assert_eq!(scheduler.values().reference_count(value).unwrap(), 1);
+        assert_eq!(
+            scheduler.remote_egress_offer(endpoint, CordId(0)).unwrap(),
+            Some(offer)
+        );
+    }
+
     fn cord(
         id: u16,
         source_node: u16,
@@ -3627,15 +4294,15 @@ mod tests {
         sink_node: u16,
         sink_port: u16,
     ) -> CordSpec {
-        CordSpec {
-            cord: CordId(id),
-            source_node: NodeId(source_node),
-            source_port: PortId(source_port),
-            sink_node: NodeId(sink_node),
-            sink_port: PortId(sink_port),
-            slot_start: id,
-            item_capacity: 1,
-            byte_capacity: 4,
-        }
+        CordSpec::local(
+            CordId(id),
+            (NodeId(source_node), PortId(source_port)),
+            (NodeId(sink_node), PortId(sink_port)),
+            CordCapacity {
+                slot_start: id,
+                item_capacity: 1,
+                byte_capacity: 4,
+            },
+        )
     }
 }

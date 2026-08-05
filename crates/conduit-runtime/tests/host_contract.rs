@@ -1586,7 +1586,12 @@ fn adapter_advertisement() -> HostAdvertisement {
     advertised
 }
 
-fn remote_link_source_fixture() -> (HostAdvertisement, PlanFragment, conduit_core::LinkBinding) {
+fn remote_link_plan_fixture() -> (
+    HostAdvertisement,
+    HostAdvertisement,
+    conduit_core::Plan,
+    conduit_core::LinkBinding,
+) {
     let form = parse(
         "form 0\n\nlink-runtime {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
         &profile_catalog(),
@@ -1627,21 +1632,101 @@ fn remote_link_source_fixture() -> (HostAdvertisement, PlanFragment, conduit_cor
         conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
         conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
     );
-    let fragment = plan_with_link_bindings(
+    let plan = plan_with_link_bindings(
         &form,
-        &[source.clone(), sink],
+        &[source.clone(), sink.clone()],
         &placements,
         &[],
         conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
         conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
         std::slice::from_ref(&link),
     )
-    .expect("observed remote link resolves")
-    .fragments
-    .into_iter()
-    .find(|fragment| fragment.host_id == source.host_id)
-    .expect("source fragment exists");
+    .expect("observed remote link resolves");
+    (source, sink, plan, link)
+}
+
+fn remote_link_source_fixture() -> (HostAdvertisement, PlanFragment, conduit_core::LinkBinding) {
+    let (source, _sink, plan, link) = remote_link_plan_fixture();
+    let fragment = plan
+        .fragments
+        .into_iter()
+        .find(|fragment| fragment.host_id == source.host_id)
+        .expect("source fragment exists");
     (source, fragment, link)
+}
+
+#[test]
+fn exact_remote_fragments_lower_to_directional_kernel_cords() {
+    let (source, sink, plan, link) = remote_link_plan_fixture();
+    let source_fragment = plan
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id == source.host_id)
+        .expect("source fragment");
+    let sink_fragment = plan
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id == sink.host_id)
+        .expect("sink fragment");
+    let source_lowered = conduit_runtime::lowering::lower_plan_fragment(source_fragment)
+        .expect("remote source lowers");
+    let sink_lowered =
+        conduit_runtime::lowering::lower_plan_fragment(sink_fragment).expect("remote sink lowers");
+
+    assert_eq!(source_lowered.remote_endpoints.len(), 1);
+    assert_eq!(sink_lowered.remote_endpoints.len(), 1);
+    assert_eq!(source_lowered.routes.len(), 1);
+    assert!(sink_lowered.routes.is_empty());
+    let egress = &source_lowered.remote_endpoints[0];
+    let ingress = &sink_lowered.remote_endpoints[0];
+    assert_eq!(
+        egress.direction,
+        conduit_runtime::lowering::RemoteCordDirection::Egress
+    );
+    assert_eq!(
+        ingress.direction,
+        conduit_runtime::lowering::RemoteCordDirection::Ingress
+    );
+    assert_eq!(egress.binding, link);
+    assert_eq!(ingress.binding, link);
+    assert_eq!(egress.local, link.source);
+    assert_eq!(egress.peer, link.sink);
+    assert_eq!(ingress.local, link.sink);
+    assert_eq!(ingress.peer, link.source);
+    assert_eq!(egress.connection_id, ingress.connection_id);
+    assert_eq!(egress.value_kind, ingress.value_kind);
+    assert_eq!(
+        source_lowered.cords[0].spec.sink,
+        conduit_kernel::CordEndpoint::Remote(egress.endpoint)
+    );
+    assert_eq!(
+        sink_lowered.cords[0].spec.source,
+        conduit_kernel::CordEndpoint::Remote(ingress.endpoint)
+    );
+    assert_eq!(
+        sink_lowered.node_specs[0].input_cords[0],
+        Some(sink_lowered.cords[0].spec.cord)
+    );
+    assert_eq!(
+        source_lowered.identity.remote_endpoints,
+        vec![(egress.endpoint, egress.connection_id.clone())]
+    );
+    assert_eq!(
+        sink_lowered.identity.remote_endpoints,
+        vec![(ingress.endpoint, ingress.connection_id.clone())]
+    );
+    assert_eq!(
+        source_lowered
+            .identity
+            .connection_for_remote_endpoint(egress.endpoint),
+        Some(&egress.connection_id)
+    );
+    assert_eq!(
+        sink_lowered
+            .identity
+            .remote_endpoint_for_connection(&ingress.connection_id),
+        Some(ingress.endpoint)
+    );
 }
 
 fn observations(runtime: &mut HostRuntime) -> Vec<conduit_core::Observation> {
