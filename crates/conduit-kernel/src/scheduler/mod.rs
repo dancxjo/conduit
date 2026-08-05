@@ -1386,7 +1386,6 @@ where
         Ok(())
     }
 }
-
 fn validate_plan<
     const NODES: usize,
     const CORDS: usize,
@@ -1528,7 +1527,7 @@ fn validate_plan<
     Ok(())
 }
 
-fn as_u16(value: usize) -> Result<u16, SchedulerError> {
+pub(super) fn as_u16(value: usize) -> Result<u16, SchedulerError> {
     u16::try_from(value).map_err(|_| SchedulerError::InvalidPlan)
 }
 
@@ -1566,3 +1565,4 @@ impl<I: Iterator<Item = RouteTarget>> CollectTargets for I {}
 
 #[cfg(test)]
 mod tests;
+
