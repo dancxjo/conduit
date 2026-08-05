@@ -9,6 +9,7 @@ members = [
 	"crates/conduit-composite",
 	"crates/conduit-realm",
 	"crates/conduit-observatory",
+	"crates/conduit-std-catalog",
 	"crates/conduit",
 	"hosts/browser",
 	"hosts/pico",

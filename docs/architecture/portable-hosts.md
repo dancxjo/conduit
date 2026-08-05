@@ -58,6 +58,8 @@ The current implementation checkpoint is recorded in [Realm membership readiness
 
 The first read-only operational projection is recorded in [Host Observatory readiness](host-observatory.md).
 
+The small reusable standard catalog is recorded in [Small `conduit.std` catalog readiness](std-catalog.md).
+
 A realm records or observes:
 
 - host identities;

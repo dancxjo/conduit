@@ -40,6 +40,12 @@ observatory:
 observatory-thumb-check:
     cargo check -p conduit-observatory --target thumbv6m-none-eabi
 
+std-catalog:
+    cargo test -p conduit-std-catalog
+
+std-catalog-thumb-check:
+    cargo check -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
+
 check:
     cargo fmt --check
     cargo clippy --workspace --all-targets -- -D warnings
@@ -52,6 +58,10 @@ check-realm-readiness:
 check-observatory-readiness:
     cargo test -p conduit-observatory
     cargo check -p conduit-observatory --target thumbv6m-none-eabi
+
+check-std-catalog-readiness:
+    cargo test -p conduit-std-catalog
+    cargo check -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
 
 check-browser-readiness:
     @if cargo tree -p conduit-runtime --edges normal --prefix none | rg -q '^conduit-signal '; then echo 'conduit-runtime must not depend on conduit-signal'; exit 1; fi

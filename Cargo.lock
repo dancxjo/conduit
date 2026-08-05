@@ -139,6 +139,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-std-catalog"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-planner",
+ "serde",
+]
+
+[[package]]
 name = "conduit-std-host"
 version = "0.1.0"
 dependencies = [
