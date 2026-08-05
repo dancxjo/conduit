@@ -11,34 +11,34 @@ pub use firmware::run_build;
 pub use flash::run_flash;
 pub use serial::run_verify;
 
-/// Arguments shared across all pico sub-commands and the top-level `pico-local` alias.
+/// Arguments shared across all Pico subcommands and the top-level `pico-local` alias.
 #[derive(Args, Clone, Debug, Default)]
 pub struct PicoArgs {
     #[command(subcommand)]
     pub subcommand: Option<PicoSubcommand>,
 
-    /// Print every planned action without executing anything.
-    #[arg(long, global = true)]
+    /// Set from xtask's global `--dry-run` option after parsing.
+    #[arg(skip)]
     pub dry_run: bool,
 
     /// Build firmware only; do not flash or verify.
-    #[arg(long, global = true)]
+    #[arg(long)]
     pub build_only: bool,
 
     /// Explicit BOOTSEL mount point (overrides auto-discovery and PICO_W_MOUNT).
-    #[arg(long, global = true, env = "PICO_W_MOUNT")]
+    #[arg(long)]
     pub mount: Option<String>,
 
     /// Explicit USB CDC serial port (overrides auto-discovery and PICO_W_PORT).
-    #[arg(long, global = true, env = "PICO_W_PORT")]
+    #[arg(long)]
     pub port: Option<String>,
 
     /// Verify firmware build but skip flashing and live hardware check.
-    #[arg(long, global = true)]
+    #[arg(long)]
     pub verify: bool,
 
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
-    #[arg(long, global = true)]
+    #[arg(long)]
     pub refresh_radio_assets: bool,
 }
 
@@ -56,8 +56,18 @@ pub enum PicoSubcommand {
     Local,
 }
 
+pub fn apply_environment_defaults(args: &mut PicoArgs) {
+    if args.mount.is_none() {
+        args.mount = std::env::var("PICO_W_MOUNT").ok();
+    }
+    if args.port.is_none() {
+        args.port = std::env::var("PICO_W_PORT").ok();
+    }
+}
+
 /// Entry point for `cargo xtask pico <subcommand>`.
-pub fn run(args: PicoArgs) -> Result<()> {
+pub fn run(mut args: PicoArgs) -> Result<()> {
+    apply_environment_defaults(&mut args);
     if args.refresh_radio_assets {
         firmware::refresh_radio_assets(args.dry_run)?;
         return Ok(());
@@ -72,7 +82,8 @@ pub fn run(args: PicoArgs) -> Result<()> {
 }
 
 /// Entry point for `cargo xtask pico-local` (full workflow).
-pub fn run_local(args: PicoArgs) -> Result<()> {
+pub fn run_local(mut args: PicoArgs) -> Result<()> {
+    apply_environment_defaults(&mut args);
     run_doctor(args.dry_run)?;
     run_build(&args)?;
     if args.build_only {
