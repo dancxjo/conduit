@@ -78,9 +78,18 @@ first-profile byte rule charges one discriminant byte per mandatory descriptor
 plus the UTF-8 byte length of its placement or connection identity when one is
 present. Planning fails if the requirement cannot be represented by the public
 budget types. Preparation fails closed if either capacity is below the exact
-mandatory requirement. This commits the minimum storage requirement; wiring
-that budget into the S1 evidence store remains part of the later executable
-resource slice.
+mandatory requirement.
+
+The hosted reboot runtime now allocates the plan's evidence item slots during
+preparation. Each recorded event is a bounded numeric index into the fragment's
+sealed expected-evidence table, so execution does not clone identity strings or
+grow a hidden per-event allocation. Inspection reconstructs a
+`MandatoryEvidenceReport` with expected and recorded descriptors, the bound
+budget, serialized bytes used, the allocation shape, and an explicit overflow
+flag. This mandatory log is independent of the lossy general observation ring:
+terminal evidence remains complete even when that ring reports an
+`EvidenceGap`. Lowering the same commitments into the S1 kernel's
+`EvidenceSink` remains open integration work.
 
 ## Deterministic proof
 
@@ -98,7 +107,10 @@ The focused vectors prove:
 - resealed contract, profile, and port lies fail preparation against the
   current advertisement and installed implementation; and
 - post-seal and resealed startup, cancellation, terminal, and independent
-  evidence-item/evidence-byte mutations fail identity or preparation.
+  evidence-item/evidence-byte mutations fail identity or preparation; and
+- the hosted mandatory-evidence allocation stays fixed from preparation through
+  completion and remains complete while the general observation ring
+  overflows.
 
 ## Acceptance boundary
 
@@ -107,7 +119,7 @@ of the second item in #363. It also binds the startup dependency,
 cancellation, terminal, mandatory-evidence, and evidence-storage-budget parts
 of that item. S2 remains open. Plans do not yet bind host-operation,
 resource/authority, or observed `LinkBinding` values, and the planned budget is
-not yet the constructor of the S1 evidence store. The existing
+not yet lowered into the S1 kernel evidence store. The existing
 `ConnectionProvider` remains a prototype until the remote-link slice replaces
 it.
 

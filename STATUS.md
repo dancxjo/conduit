@@ -7,7 +7,7 @@ adapter or physical proof.
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, correlated host operations, cancellation | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, no-growth-shape, and cancellation vectors | same scheduler with preallocated hosted storage; S1 accepted | no | no; Thumb kernel compiles | no | no |
-| Exact plan and fragment identities | S2 slices: separate source/checked/expanded identity; exact kind revision, execution profile, and every port; startup/cancellation/terminal/evidence-budget contracts; remaining facts open | semantic/spelling, cycle, and mutation/resealed-lie negatives | yes, std runtime preparation enforces current offer, installed profile, and supported policy/budget minimums | no | no | no | no |
+| Exact plan and fragment identities | S2 slices: separate source/checked/expanded identity; exact kind revision, execution profile, and every port; startup/cancellation/terminal/evidence-budget contracts; remaining facts open | semantic/spelling, cycle, mutation/resealed-lie, and observation-overflow evidence vectors | yes, std runtime preparation enforces current offer, installed profile, supported policy/budget minimums, and fixed mandatory-evidence allocation | no | no | no | no |
 | Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
 | Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
 | Browser-shaped manifestation | partial | yes, `conduit-browser-sim` | test-only | no DOM adapter | no | no WebSocket | no |
@@ -26,7 +26,7 @@ The `check` workflow requires:
 - hosted/fixed salvage-kernel protocol, storage, scheduler, pressure, atomic
   join, retained-state/latest, host lifecycle, closure, and cancellation vectors;
 - exact semantic-contract/profile/port and policy/budget planning with
-  cycle and mutation-negative tests;
+  cycle, mutation-negative, and executable mandatory-evidence storage tests;
 - deterministic wire and simulated-host conformance vectors;
 - WASM compilation of the browser-shaped simulation;
 - Thumb compilation of allocator-free contracts and the Pico-shaped simulation.
@@ -50,8 +50,10 @@ identity, planning, preparation, and Observatory projection. Source-document,
 checked-form, and expanded-form identities are now distinct and all participate
 in fragment and plan identity. Startup dependencies, cancellation and terminal
 policies, mandatory evidence, and independent evidence item/byte budgets are
-also sealed and validated during preparation. S2 remains the forward stop line
-until every remaining plan fact and observed remote `LinkBinding` is committed;
-the planned evidence budget is not yet wired into the S1 evidence-store
-constructor. No actual browser/Pico host, BODY, catalog expansion, Observatory
-acceptance, or useful task advances before their later salvage gates.
+also sealed and validated during preparation. The hosted reboot runtime now
+allocates fixed mandatory-evidence slots from that plan and preserves them
+independently of its lossy observation ring; lowering into the S1 kernel store
+remains open. S2 remains the forward stop line until every remaining plan fact
+and observed remote `LinkBinding` is committed. No actual browser/Pico host,
+BODY, catalog expansion, Observatory acceptance, or useful task advances before
+their later salvage gates.
