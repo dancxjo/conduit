@@ -51,10 +51,18 @@ terminal cancelled state.
 The required multi-value pressure vector now runs through
 `source -> tee.left -> filter -> show-a` and
 `tee.right -> latest -> show-b` with capacity-one queues and uneven sink
-consumption. Here `latest` is only a pass-through test driver for kernel
-plumbing; it is not the future `conduit.std` state/latest semantic operation.
-The fixed and hosted storage/evidence profiles produce identical normalized
-decisions, outputs, closure, and cancellation evidence.
+consumption. `latest` takes ownership of each input, releases the superseded
+value, and emits only the final retained value after its input closes. The
+kernel conformance driver proves the state/latest behavior but is not yet a
+catalog-installed `conduit.std` operation; catalog installation belongs to S5.
+
+`StepIo::take_input` transfers a consumed queue reference into bounded operation
+state, while `discard` releases a previously retained reference. Those actions
+participate in the same preflight/commit transaction as named outputs. A
+separate two-input join vector proves that seeing only one side stages nothing
+and leaves the first cord untouched until both sides can commit. The fixed and
+hosted storage/evidence profiles produce identical normalized decisions,
+outputs, closure, join rollback, and cancellation evidence.
 
 ## Host-operation scheduler slice
 
@@ -77,6 +85,9 @@ retired identity from being rebound to a later request.
 Cancellation clears the fixed pending table and all run-owned values before
 recording the terminal cancellation event. The fixed and hosted profiles match
 for request, completion, decision, output, evidence, and terminal vectors.
+The hosted profile also records its value-slot, per-slot byte-buffer, and
+evidence-vector capacities at activation and proves those capacities are
+unchanged after a complete host-enabled run.
 
 ## Deliberate archive reuse
 
@@ -87,11 +98,10 @@ the transition and no semantic kind has been adapted to the new kernel yet.
 
 ## Current stop line
 
-This is not completion of #349. Still required:
-
-- no-growth activation proof for the complete hosted executor;
-- the final semantic tee/filter/latest implementation rather than kernel test
-  drivers.
+This is not completion of #349. `FixedScheduler` currently drives the bounded
+`StepOperation` transaction boundary directly. An adapter that drives the
+published `OperationInput`/`OperationAction` state-machine contract through the
+same scheduler remains required before S1 is accepted.
 
 ## Checkpoint
 

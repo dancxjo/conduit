@@ -61,13 +61,25 @@ pub struct StepIo<const PORTS: usize> {
     input_closed: [bool; PORTS],
     output_maximum_bytes: [Option<u32>; PORTS],
     consumed: [bool; PORTS],
+    retained_inputs: [bool; PORTS],
     outputs: [Option<ValueRef>; PORTS],
+    discards: [Option<ValueRef>; PORTS],
     host_completion: Option<(RequestId, HostOperationOutcome)>,
     consumed_host_completion: bool,
     host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
     maximum_work: u16,
     work: u16,
     fault: Option<SchedulerError>,
+}
+
+#[derive(Clone, Copy)]
+struct StagedStep<const PORTS: usize> {
+    consumed: [bool; PORTS],
+    retained_inputs: [bool; PORTS],
+    outputs: [Option<ValueRef>; PORTS],
+    discards: [Option<ValueRef>; PORTS],
+    consumed_host_completion: bool,
+    host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
 }
 
 impl<const PORTS: usize> StepIo<PORTS> {
@@ -83,6 +95,18 @@ impl<const PORTS: usize> StepIo<PORTS> {
     }
 
     pub fn consume(&mut self, port: PortId) -> Result<ValueRef, SchedulerError> {
+        self.consume_input(port, false)
+    }
+
+    pub fn take_input(&mut self, port: PortId) -> Result<ValueRef, SchedulerError> {
+        self.consume_input(port, true)
+    }
+
+    fn consume_input(
+        &mut self,
+        port: PortId,
+        retain_for_operation: bool,
+    ) -> Result<ValueRef, SchedulerError> {
         self.charge_work(1)?;
         let index = usize::from(port.0);
         let value = self
@@ -95,6 +119,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
             return self.fail(SchedulerError::InvalidPortAccess);
         }
         self.consumed[index] = true;
+        self.retained_inputs[index] = retain_for_operation;
         Ok(value)
     }
 
@@ -157,6 +182,25 @@ impl<const PORTS: usize> StepIo<PORTS> {
         Ok(())
     }
 
+    pub fn discard(&mut self, value: ValueRef) -> Result<(), SchedulerError> {
+        self.charge_work(1)?;
+        if self
+            .discards
+            .iter()
+            .flatten()
+            .any(|discard| *discard == value)
+        {
+            return self.fail(SchedulerError::InvalidPortAccess);
+        }
+        let slot = self
+            .discards
+            .iter_mut()
+            .find(|discard| discard.is_none())
+            .ok_or(SchedulerError::InvalidPortAccess)?;
+        *slot = Some(value);
+        Ok(())
+    }
+
     pub fn charge_work(&mut self, units: u16) -> Result<(), SchedulerError> {
         let work = self
             .work
@@ -183,8 +227,20 @@ impl<const PORTS: usize> StepIo<PORTS> {
     fn staged(&self) -> bool {
         self.consumed.iter().any(|value| *value)
             || self.outputs.iter().any(Option::is_some)
+            || self.discards.iter().any(Option::is_some)
             || self.consumed_host_completion
             || self.host_request.is_some()
+    }
+
+    fn staged_step(&self) -> StagedStep<PORTS> {
+        StagedStep {
+            consumed: self.consumed,
+            retained_inputs: self.retained_inputs,
+            outputs: self.outputs,
+            discards: self.discards,
+            consumed_host_completion: self.consumed_host_completion,
+            host_request: self.host_request,
+        }
     }
 }
 
@@ -640,7 +696,9 @@ where
             input_closed,
             output_maximum_bytes,
             consumed: [false; PORTS],
+            retained_inputs: [false; PORTS],
             outputs: [None; PORTS],
+            discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
             host_request: None,
@@ -684,13 +742,7 @@ where
                     .ok_or(SchedulerError::InvalidPlan)?;
             }
             self.ensure_evidence_capacity(evidence_records)?;
-            self.commit(
-                node,
-                io.consumed,
-                io.outputs,
-                io.consumed_host_completion,
-                io.host_request,
-            )?;
+            self.commit(node, io.staged_step())?;
         }
         match outcome {
             StepOutcome::Progress => self.ready[node] = io.host_request.is_none(),
@@ -712,21 +764,24 @@ where
         Ok(())
     }
 
-    fn commit(
-        &mut self,
-        node: usize,
-        consumed: [bool; PORTS],
-        outputs: [Option<ValueRef>; PORTS],
-        consumed_host_completion: bool,
-        host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
-    ) -> Result<(), SchedulerError> {
-        let admitted_host_request = self.preflight_step(
-            node,
-            &consumed,
-            &outputs,
+    fn commit(&mut self, node: usize, staged: StagedStep<PORTS>) -> Result<(), SchedulerError> {
+        let StagedStep {
+            consumed,
+            retained_inputs,
+            outputs,
+            discards,
             consumed_host_completion,
             host_request,
-        )?;
+        } = staged;
+        let mut retained_values = [None; PORTS];
+        for (port, retained) in retained_inputs.iter().copied().enumerate() {
+            if retained {
+                let cord = self.node_specs[node].input_cords[port]
+                    .ok_or(SchedulerError::InvalidPortAccess)?;
+                retained_values[port] = self.peek(usize::from(cord.0))?;
+            }
+        }
+        let admitted_host_request = self.preflight_step(node, &staged, &retained_values)?;
 
         let mut consumed_values = [None; PORTS];
         for (port, consume) in consumed.iter().copied().enumerate() {
@@ -785,7 +840,8 @@ where
                 .count()
                 + usize::from(consumed_host_value == Some(value));
             let base_references = consumed_references.max(1);
-            let target_references = self.step_target_count(node, &outputs, host_request, value)?;
+            let target_references =
+                self.step_target_count(node, &outputs, host_request, &retained_values, value)?;
             if target_references > base_references {
                 for _ in 0..(target_references - base_references) {
                     self.values.retain(value)?;
@@ -818,9 +874,13 @@ where
                 }
             }
         }
-        for value in consumed_values.iter().copied().flatten() {
+        for (port, value) in consumed_values.iter().copied().enumerate() {
+            let Some(value) = value else {
+                continue;
+            };
             if !outputs.iter().flatten().any(|output| *output == value)
                 && host_request.map(|request| request.2.value) != Some(value)
+                && !retained_inputs[port]
             {
                 self.values.release(value)?;
             }
@@ -861,6 +921,10 @@ where
             )?;
         }
 
+        for discard in discards.iter().copied().flatten() {
+            self.values.release(discard)?;
+        }
+
         for (port, value) in outputs.iter().copied().enumerate() {
             let Some(value) = value else {
                 continue;
@@ -886,11 +950,22 @@ where
     fn preflight_step(
         &self,
         node: usize,
-        consumed: &[bool; PORTS],
-        outputs: &[Option<ValueRef>; PORTS],
-        consumed_host_completion: bool,
-        host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
+        staged: &StagedStep<PORTS>,
+        retained_values: &[Option<ValueRef>; PORTS],
     ) -> Result<Option<HostOperationBinding>, SchedulerError> {
+        let consumed = &staged.consumed;
+        let retained_inputs = &staged.retained_inputs;
+        let outputs = &staged.outputs;
+        let discards = &staged.discards;
+        let consumed_host_completion = staged.consumed_host_completion;
+        let host_request = staged.host_request;
+        if retained_inputs
+            .iter()
+            .zip(consumed)
+            .any(|(retained, consumed)| *retained && !*consumed)
+        {
+            return Err(SchedulerError::InvalidPortAccess);
+        }
         let completed_pending = self
             .pending_host_operations
             .iter()
@@ -956,6 +1031,9 @@ where
             if available_host_value == Some(value) && !consumed_host_completion {
                 return Err(SchedulerError::InvalidHostOperationAccess);
             }
+            if discards.iter().flatten().any(|discard| *discard == value) {
+                return Err(SchedulerError::InvalidPortAccess);
+            }
             self.values.get(value)?;
             for target in self
                 .routes
@@ -1002,7 +1080,8 @@ where
                 return Err(SchedulerError::InvalidPortAccess);
             }
             let base_references = consumed_references.max(1);
-            let target_references = self.step_target_count(node, outputs, host_request, value)?;
+            let target_references =
+                self.step_target_count(node, outputs, host_request, retained_values, value)?;
             let current = usize::from(self.values.reference_count(value)?);
             if current < consumed_references {
                 return Err(SchedulerError::Storage(StorageError::StaleReference));
@@ -1024,6 +1103,14 @@ where
         if let Some((_, _, input)) = host_request {
             let value = input.value;
             if available_host_value == Some(value) && !consumed_host_completion {
+                return Err(SchedulerError::InvalidHostOperationAccess);
+            }
+            if discards.iter().flatten().any(|discard| *discard == value)
+                || retained_values
+                    .iter()
+                    .flatten()
+                    .any(|retained| *retained == value)
+            {
                 return Err(SchedulerError::InvalidHostOperationAccess);
             }
             if !outputs.iter().flatten().any(|output| *output == value) {
@@ -1052,6 +1139,21 @@ where
                 if current < consumed_references {
                     return Err(SchedulerError::Storage(StorageError::StaleReference));
                 }
+            }
+        }
+        for discard in discards.iter().copied().flatten() {
+            self.values.get(discard)?;
+            if retained_values
+                .iter()
+                .flatten()
+                .any(|retained| *retained == discard)
+                || self.node_specs[node]
+                    .input_cords
+                    .iter()
+                    .flatten()
+                    .any(|cord| self.peek(usize::from(cord.0)).ok().flatten() == Some(discard))
+            {
+                return Err(SchedulerError::InvalidPortAccess);
             }
         }
         Ok(admitted_host_request)
@@ -1133,6 +1235,7 @@ where
         node: usize,
         outputs: &[Option<ValueRef>; PORTS],
         host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
+        retained_values: &[Option<ValueRef>; PORTS],
         value: ValueRef,
     ) -> Result<usize, SchedulerError> {
         let mut count = 0_usize;
@@ -1151,6 +1254,15 @@ where
         if host_request.map(|request| request.2.value) == Some(value) {
             count = count.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
         }
+        count = count
+            .checked_add(
+                retained_values
+                    .iter()
+                    .flatten()
+                    .filter(|retained| **retained == value)
+                    .count(),
+            )
+            .ok_or(SchedulerError::InvalidPlan)?;
         Ok(count)
     }
 
@@ -1387,7 +1499,9 @@ mod tests {
         },
         Tee,
         Filter,
-        Latest,
+        Latest {
+            held: Option<ValueRef>,
+        },
         Sink {
             seen: [Option<ValueRef>; 4],
             len: usize,
@@ -1443,15 +1557,23 @@ mod tests {
                         StepOutcome::Await
                     }
                 }
-                Self::Latest => {
+                Self::Latest { held } => {
                     if let Some(value) = io.input(PortId(0)) {
-                        if !io.output_ready(PortId(0)) {
-                            return StepOutcome::Await;
+                        if let Some(previous) = held.take() {
+                            io.discard(previous).unwrap();
                         }
-                        io.consume(PortId(0)).unwrap();
-                        io.send(PortId(0), value).unwrap();
+                        io.take_input(PortId(0)).unwrap();
+                        *held = Some(value);
                         StepOutcome::Progress
                     } else if io.input_closed(PortId(0)) {
+                        let Some(latest) = held.take() else {
+                            return StepOutcome::Complete;
+                        };
+                        if !io.output_ready(PortId(0)) {
+                            *held = Some(latest);
+                            return StepOutcome::Await;
+                        }
+                        io.send(PortId(0), latest).unwrap();
                         StepOutcome::Complete
                     } else {
                         StepOutcome::Await
@@ -1480,8 +1602,10 @@ mod tests {
         }
 
         fn cancel(&mut self) {
-            if let Self::BlockedSink { cancelled } = self {
-                *cancelled = true;
+            match self {
+                Self::Latest { held } => *held = None,
+                Self::BlockedSink { cancelled } => *cancelled = true,
+                _ => {}
             }
         }
     }
@@ -1573,6 +1697,59 @@ mod tests {
         }
     }
 
+    #[derive(Clone, Copy, Debug)]
+    enum JoinDriver {
+        Source { value: Option<ValueRef> },
+        Join,
+        Sink { seen: Option<ValueRef> },
+    }
+
+    impl StepOperation<PORTS> for JoinDriver {
+        fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+            match self {
+                Self::Source { value } => {
+                    let Some(current) = *value else {
+                        return StepOutcome::Complete;
+                    };
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.send(PortId(0), current).unwrap();
+                    *value = None;
+                    StepOutcome::Progress
+                }
+                Self::Join => {
+                    let (Some(left), Some(_right)) = (io.input(PortId(0)), io.input(PortId(1)))
+                    else {
+                        return if io.input_closed(PortId(0)) && io.input_closed(PortId(1)) {
+                            StepOutcome::Complete
+                        } else {
+                            StepOutcome::Await
+                        };
+                    };
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume(PortId(0)).unwrap();
+                    io.consume(PortId(1)).unwrap();
+                    io.send(PortId(0), left).unwrap();
+                    StepOutcome::Progress
+                }
+                Self::Sink { seen } => {
+                    if let Some(value) = io.input(PortId(0)) {
+                        io.consume(PortId(0)).unwrap();
+                        *seen = Some(value);
+                        StepOutcome::Progress
+                    } else if io.input_closed(PortId(0)) {
+                        StepOutcome::Complete
+                    } else {
+                        StepOutcome::Await
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn multi_value_port_graph_handles_pressure_closure_and_uneven_consumers() {
         let event_charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
@@ -1582,10 +1759,114 @@ mod tests {
         );
         assert_eq!(normalized.show_a_len, 2);
         assert_eq!(normalized.show_a[..2], [0, 2]);
-        assert_eq!(normalized.show_b_len, 4);
-        assert_eq!(normalized.show_b, [0, 1, 2, 3]);
+        assert_eq!(normalized.show_b_len, 1);
+        assert_eq!(normalized.show_b[0], 3);
         assert_eq!(normalized.used_items, 0);
         assert!(normalized.saw_input_closed);
+    }
+
+    #[test]
+    fn blocked_join_preserves_every_input_until_atomic_commit() {
+        let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
+        let normalized = execute_join(
+            FixedValueStore::<4, 4>::new(16).unwrap(),
+            FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        );
+        assert_eq!(normalized.output_slot, 0);
+        assert_eq!(normalized.used_items, 0);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn hosted_and_fixed_join_rollback_vectors_match() {
+        use crate::{HostedEvidenceLog, HostedValueStore};
+
+        let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
+        let fixed = execute_join(
+            FixedValueStore::<4, 4>::new(16).unwrap(),
+            FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        );
+        let hosted = execute_join(
+            HostedValueStore::new(4, 4, 16).unwrap(),
+            HostedEvidenceLog::new(64, charge * 64).unwrap(),
+        );
+        assert_eq!(fixed, hosted);
+    }
+
+    #[derive(Debug, Eq, PartialEq)]
+    struct JoinNormalized {
+        output_slot: u16,
+        decisions: u32,
+        evidence_len: u16,
+        evidence_bytes: u32,
+        used_items: u16,
+    }
+
+    fn execute_join<S, E>(mut values: S, evidence: E) -> JoinNormalized
+    where
+        S: ValueStorage,
+        E: EvidenceSink,
+    {
+        let left = values.store(&[10]).unwrap();
+        let right = values.store(&[20]).unwrap();
+        let mut routes = FixedRoutes::<8, 3>::new(2);
+        for (source, target, sink, sink_port) in [(0, 0, 1, 0), (2, 1, 1, 1), (1, 2, 3, 0)] {
+            routes
+                .install(
+                    NodeId(source),
+                    PortId(0),
+                    RouteRange {
+                        start: target,
+                        len: 1,
+                    },
+                    &[RouteTarget {
+                        cord: CordId(target),
+                        sink_node: NodeId(sink),
+                        sink_port: PortId(sink_port),
+                    }],
+                )
+                .unwrap();
+        }
+        routes.seal().unwrap();
+        let mut scheduler = FixedScheduler::<_, _, _, 4, 3, 2, 3, 8, 3>::new(
+            [
+                node([None, None]),
+                node([Some(CordId(0)), Some(CordId(1))]),
+                node([None, None]),
+                node([Some(CordId(2)), None]),
+            ],
+            [
+                cord(0, 0, 0, 1, 0),
+                cord(1, 2, 0, 1, 1),
+                cord(2, 1, 0, 3, 0),
+            ],
+            routes,
+            [
+                JoinDriver::Source { value: Some(left) },
+                JoinDriver::Join,
+                JoinDriver::Source { value: Some(right) },
+                JoinDriver::Sink { seen: None },
+            ],
+            values,
+            evidence,
+        )
+        .unwrap();
+        scheduler.step().unwrap();
+        assert_eq!(scheduler.cords[0].len, 1);
+        scheduler.step().unwrap();
+        assert_eq!(scheduler.cords[0].len, 1);
+        assert_eq!(scheduler.cords[1].len, 0);
+        scheduler.run(32).unwrap();
+        let JoinDriver::Sink { seen: Some(seen) } = scheduler.drivers()[3] else {
+            panic!("join sink");
+        };
+        JoinNormalized {
+            output_slot: seen.slot,
+            decisions: scheduler.decisions(),
+            evidence_len: scheduler.evidence().len(),
+            evidence_bytes: scheduler.evidence().used_bytes(),
+            used_items: scheduler.values().used_items(),
+        }
     }
 
     #[cfg(feature = "alloc")]
@@ -1693,6 +1974,39 @@ mod tests {
             HostedEvidenceLog::new(64, charge * 64).unwrap(),
         );
         assert_eq!(fixed, hosted);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn hosted_executor_keeps_allocation_shape_after_activation() {
+        use crate::{HostedEvidenceLog, HostedValueStore};
+
+        let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
+        let values = HostedValueStore::new(8, 8, 32).unwrap();
+        let value_shape = values.allocation_capacities();
+        let evidence = HostedEvidenceLog::new(64, charge * 64).unwrap();
+        let evidence_shape = evidence.allocation_capacity();
+        let mut scheduler = host_scheduler(values, evidence);
+        assert_eq!(scheduler.values.allocation_capacities(), value_shape);
+        assert_eq!(scheduler.evidence.allocation_capacity(), evidence_shape);
+        scheduler.step().unwrap();
+        scheduler.step().unwrap();
+        let request = scheduler.next_host_request().unwrap();
+        let output = scheduler.store_host_value(&[4]).unwrap();
+        scheduler
+            .complete_host_operation(
+                request.request,
+                HostOperationOutcome {
+                    disposition: HostOperationDisposition::Completed,
+                    output: Some(BoundedValueRef::new(output, 4).unwrap()),
+                    failure: None,
+                },
+            )
+            .unwrap();
+        scheduler.run(32).unwrap();
+        assert_eq!(scheduler.values.allocation_capacities(), value_shape);
+        assert_eq!(scheduler.evidence.allocation_capacity(), evidence_shape);
+        assert_eq!(scheduler.values.used_items(), 0);
     }
 
     #[test]
@@ -2156,7 +2470,7 @@ mod tests {
             },
             Driver::Tee,
             Driver::Filter,
-            Driver::Latest,
+            Driver::Latest { held: None },
             Driver::Sink {
                 seen: [None; 4],
                 len: 0,
