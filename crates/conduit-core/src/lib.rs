@@ -182,6 +182,43 @@ pub enum PlacementLifecycleState {
     Released,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FailureReason {
+    WrongHostIdentity,
+    StaleBootIdentity,
+    StaleOfferGeneration,
+    UnknownCapability,
+    CapabilityInstanceLimitExceeded,
+    QueueCapacityExceeded,
+    ByteCapacityExceeded,
+    ManifestationFailed,
+    RequiredBranchFailed,
+    InvalidLifecycleCommand,
+    LatePlatformCompletion,
+    EvidenceGap,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CancellationReason {
+    OperatorRequested,
+    RequiredPlanFailed,
+    Released,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TerminalDisposition {
+    Completed,
+    Failed { reason: FailureReason },
+    Cancelled { reason: CancellationReason },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConnectionTerminalDisposition {
+    pub disposition: TerminalDisposition,
+    pub last_accepted_sequence: Option<u64>,
+    pub undeliverable_items: u16,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Observation {
     pub host_id: HostId,
@@ -199,14 +236,34 @@ pub enum ObservationKind {
     PlanFragmentReceived,
     PlacementPrepared,
     PlanActivated,
-    ValueProduced { value: ValuePayload },
-    ValueAccepted { value: ValuePayload },
-    ValuePresented { value: ValuePayload },
+    ValueProduced {
+        value: ValuePayload,
+    },
+    ValueAccepted {
+        value: ValuePayload,
+    },
+    ValuePresented {
+        value: ValuePayload,
+    },
     PlacementCompleted,
     PlanCompleted,
-    Failure { reason: String },
+    PlacementTerminal {
+        disposition: TerminalDisposition,
+    },
+    ConnectionTerminal {
+        disposition: ConnectionTerminalDisposition,
+    },
+    PlanTerminal {
+        disposition: TerminalDisposition,
+    },
+    Failure {
+        reason: String,
+    },
     Cancelled,
     Released,
+    EvidenceGap {
+        dropped: u64,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -283,11 +340,29 @@ pub enum HostEvent {
     PlanCompleted {
         plan_id: PlanId,
     },
+    PlacementTerminated {
+        plan_id: PlanId,
+        placement_id: PlacementId,
+        disposition: TerminalDisposition,
+    },
+    ConnectionTerminated {
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+        disposition: ConnectionTerminalDisposition,
+    },
+    PlanTerminated {
+        plan_id: PlanId,
+        disposition: TerminalDisposition,
+    },
     Cancelled {
         plan_id: PlanId,
     },
     Released {
         plan_id: PlanId,
+    },
+    CommandRejected {
+        plan_id: Option<PlanId>,
+        reason: FailureReason,
     },
     Observations {
         items: Vec<Observation>,

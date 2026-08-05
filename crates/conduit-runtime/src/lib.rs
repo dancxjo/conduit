@@ -1,10 +1,21 @@
 use conduit_core::{
-    BoundedQueue, ConnectionId, HostAdvertisement, HostCommand, HostEvent, Observation,
-    ObservationKind, PlacementId, PlacementLifecycleState, PlanFragment, PlanId, PlannedConnection,
-    PlannedOperation, PlatformEffect, ValuePayload,
+    BoundedQueue, CancellationReason, ConnectionId, ConnectionTerminalDisposition, FailureReason,
+    HostAdvertisement, HostCommand, HostEvent, Observation, ObservationKind, PlacementId,
+    PlacementLifecycleState, PlanFragment, PlanId, PlannedConnection, PlannedOperation,
+    PlatformEffect, TerminalDisposition, ValuePayload,
 };
-use conduit_signal::{encode_signal, parse_pulse_configuration, Signal, PULSE_KIND, SHOW_KIND};
-use std::collections::BTreeMap;
+use conduit_signal::{
+    decode_signal, encode_signal, parse_pulse_configuration, signal_payload_size, Signal,
+    PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND,
+};
+use std::collections::{BTreeMap, BTreeSet};
+
+type PendingObservation = (
+    Option<PlanId>,
+    Option<PlacementId>,
+    Option<ConnectionId>,
+    ObservationKind,
+);
 
 #[derive(Debug, Default)]
 pub struct RuntimeOutput {
@@ -18,6 +29,7 @@ pub struct HostRuntime {
     observation_limit: usize,
     observations: Vec<Observation>,
     plans: BTreeMap<PlanId, RuntimePlan>,
+    released_plans: BTreeSet<PlanId>,
 }
 
 #[derive(Debug)]
@@ -26,6 +38,8 @@ struct RuntimePlan {
     placements: BTreeMap<PlacementId, RuntimePlacement>,
     connections: BTreeMap<ConnectionId, RuntimeConnection>,
     state: PlanState,
+    terminal: Option<TerminalDisposition>,
+    terminal_emitted: bool,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -34,7 +48,6 @@ enum PlanState {
     Active,
     Failed,
     Cancelled,
-    Released,
     Completed,
 }
 
@@ -42,6 +55,7 @@ enum PlanState {
 struct RuntimePlacement {
     spec: PlannedOperation,
     lifecycle: PlacementLifecycleState,
+    terminal: Option<TerminalDisposition>,
     pulse: Option<PulseState>,
     show: Option<ShowState>,
 }
@@ -62,9 +76,12 @@ struct ShowState {
 struct RuntimeConnection {
     spec: PlannedConnection,
     queue: BoundedQueue<ValuePayload>,
+    queued_bytes: u32,
     source_done: bool,
     sink_failed: bool,
     blocked: bool,
+    last_accepted_sequence: Option<u64>,
+    terminal: Option<ConnectionTerminalDisposition>,
 }
 
 impl HostRuntime {
@@ -74,6 +91,7 @@ impl HostRuntime {
             observation_limit,
             observations: Vec::new(),
             plans: BTreeMap::new(),
+            released_plans: BTreeSet::new(),
         };
         runtime.record_observation(None, None, None, ObservationKind::HostStarted);
         runtime.record_observation(None, None, None, ObservationKind::AdvertisementPublished);
@@ -117,6 +135,13 @@ impl HostRuntime {
 
     fn prepare(&mut self, fragment: PlanFragment) -> RuntimeOutput {
         let mut output = RuntimeOutput::default();
+        if self.released_plans.contains(&fragment.plan_id) {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(fragment.plan_id),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        }
         if fragment.host_id != self.advertisement.host_id {
             output.events.push(HostEvent::PreparationRejected {
                 plan_id: fragment.plan_id,
@@ -197,6 +222,7 @@ impl HostRuntime {
                     RuntimePlacement {
                         spec,
                         lifecycle: PlacementLifecycleState::Prepared,
+                        terminal: None,
                         pulse,
                         show,
                     },
@@ -238,14 +264,41 @@ impl HostRuntime {
                 });
                 return output;
             }
+            if connection.byte_capacity > source_capability.limits.max_queue_bytes
+                || connection.byte_capacity > sink_capability.limits.max_queue_bytes
+            {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: format!(
+                        "connection '{}' exceeds byte limits",
+                        connection.connection_id.as_str()
+                    ),
+                });
+                return output;
+            }
+            if connection.value_kind.as_str() == SIGNAL_VALUE_KIND
+                && connection.byte_capacity < signal_payload_size()
+            {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: format!(
+                        "connection '{}' byte capacity is too small for one signal",
+                        connection.connection_id.as_str()
+                    ),
+                });
+                return output;
+            }
             connections.insert(
                 connection.connection_id.clone(),
                 RuntimeConnection {
                     spec: connection.clone(),
                     queue: BoundedQueue::new(connection.item_capacity as usize),
+                    queued_bytes: 0,
                     source_done: false,
                     sink_failed: false,
                     blocked: false,
+                    last_accepted_sequence: None,
+                    terminal: None,
                 },
             );
         }
@@ -271,6 +324,8 @@ impl HostRuntime {
                 placements,
                 connections,
                 state: PlanState::Prepared,
+                terminal: None,
+                terminal_emitted: false,
             },
         );
         output.events.push(HostEvent::Prepared {
@@ -280,23 +335,27 @@ impl HostRuntime {
     }
 
     fn activate(&mut self, plan_id: &PlanId) -> RuntimeOutput {
+        let mut output = RuntimeOutput::default();
+        if self.released_plans.contains(plan_id) {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        }
         let Some(plan) = self.plans.get_mut(plan_id) else {
-            return RuntimeOutput {
-                events: vec![HostEvent::ActivationRejected {
-                    plan_id: plan_id.clone(),
-                    reason: "plan was not prepared".to_string(),
-                }],
-                effects: Vec::new(),
-            };
+            output.events.push(HostEvent::ActivationRejected {
+                plan_id: plan_id.clone(),
+                reason: "plan was not prepared".to_string(),
+            });
+            return output;
         };
         if plan.state != PlanState::Prepared {
-            return RuntimeOutput {
-                events: vec![HostEvent::ActivationRejected {
-                    plan_id: plan_id.clone(),
-                    reason: "plan is not in prepared state".to_string(),
-                }],
-                effects: Vec::new(),
-            };
+            output.events.push(HostEvent::ActivationRejected {
+                plan_id: plan_id.clone(),
+                reason: "plan is not in prepared state".to_string(),
+            });
+            return output;
         }
         plan.state = PlanState::Active;
         for placement_id in &plan.fragment.startup_order {
@@ -310,23 +369,46 @@ impl HostRuntime {
             None,
             ObservationKind::PlanActivated,
         );
-
-        let mut output = RuntimeOutput {
-            events: vec![HostEvent::Activated {
-                plan_id: plan_id.clone(),
-            }],
-            effects: Vec::new(),
-        };
+        output.events.push(HostEvent::Activated {
+            plan_id: plan_id.clone(),
+        });
         self.pump(plan_id, &mut output);
         output
     }
 
     fn complete_wait(&mut self, plan_id: &PlanId, placement_id: &PlacementId) -> RuntimeOutput {
         let mut output = RuntimeOutput::default();
-        if let Some(plan) = self.plans.get_mut(plan_id) {
-            if let Some(placement) = plan.placements.get_mut(placement_id) {
-                if let Some(pulse) = placement.pulse.as_mut() {
+        if self.released_plans.contains(plan_id) {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::LatePlatformCompletion,
+            });
+            return output;
+        }
+        let Some(plan) = self.plans.get_mut(plan_id) else {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        };
+        if plan.state != PlanState::Active && plan.state != PlanState::Failed {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::LatePlatformCompletion,
+            });
+            return output;
+        }
+        if let Some(placement) = plan.placements.get_mut(placement_id) {
+            if let Some(pulse) = placement.pulse.as_mut() {
+                if placement.lifecycle == PlacementLifecycleState::Active {
                     pulse.waiting = false;
+                } else {
+                    output.events.push(HostEvent::CommandRejected {
+                        plan_id: Some(plan_id.clone()),
+                        reason: FailureReason::LatePlatformCompletion,
+                    });
+                    return output;
                 }
             }
         }
@@ -343,102 +425,214 @@ impl HostRuntime {
         message: Option<String>,
     ) -> RuntimeOutput {
         let mut output = RuntimeOutput::default();
+        if self.released_plans.contains(plan_id) {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::LatePlatformCompletion,
+            });
+            return output;
+        }
         let mut pending_observations = Vec::new();
-        if let Some(plan) = self.plans.get_mut(plan_id) {
-            if let Some(placement) = plan.placements.get_mut(placement_id) {
-                if let Some(show) = placement.show.as_mut() {
-                    show.pending = None;
-                    if success {
-                        pending_observations.push((
-                            Some(plan_id.clone()),
-                            Some(placement_id.clone()),
-                            None,
-                            ObservationKind::ValuePresented {
-                                value: value.clone(),
-                            },
-                        ));
-                        output.events.push(HostEvent::ManifestationCompleted {
-                            plan_id: plan_id.clone(),
-                            placement_id: placement_id.clone(),
-                            value,
-                        });
-                    } else {
-                        placement.lifecycle = PlacementLifecycleState::Failed;
-                        plan.state = PlanState::Failed;
-                        for connection in plan.connections.values_mut() {
-                            if connection.spec.sink_placement_id == *placement_id {
-                                connection.sink_failed = true;
-                            }
-                        }
-                        let reason = message.unwrap_or_else(|| "presentation failed".to_string());
-                        pending_observations.push((
-                            Some(plan_id.clone()),
-                            Some(placement_id.clone()),
-                            None,
-                            ObservationKind::Failure {
-                                reason: reason.clone(),
-                            },
-                        ));
-                        output.events.push(HostEvent::ManifestationFailed {
-                            plan_id: plan_id.clone(),
-                            placement_id: placement_id.clone(),
-                            value,
-                            reason,
-                        });
-                    }
+        let mut pending_terminal_events = Vec::new();
+        let Some(plan) = self.plans.get_mut(plan_id) else {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        };
+        if plan.state != PlanState::Active && plan.state != PlanState::Failed {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::LatePlatformCompletion,
+            });
+            return output;
+        }
+        let Some(placement) = plan.placements.get_mut(placement_id) else {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        };
+        if placement.lifecycle != PlacementLifecycleState::Active {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::LatePlatformCompletion,
+            });
+            return output;
+        }
+        if let Some(show) = placement.show.as_mut() {
+            show.pending = None;
+            if success {
+                pending_observations.push((
+                    Some(plan_id.clone()),
+                    Some(placement_id.clone()),
+                    None,
+                    ObservationKind::ValuePresented {
+                        value: value.clone(),
+                    },
+                ));
+                output.events.push(HostEvent::ManifestationCompleted {
+                    plan_id: plan_id.clone(),
+                    placement_id: placement_id.clone(),
+                    value,
+                });
+            } else {
+                let reason = message.unwrap_or_else(|| "presentation failed".to_string());
+                fail_placement(
+                    plan,
+                    placement_id,
+                    TerminalDisposition::Failed {
+                        reason: FailureReason::ManifestationFailed,
+                    },
+                    &mut pending_observations,
+                    &mut pending_terminal_events,
+                    plan_id,
+                );
+                fail_incoming_connections(
+                    plan,
+                    placement_id,
+                    TerminalDisposition::Failed {
+                        reason: FailureReason::ManifestationFailed,
+                    },
+                    &mut pending_observations,
+                    &mut pending_terminal_events,
+                    plan_id,
+                );
+                if plan.state != PlanState::Failed {
+                    plan.state = PlanState::Failed;
+                    plan.terminal = Some(TerminalDisposition::Failed {
+                        reason: FailureReason::RequiredBranchFailed,
+                    });
+                    cancel_active_sources(
+                        plan,
+                        CancellationReason::RequiredPlanFailed,
+                        &mut pending_observations,
+                        &mut pending_terminal_events,
+                        plan_id,
+                    );
                 }
+                pending_observations.push((
+                    Some(plan_id.clone()),
+                    Some(placement_id.clone()),
+                    None,
+                    ObservationKind::Failure {
+                        reason: reason.clone(),
+                    },
+                ));
+                output.events.push(HostEvent::ManifestationFailed {
+                    plan_id: plan_id.clone(),
+                    placement_id: placement_id.clone(),
+                    value,
+                    reason,
+                });
             }
         }
-        for (plan_id, placement_id, connection_id, kind) in pending_observations {
-            self.record_observation(plan_id, placement_id, connection_id, kind);
+        let _ = plan;
+        for item in pending_observations {
+            self.record_observation(item.0, item.1, item.2, item.3);
         }
+        output.events.extend(pending_terminal_events);
         self.pump(plan_id, &mut output);
         output
     }
 
     fn cancel(&mut self, plan_id: &PlanId) -> RuntimeOutput {
-        if let Some(plan) = self.plans.get_mut(plan_id) {
-            plan.state = PlanState::Cancelled;
-            for placement in plan.placements.values_mut() {
-                placement.lifecycle = PlacementLifecycleState::Cancelled;
-            }
-            self.record_observation(
-                Some(plan_id.clone()),
-                None,
-                None,
-                ObservationKind::Cancelled,
-            );
-            return RuntimeOutput {
-                events: vec![HostEvent::Cancelled {
-                    plan_id: plan_id.clone(),
-                }],
-                effects: Vec::new(),
-            };
+        let mut output = RuntimeOutput::default();
+        if self.released_plans.contains(plan_id) {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
         }
-        RuntimeOutput::default()
+        let Some(plan) = self.plans.get_mut(plan_id) else {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        };
+        if plan.state == PlanState::Cancelled || plan.state == PlanState::Completed {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        }
+
+        let mut pending_observations = Vec::new();
+        let mut pending_terminal_events = Vec::new();
+        plan.state = PlanState::Cancelled;
+        plan.terminal = Some(TerminalDisposition::Cancelled {
+            reason: CancellationReason::OperatorRequested,
+        });
+        cancel_all_placements_and_connections(
+            plan,
+            CancellationReason::OperatorRequested,
+            &mut pending_observations,
+            &mut pending_terminal_events,
+            plan_id,
+        );
+        let _ = plan;
+        for item in pending_observations {
+            self.record_observation(item.0, item.1, item.2, item.3);
+        }
+        self.record_observation(
+            Some(plan_id.clone()),
+            None,
+            None,
+            ObservationKind::Cancelled,
+        );
+        output.events.push(HostEvent::Cancelled {
+            plan_id: plan_id.clone(),
+        });
+        output.events.extend(pending_terminal_events);
+        self.finalize_terminal_plan(plan_id, &mut output);
+        output
     }
 
     fn release(&mut self, plan_id: &PlanId) -> RuntimeOutput {
-        if let Some(mut plan) = self.plans.remove(plan_id) {
-            plan.state = PlanState::Released;
-            for placement in plan.placements.values_mut() {
-                placement.lifecycle = PlacementLifecycleState::Released;
-            }
-            self.record_observation(Some(plan_id.clone()), None, None, ObservationKind::Released);
-            return RuntimeOutput {
-                events: vec![HostEvent::Released {
-                    plan_id: plan_id.clone(),
-                }],
-                effects: Vec::new(),
-            };
+        let mut output = RuntimeOutput::default();
+        if self.released_plans.contains(plan_id) {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
         }
-        RuntimeOutput::default()
+        let Some(plan) = self.plans.get(plan_id) else {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        };
+        if plan.state != PlanState::Completed
+            && plan.state != PlanState::Failed
+            && plan.state != PlanState::Cancelled
+        {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        }
+        self.plans.remove(plan_id);
+        self.released_plans.insert(plan_id.clone());
+        self.record_observation(Some(plan_id.clone()), None, None, ObservationKind::Released);
+        output.events.push(HostEvent::Released {
+            plan_id: plan_id.clone(),
+        });
+        output
     }
 
     fn pump(&mut self, plan_id: &PlanId, output: &mut RuntimeOutput) {
         loop {
             let mut changed = false;
             let mut pending_observations = Vec::new();
+            let mut pending_terminal_events = Vec::new();
             let Some(plan) = self.plans.get_mut(plan_id) else {
                 return;
             };
@@ -463,17 +657,17 @@ impl HostRuntime {
                     if pulse.next_sequence >= config.count {
                         pulse.emission_complete = true;
                         mark_source_done(&placement.spec.placement_id, &mut plan.connections);
-                        placement.lifecycle = PlacementLifecycleState::Completed;
+                        terminate_placement(
+                            placement,
+                            TerminalDisposition::Completed,
+                            &mut pending_observations,
+                            &mut pending_terminal_events,
+                            plan_id,
+                        );
                         output.events.push(HostEvent::PlacementCompleted {
                             plan_id: plan_id.clone(),
                             placement_id: placement.spec.placement_id.clone(),
                         });
-                        pending_observations.push((
-                            Some(plan_id.clone()),
-                            Some(placement.spec.placement_id.clone()),
-                            None,
-                            ObservationKind::PlacementCompleted,
-                        ));
                         changed = true;
                         continue;
                     }
@@ -491,10 +685,13 @@ impl HostRuntime {
                     let mut blocked = None;
                     for connection_id in &outgoing {
                         let connection = &plan.connections[connection_id];
-                        if connection.sink_failed {
+                        if connection.terminal.is_some() || connection.sink_failed {
                             continue;
                         }
-                        if connection.queue.len() >= connection.queue.capacity() {
+                        if connection.queue.len() >= connection.queue.capacity()
+                            || connection.queued_bytes + value.encoded_len()
+                                > connection.spec.byte_capacity
+                        {
                             blocked = Some(connection_id.clone());
                             break;
                         }
@@ -516,10 +713,11 @@ impl HostRuntime {
                             .connections
                             .get_mut(&connection_id)
                             .expect("connection must exist");
-                        if connection.sink_failed {
+                        if connection.terminal.is_some() || connection.sink_failed {
                             continue;
                         }
                         connection.blocked = false;
+                        connection.queued_bytes += value.encoded_len();
                         connection
                             .queue
                             .push(value.clone())
@@ -561,7 +759,10 @@ impl HostRuntime {
                 let Some(connection) = plan.connections.get_mut(&connection_id) else {
                     continue;
                 };
-                if connection.queue.is_empty() || connection.sink_failed {
+                if connection.queue.is_empty()
+                    || connection.sink_failed
+                    || connection.terminal.is_some()
+                {
                     continue;
                 }
                 let sink_id = connection.spec.sink_placement_id.clone();
@@ -578,6 +779,8 @@ impl HostRuntime {
                     .queue
                     .pop()
                     .expect("queue was checked before pop");
+                connection.queued_bytes -= value.encoded_len();
+                connection.last_accepted_sequence = payload_sequence(&value);
                 show.pending = Some(value.clone());
                 output.events.push(HostEvent::PresentValueRequested {
                     plan_id: plan_id.clone(),
@@ -621,50 +824,72 @@ impl HostRuntime {
                 let incoming = incoming_connections(&sink_id, &plan.connections);
                 let done = incoming.iter().all(|connection_id| {
                     let connection = &plan.connections[connection_id];
-                    (connection.source_done || connection.sink_failed)
+                    (connection.source_done
+                        || connection.sink_failed
+                        || connection.terminal.is_some())
                         && connection.queue.is_empty()
                 });
                 if done {
-                    sink.lifecycle = PlacementLifecycleState::Completed;
+                    terminate_placement(
+                        sink,
+                        TerminalDisposition::Completed,
+                        &mut pending_observations,
+                        &mut pending_terminal_events,
+                        plan_id,
+                    );
                     output.events.push(HostEvent::PlacementCompleted {
                         plan_id: plan_id.clone(),
                         placement_id: sink_id.clone(),
                     });
-                    pending_observations.push((
-                        Some(plan_id.clone()),
-                        Some(sink_id),
-                        None,
-                        ObservationKind::PlacementCompleted,
-                    ));
+                    for connection_id in incoming {
+                        if let Some(connection) = plan.connections.get_mut(&connection_id) {
+                            if connection.terminal.is_none() {
+                                terminate_connection(
+                                    connection,
+                                    TerminalDisposition::Completed,
+                                    &mut pending_observations,
+                                    &mut pending_terminal_events,
+                                    plan_id,
+                                );
+                            }
+                        }
+                    }
                     changed = true;
                 }
             }
 
-            let plan_completed = plan.state == PlanState::Active
+            let all_terminal = plan
+                .placements
+                .values()
+                .all(|placement| placement.terminal.is_some())
                 && plan
-                    .placements
+                    .connections
                     .values()
-                    .all(|placement| placement.lifecycle == PlacementLifecycleState::Completed);
+                    .all(|connection| connection.terminal.is_some());
+            let should_emit_completed = plan.state == PlanState::Active && all_terminal;
+            let should_emit_failed = plan.state == PlanState::Failed && all_terminal;
 
             let _ = plan;
 
-            for (plan_id, placement_id, connection_id, kind) in pending_observations {
-                self.record_observation(plan_id, placement_id, connection_id, kind);
+            for item in pending_observations {
+                self.record_observation(item.0, item.1, item.2, item.3);
             }
+            output.events.extend(pending_terminal_events);
 
-            if plan_completed {
+            if should_emit_completed {
                 if let Some(plan) = self.plans.get_mut(plan_id) {
                     plan.state = PlanState::Completed;
+                    plan.terminal = Some(TerminalDisposition::Completed);
                 }
                 output.events.push(HostEvent::PlanCompleted {
                     plan_id: plan_id.clone(),
                 });
-                self.record_observation(
-                    Some(plan_id.clone()),
-                    None,
-                    None,
-                    ObservationKind::PlanCompleted,
-                );
+                self.finalize_terminal_plan(plan_id, output);
+                return;
+            }
+
+            if should_emit_failed {
+                self.finalize_terminal_plan(plan_id, output);
                 return;
             }
 
@@ -674,6 +899,28 @@ impl HostRuntime {
         }
     }
 
+    fn finalize_terminal_plan(&mut self, plan_id: &PlanId, output: &mut RuntimeOutput) {
+        let Some(plan) = self.plans.get_mut(plan_id) else {
+            return;
+        };
+        if plan.terminal_emitted {
+            return;
+        }
+        let disposition = plan.terminal.unwrap_or(TerminalDisposition::Completed);
+        plan.terminal_emitted = true;
+        let _ = plan;
+        self.record_observation(
+            Some(plan_id.clone()),
+            None,
+            None,
+            ObservationKind::PlanTerminal { disposition },
+        );
+        output.events.push(HostEvent::PlanTerminated {
+            plan_id: plan_id.clone(),
+            disposition,
+        });
+    }
+
     fn record_observation(
         &mut self,
         plan_id: Option<PlanId>,
@@ -681,17 +928,199 @@ impl HostRuntime {
         connection_id: Option<ConnectionId>,
         kind: ObservationKind,
     ) {
-        self.observations.push(Observation {
-            host_id: self.advertisement.host_id.clone(),
-            boot_id: self.advertisement.boot_id.clone(),
-            plan_id,
-            placement_id,
-            connection_id,
-            kind,
-        });
+        if self.observation_limit == 0 {
+            return;
+        }
+        if self.observations.len() < self.observation_limit {
+            self.observations.push(Observation {
+                host_id: self.advertisement.host_id.clone(),
+                boot_id: self.advertisement.boot_id.clone(),
+                plan_id,
+                placement_id,
+                connection_id,
+                kind,
+            });
+            return;
+        }
+
+        let mut dropped = 1u64;
+        if let Some(Observation {
+            kind: ObservationKind::EvidenceGap { dropped: previous },
+            ..
+        }) = self.observations.first()
+        {
+            dropped += *previous;
+            self.observations.remove(0);
+        } else {
+            self.observations.remove(0);
+        }
+        self.observations.insert(
+            0,
+            Observation {
+                host_id: self.advertisement.host_id.clone(),
+                boot_id: self.advertisement.boot_id.clone(),
+                plan_id: None,
+                placement_id: None,
+                connection_id: None,
+                kind: ObservationKind::EvidenceGap { dropped },
+            },
+        );
         if self.observations.len() > self.observation_limit {
-            let drop_count = self.observations.len() - self.observation_limit;
-            self.observations.drain(0..drop_count);
+            self.observations.pop();
+        }
+    }
+}
+
+fn terminate_placement(
+    placement: &mut RuntimePlacement,
+    disposition: TerminalDisposition,
+    observations: &mut Vec<PendingObservation>,
+    events: &mut Vec<HostEvent>,
+    plan_id: &PlanId,
+) {
+    if placement.terminal.is_some() {
+        return;
+    }
+    placement.terminal = Some(disposition);
+    placement.lifecycle = match disposition {
+        TerminalDisposition::Completed => PlacementLifecycleState::Completed,
+        TerminalDisposition::Failed { .. } => PlacementLifecycleState::Failed,
+        TerminalDisposition::Cancelled { .. } => PlacementLifecycleState::Cancelled,
+    };
+    observations.push((
+        Some(plan_id.clone()),
+        Some(placement.spec.placement_id.clone()),
+        None,
+        ObservationKind::PlacementTerminal { disposition },
+    ));
+    events.push(HostEvent::PlacementTerminated {
+        plan_id: plan_id.clone(),
+        placement_id: placement.spec.placement_id.clone(),
+        disposition,
+    });
+}
+
+fn terminate_connection(
+    connection: &mut RuntimeConnection,
+    disposition: TerminalDisposition,
+    observations: &mut Vec<PendingObservation>,
+    events: &mut Vec<HostEvent>,
+    plan_id: &PlanId,
+) {
+    if connection.terminal.is_some() {
+        return;
+    }
+    let report = ConnectionTerminalDisposition {
+        disposition,
+        last_accepted_sequence: connection.last_accepted_sequence,
+        undeliverable_items: connection.queue.len() as u16,
+    };
+    connection.queued_bytes = 0;
+    while connection.queue.pop().is_some() {}
+    connection.terminal = Some(report.clone());
+    observations.push((
+        Some(plan_id.clone()),
+        None,
+        Some(connection.spec.connection_id.clone()),
+        ObservationKind::ConnectionTerminal {
+            disposition: report.clone(),
+        },
+    ));
+    events.push(HostEvent::ConnectionTerminated {
+        plan_id: plan_id.clone(),
+        connection_id: connection.spec.connection_id.clone(),
+        disposition: report,
+    });
+}
+
+fn fail_placement(
+    plan: &mut RuntimePlan,
+    placement_id: &PlacementId,
+    disposition: TerminalDisposition,
+    observations: &mut Vec<PendingObservation>,
+    events: &mut Vec<HostEvent>,
+    plan_id: &PlanId,
+) {
+    if let Some(placement) = plan.placements.get_mut(placement_id) {
+        terminate_placement(placement, disposition, observations, events, plan_id);
+    }
+}
+
+fn fail_incoming_connections(
+    plan: &mut RuntimePlan,
+    placement_id: &PlacementId,
+    disposition: TerminalDisposition,
+    observations: &mut Vec<PendingObservation>,
+    events: &mut Vec<HostEvent>,
+    plan_id: &PlanId,
+) {
+    for connection_id in incoming_connections(placement_id, &plan.connections) {
+        if let Some(connection) = plan.connections.get_mut(&connection_id) {
+            connection.sink_failed = true;
+            terminate_connection(connection, disposition, observations, events, plan_id);
+        }
+    }
+}
+
+fn cancel_active_sources(
+    plan: &mut RuntimePlan,
+    reason: CancellationReason,
+    observations: &mut Vec<PendingObservation>,
+    events: &mut Vec<HostEvent>,
+    plan_id: &PlanId,
+) {
+    let placement_ids = plan.placements.keys().cloned().collect::<Vec<_>>();
+    for placement_id in placement_ids {
+        let Some(placement) = plan.placements.get_mut(&placement_id) else {
+            continue;
+        };
+        if placement.pulse.is_some() && placement.lifecycle == PlacementLifecycleState::Active {
+            terminate_placement(
+                placement,
+                TerminalDisposition::Cancelled { reason },
+                observations,
+                events,
+                plan_id,
+            );
+            mark_source_done(&placement_id, &mut plan.connections);
+        }
+    }
+}
+
+fn cancel_all_placements_and_connections(
+    plan: &mut RuntimePlan,
+    reason: CancellationReason,
+    observations: &mut Vec<PendingObservation>,
+    events: &mut Vec<HostEvent>,
+    plan_id: &PlanId,
+) {
+    for placement in plan.placements.values_mut() {
+        if placement.terminal.is_none() {
+            terminate_placement(
+                placement,
+                TerminalDisposition::Cancelled { reason },
+                observations,
+                events,
+                plan_id,
+            );
+        }
+        if let Some(show) = placement.show.as_mut() {
+            show.pending = None;
+        }
+        if let Some(pulse) = placement.pulse.as_mut() {
+            pulse.waiting = false;
+            pulse.emission_complete = true;
+        }
+    }
+    for connection in plan.connections.values_mut() {
+        if connection.terminal.is_none() {
+            terminate_connection(
+                connection,
+                TerminalDisposition::Cancelled { reason },
+                observations,
+                events,
+                plan_id,
+            );
         }
     }
 }
@@ -739,20 +1168,30 @@ fn mark_source_done(
     }
 }
 
+fn payload_sequence(payload: &ValuePayload) -> Option<u64> {
+    decode_signal(payload).ok().map(|signal| signal.sequence)
+}
+
 #[cfg(test)]
 mod tests {
     use super::HostRuntime;
     use conduit_core::{
-        kind_id, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionProvider,
-        HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
-        ObservationKind, OfferGeneration, PlatformEffect, PROTOCOL_VERSION,
+        kind_id, BootId, CancellationReason, CapabilityId, CapabilityLimits, CapabilityOffer,
+        ConnectionProvider, FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId,
+        HostProfileId, ImplementationId, ObservationKind, OfferGeneration, PlatformEffect,
+        TerminalDisposition, PROTOCOL_VERSION,
     };
     use conduit_form::parse;
     use conduit_planner::{default_placements, plan};
     use conduit_signal::{decode_signal, Signal, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
     use std::collections::BTreeMap;
 
-    fn advertisement(boot: &str, offer_generation: u64, queue_items: u16) -> HostAdvertisement {
+    fn advertisement(
+        boot: &str,
+        offer_generation: u64,
+        queue_items: u16,
+        queue_bytes: u32,
+    ) -> HostAdvertisement {
         HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
             host_id: HostId::from("std-host-1"),
@@ -768,7 +1207,7 @@ mod tests {
                         value_kind: kind_id(SIGNAL_VALUE_KIND),
                         max_active_instances: 8,
                         max_queue_items: queue_items,
-                        max_queue_bytes: 64,
+                        max_queue_bytes: queue_bytes,
                     },
                 },
                 CapabilityOffer {
@@ -779,29 +1218,50 @@ mod tests {
                         value_kind: kind_id(SIGNAL_VALUE_KIND),
                         max_active_instances: 8,
                         max_queue_items: queue_items,
-                        max_queue_bytes: 64,
+                        max_queue_bytes: queue_bytes,
                     },
                 },
             ],
         }
     }
 
-    fn demo_fragment(form_source: &str) -> conduit_core::PlanFragment {
+    fn demo_fragment(
+        form_source: &str,
+        queue_items: u16,
+        queue_bytes: u32,
+    ) -> conduit_core::PlanFragment {
         let form = parse(form_source).expect("form should parse");
-        let advertisement = advertisement("boot-1", 1, 4);
+        let advertisement = advertisement("boot-1", 1, 8, 256);
         let placements = default_placements(&form, std::slice::from_ref(&advertisement))
             .expect("placements work");
-        let plan = plan(
+        let mut plan = plan(
             &form,
             std::slice::from_ref(&advertisement),
             &placements,
             &[ConnectionProvider::Local],
         )
         .expect("plan should succeed");
-        plan.fragments.into_iter().next().expect("fragment exists")
+        let fragment = plan.fragments.get_mut(0).expect("fragment exists");
+        for connection in &mut fragment.connections {
+            connection.item_capacity = queue_items;
+            connection.byte_capacity = queue_bytes;
+        }
+        fragment.clone()
     }
 
-    fn drive_plan(runtime: &mut HostRuntime, plan_id: conduit_core::PlanId) -> Vec<Signal> {
+    fn inspect(runtime: &mut HostRuntime) -> Vec<conduit_core::Observation> {
+        runtime
+            .handle(HostCommand::Inspect)
+            .events
+            .into_iter()
+            .find_map(|event| match event {
+                HostEvent::Observations { items } => Some(items),
+                _ => None,
+            })
+            .expect("observations must exist")
+    }
+
+    fn drive_success(runtime: &mut HostRuntime, plan_id: conduit_core::PlanId) -> Vec<Signal> {
         let output = runtime.handle(HostCommand::Activate(plan_id));
         let mut presented = Vec::new();
         let mut pending_effects = output.effects;
@@ -837,24 +1297,19 @@ mod tests {
 
     #[test]
     fn preparation_rejects_stale_boot() {
-        let fragment = demo_fragment(
-            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
-        );
-        let mut runtime = HostRuntime::new(advertisement("boot-2", 1, 4), 128);
+        let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+        let mut runtime = HostRuntime::new(advertisement("boot-2", 1, 4, 64), 128);
         let output = runtime.handle(HostCommand::Prepare(fragment));
         assert!(matches!(
             output.events.first(),
             Some(HostEvent::PreparationRejected { .. })
         ));
-        assert!(output.effects.is_empty());
     }
 
     #[test]
     fn preparation_rejects_stale_offer_generation() {
-        let fragment = demo_fragment(
-            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
-        );
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 2, 4), 128);
+        let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+        let mut runtime = HostRuntime::new(advertisement("boot-1", 2, 4, 64), 128);
         let output = runtime.handle(HostCommand::Prepare(fragment));
         assert!(matches!(
             output.events.first(),
@@ -863,104 +1318,43 @@ mod tests {
     }
 
     #[test]
-    fn preparation_emits_no_effects() {
-        let fragment = demo_fragment(
-            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
-        );
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4), 128);
+    fn preparation_rejects_too_small_byte_capacity() {
+        let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 1\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 8);
+        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 128);
         let output = runtime.handle(HostCommand::Prepare(fragment));
         assert!(matches!(
             output.events.first(),
-            Some(HostEvent::Prepared { .. })
-        ));
-        assert!(output.effects.is_empty());
-    }
-
-    #[test]
-    fn activation_requires_prepared_plan() {
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4), 128);
-        let output = runtime.handle(HostCommand::Activate(conduit_core::PlanId::from("missing")));
-        assert!(matches!(
-            output.events.first(),
-            Some(HostEvent::ActivationRejected { .. })
+            Some(HostEvent::PreparationRejected { .. })
         ));
     }
 
     #[test]
     fn full_queue_applies_backpressure() {
-        let mut fragment = demo_fragment(
-            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
-        );
-        fragment.connections[0].item_capacity = 1;
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 1), 128);
-        let prepared = runtime.handle(HostCommand::Prepare(fragment.clone()));
-        assert!(matches!(
-            prepared.events.first(),
-            Some(HostEvent::Prepared { .. })
-        ));
+        let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 1, 64);
+        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 1, 64), 128);
+        runtime.handle(HostCommand::Prepare(fragment.clone()));
         let output = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
         assert!(output
             .events
             .iter()
             .any(|event| matches!(event, HostEvent::ConnectionBlocked { .. })));
-        assert!(output
-            .effects
-            .iter()
-            .any(|effect| matches!(effect, PlatformEffect::PresentValue { .. })));
     }
 
     #[test]
-    fn duplicate_activation_is_rejected() {
-        let fragment = demo_fragment(
-            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
-        );
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4), 128);
+    fn byte_capacity_applies_backpressure() {
+        let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 9);
+        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 128);
         runtime.handle(HostCommand::Prepare(fragment.clone()));
-        let first = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
-        assert!(matches!(
-            first.events.first(),
-            Some(HostEvent::Activated { .. })
-        ));
-        let second = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
-        assert!(matches!(
-            second.events.first(),
-            Some(HostEvent::ActivationRejected { .. })
-        ));
-    }
-
-    #[test]
-    fn plan_executes_after_form_is_discarded() {
-        let fragment = demo_fragment(
-            "form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
-        );
-        let plan_id = fragment.plan_id.clone();
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4), 128);
-        runtime.handle(HostCommand::Prepare(fragment));
-        let presented = drive_plan(&mut runtime, plan_id.clone());
-
-        let inspected = runtime.handle(HostCommand::Inspect);
-        let observations = inspected
+        let output = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
+        assert!(output
             .events
-            .into_iter()
-            .find_map(|event| match event {
-                HostEvent::Observations { items } => Some(items),
-                _ => None,
-            })
-            .expect("observations must exist");
-        assert_eq!(presented.len(), 3);
-        assert!(observations
             .iter()
-            .any(|item| item.plan_id.as_ref() == Some(&plan_id)));
-        assert!(observations
-            .iter()
-            .any(|item| matches!(item.kind, ObservationKind::PlanCompleted)));
+            .any(|event| matches!(event, HostEvent::ConnectionBlocked { .. })));
     }
 
     #[test]
     fn multiple_sources_remain_independent() {
-        let fragment = demo_fragment(
-            "form 0\n\ndouble-demo {\n    pulse-a: flow/pulse\n    show-a: presentation/show\n    pulse-b: flow/pulse\n    show-b: presentation/show\n\n    pulse-a.count = 3\n    pulse-a.period-ms = 0\n    pulse-a.initial = false\n    pulse-b.count = 5\n    pulse-b.period-ms = 0\n    pulse-b.initial = true\n\n    pulse-a > show-a\n    pulse-b > show-b\n}\n",
-        );
+        let fragment = demo_fragment("form 0\n\ndouble-demo {\n    pulse-a: flow/pulse\n    show-a: presentation/show\n    pulse-b: flow/pulse\n    show-b: presentation/show\n\n    pulse-a.count = 3\n    pulse-a.period-ms = 0\n    pulse-a.initial = false\n    pulse-b.count = 5\n    pulse-b.period-ms = 0\n    pulse-b.initial = true\n\n    pulse-a > show-a\n    pulse-b > show-b\n}\n", 4, 64);
         let placement_by_operation = fragment
             .placements
             .iter()
@@ -982,28 +1376,17 @@ mod tests {
             })
             .collect::<BTreeMap<_, _>>();
         let plan_id = fragment.plan_id.clone();
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4), 256);
+        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 256);
         runtime.handle(HostCommand::Prepare(fragment));
-        let presented = drive_plan(&mut runtime, plan_id.clone());
+        let presented = drive_success(&mut runtime, plan_id.clone());
         assert_eq!(presented.len(), 8);
-
-        let observations = runtime
-            .handle(HostCommand::Inspect)
-            .events
-            .into_iter()
-            .find_map(|event| match event {
-                HostEvent::Observations { items } => Some(items),
-                _ => None,
-            })
-            .expect("observations must exist");
-
+        let observations = inspect(&mut runtime);
         let pulse_a = placement_by_operation["pulse-a"].clone();
         let pulse_b = placement_by_operation["pulse-b"].clone();
         let show_a = placement_by_operation["show-a"].clone();
         let show_b = placement_by_operation["show-b"].clone();
         let conn_a = connection_by_source[&pulse_a].clone();
         let conn_b = connection_by_source[&pulse_b].clone();
-
         let produced_a = observations
             .iter()
             .filter_map(|item| match &item.kind {
@@ -1050,7 +1433,6 @@ mod tests {
                 _ => None,
             })
             .collect::<Vec<_>>();
-
         assert_eq!(
             produced_a
                 .iter()
@@ -1073,16 +1455,101 @@ mod tests {
             shown_b.iter().map(|value| value.level).collect::<Vec<_>>(),
             vec![true, false, true, false, true]
         );
-        assert!(
-            observations
-                .iter()
-                .filter(|item| matches!(item.kind, ObservationKind::PlacementCompleted))
-                .count()
-                >= 4
-        );
+        assert!(observations.iter().any(|item| matches!(
+            item.kind,
+            ObservationKind::PlanTerminal {
+                disposition: TerminalDisposition::Completed
+            }
+        ) && item.plan_id.as_ref() == Some(&plan_id)));
+    }
+
+    #[test]
+    fn cancellation_before_activation_is_terminal() {
+        let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 128);
+        runtime.handle(HostCommand::Prepare(fragment.clone()));
+        let output = runtime.handle(HostCommand::Cancel(fragment.plan_id.clone()));
+        assert!(output.events.iter().any(|event| matches!(
+            event,
+            HostEvent::PlanTerminated {
+                disposition: TerminalDisposition::Cancelled {
+                    reason: CancellationReason::OperatorRequested
+                },
+                ..
+            }
+        )));
+    }
+
+    #[test]
+    fn late_presentation_completion_after_cancel_is_rejected() {
+        let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 1\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+        let show = fragment
+            .placements
+            .iter()
+            .find(|placement| placement.kind_id.as_str() == SHOW_KIND)
+            .expect("show placement exists")
+            .placement_id
+            .clone();
+        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 128);
+        runtime.handle(HostCommand::Prepare(fragment.clone()));
+        let output = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
+        let value = output
+            .effects
+            .into_iter()
+            .find_map(|effect| match effect {
+                PlatformEffect::PresentValue { value, .. } => Some(value),
+                _ => None,
+            })
+            .expect("present effect must exist");
+        runtime.handle(HostCommand::Cancel(fragment.plan_id.clone()));
+        let late = runtime.handle(HostCommand::CompletePresentation {
+            plan_id: fragment.plan_id,
+            placement_id: show,
+            value,
+            success: true,
+            message: None,
+        });
+        assert!(late.events.iter().any(|event| matches!(
+            event,
+            HostEvent::CommandRejected {
+                reason: FailureReason::LatePlatformCompletion,
+                ..
+            }
+        )));
+    }
+
+    #[test]
+    fn repeated_release_is_rejected() {
+        let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 1\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+        let plan_id = fragment.plan_id.clone();
+        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 128);
+        runtime.handle(HostCommand::Prepare(fragment));
+        let _ = drive_success(&mut runtime, plan_id.clone());
+        let first = runtime.handle(HostCommand::Release(plan_id.clone()));
+        assert!(matches!(
+            first.events.first(),
+            Some(HostEvent::Released { .. })
+        ));
+        let second = runtime.handle(HostCommand::Release(plan_id));
+        assert!(second.events.iter().any(|event| matches!(
+            event,
+            HostEvent::CommandRejected {
+                reason: FailureReason::InvalidLifecycleCommand,
+                ..
+            }
+        )));
+    }
+
+    #[test]
+    fn observation_overflow_records_gap() {
+        let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 6\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+        let plan_id = fragment.plan_id.clone();
+        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 4);
+        runtime.handle(HostCommand::Prepare(fragment));
+        let _ = drive_success(&mut runtime, plan_id);
+        let observations = inspect(&mut runtime);
         assert!(observations
             .iter()
-            .any(|item| item.plan_id.as_ref() == Some(&plan_id)
-                && matches!(item.kind, ObservationKind::PlanCompleted)));
+            .any(|item| matches!(item.kind, ObservationKind::EvidenceGap { .. })));
     }
 }
