@@ -146,7 +146,28 @@ check-sim-readiness:
     cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture
     cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
 
-# ── xtask smoke alias (PR 1 scaffold) ────────────────────────────────────────
-# Inspect xtask prerequisites. Full recipe migration follows in later PRs.
+# Inspect repository and platform prerequisites.
 doctor target="all" *args:
     cargo xtask doctor {{target}} {{args}}
+
+# Pico W local LED proof — full workflow (doctor -> build -> flash -> verify).
+pico *args:
+    cargo xtask pico {{args}}
+
+pico-local *args:
+    cargo xtask pico-local {{args}}
+
+pico-doctor:
+    cargo xtask pico doctor
+
+pico-build:
+    cargo xtask pico build
+
+pico-flash:
+    cargo xtask pico flash
+
+pico-verify:
+    cargo xtask pico verify
+
+pico-local-run:
+    cargo xtask pico local

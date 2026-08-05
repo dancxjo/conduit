@@ -18,4 +18,7 @@ members = [
 	"hosts/std",
 	"xtask",
 ]
+exclude = [
+	"firmware/conduit-pico-w-signal",
+]
 resolver = "2"

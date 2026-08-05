@@ -63,6 +63,7 @@ jobs:
           cargo check --locked -p conduit-observatory --target thumbv6m-none-eabi
           cargo check --locked -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
           cargo check --locked -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
+          cargo check --locked --manifest-path firmware/conduit-pico-w-signal/Cargo.toml --target thumbv6m-none-eabi
 
   browser-host:
     runs-on: ubuntu-latest
