@@ -18,13 +18,11 @@ portable-atomic = { version = "1.14.0", features = ["critical-section"] }
 static_cell = "2"
 cyw43 = "0.7"
 cyw43-pio = "0.10"
-embedded-alloc = "0.5"
 fixed = "1.29"
 heapless = "0.8"
 
 conduit-core = { path = "../../crates/conduit-core" }
-conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
-conduit-signal = { path = "../../crates/conduit-signal" }
+conduit-kernel = { path = "../../crates/conduit-kernel" }
 
 [build-dependencies]
 # build.rs copies memory.x into OUT_DIR

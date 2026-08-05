@@ -4,7 +4,6 @@
 //! The verifier (xtask pico verify) reads these records to confirm the
 //! exact Signal sequence, levels, and terminal disposition.
 
-use conduit_signal::Signal;
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb;
 use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
@@ -69,14 +68,14 @@ pub fn init_usb(
 
 impl UsbCdc {
     /// Write a machine-readable receipt for one Signal presentation.
-    pub async fn write_receipt(&mut self, signal: &Signal) {
+    pub async fn write_receipt(&mut self, sequence: u64, level: bool) {
         let mut line: HString<256> = HString::new();
         let _ = core::fmt::write(
             &mut line,
             format_args!(
                 "{{\"schema\":\"conduit-pico-w-signal/receipt@1\",\"sequence\":{},\"level\":{}}}\n",
-                signal.sequence,
-                signal.level,
+                sequence,
+                level,
             ),
         );
         self.write_all(line.as_bytes()).await;

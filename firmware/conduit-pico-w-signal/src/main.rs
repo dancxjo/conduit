@@ -2,10 +2,9 @@
 //!
 //! Runs the Signal demo form on real RP2040 hardware, blinks the onboard CYW43
 //! LED, and emits machine-readable receipts over USB CDC.
+//! No runtime heap allocator is used; all storage is statically sized.
 #![no_std]
 #![no_main]
-
-extern crate alloc;
 
 mod kernel;
 mod radio;
@@ -14,12 +13,6 @@ mod receipts;
 use aligned::{A4, Aligned};
 use embassy_executor::Spawner;
 use panic_halt as _;
-
-// Global allocator for conduit-signal and conduit-kernel alloc usage
-use embedded_alloc::Heap;
-
-#[global_allocator]
-static HEAP: Heap = Heap::empty();
 
 // Vendored CYW43 firmware assets — checked at build time via xtask doctor.
 static CYW43_FW: Aligned<A4, [u8; 231077]> = Aligned(*include_bytes!(
@@ -38,14 +31,6 @@ const _CYW43_LICENSE: &[u8] = include_bytes!(
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    // Initialise global heap (64 KiB)
-    {
-        use core::mem::MaybeUninit;
-        const HEAP_SIZE: usize = 65536;
-        static mut HEAP_MEM: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
-        unsafe { HEAP.init(HEAP_MEM.as_ptr() as usize, HEAP_SIZE) }
-    }
-
     let p = embassy_rp::init(Default::default());
 
     // Initialise USB CDC receipt channel

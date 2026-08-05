@@ -1,9 +1,8 @@
 //! Conduit kernel execution for the Signal demo on Pico W.
 //!
-//! Pre-encodes all 16 signal values, lowers them into a FixedScheduler plan,
+//! Pre-encodes all 16 signal values into a fixed-size FixedScheduler plan,
 //! drives Embassy timers for waits, and calls the radio and receipt modules.
-
-extern crate alloc;
+//! No heap allocator is used; all storage is statically sized.
 
 use conduit_kernel::{
     Failure, FailureCode,
@@ -16,11 +15,23 @@ use conduit_kernel::{
     HostOperationId, HostOperationOutcome, NodeId, Operation, OperationAction, OperationInput,
     PortId, RequestId, RouteRange, RouteTarget, ValueRef, ValueStorage,
 };
-use conduit_signal::{decode_signal_bytes, SIGNAL_ENCODED_LEN};
 use cyw43::Control;
 use embassy_time::{Duration, Timer};
 
 use crate::receipts::UsbCdc;
+
+// Signal encoding constants (matches conduit-signal: 8-byte LE sequence + 1-byte level).
+const SIGNAL_ENCODED_LEN: u32 = 9;
+
+/// Decode 9 encoded signal bytes into (sequence, level).
+fn decode_signal_bytes(encoded: &[u8]) -> Option<(u64, bool)> {
+    if encoded.len() != SIGNAL_ENCODED_LEN as usize {
+        return None;
+    }
+    let mut seq_bytes = [0u8; 8];
+    seq_bytes.copy_from_slice(&encoded[..8]);
+    Some((u64::from_le_bytes(seq_bytes), encoded[8] != 0))
+}
 
 // Signal demo fixed parameters (matches signal-demo.form)
 const COUNT: usize = 16;
@@ -164,12 +175,12 @@ pub async fn run_signal_demo(control: &mut Control<'_>, cdc: &mut UsbCdc) {
                     HOP_PRESENT => {
                         let bytes = scheduler.host_value(req.input.value)
                             .expect("present value in store");
-                        let signal = decode_signal_bytes(bytes)
+                        let (sequence, level) = decode_signal_bytes(bytes)
                             .expect("valid signal encoding");
                         // Drive CYW43 onboard LED (GPIO 0)
-                        control.gpio_set(0, signal.level).await;
+                        control.gpio_set(0, level).await;
                         // Emit machine-readable USB receipt
-                        cdc.write_receipt(&signal).await;
+                        cdc.write_receipt(sequence, level).await;
                         scheduler.complete_host_operation(
                             req.node,
                             req.request,

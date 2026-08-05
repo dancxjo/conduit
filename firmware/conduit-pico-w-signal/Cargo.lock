@@ -164,7 +164,6 @@ dependencies = [
  "aligned",
  "conduit-core",
  "conduit-kernel",
- "conduit-signal",
  "cortex-m",
  "cortex-m-rt",
  "cyw43",
@@ -174,21 +173,12 @@ dependencies = [
  "embassy-rp",
  "embassy-time",
  "embassy-usb",
- "embedded-alloc",
  "embedded-io-async 0.7.0",
  "fixed",
  "heapless 0.8.0",
  "panic-halt",
  "portable-atomic",
  "static_cell",
-]
-
-[[package]]
-name = "conduit-signal"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "serde",
 ]
 
 [[package]]
@@ -591,16 +581,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "embedded-alloc"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddae17915accbac2cfbc64ea0ae6e3b330e6ea124ba108dada63646fd3c6f815"
-dependencies = [
- "critical-section",
- "linked_list_allocator",
-]
-
-[[package]]
 name = "embedded-hal"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -951,12 +931,6 @@ name = "libc"
 version = "0.2.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
-
-[[package]]
-name = "linked_list_allocator"
-version = "0.10.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b23ac50abb8261cb38c6e2a7192d3302e0836dac1628f6a93b82b4fad185897"
 
 [[package]]
 name = "litrs"
