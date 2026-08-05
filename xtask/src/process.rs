@@ -5,6 +5,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use serde::Serialize;
+
 use crate::cli::GlobalOpts;
 
 /// A single suite step with identity and provenance.
@@ -27,7 +29,12 @@ impl Step {
         program: &'static str,
         args: &'static [&'static str],
     ) -> Self {
-        Self { id, description, program, args }
+        Self {
+            id,
+            description,
+            program,
+            args,
+        }
     }
 }
 
@@ -50,8 +57,23 @@ pub struct StepOutcome {
 
 impl StepOutcome {
     pub fn success(&self) -> bool {
-        self.skipped || self.status.map(|s| s.success()).unwrap_or(false)
+        self.skipped || self.status.map(|status| status.success()).unwrap_or(false)
     }
+}
+
+/// Captured result of a read-only prerequisite probe.
+#[derive(Debug, Clone, Serialize)]
+pub struct ProbeOutcome {
+    pub id: String,
+    pub description: String,
+    pub command_line: String,
+    pub skipped: bool,
+    pub success: bool,
+    pub exit_code: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+    pub launch_error: Option<String>,
+    pub elapsed_ms: u128,
 }
 
 /// Error returned when a step fails or a prerequisite check fails.
@@ -85,7 +107,7 @@ impl fmt::Display for StepError {
                 "step '{}' failed ({}): {}",
                 self.id,
                 self.status
-                    .map(|s| s.to_string())
+                    .map(|status| status.to_string())
                     .unwrap_or_else(|| "did not start".into()),
                 self.command_line
             )
@@ -95,11 +117,73 @@ impl fmt::Display for StepError {
 
 impl std::error::Error for StepError {}
 
+/// Run one read-only probe with captured output.
+///
+/// Missing programs and nonzero exits are returned as data so a doctor command
+/// can report every prerequisite in one pass. `--dry-run` never launches the
+/// process and returns a skipped record instead.
+pub fn run_probe(step: &Step, working_dir: &Path, opts: &GlobalOpts) -> ProbeOutcome {
+    let command_line = format!("{} {}", step.program, step.args.join(" "));
+
+    if !opts.quiet && !opts.json {
+        println!("» [{}] {}", step.id, step.description);
+        println!("  $ {command_line}");
+    }
+
+    if opts.dry_run {
+        return ProbeOutcome {
+            id: step.id.to_string(),
+            description: step.description.to_string(),
+            command_line,
+            skipped: true,
+            success: true,
+            exit_code: None,
+            stdout: String::new(),
+            stderr: String::new(),
+            launch_error: None,
+            elapsed_ms: 0,
+        };
+    }
+
+    let started = Instant::now();
+    match Command::new(step.program)
+        .args(step.args)
+        .current_dir(working_dir)
+        .stdin(Stdio::null())
+        .output()
+    {
+        Ok(output) => ProbeOutcome {
+            id: step.id.to_string(),
+            description: step.description.to_string(),
+            command_line,
+            skipped: false,
+            success: output.status.success(),
+            exit_code: output.status.code(),
+            stdout: String::from_utf8_lossy(&output.stdout).trim().to_string(),
+            stderr: String::from_utf8_lossy(&output.stderr).trim().to_string(),
+            launch_error: None,
+            elapsed_ms: started.elapsed().as_millis(),
+        },
+        Err(error) => ProbeOutcome {
+            id: step.id.to_string(),
+            description: step.description.to_string(),
+            command_line,
+            skipped: false,
+            success: false,
+            exit_code: None,
+            stdout: String::new(),
+            stderr: String::new(),
+            launch_error: Some(error.to_string()),
+            elapsed_ms: started.elapsed().as_millis(),
+        },
+    }
+}
+
 /// Run a sequence of steps, respecting global options.
 ///
 /// Returns `Ok(outcomes)` when all steps pass, or the first `Err` when a step
-/// fails and `--keep-going` is not set. With `--keep-going` all steps run and
-/// the last error is returned if any failed.
+/// fails and keep-going is not set. With keep-going all steps run and the last
+/// error is returned if any failed.
 pub fn run_steps(
     steps: &[Step],
     working_dir: &Path,
@@ -111,8 +195,8 @@ pub fn run_steps(
     for step in steps {
         let command_line = format!("{} {}", step.program, step.args.join(" "));
 
-        if !opts.quiet {
-            println!("» [{id}] {desc}", id = step.id, desc = step.description);
+        if !opts.quiet && !opts.json {
+            println!("» [{}] {}", step.id, step.description);
             println!("  $ {command_line}");
         }
 
@@ -139,16 +223,16 @@ pub fn run_steps(
         let elapsed = start.elapsed();
 
         let outcome = match status {
-            Ok(s) => StepOutcome {
+            Ok(status) => StepOutcome {
                 id: step.id.to_string(),
                 description: step.description.to_string(),
                 command_line: command_line.clone(),
                 elapsed,
-                status: Some(s),
+                status: Some(status),
                 skipped: false,
             },
-            Err(e) => {
-                eprintln!("failed to launch '{}': {e}", step.program);
+            Err(error) => {
+                eprintln!("failed to launch '{}': {error}", step.program);
                 StepOutcome {
                     id: step.id.to_string(),
                     description: step.description.to_string(),
@@ -167,7 +251,7 @@ pub fn run_steps(
             let err = StepError {
                 id: step.id.to_string(),
                 command_line,
-                status: outcomes.last().and_then(|o| o.status),
+                status: outcomes.last().and_then(|outcome| outcome.status),
                 message: String::new(),
             };
             if opts.keep_going {
@@ -188,7 +272,6 @@ pub fn run_steps(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::GlobalOpts;
     use std::path::PathBuf;
 
     fn workspace() -> PathBuf {
@@ -196,7 +279,11 @@ mod tests {
     }
 
     fn dry_opts() -> GlobalOpts {
-        GlobalOpts { dry_run: true, ..Default::default() }
+        GlobalOpts {
+            dry_run: true,
+            quiet: true,
+            ..Default::default()
+        }
     }
 
     #[test]
@@ -207,7 +294,7 @@ mod tests {
         ];
         let outcomes = run_steps(&steps, &workspace(), &dry_opts()).unwrap();
         assert_eq!(outcomes.len(), 2);
-        assert!(outcomes.iter().all(|o| o.skipped));
+        assert!(outcomes.iter().all(|outcome| outcome.skipped));
     }
 
     #[test]
@@ -218,6 +305,28 @@ mod tests {
     }
 
     #[test]
+    fn probe_dry_run_does_not_launch_a_missing_program() {
+        let step = Step::new("missing", "missing tool", "__no_such_binary__", &[]);
+        let outcome = run_probe(&step, &workspace(), &dry_opts());
+        assert!(outcome.skipped);
+        assert!(outcome.success);
+        assert!(outcome.launch_error.is_none());
+    }
+
+    #[test]
+    fn probe_reports_a_missing_program_without_panicking() {
+        let step = Step::new("missing", "missing tool", "__no_such_binary__", &[]);
+        let opts = GlobalOpts {
+            quiet: true,
+            ..Default::default()
+        };
+        let outcome = run_probe(&step, &workspace(), &opts);
+        assert!(!outcome.skipped);
+        assert!(!outcome.success);
+        assert!(outcome.launch_error.is_some());
+    }
+
+    #[test]
     fn step_display_renders_command_line() {
         let step = Step::new("x", "d", "cargo", &["test", "--lib"]);
         assert_eq!(step.to_string(), "cargo test --lib");
@@ -225,14 +334,16 @@ mod tests {
 
     #[test]
     fn keep_going_runs_all_steps_and_returns_err() {
-        // Use a program that does not exist to force failure on both steps.
         let steps = [
             Step::new("fail-a", "d", "__no_such_binary__", &[]),
             Step::new("fail-b", "d", "__no_such_binary__", &[]),
         ];
-        let opts = GlobalOpts { keep_going: true, quiet: true, ..Default::default() };
+        let opts = GlobalOpts {
+            keep_going: true,
+            quiet: true,
+            ..Default::default()
+        };
         let result = run_steps(&steps, &workspace(), &opts);
-        // Both steps attempted; an error is returned.
         assert!(result.is_err());
     }
 
@@ -242,7 +353,10 @@ mod tests {
             Step::new("fail", "d", "__no_such_binary__", &[]),
             Step::new("ok", "d", "cargo", &["--version"]),
         ];
-        let opts = GlobalOpts { quiet: true, ..Default::default() };
+        let opts = GlobalOpts {
+            quiet: true,
+            ..Default::default()
+        };
         let result = run_steps(&steps, &workspace(), &opts);
         assert!(result.is_err());
     }
