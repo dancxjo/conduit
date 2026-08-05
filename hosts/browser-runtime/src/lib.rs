@@ -28,6 +28,8 @@ use conduit_signal::{
 };
 use std::cell::RefCell;
 
+mod distributed;
+
 const FRAME_CAPACITY: usize = 4_096;
 const MAXIMUM_RECEIPTS: usize = 16;
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;

@@ -430,7 +430,9 @@ fn validate_fragment_execution_contract(
                 || binding.provider_instance_id.as_str().is_empty()
                 || binding.availability != conduit_core::LinkAvailability::Ready
                 || binding.limits.maximum_in_flight_items < connection.item_capacity
+                || binding.limits.maximum_payload_bytes < connection.byte_capacity
                 || binding.limits.maximum_buffered_bytes < connection.byte_capacity
+                || binding.limits.maximum_frame_bytes < binding.limits.maximum_payload_bytes
                 || matches!(
                     &binding.credential,
                     conduit_core::LinkCredentialReference::Opaque(reference)
@@ -447,7 +449,8 @@ fn validate_fragment_execution_contract(
                 ConnectionProvider::Local => connection.link_binding.is_some(),
                 ConnectionProvider::InMemory
                 | ConnectionProvider::FixtureFrame
-                | ConnectionProvider::FixtureDatagram => connection
+                | ConnectionProvider::FixtureDatagram
+                | ConnectionProvider::WebSocket => connection
                     .link_binding
                     .as_ref()
                     .is_none_or(|binding| binding.provider != connection.provider),

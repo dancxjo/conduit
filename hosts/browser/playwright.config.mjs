@@ -4,7 +4,11 @@ const port = process.env.CONDUIT_BROWSER_HOST_PORT ?? "4173";
 
 export default defineConfig({
   testDir: ".",
-  testMatch: "signal-dom-host.spec.mjs",
+  testMatch: [
+    "signal-dom-host.spec.mjs",
+    "websocket-carrier.spec.mjs",
+    "distributed-signal.spec.mjs",
+  ],
   fullyParallel: false,
   workers: 1,
   retries: 0,

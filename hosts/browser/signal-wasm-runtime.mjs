@@ -96,7 +96,7 @@ class FrameWriter {
   }
 }
 
-function decodeEffect(bytes) {
+export function decodeEffect(bytes) {
   const frame = new FrameReader(bytes);
   const kind = frame.byte();
   const common = {

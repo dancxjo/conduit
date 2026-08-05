@@ -14,5 +14,7 @@ conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime" }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
+conduit-wire = { path = "../../crates/conduit-wire" }
+tungstenite = "0.30.0"
 
 [dev-dependencies]

@@ -7,10 +7,14 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
-    wait_host_operation_requirement, ConfigurationEntry, ConfigurationValue, ExecutionProfileId,
-    HostOperationRequirement, KindContractRevision, KindId, PortDescriptor, PortDirection,
+    wait_host_operation_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionProvider,
+    ConnectionProviderInstanceId, ExecutionProfileId, HostAdvertisement, HostId,
+    HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision, KindId,
+    LinkAuthorityReference, LinkAvailability, LinkBinding, LinkBindingId, LinkCredentialReference,
+    LinkEndpoint, LinkEndpointId, LinkLimits, OfferGeneration, PortDescriptor, PortDirection,
     ResourceOffer, ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS,
-    TIMER_RESOURCE_CLASS,
+    PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
@@ -25,6 +29,15 @@ pub const PULSE_CONTRACT_REVISION: &str = "conduit.signal/flow-pulse@1";
 pub const SHOW_CONTRACT_REVISION: &str = "conduit.signal/presentation-show@1";
 pub const PULSE_EXECUTION_PROFILE: &str = "conduit.signal/pulse-hosted@1";
 pub const SHOW_EXECUTION_PROFILE: &str = "conduit.signal/show-hosted@1";
+pub const DISTRIBUTED_STD_HOST_ID: &str = "s4/std-source";
+pub const DISTRIBUTED_STD_BOOT_ID: &str = "s4/std-source-boot";
+pub const DISTRIBUTED_BROWSER_HOST_ID: &str = "s4/browser-sink";
+pub const DISTRIBUTED_BROWSER_BOOT_ID: &str = "s4/browser-sink-boot";
+pub const DISTRIBUTED_LINK_BINDING_ID: &str = "s4/std-browser-link";
+pub const DISTRIBUTED_PROVIDER_INSTANCE_ID: &str = "s4/websocket-loopback-instance";
+pub const DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS: u16 = 1;
+pub const DISTRIBUTED_MAXIMUM_BUFFERED_BYTES: u32 = SIGNAL_ENCODED_LEN;
+pub const DISTRIBUTED_MAXIMUM_FRAME_BYTES: u32 = 2_048;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signal {
@@ -226,6 +239,98 @@ pub fn decode_signal_bytes(encoded: &[u8]) -> Result<Signal, SignalProfileError>
 
 pub fn signal_payload_size() -> u32 {
     SIGNAL_ENCODED_LEN
+}
+
+/// Exact production host facts used by the live S4 std-to-browser checkpoint.
+/// The ephemeral loopback URL is carrier configuration and is deliberately not
+/// part of these semantic or plan-visible identities.
+pub fn distributed_std_source_advertisement() -> HostAdvertisement {
+    HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from(DISTRIBUTED_STD_HOST_ID),
+        boot_id: BootId::from(DISTRIBUTED_STD_BOOT_ID),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("rust-std-kernel"),
+        resources: vec![resource_offer("s4/std-timer", TIMER_RESOURCE_CLASS, 1)],
+        capabilities: vec![CapabilityOffer {
+            capability_id: CapabilityId::from("pulse-1"),
+            kind_id: pulse_kind(),
+            kind_contract_revision: pulse_contract_revision(),
+            execution_profile_id: pulse_execution_profile(),
+            implementation_id: ImplementationId::from("std/kernel-pulse-v1"),
+            artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
+            inputs: Vec::new(),
+            outputs: pulse_outputs(),
+            host_operations: pulse_host_operation_requirements(),
+            resource_requirements: pulse_resource_requirements(),
+            authority_requirements: Vec::new(),
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+                max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
+            },
+        }],
+    }
+}
+
+pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
+    HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from(DISTRIBUTED_BROWSER_HOST_ID),
+        boot_id: BootId::from(DISTRIBUTED_BROWSER_BOOT_ID),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("browser-wasm-kernel"),
+        resources: vec![resource_offer(
+            "s4/browser-dom",
+            PRESENTATION_RESOURCE_CLASS,
+            1,
+        )],
+        capabilities: vec![CapabilityOffer {
+            capability_id: CapabilityId::from("dom-show-1"),
+            kind_id: show_kind(),
+            kind_contract_revision: show_contract_revision(),
+            execution_profile_id: show_execution_profile(),
+            implementation_id: ImplementationId::from("browser/kernel-dom-show-signal-v1"),
+            artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
+            inputs: show_inputs(),
+            outputs: Vec::new(),
+            host_operations: show_host_operation_requirements(),
+            resource_requirements: show_resource_requirements(),
+            authority_requirements: Vec::new(),
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+                max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
+            },
+        }],
+    }
+}
+
+pub fn distributed_websocket_link_binding() -> LinkBinding {
+    LinkBinding {
+        binding_id: LinkBindingId::from(DISTRIBUTED_LINK_BINDING_ID),
+        source: LinkEndpoint {
+            host_id: HostId::from(DISTRIBUTED_STD_HOST_ID),
+            boot_id: BootId::from(DISTRIBUTED_STD_BOOT_ID),
+            endpoint_id: LinkEndpointId::from("s4/std-websocket-egress"),
+        },
+        sink: LinkEndpoint {
+            host_id: HostId::from(DISTRIBUTED_BROWSER_HOST_ID),
+            boot_id: BootId::from(DISTRIBUTED_BROWSER_BOOT_ID),
+            endpoint_id: LinkEndpointId::from("s4/browser-websocket-ingress"),
+        },
+        provider: ConnectionProvider::WebSocket,
+        provider_instance_id: ConnectionProviderInstanceId::from(DISTRIBUTED_PROVIDER_INSTANCE_ID),
+        availability: LinkAvailability::Ready,
+        credential: LinkCredentialReference::None,
+        authority: LinkAuthorityReference::ProcessOwned,
+        limits: LinkLimits {
+            maximum_in_flight_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+            maximum_payload_bytes: SIGNAL_ENCODED_LEN,
+            maximum_buffered_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
+            maximum_frame_bytes: DISTRIBUTED_MAXIMUM_FRAME_BYTES,
+        },
+    }
 }
 
 #[cfg(feature = "host-profile")]

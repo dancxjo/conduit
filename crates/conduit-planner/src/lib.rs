@@ -913,7 +913,9 @@ fn select_provider(
         .filter(|binding| {
             binding.availability == LinkAvailability::Ready
                 && binding.limits.maximum_in_flight_items >= connection_item_capacity
+                && binding.limits.maximum_payload_bytes >= connection_byte_capacity
                 && binding.limits.maximum_buffered_bytes >= connection_byte_capacity
+                && binding.limits.maximum_frame_bytes >= binding.limits.maximum_payload_bytes
         })
         .collect::<Vec<_>>();
     if ready.is_empty() {
@@ -948,7 +950,9 @@ fn validate_link_bindings(bindings: &[LinkBinding]) -> Result<(), PlannerError> 
             || binding.provider == ConnectionProvider::Local
             || binding.provider_instance_id.as_str().is_empty()
             || binding.limits.maximum_in_flight_items == 0
+            || binding.limits.maximum_payload_bytes == 0
             || binding.limits.maximum_buffered_bytes == 0
+            || binding.limits.maximum_frame_bytes < binding.limits.maximum_payload_bytes
             || matches!(
                 &binding.credential,
                 conduit_core::LinkCredentialReference::Opaque(reference)
@@ -1678,7 +1682,7 @@ mod tests {
             .fragments[0]
             .clone();
 
-        for field in 0..14 {
+        for field in 0..16 {
             let mut mutated = original.clone();
             let binding = mutated.connections[0]
                 .link_binding
@@ -1715,7 +1719,9 @@ mod tests {
                     )
                 }
                 12 => binding.limits.maximum_in_flight_items += 1,
-                13 => binding.limits.maximum_buffered_bytes += 1,
+                13 => binding.limits.maximum_payload_bytes += 1,
+                14 => binding.limits.maximum_buffered_bytes += 1,
+                15 => binding.limits.maximum_frame_bytes += 1,
                 _ => unreachable!(),
             }
             assert!(!verify_plan_fragment(&mutated));
