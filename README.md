@@ -5,8 +5,9 @@ Conduit is being rebuilt around one rule:
 > Forms describe meaning. Hosts offer implementations. Plans make realization exact.
 
 Current `main` contains a useful Rust `std` prototype and deterministic
-browser-shaped/Pico-shaped conformance fixtures. It does **not** yet contain an
-actual browser adapter, Pico firmware, live WebSocket/UDP transport,
+browser-shaped/Pico-shaped conformance fixtures. S4 also contains one actual
+Chromium DOM presentation adapter boundary. It does **not** yet contain a
+browser-side planner/runtime, Pico firmware, live WebSocket/UDP transport,
 three-platform proof, production BODY model, or production Observatory.
 [STATUS.md](STATUS.md) is the checked claim boundary.
 
@@ -47,6 +48,8 @@ just demo-triple-local
 
 The browser-shaped and Pico-shaped crates live under `fixtures/`. Their
 frame/datagram relays are in-memory deterministic fixtures, not sockets.
+The actual DOM-only browser checkpoint lives under `hosts/browser/`; it is a
+bounded manifestation adapter, not a complete browser host runtime.
 
 ## Forward kernel
 

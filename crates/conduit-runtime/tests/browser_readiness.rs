@@ -5,6 +5,8 @@ fn dependency_and_profile_installation_drawbridge_is_explicit() {
     let signal_manifest = include_str!("../../conduit-signal/Cargo.toml");
     let std_manifest = include_str!("../../../hosts/std/Cargo.toml");
     let std_host = include_str!("../../../hosts/std/src/lib.rs");
+    let browser_package = include_str!("../../../package.json");
+    let browser_config = include_str!("../../../hosts/browser/playwright.config.mjs");
     let justfile = include_str!("../../../justfile");
 
     assert!(!runtime_manifest.contains("conduit-signal"));
@@ -13,6 +15,14 @@ fn dependency_and_profile_installation_drawbridge_is_explicit() {
     assert!(signal_manifest.contains("host-profile ="));
     assert!(std_manifest.contains("features = [\"host-profile\"]"));
     assert!(std_host.contains("signal_registry("));
+    assert!(browser_package.contains("\"@playwright/test\": \"1.62.0\""));
+    assert!(browser_config.contains("workers: 1"));
+    assert!(browser_config.contains("retries: 0"));
+    assert!(browser_config.contains("projects: [{ name: \"chromium\""));
+    assert!(!browser_config.contains("firefox"));
+    assert!(!browser_config.contains("webkit"));
+    assert!(justfile.contains("check-browser-s4:"));
+    assert!(justfile.contains("npm run test:browser-host"));
     assert!(justfile.contains("check-sim-readiness:"));
     assert!(justfile.contains("cargo test -p conduit-wire"));
     assert!(justfile.contains("cargo test -p conduit-browser-sim"));
@@ -50,7 +60,12 @@ fn readiness_contract_names_the_platform_stop_line() {
         "thumbv6m-none-eabi",
         "onboard-LED receipts",
         "bounded datagram relay fixture using `conduit-wire`",
-        "Browser UI, physical Pico LED acceptance, live WebSocket sockets, live UDP sockets, TCP",
+        "hosts/browser/signal-dom-host.mjs",
+        "actual browser DOM effect/completion adapter",
+        "Browser-side form execution",
+        "physical Pico LED acceptance",
+        "live WebSocket",
+        "live UDP sockets",
     ] {
         assert!(
             readiness.contains(required),
@@ -73,7 +88,10 @@ fn repository_status_matrix_keeps_proof_classes_distinct() {
         "unsafe prototype disabled",
         "WASM compilation is not browser execution",
         "Thumb compilation is not firmware",
-        "Frame/datagram fixtures are not WebSocket or UDP sockets",
+        "The Chromium DOM boundary is browser execution",
+        "browser-side planner/runtime or a live link",
+        "Frame/datagram fixtures",
+        "WebSocket or UDP sockets",
     ] {
         assert!(
             status.contains(required),

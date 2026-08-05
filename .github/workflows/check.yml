@@ -75,3 +75,14 @@ jobs:
           cargo check -p conduit-observatory --target thumbv6m-none-eabi
           cargo check -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
           cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
+
+  browser-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci --ignore-scripts
+      - run: npm run test:browser-host

@@ -87,6 +87,9 @@ check-form-s3:
     cargo test -p conduit-runtime --test host_contract fake_adapter_failure_is_structured_and_terminal
     cargo test -p conduit-observatory report_separates_identity_capability_plan_connection_and_evidence_tables
 
+check-browser-s4:
+    npm run test:browser-host
+
 check-realm-readiness:
     cargo test -p conduit-realm
     cargo check -p conduit-realm --target thumbv6m-none-eabi
@@ -111,4 +114,3 @@ check-sim-readiness:
     cargo test -p conduit-pico-sim
     cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture
     cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
-    @if rg -i 'playwright' -g 'Cargo.toml' -g 'package.json' -g 'package-lock.json' .; then echo 'Playwright dependency is forbidden before browser host work'; exit 1; fi

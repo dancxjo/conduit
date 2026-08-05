@@ -1,0 +1,127 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit S4 browser DOM host proof</title>
+<p id="result">running</p>
+<section id="host-a" aria-label="browser host A"></section>
+<section id="host-b" aria-label="browser host B"></section>
+<section id="host-item-bound" hidden></section>
+<section id="host-byte-bound" hidden></section>
+<script type="module">
+import { BrowserDomFailure, BrowserDomHost } from "./signal-dom-host.mjs";
+
+const assert = (condition, message) => {
+  if (!condition) throw new Error(message);
+};
+const encodeSignal = (sequence, level) => {
+  const encoded = new Uint8Array(9);
+  new DataView(encoded.buffer).setBigUint64(0, BigInt(sequence), true);
+  encoded[8] = level ? 1 : 0;
+  return [...encoded];
+};
+const effect = (host, sequence) => ({
+  planId: `plan/${host}`,
+  activePlayId: `play/${host}`,
+  presentationId: `presentation/${host}/${sequence}`,
+  placementId: `placement/${host}/show`,
+  presentationKind: "presentation/signal",
+  value: {
+    valueKind: "value/signal",
+    encoded: encodeSignal(sequence, sequence % 2 === 1),
+  },
+});
+
+try {
+  const hosts = [
+    new BrowserDomHost({
+      hostId: "browser-host-a",
+      bootId: "browser-boot-a",
+      root: document.querySelector("#host-a"),
+      maximumReceiptItems: 16,
+      maximumReceiptBytes: 144,
+    }),
+    new BrowserDomHost({
+      hostId: "browser-host-b",
+      bootId: "browser-boot-b",
+      root: document.querySelector("#host-b"),
+      maximumReceiptItems: 16,
+      maximumReceiptBytes: 144,
+    }),
+  ];
+  const completions = [];
+  for (const [index, host] of hosts.entries()) {
+    const label = index === 0 ? "a" : "b";
+    for (let sequence = 0; sequence < 16; sequence += 1) {
+      const request = effect(label, sequence);
+      const result = host.completePresentation(request);
+      assert(result.ok, `host ${label} presentation ${sequence} completes`);
+      assert(
+        result.completion.activePlayId === request.activePlayId &&
+          result.completion.presentationId === request.presentationId,
+        "completion echoes exact runtime identities",
+      );
+      completions.push(result.completion);
+    }
+  }
+
+  const duplicate = hosts[0].completePresentation(effect("a", 0));
+  assert(
+    duplicate.code === BrowserDomFailure.DuplicatePresentation,
+    "duplicate presentation fails closed",
+  );
+  const overflow = hosts[0].completePresentation(effect("a", 16));
+  assert(
+    overflow.code === BrowserDomFailure.ReceiptCapacity,
+    "receipt store is item and byte bounded",
+  );
+  const itemBoundHost = new BrowserDomHost({
+    hostId: "browser-host-item-bound",
+    bootId: "browser-boot-item-bound",
+    root: document.querySelector("#host-item-bound"),
+    maximumReceiptItems: 1,
+    maximumReceiptBytes: 18,
+  });
+  assert(itemBoundHost.completePresentation(effect("item-bound", 0)).ok, "item bound admits one");
+  const itemOverflow = itemBoundHost.completePresentation(effect("item-bound", 1));
+  assert(itemOverflow.code === BrowserDomFailure.ReceiptCapacity, "item bound rejects two");
+  const byteBoundHost = new BrowserDomHost({
+    hostId: "browser-host-byte-bound",
+    bootId: "browser-boot-byte-bound",
+    root: document.querySelector("#host-byte-bound"),
+    maximumReceiptItems: 2,
+    maximumReceiptBytes: 9,
+  });
+  assert(byteBoundHost.completePresentation(effect("byte-bound", 0)).ok, "byte bound admits nine");
+  const byteOverflow = byteBoundHost.completePresentation(effect("byte-bound", 1));
+  assert(byteOverflow.code === BrowserDomFailure.ReceiptCapacity, "byte bound rejects eighteen");
+  const malformed = hosts[1].completePresentation({
+    ...effect("b", 16),
+    value: { valueKind: "value/signal", encoded: [1, 2, 3] },
+  });
+  assert(
+    malformed.code === BrowserDomFailure.InvalidPresentation,
+    "malformed signal fails closed",
+  );
+  assert(hosts[0].receipts().length === 16, "host A retains sixteen receipts");
+  assert(hosts[1].receipts().length === 16, "host B retains sixteen receipts");
+  assert(
+    hosts[0].receipts()[15].sequence === "15" &&
+      hosts[1].receipts()[15].sequence === "15",
+    "both hosts retain the same ordered semantic values",
+  );
+
+  globalThis.__conduitBrowserDomResults = Object.freeze({
+    completionCount: completions.length,
+    hostAReceipts: hosts[0].receipts().length,
+    hostBReceipts: hosts[1].receipts().length,
+    duplicateCode: duplicate.code,
+    overflowCode: overflow.code,
+    itemOverflowCode: itemOverflow.code,
+    byteOverflowCode: byteOverflow.code,
+    malformedCode: malformed.code,
+  });
+  document.querySelector("#result").textContent = "ok";
+} catch (error) {
+  document.querySelector("#result").textContent = `error:${error.stack ?? error}`;
+  throw error;
+}
+</script>
