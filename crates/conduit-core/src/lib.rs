@@ -16,6 +16,7 @@ pub const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
 pub const MAX_PRESENTATION_COMPLETION_BYTES: u32 = 256;
 pub const TIMER_RESOURCE_CLASS: &str = "conduit.resource/timer-slot@1";
 pub const PRESENTATION_RESOURCE_CLASS: &str = "conduit.resource/presentation-slot@1";
+pub const PRESENT_AUTHORITY_CONTRACT: &str = "conduit.authority/present@1";
 
 macro_rules! identity_type {
     ($name:ident) => {
@@ -72,6 +73,9 @@ identity_type!(HostOperationContractId);
 identity_type!(ResourceClassId);
 // Boot-scoped identity of one concrete host resource pool.
 identity_type!(ResourcePoolId);
+// Immutable identity of one authority contract and one issued grant.
+identity_type!(AuthorityContractId);
+identity_type!(AuthorityGrantId);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct OfferGeneration(pub u64);
@@ -156,6 +160,35 @@ pub struct ResourceBinding {
     pub units: u32,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct AuthorityRequirement {
+    pub contract_id: AuthorityContractId,
+    pub host_operation_contract_id: HostOperationContractId,
+    pub subject_kind: KindId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct AuthorityGrant {
+    pub grant_id: AuthorityGrantId,
+    pub contract_id: AuthorityContractId,
+    pub host_operation_contract_id: HostOperationContractId,
+    pub subject_kind: KindId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub capability_id: CapabilityId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct AuthorityBinding {
+    pub grant_id: AuthorityGrantId,
+    pub contract_id: AuthorityContractId,
+    pub host_operation_contract_id: HostOperationContractId,
+    pub subject_kind: KindId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub capability_id: CapabilityId,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CapabilityOffer {
     pub capability_id: CapabilityId,
@@ -168,6 +201,7 @@ pub struct CapabilityOffer {
     pub outputs: Vec<PortDescriptor>,
     pub host_operations: Vec<HostOperationRequirement>,
     pub resource_requirements: Vec<ResourceRequirement>,
+    pub authority_requirements: Vec<AuthorityRequirement>,
     pub limits: CapabilityLimits,
 }
 
@@ -244,6 +278,7 @@ pub struct PlannedOperation {
     pub outputs: Vec<PortDescriptor>,
     pub host_operations: Vec<HostOperationRequirement>,
     pub resources: Vec<ResourceBinding>,
+    pub authority: Vec<AuthorityBinding>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -501,6 +536,16 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             push_string(&mut canonical, binding.class_id.as_str());
             push_u32(&mut canonical, binding.units);
         }
+        push_u32(&mut canonical, operation.authority.len() as u32);
+        for binding in &operation.authority {
+            push_string(&mut canonical, binding.grant_id.as_str());
+            push_string(&mut canonical, binding.contract_id.as_str());
+            push_string(&mut canonical, binding.host_operation_contract_id.as_str());
+            push_string(&mut canonical, binding.subject_kind.as_str());
+            push_string(&mut canonical, binding.host_id.as_str());
+            push_string(&mut canonical, binding.boot_id.as_str());
+            push_string(&mut canonical, binding.capability_id.as_str());
+        }
     }
     push_u32(&mut canonical, fragment.connections.len() as u32);
     for connection in &fragment.connections {
@@ -671,6 +716,8 @@ pub enum FailureReason {
     HostOperationOutputExceeded,
     ResourceContractMismatch,
     ResourceCapacityExceeded,
+    AuthorityContractMismatch,
+    AuthorityDenied,
     ConnectionDisconnected,
     MalformedConnectionEnvelope,
     StalePlan,
@@ -997,6 +1044,32 @@ pub fn resource_offer(pool_id: &str, class_id: &str, capacity_units: u32) -> Res
         pool_id: ResourcePoolId::from(pool_id),
         class_id: ResourceClassId::from(class_id),
         capacity_units,
+    }
+}
+
+pub fn present_authority_requirement(subject_kind: KindId) -> AuthorityRequirement {
+    AuthorityRequirement {
+        contract_id: AuthorityContractId::from(PRESENT_AUTHORITY_CONTRACT),
+        host_operation_contract_id: HostOperationContractId::from(PRESENT_HOST_OPERATION_CONTRACT),
+        subject_kind,
+    }
+}
+
+pub fn authority_grant(
+    grant_id: &str,
+    requirement: &AuthorityRequirement,
+    host_id: HostId,
+    boot_id: BootId,
+    capability_id: CapabilityId,
+) -> AuthorityGrant {
+    AuthorityGrant {
+        grant_id: AuthorityGrantId::from(grant_id),
+        contract_id: requirement.contract_id.clone(),
+        host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+        subject_kind: requirement.subject_kind.clone(),
+        host_id,
+        boot_id,
+        capability_id,
     }
 }
 

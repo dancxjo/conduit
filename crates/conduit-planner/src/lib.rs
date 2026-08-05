@@ -1,9 +1,10 @@
 use conduit_core::{
-    mandatory_evidence_storage_requirement, seal_plan, CancellationPolicy, CapabilityId,
-    ConnectionId, ConnectionProvider, ExpectedEvidence, ExpectedTerminal, FragmentId,
-    HostAdvertisement, HostId, OperationId, PlacementId, Plan, PlanFragment, PlanId,
-    PlannedConnection, PlannedOperation, ResourceBinding, ResourcePoolId, StartupDependency,
-    TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
+    mandatory_evidence_storage_requirement, seal_plan, AuthorityBinding, AuthorityGrant,
+    CancellationPolicy, CapabilityId, ConnectionId, ConnectionProvider, ExpectedEvidence,
+    ExpectedTerminal, FragmentId, HostAdvertisement, HostId, OperationId, PlacementId, Plan,
+    PlanFragment, PlanId, PlannedConnection, PlannedOperation, ResourceBinding, ResourcePoolId,
+    StartupDependency, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
+    DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedForm, CheckedOperation};
 use sha2::{Digest, Sha256};
@@ -20,6 +21,14 @@ pub struct PlacementChoices {
     pub by_operation: BTreeMap<OperationId, PlacementChoice>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct PlanningOptions<'a> {
+    pub connection_providers: &'a BTreeMap<(OperationId, OperationId), ConnectionProvider>,
+    pub connection_item_capacity: u16,
+    pub connection_byte_capacity: u32,
+    pub authority_grants: &'a [AuthorityGrant],
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlannerError {
     UnknownOperation(String),
@@ -34,6 +43,9 @@ pub enum PlannerError {
     InvalidResourceContract(String),
     UnavailableResource(String),
     ResourceCapacityExceeded(String),
+    InvalidAuthorityContract(String),
+    AuthorityGrantMissing(String),
+    AuthorityGrantAmbiguous(String),
     UnavailableConnectionProvider(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
@@ -70,6 +82,15 @@ impl std::fmt::Display for PlannerError {
             }
             PlannerError::ResourceCapacityExceeded(value) => {
                 write!(f, "resource capacity exceeded: {value}")
+            }
+            PlannerError::InvalidAuthorityContract(value) => {
+                write!(f, "invalid authority contract: {value}")
+            }
+            PlannerError::AuthorityGrantMissing(value) => {
+                write!(f, "authority grant missing: {value}")
+            }
+            PlannerError::AuthorityGrantAmbiguous(value) => {
+                write!(f, "authority grant ambiguous: {value}")
             }
             PlannerError::UnavailableConnectionProvider(value) => {
                 write!(f, "unavailable connection provider: {value}")
@@ -201,6 +222,27 @@ pub fn plan(
     )
 }
 
+pub fn plan_with_authority_grants(
+    form: &CheckedForm,
+    realm: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    providers: &[ConnectionProvider],
+    authority_grants: &[AuthorityGrant],
+) -> Result<Plan, PlannerError> {
+    plan_with_options(
+        form,
+        realm,
+        placements,
+        providers,
+        PlanningOptions {
+            connection_providers: &BTreeMap::new(),
+            connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
+            connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
+            authority_grants,
+        },
+    )
+}
+
 pub fn plan_with_connection_limits(
     form: &CheckedForm,
     realm: &[HostAdvertisement],
@@ -229,6 +271,33 @@ pub fn plan_with_connection_limits_and_provider_overrides(
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
 ) -> Result<Plan, PlannerError> {
+    plan_with_options(
+        form,
+        realm,
+        placements,
+        providers,
+        PlanningOptions {
+            connection_providers,
+            connection_item_capacity,
+            connection_byte_capacity,
+            authority_grants: &[],
+        },
+    )
+}
+
+pub fn plan_with_options(
+    form: &CheckedForm,
+    realm: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    providers: &[ConnectionProvider],
+    options: PlanningOptions<'_>,
+) -> Result<Plan, PlannerError> {
+    let PlanningOptions {
+        connection_providers,
+        connection_item_capacity,
+        connection_byte_capacity,
+        authority_grants,
+    } = options;
     let realm_index = realm
         .iter()
         .map(|host| (host.host_id.clone(), host))
@@ -237,6 +306,7 @@ pub fn plan_with_connection_limits_and_provider_overrides(
     for host in realm {
         validate_host_resources(host)?;
     }
+    validate_authority_grants(authority_grants)?;
 
     let mut placement_count = BTreeMap::<(HostId, CapabilityId), u16>::new();
     let mut resource_usage = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
@@ -316,6 +386,45 @@ pub fn plan_with_connection_limits_and_provider_overrides(
         }
         resource_bindings.sort();
 
+        let mut authority_bindings = Vec::with_capacity(capability.authority_requirements.len());
+        for requirement in &capability.authority_requirements {
+            let mut matches = authority_grants.iter().filter(|grant| {
+                grant.contract_id == requirement.contract_id
+                    && grant.host_operation_contract_id == requirement.host_operation_contract_id
+                    && grant.subject_kind == requirement.subject_kind
+                    && grant.host_id == host.host_id
+                    && grant.boot_id == host.boot_id
+                    && grant.capability_id == capability.capability_id
+            });
+            let Some(grant) = matches.next() else {
+                return Err(PlannerError::AuthorityGrantMissing(format!(
+                    "capability '{}' requires '{}' for subject '{}' on host '{}' boot '{}'",
+                    capability.capability_id.as_str(),
+                    requirement.contract_id.as_str(),
+                    requirement.subject_kind.as_str(),
+                    host.host_id.as_str(),
+                    host.boot_id.as_str()
+                )));
+            };
+            if matches.next().is_some() {
+                return Err(PlannerError::AuthorityGrantAmbiguous(format!(
+                    "multiple grants satisfy capability '{}' requirement '{}'",
+                    capability.capability_id.as_str(),
+                    requirement.contract_id.as_str()
+                )));
+            }
+            authority_bindings.push(AuthorityBinding {
+                grant_id: grant.grant_id.clone(),
+                contract_id: grant.contract_id.clone(),
+                host_operation_contract_id: grant.host_operation_contract_id.clone(),
+                subject_kind: grant.subject_kind.clone(),
+                host_id: grant.host_id.clone(),
+                boot_id: grant.boot_id.clone(),
+                capability_id: grant.capability_id.clone(),
+            });
+        }
+        authority_bindings.sort();
+
         let placement_id = PlacementId::from(hash_string(&format!(
             "placement:{}:{}:{}:{}",
             form.checked_form_id.as_str(),
@@ -341,6 +450,7 @@ pub fn plan_with_connection_limits_and_provider_overrides(
             outputs: operation.outputs.clone(),
             host_operations: capability.host_operations.clone(),
             resources: resource_bindings,
+            authority: authority_bindings,
         });
     }
 
@@ -615,6 +725,50 @@ fn validate_operation_capability(
             capability.capability_id.as_str()
         )));
     }
+    if capability.authority_requirements.iter().any(|requirement| {
+        requirement.contract_id.as_str().is_empty()
+            || requirement.host_operation_contract_id.as_str().is_empty()
+            || requirement.subject_kind.as_str().is_empty()
+            || !capability.host_operations.iter().any(|host_operation| {
+                host_operation.contract_id == requirement.host_operation_contract_id
+                    && host_operation.target_kind.as_ref() == Some(&requirement.subject_kind)
+            })
+    }) || capability
+        .authority_requirements
+        .windows(2)
+        .any(|pair| pair[0] >= pair[1])
+    {
+        return Err(PlannerError::InvalidAuthorityContract(format!(
+            "capability '{}' authority requirements must bind a declared targeted host operation with non-empty identities and unique canonical ordering",
+            capability.capability_id.as_str()
+        )));
+    }
+    Ok(())
+}
+
+fn validate_authority_grants(grants: &[AuthorityGrant]) -> Result<(), PlannerError> {
+    if grants.iter().any(|grant| {
+        grant.grant_id.as_str().is_empty()
+            || grant.contract_id.as_str().is_empty()
+            || grant.host_operation_contract_id.as_str().is_empty()
+            || grant.subject_kind.as_str().is_empty()
+            || grant.host_id.as_str().is_empty()
+            || grant.boot_id.as_str().is_empty()
+            || grant.capability_id.as_str().is_empty()
+    }) {
+        return Err(PlannerError::InvalidAuthorityContract(
+            "grants must have non-empty immutable scope identities".to_string(),
+        ));
+    }
+    let unique_ids = grants
+        .iter()
+        .map(|grant| &grant.grant_id)
+        .collect::<BTreeSet<_>>();
+    if unique_ids.len() != grants.len() {
+        return Err(PlannerError::InvalidAuthorityContract(
+            "grant identities must be unique".to_string(),
+        ));
+    }
     Ok(())
 }
 
@@ -714,12 +868,16 @@ fn hex(nibble: u8) -> char {
 
 #[cfg(test)]
 mod tests {
-    use super::{default_placements, parse_placements, plan, startup_order, PlannerError};
+    use super::{
+        default_placements, parse_placements, plan, plan_with_authority_grants, startup_order,
+        PlannerError,
+    };
     use conduit_core::{
-        kind_id, mandatory_evidence_storage_requirement, verify_plan, ArtifactId,
-        CancellationPolicy, CapabilityLimits, CapabilityOffer, ConnectionProvider, ExpandedFormId,
-        HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration,
-        SourceDocumentId, StartupDependency, TerminalPolicy, PROTOCOL_VERSION,
+        authority_grant, kind_id, mandatory_evidence_storage_requirement,
+        present_authority_requirement, verify_plan, ArtifactId, CancellationPolicy,
+        CapabilityLimits, CapabilityOffer, ConnectionProvider, ExpandedFormId, HostAdvertisement,
+        HostId, HostProfileId, ImplementationId, OfferGeneration, SourceDocumentId,
+        StartupDependency, TerminalPolicy, PROTOCOL_VERSION,
     };
     use conduit_form::parse;
     use conduit_signal::{
@@ -727,6 +885,7 @@ mod tests {
         pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
         show_host_operation_requirements, show_inputs, show_resource_requirements,
         signal_profile_catalog, signal_resource_offers, PULSE_KIND, SHOW_KIND,
+        SIGNAL_PRESENTATION_KIND,
     };
 
     fn form() -> conduit_form::CheckedForm {
@@ -757,6 +916,7 @@ mod tests {
                     outputs: pulse_outputs(),
                     host_operations: pulse_host_operation_requirements(),
                     resource_requirements: pulse_resource_requirements(),
+                    authority_requirements: vec![],
                     limits: CapabilityLimits {
                         max_active_instances: 4,
                         max_queue_items: 4,
@@ -774,6 +934,7 @@ mod tests {
                     outputs: vec![],
                     host_operations: show_host_operation_requirements(),
                     resource_requirements: show_resource_requirements(),
+                    authority_requirements: vec![],
                     limits: CapabilityLimits {
                         max_active_instances: 4,
                         max_queue_items: 4,
@@ -1017,6 +1178,106 @@ mod tests {
             ),
             Err(PlannerError::ResourceCapacityExceeded(_))
         ));
+    }
+
+    #[test]
+    fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants() {
+        let form = form();
+        let mut invalid = host();
+        invalid.capabilities[1].authority_requirements = vec![conduit_core::AuthorityRequirement {
+            contract_id: conduit_core::AuthorityContractId::from(
+                conduit_core::PRESENT_AUTHORITY_CONTRACT,
+            ),
+            host_operation_contract_id: conduit_core::HostOperationContractId::from(
+                conduit_core::WAIT_HOST_OPERATION_CONTRACT,
+            ),
+            subject_kind: kind_id(SIGNAL_PRESENTATION_KIND),
+        }];
+        let invalid_placements = default_placements(&form, std::slice::from_ref(&invalid))
+            .expect("placements resolve before authority validation");
+        assert!(matches!(
+            plan_with_authority_grants(
+                &form,
+                std::slice::from_ref(&invalid),
+                &invalid_placements,
+                &[ConnectionProvider::Local],
+                &[],
+            ),
+            Err(PlannerError::InvalidAuthorityContract(_))
+        ));
+
+        let mut advertised = host();
+        let requirement = present_authority_requirement(kind_id(SIGNAL_PRESENTATION_KIND));
+        advertised.capabilities[1].authority_requirements = vec![requirement.clone()];
+        let placements = default_placements(&form, std::slice::from_ref(&advertised))
+            .expect("placements resolve without implying authority");
+
+        assert!(matches!(
+            plan_with_authority_grants(
+                &form,
+                std::slice::from_ref(&advertised),
+                &placements,
+                &[ConnectionProvider::Local],
+                &[],
+            ),
+            Err(PlannerError::AuthorityGrantMissing(_))
+        ));
+
+        let stale = authority_grant(
+            "grant/stale",
+            &requirement,
+            advertised.host_id.clone(),
+            conduit_core::BootId::from("stale-boot"),
+            advertised.capabilities[1].capability_id.clone(),
+        );
+        assert!(matches!(
+            plan_with_authority_grants(
+                &form,
+                std::slice::from_ref(&advertised),
+                &placements,
+                &[ConnectionProvider::Local],
+                &[stale],
+            ),
+            Err(PlannerError::AuthorityGrantMissing(_))
+        ));
+
+        let grant = authority_grant(
+            "grant/show",
+            &requirement,
+            advertised.host_id.clone(),
+            advertised.boot_id.clone(),
+            advertised.capabilities[1].capability_id.clone(),
+        );
+        let mut duplicate_scope = grant.clone();
+        duplicate_scope.grant_id = conduit_core::AuthorityGrantId::from("grant/show-alternate");
+        assert!(matches!(
+            plan_with_authority_grants(
+                &form,
+                std::slice::from_ref(&advertised),
+                &placements,
+                &[ConnectionProvider::Local],
+                &[grant.clone(), duplicate_scope],
+            ),
+            Err(PlannerError::AuthorityGrantAmbiguous(_))
+        ));
+
+        let plan = plan_with_authority_grants(
+            &form,
+            std::slice::from_ref(&advertised),
+            &placements,
+            &[ConnectionProvider::Local],
+            std::slice::from_ref(&grant),
+        )
+        .expect("exact grant resolves");
+        let show = plan.fragments[0]
+            .placements
+            .iter()
+            .find(|placement| placement.kind_id.as_str() == SHOW_KIND)
+            .expect("show placement exists");
+        assert_eq!(show.authority.len(), 1);
+        assert_eq!(show.authority[0].grant_id, grant.grant_id);
+        assert_eq!(show.authority[0].host_id, advertised.host_id);
+        assert_eq!(show.authority[0].boot_id, advertised.boot_id);
     }
 
     #[test]

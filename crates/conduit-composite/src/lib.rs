@@ -156,6 +156,7 @@ impl CompositeDefinition {
                 outputs: external_outputs,
                 host_operations: Vec::new(),
                 resource_requirements: Vec::new(),
+                authority_requirements: Vec::new(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: connection.item_capacity,
@@ -1124,6 +1125,7 @@ mod tests {
                 } else {
                     show_resource_requirements()
                 },
+                authority_requirements: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 2,
                     max_queue_items: 8,
@@ -1590,6 +1592,7 @@ mod tests {
             outputs: vec![],
             host_operations: vec![],
             resource_requirements: vec![],
+            authority_requirements: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 0,
                 max_queue_items: 0,
@@ -1834,6 +1837,7 @@ mod tests {
                 outputs: pulse_outputs(),
                 host_operations: vec![],
                 resource_requirements: vec![],
+                authority_requirements: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 5,
                     max_queue_items: 9,

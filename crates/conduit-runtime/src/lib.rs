@@ -87,6 +87,9 @@ pub trait OperationImplementation {
     fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
         Vec::new()
     }
+    fn authority_requirements(&self) -> Vec<conduit_core::AuthorityRequirement> {
+        Vec::new()
+    }
     fn prepare(
         &self,
         placement: &PlannedOperation,
@@ -165,6 +168,7 @@ pub struct HostRuntime {
     plans: BTreeMap<PlanId, RuntimePlan>,
     released_plans: BTreeSet<PlanId>,
     implementations: ImplementationRegistry,
+    authority_grants: Vec<conduit_core::AuthorityGrant>,
 }
 
 impl core::fmt::Debug for HostRuntime {
@@ -176,6 +180,7 @@ impl core::fmt::Debug for HostRuntime {
             .field("plans", &self.plans.keys().collect::<Vec<_>>())
             .field("released_plans", &self.released_plans)
             .field("implementations", &self.implementations)
+            .field("authority_grants", &self.authority_grants.len())
             .finish()
     }
 }
@@ -330,6 +335,25 @@ fn validate_fragment_execution_contract(
         return Some((
             FailureReason::HostOperationContractMismatch,
             "host-operation requirements must have non-empty identities, unique canonical ordering, and nonzero in-flight bounds".to_string(),
+        ));
+    }
+    if fragment.placements.iter().any(|placement| {
+        placement.authority.iter().any(|binding| {
+            binding.grant_id.as_str().is_empty()
+                || binding.contract_id.as_str().is_empty()
+                || binding.host_operation_contract_id.as_str().is_empty()
+                || binding.subject_kind.as_str().is_empty()
+                || binding.host_id.as_str().is_empty()
+                || binding.boot_id.as_str().is_empty()
+                || binding.capability_id.as_str().is_empty()
+        }) || placement
+            .authority
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+    }) {
+        return Some((
+            FailureReason::AuthorityContractMismatch,
+            "authority bindings must have non-empty exact scope identities and unique canonical ordering".to_string(),
         ));
     }
     if fragment.placements.iter().any(|placement| {
@@ -512,11 +536,78 @@ fn validate_host_operation_action(
     Ok(())
 }
 
+fn validate_authority_action(
+    placement: &PlannedOperation,
+    action: &OperationAction,
+) -> Result<(), ImplementationFailure> {
+    let (contract, target_kind) = match action {
+        OperationAction::Wait { .. } => (conduit_core::WAIT_HOST_OPERATION_CONTRACT, None),
+        OperationAction::Present {
+            presentation_kind, ..
+        } => (
+            conduit_core::PRESENT_HOST_OPERATION_CONTRACT,
+            Some(presentation_kind),
+        ),
+        _ => return Ok(()),
+    };
+    let requires_authority = placement
+        .authority
+        .iter()
+        .any(|binding| binding.host_operation_contract_id.as_str() == contract);
+    if requires_authority
+        && !placement.authority.iter().any(|binding| {
+            binding.host_operation_contract_id.as_str() == contract
+                && Some(&binding.subject_kind) == target_kind
+        })
+    {
+        return Err(ImplementationFailure::new(
+            FailureReason::AuthorityDenied,
+            format!(
+                "placement '{}' lacks authority for host operation '{}' and requested subject",
+                placement.placement_id.as_str(),
+                contract
+            ),
+        ));
+    }
+    Ok(())
+}
+
+fn authority_binding_matches_current_grant(
+    binding: &conduit_core::AuthorityBinding,
+    grants: &[conduit_core::AuthorityGrant],
+) -> bool {
+    let mut matches = grants
+        .iter()
+        .filter(|grant| grant.grant_id == binding.grant_id);
+    matches.next().is_some_and(|grant| {
+        grant.contract_id == binding.contract_id
+            && grant.host_operation_contract_id == binding.host_operation_contract_id
+            && grant.subject_kind == binding.subject_kind
+            && grant.host_id == binding.host_id
+            && grant.boot_id == binding.boot_id
+            && grant.capability_id == binding.capability_id
+    }) && matches.next().is_none()
+}
+
 impl HostRuntime {
     pub fn new(
         advertisement: HostAdvertisement,
         implementations: ImplementationRegistry,
         observation_limit: usize,
+    ) -> Self {
+        Self::new_with_authority_grants(
+            advertisement,
+            implementations,
+            observation_limit,
+            Vec::new(),
+        )
+    }
+
+    pub fn new_with_authority_grants(
+        advertisement: HostAdvertisement,
+        implementations: ImplementationRegistry,
+        observation_limit: usize,
+        authority_grants: Vec<conduit_core::AuthorityGrant>,
     ) -> Self {
         let mut runtime = Self {
             advertisement,
@@ -525,6 +616,7 @@ impl HostRuntime {
             plans: BTreeMap::new(),
             released_plans: BTreeSet::new(),
             implementations,
+            authority_grants,
         };
         runtime.record_observation(None, None, None, ObservationKind::HostStarted);
         runtime.record_observation(None, None, None, ObservationKind::AdvertisementPublished);
@@ -792,6 +884,47 @@ impl HostRuntime {
                 });
                 return output;
             }
+            let mut bound_authority_requirements = placement
+                .authority
+                .iter()
+                .map(|binding| conduit_core::AuthorityRequirement {
+                    contract_id: binding.contract_id.clone(),
+                    host_operation_contract_id: binding.host_operation_contract_id.clone(),
+                    subject_kind: binding.subject_kind.clone(),
+                })
+                .collect::<Vec<_>>();
+            bound_authority_requirements.sort();
+            if capability.authority_requirements != bound_authority_requirements
+                || placement.authority.iter().any(|binding| {
+                    binding.host_id != placement.host_id
+                        || binding.boot_id != placement.boot_id
+                        || binding.capability_id != placement.capability_id
+                })
+            {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::AuthorityContractMismatch,
+                    message: Some(format!(
+                        "capability '{}' authority requirements or scope differ from placement '{}'",
+                        capability.capability_id.as_str(),
+                        placement.placement_id.as_str()
+                    )),
+                });
+                return output;
+            }
+            if placement.authority.iter().any(|binding| {
+                !authority_binding_matches_current_grant(binding, &self.authority_grants)
+            }) {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::AuthorityDenied,
+                    message: Some(format!(
+                        "placement '{}' lacks its exact current authority grant",
+                        placement.placement_id.as_str()
+                    )),
+                });
+                return output;
+            }
             if capability.implementation_id != placement.implementation_id {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
@@ -887,6 +1020,18 @@ impl HostRuntime {
                     reason: FailureReason::ResourceContractMismatch,
                     message: Some(format!(
                         "installed implementation '{}' resource requirements differ from placement '{}'",
+                        placement.implementation_id.as_str(),
+                        placement.placement_id.as_str()
+                    )),
+                });
+                return output;
+            }
+            if implementation.authority_requirements() != bound_authority_requirements {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::AuthorityContractMismatch,
+                    message: Some(format!(
+                        "installed implementation '{}' authority requirements differ from placement '{}'",
                         placement.implementation_id.as_str(),
                         placement.placement_id.as_str()
                     )),
@@ -1769,7 +1914,10 @@ impl HostRuntime {
                     plan.placements.get(&placement_id).and_then(|placement| {
                         validate_host_operation_action(&placement.spec, &action).err()
                     });
-                if let Some(failure) = host_operation_failure {
+                let authority_failure = plan.placements.get(&placement_id).and_then(|placement| {
+                    validate_authority_action(&placement.spec, &action).err()
+                });
+                if let Some(failure) = host_operation_failure.or(authority_failure) {
                     fail_operation(
                         plan,
                         &placement_id,
@@ -2641,6 +2789,7 @@ mod conformance {
                     outputs: pulse_outputs(),
                     host_operations: vec![wait_host_operation_requirement()],
                     resource_requirements: vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
+                    authority_requirements: vec![],
                     limits: CapabilityLimits {
                         max_active_instances: 8,
                         max_queue_items: queue_items,
@@ -2664,6 +2813,7 @@ mod conformance {
                         PRESENTATION_RESOURCE_CLASS,
                         1,
                     )],
+                    authority_requirements: vec![],
                     limits: CapabilityLimits {
                         max_active_instances: 8,
                         max_queue_items: queue_items,

@@ -1,6 +1,7 @@
 use conduit_core::{
-    kind_id, mandatory_evidence_storage_requirement, port_id, present_host_operation_requirement,
-    resource_offer, resource_requirement, seal_plan, wait_host_operation_requirement, ArtifactId,
+    authority_grant, kind_id, mandatory_evidence_storage_requirement, port_id,
+    present_authority_requirement, present_host_operation_requirement, resource_offer,
+    resource_requirement, seal_plan, wait_host_operation_requirement, ArtifactId, AuthorityGrant,
     BootId, CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
     ConnectionOutcome, ConnectionProvider, ExecutionProfileId, ExpandedFormId, ExpectedEvidence,
     ExpectedTerminal, FailureReason, FormIdentity, FragmentId, HostAdvertisement, HostCommand,
@@ -11,7 +12,9 @@ use conduit_core::{
     PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
-use conduit_planner::{default_placements, plan, PlacementChoice, PlacementChoices};
+use conduit_planner::{
+    default_placements, plan, plan_with_authority_grants, PlacementChoice, PlacementChoices,
+};
 use conduit_runtime::{
     HostRuntime, ImplementationFailure, ImplementationRegistry, OperationAction,
     OperationCompletion, OperationImplementation, OperationState,
@@ -22,6 +25,7 @@ const SOURCE_KIND: &str = "contract/source";
 const SINK_KIND: &str = "contract/sink";
 const VALUE_KIND: &str = "contract/value";
 const PRESENTATION_KIND: &str = "contract/presentation";
+const UNGRANTED_PRESENTATION_KIND: &str = "contract/ungranted-presentation";
 const SOURCE_CONTRACT: &str = "contract/source@1";
 const SINK_CONTRACT: &str = "contract/sink@1";
 const SOURCE_PROFILE: &str = "contract/source-hosted@1";
@@ -89,6 +93,7 @@ fn advertisement() -> HostAdvertisement {
                 outputs: source_outputs(),
                 host_operations: vec![],
                 resource_requirements: vec![],
+                authority_requirements: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 2,
                     max_queue_items: 4,
@@ -109,6 +114,7 @@ fn advertisement() -> HostAdvertisement {
                     1,
                 )],
                 resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+                authority_requirements: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 2,
                     max_queue_items: 4,
@@ -134,6 +140,48 @@ fn fragment(advertisement: &HostAdvertisement) -> PlanFragment {
         &[conduit_core::ConnectionProvider::Local],
     )
     .expect("contract plan resolves")
+    .fragments
+    .into_iter()
+    .next()
+    .expect("host fragment exists")
+}
+
+fn authority_advertisement() -> HostAdvertisement {
+    let mut advertised = advertisement();
+    advertised.capabilities[1].authority_requirements =
+        vec![present_authority_requirement(kind_id(PRESENTATION_KIND))];
+    advertised
+}
+
+fn presentation_grant(advertisement: &HostAdvertisement) -> AuthorityGrant {
+    authority_grant(
+        "grant/contract-presentation",
+        &advertisement.capabilities[1].authority_requirements[0],
+        advertisement.host_id.clone(),
+        advertisement.boot_id.clone(),
+        advertisement.capabilities[1].capability_id.clone(),
+    )
+}
+
+fn authority_fragment(
+    advertisement: &HostAdvertisement,
+    grants: &[AuthorityGrant],
+) -> PlanFragment {
+    let form = parse(
+        "form 0\n\ncontract {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
+        &profile_catalog(),
+    )
+    .expect("contract form parses");
+    let placements = default_placements(&form, std::slice::from_ref(advertisement))
+        .expect("default placements resolve without granting authority");
+    plan_with_authority_grants(
+        &form,
+        std::slice::from_ref(advertisement),
+        &placements,
+        &[ConnectionProvider::Local],
+        grants,
+    )
+    .expect("authority-bound contract plan resolves")
     .fragments
     .into_iter()
     .next()
@@ -241,6 +289,9 @@ struct SinkImplementation {
     artifact_id: ArtifactId,
     maximum_presentation_bytes: u32,
     presentation_resource_units: u32,
+    declares_presentation_authority: bool,
+    additional_presentation_kind: Option<conduit_core::KindId>,
+    requested_presentation_kind: conduit_core::KindId,
 }
 
 impl SinkImplementation {
@@ -251,6 +302,9 @@ impl SinkImplementation {
             artifact_id: ArtifactId::from("contract/sink-artifact-v1"),
             maximum_presentation_bytes: 1,
             presentation_resource_units: 1,
+            declares_presentation_authority: false,
+            additional_presentation_kind: None,
+            requested_presentation_kind: kind_id(PRESENTATION_KIND),
         }
     }
 
@@ -261,6 +315,17 @@ impl SinkImplementation {
 
     fn with_presentation_resource_units(mut self, units: u32) -> Self {
         self.presentation_resource_units = units;
+        self
+    }
+
+    fn with_presentation_authority(mut self) -> Self {
+        self.declares_presentation_authority = true;
+        self
+    }
+
+    fn with_ungranted_presentation(mut self, presentation_kind: conduit_core::KindId) -> Self {
+        self.additional_presentation_kind = Some(presentation_kind.clone());
+        self.requested_presentation_kind = presentation_kind;
         self
     }
 }
@@ -287,10 +352,18 @@ impl OperationImplementation for SinkImplementation {
     }
 
     fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
-        vec![present_host_operation_requirement(
+        let mut requirements = vec![present_host_operation_requirement(
             kind_id(PRESENTATION_KIND),
             self.maximum_presentation_bytes,
-        )]
+        )];
+        if let Some(presentation_kind) = &self.additional_presentation_kind {
+            requirements.push(present_host_operation_requirement(
+                presentation_kind.clone(),
+                self.maximum_presentation_bytes,
+            ));
+        }
+        requirements.sort();
+        requirements
     }
 
     fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
@@ -303,11 +376,20 @@ impl OperationImplementation for SinkImplementation {
             .collect()
     }
 
+    fn authority_requirements(&self) -> Vec<conduit_core::AuthorityRequirement> {
+        self.declares_presentation_authority
+            .then(|| present_authority_requirement(kind_id(PRESENTATION_KIND)))
+            .into_iter()
+            .collect()
+    }
+
     fn prepare(
         &self,
         _placement: &PlannedOperation,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
-        Ok(Box::new(SinkState))
+        Ok(Box::new(SinkState {
+            presentation_kind: self.requested_presentation_kind.clone(),
+        }))
     }
 
     fn minimum_value_size(&self, value_kind: &conduit_core::KindId) -> Option<u32> {
@@ -315,7 +397,9 @@ impl OperationImplementation for SinkImplementation {
     }
 }
 
-struct SinkState;
+struct SinkState {
+    presentation_kind: conduit_core::KindId,
+}
 
 impl OperationState for SinkState {
     fn start(&mut self) -> OperationAction {
@@ -325,7 +409,7 @@ impl OperationState for SinkState {
     fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
         match completion {
             OperationCompletion::Value(value) => OperationAction::Present {
-                presentation_kind: kind_id(PRESENTATION_KIND),
+                presentation_kind: self.presentation_kind.clone(),
                 value,
             },
             OperationCompletion::PresentationCompleted { success: true, .. } => {
@@ -563,6 +647,10 @@ impl OperationImplementation for UnsupportedValueImplementation {
 
     fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
         self.0.resource_requirements()
+    }
+
+    fn authority_requirements(&self) -> Vec<conduit_core::AuthorityRequirement> {
+        self.0.authority_requirements()
     }
 
     fn prepare(
@@ -1061,6 +1149,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
             outputs: vec![],
             host_operations: vec![],
             resource_requirements: vec![],
+            authority_requirements: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 0,
@@ -1109,6 +1198,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
                 outputs: Vec::new(),
                 host_operations: Vec::new(),
                 resources: Vec::new(),
+                authority: Vec::new(),
             }],
             connections: Vec::new(),
             startup_dependencies: Vec::new(),
@@ -1375,6 +1465,51 @@ fn missing_resource_registry() -> ImplementationRegistry {
     registry
 }
 
+fn authority_registry() -> ImplementationRegistry {
+    let mut registry = ImplementationRegistry::new();
+    registry
+        .install(SourceImplementation::new(ImplementationId::from(
+            "contract/source-v1",
+        )))
+        .expect("source installs");
+    registry
+        .install(
+            SinkImplementation::new(ImplementationId::from("contract/sink-v1"))
+                .with_presentation_authority(),
+        )
+        .expect("authority-declaring sink installs");
+    registry
+}
+
+fn ungranted_authority_registry() -> ImplementationRegistry {
+    let mut registry = ImplementationRegistry::new();
+    registry
+        .install(SourceImplementation::new(ImplementationId::from(
+            "contract/source-v1",
+        )))
+        .expect("source installs");
+    registry
+        .install(
+            SinkImplementation::new(ImplementationId::from("contract/sink-v1"))
+                .with_presentation_authority()
+                .with_ungranted_presentation(kind_id(UNGRANTED_PRESENTATION_KIND)),
+        )
+        .expect("mis-scoped authority sink installs");
+    registry
+}
+
+fn ungranted_authority_advertisement() -> HostAdvertisement {
+    let mut advertised = authority_advertisement();
+    advertised.capabilities[1]
+        .host_operations
+        .push(present_host_operation_requirement(
+            kind_id(UNGRANTED_PRESENTATION_KIND),
+            1,
+        ));
+    advertised.capabilities[1].host_operations.sort();
+    advertised
+}
+
 fn adapter_advertisement() -> HostAdvertisement {
     let mut advertised = advertisement();
     advertised.capabilities[0].host_operations = vec![wait_host_operation_requirement()];
@@ -1483,6 +1618,158 @@ fn preparation_reserves_resource_pool_capacity_until_release() {
         .events
         .iter()
         .any(|event| matches!(event, HostEvent::Prepared { .. })));
+}
+
+#[test]
+fn authority_binding_mutations_change_fragment_identity() {
+    let advertised = authority_advertisement();
+    let grant = presentation_grant(&advertised);
+    let original = authority_fragment(&advertised, std::slice::from_ref(&grant));
+
+    for field in 0..7 {
+        let mut mutated = original.clone();
+        let binding = mutated
+            .placements
+            .iter_mut()
+            .find_map(|placement| placement.authority.first_mut())
+            .expect("authority binding exists");
+        match field {
+            0 => {
+                binding.grant_id = conduit_core::AuthorityGrantId::from("mutated/grant");
+            }
+            1 => {
+                binding.contract_id =
+                    conduit_core::AuthorityContractId::from("mutated/authority@1");
+            }
+            2 => {
+                binding.host_operation_contract_id =
+                    HostOperationContractId::from("mutated/host-operation@1");
+            }
+            3 => binding.subject_kind = kind_id("mutated/subject"),
+            4 => binding.host_id = HostId::from("mutated-host"),
+            5 => binding.boot_id = BootId::from("mutated-boot"),
+            6 => binding.capability_id = CapabilityId::from("mutated-capability"),
+            _ => unreachable!(),
+        }
+        assert_post_identity_mutation_is_rejected(&advertised, mutated);
+    }
+}
+
+#[test]
+fn preparation_and_effect_admission_require_the_exact_current_authority_grant() {
+    let advertised = authority_advertisement();
+    let grant = presentation_grant(&advertised);
+    let fragment = authority_fragment(&advertised, std::slice::from_ref(&grant));
+
+    let mut runtime = HostRuntime::new(advertised.clone(), authority_registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(fragment.clone()))),
+        Some(FailureReason::AuthorityDenied)
+    );
+
+    let mut runtime = HostRuntime::new_with_authority_grants(
+        advertised.clone(),
+        registry(),
+        64,
+        vec![grant.clone()],
+    );
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(fragment.clone()))),
+        Some(FailureReason::AuthorityContractMismatch)
+    );
+
+    let mut conflicting = grant.clone();
+    conflicting.subject_kind = kind_id("conflicting/subject");
+    let mut runtime = HostRuntime::new_with_authority_grants(
+        advertised.clone(),
+        authority_registry(),
+        64,
+        vec![grant.clone(), conflicting],
+    );
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(fragment.clone()))),
+        Some(FailureReason::AuthorityDenied)
+    );
+
+    let plan_id = fragment.plan_id.clone();
+    let mut runtime = HostRuntime::new_with_authority_grants(
+        advertised.clone(),
+        authority_registry(),
+        64,
+        vec![grant.clone()],
+    );
+    assert!(runtime
+        .handle(HostCommand::Prepare(fragment.clone()))
+        .events
+        .iter()
+        .any(|event| matches!(event, HostEvent::Prepared { .. })));
+    assert!(runtime
+        .handle(HostCommand::Activate(plan_id))
+        .effects
+        .iter()
+        .any(|effect| matches!(effect, PlatformEffect::PresentValue { .. })));
+
+    let mut mutated = fragment.clone();
+    mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.authority.first_mut())
+        .expect("authority binding exists")
+        .grant_id = conduit_core::AuthorityGrantId::from("mutated/grant");
+    let mut runtime = HostRuntime::new_with_authority_grants(
+        advertised.clone(),
+        authority_registry(),
+        64,
+        vec![grant.clone()],
+    );
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::AuthorityDenied)
+    );
+
+    let mut mutated = fragment;
+    mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.authority.first_mut())
+        .expect("authority binding exists")
+        .subject_kind = kind_id("mutated/subject");
+    let mut runtime =
+        HostRuntime::new_with_authority_grants(advertised, authority_registry(), 64, vec![grant]);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::AuthorityContractMismatch)
+    );
+}
+
+#[test]
+fn effect_admission_rejects_a_planned_host_operation_outside_the_bound_grant_subject() {
+    let advertised = ungranted_authority_advertisement();
+    let grant = presentation_grant(&advertised);
+    let fragment = authority_fragment(&advertised, std::slice::from_ref(&grant));
+    let plan_id = fragment.plan_id.clone();
+    let mut runtime = HostRuntime::new_with_authority_grants(
+        advertised,
+        ungranted_authority_registry(),
+        64,
+        vec![grant],
+    );
+    assert!(runtime
+        .handle(HostCommand::Prepare(fragment))
+        .events
+        .iter()
+        .any(|event| matches!(event, HostEvent::Prepared { .. })));
+    let activated = runtime.handle(HostCommand::Activate(plan_id));
+    assert!(activated.effects.is_empty());
+    assert!(activated.events.iter().any(|event| matches!(
+        event,
+        HostEvent::PlacementTerminated {
+            disposition: TerminalDisposition::Failed {
+                reason: FailureReason::AuthorityDenied
+            },
+            ..
+        }
+    )));
 }
 
 #[test]
