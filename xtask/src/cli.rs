@@ -36,75 +36,8 @@ pub struct GlobalOpts {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Run a check suite.
-    Check(CheckArgs),
-    /// Run a demo.
-    Demo(DemoArgs),
-    /// Run a proof.
-    Prove(ProveArgs),
-    /// Inspect prerequisites.
+    /// Inspect prerequisites (smoke command; check/demo/prove added in later PRs).
     Doctor(DoctorArgs),
-}
-
-// ── check ────────────────────────────────────────────────────────────────────
-
-#[derive(Args, Debug)]
-pub struct CheckArgs {
-    /// The suite to run (default: all).
-    #[arg(default_value = "all")]
-    pub suite: CheckSuite,
-}
-
-#[derive(ValueEnum, Debug, Clone, PartialEq, Eq)]
-pub enum CheckSuite {
-    All,
-    #[value(name = "kernel-s1")]
-    KernelS1,
-    #[value(name = "kernel-takeover")]
-    KernelTakeover,
-    #[value(name = "planning-s2")]
-    PlanningS2,
-    #[value(name = "form-s3")]
-    FormS3,
-    #[value(name = "browser-s4")]
-    BrowserS4,
-    Realm,
-    Observatory,
-    #[value(name = "std-catalog")]
-    StdCatalog,
-    Simulation,
-}
-
-// ── demo ─────────────────────────────────────────────────────────────────────
-
-#[derive(Args, Debug)]
-pub struct DemoArgs {
-    /// The demo to run (default: std).
-    #[arg(default_value = "std")]
-    pub name: DemoName,
-}
-
-#[derive(ValueEnum, Debug, Clone, PartialEq, Eq)]
-pub enum DemoName {
-    Std,
-    #[value(name = "triple-local")]
-    TripleLocal,
-}
-
-// ── prove ─────────────────────────────────────────────────────────────────────
-
-#[derive(Args, Debug)]
-pub struct ProveArgs {
-    /// The proof to run.
-    pub name: ProveName,
-}
-
-#[derive(ValueEnum, Debug, Clone, PartialEq, Eq)]
-pub enum ProveName {
-    #[value(name = "std-browser-s4")]
-    StdBrowserS4,
-    #[value(name = "std-browser")]
-    StdBrowser,
 }
 
 // ── doctor ───────────────────────────────────────────────────────────────────

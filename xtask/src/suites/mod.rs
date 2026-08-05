@@ -1,8 +1,3 @@
-pub mod browser;
-pub mod catalog;
-pub mod kernel;
-pub mod form;
-pub mod observatory;
-pub mod planning;
-pub mod realm;
-pub mod simulation;
+// Suite definitions are added in subsequent PRs.
+// Each suite will be a named &[Step] slice preserving the exact commands
+// from the justfile at the time of migration.

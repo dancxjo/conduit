@@ -36,4 +36,23 @@ mod tests {
         let manifest = std::fs::read_to_string(root.join("Cargo.toml")).unwrap();
         assert!(manifest.contains("[workspace]"));
     }
+
+    /// Contract test: `.cargo/config.toml` must define an `xtask` Cargo alias
+    /// so that `cargo xtask` resolves without requiring a separate install step.
+    #[test]
+    fn cargo_config_defines_xtask_alias() {
+        let root = workspace_root().expect("workspace root not found");
+        let config_path = root.join(".cargo").join("config.toml");
+        assert!(
+            config_path.exists(),
+            ".cargo/config.toml is missing — `cargo xtask` alias cannot resolve"
+        );
+        let config = std::fs::read_to_string(&config_path)
+            .expect("could not read .cargo/config.toml");
+        assert!(
+            config.contains("xtask"),
+            ".cargo/config.toml does not define an `xtask` alias; \
+             add: xtask = \"run --package xtask --\""
+        );
+    }
 }
