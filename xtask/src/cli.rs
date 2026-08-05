@@ -24,10 +24,6 @@ pub struct GlobalOpts {
     /// Emit one structured JSON report to stdout.
     #[arg(long, global = true)]
     pub json: bool,
-
-    /// Internal runner policy reserved for future multi-step commands.
-    #[arg(skip)]
-    pub keep_going: bool,
 }
 
 #[derive(Subcommand, Debug)]
