@@ -128,6 +128,7 @@ pub enum ConnectionProvider {
     Local,
     InMemory,
     WebSocket,
+    Udp,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -342,6 +343,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             ConnectionProvider::Local => 0,
             ConnectionProvider::InMemory => 1,
             ConnectionProvider::WebSocket => 2,
+            ConnectionProvider::Udp => 3,
         });
         canonical.extend_from_slice(&connection.item_capacity.to_le_bytes());
         push_u32(&mut canonical, connection.byte_capacity);

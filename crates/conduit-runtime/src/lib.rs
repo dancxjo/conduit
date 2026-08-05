@@ -544,6 +544,8 @@ impl HostRuntime {
                 (ConnectionProvider::InMemory, false, true) => ConnectionRole::Inbound,
                 (ConnectionProvider::WebSocket, true, false) => ConnectionRole::Outbound,
                 (ConnectionProvider::WebSocket, false, true) => ConnectionRole::Inbound,
+                (ConnectionProvider::Udp, true, false) => ConnectionRole::Outbound,
+                (ConnectionProvider::Udp, false, true) => ConnectionRole::Inbound,
                 _ => {
                     output.events.push(HostEvent::PreparationRejected {
                         plan_id: fragment.plan_id,

@@ -19,6 +19,9 @@ browser-wasm-check:
 pico-host:
     cargo test -p conduit-pico-host
 
+pico-udp-relay:
+    cargo test -p conduit-pico-host std_host_sends_signal_to_pico_over_bounded_udp_relay
+
 pico-thumb-check:
     cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi
 
@@ -36,5 +39,6 @@ check-browser-readiness:
     cargo test -p conduit-browser-host
     cargo check -p conduit-browser-host --target wasm32-unknown-unknown
     cargo test -p conduit-pico-host
+    cargo test -p conduit-pico-host std_host_sends_signal_to_pico_over_bounded_udp_relay
     cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi
     @if rg -i 'playwright' -g 'Cargo.toml' -g 'package.json' -g 'package-lock.json' .; then echo 'Playwright dependency is forbidden before browser host work'; exit 1; fi

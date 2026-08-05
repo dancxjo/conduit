@@ -535,9 +535,10 @@ Those may follow once the semantic source-to-sink path is proven.
 Current repository slice: `conduit-pico-host` provides the bounded Pico W
 advertisement and retained LED receipt model, checks without default features
 for `thumbv6m-none-eabi`, and has a hosted deterministic local
-`flow/pulse -> display/show` fixture. It is not a board support package, flash
-image, live timer driver, radio stack, physical LED acceptance run, or
-std-to-Pico transport.
+`flow/pulse -> display/show` fixture. It also has a deterministic bounded
+std-to-Pico UDP relay fixture that moves connection envelopes through
+`conduit-wire`. It is not a board support package, flash image, live timer
+driver, radio stack, physical LED acceptance run, or live std-to-Pico socket.
 
 ### Rust standard-library host
 

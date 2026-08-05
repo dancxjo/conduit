@@ -2,11 +2,14 @@
 
 extern crate alloc;
 
+use alloc::format;
+use alloc::string::String;
 use alloc::vec;
+use alloc::vec::Vec;
 use conduit_core::{
     kind_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, PlacementId,
-    PROTOCOL_VERSION,
+    ConnectionEnvelope, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    OfferGeneration, PlacementId, PROTOCOL_VERSION,
 };
 use conduit_signal::{decode_signal, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
 
@@ -24,6 +27,46 @@ pub struct LedReceipt {
     pub sequence: u64,
     pub level: bool,
     pub led_on: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct BoundedUdpRelay {
+    max_payload_bytes: u32,
+    max_datagram_bytes: usize,
+    datagrams: Vec<Vec<u8>>,
+}
+
+impl BoundedUdpRelay {
+    pub fn new(max_payload_bytes: u32, max_datagram_bytes: usize) -> Self {
+        Self {
+            max_payload_bytes,
+            max_datagram_bytes,
+            datagrams: Vec::new(),
+        }
+    }
+
+    pub fn datagrams(&self) -> &[Vec<u8>] {
+        &self.datagrams
+    }
+
+    pub fn transmit(
+        &mut self,
+        envelope: &ConnectionEnvelope,
+    ) -> Result<ConnectionEnvelope, String> {
+        let datagram = conduit_wire::encode_envelope(envelope, self.max_payload_bytes)
+            .map_err(|err| format!("udp relay encode failed: {err:?}"))?;
+        if datagram.len() > self.max_datagram_bytes {
+            return Err(format!(
+                "udp relay datagram {} exceeds bound {}",
+                datagram.len(),
+                self.max_datagram_bytes
+            ));
+        }
+        let decoded = conduit_wire::decode_envelope(&datagram, self.max_payload_bytes)
+            .map_err(|err| format!("udp relay decode failed: {err:?}"))?;
+        self.datagrams.push(datagram);
+        Ok(decoded)
+    }
 }
 
 pub fn pico_advertisement(config: PicoHostConfig) -> HostAdvertisement {
@@ -86,7 +129,7 @@ mod std_fixture {
         ImplementationId, Observation, PlacementId, Plan, PlanFragment, PlatformEffect,
     };
     use conduit_form::CheckedForm;
-    use conduit_planner::{plan, PlacementChoice, PlacementChoices};
+    use conduit_planner::{plan, plan_with_connection_limits, PlacementChoice, PlacementChoices};
     use conduit_runtime::{HostRuntime, RuntimeOutput};
     use conduit_signal::{signal_registry, SIGNAL_PRESENTATION_KIND};
     use std::collections::BTreeMap;
@@ -149,6 +192,61 @@ mod std_fixture {
             )?)
         }
 
+        pub fn plan_std_to_pico(
+            &self,
+            form: &CheckedForm,
+            std_advertisement: &HostAdvertisement,
+        ) -> Result<Plan, Box<dyn std::error::Error>> {
+            let placements = PlacementChoices {
+                by_operation: BTreeMap::from([
+                    (
+                        conduit_core::OperationId::from("pulse"),
+                        PlacementChoice {
+                            host_id: std_advertisement.host_id.clone(),
+                            capability_id: CapabilityId::from("pulse-1"),
+                        },
+                    ),
+                    (
+                        conduit_core::OperationId::from("show"),
+                        PlacementChoice {
+                            host_id: self.advertisement().host_id.clone(),
+                            capability_id: CapabilityId::from("onboard-led"),
+                        },
+                    ),
+                ]),
+            };
+            Ok(plan_with_connection_limits(
+                form,
+                &[std_advertisement.clone(), self.advertisement().clone()],
+                &placements,
+                &[ConnectionProvider::Udp],
+                4,
+                64,
+            )?)
+        }
+
+        pub fn complete_led_presentation(
+            &mut self,
+            plan_id: conduit_core::PlanId,
+            placement_id: PlacementId,
+            value: conduit_core::ValuePayload,
+        ) -> Result<RuntimeOutput, String> {
+            let receipt = led_receipt(
+                self.advertisement().host_id.clone(),
+                placement_id.clone(),
+                &value,
+            )
+            .map_err(|err| err.to_string())?;
+            self.receipts.push(receipt);
+            Ok(self.runtime.handle(HostCommand::CompletePresentation {
+                plan_id,
+                placement_id,
+                value,
+                success: true,
+                message: None,
+            }))
+        }
+
         pub fn run_fragment(&mut self, fragment: PlanFragment) -> Result<Vec<Observation>, String> {
             let prepare = self.runtime.handle(HostCommand::Prepare(fragment.clone()));
             ensure_prepared(&prepare)?;
@@ -180,20 +278,7 @@ mod std_fixture {
                                 presentation_kind.as_str()
                             ));
                         }
-                        let receipt = led_receipt(
-                            self.advertisement().host_id.clone(),
-                            placement_id.clone(),
-                            &value,
-                        )
-                        .map_err(|err| err.to_string())?;
-                        self.receipts.push(receipt);
-                        self.runtime.handle(HostCommand::CompletePresentation {
-                            plan_id,
-                            placement_id,
-                            value,
-                            success: true,
-                            message: None,
-                        })
+                        self.complete_led_presentation(plan_id, placement_id, value)?
                     }
                     PlatformEffect::TransmitConnection { .. } => {
                         return Err("pico local fixture must not use remote transport".to_string());
@@ -255,10 +340,16 @@ pub use std_fixture::PicoHost;
 
 #[cfg(test)]
 mod tests {
-    use super::{pico_advertisement, PicoHost, PicoHostConfig};
-    use conduit_core::{BootId, ConnectionProvider, HostId, OfferGeneration, TerminalDisposition};
+    use super::{pico_advertisement, BoundedUdpRelay, PicoHost, PicoHostConfig};
+    use conduit_core::{
+        BootId, ConnectionId, ConnectionOutcome, ConnectionProvider, HostCommand, HostEvent,
+        HostId, OfferGeneration, PlatformEffect, TerminalDisposition,
+    };
     use conduit_form::parse;
+    use conduit_runtime::RuntimeOutput;
     use conduit_signal::signal_profile_catalog;
+    use conduit_std_host::{StdHost, StdHostConfig};
+    use std::collections::VecDeque;
 
     #[test]
     fn constrained_advertisement_names_pico_led_without_transport_claims() {
@@ -319,5 +410,288 @@ mod tests {
                 disposition: TerminalDisposition::Completed
             }
         )));
+    }
+
+    #[test]
+    fn std_host_sends_signal_to_pico_over_bounded_udp_relay() {
+        let form = parse(
+            include_str!("../../../examples/signal-demo.form"),
+            &signal_profile_catalog(),
+        )
+        .expect("signal form parses");
+        let mut std_host = StdHost::new_with_config(StdHostConfig {
+            host_id: HostId::from("std-host-1"),
+            boot_id: BootId::from("std-boot-1"),
+            offer_generation: OfferGeneration(1),
+        });
+        let mut pico = PicoHost::new(PicoHostConfig {
+            host_id: HostId::from("pico-udp-1"),
+            boot_id: BootId::from("pico-boot-udp-1"),
+            offer_generation: OfferGeneration(1),
+        });
+        let plan = pico
+            .plan_std_to_pico(&form, std_host.advertisement())
+            .expect("std-to-pico plan resolves");
+        let connection = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .find(|connection| connection.provider == ConnectionProvider::Udp)
+            .expect("udp connection is planned");
+        assert_eq!(connection.item_capacity, 4);
+        assert_eq!(connection.byte_capacity, 64);
+        let connection_id = connection.connection_id.clone();
+
+        for fragment in &plan.fragments {
+            if fragment.host_id == std_host.advertisement().host_id {
+                ensure_prepared(&std_host.handle(HostCommand::Prepare(fragment.clone())))
+                    .expect("std source prepares");
+            } else {
+                ensure_prepared(&pico.handle(HostCommand::Prepare(fragment.clone())))
+                    .expect("pico sink prepares");
+            }
+        }
+
+        let mut pending = VecDeque::new();
+        for fragment in sink_fragments_first(&plan.fragments) {
+            let output = if fragment.host_id == std_host.advertisement().host_id {
+                std_host.handle(HostCommand::Activate(fragment.plan_id.clone()))
+            } else {
+                pico.handle(HostCommand::Activate(fragment.plan_id.clone()))
+            };
+            ensure_activated(&output).expect("fragment activates");
+            pending.extend(
+                output
+                    .effects
+                    .into_iter()
+                    .map(|effect| (fragment.host_id.clone(), effect)),
+            );
+        }
+
+        let mut relay = BoundedUdpRelay::new(64, 512);
+        while let Some((host_id, effect)) = pending.pop_front() {
+            if host_id == std_host.advertisement().host_id {
+                pending.extend(drive_std_effect(
+                    &mut std_host,
+                    &mut pico,
+                    &mut relay,
+                    effect,
+                ));
+            } else {
+                pending.extend(drive_pico_effect_with_std_ack(
+                    &mut std_host,
+                    &mut pico,
+                    &connection_id,
+                    effect,
+                ));
+            }
+        }
+
+        assert_eq!(relay.datagrams().len(), 16);
+        assert_eq!(pico.receipts().len(), 16);
+        assert_eq!(pico.receipts()[0].sequence, 0);
+        assert!(!pico.receipts()[0].level);
+        assert!(!pico.receipts()[0].led_on);
+        assert_eq!(pico.receipts()[15].sequence, 15);
+        assert!(pico.receipts()[15].level);
+        assert!(pico.receipts()[15].led_on);
+        let observations = inspect(&mut pico);
+        assert!(observations.iter().any(|observation| matches!(
+            observation.kind,
+            conduit_core::ObservationKind::PlanTerminal {
+                disposition: TerminalDisposition::Completed
+            }
+        )));
+    }
+
+    fn drive_std_effect(
+        std_host: &mut StdHost,
+        pico: &mut PicoHost,
+        relay: &mut BoundedUdpRelay,
+        effect: PlatformEffect,
+    ) -> Vec<(HostId, PlatformEffect)> {
+        match effect {
+            PlatformEffect::Wait {
+                plan_id,
+                placement_id,
+                ..
+            } => {
+                let output = std_host.handle(HostCommand::CompleteWait {
+                    plan_id,
+                    placement_id,
+                });
+                std_output_effects(std_host, pico, output)
+            }
+            PlatformEffect::TransmitConnection { envelope } => {
+                let decoded = relay.transmit(&envelope).expect("relay accepts datagram");
+                let accepted = pico.handle(HostCommand::AcceptConnectionEnvelope(decoded.clone()));
+                pending_success(&accepted, decoded.sequence).expect("pico accepts datagram");
+                let source_accepted = std_host.handle(HostCommand::CompleteConnectionDelivery {
+                    plan_id: decoded.plan_id,
+                    connection_id: decoded.connection_id,
+                    sequence: decoded.sequence,
+                    outcome: ConnectionOutcome::Accepted,
+                });
+                let mut pending = accepted
+                    .effects
+                    .into_iter()
+                    .map(|effect| (pico.advertisement().host_id.clone(), effect))
+                    .collect::<Vec<_>>();
+                pending.extend(std_output_effects(std_host, pico, source_accepted));
+                pending
+            }
+            PlatformEffect::PresentValue { .. } => {
+                panic!("std source-only fragment must not request presentation")
+            }
+        }
+    }
+
+    fn drive_pico_effect_with_std_ack(
+        std_host: &mut StdHost,
+        pico: &mut PicoHost,
+        connection_id: &ConnectionId,
+        effect: PlatformEffect,
+    ) -> Vec<(HostId, PlatformEffect)> {
+        match effect {
+            PlatformEffect::PresentValue {
+                plan_id,
+                placement_id,
+                presentation_kind,
+                value,
+            } => {
+                assert_eq!(
+                    presentation_kind.as_str(),
+                    conduit_signal::SIGNAL_PRESENTATION_KIND
+                );
+                let signal = conduit_signal::decode_signal(&value).expect("signal decodes");
+                let output = pico
+                    .complete_led_presentation(plan_id.clone(), placement_id, value)
+                    .expect("pico led presentation completes");
+                let delivered = std_host.handle(HostCommand::CompleteConnectionDelivery {
+                    plan_id,
+                    connection_id: connection_id.clone(),
+                    sequence: signal.sequence,
+                    outcome: ConnectionOutcome::Delivered,
+                });
+                let mut pending = output
+                    .effects
+                    .into_iter()
+                    .map(|effect| (pico.advertisement().host_id.clone(), effect))
+                    .collect::<Vec<_>>();
+                pending.extend(std_output_effects(std_host, pico, delivered));
+                pending
+            }
+            PlatformEffect::Wait { .. } | PlatformEffect::TransmitConnection { .. } => {
+                panic!("pico sink fragment should only present received values")
+            }
+        }
+    }
+
+    fn std_output_effects(
+        std_host: &mut StdHost,
+        pico: &mut PicoHost,
+        output: RuntimeOutput,
+    ) -> Vec<(HostId, PlatformEffect)> {
+        let mut pending = output
+            .effects
+            .into_iter()
+            .map(|effect| (std_host.advertisement().host_id.clone(), effect))
+            .collect::<Vec<_>>();
+        for event in output.events {
+            if let HostEvent::ConnectionTerminated {
+                plan_id,
+                connection_id,
+                disposition,
+            } = event
+            {
+                if matches!(disposition.disposition, TerminalDisposition::Completed) {
+                    let close = pico.handle(HostCommand::CloseConnection {
+                        plan_id,
+                        connection_id,
+                    });
+                    pending.extend(
+                        close
+                            .effects
+                            .into_iter()
+                            .map(|effect| (pico.advertisement().host_id.clone(), effect)),
+                    );
+                }
+            }
+        }
+        pending
+    }
+
+    fn sink_fragments_first(
+        fragments: &[conduit_core::PlanFragment],
+    ) -> Vec<conduit_core::PlanFragment> {
+        let mut sorted = fragments.to_vec();
+        sorted.sort_by_key(|fragment| {
+            fragment
+                .connections
+                .iter()
+                .any(|connection| connection.provider == ConnectionProvider::Udp)
+                && fragment
+                    .placements
+                    .iter()
+                    .all(|placement| placement.outputs.is_empty())
+        });
+        sorted.reverse();
+        sorted
+    }
+
+    fn ensure_prepared(output: &RuntimeOutput) -> Result<(), String> {
+        output
+            .events
+            .iter()
+            .find_map(|event| match event {
+                HostEvent::PreparationRejected {
+                    reason, message, ..
+                } => Some(message.clone().unwrap_or_else(|| format!("{reason:?}"))),
+                _ => None,
+            })
+            .map_or(Ok(()), Err)
+    }
+
+    fn ensure_activated(output: &RuntimeOutput) -> Result<(), String> {
+        output
+            .events
+            .iter()
+            .find_map(|event| match event {
+                HostEvent::ActivationRejected {
+                    reason, message, ..
+                } => Some(message.clone().unwrap_or_else(|| format!("{reason:?}"))),
+                _ => None,
+            })
+            .map_or(Ok(()), Err)
+    }
+
+    fn pending_success(output: &RuntimeOutput, sequence: u64) -> Result<(), String> {
+        output
+            .events
+            .iter()
+            .find_map(|event| match event {
+                HostEvent::ConnectionEnvelopeOutcome {
+                    sequence: event_sequence,
+                    outcome,
+                    ..
+                } if *event_sequence == sequence => Some(*outcome),
+                _ => None,
+            })
+            .filter(|outcome| matches!(outcome, ConnectionOutcome::Accepted))
+            .map_or_else(
+                || Err(format!("missing accepted delivery for sequence {sequence}")),
+                |_| Ok(()),
+            )
+    }
+
+    fn inspect(pico: &mut PicoHost) -> Vec<conduit_core::Observation> {
+        pico.handle(HostCommand::Inspect)
+            .events
+            .into_iter()
+            .find_map(|event| match event {
+                HostEvent::Observations { items } => Some(items),
+                _ => None,
+            })
+            .unwrap_or_default()
     }
 }

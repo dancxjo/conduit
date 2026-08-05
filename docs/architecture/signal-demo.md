@@ -65,6 +65,18 @@ This proves the Pico W advertisement exposes only bounded `flow/pulse` and
 as retained onboard-LED receipts, and the non-hosted crate surface still checks
 for the Cortex-M0+ target without Rust `std`.
 
+The std host can also run the pulse source while a Pico host runs the show sink
+through a deterministic bounded UDP relay fixture:
+
+```text
+cargo test -p conduit-pico-host std_host_sends_signal_to_pico_over_bounded_udp_relay
+```
+
+That fixture plans the pair form across std and Pico advertisements with the
+`Udp` connection provider, serializes every connection envelope through
+`conduit-wire`, enforces datagram bounds, and compares retained onboard-LED
+receipts against the same sixteen ordered signal values.
+
 ## Receipts
 
 Each completed std manifestation emits a machine-readable receipt line:
@@ -78,14 +90,16 @@ fixture emits forty-eight receipt lines: sixteen for each of the three show
 sinks. The deterministic browser pair fixture and std-to-browser WebSocket relay
 fixture each retain sixteen DOM-state receipts on the sink browser host
 instance. The deterministic Pico fixture retains sixteen onboard-LED receipts
-with the same sequence and level values.
+with the same sequence and level values; the std-to-Pico UDP relay fixture
+retains the same sixteen onboard-LED receipts after bounded wire transit.
 
 ## Current Stop Line
 
 The repository now contains deterministic browser and Pico host crates, a
 canonical `WebSocket` connection provider, and a bounded std-to-browser relay
-fixture. It does not yet contain a WASM operator page, browser socket
-client/server runtime, physical Pico LED acceptance, std-to-Pico transport, or
-final std/browser/Pico fan-out proof. M1 remains open until the same
+fixture. It also contains a canonical `Udp` connection provider and bounded
+std-to-Pico relay fixture. It does not yet contain a WASM operator page, browser
+socket client/server runtime, physical Pico LED acceptance, live std-to-Pico UDP
+sockets, or final std/browser/Pico fan-out proof. M1 remains open until the same
 `examples/triple-signal.form` can be planned across std, browser, and Pico W
 hosts, with matching ordered receipts from stdout, DOM, and LED manifestations.
