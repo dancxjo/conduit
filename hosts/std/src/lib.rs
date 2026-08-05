@@ -407,7 +407,7 @@ mod tests {
             offer_generation: OfferGeneration(1),
         });
         let form = parse(
-            "form 0\n\nvirtual {\n pulse: flow/pulse\n show: display/show\n pulse.count = 3\n pulse.period-ms = 7\n pulse.initial = false\n pulse > show\n}\n",
+            "form 0\n\nvirtual {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 3\n pulse.period-ms = 7\n pulse.initial = false\n pulse > show\n}\n",
             &signal_profile_catalog(),
         )
         .expect("virtual-clock form parses");

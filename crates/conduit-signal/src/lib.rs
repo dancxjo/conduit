@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 pub const SIGNAL_VALUE_KIND: &str = "value/signal";
 pub const PULSE_KIND: &str = "flow/pulse";
-pub const SHOW_KIND: &str = "display/show";
+pub const SHOW_KIND: &str = "presentation/show";
 pub const SIGNAL_PORT: &str = "signal";
 pub const SIGNAL_ENCODED_LEN: u32 = 9;
 pub const SIGNAL_PRESENTATION_KIND: &str = "presentation/signal";

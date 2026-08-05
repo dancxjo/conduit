@@ -43,7 +43,7 @@ fn signal_demo_runs_locally() {
     assert!(
         lines
             .iter()
-            .any(|line| line.starts_with("place show kind=display/show host=std-host-1 boot=boot-")
+            .any(|line| line.starts_with("place show kind=presentation/show host=std-host-1 boot=boot-")
                 && line.ends_with(" capability=stdout-show-1 implementation=std/stdout-show-signal-v1 artifact=conduit-signal/show-artifact-v1")),
         "missing show placement line: {stdout}"
     );

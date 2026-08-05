@@ -2,7 +2,7 @@ form 0
 
 signal-composite {
     pulse: flow/pulse
-    show: display/show
+    show: presentation/show
 
     pulse.count = 3
     pulse.period-ms = 0

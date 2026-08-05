@@ -1108,7 +1108,7 @@ mod tests {
 
     fn three_child_internal_plan() -> conduit_core::Plan {
         let form = parse(
-            "form 0\n\ninternal {\n pulse: flow/pulse\n show: display/show\n auxiliary: flow/pulse\n pulse.count = 1\n pulse.period-ms = 0\n pulse.initial = false\n auxiliary.count = 0\n auxiliary.period-ms = 0\n auxiliary.initial = false\n pulse > show\n export run-signal: demonstration/run-signal = pulse.signal -> show.signal\n}\n",
+            "form 0\n\ninternal {\n pulse: flow/pulse\n show: presentation/show\n auxiliary: flow/pulse\n pulse.count = 1\n pulse.period-ms = 0\n pulse.initial = false\n auxiliary.count = 0\n auxiliary.period-ms = 0\n auxiliary.initial = false\n pulse > show\n export run-signal: demonstration/run-signal = pulse.signal -> show.signal\n}\n",
             &signal_profile_catalog(),
         )
         .expect("three-child internal form parses");

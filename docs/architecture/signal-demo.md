@@ -8,7 +8,7 @@ tracked by GitHub issues #347 and #350.
 The checked semantic forms use the portable M1 kind names:
 
 - `flow/pulse`
-- `display/show`
+- `presentation/show`
 
 The std host can run the local pair form:
 
@@ -23,7 +23,7 @@ fixture:
 cargo run -p conduit -- examples/triple-signal.form --placements examples/triple-local.placements
 ```
 
-The local triple fixture intentionally places all three `display/show` sinks on
+The local triple fixture intentionally places all three `presentation/show` sinks on
 the std host. It proves the authored final form has no platform facts and that
 the host protocol can produce independent bounded receipts for all three sinks.
 It is not the final browser/Pico realm proof.
@@ -61,7 +61,7 @@ cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-ea
 ```
 
 This proves the Pico W advertisement exposes only bounded `flow/pulse` and
-`display/show` capabilities, the hosted protocol fixture manifests show values
+`presentation/show` capabilities, the hosted protocol fixture manifests show values
 as retained onboard-LED receipts, and the non-hosted crate surface still checks
 for the Cortex-M0+ target without Rust `std`.
 

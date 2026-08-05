@@ -2,9 +2,9 @@ form 0
 
 fanout-std {
     pulse: flow/pulse
-    local: display/show
-    web: display/show
-    light: display/show
+    local: presentation/show
+    web: presentation/show
+    light: presentation/show
 
     pulse.count = 16
     pulse.period-ms = 250

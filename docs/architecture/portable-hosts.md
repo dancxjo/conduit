@@ -101,7 +101,7 @@ A capability is a current offer by a host to realize a semantic kind under expli
 
 A capability advertisement says something like:
 
-> This host can currently realize `display/show<Signal>` using implementation `pico/onboard-led-v1`, for at most one active instance, with a queue capacity no greater than four values.
+> This host can currently realize `presentation/show<Signal>` using implementation `pico/onboard-led-v1`, for at most one active instance, with a queue capacity no greater than four values.
 
 A capability is more precise than a feature flag. It should identify:
 
@@ -141,13 +141,13 @@ Examples used in the first slice:
 
 ```text
 flow/pulse
-display/show
+presentation/show
 value/signal
 ```
 
 Kinds do not name platforms.
 
-`display/show` is not `stdout`, `set_led`, or `update_dom`. Those are implementations or manifestations of the same semantic request on particular hosts.
+`presentation/show` is not `stdout`, `set_led`, or `update_dom`. Those are implementations or manifestations of the same semantic request on particular hosts.
 
 ### Implementation
 
@@ -173,7 +173,7 @@ Several implementations may realize one kind. One host may advertise several imp
 
 A manifestation is the observable host-specific expression of a semantic operation.
 
-For `display/show<Signal>`:
+For `presentation/show<Signal>`:
 
 - stdout text is the standard host manifestation;
 - a visible DOM indicator is the browser manifestation;
@@ -399,7 +399,7 @@ It must not create an unbounded task, unbounded queue, or ambient callback strea
 
 ## The first sink
 
-The first sink kind is `display/show` specialized for `Signal`.
+The first sink kind is `presentation/show` specialized for `Signal`.
 
 It is a `Sink<Signal>`.
 
@@ -424,7 +424,7 @@ form 0
 
 signal-demo {
     pulse: flow/pulse
-    show: display/show
+    show: presentation/show
 
     pulse.count = 16
     pulse.period-ms = 250
@@ -447,9 +447,9 @@ form 0
 
 triple-signal {
     pulse: flow/pulse
-    local: display/show
-    web: display/show
-    light: display/show
+    local: presentation/show
+    web: presentation/show
+    light: presentation/show
 
     pulse.count = 16
     pulse.period-ms = 250
@@ -495,7 +495,7 @@ Each instance has its own:
 The browser host must:
 
 - share the host-neutral protocol and semantic value definitions;
-- advertise `flow/pulse` and `display/show<Signal>` where supported;
+- advertise `flow/pulse` and `presentation/show<Signal>` where supported;
 - realize `show` through a visible indicator plus exact textual sequence and level;
 - support a bounded in-memory link between browser host instances;
 - support a bounded WebSocket link to the Rust standard-library host;
@@ -521,7 +521,7 @@ It must:
 - run on RP2040/Pico W without Rust `std`;
 - use bounded static storage or explicitly bounded allocation;
 - advertise only capabilities whose devices and supporting services initialized successfully;
-- realize `display/show<Signal>` through the onboard LED;
+- realize `presentation/show<Signal>` through the onboard LED;
 - provide a finite timer implementation for `flow/pulse`;
 - support one bounded remote link to the Rust standard-library host;
 - retain exact machine-readable receipts independently of the visible LED;
@@ -535,7 +535,7 @@ Those may follow once the semantic source-to-sink path is proven.
 Current repository slice: `conduit-pico-host` provides the bounded Pico W
 advertisement and retained LED receipt model, checks without default features
 for `thumbv6m-none-eabi`, and has a hosted deterministic local
-`flow/pulse -> display/show` fixture. It also has a deterministic bounded
+`flow/pulse -> presentation/show` fixture. It also has a deterministic bounded
 std-to-Pico UDP relay fixture that moves connection envelopes through
 `conduit-wire`. It is not a board support package, flash image, live timer
 driver, radio stack, physical LED acceptance run, or live std-to-Pico socket.
@@ -551,7 +551,7 @@ It should compile on ordinary Rust `std` platforms such as Linux, macOS, Windows
 It must:
 
 - provide a command-line host process;
-- advertise `flow/pulse` and `display/show<Signal>`;
+- advertise `flow/pulse` and `presentation/show<Signal>`;
 - realize `show` through stdout;
 - provide a monotonic timer implementation;
 - support bounded WebSocket links to browser hosts;
@@ -796,7 +796,7 @@ The implementation issue is complete only when all of these work.
 ### 1. Local standard host
 
 ```text
-flow/pulse -> display/show
+flow/pulse -> presentation/show
 ```
 
 Both cells run on one Rust std host. Stdout and receipts account for sixteen signals.

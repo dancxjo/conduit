@@ -654,7 +654,7 @@ mod tests {
 
     fn pair_form() -> conduit_form::CheckedForm {
         parse(
-            "form 0\n\nsignal-demo {\n pulse: flow/pulse\n show: display/show\n pulse.count = 16\n pulse.period-ms = 250\n pulse.initial = false\n pulse > show\n}\n",
+            "form 0\n\nsignal-demo {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 16\n pulse.period-ms = 250\n pulse.initial = false\n pulse > show\n}\n",
             &signal_profile_catalog(),
         )
         .expect("browser pair form parses")
