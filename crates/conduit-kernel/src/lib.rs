@@ -400,11 +400,13 @@ impl<const ROUTE_SLOTS: usize, const TARGETS: usize> FixedRoutes<ROUTE_SLOTS, TA
 pub mod evidence;
 pub mod storage;
 
-pub use evidence::{
-    EvidenceError, EvidenceQuery, EvidenceSink, FixedEvidenceLog, HostedEvidenceLog,
-    KernelEvent, KernelEventKind,
-};
-pub use storage::{FixedValueStore, HostedValueStore, StorageError, ValueStorage};
+pub use evidence::{EvidenceError, EvidenceQuery, EvidenceSink, FixedEvidenceLog, KernelEvent, KernelEventKind};
+pub use storage::{FixedValueStore, StorageError, ValueStorage};
+
+#[cfg(feature = "alloc")]
+pub use evidence::HostedEvidenceLog;
+#[cfg(feature = "alloc")]
+pub use storage::HostedValueStore;
 
 #[cfg(test)]
 mod tests;
