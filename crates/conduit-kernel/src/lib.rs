@@ -130,6 +130,15 @@ pub enum OperationAction {
 pub trait Operation {
     fn start(&mut self) -> OperationAction;
     fn resume(&mut self, input: OperationInput) -> OperationAction;
+    fn advance(&mut self) -> OperationAction {
+        OperationAction::Await
+    }
+    fn retains_resumed_value(&self) -> bool {
+        false
+    }
+    fn take_released_value(&mut self) -> Option<ValueRef> {
+        None
+    }
     fn cancel(&mut self) {}
 }
 

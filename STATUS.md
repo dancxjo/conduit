@@ -6,7 +6,7 @@ adapter or physical proof.
 
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Port-aware salvage kernel | port protocol, fixed scheduler, retained state, correlated host operations, cancellation | fixed/hosted multi-value, atomic join, real latest, host-lifecycle, no-growth-shape, and cancellation vectors | same scheduler with preallocated hosted storage; Operation adapter pending | no | no; Thumb kernel compiles | no | no |
+| Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, correlated host operations, cancellation | fixed/hosted adapter tee, multi-value, atomic join, real latest, host-lifecycle, no-growth-shape, and cancellation vectors | same scheduler with preallocated hosted storage; full adapter conformance form pending | no | no; Thumb kernel compiles | no | no |
 | Exact plan and fragment identities | prototype | mutation-negative fixtures | yes, std runtime | no | no | no | no |
 | Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
 | Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
@@ -40,7 +40,9 @@ deterministic fixed-capacity scheduling, transactional fanout, per-port closure,
 correlated bounded host operations, late-completion rejection, and matching
 hosted/fixed lifecycle vectors. The capacity-one conformance graph now includes
 a stateful latest operation, atomic joins, and a stable hosted allocation shape.
-Direct adaptation of the published `OperationInput`/`OperationAction` contract
-into the scheduler remains pending. No actual browser/Pico host, BODY, catalog
-expansion, Observatory acceptance, or useful task advances before #349 is
-accepted.
+The published `OperationInput`/`OperationAction` contract now runs through a
+fixed-capacity scheduler adapter for atomic multi-action tee and correlated host
+completion vectors. Re-running the complete multi-value tee/filter/latest form
+through that adapter remains pending. No actual browser/Pico host, BODY,
+catalog expansion, Observatory acceptance, or useful task advances before #349
+is accepted.
