@@ -1,5 +1,6 @@
 const EFFECT_WAIT = 1;
 const EFFECT_PRESENT = 2;
+const EFFECT_DISTRIBUTED_PRESENT = 3;
 const STATUS_RUNNING = 0;
 const STATUS_COMPLETE = 1;
 const FRAME_CAPACITY = 4_096;
@@ -121,10 +122,24 @@ export function decodeEffect(bytes) {
       ...common,
       durationMs: frame.u64(),
     });
-  } else if (kind === EFFECT_PRESENT) {
+  } else if (kind === EFFECT_PRESENT || kind === EFFECT_DISTRIBUTED_PRESENT) {
+    const remote = kind === EFFECT_DISTRIBUTED_PRESENT
+      ? {
+          sourceFragmentId: frame.text(),
+          sourceHostId: frame.text(),
+          sourceBootId: frame.text(),
+          sourceActivePlayId: frame.text(),
+          sourceEndpointId: frame.text(),
+          sinkEndpointId: frame.text(),
+          connectionId: frame.text(),
+          linkBindingId: frame.text(),
+          providerInstanceId: frame.text(),
+        }
+      : {};
     effect = Object.freeze({
       kind,
       ...common,
+      ...remote,
       presentationId: frame.text(),
       evidenceId: frame.text(),
       presentationKind: frame.text(),
@@ -159,7 +174,18 @@ function encodeCompletion(effect, completion) {
   frame.write(numeric);
   frame.text(completion.hostOperationContractId);
   frame.text(completion.placementId);
-  if (effect.kind === EFFECT_PRESENT) {
+  if (effect.kind === EFFECT_DISTRIBUTED_PRESENT) {
+    frame.text(completion.sourceFragmentId);
+    frame.text(completion.sourceHostId);
+    frame.text(completion.sourceBootId);
+    frame.text(completion.sourceActivePlayId);
+    frame.text(completion.sourceEndpointId);
+    frame.text(completion.sinkEndpointId);
+    frame.text(completion.connectionId);
+    frame.text(completion.linkBindingId);
+    frame.text(completion.providerInstanceId);
+  }
+  if (effect.kind === EFFECT_PRESENT || effect.kind === EFFECT_DISTRIBUTED_PRESENT) {
     frame.text(completion.presentationId);
     frame.text(completion.evidenceId);
     frame.text(completion.value.valueKind);
@@ -298,7 +324,18 @@ export async function runBrowserRuntime(runtime, domHost) {
 
 export function successfulCompletion(effect) {
   const completion = commonCompletion(effect);
-  if (effect.kind === EFFECT_PRESENT) {
+  if (effect.kind === EFFECT_DISTRIBUTED_PRESENT) {
+    completion.sourceFragmentId = effect.sourceFragmentId;
+    completion.sourceHostId = effect.sourceHostId;
+    completion.sourceBootId = effect.sourceBootId;
+    completion.sourceActivePlayId = effect.sourceActivePlayId;
+    completion.sourceEndpointId = effect.sourceEndpointId;
+    completion.sinkEndpointId = effect.sinkEndpointId;
+    completion.connectionId = effect.connectionId;
+    completion.linkBindingId = effect.linkBindingId;
+    completion.providerInstanceId = effect.providerInstanceId;
+  }
+  if (effect.kind === EFFECT_PRESENT || effect.kind === EFFECT_DISTRIBUTED_PRESENT) {
     completion.presentationId = effect.presentationId;
     completion.evidenceId = effect.evidenceId;
     completion.value = effect.value;
