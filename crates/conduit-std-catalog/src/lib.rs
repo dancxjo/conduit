@@ -398,11 +398,11 @@ mod host_profile {
     use alloc::string::ToString;
     use conduit_core::{
         kind_id, ArtifactId, ConfigurationValue, FailureReason, ImplementationId, KindId,
-        PlannedOperation, ValuePayload,
+        PlannedOperation, PortId, ValuePayload,
     };
     use conduit_runtime::{
         ImplementationFailure, ImplementationRegistry, OperationAction, OperationCompletion,
-        OperationImplementation, OperationState,
+        OperationImplementation, OperationOutput, OperationState,
     };
 
     pub fn standard_registry(
@@ -489,14 +489,20 @@ mod host_profile {
                     16,
                     1_000,
                 )?)),
-                SHOW_KIND => Ok(Box::new(ShowState)),
-                MAP_KIND => Ok(Box::new(PassState)),
+                SHOW_KIND => Ok(Box::new(ShowState::new(placement)?)),
+                MAP_KIND => Ok(Box::new(PassState::new(placement)?)),
                 FILTER_KIND => Ok(Box::new(FilterState {
                     predicate_id: u64_config(placement, "predicate-id", 0)?,
+                    output_port: only_output(placement)?,
                 })),
-                TEE_KIND => Ok(Box::new(PassState)),
-                FORMAT_KIND => Ok(Box::new(FormatState)),
-                LATEST_KIND => Ok(Box::new(LatestState { latest: None })),
+                TEE_KIND => Ok(Box::new(PassState::new(placement)?)),
+                FORMAT_KIND => Ok(Box::new(FormatState {
+                    output_port: only_output(placement)?,
+                })),
+                LATEST_KIND => Ok(Box::new(LatestState {
+                    latest: None,
+                    output_port: only_output(placement)?,
+                })),
                 _ => Err(ImplementationFailure::new(
                     FailureReason::UnsupportedKind,
                     format!("unsupported standard kind '{}'", self.kind_id.as_str()),
@@ -515,6 +521,7 @@ mod host_profile {
 
     struct CountedSourceState {
         value_kind: KindId,
+        output_port: PortId,
         next: u64,
         count: u64,
         period_ms: u64,
@@ -530,6 +537,7 @@ mod host_profile {
         ) -> Result<Self, ImplementationFailure> {
             Ok(Self {
                 value_kind: kind_id(value_kind),
+                output_port: only_output(placement)?,
                 next: 0,
                 count: u64_config(placement, "count", default_count)?,
                 period_ms: u64_config(placement, "period-ms", default_period_ms)?,
@@ -560,7 +568,10 @@ mod host_profile {
             match completion {
                 OperationCompletion::TimerElapsed => {
                     self.waiting = false;
-                    OperationAction::Emit(number_payload(&self.value_kind, self.next))
+                    OperationAction::Emit(vec![OperationOutput {
+                        port: self.output_port.clone(),
+                        value: number_payload(&self.value_kind, self.next),
+                    }])
                 }
                 OperationCompletion::Emitted => {
                     self.next += 1;
@@ -574,7 +585,27 @@ mod host_profile {
         }
     }
 
-    struct PassState;
+    struct PassState {
+        output_ports: Vec<PortId>,
+    }
+
+    impl PassState {
+        fn new(placement: &PlannedOperation) -> Result<Self, ImplementationFailure> {
+            if placement.outputs.is_empty() {
+                return Err(ImplementationFailure::new(
+                    FailureReason::InvalidOperationConfiguration,
+                    "pass operation requires at least one output",
+                ));
+            }
+            Ok(Self {
+                output_ports: placement
+                    .outputs
+                    .iter()
+                    .map(|port| port.port_id.clone())
+                    .collect(),
+            })
+        }
+    }
 
     impl OperationState for PassState {
         fn start(&mut self) -> OperationAction {
@@ -583,7 +614,7 @@ mod host_profile {
 
         fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
             match completion {
-                OperationCompletion::Value(value) => OperationAction::Emit(value),
+                OperationCompletion::Value { value, .. } => emit_to(&self.output_ports, value),
                 OperationCompletion::Emitted => OperationAction::Complete,
                 OperationCompletion::InputsClosed => OperationAction::Complete,
                 _ => OperationAction::Fail(ImplementationFailure::new(
@@ -596,6 +627,7 @@ mod host_profile {
 
     struct FilterState {
         predicate_id: u64,
+        output_port: PortId,
     }
 
     impl OperationState for FilterState {
@@ -605,9 +637,9 @@ mod host_profile {
 
         fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
             match completion {
-                OperationCompletion::Value(value) => {
+                OperationCompletion::Value { value, .. } => {
                     if self.accepts(&value) {
-                        OperationAction::Emit(value)
+                        emit_to(std::slice::from_ref(&self.output_port), value)
                     } else {
                         OperationAction::Idle
                     }
@@ -628,7 +660,9 @@ mod host_profile {
         }
     }
 
-    struct FormatState;
+    struct FormatState {
+        output_port: PortId,
+    }
 
     impl OperationState for FormatState {
         fn start(&mut self) -> OperationAction {
@@ -637,15 +671,18 @@ mod host_profile {
 
         fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
             match completion {
-                OperationCompletion::Value(value) => {
+                OperationCompletion::Value { value, .. } => {
                     let text = match decode_number(&value) {
                         Some(number) => format!("value:{number}"),
                         None => format!("bytes:{}", value.encoded.len()),
                     };
-                    OperationAction::Emit(ValuePayload {
-                        value_kind: kind_id(GENERIC_VALUE_KIND),
-                        encoded: text.into_bytes(),
-                    })
+                    emit_to(
+                        std::slice::from_ref(&self.output_port),
+                        ValuePayload {
+                            value_kind: kind_id(GENERIC_VALUE_KIND),
+                            encoded: text.into_bytes(),
+                        },
+                    )
                 }
                 OperationCompletion::Emitted => OperationAction::Complete,
                 OperationCompletion::InputsClosed => OperationAction::Complete,
@@ -659,6 +696,7 @@ mod host_profile {
 
     struct LatestState {
         latest: Option<ValuePayload>,
+        output_port: PortId,
     }
 
     impl OperationState for LatestState {
@@ -668,9 +706,9 @@ mod host_profile {
 
         fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
             match completion {
-                OperationCompletion::Value(value) => {
+                OperationCompletion::Value { value, .. } => {
                     self.latest = Some(value.clone());
-                    OperationAction::Emit(value)
+                    emit_to(std::slice::from_ref(&self.output_port), value)
                 }
                 OperationCompletion::Emitted => OperationAction::Complete,
                 OperationCompletion::InputsClosed => OperationAction::Complete,
@@ -686,7 +724,26 @@ mod host_profile {
         }
     }
 
-    struct ShowState;
+    struct ShowState {
+        input_port: PortId,
+    }
+
+    impl ShowState {
+        fn new(placement: &PlannedOperation) -> Result<Self, ImplementationFailure> {
+            let input_port = placement
+                .inputs
+                .first()
+                .filter(|_| placement.inputs.len() == 1)
+                .map(|port| port.port_id.clone())
+                .ok_or_else(|| {
+                    ImplementationFailure::new(
+                        FailureReason::InvalidOperationConfiguration,
+                        "show operation requires one exact input",
+                    )
+                })?;
+            Ok(Self { input_port })
+        }
+    }
 
     impl OperationState for ShowState {
         fn start(&mut self) -> OperationAction {
@@ -695,10 +752,12 @@ mod host_profile {
 
         fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
             match completion {
-                OperationCompletion::Value(value) => OperationAction::Present {
-                    presentation_kind: kind_id("presentation/stdout"),
-                    value,
-                },
+                OperationCompletion::Value { port, value } if port == self.input_port => {
+                    OperationAction::Present {
+                        presentation_kind: kind_id("presentation/stdout"),
+                        value,
+                    }
+                }
                 OperationCompletion::PresentationCompleted { success, message } => {
                     if success {
                         OperationAction::Complete
@@ -716,6 +775,32 @@ mod host_profile {
                 )),
             }
         }
+    }
+
+    fn only_output(placement: &PlannedOperation) -> Result<PortId, ImplementationFailure> {
+        placement
+            .outputs
+            .first()
+            .filter(|_| placement.outputs.len() == 1)
+            .map(|port| port.port_id.clone())
+            .ok_or_else(|| {
+                ImplementationFailure::new(
+                    FailureReason::InvalidOperationConfiguration,
+                    "operation requires one exact output",
+                )
+            })
+    }
+
+    fn emit_to(ports: &[PortId], value: ValuePayload) -> OperationAction {
+        OperationAction::Emit(
+            ports
+                .iter()
+                .map(|port| OperationOutput {
+                    port: port.clone(),
+                    value: value.clone(),
+                })
+                .collect(),
+        )
     }
 
     fn u64_config(

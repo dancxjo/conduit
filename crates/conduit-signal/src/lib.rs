@@ -236,17 +236,17 @@ mod host_profile {
         pulse_resource_requirements, show_contract_revision, show_execution_profile,
         show_host_operation_requirements, show_inputs, show_kind, show_resource_requirements,
         signal_value_kind, PulseConfiguration, Signal, MAX_SIGNAL_COUNT, SIGNAL_ENCODED_LEN,
-        SIGNAL_PRESENTATION_KIND,
+        SIGNAL_PORT, SIGNAL_PRESENTATION_KIND,
     };
     use alloc::boxed::Box;
     use conduit_core::{
-        kind_id, ArtifactId, ConfigurationValue, FailureReason, ImplementationId, KindId,
+        kind_id, port_id, ArtifactId, ConfigurationValue, FailureReason, ImplementationId, KindId,
         PlannedOperation,
     };
     use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
     use conduit_runtime::{
         ImplementationFailure, ImplementationRegistry, OperationAction, OperationCompletion,
-        OperationImplementation, OperationState,
+        OperationImplementation, OperationOutput, OperationState,
     };
 
     pub struct PulseImplementation {
@@ -326,14 +326,17 @@ mod host_profile {
             if self.next_sequence >= self.configuration.count {
                 OperationAction::Complete
             } else {
-                OperationAction::Emit(encode_signal(&Signal {
-                    sequence: self.next_sequence,
-                    level: if self.next_sequence.is_multiple_of(2) {
-                        self.configuration.initial_level
-                    } else {
-                        !self.configuration.initial_level
-                    },
-                }))
+                OperationAction::Emit(vec![OperationOutput {
+                    port: port_id(SIGNAL_PORT),
+                    value: encode_signal(&Signal {
+                        sequence: self.next_sequence,
+                        level: if self.next_sequence.is_multiple_of(2) {
+                            self.configuration.initial_level
+                        } else {
+                            !self.configuration.initial_level
+                        },
+                    }),
+                }])
             }
         }
     }
@@ -438,26 +441,28 @@ mod host_profile {
 
         fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
             match completion {
-                OperationCompletion::Value(value) => match decode_signal(&value) {
-                    Ok(signal) if signal.sequence == self.expected_sequence => {
-                        self.pending = Some(signal);
-                        OperationAction::Present {
-                            presentation_kind: kind_id(SIGNAL_PRESENTATION_KIND),
-                            value,
+                OperationCompletion::Value { port, value } if port.as_str() == SIGNAL_PORT => {
+                    match decode_signal(&value) {
+                        Ok(signal) if signal.sequence == self.expected_sequence => {
+                            self.pending = Some(signal);
+                            OperationAction::Present {
+                                presentation_kind: kind_id(SIGNAL_PRESENTATION_KIND),
+                                value,
+                            }
                         }
+                        Ok(signal) => OperationAction::Fail(ImplementationFailure::new(
+                            FailureReason::MalformedConnectionEnvelope,
+                            format!(
+                                "expected signal sequence {}, received {}",
+                                self.expected_sequence, signal.sequence
+                            ),
+                        )),
+                        Err(err) => OperationAction::Fail(ImplementationFailure::new(
+                            FailureReason::UnsupportedValueKind,
+                            err.to_string(),
+                        )),
                     }
-                    Ok(signal) => OperationAction::Fail(ImplementationFailure::new(
-                        FailureReason::MalformedConnectionEnvelope,
-                        format!(
-                            "expected signal sequence {}, received {}",
-                            self.expected_sequence, signal.sequence
-                        ),
-                    )),
-                    Err(err) => OperationAction::Fail(ImplementationFailure::new(
-                        FailureReason::UnsupportedValueKind,
-                        err.to_string(),
-                    )),
-                },
+                }
                 OperationCompletion::PresentationCompleted { success: true, .. } => {
                     self.pending = None;
                     self.expected_sequence += 1;
