@@ -7,7 +7,7 @@ adapter or physical proof.
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, correlated host operations, cancellation | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, no-growth-shape, and cancellation vectors | same scheduler with preallocated hosted storage; S1 accepted | no | no; Thumb kernel compiles | no | no |
-| Exact plan and fragment identities | S2 accepted: separate source/checked/expanded identity; exact kind revision, execution profile, every port and cord endpoint, hosted host-operation/resource/authority requirements, observed boot-scoped remote link bindings, startup/cancellation/terminal/evidence-budget contracts | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority denial-before-effect, missing/stale/unavailable/ambiguous/underbounded link denial, and observation-overflow evidence vectors | yes, std runtime preparation enforces current offer, installed profile, exact host-operation contract/target/bounds, exact boot-scoped resource pool/class/units, independently supplied exact authority grants where declared, exact current remote link observations, supported policy/budget minimums, and fixed mandatory-evidence allocation | no | no | fixture providers only; no sockets | no |
+| Exact plan, play, evidence, and presentation identities | S2 planning plus S3 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued evidence identities; exact active-play/presentation correlation at the platform completion boundary | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/activation mutation, unique evidence, and wrong-presentation-identity vectors | yes, std runtime preparation enforces S2 truth and activation/evidence/presentation identities flow through hosted/composite adapters and Observatory | no | no | fixture providers only; no sockets | no |
 | Lossless form and composite boundary | S3 checkpoints: exact source, bounded lossless CST tokens, UTF-8 byte spans plus line/column locations, stable diagnostics, inline checked forms, and an exact checked export boundary shared by standalone/nested forms, composite offers, and parent kinds | round-trip, spelling/semantic identity separation, recoverable outer/inner invalid-line/EOF, source/token/depth ceilings, missing/duplicate export denial, standalone/nested boundary equality, derived-offer equality, and ordinary parent-cord planning | parser/checker, planner, and hosted composite fixture; broader grammar remains excluded | no | no | fixture in-memory links only | no |
 | Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
 | Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
@@ -32,6 +32,8 @@ The `check` workflow requires:
   mandatory-evidence storage tests;
 - bounded lossless form-source/CST round trips, located recoverable diagnostics,
   and source/checked/expanded identity separation;
+- boot-scoped active-play issuance, runtime-issued evidence identities, exact
+  presentation completion correlation, and Observatory identity projection;
 - deterministic wire and simulated-host conformance vectors;
 - WASM compilation of the browser-shaped simulation;
 - Thumb compilation of allocator-free contracts and the Pico-shaped simulation.
@@ -87,5 +89,10 @@ nesting with a hard depth limit. The child is an ordinary checked form whose
 selected authored export becomes the parent operation; standalone and nested
 spellings produce the same checked/expanded child and boundary identities, and
 inner errors remain located in the lossless outer document.
+The final S3 checkpoint keeps plan, active play, evidence, and presentation as
+different core identity types. Activation sequences are host/boot scoped;
+evidence IDs are issued by the recording host rather than synthesized from UI
+row indexes; and adapters must return the exact active-play and presentation
+IDs carried by each effect. S3 is accepted at this boundary.
 No actual browser/Pico host, BODY, catalog expansion, Observatory
 acceptance, or useful task advances before their later salvage gates.

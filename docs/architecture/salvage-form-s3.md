@@ -62,3 +62,22 @@ spans and all later tokens. A standalone child and the same inline child have
 different source-document identities but identical checked, expanded, and
 export-boundary identities. The parent retains the checked child rather than a
 parallel recovery AST.
+
+## Runtime identity checkpoint
+
+The identity chain does not stop at expansion:
+
+- `PlanId` identifies one immutable exact plan;
+- `ActivePlayId` identifies one activation, bound to plan, host, boot, and a
+  monotonic host activation sequence;
+- `EvidenceId` identifies one host-recorded observation, bound to host, boot,
+  optional active play, and a monotonic evidence sequence; and
+- `PresentationId` identifies one presentation request, bound to active play,
+  placement, and a monotonic per-placement sequence.
+
+Presentation effects carry both play and presentation IDs through std,
+browser-shaped, Pico-shaped, and composite adapters. A completion with either
+the wrong play or presentation identity is rejected without consuming the
+pending request. Observatory uses the runtime-issued evidence ID and projects
+its play/presentation references; it no longer fabricates `evidence/{row}`
+identities.

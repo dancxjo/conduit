@@ -1,9 +1,10 @@
 use conduit_core::{
-    kind_id, verify_plan, ArtifactId, BootId, CapabilityLimits, CapabilityOffer,
-    ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider, ExecutionProfileId,
-    FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId,
-    ImplementationId, Observation, ObservationKind, OfferGeneration, Plan, PlanFragment, PlanId,
-    PlatformEffect, TerminalDisposition, PROTOCOL_VERSION,
+    bind_active_play, bind_evidence, kind_id, verify_plan, ActivePlayId, ArtifactId, BootId,
+    CapabilityLimits, CapabilityOffer, ConnectionEnvelope, ConnectionId, ConnectionOutcome,
+    ConnectionProvider, ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand,
+    HostEvent, HostId, HostProfileId, ImplementationId, Observation, ObservationKind,
+    OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect, TerminalDisposition,
+    PROTOCOL_VERSION,
 };
 use conduit_form::CheckedForm;
 use conduit_runtime::{
@@ -175,6 +176,7 @@ struct ExternalPlan {
     state: ExternalState,
     terminal_emitted: bool,
     child_terminals: BTreeMap<HostId, TerminalDisposition>,
+    active_play_id: Option<ActivePlayId>,
 }
 
 #[derive(Debug)]
@@ -199,6 +201,8 @@ pub struct CompositeHost {
     fail_next_presentation: bool,
     delivery_mode: DeliveryMode,
     failure_translation: FailureReason,
+    next_active_play_sequence: u64,
+    next_evidence_sequence: u64,
 }
 
 impl CompositeHost {
@@ -404,6 +408,8 @@ impl CompositeHost {
             fail_next_presentation: false,
             delivery_mode: DeliveryMode::Immediate,
             failure_translation: definition.failure_translation,
+            next_active_play_sequence: 0,
+            next_evidence_sequence: 0,
         };
         host.record(None, ObservationKind::HostStarted);
         host.record(None, ObservationKind::AdvertisementPublished);
@@ -617,6 +623,7 @@ impl CompositeHost {
                 state: ExternalState::Prepared,
                 terminal_emitted: false,
                 child_terminals: BTreeMap::new(),
+                active_play_id: None,
             },
         );
         self.record(Some(plan_id.clone()), ObservationKind::PlanFragmentReceived);
@@ -642,10 +649,27 @@ impl CompositeHost {
             });
             return output;
         }
+        let Some(next_active_play_sequence) = self.next_active_play_sequence.checked_add(1) else {
+            output.events.push(HostEvent::ActivationRejected {
+                plan_id,
+                reason: FailureReason::InvalidLifecycleCommand,
+                message: Some("active-play identity sequence exhausted".into()),
+            });
+            return output;
+        };
+        let active_play = bind_active_play(
+            &plan_id,
+            &self.advertisement.host_id,
+            &self.advertisement.boot_id,
+            self.next_active_play_sequence,
+        );
+        self.next_active_play_sequence = next_active_play_sequence;
+        plan.active_play_id = Some(active_play.active_play_id.clone());
         plan.state = ExternalState::Active;
         self.record(Some(plan_id.clone()), ObservationKind::PlanActivated);
         output.events.push(HostEvent::Activated {
             plan_id: plan_id.clone(),
+            active_play_id: active_play.active_play_id,
         });
         let source_child = self.boundary.source_child.clone();
         let mut child_ids = self.children.keys().cloned().collect::<Vec<_>>();
@@ -745,6 +769,8 @@ impl CompositeHost {
                     }
                     PlatformEffect::PresentValue {
                         plan_id,
+                        active_play_id,
+                        presentation_id,
                         placement_id,
                         value,
                         ..
@@ -758,6 +784,8 @@ impl CompositeHost {
                             .runtime
                             .handle(HostCommand::CompletePresentation {
                                 plan_id,
+                                active_play_id,
+                                presentation_id,
                                 placement_id,
                                 value,
                                 success,
@@ -953,6 +981,10 @@ impl CompositeHost {
         if self.observation_limit == 0 {
             return;
         }
+        let active_play_id = plan_id
+            .as_ref()
+            .and_then(|plan_id| self.external_plans.get(plan_id))
+            .and_then(|plan| plan.active_play_id.clone());
         if self.observations.len() == self.observation_limit {
             let mut dropped = 1;
             if let Some(Observation {
@@ -967,7 +999,11 @@ impl CompositeHost {
             }
             if self.observation_limit == 1 {
                 self.observations.clear();
+                let gap_evidence_id = self.issue_evidence_id(None);
                 self.observations.push(Observation {
+                    evidence_id: gap_evidence_id,
+                    active_play_id: None,
+                    presentation_id: None,
                     host_id: self.advertisement.host_id.clone(),
                     boot_id: self.advertisement.boot_id.clone(),
                     plan_id: None,
@@ -981,9 +1017,13 @@ impl CompositeHost {
                 self.observations.remove(0);
                 dropped += 1;
             }
+            let gap_evidence_id = self.issue_evidence_id(None);
             self.observations.insert(
                 0,
                 Observation {
+                    evidence_id: gap_evidence_id,
+                    active_play_id: None,
+                    presentation_id: None,
                     host_id: self.advertisement.host_id.clone(),
                     boot_id: self.advertisement.boot_id.clone(),
                     plan_id: None,
@@ -993,7 +1033,11 @@ impl CompositeHost {
                 },
             );
         }
+        let evidence_id = self.issue_evidence_id(active_play_id.as_ref());
         self.observations.push(Observation {
+            evidence_id,
+            active_play_id,
+            presentation_id: None,
             host_id: self.advertisement.host_id.clone(),
             boot_id: self.advertisement.boot_id.clone(),
             plan_id,
@@ -1001,6 +1045,23 @@ impl CompositeHost {
             connection_id: None,
             kind,
         });
+    }
+
+    fn issue_evidence_id(
+        &mut self,
+        active_play_id: Option<&ActivePlayId>,
+    ) -> conduit_core::EvidenceId {
+        let evidence = bind_evidence(
+            &self.advertisement.host_id,
+            &self.advertisement.boot_id,
+            active_play_id,
+            self.next_evidence_sequence,
+        );
+        self.next_evidence_sequence = self
+            .next_evidence_sequence
+            .checked_add(1)
+            .expect("evidence identity sequence exhausted");
+        evidence.evidence_id
     }
 }
 

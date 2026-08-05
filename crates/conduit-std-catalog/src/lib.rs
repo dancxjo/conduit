@@ -1099,11 +1099,15 @@ mod tests {
                 }),
                 PlatformEffect::PresentValue {
                     plan_id,
+                    active_play_id,
+                    presentation_id,
                     placement_id,
                     value,
                     ..
                 } => runtime.handle(HostCommand::CompletePresentation {
                     plan_id,
+                    active_play_id,
+                    presentation_id,
                     placement_id,
                     value,
                     success: true,

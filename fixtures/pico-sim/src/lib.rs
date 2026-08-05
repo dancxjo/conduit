@@ -261,6 +261,8 @@ mod std_fixture {
         pub fn complete_led_presentation(
             &mut self,
             plan_id: conduit_core::PlanId,
+            active_play_id: conduit_core::ActivePlayId,
+            presentation_id: conduit_core::PresentationId,
             placement_id: PlacementId,
             value: conduit_core::ValuePayload,
         ) -> Result<RuntimeOutput, String> {
@@ -273,6 +275,8 @@ mod std_fixture {
             self.receipts.push(receipt);
             Ok(self.runtime.handle(HostCommand::CompletePresentation {
                 plan_id,
+                active_play_id,
+                presentation_id,
                 placement_id,
                 value,
                 success: true,
@@ -301,6 +305,8 @@ mod std_fixture {
                     }),
                     PlatformEffect::PresentValue {
                         plan_id,
+                        active_play_id,
+                        presentation_id,
                         placement_id,
                         presentation_kind,
                         value,
@@ -311,7 +317,13 @@ mod std_fixture {
                                 presentation_kind.as_str()
                             ));
                         }
-                        self.complete_led_presentation(plan_id, placement_id, value)?
+                        self.complete_led_presentation(
+                            plan_id,
+                            active_play_id,
+                            presentation_id,
+                            placement_id,
+                            value,
+                        )?
                     }
                     PlatformEffect::TransmitConnection { .. } => {
                         return Err("pico local fixture must not use remote transport".to_string());
@@ -594,6 +606,8 @@ mod tests {
         match effect {
             PlatformEffect::PresentValue {
                 plan_id,
+                active_play_id,
+                presentation_id,
                 placement_id,
                 presentation_kind,
                 value,
@@ -604,7 +618,13 @@ mod tests {
                 );
                 let signal = conduit_signal::decode_signal(&value).expect("signal decodes");
                 let output = pico
-                    .complete_led_presentation(plan_id.clone(), placement_id, value)
+                    .complete_led_presentation(
+                        plan_id.clone(),
+                        active_play_id,
+                        presentation_id,
+                        placement_id,
+                        value,
+                    )
                     .expect("pico led presentation completes");
                 let delivered = std_host.handle(HostCommand::CompleteConnectionDelivery {
                     plan_id,
