@@ -202,9 +202,7 @@ pub fn decode_activation(payload: &ValuePayload) -> Result<Activation, crate::Si
     decode_activation_bytes(&payload.encoded)
 }
 
-pub fn decode_activation_bytes(
-    encoded: &[u8],
-) -> Result<Activation, crate::SignalProfileError> {
+pub fn decode_activation_bytes(encoded: &[u8]) -> Result<Activation, crate::SignalProfileError> {
     if encoded.len() != ACTIVATION_ENCODED_LEN as usize {
         return Err(crate::SignalProfileError::WrongEncodedLength(encoded.len()));
     }
