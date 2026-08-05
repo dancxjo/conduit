@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 /// The workspace root is identified by a `Cargo.toml` that contains a
 /// `[workspace]` table.
 pub fn workspace_root() -> Result<PathBuf, String> {
-    let start = std::env::current_dir()
-        .map_err(|e| format!("cannot read current directory: {e}"))?;
+    let start =
+        std::env::current_dir().map_err(|e| format!("cannot read current directory: {e}"))?;
 
     for dir in start.ancestors() {
         let manifest = dir.join("Cargo.toml");
@@ -47,8 +47,8 @@ mod tests {
             config_path.exists(),
             ".cargo/config.toml is missing — `cargo xtask` alias cannot resolve"
         );
-        let config = std::fs::read_to_string(&config_path)
-            .expect("could not read .cargo/config.toml");
+        let config =
+            std::fs::read_to_string(&config_path).expect("could not read .cargo/config.toml");
         assert!(
             config.contains("xtask"),
             ".cargo/config.toml does not define an `xtask` alias; \
