@@ -88,6 +88,7 @@ check-form-s3:
     cargo test -p conduit-observatory report_separates_identity_capability_plan_connection_and_evidence_tables
 
 check-browser-s4:
+    cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
     npm run test:browser-host
 
 check-realm-readiness:

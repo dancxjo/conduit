@@ -33,6 +33,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-browser-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-planner",
+ "conduit-runtime",
+ "conduit-signal",
+]
+
+[[package]]
 name = "conduit-browser-sim"
 version = "0.1.0"
 dependencies = [

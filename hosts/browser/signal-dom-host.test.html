@@ -8,6 +8,12 @@
 <section id="host-byte-bound" hidden></section>
 <script type="module">
 import { BrowserDomFailure, BrowserDomHost } from "./signal-dom-host.mjs";
+import {
+  currentEffect,
+  instantiateBrowserRuntime,
+  runBrowserRuntime,
+  submitCompletion,
+} from "./signal-wasm-runtime.mjs";
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -31,6 +37,12 @@ const effect = (host, sequence) => ({
 });
 
 try {
+  const wasmBytes = await fetch(
+    "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+  ).then((response) => {
+    assert(response.ok, "browser runtime WASM artifact loads");
+    return response.arrayBuffer();
+  });
   const hosts = [
     new BrowserDomHost({
       hostId: "browser-host-a",
@@ -47,23 +59,43 @@ try {
       maximumReceiptBytes: 144,
     }),
   ];
-  const completions = [];
-  for (const [index, host] of hosts.entries()) {
-    const label = index === 0 ? "a" : "b";
-    for (let sequence = 0; sequence < 16; sequence += 1) {
-      const request = effect(label, sequence);
-      const result = host.completePresentation(request);
-      assert(result.ok, `host ${label} presentation ${sequence} completes`);
-      assert(
-        result.completion.activePlayId === request.activePlayId &&
-          result.completion.presentationId === request.presentationId,
-        "completion echoes exact runtime identities",
-      );
-      completions.push(result.completion);
-    }
-  }
+  const runtimes = await Promise.all([
+    instantiateBrowserRuntime(wasmBytes, 0),
+    instantiateBrowserRuntime(wasmBytes, 1),
+  ]);
+  const startedAt = performance.now();
+  const runtimeResults = await Promise.all([
+    runBrowserRuntime(runtimes[0], hosts[0]),
+    runBrowserRuntime(runtimes[1], hosts[1]),
+  ]);
+  const elapsedMs = performance.now() - startedAt;
+  assert(runtimeResults.every((result) => result.status === 1), "both Rust runtimes complete");
+  assert(
+    runtimeResults.every((result) =>
+      result.timerCount === 15 && result.requestedTimerMs === 3750
+    ),
+    "both hosts honor all fifteen requested 250ms intervals",
+  );
+  assert(elapsedMs >= 3650, "page hosts use real browser timers");
+  assert(
+    runtimeResults.every((result) =>
+      result.completionCount === 16 && result.receiptCount === 16
+    ),
+    "both Rust runtimes correlate sixteen DOM completions",
+  );
 
-  const duplicate = hosts[0].completePresentation(effect("a", 0));
+  const mismatchRuntime = await instantiateBrowserRuntime(wasmBytes, 0);
+  const mismatchEffect = currentEffect(mismatchRuntime);
+  const mismatchCode = submitCompletion(mismatchRuntime, mismatchEffect, {
+    planId: `${mismatchEffect.planId}-wrong`,
+    activePlayId: mismatchEffect.activePlayId,
+    presentationId: mismatchEffect.presentationId,
+    placementId: mismatchEffect.placementId,
+    value: mismatchEffect.value,
+  });
+  assert(mismatchCode === -6, "runtime rejects a mismatched completion identity");
+
+  const duplicate = hosts[0].completePresentation(runtimeResults[0].presentations[0]);
   assert(
     duplicate.code === BrowserDomFailure.DuplicatePresentation,
     "duplicate presentation fails closed",
@@ -110,9 +142,16 @@ try {
   );
 
   globalThis.__conduitBrowserDomResults = Object.freeze({
-    completionCount: completions.length,
+    completionCount: runtimeResults.reduce((sum, result) => sum + result.completionCount, 0),
     hostAReceipts: hosts[0].receipts().length,
     hostBReceipts: hosts[1].receipts().length,
+    hostATimers: runtimeResults[0].timerCount,
+    hostBTimers: runtimeResults[1].timerCount,
+    hostARequestedTimerMs: runtimeResults[0].requestedTimerMs,
+    hostBRequestedTimerMs: runtimeResults[1].requestedTimerMs,
+    hostAStatus: runtimeResults[0].status,
+    hostBStatus: runtimeResults[1].status,
+    mismatchCode,
     duplicateCode: duplicate.code,
     overflowCode: overflow.code,
     itemOverflowCode: itemOverflow.code,

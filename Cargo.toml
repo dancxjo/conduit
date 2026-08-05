@@ -14,6 +14,7 @@ members = [
 	"crates/conduit",
 	"fixtures/browser-sim",
 	"fixtures/pico-sim",
+	"hosts/browser-runtime",
 	"hosts/std",
 ]
 resolver = "2"
