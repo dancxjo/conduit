@@ -260,7 +260,7 @@ fn print_human_report(report: &DoctorReport) {
                 println!("    {line}");
             }
         }
-        if !probe.outcome.success && let Some(repair) = probe.repair {
+        if let (false, Some(repair)) = (probe.outcome.success, probe.repair) {
             println!("    repair: {repair}");
         }
     }
