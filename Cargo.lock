@@ -68,6 +68,7 @@ dependencies = [
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-wire",
 ]
 
 [[package]]

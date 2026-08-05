@@ -215,4 +215,45 @@ mod tests {
             .expect("text reaches rejection boundary");
         server.join().expect("server rejects text");
     }
+
+    #[test]
+    fn disconnect_before_readiness_and_with_an_in_flight_frame_are_distinct() {
+        let listener = NativeWebSocketListener::bind_loopback(16).expect("loopback binds");
+        let address = listener.local_addr().expect("address");
+        let url = listener.url().expect("url");
+        let server = thread::spawn(move || {
+            let mut carrier = listener.accept().expect("RFC 6455 accepts");
+            assert_eq!(
+                carrier.receive_binary(&mut [0_u8; 16]),
+                Err(NativeWebSocketError::Disconnected)
+            );
+        });
+        let stream = TcpStream::connect(address).expect("client connects");
+        let (mut client, _) = tungstenite::client(url, stream).expect("client upgrades");
+        client.close(None).expect("disconnect before readiness");
+        server.join().expect("server classifies early disconnect");
+
+        let listener = NativeWebSocketListener::bind_loopback(16).expect("loopback binds");
+        let address = listener.local_addr().expect("address");
+        let url = listener.url().expect("url");
+        let server = thread::spawn(move || {
+            let mut carrier = listener.accept().expect("RFC 6455 accepts");
+            let mut input = [0_u8; 16];
+            let length = carrier.receive_binary(&mut input).expect("frame arrives");
+            assert_eq!(&input[..length], b"offered");
+            assert_eq!(
+                carrier.receive_binary(&mut input),
+                Err(NativeWebSocketError::Disconnected)
+            );
+        });
+        let stream = TcpStream::connect(address).expect("client connects");
+        let (mut client, _) = tungstenite::client(url, stream).expect("client upgrades");
+        client
+            .send(Message::binary(&b"offered"[..]))
+            .expect("in-flight frame sends");
+        client.close(None).expect("disconnect in flight");
+        server
+            .join()
+            .expect("server classifies in-flight disconnect");
+    }
 }

@@ -44,21 +44,21 @@ test("actual Chromium and native RFC 6455 carriers exchange bounded binary proto
       try {
         new BrowserWebSocketCarrier({
           url: "ws://0.0.0.0:9/conduit",
-          maximumMessageBytes: 512,
-          maximumBufferedBytes: 512,
+          maximumMessageBytes: 1024,
+          maximumBufferedBytes: 1024,
         });
       } catch (error) {
         invalidBinding = error.message;
       }
       const carrier = await new BrowserWebSocketCarrier({
         url,
-        maximumMessageBytes: 512,
-        maximumBufferedBytes: 512,
+        maximumMessageBytes: 1024,
+        maximumBufferedBytes: 1024,
       }).open();
       const hello = await carrier.receiveBinary();
       const helloSend = carrier.sendBinary(hello);
       const ready = await carrier.receiveBinary();
-      const oversized = carrier.sendBinary(new Uint8Array(513));
+      const oversized = carrier.sendBinary(new Uint8Array(1025));
       const readySend = carrier.sendBinary(ready);
       const closed = await carrier.closed();
       return {
@@ -80,14 +80,14 @@ test("actual Chromium and native RFC 6455 carriers exchange bounded binary proto
     expect(result.invalidBinding).toBe(result.expectedInvalidBinding);
     expect(result.helloMagic).toBe("CNDS");
     expect(result.readyMagic).toBe("CNDS");
-    expect(result.helloBytes).toBeLessThanOrEqual(512);
+    expect(result.helloBytes).toBeLessThanOrEqual(1024);
     expect(result.readyBytes).toBeLessThan(result.helloBytes);
     expect(result.helloSend).toEqual({ ok: true, byteLength: result.helloBytes });
     expect(result.readySend).toEqual({ ok: true, byteLength: result.readyBytes });
     expect(result.oversized).toEqual({
       ok: false,
       code: result.expectedOversized,
-      detail: "513",
+      detail: "1025",
     });
     expect(result.closed).toEqual({ ok: true, code: 1000, reason: "conduit-terminal" });
   } finally {

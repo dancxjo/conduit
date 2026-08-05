@@ -1,13 +1,14 @@
 use conduit_core::{
-    ConnectionId, ConnectionProvider, ConnectionProviderInstanceId, FragmentId, KindId,
-    LinkBindingId, LinkEndpoint, LinkLimits, PlanId, PlannedConnection, PROTOCOL_VERSION,
+    bind_active_play, ActivePlayId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
+    FragmentId, KindId, LinkBindingId, LinkEndpoint, LinkLimits, PlanId, PlannedConnection,
+    PROTOCOL_VERSION,
 };
 
 use crate::{WireError, MAX_ID_BYTES};
 
 const SESSION_MAGIC: [u8; 4] = *b"CNDS";
 const SESSION_WIRE_VERSION: u8 = 1;
-const COMMON_FIXED_BYTES: usize = 4 + 1 + 1 + 2 + 2 * 6;
+const COMMON_FIXED_BYTES: usize = 4 + 1 + 1 + 2 + 2 * 8;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionBinding {
@@ -15,6 +16,8 @@ pub struct SessionBinding {
     pub plan_id: PlanId,
     pub source_fragment_id: FragmentId,
     pub sink_fragment_id: FragmentId,
+    pub source_active_play_id: ActivePlayId,
+    pub sink_active_play_id: ActivePlayId,
     pub connection_id: ConnectionId,
     pub link_binding_id: LinkBindingId,
     pub provider: ConnectionProvider,
@@ -45,11 +48,18 @@ impl SessionBinding {
         {
             return Err(WireError::InvalidSession);
         }
+        let source_active_play_id =
+            bind_active_play(&plan_id, &link.source.host_id, &link.source.boot_id, 0)
+                .active_play_id;
+        let sink_active_play_id =
+            bind_active_play(&plan_id, &link.sink.host_id, &link.sink.boot_id, 0).active_play_id;
         let binding = Self {
             protocol_version: PROTOCOL_VERSION,
             plan_id,
             source_fragment_id,
             sink_fragment_id,
+            source_active_play_id,
+            sink_active_play_id,
             connection_id: connection.connection_id.clone(),
             link_binding_id: link.binding_id.clone(),
             provider: link.provider,
@@ -74,6 +84,8 @@ impl SessionBinding {
             self.plan_id.as_str(),
             self.source_fragment_id.as_str(),
             self.sink_fragment_id.as_str(),
+            self.source_active_play_id.as_str(),
+            self.sink_active_play_id.as_str(),
             self.connection_id.as_str(),
             self.link_binding_id.as_str(),
             self.provider_instance_id.as_str(),
@@ -90,6 +102,15 @@ impl SessionBinding {
             .any(|identity| identity.is_empty() || identity.len() > MAX_ID_BYTES)
             || self.source.host_id == self.sink.host_id
             || self.source.endpoint_id == self.sink.endpoint_id
+        {
+            return Err(WireError::InvalidSession);
+        }
+        if self.source_active_play_id
+            != bind_active_play(&self.plan_id, &self.source.host_id, &self.source.boot_id, 0)
+                .active_play_id
+            || self.sink_active_play_id
+                != bind_active_play(&self.plan_id, &self.sink.host_id, &self.sink.boot_id, 0)
+                    .active_play_id
         {
             return Err(WireError::InvalidSession);
         }
@@ -119,6 +140,8 @@ impl SessionBinding {
             plan_id: self.plan_id.as_str(),
             source_fragment_id: self.source_fragment_id.as_str(),
             sink_fragment_id: self.sink_fragment_id.as_str(),
+            source_active_play_id: self.source_active_play_id.as_str(),
+            sink_active_play_id: self.sink_active_play_id.as_str(),
             connection_id: self.connection_id.as_str(),
             link_binding_id: self.link_binding_id.as_str(),
             provider_instance_id: self.provider_instance_id.as_str(),
@@ -152,6 +175,8 @@ pub struct SessionIdentity<'a> {
     pub plan_id: &'a str,
     pub source_fragment_id: &'a str,
     pub sink_fragment_id: &'a str,
+    pub source_active_play_id: &'a str,
+    pub sink_active_play_id: &'a str,
     pub connection_id: &'a str,
     pub link_binding_id: &'a str,
     pub provider_instance_id: &'a str,
@@ -187,6 +212,9 @@ pub enum SessionMessage<'a> {
     Offered {
         sequence: u64,
         payload: &'a [u8],
+    },
+    Pressure {
+        sequence: u64,
     },
     Accepted {
         sequence: u64,
@@ -336,6 +364,16 @@ impl SessionMachine {
                 self.transfer = Some(TransferState::Offered(sequence));
                 Ok(())
             }
+            SessionMessage::Pressure { sequence } => {
+                self.require_active()?;
+                if !self.sink_direction(direction)
+                    || self.transfer != Some(TransferState::Offered(sequence))
+                {
+                    return Err(WireError::ReorderedFrame);
+                }
+                self.transfer = None;
+                Ok(())
+            }
             SessionMessage::Accepted { sequence } => {
                 self.require_active()?;
                 if self.transfer == Some(TransferState::Accepted(sequence)) {
@@ -450,6 +488,7 @@ impl SessionMachine {
             return Err(WireError::InvalidState);
         }
         *current = Some(failure);
+        self.transfer = None;
         Ok(())
     }
 
@@ -538,6 +577,8 @@ pub fn encode_session_frame_into(
         frame.identity.plan_id,
         frame.identity.source_fragment_id,
         frame.identity.sink_fragment_id,
+        frame.identity.source_active_play_id,
+        frame.identity.sink_active_play_id,
         frame.identity.connection_id,
         frame.identity.link_binding_id,
         frame.identity.provider_instance_id,
@@ -565,6 +606,7 @@ pub fn encode_session_frame_into(
             writer.u64(sequence)?;
             writer.byte_field(payload)?;
         }
+        SessionMessage::Pressure { sequence } => writer.u64(sequence)?,
         SessionMessage::Accepted { sequence } | SessionMessage::Delivered { sequence } => {
             writer.u64(sequence)?;
         }
@@ -606,6 +648,8 @@ pub fn decode_session_frame(
         plan_id: cursor.text()?,
         source_fragment_id: cursor.text()?,
         sink_fragment_id: cursor.text()?,
+        source_active_play_id: cursor.text()?,
+        sink_active_play_id: cursor.text()?,
         connection_id: cursor.text()?,
         link_binding_id: cursor.text()?,
         provider_instance_id: cursor.text()?,
@@ -634,6 +678,9 @@ pub fn decode_session_frame(
             }
             SessionMessage::Offered { sequence, payload }
         }
+        10 => SessionMessage::Pressure {
+            sequence: cursor.u64()?,
+        },
         4 => SessionMessage::Accepted {
             sequence: cursor.u64()?,
         },
@@ -706,6 +753,7 @@ fn message_kind(message: SessionMessage<'_>) -> u8 {
         SessionMessage::Hello(_) => 1,
         SessionMessage::Ready => 2,
         SessionMessage::Offered { .. } => 3,
+        SessionMessage::Pressure { .. } => 10,
         SessionMessage::Accepted { .. } => 4,
         SessionMessage::Delivered { .. } => 5,
         SessionMessage::InputClosed { .. } => 6,
@@ -789,6 +837,8 @@ fn common_encoded_len(binding: &SessionBinding) -> Result<usize, WireError> {
         .checked_add(binding.plan_id.as_str().len())
         .and_then(|value| value.checked_add(binding.source_fragment_id.as_str().len()))
         .and_then(|value| value.checked_add(binding.sink_fragment_id.as_str().len()))
+        .and_then(|value| value.checked_add(binding.source_active_play_id.as_str().len()))
+        .and_then(|value| value.checked_add(binding.sink_active_play_id.as_str().len()))
         .and_then(|value| value.checked_add(binding.connection_id.as_str().len()))
         .and_then(|value| value.checked_add(binding.link_binding_id.as_str().len()))
         .and_then(|value| value.checked_add(binding.provider_instance_id.as_str().len()))
@@ -928,25 +978,34 @@ mod tests {
     const MAXIMUM_FRAME_BYTES: u32 = 512;
 
     fn binding() -> SessionBinding {
+        let plan_id = PlanId::from("test/plan");
+        let source = LinkEndpoint {
+            host_id: HostId::from("test/source-host"),
+            boot_id: BootId::from("test/source-boot"),
+            endpoint_id: LinkEndpointId::from("test/source-endpoint"),
+        };
+        let sink = LinkEndpoint {
+            host_id: HostId::from("test/sink-host"),
+            boot_id: BootId::from("test/sink-boot"),
+            endpoint_id: LinkEndpointId::from("test/sink-endpoint"),
+        };
+        let source_active_play_id =
+            bind_active_play(&plan_id, &source.host_id, &source.boot_id, 0).active_play_id;
+        let sink_active_play_id =
+            bind_active_play(&plan_id, &sink.host_id, &sink.boot_id, 0).active_play_id;
         SessionBinding {
             protocol_version: PROTOCOL_VERSION,
-            plan_id: PlanId::from("test/plan"),
+            plan_id,
             source_fragment_id: FragmentId::from("test/source-fragment"),
             sink_fragment_id: FragmentId::from("test/sink-fragment"),
+            source_active_play_id,
+            sink_active_play_id,
             connection_id: ConnectionId::from("test/connection"),
             link_binding_id: LinkBindingId::from("test/link"),
             provider: ConnectionProvider::WebSocket,
             provider_instance_id: ConnectionProviderInstanceId::from("test/provider-instance"),
-            source: LinkEndpoint {
-                host_id: HostId::from("test/source-host"),
-                boot_id: BootId::from("test/source-boot"),
-                endpoint_id: LinkEndpointId::from("test/source-endpoint"),
-            },
-            sink: LinkEndpoint {
-                host_id: HostId::from("test/sink-host"),
-                boot_id: BootId::from("test/sink-boot"),
-                endpoint_id: LinkEndpointId::from("test/sink-endpoint"),
-            },
+            source,
+            sink,
             value_kind: KindId::from("test/value"),
             limits: LinkLimits {
                 maximum_in_flight_items: 1,
@@ -1074,6 +1133,13 @@ mod tests {
             sequence: 0,
             payload: b"signal-0",
         });
+        assert_eq!(
+            machine.admit_outbound(binding.frame(SessionMessage::Offered {
+                sequence: 1,
+                payload: b"signal-1",
+            })),
+            Err(WireError::ReorderedFrame)
+        );
         machine.admit_outbound(offered).unwrap();
         assert_eq!(
             machine.admit_outbound(offered),
@@ -1101,6 +1167,34 @@ mod tests {
         machine.admit_inbound(terminal).unwrap();
         assert!(machine.is_terminal());
         assert_eq!(machine.admit_inbound(terminal), Err(WireError::LateFrame));
+    }
+
+    #[test]
+    fn receiver_pressure_allows_only_the_same_offer_to_retry() {
+        let binding = binding();
+        let mut source = SessionMachine::new(binding.clone(), SessionRole::Source).unwrap();
+        activate(&mut source);
+        let offered = binding.frame(SessionMessage::Offered {
+            sequence: 0,
+            payload: b"signal-0",
+        });
+        source.admit_outbound(offered).unwrap();
+        source
+            .admit_inbound(binding.frame(SessionMessage::Pressure { sequence: 0 }))
+            .unwrap();
+        assert_eq!(source.next_sequence(), 0);
+        source.admit_outbound(offered).unwrap();
+        assert_eq!(
+            source.admit_inbound(binding.frame(SessionMessage::Pressure { sequence: 1 })),
+            Err(WireError::ReorderedFrame)
+        );
+        source
+            .admit_inbound(binding.frame(SessionMessage::Accepted { sequence: 0 }))
+            .unwrap();
+        source
+            .admit_inbound(binding.frame(SessionMessage::Delivered { sequence: 0 }))
+            .unwrap();
+        assert_eq!(source.next_sequence(), 1);
     }
 
     #[test]
@@ -1154,5 +1248,83 @@ mod tests {
             SessionMachine::new(invalid, SessionRole::Source),
             Err(WireError::InvalidLimits)
         ));
+    }
+
+    #[test]
+    fn every_routing_and_value_identity_mutation_fails_closed() {
+        let binding = binding();
+        for field in 0..8 {
+            let mut frame = binding.hello_frame();
+            match field {
+                0 => frame.identity.plan_id = "wrong/plan",
+                1 => frame.identity.source_fragment_id = "wrong/source-fragment",
+                2 => frame.identity.sink_fragment_id = "wrong/sink-fragment",
+                3 => frame.identity.connection_id = "wrong/connection",
+                4 => frame.identity.source_active_play_id = "wrong/source-play",
+                5 => frame.identity.sink_active_play_id = "wrong/sink-play",
+                6 => frame.identity.link_binding_id = "wrong/link",
+                7 => frame.identity.provider_instance_id = "wrong/provider-instance",
+                _ => unreachable!(),
+            }
+            let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
+            assert_eq!(machine.admit_inbound(frame), Err(WireError::InvalidSession));
+        }
+        let mut hello = match binding.hello_frame().message {
+            SessionMessage::Hello(hello) => hello,
+            _ => unreachable!(),
+        };
+        hello.value_kind = "wrong/value-kind";
+        let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
+        assert_eq!(
+            machine.admit_inbound(binding.frame(SessionMessage::Hello(hello))),
+            Err(WireError::InvalidSession)
+        );
+    }
+
+    #[test]
+    fn session_codec_rejects_malformed_truncated_oversized_and_trailing_frames() {
+        let binding = binding();
+        let mut output = [0_u8; MAXIMUM_FRAME_BYTES as usize];
+        let length = encode_session_frame_into(
+            binding.frame(SessionMessage::Offered {
+                sequence: 0,
+                payload: b"signal-0",
+            }),
+            &mut output,
+            MAXIMUM_PAYLOAD_BYTES,
+            MAXIMUM_FRAME_BYTES,
+        )
+        .unwrap();
+        let mut malformed = output[..length].to_vec();
+        malformed[0] ^= 0xff;
+        assert_eq!(
+            decode_session_frame(&malformed, MAXIMUM_PAYLOAD_BYTES, MAXIMUM_FRAME_BYTES,),
+            Err(WireError::InvalidMagic)
+        );
+        assert_eq!(
+            decode_session_frame(
+                &output[..length - 1],
+                MAXIMUM_PAYLOAD_BYTES,
+                MAXIMUM_FRAME_BYTES,
+            ),
+            Err(WireError::TruncatedFrame)
+        );
+        assert_eq!(
+            decode_session_frame(
+                &output[..length],
+                MAXIMUM_PAYLOAD_BYTES,
+                (length - 1) as u32,
+            ),
+            Err(WireError::OversizedFrame)
+        );
+        output[length] = 0;
+        assert_eq!(
+            decode_session_frame(
+                &output[..length + 1],
+                MAXIMUM_PAYLOAD_BYTES,
+                MAXIMUM_FRAME_BYTES,
+            ),
+            Err(WireError::TrailingGarbage)
+        );
     }
 }
