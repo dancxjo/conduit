@@ -6,12 +6,12 @@ adapter or physical proof.
 
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, node-scoped correlated host operations, cancellation, and exact local-plan numeric lowering | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, cancellation, exact signal/multi-value lowering, and zero-allocation activation vectors | same scheduler with preallocated hosted storage; installed Signal pair, local three-sink fan-out, and typed multi-value std profiles execute through it; unsupported forms fail closed without a production legacy pump | no | no; Thumb kernel compiles | no | no |
-| Exact plan, play, evidence, and presentation identities | S2 planning plus S3 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued evidence identities; exact active-play/presentation correlation at the platform completion boundary | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/activation mutation, unique evidence, and wrong-presentation-identity vectors | yes, std runtime preparation enforces S2 truth and activation/evidence/presentation identities flow through hosted/composite adapters and Observatory | no | no | fixture providers only; no sockets | no |
+| Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, node-scoped correlated host operations, cancellation, and exact local/remote-plan numeric lowering | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, cancellation, exact signal/multi-value lowering, remote pressure/delivery, and zero-allocation activation vectors | same scheduler with preallocated hosted storage; installed Signal pair, local three-sink fan-out, typed multi-value std profiles, and the std half of the distributed Signal checkpoint execute through it; unsupported forms fail closed without a production legacy pump | browser/WASM sink executes an exact remote-ingress fragment through the same scheduler before bounded DOM presentation | no; Thumb kernel compiles | one bounded loopback WebSocket remote cord; provider owns carrier I/O only | no |
+| Exact plan, play, evidence, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued evidence identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/activation mutation, unique evidence, wrong-presentation identity, and wrong session identity vectors | yes, std preparation enforces S2 truth and the distributed source binds exact plan/fragment/play/link/connection identities | browser sink independently reconstructs and lowers its exact fragment and rejects stale/wrong session facts | no | live session verifies exact provider instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | no |
 | Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal evidence, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
-| Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
-| Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
-| Browser manifestation | local Signal profile | yes, `conduit-browser-sim` | actual Rust/WASM planner plus exact-plan-lowered `conduit-kernel` execution for two independent hosts | thin real-timer/DOM adapter with exact fixed-frame completion correlation and sixteen receipts per host | no | no WebSocket | no |
+| Connection envelope and session wire formats | allocating fixture envelope plus allocation-stable borrowed live-session protocol | deterministic envelope corpus and session lifecycle/mutation vectors | native binary-only RFC 6455 provider with fixed message bounds | real browser WebSocket API with one-message inbox and explicit send bounds | no | actual loopback socket; Hello/Ready/Offered/Pressure/Accepted/Delivered/InputClosed/Cancelled/Failed/Terminal frames | no |
+| Portable Signal | yes | multi-value fixtures | std kernel pulse source and local stdout/timer paths | browser/WASM kernel show sink with sixteen exact DOM receipts | no | sixteen ordered values over the bounded WebSocket remote cord | no |
+| Browser manifestation | local and remote-ingress Signal profiles | yes, `conduit-browser-sim` | actual Rust/WASM planner plus exact-plan-lowered `conduit-kernel` execution for local and distributed sink fragments | thin DOM adapter with exact fixed-frame completion correlation and sixteen receipts | no | actual loopback WebSocket to the std kernel source | no |
 | Pico-shaped manifestation | partial | yes, `conduit-pico-sim` | test-only | no | no BSP/image/driver | no UDP/TCP | no board run |
 | Realm membership | retired prototype | deterministic table tests | no production body model | no | no | no | no |
 | Observatory | report-schema prototype | synthetic fleet | synthetic command only | no | no | no | no |
@@ -50,13 +50,21 @@ The `check` workflow requires:
   instances, exact source/checked/expanded/plan/fragment/play/request/
   presentation/evidence identities, stable sealed capacity, sixteen ordered
   receipts per host, and bounded failure negatives;
+- one actual Chromium distributed kernel proof from the unchanged Signal form,
+  with exact std-source/browser-sink fragments, kernel execution on both ends,
+  one binary loopback WebSocket, sixteen ordered DOM receipts, complete session
+  identity, one real receiver-`Full` retry of the same sequence, terminal
+  evidence, stable sealed capacities, zero retained/in-flight values, and
+  bounded lifecycle/identity/frame failure negatives;
 - WASM compilation of the browser-shaped simulation;
 - Thumb compilation of allocator-free contracts and the Pico-shaped simulation.
 
-WASM compilation is not browser execution by itself. Thumb compilation is not firmware or board
-acceptance. The accepted Chromium proof is browser-local
-planner and kernel execution with real timers and DOM manifestation, but it is
-not a live link. Frame/datagram fixtures are not WebSocket or UDP sockets.
+WASM compilation is not browser execution by itself. Thumb compilation is not firmware
+or board acceptance. The previously accepted Chromium proof is browser-local
+and not a live link; the suite now also includes one narrow live loopback
+std-to-browser link. That link is not a public network, TLS, discovery,
+reconnection, or general transport claim. Frame/datagram fixtures are not
+WebSocket or UDP sockets.
 
 ## Salvage stop line
 
@@ -147,8 +155,23 @@ identity denial, cancellation, evidence exhaustion, terminal failure, and
 stable sealed capacity are executable proofs. WASM allocation is not claimed
 to be measured; the accepted claim is precise capacity stability.
 
-No actual Pico host, BODY, catalog expansion, Observatory acceptance, live
-transport, or useful task is implied by browser-local kernel acceptance. Those
-surfaces remain behind their own later salvage gates; the next #350 checkpoint
-is one honestly bounded live std-to-browser WebSocket link with kernel
-execution on both ends.
+The S4 live std-to-browser checkpoint is accepted at exact main
+`a1f479dfa58b8537427b5747da73795628504913`; workflow `31031406945` passed
+both the full Rust gate and the pinned Chromium job. The unchanged
+`examples/signal-demo.form` lowers into exact std-source and browser-sink
+fragments. Both execute through `conduit-kernel`; a binary-only loopback RFC
+6455 provider carries the remote-cord session without owning scheduling or
+value lifecycle. Sixteen values reach the DOM in order through one-item and
+nine-byte cord/buffer limits, including one observed receiver-`Full` response
+and exact same-sequence retry. Both kernels terminate with evidence, capacities
+remain stable, and no value remains retained or in flight. Missing/stale links,
+identity mutation, malformed/truncated/oversized/trailing frames,
+duplicate/reordered sequence, early disconnect, sink failure, cancellation,
+late acknowledgement, and evidence exhaustion fail closed.
+
+No actual Pico host or firmware, UDP, GPIO/LED, BODY, catalog expansion,
+Observatory acceptance, discovery, TLS, public hosting, reconnection policy, or
+physical proof is implied. The next #350 checkpoint is actual constrained Pico
+W firmware executing its local kernel fragment and driving its LED locally.
+Only after that separately reviewed gate may bounded std-to-Pico transport and
+the final three-host proof be considered.

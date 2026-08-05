@@ -5,13 +5,14 @@ Conduit is being rebuilt around one rule:
 > Forms describe meaning. Hosts offer implementations. Plans make realization exact.
 
 Current `main` contains a useful Rust `std` prototype, deterministic
-browser-shaped/Pico-shaped conformance fixtures, and one actual browser-local
-Rust/WASM Signal host. Two independent Chromium-page instances parse and plan
-the unchanged Signal form, lower exact local fragments, and execute through
-`conduit-kernel` before driving real timers and bounded DOM presentation. It
-does **not** yet contain a general-purpose std execution engine, Pico firmware,
-live WebSocket/UDP transport, three-platform proof, production BODY model, or
-production Observatory.
+browser-shaped/Pico-shaped conformance fixtures, actual browser-local
+Rust/WASM Signal hosts, and one deliberately narrow live std-to-browser proof.
+The unchanged Signal form is split into exact std-source and browser-sink plan
+fragments; both execute through `conduit-kernel`, while an actual bounded
+loopback WebSocket carries only the remote-cord protocol. It does **not** yet
+contain a general-purpose std execution engine, Pico firmware, UDP or public
+network transport, three-platform proof, production BODY model, or production
+Observatory.
 [STATUS.md](STATUS.md) is the checked claim boundary.
 
 ## Project guide
@@ -57,11 +58,13 @@ std forms fail closed; production `StdHost` has no fallback operation pump.
 Nested expansion identity [#398](https://github.com/dancxjo/conduit/issues/398)
 and general named composite faces
 [#399](https://github.com/dancxjo/conduit/issues/399) are accepted. The
-browser-local kernel checkpoint under
+live std-to-browser kernel checkpoint under
 [#350](https://github.com/dancxjo/conduit/issues/350) is accepted at main
-`b7852eed1e784a27dcd78e700b2f89ddc01bc097`, workflow `31022565054`.
-Cross-host simulation fixtures retain an explicitly named legacy compatibility
-driver; they are not transport evidence.
+`a1f479dfa58b8537427b5747da73795628504913`, workflow `31031406945`.
+It produces sixteen exact DOM receipts over a one-item/nine-byte remote cord
+and one actual loopback RFC 6455 connection, including a real `Full` and exact
+same-sequence retry. Cross-host simulation fixtures retain an explicitly named
+legacy compatibility driver; they are not transport evidence.
 
 ## Current executable prototype
 
@@ -85,7 +88,16 @@ frame/datagram relays are in-memory deterministic fixtures, not sockets.
 The actual browser checkpoint lives under `hosts/browser-runtime` and
 `hosts/browser/`. Rust owns parsing, planning, exact lowering, kernel execution,
 bounds, lifecycle, and terminal truth; JavaScript is the thin real-timer/DOM
-adapter. This is browser-local execution, not a std-to-browser socket.
+adapter. Run the accepted live distributed proof with:
+
+```bash
+just prove-std-browser-s4
+```
+
+That command binds the native provider only to loopback, starts the browser
+artifact server, runs one pinned Chromium worker with zero retries, and prints
+the selected WebSocket URL plus the final receipt/pressure/terminal summary.
+It is a narrow std-to-browser checkpoint, not a general network stack.
 
 ## Forward kernel
 
@@ -100,7 +112,11 @@ activation. The production browser Signal host uses the same scheduler and
 shared lowering boundary, with sealed capacity stability rather than an
 overstated browser allocation measurement. `HostRuntime` remains only in
 explicitly named simulation/composite compatibility paths, not production
-`StdHost` or the production browser host.
+`StdHost` or the production browser host. Exact distributed fragments now
+lower to kernel-owned remote ingress/egress cords. The WebSocket adapter owns
+carrier I/O only; kernel queues retain pressure, byte accounting, closure,
+cancellation, terminal state, evidence, and source value ownership through
+exact delivery acknowledgement.
 
 Architecture and current salvage boundaries:
 
