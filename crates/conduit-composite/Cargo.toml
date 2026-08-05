@@ -1,0 +1,13 @@
+[package]
+name = "conduit-composite"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-runtime = { path = "../conduit-runtime" }
+
+[dev-dependencies]
+conduit-form = { path = "../conduit-form" }
+conduit-planner = { path = "../conduit-planner" }
+conduit-signal = { path = "../conduit-signal" }

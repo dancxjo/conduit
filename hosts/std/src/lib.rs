@@ -132,6 +132,9 @@ impl StdHost {
                         message: None,
                     })
                 }
+                PlatformEffect::TransmitConnection { .. } => {
+                    return Err("std host has no in-memory connection driver".to_string());
+                }
             };
             pending_effects.extend(follow_up.effects.into_iter().rev());
         }

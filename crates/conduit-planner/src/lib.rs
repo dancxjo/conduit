@@ -266,6 +266,16 @@ pub fn plan(
                 DEFAULT_CONNECTION_ITEM_CAPACITY
             )));
         }
+        if DEFAULT_CONNECTION_BYTE_CAPACITY > source_capability.limits.max_queue_bytes
+            || DEFAULT_CONNECTION_BYTE_CAPACITY > sink_capability.limits.max_queue_bytes
+        {
+            return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
+                "connection from '{}' to '{}' requires byte capacity {}",
+                source_plan.operation_id.as_str(),
+                sink_plan.operation_id.as_str(),
+                DEFAULT_CONNECTION_BYTE_CAPACITY
+            )));
+        }
         planned_connections.push(PlannedConnection {
             connection_id: ConnectionId::from(hash_string(&format!(
                 "connection:{}:{}:{}:{}",
@@ -414,6 +424,9 @@ fn select_provider(
     if source.host_id == sink.host_id && providers.contains(&ConnectionProvider::Local) {
         return Ok(ConnectionProvider::Local);
     }
+    if source.host_id != sink.host_id && providers.contains(&ConnectionProvider::InMemory) {
+        return Ok(ConnectionProvider::InMemory);
+    }
     Err(PlannerError::UnavailableConnectionProvider(format!(
         "no provider for '{}' -> '{}'",
         source.operation_id.as_str(),
@@ -447,16 +460,25 @@ fn canonical_plan_text(
     }
     for connection in connections {
         text.push_str(&format!(
-            "conn:{}:{}:{}:{}:{}:{}|",
+            "conn:{}:{}:{}:{}:{}:{}:{}:{}|",
             connection.connection_id.as_str(),
             connection.source_placement_id.as_str(),
             connection.source_port_id.as_str(),
             connection.sink_placement_id.as_str(),
             connection.sink_port_id.as_str(),
-            connection.item_capacity
+            render_provider(connection.provider),
+            connection.item_capacity,
+            connection.byte_capacity
         ));
     }
     text
+}
+
+fn render_provider(provider: ConnectionProvider) -> &'static str {
+    match provider {
+        ConnectionProvider::Local => "local",
+        ConnectionProvider::InMemory => "in-memory",
+    }
 }
 
 fn render_value(value: &conduit_core::ConfigurationValue) -> String {

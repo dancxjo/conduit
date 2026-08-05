@@ -5,6 +5,7 @@ members = [
 	"crates/conduit-form",
 	"crates/conduit-planner",
 	"crates/conduit-runtime",
+	"crates/conduit-composite",
 	"crates/conduit",
 	"hosts/std",
 ]

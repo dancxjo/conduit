@@ -122,6 +122,41 @@ pub struct HostAdvertisement {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ConnectionProvider {
     Local,
+    InMemory,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConnectionEnvelope {
+    pub protocol_version: u16,
+    pub plan_id: PlanId,
+    pub connection_id: ConnectionId,
+    pub sequence: u64,
+    pub value_kind: KindId,
+    pub payload: Vec<u8>,
+}
+
+impl ConnectionEnvelope {
+    pub fn encoded_len(&self) -> u32 {
+        self.payload.len() as u32
+    }
+
+    pub fn into_value(self) -> ValuePayload {
+        ValuePayload {
+            value_kind: self.value_kind,
+            encoded: self.payload,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConnectionOutcome {
+    Ready,
+    Accepted,
+    Full,
+    Delivered,
+    Disconnected,
+    Malformed,
+    Terminal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -196,6 +231,10 @@ pub enum FailureReason {
     InvalidLifecycleCommand,
     LatePlatformCompletion,
     EvidenceGap,
+    ConnectionDisconnected,
+    MalformedConnectionEnvelope,
+    StalePlan,
+    CompositeCapabilityFailed,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -216,6 +255,7 @@ pub enum TerminalDisposition {
 pub struct ConnectionTerminalDisposition {
     pub disposition: TerminalDisposition,
     pub last_accepted_sequence: Option<u64>,
+    pub last_manifested_sequence: Option<u64>,
     pub undeliverable_items: u16,
 }
 
@@ -282,6 +322,17 @@ pub enum HostCommand {
         success: bool,
         message: Option<String>,
     },
+    AcceptConnectionEnvelope(ConnectionEnvelope),
+    CompleteConnectionDelivery {
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+        sequence: u64,
+        outcome: ConnectionOutcome,
+    },
+    CloseConnection {
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+    },
     Cancel(PlanId),
     Release(PlanId),
     Inspect,
@@ -316,6 +367,12 @@ pub enum HostEvent {
     ConnectionBlocked {
         plan_id: PlanId,
         connection_id: ConnectionId,
+    },
+    ConnectionEnvelopeOutcome {
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+        sequence: u64,
+        outcome: ConnectionOutcome,
     },
     ValueDelivered {
         plan_id: PlanId,
@@ -381,6 +438,9 @@ pub enum PlatformEffect {
         placement_id: PlacementId,
         value: ValuePayload,
     },
+    TransmitConnection {
+        envelope: ConnectionEnvelope,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -407,6 +467,10 @@ impl<T> BoundedQueue<T> {
 
     pub fn pop(&mut self) -> Option<T> {
         self.items.pop_front()
+    }
+
+    pub fn front(&self) -> Option<&T> {
+        self.items.front()
     }
 
     pub fn is_empty(&self) -> bool {

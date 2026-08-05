@@ -27,13 +27,15 @@ The reboot intentionally begins with one finite, inspectable, cross-host source-
 This repository currently implements the Rust `std` host vertical slice from issue #347:
 
 - parses portable `form 0` files for `flow/pulse` and `presentation/show`;
-- compiles real `conduit-core`, `conduit-form`, `conduit-planner`, `conduit-runtime`, and `conduit-std-host` boundaries in the workspace;
+- compiles real `conduit-core`, `conduit-signal`, `conduit-form`, `conduit-planner`, `conduit-runtime`, `conduit-composite`, and `conduit-std-host` boundaries in the workspace;
 - parses explicit operator placement files;
 - builds an exact local plan from host capability advertisements and placement choices;
 - validates bounded queue limits, boot identity, and offer generation at preparation time;
 - executes finite pulse signals through a platform-neutral runtime and a real bounded local connection;
 - manifests `presentation/show<Signal>` on stdout through the Rust `std` host adapter;
-- records structured observations and prints an operator report plus a concise completion summary.
+- records structured observations and prints an operator report plus a concise completion summary;
+- executes a cross-host internal plan through a bounded, versioned in-memory connection provider;
+- wraps two child runtimes as one composite host whose capability can be selected by a parent plan without exposing child topology.
 
 Try the included forms:
 
@@ -42,4 +44,4 @@ just demo-std
 just demo-triple-local
 ```
 
-The current local planner only accepts placements on the bundled `std-host-1` advertisement. The placement files in `examples/*.placements` make those selections explicit rather than relying on implicit local assignment.
+The planner supports local connections and the deterministic in-memory provider used by composite-host conformance tests. Browser, WebSocket, Pico W, and physical manifestations remain later checkpoints. The placement files in `examples/*.placements` make the current std-host selections explicit rather than relying on implicit local assignment.
