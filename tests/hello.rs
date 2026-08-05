@@ -96,6 +96,45 @@ fn signal_demo_runs_locally() {
 }
 
 #[test]
+fn typed_multi_value_form_runs_through_the_std_kernel() {
+    let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .canonicalize()
+        .expect("workspace root must exist");
+    let form_path = workspace_root.join("examples/kernel-multivalue.form");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
+        .args([
+            "kernel-multivalue",
+            form_path.to_str().expect("form path must be utf-8"),
+        ])
+        .output()
+        .expect("failed to run conduit multi-value kernel profile");
+
+    assert!(output.status.success(), "process failed: {output:?}");
+    let stdout = String::from_utf8(output.stdout).expect("stdout must be utf-8");
+    let receipt_lines = stdout
+        .lines()
+        .filter(|line| line.starts_with("receipt tick placement="))
+        .collect::<Vec<_>>();
+    assert_eq!(receipt_lines.len(), 3, "unexpected receipts: {stdout}");
+    assert!(stdout.contains("tick even 0"), "{stdout}");
+    assert!(stdout.contains("tick even 2"), "{stdout}");
+    assert!(stdout.contains("tick latest 3"), "{stdout}");
+    assert!(
+        stdout.contains("receipts 3 even=(0, 2) latest=(3)"),
+        "{stdout}"
+    );
+    assert!(stdout.contains("stable_allocations=true"), "{stdout}");
+    assert!(
+        stdout
+            .lines()
+            .any(|line| line.starts_with("plan ") && line.ends_with(" complete")),
+        "{stdout}"
+    );
+}
+
+#[test]
 fn triple_signal_form_runs_against_local_std_fixture() {
     let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")

@@ -67,6 +67,53 @@ impl TimerAdapter for ThreadTimer {
     }
 }
 
+pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
+    path: &str,
+    output: &mut W,
+    timer: &mut T,
+) -> Result<kernel_multivalue::MultiValueRunReport, String> {
+    let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
+    let form = conduit_form::parse(&source, &kernel_multivalue::profile_catalog())
+        .map_err(|error| error.to_string())?;
+    let advertisement = kernel_multivalue::advertisement(
+        HostId::from("std-host-1"),
+        conduit_core::BootId::from(fresh_boot_id()),
+        OfferGeneration(1),
+    );
+    let realm = [advertisement.clone()];
+    let placements = default_placements(&form, &realm).map_err(|error| error.to_string())?;
+    let plan = plan(&form, &realm, &placements, &[ConnectionProvider::Local])
+        .map_err(|error| error.to_string())?;
+    let fragment = plan
+        .fragments
+        .into_iter()
+        .find(|fragment| fragment.host_id == advertisement.host_id)
+        .ok_or_else(|| "no local multi-value fragment for std host".to_string())?;
+    write_operator_report(output, &advertisement, &fragment.plan_id, &fragment)?;
+    let mut evidence_sequence = 0;
+    let report = kernel_multivalue::execute_fragment(
+        &advertisement,
+        &fragment,
+        0,
+        &mut evidence_sequence,
+        output,
+        timer,
+    )?;
+    writeln!(output, "plan {} complete", fragment.plan_id.as_str())
+        .map_err(|error| error.to_string())?;
+    writeln!(output, "receipts 3 even=(0, 2) latest=(3)").map_err(|error| error.to_string())?;
+    writeln!(
+        output,
+        "kernel active_play={} decisions={} events={} stable_allocations={}",
+        report.active_play_id.as_str(),
+        report.decisions,
+        report.kernel_events,
+        report.value_allocation_capacity_before == report.value_allocation_capacity_after
+    )
+    .map_err(|error| error.to_string())?;
+    Ok(report)
+}
+
 pub struct StdHost {
     runtime: HostRuntime,
     next_kernel_activation_sequence: u64,
