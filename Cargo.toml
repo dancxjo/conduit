@@ -16,5 +16,6 @@ members = [
 	"fixtures/pico-sim",
 	"hosts/browser-runtime",
 	"hosts/std",
+	"xtask",
 ]
 resolver = "2"
