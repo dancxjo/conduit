@@ -6,7 +6,8 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindId, PortDescriptor, PortDirection,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, ExecutionProfileId,
+    KindContractRevision, KindId, PortDescriptor, PortDirection,
 };
 use serde::{Deserialize, Serialize};
 
@@ -81,7 +82,7 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
                 u64_field("period-ms", 250, 0, u64::MAX),
                 bool_field("initial", false),
             ],
-            limits: limits(GENERIC_VALUE_KIND, 16, 4, 64),
+            limits: limits(16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesAfterConfiguredCount,
             hosted_implementation_required: true,
             browser_manifestation_honest: true,
@@ -95,7 +96,7 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             inputs: vec![port(SIGNAL_PORT, GENERIC_VALUE_KIND, PortDirection::Input)],
             outputs: Vec::new(),
             configuration: Vec::new(),
-            limits: limits(GENERIC_VALUE_KIND, 16, 4, 64),
+            limits: limits(16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
             hosted_implementation_required: true,
             browser_manifestation_honest: true,
@@ -110,7 +111,7 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             inputs: vec![port(IN_PORT, GENERIC_VALUE_KIND, PortDirection::Input)],
             outputs: vec![port(OUT_PORT, GENERIC_VALUE_KIND, PortDirection::Output)],
             configuration: vec![u64_field("function-id", 0, 0, u64::MAX)],
-            limits: limits(GENERIC_VALUE_KIND, 16, 4, 64),
+            limits: limits(16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
             hosted_implementation_required: true,
             browser_manifestation_honest: false,
@@ -124,7 +125,7 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             inputs: vec![port(IN_PORT, GENERIC_VALUE_KIND, PortDirection::Input)],
             outputs: vec![port(OUT_PORT, GENERIC_VALUE_KIND, PortDirection::Output)],
             configuration: vec![u64_field("predicate-id", 0, 0, u64::MAX)],
-            limits: limits(GENERIC_VALUE_KIND, 16, 4, 64),
+            limits: limits(16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
             hosted_implementation_required: true,
             browser_manifestation_honest: false,
@@ -141,7 +142,7 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
                 port(RIGHT_PORT, GENERIC_VALUE_KIND, PortDirection::Output),
             ],
             configuration: Vec::new(),
-            limits: limits(GENERIC_VALUE_KIND, 16, 4, 64),
+            limits: limits(16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
             hosted_implementation_required: true,
             browser_manifestation_honest: false,
@@ -155,7 +156,7 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             inputs: vec![port(IN_PORT, GENERIC_VALUE_KIND, PortDirection::Input)],
             outputs: vec![port(TEXT_PORT, GENERIC_VALUE_KIND, PortDirection::Output)],
             configuration: vec![u64_field("template-id", 0, 0, u64::MAX)],
-            limits: limits(GENERIC_VALUE_KIND, 16, 4, 256),
+            limits: limits(16, 4, 256),
             terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
             hosted_implementation_required: true,
             browser_manifestation_honest: false,
@@ -172,7 +173,7 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
                 u64_field("count", 16, 0, 4_096),
                 u64_field("period-ms", 1_000, 0, u64::MAX),
             ],
-            limits: limits(GENERIC_VALUE_KIND, 16, 4, 64),
+            limits: limits(16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesAfterConfiguredCount,
             hosted_implementation_required: true,
             browser_manifestation_honest: false,
@@ -186,7 +187,7 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             inputs: vec![port(IN_PORT, GENERIC_VALUE_KIND, PortDirection::Input)],
             outputs: vec![port(OUT_PORT, GENERIC_VALUE_KIND, PortDirection::Output)],
             configuration: Vec::new(),
-            limits: limits(GENERIC_VALUE_KIND, 16, 4, 64),
+            limits: limits(16, 4, 64),
             terminal_behavior: TerminalBehavior::RetainsLatestUntilReleased,
             hosted_implementation_required: true,
             browser_manifestation_honest: false,
@@ -218,17 +219,29 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
 }
 
 fn limits(
-    value_kind: &str,
     max_active_instances: u16,
     max_queue_items: u16,
     max_queue_bytes: u32,
 ) -> CapabilityLimits {
     CapabilityLimits {
-        value_kind: kind_id(value_kind),
         max_active_instances,
         max_queue_items,
         max_queue_bytes,
     }
+}
+
+fn contract_revision(kind: &KindId) -> KindContractRevision {
+    KindContractRevision::from(alloc::format!(
+        "conduit.std/{}@1",
+        capability_slug(kind.as_str())
+    ))
+}
+
+fn execution_profile(kind: &KindId) -> ExecutionProfileId {
+    ExecutionProfileId::from(alloc::format!(
+        "conduit.std/{}-hosted@1",
+        capability_slug(kind.as_str())
+    ))
 }
 
 fn u64_field(
@@ -260,6 +273,7 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
     for contract in standard_contracts() {
         catalog
             .insert(KindDefinition {
+                kind_contract_revision: contract_revision(&contract.kind_id),
                 kind_id: contract.kind_id,
                 inputs: contract.inputs,
                 outputs: contract.outputs,
@@ -293,6 +307,8 @@ pub fn standard_capability_offers(
                 contract.kind_id.as_str(),
             )),
             kind_id: contract.kind_id.clone(),
+            kind_contract_revision: contract_revision(&contract.kind_id),
+            execution_profile_id: execution_profile(&contract.kind_id),
             implementation_id: conduit_core::ImplementationId::from(alloc::format!(
                 "{implementation_prefix}/{}-v1",
                 capability_slug(contract.kind_id.as_str())
@@ -301,6 +317,8 @@ pub fn standard_capability_offers(
                 "conduit-std-catalog/{}",
                 capability_slug(contract.kind_id.as_str())
             )),
+            inputs: contract.inputs.clone(),
+            outputs: contract.outputs.clone(),
             limits: contract.limits,
         })
         .collect()
@@ -328,8 +346,9 @@ fn capability_slug(kind: &str) -> String {
 #[cfg(feature = "host-profile")]
 mod host_profile {
     use super::{
-        capability_slug, standard_contracts, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND,
-        LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND, TEE_KIND, TICK_KIND,
+        capability_slug, contract_revision, execution_profile, standard_contracts, FILTER_KIND,
+        FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND,
+        SIGNAL_VALUE_KIND, TEE_KIND, TICK_KIND,
     };
     use alloc::boxed::Box;
     use alloc::format;
@@ -380,6 +399,14 @@ mod host_profile {
     impl OperationImplementation for StandardImplementation {
         fn kind_id(&self) -> &KindId {
             &self.kind_id
+        }
+
+        fn kind_contract_revision(&self) -> conduit_core::KindContractRevision {
+            contract_revision(&self.kind_id)
+        }
+
+        fn execution_profile_id(&self) -> conduit_core::ExecutionProfileId {
+            execution_profile(&self.kind_id)
         }
 
         fn implementation_id(&self) -> &ImplementationId {
@@ -678,9 +705,10 @@ mod tests {
     use alloc::vec;
 
     use super::{
-        find_contract, standard_contracts, standard_host_advertisement, standard_profile_catalog,
-        standard_registry, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND,
-        PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND,
+        contract_revision, execution_profile, find_contract, standard_contracts,
+        standard_host_advertisement, standard_profile_catalog, standard_registry, FILTER_KIND,
+        FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND,
+        TICK_KIND,
     };
     use conduit_core::{
         kind_id, ArtifactId, CapabilityId, CapabilityOffer, ConnectionProvider, HostAdvertisement,
@@ -719,13 +747,12 @@ mod tests {
             assert!(contract.limits.max_queue_items > 0);
             assert!(contract.limits.max_queue_bytes > 0);
         }
-        assert_eq!(
-            find_contract(&kind_id(MAP_KIND))
-                .expect("map contract exists")
-                .limits
-                .value_kind,
-            kind_id(GENERIC_VALUE_KIND)
-        );
+        let map = find_contract(&kind_id(MAP_KIND)).expect("map contract exists");
+        assert!(map
+            .inputs
+            .iter()
+            .chain(map.outputs.iter())
+            .all(|port| port.value_kind == kind_id(GENERIC_VALUE_KIND)));
     }
 
     #[test]
@@ -882,56 +909,31 @@ mod tests {
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("conduit.std/conformance"),
             capabilities: vec![
-                offer("flow-pulse", PULSE_KIND, GENERIC_VALUE_KIND, "std/pulse-v1"),
-                offer(
-                    "presentation-show",
-                    SHOW_KIND,
-                    GENERIC_VALUE_KIND,
-                    "std/show-v1",
-                ),
-                offer("flow-map", MAP_KIND, GENERIC_VALUE_KIND, "std/map-v1"),
-                offer(
-                    "flow-filter",
-                    FILTER_KIND,
-                    GENERIC_VALUE_KIND,
-                    "std/filter-v1",
-                ),
-                offer("flow-tee", TEE_KIND, GENERIC_VALUE_KIND, "std/tee-v1"),
-                offer(
-                    "text-format",
-                    FORMAT_KIND,
-                    GENERIC_VALUE_KIND,
-                    "std/text-format-v1",
-                ),
-                offer(
-                    "time-tick",
-                    TICK_KIND,
-                    GENERIC_VALUE_KIND,
-                    "std/time-tick-v1",
-                ),
-                offer(
-                    "state-latest",
-                    LATEST_KIND,
-                    GENERIC_VALUE_KIND,
-                    "std/latest-v1",
-                ),
+                offer("flow-pulse", PULSE_KIND, "std/pulse-v1"),
+                offer("presentation-show", SHOW_KIND, "std/show-v1"),
+                offer("flow-map", MAP_KIND, "std/map-v1"),
+                offer("flow-filter", FILTER_KIND, "std/filter-v1"),
+                offer("flow-tee", TEE_KIND, "std/tee-v1"),
+                offer("text-format", FORMAT_KIND, "std/text-format-v1"),
+                offer("time-tick", TICK_KIND, "std/time-tick-v1"),
+                offer("state-latest", LATEST_KIND, "std/latest-v1"),
             ],
         }
     }
 
-    fn offer(
-        capability: &str,
-        kind: &str,
-        value_kind: &str,
-        implementation: &str,
-    ) -> CapabilityOffer {
+    fn offer(capability: &str, kind: &str, implementation: &str) -> CapabilityOffer {
+        let kind_id = kind_id(kind);
+        let contract = find_contract(&kind_id).expect("standard contract exists");
         CapabilityOffer {
             capability_id: CapabilityId::from(capability),
-            kind_id: kind_id(kind),
+            kind_id: kind_id.clone(),
+            kind_contract_revision: contract_revision(&kind_id),
+            execution_profile_id: execution_profile(&kind_id),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(alloc::format!("conduit-std-catalog/{kind}").as_str()),
+            inputs: contract.inputs,
+            outputs: contract.outputs,
             limits: conduit_core::CapabilityLimits {
-                value_kind: kind_id(value_kind),
                 max_active_instances: 16,
                 max_queue_items: 4,
                 max_queue_bytes: 64,

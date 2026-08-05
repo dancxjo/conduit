@@ -11,7 +11,10 @@ use conduit_core::{
     ConnectionEnvelope, HostAdvertisement, HostId, HostProfileId, ImplementationId,
     OfferGeneration, PlacementId, PROTOCOL_VERSION,
 };
-use conduit_signal::{decode_signal, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
+use conduit_signal::{
+    decode_signal, pulse_contract_revision, pulse_execution_profile, pulse_outputs,
+    show_contract_revision, show_execution_profile, show_inputs, PULSE_KIND, SHOW_KIND,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PicoSimConfig {
@@ -80,10 +83,13 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
             CapabilityOffer {
                 capability_id: CapabilityId::from("pico-pulse"),
                 kind_id: kind_id(PULSE_KIND),
+                kind_contract_revision: pulse_contract_revision(),
+                execution_profile_id: pulse_execution_profile(),
                 implementation_id: ImplementationId::from("pico/pulse-v1"),
                 artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
+                inputs: vec![],
+                outputs: pulse_outputs(),
                 limits: CapabilityLimits {
-                    value_kind: kind_id(SIGNAL_VALUE_KIND),
                     max_active_instances: 1,
                     max_queue_items: 4,
                     max_queue_bytes: 64,
@@ -92,10 +98,13 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
             CapabilityOffer {
                 capability_id: CapabilityId::from("onboard-led"),
                 kind_id: kind_id(SHOW_KIND),
+                kind_contract_revision: show_contract_revision(),
+                execution_profile_id: show_execution_profile(),
                 implementation_id: ImplementationId::from("pico/onboard-led-show-signal-v1"),
                 artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
+                inputs: show_inputs(),
+                outputs: vec![],
                 limits: CapabilityLimits {
-                    value_kind: kind_id(SIGNAL_VALUE_KIND),
                     max_active_instances: 1,
                     max_queue_items: 4,
                     max_queue_bytes: 64,

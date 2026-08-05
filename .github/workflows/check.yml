@@ -25,8 +25,8 @@ jobs:
           cargo check -p conduit-signal --no-default-features
           cargo check -p conduit-wire --no-default-features
           cargo check -p conduit-std-catalog --no-default-features
-      - name: exact-plan mutation negatives
-        run: cargo test -p conduit-runtime --test host_contract preparation_rejects_mutation_of_every_executable_identity_field_group
+      - name: exact semantic planning and mutation negatives
+        run: just check-planning-s2
       - name: deterministic wire and simulated-host conformance
         run: |
           cargo test -p conduit-kernel --features alloc

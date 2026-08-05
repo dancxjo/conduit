@@ -112,9 +112,11 @@ A capability advertisement says something like:
 A capability is more precise than a feature flag. It should identify:
 
 - the semantic kind;
+- the exact semantic kind contract revision;
+- the exact execution profile;
 - the exact implementation;
 - the host and boot that offer it;
-- supported value kinds;
+- every input and output port contract;
 - instance limits;
 - queue and byte limits;
 - configuration restrictions;
@@ -582,16 +584,21 @@ pub struct HostAdvertisement {
 pub struct CapabilityAdvertisement {
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
+    pub kind_contract_revision: KindContractRevision,
+    pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
+    pub inputs: BoundedPorts,
+    pub outputs: BoundedPorts,
     pub limits: CapabilityLimits,
 }
 ```
 
 The actual containers must be explicitly bounded where required, especially in shared core and Pico W code.
 
-The first `CapabilityLimits` must express at least:
+The first capability contract must express at least:
 
-- supported value kind;
+- the exact semantic contract revision and execution profile;
+- every input and output port identity, direction, and value kind;
 - maximum active cell instances;
 - maximum queue items;
 - maximum encoded item size;
@@ -625,7 +632,7 @@ Required rejection categories include:
 
 - no matching source capability;
 - no matching show capability;
-- incompatible value kind;
+- incompatible semantic contract revision or per-port contract;
 - selected capability no longer advertised;
 - stale host boot ID;
 - required queue larger than a host limit;
@@ -657,6 +664,9 @@ Each cell placement identifies:
 
 - cell ID;
 - semantic kind;
+- semantic kind contract revision;
+- execution profile identity;
+- exact input and output port contracts;
 - implementation ID;
 - host ID;
 - boot ID;

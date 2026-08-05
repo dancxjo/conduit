@@ -7,9 +7,10 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{
-    BootId, CapabilityId, CapabilityLimits, ConnectionId, ConnectionProvider, FormId,
-    HostAdvertisement, HostId, HostProfileId, ImplementationId, KindId, Observation,
-    ObservationKind, OfferGeneration, PlacementId, Plan, PlanId, TerminalDisposition,
+    BootId, CapabilityId, CapabilityLimits, ConnectionId, ConnectionProvider, ExecutionProfileId,
+    FormId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindContractRevision,
+    KindId, Observation, ObservationKind, OfferGeneration, PlacementId, Plan, PlanId,
+    PortDescriptor, TerminalDisposition,
 };
 use conduit_realm::{LinkId, LinkState, MembershipState, RealmId, RealmView};
 use core::fmt::Write;
@@ -83,7 +84,11 @@ pub struct CapabilityRow {
     pub boot_id: BootId,
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
+    pub kind_contract_revision: KindContractRevision,
+    pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
+    pub inputs: Vec<PortDescriptor>,
+    pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
     pub freshness: OfferFreshness,
     pub support: CapabilitySupport,
@@ -118,6 +123,8 @@ pub struct PlacementRow {
     pub boot_id: BootId,
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
+    pub kind_contract_revision: KindContractRevision,
+    pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
     pub lifecycle: PlanLifecycle,
 }
@@ -238,7 +245,11 @@ pub fn build_report(
                     boot_id: advertisement.boot_id.clone(),
                     capability_id: capability.capability_id.clone(),
                     kind_id: capability.kind_id.clone(),
+                    kind_contract_revision: capability.kind_contract_revision.clone(),
+                    execution_profile_id: capability.execution_profile_id.clone(),
                     implementation_id: capability.implementation_id.clone(),
+                    inputs: capability.inputs.clone(),
+                    outputs: capability.outputs.clone(),
                     limits: capability.limits.clone(),
                     freshness,
                     support: CapabilitySupport::Supported,
@@ -308,6 +319,8 @@ pub fn build_report(
                         boot_id: placement.boot_id.clone(),
                         capability_id: placement.capability_id.clone(),
                         kind_id: placement.kind_id.clone(),
+                        kind_contract_revision: placement.kind_contract_revision.clone(),
+                        execution_profile_id: placement.execution_profile_id.clone(),
                         implementation_id: placement.implementation_id.clone(),
                         lifecycle: placement_lifecycle(
                             &plan.plan_id,
@@ -529,13 +542,16 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for capability in &report.capabilities {
         let _ = writeln!(
             output,
-            "capability host={} boot={} capability={} kind={} implementation={} value_kind={} active_limit={} queue_items={} queue_bytes={} freshness={:?} support={:?} availability={:?}",
+            "capability host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} input_ports={} output_ports={} active_limit={} queue_items={} queue_bytes={} freshness={:?} support={:?} availability={:?}",
             capability.host_id.as_str(),
             capability.boot_id.as_str(),
             capability.capability_id.as_str(),
             capability.kind_id.as_str(),
+            capability.kind_contract_revision.as_str(),
+            capability.execution_profile_id.as_str(),
             capability.implementation_id.as_str(),
-            capability.limits.value_kind.as_str(),
+            capability.inputs.len(),
+            capability.outputs.len(),
             capability.limits.max_active_instances,
             capability.limits.max_queue_items,
             capability.limits.max_queue_bytes,
@@ -574,13 +590,15 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for placement in &report.placements {
         let _ = writeln!(
             output,
-            "placement plan={} placement={} host={} boot={} capability={} kind={} implementation={} lifecycle={:?}",
+            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} lifecycle={:?}",
             placement.plan_id.as_str(),
             placement.placement_id.as_str(),
             placement.host_id.as_str(),
             placement.boot_id.as_str(),
             placement.capability_id.as_str(),
             placement.kind_id.as_str(),
+            placement.kind_contract_revision.as_str(),
+            placement.execution_profile_id.as_str(),
             placement.implementation_id.as_str(),
             placement.lifecycle
         );

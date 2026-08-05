@@ -45,6 +45,10 @@ identity_type!(HostId);
 identity_type!(BootId);
 identity_type!(CapabilityId);
 identity_type!(KindId);
+// Immutable identity of one exact semantic-kind contract revision.
+identity_type!(KindContractRevision);
+// Immutable identity of one exact implementation execution profile.
+identity_type!(ExecutionProfileId);
 identity_type!(ImplementationId);
 identity_type!(ArtifactId);
 identity_type!(FormId);
@@ -98,7 +102,6 @@ impl ValuePayload {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CapabilityLimits {
-    pub value_kind: KindId,
     pub max_active_instances: u16,
     pub max_queue_items: u16,
     pub max_queue_bytes: u32,
@@ -108,8 +111,12 @@ pub struct CapabilityLimits {
 pub struct CapabilityOffer {
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
+    pub kind_contract_revision: KindContractRevision,
+    pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
+    pub inputs: Vec<PortDescriptor>,
+    pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
 }
 
@@ -172,6 +179,8 @@ pub struct PlannedOperation {
     pub placement_id: PlacementId,
     pub operation_id: OperationId,
     pub kind_id: KindId,
+    pub kind_contract_revision: KindContractRevision,
+    pub execution_profile_id: ExecutionProfileId,
     pub configuration: Vec<ConfigurationEntry>,
     pub host_id: HostId,
     pub boot_id: BootId,
@@ -310,6 +319,8 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, operation.placement_id.as_str());
         push_string(&mut canonical, operation.operation_id.as_str());
         push_string(&mut canonical, operation.kind_id.as_str());
+        push_string(&mut canonical, operation.kind_contract_revision.as_str());
+        push_string(&mut canonical, operation.execution_profile_id.as_str());
         push_u32(&mut canonical, operation.configuration.len() as u32);
         for entry in &operation.configuration {
             push_string(&mut canonical, &entry.key);
@@ -476,6 +487,9 @@ pub enum FailureReason {
     UnknownImplementation,
     UnsupportedKind,
     ImplementationKindMismatch,
+    KindContractRevisionMismatch,
+    ExecutionProfileMismatch,
+    PortContractMismatch,
     AdvertisedImplementationMismatch,
     ArtifactIdentityMismatch,
     PlanIdentityMismatch,

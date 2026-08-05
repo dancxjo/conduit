@@ -8,8 +8,9 @@ use conduit_form::CheckedForm;
 use conduit_planner::{plan_with_connection_limits, PlacementChoice, PlacementChoices};
 use conduit_runtime::{HostRuntime, RuntimeOutput};
 use conduit_signal::{
-    decode_signal, signal_profile_catalog, signal_registry, PULSE_KIND, SHOW_KIND,
-    SIGNAL_PRESENTATION_KIND, SIGNAL_VALUE_KIND,
+    decode_signal, pulse_contract_revision, pulse_execution_profile, pulse_outputs,
+    show_contract_revision, show_execution_profile, show_inputs, signal_profile_catalog,
+    signal_registry, PULSE_KIND, SHOW_KIND, SIGNAL_PRESENTATION_KIND,
 };
 use std::collections::{BTreeMap, VecDeque};
 
@@ -484,10 +485,13 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
             CapabilityOffer {
                 capability_id: CapabilityId::from("pulse"),
                 kind_id: kind_id(PULSE_KIND),
+                kind_contract_revision: pulse_contract_revision(),
+                execution_profile_id: pulse_execution_profile(),
                 implementation_id: ImplementationId::from("browser/pulse-v1"),
                 artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
+                inputs: vec![],
+                outputs: pulse_outputs(),
                 limits: CapabilityLimits {
-                    value_kind: kind_id(SIGNAL_VALUE_KIND),
                     max_active_instances: 16,
                     max_queue_items: 4,
                     max_queue_bytes: 64,
@@ -496,10 +500,13 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
             CapabilityOffer {
                 capability_id: CapabilityId::from("dom-show"),
                 kind_id: kind_id(SHOW_KIND),
+                kind_contract_revision: show_contract_revision(),
+                execution_profile_id: show_execution_profile(),
                 implementation_id: ImplementationId::from("browser/dom-show-signal-v1"),
                 artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
+                inputs: show_inputs(),
+                outputs: vec![],
                 limits: CapabilityLimits {
-                    value_kind: kind_id(SIGNAL_VALUE_KIND),
                     max_active_instances: 16,
                     max_queue_items: 4,
                     max_queue_bytes: 64,

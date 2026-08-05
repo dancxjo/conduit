@@ -75,6 +75,8 @@ pub trait OperationState {
 /// require installing another implementation, never adding a kind-name match to the runtime.
 pub trait OperationImplementation {
     fn kind_id(&self) -> &conduit_core::KindId;
+    fn kind_contract_revision(&self) -> conduit_core::KindContractRevision;
+    fn execution_profile_id(&self) -> conduit_core::ExecutionProfileId;
     fn implementation_id(&self) -> &conduit_core::ImplementationId;
     fn artifact_id(&self) -> &conduit_core::ArtifactId;
     fn prepare(
@@ -389,6 +391,44 @@ impl HostRuntime {
                 });
                 return output;
             }
+            if capability.kind_contract_revision != placement.kind_contract_revision {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::KindContractRevisionMismatch,
+                    message: Some(format!(
+                        "capability '{}' advertises contract '{}' but placement pins '{}'",
+                        capability.capability_id.as_str(),
+                        capability.kind_contract_revision.as_str(),
+                        placement.kind_contract_revision.as_str()
+                    )),
+                });
+                return output;
+            }
+            if capability.execution_profile_id != placement.execution_profile_id {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::ExecutionProfileMismatch,
+                    message: Some(format!(
+                        "capability '{}' advertises execution profile '{}' but placement pins '{}'",
+                        capability.capability_id.as_str(),
+                        capability.execution_profile_id.as_str(),
+                        placement.execution_profile_id.as_str()
+                    )),
+                });
+                return output;
+            }
+            if capability.inputs != placement.inputs || capability.outputs != placement.outputs {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::PortContractMismatch,
+                    message: Some(format!(
+                        "capability '{}' port contracts differ from placement '{}'",
+                        capability.capability_id.as_str(),
+                        placement.placement_id.as_str()
+                    )),
+                });
+                return output;
+            }
             if capability.implementation_id != placement.implementation_id {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
@@ -440,6 +480,32 @@ impl HostRuntime {
                 });
                 return output;
             }
+            if implementation.kind_contract_revision() != placement.kind_contract_revision {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::KindContractRevisionMismatch,
+                    message: Some(format!(
+                        "installed implementation '{}' realizes contract '{}' rather than '{}'",
+                        placement.implementation_id.as_str(),
+                        implementation.kind_contract_revision().as_str(),
+                        placement.kind_contract_revision.as_str()
+                    )),
+                });
+                return output;
+            }
+            if implementation.execution_profile_id() != placement.execution_profile_id {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::ExecutionProfileMismatch,
+                    message: Some(format!(
+                        "installed implementation '{}' uses execution profile '{}' rather than '{}'",
+                        placement.implementation_id.as_str(),
+                        implementation.execution_profile_id().as_str(),
+                        placement.execution_profile_id.as_str()
+                    )),
+                });
+                return output;
+            }
             if implementation.artifact_id() != &placement.artifact_id {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
@@ -453,29 +519,15 @@ impl HostRuntime {
                 });
                 return output;
             }
-            let planned_value_kinds = placement
+            if placement
                 .inputs
                 .iter()
                 .chain(&placement.outputs)
-                .map(|port| &port.value_kind)
-                .collect::<BTreeSet<_>>();
-            if planned_value_kinds
-                .iter()
-                .any(|value_kind| **value_kind != capability.limits.value_kind)
-            {
-                output.events.push(HostEvent::PreparationRejected {
-                    plan_id: fragment.plan_id,
-                    reason: FailureReason::UnsupportedValueKind,
-                    message: Some(format!(
-                        "capability '{}' does not advertise every planned value kind",
-                        capability.capability_id.as_str()
-                    )),
-                });
-                return output;
-            }
-            if planned_value_kinds
-                .iter()
-                .any(|value_kind| implementation.minimum_value_size(value_kind).is_none())
+                .any(|port| {
+                    implementation
+                        .minimum_value_size(&port.value_kind)
+                        .is_none()
+                })
             {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
@@ -1924,10 +1976,11 @@ mod conformance {
     };
     use conduit_core::{
         kind_id, port_id, ArtifactId, BootId, CancellationReason, CapabilityId, CapabilityLimits,
-        CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionProvider, FailureReason,
-        HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
-        ObservationKind, OfferGeneration, PlatformEffect, PortDescriptor, PortDirection,
-        TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
+        CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionProvider,
+        ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId,
+        HostProfileId, ImplementationId, KindContractRevision, ObservationKind, OfferGeneration,
+        PlatformEffect, PortDescriptor, PortDirection, TerminalDisposition, ValuePayload,
+        PROTOCOL_VERSION,
     };
     use conduit_form::{
         parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
@@ -1940,6 +1993,26 @@ mod conformance {
     const SIGNAL_VALUE_KIND: &str = "value/signal";
     const SIGNAL_PRESENTATION_KIND: &str = "test/presentation";
     const SIGNAL_ENCODED_LEN: u32 = 9;
+    const PULSE_CONTRACT: &str = "test/flow-pulse@1";
+    const SHOW_CONTRACT: &str = "test/presentation-show@1";
+    const PULSE_PROFILE: &str = "test/pulse-hosted@1";
+    const SHOW_PROFILE: &str = "test/show-hosted@1";
+
+    fn pulse_outputs() -> Vec<PortDescriptor> {
+        vec![PortDescriptor {
+            port_id: port_id("signal"),
+            value_kind: kind_id(SIGNAL_VALUE_KIND),
+            direction: PortDirection::Output,
+        }]
+    }
+
+    fn show_inputs() -> Vec<PortDescriptor> {
+        vec![PortDescriptor {
+            port_id: port_id("signal"),
+            value_kind: kind_id(SIGNAL_VALUE_KIND),
+            direction: PortDirection::Input,
+        }]
+    }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
     struct Signal {
@@ -2008,12 +2081,9 @@ mod conformance {
         catalog
             .insert(KindDefinition {
                 kind_id: kind_id(PULSE_KIND),
+                kind_contract_revision: KindContractRevision::from(PULSE_CONTRACT),
                 inputs: Vec::new(),
-                outputs: vec![PortDescriptor {
-                    port_id: port_id("signal"),
-                    value_kind: kind_id(SIGNAL_VALUE_KIND),
-                    direction: PortDirection::Output,
-                }],
+                outputs: pulse_outputs(),
                 configuration: vec![
                     ConfigurationField {
                         key: "count".to_string(),
@@ -2036,11 +2106,8 @@ mod conformance {
         catalog
             .insert(KindDefinition {
                 kind_id: kind_id(SHOW_KIND),
-                inputs: vec![PortDescriptor {
-                    port_id: port_id("signal"),
-                    value_kind: kind_id(SIGNAL_VALUE_KIND),
-                    direction: PortDirection::Input,
-                }],
+                kind_contract_revision: KindContractRevision::from(SHOW_CONTRACT),
+                inputs: show_inputs(),
                 outputs: Vec::new(),
                 configuration: Vec::new(),
             })
@@ -2064,10 +2131,13 @@ mod conformance {
                 CapabilityOffer {
                     capability_id: CapabilityId::from("pulse-1"),
                     kind_id: kind_id(PULSE_KIND),
+                    kind_contract_revision: KindContractRevision::from(PULSE_CONTRACT),
+                    execution_profile_id: ExecutionProfileId::from(PULSE_PROFILE),
                     implementation_id: ImplementationId::from("std/pulse-v1"),
                     artifact_id: ArtifactId::from("test/pulse-artifact-v1"),
+                    inputs: vec![],
+                    outputs: pulse_outputs(),
                     limits: CapabilityLimits {
-                        value_kind: kind_id(SIGNAL_VALUE_KIND),
                         max_active_instances: 8,
                         max_queue_items: queue_items,
                         max_queue_bytes: queue_bytes,
@@ -2076,10 +2146,13 @@ mod conformance {
                 CapabilityOffer {
                     capability_id: CapabilityId::from("stdout-show-1"),
                     kind_id: kind_id(SHOW_KIND),
+                    kind_contract_revision: KindContractRevision::from(SHOW_CONTRACT),
+                    execution_profile_id: ExecutionProfileId::from(SHOW_PROFILE),
                     implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
                     artifact_id: ArtifactId::from("test/show-artifact-v1"),
+                    inputs: show_inputs(),
+                    outputs: vec![],
                     limits: CapabilityLimits {
-                        value_kind: kind_id(SIGNAL_VALUE_KIND),
                         max_active_instances: 8,
                         max_queue_items: queue_items,
                         max_queue_bytes: queue_bytes,
@@ -2117,6 +2190,14 @@ mod conformance {
     impl OperationImplementation for TestPulseImplementation {
         fn kind_id(&self) -> &conduit_core::KindId {
             &self.kind_id
+        }
+
+        fn kind_contract_revision(&self) -> KindContractRevision {
+            KindContractRevision::from(PULSE_CONTRACT)
+        }
+
+        fn execution_profile_id(&self) -> ExecutionProfileId {
+            ExecutionProfileId::from(PULSE_PROFILE)
         }
 
         fn implementation_id(&self) -> &ImplementationId {
@@ -2208,6 +2289,14 @@ mod conformance {
     impl OperationImplementation for TestShowImplementation {
         fn kind_id(&self) -> &conduit_core::KindId {
             &self.kind_id
+        }
+
+        fn kind_contract_revision(&self) -> KindContractRevision {
+            KindContractRevision::from(SHOW_CONTRACT)
+        }
+
+        fn execution_profile_id(&self) -> ExecutionProfileId {
+            ExecutionProfileId::from(SHOW_PROFILE)
         }
 
         fn implementation_id(&self) -> &ImplementationId {
