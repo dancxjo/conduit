@@ -14,6 +14,19 @@ fn dependency_and_profile_installation_drawbridge_is_explicit() {
     assert!(signal_manifest.contains("default = []"));
     assert!(signal_manifest.contains("host-profile ="));
     assert!(std_manifest.contains("features = [\"host-profile\"]"));
+    assert!(std_manifest.contains("legacy-fixture-driver = []"));
+    let production_std = std_host
+        .split_once("pub struct StdHost {")
+        .and_then(|(_, remainder)| {
+            remainder
+                .split_once("pub struct LegacyStdFixtureHost")
+                .map(|(production, _)| production)
+        })
+        .expect("production and legacy fixture std hosts remain distinct");
+    assert!(!production_std.contains("HostRuntime"));
+    assert!(!production_std.contains("HostCommand"));
+    assert!(!production_std.contains("run_fragment_legacy"));
+    assert!(std_host.contains("pub struct LegacyStdFixtureHost"));
     assert!(std_host.contains("signal_registry("));
     assert!(browser_package.contains("\"@playwright/test\": \"1.62.0\""));
     assert!(browser_config.contains("workers: 1"));

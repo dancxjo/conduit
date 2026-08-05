@@ -1,17 +1,21 @@
+#[cfg(feature = "legacy-fixture-driver")]
+use conduit_core::HostCommand;
 use conduit_core::{
     kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionProvider,
-    HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
-    Observation, OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect, PROTOCOL_VERSION,
+    HostAdvertisement, HostId, HostProfileId, ImplementationId, Observation, OfferGeneration, Plan,
+    PlanFragment, PlanId, PROTOCOL_VERSION,
 };
 use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
+#[cfg(feature = "legacy-fixture-driver")]
 use conduit_runtime::{HostRuntime, RuntimeOutput};
+#[cfg(feature = "legacy-fixture-driver")]
+use conduit_signal::signal_registry;
 use conduit_signal::{
-    decode_signal, pulse_contract_revision, pulse_execution_profile,
-    pulse_host_operation_requirements, pulse_outputs, pulse_resource_requirements,
-    show_contract_revision, show_execution_profile, show_host_operation_requirements, show_inputs,
-    show_resource_requirements, signal_profile_catalog, signal_registry, signal_resource_offers,
-    PULSE_KIND, SHOW_KIND, SIGNAL_PRESENTATION_KIND,
+    pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
+    pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
+    show_host_operation_requirements, show_inputs, show_resource_requirements,
+    signal_profile_catalog, signal_resource_offers, PULSE_KIND, SHOW_KIND,
 };
 use std::fs;
 use std::io::Write;
@@ -209,7 +213,7 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
 }
 
 pub struct StdHost {
-    runtime: HostRuntime,
+    advertisement: HostAdvertisement,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_activation_sequence: u64,
     next_kernel_evidence_sequence: u64,
@@ -234,13 +238,8 @@ impl StdHost {
         let advertisement = build_advertisement(config);
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)
             .expect("std kernel resource offers are exact and bounded");
-        let registry = signal_registry(
-            ImplementationId::from("std/pulse-v1"),
-            ImplementationId::from("std/stdout-show-signal-v1"),
-        )
-        .expect("std signal implementations have unique identities");
         Self {
-            runtime: HostRuntime::new(advertisement, registry, 256),
+            advertisement,
             kernel_resources,
             next_kernel_activation_sequence: 0,
             next_kernel_evidence_sequence: 0,
@@ -248,15 +247,7 @@ impl StdHost {
     }
 
     pub fn advertisement(&self) -> &HostAdvertisement {
-        self.runtime.advertisement()
-    }
-
-    pub fn handle(&mut self, command: HostCommand) -> RuntimeOutput {
-        self.runtime.handle(command)
-    }
-
-    pub fn replace_link_bindings(&mut self, bindings: Vec<conduit_core::LinkBinding>) {
-        self.runtime.replace_link_bindings(bindings);
+        &self.advertisement
     }
 
     pub fn plan_local(
@@ -285,8 +276,8 @@ impl StdHost {
     ) -> Result<StdRunReport, String> {
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
-        if !is_installed_kernel_signal_pair(&fragment) {
-            return self.run_fragment_legacy_to(fragment, output, timer);
+        if !is_installed_kernel_signal_profile(&fragment) {
+            return Err("fragment does not match the installed std kernel profile".to_string());
         }
 
         let advertisement = self.advertisement().clone();
@@ -328,131 +319,62 @@ impl StdHost {
         }
         Ok(report)
     }
+}
 
-    fn run_fragment_legacy_to<W: Write, T: TimerAdapter>(
-        &mut self,
-        fragment: PlanFragment,
-        output: &mut W,
-        timer: &mut T,
-    ) -> Result<StdRunReport, String> {
-        let prepare = self.runtime.handle(HostCommand::Prepare(fragment.clone()));
-        if let Some(reason) = preparation_rejection(&prepare) {
-            return Err(reason);
-        }
-        let activated_output = self
-            .runtime
-            .handle(HostCommand::Activate(fragment.plan_id.clone()));
-        if let Some(reason) = activation_rejection(&activated_output) {
-            return Err(reason);
-        }
+/// Explicit compatibility driver for simulation fixtures that have not yet migrated to the
+/// kernel protocol. Production std execution never constructs this legacy runtime.
+#[cfg(feature = "legacy-fixture-driver")]
+pub struct LegacyStdFixtureHost {
+    runtime: HostRuntime,
+}
 
-        let mut pending_effects = activated_output.effects;
-        let mut receipts = Vec::new();
-        while let Some(effect) = pending_effects.pop() {
-            let follow_up = match effect {
-                PlatformEffect::Wait {
-                    plan_id,
-                    placement_id,
-                    duration_ms,
-                } => {
-                    timer.wait(Duration::from_millis(duration_ms));
-                    self.runtime.handle(HostCommand::CompleteWait {
-                        plan_id,
-                        placement_id,
-                    })
-                }
-                PlatformEffect::PresentValue {
-                    plan_id,
-                    active_play_id,
-                    presentation_id,
-                    placement_id,
-                    presentation_kind,
-                    value,
-                } => {
-                    if presentation_kind.as_str() != SIGNAL_PRESENTATION_KIND {
-                        return Err(format!(
-                            "std host cannot manifest presentation kind '{}'",
-                            presentation_kind.as_str()
-                        ));
-                    }
-                    let signal = decode_signal(&value).map_err(|err| err.to_string())?;
-                    writeln!(
-                        output,
-                        "signal {} {}",
-                        signal.sequence,
-                        if signal.level { "on" } else { "off" }
-                    )
-                    .map_err(|error| error.to_string())?;
-                    writeln!(
-                        output,
-                        "receipt signal placement={} sequence={} level={}",
-                        placement_id.as_str(),
-                        signal.sequence,
-                        signal.level
-                    )
-                    .map_err(|error| error.to_string())?;
-                    receipts.push(SignalReceipt {
-                        placement_id: placement_id.clone(),
-                        sequence: signal.sequence,
-                        level: signal.level,
-                    });
-                    self.runtime.handle(HostCommand::CompletePresentation {
-                        plan_id,
-                        active_play_id,
-                        presentation_id,
-                        placement_id,
-                        value,
-                        success: true,
-                        message: None,
-                    })
-                }
-                PlatformEffect::TransmitConnection { .. } => {
-                    return Err("std host has no in-memory connection driver".to_string());
-                }
-            };
-            pending_effects.extend(follow_up.effects.into_iter().rev());
+#[cfg(feature = "legacy-fixture-driver")]
+impl LegacyStdFixtureHost {
+    pub fn new_with_config(config: StdHostConfig) -> Self {
+        let advertisement = build_advertisement(config);
+        let registry = signal_registry(
+            ImplementationId::from("std/pulse-v1"),
+            ImplementationId::from("std/stdout-show-signal-v1"),
+        )
+        .expect("std fixture signal implementations have unique identities");
+        Self {
+            runtime: HostRuntime::new(advertisement, registry, 256),
         }
+    }
 
-        let observations = inspect_observations(&mut self.runtime);
-        writeln!(output, "plan {} complete", fragment.plan_id.as_str())
-            .map_err(|error| error.to_string())?;
-        if let (Some(first), Some(last)) = (receipts.first(), receipts.last()) {
-            writeln!(
-                output,
-                "receipts {} first=({}, {}) last=({}, {})",
-                receipts.len(),
-                first.sequence,
-                first.level,
-                last.sequence,
-                last.level
-            )
-            .map_err(|error| error.to_string())?;
-        } else {
-            writeln!(output, "receipts 0").map_err(|error| error.to_string())?;
-        }
-        Ok(StdRunReport {
-            observations,
-            receipts,
-            kernel: None,
-        })
+    pub fn advertisement(&self) -> &HostAdvertisement {
+        self.runtime.advertisement()
+    }
+
+    pub fn handle(&mut self, command: HostCommand) -> RuntimeOutput {
+        self.runtime.handle(command)
+    }
+
+    pub fn replace_link_bindings(&mut self, bindings: Vec<conduit_core::LinkBinding>) {
+        self.runtime.replace_link_bindings(bindings);
     }
 }
 
-fn is_installed_kernel_signal_pair(fragment: &PlanFragment) -> bool {
-    fragment.placements.len() == 2
-        && fragment.connections.len() == 1
-        && fragment
-            .placements
-            .iter()
-            .filter(|placement| placement.kind_id.as_str() == PULSE_KIND)
-            .count()
-            == 1
+fn is_installed_kernel_signal_profile(fragment: &PlanFragment) -> bool {
+    matches!(
+        (fragment.placements.len(), fragment.connections.len()),
+        (2, 1) | (4, 3)
+    ) && fragment
+        .placements
+        .iter()
+        .filter(|placement| placement.kind_id.as_str() == PULSE_KIND)
+        .count()
+        == 1
         && fragment
             .placements
             .iter()
             .filter(|placement| placement.kind_id.as_str() == SHOW_KIND)
             .count()
-            == 1
+            == fragment.placements.len().saturating_sub(1)
+        && fragment
+            .connections
+            .iter()
+            .all(|connection| connection.provider == ConnectionProvider::Local)
 }
 
 pub fn load_checked_form(path: &str) -> Result<CheckedForm, Box<dyn std::error::Error>> {
@@ -573,36 +495,6 @@ fn write_operator_report<W: Write>(
         .map_err(|error| error.to_string())?;
     }
     Ok(())
-}
-
-fn preparation_rejection(output: &RuntimeOutput) -> Option<String> {
-    output.events.iter().find_map(|event| match event {
-        HostEvent::PreparationRejected {
-            reason, message, ..
-        } => Some(message.clone().unwrap_or_else(|| format!("{reason:?}"))),
-        _ => None,
-    })
-}
-
-fn activation_rejection(output: &RuntimeOutput) -> Option<String> {
-    output.events.iter().find_map(|event| match event {
-        HostEvent::ActivationRejected {
-            reason, message, ..
-        } => Some(message.clone().unwrap_or_else(|| format!("{reason:?}"))),
-        _ => None,
-    })
-}
-
-fn inspect_observations(runtime: &mut HostRuntime) -> Vec<Observation> {
-    runtime
-        .handle(HostCommand::Inspect)
-        .events
-        .into_iter()
-        .find_map(|event| match event {
-            HostEvent::Observations { items } => Some(items),
-            _ => None,
-        })
-        .unwrap_or_default()
 }
 
 fn fresh_boot_id() -> String {
@@ -962,5 +854,69 @@ mod tests {
                 disposition: conduit_core::TerminalDisposition::Completed
             }
         )));
+    }
+
+    #[test]
+    fn local_three_sink_signal_fanout_uses_only_the_sealed_kernel_profile() {
+        let mut host = StdHost::new_with_config(StdHostConfig {
+            host_id: HostId::from("std-host-1"),
+            boot_id: BootId::from("fanout-boot"),
+            offer_generation: OfferGeneration(1),
+        });
+        let form = parse(
+            include_str!("../../../examples/triple-signal.form"),
+            &signal_profile_catalog(),
+        )
+        .expect("triple signal form parses");
+        let placements = conduit_planner::parse_placements(include_str!(
+            "../../../examples/triple-local.placements"
+        ))
+        .expect("triple local placements parse");
+        let plan = host
+            .plan_local(&form, Some(&placements))
+            .expect("triple local plan resolves");
+        let fragment = plan.fragments[0].clone();
+        let mut output = Vec::with_capacity(65_536);
+        let mut timer = VirtualTimer {
+            waits: Vec::with_capacity(15),
+        };
+        let report = host
+            .run_fragment_to(fragment, &mut output, &mut timer)
+            .expect("triple local kernel run completes");
+
+        assert_eq!(timer.waits, vec![Duration::from_millis(250); 15]);
+        assert_eq!(report.receipts.len(), 48);
+        let kernel = report.kernel.expect("triple local form uses kernel");
+        assert_eq!(kernel.identity.lengths(), (63, 48, 49));
+        assert_eq!(kernel.post_activation_allocations, 0);
+    }
+
+    #[test]
+    fn unsupported_production_std_form_fails_closed_without_a_legacy_pump() {
+        let mut host = StdHost::new_with_config(StdHostConfig {
+            host_id: HostId::from("std-host-1"),
+            boot_id: BootId::from("unsupported-form-boot"),
+            offer_generation: OfferGeneration(1),
+        });
+        let form = parse(
+            "form 0\n\nwider {\n first: flow/pulse\n second: flow/pulse\n left: presentation/show\n right: presentation/show\n first.count = 1\n second.count = 1\n first > left\n second > right\n}\n",
+            &signal_profile_catalog(),
+        )
+        .expect("unsupported wider form remains semantically valid");
+        let plan = host
+            .plan_local(&form, None)
+            .expect("wider local plan resolves");
+        let mut output = Vec::with_capacity(8_192);
+        let mut timer = VirtualTimer::default();
+
+        let error = host
+            .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+            .expect_err("production std host must not fall back to the legacy pump");
+
+        assert_eq!(
+            error,
+            "fragment does not match the installed std kernel profile"
+        );
+        assert!(timer.waits.is_empty());
     }
 }

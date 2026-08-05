@@ -143,7 +143,7 @@ fn typed_multi_value_form_runs_through_the_std_kernel() {
 }
 
 #[test]
-fn triple_signal_form_runs_against_local_std_fixture() {
+fn triple_signal_form_runs_through_local_std_kernel() {
     let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .canonicalize()

@@ -12,7 +12,7 @@ conduit-signal = { path = "../../crates/conduit-signal", default-features = fals
 conduit-wire = { path = "../../crates/conduit-wire" }
 
 [dev-dependencies]
-conduit-std-host = { path = "../../hosts/std" }
+conduit-std-host = { path = "../../hosts/std", features = ["legacy-fixture-driver"] }
 
 [features]
 default = ["std"]

@@ -13,4 +13,4 @@ conduit-wire = { path = "../../crates/conduit-wire" }
 
 [dev-dependencies]
 conduit-pico-sim = { path = "../pico-sim" }
-conduit-std-host = { path = "../../hosts/std" }
+conduit-std-host = { path = "../../hosts/std", features = ["legacy-fixture-driver"] }
