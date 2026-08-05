@@ -67,10 +67,17 @@ fn golden_envelope() -> ConnectionEnvelope {
 fn golden_fixture_round_trips() {
     let bytes = fixture("golden.bin");
     let env = decode_envelope(&bytes, MAX_PAYLOAD).expect("golden.bin must decode");
-    assert_eq!(env, golden_envelope(), "decoded fields must match reference");
+    assert_eq!(
+        env,
+        golden_envelope(),
+        "decoded fields must match reference"
+    );
 
     let re_encoded = encode_envelope(&env, MAX_PAYLOAD).expect("round-trip encode");
-    assert_eq!(re_encoded, bytes, "re-encoded bytes must be bit-for-bit identical");
+    assert_eq!(
+        re_encoded, bytes,
+        "re-encoded bytes must be bit-for-bit identical"
+    );
 }
 
 #[test]
@@ -89,7 +96,10 @@ fn empty_payload_fixture_round_trips() {
     let bytes = fixture("empty_payload.bin");
     let env = decode_envelope(&bytes, MAX_PAYLOAD).expect("empty_payload.bin must decode");
     assert!(env.payload.is_empty());
-    assert_eq!(encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"), bytes);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes
+    );
 }
 
 #[test]
@@ -97,7 +107,10 @@ fn max_payload_fixture_round_trips() {
     let bytes = fixture("max_payload.bin");
     let env = decode_envelope(&bytes, MAX_PAYLOAD).expect("max_payload.bin must decode");
     assert_eq!(env.payload.len(), MAX_PAYLOAD as usize);
-    assert_eq!(encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"), bytes);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes
+    );
 }
 
 #[test]
@@ -107,7 +120,10 @@ fn zero_capacity_ids_fixture_round_trips() {
     assert_eq!(env.plan_id.as_str(), "");
     assert_eq!(env.connection_id.as_str(), "");
     assert_eq!(env.value_kind.as_str(), "");
-    assert_eq!(encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"), bytes);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes
+    );
 }
 
 #[test]
@@ -252,8 +268,14 @@ fn wrong_plan_fixture_decodes_to_mutated_plan() {
     let env = decode_envelope(&bytes, MAX_PAYLOAD).expect("wrong_plan.bin must decode");
     assert_eq!(env.plan_id.as_str(), "other-plan");
     // Codec fields other than plan_id are unchanged from the golden envelope.
-    assert_eq!(env.connection_id.as_str(), golden_envelope().connection_id.as_str());
-    assert_eq!(env.value_kind.as_str(), golden_envelope().value_kind.as_str());
+    assert_eq!(
+        env.connection_id.as_str(),
+        golden_envelope().connection_id.as_str()
+    );
+    assert_eq!(
+        env.value_kind.as_str(),
+        golden_envelope().value_kind.as_str()
+    );
     assert_eq!(
         encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
         bytes,
@@ -267,7 +289,10 @@ fn wrong_connection_fixture_decodes_to_mutated_connection() {
     let env = decode_envelope(&bytes, MAX_PAYLOAD).expect("wrong_connection.bin must decode");
     assert_eq!(env.connection_id.as_str(), "other-conn");
     assert_eq!(env.plan_id.as_str(), golden_envelope().plan_id.as_str());
-    assert_eq!(env.value_kind.as_str(), golden_envelope().value_kind.as_str());
+    assert_eq!(
+        env.value_kind.as_str(),
+        golden_envelope().value_kind.as_str()
+    );
     assert_eq!(
         encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
         bytes,
@@ -281,7 +306,10 @@ fn wrong_kind_fixture_decodes_to_mutated_kind() {
     let env = decode_envelope(&bytes, MAX_PAYLOAD).expect("wrong_kind.bin must decode");
     assert_eq!(env.value_kind.as_str(), "other/kind");
     assert_eq!(env.plan_id.as_str(), golden_envelope().plan_id.as_str());
-    assert_eq!(env.connection_id.as_str(), golden_envelope().connection_id.as_str());
+    assert_eq!(
+        env.connection_id.as_str(),
+        golden_envelope().connection_id.as_str()
+    );
     assert_eq!(
         encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
         bytes,
@@ -430,10 +458,7 @@ fn zero_maximum_payload_bytes_accepts_empty_payload() {
 #[test]
 fn zero_maximum_payload_bytes_rejects_nonempty_payload() {
     let env = golden_envelope(); // payload is non-empty
-    assert_eq!(
-        encode_envelope(&env, 0),
-        Err(WireError::OversizedPayload)
-    );
+    assert_eq!(encode_envelope(&env, 0), Err(WireError::OversizedPayload));
 }
 
 #[test]
