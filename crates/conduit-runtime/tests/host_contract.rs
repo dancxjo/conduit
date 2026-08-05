@@ -1,16 +1,17 @@
 use conduit_core::{
-    kind_id, port_id, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, FailureReason,
-    FormId, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
-    OfferGeneration, OperationId, PlacementId, PlanFragment, PlanId, PlannedOperation,
-    PlatformEffect, PortDescriptor, PortDirection, TerminalDisposition, ValuePayload,
-    PROTOCOL_VERSION,
+    kind_id, port_id, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionOutcome,
+    ConnectionProvider, FailureReason, FormId, HostAdvertisement, HostCommand, HostEvent, HostId,
+    HostProfileId, ImplementationId, ObservationKind, OfferGeneration, OperationId, PlacementId,
+    PlanFragment, PlanId, PlannedOperation, PlatformEffect, PortDescriptor, PortDirection,
+    TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
-use conduit_planner::{default_placements, plan};
+use conduit_planner::{default_placements, plan, PlacementChoice, PlacementChoices};
 use conduit_runtime::{
     HostRuntime, ImplementationFailure, ImplementationRegistry, OperationAction,
     OperationCompletion, OperationImplementation, OperationState,
 };
+use std::collections::BTreeMap;
 
 const SOURCE_KIND: &str = "contract/source";
 const SINK_KIND: &str = "contract/sink";
@@ -419,12 +420,12 @@ fn host_with_only_pulse_rejects_show_and_wrong_kind_registry_entries() {
     );
 }
 
-struct FutureImplementation {
+struct EchoImplementation {
     kind_id: conduit_core::KindId,
     implementation_id: ImplementationId,
 }
 
-impl OperationImplementation for FutureImplementation {
+impl OperationImplementation for EchoImplementation {
     fn kind_id(&self) -> &conduit_core::KindId {
         &self.kind_id
     }
@@ -437,13 +438,13 @@ impl OperationImplementation for FutureImplementation {
         &self,
         _placement: &PlannedOperation,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
-        Ok(Box::new(FutureState))
+        Ok(Box::new(EchoState))
     }
 }
 
-struct FutureState;
+struct EchoState;
 
-impl OperationState for FutureState {
+impl OperationState for EchoState {
     fn start(&mut self) -> OperationAction {
         OperationAction::Complete
     }
@@ -454,18 +455,18 @@ impl OperationState for FutureState {
 }
 
 #[test]
-fn future_semantic_kind_runs_without_runtime_source_changes() {
-    let future_kind_id = kind_id("future/operation");
-    let implementation_id = ImplementationId::from("future/implementation-v1");
+fn echo_kind_uses_only_the_installed_implementation_boundary() {
+    let echo_kind_id = kind_id("test/echo");
+    let implementation_id = ImplementationId::from("test/echo-v1");
     let advertisement = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
-        host_id: HostId::from("future-host"),
-        boot_id: BootId::from("future-boot"),
+        host_id: HostId::from("echo-host"),
+        boot_id: BootId::from("echo-boot"),
         offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("future-test"),
+        profile: HostProfileId::from("echo-test"),
         capabilities: vec![CapabilityOffer {
-            capability_id: CapabilityId::from("future-capability"),
-            kind_id: future_kind_id.clone(),
+            capability_id: CapabilityId::from("echo-capability"),
+            kind_id: echo_kind_id.clone(),
             implementation_id: implementation_id.clone(),
             limits: CapabilityLimits {
                 value_kind: kind_id("value/none"),
@@ -475,23 +476,23 @@ fn future_semantic_kind_runs_without_runtime_source_changes() {
             },
         }],
     };
-    let placement_id = PlacementId::from("future-placement");
-    let plan_id = PlanId::from("future-plan");
+    let placement_id = PlacementId::from("echo-placement");
+    let plan_id = PlanId::from("echo-plan");
     let fragment = PlanFragment {
         plan_id: plan_id.clone(),
-        form_id: FormId::from("future-form"),
+        form_id: FormId::from("echo-form"),
         host_id: advertisement.host_id.clone(),
         boot_id: advertisement.boot_id.clone(),
         offer_generation: advertisement.offer_generation,
         placements: vec![PlannedOperation {
             placement_id: placement_id.clone(),
-            operation_id: OperationId::from("future"),
-            kind_id: future_kind_id.clone(),
+            operation_id: OperationId::from("echo"),
+            kind_id: echo_kind_id.clone(),
             configuration: Vec::new(),
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
             offer_generation: advertisement.offer_generation,
-            capability_id: CapabilityId::from("future-capability"),
+            capability_id: CapabilityId::from("echo-capability"),
             implementation_id: implementation_id.clone(),
             inputs: Vec::new(),
             outputs: Vec::new(),
@@ -499,13 +500,20 @@ fn future_semantic_kind_runs_without_runtime_source_changes() {
         connections: Vec::new(),
         startup_order: vec![placement_id],
     };
+    let mut missing_runtime =
+        HostRuntime::new(advertisement.clone(), ImplementationRegistry::new(), 32);
+    assert_eq!(
+        rejection_reason(&missing_runtime.handle(HostCommand::Prepare(fragment.clone()))),
+        Some(FailureReason::UnknownImplementation)
+    );
+
     let mut registry = ImplementationRegistry::new();
     registry
-        .install(FutureImplementation {
-            kind_id: future_kind_id,
+        .install(EchoImplementation {
+            kind_id: echo_kind_id,
             implementation_id,
         })
-        .expect("future implementation installs");
+        .expect("echo implementation installs");
     let mut runtime = HostRuntime::new(advertisement, registry, 32);
     assert!(matches!(
         runtime
@@ -566,4 +574,268 @@ fn fake_adapter_failure_is_structured_and_terminal() {
             ..
         }
     )));
+}
+
+struct AdapterSourceImplementation {
+    kind_id: conduit_core::KindId,
+    implementation_id: ImplementationId,
+}
+
+impl OperationImplementation for AdapterSourceImplementation {
+    fn kind_id(&self) -> &conduit_core::KindId {
+        &self.kind_id
+    }
+
+    fn implementation_id(&self) -> &ImplementationId {
+        &self.implementation_id
+    }
+
+    fn prepare(
+        &self,
+        _placement: &PlannedOperation,
+    ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
+        Ok(Box::new(AdapterSourceState { emitted: false }))
+    }
+
+    fn minimum_value_size(&self, value_kind: &conduit_core::KindId) -> Option<u32> {
+        (value_kind.as_str() == VALUE_KIND).then_some(1)
+    }
+}
+
+struct AdapterSourceState {
+    emitted: bool,
+}
+
+impl OperationState for AdapterSourceState {
+    fn start(&mut self) -> OperationAction {
+        OperationAction::Wait { duration_ms: 25 }
+    }
+
+    fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
+        match completion {
+            OperationCompletion::TimerElapsed if !self.emitted => {
+                self.emitted = true;
+                OperationAction::Emit(ValuePayload {
+                    value_kind: kind_id(VALUE_KIND),
+                    encoded: vec![7],
+                })
+            }
+            OperationCompletion::Emitted if self.emitted => OperationAction::Complete,
+            _ => OperationAction::Fail(ImplementationFailure::new(
+                FailureReason::InvalidLifecycleCommand,
+                "fake adapter source received an unexpected completion",
+            )),
+        }
+    }
+}
+
+#[derive(Default)]
+struct FakeBrowserStyleAdapter {
+    saw_wait: bool,
+    saw_presentation: bool,
+    delayed_connection: Option<conduit_core::ConnectionEnvelope>,
+}
+
+impl FakeBrowserStyleAdapter {
+    fn receive(&mut self, effects: Vec<PlatformEffect>) {
+        for effect in effects {
+            match effect {
+                PlatformEffect::Wait { .. } => self.saw_wait = true,
+                PlatformEffect::PresentValue { .. } => self.saw_presentation = true,
+                PlatformEffect::TransmitConnection { envelope } => {
+                    self.delayed_connection = Some(envelope);
+                }
+            }
+        }
+    }
+}
+
+fn adapter_registry() -> ImplementationRegistry {
+    let mut registry = ImplementationRegistry::new();
+    registry
+        .install(AdapterSourceImplementation {
+            kind_id: kind_id(SOURCE_KIND),
+            implementation_id: ImplementationId::from("contract/source-v1"),
+        })
+        .expect("adapter source installs");
+    registry
+        .install(SinkImplementation::new(ImplementationId::from(
+            "contract/sink-v1",
+        )))
+        .expect("adapter sink installs");
+    registry
+}
+
+fn observations(runtime: &mut HostRuntime) -> Vec<conduit_core::Observation> {
+    runtime
+        .handle(HostCommand::Inspect)
+        .events
+        .into_iter()
+        .find_map(|event| match event {
+            HostEvent::Observations { items } => Some(items),
+            _ => None,
+        })
+        .expect("inspection returns observations")
+}
+
+#[test]
+fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
+    let local_advertisement = advertisement();
+    let local_fragment = fragment(&local_advertisement);
+    let mut local_runtime = HostRuntime::new(local_advertisement, adapter_registry(), 128);
+    local_runtime.handle(HostCommand::Prepare(local_fragment.clone()));
+    let activated = local_runtime.handle(HostCommand::Activate(local_fragment.plan_id.clone()));
+    let mut adapter = FakeBrowserStyleAdapter::default();
+    adapter.receive(activated.effects);
+    assert!(adapter.saw_wait);
+    assert!(!adapter.saw_presentation);
+
+    let waited = local_runtime.handle(HostCommand::CompleteWait {
+        plan_id: local_fragment.plan_id.clone(),
+        placement_id: local_fragment
+            .placements
+            .iter()
+            .find(|placement| placement.kind_id.as_str() == SOURCE_KIND)
+            .expect("source placement exists")
+            .placement_id
+            .clone(),
+    });
+    let presentation = waited
+        .effects
+        .iter()
+        .find_map(|effect| match effect {
+            PlatformEffect::PresentValue {
+                plan_id,
+                placement_id,
+                value,
+                ..
+            } => Some((plan_id.clone(), placement_id.clone(), value.clone())),
+            _ => None,
+        })
+        .expect("wait completion reaches presentation adapter");
+    adapter.receive(waited.effects);
+    assert!(adapter.saw_presentation);
+    let failed = local_runtime.handle(HostCommand::CompletePresentation {
+        plan_id: presentation.0,
+        placement_id: presentation.1,
+        value: presentation.2,
+        success: false,
+        message: Some("injected adapter failure".into()),
+    });
+    assert!(failed.events.iter().any(|event| matches!(
+        event,
+        HostEvent::ManifestationFailed {
+            reason: FailureReason::ManifestationFailed,
+            ..
+        }
+    )));
+    assert!(observations(&mut local_runtime).iter().any(|observation| {
+        matches!(
+            observation.kind,
+            ObservationKind::Failure {
+                reason: FailureReason::ManifestationFailed,
+                ..
+            }
+        )
+    }));
+
+    let form = parse(
+        "form 0\n\nadapter {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
+        &profile_catalog(),
+    )
+    .expect("adapter form parses");
+    let mut source_advertisement = advertisement();
+    source_advertisement.host_id = HostId::from("adapter-source-host");
+    source_advertisement.boot_id = BootId::from("adapter-source-boot");
+    source_advertisement.capabilities.truncate(1);
+    let mut sink_advertisement = advertisement();
+    sink_advertisement.host_id = HostId::from("adapter-sink-host");
+    sink_advertisement.boot_id = BootId::from("adapter-sink-boot");
+    sink_advertisement.capabilities.remove(0);
+    let placements = PlacementChoices {
+        by_operation: BTreeMap::from([
+            (
+                OperationId::from("source"),
+                PlacementChoice {
+                    host_id: source_advertisement.host_id.clone(),
+                    capability_id: CapabilityId::from("pulse"),
+                },
+            ),
+            (
+                OperationId::from("sink"),
+                PlacementChoice {
+                    host_id: sink_advertisement.host_id.clone(),
+                    capability_id: CapabilityId::from("show"),
+                },
+            ),
+        ]),
+    };
+    let cross_host_plan = plan(
+        &form,
+        &[source_advertisement.clone(), sink_advertisement],
+        &placements,
+        &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+    )
+    .expect("cross-host adapter plan resolves");
+    let source_fragment = cross_host_plan
+        .fragments
+        .into_iter()
+        .find(|fragment| fragment.host_id == source_advertisement.host_id)
+        .expect("source fragment exists");
+    let mut source_runtime = HostRuntime::new(source_advertisement, adapter_registry(), 128);
+    source_runtime.handle(HostCommand::Prepare(source_fragment.clone()));
+    let activated = source_runtime.handle(HostCommand::Activate(source_fragment.plan_id.clone()));
+    let wait = activated
+        .effects
+        .into_iter()
+        .find_map(|effect| match effect {
+            PlatformEffect::Wait {
+                plan_id,
+                placement_id,
+                ..
+            } => Some((plan_id, placement_id)),
+            _ => None,
+        })
+        .expect("outbound source waits through the adapter");
+    let transmitted = source_runtime.handle(HostCommand::CompleteWait {
+        plan_id: wait.0,
+        placement_id: wait.1,
+    });
+    adapter.receive(transmitted.effects);
+    let delayed = adapter
+        .delayed_connection
+        .take()
+        .expect("adapter retains connection delivery until explicitly completed");
+    assert!(!observations(&mut source_runtime)
+        .iter()
+        .any(|observation| matches!(observation.kind, ObservationKind::ConnectionTerminal { .. })));
+
+    let disconnected = source_runtime.handle(HostCommand::CompleteConnectionDelivery {
+        plan_id: delayed.plan_id.clone(),
+        connection_id: delayed.connection_id.clone(),
+        sequence: delayed.sequence,
+        outcome: ConnectionOutcome::Disconnected,
+    });
+    assert!(disconnected.events.iter().any(|event| matches!(
+        event,
+        HostEvent::ConnectionTerminated { disposition, .. }
+            if matches!(
+                disposition.disposition,
+                TerminalDisposition::Failed {
+                    reason: FailureReason::ConnectionDisconnected
+                }
+            )
+    )));
+    assert!(observations(&mut source_runtime).iter().any(|observation| {
+        matches!(
+            &observation.kind,
+            ObservationKind::ConnectionTerminal { disposition }
+                if matches!(
+                    disposition.disposition,
+                    TerminalDisposition::Failed {
+                        reason: FailureReason::ConnectionDisconnected
+                    }
+                )
+        )
+    }));
 }

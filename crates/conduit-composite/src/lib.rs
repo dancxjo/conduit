@@ -5,7 +5,9 @@ use conduit_core::{
     OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect, TerminalDisposition,
     PROTOCOL_VERSION,
 };
-use conduit_runtime::{HostRuntime, RuntimeOutput};
+use conduit_runtime::{
+    providers::in_memory::InMemoryConnectionProvider, HostRuntime, RuntimeOutput,
+};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 pub const COMPOSITE_DEMONSTRATION_KIND: &str = "demonstration/run-signal";
@@ -26,94 +28,6 @@ impl std::fmt::Display for CompositeError {
 }
 
 impl std::error::Error for CompositeError {}
-
-#[derive(Debug)]
-pub struct InMemoryConnectionProvider {
-    plan_id: PlanId,
-    connection_id: ConnectionId,
-    value_kind: conduit_core::KindId,
-    item_capacity: usize,
-    byte_capacity: u32,
-    queued_bytes: u32,
-    next_sequence: u64,
-    terminal: bool,
-    queue: VecDeque<ConnectionEnvelope>,
-}
-
-impl InMemoryConnectionProvider {
-    pub fn new(plan_id: PlanId, connection: &conduit_core::PlannedConnection) -> Self {
-        Self {
-            plan_id,
-            connection_id: connection.connection_id.clone(),
-            value_kind: connection.value_kind.clone(),
-            item_capacity: connection.item_capacity as usize,
-            byte_capacity: connection.byte_capacity,
-            queued_bytes: 0,
-            next_sequence: 0,
-            terminal: false,
-            queue: VecDeque::new(),
-        }
-    }
-
-    pub fn status(&self) -> ConnectionOutcome {
-        if self.terminal {
-            ConnectionOutcome::Terminal
-        } else if self.queue.len() >= self.item_capacity || self.queued_bytes >= self.byte_capacity
-        {
-            ConnectionOutcome::Full
-        } else {
-            ConnectionOutcome::Ready
-        }
-    }
-
-    pub fn accept(&mut self, envelope: ConnectionEnvelope) -> ConnectionOutcome {
-        if self.terminal {
-            return ConnectionOutcome::Terminal;
-        }
-        if envelope.protocol_version != PROTOCOL_VERSION
-            || envelope.plan_id != self.plan_id
-            || envelope.connection_id != self.connection_id
-            || envelope.value_kind != self.value_kind
-            || envelope.sequence != self.next_sequence
-            || envelope.encoded_len() > self.byte_capacity
-        {
-            return ConnectionOutcome::Malformed;
-        }
-        if self.queue.len() >= self.item_capacity
-            || self.queued_bytes + envelope.encoded_len() > self.byte_capacity
-        {
-            return ConnectionOutcome::Full;
-        }
-        self.queued_bytes += envelope.encoded_len();
-        self.next_sequence += 1;
-        self.queue.push_back(envelope);
-        ConnectionOutcome::Accepted
-    }
-
-    pub fn deliver(&mut self) -> Option<(ConnectionOutcome, ConnectionEnvelope)> {
-        if self.terminal {
-            return None;
-        }
-        let envelope = self.queue.pop_front()?;
-        self.queued_bytes -= envelope.encoded_len();
-        Some((ConnectionOutcome::Delivered, envelope))
-    }
-
-    pub fn disconnect(&mut self) -> ConnectionOutcome {
-        self.terminal = true;
-        self.queue.clear();
-        self.queued_bytes = 0;
-        ConnectionOutcome::Disconnected
-    }
-
-    pub fn queued_items(&self) -> usize {
-        self.queue.len()
-    }
-
-    pub fn queued_bytes(&self) -> u32 {
-        self.queued_bytes
-    }
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum ExternalState {
@@ -286,6 +200,22 @@ impl CompositeHost {
         if boot_ids.len() != child_runtimes.len() {
             return Err(CompositeError::InvalidInternalPlan(
                 "child hosts must have distinct boot identities".into(),
+            ));
+        }
+        if child_runtimes.iter().any(|runtime| {
+            let advertisement = runtime.advertisement();
+            definition
+                .internal_plan
+                .fragments
+                .iter()
+                .find(|fragment| fragment.host_id == advertisement.host_id)
+                .is_none_or(|fragment| {
+                    fragment.boot_id != advertisement.boot_id
+                        || fragment.offer_generation != advertisement.offer_generation
+                })
+        }) {
+            return Err(CompositeError::InvalidInternalPlan(
+                "child plan fragment identity does not match its runtime advertisement".into(),
             ));
         }
         if !declared_ids.contains(&definition.boundary.source_child)
@@ -1037,7 +967,7 @@ fn preparation_failure(output: &RuntimeOutput) -> Option<(FailureReason, Option<
 mod tests {
     use super::{
         ChildHostBinding, CompositeBoundary, CompositeDefinition, CompositeHost, DeliveryMode,
-        InMemoryConnectionProvider, COMPOSITE_DEMONSTRATION_KIND,
+        COMPOSITE_DEMONSTRATION_KIND,
     };
     use conduit_core::{
         kind_id, port_id, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
@@ -1047,7 +977,7 @@ mod tests {
     };
     use conduit_form::{parse, CheckedForm, CheckedOperation};
     use conduit_planner::{plan, PlacementChoice, PlacementChoices};
-    use conduit_runtime::HostRuntime;
+    use conduit_runtime::{providers::in_memory::InMemoryConnectionProvider, HostRuntime};
     use conduit_signal::{
         signal_profile_catalog, signal_registry, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND,
     };
@@ -1343,6 +1273,13 @@ mod tests {
     #[test]
     fn definition_rejects_missing_extra_and_mismatched_children() {
         let definition = composite_definition(2, 18);
+
+        let mut duplicate_child = definition.clone();
+        duplicate_child
+            .children
+            .push(duplicate_child.children[0].clone());
+        assert!(CompositeHost::from_definition(duplicate_child, child_runtimes(), 16).is_err());
+
         let mut runtimes = child_runtimes();
         runtimes.pop();
         assert!(CompositeHost::from_definition(definition.clone(), runtimes, 16).is_err());
@@ -1375,6 +1312,16 @@ mod tests {
             &mut mismatched_boundary.boundary.sink_child,
         );
         assert!(CompositeHost::from_definition(mismatched_boundary, child_runtimes(), 16).is_err());
+
+        let mut mismatched_fragment = composite_definition(2, 18);
+        mismatched_fragment
+            .internal_plan
+            .fragments
+            .iter_mut()
+            .find(|fragment| fragment.host_id.as_str() == "child-source")
+            .expect("source fragment exists")
+            .boot_id = BootId::from("wrong-child-boot");
+        assert!(CompositeHost::from_definition(mismatched_fragment, child_runtimes(), 16).is_err());
     }
 
     #[test]
@@ -1461,6 +1408,39 @@ mod tests {
                 .count(),
             3
         );
+    }
+
+    #[test]
+    fn parent_planning_cannot_address_an_internal_child_identity() {
+        let composite = composite(4, 64);
+        let form = CheckedForm {
+            form_id: FormId::from("parent-child-leak-form"),
+            name: "parent-child-leak".into(),
+            operations: vec![CheckedOperation {
+                operation_id: OperationId::from("demonstration"),
+                kind_id: KindId::from(COMPOSITE_DEMONSTRATION_KIND),
+                inputs: Vec::new(),
+                outputs: Vec::new(),
+                configuration: Vec::new(),
+            }],
+            connections: Vec::new(),
+        };
+        let placements = PlacementChoices {
+            by_operation: BTreeMap::from([(
+                OperationId::from("demonstration"),
+                PlacementChoice {
+                    host_id: HostId::from("child-source"),
+                    capability_id: CapabilityId::from("pulse"),
+                },
+            )]),
+        };
+        assert!(plan(
+            &form,
+            std::slice::from_ref(composite.advertisement()),
+            &placements,
+            &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+        )
+        .is_err());
     }
 
     #[test]

@@ -8,6 +8,8 @@ use conduit_core::{
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+pub mod providers;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImplementationFailure {
     pub reason: FailureReason,
@@ -64,6 +66,13 @@ pub trait OperationState {
     fn release(&mut self) {}
 }
 
+/// The complete installed semantic-operation boundary used by every host adapter.
+///
+/// The registry identifies an implementation by kind and implementation ID, asks it to validate
+/// and prepare a planned operation, and receives opaque [`OperationState`]. The runtime then drives
+/// that state with activation and input completions; requested platform work is returned as generic
+/// [`OperationAction`] values and translated to [`PlatformEffect`]. Adding a semantic kind must only
+/// require installing another implementation, never adding a kind-name match to the runtime.
 pub trait OperationImplementation {
     fn kind_id(&self) -> &conduit_core::KindId;
     fn implementation_id(&self) -> &conduit_core::ImplementationId;

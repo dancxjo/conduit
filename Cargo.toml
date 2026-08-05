@@ -1,6 +1,7 @@
 [workspace]
 members = [
 	"crates/conduit-core",
+	"crates/conduit-wire",
 	"crates/conduit-signal",
 	"crates/conduit-form",
 	"crates/conduit-planner",

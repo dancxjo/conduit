@@ -8,6 +8,9 @@ Browser host work remains out of scope until every item below is true on the sam
 - The std host explicitly enables and installs the signal host profile. Its remaining responsibilities are CLI assembly, timers, and stdout presentation.
 - The `host_contract` test runs a one-byte `contract/source -> contract/sink` profile through the ordinary parser, planner, implementation registry, and runtime without importing `conduit-signal`.
 - Controlled composite transport proves queue pressure, retained source values, byte release, malformed delivery, queued and empty disconnect, undeliverable counts, and terminal rejection.
+- `conduit-wire` defines and tests the deterministic, bounded, `no_std`-compatible connection-envelope representation documented in `connection-envelope-wire.md`.
+- The reusable in-memory provider belongs to `conduit-runtime::providers`, not the composite fixture.
+- A fake browser-style adapter manually completes waits and presentations, delays a connection delivery, injects presentation failure and provider disconnect, and inspects structured observations.
 - A composite definition owns a set of child bindings and exact plan fragments. The current fixture permits one exposed in-memory boundary, while runtime dispatch and terminal tracking are keyed by child host identity rather than source/sink fields.
 - Parent-facing events and observations use only the composite identity. Child host IDs and child details are available only through explicit internal diagnostic methods.
 - Host-contract tests pass without browser automation.
@@ -16,9 +19,11 @@ The required checkpoint commands are:
 
 ```text
 cargo check -p conduit-signal --no-default-features
+cargo check -p conduit-wire --no-default-features
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
+just check-browser-readiness
 ```
 
 Only after this drawbridge is green may a browser host be introduced. Browser, Pico W, WebSocket, TCP, UDP, DOM, LED, DHCP, DNS, discovery, durable body identity, and `.soul` remain beyond this checkpoint.

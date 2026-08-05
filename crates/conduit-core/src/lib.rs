@@ -437,6 +437,11 @@ pub enum HostEvent {
     },
 }
 
+/// Host-neutral work requested by an installed semantic implementation.
+///
+/// A std adapter may map `PresentValue` to stdout, a browser adapter may map it to DOM
+/// presentation, and a Pico W adapter may map it to an LED. Those manifestations are adapter
+/// policy; the semantic operation remains unaware of the platform.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlatformEffect {
     Wait {
