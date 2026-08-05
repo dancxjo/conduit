@@ -9,3 +9,7 @@ conduit-form = { path = "../../crates/conduit-form" }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime" }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
+conduit-wire = { path = "../../crates/conduit-wire" }
+
+[dev-dependencies]
+conduit-std-host = { path = "../std" }

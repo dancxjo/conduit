@@ -462,6 +462,9 @@ fn select_provider(
     if source.host_id != sink.host_id && providers.contains(&ConnectionProvider::InMemory) {
         return Ok(ConnectionProvider::InMemory);
     }
+    if source.host_id != sink.host_id && providers.contains(&ConnectionProvider::WebSocket) {
+        return Ok(ConnectionProvider::WebSocket);
+    }
     Err(PlannerError::UnavailableConnectionProvider(format!(
         "no provider for '{}' -> '{}'",
         source.operation_id.as_str(),

@@ -85,6 +85,10 @@ impl StdHost {
         self.runtime.advertisement()
     }
 
+    pub fn handle(&mut self, command: HostCommand) -> RuntimeOutput {
+        self.runtime.handle(command)
+    }
+
     pub fn plan_local(
         &self,
         form: &CheckedForm,

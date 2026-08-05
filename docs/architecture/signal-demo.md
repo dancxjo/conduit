@@ -40,6 +40,18 @@ This proves separate browser host IDs and boot IDs, independent capability
 advertisements, a bounded in-memory browser link, DOM-state receipts, and a WASM
 compile boundary without introducing Playwright or visual timing as acceptance.
 
+The std host can also run the pulse source while a browser host runs the show
+sink through a deterministic bounded WebSocket relay fixture:
+
+```text
+cargo test -p conduit-browser-host std_host_sends_signal_to_browser_over_bounded_websocket_relay
+```
+
+That fixture plans the pair form across std and browser advertisements with the
+`WebSocket` connection provider, serializes every connection envelope through
+`conduit-wire`, enforces frame bounds, and compares the browser DOM-state
+receipts against the same sixteen ordered signal values.
+
 ## Receipts
 
 Each completed std manifestation emits a machine-readable receipt line:
@@ -50,13 +62,15 @@ receipt signal placement=<placement-id> sequence=<n> level=<true-or-false>
 
 The local std pair proof emits sixteen receipt lines. The local std triple
 fixture emits forty-eight receipt lines: sixteen for each of the three show
-sinks. The deterministic browser pair fixture retains sixteen DOM-state receipts
-on the sink browser host instance.
+sinks. The deterministic browser pair fixture and std-to-browser WebSocket relay
+fixture each retain sixteen DOM-state receipts on the sink browser host
+instance.
 
 ## Current Stop Line
 
-The repository now contains a deterministic browser host crate, but not a WASM
-operator page, WebSocket link, or Pico W host crate. M1 remains open until the
-same `examples/triple-signal.form` can be planned across std, browser, and Pico
-W hosts, with matching ordered receipts from stdout, DOM, and LED
-manifestations.
+The repository now contains a deterministic browser host crate, a canonical
+`WebSocket` connection provider, and a bounded std-to-browser relay fixture. It
+does not yet contain a WASM operator page, browser socket client/server runtime,
+or Pico W host crate. M1 remains open until the same
+`examples/triple-signal.form` can be planned across std, browser, and Pico W
+hosts, with matching ordered receipts from stdout, DOM, and LED manifestations.

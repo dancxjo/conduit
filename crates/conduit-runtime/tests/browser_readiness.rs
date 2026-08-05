@@ -35,7 +35,8 @@ fn readiness_contract_names_the_platform_stop_line() {
         "conduit-browser-host",
         "multiple independent browser host instances",
         "wasm32-unknown-unknown",
-        "Browser UI, Pico W, WebSocket, TCP, UDP",
+        "bounded `WebSocket` relay using `conduit-wire`",
+        "Browser UI, Pico W, live WebSocket sockets, TCP, UDP",
     ] {
         assert!(
             readiness.contains(required),

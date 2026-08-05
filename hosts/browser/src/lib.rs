@@ -1,8 +1,8 @@
 use conduit_core::{
-    kind_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionId,
-    ConnectionOutcome, ConnectionProvider, HostAdvertisement, HostCommand, HostEvent, HostId,
-    HostProfileId, ImplementationId, Observation, OfferGeneration, PlacementId, Plan, PlanFragment,
-    PlanId, PlatformEffect, TerminalDisposition, PROTOCOL_VERSION,
+    kind_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider, HostAdvertisement,
+    HostCommand, HostEvent, HostId, HostProfileId, ImplementationId, Observation, OfferGeneration,
+    PlacementId, Plan, PlanFragment, PlanId, PlatformEffect, TerminalDisposition, PROTOCOL_VERSION,
 };
 use conduit_form::CheckedForm;
 use conduit_planner::{plan_with_connection_limits, PlacementChoice, PlacementChoices};
@@ -12,6 +12,46 @@ use conduit_signal::{
     SIGNAL_PRESENTATION_KIND, SIGNAL_VALUE_KIND,
 };
 use std::collections::{BTreeMap, VecDeque};
+
+#[derive(Debug, Clone)]
+pub struct BoundedWebSocketRelay {
+    max_payload_bytes: u32,
+    max_frame_bytes: usize,
+    frames: Vec<Vec<u8>>,
+}
+
+impl BoundedWebSocketRelay {
+    pub fn new(max_payload_bytes: u32, max_frame_bytes: usize) -> Self {
+        Self {
+            max_payload_bytes,
+            max_frame_bytes,
+            frames: Vec::new(),
+        }
+    }
+
+    pub fn frames(&self) -> &[Vec<u8>] {
+        &self.frames
+    }
+
+    pub fn transmit(
+        &mut self,
+        envelope: &ConnectionEnvelope,
+    ) -> Result<ConnectionEnvelope, String> {
+        let frame = conduit_wire::encode_envelope(envelope, self.max_payload_bytes)
+            .map_err(|err| format!("websocket relay encode failed: {err:?}"))?;
+        if frame.len() > self.max_frame_bytes {
+            return Err(format!(
+                "websocket relay frame {} exceeds bound {}",
+                frame.len(),
+                self.max_frame_bytes
+            ));
+        }
+        let decoded = conduit_wire::decode_envelope(&frame, self.max_payload_bytes)
+            .map_err(|err| format!("websocket relay decode failed: {err:?}"))?;
+        self.frames.push(frame);
+        Ok(decoded)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrowserHostConfig {
@@ -182,6 +222,43 @@ impl BrowserPage {
             &self.advertisements(),
             &placements,
             &[ConnectionProvider::InMemory],
+            4,
+            64,
+        )?)
+    }
+
+    pub fn plan_std_to_browser(
+        &self,
+        form: &CheckedForm,
+        std_advertisement: &HostAdvertisement,
+        browser_host: &HostId,
+    ) -> Result<Plan, Box<dyn std::error::Error>> {
+        let placements = PlacementChoices {
+            by_operation: BTreeMap::from([
+                (
+                    conduit_core::OperationId::from("pulse"),
+                    PlacementChoice {
+                        host_id: std_advertisement.host_id.clone(),
+                        capability_id: CapabilityId::from("pulse-1"),
+                    },
+                ),
+                (
+                    conduit_core::OperationId::from("show"),
+                    PlacementChoice {
+                        host_id: browser_host.clone(),
+                        capability_id: CapabilityId::from("dom-show"),
+                    },
+                ),
+            ]),
+        };
+        let mut realm = Vec::with_capacity(self.hosts.len() + 1);
+        realm.push(std_advertisement.clone());
+        realm.extend(self.advertisements());
+        Ok(plan_with_connection_limits(
+            form,
+            &realm,
+            &placements,
+            &[ConnectionProvider::WebSocket],
             4,
             64,
         )?)
@@ -445,13 +522,12 @@ fn inbound_routes(fragments: &[PlanFragment]) -> BTreeMap<(PlanId, ConnectionId)
                     .placements
                     .iter()
                     .any(|placement| placement.placement_id == connection.source_placement_id);
-                (connection.provider == ConnectionProvider::InMemory && has_sink && !has_source)
-                    .then(|| {
-                        (
-                            (fragment.plan_id.clone(), connection.connection_id.clone()),
-                            fragment.host_id.clone(),
-                        )
-                    })
+                (is_remote_provider(connection.provider) && has_sink && !has_source).then(|| {
+                    (
+                        (fragment.plan_id.clone(), connection.connection_id.clone()),
+                        fragment.host_id.clone(),
+                    )
+                })
             })
         })
         .collect()
@@ -472,19 +548,25 @@ fn delivery_ack_routes(
                     .placements
                     .iter()
                     .any(|placement| placement.placement_id == connection.sink_placement_id);
-                (connection.provider == ConnectionProvider::InMemory && has_source && !has_sink)
-                    .then(|| {
+                (is_remote_provider(connection.provider) && has_source && !has_sink).then(|| {
+                    (
                         (
-                            (
-                                fragment.plan_id.clone(),
-                                connection.sink_placement_id.clone(),
-                            ),
-                            (fragment.host_id.clone(), connection.connection_id.clone()),
-                        )
-                    })
+                            fragment.plan_id.clone(),
+                            connection.sink_placement_id.clone(),
+                        ),
+                        (fragment.host_id.clone(), connection.connection_id.clone()),
+                    )
+                })
             })
         })
         .collect()
+}
+
+fn is_remote_provider(provider: ConnectionProvider) -> bool {
+    matches!(
+        provider,
+        ConnectionProvider::InMemory | ConnectionProvider::WebSocket
+    )
 }
 
 fn sink_fragments_first(fragments: &[PlanFragment]) -> Vec<&PlanFragment> {
@@ -540,12 +622,15 @@ fn ensure_activated(output: &RuntimeOutput) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{BrowserHostConfig, BrowserPage};
+    use super::{BoundedWebSocketRelay, BrowserHostConfig, BrowserPage};
     use conduit_core::{
-        kind_id, BootId, ConnectionProvider, HostId, OfferGeneration, TerminalDisposition,
+        kind_id, BootId, ConnectionProvider, HostCommand, HostEvent, HostId, OfferGeneration,
+        PlatformEffect, TerminalDisposition,
     };
     use conduit_form::parse;
     use conduit_signal::{signal_profile_catalog, PULSE_KIND, SHOW_KIND};
+    use conduit_std_host::{StdHost, StdHostConfig};
+    use std::collections::VecDeque;
 
     fn page() -> BrowserPage {
         BrowserPage::with_hosts([
@@ -639,5 +724,262 @@ mod tests {
             .find(|snapshot| snapshot.host_id == sink_host)
             .expect("sink snapshot exists");
         assert_eq!(sink_snapshot.receipts.len(), 16);
+    }
+
+    #[test]
+    fn std_host_sends_signal_to_browser_over_bounded_websocket_relay() {
+        let mut std_host = StdHost::new_with_config(StdHostConfig {
+            host_id: HostId::from("std-host-1"),
+            boot_id: BootId::from("std-boot-1"),
+            offer_generation: OfferGeneration(1),
+        });
+        let mut page = BrowserPage::with_hosts([BrowserHostConfig {
+            host_id: HostId::from("browser-host-web"),
+            boot_id: BootId::from("browser-boot-web"),
+            offer_generation: OfferGeneration(1),
+        }]);
+        let browser_host = HostId::from("browser-host-web");
+        let plan = page
+            .plan_std_to_browser(&pair_form(), std_host.advertisement(), &browser_host)
+            .expect("std-to-browser plan resolves");
+        let connection = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .find(|connection| connection.provider == ConnectionProvider::WebSocket)
+            .expect("websocket connection is planned");
+        assert_eq!(connection.item_capacity, 4);
+        assert_eq!(connection.byte_capacity, 64);
+
+        page.inbound_routes = super::inbound_routes(&plan.fragments);
+        page.delivery_ack_routes = super::delivery_ack_routes(&plan.fragments);
+        for fragment in &plan.fragments {
+            if fragment.host_id == std_host.advertisement().host_id {
+                super::ensure_prepared(&std_host.handle(HostCommand::Prepare(fragment.clone())))
+                    .expect("std source prepares");
+            } else {
+                super::ensure_prepared(
+                    &page
+                        .host_mut(&fragment.host_id)
+                        .expect("browser host exists")
+                        .handle(HostCommand::Prepare(fragment.clone())),
+                )
+                .expect("browser sink prepares");
+            }
+        }
+
+        let mut pending = VecDeque::new();
+        for fragment in super::sink_fragments_first(&plan.fragments) {
+            if fragment.host_id == std_host.advertisement().host_id {
+                let output = std_host.handle(HostCommand::Activate(fragment.plan_id.clone()));
+                super::ensure_activated(&output).expect("std activates");
+                pending.extend(
+                    output
+                        .effects
+                        .into_iter()
+                        .map(|effect| (fragment.host_id.clone(), effect)),
+                );
+            } else {
+                let output = page
+                    .host_mut(&fragment.host_id)
+                    .expect("browser host exists")
+                    .handle(HostCommand::Activate(fragment.plan_id.clone()));
+                super::ensure_activated(&output).expect("browser activates");
+                pending.extend(
+                    output
+                        .effects
+                        .into_iter()
+                        .map(|effect| (fragment.host_id.clone(), effect)),
+                );
+            }
+        }
+
+        let mut relay = BoundedWebSocketRelay::new(64, 512);
+        while let Some((host_id, effect)) = pending.pop_front() {
+            if host_id == std_host.advertisement().host_id {
+                pending.extend(drive_std_effect(
+                    &mut std_host,
+                    &mut page,
+                    &mut relay,
+                    effect,
+                ));
+            } else {
+                pending.extend(drive_browser_effect_with_std_ack(
+                    &mut std_host,
+                    &mut page,
+                    &host_id,
+                    effect,
+                ));
+            }
+        }
+
+        assert_eq!(relay.frames().len(), 16);
+        let report = page.host_snapshots();
+        let sink = report
+            .iter()
+            .find(|snapshot| snapshot.host_id == browser_host)
+            .expect("browser sink snapshot exists");
+        assert_eq!(sink.receipts.len(), 16);
+        assert_eq!(sink.receipts[0].sequence, 0);
+        assert!(!sink.receipts[0].level);
+        assert_eq!(sink.receipts[15].sequence, 15);
+        assert!(sink.receipts[15].level);
+        let observations = page
+            .host_mut(&browser_host)
+            .expect("browser host exists")
+            .inspect();
+        assert!(observations.iter().any(|observation| matches!(
+            observation.kind,
+            conduit_core::ObservationKind::PlanTerminal {
+                disposition: TerminalDisposition::Completed
+            }
+        )));
+    }
+
+    fn drive_std_effect(
+        std_host: &mut StdHost,
+        page: &mut BrowserPage,
+        relay: &mut BoundedWebSocketRelay,
+        effect: PlatformEffect,
+    ) -> Vec<(HostId, PlatformEffect)> {
+        match effect {
+            PlatformEffect::Wait {
+                plan_id,
+                placement_id,
+                ..
+            } => {
+                let output = std_host.handle(HostCommand::CompleteWait {
+                    plan_id,
+                    placement_id,
+                });
+                std_output_effects(std_host, page, output)
+            }
+            PlatformEffect::TransmitConnection { envelope } => {
+                let decoded = relay.transmit(&envelope).expect("relay accepts frame");
+                let sink_host_id = page
+                    .host_for_inbound_connection(&decoded.plan_id, &decoded.connection_id)
+                    .expect("browser inbound route exists");
+                let accepted = page
+                    .host_mut(&sink_host_id)
+                    .expect("browser host exists")
+                    .handle(HostCommand::AcceptConnectionEnvelope(decoded.clone()));
+                super::pending_success(&accepted, decoded.sequence).expect("browser accepts frame");
+                let source_accepted = std_host.handle(HostCommand::CompleteConnectionDelivery {
+                    plan_id: decoded.plan_id,
+                    connection_id: decoded.connection_id,
+                    sequence: decoded.sequence,
+                    outcome: conduit_core::ConnectionOutcome::Accepted,
+                });
+                let mut pending = accepted
+                    .effects
+                    .into_iter()
+                    .map(|effect| (sink_host_id.clone(), effect))
+                    .collect::<Vec<_>>();
+                pending.extend(std_output_effects(std_host, page, source_accepted));
+                pending
+            }
+            PlatformEffect::PresentValue { .. } => {
+                panic!("std source-only fragment must not request presentation")
+            }
+        }
+    }
+
+    fn drive_browser_effect_with_std_ack(
+        std_host: &mut StdHost,
+        page: &mut BrowserPage,
+        host_id: &HostId,
+        effect: PlatformEffect,
+    ) -> Vec<(HostId, PlatformEffect)> {
+        match effect {
+            PlatformEffect::PresentValue {
+                plan_id,
+                placement_id,
+                presentation_kind,
+                value,
+            } => {
+                assert_eq!(
+                    presentation_kind.as_str(),
+                    conduit_signal::SIGNAL_PRESENTATION_KIND
+                );
+                let output = page
+                    .host_mut(host_id)
+                    .expect("browser host exists")
+                    .complete_dom_presentation(plan_id, placement_id, value)
+                    .expect("browser presentation completes");
+                let mut pending = output
+                    .effects
+                    .into_iter()
+                    .map(|effect| (host_id.clone(), effect))
+                    .collect::<Vec<_>>();
+                for event in output.events {
+                    if let HostEvent::ManifestationCompleted {
+                        plan_id,
+                        placement_id,
+                        value,
+                    } = event
+                    {
+                        let (source_host_id, connection_id) = page
+                            .delivery_ack_routes
+                            .get(&(plan_id.clone(), placement_id))
+                            .cloned()
+                            .expect("delivery ack route exists");
+                        assert_eq!(source_host_id, std_host.advertisement().host_id);
+                        let signal = conduit_signal::decode_signal(&value).expect("signal decodes");
+                        let delivered = std_host.handle(HostCommand::CompleteConnectionDelivery {
+                            plan_id,
+                            connection_id,
+                            sequence: signal.sequence,
+                            outcome: conduit_core::ConnectionOutcome::Delivered,
+                        });
+                        pending.extend(std_output_effects(std_host, page, delivered));
+                    }
+                }
+                pending
+            }
+            PlatformEffect::Wait { .. } | PlatformEffect::TransmitConnection { .. } => {
+                panic!("browser sink fragment should only present received values")
+            }
+        }
+    }
+
+    fn std_output_effects(
+        std_host: &mut StdHost,
+        page: &mut BrowserPage,
+        output: conduit_runtime::RuntimeOutput,
+    ) -> Vec<(HostId, PlatformEffect)> {
+        let mut pending = output
+            .effects
+            .into_iter()
+            .map(|effect| (std_host.advertisement().host_id.clone(), effect))
+            .collect::<Vec<_>>();
+        for event in output.events {
+            if let HostEvent::ConnectionTerminated {
+                plan_id,
+                connection_id,
+                disposition,
+            } = event
+            {
+                if matches!(disposition.disposition, TerminalDisposition::Completed) {
+                    if let Some(sink_host_id) =
+                        page.host_for_inbound_connection(&plan_id, &connection_id)
+                    {
+                        let close = page
+                            .host_mut(&sink_host_id)
+                            .expect("browser host exists")
+                            .handle(HostCommand::CloseConnection {
+                                plan_id,
+                                connection_id,
+                            });
+                        pending.extend(
+                            close
+                                .effects
+                                .into_iter()
+                                .map(|effect| (sink_host_id.clone(), effect)),
+                        );
+                    }
+                }
+            }
+        }
+        pending
     }
 }

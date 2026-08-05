@@ -10,6 +10,9 @@ demo-triple-local:
 browser-host:
     cargo test -p conduit-browser-host
 
+browser-websocket-relay:
+    cargo test -p conduit-browser-host std_host_sends_signal_to_browser_over_bounded_websocket_relay
+
 browser-wasm-check:
     cargo check -p conduit-browser-host --target wasm32-unknown-unknown
 
