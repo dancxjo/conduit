@@ -41,8 +41,7 @@ pub const CYW43_ASSETS: &[(&str, &str)] = &[
 ];
 
 pub const CYW43_COMMIT: &str = "6a823b96b3d270b6da1cc667f8acea749e588dab";
-pub const CYW43_ASSET_DIR: &str =
-    "firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab";
+pub const CYW43_ASSET_DIR: &str = "firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab";
 
 pub fn run_doctor(dry_run: bool) -> PicoResult<()> {
     println!("==> pico doctor: checking prerequisites");
@@ -106,7 +105,9 @@ pub fn run_doctor(dry_run: bool) -> PicoResult<()> {
         return Err(format!("missing required tools: {}", missing.join(", ")).into());
     }
     if !asset_ok {
-        return Err("CYW43 asset verification failed; run `cargo xtask pico --refresh-radio-assets`".into());
+        return Err(
+            "CYW43 asset verification failed; run `cargo xtask pico --refresh-radio-assets`".into(),
+        );
     }
 
     println!("==> pico doctor: all checks passed");
@@ -161,9 +162,8 @@ pub fn verify_sha256(path: &Path, expected_hex: &str) -> PicoResult<()> {
 }
 
 pub fn repo_root() -> PathBuf {
-    crate::workspace::workspace_root().unwrap_or_else(|_| {
-        std::env::current_dir().expect("current directory must be available")
-    })
+    crate::workspace::workspace_root()
+        .unwrap_or_else(|_| std::env::current_dir().expect("current directory must be available"))
 }
 
 #[cfg(test)]
@@ -173,7 +173,10 @@ mod tests {
     #[test]
     fn pinned_asset_table_is_complete_and_unique() {
         assert_eq!(CYW43_ASSETS.len(), 4);
-        let mut names = CYW43_ASSETS.iter().map(|(name, _)| *name).collect::<Vec<_>>();
+        let mut names = CYW43_ASSETS
+            .iter()
+            .map(|(name, _)| *name)
+            .collect::<Vec<_>>();
         names.sort_unstable();
         names.dedup();
         assert_eq!(names.len(), 4);
