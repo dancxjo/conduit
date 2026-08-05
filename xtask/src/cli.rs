@@ -73,8 +73,7 @@ mod tests {
         assert!(doctor.global.dry_run);
         assert!(matches!(doctor.command, Command::Doctor(_)));
 
-        let pico = Cli::try_parse_from(["xtask", "pico", "build"])
-            .expect("pico command parses");
+        let pico = Cli::try_parse_from(["xtask", "pico", "build"]).expect("pico command parses");
         assert!(matches!(pico.command, Command::Pico(_)));
     }
 }
