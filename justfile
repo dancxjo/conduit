@@ -63,10 +63,6 @@ check-std-catalog-readiness:
     cargo test -p conduit-std-catalog
     cargo check -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
 
-check-copy-task-readiness:
-    cargo test -p conduit-std-host
-    cargo check -p conduit
-
 check-browser-readiness:
     @if cargo tree -p conduit-runtime --edges normal --prefix none | rg -q '^conduit-signal '; then echo 'conduit-runtime must not depend on conduit-signal'; exit 1; fi
     cargo check -p conduit-signal --no-default-features
