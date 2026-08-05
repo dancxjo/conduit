@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form" }
+conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime" }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }

@@ -111,6 +111,8 @@ check-form-s3:
     cargo test -p conduit-observatory report_separates_identity_capability_plan_connection_and_evidence_tables
 
 check-browser-s4:
+    cargo test -p conduit-browser-runtime
+    cargo test -p conduit-runtime --test browser_readiness production_browser_host_cannot_regain_the_legacy_runtime
     cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
     npm run test:browser-host
 

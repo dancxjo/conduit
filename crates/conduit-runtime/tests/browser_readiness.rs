@@ -54,6 +54,37 @@ fn dependency_and_profile_installation_drawbridge_is_explicit() {
 }
 
 #[test]
+fn production_browser_host_cannot_regain_the_legacy_runtime() {
+    let manifest = include_str!("../../../hosts/browser-runtime/Cargo.toml");
+    let browser = include_str!("../../../hosts/browser-runtime/src/lib.rs");
+    let adapter = include_str!("../../../hosts/browser/signal-wasm-runtime.mjs");
+
+    assert!(manifest.contains("conduit-kernel"));
+    assert!(browser.contains("lower_plan_fragment"));
+    assert!(browser.contains("type BrowserScheduler = FixedScheduler"));
+    assert!(browser.contains("KernelExecutionIdentityMap"));
+    assert!(!browser.contains("struct BrowserScheduler"));
+    for forbidden in [
+        "HostRuntime",
+        "HostCommand",
+        "HostEvent",
+        "PlatformEffect",
+        "signal_registry(",
+    ] {
+        assert!(
+            !browser.contains(forbidden),
+            "production browser host regained forbidden legacy symbol: {forbidden}"
+        );
+    }
+    for forbidden in ["WebSocket", "Udp", "UDP", "Pico"] {
+        assert!(
+            !browser.contains(forbidden) && !adapter.contains(forbidden),
+            "browser-local checkpoint crossed its transport/platform stop line: {forbidden}"
+        );
+    }
+}
+
+#[test]
 fn readiness_contract_names_the_platform_stop_line() {
     let readiness = include_str!("../../../docs/architecture/browser-readiness.md");
     for required in [
@@ -74,9 +105,9 @@ fn readiness_contract_names_the_platform_stop_line() {
         "onboard-LED receipts",
         "bounded datagram relay fixture using `conduit-wire`",
         "hosts/browser/signal-dom-host.mjs",
-        "actual browser DOM effect/completion adapter",
-        "Browser-side form execution",
-        "physical Pico LED acceptance",
+        "actual-browser timer/DOM effect adapter",
+        "browser-local kernel implementation",
+        "Physical Pico LED acceptance",
         "live WebSocket",
         "live UDP sockets",
     ] {

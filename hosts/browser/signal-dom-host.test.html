@@ -10,9 +10,13 @@
 import { BrowserDomFailure, BrowserDomHost } from "./signal-dom-host.mjs";
 import {
   currentEffect,
+  completionBytes,
+  failedCompletion,
   instantiateBrowserRuntime,
   runBrowserRuntime,
+  submitRawCompletion,
   submitCompletion,
+  successfulCompletion,
 } from "./signal-wasm-runtime.mjs";
 
 const assert = (condition, message) => {
@@ -25,9 +29,20 @@ const encodeSignal = (sequence, level) => {
   return [...encoded];
 };
 const effect = (host, sequence) => ({
+  sourceDocumentId: `source/${host}`,
+  checkedFormId: `checked/${host}`,
+  expandedFormId: `expanded/${host}`,
   planId: `plan/${host}`,
+  fragmentId: `fragment/${host}`,
+  hostId: `browser-host-${host}`,
+  bootId: `browser-boot-${host}`,
   activePlayId: `play/${host}`,
+  requestNode: 1,
+  requestId: sequence,
+  operationId: 0,
+  hostOperationContractId: "conduit.host/present@1",
   presentationId: `presentation/${host}/${sequence}`,
+  evidenceId: `evidence/${host}/${sequence}`,
   placementId: `placement/${host}/show`,
   presentationKind: "presentation/signal",
   value: {
@@ -79,21 +94,77 @@ try {
   assert(elapsedMs >= 3650, "page hosts use real browser timers");
   assert(
     runtimeResults.every((result) =>
-      result.completionCount === 16 && result.receiptCount === 16
+      result.completionCount === 16 && result.receiptCount === 16 && result.capacityStable
     ),
-    "both Rust runtimes correlate sixteen DOM completions",
+    "both Rust runtimes correlate sixteen DOM completions without capacity growth",
+  );
+  const hostAFirst = runtimeResults[0].presentations[0];
+  const hostBFirst = runtimeResults[1].presentations[0];
+  assert(
+    hostAFirst.sourceDocumentId === hostBFirst.sourceDocumentId &&
+      hostAFirst.checkedFormId === hostBFirst.checkedFormId &&
+      hostAFirst.expandedFormId === hostBFirst.expandedFormId,
+    "unchanged source, checked, and expanded identities agree across hosts",
+  );
+  assert(
+    hostAFirst.hostId === "browser-host-a" &&
+      hostBFirst.hostId === "browser-host-b" &&
+      hostAFirst.bootId === "browser-boot-a" &&
+      hostBFirst.bootId === "browser-boot-b" &&
+      hostAFirst.planId !== hostBFirst.planId &&
+      hostAFirst.fragmentId !== hostBFirst.fragmentId &&
+      hostAFirst.activePlayId !== hostBFirst.activePlayId &&
+      hostAFirst.presentationId !== hostBFirst.presentationId &&
+      hostAFirst.evidenceId !== hostBFirst.evidenceId,
+    "host-scoped plan, fragment, play, presentation, and evidence identities remain independent",
   );
 
   const mismatchRuntime = await instantiateBrowserRuntime(wasmBytes, 0);
   const mismatchEffect = currentEffect(mismatchRuntime);
   const mismatchCode = submitCompletion(mismatchRuntime, mismatchEffect, {
-    planId: `${mismatchEffect.planId}-wrong`,
-    activePlayId: mismatchEffect.activePlayId,
-    presentationId: mismatchEffect.presentationId,
-    placementId: mismatchEffect.placementId,
-    value: mismatchEffect.value,
+    ...successfulCompletion(mismatchEffect),
+    planId: `${mismatchEffect.planId.slice(0, -1)}x`,
   });
   assert(mismatchCode === -6, "runtime rejects a mismatched completion identity");
+
+  const duplicateRuntime = await instantiateBrowserRuntime(wasmBytes, 0);
+  const duplicateEffect = currentEffect(duplicateRuntime);
+  const duplicateBytes = completionBytes(
+    duplicateEffect,
+    successfulCompletion(duplicateEffect),
+  );
+  const firstCompletionCode = submitRawCompletion(duplicateRuntime, duplicateBytes);
+  assert(firstCompletionCode === 0, "runtime admits the first exact completion");
+  const duplicateRuntimeCode = submitRawCompletion(duplicateRuntime, duplicateBytes);
+  assert(duplicateRuntimeCode === -10, "Rust runtime rejects a duplicate completion");
+
+  const malformedRuntime = await instantiateBrowserRuntime(wasmBytes, 0);
+  const malformedEffect = currentEffect(malformedRuntime);
+  const malformedBytes = completionBytes(
+    malformedEffect,
+    successfulCompletion(malformedEffect),
+  ).slice(0, -1);
+  const malformedRuntimeCode = submitRawCompletion(malformedRuntime, malformedBytes);
+  assert(malformedRuntimeCode === -9, "Rust runtime rejects a malformed frame");
+
+  const cancelledRuntime = await instantiateBrowserRuntime(wasmBytes, 0);
+  const cancellationCode = cancelledRuntime.api.conduit_browser_cancel();
+  assert(
+    cancellationCode === -11 && cancelledRuntime.api.conduit_browser_terminal_failure() === 1,
+    "Rust runtime owns cancellation terminal truth",
+  );
+
+  const failedRuntime = await instantiateBrowserRuntime(wasmBytes, 1);
+  const failedEffect = currentEffect(failedRuntime);
+  const terminalFailureCode = submitCompletion(
+    failedRuntime,
+    failedEffect,
+    failedCompletion(failedEffect),
+  );
+  assert(
+    terminalFailureCode === -13 && failedRuntime.api.conduit_browser_terminal_failure() === 1,
+    "platform failure becomes an honest Rust terminal failure",
+  );
 
   const duplicate = hosts[0].completePresentation(runtimeResults[0].presentations[0]);
   assert(
@@ -157,6 +228,14 @@ try {
     itemOverflowCode: itemOverflow.code,
     byteOverflowCode: byteOverflow.code,
     malformedCode: malformed.code,
+    duplicateRuntimeCode,
+    malformedRuntimeCode,
+    cancellationCode,
+    terminalFailureCode,
+    hostACapacityStable: runtimeResults[0].capacityStable,
+    hostBCapacityStable: runtimeResults[1].capacityStable,
+    sharedSourceIdentity: hostAFirst.sourceDocumentId === hostBFirst.sourceDocumentId,
+    distinctActivePlayIdentity: hostAFirst.activePlayId !== hostBFirst.activePlayId,
   });
   document.querySelector("#result").textContent = "ok";
 } catch (error) {

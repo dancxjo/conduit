@@ -62,14 +62,27 @@ export class BrowserDomHost {
 
   completePresentation(effect) {
     const identityFields = [
+      effect?.sourceDocumentId,
+      effect?.checkedFormId,
+      effect?.expandedFormId,
       effect?.planId,
+      effect?.fragmentId,
+      effect?.hostId,
+      effect?.bootId,
       effect?.activePlayId,
       effect?.presentationId,
+      effect?.evidenceId,
+      effect?.hostOperationContractId,
       effect?.placementId,
     ];
     const signal = decodeSignal(effect?.value);
     if (identityFields.some((value) => !boundedIdentity(value)) ||
         effect?.presentationKind !== SIGNAL_PRESENTATION_KIND ||
+        effect?.hostId !== this.hostId ||
+        effect?.bootId !== this.bootId ||
+        !Number.isSafeInteger(effect?.requestNode) ||
+        !Number.isSafeInteger(effect?.requestId) ||
+        !Number.isSafeInteger(effect?.operationId) ||
         !signal) {
       return failure(BrowserDomFailure.InvalidPresentation, "malformed-effect");
     }
@@ -84,9 +97,18 @@ export class BrowserDomHost {
     const receipt = Object.freeze({
       hostId: this.hostId,
       bootId: this.bootId,
+      sourceDocumentId: effect.sourceDocumentId,
+      checkedFormId: effect.checkedFormId,
+      expandedFormId: effect.expandedFormId,
       planId: effect.planId,
+      fragmentId: effect.fragmentId,
       activePlayId: effect.activePlayId,
       presentationId: effect.presentationId,
+      evidenceId: effect.evidenceId,
+      requestNode: effect.requestNode,
+      requestId: effect.requestId,
+      operationId: effect.operationId,
+      hostOperationContractId: effect.hostOperationContractId,
       placementId: effect.placementId,
       sequence: signal.sequence.toString(),
       level: signal.level,
@@ -95,8 +117,11 @@ export class BrowserDomHost {
     output.dataset.hostId = receipt.hostId;
     output.dataset.bootId = receipt.bootId;
     output.dataset.planId = receipt.planId;
+    output.dataset.fragmentId = receipt.fragmentId;
     output.dataset.activePlayId = receipt.activePlayId;
     output.dataset.presentationId = receipt.presentationId;
+    output.dataset.evidenceId = receipt.evidenceId;
+    output.dataset.requestId = String(receipt.requestId);
     output.dataset.placementId = receipt.placementId;
     output.dataset.sequence = receipt.sequence;
     output.dataset.level = String(receipt.level);
@@ -111,9 +136,20 @@ export class BrowserDomHost {
     return Object.freeze({
       ok: true,
       completion: Object.freeze({
+        sourceDocumentId: effect.sourceDocumentId,
+        checkedFormId: effect.checkedFormId,
+        expandedFormId: effect.expandedFormId,
         planId: effect.planId,
+        fragmentId: effect.fragmentId,
+        hostId: effect.hostId,
+        bootId: effect.bootId,
         activePlayId: effect.activePlayId,
+        requestNode: effect.requestNode,
+        requestId: effect.requestId,
+        operationId: effect.operationId,
+        hostOperationContractId: effect.hostOperationContractId,
         presentationId: effect.presentationId,
+        evidenceId: effect.evidenceId,
         placementId: effect.placementId,
         value: Object.freeze({
           valueKind: SIGNAL_VALUE_KIND,
