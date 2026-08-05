@@ -26,7 +26,7 @@ use conduit_runtime::lowering::{
 };
 use conduit_signal::{
     encode_signal, parse_activate_configuration, parse_toggle_configuration, Signal,
-    ACTIVATION_ENCODED_LEN, DISTRIBUTED_MAXIMUM_FRAME_BYTES, SIGNAL_ENCODED_LEN,
+    ACTIVATION_ENCODED_LEN, SIGNAL_ENCODED_LEN,
 };
 use conduit_wire::{SessionBinding, SessionMachine, SessionRole};
 use std::io::{BufRead, Write};
