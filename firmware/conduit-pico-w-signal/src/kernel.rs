@@ -19,18 +19,20 @@ use conduit_signal::{
 use cyw43::Control;
 use embassy_time::{Duration, Timer};
 
-use crate::receipts::UsbCdc;
+use crate::receipts::{BootIdentity, PresentationReceiptIdentity, TerminalIdentity, UsbCdc};
 use crate::signal_image::{
     decode_wait_ms, generated_cords, generated_host_bindings, generated_nodes, generated_routes,
-    signal_layout, value_store_bytes, EMPTY_VALUE_REF, CORDS, HOST_BINDING_SLOTS,
-    MAX_STORED_SIGNAL_VALUES, NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS,
-    ROUTE_TARGETS, RUNTIME_EVIDENCE_BYTES, RUNTIME_EVIDENCE_EVENTS, VALUE_SLOTS,
-    WAIT_VALUE_BYTES,
+    presentation_identity, signal_layout, value_store_bytes, ACTIVE_PLAY_ID, BOOT_EVIDENCE_ID,
+    BOOT_ID, CHECKED_FORM_ID, EMPTY_VALUE_REF, EXPANDED_FORM_ID, FRAGMENT_ID, HOST_BINDING_SLOTS,
+    HOST_ID, MAX_STORED_SIGNAL_VALUES, NODES, PENDING_REQUESTS, PLAN_ID, PORTS, QUEUE_SLOTS,
+    ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_EVIDENCE_BYTES, RUNTIME_EVIDENCE_EVENTS,
+    SOURCE_DOCUMENT_ID, TERMINAL_EVIDENCE_ID, VALUE_SLOTS, WAIT_VALUE_BYTES, CORDS,
 };
 
 /// Run the generated local Signal demo through conduit-kernel.
 pub async fn run_signal_demo(control: &mut Control<'_>, cdc: &mut UsbCdc) {
     let layout = signal_layout().expect("generated Signal image layout is valid");
+    cdc.write_boot_identity(boot_identity()).await;
     let mut values =
         FixedValueStore::<VALUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>::new(value_store_bytes(
             layout.configuration.count,
@@ -144,8 +146,18 @@ pub async fn run_signal_demo(control: &mut Control<'_>, cdc: &mut UsbCdc) {
                         error = true;
                         break;
                     };
+                    let Some(identity) = presentation_identity(signal.sequence as usize) else {
+                        fail_host_request(&mut scheduler, req.node, req.request);
+                        error = true;
+                        break;
+                    };
                     control.gpio_set(0, signal.level).await;
-                    cdc.write_receipt(signal.sequence, signal.level).await;
+                    cdc.write_receipt(
+                        signal.sequence,
+                        signal.level,
+                        presentation_receipt_identity(identity),
+                    )
+                    .await;
                     complete_host_request(&mut scheduler, req.node, req.request);
                 } else {
                     fail_host_request(&mut scheduler, req.node, req.request);
@@ -154,14 +166,58 @@ pub async fn run_signal_demo(control: &mut Control<'_>, cdc: &mut UsbCdc) {
                 }
             }
             Err(err) => {
-                cdc.write_error(err).await;
+                cdc.write_error(err, terminal_identity()).await;
                 error = true;
                 break;
             }
         }
     }
 
-    cdc.write_terminal(!error).await;
+    cdc.write_terminal(!error, terminal_identity()).await;
+}
+
+fn boot_identity() -> BootIdentity {
+    BootIdentity {
+        source_document_id: SOURCE_DOCUMENT_ID,
+        checked_form_id: CHECKED_FORM_ID,
+        expanded_form_id: EXPANDED_FORM_ID,
+        plan_id: PLAN_ID,
+        fragment_id: FRAGMENT_ID,
+        host_id: HOST_ID,
+        boot_id: BOOT_ID,
+        boot_evidence_id: BOOT_EVIDENCE_ID,
+    }
+}
+
+fn presentation_receipt_identity(
+    identity: crate::signal_image::PresentationIdentity,
+) -> PresentationReceiptIdentity {
+    PresentationReceiptIdentity {
+        source_document_id: SOURCE_DOCUMENT_ID,
+        checked_form_id: CHECKED_FORM_ID,
+        expanded_form_id: EXPANDED_FORM_ID,
+        plan_id: PLAN_ID,
+        fragment_id: FRAGMENT_ID,
+        host_id: HOST_ID,
+        boot_id: BOOT_ID,
+        active_play_id: ACTIVE_PLAY_ID,
+        presentation_id: identity.presentation_id,
+        evidence_id: identity.evidence_id,
+    }
+}
+
+fn terminal_identity() -> TerminalIdentity {
+    TerminalIdentity {
+        source_document_id: SOURCE_DOCUMENT_ID,
+        checked_form_id: CHECKED_FORM_ID,
+        expanded_form_id: EXPANDED_FORM_ID,
+        plan_id: PLAN_ID,
+        fragment_id: FRAGMENT_ID,
+        host_id: HOST_ID,
+        boot_id: BOOT_ID,
+        active_play_id: ACTIVE_PLAY_ID,
+        evidence_id: TERMINAL_EVIDENCE_ID,
+    }
 }
 
 type SignalScheduler<S, E> = FixedScheduler<
