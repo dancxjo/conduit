@@ -8,6 +8,7 @@ members = [
 	"crates/conduit-runtime",
 	"crates/conduit-composite",
 	"crates/conduit",
+	"hosts/browser",
 	"hosts/std",
 ]
 resolver = "2"

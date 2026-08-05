@@ -15,6 +15,10 @@ fn dependency_and_profile_installation_drawbridge_is_explicit() {
     assert!(std_host.contains("signal_registry("));
     assert!(justfile.contains("check-browser-readiness:"));
     assert!(justfile.contains("cargo test -p conduit-wire"));
+    assert!(justfile.contains("cargo test -p conduit-browser-host"));
+    assert!(
+        justfile.contains("cargo check -p conduit-browser-host --target wasm32-unknown-unknown")
+    );
     assert!(justfile.contains("--test host_contract"));
 }
 
@@ -28,7 +32,10 @@ fn readiness_contract_names_the_platform_stop_line() {
         "cargo check -p conduit-signal --no-default-features",
         "conduit-wire",
         "fake browser-style adapter",
-        "Browser, Pico W, WebSocket, TCP, UDP",
+        "conduit-browser-host",
+        "multiple independent browser host instances",
+        "wasm32-unknown-unknown",
+        "Browser UI, Pico W, WebSocket, TCP, UDP",
     ] {
         assert!(
             readiness.contains(required),

@@ -28,6 +28,18 @@ the std host. It proves the authored final form has no platform facts and that
 the host protocol can produce independent bounded receipts for all three sinks.
 It is not the final browser/Pico realm proof.
 
+The browser host crate can run the pair form across two independent browser
+host instances in one page-model fixture:
+
+```text
+cargo test -p conduit-browser-host
+cargo check -p conduit-browser-host --target wasm32-unknown-unknown
+```
+
+This proves separate browser host IDs and boot IDs, independent capability
+advertisements, a bounded in-memory browser link, DOM-state receipts, and a WASM
+compile boundary without introducing Playwright or visual timing as acceptance.
+
 ## Receipts
 
 Each completed std manifestation emits a machine-readable receipt line:
@@ -36,12 +48,15 @@ Each completed std manifestation emits a machine-readable receipt line:
 receipt signal placement=<placement-id> sequence=<n> level=<true-or-false>
 ```
 
-The local pair proof emits sixteen receipt lines. The local triple fixture emits
-forty-eight receipt lines: sixteen for each of the three show sinks.
+The local std pair proof emits sixteen receipt lines. The local std triple
+fixture emits forty-eight receipt lines: sixteen for each of the three show
+sinks. The deterministic browser pair fixture retains sixteen DOM-state receipts
+on the sink browser host instance.
 
 ## Current Stop Line
 
-The repository does not yet contain browser or Pico W host crates. M1 remains
-open until the same `examples/triple-signal.form` can be planned across std,
-browser, and Pico W hosts, with matching ordered receipts from stdout, DOM, and
-LED manifestations.
+The repository now contains a deterministic browser host crate, but not a WASM
+operator page, WebSocket link, or Pico W host crate. M1 remains open until the
+same `examples/triple-signal.form` can be planned across std, browser, and Pico
+W hosts, with matching ordered receipts from stdout, DOM, and LED
+manifestations.
