@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -411,25 +412,499 @@ pub enum ConnectionOutcome {
     Terminal,
 }
 
-pub mod lifecycle;
-pub mod plan;
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedOperation {
+    pub placement_id: PlacementId,
+    pub operation_id: OperationId,
+    pub kind_id: KindId,
+    pub kind_contract_revision: KindContractRevision,
+    pub execution_profile_id: ExecutionProfileId,
+    pub configuration: Vec<ConfigurationEntry>,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
+    pub capability_id: CapabilityId,
+    pub implementation_id: ImplementationId,
+    pub artifact_id: ArtifactId,
+    pub inputs: Vec<PortDescriptor>,
+    pub outputs: Vec<PortDescriptor>,
+    pub host_operations: Vec<HostOperationRequirement>,
+    pub resources: Vec<ResourceBinding>,
+    pub authority: Vec<AuthorityBinding>,
+}
 
-pub use lifecycle::{
-    BoundedQueue, CancellationReason, ConnectionTerminalDisposition, FailureReason, HostCommand,
-    HostEvent, Observation, ObservationKind, PlacementLifecycleState, PlatformEffect,
-    TerminalDisposition, authority_grant, kind_id, port_id, present_authority_requirement,
-    present_host_operation_requirement, process_owned_link_binding,
-    process_owned_link_binding_with_limits, resource_offer, resource_requirement,
-    wait_host_operation_requirement,
-};
-pub use plan::{
-    CancellationPolicy, EvidenceStorageBudget, ExpectedEvidence, ExpectedTerminal,
-    FragmentCommitment, MandatoryEvidenceReport, Plan, PlannedConnection, PlannedOperation,
-    PlanFragment, StartupDependency, TerminalPolicy, compute_fragment_id,
-    mandatory_evidence_storage_requirement, seal_plan, verify_plan, verify_plan_fragment,
-};
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExpectedTerminal {
+    PlacementCompleted(PlacementId),
+    ConnectionCompleted(ConnectionId),
+    PlanCompleted,
+}
 
-pub(crate) fn compute_plan_id(form_identity: &FormIdentity, commitments: &[FragmentCommitment]) -> PlanId {
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExpectedEvidence {
+    PlanFragmentReceived,
+    PlacementPrepared(PlacementId),
+    PlacementTerminal(PlacementId),
+    ConnectionTerminal(ConnectionId),
+    PlanTerminal,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct StartupDependency {
+    pub prerequisite_placement_id: PlacementId,
+    pub dependent_placement_id: PlacementId,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CancellationPolicy {
+    CancelAllAndRejectLateCompletion,
+    DrainBeforeCancel,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TerminalPolicy {
+    RequireAllPlacementsAndConnections,
+    RequirePlacementsOnly,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EvidenceStorageBudget {
+    pub item_capacity: u16,
+    pub byte_capacity: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MandatoryEvidenceReport {
+    pub plan_id: PlanId,
+    pub expected: Vec<ExpectedEvidence>,
+    pub recorded: Vec<ExpectedEvidence>,
+    pub storage_budget: EvidenceStorageBudget,
+    pub allocated_item_slots: u32,
+    pub used_bytes: u32,
+    pub overflowed: bool,
+}
+
+pub fn mandatory_evidence_storage_requirement(
+    evidence: &[ExpectedEvidence],
+) -> Option<EvidenceStorageBudget> {
+    let item_capacity = u16::try_from(evidence.len()).ok()?;
+    let mut byte_capacity = 0u32;
+    for item in evidence {
+        let identity = match item {
+            ExpectedEvidence::PlanFragmentReceived | ExpectedEvidence::PlanTerminal => None,
+            ExpectedEvidence::PlacementPrepared(placement_id)
+            | ExpectedEvidence::PlacementTerminal(placement_id) => Some(placement_id.as_str()),
+            ExpectedEvidence::ConnectionTerminal(connection_id) => Some(connection_id.as_str()),
+        };
+        let identity_bytes = match identity {
+            Some(value) => u32::try_from(value.len()).ok()?,
+            None => 0,
+        };
+        byte_capacity = byte_capacity.checked_add(1)?.checked_add(identity_bytes)?;
+    }
+    Some(EvidenceStorageBudget {
+        item_capacity,
+        byte_capacity,
+    })
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct FragmentCommitment {
+    pub host_id: HostId,
+    pub fragment_id: FragmentId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedConnection {
+    pub connection_id: ConnectionId,
+    pub source_placement_id: PlacementId,
+    pub source_port_id: PortId,
+    pub sink_placement_id: PlacementId,
+    pub sink_port_id: PortId,
+    pub value_kind: KindId,
+    pub provider: ConnectionProvider,
+    pub link_binding: Option<LinkBinding>,
+    pub item_capacity: u16,
+    pub byte_capacity: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlanFragment {
+    pub plan_id: PlanId,
+    pub fragment_id: FragmentId,
+    pub source_document_id: SourceDocumentId,
+    pub checked_form_id: CheckedFormId,
+    pub expanded_form_id: ExpandedFormId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
+    pub placements: Vec<PlannedOperation>,
+    pub connections: Vec<PlannedConnection>,
+    pub startup_dependencies: Vec<StartupDependency>,
+    pub startup_order: Vec<PlacementId>,
+    pub cancellation_policy: CancellationPolicy,
+    pub terminal_policy: TerminalPolicy,
+    pub expected_terminals: Vec<ExpectedTerminal>,
+    pub expected_evidence: Vec<ExpectedEvidence>,
+    pub evidence_storage_budget: EvidenceStorageBudget,
+    pub plan_fragments: Vec<FragmentCommitment>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Plan {
+    pub plan_id: PlanId,
+    pub source_document_id: SourceDocumentId,
+    pub checked_form_id: CheckedFormId,
+    pub expanded_form_id: ExpandedFormId,
+    pub fragments: Vec<PlanFragment>,
+}
+
+pub fn seal_plan(form_identity: FormIdentity, mut fragments: Vec<PlanFragment>) -> Plan {
+    for fragment in &mut fragments {
+        fragment.plan_id = PlanId::from("");
+        fragment.source_document_id = form_identity.source_document_id.clone();
+        fragment.checked_form_id = form_identity.checked_form_id.clone();
+        fragment.expanded_form_id = form_identity.expanded_form_id.clone();
+        fragment.fragment_id = compute_fragment_id(fragment);
+        fragment.plan_fragments.clear();
+    }
+    let mut commitments = fragments
+        .iter()
+        .map(|fragment| FragmentCommitment {
+            host_id: fragment.host_id.clone(),
+            fragment_id: fragment.fragment_id.clone(),
+        })
+        .collect::<Vec<_>>();
+    commitments.sort();
+    let plan_id = compute_plan_id(&form_identity, &commitments);
+    for fragment in &mut fragments {
+        fragment.plan_id = plan_id.clone();
+        fragment.plan_fragments = commitments.clone();
+    }
+    Plan {
+        plan_id,
+        source_document_id: form_identity.source_document_id,
+        checked_form_id: form_identity.checked_form_id,
+        expanded_form_id: form_identity.expanded_form_id,
+        fragments,
+    }
+}
+
+pub fn verify_plan(plan: &Plan) -> bool {
+    plan.fragments.iter().all(verify_plan_fragment)
+        && plan.fragments.iter().all(|fragment| {
+            fragment.plan_id == plan.plan_id
+                && fragment.source_document_id == plan.source_document_id
+                && fragment.checked_form_id == plan.checked_form_id
+                && fragment.expanded_form_id == plan.expanded_form_id
+        })
+        && plan
+            .fragments
+            .first()
+            .is_none_or(|first| first.plan_fragments.len() == plan.fragments.len())
+        && verify_plan_connections(plan)
+}
+
+fn verify_plan_connections(plan: &Plan) -> bool {
+    let connections = plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.connections)
+        .collect::<Vec<_>>();
+    for (index, connection) in connections.iter().enumerate() {
+        if connections[..index]
+            .iter()
+            .any(|prior| prior.connection_id == connection.connection_id)
+        {
+            continue;
+        }
+        let occurrences = connections
+            .iter()
+            .filter(|candidate| candidate.connection_id == connection.connection_id)
+            .collect::<Vec<_>>();
+        if occurrences.iter().any(|candidate| *candidate != connection) {
+            return false;
+        }
+        let source = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .filter(|placement| placement.placement_id == connection.source_placement_id)
+            .collect::<Vec<_>>();
+        let sink = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .filter(|placement| placement.placement_id == connection.sink_placement_id)
+            .collect::<Vec<_>>();
+        if source.len() != 1 || sink.len() != 1 {
+            return false;
+        }
+        let source = source[0];
+        let sink = sink[0];
+        if source.host_id == sink.host_id {
+            if occurrences.len() != 1
+                || connection.provider != ConnectionProvider::Local
+                || connection.link_binding.is_some()
+            {
+                return false;
+            }
+        } else {
+            let Some(binding) = &connection.link_binding else {
+                return false;
+            };
+            if occurrences.len() != 2
+                || connection.provider == ConnectionProvider::Local
+                || binding.binding_id.as_str().is_empty()
+                || binding.provider != connection.provider
+                || binding.provider_instance_id.as_str().is_empty()
+                || binding.availability != LinkAvailability::Ready
+                || binding.source.host_id != source.host_id
+                || binding.source.boot_id != source.boot_id
+                || binding.source.endpoint_id.as_str().is_empty()
+                || binding.sink.host_id != sink.host_id
+                || binding.sink.boot_id != sink.boot_id
+                || binding.sink.endpoint_id.as_str().is_empty()
+                || binding.source.endpoint_id == binding.sink.endpoint_id
+                || binding.limits.maximum_in_flight_items < connection.item_capacity
+                || binding.limits.maximum_payload_bytes < connection.byte_capacity
+                || binding.limits.maximum_buffered_bytes < connection.byte_capacity
+                || binding.limits.maximum_frame_bytes < binding.limits.maximum_payload_bytes
+                || matches!(
+                    &binding.credential,
+                    LinkCredentialReference::Opaque(reference) if reference.as_str().is_empty()
+                )
+                || matches!(
+                    &binding.authority,
+                    LinkAuthorityReference::Grant(grant_id) if grant_id.as_str().is_empty()
+                )
+            {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
+    if compute_fragment_id(fragment) != fragment.fragment_id {
+        return false;
+    }
+    let mut commitments = fragment.plan_fragments.clone();
+    commitments.sort();
+    if commitments != fragment.plan_fragments
+        || commitments
+            .windows(2)
+            .any(|pair| pair[0].host_id == pair[1].host_id)
+    {
+        return false;
+    }
+    let own_matches = commitments
+        .iter()
+        .filter(|item| item.host_id == fragment.host_id && item.fragment_id == fragment.fragment_id)
+        .count();
+    own_matches == 1
+        && compute_plan_id(
+            &FormIdentity {
+                source_document_id: fragment.source_document_id.clone(),
+                checked_form_id: fragment.checked_form_id.clone(),
+                expanded_form_id: fragment.expanded_form_id.clone(),
+            },
+            &commitments,
+        ) == fragment.plan_id
+}
+
+pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
+    let mut canonical = Vec::new();
+    push_string(&mut canonical, fragment.source_document_id.as_str());
+    push_string(&mut canonical, fragment.checked_form_id.as_str());
+    push_string(&mut canonical, fragment.expanded_form_id.as_str());
+    push_string(&mut canonical, fragment.host_id.as_str());
+    push_string(&mut canonical, fragment.boot_id.as_str());
+    push_u64(&mut canonical, fragment.offer_generation.0);
+    push_u32(&mut canonical, fragment.placements.len() as u32);
+    for operation in &fragment.placements {
+        push_string(&mut canonical, operation.placement_id.as_str());
+        push_string(&mut canonical, operation.operation_id.as_str());
+        push_string(&mut canonical, operation.kind_id.as_str());
+        push_string(&mut canonical, operation.kind_contract_revision.as_str());
+        push_string(&mut canonical, operation.execution_profile_id.as_str());
+        push_u32(&mut canonical, operation.configuration.len() as u32);
+        for entry in &operation.configuration {
+            push_string(&mut canonical, &entry.key);
+            match entry.value {
+                ConfigurationValue::Bool(value) => {
+                    canonical.push(0);
+                    canonical.push(u8::from(value));
+                }
+                ConfigurationValue::U64(value) => {
+                    canonical.push(1);
+                    push_u64(&mut canonical, value);
+                }
+            }
+        }
+        push_string(&mut canonical, operation.host_id.as_str());
+        push_string(&mut canonical, operation.boot_id.as_str());
+        push_u64(&mut canonical, operation.offer_generation.0);
+        push_string(&mut canonical, operation.capability_id.as_str());
+        push_string(&mut canonical, operation.implementation_id.as_str());
+        push_string(&mut canonical, operation.artifact_id.as_str());
+        push_ports(&mut canonical, &operation.inputs);
+        push_ports(&mut canonical, &operation.outputs);
+        push_u32(&mut canonical, operation.host_operations.len() as u32);
+        for requirement in &operation.host_operations {
+            push_string(&mut canonical, requirement.contract_id.as_str());
+            match &requirement.target_kind {
+                Some(target_kind) => {
+                    canonical.push(1);
+                    push_string(&mut canonical, target_kind.as_str());
+                }
+                None => canonical.push(0),
+            }
+            canonical.extend_from_slice(&requirement.maximum_in_flight.to_le_bytes());
+            push_u32(&mut canonical, requirement.maximum_input_bytes);
+            push_u32(&mut canonical, requirement.maximum_output_bytes);
+        }
+        push_u32(&mut canonical, operation.resources.len() as u32);
+        for binding in &operation.resources {
+            push_string(&mut canonical, binding.pool_id.as_str());
+            push_string(&mut canonical, binding.class_id.as_str());
+            push_u32(&mut canonical, binding.units);
+        }
+        push_u32(&mut canonical, operation.authority.len() as u32);
+        for binding in &operation.authority {
+            push_string(&mut canonical, binding.grant_id.as_str());
+            push_string(&mut canonical, binding.contract_id.as_str());
+            push_string(&mut canonical, binding.host_operation_contract_id.as_str());
+            push_string(&mut canonical, binding.subject_kind.as_str());
+            push_string(&mut canonical, binding.host_id.as_str());
+            push_string(&mut canonical, binding.boot_id.as_str());
+            push_string(&mut canonical, binding.capability_id.as_str());
+        }
+    }
+    push_u32(&mut canonical, fragment.connections.len() as u32);
+    for connection in &fragment.connections {
+        push_string(&mut canonical, connection.connection_id.as_str());
+        push_string(&mut canonical, connection.source_placement_id.as_str());
+        push_string(&mut canonical, connection.source_port_id.as_str());
+        push_string(&mut canonical, connection.sink_placement_id.as_str());
+        push_string(&mut canonical, connection.sink_port_id.as_str());
+        push_string(&mut canonical, connection.value_kind.as_str());
+        canonical.push(match connection.provider {
+            ConnectionProvider::Local => 0,
+            ConnectionProvider::InMemory => 1,
+            ConnectionProvider::FixtureFrame => 2,
+            ConnectionProvider::FixtureDatagram => 3,
+            ConnectionProvider::WebSocket => 4,
+        });
+        match &connection.link_binding {
+            Some(binding) => {
+                canonical.push(1);
+                push_string(&mut canonical, binding.binding_id.as_str());
+                push_string(&mut canonical, binding.source.host_id.as_str());
+                push_string(&mut canonical, binding.source.boot_id.as_str());
+                push_string(&mut canonical, binding.source.endpoint_id.as_str());
+                push_string(&mut canonical, binding.sink.host_id.as_str());
+                push_string(&mut canonical, binding.sink.boot_id.as_str());
+                push_string(&mut canonical, binding.sink.endpoint_id.as_str());
+                canonical.push(match binding.provider {
+                    ConnectionProvider::Local => 0,
+                    ConnectionProvider::InMemory => 1,
+                    ConnectionProvider::FixtureFrame => 2,
+                    ConnectionProvider::FixtureDatagram => 3,
+                    ConnectionProvider::WebSocket => 4,
+                });
+                push_string(&mut canonical, binding.provider_instance_id.as_str());
+                canonical.push(match binding.availability {
+                    LinkAvailability::Ready => 0,
+                    LinkAvailability::Unavailable => 1,
+                });
+                match &binding.credential {
+                    LinkCredentialReference::None => canonical.push(0),
+                    LinkCredentialReference::Opaque(reference) => {
+                        canonical.push(1);
+                        push_string(&mut canonical, reference.as_str());
+                    }
+                }
+                match &binding.authority {
+                    LinkAuthorityReference::ProcessOwned => canonical.push(0),
+                    LinkAuthorityReference::Grant(grant_id) => {
+                        canonical.push(1);
+                        push_string(&mut canonical, grant_id.as_str());
+                    }
+                }
+                canonical.extend_from_slice(&binding.limits.maximum_in_flight_items.to_le_bytes());
+                push_u32(&mut canonical, binding.limits.maximum_payload_bytes);
+                push_u32(&mut canonical, binding.limits.maximum_buffered_bytes);
+                push_u32(&mut canonical, binding.limits.maximum_frame_bytes);
+            }
+            None => canonical.push(0),
+        }
+        canonical.extend_from_slice(&connection.item_capacity.to_le_bytes());
+        push_u32(&mut canonical, connection.byte_capacity);
+    }
+    push_u32(&mut canonical, fragment.startup_dependencies.len() as u32);
+    for dependency in &fragment.startup_dependencies {
+        push_string(
+            &mut canonical,
+            dependency.prerequisite_placement_id.as_str(),
+        );
+        push_string(&mut canonical, dependency.dependent_placement_id.as_str());
+    }
+    push_u32(&mut canonical, fragment.startup_order.len() as u32);
+    for placement_id in &fragment.startup_order {
+        push_string(&mut canonical, placement_id.as_str());
+    }
+    canonical.push(match fragment.cancellation_policy {
+        CancellationPolicy::CancelAllAndRejectLateCompletion => 0,
+        CancellationPolicy::DrainBeforeCancel => 1,
+    });
+    canonical.push(match fragment.terminal_policy {
+        TerminalPolicy::RequireAllPlacementsAndConnections => 0,
+        TerminalPolicy::RequirePlacementsOnly => 1,
+    });
+    push_u32(&mut canonical, fragment.expected_terminals.len() as u32);
+    for terminal in &fragment.expected_terminals {
+        match terminal {
+            ExpectedTerminal::PlacementCompleted(placement_id) => {
+                canonical.push(0);
+                push_string(&mut canonical, placement_id.as_str());
+            }
+            ExpectedTerminal::ConnectionCompleted(connection_id) => {
+                canonical.push(1);
+                push_string(&mut canonical, connection_id.as_str());
+            }
+            ExpectedTerminal::PlanCompleted => canonical.push(2),
+        }
+    }
+    push_u32(&mut canonical, fragment.expected_evidence.len() as u32);
+    for evidence in &fragment.expected_evidence {
+        match evidence {
+            ExpectedEvidence::PlanFragmentReceived => canonical.push(0),
+            ExpectedEvidence::PlacementPrepared(placement_id) => {
+                canonical.push(1);
+                push_string(&mut canonical, placement_id.as_str());
+            }
+            ExpectedEvidence::PlacementTerminal(placement_id) => {
+                canonical.push(2);
+                push_string(&mut canonical, placement_id.as_str());
+            }
+            ExpectedEvidence::ConnectionTerminal(connection_id) => {
+                canonical.push(3);
+                push_string(&mut canonical, connection_id.as_str());
+            }
+            ExpectedEvidence::PlanTerminal => canonical.push(4),
+        }
+    }
+    canonical.extend_from_slice(&fragment.evidence_storage_budget.item_capacity.to_le_bytes());
+    push_u32(
+        &mut canonical,
+        fragment.evidence_storage_budget.byte_capacity,
+    );
+    FragmentId::from(hash_bytes(&canonical))
+}
+
+fn compute_plan_id(form_identity: &FormIdentity, commitments: &[FragmentCommitment]) -> PlanId {
     let mut canonical = Vec::new();
     push_string(&mut canonical, form_identity.source_document_id.as_str());
     push_string(&mut canonical, form_identity.checked_form_id.as_str());
@@ -442,7 +917,7 @@ pub(crate) fn compute_plan_id(form_identity: &FormIdentity, commitments: &[Fragm
     PlanId::from(hash_bytes(&canonical))
 }
 
-pub(crate) fn push_ports(canonical: &mut Vec<u8>, ports: &[PortDescriptor]) {
+fn push_ports(canonical: &mut Vec<u8>, ports: &[PortDescriptor]) {
     push_u32(canonical, ports.len() as u32);
     for port in ports {
         push_string(canonical, port.port_id.as_str());
@@ -454,20 +929,20 @@ pub(crate) fn push_ports(canonical: &mut Vec<u8>, ports: &[PortDescriptor]) {
     }
 }
 
-pub(crate) fn push_string(canonical: &mut Vec<u8>, value: &str) {
+fn push_string(canonical: &mut Vec<u8>, value: &str) {
     push_u32(canonical, value.len() as u32);
     canonical.extend_from_slice(value.as_bytes());
 }
 
-pub(crate) fn push_u32(canonical: &mut Vec<u8>, value: u32) {
+fn push_u32(canonical: &mut Vec<u8>, value: u32) {
     canonical.extend_from_slice(&value.to_le_bytes());
 }
 
-pub(crate) fn push_u64(canonical: &mut Vec<u8>, value: u64) {
+fn push_u64(canonical: &mut Vec<u8>, value: u64) {
     canonical.extend_from_slice(&value.to_le_bytes());
 }
 
-pub(crate) fn hash_bytes(bytes: &[u8]) -> String {
+fn hash_bytes(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let mut encoded = String::with_capacity(digest.len() * 2);
     for byte in digest {
@@ -477,7 +952,7 @@ pub(crate) fn hash_bytes(bytes: &[u8]) -> String {
     encoded
 }
 
-pub(crate) fn hex(nibble: u8) -> char {
+fn hex(nibble: u8) -> char {
     match nibble {
         0..=9 => (b'0' + nibble) as char,
         10..=15 => (b'a' + (nibble - 10)) as char,
@@ -485,3 +960,526 @@ pub(crate) fn hex(nibble: u8) -> char {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PlacementLifecycleState {
+    Proposed,
+    Prepared,
+    Active,
+    Completed,
+    Failed,
+    Cancelled,
+    Released,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FailureReason {
+    WrongHostIdentity,
+    StaleBootIdentity,
+    StaleOfferGeneration,
+    UnknownCapability,
+    CapabilityInstanceLimitExceeded,
+    QueueCapacityExceeded,
+    ByteCapacityExceeded,
+    ManifestationFailed,
+    RequiredBranchFailed,
+    InvalidLifecycleCommand,
+    LatePlatformCompletion,
+    EvidenceGap,
+    InvalidStartupDependencies,
+    UnsupportedCancellationPolicy,
+    UnsupportedTerminalPolicy,
+    EvidenceBudgetExceeded,
+    HostOperationContractMismatch,
+    HostOperationNotPlanned,
+    HostOperationInputExceeded,
+    HostOperationOutputExceeded,
+    ResourceContractMismatch,
+    ResourceCapacityExceeded,
+    AuthorityContractMismatch,
+    AuthorityDenied,
+    LinkBindingMismatch,
+    LinkUnavailable,
+    ConnectionDisconnected,
+    MalformedConnectionEnvelope,
+    StalePlan,
+    CompositeCapabilityFailed,
+    UnknownImplementation,
+    UnsupportedKind,
+    ImplementationKindMismatch,
+    KindContractRevisionMismatch,
+    ExecutionProfileMismatch,
+    PortContractMismatch,
+    AdvertisedImplementationMismatch,
+    ArtifactIdentityMismatch,
+    PlanIdentityMismatch,
+    InvalidOperationConfiguration,
+    UnsupportedValueKind,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CancellationReason {
+    OperatorRequested,
+    RequiredPlanFailed,
+    Released,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TerminalDisposition {
+    Completed,
+    Failed { reason: FailureReason },
+    Cancelled { reason: CancellationReason },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConnectionTerminalDisposition {
+    pub disposition: TerminalDisposition,
+    pub last_accepted_sequence: Option<u64>,
+    pub last_manifested_sequence: Option<u64>,
+    pub undeliverable_items: u16,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Observation {
+    pub evidence_id: EvidenceId,
+    pub active_play_id: Option<ActivePlayId>,
+    pub presentation_id: Option<PresentationId>,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub plan_id: Option<PlanId>,
+    pub placement_id: Option<PlacementId>,
+    pub connection_id: Option<ConnectionId>,
+    pub kind: ObservationKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ObservationKind {
+    HostStarted,
+    AdvertisementPublished,
+    PlanFragmentReceived,
+    PlacementPrepared,
+    PlanActivated,
+    ValueProduced {
+        value: ValuePayload,
+    },
+    ValueAccepted {
+        value: ValuePayload,
+    },
+    ValuePresented {
+        value: ValuePayload,
+    },
+    PlacementCompleted,
+    PlanCompleted,
+    PlacementTerminal {
+        disposition: TerminalDisposition,
+    },
+    ConnectionTerminal {
+        disposition: ConnectionTerminalDisposition,
+    },
+    PlanTerminal {
+        disposition: TerminalDisposition,
+    },
+    Failure {
+        reason: FailureReason,
+        message: Option<String>,
+    },
+    Cancelled,
+    Released,
+    EvidenceGap {
+        dropped: u64,
+    },
+}
+
+// The allocator-free host boundary keeps the sealed preparation fragment inline. Boxing the
+// largest variant would make every no-std host provide allocation for command admission.
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HostCommand {
+    PublishAdvertisement(HostAdvertisement),
+    Prepare(PlanFragment),
+    Activate(PlanId),
+    CompleteWait {
+        plan_id: PlanId,
+        placement_id: PlacementId,
+    },
+    CompletePresentation {
+        plan_id: PlanId,
+        active_play_id: ActivePlayId,
+        presentation_id: PresentationId,
+        placement_id: PlacementId,
+        value: ValuePayload,
+        success: bool,
+        message: Option<String>,
+    },
+    AcceptConnectionEnvelope(ConnectionEnvelope),
+    CompleteConnectionDelivery {
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+        sequence: u64,
+        outcome: ConnectionOutcome,
+    },
+    CloseConnection {
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+    },
+    Cancel(PlanId),
+    Release(PlanId),
+    Inspect,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HostEvent {
+    Prepared {
+        plan_id: PlanId,
+    },
+    PreparationRejected {
+        plan_id: PlanId,
+        reason: FailureReason,
+        message: Option<String>,
+    },
+    Activated {
+        plan_id: PlanId,
+        active_play_id: ActivePlayId,
+    },
+    ActivationRejected {
+        plan_id: PlanId,
+        reason: FailureReason,
+        message: Option<String>,
+    },
+    TimerRequested {
+        plan_id: PlanId,
+        placement_id: PlacementId,
+        duration_ms: u64,
+    },
+    PresentValueRequested {
+        plan_id: PlanId,
+        active_play_id: ActivePlayId,
+        presentation_id: PresentationId,
+        placement_id: PlacementId,
+        presentation_kind: KindId,
+        value: ValuePayload,
+    },
+    ConnectionBlocked {
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+    },
+    ConnectionEnvelopeOutcome {
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+        sequence: u64,
+        outcome: ConnectionOutcome,
+    },
+    ValueDelivered {
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+        value: ValuePayload,
+    },
+    ManifestationCompleted {
+        plan_id: PlanId,
+        active_play_id: ActivePlayId,
+        presentation_id: PresentationId,
+        placement_id: PlacementId,
+        value: ValuePayload,
+    },
+    ManifestationFailed {
+        plan_id: PlanId,
+        active_play_id: ActivePlayId,
+        presentation_id: PresentationId,
+        placement_id: PlacementId,
+        value: ValuePayload,
+        reason: FailureReason,
+        message: Option<String>,
+    },
+    PlacementCompleted {
+        plan_id: PlanId,
+        placement_id: PlacementId,
+    },
+    PlanCompleted {
+        plan_id: PlanId,
+    },
+    PlacementTerminated {
+        plan_id: PlanId,
+        placement_id: PlacementId,
+        disposition: TerminalDisposition,
+    },
+    ConnectionTerminated {
+        plan_id: PlanId,
+        connection_id: ConnectionId,
+        disposition: ConnectionTerminalDisposition,
+    },
+    PlanTerminated {
+        plan_id: PlanId,
+        disposition: TerminalDisposition,
+    },
+    Cancelled {
+        plan_id: PlanId,
+    },
+    Released {
+        plan_id: PlanId,
+    },
+    CommandRejected {
+        plan_id: Option<PlanId>,
+        reason: FailureReason,
+    },
+    Observations {
+        items: Vec<Observation>,
+    },
+    MandatoryEvidenceReports {
+        items: Vec<MandatoryEvidenceReport>,
+    },
+}
+
+/// Host-neutral work requested by an installed semantic implementation.
+///
+/// A std adapter may map `PresentValue` to stdout, a browser adapter may map it to DOM
+/// presentation, and a Pico W adapter may map it to an LED. Those manifestations are adapter
+/// policy; the semantic operation remains unaware of the platform.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PlatformEffect {
+    Wait {
+        plan_id: PlanId,
+        placement_id: PlacementId,
+        duration_ms: u64,
+    },
+    PresentValue {
+        plan_id: PlanId,
+        active_play_id: ActivePlayId,
+        presentation_id: PresentationId,
+        placement_id: PlacementId,
+        presentation_kind: KindId,
+        value: ValuePayload,
+    },
+    TransmitConnection {
+        envelope: ConnectionEnvelope,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundedQueue<T> {
+    capacity: usize,
+    items: VecDeque<T>,
+}
+
+impl<T> BoundedQueue<T> {
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            capacity,
+            items: VecDeque::new(),
+        }
+    }
+
+    pub fn push(&mut self, item: T) -> Result<(), T> {
+        if self.items.len() >= self.capacity {
+            return Err(item);
+        }
+        self.items.push_back(item);
+        Ok(())
+    }
+
+    pub fn pop(&mut self) -> Option<T> {
+        self.items.pop_front()
+    }
+
+    pub fn front(&self) -> Option<&T> {
+        self.items.front()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.capacity
+    }
+}
+
+pub fn kind_id(value: &str) -> KindId {
+    KindId::from(value)
+}
+
+pub fn port_id(value: &str) -> PortId {
+    PortId::from(value)
+}
+
+pub fn wait_host_operation_requirement() -> HostOperationRequirement {
+    HostOperationRequirement {
+        contract_id: HostOperationContractId::from(WAIT_HOST_OPERATION_CONTRACT),
+        target_kind: None,
+        maximum_in_flight: 1,
+        maximum_input_bytes: core::mem::size_of::<u64>() as u32,
+        maximum_output_bytes: 0,
+    }
+}
+
+pub fn present_host_operation_requirement(
+    target_kind: KindId,
+    maximum_input_bytes: u32,
+) -> HostOperationRequirement {
+    HostOperationRequirement {
+        contract_id: HostOperationContractId::from(PRESENT_HOST_OPERATION_CONTRACT),
+        target_kind: Some(target_kind),
+        maximum_in_flight: 1,
+        maximum_input_bytes,
+        maximum_output_bytes: MAX_PRESENTATION_COMPLETION_BYTES,
+    }
+}
+
+pub fn resource_requirement(class_id: &str, units: u32) -> ResourceRequirement {
+    ResourceRequirement {
+        class_id: ResourceClassId::from(class_id),
+        units,
+    }
+}
+
+pub fn resource_offer(pool_id: &str, class_id: &str, capacity_units: u32) -> ResourceOffer {
+    ResourceOffer {
+        pool_id: ResourcePoolId::from(pool_id),
+        class_id: ResourceClassId::from(class_id),
+        capacity_units,
+    }
+}
+
+pub fn present_authority_requirement(subject_kind: KindId) -> AuthorityRequirement {
+    AuthorityRequirement {
+        contract_id: AuthorityContractId::from(PRESENT_AUTHORITY_CONTRACT),
+        host_operation_contract_id: HostOperationContractId::from(PRESENT_HOST_OPERATION_CONTRACT),
+        subject_kind,
+    }
+}
+
+pub fn authority_grant(
+    grant_id: &str,
+    requirement: &AuthorityRequirement,
+    host_id: HostId,
+    boot_id: BootId,
+    capability_id: CapabilityId,
+) -> AuthorityGrant {
+    AuthorityGrant {
+        grant_id: AuthorityGrantId::from(grant_id),
+        contract_id: requirement.contract_id.clone(),
+        host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+        subject_kind: requirement.subject_kind.clone(),
+        host_id,
+        boot_id,
+        capability_id,
+    }
+}
+
+/// Build a ready link observation for a provider whose endpoint access is
+/// wholly owned by the current process. This is suitable for deterministic
+/// in-process fixtures; actual carriers should supply explicit credential and
+/// grant references instead.
+pub fn process_owned_link_binding(
+    binding_id: &str,
+    provider: ConnectionProvider,
+    provider_instance_id: &str,
+    source: &HostAdvertisement,
+    sink: &HostAdvertisement,
+    maximum_in_flight_items: u16,
+    maximum_buffered_bytes: u32,
+) -> LinkBinding {
+    process_owned_link_binding_with_limits(
+        binding_id,
+        provider,
+        provider_instance_id,
+        source,
+        sink,
+        LinkLimits {
+            maximum_in_flight_items,
+            maximum_payload_bytes: maximum_buffered_bytes,
+            maximum_buffered_bytes,
+            maximum_frame_bytes: maximum_buffered_bytes,
+        },
+    )
+}
+
+pub fn process_owned_link_binding_with_limits(
+    binding_id: &str,
+    provider: ConnectionProvider,
+    provider_instance_id: &str,
+    source: &HostAdvertisement,
+    sink: &HostAdvertisement,
+    limits: LinkLimits,
+) -> LinkBinding {
+    LinkBinding {
+        binding_id: LinkBindingId::from(binding_id),
+        source: LinkEndpoint {
+            host_id: source.host_id.clone(),
+            boot_id: source.boot_id.clone(),
+            endpoint_id: LinkEndpointId::from(format!("{binding_id}/source")),
+        },
+        sink: LinkEndpoint {
+            host_id: sink.host_id.clone(),
+            boot_id: sink.boot_id.clone(),
+            endpoint_id: LinkEndpointId::from(format!("{binding_id}/sink")),
+        },
+        provider,
+        provider_instance_id: ConnectionProviderInstanceId::from(provider_instance_id),
+        availability: LinkAvailability::Ready,
+        credential: LinkCredentialReference::None,
+        authority: LinkAuthorityReference::ProcessOwned,
+        limits,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::vec;
+
+    use super::{
+        bind_active_play, bind_evidence, bind_presentation, mandatory_evidence_storage_requirement,
+        BootId, EvidenceStorageBudget, ExpectedEvidence, HostId, PlacementId, PlanId,
+    };
+
+    #[test]
+    fn mandatory_evidence_budget_counts_items_and_identity_bytes_independently() {
+        let evidence = vec![
+            ExpectedEvidence::PlanFragmentReceived,
+            ExpectedEvidence::PlacementPrepared(PlacementId::from("abc")),
+            ExpectedEvidence::PlanTerminal,
+        ];
+        assert_eq!(
+            mandatory_evidence_storage_requirement(&evidence),
+            Some(EvidenceStorageBudget {
+                item_capacity: 3,
+                byte_capacity: 6,
+            })
+        );
+    }
+
+    #[test]
+    fn execution_identity_chain_keeps_plan_play_evidence_and_presentation_distinct() {
+        let plan_id = PlanId::from("plan/exact");
+        let host_id = HostId::from("host/exact");
+        let boot_id = BootId::from("boot/exact");
+        let active = bind_active_play(&plan_id, &host_id, &boot_id, 7);
+        let evidence = bind_evidence(&host_id, &boot_id, Some(&active.active_play_id), 11);
+        let presentation = bind_presentation(
+            &active.active_play_id,
+            &PlacementId::from("placement/show"),
+            3,
+        );
+
+        assert_eq!(active.plan_id, plan_id);
+        assert_eq!(evidence.active_play_id, Some(active.active_play_id.clone()));
+        assert_eq!(presentation.active_play_id, active.active_play_id);
+        assert_ne!(active.active_play_id.as_str(), plan_id.as_str());
+        assert_ne!(evidence.evidence_id.as_str(), plan_id.as_str());
+        assert_ne!(presentation.presentation_id.as_str(), plan_id.as_str());
+        assert_ne!(
+            evidence.evidence_id.as_str(),
+            presentation.presentation_id.as_str()
+        );
+        assert_ne!(
+            bind_active_play(&plan_id, &host_id, &boot_id, 8).active_play_id,
+            active.active_play_id
+        );
+        assert_ne!(
+            bind_active_play(&plan_id, &host_id, &BootId::from("boot/restarted"), 7).active_play_id,
+            active.active_play_id
+        );
+    }
+}

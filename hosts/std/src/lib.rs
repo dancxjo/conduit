@@ -548,7 +548,7 @@ mod tests {
         ];
         for (name, source) in [
             ("signal", include_str!("kernel_signal.rs")),
-            ("multi-value", include_str!("kernel_multivalue/mod.rs")),
+            ("multi-value", include_str!("kernel_multivalue.rs")),
         ] {
             let activation = sealed_activation_region(source);
             for token in forbidden {

@@ -10,6 +10,8 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+use core::mem::size_of;
+
 pub mod scheduler;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -397,16 +399,958 @@ impl<const ROUTE_SLOTS: usize, const TARGETS: usize> FixedRoutes<ROUTE_SLOTS, TA
     }
 }
 
-pub mod evidence;
-pub mod storage;
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StorageError {
+    InvalidBudget,
+    ItemCapacityExceeded,
+    ByteCapacityExceeded,
+    ValueTooLarge,
+    StaleReference,
+    ReferenceOverflow,
+}
 
-pub use evidence::{EvidenceError, EvidenceQuery, EvidenceSink, FixedEvidenceLog, KernelEvent, KernelEventKind};
-pub use storage::{FixedValueStore, StorageError, ValueStorage};
+pub trait ValueStorage {
+    fn item_capacity(&self) -> u16;
+    fn byte_capacity(&self) -> u32;
+    fn used_items(&self) -> u16;
+    fn used_bytes(&self) -> u32;
+    fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError>;
+    fn get(&self, value: ValueRef) -> Result<&[u8], StorageError>;
+    fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError>;
+    fn retain(&mut self, value: ValueRef) -> Result<(), StorageError>;
+    fn release(&mut self, value: ValueRef) -> Result<(), StorageError>;
+    fn clear(&mut self);
+}
+
+#[derive(Clone, Copy)]
+struct FixedValueSlot<const MAX_VALUE_BYTES: usize> {
+    generation: u16,
+    references: u16,
+    len: u32,
+    bytes: [u8; MAX_VALUE_BYTES],
+}
+
+impl<const MAX_VALUE_BYTES: usize> FixedValueSlot<MAX_VALUE_BYTES> {
+    const EMPTY: Self = Self {
+        generation: 0,
+        references: 0,
+        len: 0,
+        bytes: [0; MAX_VALUE_BYTES],
+    };
+}
+
+/// Fixed-storage profile suitable for an embedded static allocation.
+pub struct FixedValueStore<const SLOTS: usize, const MAX_VALUE_BYTES: usize> {
+    slots: [FixedValueSlot<MAX_VALUE_BYTES>; SLOTS],
+    byte_capacity: u32,
+    used_items: u16,
+    used_bytes: u32,
+}
+
+impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> FixedValueStore<SLOTS, MAX_VALUE_BYTES> {
+    pub fn new(byte_capacity: u32) -> Result<Self, StorageError> {
+        let physical_bytes = SLOTS
+            .checked_mul(MAX_VALUE_BYTES)
+            .and_then(|value| u32::try_from(value).ok())
+            .ok_or(StorageError::InvalidBudget)?;
+        if SLOTS == 0
+            || SLOTS > usize::from(u16::MAX)
+            || MAX_VALUE_BYTES == 0
+            || byte_capacity == 0
+            || byte_capacity > physical_bytes
+        {
+            return Err(StorageError::InvalidBudget);
+        }
+        Ok(Self {
+            slots: [FixedValueSlot::EMPTY; SLOTS],
+            byte_capacity,
+            used_items: 0,
+            used_bytes: 0,
+        })
+    }
+
+    fn slot(&self, value: ValueRef) -> Result<&FixedValueSlot<MAX_VALUE_BYTES>, StorageError> {
+        let slot = self
+            .slots
+            .get(usize::from(value.slot))
+            .ok_or(StorageError::StaleReference)?;
+        if slot.references == 0 || slot.generation != value.generation || slot.len != value.byte_len
+        {
+            return Err(StorageError::StaleReference);
+        }
+        Ok(slot)
+    }
+
+    fn slot_mut(
+        &mut self,
+        value: ValueRef,
+    ) -> Result<&mut FixedValueSlot<MAX_VALUE_BYTES>, StorageError> {
+        let slot = self
+            .slots
+            .get_mut(usize::from(value.slot))
+            .ok_or(StorageError::StaleReference)?;
+        if slot.references == 0 || slot.generation != value.generation || slot.len != value.byte_len
+        {
+            return Err(StorageError::StaleReference);
+        }
+        Ok(slot)
+    }
+}
+
+impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
+    for FixedValueStore<SLOTS, MAX_VALUE_BYTES>
+{
+    fn item_capacity(&self) -> u16 {
+        u16::try_from(SLOTS).unwrap_or(u16::MAX)
+    }
+
+    fn byte_capacity(&self) -> u32 {
+        self.byte_capacity
+    }
+
+    fn used_items(&self) -> u16 {
+        self.used_items
+    }
+
+    fn used_bytes(&self) -> u32 {
+        self.used_bytes
+    }
+
+    fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError> {
+        if bytes.len() > MAX_VALUE_BYTES {
+            return Err(StorageError::ValueTooLarge);
+        }
+        let byte_len = u32::try_from(bytes.len()).map_err(|_| StorageError::ValueTooLarge)?;
+        if self
+            .used_bytes
+            .checked_add(byte_len)
+            .filter(|used| *used <= self.byte_capacity)
+            .is_none()
+        {
+            return Err(StorageError::ByteCapacityExceeded);
+        }
+        let (slot_index, slot) = self
+            .slots
+            .iter_mut()
+            .enumerate()
+            .find(|(_, slot)| slot.references == 0)
+            .ok_or(StorageError::ItemCapacityExceeded)?;
+        slot.generation = slot.generation.wrapping_add(1);
+        if slot.generation == 0 {
+            slot.generation = 1;
+        }
+        slot.references = 1;
+        slot.len = byte_len;
+        slot.bytes[..bytes.len()].copy_from_slice(bytes);
+        self.used_items = self
+            .used_items
+            .checked_add(1)
+            .ok_or(StorageError::ItemCapacityExceeded)?;
+        self.used_bytes += byte_len;
+        Ok(ValueRef {
+            slot: u16::try_from(slot_index).map_err(|_| StorageError::ItemCapacityExceeded)?,
+            generation: slot.generation,
+            byte_len,
+        })
+    }
+
+    fn get(&self, value: ValueRef) -> Result<&[u8], StorageError> {
+        let slot = self.slot(value)?;
+        Ok(&slot.bytes[..usize::try_from(slot.len).map_err(|_| StorageError::StaleReference)?])
+    }
+
+    fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError> {
+        Ok(self.slot(value)?.references)
+    }
+
+    fn retain(&mut self, value: ValueRef) -> Result<(), StorageError> {
+        let slot = self.slot_mut(value)?;
+        slot.references = slot
+            .references
+            .checked_add(1)
+            .ok_or(StorageError::ReferenceOverflow)?;
+        Ok(())
+    }
+
+    fn release(&mut self, value: ValueRef) -> Result<(), StorageError> {
+        let slot = self.slot_mut(value)?;
+        slot.references -= 1;
+        if slot.references == 0 {
+            let len = slot.len;
+            slot.len = 0;
+            self.used_items -= 1;
+            self.used_bytes -= len;
+        }
+        Ok(())
+    }
+
+    fn clear(&mut self) {
+        for slot in &mut self.slots {
+            slot.references = 0;
+            slot.len = 0;
+        }
+        self.used_items = 0;
+        self.used_bytes = 0;
+    }
+}
 
 #[cfg(feature = "alloc")]
-pub use evidence::HostedEvidenceLog;
+mod hosted {
+    use alloc::vec::Vec;
+
+    use super::{StorageError, ValueRef, ValueStorage};
+
+    struct HostedValueSlot {
+        generation: u16,
+        references: u16,
+        bytes: Vec<u8>,
+    }
+
+    /// Hosted profile that allocates every slot and byte ceiling before use.
+    /// Once constructed, `store` never grows a vector.
+    pub struct HostedValueStore {
+        slots: Vec<HostedValueSlot>,
+        maximum_value_bytes: usize,
+        byte_capacity: u32,
+        used_items: u16,
+        used_bytes: u32,
+    }
+
+    impl HostedValueStore {
+        pub fn new(
+            item_capacity: u16,
+            maximum_value_bytes: u32,
+            byte_capacity: u32,
+        ) -> Result<Self, StorageError> {
+            if item_capacity == 0
+                || maximum_value_bytes == 0
+                || byte_capacity == 0
+                || byte_capacity
+                    > u32::from(item_capacity)
+                        .checked_mul(maximum_value_bytes)
+                        .ok_or(StorageError::InvalidBudget)?
+            {
+                return Err(StorageError::InvalidBudget);
+            }
+            let maximum_value_bytes =
+                usize::try_from(maximum_value_bytes).map_err(|_| StorageError::InvalidBudget)?;
+            let mut slots = Vec::with_capacity(usize::from(item_capacity));
+            for _ in 0..item_capacity {
+                slots.push(HostedValueSlot {
+                    generation: 0,
+                    references: 0,
+                    bytes: Vec::with_capacity(maximum_value_bytes),
+                });
+            }
+            Ok(Self {
+                slots,
+                maximum_value_bytes,
+                byte_capacity,
+                used_items: 0,
+                used_bytes: 0,
+            })
+        }
+
+        pub fn allocation_capacities(&self) -> (usize, usize) {
+            (
+                self.slots.capacity(),
+                self.slots.iter().map(|slot| slot.bytes.capacity()).sum(),
+            )
+        }
+
+        fn slot(&self, value: ValueRef) -> Result<&HostedValueSlot, StorageError> {
+            let slot = self
+                .slots
+                .get(usize::from(value.slot))
+                .ok_or(StorageError::StaleReference)?;
+            if slot.references == 0
+                || slot.generation != value.generation
+                || slot.bytes.len() != usize::try_from(value.byte_len).unwrap_or(usize::MAX)
+            {
+                return Err(StorageError::StaleReference);
+            }
+            Ok(slot)
+        }
+
+        fn slot_mut(&mut self, value: ValueRef) -> Result<&mut HostedValueSlot, StorageError> {
+            let slot = self
+                .slots
+                .get_mut(usize::from(value.slot))
+                .ok_or(StorageError::StaleReference)?;
+            if slot.references == 0
+                || slot.generation != value.generation
+                || slot.bytes.len() != usize::try_from(value.byte_len).unwrap_or(usize::MAX)
+            {
+                return Err(StorageError::StaleReference);
+            }
+            Ok(slot)
+        }
+    }
+
+    impl ValueStorage for HostedValueStore {
+        fn item_capacity(&self) -> u16 {
+            u16::try_from(self.slots.len()).unwrap_or(u16::MAX)
+        }
+
+        fn byte_capacity(&self) -> u32 {
+            self.byte_capacity
+        }
+
+        fn used_items(&self) -> u16 {
+            self.used_items
+        }
+
+        fn used_bytes(&self) -> u32 {
+            self.used_bytes
+        }
+
+        fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError> {
+            if bytes.len() > self.maximum_value_bytes {
+                return Err(StorageError::ValueTooLarge);
+            }
+            let byte_len = u32::try_from(bytes.len()).map_err(|_| StorageError::ValueTooLarge)?;
+            if self
+                .used_bytes
+                .checked_add(byte_len)
+                .filter(|used| *used <= self.byte_capacity)
+                .is_none()
+            {
+                return Err(StorageError::ByteCapacityExceeded);
+            }
+            let (slot_index, slot) = self
+                .slots
+                .iter_mut()
+                .enumerate()
+                .find(|(_, slot)| slot.references == 0)
+                .ok_or(StorageError::ItemCapacityExceeded)?;
+            slot.generation = slot.generation.wrapping_add(1);
+            if slot.generation == 0 {
+                slot.generation = 1;
+            }
+            slot.references = 1;
+            slot.bytes.clear();
+            slot.bytes.extend_from_slice(bytes);
+            debug_assert!(slot.bytes.capacity() >= self.maximum_value_bytes);
+            self.used_items += 1;
+            self.used_bytes += byte_len;
+            Ok(ValueRef {
+                slot: u16::try_from(slot_index).map_err(|_| StorageError::ItemCapacityExceeded)?,
+                generation: slot.generation,
+                byte_len,
+            })
+        }
+
+        fn get(&self, value: ValueRef) -> Result<&[u8], StorageError> {
+            Ok(self.slot(value)?.bytes.as_slice())
+        }
+
+        fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError> {
+            Ok(self.slot(value)?.references)
+        }
+
+        fn retain(&mut self, value: ValueRef) -> Result<(), StorageError> {
+            let slot = self.slot_mut(value)?;
+            slot.references = slot
+                .references
+                .checked_add(1)
+                .ok_or(StorageError::ReferenceOverflow)?;
+            Ok(())
+        }
+
+        fn release(&mut self, value: ValueRef) -> Result<(), StorageError> {
+            let slot = self.slot_mut(value)?;
+            slot.references -= 1;
+            if slot.references == 0 {
+                let len = u32::try_from(slot.bytes.len()).unwrap_or(u32::MAX);
+                slot.bytes.clear();
+                self.used_items -= 1;
+                self.used_bytes -= len;
+            }
+            Ok(())
+        }
+
+        fn clear(&mut self) {
+            for slot in &mut self.slots {
+                slot.references = 0;
+                slot.bytes.clear();
+            }
+            self.used_items = 0;
+            self.used_bytes = 0;
+        }
+    }
+
+    pub use HostedValueStore as Store;
+}
+
 #[cfg(feature = "alloc")]
-pub use storage::HostedValueStore;
+pub use hosted::Store as HostedValueStore;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum KernelEventKind {
+    Decision,
+    ValueStored,
+    ValueRouted,
+    ValueConsumed,
+    RemoteValueOffered,
+    RemoteValueAccepted,
+    RemoteValueDelivered,
+    RemoteOutputClosed,
+    RemoteInputAdmitted,
+    RemoteInputClosed,
+    InputClosed,
+    HostOperationRequested,
+    HostOperationCompleted,
+    OperationCompleted,
+    OperationFailed,
+    CancellationRequested,
+    RunCancelled,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct KernelEvent {
+    pub sequence: u32,
+    pub node: NodeId,
+    pub port: Option<PortId>,
+    pub request: Option<RequestId>,
+    pub kind: KernelEventKind,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EvidenceError {
+    InvalidBudget,
+    ItemCapacityExceeded,
+    ByteCapacityExceeded,
+    SequenceOverflow,
+}
+
+pub trait EvidenceSink {
+    fn item_capacity(&self) -> u16;
+    fn byte_capacity(&self) -> u32;
+    fn len(&self) -> u16;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+    fn used_bytes(&self) -> u32;
+    fn record(
+        &mut self,
+        node: NodeId,
+        port: Option<PortId>,
+        request: Option<RequestId>,
+        kind: KernelEventKind,
+    ) -> Result<KernelEvent, EvidenceError>;
+}
+
+pub trait EvidenceQuery {
+    fn contains_kind(&self, kind: KernelEventKind) -> bool;
+}
+
+pub struct FixedEvidenceLog<const EVENTS: usize> {
+    entries: [Option<KernelEvent>; EVENTS],
+    len: u16,
+    byte_capacity: u32,
+    used_bytes: u32,
+    next_sequence: u32,
+}
+
+impl<const EVENTS: usize> FixedEvidenceLog<EVENTS> {
+    pub fn new(byte_capacity: u32) -> Result<Self, EvidenceError> {
+        let physical_bytes = EVENTS
+            .checked_mul(size_of::<KernelEvent>())
+            .and_then(|value| u32::try_from(value).ok())
+            .ok_or(EvidenceError::InvalidBudget)?;
+        if EVENTS == 0
+            || EVENTS > usize::from(u16::MAX)
+            || byte_capacity == 0
+            || byte_capacity > physical_bytes
+        {
+            return Err(EvidenceError::InvalidBudget);
+        }
+        Ok(Self {
+            entries: [None; EVENTS],
+            len: 0,
+            byte_capacity,
+            used_bytes: 0,
+            next_sequence: 0,
+        })
+    }
+
+    pub fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
+        self.entries.iter().copied().flatten()
+    }
+}
+
+impl<const EVENTS: usize> EvidenceSink for FixedEvidenceLog<EVENTS> {
+    fn item_capacity(&self) -> u16 {
+        u16::try_from(EVENTS).unwrap_or(u16::MAX)
+    }
+
+    fn byte_capacity(&self) -> u32 {
+        self.byte_capacity
+    }
+
+    fn len(&self) -> u16 {
+        self.len
+    }
+
+    fn used_bytes(&self) -> u32 {
+        self.used_bytes
+    }
+
+    fn record(
+        &mut self,
+        node: NodeId,
+        port: Option<PortId>,
+        request: Option<RequestId>,
+        kind: KernelEventKind,
+    ) -> Result<KernelEvent, EvidenceError> {
+        let charge =
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| EvidenceError::InvalidBudget)?;
+        if usize::from(self.len) >= EVENTS {
+            return Err(EvidenceError::ItemCapacityExceeded);
+        }
+        if self
+            .used_bytes
+            .checked_add(charge)
+            .filter(|used| *used <= self.byte_capacity)
+            .is_none()
+        {
+            return Err(EvidenceError::ByteCapacityExceeded);
+        }
+        let sequence = self.next_sequence;
+        let next_sequence = sequence
+            .checked_add(1)
+            .ok_or(EvidenceError::SequenceOverflow)?;
+        let event = KernelEvent {
+            sequence,
+            node,
+            port,
+            request,
+            kind,
+        };
+        self.entries[usize::from(self.len)] = Some(event);
+        self.len += 1;
+        self.used_bytes += charge;
+        self.next_sequence = next_sequence;
+        Ok(event)
+    }
+}
+
+impl<const EVENTS: usize> EvidenceQuery for FixedEvidenceLog<EVENTS> {
+    fn contains_kind(&self, kind: KernelEventKind) -> bool {
+        self.events().any(|event| event.kind == kind)
+    }
+}
+
+#[cfg(feature = "alloc")]
+pub struct HostedEvidenceLog {
+    entries: alloc::vec::Vec<Option<KernelEvent>>,
+    len: u16,
+    byte_capacity: u32,
+    used_bytes: u32,
+    next_sequence: u32,
+}
+
+#[cfg(feature = "alloc")]
+impl HostedEvidenceLog {
+    pub fn new(item_capacity: u16, byte_capacity: u32) -> Result<Self, EvidenceError> {
+        let physical_bytes = usize::from(item_capacity)
+            .checked_mul(size_of::<KernelEvent>())
+            .and_then(|value| u32::try_from(value).ok())
+            .ok_or(EvidenceError::InvalidBudget)?;
+        if item_capacity == 0 || byte_capacity == 0 || byte_capacity > physical_bytes {
+            return Err(EvidenceError::InvalidBudget);
+        }
+        let mut entries = alloc::vec::Vec::with_capacity(usize::from(item_capacity));
+        entries.resize(usize::from(item_capacity), None);
+        Ok(Self {
+            entries,
+            len: 0,
+            byte_capacity,
+            used_bytes: 0,
+            next_sequence: 0,
+        })
+    }
+
+    pub fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
+        self.entries.iter().copied().flatten()
+    }
+
+    pub fn allocation_capacity(&self) -> usize {
+        self.entries.capacity()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl EvidenceSink for HostedEvidenceLog {
+    fn item_capacity(&self) -> u16 {
+        u16::try_from(self.entries.len()).unwrap_or(u16::MAX)
+    }
+
+    fn byte_capacity(&self) -> u32 {
+        self.byte_capacity
+    }
+
+    fn len(&self) -> u16 {
+        self.len
+    }
+
+    fn used_bytes(&self) -> u32 {
+        self.used_bytes
+    }
+
+    fn record(
+        &mut self,
+        node: NodeId,
+        port: Option<PortId>,
+        request: Option<RequestId>,
+        kind: KernelEventKind,
+    ) -> Result<KernelEvent, EvidenceError> {
+        let charge =
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| EvidenceError::InvalidBudget)?;
+        if usize::from(self.len) >= self.entries.len() {
+            return Err(EvidenceError::ItemCapacityExceeded);
+        }
+        if self
+            .used_bytes
+            .checked_add(charge)
+            .filter(|used| *used <= self.byte_capacity)
+            .is_none()
+        {
+            return Err(EvidenceError::ByteCapacityExceeded);
+        }
+        let sequence = self.next_sequence;
+        let next_sequence = sequence
+            .checked_add(1)
+            .ok_or(EvidenceError::SequenceOverflow)?;
+        let event = KernelEvent {
+            sequence,
+            node,
+            port,
+            request,
+            kind,
+        };
+        self.entries[usize::from(self.len)] = Some(event);
+        self.len += 1;
+        self.used_bytes += charge;
+        self.next_sequence = next_sequence;
+        Ok(event)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl EvidenceQuery for HostedEvidenceLog {
+    fn contains_kind(&self, kind: KernelEventKind) -> bool {
+        self.events().any(|event| event.kind == kind)
+    }
+}
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    use super::{
+        BoundedValueRef, CordId, EvidenceError, EvidenceSink, FixedEvidenceLog,
+        FixedHostOperationBindings, FixedRoutes, FixedValueStore, HostOperationBinding,
+        HostOperationDisposition, HostOperationId, HostOperationOutcome, KernelEvent,
+        KernelEventKind, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
+        RouteRange, RouteTarget, StorageError, ValueStorage,
+    };
+
+    #[test]
+    fn port_aware_actions_and_inputs_preserve_exact_identity() {
+        struct Echo {
+            input: PortId,
+            output: PortId,
+        }
+
+        impl Operation for Echo {
+            fn start(&mut self) -> OperationAction {
+                OperationAction::Await
+            }
+
+            fn resume(&mut self, input: OperationInput) -> OperationAction {
+                match input {
+                    OperationInput::Value { port, value } if port == self.input => {
+                        OperationAction::Emit {
+                            port: self.output,
+                            value,
+                        }
+                    }
+                    OperationInput::Closed { port } if port == self.input => {
+                        OperationAction::Complete
+                    }
+                    _ => OperationAction::Fail(super::Failure {
+                        code: super::FailureCode::InvalidPort,
+                        detail: 0,
+                    }),
+                }
+            }
+        }
+
+        let mut operation = Echo {
+            input: PortId(3),
+            output: PortId(7),
+        };
+        let value = super::ValueRef {
+            slot: 1,
+            generation: 2,
+            byte_len: 4,
+        };
+        assert_eq!(operation.start(), OperationAction::Await);
+        assert_eq!(
+            operation.resume(OperationInput::Value {
+                port: PortId(3),
+                value
+            }),
+            OperationAction::Emit {
+                port: PortId(7),
+                value
+            }
+        );
+        assert_eq!(
+            operation.resume(OperationInput::Closed { port: PortId(3) }),
+            OperationAction::Complete
+        );
+    }
+
+    #[test]
+    fn prebound_routes_never_broadcast_between_output_ports() {
+        let mut routes = FixedRoutes::<4, 3>::new(2);
+        routes
+            .install(
+                NodeId(0),
+                PortId(0),
+                RouteRange { start: 0, len: 2 },
+                &[
+                    RouteTarget {
+                        cord: CordId(0),
+                        sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+                    },
+                    RouteTarget {
+                        cord: CordId(1),
+                        sink: crate::CordEndpoint::local(NodeId(2), PortId(0)),
+                    },
+                ],
+            )
+            .unwrap();
+        routes
+            .install(
+                NodeId(0),
+                PortId(1),
+                RouteRange { start: 2, len: 1 },
+                &[RouteTarget {
+                    cord: CordId(2),
+                    sink: crate::CordEndpoint::local(NodeId(3), PortId(4)),
+                }],
+            )
+            .unwrap();
+        routes.seal().unwrap();
+
+        let mut left = routes.route(NodeId(0), PortId(0)).unwrap();
+        assert_eq!(left.next().unwrap().cord, CordId(0));
+        assert_eq!(left.next().unwrap().cord, CordId(1));
+        assert_eq!(left.next(), None);
+        let mut right = routes.route(NodeId(0), PortId(1)).unwrap();
+        let right = right.next().unwrap();
+        assert_eq!(right.cord, CordId(2));
+        assert_eq!(right.sink, crate::CordEndpoint::local(NodeId(3), PortId(4)));
+    }
+
+    #[test]
+    fn fixed_value_store_enforces_items_bytes_generation_and_fanout_references() {
+        let mut store = FixedValueStore::<2, 8>::new(10).unwrap();
+        let first = store.store(b"abcd").unwrap();
+        let second = store.store(b"123456").unwrap();
+        assert_eq!(store.used_items(), 2);
+        assert_eq!(store.used_bytes(), 10);
+        assert_eq!(store.store(b"x"), Err(StorageError::ByteCapacityExceeded));
+        assert_eq!(store.get(first).unwrap(), b"abcd");
+
+        store.retain(first).unwrap();
+        store.release(first).unwrap();
+        assert_eq!(store.get(first).unwrap(), b"abcd");
+        store.release(first).unwrap();
+        assert_eq!(store.get(first), Err(StorageError::StaleReference));
+        assert_eq!(store.used_items(), 1);
+        assert_eq!(store.used_bytes(), 6);
+
+        let replacement = store.store(b"xy").unwrap();
+        assert_eq!(replacement.slot, first.slot);
+        assert_ne!(replacement.generation, first.generation);
+        assert_eq!(store.get(second).unwrap(), b"123456");
+    }
+
+    #[test]
+    fn host_operation_completion_is_correlated_and_byte_admitted() {
+        let value = super::ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 4,
+        };
+        let bounded = BoundedValueRef::new(value, 4).unwrap();
+        let action = OperationAction::RequestHostOperation {
+            request: RequestId(9),
+            operation: HostOperationId(2),
+            input: bounded,
+        };
+        assert!(matches!(
+            action,
+            OperationAction::RequestHostOperation {
+                request: RequestId(9),
+                operation: HostOperationId(2),
+                ..
+            }
+        ));
+        let input = OperationInput::HostOperationCompleted {
+            request: RequestId(9),
+            outcome: HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(bounded),
+                failure: None,
+            },
+        };
+        assert!(matches!(
+            input,
+            OperationInput::HostOperationCompleted {
+                request: RequestId(9),
+                ..
+            }
+        ));
+        assert!(BoundedValueRef::new(value, 3).is_err());
+    }
+
+    #[test]
+    fn only_plan_admitted_host_operations_cross_the_boundary() {
+        let value = super::ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 4,
+        };
+        let mut bindings = FixedHostOperationBindings::<4>::new(2);
+        bindings
+            .install(
+                NodeId(1),
+                HostOperationBinding {
+                    operation: HostOperationId(0),
+                    maximum_input_bytes: 4,
+                    maximum_output_bytes: 8,
+                },
+            )
+            .unwrap();
+        bindings.seal().unwrap();
+        let action = OperationAction::RequestHostOperation {
+            request: RequestId(7),
+            operation: HostOperationId(0),
+            input: BoundedValueRef::new(value, 4).unwrap(),
+        };
+        assert_eq!(
+            bindings
+                .admit(NodeId(1), action)
+                .unwrap()
+                .maximum_output_bytes,
+            8
+        );
+        assert!(bindings.admit(NodeId(0), action).is_err());
+    }
+
+    #[test]
+    fn admitted_sink_host_operation_may_have_no_output_payload() {
+        let mut bindings = FixedHostOperationBindings::<1>::new(1);
+        bindings
+            .install(
+                NodeId(0),
+                HostOperationBinding {
+                    operation: HostOperationId(0),
+                    maximum_input_bytes: 8,
+                    maximum_output_bytes: 0,
+                },
+            )
+            .unwrap();
+        bindings.seal().unwrap();
+
+        let action = OperationAction::RequestHostOperation {
+            request: RequestId(1),
+            operation: HostOperationId(0),
+            input: BoundedValueRef::new(
+                super::ValueRef {
+                    slot: 0,
+                    generation: 1,
+                    byte_len: 4,
+                },
+                4,
+            )
+            .unwrap(),
+        };
+        assert_eq!(
+            bindings
+                .admit(NodeId(0), action)
+                .unwrap()
+                .maximum_output_bytes,
+            0
+        );
+    }
+
+    #[test]
+    fn fixed_evidence_has_independent_item_and_byte_budgets() {
+        let charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
+        let mut log = FixedEvidenceLog::<3>::new(charge * 2).unwrap();
+        log.record(
+            NodeId(0),
+            Some(PortId(1)),
+            None,
+            KernelEventKind::ValueRouted,
+        )
+        .unwrap();
+        log.record(
+            NodeId(1),
+            None,
+            Some(RequestId(2)),
+            KernelEventKind::HostOperationCompleted,
+        )
+        .unwrap();
+        assert_eq!(
+            log.record(NodeId(2), None, None, KernelEventKind::OperationCompleted),
+            Err(EvidenceError::ByteCapacityExceeded)
+        );
+        let mut events = log.events();
+        assert_eq!(events.next().unwrap().sequence, 0);
+        assert_eq!(events.next().unwrap().sequence, 1);
+        assert_eq!(events.next(), None);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn hosted_and_fixed_value_profiles_produce_the_same_storage_vector() {
+        use super::{HostedEvidenceLog, HostedValueStore};
+
+        fn vector(storage: &mut impl ValueStorage) -> (u16, u32, [u8; 3]) {
+            let value = storage.store(b"abc").unwrap();
+            let mut bytes = [0; 3];
+            bytes.copy_from_slice(storage.get(value).unwrap());
+            storage.retain(value).unwrap();
+            storage.release(value).unwrap();
+            (storage.used_items(), storage.used_bytes(), bytes)
+        }
+
+        let mut fixed = FixedValueStore::<4, 8>::new(16).unwrap();
+        let mut hosted = HostedValueStore::new(4, 8, 16).unwrap();
+        assert_eq!(vector(&mut fixed), vector(&mut hosted));
+
+        fn evidence_vector(sink: &mut impl EvidenceSink) -> (u16, u32, KernelEvent) {
+            let event = sink
+                .record(
+                    NodeId(1),
+                    Some(PortId(2)),
+                    Some(RequestId(3)),
+                    KernelEventKind::HostOperationCompleted,
+                )
+                .unwrap();
+            (sink.len(), sink.used_bytes(), event)
+        }
+        let charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
+        let mut fixed_evidence = FixedEvidenceLog::<2>::new(charge * 2).unwrap();
+        let mut hosted_evidence = HostedEvidenceLog::new(2, charge * 2).unwrap();
+        assert_eq!(
+            evidence_vector(&mut fixed_evidence),
+            evidence_vector(&mut hosted_evidence)
+        );
+    }
+}
