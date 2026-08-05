@@ -1,0 +1,10 @@
+[package]
+name = "conduit-embedded-build"
+version = "0.1.0"
+edition = "2021"
+description = "Host-only current-plan to fixed Conduit kernel table generator"
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-kernel = { path = "../conduit-kernel" }
+conduit-runtime = { path = "../conduit-runtime" }

@@ -201,6 +201,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-embedded-build"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-runtime",
+]
+
+[[package]]
 name = "conduit-form"
 version = "0.1.0"
 dependencies = [
