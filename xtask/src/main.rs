@@ -1,28 +1,50 @@
+//! Repository-only orchestration entry point for Conduit development and proof tooling.
+//!
+//! Product-facing form execution remains in the Conduit CLI; this binary owns only
+//! checked-out repository workflows and local hardware tooling.
+
+mod cli;
 mod commands;
+mod process;
+mod suites;
+mod workspace;
 
-use anyhow::Result;
-use clap::{Parser, Subcommand};
-use commands::pico::PicoArgs;
+use clap::Parser;
+use cli::{Cli, Command, GlobalOpts};
 
-#[derive(Parser)]
-#[command(name = "xtask", about = "Conduit development task runner")]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// Pico W local LED proof workflow
-    Pico(PicoArgs),
-    /// Alias for `pico local` (one-command build+flash+verify)
-    PicoLocal(PicoArgs),
-}
-
-fn main() -> Result<()> {
+fn main() {
     let cli = Cli::parse();
-    match cli.command {
-        Commands::Pico(args) => commands::pico::run(args),
-        Commands::PicoLocal(args) => commands::pico::run_local(args),
+    let opts = cli.global;
+    let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
+        Command::Doctor(args) => commands::doctor::run(args, &opts)
+            .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
+        Command::Pico(mut args) => run_pico(&opts, &mut args, false),
+        Command::PicoLocal(mut args) => run_pico(&opts, &mut args, true),
+    };
+
+    if let Err(error) = result {
+        eprintln!("xtask error: {error}");
+        std::process::exit(1);
     }
+}
+
+fn run_pico(
+    opts: &GlobalOpts,
+    args: &mut commands::pico::PicoArgs,
+    local_alias: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if opts.json {
+        return Err("--json is not yet supported by Pico hardware commands".into());
+    }
+    if opts.quiet {
+        return Err("--quiet is not yet supported by Pico hardware commands".into());
+    }
+    args.dry_run = opts.dry_run;
+    let owned = args.clone();
+    if local_alias {
+        commands::pico::run_local(owned)?;
+    } else {
+        commands::pico::run(owned)?;
+    }
+    Ok(())
 }
