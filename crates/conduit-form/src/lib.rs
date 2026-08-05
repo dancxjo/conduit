@@ -6,6 +6,66 @@ use conduit_core::{
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
+pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;
+pub const MAXIMUM_FORM_TOKENS: usize = 131_072;
+
+/// Exact UTF-8 byte extent plus one-based source locations.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Span {
+    pub start: usize,
+    pub end: usize,
+    pub line: usize,
+    pub column: usize,
+    pub end_line: usize,
+    pub end_column: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CstTokenKind {
+    Whitespace,
+    Comment,
+    Lexeme,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CstToken {
+    pub kind: CstTokenKind,
+    pub span: Span,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FormDiagnostic {
+    pub code: &'static str,
+    pub span: Span,
+    pub message: String,
+}
+
+/// Exact editable source, lossless tokens, and its separately checked meaning.
+/// Invalid documents keep their complete source and CST for editor recovery;
+/// they never manufacture an executable [`CheckedForm`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FormDocument {
+    source: String,
+    pub tokens: Vec<CstToken>,
+    pub checked_form: Option<CheckedForm>,
+    pub diagnostics: Vec<FormDiagnostic>,
+}
+
+impl FormDocument {
+    pub fn round_trip(&self) -> &str {
+        &self.source
+    }
+
+    pub fn checked(&self) -> Result<&CheckedForm, &FormDiagnostic> {
+        self.checked_form.as_ref().ok_or_else(|| {
+            self.diagnostics
+                .first()
+                .expect("an unchecked document always has a diagnostic")
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedOperation {
     pub operation_id: OperationId,
@@ -126,6 +186,8 @@ impl ProfileCatalog {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FormError {
+    SourceLimitExceeded,
+    TokenLimitExceeded,
     InvalidHeader,
     IncompleteForm,
     InvalidBlockStart,
@@ -144,6 +206,14 @@ pub enum FormError {
 impl std::fmt::Display for FormError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::SourceLimitExceeded => write!(
+                f,
+                "form source exceeds the {MAXIMUM_FORM_SOURCE_BYTES}-byte limit"
+            ),
+            Self::TokenLimitExceeded => write!(
+                f,
+                "form source exceeds the {MAXIMUM_FORM_TOKENS}-token limit"
+            ),
             Self::InvalidHeader => write!(f, "expected first non-comment line to be 'form 0'"),
             Self::IncompleteForm => write!(f, "incomplete form"),
             Self::InvalidBlockStart => write!(f, "expected form block opener like 'name {{'"),
@@ -199,67 +269,136 @@ impl OperationDraft {
     }
 }
 
+pub fn parse_document(source: &str, catalog: &ProfileCatalog) -> FormDocument {
+    if source.len() > MAXIMUM_FORM_SOURCE_BYTES {
+        let error = FormError::SourceLimitExceeded;
+        return FormDocument {
+            source: String::new(),
+            tokens: Vec::new(),
+            checked_form: None,
+            diagnostics: vec![diagnostic(error, whole_source_span(source))],
+        };
+    }
+
+    let tokens = match tokenize_losslessly(source) {
+        Ok(tokens) => tokens,
+        Err(span) => {
+            let error = FormError::TokenLimitExceeded;
+            return FormDocument {
+                source: source.to_string(),
+                tokens: Vec::new(),
+                checked_form: None,
+                diagnostics: vec![diagnostic(error, span)],
+            };
+        }
+    };
+    match parse_checked_with_span(source, catalog) {
+        Ok(checked_form) => FormDocument {
+            source: source.to_string(),
+            tokens,
+            checked_form: Some(checked_form),
+            diagnostics: Vec::new(),
+        },
+        Err((error, span)) => FormDocument {
+            source: source.to_string(),
+            tokens,
+            checked_form: None,
+            diagnostics: vec![diagnostic(error, span)],
+        },
+    }
+}
+
 pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedForm, FormError> {
-    let lines: Vec<&str> = source
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty() && !line.starts_with('#'))
-        .collect();
-    if lines.first().copied().unwrap_or("") != "form 0" {
-        return Err(FormError::InvalidHeader);
+    if source.len() > MAXIMUM_FORM_SOURCE_BYTES {
+        return Err(FormError::SourceLimitExceeded);
+    }
+    parse_checked_with_span(source, catalog).map_err(|(error, _)| error)
+}
+
+#[derive(Debug, Clone, Copy)]
+struct LocatedLine<'a> {
+    text: &'a str,
+    span: Span,
+}
+
+fn parse_checked_with_span(
+    source: &str,
+    catalog: &ProfileCatalog,
+) -> Result<CheckedForm, (FormError, Span)> {
+    let lines = significant_lines(source);
+    let eof = eof_span(source);
+    let first_span = lines.first().map_or(eof, |line| line.span);
+    if lines.first().map_or("", |line| line.text) != "form 0" {
+        return Err((FormError::InvalidHeader, first_span));
     }
     if lines.len() < 3 {
-        return Err(FormError::IncompleteForm);
+        return Err((FormError::IncompleteForm, eof));
     }
-    let block_start = lines[1];
+    let block_start = lines[1].text;
     if !block_start.ends_with('{') {
-        return Err(FormError::InvalidBlockStart);
+        return Err((FormError::InvalidBlockStart, lines[1].span));
     }
     let name = block_start.trim_end_matches('{').trim().to_string();
     if name.is_empty() {
-        return Err(FormError::EmptyFormName);
+        return Err((FormError::EmptyFormName, lines[1].span));
     }
-    if lines.last().copied().unwrap_or("") != "}" {
-        return Err(FormError::MissingBlockEnd);
+    if lines.last().map_or("", |line| line.text) != "}" {
+        return Err((FormError::MissingBlockEnd, eof));
     }
 
     let mut operations = BTreeMap::<String, OperationDraft>::new();
     let mut connections = Vec::<CheckedConnection>::new();
     let mut exports = Vec::<CheckedExport>::new();
-    for raw in &lines[2..lines.len() - 1] {
-        let line = raw.trim();
+    for located in &lines[2..lines.len() - 1] {
+        let line = located.text;
         if let Some(export) = line.strip_prefix("export ") {
-            exports.push(parse_export(export, &operations, &connections)?);
+            exports.push(
+                parse_export(export, &operations, &connections)
+                    .map_err(|error| (error, located.span))?,
+            );
             continue;
         }
         if let Some((left, right)) = line.split_once(':') {
             let operation_id = left.trim().to_string();
             if operations.contains_key(&operation_id) {
-                return Err(FormError::DuplicateOperation(operation_id));
+                return Err((FormError::DuplicateOperation(operation_id), located.span));
             }
-            operations.insert(operation_id, OperationDraft::new(right.trim(), catalog)?);
+            operations.insert(
+                operation_id,
+                OperationDraft::new(right.trim(), catalog)
+                    .map_err(|error| (error, located.span))?,
+            );
             continue;
         }
         if let Some((left, right)) = line.split_once('=') {
-            let (operation_id, key) = left
-                .trim()
-                .split_once('.')
-                .ok_or_else(|| FormError::InvalidConfiguration(line.to_string()))?;
-            let operation = operations
-                .get_mut(operation_id.trim())
-                .ok_or_else(|| FormError::UnknownOperation(operation_id.trim().to_string()))?;
+            let (operation_id, key) = left.trim().split_once('.').ok_or_else(|| {
+                (
+                    FormError::InvalidConfiguration(line.to_string()),
+                    located.span,
+                )
+            })?;
+            let operation = operations.get_mut(operation_id.trim()).ok_or_else(|| {
+                (
+                    FormError::UnknownOperation(operation_id.trim().to_string()),
+                    located.span,
+                )
+            })?;
             let entry = operation
                 .configuration
                 .iter_mut()
                 .find(|entry| entry.key == key.trim())
                 .ok_or_else(|| {
-                    FormError::InvalidConfiguration(format!(
-                        "unsupported key '{}' for '{}'",
-                        key.trim(),
-                        operation.definition.kind_id.as_str()
-                    ))
+                    (
+                        FormError::InvalidConfiguration(format!(
+                            "unsupported key '{}' for '{}'",
+                            key.trim(),
+                            operation.definition.kind_id.as_str()
+                        )),
+                        located.span,
+                    )
                 })?;
-            let value = parse_configuration_value(right.trim(), &entry.value)?;
+            let value = parse_configuration_value(right.trim(), &entry.value)
+                .map_err(|error| (error, located.span))?;
             let field = operation
                 .definition
                 .configuration
@@ -267,28 +406,33 @@ pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedForm, Form
                 .find(|field| field.key == key.trim())
                 .expect("configuration entry came from its catalog field");
             if !field.validation.accepts(&value) {
-                return Err(FormError::InvalidConfiguration(format!(
-                    "value for '{}.{}' violates the profile catalog rule",
-                    operation_id.trim(),
-                    key.trim()
-                )));
+                return Err((
+                    FormError::InvalidConfiguration(format!(
+                        "value for '{}.{}' violates the profile catalog rule",
+                        operation_id.trim(),
+                        key.trim()
+                    )),
+                    located.span,
+                ));
             }
             entry.value = value;
             continue;
         }
         if let Some((left, right)) = line.split_once("->") {
-            connections.push(parse_connection(left.trim(), right.trim(), &operations)?);
+            connections.push(
+                parse_connection(left.trim(), right.trim(), &operations)
+                    .map_err(|error| (error, located.span))?,
+            );
             continue;
         }
         if let Some((left, right)) = line.split_once('>') {
-            connections.push(parse_shorthand_connection(
-                left.trim(),
-                right.trim(),
-                &operations,
-            )?);
+            connections.push(
+                parse_shorthand_connection(left.trim(), right.trim(), &operations)
+                    .map_err(|error| (error, located.span))?,
+            );
             continue;
         }
-        return Err(FormError::InvalidStatement(line.to_string()));
+        return Err((FormError::InvalidStatement(line.to_string()), located.span));
     }
 
     let checked_operations = operations
@@ -323,6 +467,185 @@ pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedForm, Form
         connections,
         exports,
     })
+}
+
+fn significant_lines(source: &str) -> Vec<LocatedLine<'_>> {
+    let mut lines = Vec::new();
+    let mut offset = 0;
+    for (line_index, raw) in source.split_inclusive('\n').enumerate() {
+        let content = raw.strip_suffix('\n').unwrap_or(raw);
+        let trimmed_start = content.trim_start();
+        let leading = content.len() - trimmed_start.len();
+        let leading_columns = content[..leading].chars().count();
+        let text = trimmed_start.trim_end();
+        if !text.is_empty() && !text.starts_with('#') {
+            let start = offset + leading;
+            let end = start + text.len();
+            lines.push(LocatedLine {
+                text,
+                span: Span {
+                    start,
+                    end,
+                    line: line_index + 1,
+                    column: leading_columns + 1,
+                    end_line: line_index + 1,
+                    end_column: leading_columns + text.chars().count() + 1,
+                },
+            });
+        }
+        offset += raw.len();
+    }
+    lines
+}
+
+fn tokenize_losslessly(source: &str) -> Result<Vec<CstToken>, Span> {
+    let mut tokens = Vec::new();
+    let mut offset = 0;
+    let mut line = 1;
+    let mut column = 1;
+
+    while offset < source.len() {
+        let start = offset;
+        let start_line = line;
+        let start_column = column;
+        let first = source[offset..]
+            .chars()
+            .next()
+            .expect("offset is inside source");
+        let kind;
+
+        if first.is_whitespace() {
+            kind = CstTokenKind::Whitespace;
+            while offset < source.len() {
+                let next = source[offset..]
+                    .chars()
+                    .next()
+                    .expect("offset is inside source");
+                if !next.is_whitespace() {
+                    break;
+                }
+                advance(next, &mut offset, &mut line, &mut column);
+            }
+        } else if first == '#' {
+            kind = CstTokenKind::Comment;
+            while offset < source.len() {
+                let next = source[offset..]
+                    .chars()
+                    .next()
+                    .expect("offset is inside source");
+                if next == '\n' {
+                    break;
+                }
+                advance(next, &mut offset, &mut line, &mut column);
+            }
+        } else {
+            kind = CstTokenKind::Lexeme;
+            let quote = matches!(first, '\'' | '"').then_some(first);
+            let mut escaped = false;
+            while offset < source.len() {
+                let next = source[offset..]
+                    .chars()
+                    .next()
+                    .expect("offset is inside source");
+                if quote.is_none() && (next.is_whitespace() || next == '#') {
+                    break;
+                }
+                advance(next, &mut offset, &mut line, &mut column);
+                if let Some(quote) = quote {
+                    if next == quote && offset > start + next.len_utf8() && !escaped {
+                        break;
+                    }
+                    escaped = next == '\\' && !escaped;
+                }
+            }
+        }
+
+        let span = Span {
+            start,
+            end: offset,
+            line: start_line,
+            column: start_column,
+            end_line: line,
+            end_column: column,
+        };
+        if tokens.len() == MAXIMUM_FORM_TOKENS {
+            return Err(span);
+        }
+        tokens.push(CstToken {
+            kind,
+            span,
+            text: source[start..offset].to_string(),
+        });
+    }
+    Ok(tokens)
+}
+
+fn advance(character: char, offset: &mut usize, line: &mut usize, column: &mut usize) {
+    *offset += character.len_utf8();
+    if character == '\n' {
+        *line += 1;
+        *column = 1;
+    } else {
+        *column += 1;
+    }
+}
+
+fn whole_source_span(source: &str) -> Span {
+    let end = eof_span(source);
+    Span {
+        start: 0,
+        end: source.len(),
+        line: 1,
+        column: 1,
+        end_line: end.line,
+        end_column: end.column,
+    }
+}
+
+fn eof_span(source: &str) -> Span {
+    let mut line = 1;
+    let mut column = 1;
+    for character in source.chars() {
+        if character == '\n' {
+            line += 1;
+            column = 1;
+        } else {
+            column += 1;
+        }
+    }
+    Span {
+        start: source.len(),
+        end: source.len(),
+        line,
+        column,
+        end_line: line,
+        end_column: column,
+    }
+}
+
+fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
+    let code = match error {
+        FormError::InvalidHeader => "CND-FRM-001",
+        FormError::IncompleteForm => "CND-FRM-002",
+        FormError::InvalidBlockStart => "CND-FRM-003",
+        FormError::MissingBlockEnd => "CND-FRM-004",
+        FormError::EmptyFormName => "CND-FRM-005",
+        FormError::DuplicateKind(_) => "CND-FRM-006",
+        FormError::DuplicateOperation(_) => "CND-FRM-007",
+        FormError::UnknownOperation(_) => "CND-FRM-008",
+        FormError::UnsupportedKind { .. } => "CND-FRM-009",
+        FormError::InvalidConfiguration(_) => "CND-FRM-010",
+        FormError::InvalidConnection(_) => "CND-FRM-011",
+        FormError::InvalidExport(_) => "CND-FRM-012",
+        FormError::InvalidStatement(_) => "CND-FRM-013",
+        FormError::SourceLimitExceeded => "CND-FRM-014",
+        FormError::TokenLimitExceeded => "CND-FRM-015",
+    };
+    FormDiagnostic {
+        code,
+        span,
+        message: error.to_string(),
+    }
 }
 
 fn parse_export(
@@ -562,7 +885,10 @@ fn hex(nibble: u8) -> char {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
+    use super::{
+        parse, parse_document, ConfigurationField, ConfigurationRule, FormError, KindDefinition,
+        ProfileCatalog, MAXIMUM_FORM_SOURCE_BYTES, MAXIMUM_FORM_TOKENS,
+    };
     use conduit_core::{
         kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
     };
@@ -670,6 +996,104 @@ mod tests {
         );
         assert_ne!(baseline.checked_form_id, semantic_change.checked_form_id);
         assert_ne!(baseline.expanded_form_id, semantic_change.expanded_form_id);
+    }
+
+    #[test]
+    fn lossless_document_round_trips_utf8_comments_and_layout() {
+        let source = "# café\r\nform 0\n\n  δemo {  \n source: test/source\n sink: test/sink\n source > sink\n}\n";
+        let document = parse_document(source, &catalog());
+        let checked = document.checked().expect("document checks");
+        let compatibility = parse(source, &catalog()).expect("compatibility parser checks");
+
+        assert_eq!(document.round_trip(), source);
+        assert_eq!(
+            document
+                .tokens
+                .iter()
+                .map(|token| token.text.as_str())
+                .collect::<String>(),
+            source
+        );
+        for token in &document.tokens {
+            assert_eq!(
+                source.get(token.span.start..token.span.end),
+                Some(token.text.as_str())
+            );
+        }
+        assert_eq!(checked, &compatibility);
+        assert!(document.diagnostics.is_empty());
+    }
+
+    #[test]
+    fn lossless_document_retains_later_source_after_recoverable_error() {
+        let source = "form 0\nbroken {\n source: test/source\n  ?? nope\n sink: test/sink\n}\n";
+        let document = parse_document(source, &catalog());
+        let diagnostic = document
+            .diagnostics
+            .first()
+            .expect("invalid statement is diagnosed");
+
+        assert_eq!(document.round_trip(), source);
+        assert_eq!(diagnostic.code, "CND-FRM-013");
+        assert_eq!(
+            &source[diagnostic.span.start..diagnostic.span.end],
+            "?? nope"
+        );
+        assert_eq!(diagnostic.span.line, 4);
+        assert_eq!(diagnostic.span.column, 3);
+        assert!(document.checked_form.is_none());
+        assert!(document
+            .tokens
+            .iter()
+            .any(|token| token.text == "test/sink"));
+    }
+
+    #[test]
+    fn missing_close_is_diagnosed_at_eof_without_losing_source() {
+        let source = "form 0\nopen {\n source: test/source\n";
+        let document = parse_document(source, &catalog());
+        let diagnostic = document
+            .diagnostics
+            .first()
+            .expect("missing close is diagnosed");
+
+        assert_eq!(diagnostic.code, "CND-FRM-004");
+        assert_eq!(diagnostic.span.start, source.len());
+        assert_eq!(diagnostic.span.end, source.len());
+        assert_eq!(document.round_trip(), source);
+    }
+
+    #[test]
+    fn lossless_document_preserves_distinct_source_and_checked_identities() {
+        let baseline_source =
+            "form 0\nidentity {\n source: test/source\n sink: test/sink\n source > sink\n}\n";
+        let spelling_source = "# layout only\nform 0\n\nidentity {\n source: test/source\n sink: test/sink\n source > sink\n}\n";
+        let baseline = parse_document(baseline_source, &catalog());
+        let spelling = parse_document(spelling_source, &catalog());
+        let baseline = baseline.checked().expect("baseline checks");
+        let spelling = spelling.checked().expect("spelling checks");
+
+        assert_ne!(baseline.source_document_id, spelling.source_document_id);
+        assert_eq!(baseline.checked_form_id, spelling.checked_form_id);
+        assert_eq!(baseline.expanded_form_id, spelling.expanded_form_id);
+    }
+
+    #[test]
+    fn lossless_document_enforces_source_and_token_bounds() {
+        let oversized_source = " ".repeat(MAXIMUM_FORM_SOURCE_BYTES + 1);
+        let source_document = parse_document(&oversized_source, &catalog());
+        assert_eq!(source_document.diagnostics[0].code, "CND-FRM-014");
+        assert!(matches!(
+            parse(&oversized_source, &catalog()),
+            Err(FormError::SourceLimitExceeded)
+        ));
+
+        let token_heavy_source = "x ".repeat(MAXIMUM_FORM_TOKENS + 1);
+        assert!(token_heavy_source.len() < MAXIMUM_FORM_SOURCE_BYTES);
+        let token_document = parse_document(&token_heavy_source, &catalog());
+        assert_eq!(token_document.diagnostics[0].code, "CND-FRM-015");
+        assert_eq!(token_document.round_trip(), token_heavy_source);
+        assert!(token_document.checked_form.is_none());
     }
 
     #[test]
