@@ -154,6 +154,7 @@ impl CompositeDefinition {
                 artifact_id,
                 inputs: external_inputs,
                 outputs: external_outputs,
+                host_operations: Vec::new(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: connection.item_capacity,
@@ -1036,9 +1037,10 @@ mod tests {
     use conduit_planner::{plan, plan_with_connection_limits, PlacementChoice, PlacementChoices};
     use conduit_runtime::{providers::in_memory::InMemoryConnectionProvider, HostRuntime};
     use conduit_signal::{
-        pulse_contract_revision, pulse_execution_profile, pulse_outputs, show_contract_revision,
-        show_execution_profile, show_inputs, signal_profile_catalog, signal_registry, PULSE_KIND,
-        SHOW_KIND, SIGNAL_VALUE_KIND,
+        pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
+        pulse_outputs, show_contract_revision, show_execution_profile,
+        show_host_operation_requirements, show_inputs, signal_profile_catalog, signal_registry,
+        PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND,
     };
     use std::collections::BTreeMap;
 
@@ -1104,6 +1106,11 @@ mod tests {
                 }),
                 inputs: if source { vec![] } else { show_inputs() },
                 outputs: if source { pulse_outputs() } else { vec![] },
+                host_operations: if source {
+                    pulse_host_operation_requirements()
+                } else {
+                    show_host_operation_requirements()
+                },
                 limits: CapabilityLimits {
                     max_active_instances: 2,
                     max_queue_items: 8,
@@ -1568,6 +1575,7 @@ mod tests {
             artifact_id: ArtifactId::from("unrelated/artifact"),
             inputs: vec![],
             outputs: vec![],
+            host_operations: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 0,
                 max_queue_items: 0,
@@ -1810,6 +1818,7 @@ mod tests {
                 artifact_id: ArtifactId::from("composite/alternate-artifact-v1"),
                 inputs: show_inputs(),
                 outputs: pulse_outputs(),
+                host_operations: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 5,
                     max_queue_items: 9,

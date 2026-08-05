@@ -12,8 +12,9 @@ use conduit_core::{
     OfferGeneration, PlacementId, PROTOCOL_VERSION,
 };
 use conduit_signal::{
-    decode_signal, pulse_contract_revision, pulse_execution_profile, pulse_outputs,
-    show_contract_revision, show_execution_profile, show_inputs, PULSE_KIND, SHOW_KIND,
+    decode_signal, pulse_contract_revision, pulse_execution_profile,
+    pulse_host_operation_requirements, pulse_outputs, show_contract_revision,
+    show_execution_profile, show_host_operation_requirements, show_inputs, PULSE_KIND, SHOW_KIND,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -89,6 +90,7 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
                 artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
                 inputs: vec![],
                 outputs: pulse_outputs(),
+                host_operations: pulse_host_operation_requirements(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 4,
@@ -104,6 +106,7 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
                 artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
                 inputs: show_inputs(),
                 outputs: vec![],
+                host_operations: show_host_operation_requirements(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 4,

@@ -91,6 +91,31 @@ terminal evidence remains complete even when that ring reports an
 `EvidenceGap`. Lowering the same commitments into the S1 kernel's
 `EvidenceSink` remains open integration work.
 
+## Exact host-operation requirements
+
+Each capability and planned operation now carries an ordered set of exact
+`HostOperationRequirement` values. A requirement binds the immutable operation
+contract, an optional target kind, the maximum concurrent requests, and
+independent input/output byte bounds. The first executable profile uses
+`conduit.host/wait@1` with no target and `conduit.host/present@1` with the exact
+presentation kind. The hosted scheduler permits one outstanding action per
+placement, matching the profile's bound of one.
+
+Planning rejects empty identities, zero concurrency, duplicates, and
+non-canonical ordering. Preparation compares the sealed requirements with both
+the current boot-scoped capability and the installed implementation. A
+post-seal mutation therefore changes fragment identity, while a resealed lie
+fails against current executable truth.
+
+Before emitting any platform effect, the hosted runtime admits the requested
+contract, exact target, and encoded input size against the plan. An unplanned
+request or oversized input terminates the placement without crossing the host
+boundary. Presentation completion messages are independently bounded; an
+oversized completion is rejected without consuming the pending request, so a
+subsequent conforming completion can settle it. The semantic requirement IDs
+are not yet lowered into the S1 kernel's numeric `FixedHostOperationBindings`;
+that remains explicit integration work.
+
 ## Deterministic proof
 
 The focused vectors prove:
@@ -110,16 +135,20 @@ The focused vectors prove:
   evidence-item/evidence-byte mutations fail identity or preparation; and
 - the hosted mandatory-evidence allocation stays fixed from preparation through
   completion and remains complete while the general observation ring
-  overflows.
+  overflows; and
+- planning, fragment identity, preparation, action admission, and completion
+  admission all preserve exact host-operation contracts, targets, concurrency,
+  and byte bounds.
 
 ## Acceptance boundary
 
 This satisfies the first acceptance item and the three-form-identity portion
 of the second item in #363. It also binds the startup dependency,
 cancellation, terminal, mandatory-evidence, and evidence-storage-budget parts
-of that item. S2 remains open. Plans do not yet bind host-operation,
-resource/authority, or observed `LinkBinding` values, and the planned budget is
-not yet lowered into the S1 kernel evidence store. The existing
+of that item, plus exact hosted host-operation requirements. S2 remains open.
+Plans do not yet bind resource/authority or observed `LinkBinding` values, and
+the planned evidence and host-operation commitments are not yet lowered into
+the S1 kernel stores. The existing
 `ConnectionProvider` remains a prototype until the remote-link slice replaces
 it.
 

@@ -6,7 +6,8 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, ExecutionProfileId,
+    kind_id, port_id, present_host_operation_requirement, wait_host_operation_requirement,
+    CapabilityLimits, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
     KindContractRevision, KindId, PortDescriptor, PortDirection,
 };
 use serde::{Deserialize, Serialize};
@@ -319,9 +320,27 @@ pub fn standard_capability_offers(
             )),
             inputs: contract.inputs.clone(),
             outputs: contract.outputs.clone(),
+            host_operations: standard_host_operation_requirements(
+                &contract.kind_id,
+                contract.limits.max_queue_bytes,
+            ),
             limits: contract.limits,
         })
         .collect()
+}
+
+pub fn standard_host_operation_requirements(
+    operation_kind: &KindId,
+    maximum_value_bytes: u32,
+) -> Vec<HostOperationRequirement> {
+    match operation_kind.as_str() {
+        PULSE_KIND | TICK_KIND => vec![wait_host_operation_requirement()],
+        SHOW_KIND => vec![present_host_operation_requirement(
+            kind_id("presentation/stdout"),
+            maximum_value_bytes,
+        )],
+        _ => Vec::new(),
+    }
 }
 
 pub fn standard_host_advertisement(
@@ -346,9 +365,9 @@ fn capability_slug(kind: &str) -> String {
 #[cfg(feature = "host-profile")]
 mod host_profile {
     use super::{
-        capability_slug, contract_revision, execution_profile, standard_contracts, FILTER_KIND,
-        FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND,
-        SIGNAL_VALUE_KIND, TEE_KIND, TICK_KIND,
+        capability_slug, contract_revision, execution_profile, standard_contracts,
+        standard_host_operation_requirements, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND,
+        LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND, TEE_KIND, TICK_KIND,
     };
     use alloc::boxed::Box;
     use alloc::format;
@@ -415,6 +434,14 @@ mod host_profile {
 
         fn artifact_id(&self) -> &ArtifactId {
             &self.artifact_id
+        }
+
+        fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
+            let maximum_value_bytes = standard_contracts()
+                .into_iter()
+                .find(|contract| contract.kind_id == self.kind_id)
+                .map_or(0, |contract| contract.limits.max_queue_bytes);
+            standard_host_operation_requirements(&self.kind_id, maximum_value_bytes)
         }
 
         fn prepare(
@@ -706,9 +733,9 @@ mod tests {
 
     use super::{
         contract_revision, execution_profile, find_contract, standard_contracts,
-        standard_host_advertisement, standard_profile_catalog, standard_registry, FILTER_KIND,
-        FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND,
-        TICK_KIND,
+        standard_host_advertisement, standard_host_operation_requirements,
+        standard_profile_catalog, standard_registry, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND,
+        LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND,
     };
     use conduit_core::{
         kind_id, ArtifactId, CapabilityId, CapabilityOffer, ConnectionProvider, HostAdvertisement,
@@ -933,6 +960,10 @@ mod tests {
             artifact_id: ArtifactId::from(alloc::format!("conduit-std-catalog/{kind}").as_str()),
             inputs: contract.inputs,
             outputs: contract.outputs,
+            host_operations: standard_host_operation_requirements(
+                &kind_id,
+                contract.limits.max_queue_bytes,
+            ),
             limits: conduit_core::CapabilityLimits {
                 max_active_instances: 16,
                 max_queue_items: 4,
