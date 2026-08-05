@@ -186,7 +186,11 @@ fn observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work() {
     assert!(stdout.contains("connections 3"), "{stdout}");
     assert!(stdout.contains("provider=FixtureFrame"), "{stdout}");
     assert!(stdout.contains("provider=FixtureDatagram"), "{stdout}");
-    assert!(stdout.contains("evidence id=evidence/"), "{stdout}");
+    assert!(
+        stdout.contains("evidence id=") && stdout.contains("active_play=none presentation=none"),
+        "{stdout}"
+    );
+    assert!(!stdout.contains("evidence id=evidence/"), "{stdout}");
     assert!(stdout.contains("retention bounded=true"), "{stdout}");
     assert!(
         !stdout.contains("receipt signal placement="),
