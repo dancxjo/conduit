@@ -7,7 +7,10 @@ use conduit_core::{
 use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
 use conduit_runtime::{HostRuntime, RuntimeOutput};
-use conduit_signal::{decode_signal, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
+use conduit_signal::{
+    decode_signal, signal_profile_catalog, signal_registry, PULSE_KIND, SHOW_KIND,
+    SIGNAL_PRESENTATION_KIND, SIGNAL_VALUE_KIND,
+};
 use std::fmt::Write as _;
 use std::fs;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -49,8 +52,14 @@ impl StdHost {
     }
 
     pub fn new_with_config(config: StdHostConfig) -> Self {
+        let advertisement = build_advertisement(config);
+        let registry = signal_registry(
+            ImplementationId::from("std/pulse-v1"),
+            ImplementationId::from("std/stdout-show-signal-v1"),
+        )
+        .expect("std signal implementations have unique identities");
         Self {
-            runtime: HostRuntime::new(build_advertisement(config), 256),
+            runtime: HostRuntime::new(advertisement, registry, 256),
         }
     }
 
@@ -114,8 +123,15 @@ impl StdHost {
                 PlatformEffect::PresentValue {
                     plan_id,
                     placement_id,
+                    presentation_kind,
                     value,
                 } => {
+                    if presentation_kind.as_str() != SIGNAL_PRESENTATION_KIND {
+                        return Err(format!(
+                            "std host cannot manifest presentation kind '{}'",
+                            presentation_kind.as_str()
+                        ));
+                    }
                     let signal = decode_signal(&value).map_err(|err| err.to_string())?;
                     writeln!(
                         text,
@@ -170,7 +186,10 @@ impl StdHost {
 }
 
 pub fn load_checked_form(path: &str) -> Result<CheckedForm, Box<dyn std::error::Error>> {
-    Ok(conduit_form::parse(&fs::read_to_string(path)?)?)
+    Ok(conduit_form::parse(
+        &fs::read_to_string(path)?,
+        &signal_profile_catalog(),
+    )?)
 }
 
 pub fn load_placements(
@@ -277,14 +296,18 @@ fn inspect_observations(runtime: &mut HostRuntime) -> Vec<Observation> {
 
 fn preparation_rejection(output: &RuntimeOutput) -> Option<String> {
     output.events.iter().find_map(|event| match event {
-        HostEvent::PreparationRejected { reason, .. } => Some(reason.clone()),
+        HostEvent::PreparationRejected {
+            reason, message, ..
+        } => Some(message.clone().unwrap_or_else(|| format!("{reason:?}"))),
         _ => None,
     })
 }
 
 fn activation_rejection(output: &RuntimeOutput) -> Option<String> {
     output.events.iter().find_map(|event| match event {
-        HostEvent::ActivationRejected { reason, .. } => Some(reason.clone()),
+        HostEvent::ActivationRejected {
+            reason, message, ..
+        } => Some(message.clone().unwrap_or_else(|| format!("{reason:?}"))),
         _ => None,
     })
 }

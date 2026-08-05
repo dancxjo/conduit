@@ -31,11 +31,13 @@ This repository currently implements the Rust `std` host vertical slice from iss
 - parses explicit operator placement files;
 - builds an exact local plan from host capability advertisements and placement choices;
 - validates bounded queue limits, boot identity, and offer generation at preparation time;
-- executes finite pulse signals through a platform-neutral runtime and a real bounded local connection;
+- supplies semantic kinds to the parser through a small profile catalog rather than a closed parser list;
+- installs exact operation implementations into a generic runtime registry and validates their pinned IDs during preparation;
+- executes finite pulse signals through opaque implementation-owned state and real bounded connections;
 - manifests `presentation/show<Signal>` on stdout through the Rust `std` host adapter;
 - records structured observations and prints an operator report plus a concise completion summary;
-- executes a cross-host internal plan through a bounded, versioned in-memory connection provider;
-- wraps two child runtimes as one composite host whose capability can be selected by a parent plan without exposing child topology.
+- executes a cross-host internal plan through a bounded, versioned in-memory provider with controlled delivery, pressure, and disconnect behavior;
+- wraps child runtimes from a data-driven composite definition whose capability can be selected by a parent plan without exposing child topology.
 
 Try the included forms:
 

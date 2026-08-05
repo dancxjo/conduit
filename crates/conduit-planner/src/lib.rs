@@ -4,7 +4,6 @@ use conduit_core::{
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedConnection, CheckedForm, CheckedOperation};
-use conduit_signal::PULSE_KIND;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
@@ -379,15 +378,12 @@ fn validate_operation_capability(
         )));
     }
 
-    let value_kind = if operation.kind_id.as_str() == PULSE_KIND {
-        operation
-            .outputs
-            .first()
-            .map(|port| port.value_kind.clone())
-    } else {
-        operation.inputs.first().map(|port| port.value_kind.clone())
-    }
-    .unwrap_or_else(|| kind_id(""));
+    let value_kind = operation
+        .outputs
+        .first()
+        .or_else(|| operation.inputs.first())
+        .map(|port| port.value_kind.clone())
+        .unwrap_or_else(|| kind_id(""));
     if capability.limits.value_kind != value_kind {
         return Err(PlannerError::IncompatibleValueKind(format!(
             "operation '{}' expects '{}', capability '{}' supports '{}'",
@@ -514,11 +510,12 @@ mod tests {
         HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
     };
     use conduit_form::parse;
-    use conduit_signal::{PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
+    use conduit_signal::{signal_profile_catalog, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
 
     fn form() -> conduit_form::CheckedForm {
         parse(
             "form 0\n\nsignal-demo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
+            &signal_profile_catalog(),
         )
         .expect("form must parse")
     }

@@ -5,9 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
-conduit-signal = { path = "../conduit-signal" }
 
 [dev-dependencies]
 conduit-form = { path = "../conduit-form" }
 conduit-planner = { path = "../conduit-planner" }
-conduit-signal = { path = "../conduit-signal" }

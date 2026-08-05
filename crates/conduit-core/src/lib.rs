@@ -235,6 +235,11 @@ pub enum FailureReason {
     MalformedConnectionEnvelope,
     StalePlan,
     CompositeCapabilityFailed,
+    UnknownImplementation,
+    ImplementationKindMismatch,
+    AdvertisedImplementationMismatch,
+    InvalidOperationConfiguration,
+    UnsupportedValueKind,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -297,7 +302,8 @@ pub enum ObservationKind {
         disposition: TerminalDisposition,
     },
     Failure {
-        reason: String,
+        reason: FailureReason,
+        message: Option<String>,
     },
     Cancelled,
     Released,
@@ -345,14 +351,16 @@ pub enum HostEvent {
     },
     PreparationRejected {
         plan_id: PlanId,
-        reason: String,
+        reason: FailureReason,
+        message: Option<String>,
     },
     Activated {
         plan_id: PlanId,
     },
     ActivationRejected {
         plan_id: PlanId,
-        reason: String,
+        reason: FailureReason,
+        message: Option<String>,
     },
     TimerRequested {
         plan_id: PlanId,
@@ -362,6 +370,7 @@ pub enum HostEvent {
     PresentValueRequested {
         plan_id: PlanId,
         placement_id: PlacementId,
+        presentation_kind: KindId,
         value: ValuePayload,
     },
     ConnectionBlocked {
@@ -388,7 +397,8 @@ pub enum HostEvent {
         plan_id: PlanId,
         placement_id: PlacementId,
         value: ValuePayload,
-        reason: String,
+        reason: FailureReason,
+        message: Option<String>,
     },
     PlacementCompleted {
         plan_id: PlanId,
@@ -436,6 +446,7 @@ pub enum PlatformEffect {
     PresentValue {
         plan_id: PlanId,
         placement_id: PlacementId,
+        presentation_kind: KindId,
         value: ValuePayload,
     },
     TransmitConnection {

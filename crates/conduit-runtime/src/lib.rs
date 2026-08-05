@@ -5,11 +5,120 @@ use conduit_core::{
     PlanFragment, PlanId, PlannedConnection, PlannedOperation, PlatformEffect, TerminalDisposition,
     ValuePayload, PROTOCOL_VERSION,
 };
-use conduit_signal::{
-    decode_signal, encode_signal, parse_pulse_configuration, signal_payload_size, Signal,
-    PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND,
-};
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImplementationFailure {
+    pub reason: FailureReason,
+    pub message: Option<String>,
+}
+
+impl ImplementationFailure {
+    pub fn new(reason: FailureReason, message: impl Into<String>) -> Self {
+        Self {
+            reason,
+            message: Some(message.into()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OperationCompletion {
+    Emitted,
+    TimerElapsed,
+    Value(ValuePayload),
+    InputsClosed,
+    PresentationCompleted {
+        success: bool,
+        message: Option<String>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OperationAction {
+    Idle,
+    Emit(ValuePayload),
+    Wait {
+        duration_ms: u64,
+    },
+    Present {
+        presentation_kind: conduit_core::KindId,
+        value: ValuePayload,
+    },
+    Complete,
+    Fail(ImplementationFailure),
+}
+
+pub trait OperationState {
+    fn start(&mut self) -> OperationAction;
+    fn resume(&mut self, completion: OperationCompletion) -> OperationAction;
+
+    fn cancel(&mut self) {}
+
+    fn release(&mut self) {}
+}
+
+pub trait OperationImplementation {
+    fn kind_id(&self) -> &conduit_core::KindId;
+    fn implementation_id(&self) -> &conduit_core::ImplementationId;
+    fn prepare(
+        &self,
+        placement: &PlannedOperation,
+    ) -> Result<Box<dyn OperationState>, ImplementationFailure>;
+
+    fn minimum_value_size(&self, _value_kind: &conduit_core::KindId) -> Option<u32> {
+        None
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct ImplementationRegistry {
+    implementations: BTreeMap<conduit_core::ImplementationId, Arc<dyn OperationImplementation>>,
+}
+
+impl core::fmt::Debug for ImplementationRegistry {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ImplementationRegistry")
+            .field(
+                "implementation_ids",
+                &self.implementations.keys().collect::<Vec<_>>(),
+            )
+            .finish()
+    }
+}
+
+impl ImplementationRegistry {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn install<I>(&mut self, implementation: I) -> Result<(), ImplementationFailure>
+    where
+        I: OperationImplementation + 'static,
+    {
+        let implementation_id = implementation.implementation_id().clone();
+        if self.implementations.contains_key(&implementation_id) {
+            return Err(ImplementationFailure::new(
+                FailureReason::UnknownImplementation,
+                format!(
+                    "implementation '{}' is already installed",
+                    implementation_id.as_str()
+                ),
+            ));
+        }
+        self.implementations
+            .insert(implementation_id, Arc::new(implementation));
+        Ok(())
+    }
+
+    fn get(
+        &self,
+        implementation_id: &conduit_core::ImplementationId,
+    ) -> Option<&Arc<dyn OperationImplementation>> {
+        self.implementations.get(implementation_id)
+    }
+}
 
 type PendingObservation = (
     Option<PlanId>,
@@ -24,16 +133,28 @@ pub struct RuntimeOutput {
     pub effects: Vec<PlatformEffect>,
 }
 
-#[derive(Debug)]
 pub struct HostRuntime {
     advertisement: HostAdvertisement,
     observation_limit: usize,
     observations: Vec<Observation>,
     plans: BTreeMap<PlanId, RuntimePlan>,
     released_plans: BTreeSet<PlanId>,
+    implementations: ImplementationRegistry,
 }
 
-#[derive(Debug)]
+impl core::fmt::Debug for HostRuntime {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("HostRuntime")
+            .field("advertisement", &self.advertisement)
+            .field("observation_limit", &self.observation_limit)
+            .field("observations", &self.observations.len())
+            .field("plans", &self.plans.keys().collect::<Vec<_>>())
+            .field("released_plans", &self.released_plans)
+            .field("implementations", &self.implementations)
+            .finish()
+    }
+}
+
 struct RuntimePlan {
     fragment: PlanFragment,
     placements: BTreeMap<PlacementId, RuntimePlacement>,
@@ -52,31 +173,21 @@ enum PlanState {
     Completed,
 }
 
-#[derive(Debug)]
 struct RuntimePlacement {
     spec: PlannedOperation,
     lifecycle: PlacementLifecycleState,
     terminal: Option<TerminalDisposition>,
-    pulse: Option<PulseState>,
-    show: Option<ShowState>,
-}
-
-#[derive(Debug)]
-struct PulseState {
-    next_sequence: u64,
-    waiting: bool,
-    emission_complete: bool,
-}
-
-#[derive(Debug)]
-struct ShowState {
-    pending: Option<(ConnectionId, ValuePayload)>,
+    implementation_state: Box<dyn OperationState>,
+    action: OperationAction,
+    effect_issued: bool,
+    pending_input_connection: Option<ConnectionId>,
+    inputs_closed_notified: bool,
 }
 
 #[derive(Debug)]
 struct RuntimeConnection {
     spec: PlannedConnection,
-    queue: BoundedQueue<ValuePayload>,
+    queue: BoundedQueue<QueuedValue>,
     queued_bytes: u32,
     source_done: bool,
     sink_failed: bool,
@@ -87,6 +198,14 @@ struct RuntimeConnection {
     role: ConnectionRole,
     transmission_in_flight: bool,
     next_expected_sequence: u64,
+    next_send_sequence: u64,
+    accepted_remote_sequences: BTreeSet<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct QueuedValue {
+    sequence: u64,
+    value: ValuePayload,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -97,13 +216,18 @@ enum ConnectionRole {
 }
 
 impl HostRuntime {
-    pub fn new(advertisement: HostAdvertisement, observation_limit: usize) -> Self {
+    pub fn new(
+        advertisement: HostAdvertisement,
+        implementations: ImplementationRegistry,
+        observation_limit: usize,
+    ) -> Self {
         let mut runtime = Self {
             advertisement,
             observation_limit,
             observations: Vec::new(),
             plans: BTreeMap::new(),
             released_plans: BTreeSet::new(),
+            implementations,
         };
         runtime.record_observation(None, None, None, ObservationKind::HostStarted);
         runtime.record_observation(None, None, None, ObservationKind::AdvertisementPublished);
@@ -170,21 +294,24 @@ impl HostRuntime {
         if fragment.host_id != self.advertisement.host_id {
             output.events.push(HostEvent::PreparationRejected {
                 plan_id: fragment.plan_id,
-                reason: "wrong host identity".to_string(),
+                reason: FailureReason::WrongHostIdentity,
+                message: Some("wrong host identity".to_string()),
             });
             return output;
         }
         if fragment.boot_id != self.advertisement.boot_id {
             output.events.push(HostEvent::PreparationRejected {
                 plan_id: fragment.plan_id,
-                reason: "stale boot identity".to_string(),
+                reason: FailureReason::StaleBootIdentity,
+                message: Some("stale boot identity".to_string()),
             });
             return output;
         }
         if fragment.offer_generation != self.advertisement.offer_generation {
             output.events.push(HostEvent::PreparationRejected {
                 plan_id: fragment.plan_id,
-                reason: "stale offer generation".to_string(),
+                reason: FailureReason::StaleOfferGeneration,
+                message: Some("stale offer generation".to_string()),
             });
             return output;
         }
@@ -201,59 +328,112 @@ impl HostRuntime {
                 None => {
                     output.events.push(HostEvent::PreparationRejected {
                         plan_id: fragment.plan_id,
-                        reason: format!(
+                        reason: FailureReason::UnknownCapability,
+                        message: Some(format!(
                             "unknown capability '{}'",
                             placement.capability_id.as_str()
-                        ),
+                        )),
                     });
                     return output;
                 }
             };
+            if capability.kind_id != placement.kind_id {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::ImplementationKindMismatch,
+                    message: Some(format!(
+                        "capability '{}' advertises kind '{}' but placement requires '{}'",
+                        capability.capability_id.as_str(),
+                        capability.kind_id.as_str(),
+                        placement.kind_id.as_str()
+                    )),
+                });
+                return output;
+            }
+            if capability.implementation_id != placement.implementation_id {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::AdvertisedImplementationMismatch,
+                    message: Some(format!(
+                        "capability '{}' advertises implementation '{}' but placement pins '{}'",
+                        capability.capability_id.as_str(),
+                        capability.implementation_id.as_str(),
+                        placement.implementation_id.as_str()
+                    )),
+                });
+                return output;
+            }
+            let Some(implementation) = self.implementations.get(&placement.implementation_id)
+            else {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::UnknownImplementation,
+                    message: Some(format!(
+                        "implementation '{}' is not installed",
+                        placement.implementation_id.as_str()
+                    )),
+                });
+                return output;
+            };
+            if implementation.kind_id() != &placement.kind_id {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::ImplementationKindMismatch,
+                    message: Some(format!(
+                        "installed implementation '{}' realizes '{}' rather than '{}'",
+                        placement.implementation_id.as_str(),
+                        implementation.kind_id().as_str(),
+                        placement.kind_id.as_str()
+                    )),
+                });
+                return output;
+            }
             let count = counts.entry(placement.capability_id.clone()).or_insert(0);
             *count += 1;
             if *count > capability.limits.max_active_instances {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
-                    reason: format!(
+                    reason: FailureReason::CapabilityInstanceLimitExceeded,
+                    message: Some(format!(
                         "capability '{}' instance limit exceeded",
                         placement.capability_id.as_str()
-                    ),
+                    )),
                 });
                 return output;
             }
         }
 
-        let placements = fragment
-            .placements
-            .iter()
-            .cloned()
-            .map(|spec| {
-                let pulse = if spec.kind_id.as_str() == PULSE_KIND {
-                    Some(PulseState {
-                        next_sequence: 0,
-                        waiting: false,
-                        emission_complete: false,
-                    })
-                } else {
-                    None
-                };
-                let show = if spec.kind_id.as_str() == SHOW_KIND {
-                    Some(ShowState { pending: None })
-                } else {
-                    None
-                };
-                (
-                    spec.placement_id.clone(),
-                    RuntimePlacement {
-                        spec,
-                        lifecycle: PlacementLifecycleState::Prepared,
-                        terminal: None,
-                        pulse,
-                        show,
-                    },
-                )
-            })
-            .collect::<BTreeMap<_, _>>();
+        let mut placements = BTreeMap::new();
+        for spec in fragment.placements.iter().cloned() {
+            let implementation = self
+                .implementations
+                .get(&spec.implementation_id)
+                .expect("implementation validation already succeeded");
+            let implementation_state = match implementation.prepare(&spec) {
+                Ok(state) => state,
+                Err(failure) => {
+                    output.events.push(HostEvent::PreparationRejected {
+                        plan_id: fragment.plan_id,
+                        reason: failure.reason,
+                        message: failure.message,
+                    });
+                    return output;
+                }
+            };
+            placements.insert(
+                spec.placement_id.clone(),
+                RuntimePlacement {
+                    spec,
+                    lifecycle: PlacementLifecycleState::Prepared,
+                    terminal: None,
+                    implementation_state,
+                    action: OperationAction::Idle,
+                    effect_issued: false,
+                    pending_input_connection: None,
+                    inputs_closed_notified: false,
+                },
+            );
+        }
 
         let mut connections = BTreeMap::new();
         for connection in &fragment.connections {
@@ -266,11 +446,12 @@ impl HostRuntime {
                 _ => {
                     output.events.push(HostEvent::PreparationRejected {
                         plan_id: fragment.plan_id,
-                        reason: format!(
+                        reason: FailureReason::InvalidOperationConfiguration,
+                        message: Some(format!(
                             "connection '{}' has invalid local endpoints for {:?}",
                             connection.connection_id.as_str(),
                             connection.provider
-                        ),
+                        )),
                     });
                     return output;
                 }
@@ -292,10 +473,11 @@ impl HostRuntime {
             {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
-                    reason: format!(
+                    reason: FailureReason::QueueCapacityExceeded,
+                    message: Some(format!(
                         "connection '{}' exceeds queue limits",
                         connection.connection_id.as_str()
-                    ),
+                    )),
                 });
                 return output;
             }
@@ -305,22 +487,35 @@ impl HostRuntime {
             {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
-                    reason: format!(
+                    reason: FailureReason::ByteCapacityExceeded,
+                    message: Some(format!(
                         "connection '{}' exceeds byte limits",
                         connection.connection_id.as_str()
-                    ),
+                    )),
                 });
                 return output;
             }
-            if connection.value_kind.as_str() == SIGNAL_VALUE_KIND
-                && connection.byte_capacity < signal_payload_size()
+            if source
+                .into_iter()
+                .chain(sink)
+                .filter_map(|placement| {
+                    self.implementations
+                        .get(&placement.spec.implementation_id)
+                        .and_then(|implementation| {
+                            implementation.minimum_value_size(&connection.value_kind)
+                        })
+                })
+                .max()
+                .is_some_and(|minimum| connection.byte_capacity < minimum)
             {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
-                    reason: format!(
-                        "connection '{}' byte capacity is too small for one signal",
-                        connection.connection_id.as_str()
-                    ),
+                    reason: FailureReason::ByteCapacityExceeded,
+                    message: Some(format!(
+                        "connection '{}' byte capacity is too small for value kind '{}'",
+                        connection.connection_id.as_str(),
+                        connection.value_kind.as_str()
+                    )),
                 });
                 return output;
             }
@@ -339,6 +534,8 @@ impl HostRuntime {
                     role,
                     transmission_in_flight: false,
                     next_expected_sequence: 0,
+                    next_send_sequence: 0,
+                    accepted_remote_sequences: BTreeSet::new(),
                 },
             );
         }
@@ -386,14 +583,16 @@ impl HostRuntime {
         let Some(plan) = self.plans.get_mut(plan_id) else {
             output.events.push(HostEvent::ActivationRejected {
                 plan_id: plan_id.clone(),
-                reason: "plan was not prepared".to_string(),
+                reason: FailureReason::InvalidLifecycleCommand,
+                message: Some("plan was not prepared".to_string()),
             });
             return output;
         };
         if plan.state != PlanState::Prepared {
             output.events.push(HostEvent::ActivationRejected {
                 plan_id: plan_id.clone(),
-                reason: "plan is not in prepared state".to_string(),
+                reason: FailureReason::InvalidLifecycleCommand,
+                message: Some("plan is not in prepared state".to_string()),
             });
             return output;
         }
@@ -401,6 +600,8 @@ impl HostRuntime {
         for placement_id in &plan.fragment.startup_order {
             if let Some(placement) = plan.placements.get_mut(placement_id) {
                 placement.lifecycle = PlacementLifecycleState::Active;
+                placement.action = placement.implementation_state.start();
+                placement.effect_issued = false;
             }
         }
         self.record_observation(
@@ -439,19 +640,27 @@ impl HostRuntime {
             });
             return output;
         }
-        if let Some(placement) = plan.placements.get_mut(placement_id) {
-            if let Some(pulse) = placement.pulse.as_mut() {
-                if placement.lifecycle == PlacementLifecycleState::Active {
-                    pulse.waiting = false;
-                } else {
-                    output.events.push(HostEvent::CommandRejected {
-                        plan_id: Some(plan_id.clone()),
-                        reason: FailureReason::LatePlatformCompletion,
-                    });
-                    return output;
-                }
-            }
+        let Some(placement) = plan.placements.get_mut(placement_id) else {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        };
+        if placement.lifecycle != PlacementLifecycleState::Active
+            || !placement.effect_issued
+            || !matches!(placement.action, OperationAction::Wait { .. })
+        {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::LatePlatformCompletion,
+            });
+            return output;
         }
+        placement.action = placement
+            .implementation_state
+            .resume(OperationCompletion::TimerElapsed);
+        placement.effect_issued = false;
         self.pump(plan_id, &mut output);
         output
     }
@@ -472,8 +681,6 @@ impl HostRuntime {
             });
             return output;
         }
-        let mut pending_observations = Vec::new();
-        let mut pending_terminal_events = Vec::new();
         let Some(plan) = self.plans.get_mut(plan_id) else {
             output.events.push(HostEvent::CommandRejected {
                 plan_id: Some(plan_id.clone()),
@@ -502,83 +709,54 @@ impl HostRuntime {
             });
             return output;
         }
-        if let Some(show) = placement.show.as_mut() {
-            let pending_connection = show.pending.take().map(|(connection_id, _)| connection_id);
-            if success {
-                if let Some(connection_id) = pending_connection {
-                    if let Some(connection) = plan.connections.get_mut(&connection_id) {
-                        connection.last_manifested_sequence = payload_sequence(&value);
-                    }
-                }
-                pending_observations.push((
-                    Some(plan_id.clone()),
-                    Some(placement_id.clone()),
-                    None,
-                    ObservationKind::ValuePresented {
-                        value: value.clone(),
-                    },
-                ));
-                output.events.push(HostEvent::ManifestationCompleted {
-                    plan_id: plan_id.clone(),
-                    placement_id: placement_id.clone(),
-                    value,
+        let presented_value = match &placement.action {
+            OperationAction::Present {
+                value: action_value,
+                ..
+            } if placement.effect_issued && action_value == &value => action_value.clone(),
+            _ => {
+                output.events.push(HostEvent::CommandRejected {
+                    plan_id: Some(plan_id.clone()),
+                    reason: FailureReason::LatePlatformCompletion,
                 });
-            } else {
-                let reason = message.unwrap_or_else(|| "presentation failed".to_string());
-                fail_placement(
-                    plan,
-                    placement_id,
-                    TerminalDisposition::Failed {
-                        reason: FailureReason::ManifestationFailed,
-                    },
-                    &mut pending_observations,
-                    &mut pending_terminal_events,
-                    plan_id,
-                );
-                fail_incoming_connections(
-                    plan,
-                    placement_id,
-                    TerminalDisposition::Failed {
-                        reason: FailureReason::ManifestationFailed,
-                    },
-                    &mut pending_observations,
-                    &mut pending_terminal_events,
-                    plan_id,
-                );
-                if plan.state != PlanState::Failed {
-                    plan.state = PlanState::Failed;
-                    plan.terminal = Some(TerminalDisposition::Failed {
-                        reason: FailureReason::RequiredBranchFailed,
-                    });
-                    cancel_active_sources(
-                        plan,
-                        CancellationReason::RequiredPlanFailed,
-                        &mut pending_observations,
-                        &mut pending_terminal_events,
-                        plan_id,
-                    );
-                }
-                pending_observations.push((
-                    Some(plan_id.clone()),
-                    Some(placement_id.clone()),
-                    None,
-                    ObservationKind::Failure {
-                        reason: reason.clone(),
-                    },
-                ));
-                output.events.push(HostEvent::ManifestationFailed {
-                    plan_id: plan_id.clone(),
-                    placement_id: placement_id.clone(),
-                    value,
-                    reason,
-                });
+                return output;
             }
+        };
+        if success {
+            if let Some(connection_id) = placement.pending_input_connection.take() {
+                if let Some(connection) = plan.connections.get_mut(&connection_id) {
+                    connection.last_manifested_sequence = connection.last_accepted_sequence;
+                }
+            }
+            output.events.push(HostEvent::ManifestationCompleted {
+                plan_id: plan_id.clone(),
+                placement_id: placement_id.clone(),
+                value: presented_value.clone(),
+            });
+        } else {
+            output.events.push(HostEvent::ManifestationFailed {
+                plan_id: plan_id.clone(),
+                placement_id: placement_id.clone(),
+                value: presented_value.clone(),
+                reason: FailureReason::ManifestationFailed,
+                message: message.clone(),
+            });
         }
+        placement.action = placement
+            .implementation_state
+            .resume(OperationCompletion::PresentationCompleted { success, message });
+        placement.effect_issued = false;
         let _ = plan;
-        for item in pending_observations {
-            self.record_observation(item.0, item.1, item.2, item.3);
+        if success {
+            self.record_observation(
+                Some(plan_id.clone()),
+                Some(placement_id.clone()),
+                None,
+                ObservationKind::ValuePresented {
+                    value: presented_value,
+                },
+            );
         }
-        output.events.extend(pending_terminal_events);
         self.pump(plan_id, &mut output);
         output
     }
@@ -662,7 +840,7 @@ impl HostRuntime {
         connection.queued_bytes += value.encoded_len();
         connection
             .queue
-            .push(value)
+            .push(QueuedValue { sequence, value })
             .expect("connection capacity was checked");
         connection.next_expected_sequence += 1;
         output.events.push(HostEvent::ConnectionEnvelopeOutcome {
@@ -699,10 +877,20 @@ impl HostRuntime {
             });
             return output;
         };
-        let front_sequence = connection.queue.front().and_then(payload_sequence);
-        if connection.role != ConnectionRole::Outbound
-            || !connection.transmission_in_flight
-            || front_sequence != Some(sequence)
+        if connection.role != ConnectionRole::Outbound {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::MalformedConnectionEnvelope,
+            });
+            return output;
+        }
+        let front_sequence = connection.queue.front().map(|queued| queued.sequence);
+        let requires_in_flight = matches!(
+            outcome,
+            ConnectionOutcome::Accepted | ConnectionOutcome::Full | ConnectionOutcome::Malformed
+        );
+        if requires_in_flight
+            && (!connection.transmission_in_flight || front_sequence != Some(sequence))
         {
             output.events.push(HostEvent::CommandRejected {
                 plan_id: Some(plan_id.clone()),
@@ -710,8 +898,14 @@ impl HostRuntime {
             });
             return output;
         }
+        let mut should_pump = true;
         match outcome {
             ConnectionOutcome::Accepted => {
+                let value = connection.queue.pop().expect("accepted value must exist");
+                connection.queued_bytes -= value.value.encoded_len();
+                connection.accepted_remote_sequences.insert(sequence);
+                connection.transmission_in_flight = false;
+                connection.blocked = false;
                 output.events.push(HostEvent::ConnectionEnvelopeOutcome {
                     plan_id: plan_id.clone(),
                     connection_id: connection_id.clone(),
@@ -720,17 +914,25 @@ impl HostRuntime {
                 });
             }
             ConnectionOutcome::Delivered => {
-                let value = connection.queue.pop().expect("in-flight value must exist");
-                connection.queued_bytes -= value.encoded_len();
+                if !connection.accepted_remote_sequences.remove(&sequence) {
+                    output.events.push(HostEvent::CommandRejected {
+                        plan_id: Some(plan_id.clone()),
+                        reason: FailureReason::MalformedConnectionEnvelope,
+                    });
+                    return output;
+                }
                 connection.last_accepted_sequence = Some(sequence);
-                connection.transmission_in_flight = false;
                 output.events.push(HostEvent::ConnectionEnvelopeOutcome {
                     plan_id: plan_id.clone(),
                     connection_id: connection_id.clone(),
                     sequence,
                     outcome: ConnectionOutcome::Delivered,
                 });
-                if connection.source_done && connection.queue.is_empty() {
+                if connection.source_done
+                    && connection.queue.is_empty()
+                    && connection.accepted_remote_sequences.is_empty()
+                    && !connection.transmission_in_flight
+                {
                     terminate_connection(
                         connection,
                         TerminalDisposition::Completed,
@@ -743,6 +945,7 @@ impl HostRuntime {
             ConnectionOutcome::Full | ConnectionOutcome::Ready => {
                 connection.transmission_in_flight = false;
                 connection.blocked = true;
+                should_pump = false;
                 output.events.push(HostEvent::ConnectionBlocked {
                     plan_id: plan_id.clone(),
                     connection_id: connection_id.clone(),
@@ -783,7 +986,9 @@ impl HostRuntime {
             self.record_observation(item.0, item.1, item.2, item.3);
         }
         output.events.extend(pending_terminal_events);
-        self.pump(plan_id, &mut output);
+        if should_pump {
+            self.pump(plan_id, &mut output);
+        }
         output
     }
 
@@ -900,6 +1105,12 @@ impl HostRuntime {
             });
             return output;
         }
+        if let Some(plan) = self.plans.get_mut(plan_id) {
+            for placement in plan.placements.values_mut() {
+                placement.implementation_state.release();
+                placement.lifecycle = PlacementLifecycleState::Released;
+            }
+        }
         self.plans.remove(plan_id);
         self.released_plans.insert(plan_id.clone());
         self.record_observation(Some(plan_id.clone()), None, None, ObservationKind::Released);
@@ -923,21 +1134,137 @@ impl HostRuntime {
 
             let placement_ids = plan.placements.keys().cloned().collect::<Vec<_>>();
             for placement_id in placement_ids {
-                let Some(placement) = plan.placements.get_mut(&placement_id) else {
-                    continue;
-                };
-                if placement.lifecycle != PlacementLifecycleState::Active {
-                    continue;
-                }
-                if let Some(pulse) = placement.pulse.as_mut() {
-                    let config = parse_pulse_configuration(&placement.spec.configuration)
-                        .expect("planned pulse configuration must be valid");
-                    if pulse.emission_complete || pulse.waiting {
-                        continue;
+                let action = match plan.placements.get(&placement_id) {
+                    Some(placement) if placement.lifecycle == PlacementLifecycleState::Active => {
+                        placement.action.clone()
                     }
-                    if pulse.next_sequence >= config.count {
-                        pulse.emission_complete = true;
-                        mark_source_done(&placement.spec.placement_id, &mut plan.connections);
+                    _ => continue,
+                };
+                match action {
+                    OperationAction::Idle => {}
+                    OperationAction::Wait { duration_ms } => {
+                        let placement = plan
+                            .placements
+                            .get_mut(&placement_id)
+                            .expect("placement exists");
+                        if !placement.effect_issued {
+                            placement.effect_issued = true;
+                            output.events.push(HostEvent::TimerRequested {
+                                plan_id: plan_id.clone(),
+                                placement_id: placement_id.clone(),
+                                duration_ms,
+                            });
+                            output.effects.push(PlatformEffect::Wait {
+                                plan_id: plan_id.clone(),
+                                placement_id: placement_id.clone(),
+                                duration_ms,
+                            });
+                        }
+                    }
+                    OperationAction::Present {
+                        presentation_kind,
+                        value,
+                    } => {
+                        let placement = plan
+                            .placements
+                            .get_mut(&placement_id)
+                            .expect("placement exists");
+                        if !placement.effect_issued {
+                            placement.effect_issued = true;
+                            output.events.push(HostEvent::PresentValueRequested {
+                                plan_id: plan_id.clone(),
+                                placement_id: placement_id.clone(),
+                                presentation_kind: presentation_kind.clone(),
+                                value: value.clone(),
+                            });
+                            output.effects.push(PlatformEffect::PresentValue {
+                                plan_id: plan_id.clone(),
+                                placement_id: placement_id.clone(),
+                                presentation_kind,
+                                value,
+                            });
+                        }
+                    }
+                    OperationAction::Emit(value) => {
+                        let outgoing = outgoing_connections(&placement_id, &plan.connections);
+                        let blocked = outgoing.iter().find(|connection_id| {
+                            let connection = &plan.connections[*connection_id];
+                            connection.terminal.is_none()
+                                && !connection.sink_failed
+                                && (connection.queue.len() >= connection.queue.capacity()
+                                    || connection.queued_bytes + value.encoded_len()
+                                        > connection.spec.byte_capacity)
+                        });
+                        if let Some(connection_id) = blocked.cloned() {
+                            let connection = plan
+                                .connections
+                                .get_mut(&connection_id)
+                                .expect("connection exists");
+                            if !connection.blocked {
+                                connection.blocked = true;
+                                output.events.push(HostEvent::ConnectionBlocked {
+                                    plan_id: plan_id.clone(),
+                                    connection_id,
+                                });
+                            }
+                            continue;
+                        }
+                        for connection_id in outgoing {
+                            let connection = plan
+                                .connections
+                                .get_mut(&connection_id)
+                                .expect("connection exists");
+                            if connection.terminal.is_some() || connection.sink_failed {
+                                continue;
+                            }
+                            connection.blocked = false;
+                            connection.queued_bytes += value.encoded_len();
+                            let sequence = connection.next_send_sequence;
+                            connection.next_send_sequence += 1;
+                            connection
+                                .queue
+                                .push(QueuedValue {
+                                    sequence,
+                                    value: value.clone(),
+                                })
+                                .expect("capacity was checked before push");
+                            output.events.push(HostEvent::ValueDelivered {
+                                plan_id: plan_id.clone(),
+                                connection_id: connection_id.clone(),
+                                value: value.clone(),
+                            });
+                            pending_observations.push((
+                                Some(plan_id.clone()),
+                                Some(placement_id.clone()),
+                                Some(connection_id),
+                                ObservationKind::ValueProduced {
+                                    value: value.clone(),
+                                },
+                            ));
+                        }
+                        let placement = plan
+                            .placements
+                            .get_mut(&placement_id)
+                            .expect("placement exists");
+                        placement.action = placement
+                            .implementation_state
+                            .resume(OperationCompletion::Emitted);
+                        placement.effect_issued = false;
+                        changed = true;
+                    }
+                    OperationAction::Complete => {
+                        let has_outputs = plan
+                            .placements
+                            .get(&placement_id)
+                            .is_some_and(|placement| !placement.spec.outputs.is_empty());
+                        if has_outputs {
+                            mark_source_done(&placement_id, &mut plan.connections);
+                        }
+                        let incoming = incoming_connections(&placement_id, &plan.connections);
+                        let placement = plan
+                            .placements
+                            .get_mut(&placement_id)
+                            .expect("placement exists");
                         terminate_placement(
                             placement,
                             TerminalDisposition::Completed,
@@ -947,90 +1274,33 @@ impl HostRuntime {
                         );
                         output.events.push(HostEvent::PlacementCompleted {
                             plan_id: plan_id.clone(),
-                            placement_id: placement.spec.placement_id.clone(),
+                            placement_id: placement_id.clone(),
                         });
-                        changed = true;
-                        continue;
-                    }
-
-                    let value = encode_signal(&Signal {
-                        sequence: pulse.next_sequence,
-                        level: if pulse.next_sequence % 2 == 0 {
-                            config.initial_level
-                        } else {
-                            !config.initial_level
-                        },
-                    });
-                    let outgoing =
-                        outgoing_connections(&placement.spec.placement_id, &plan.connections);
-                    let mut blocked = None;
-                    for connection_id in &outgoing {
-                        let connection = &plan.connections[connection_id];
-                        if connection.terminal.is_some() || connection.sink_failed {
-                            continue;
-                        }
-                        if connection.queue.len() >= connection.queue.capacity()
-                            || connection.queued_bytes + value.encoded_len()
-                                > connection.spec.byte_capacity
-                        {
-                            blocked = Some(connection_id.clone());
-                            break;
-                        }
-                    }
-                    if let Some(connection_id) = blocked {
-                        if let Some(connection) = plan.connections.get_mut(&connection_id) {
-                            if !connection.blocked {
-                                connection.blocked = true;
-                                output.events.push(HostEvent::ConnectionBlocked {
-                                    plan_id: plan_id.clone(),
-                                    connection_id: connection_id.clone(),
-                                });
+                        for connection_id in incoming {
+                            if let Some(connection) = plan.connections.get_mut(&connection_id) {
+                                if connection.terminal.is_none() {
+                                    terminate_connection(
+                                        connection,
+                                        TerminalDisposition::Completed,
+                                        &mut pending_observations,
+                                        &mut pending_terminal_events,
+                                        plan_id,
+                                    );
+                                }
                             }
                         }
-                        continue;
+                        changed = true;
                     }
-                    for connection_id in outgoing {
-                        let connection = plan
-                            .connections
-                            .get_mut(&connection_id)
-                            .expect("connection must exist");
-                        if connection.terminal.is_some() || connection.sink_failed {
-                            continue;
-                        }
-                        connection.blocked = false;
-                        connection.queued_bytes += value.encoded_len();
-                        connection
-                            .queue
-                            .push(value.clone())
-                            .expect("capacity was checked before push");
-                        output.events.push(HostEvent::ValueDelivered {
-                            plan_id: plan_id.clone(),
-                            connection_id: connection_id.clone(),
-                            value: value.clone(),
-                        });
-                        pending_observations.push((
-                            Some(plan_id.clone()),
-                            Some(placement.spec.placement_id.clone()),
-                            Some(connection_id),
-                            ObservationKind::ValueProduced {
-                                value: value.clone(),
-                            },
-                        ));
-                    }
-                    pulse.next_sequence += 1;
-                    changed = true;
-                    if pulse.next_sequence < config.count && config.period_ms > 0 {
-                        pulse.waiting = true;
-                        output.events.push(HostEvent::TimerRequested {
-                            plan_id: plan_id.clone(),
-                            placement_id: placement.spec.placement_id.clone(),
-                            duration_ms: config.period_ms,
-                        });
-                        output.effects.push(PlatformEffect::Wait {
-                            plan_id: plan_id.clone(),
-                            placement_id: placement.spec.placement_id.clone(),
-                            duration_ms: config.period_ms,
-                        });
+                    OperationAction::Fail(failure) => {
+                        fail_operation(
+                            plan,
+                            &placement_id,
+                            failure,
+                            &mut pending_observations,
+                            &mut pending_terminal_events,
+                            plan_id,
+                        );
+                        changed = true;
                     }
                 }
             }
@@ -1044,6 +1314,7 @@ impl HostRuntime {
                     if connection.terminal.is_none()
                         && connection.source_done
                         && connection.queue.is_empty()
+                        && connection.accepted_remote_sequences.is_empty()
                         && !connection.transmission_in_flight
                     {
                         terminate_connection(
@@ -1058,20 +1329,19 @@ impl HostRuntime {
                         && !connection.transmission_in_flight
                         && !connection.queue.is_empty()
                     {
-                        let value = connection
+                        let queued = connection
                             .queue
                             .front()
                             .expect("non-empty outbound queue has a front value");
-                        let sequence = payload_sequence(value).unwrap_or(0);
                         connection.transmission_in_flight = true;
                         output.effects.push(PlatformEffect::TransmitConnection {
                             envelope: ConnectionEnvelope {
                                 protocol_version: PROTOCOL_VERSION,
                                 plan_id: plan_id.clone(),
                                 connection_id: connection_id.clone(),
-                                sequence,
-                                value_kind: value.value_kind.clone(),
-                                payload: value.encoded.clone(),
+                                sequence: queued.sequence,
+                                value_kind: queued.value.value_kind.clone(),
+                                payload: queued.value.encoded.clone(),
                             },
                         });
                     }
@@ -1087,59 +1357,52 @@ impl HostRuntime {
                 let Some(sink) = plan.placements.get_mut(&sink_id) else {
                     continue;
                 };
-                let Some(show) = sink.show.as_mut() else {
-                    continue;
-                };
-                if show.pending.is_some() || sink.lifecycle != PlacementLifecycleState::Active {
+                if sink.lifecycle != PlacementLifecycleState::Active
+                    || !matches!(sink.action, OperationAction::Idle)
+                    || sink.pending_input_connection.is_some()
+                {
                     continue;
                 }
-                let value = connection
+                let queued = connection
                     .queue
                     .pop()
                     .expect("queue was checked before pop");
-                connection.queued_bytes -= value.encoded_len();
-                connection.last_accepted_sequence = payload_sequence(&value);
-                show.pending = Some((connection_id.clone(), value.clone()));
-                output.events.push(HostEvent::PresentValueRequested {
-                    plan_id: plan_id.clone(),
-                    placement_id: sink_id.clone(),
-                    value: value.clone(),
-                });
-                output.effects.push(PlatformEffect::PresentValue {
-                    plan_id: plan_id.clone(),
-                    placement_id: sink_id.clone(),
-                    value: value.clone(),
-                });
+                connection.queued_bytes -= queued.value.encoded_len();
+                connection.last_accepted_sequence = Some(queued.sequence);
+                sink.pending_input_connection = Some(connection_id.clone());
+                sink.action = sink
+                    .implementation_state
+                    .resume(OperationCompletion::Value(queued.value.clone()));
+                sink.effect_issued = false;
                 pending_observations.push((
                     Some(plan_id.clone()),
                     Some(sink_id),
                     Some(connection_id),
-                    ObservationKind::ValueAccepted { value },
+                    ObservationKind::ValueAccepted {
+                        value: queued.value,
+                    },
                 ));
                 changed = true;
             }
 
-            let sink_ids = plan
+            let consumer_ids = plan
                 .placements
                 .iter()
-                .filter_map(|(placement_id, placement)| {
-                    placement.show.as_ref().map(|_| placement_id.clone())
-                })
+                .filter(|(_, placement)| !placement.spec.inputs.is_empty())
+                .map(|(placement_id, _)| placement_id.clone())
                 .collect::<Vec<_>>();
-            for sink_id in sink_ids {
-                let Some(sink) = plan.placements.get_mut(&sink_id) else {
+            for consumer_id in consumer_ids {
+                let Some(consumer) = plan.placements.get(&consumer_id) else {
                     continue;
                 };
-                if sink.lifecycle != PlacementLifecycleState::Active {
+                if consumer.lifecycle != PlacementLifecycleState::Active
+                    || consumer.inputs_closed_notified
+                    || consumer.pending_input_connection.is_some()
+                    || !matches!(consumer.action, OperationAction::Idle)
+                {
                     continue;
                 }
-                let Some(show) = sink.show.as_ref() else {
-                    continue;
-                };
-                if show.pending.is_some() {
-                    continue;
-                }
-                let incoming = incoming_connections(&sink_id, &plan.connections);
+                let incoming = incoming_connections(&consumer_id, &plan.connections);
                 let done = incoming.iter().all(|connection_id| {
                     let connection = &plan.connections[connection_id];
                     (connection.source_done
@@ -1148,30 +1411,15 @@ impl HostRuntime {
                         && connection.queue.is_empty()
                 });
                 if done {
-                    terminate_placement(
-                        sink,
-                        TerminalDisposition::Completed,
-                        &mut pending_observations,
-                        &mut pending_terminal_events,
-                        plan_id,
-                    );
-                    output.events.push(HostEvent::PlacementCompleted {
-                        plan_id: plan_id.clone(),
-                        placement_id: sink_id.clone(),
-                    });
-                    for connection_id in incoming {
-                        if let Some(connection) = plan.connections.get_mut(&connection_id) {
-                            if connection.terminal.is_none() {
-                                terminate_connection(
-                                    connection,
-                                    TerminalDisposition::Completed,
-                                    &mut pending_observations,
-                                    &mut pending_terminal_events,
-                                    plan_id,
-                                );
-                            }
-                        }
-                    }
+                    let consumer = plan
+                        .placements
+                        .get_mut(&consumer_id)
+                        .expect("consumer exists");
+                    consumer.inputs_closed_notified = true;
+                    consumer.action = consumer
+                        .implementation_state
+                        .resume(OperationCompletion::InputsClosed);
+                    consumer.effect_issued = false;
                     changed = true;
                 }
             }
@@ -1353,10 +1601,15 @@ fn terminate_connection(
         disposition,
         last_accepted_sequence: connection.last_accepted_sequence,
         last_manifested_sequence: connection.last_manifested_sequence,
-        undeliverable_items: connection.queue.len() as u16,
+        undeliverable_items: connection
+            .queue
+            .len()
+            .saturating_add(connection.accepted_remote_sequences.len())
+            as u16,
     };
     connection.queued_bytes = 0;
     while connection.queue.pop().is_some() {}
+    connection.accepted_remote_sequences.clear();
     connection.terminal = Some(report.clone());
     observations.push((
         Some(plan_id.clone()),
@@ -1373,32 +1626,73 @@ fn terminate_connection(
     });
 }
 
-fn fail_placement(
+fn fail_operation(
     plan: &mut RuntimePlan,
     placement_id: &PlacementId,
-    disposition: TerminalDisposition,
+    failure: ImplementationFailure,
     observations: &mut Vec<PendingObservation>,
     events: &mut Vec<HostEvent>,
     plan_id: &PlanId,
 ) {
     if let Some(placement) = plan.placements.get_mut(placement_id) {
-        terminate_placement(placement, disposition, observations, events, plan_id);
+        terminate_placement(
+            placement,
+            TerminalDisposition::Failed {
+                reason: failure.reason,
+            },
+            observations,
+            events,
+            plan_id,
+        );
     }
-}
-
-fn fail_incoming_connections(
-    plan: &mut RuntimePlan,
-    placement_id: &PlacementId,
-    disposition: TerminalDisposition,
-    observations: &mut Vec<PendingObservation>,
-    events: &mut Vec<HostEvent>,
-    plan_id: &PlanId,
-) {
     for connection_id in incoming_connections(placement_id, &plan.connections) {
         if let Some(connection) = plan.connections.get_mut(&connection_id) {
             connection.sink_failed = true;
-            terminate_connection(connection, disposition, observations, events, plan_id);
+            terminate_connection(
+                connection,
+                TerminalDisposition::Failed {
+                    reason: failure.reason,
+                },
+                observations,
+                events,
+                plan_id,
+            );
         }
+    }
+    for connection_id in outgoing_connections(placement_id, &plan.connections) {
+        if let Some(connection) = plan.connections.get_mut(&connection_id) {
+            terminate_connection(
+                connection,
+                TerminalDisposition::Failed {
+                    reason: failure.reason,
+                },
+                observations,
+                events,
+                plan_id,
+            );
+        }
+    }
+    observations.push((
+        Some(plan_id.clone()),
+        Some(placement_id.clone()),
+        None,
+        ObservationKind::Failure {
+            reason: failure.reason,
+            message: failure.message,
+        },
+    ));
+    if plan.state != PlanState::Failed {
+        plan.state = PlanState::Failed;
+        plan.terminal = Some(TerminalDisposition::Failed {
+            reason: FailureReason::RequiredBranchFailed,
+        });
+        cancel_active_sources(
+            plan,
+            CancellationReason::RequiredPlanFailed,
+            observations,
+            events,
+            plan_id,
+        );
     }
 }
 
@@ -1414,7 +1708,10 @@ fn cancel_active_sources(
         let Some(placement) = plan.placements.get_mut(&placement_id) else {
             continue;
         };
-        if placement.pulse.is_some() && placement.lifecycle == PlacementLifecycleState::Active {
+        if !placement.spec.outputs.is_empty()
+            && placement.lifecycle == PlacementLifecycleState::Active
+        {
+            placement.implementation_state.cancel();
             terminate_placement(
                 placement,
                 TerminalDisposition::Cancelled { reason },
@@ -1436,6 +1733,7 @@ fn cancel_all_placements_and_connections(
 ) {
     for placement in plan.placements.values_mut() {
         if placement.terminal.is_none() {
+            placement.implementation_state.cancel();
             terminate_placement(
                 placement,
                 TerminalDisposition::Cancelled { reason },
@@ -1444,13 +1742,9 @@ fn cancel_all_placements_and_connections(
                 plan_id,
             );
         }
-        if let Some(show) = placement.show.as_mut() {
-            show.pending = None;
-        }
-        if let Some(pulse) = placement.pulse.as_mut() {
-            pulse.waiting = false;
-            pulse.emission_complete = true;
-        }
+        placement.action = OperationAction::Idle;
+        placement.effect_issued = false;
+        placement.pending_input_connection = None;
     }
     for connection in plan.connections.values_mut() {
         if connection.terminal.is_none() {
@@ -1508,25 +1802,132 @@ fn mark_source_done(
     }
 }
 
-fn payload_sequence(payload: &ValuePayload) -> Option<u64> {
-    decode_signal(payload).ok().map(|signal| signal.sequence)
-}
-
 #[cfg(test)]
-mod tests {
-    use super::HostRuntime;
+mod conformance {
+    use super::{
+        HostRuntime, ImplementationFailure, ImplementationRegistry, OperationAction,
+        OperationCompletion, OperationImplementation, OperationState,
+    };
     use conduit_core::{
-        kind_id, BootId, CancellationReason, CapabilityId, CapabilityLimits, CapabilityOffer,
-        ConnectionProvider, FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId,
-        HostProfileId, ImplementationId, ObservationKind, OfferGeneration, PlatformEffect,
-        TerminalDisposition, PROTOCOL_VERSION,
+        kind_id, port_id, BootId, CancellationReason, CapabilityId, CapabilityLimits,
+        CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionProvider, FailureReason,
+        HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
+        ObservationKind, OfferGeneration, PlatformEffect, PortDescriptor, PortDirection,
+        TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
     };
-    use conduit_form::parse;
+    use conduit_form::{parse, ConfigurationField, KindDefinition, ProfileCatalog};
     use conduit_planner::{default_placements, plan};
-    use conduit_signal::{
-        decode_signal, encode_signal, Signal, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND,
-    };
     use std::collections::{BTreeMap, VecDeque};
+
+    const PULSE_KIND: &str = "flow/pulse";
+    const SHOW_KIND: &str = "presentation/show";
+    const SIGNAL_VALUE_KIND: &str = "value/signal";
+    const SIGNAL_PRESENTATION_KIND: &str = "test/presentation";
+    const SIGNAL_ENCODED_LEN: u32 = 9;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct Signal {
+        sequence: u64,
+        level: bool,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct TestPulseConfiguration {
+        count: u64,
+        period_ms: u64,
+        initial_level: bool,
+    }
+
+    fn encode_signal(signal: &Signal) -> ValuePayload {
+        let mut encoded = signal.sequence.to_le_bytes().to_vec();
+        encoded.push(u8::from(signal.level));
+        ValuePayload {
+            value_kind: kind_id(SIGNAL_VALUE_KIND),
+            encoded,
+        }
+    }
+
+    fn decode_signal(value: &ValuePayload) -> Result<Signal, String> {
+        if value.value_kind.as_str() != SIGNAL_VALUE_KIND || value.encoded.len() != 9 {
+            return Err("invalid test signal".to_string());
+        }
+        let mut sequence = [0; 8];
+        sequence.copy_from_slice(&value.encoded[..8]);
+        Ok(Signal {
+            sequence: u64::from_le_bytes(sequence),
+            level: value.encoded[8] != 0,
+        })
+    }
+
+    fn parse_pulse_configuration(
+        entries: &[ConfigurationEntry],
+    ) -> Result<TestPulseConfiguration, String> {
+        let get_u64 = |key: &str| {
+            entries
+                .iter()
+                .find(|entry| entry.key == key)
+                .and_then(|entry| match entry.value {
+                    ConfigurationValue::U64(value) => Some(value),
+                    ConfigurationValue::Bool(_) => None,
+                })
+                .ok_or_else(|| format!("missing integer '{key}'"))
+        };
+        let initial_level = entries
+            .iter()
+            .find(|entry| entry.key == "initial")
+            .and_then(|entry| match entry.value {
+                ConfigurationValue::Bool(value) => Some(value),
+                ConfigurationValue::U64(_) => None,
+            })
+            .ok_or_else(|| "missing boolean 'initial'".to_string())?;
+        Ok(TestPulseConfiguration {
+            count: get_u64("count")?,
+            period_ms: get_u64("period-ms")?,
+            initial_level,
+        })
+    }
+
+    fn signal_profile_catalog() -> ProfileCatalog {
+        let mut catalog = ProfileCatalog::new();
+        catalog
+            .insert(KindDefinition {
+                kind_id: kind_id(PULSE_KIND),
+                inputs: Vec::new(),
+                outputs: vec![PortDescriptor {
+                    port_id: port_id("signal"),
+                    value_kind: kind_id(SIGNAL_VALUE_KIND),
+                    direction: PortDirection::Output,
+                }],
+                configuration: vec![
+                    ConfigurationField {
+                        key: "count".to_string(),
+                        default_value: ConfigurationValue::U64(16),
+                    },
+                    ConfigurationField {
+                        key: "period-ms".to_string(),
+                        default_value: ConfigurationValue::U64(250),
+                    },
+                    ConfigurationField {
+                        key: "initial".to_string(),
+                        default_value: ConfigurationValue::Bool(false),
+                    },
+                ],
+            })
+            .expect("test pulse kind installs");
+        catalog
+            .insert(KindDefinition {
+                kind_id: kind_id(SHOW_KIND),
+                inputs: vec![PortDescriptor {
+                    port_id: port_id("signal"),
+                    value_kind: kind_id(SIGNAL_VALUE_KIND),
+                    direction: PortDirection::Input,
+                }],
+                outputs: Vec::new(),
+                configuration: Vec::new(),
+            })
+            .expect("test show kind installs");
+        catalog
+    }
 
     fn advertisement(
         boot: &str,
@@ -1567,12 +1968,185 @@ mod tests {
         }
     }
 
+    fn test_runtime(advertisement: HostAdvertisement, observation_limit: usize) -> HostRuntime {
+        let mut registry = ImplementationRegistry::new();
+        registry
+            .install(TestPulseImplementation {
+                kind_id: kind_id(PULSE_KIND),
+                implementation_id: ImplementationId::from("std/pulse-v1"),
+            })
+            .expect("pulse implementation installs");
+        registry
+            .install(TestShowImplementation {
+                kind_id: kind_id(SHOW_KIND),
+                implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
+            })
+            .expect("show implementation installs");
+        HostRuntime::new(advertisement, registry, observation_limit)
+    }
+
+    struct TestPulseImplementation {
+        kind_id: conduit_core::KindId,
+        implementation_id: ImplementationId,
+    }
+
+    impl OperationImplementation for TestPulseImplementation {
+        fn kind_id(&self) -> &conduit_core::KindId {
+            &self.kind_id
+        }
+
+        fn implementation_id(&self) -> &ImplementationId {
+            &self.implementation_id
+        }
+
+        fn prepare(
+            &self,
+            placement: &conduit_core::PlannedOperation,
+        ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
+            Ok(Box::new(TestPulseState {
+                configuration: parse_pulse_configuration(&placement.configuration).map_err(
+                    |error| {
+                        ImplementationFailure::new(
+                            FailureReason::InvalidOperationConfiguration,
+                            error.to_string(),
+                        )
+                    },
+                )?,
+                next_sequence: 0,
+            }))
+        }
+
+        fn minimum_value_size(&self, value_kind: &conduit_core::KindId) -> Option<u32> {
+            (value_kind.as_str() == SIGNAL_VALUE_KIND).then_some(SIGNAL_ENCODED_LEN)
+        }
+    }
+
+    struct TestPulseState {
+        configuration: TestPulseConfiguration,
+        next_sequence: u64,
+    }
+
+    impl TestPulseState {
+        fn next(&self) -> OperationAction {
+            if self.next_sequence >= self.configuration.count {
+                OperationAction::Complete
+            } else {
+                OperationAction::Emit(encode_signal(&Signal {
+                    sequence: self.next_sequence,
+                    level: if self.next_sequence.is_multiple_of(2) {
+                        self.configuration.initial_level
+                    } else {
+                        !self.configuration.initial_level
+                    },
+                }))
+            }
+        }
+    }
+
+    impl OperationState for TestPulseState {
+        fn start(&mut self) -> OperationAction {
+            self.next()
+        }
+
+        fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
+            match completion {
+                OperationCompletion::Emitted => {
+                    self.next_sequence += 1;
+                    if self.next_sequence >= self.configuration.count {
+                        OperationAction::Complete
+                    } else if self.configuration.period_ms > 0 {
+                        OperationAction::Wait {
+                            duration_ms: self.configuration.period_ms,
+                        }
+                    } else {
+                        self.next()
+                    }
+                }
+                OperationCompletion::TimerElapsed => self.next(),
+                _ => OperationAction::Fail(ImplementationFailure::new(
+                    FailureReason::InvalidLifecycleCommand,
+                    "unexpected pulse completion",
+                )),
+            }
+        }
+    }
+
+    struct TestShowImplementation {
+        kind_id: conduit_core::KindId,
+        implementation_id: ImplementationId,
+    }
+
+    impl OperationImplementation for TestShowImplementation {
+        fn kind_id(&self) -> &conduit_core::KindId {
+            &self.kind_id
+        }
+
+        fn implementation_id(&self) -> &ImplementationId {
+            &self.implementation_id
+        }
+
+        fn prepare(
+            &self,
+            _placement: &conduit_core::PlannedOperation,
+        ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
+            Ok(Box::new(TestShowState { expected: 0 }))
+        }
+
+        fn minimum_value_size(&self, value_kind: &conduit_core::KindId) -> Option<u32> {
+            (value_kind.as_str() == SIGNAL_VALUE_KIND).then_some(SIGNAL_ENCODED_LEN)
+        }
+    }
+
+    struct TestShowState {
+        expected: u64,
+    }
+
+    impl OperationState for TestShowState {
+        fn start(&mut self) -> OperationAction {
+            OperationAction::Idle
+        }
+
+        fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
+            match completion {
+                OperationCompletion::Value(value) => {
+                    let signal = decode_signal(&value).expect("test signal decodes");
+                    if signal.sequence != self.expected {
+                        return OperationAction::Fail(ImplementationFailure::new(
+                            FailureReason::MalformedConnectionEnvelope,
+                            "out-of-order signal",
+                        ));
+                    }
+                    OperationAction::Present {
+                        presentation_kind: kind_id(SIGNAL_PRESENTATION_KIND),
+                        value,
+                    }
+                }
+                OperationCompletion::PresentationCompleted { success: true, .. } => {
+                    self.expected += 1;
+                    OperationAction::Idle
+                }
+                OperationCompletion::PresentationCompleted {
+                    success: false,
+                    message,
+                } => OperationAction::Fail(ImplementationFailure {
+                    reason: FailureReason::ManifestationFailed,
+                    message,
+                }),
+                OperationCompletion::InputsClosed => OperationAction::Complete,
+                _ => OperationAction::Fail(ImplementationFailure::new(
+                    FailureReason::InvalidLifecycleCommand,
+                    "unexpected show completion",
+                )),
+            }
+        }
+    }
+
     fn demo_fragment(
         form_source: &str,
         queue_items: u16,
         queue_bytes: u32,
     ) -> conduit_core::PlanFragment {
-        let form = parse(form_source).expect("form should parse");
+        let form = parse(form_source, &signal_profile_catalog()).expect("form should parse");
         let advertisement = advertisement("boot-1", 1, 8, 256);
         let placements = default_placements(&form, std::slice::from_ref(&advertisement))
             .expect("placements work");
@@ -1621,6 +2195,7 @@ mod tests {
                     plan_id,
                     placement_id,
                     value,
+                    ..
                 } => {
                     presented.push(decode_signal(&value).expect("signal payload must decode"));
                     runtime.handle(HostCommand::CompletePresentation {
@@ -1664,6 +2239,7 @@ mod tests {
                     plan_id,
                     placement_id,
                     value,
+                    ..
                 } => {
                     let signal = decode_signal(&value).expect("signal payload must decode");
                     let fail =
@@ -1689,7 +2265,7 @@ mod tests {
     #[test]
     fn preparation_rejects_stale_boot() {
         let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
-        let mut runtime = HostRuntime::new(advertisement("boot-2", 1, 4, 64), 128);
+        let mut runtime = test_runtime(advertisement("boot-2", 1, 4, 64), 128);
         let output = runtime.handle(HostCommand::Prepare(fragment));
         assert!(matches!(
             output.events.first(),
@@ -1700,7 +2276,7 @@ mod tests {
     #[test]
     fn preparation_rejects_stale_offer_generation() {
         let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 2, 4, 64), 128);
+        let mut runtime = test_runtime(advertisement("boot-1", 2, 4, 64), 128);
         let output = runtime.handle(HostCommand::Prepare(fragment));
         assert!(matches!(
             output.events.first(),
@@ -1711,7 +2287,7 @@ mod tests {
     #[test]
     fn preparation_rejects_too_small_byte_capacity() {
         let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 1\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 8);
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 128);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
         let output = runtime.handle(HostCommand::Prepare(fragment));
         assert!(matches!(
             output.events.first(),
@@ -1722,7 +2298,7 @@ mod tests {
     #[test]
     fn full_queue_applies_backpressure() {
         let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 1, 64);
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 1, 64), 128);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 1, 64), 128);
         runtime.handle(HostCommand::Prepare(fragment.clone()));
         let output = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
         assert!(output
@@ -1734,7 +2310,7 @@ mod tests {
     #[test]
     fn byte_capacity_applies_backpressure() {
         let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 9);
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 128);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
         runtime.handle(HostCommand::Prepare(fragment.clone()));
         let output = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
         assert!(output
@@ -1767,7 +2343,7 @@ mod tests {
             })
             .collect::<BTreeMap<_, _>>();
         let plan_id = fragment.plan_id.clone();
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 256);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 256);
         runtime.handle(HostCommand::Prepare(fragment));
         let presented = drive_success(&mut runtime, plan_id.clone());
         assert_eq!(presented.len(), 8);
@@ -1857,7 +2433,7 @@ mod tests {
     #[test]
     fn cancellation_before_activation_is_terminal() {
         let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 128);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
         runtime.handle(HostCommand::Prepare(fragment.clone()));
         let output = runtime.handle(HostCommand::Cancel(fragment.plan_id.clone()));
         assert!(output.events.iter().any(|event| matches!(
@@ -1881,7 +2457,7 @@ mod tests {
             .expect("show placement exists")
             .placement_id
             .clone();
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 128);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
         runtime.handle(HostCommand::Prepare(fragment.clone()));
         let output = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
         let value = output
@@ -1913,7 +2489,7 @@ mod tests {
     fn repeated_release_is_rejected() {
         let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 1\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
         let plan_id = fragment.plan_id.clone();
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 128);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
         runtime.handle(HostCommand::Prepare(fragment));
         let _ = drive_success(&mut runtime, plan_id.clone());
         let first = runtime.handle(HostCommand::Release(plan_id.clone()));
@@ -1935,7 +2511,7 @@ mod tests {
     fn observation_overflow_records_gap() {
         let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 6\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
         let plan_id = fragment.plan_id.clone();
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 4);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 4);
         runtime.handle(HostCommand::Prepare(fragment));
         let _ = drive_success(&mut runtime, plan_id);
         let observations = inspect(&mut runtime);
@@ -1962,7 +2538,7 @@ mod tests {
             .connection_id
             .clone();
         let plan_id = fragment.plan_id.clone();
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 512);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 512);
         runtime.handle(HostCommand::Prepare(fragment));
         let events = drive_with_failure(&mut runtime, plan_id.clone(), &failed_sink, 0);
         let terminal_connections = events
@@ -2037,7 +2613,7 @@ mod tests {
             .expect("failed connection exists")
             .connection_id
             .clone();
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 768);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 768);
         runtime.handle(HostCommand::Prepare(fragment.clone()));
         let events = drive_with_failure(&mut runtime, fragment.plan_id, &failed_sink, 8);
         let disposition = events
@@ -2069,7 +2645,7 @@ mod tests {
             .expect("pulse exists")
             .placement_id
             .clone();
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 256);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 256);
         runtime.handle(HostCommand::Prepare(fragment.clone()));
         let activated = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
         assert!(activated
@@ -2108,7 +2684,7 @@ mod tests {
     #[test]
     fn fanout_cancellation_releases_all_queued_items() {
         let fragment = demo_fragment("form 0\n\nfanout {\n pulse: flow/pulse\n show-a: presentation/show\n show-b: presentation/show\n pulse.count = 8\n pulse.period-ms = 0\n pulse.initial = false\n pulse > show-a\n pulse > show-b\n}\n", 4, 64);
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 256);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 256);
         runtime.handle(HostCommand::Prepare(fragment.clone()));
         runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
         let cancelled = runtime.handle(HostCommand::Cancel(fragment.plan_id));
@@ -2141,7 +2717,7 @@ mod tests {
             .map(|connection| connection.connection_id.clone())
             .collect::<Vec<_>>();
         let plan_id = fragment.plan_id.clone();
-        let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 512);
+        let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 512);
         runtime.handle(HostCommand::Prepare(fragment));
         let presented = drive_success(&mut runtime, plan_id);
         assert_eq!(presented.len(), 9);
@@ -2174,7 +2750,7 @@ mod tests {
                 .expect("show exists")
                 .placement_id
                 .clone();
-            let mut runtime = HostRuntime::new(advertisement("boot-1", 1, 4, 64), 256);
+            let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 256);
             runtime.handle(HostCommand::Prepare(fragment.clone()));
             if fail {
                 let _ = drive_with_failure(&mut runtime, plan_id.clone(), &show, 0);
