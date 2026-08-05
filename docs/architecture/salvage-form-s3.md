@@ -40,18 +40,28 @@ document layer. Inline nesting remains later S3 work.
 ## Checked composite boundary checkpoint
 
 `CheckedForm::export_boundary` is the sole conversion from an authored export
-to an externally consumable composite contract. It binds the authored
-capability and kind, a revision of the visible port contract, the exact internal
-source/sink endpoints, and the checked external ports. Hidden child
-implementation identity is deliberately not part of that visible contract
-revision. Missing or duplicate capability exports fail closed.
+to an externally consumable composite contract. An export is a block of zero
+or more named input faces and zero or more named output faces. Each input maps
+to one exact checked internal sink endpoint; each output maps to one exact
+checked internal source endpoint. Direction, value kind, and the currently
+supported `independent` terminal contract are explicit and identity-bound. No
+face is derived by finding an internal connection.
+
+The visible contract revision binds only external face names, directions,
+value kinds, and terminal contracts. Internal operation/port identities remain
+in the checked mapping and are deliberately absent from the parent-visible
+kind. Duplicate face or capability names, wrong directions/kinds, missing
+endpoints, and unsupported terminal policies fail closed.
 
 Both `CompositeDefinition::from_authored_export` and
 `ProfileCatalog::insert_export` consume this same checked object. The composite
 helper no longer fabricates a `kind@1` revision, and parent helper code cannot
 declare a boundary absent from the child source. A parent operation created
 from the installed export uses the normal checker and planner cord path; it
-does not address internal child identities.
+does not address internal child identities. The checker covers
+multi-input/multi-output faces with different value kinds plus input-only and
+output-only composites. Hosted execution across every named face remains an
+explicit #399 integration boundary.
 
 ## Inline nesting checkpoint
 

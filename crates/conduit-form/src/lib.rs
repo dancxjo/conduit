@@ -1,6 +1,6 @@
 use conduit_core::{
     CapabilityId, CheckedFormId, ConfigurationEntry, ConfigurationValue, ExpandedFormId,
-    FormIdentity, KindContractRevision, KindId, OperationId, PortDescriptor, PortId,
+    FormIdentity, KindContractRevision, KindId, OperationId, PortDescriptor, PortDirection, PortId,
     SourceDocumentId,
 };
 use sha2::{Digest, Sha256};
@@ -193,51 +193,29 @@ impl CheckedForm {
                     capability_id.as_str()
                 ))
             })?;
-        let source = self
-            .operations
+        validate_export_faces(export, &self.operations)?;
+        let inputs = export
+            .input_faces
             .iter()
-            .find(|operation| operation.operation_id == export.source_operation_id)
-            .ok_or_else(|| {
-                FormError::InvalidExport("export source operation is not checked".into())
-            })?;
-        let output = source
-            .outputs
+            .map(|face| face.external_port.clone())
+            .collect::<Vec<_>>();
+        let outputs = export
+            .output_faces
             .iter()
-            .find(|port| port.port_id == export.source_port_id)
-            .cloned()
-            .ok_or_else(|| FormError::InvalidExport("export source port is not checked".into()))?;
-        let sink = self
-            .operations
-            .iter()
-            .find(|operation| operation.operation_id == export.sink_operation_id)
-            .ok_or_else(|| {
-                FormError::InvalidExport("export sink operation is not checked".into())
-            })?;
-        let input = sink
-            .inputs
-            .iter()
-            .find(|port| port.port_id == export.sink_port_id)
-            .ok_or_else(|| FormError::InvalidExport("export sink port is not checked".into()))?;
-        if output.value_kind != export.value_kind || input.value_kind != export.value_kind {
-            return Err(FormError::InvalidExport(
-                "export value kind differs from its checked endpoints".into(),
-            ));
-        }
+            .map(|face| face.external_port.clone())
+            .collect::<Vec<_>>();
         Ok(CheckedCompositeBoundary {
             capability_id: export.capability_id.clone(),
             kind_id: export.kind_id.clone(),
             kind_contract_revision: exported_contract_revision(
                 &export.kind_id,
-                &[],
-                std::slice::from_ref(&output),
+                &export.input_faces,
+                &export.output_faces,
             ),
-            inputs: Vec::new(),
-            outputs: vec![output],
-            source_operation_id: export.source_operation_id.clone(),
-            source_port_id: export.source_port_id.clone(),
-            sink_operation_id: export.sink_operation_id.clone(),
-            sink_port_id: export.sink_port_id.clone(),
-            value_kind: export.value_kind.clone(),
+            inputs,
+            outputs,
+            input_faces: export.input_faces.clone(),
+            output_faces: export.output_faces.clone(),
         })
     }
 }
@@ -253,11 +231,27 @@ pub struct CheckedNestedForm {
 pub struct CheckedExport {
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
-    pub source_operation_id: OperationId,
-    pub source_port_id: PortId,
-    pub sink_operation_id: OperationId,
-    pub sink_port_id: PortId,
-    pub value_kind: KindId,
+    pub input_faces: Vec<CheckedCompositeFace>,
+    pub output_faces: Vec<CheckedCompositeFace>,
+}
+
+/// Terminal behavior is part of the exported face contract, independently for
+/// every face. More policies can be added without weakening the current exact
+/// `independent` contract.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompositeFaceTerminal {
+    Independent,
+    /// Reserved invalid value used to prove hosted mutation rejection. The
+    /// authored grammar intentionally accepts only `independent` today.
+    Coupled,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedCompositeFace {
+    pub external_port: PortDescriptor,
+    pub internal_operation_id: OperationId,
+    pub internal_port_id: PortId,
+    pub terminal: CompositeFaceTerminal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -267,11 +261,8 @@ pub struct CheckedCompositeBoundary {
     pub kind_contract_revision: KindContractRevision,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
-    pub source_operation_id: OperationId,
-    pub source_port_id: PortId,
-    pub sink_operation_id: OperationId,
-    pub sink_port_id: PortId,
-    pub value_kind: KindId,
+    pub input_faces: Vec<CheckedCompositeFace>,
+    pub output_faces: Vec<CheckedCompositeFace>,
 }
 
 impl CheckedCompositeBoundary {
@@ -606,6 +597,25 @@ fn parse_form_block(
                 index + 1,
             ));
         }
+        if line.starts_with("export ") && line.ends_with('{') {
+            let (export, next) = parse_export_block(lines, index, &operations)
+                .map_err(|error| (error, located.span))?;
+            if exports
+                .iter()
+                .any(|checked| checked.capability_id == export.capability_id)
+            {
+                return Err((
+                    FormError::InvalidExport(format!(
+                        "duplicate capability '{}'",
+                        export.capability_id.as_str()
+                    )),
+                    located.span,
+                ));
+            }
+            exports.push(export);
+            index = next;
+            continue;
+        }
         if line.ends_with('{') {
             let nested_declaration = line.trim_end_matches('{').trim();
             let (operation_name, capability_name) =
@@ -647,24 +657,8 @@ fn parse_form_block(
             index = next;
             continue;
         }
-        if let Some(export) = line.strip_prefix("export ") {
-            let export = parse_export(export, &operations, &connections)
-                .map_err(|error| (error, located.span))?;
-            if exports
-                .iter()
-                .any(|checked| checked.capability_id == export.capability_id)
-            {
-                return Err((
-                    FormError::InvalidExport(format!(
-                        "duplicate capability '{}'",
-                        export.capability_id.as_str()
-                    )),
-                    located.span,
-                ));
-            }
-            exports.push(export);
-            index += 1;
-            continue;
+        if line.starts_with("export ") {
+            return Err((FormError::InvalidExport(line.to_string()), located.span));
         }
         if let Some((left, right)) = line.split_once(':') {
             let operation_id = left.trim().to_string();
@@ -931,40 +925,189 @@ fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
     }
 }
 
-fn parse_export(
+fn parse_export_block(
+    lines: &[LocatedLine<'_>],
+    start: usize,
+    operations: &BTreeMap<String, OperationDraft>,
+) -> Result<(CheckedExport, usize), FormError> {
+    let header = lines
+        .get(start)
+        .ok_or_else(|| FormError::InvalidExport("missing export header".into()))?;
+    let declaration = header
+        .text
+        .strip_prefix("export ")
+        .and_then(|value| value.strip_suffix('{'))
+        .map(str::trim)
+        .ok_or_else(|| FormError::InvalidExport(header.text.to_string()))?;
+    let (capability_id, kind_id) = declaration
+        .split_once(':')
+        .ok_or_else(|| FormError::InvalidExport(declaration.to_string()))?;
+    if capability_id.trim().is_empty() || kind_id.trim().is_empty() {
+        return Err(FormError::InvalidExport(declaration.to_string()));
+    }
+    let mut input_faces = Vec::new();
+    let mut output_faces = Vec::new();
+    let mut index = start + 1;
+    while let Some(line) = lines.get(index) {
+        if line.text == "}" {
+            let export = CheckedExport {
+                capability_id: CapabilityId::from(capability_id.trim()),
+                kind_id: KindId::from(kind_id.trim()),
+                input_faces,
+                output_faces,
+            };
+            validate_export_face_names(&export)?;
+            return Ok((export, index + 1));
+        }
+        let face = parse_export_face(line.text, operations)?;
+        match face.external_port.direction {
+            PortDirection::Input => input_faces.push(face),
+            PortDirection::Output => output_faces.push(face),
+        }
+        index += 1;
+    }
+    Err(FormError::MissingBlockEnd)
+}
+
+fn parse_export_face(
     source: &str,
     operations: &BTreeMap<String, OperationDraft>,
-    connections: &[CheckedConnection],
-) -> Result<CheckedExport, FormError> {
-    let (declaration, boundary) = source
+) -> Result<CheckedCompositeFace, FormError> {
+    let (direction, body) = if let Some(body) = source.strip_prefix("input ") {
+        (PortDirection::Input, body)
+    } else if let Some(body) = source.strip_prefix("output ") {
+        (PortDirection::Output, body)
+    } else {
+        return Err(FormError::InvalidExport(format!(
+            "expected an input or output face in '{source}'"
+        )));
+    };
+    let (mapping, terminal) = body
+        .rsplit_once(" terminal ")
+        .ok_or_else(|| FormError::InvalidExport(source.to_string()))?;
+    if terminal.trim() != "independent" {
+        return Err(FormError::InvalidExport(format!(
+            "unsupported terminal contract '{}'",
+            terminal.trim()
+        )));
+    }
+    let (declaration, endpoint) = mapping
         .split_once('=')
         .ok_or_else(|| FormError::InvalidExport(source.to_string()))?;
-    let (capability_id, kind_id) = declaration
-        .trim()
+    let (external_port_id, value_kind) = declaration
         .split_once(':')
         .ok_or_else(|| FormError::InvalidExport(source.to_string()))?;
-    let (left, right) = boundary
-        .trim()
-        .split_once("->")
-        .ok_or_else(|| FormError::InvalidExport(source.to_string()))?;
-    let checked = parse_connection(left.trim(), right.trim(), operations)?;
-    if !connections.contains(&checked) {
-        return Err(FormError::InvalidExport(
-            "export boundary must name an already-authored connection".to_string(),
-        ));
-    }
-    if capability_id.trim().is_empty() || kind_id.trim().is_empty() {
+    let external_port_id = external_port_id.trim();
+    let value_kind = value_kind.trim();
+    if external_port_id.is_empty() || value_kind.is_empty() {
         return Err(FormError::InvalidExport(source.to_string()));
     }
-    Ok(CheckedExport {
-        capability_id: CapabilityId::from(capability_id.trim()),
-        kind_id: KindId::from(kind_id.trim()),
-        source_operation_id: checked.source_operation_id,
-        source_port_id: checked.source_port_id,
-        sink_operation_id: checked.sink_operation_id,
-        sink_port_id: checked.sink_port_id,
-        value_kind: checked.value_kind,
+    let (operation_id, port_id) = parse_endpoint(endpoint.trim())?;
+    let operation = operation(operations, operation_id.trim())?;
+    let internal_port = match direction {
+        PortDirection::Input => &operation.definition.inputs,
+        PortDirection::Output => &operation.definition.outputs,
+    }
+    .iter()
+    .find(|port| port.port_id.as_str() == port_id.trim())
+    .ok_or_else(|| {
+        FormError::InvalidExport(format!(
+            "{} face endpoint '{}.{}' is not a checked {} port",
+            match direction {
+                PortDirection::Input => "input",
+                PortDirection::Output => "output",
+            },
+            operation_id.trim(),
+            port_id.trim(),
+            match direction {
+                PortDirection::Input => "input",
+                PortDirection::Output => "output",
+            }
+        ))
+    })?;
+    if internal_port.value_kind.as_str() != value_kind {
+        return Err(FormError::InvalidExport(format!(
+            "face kind '{}' differs from endpoint kind '{}'",
+            value_kind,
+            internal_port.value_kind.as_str()
+        )));
+    }
+    Ok(CheckedCompositeFace {
+        external_port: PortDescriptor {
+            port_id: PortId::from(external_port_id),
+            value_kind: KindId::from(value_kind),
+            direction,
+        },
+        internal_operation_id: OperationId::from(operation_id.trim()),
+        internal_port_id: PortId::from(port_id.trim()),
+        terminal: CompositeFaceTerminal::Independent,
     })
+}
+
+fn validate_export_face_names(export: &CheckedExport) -> Result<(), FormError> {
+    let mut names = std::collections::BTreeSet::new();
+    for face in export.input_faces.iter().chain(&export.output_faces) {
+        if !names.insert(face.external_port.port_id.clone()) {
+            return Err(FormError::InvalidExport(format!(
+                "duplicate face name '{}'",
+                face.external_port.port_id.as_str()
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn validate_export_faces(
+    export: &CheckedExport,
+    operations: &[CheckedOperation],
+) -> Result<(), FormError> {
+    validate_export_face_names(export)?;
+    for (direction, faces) in [
+        (PortDirection::Input, &export.input_faces),
+        (PortDirection::Output, &export.output_faces),
+    ] {
+        for face in faces {
+            if face.external_port.direction != direction {
+                return Err(FormError::InvalidExport(
+                    "face direction differs from its export collection".into(),
+                ));
+            }
+            let operation = operations
+                .iter()
+                .find(|operation| operation.operation_id == face.internal_operation_id)
+                .ok_or_else(|| {
+                    FormError::InvalidExport(format!(
+                        "face '{}' names a missing internal operation",
+                        face.external_port.port_id.as_str()
+                    ))
+                })?;
+            let endpoint = match direction {
+                PortDirection::Input => &operation.inputs,
+                PortDirection::Output => &operation.outputs,
+            }
+            .iter()
+            .find(|port| port.port_id == face.internal_port_id)
+            .ok_or_else(|| {
+                FormError::InvalidExport(format!(
+                    "face '{}' names a missing or wrongly directed internal port",
+                    face.external_port.port_id.as_str()
+                ))
+            })?;
+            if endpoint.value_kind != face.external_port.value_kind {
+                return Err(FormError::InvalidExport(format!(
+                    "face '{}' value kind differs from its internal endpoint",
+                    face.external_port.port_id.as_str()
+                )));
+            }
+            if face.terminal != CompositeFaceTerminal::Independent {
+                return Err(FormError::InvalidExport(format!(
+                    "face '{}' has an unsupported terminal contract",
+                    face.external_port.port_id.as_str()
+                )));
+            }
+        }
+    }
+    Ok(())
 }
 
 fn parse_configuration_value(
@@ -1128,15 +1271,23 @@ fn canonical_form_text(
     }
     for export in exports {
         text.push_str(&format!(
-            "export:{}:{}:{}:{}->{}:{}:{}|",
+            "export:{}:{}|",
             export.capability_id.as_str(),
             export.kind_id.as_str(),
-            export.source_operation_id.as_str(),
-            export.source_port_id.as_str(),
-            export.sink_operation_id.as_str(),
-            export.sink_port_id.as_str(),
-            export.value_kind.as_str()
         ));
+        for face in export.input_faces.iter().chain(&export.output_faces) {
+            let direction = match face.external_port.direction {
+                PortDirection::Input => "input",
+                PortDirection::Output => "output",
+            };
+            text.push_str(&format!(
+                "face:{direction}:{}:{}={}:{}:terminal-independent|",
+                face.external_port.port_id.as_str(),
+                face.external_port.value_kind.as_str(),
+                face.internal_operation_id.as_str(),
+                face.internal_port_id.as_str(),
+            ));
+        }
     }
     text
 }
@@ -1171,16 +1322,23 @@ fn expanded_form_id(
 
 fn exported_contract_revision(
     kind_id: &KindId,
-    inputs: &[PortDescriptor],
-    outputs: &[PortDescriptor],
+    inputs: &[CheckedCompositeFace],
+    outputs: &[CheckedCompositeFace],
 ) -> KindContractRevision {
     let mut canonical = String::from("checked-export-contract:");
     push_identity_field(&mut canonical, kind_id.as_str());
-    for (direction, ports) in [("input", inputs), ("output", outputs)] {
-        for port in ports {
+    for (direction, faces) in [("input", inputs), ("output", outputs)] {
+        for face in faces {
             push_identity_field(&mut canonical, direction);
-            push_identity_field(&mut canonical, port.port_id.as_str());
-            push_identity_field(&mut canonical, port.value_kind.as_str());
+            push_identity_field(&mut canonical, face.external_port.port_id.as_str());
+            push_identity_field(&mut canonical, face.external_port.value_kind.as_str());
+            push_identity_field(
+                &mut canonical,
+                match face.terminal {
+                    CompositeFaceTerminal::Independent => "independent",
+                    CompositeFaceTerminal::Coupled => "coupled",
+                },
+            );
         }
     }
     KindContractRevision::from(format!("checked-export:{}", hash_string(&canonical)))
@@ -1221,8 +1379,9 @@ fn hex(nibble: u8) -> char {
 #[cfg(test)]
 mod tests {
     use super::{
-        parse, parse_document, ConfigurationField, ConfigurationRule, FormError, KindDefinition,
-        ProfileCatalog, MAXIMUM_FORM_NESTING_DEPTH, MAXIMUM_FORM_SOURCE_BYTES, MAXIMUM_FORM_TOKENS,
+        parse, parse_document, CompositeFaceTerminal, ConfigurationField, ConfigurationRule,
+        FormError, KindDefinition, ProfileCatalog, MAXIMUM_FORM_NESTING_DEPTH,
+        MAXIMUM_FORM_SOURCE_BYTES, MAXIMUM_FORM_TOKENS,
     };
     use conduit_core::{
         kind_id, port_id, CapabilityId, ConfigurationValue, KindContractRevision, PortDescriptor,
@@ -1273,6 +1432,37 @@ mod tests {
                 configuration: Vec::new(),
             })
             .expect("sink kind installs");
+        catalog
+    }
+
+    fn multi_value_catalog() -> ProfileCatalog {
+        let mut catalog = catalog();
+        catalog
+            .insert(KindDefinition {
+                kind_id: kind_id("test/source-b"),
+                kind_contract_revision: KindContractRevision::from("test/source-b@1"),
+                inputs: Vec::new(),
+                outputs: vec![PortDescriptor {
+                    port_id: port_id("bytes"),
+                    value_kind: kind_id("test/bytes"),
+                    direction: PortDirection::Output,
+                }],
+                configuration: Vec::new(),
+            })
+            .expect("second source installs");
+        catalog
+            .insert(KindDefinition {
+                kind_id: kind_id("test/sink-b"),
+                kind_contract_revision: KindContractRevision::from("test/sink-b@1"),
+                inputs: vec![PortDescriptor {
+                    port_id: port_id("bytes"),
+                    value_kind: kind_id("test/bytes"),
+                    direction: PortDirection::Input,
+                }],
+                outputs: Vec::new(),
+                configuration: Vec::new(),
+            })
+            .expect("second sink installs");
         catalog
     }
 
@@ -1463,28 +1653,44 @@ mod tests {
     }
 
     #[test]
-    fn checks_authored_exports_against_real_connections() {
+    fn checks_named_faces_against_exact_internal_endpoints() {
         let form = parse(
-            "form 0\n\ncomposite {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite = source.out -> sink.in\n}\n",
+            "form 0\n\ncomposite {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n}\n",
             &catalog(),
         )
         .expect("authored export parses");
         assert_eq!(form.exports.len(), 1);
         assert_eq!(form.exports[0].capability_id.as_str(), "run");
         assert_eq!(form.exports[0].kind_id.as_str(), "test/composite");
-        assert_eq!(form.exports[0].value_kind.as_str(), "test/value");
+        assert_eq!(form.exports[0].input_faces.len(), 1);
+        assert_eq!(form.exports[0].output_faces.len(), 1);
+        assert_eq!(
+            form.exports[0].input_faces[0]
+                .external_port
+                .value_kind
+                .as_str(),
+            "test/value"
+        );
 
         let error = parse(
-            "form 0\n\nbad {\n source: test/source\n sink: test/sink\n export run: test/composite = source.out -> sink.in\n}\n",
+            "form 0\n\nbad {\n source: test/source\n sink: test/sink\n export run: test/composite {
+  input in: test/value = source.out terminal independent
+ }\n}\n",
             &catalog(),
         )
-        .expect_err("an export cannot invent a connection");
+        .expect_err("an input face cannot map to an output endpoint");
         assert!(matches!(error, super::FormError::InvalidExport(_)));
     }
 
     #[test]
     fn checked_export_is_the_only_source_of_a_parent_kind_boundary() {
-        let source = "form 0\nchild {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite = source.out -> sink.in\n}\n";
+        let source = "form 0\nchild {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n}\n";
         let child = parse(source, &catalog()).expect("child checks");
         let capability_id = CapabilityId::from("run");
         let boundary = child
@@ -1492,10 +1698,18 @@ mod tests {
             .expect("authored export derives a boundary");
 
         assert_eq!(boundary.kind_id.as_str(), "test/composite");
-        assert_eq!(boundary.inputs, Vec::new());
+        assert_eq!(boundary.inputs.len(), 1);
+        assert_eq!(boundary.inputs[0].port_id.as_str(), "in");
         assert_eq!(boundary.outputs.len(), 1);
         assert_eq!(boundary.outputs[0].port_id.as_str(), "out");
-        assert_eq!(boundary.value_kind.as_str(), "test/value");
+        assert_eq!(
+            boundary.input_faces[0].internal_operation_id.as_str(),
+            "sink"
+        );
+        assert_eq!(
+            boundary.output_faces[0].internal_operation_id.as_str(),
+            "source"
+        );
         assert!(child
             .export_boundary(&CapabilityId::from("invented"))
             .is_err());
@@ -1516,7 +1730,10 @@ mod tests {
         assert_eq!(parent.connections[0].source_port_id.as_str(), "out");
 
         let changed = parse(
-            "form 0\nchild {\n source: test/source\n sink: test/sink\n source.count = 2\n source > sink\n export run: test/composite = source.out -> sink.in\n}\n",
+            "form 0\nchild {\n source: test/source\n sink: test/sink\n source.count = 2\n source > sink\n export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n}\n",
             &catalog(),
         )
         .expect("semantic change checks");
@@ -1532,9 +1749,101 @@ mod tests {
     }
 
     #[test]
+    fn checked_face_mutations_fail_closed() {
+        let source = "form 0\nchild {\n source: test/source\n sink: test/sink\n export run: test/composite {\n  input in: test/value = sink.in terminal independent\n  output out: test/value = source.out terminal independent\n }\n}\n";
+        let baseline = parse(source, &catalog()).expect("baseline checks");
+        let capability = CapabilityId::from("run");
+
+        let mut duplicate_name = baseline.clone();
+        duplicate_name.exports[0].output_faces[0]
+            .external_port
+            .port_id = duplicate_name.exports[0].input_faces[0]
+            .external_port
+            .port_id
+            .clone();
+        assert!(duplicate_name.export_boundary(&capability).is_err());
+
+        let mut direction = baseline.clone();
+        direction.exports[0].input_faces[0].external_port.direction = PortDirection::Output;
+        assert!(direction.export_boundary(&capability).is_err());
+
+        let mut kind = baseline.clone();
+        kind.exports[0].output_faces[0].external_port.value_kind = kind_id("test/other");
+        assert!(kind.export_boundary(&capability).is_err());
+
+        let mut endpoint = baseline.clone();
+        endpoint.exports[0].input_faces[0].internal_port_id = port_id("missing");
+        assert!(endpoint.export_boundary(&capability).is_err());
+
+        let mut terminal = baseline;
+        terminal.exports[0].output_faces[0].terminal = CompositeFaceTerminal::Coupled;
+        assert!(terminal.export_boundary(&capability).is_err());
+    }
+
+    #[test]
+    fn multiple_typed_and_zero_sided_faces_check_as_ordinary_kinds() {
+        let multi = parse(
+            "form 0\nmulti {\n source-a: test/source\n sink-a: test/sink\n source-b: test/source-b\n sink-b: test/sink-b\n export run: test/multi {\n  input number-in: test/value = sink-a.in terminal independent\n  input bytes-in: test/bytes = sink-b.bytes terminal independent\n  output number-out: test/value = source-a.out terminal independent\n  output bytes-out: test/bytes = source-b.bytes terminal independent\n }\n}\n",
+            &multi_value_catalog(),
+        )
+        .expect("two-input two-output export checks without an internal boundary cord");
+        let boundary = multi
+            .export_boundary(&CapabilityId::from("run"))
+            .expect("multi boundary derives");
+        assert_eq!(boundary.inputs.len(), 2);
+        assert_eq!(boundary.outputs.len(), 2);
+        assert_eq!(boundary.inputs[0].value_kind.as_str(), "test/value");
+        assert_eq!(boundary.inputs[1].value_kind.as_str(), "test/bytes");
+
+        let input_only = parse(
+            "form 0\ningest {\n sink: test/sink\n export ingest: test/input-only {\n  input value: test/value = sink.in terminal independent\n }\n}\n",
+            &catalog(),
+        )
+        .expect("input-only export checks");
+        let input_boundary = input_only
+            .export_boundary(&CapabilityId::from("ingest"))
+            .expect("input-only boundary derives");
+        assert_eq!(input_boundary.inputs.len(), 1);
+        assert!(input_boundary.outputs.is_empty());
+
+        let output_only = parse(
+            "form 0\nproduce {\n source: test/source\n export produce: test/output-only {\n  output value: test/value = source.out terminal independent\n }\n}\n",
+            &catalog(),
+        )
+        .expect("output-only export checks");
+        let output_boundary = output_only
+            .export_boundary(&CapabilityId::from("produce"))
+            .expect("output-only boundary derives");
+        assert!(output_boundary.inputs.is_empty());
+        assert_eq!(output_boundary.outputs.len(), 1);
+
+        let mut parent_catalog = multi_value_catalog();
+        parent_catalog
+            .insert_export(&multi, &CapabilityId::from("run"))
+            .expect("multi export installs as an ordinary kind");
+        let parent = parse(
+            "form 0\nparent {\n source-a: test/source\n source-b: test/source-b\n child: test/multi\n sink-a: test/sink\n sink-b: test/sink-b\n source-a.out -> child.number-in\n source-b.bytes -> child.bytes-in\n child.number-out -> sink-a.in\n child.bytes-out -> sink-b.bytes\n}\n",
+            &parent_catalog,
+        )
+        .expect("parent checks all exported faces through ordinary ports");
+        assert_eq!(parent.connections.len(), 4);
+        assert!(parent
+            .operations
+            .iter()
+            .find(|operation| operation.operation_id.as_str() == "child")
+            .is_some_and(|operation| operation.inputs.len() == 2 && operation.outputs.len() == 2));
+    }
+
+    #[test]
     fn duplicate_export_capabilities_are_rejected() {
         let error = parse(
-            "form 0\nchild {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite = source.out -> sink.in\n export run: test/other = source.out -> sink.in\n}\n",
+            "form 0\nchild {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n export run: test/other {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n}\n",
             &catalog(),
         )
         .expect_err("one capability cannot name two boundaries");
@@ -1543,8 +1852,14 @@ mod tests {
 
     #[test]
     fn inline_nested_form_uses_the_same_checked_boundary_as_a_standalone_form() {
-        let standalone_source = "form 0\nchild {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite = source.out -> sink.in\n}\n";
-        let nested_source = "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n final: test/sink\n child.out -> final.in\n}\n";
+        let standalone_source = "form 0\nchild {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n}\n";
+        let nested_source = "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n final: test/sink\n child.out -> final.in\n}\n";
         let standalone = parse(standalone_source, &catalog()).expect("standalone child checks");
         let parent = parse(nested_source, &catalog()).expect("inline nested form checks");
         let nested = &parent.nested_forms[0];
@@ -1576,12 +1891,18 @@ mod tests {
     #[test]
     fn parent_expanded_identity_binds_hidden_child_semantics_not_checked_boundary() {
         let baseline = parse(
-            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n final: test/sink\n child.out -> final.in\n}\n",
+            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n final: test/sink\n child.out -> final.in\n}\n",
             &catalog(),
         )
         .expect("baseline nested parent checks");
         let changed = parse(
-            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n final: test/sink\n child.out -> final.in\n}\n",
+            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n final: test/sink\n child.out -> final.in\n}\n",
             &catalog(),
         )
         .expect("changed nested parent checks");
@@ -1607,17 +1928,35 @@ mod tests {
     #[test]
     fn nested_expansion_paths_are_canonical_and_substitution_fails_closed() {
         let baseline = parse(
-            "form 0\nparent {\n left: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n right: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n left-sink: test/sink\n right-sink: test/sink\n left.out -> left-sink.in\n right.out -> right-sink.in\n}\n",
+            "form 0\nparent {\n left: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n right: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n left-sink: test/sink\n right-sink: test/sink\n left.out -> left-sink.in\n right.out -> right-sink.in\n}\n",
             &catalog(),
         )
         .expect("two nested paths check");
         let source_reordered = parse(
-            "form 0\nparent {\n right: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n left: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n left-sink: test/sink\n right-sink: test/sink\n left.out -> left-sink.in\n right.out -> right-sink.in\n}\n",
+            "form 0\nparent {\n right: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n left: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n left-sink: test/sink\n right-sink: test/sink\n left.out -> left-sink.in\n right.out -> right-sink.in\n}\n",
             &catalog(),
         )
         .expect("source-reordered nested paths check");
         let implementations_swapped = parse(
-            "form 0\nparent {\n left: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n right: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n left-sink: test/sink\n right-sink: test/sink\n left.out -> left-sink.in\n right.out -> right-sink.in\n}\n",
+            "form 0\nparent {\n left: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n right: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n left-sink: test/sink\n right-sink: test/sink\n left.out -> left-sink.in\n right.out -> right-sink.in\n}\n",
             &catalog(),
         )
         .expect("swapped nested implementations check");
@@ -1668,7 +2007,10 @@ mod tests {
 
     #[test]
     fn nested_errors_keep_the_outer_document_and_exact_inner_span() {
-        let source = "form 0\nparent {\n child: run {\n  source: test/source\n  ?? inner error\n  sink: test/sink\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n}\n";
+        let source = "form 0\nparent {\n child: run {\n  source: test/source\n  ?? inner error\n  sink: test/sink\n  source > sink\n  export run: test/composite {
+  input in: test/value = sink.in terminal independent
+  output out: test/value = source.out terminal independent
+ }\n }\n}\n";
         let document = parse_document(source, &catalog());
         let diagnostic = &document.diagnostics[0];
 

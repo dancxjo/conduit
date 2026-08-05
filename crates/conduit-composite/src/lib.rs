@@ -3,10 +3,10 @@ use conduit_core::{
     CapabilityLimits, CapabilityOffer, ConnectionEnvelope, ConnectionId, ConnectionOutcome,
     ConnectionProvider, ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand,
     HostEvent, HostId, HostProfileId, ImplementationId, Observation, ObservationKind,
-    OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect, TerminalDisposition,
-    PROTOCOL_VERSION,
+    OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect, PortDescriptor, PortId,
+    TerminalDisposition, PROTOCOL_VERSION,
 };
-use conduit_form::CheckedForm;
+use conduit_form::{CheckedForm, CompositeFaceTerminal};
 use conduit_runtime::{
     providers::in_memory::InMemoryConnectionProvider, HostRuntime, RuntimeOutput,
 };
@@ -46,9 +46,17 @@ pub enum DeliveryMode {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompositeBoundary {
-    pub source_child: HostId,
-    pub sink_child: HostId,
-    pub connection_id: ConnectionId,
+    pub input_faces: Vec<CompositeFaceBinding>,
+    pub output_faces: Vec<CompositeFaceBinding>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompositeFaceBinding {
+    pub external_port: PortDescriptor,
+    pub internal_child: HostId,
+    pub internal_placement_id: conduit_core::PlacementId,
+    pub internal_port_id: PortId,
+    pub terminal: CompositeFaceTerminal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -102,32 +110,63 @@ impl CompositeDefinition {
                 .flat_map(|fragment| &fragment.placements)
                 .find(|placement| &placement.operation_id == operation_id)
         };
-        let source = placement_for(&boundary.source_operation_id).ok_or_else(|| {
-            CompositeError::InvalidInternalPlan("export source is absent from plan".into())
-        })?;
-        let sink = placement_for(&boundary.sink_operation_id).ok_or_else(|| {
-            CompositeError::InvalidInternalPlan("export sink is absent from plan".into())
-        })?;
-        let connection = internal_plan
+        let bind_faces = |faces: &[conduit_form::CheckedCompositeFace]| {
+            faces
+                .iter()
+                .map(|face| {
+                    let placement =
+                        placement_for(&face.internal_operation_id).ok_or_else(|| {
+                            CompositeError::InvalidInternalPlan(format!(
+                                "face '{}' internal operation is absent from the exact plan",
+                                face.external_port.port_id.as_str()
+                            ))
+                        })?;
+                    let planned_port = match face.external_port.direction {
+                        conduit_core::PortDirection::Input => &placement.inputs,
+                        conduit_core::PortDirection::Output => &placement.outputs,
+                    }
+                    .iter()
+                    .find(|port| port.port_id == face.internal_port_id)
+                    .ok_or_else(|| {
+                        CompositeError::InvalidInternalPlan(format!(
+                            "face '{}' internal endpoint is absent from the exact plan",
+                            face.external_port.port_id.as_str()
+                        ))
+                    })?;
+                    if planned_port.value_kind != face.external_port.value_kind
+                        || planned_port.direction != face.external_port.direction
+                    {
+                        return Err(CompositeError::InvalidInternalPlan(format!(
+                            "face '{}' differs from its exact planned endpoint",
+                            face.external_port.port_id.as_str()
+                        )));
+                    }
+                    Ok(CompositeFaceBinding {
+                        external_port: face.external_port.clone(),
+                        internal_child: placement.host_id.clone(),
+                        internal_placement_id: placement.placement_id.clone(),
+                        internal_port_id: face.internal_port_id.clone(),
+                        terminal: face.terminal,
+                    })
+                })
+                .collect::<Result<Vec<_>, CompositeError>>()
+        };
+        let input_faces = bind_faces(&boundary.input_faces)?;
+        let output_faces = bind_faces(&boundary.output_faces)?;
+        let queue_items = internal_plan
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .find(|connection| {
-                connection.source_placement_id == source.placement_id
-                    && connection.source_port_id == boundary.source_port_id
-                    && connection.sink_placement_id == sink.placement_id
-                    && connection.sink_port_id == boundary.sink_port_id
-                    && connection.value_kind == boundary.value_kind
-                    && connection.provider == ConnectionProvider::InMemory
-            })
-            .cloned()
-            .ok_or_else(|| {
-                CompositeError::InvalidInternalPlan(
-                    "authored export does not resolve to an exact in-memory plan boundary".into(),
-                )
-            })?;
-        let source_child = source.host_id.clone();
-        let sink_child = sink.host_id.clone();
+            .map(|connection| connection.item_capacity)
+            .min()
+            .unwrap_or(conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY);
+        let queue_bytes = internal_plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .map(|connection| connection.byte_capacity)
+            .min()
+            .unwrap_or(conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY);
         let execution_profile_id =
             ExecutionProfileId::from(format!("composite:{}@1", implementation_id.as_str()));
         Ok(Self {
@@ -149,8 +188,8 @@ impl CompositeDefinition {
                 authority_requirements: Vec::new(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
-                    max_queue_items: connection.item_capacity,
-                    max_queue_bytes: connection.byte_capacity,
+                    max_queue_items: queue_items,
+                    max_queue_bytes: queue_bytes,
                 },
             },
             children: internal_plan
@@ -162,9 +201,8 @@ impl CompositeDefinition {
                 .collect(),
             internal_plan,
             boundary: CompositeBoundary {
-                source_child,
-                sink_child,
-                connection_id: connection.connection_id,
+                input_faces,
+                output_faces,
             },
             failure_translation,
         })
@@ -186,13 +224,19 @@ struct ChildRuntime {
 }
 
 #[derive(Debug)]
+struct InternalConnection {
+    source_child: HostId,
+    sink_child: HostId,
+    provider: InMemoryConnectionProvider,
+}
+
+#[derive(Debug)]
 pub struct CompositeHost {
     advertisement: HostAdvertisement,
     children: BTreeMap<HostId, ChildRuntime>,
     boundary: CompositeBoundary,
     internal_plan_id: PlanId,
-    connection_id: ConnectionId,
-    provider: InMemoryConnectionProvider,
+    internal_connections: BTreeMap<ConnectionId, InternalConnection>,
     external_plans: BTreeMap<PlanId, ExternalPlan>,
     released_plans: BTreeSet<PlanId>,
     observations: Vec<Observation>,
@@ -266,44 +310,85 @@ impl CompositeHost {
                 "child plan fragment identity does not match its runtime advertisement".into(),
             ));
         }
-        if !declared_ids.contains(&definition.boundary.source_child)
-            || !declared_ids.contains(&definition.boundary.sink_child)
-            || definition.boundary.source_child == definition.boundary.sink_child
+        let mut mapped_ports = BTreeSet::new();
+        for face in definition
+            .boundary
+            .input_faces
+            .iter()
+            .chain(&definition.boundary.output_faces)
         {
-            return Err(CompositeError::InvalidInternalPlan(
-                "boundary must name two distinct declared children".into(),
-            ));
+            if !declared_ids.contains(&face.internal_child)
+                || !mapped_ports.insert((
+                    face.external_port.direction as u8,
+                    face.external_port.port_id.clone(),
+                ))
+                || face.terminal != CompositeFaceTerminal::Independent
+            {
+                return Err(CompositeError::InvalidInternalPlan(
+                    "boundary contains a duplicate, unknown-child, or unsupported face".into(),
+                ));
+            }
+            let placement = definition
+                .internal_plan
+                .fragments
+                .iter()
+                .find(|fragment| fragment.host_id == face.internal_child)
+                .and_then(|fragment| {
+                    fragment
+                        .placements
+                        .iter()
+                        .find(|placement| placement.placement_id == face.internal_placement_id)
+                })
+                .ok_or_else(|| {
+                    CompositeError::InvalidInternalPlan(
+                        "boundary face names a hidden or missing internal placement".into(),
+                    )
+                })?;
+            let ports = match face.external_port.direction {
+                conduit_core::PortDirection::Input => &placement.inputs,
+                conduit_core::PortDirection::Output => &placement.outputs,
+            };
+            if ports
+                .iter()
+                .find(|port| port.port_id == face.internal_port_id)
+                != Some(&face.external_port)
+            {
+                // Internal and external port names may differ; compare the
+                // endpoint contract without accidentally exposing its name.
+                let Some(port) = ports
+                    .iter()
+                    .find(|port| port.port_id == face.internal_port_id)
+                else {
+                    return Err(CompositeError::InvalidInternalPlan(
+                        "boundary face names a missing or wrongly directed internal port".into(),
+                    ));
+                };
+                if port.value_kind != face.external_port.value_kind
+                    || port.direction != face.external_port.direction
+                {
+                    return Err(CompositeError::InvalidInternalPlan(
+                        "boundary face differs from its internal endpoint contract".into(),
+                    ));
+                }
+            }
         }
-        let source_fragment = definition
-            .internal_plan
-            .fragments
+        let advertised_inputs = definition
+            .boundary
+            .input_faces
             .iter()
-            .find(|fragment| fragment.host_id == definition.boundary.source_child)
-            .expect("declared child has a plan fragment");
-        let sink_fragment = definition
-            .internal_plan
-            .fragments
+            .map(|face| face.external_port.clone())
+            .collect::<Vec<_>>();
+        let advertised_outputs = definition
+            .boundary
+            .output_faces
             .iter()
-            .find(|fragment| fragment.host_id == definition.boundary.sink_child)
-            .expect("declared child has a plan fragment");
-        let connection = source_fragment
-            .connections
-            .iter()
-            .find(|connection| {
-                connection.provider == ConnectionProvider::InMemory
-                    && connection.connection_id == definition.boundary.connection_id
-            })
-            .cloned()
-            .ok_or_else(|| {
-                CompositeError::InvalidInternalPlan("missing in-memory boundary".into())
-            })?;
-        if !sink_fragment
-            .connections
-            .iter()
-            .any(|candidate| candidate == &connection)
+            .map(|face| face.external_port.clone())
+            .collect::<Vec<_>>();
+        if definition.external_capability.inputs != advertised_inputs
+            || definition.external_capability.outputs != advertised_outputs
         {
             return Err(CompositeError::InvalidInternalPlan(
-                "child fragments do not share an exact boundary".into(),
+                "advertised ports differ from the authored boundary faces".into(),
             ));
         }
         let relevant_limit = |host_id: &HostId, placement_id: &conduit_core::PlacementId| {
@@ -326,48 +411,32 @@ impl CompositeHost {
                 .find(|offer| offer.capability_id == placement.capability_id)
                 .map(|offer| offer.limits.clone())
         };
-        let source_limits = relevant_limit(
-            &definition.boundary.source_child,
-            &connection.source_placement_id,
-        )
-        .ok_or_else(|| {
-            CompositeError::InvalidInternalPlan(
-                "boundary source placement has no matching child capability".into(),
-            )
-        })?;
-        let sink_limits = relevant_limit(
-            &definition.boundary.sink_child,
-            &connection.sink_placement_id,
-        )
-        .ok_or_else(|| {
-            CompositeError::InvalidInternalPlan(
-                "boundary sink placement has no matching child capability".into(),
-            )
-        })?;
         let mut external_capability = definition.external_capability;
-        external_capability.limits.max_active_instances = external_capability
-            .limits
-            .max_active_instances
-            .min(source_limits.max_active_instances)
-            .min(sink_limits.max_active_instances)
-            .min(1);
-        external_capability.limits.max_queue_items = external_capability
-            .limits
-            .max_queue_items
-            .min(connection.item_capacity);
-        external_capability.limits.max_queue_bytes = external_capability
-            .limits
-            .max_queue_bytes
-            .min(connection.byte_capacity);
-        if external_capability
-            .inputs
+        for face in definition
+            .boundary
+            .input_faces
             .iter()
-            .chain(&external_capability.outputs)
-            .any(|port| port.value_kind != connection.value_kind)
+            .chain(&definition.boundary.output_faces)
         {
-            return Err(CompositeError::InvalidInternalPlan(
-                "external value kind does not match the internal boundary".to_string(),
-            ));
+            let limits = relevant_limit(&face.internal_child, &face.internal_placement_id)
+                .ok_or_else(|| {
+                    CompositeError::InvalidInternalPlan(
+                        "boundary placement has no matching child capability".into(),
+                    )
+                })?;
+            external_capability.limits.max_active_instances = external_capability
+                .limits
+                .max_active_instances
+                .min(limits.max_active_instances)
+                .min(1);
+            external_capability.limits.max_queue_items = external_capability
+                .limits
+                .max_queue_items
+                .min(limits.max_queue_items);
+            external_capability.limits.max_queue_bytes = external_capability
+                .limits
+                .max_queue_bytes
+                .min(limits.max_queue_bytes);
         }
         let advertisement = HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
@@ -379,8 +448,76 @@ impl CompositeHost {
             capabilities: vec![external_capability],
         };
         let internal_plan_id = definition.internal_plan.plan_id.clone();
-        let connection_id = connection.connection_id.clone();
-        let provider = InMemoryConnectionProvider::new(internal_plan_id.clone(), &connection);
+        let mut connection_rows =
+            BTreeMap::<ConnectionId, Vec<(HostId, conduit_core::PlannedConnection)>>::new();
+        for fragment in &definition.internal_plan.fragments {
+            for connection in &fragment.connections {
+                if connection.provider == ConnectionProvider::InMemory {
+                    connection_rows
+                        .entry(connection.connection_id.clone())
+                        .or_default()
+                        .push((fragment.host_id.clone(), connection.clone()));
+                }
+            }
+        }
+        let mut internal_connections = BTreeMap::new();
+        for (connection_id, rows) in connection_rows {
+            if rows.len() != 2 || rows[0].1 != rows[1].1 {
+                return Err(CompositeError::InvalidInternalPlan(format!(
+                    "in-memory connection '{}' is not shared by two exact child fragments",
+                    connection_id.as_str()
+                )));
+            }
+            let connection = &rows[0].1;
+            let source_child = definition
+                .internal_plan
+                .fragments
+                .iter()
+                .find_map(|fragment| {
+                    fragment
+                        .placements
+                        .iter()
+                        .any(|placement| placement.placement_id == connection.source_placement_id)
+                        .then(|| fragment.host_id.clone())
+                })
+                .ok_or_else(|| {
+                    CompositeError::InvalidInternalPlan(
+                        "in-memory connection source placement is missing".into(),
+                    )
+                })?;
+            let sink_child = definition
+                .internal_plan
+                .fragments
+                .iter()
+                .find_map(|fragment| {
+                    fragment
+                        .placements
+                        .iter()
+                        .any(|placement| placement.placement_id == connection.sink_placement_id)
+                        .then(|| fragment.host_id.clone())
+                })
+                .ok_or_else(|| {
+                    CompositeError::InvalidInternalPlan(
+                        "in-memory connection sink placement is missing".into(),
+                    )
+                })?;
+            if source_child == sink_child
+                || !rows.iter().any(|(host, _)| host == &source_child)
+                || !rows.iter().any(|(host, _)| host == &sink_child)
+            {
+                return Err(CompositeError::InvalidInternalPlan(
+                    "in-memory connection endpoints do not match its child fragments".into(),
+                ));
+            }
+            internal_connections.insert(
+                connection_id,
+                InternalConnection {
+                    source_child,
+                    sink_child,
+                    provider: InMemoryConnectionProvider::new(internal_plan_id.clone(), connection),
+                },
+            );
+        }
         let mut children = BTreeMap::new();
         for runtime in child_runtimes {
             let host_id = runtime.advertisement().host_id.clone();
@@ -398,8 +535,7 @@ impl CompositeHost {
             children,
             boundary: definition.boundary,
             internal_plan_id,
-            connection_id,
-            provider,
+            internal_connections,
             external_plans: BTreeMap::new(),
             released_plans: BTreeSet::new(),
             observations: Vec::new(),
@@ -420,6 +556,10 @@ impl CompositeHost {
         &self.advertisement
     }
 
+    pub fn boundary(&self) -> &CompositeBoundary {
+        &self.boundary
+    }
+
     pub fn fail_next_presentation(&mut self) {
         self.fail_next_presentation = true;
     }
@@ -429,15 +569,26 @@ impl CompositeHost {
     }
 
     pub fn provider_status(&self) -> ConnectionOutcome {
-        self.provider.status()
+        self.internal_connections
+            .values()
+            .next()
+            .map_or(ConnectionOutcome::Terminal, |connection| {
+                connection.provider.status()
+            })
     }
 
     pub fn provider_queued_items(&self) -> usize {
-        self.provider.queued_items()
+        self.internal_connections
+            .values()
+            .map(|connection| connection.provider.queued_items())
+            .sum()
     }
 
     pub fn provider_queued_bytes(&self) -> u32 {
-        self.provider.queued_bytes()
+        self.internal_connections
+            .values()
+            .map(|connection| connection.provider.queued_bytes())
+            .sum()
     }
 
     pub fn deliver_next(&mut self, external_plan_id: &PlanId) -> RuntimeOutput {
@@ -457,13 +608,30 @@ impl CompositeHost {
         mutate: impl FnOnce(&mut ConnectionEnvelope),
     ) -> RuntimeOutput {
         let mut external = RuntimeOutput::default();
-        let Some((ConnectionOutcome::Delivered, mut envelope)) = self.provider.deliver() else {
+        let Some(connection_id) = self
+            .internal_connections
+            .iter()
+            .find(|(_, connection)| connection.provider.queued_items() > 0)
+            .map(|(connection_id, _)| connection_id.clone())
+        else {
+            return external;
+        };
+        let (source_child, sink_child, delivery) = {
+            let connection = self
+                .internal_connections
+                .get_mut(&connection_id)
+                .expect("listed internal connection exists");
+            (
+                connection.source_child.clone(),
+                connection.sink_child.clone(),
+                connection.provider.deliver(),
+            )
+        };
+        let Some((ConnectionOutcome::Delivered, mut envelope)) = delivery else {
             return external;
         };
         mutate(&mut envelope);
         let sequence = envelope.sequence;
-        let source_child = self.boundary.source_child.clone();
-        let sink_child = self.boundary.sink_child.clone();
         let sink_output = self
             .children
             .get_mut(&sink_child)
@@ -486,7 +654,7 @@ impl CompositeHost {
             .runtime
             .handle(HostCommand::CompleteConnectionDelivery {
                 plan_id: self.internal_plan_id.clone(),
-                connection_id: self.connection_id.clone(),
+                connection_id,
                 sequence,
                 outcome: if sink_accepted {
                     ConnectionOutcome::Delivered
@@ -504,12 +672,23 @@ impl CompositeHost {
 
     pub fn disconnect_provider(&mut self, external_plan_id: &PlanId) -> RuntimeOutput {
         let mut external = RuntimeOutput::default();
-        let had_queued_envelopes = self.provider.queued_items() > 0;
-        let outcome = self.provider.disconnect();
+        let Some(connection_id) = self.internal_connections.keys().next().cloned() else {
+            return external;
+        };
+        let (source_child, had_queued_envelopes, outcome) = {
+            let connection = self
+                .internal_connections
+                .get_mut(&connection_id)
+                .expect("listed internal connection exists");
+            (
+                connection.source_child.clone(),
+                connection.provider.queued_items() > 0,
+                connection.provider.disconnect(),
+            )
+        };
         if !had_queued_envelopes {
             return external;
         }
-        let source_child = self.boundary.source_child.clone();
         let source = self
             .children
             .get_mut(&source_child)
@@ -517,7 +696,7 @@ impl CompositeHost {
             .runtime
             .handle(HostCommand::CompleteConnectionDelivery {
                 plan_id: self.internal_plan_id.clone(),
-                connection_id: self.connection_id.clone(),
+                connection_id,
                 sequence: 0,
                 outcome,
             });
@@ -671,9 +850,13 @@ impl CompositeHost {
             plan_id: plan_id.clone(),
             active_play_id: active_play.active_play_id,
         });
-        let source_child = self.boundary.source_child.clone();
+        let source_children = self
+            .internal_connections
+            .values()
+            .map(|connection| connection.source_child.clone())
+            .collect::<BTreeSet<_>>();
         let mut child_ids = self.children.keys().cloned().collect::<Vec<_>>();
-        child_ids.sort_by_key(|host_id| host_id == &source_child);
+        child_ids.sort_by_key(|host_id| source_children.contains(host_id));
         let initial = child_ids
             .into_iter()
             .map(|host_id| {
@@ -709,20 +892,22 @@ impl CompositeHost {
                                 ..
                             },
                         ..
-                    } if child == self.boundary.source_child
-                        && connection_id == self.connection_id =>
-                    {
-                        let sink_child = self.boundary.sink_child.clone();
-                        let closed = self
-                            .children
-                            .get_mut(&sink_child)
-                            .expect("validated boundary sink exists")
-                            .runtime
-                            .handle(HostCommand::CloseConnection {
-                                plan_id: self.internal_plan_id.clone(),
-                                connection_id,
-                            });
-                        pending.push_back((sink_child, closed));
+                    } => {
+                        if let Some(connection) = self.internal_connections.get(&connection_id) {
+                            if child == connection.source_child {
+                                let sink_child = connection.sink_child.clone();
+                                let closed = self
+                                    .children
+                                    .get_mut(&sink_child)
+                                    .expect("validated connection sink exists")
+                                    .runtime
+                                    .handle(HostCommand::CloseConnection {
+                                        plan_id: self.internal_plan_id.clone(),
+                                        connection_id,
+                                    });
+                                pending.push_back((sink_child, closed));
+                            }
+                        }
                     }
                     HostEvent::PlanTerminated { disposition, .. } => {
                         if let Some(plan) = self.external_plans.get_mut(external_plan_id) {
@@ -795,28 +980,53 @@ impl CompositeHost {
                         pending.push_back((child.clone(), next));
                     }
                     PlatformEffect::TransmitConnection { envelope } => {
+                        let connection_id = envelope.connection_id.clone();
                         let sequence = envelope.sequence;
-                        let outcome = self.provider.accept(envelope);
+                        let (source_child, sink_child, outcome) =
+                            match self.internal_connections.get_mut(&connection_id) {
+                                Some(connection) if connection.source_child == child => (
+                                    connection.source_child.clone(),
+                                    connection.sink_child.clone(),
+                                    connection.provider.accept(envelope),
+                                ),
+                                _ => {
+                                    let source_output = self
+                                        .children
+                                        .get_mut(&child)
+                                        .expect("effect came from a known child")
+                                        .runtime
+                                        .handle(HostCommand::CompleteConnectionDelivery {
+                                            plan_id: self.internal_plan_id.clone(),
+                                            connection_id,
+                                            sequence,
+                                            outcome: ConnectionOutcome::Malformed,
+                                        });
+                                    pending.push_back((child.clone(), source_output));
+                                    continue;
+                                }
+                            };
                         if outcome == ConnectionOutcome::Accepted {
                             let accepted = self
                                 .children
-                                .get_mut(&child)
+                                .get_mut(&source_child)
                                 .expect("effect came from a known child")
                                 .runtime
                                 .handle(HostCommand::CompleteConnectionDelivery {
                                     plan_id: self.internal_plan_id.clone(),
-                                    connection_id: self.connection_id.clone(),
+                                    connection_id: connection_id.clone(),
                                     sequence,
                                     outcome: ConnectionOutcome::Accepted,
                                 });
-                            pending.push_back((child.clone(), accepted));
+                            pending.push_back((source_child.clone(), accepted));
                             if self.delivery_mode == DeliveryMode::Immediate {
                                 let (delivery_outcome, delivered) = self
+                                    .internal_connections
+                                    .get_mut(&connection_id)
+                                    .expect("accepted internal connection exists")
                                     .provider
                                     .deliver()
                                     .expect("accepted envelope must be queued");
                                 debug_assert_eq!(delivery_outcome, ConnectionOutcome::Delivered);
-                                let sink_child = self.boundary.sink_child.clone();
                                 let sink_output = self
                                     .children
                                     .get_mut(&sink_child)
@@ -835,12 +1045,12 @@ impl CompositeHost {
                                 pending.push_back((sink_child, sink_output));
                                 let source_output = self
                                     .children
-                                    .get_mut(&child)
+                                    .get_mut(&source_child)
                                     .expect("effect came from a known child")
                                     .runtime
                                     .handle(HostCommand::CompleteConnectionDelivery {
                                         plan_id: self.internal_plan_id.clone(),
-                                        connection_id: self.connection_id.clone(),
+                                        connection_id: connection_id.clone(),
                                         sequence,
                                         outcome: if sink_accepted {
                                             ConnectionOutcome::Delivered
@@ -848,21 +1058,21 @@ impl CompositeHost {
                                             ConnectionOutcome::Malformed
                                         },
                                     });
-                                pending.push_back((child.clone(), source_output));
+                                pending.push_back((source_child, source_output));
                             }
                         } else {
                             let source_output = self
                                 .children
-                                .get_mut(&child)
+                                .get_mut(&source_child)
                                 .expect("effect came from a known child")
                                 .runtime
                                 .handle(HostCommand::CompleteConnectionDelivery {
                                     plan_id: self.internal_plan_id.clone(),
-                                    connection_id: self.connection_id.clone(),
+                                    connection_id,
                                     sequence,
                                     outcome,
                                 });
-                            pending.push_back((child.clone(), source_output));
+                            pending.push_back((source_child, source_output));
                         }
                     }
                 }
@@ -1077,7 +1287,8 @@ fn preparation_failure(output: &RuntimeOutput) -> Option<(FailureReason, Option<
 #[cfg(test)]
 mod tests {
     use super::{
-        ChildHostBinding, CompositeBoundary, CompositeDefinition, CompositeHost, DeliveryMode,
+        ChildHostBinding, CompositeBoundary, CompositeDefinition, CompositeFaceBinding,
+        CompositeHost, DeliveryMode,
     };
     use conduit_core::{
         kind_id, process_owned_link_binding, ArtifactId, BootId, CapabilityId, CapabilityLimits,
@@ -1086,7 +1297,9 @@ mod tests {
         ImplementationId, KindContractRevision, KindId, OfferGeneration, OperationId,
         TerminalDisposition, PROTOCOL_VERSION,
     };
-    use conduit_form::{parse, CheckedForm, CheckedOperation, ProfileCatalog};
+    use conduit_form::{
+        parse, CheckedForm, CheckedOperation, CompositeFaceTerminal, ProfileCatalog,
+    };
     use conduit_planner::{plan, plan_with_link_bindings, PlacementChoice, PlacementChoices};
     use conduit_runtime::{providers::in_memory::InMemoryConnectionProvider, HostRuntime};
     use conduit_signal::{
@@ -1217,7 +1430,7 @@ mod tests {
 
     fn three_child_internal_plan() -> conduit_core::Plan {
         let form = parse(
-            "form 0\n\ninternal {\n pulse: flow/pulse\n show: presentation/show\n auxiliary: flow/pulse\n pulse.count = 1\n pulse.period-ms = 0\n pulse.initial = false\n auxiliary.count = 0\n auxiliary.period-ms = 0\n auxiliary.initial = false\n pulse > show\n export run-signal: demonstration/run-signal = pulse.signal -> show.signal\n}\n",
+            "form 0\n\ninternal {\n pulse: flow/pulse\n show: presentation/show\n auxiliary: flow/pulse\n pulse.count = 1\n pulse.period-ms = 0\n pulse.initial = false\n auxiliary.count = 0\n auxiliary.period-ms = 0\n auxiliary.initial = false\n pulse > show\n export run-signal: demonstration/run-signal {\n  input signal-in: value/signal = show.signal terminal independent\n  output signal: value/signal = pulse.signal terminal independent\n }\n}\n",
             &signal_profile_catalog(),
         )
         .expect("three-child internal form parses");
@@ -1431,7 +1644,7 @@ mod tests {
         );
         assert_eq!(connection.source_port_id.as_str(), "signal");
         assert_eq!(connection.sink_port_id.as_str(), "signal");
-        assert_eq!(connection.value_kind, boundary.value_kind);
+        assert_eq!(connection.value_kind, boundary.outputs[0].value_kind);
     }
 
     #[test]
@@ -1526,10 +1739,7 @@ mod tests {
         assert!(CompositeHost::from_definition(extra_declared_child, runtimes, 16).is_err());
 
         let mut mismatched_boundary = definition;
-        std::mem::swap(
-            &mut mismatched_boundary.boundary.source_child,
-            &mut mismatched_boundary.boundary.sink_child,
-        );
+        mismatched_boundary.boundary.output_faces[0].internal_child = HostId::from("child-sink");
         assert!(CompositeHost::from_definition(mismatched_boundary, child_runtimes(), 16).is_err());
 
         let mut mismatched_fragment = composite_definition(2, 18);
@@ -1558,7 +1768,27 @@ mod tests {
         definition.children.push(ChildHostBinding {
             host_id: HostId::from("child-auxiliary"),
         });
-        definition.boundary.connection_id = connection.connection_id;
+        let output_placement = definition
+            .internal_plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .find(|placement| placement.operation_id.as_str() == "pulse")
+            .expect("pulse placement exists");
+        definition.boundary.output_faces[0].internal_child = output_placement.host_id.clone();
+        definition.boundary.output_faces[0].internal_placement_id =
+            output_placement.placement_id.clone();
+        let input_placement = definition
+            .internal_plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .find(|placement| placement.operation_id.as_str() == "show")
+            .expect("show placement exists");
+        definition.boundary.input_faces[0].internal_child = input_placement.host_id.clone();
+        definition.boundary.input_faces[0].internal_placement_id =
+            input_placement.placement_id.clone();
+        let _ = connection;
 
         let mut runtimes = child_runtimes();
         runtimes.push(HostRuntime::new(
@@ -1993,9 +2223,20 @@ mod tests {
             ],
             internal_plan: plan,
             boundary: CompositeBoundary {
-                source_child: source_ad.host_id.clone(),
-                sink_child: sink_ad.host_id.clone(),
-                connection_id: connection.connection_id,
+                input_faces: vec![CompositeFaceBinding {
+                    external_port: show_inputs()[0].clone(),
+                    internal_child: sink_ad.host_id.clone(),
+                    internal_placement_id: connection.sink_placement_id.clone(),
+                    internal_port_id: connection.sink_port_id.clone(),
+                    terminal: CompositeFaceTerminal::Independent,
+                }],
+                output_faces: vec![CompositeFaceBinding {
+                    external_port: pulse_outputs()[0].clone(),
+                    internal_child: source_ad.host_id.clone(),
+                    internal_placement_id: connection.source_placement_id.clone(),
+                    internal_port_id: connection.source_port_id.clone(),
+                    terminal: CompositeFaceTerminal::Independent,
+                }],
             },
             failure_translation: conduit_core::FailureReason::RequiredBranchFailed,
         };
@@ -2027,7 +2268,7 @@ mod tests {
         let capability = &host.advertisement().capabilities[0];
         assert_eq!(capability.kind_id.as_str(), "demonstration/alternate");
         assert_eq!(capability.limits.max_active_instances, 1);
-        assert_eq!(capability.limits.max_queue_items, 2);
-        assert_eq!(capability.limits.max_queue_bytes, 18);
+        assert_eq!(capability.limits.max_queue_items, 8);
+        assert_eq!(capability.limits.max_queue_bytes, 99);
     }
 }
