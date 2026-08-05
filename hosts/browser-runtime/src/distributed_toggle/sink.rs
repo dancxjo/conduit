@@ -1,11 +1,10 @@
-//! Browser/WASM sink half of the live S4 toggle-demo distributed checkpoint.
+//! Browser sink kernel and session logic for the S4 toggle-demo.
 //!
-//! The source (std) runs `interaction/activate` → `state/toggle` and sends
-//! `Signal` values over a bounded WebSocket cord.  This module receives those
-//! values and drives `presentation/show` through the same browser kernel as the
-//! existing distributed Signal proof.
+//! `ToggleDistributedSink` prepares and drives the `presentation/show` fragment
+//! receiving `Signal` values over the WebSocket cord from the std source.
 
-use super::{
+use super::operation::{CapacitySeal, ToggleShowOperation};
+use super::super::{
     map_scheduler_error, write_common_frame, write_presentation_completion_frame,
     write_presentation_frame, FrameWriter, PreparedProjection, FRAME_CAPACITY, MAXIMUM_RECEIPTS,
     PORTS,
@@ -18,10 +17,10 @@ use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, EvidenceError, EvidenceQuery, Failure, FailureCode,
-    FixedHostOperationBindings, FixedRoutes, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedEvidenceLog, HostedValueStore, KernelEventKind, Operation,
-    OperationAction, OperationInput, PortId, RemoteEndpointId, RequestId, ValueStorage,
+    CordId, EvidenceError, EvidenceQuery, Failure, FailureCode, FixedHostOperationBindings,
+    FixedRoutes, HostOperationDisposition, HostOperationId, HostOperationOutcome,
+    HostedEvidenceLog, HostedValueStore, KernelEventKind, RemoteEndpointId, RequestId,
+    ValueStorage,
 };
 use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
 use conduit_runtime::lowering::{
@@ -37,26 +36,18 @@ use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
     SessionMessage, SessionRole, SessionTerminalDisposition,
 };
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 
-const OUTPUT_NONE: i32 = 0;
-const OUTPUT_SESSION: i32 = 1;
-const OUTPUT_PRESENT: i32 = 2;
-const STATUS_RUNNING: i32 = 0;
-const STATUS_COMPLETE: i32 = 1;
-const ERROR_NOT_STARTED: i32 = -201;
-const ERROR_PREPARE: i32 = -202;
-const ERROR_SESSION: i32 = -203;
-const ERROR_KERNEL: i32 = -204;
-const ERROR_PRESENTATION: i32 = -205;
-const ERROR_CANCELLED: i32 = -206;
-const ERROR_EVIDENCE: i32 = -207;
-const ERROR_CAPACITY: i32 = -208;
-const ROUTE_SLOTS: usize = 1;
-const EVIDENCE_ITEMS: u16 = 256;
+use super::{
+    ERROR_CANCELLED, ERROR_CAPACITY, ERROR_EVIDENCE, ERROR_KERNEL, ERROR_PREPARE,
+    ERROR_PRESENTATION, ERROR_SESSION, OUTPUT_NONE, OUTPUT_PRESENT, OUTPUT_SESSION,
+    STATUS_COMPLETE, STATUS_RUNNING,
+};
 
-type ToggleSinkScheduler = FixedScheduler<
+pub(super) const ROUTE_SLOTS: usize = 1;
+pub(super) const EVIDENCE_ITEMS: u16 = 256;
+
+pub(super) type ToggleSinkScheduler = FixedScheduler<
     OperationDriver<ToggleShowOperation, PORTS>,
     HostedValueStore,
     HostedEvidenceLog,
@@ -70,87 +61,17 @@ type ToggleSinkScheduler = FixedScheduler<
     1,
 >;
 
-thread_local! {
-    static TOGGLE_SINK: RefCell<Option<ToggleDistributedSink>> = const { RefCell::new(None) };
-    static TOGGLE_INPUT: RefCell<[u8; FRAME_CAPACITY]> = const { RefCell::new([0; FRAME_CAPACITY]) };
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct CapacitySeal {
-    values: (usize, usize),
-    evidence: usize,
-    identity: (usize, usize, usize),
-    projections: usize,
-}
-
-struct ToggleShowOperation {
-    next: usize,
-    pending: Option<RequestId>,
-}
-
-impl ToggleShowOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidLifecycle,
-            detail,
-        })
-    }
-}
-
-impl Operation for ToggleShowOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let Ok(sequence) = u32::try_from(self.next) else {
-                    return Self::fail(1);
-                };
-                let request = RequestId(0x8000_0000 | sequence);
-                self.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
-                        .expect("remote Signal was admitted at its exact byte bound"),
-                }
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.next += 1;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.pending.is_none() && self.next == MAXIMUM_RECEIPTS =>
-            {
-                OperationAction::Complete
-            }
-            _ => Self::fail(2),
-        }
-    }
-}
-
-struct ToggleDistributedSink {
+pub(super) struct ToggleDistributedSink {
     scheduler: ToggleSinkScheduler,
-    fragment: PlanFragment,
-    lowered: LoweredPlanFragment,
-    binding: SessionBinding,
+    pub(super) fragment: PlanFragment,
+    pub(super) lowered: LoweredPlanFragment,
+    pub(super) binding: SessionBinding,
     session: SessionMachine,
     identity: KernelExecutionIdentityMap,
     projections: Vec<PreparedProjection>,
-    output: [u8; FRAME_CAPACITY],
-    output_len: usize,
-    output_kind: i32,
+    pub(super) output: [u8; FRAME_CAPACITY],
+    pub(super) output_len: usize,
+    pub(super) output_kind: i32,
     expected_completion: [u8; FRAME_CAPACITY],
     expected_completion_len: usize,
     current: Option<(HostOperationRequest, usize)>,
@@ -160,19 +81,19 @@ struct ToggleDistributedSink {
     drive_after_delivery: bool,
     hold_first_value: bool,
     input_closed: bool,
-    receipts: usize,
+    pub(super) receipts: usize,
     pressure_retries: u32,
     complete: bool,
     peer_terminal: bool,
     error: i32,
-    seal: CapacitySeal,
+    pub(super) seal: CapacitySeal,
 }
 
 fn exact_toggle_plan() -> Result<Plan, i32> {
     let source = distributed_toggle_std_source_advertisement();
     let sink = distributed_toggle_browser_sink_advertisement();
     let form = conduit_form::parse(
-        include_str!("../../../examples/remote-toggle.form"),
+        include_str!("../../../../examples/remote-toggle.form"),
         &signal_profile_catalog(),
     )
     .map_err(|_| ERROR_PREPARE)?;
@@ -214,7 +135,7 @@ fn exact_toggle_plan() -> Result<Plan, i32> {
 }
 
 impl ToggleDistributedSink {
-    fn prepare(evidence_override: Option<u16>) -> Result<Self, i32> {
+    pub(super) fn prepare(evidence_override: Option<u16>) -> Result<Self, i32> {
         let advertisement = distributed_toggle_browser_sink_advertisement();
         let plan = exact_toggle_plan()?;
         let fragment = plan
@@ -397,7 +318,7 @@ impl ToggleDistributedSink {
         (remote.endpoint, remote.cord)
     }
 
-    fn capacity_seal(&self) -> CapacitySeal {
+    pub(super) fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
             evidence: self.scheduler.evidence().allocation_capacity(),
@@ -406,7 +327,7 @@ impl ToggleDistributedSink {
         }
     }
 
-    fn clear_output(&mut self) {
+    pub(super) fn clear_output(&mut self) {
         self.output_len = 0;
         self.output_kind = OUTPUT_NONE;
     }
@@ -437,7 +358,7 @@ impl ToggleDistributedSink {
         Err(error)
     }
 
-    fn ingest(&mut self, bytes: &[u8]) -> Result<(), i32> {
+    pub(super) fn ingest(&mut self, bytes: &[u8]) -> Result<(), i32> {
         if self.error < 0 {
             return Err(self.error);
         }
@@ -514,7 +435,7 @@ impl ToggleDistributedSink {
         }
     }
 
-    fn advance(&mut self) -> Result<(), i32> {
+    pub(super) fn advance(&mut self) -> Result<(), i32> {
         if let Some(disposition) = self.pending_failure_terminal.take() {
             let final_sequence = self.session.next_sequence();
             self.encode_session(SessionMessage::Terminal {
@@ -589,7 +510,7 @@ impl ToggleDistributedSink {
         }
     }
 
-    fn prepare_presentation(&mut self, request: HostOperationRequest) -> Result<(), i32> {
+    pub(super) fn prepare_presentation(&mut self, request: HostOperationRequest) -> Result<(), i32> {
         let projection = self
             .projections
             .get(self.receipts)
@@ -640,7 +561,7 @@ impl ToggleDistributedSink {
         Ok(())
     }
 
-    fn complete_presentation(&mut self, completion: &[u8]) -> Result<(), i32> {
+    pub(super) fn complete_presentation(&mut self, completion: &[u8]) -> Result<(), i32> {
         let (request, projection) = self.current.take().ok_or(ERROR_PRESENTATION)?;
         if completion.len() != self.expected_completion_len + 1
             || completion[..self.expected_completion_len]
@@ -690,7 +611,7 @@ impl ToggleDistributedSink {
         self.drive_scheduler()
     }
 
-    fn cancel(&mut self) -> Result<(), i32> {
+    pub(super) fn cancel(&mut self) -> Result<(), i32> {
         self.scheduler.cancel().map_err(|_| ERROR_KERNEL)?;
         self.error = ERROR_CANCELLED;
         self.pending_failure_terminal = Some(SessionTerminalDisposition::Cancelled);
@@ -698,7 +619,7 @@ impl ToggleDistributedSink {
         Err(ERROR_CANCELLED)
     }
 
-    fn status(&self) -> i32 {
+    pub(super) fn status(&self) -> i32 {
         if self.error < 0 {
             self.error
         } else if self.complete && self.peer_terminal && self.session.is_terminal() {
@@ -709,159 +630,3 @@ impl ToggleDistributedSink {
     }
 }
 
-fn with_toggle_sink<T>(
-    action: impl FnOnce(&mut ToggleDistributedSink) -> Result<T, i32>,
-) -> Result<T, i32> {
-    TOGGLE_SINK.with(|slot| {
-        let mut slot = slot.borrow_mut();
-        action(slot.as_mut().ok_or(ERROR_NOT_STARTED)?)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_start() -> i32 {
-    match ToggleDistributedSink::prepare(None) {
-        Ok(sink) => {
-            TOGGLE_SINK.with(|slot| *slot.borrow_mut() = Some(sink));
-            STATUS_RUNNING
-        }
-        Err(code) => code,
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_status() -> i32 {
-    TOGGLE_SINK.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(ToggleDistributedSink::status)
-            .unwrap_or(ERROR_NOT_STARTED)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_output_kind() -> i32 {
-    TOGGLE_SINK.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| sink.output_kind)
-            .unwrap_or(OUTPUT_NONE)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_output_ptr() -> *const u8 {
-    TOGGLE_SINK.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| sink.output.as_ptr())
-            .unwrap_or(core::ptr::null())
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_output_len() -> u32 {
-    TOGGLE_SINK.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| sink.output_len as u32)
-            .unwrap_or(0)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_input_ptr() -> *mut u8 {
-    TOGGLE_INPUT.with(|input| input.borrow_mut().as_mut_ptr())
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_input_capacity() -> u32 {
-    FRAME_CAPACITY as u32
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_ingest(length: u32) -> i32 {
-    let length = length as usize;
-    if length > FRAME_CAPACITY {
-        return ERROR_SESSION;
-    }
-    TOGGLE_INPUT.with(|input| {
-        let input = input.borrow();
-        with_toggle_sink(|sink| sink.ingest(&input[..length]))
-            .map(|_| conduit_browser_toggle_distributed_status())
-            .unwrap_or_else(|code| code)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_advance() -> i32 {
-    with_toggle_sink(ToggleDistributedSink::advance)
-        .map(|_| conduit_browser_toggle_distributed_status())
-        .unwrap_or_else(|code| code)
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_clear_output() -> i32 {
-    with_toggle_sink(|sink| {
-        sink.clear_output();
-        Ok(())
-    })
-    .map(|_| conduit_browser_toggle_distributed_status())
-    .unwrap_or_else(|code| code)
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_complete(length: u32) -> i32 {
-    let length = length as usize;
-    if length > FRAME_CAPACITY {
-        return ERROR_PRESENTATION;
-    }
-    TOGGLE_INPUT.with(|input| {
-        let input = input.borrow();
-        with_toggle_sink(|sink| sink.complete_presentation(&input[..length]))
-            .map(|_| conduit_browser_toggle_distributed_status())
-            .unwrap_or_else(|code| code)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_cancel() -> i32 {
-    with_toggle_sink(ToggleDistributedSink::cancel)
-        .map(|_| conduit_browser_toggle_distributed_status())
-        .unwrap_or_else(|code| code)
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_receipt_count() -> u32 {
-    TOGGLE_SINK.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| sink.receipts as u32)
-            .unwrap_or(0)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_toggle_distributed_capacity_stable() -> u32 {
-    TOGGLE_SINK.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| u32::from(sink.capacity_seal() == sink.seal))
-            .unwrap_or(0)
-    })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn toggle_browser_reconstructs_exact_sink_fragment_and_session() {
-        let sink = ToggleDistributedSink::prepare(None).expect("toggle sink prepares");
-        assert_eq!(sink.fragment.placements.len(), 1);
-        assert_eq!(sink.lowered.remote_endpoints.len(), 1);
-        assert_eq!(sink.binding.plan_id, sink.fragment.plan_id);
-        assert_eq!(sink.binding.sink_fragment_id, sink.fragment.fragment_id);
-        assert_eq!(sink.capacity_seal(), sink.seal);
-    }
-}

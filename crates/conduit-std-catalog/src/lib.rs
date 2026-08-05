@@ -6,10 +6,12 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
+    await_activation_host_operation_requirement, kind_id, port_id,
+    present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, CapabilityLimits, ConfigurationValue, ExecutionProfileId,
     HostOperationRequirement, KindContractRevision, KindId, PortDescriptor, PortDirection,
-    ResourceOffer, ResourceRequirement, PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
+    ResourceOffer, ResourceRequirement, INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS,
+    TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
@@ -390,6 +392,7 @@ pub fn standard_resource_requirements(kind_id: &KindId) -> Vec<ResourceRequireme
 
 pub fn standard_resource_offers(capacity_units: u32) -> Vec<ResourceOffer> {
     vec![
+        resource_offer("std-catalog/input", INPUT_RESOURCE_CLASS, capacity_units),
         resource_offer(
             "std-catalog/presentation",
             PRESENTATION_RESOURCE_CLASS,

@@ -6,15 +6,16 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
+    await_activation_host_operation_requirement, kind_id, port_id,
+    present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionProvider,
     ConnectionProviderInstanceId, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision, KindId,
     LinkAuthorityReference, LinkAvailability, LinkBinding, LinkBindingId, LinkCredentialReference,
     LinkEndpoint, LinkEndpointId, LinkLimits, OfferGeneration, PortDescriptor, PortDirection,
-    ResourceOffer, ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS,
-    PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
+    ResourceOffer, ResourceRequirement, ValuePayload, INPUT_RESOURCE_CLASS,
+    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
@@ -185,7 +186,7 @@ pub fn show_resource_requirements() -> Vec<ResourceRequirement> {
 }
 
 pub fn activate_host_operation_requirements() -> Vec<HostOperationRequirement> {
-    vec![wait_host_operation_requirement()]
+    vec![await_activation_host_operation_requirement()]
 }
 
 pub fn toggle_host_operation_requirements() -> Vec<HostOperationRequirement> {
@@ -193,7 +194,7 @@ pub fn toggle_host_operation_requirements() -> Vec<HostOperationRequirement> {
 }
 
 pub fn activate_resource_requirements() -> Vec<ResourceRequirement> {
-    vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)]
+    vec![resource_requirement(INPUT_RESOURCE_CLASS, 1)]
 }
 
 pub fn toggle_resource_requirements() -> Vec<ResourceRequirement> {
@@ -510,7 +511,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(DISTRIBUTED_TOGGLE_STD_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-kernel"),
-        resources: vec![resource_offer("s4/toggle-std-timer", TIMER_RESOURCE_CLASS, 1)],
+        resources: vec![resource_offer("s4/toggle-std-input", INPUT_RESOURCE_CLASS, 1)],
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("activate-1"),

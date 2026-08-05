@@ -1,54 +1,46 @@
-//! Exact std source half of the live S4 toggle-demo proof.
+//! Orchestration for the S4 toggle-demo std source.
 //!
-//! The source fragment runs `interaction/activate` (reading Enter from stdin) and
-//! `state/toggle` (stateful bool flip), then streams `Signal` values over a bounded
-//! WebSocket remote cord to the browser `presentation/show` sink.
+//! `DistributedToggleSource` prepares the kernel fragment (activate + toggle)
+//! and drives the WebSocket session to the browser sink host.
+//!
+//! Stdin reads are performed exclusively inside `complete_activation_wait`,
+//! i.e. within the admitted await-activation host-operation lifecycle.
 
+use super::operation::{CapacitySeal, ToggleSourceOperation};
+use super::plan::exact_distributed_toggle_plan;
 use crate::websocket::{NativeWebSocketCarrier, NativeWebSocketListener};
-use conduit_core::{
-    bind_active_play, CapabilityId, ConnectionProvider, HostAdvertisement, OperationId, Plan,
-    PlanFragment,
-};
+use conduit_core::{bind_active_play, PlanFragment};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, EvidenceQuery, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationDisposition, HostOperationId, HostOperationOutcome,
-    HostedEvidenceLog, HostedValueStore, KernelEventKind, Operation, OperationAction,
-    OperationInput, PortId, RemoteEndpointId, RequestId, ValueRef, ValueStorage,
+    CordId, EvidenceQuery, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
+    HostOperationId, HostOperationOutcome, HostedEvidenceLog, HostedValueStore, KernelEventKind,
+    RemoteEndpointId, RequestId, ValueStorage,
 };
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
     MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
 use conduit_signal::{
-    distributed_toggle_browser_sink_advertisement, distributed_toggle_std_source_advertisement,
-    distributed_toggle_websocket_link_binding, encode_signal, parse_activate_configuration,
-    parse_toggle_configuration, signal_profile_catalog, Signal, ACTIVATION_ENCODED_LEN,
-    DISTRIBUTED_MAXIMUM_FRAME_BYTES, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN,
+    encode_signal, parse_activate_configuration, parse_toggle_configuration, Signal,
+    ACTIVATION_ENCODED_LEN, DISTRIBUTED_MAXIMUM_FRAME_BYTES, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+    SIGNAL_ENCODED_LEN,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
     SessionMessage, SessionRole, SessionTerminalDisposition,
 };
-use std::collections::BTreeMap;
 use std::io::{BufRead, Write};
-use std::thread;
-use std::time::Duration;
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-// 2 nodes: activate and toggle; 1 remote cord: toggle -> browser show
 const ROUTE_SLOTS: usize = 2 * PORTS;
 const MAXIMUM_VALUES: usize = 16;
-// activate needs one wait per value; toggle needs no waits
 const MAXIMUM_WAITS: usize = MAXIMUM_VALUES;
 const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES * 2 + MAXIMUM_WAITS) as u16;
-const MAXIMUM_STORED_BYTES: u32 =
-    MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN
-        + MAXIMUM_VALUES as u32 * ACTIVATION_ENCODED_LEN
-        + MAXIMUM_WAITS as u32 * 8;
+const MAXIMUM_STORED_BYTES: u32 = MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN
+    + MAXIMUM_VALUES as u32 * ACTIVATION_ENCODED_LEN
+    + MAXIMUM_WAITS as u32 * 1; // 1-byte tokens for await-activation ops
 const EVIDENCE_ITEMS: u16 = 256;
 
 type ToggleScheduler = FixedScheduler<
@@ -64,206 +56,6 @@ type ToggleScheduler = FixedScheduler<
     1,
     2,
 >;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DistributedTogglePlan {
-    pub source_advertisement: HostAdvertisement,
-    pub sink_advertisement: HostAdvertisement,
-    pub plan: Plan,
-}
-
-pub fn exact_distributed_toggle_plan() -> Result<DistributedTogglePlan, String> {
-    let source_advertisement = distributed_toggle_std_source_advertisement();
-    let sink_advertisement = distributed_toggle_browser_sink_advertisement();
-    let form = conduit_form::parse(
-        include_str!("../../../examples/remote-toggle.form"),
-        &signal_profile_catalog(),
-    )
-    .map_err(|error| error.to_string())?;
-    let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
-            (
-                OperationId::from("activate"),
-                PlacementChoice {
-                    host_id: source_advertisement.host_id.clone(),
-                    capability_id: CapabilityId::from("activate-1"),
-                },
-            ),
-            (
-                OperationId::from("toggle"),
-                PlacementChoice {
-                    host_id: source_advertisement.host_id.clone(),
-                    capability_id: CapabilityId::from("toggle-1"),
-                },
-            ),
-            (
-                OperationId::from("show"),
-                PlacementChoice {
-                    host_id: sink_advertisement.host_id.clone(),
-                    capability_id: CapabilityId::from("toggle-dom-show-1"),
-                },
-            ),
-        ]),
-    };
-    let link = distributed_toggle_websocket_link_binding();
-    let plan = plan_with_link_bindings(
-        &form,
-        &[source_advertisement.clone(), sink_advertisement.clone()],
-        &placements,
-        &[ConnectionProvider::Local, ConnectionProvider::WebSocket],
-        DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-        SIGNAL_ENCODED_LEN,
-        &[link],
-    )
-    .map_err(|error| error.to_string())?;
-    Ok(DistributedTogglePlan {
-        source_advertisement,
-        sink_advertisement,
-        plan,
-    })
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct CapacitySeal {
-    values: (usize, usize),
-    evidence: usize,
-    drivers: usize,
-    identity: (usize, usize, usize),
-}
-
-/// Kernel operation covering both `interaction/activate` (stdin waits) and
-/// `state/toggle` (stateful bool flip).  Each node in the source scheduler
-/// gets its own driver of this enum type.
-enum ToggleSourceOperation {
-    /// Activate: waits for one Enter press, emits an `Activation` payload.
-    Activate {
-        /// Pre-stored wait tokens (one per activation).
-        waits: Vec<ValueRef>,
-        /// Pre-stored activation payloads.
-        values: Vec<ValueRef>,
-        next: usize,
-        pending: Option<RequestId>,
-    },
-    /// Toggle: receives one activation, emits one Signal.
-    Toggle {
-        /// Pre-stored Signal payloads.
-        signals: Vec<ValueRef>,
-        next: usize,
-    },
-}
-
-impl ToggleSourceOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidLifecycle,
-            detail,
-        })
-    }
-
-    fn allocation_capacity(&self) -> usize {
-        match self {
-            Self::Activate { waits, values, .. } => waits.capacity() + values.capacity(),
-            Self::Toggle { signals, .. } => signals.capacity(),
-        }
-    }
-}
-
-impl Operation for ToggleSourceOperation {
-    fn start(&mut self) -> OperationAction {
-        match self {
-            Self::Activate { waits, next, pending, .. } if !waits.is_empty() => {
-                let Some(wait) = waits.first().copied() else {
-                    return Self::fail(10);
-                };
-                let request = RequestId(0);
-                *pending = Some(request);
-                *next = 0;
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(wait, 8)
-                        .expect("sealed wait value is exactly admitted"),
-                }
-            }
-            Self::Activate { .. } => OperationAction::Complete,
-            Self::Toggle { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Activate {
-                    values,
-                    next,
-                    pending,
-                    ..
-                },
-                OperationInput::HostOperationCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = None;
-                values.get(*next).copied().map_or_else(
-                    || Self::fail(11),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
-            }
-            (
-                Self::Toggle { signals, next },
-                OperationInput::Value { port: PortId(0), .. },
-            ) => {
-                signals.get(*next).copied().map_or_else(
-                    || Self::fail(12),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
-            }
-            _ => Self::fail(13),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Activate {
-                waits,
-                next,
-                pending,
-                ..
-            } => {
-                *next += 1;
-                if *next > waits.len() {
-                    return OperationAction::Complete;
-                }
-                let Some(wait) = waits.get(*next - 1).copied() else {
-                    return Self::fail(14);
-                };
-                let Ok(sequence) = u32::try_from(*next) else {
-                    return Self::fail(15);
-                };
-                let request = RequestId(sequence);
-                *pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(wait, 8)
-                        .expect("sealed wait value is exactly admitted"),
-                }
-            }
-            Self::Toggle { next, .. } => {
-                *next += 1;
-                OperationAction::Await
-            }
-        }
-    }
-}
 
 pub struct DistributedToggleSource {
     scheduler: ToggleScheduler,
@@ -340,12 +132,15 @@ impl DistributedToggleSource {
             );
         }
 
-        // Wait tokens (0ms, but still need the value slot): use 0u64 LE
-        let mut wait_values = Vec::with_capacity(MAXIMUM_WAITS);
-        for _ in 0..MAXIMUM_WAITS {
-            wait_values.push(
+        // 1-byte sequence correlation tokens for the await-activation host operation.
+        // The token value is the sequence index (0..MAXIMUM_WAITS) as a single byte.
+        // The std adapter reads stdin when completing the host-operation request.
+        let mut token_values = Vec::with_capacity(MAXIMUM_WAITS);
+        for seq in 0..MAXIMUM_WAITS {
+            let token_byte = [seq as u8];
+            token_values.push(
                 store
-                    .store(&0u64.to_le_bytes())
+                    .store(&token_byte)
                     .map_err(|error| format!("{error:?}"))?,
             );
         }
@@ -415,14 +210,15 @@ impl DistributedToggleSource {
             .ok_or("toggle node not found in lowered fragment")?;
 
         let activate_driver = OperationDriver::new(ToggleSourceOperation::Activate {
-            waits: wait_values,
-            values: activation_values,
+            tokens: token_values,
+            values: activation_values.clone(),
             next: 0,
             pending: None,
         })
         .map_err(|error| format!("{error:?}"))?;
         let toggle_driver = OperationDriver::new(ToggleSourceOperation::Toggle {
             signals: signal_values,
+            expected_activations: activation_values,
             next: 0,
         })
         .map_err(|error| format!("{error:?}"))?;
@@ -539,18 +335,32 @@ impl DistributedToggleSource {
         (remote.endpoint, remote.cord)
     }
 
-    fn complete_stdin_wait(&mut self, request: HostOperationRequest) -> Result<(), String> {
+    /// Complete an await-activation host-operation request by blocking on one
+    /// operator input line.  The stdin read happens here — inside the admitted
+    /// host-operation lifecycle — not before the kernel issues the request.
+    fn complete_activation_wait<R: BufRead>(
+        &mut self,
+        request: HostOperationRequest,
+        report: &mut impl Write,
+        stdin: &mut R,
+        activation_index: usize,
+    ) -> Result<(), String> {
         let expected = self
             .identity
             .request(request.node, request.request)
-            .ok_or_else(|| "unbound std wait request identity".to_string())?;
+            .ok_or_else(|| "unbound await-activation request identity".to_string())?;
         if expected.operation != request.operation {
-            return Err("std wait request operation identity mismatch".to_string());
+            return Err("await-activation request operation identity mismatch".to_string());
         }
-        // Sleep 0ms — the real operator interaction happens at the binary level
-        // via stdin.  The kernel operation waits with duration_ms=0 so we just
-        // complete immediately; the binary handles reading Enter before calling run().
-        thread::sleep(Duration::from_millis(0));
+        writeln!(
+            report,
+            "Press Enter to activate ({activation_index}/{MAXIMUM_VALUES})"
+        )
+        .map_err(|e| e.to_string())?;
+        let mut line = String::new();
+        stdin
+            .read_line(&mut line)
+            .map_err(|e| format!("stdin read failed: {e}"))?;
         self.scheduler
             .complete_host_operation(
                 request.node,
@@ -564,7 +374,12 @@ impl DistributedToggleSource {
             .map_err(|error| format!("{error:?}"))
     }
 
-    fn next_offer(&mut self) -> Result<Option<(u64, [u8; SIGNAL_ENCODED_LEN as usize])>, String> {
+    fn next_offer<R: BufRead>(
+        &mut self,
+        report: &mut impl Write,
+        stdin: &mut R,
+        activation_index: &mut usize,
+    ) -> Result<Option<(u64, [u8; SIGNAL_ENCODED_LEN as usize])>, String> {
         let (endpoint, cord) = self.remote();
         loop {
             if let Some(offer) = self
@@ -582,7 +397,9 @@ impl DistributedToggleSource {
                 return Ok(Some((offer.sequence, payload)));
             }
             if let Some(request) = self.scheduler.next_host_request() {
-                self.complete_stdin_wait(request)?;
+                let current_index = *activation_index;
+                *activation_index += 1;
+                self.complete_activation_wait(request, report, stdin, current_index)?;
                 continue;
             }
             match self
@@ -680,20 +497,8 @@ impl DistributedToggleSource {
         }
 
         let mut activation_index = 0usize;
-        while let Some((sequence, payload)) = {
-            // Read one Enter press before letting the scheduler produce the next value.
-            // This is only called when the kernel requests a wait (0ms),
-            // which happens once per activation.  We block here so that the
-            // operator controls the pace.
-            if activation_index < MAXIMUM_VALUES {
-                writeln!(report, "Press Enter to activate ({activation_index}/{MAXIMUM_VALUES})")
-                    .map_err(|e| e.to_string())?;
-                let mut line = String::new();
-                stdin.read_line(&mut line).map_err(|e| e.to_string())?;
-                activation_index += 1;
-            }
-            self.next_offer()?
-        } {
+        while let Some((sequence, payload)) = self.next_offer(report, stdin, &mut activation_index)?
+        {
             loop {
                 self.send(
                     &mut carrier,
@@ -821,10 +626,19 @@ pub fn bind_listener() -> Result<NativeWebSocketListener, String> {
         .map_err(|error| format!("{error:?}"))
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::plan::exact_distributed_toggle_plan;
+    use conduit_core::{CapabilityId, ConnectionProvider, OperationId};
+    use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
     use conduit_runtime::lowering::RemoteCordDirection;
+    use conduit_signal::{
+        distributed_toggle_browser_sink_advertisement,
+        distributed_toggle_std_source_advertisement, signal_profile_catalog,
+    };
+    use std::collections::BTreeMap;
 
     #[test]
     fn unchanged_toggle_form_prepares_exact_independent_remote_fragments() {
@@ -860,7 +674,7 @@ mod tests {
         let source = distributed_toggle_std_source_advertisement();
         let sink = distributed_toggle_browser_sink_advertisement();
         let form = conduit_form::parse(
-            include_str!("../../../examples/remote-toggle.form"),
+            include_str!("../../../../examples/remote-toggle.form"),
             &signal_profile_catalog(),
         )
         .unwrap();
