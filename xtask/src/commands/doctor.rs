@@ -113,9 +113,7 @@ fn probe_stdout(probes: &[DoctorProbe], id: &str) -> Option<String> {
         .iter()
         .find(|probe| probe.outcome.id == id)
         .filter(|probe| {
-            !probe.outcome.skipped
-                && probe.outcome.success
-                && !probe.outcome.stdout.is_empty()
+            !probe.outcome.skipped && probe.outcome.success && !probe.outcome.stdout.is_empty()
         })
         .map(|probe| probe.outcome.stdout.clone())
 }
@@ -138,8 +136,22 @@ fn probe_specs(target: DoctorTarget) -> Vec<ProbeSpec> {
 
 fn general_probes() -> Vec<ProbeSpec> {
     vec![
-        probe("general", "doctor.rustc", "Rust compiler", "rustc", &["--version"], None),
-        probe("general", "doctor.cargo", "Cargo", "cargo", &["--version"], None),
+        probe(
+            "general",
+            "doctor.rustc",
+            "Rust compiler",
+            "rustc",
+            &["--version"],
+            None,
+        ),
+        probe(
+            "general",
+            "doctor.cargo",
+            "Cargo",
+            "cargo",
+            &["--version"],
+            None,
+        ),
         probe(
             "general",
             "doctor.rustup.targets",
@@ -148,9 +160,30 @@ fn general_probes() -> Vec<ProbeSpec> {
             &["target", "list", "--installed"],
             Some("rustup target add wasm32-unknown-unknown thumbv6m-none-eabi"),
         ),
-        probe("general", "doctor.node", "Node.js", "node", &["--version"], None),
-        probe("general", "doctor.npm", "npm", "npm", &["--version"], None),
-        probe("general", "doctor.npx", "npx", "npx", &["--version"], None),
+        probe(
+            "general",
+            "doctor.node",
+            "Node.js",
+            "node",
+            &["--version"],
+            None,
+        ),
+        probe(
+            "general",
+            "doctor.npm",
+            "npm",
+            "npm",
+            &["--version"],
+            None,
+        ),
+        probe(
+            "general",
+            "doctor.npx",
+            "npx",
+            "npx",
+            &["--version"],
+            None,
+        ),
         probe(
             "git",
             "doctor.git.commit",
@@ -299,6 +332,8 @@ mod tests {
         assert_eq!(value["command"], "doctor");
         assert_eq!(value["target"], "browser");
         assert_eq!(value["dry_run"], true);
-        assert!(value["probes"].as_array().is_some_and(|probes| !probes.is_empty()));
+        assert!(value["probes"]
+            .as_array()
+            .is_some_and(|probes| !probes.is_empty()));
     }
 }
