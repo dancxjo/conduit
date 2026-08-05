@@ -36,7 +36,7 @@ dependencies = [
 name = "anstyle-query"
 version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40c48f72fd53d289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
+checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
  "windows-sys",
 ]

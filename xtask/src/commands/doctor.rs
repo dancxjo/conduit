@@ -72,7 +72,10 @@ fn build_report(target: DoctorTarget, opts: &GlobalOpts, root: &Path) -> DoctorR
             if outcome.id == "doctor.pico.thumb-target"
                 && !outcome.skipped
                 && outcome.success
-                && !outcome.stdout.lines().any(|line| line.trim() == "thumbv6m-none-eabi")
+                && !outcome
+                    .stdout
+                    .lines()
+                    .any(|line| line.trim() == "thumbv6m-none-eabi")
             {
                 outcome.success = false;
                 outcome.stderr = "required Rust target is not installed".to_string();
@@ -117,6 +120,7 @@ fn probe_stdout(probes: &[DoctorProbe], id: &str) -> Option<String> {
 
 fn probe_specs(target: DoctorTarget) -> Vec<ProbeSpec> {
     let mut probes = Vec::new();
+
     if matches!(target, DoctorTarget::All) {
         probes.extend(general_probes());
     }
@@ -126,13 +130,28 @@ fn probe_specs(target: DoctorTarget) -> Vec<ProbeSpec> {
     if matches!(target, DoctorTarget::All | DoctorTarget::Pico) {
         probes.extend(pico_probes());
     }
+
     probes
 }
 
 fn general_probes() -> Vec<ProbeSpec> {
     vec![
-        probe("general", "doctor.rustc", "Rust compiler", "rustc", &["--version"], None),
-        probe("general", "doctor.cargo", "Cargo", "cargo", &["--version"], None),
+        probe(
+            "general",
+            "doctor.rustc",
+            "Rust compiler",
+            "rustc",
+            &["--version"],
+            None,
+        ),
+        probe(
+            "general",
+            "doctor.cargo",
+            "Cargo",
+            "cargo",
+            &["--version"],
+            None,
+        ),
         probe(
             "general",
             "doctor.rustup.targets",
@@ -141,11 +160,32 @@ fn general_probes() -> Vec<ProbeSpec> {
             &["target", "list", "--installed"],
             Some("rustup target add wasm32-unknown-unknown thumbv6m-none-eabi"),
         ),
-        probe("general", "doctor.node", "Node.js", "node", &["--version"], None),
+        probe(
+            "general",
+            "doctor.node",
+            "Node.js",
+            "node",
+            &["--version"],
+            None,
+        ),
         probe("general", "doctor.npm", "npm", "npm", &["--version"], None),
         probe("general", "doctor.npx", "npx", "npx", &["--version"], None),
-        probe("git", "doctor.git.commit", "exact Git commit", "git", &["rev-parse", "HEAD"], None),
-        probe("git", "doctor.git.status", "Git dirty state", "git", &["status", "--porcelain"], None),
+        probe(
+            "git",
+            "doctor.git.commit",
+            "exact Git commit",
+            "git",
+            &["rev-parse", "HEAD"],
+            None,
+        ),
+        probe(
+            "git",
+            "doctor.git.status",
+            "Git dirty state",
+            "git",
+            &["status", "--porcelain"],
+            None,
+        ),
     ]
 }
 
@@ -211,12 +251,14 @@ fn print_human_report(report: &DoctorReport) {
     if report.dry_run {
         println!("dry run: no external probes were executed");
     }
+
     let mut previous_section = None;
     for probe in &report.probes {
         if previous_section != Some(probe.section) {
             println!("\n{}:", probe.section);
             previous_section = Some(probe.section);
         }
+
         let status = if probe.outcome.skipped {
             "planned"
         } else if probe.outcome.success {
@@ -262,6 +304,8 @@ mod tests {
         assert!(report.dry_run);
         assert!(!report.probes.is_empty());
         assert!(report.probes.iter().all(|probe| probe.outcome.skipped));
+        assert!(report.exact_git_commit.is_none());
+        assert!(report.dirty.is_none());
     }
 
     #[test]
@@ -270,6 +314,11 @@ mod tests {
         let report = build_report(DoctorTarget::Browser, &dry_json_opts(), &root);
         let value = serde_json::to_value(report).expect("serialize doctor report");
         assert_eq!(value["schema"], REPORT_SCHEMA);
+        assert_eq!(value["command"], "doctor");
         assert_eq!(value["target"], "browser");
+        assert_eq!(value["dry_run"], true);
+        assert!(value["probes"]
+            .as_array()
+            .is_some_and(|probes| !probes.is_empty()));
     }
 }
