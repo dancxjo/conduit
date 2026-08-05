@@ -88,6 +88,8 @@ pub struct LoweredRemoteEndpoint {
     pub endpoint: RemoteEndpointId,
     pub cord: CordId,
     pub connection_id: ConnectionId,
+    pub source_fragment_id: FragmentId,
+    pub sink_fragment_id: FragmentId,
     pub direction: RemoteCordDirection,
     pub local: LinkEndpoint,
     pub peer: LinkEndpoint,
@@ -696,6 +698,8 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
                     endpoint,
                     cord,
                     connection_id: connection.connection_id.clone(),
+                    source_fragment_id: fragment.fragment_id.clone(),
+                    sink_fragment_id: fragment_id_for_host(fragment, &binding.sink.host_id)?,
                     direction: RemoteCordDirection::Egress,
                     local: binding.source.clone(),
                     peer: binding.sink.clone(),
@@ -731,6 +735,8 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
                     endpoint,
                     cord,
                     connection_id: connection.connection_id.clone(),
+                    source_fragment_id: fragment_id_for_host(fragment, &binding.source.host_id)?,
+                    sink_fragment_id: fragment.fragment_id.clone(),
                     direction: RemoteCordDirection::Ingress,
                     local: binding.sink.clone(),
                     peer: binding.source.clone(),
@@ -907,6 +913,18 @@ fn lower_ports(
             })
         })
         .collect()
+}
+
+fn fragment_id_for_host(
+    fragment: &PlanFragment,
+    host_id: &HostId,
+) -> Result<FragmentId, LoweringError> {
+    fragment
+        .plan_fragments
+        .iter()
+        .find(|commitment| &commitment.host_id == host_id)
+        .map(|commitment| commitment.fragment_id.clone())
+        .ok_or(LoweringError::InvalidFragment)
 }
 
 fn find_port(ports: &[LoweredPort], id: &PlanPortId) -> Option<PortId> {

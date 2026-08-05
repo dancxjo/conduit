@@ -6,6 +6,9 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{ConnectionEnvelope, ConnectionId, KindId, PlanId, PROTOCOL_VERSION};
 
+mod session;
+pub use session::*;
+
 const MAGIC: [u8; 4] = *b"CNDW";
 const WIRE_FORMAT_VERSION: u8 = 1;
 pub const MAX_ID_BYTES: usize = 4_096;
@@ -22,6 +25,15 @@ pub enum WireError {
     IdentifierTooLong,
     InvalidIdentifierEncoding,
     TrailingGarbage,
+    InvalidMessageKind,
+    InvalidProvider,
+    InvalidSession,
+    InvalidLimits,
+    InvalidState,
+    OutputTooSmall,
+    DuplicateFrame,
+    ReorderedFrame,
+    LateFrame,
 }
 
 pub fn encode_envelope(

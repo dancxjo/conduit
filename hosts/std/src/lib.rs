@@ -26,6 +26,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
+pub mod websocket;
 
 #[cfg(test)]
 mod allocation_probe {
