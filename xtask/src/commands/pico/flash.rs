@@ -18,15 +18,17 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
         println!("  UF2 source: {}", uf2.display());
         println!(
             "  mount candidate: {}",
-            args.mount
-                .as_deref()
-                .unwrap_or("<auto-discover RPI-RP2>")
+            args.mount.as_deref().unwrap_or("<auto-discover RPI-RP2>")
         );
         return Ok(());
     }
 
     if !uf2.exists() {
-        return Err(format!("UF2 not found at {}; run `cargo xtask pico build` first", uf2.display()).into());
+        return Err(format!(
+            "UF2 not found at {}; run `cargo xtask pico build` first",
+            uf2.display()
+        )
+        .into());
     }
 
     let mount = resolve_mount(args)?;
@@ -58,7 +60,11 @@ fn resolve_mount(args: &PicoArgs) -> PicoResult<PathBuf> {
         if path.is_dir() {
             return Ok(path);
         }
-        return Err(format!("specified mount path is not a directory: {}", path.display()).into());
+        return Err(format!(
+            "specified mount path is not a directory: {}",
+            path.display()
+        )
+        .into());
     }
 
     let candidates = discover_bootsel_mounts()?;
@@ -82,7 +88,9 @@ fn resolve_mount(args: &PicoArgs) -> PicoResult<PathBuf> {
         return Ok(path);
     }
 
-    println!("No RPI-RP2 volume detected. Hold BOOTSEL while connecting the Pico W, then press Enter.");
+    println!(
+        "No RPI-RP2 volume detected. Hold BOOTSEL while connecting the Pico W, then press Enter."
+    );
     let mut line = String::new();
     std::io::stdin().read_line(&mut line)?;
 
