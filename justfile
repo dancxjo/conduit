@@ -51,6 +51,11 @@ check:
     cargo clippy --workspace --all-targets -- -D warnings
     cargo test --workspace
 
+# One live loopback std-kernel to browser-WASM-kernel Signal proof.
+prove-std-browser-s4:
+    cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
+    npx playwright test --config hosts/browser/playwright.config.mjs hosts/browser/distributed-signal.spec.mjs
+
 check-kernel-s1:
     cargo test -p conduit-kernel --features alloc
     cargo check -p conduit-kernel --target thumbv6m-none-eabi

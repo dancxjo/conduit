@@ -1,8 +1,9 @@
 use std::io::Write;
 
 use conduit_core::{
-    BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId, FragmentId, HostId,
-    KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
+    bind_active_play, BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
+    FragmentId, HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
+    PROTOCOL_VERSION,
 };
 use conduit_std_host::websocket::NativeWebSocketListener;
 use conduit_wire::{
@@ -10,7 +11,7 @@ use conduit_wire::{
     SessionMessage, SessionRole,
 };
 
-const MAXIMUM_FRAME_BYTES: u32 = 512;
+const MAXIMUM_FRAME_BYTES: u32 = 1_024;
 const MAXIMUM_PAYLOAD_BYTES: u32 = 16;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -95,25 +96,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn binding() -> SessionBinding {
+    let plan_id = PlanId::from("probe/plan");
+    let source = LinkEndpoint {
+        host_id: HostId::from("probe/source-host"),
+        boot_id: BootId::from("probe/source-boot"),
+        endpoint_id: LinkEndpointId::from("probe/source-endpoint"),
+    };
+    let sink = LinkEndpoint {
+        host_id: HostId::from("probe/sink-host"),
+        boot_id: BootId::from("probe/sink-boot"),
+        endpoint_id: LinkEndpointId::from("probe/sink-endpoint"),
+    };
+    let source_active_play_id =
+        bind_active_play(&plan_id, &source.host_id, &source.boot_id, 0).active_play_id;
+    let sink_active_play_id =
+        bind_active_play(&plan_id, &sink.host_id, &sink.boot_id, 0).active_play_id;
     SessionBinding {
         protocol_version: PROTOCOL_VERSION,
-        plan_id: PlanId::from("probe/plan"),
+        plan_id,
         source_fragment_id: FragmentId::from("probe/source-fragment"),
         sink_fragment_id: FragmentId::from("probe/sink-fragment"),
+        source_active_play_id,
+        sink_active_play_id,
         connection_id: ConnectionId::from("probe/connection"),
         link_binding_id: LinkBindingId::from("probe/link"),
         provider: ConnectionProvider::WebSocket,
         provider_instance_id: ConnectionProviderInstanceId::from("probe/websocket/instance"),
-        source: LinkEndpoint {
-            host_id: HostId::from("probe/source-host"),
-            boot_id: BootId::from("probe/source-boot"),
-            endpoint_id: LinkEndpointId::from("probe/source-endpoint"),
-        },
-        sink: LinkEndpoint {
-            host_id: HostId::from("probe/sink-host"),
-            boot_id: BootId::from("probe/sink-boot"),
-            endpoint_id: LinkEndpointId::from("probe/sink-endpoint"),
-        },
+        source,
+        sink,
         value_kind: KindId::from("probe/value"),
         limits: LinkLimits {
             maximum_in_flight_items: 1,
