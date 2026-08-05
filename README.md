@@ -7,9 +7,10 @@ Conduit is being rebuilt around one rule:
 Current `main` contains a useful Rust `std` prototype and deterministic
 browser-shaped/Pico-shaped conformance fixtures. S4 also contains one actual
 Chromium DOM presentation adapter boundary. It does **not** yet contain a
-std host executing exact plans through `conduit-kernel`, a browser-side
+general std host executing exact plans through `conduit-kernel`, a browser-side
 planner/runtime, Pico firmware, live WebSocket/UDP transport, three-platform
-proof, production BODY model, or production Observatory.
+proof, production BODY model, or production Observatory. The exact two-node
+Signal pair is the first std path migrated to the kernel.
 [STATUS.md](STATUS.md) is the checked claim boundary.
 
 ## Salvage sequence
@@ -33,7 +34,8 @@ reuse is recorded in [docs/reuse-ledger.md](docs/reuse-ledger.md).
 Platform expansion is paused behind the kernel-takeover integration gate
 [#389](https://github.com/dancxjo/conduit/issues/389). The first checkpoint
 lowers one exact local `PlanFragment` into bounded numeric kernel tables; it
-does not yet run that fragment through the kernel scheduler.
+also installs the unchanged `flow/pulse -> presentation/show` fragment into the
+hosted kernel scheduler. Broader std forms remain on the old runtime pump.
 
 ## Current executable prototype
 
@@ -64,8 +66,9 @@ S1 slice provides exact input/output port identity, correlated generic
 host-operation actions, prebound numeric route/admission tables,
 item/byte-bounded fixed and preallocated hosted storage, and the accepted
 fixed-capacity scheduler. Exact local std plans now have a fail-closed numeric
-lowering seam, but the old `HostRuntime` operation pump still executes the std
-path.
+lowering seam, and the exact two-node Signal pair uses it for real timer/stdout
+execution. The old `HostRuntime` operation pump still executes unmigrated std
+forms.
 
 Architecture and current salvage boundaries:
 

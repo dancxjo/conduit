@@ -46,6 +46,7 @@ jobs:
       - name: exact plan to kernel lowering
         run: |
           cargo test -p conduit-std-host exact_signal_fragment_lowers_to_numeric_kernel_tables
+          cargo test -p conduit-std-host streamed_output_uses_a_virtual_clock_and_retains_terminal_evidence
           cargo test -p conduit-kernel admitted_sink_host_operation_may_have_no_output_payload
       - name: bounded lossless form document
         run: |
