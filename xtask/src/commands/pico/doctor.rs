@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use crate::process::command_for;
+
 use super::PicoResult;
 
 const REQUIRED_TOOLS: &[(&str, &str)] = &[
@@ -115,8 +117,13 @@ pub fn run_doctor(dry_run: bool) -> PicoResult<()> {
 }
 
 fn which_tool(name: &str) -> bool {
-    Command::new(name)
-        .arg("--version")
+    let probe_arg = match name {
+        "elf2uf2-rs" => "--help",
+        _ => "--version",
+    };
+
+    command_for(name)
+        .arg(probe_arg)
         .output()
         .map(|output| output.status.success())
         .unwrap_or(false)

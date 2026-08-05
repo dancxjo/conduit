@@ -1,13 +1,20 @@
 #![cfg_attr(not(feature = "host-profile"), no_std)]
 
+#[cfg(feature = "host-profile")]
 extern crate alloc;
 
+#[cfg(feature = "host-profile")]
 mod activation;
+#[cfg(feature = "host-profile")]
 pub use activation::*;
 
-use alloc::string::{String, ToString};
+#[cfg(feature = "host-profile")]
+use alloc::string::ToString;
+#[cfg(feature = "host-profile")]
 use alloc::vec;
+#[cfg(feature = "host-profile")]
 use alloc::vec::Vec;
+#[cfg(feature = "host-profile")]
 use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits,
@@ -32,6 +39,8 @@ pub const PULSE_CONTRACT_REVISION: &str = "conduit.signal/flow-pulse@1";
 pub const SHOW_CONTRACT_REVISION: &str = "conduit.signal/presentation-show@1";
 pub const PULSE_EXECUTION_PROFILE: &str = "conduit.signal/pulse-hosted@1";
 pub const SHOW_EXECUTION_PROFILE: &str = "conduit.signal/show-hosted@1";
+pub const SIGNAL_ENCODED_LEN_USIZE: usize = SIGNAL_ENCODED_LEN as usize;
+pub type EncodedSignal = [u8; SIGNAL_ENCODED_LEN_USIZE];
 pub const DISTRIBUTED_STD_HOST_ID: &str = "s4/std-source";
 pub const DISTRIBUTED_STD_BOOT_ID: &str = "s4/std-source-boot";
 pub const DISTRIBUTED_BROWSER_HOST_ID: &str = "s4/browser-sink";
@@ -41,6 +50,10 @@ pub const DISTRIBUTED_PROVIDER_INSTANCE_ID: &str = "s4/websocket-loopback-instan
 pub const DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS: u16 = 1;
 pub const DISTRIBUTED_MAXIMUM_BUFFERED_BYTES: u32 = SIGNAL_ENCODED_LEN;
 pub const DISTRIBUTED_MAXIMUM_FRAME_BYTES: u32 = 2_048;
+pub const PICO_LOCAL_HOST_ID: &str = "s4/pico-local";
+pub const PICO_LOCAL_BOOT_ID: &str = "s4/pico-local-boot";
+pub const PICO_TIMER_POOL_ID: &str = "s4/pico-timer";
+pub const PICO_PRESENTATION_POOL_ID: &str = "s4/pico-cyw43-led";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signal {
@@ -58,8 +71,8 @@ pub struct PulseConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SignalProfileError {
     MissingConfiguration(&'static str),
-    InvalidConfiguration(String),
-    WrongValueKind(String),
+    InvalidConfiguration(&'static str),
+    WrongValueKind,
     WrongEncodedLength(usize),
 }
 
@@ -72,9 +85,7 @@ impl core::fmt::Display for SignalProfileError {
             SignalProfileError::InvalidConfiguration(key) => {
                 write!(f, "invalid configuration '{key}'")
             }
-            SignalProfileError::WrongValueKind(kind) => {
-                write!(f, "wrong value kind '{kind}'")
-            }
+            SignalProfileError::WrongValueKind => f.write_str("wrong value kind"),
             SignalProfileError::WrongEncodedLength(length) => {
                 write!(f, "wrong encoded signal length {length}")
             }
@@ -82,38 +93,47 @@ impl core::fmt::Display for SignalProfileError {
     }
 }
 
+#[cfg(feature = "host-profile")]
 pub fn pulse_kind() -> KindId {
     kind_id(PULSE_KIND)
 }
 
+#[cfg(feature = "host-profile")]
 pub fn show_kind() -> KindId {
     kind_id(SHOW_KIND)
 }
 
+#[cfg(feature = "host-profile")]
 pub fn signal_value_kind() -> KindId {
     kind_id(SIGNAL_VALUE_KIND)
 }
 
+#[cfg(feature = "host-profile")]
 pub fn pulse_contract_revision() -> KindContractRevision {
     KindContractRevision::from(PULSE_CONTRACT_REVISION)
 }
 
+#[cfg(feature = "host-profile")]
 pub fn show_contract_revision() -> KindContractRevision {
     KindContractRevision::from(SHOW_CONTRACT_REVISION)
 }
 
+#[cfg(feature = "host-profile")]
 pub fn pulse_execution_profile() -> ExecutionProfileId {
     ExecutionProfileId::from(PULSE_EXECUTION_PROFILE)
 }
 
+#[cfg(feature = "host-profile")]
 pub fn show_execution_profile() -> ExecutionProfileId {
     ExecutionProfileId::from(SHOW_EXECUTION_PROFILE)
 }
 
+#[cfg(feature = "host-profile")]
 pub fn pulse_host_operation_requirements() -> Vec<HostOperationRequirement> {
     vec![wait_host_operation_requirement()]
 }
 
+#[cfg(feature = "host-profile")]
 pub fn show_host_operation_requirements() -> Vec<HostOperationRequirement> {
     vec![present_host_operation_requirement(
         kind_id(SIGNAL_PRESENTATION_KIND),
@@ -121,14 +141,17 @@ pub fn show_host_operation_requirements() -> Vec<HostOperationRequirement> {
     )]
 }
 
+#[cfg(feature = "host-profile")]
 pub fn pulse_resource_requirements() -> Vec<ResourceRequirement> {
     vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)]
 }
 
+#[cfg(feature = "host-profile")]
 pub fn show_resource_requirements() -> Vec<ResourceRequirement> {
     vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)]
 }
 
+#[cfg(feature = "host-profile")]
 pub fn signal_resource_offers(
     timer_pool_id: &str,
     presentation_pool_id: &str,
@@ -146,6 +169,7 @@ pub fn signal_resource_offers(
     offers
 }
 
+#[cfg(feature = "host-profile")]
 pub fn pulse_outputs() -> Vec<PortDescriptor> {
     vec![PortDescriptor {
         port_id: port_id(SIGNAL_PORT),
@@ -154,6 +178,7 @@ pub fn pulse_outputs() -> Vec<PortDescriptor> {
     }]
 }
 
+#[cfg(feature = "host-profile")]
 pub fn show_inputs() -> Vec<PortDescriptor> {
     vec![PortDescriptor {
         port_id: port_id(SIGNAL_PORT),
@@ -162,6 +187,7 @@ pub fn show_inputs() -> Vec<PortDescriptor> {
     }]
 }
 
+#[cfg(feature = "host-profile")]
 pub fn pulse_configuration_entries(config: &PulseConfiguration) -> Vec<ConfigurationEntry> {
     vec![
         ConfigurationEntry {
@@ -179,6 +205,7 @@ pub fn pulse_configuration_entries(config: &PulseConfiguration) -> Vec<Configura
     ]
 }
 
+#[cfg(feature = "host-profile")]
 pub fn parse_pulse_configuration(
     entries: &[ConfigurationEntry],
 ) -> Result<PulseConfiguration, SignalProfileError> {
@@ -191,16 +218,21 @@ pub fn parse_pulse_configuration(
             ("period-ms", ConfigurationValue::U64(value)) => period_ms = Some(*value),
             ("initial", ConfigurationValue::Bool(value)) => initial_level = Some(*value),
             ("count", _) | ("period-ms", _) | ("initial", _) => {
-                return Err(SignalProfileError::InvalidConfiguration(entry.key.clone()));
+                return Err(SignalProfileError::InvalidConfiguration(
+                    match entry.key.as_str() {
+                        "count" => "count",
+                        "period-ms" => "period-ms",
+                        "initial" => "initial",
+                        _ => "unknown",
+                    },
+                ));
             }
             _ => {}
         }
     }
     let count = count.ok_or(SignalProfileError::MissingConfiguration("count"))?;
     if count > MAX_SIGNAL_COUNT {
-        return Err(SignalProfileError::InvalidConfiguration(
-            "count".to_string(),
-        ));
+        return Err(SignalProfileError::InvalidConfiguration("count"));
     }
     Ok(PulseConfiguration {
         count,
@@ -209,27 +241,58 @@ pub fn parse_pulse_configuration(
     })
 }
 
+pub fn signal_level_for_sequence(sequence: u64, initial_level: bool) -> bool {
+    if sequence.is_multiple_of(2) {
+        initial_level
+    } else {
+        !initial_level
+    }
+}
+
+pub fn encode_signal_fixed(signal: &Signal) -> EncodedSignal {
+    let mut encoded = [0u8; SIGNAL_ENCODED_LEN_USIZE];
+    encoded[..8].copy_from_slice(&signal.sequence.to_le_bytes());
+    encoded[8] = u8::from(signal.level);
+    encoded
+}
+
+pub fn encode_signal_into(signal: &Signal, encoded: &mut [u8]) -> Result<(), SignalProfileError> {
+    if encoded.len() != SIGNAL_ENCODED_LEN_USIZE {
+        return Err(SignalProfileError::WrongEncodedLength(encoded.len()));
+    }
+    encoded.copy_from_slice(&encode_signal_fixed(signal));
+    Ok(())
+}
+
+pub fn decode_signal_fixed(encoded: &EncodedSignal) -> Signal {
+    let mut sequence = [0u8; 8];
+    sequence.copy_from_slice(&encoded[..8]);
+    Signal {
+        sequence: u64::from_le_bytes(sequence),
+        level: encoded[8] != 0,
+    }
+}
+
+#[cfg(feature = "host-profile")]
 pub fn encode_signal(signal: &Signal) -> ValuePayload {
-    let mut encoded = Vec::with_capacity(SIGNAL_ENCODED_LEN as usize);
-    encoded.extend_from_slice(&signal.sequence.to_le_bytes());
-    encoded.push(u8::from(signal.level));
+    let mut encoded = Vec::with_capacity(SIGNAL_ENCODED_LEN_USIZE);
+    encoded.extend_from_slice(&encode_signal_fixed(signal));
     ValuePayload {
         value_kind: signal_value_kind(),
         encoded,
     }
 }
 
+#[cfg(feature = "host-profile")]
 pub fn decode_signal(payload: &ValuePayload) -> Result<Signal, SignalProfileError> {
     if payload.value_kind.as_str() != SIGNAL_VALUE_KIND {
-        return Err(SignalProfileError::WrongValueKind(
-            payload.value_kind.as_str().to_string(),
-        ));
+        return Err(SignalProfileError::WrongValueKind);
     }
     decode_signal_bytes(&payload.encoded)
 }
 
 pub fn decode_signal_bytes(encoded: &[u8]) -> Result<Signal, SignalProfileError> {
-    if encoded.len() != SIGNAL_ENCODED_LEN as usize {
+    if encoded.len() != SIGNAL_ENCODED_LEN_USIZE {
         return Err(SignalProfileError::WrongEncodedLength(encoded.len()));
     }
     let mut sequence = [0u8; 8];
@@ -244,9 +307,64 @@ pub fn signal_payload_size() -> u32 {
     SIGNAL_ENCODED_LEN
 }
 
+/// Exact Pico-local Signal offer used to plan the constrained firmware image.
+///
+/// This is a capability advertisement only. It does not claim that firmware was
+/// built, flashed, booted, or physically observed.
+#[cfg(feature = "host-profile")]
+pub fn pico_local_advertisement() -> HostAdvertisement {
+    HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from(PICO_LOCAL_HOST_ID),
+        boot_id: BootId::from(PICO_LOCAL_BOOT_ID),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("pico-w-signal-kernel"),
+        resources: signal_resource_offers(PICO_TIMER_POOL_ID, PICO_PRESENTATION_POOL_ID, 1),
+        capabilities: vec![
+            CapabilityOffer {
+                capability_id: CapabilityId::from("pico-pulse-1"),
+                kind_id: pulse_kind(),
+                kind_contract_revision: pulse_contract_revision(),
+                execution_profile_id: pulse_execution_profile(),
+                implementation_id: ImplementationId::from("pico-w/kernel-pulse-timer-v1"),
+                artifact_id: ArtifactId::from("conduit-signal/pico-pulse-artifact-v1"),
+                inputs: Vec::new(),
+                outputs: pulse_outputs(),
+                host_operations: pulse_host_operation_requirements(),
+                resource_requirements: pulse_resource_requirements(),
+                authority_requirements: Vec::new(),
+                limits: CapabilityLimits {
+                    max_active_instances: 1,
+                    max_queue_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+                    max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
+                },
+            },
+            CapabilityOffer {
+                capability_id: CapabilityId::from("pico-led-show-1"),
+                kind_id: show_kind(),
+                kind_contract_revision: show_contract_revision(),
+                execution_profile_id: show_execution_profile(),
+                implementation_id: ImplementationId::from("pico-w/kernel-cyw43-show-signal-v1"),
+                artifact_id: ArtifactId::from("conduit-signal/pico-cyw43-show-artifact-v1"),
+                inputs: show_inputs(),
+                outputs: Vec::new(),
+                host_operations: show_host_operation_requirements(),
+                resource_requirements: show_resource_requirements(),
+                authority_requirements: Vec::new(),
+                limits: CapabilityLimits {
+                    max_active_instances: 1,
+                    max_queue_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+                    max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
+                },
+            },
+        ],
+    }
+}
+
 /// Exact production host facts used by the live S4 std-to-browser checkpoint.
 /// The ephemeral loopback URL is carrier configuration and is deliberately not
 /// part of these semantic or plan-visible identities.
+#[cfg(feature = "host-profile")]
 pub fn distributed_std_source_advertisement() -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -276,6 +394,7 @@ pub fn distributed_std_source_advertisement() -> HostAdvertisement {
     }
 }
 
+#[cfg(feature = "host-profile")]
 pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -309,6 +428,7 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
     }
 }
 
+#[cfg(feature = "host-profile")]
 pub fn distributed_websocket_link_binding() -> LinkBinding {
     LinkBinding {
         binding_id: LinkBindingId::from(DISTRIBUTED_LINK_BINDING_ID),

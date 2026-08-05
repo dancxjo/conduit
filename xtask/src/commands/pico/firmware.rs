@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use crate::process::command_for;
+
 use super::doctor::{
     repo_root, sha256_file, verify_sha256, CYW43_ASSETS, CYW43_ASSET_DIR, CYW43_COMMIT,
 };
@@ -41,10 +43,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         }
     }
 
-    let manifest = root
-        .join("firmware")
-        .join(FIRMWARE_PACKAGE)
-        .join("Cargo.toml");
+    let manifest = firmware_root(&root).join("Cargo.toml");
     let manifest_text = manifest
         .to_str()
         .ok_or("firmware manifest path is not UTF-8")?;
@@ -67,11 +66,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         }
     }
 
-    let elf = root
-        .join("target")
-        .join(TARGET)
-        .join(PROFILE)
-        .join(FIRMWARE_PACKAGE);
+    let elf = firmware_elf_path(&root);
     let uf2 = elf.with_extension("uf2");
 
     println!(
@@ -80,7 +75,14 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         uf2.display()
     );
     if !args.dry_run {
-        let status = Command::new("elf2uf2-rs").arg(&elf).arg(&uf2).status()?;
+        if !elf.exists() {
+            return Err(format!(
+                "Pico firmware ELF not found at {}; cargo built an unexpected artifact path",
+                elf.display()
+            )
+            .into());
+        }
+        let status = command_for("elf2uf2-rs").arg(&elf).arg(&uf2).status()?;
         if !status.success() {
             return Err("elf2uf2-rs conversion failed".into());
         }
@@ -120,11 +122,8 @@ fn write_identity_manifest(root: &Path, elf: &Path) -> PicoResult<()> {
         cyw43_assets,
     };
 
-    let manifest_path = root
-        .join("target")
-        .join(TARGET)
-        .join(PROFILE)
-        .join(format!("{FIRMWARE_PACKAGE}.identity.json"));
+    let manifest_path =
+        firmware_target_profile_dir(root).join(format!("{FIRMWARE_PACKAGE}.identity.json"));
     std::fs::create_dir_all(
         manifest_path
             .parent()
@@ -165,8 +164,20 @@ pub fn refresh_radio_assets(dry_run: bool) -> PicoResult<()> {
 }
 
 pub fn uf2_path(root: &Path) -> PathBuf {
-    root.join("target")
+    firmware_elf_path(root).with_extension("uf2")
+}
+
+fn firmware_elf_path(root: &Path) -> PathBuf {
+    firmware_target_profile_dir(root).join(FIRMWARE_PACKAGE)
+}
+
+fn firmware_target_profile_dir(root: &Path) -> PathBuf {
+    firmware_root(root)
+        .join("target")
         .join(TARGET)
         .join(PROFILE)
-        .join(format!("{FIRMWARE_PACKAGE}.uf2"))
+}
+
+fn firmware_root(root: &Path) -> PathBuf {
+    root.join("firmware").join(FIRMWARE_PACKAGE)
 }

@@ -18,14 +18,19 @@ portable-atomic = { version = "1.14.0", features = ["critical-section"] }
 static_cell = "2"
 cyw43 = "0.7"
 cyw43-pio = "0.10"
-fixed = "1.29"
+fixed = "=1.29.0"
 heapless = "0.8"
 
-conduit-core = { path = "../../crates/conduit-core" }
 conduit-kernel = { path = "../../crates/conduit-kernel" }
+conduit-signal = { path = "../../crates/conduit-signal", default-features = false }
 
 [build-dependencies]
-# build.rs copies memory.x into OUT_DIR
+conduit-core = { path = "../../crates/conduit-core" }
+conduit-embedded-build = { path = "../../crates/conduit-embedded-build" }
+conduit-form = { path = "../../crates/conduit-form" }
+conduit-planner = { path = "../../crates/conduit-planner" }
+conduit-runtime = { path = "../../crates/conduit-runtime" }
+conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 
 [[bin]]
 name = "conduit-pico-w-signal"

@@ -12,6 +12,7 @@ use heapless::String as HString;
 use static_cell::StaticCell;
 
 const MAX_PACKET_SIZE: u8 = 64;
+const RECEIPT_BUFFER_BYTES: usize = 1536;
 
 static USB_STATE: StaticCell<State> = StaticCell::new();
 static USB_DEVICE_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
@@ -21,6 +22,45 @@ static USB_CONTROL_BUF: StaticCell<[u8; 64]> = StaticCell::new();
 
 pub struct UsbCdc {
     sender: embassy_usb::class::cdc_acm::Sender<'static, usb::Driver<'static, USB>>,
+}
+
+#[derive(Clone, Copy)]
+pub struct BootIdentity {
+    pub source_document_id: &'static str,
+    pub checked_form_id: &'static str,
+    pub expanded_form_id: &'static str,
+    pub plan_id: &'static str,
+    pub fragment_id: &'static str,
+    pub host_id: &'static str,
+    pub boot_id: &'static str,
+    pub boot_evidence_id: &'static str,
+}
+
+#[derive(Clone, Copy)]
+pub struct PresentationReceiptIdentity {
+    pub source_document_id: &'static str,
+    pub checked_form_id: &'static str,
+    pub expanded_form_id: &'static str,
+    pub plan_id: &'static str,
+    pub fragment_id: &'static str,
+    pub host_id: &'static str,
+    pub boot_id: &'static str,
+    pub active_play_id: &'static str,
+    pub presentation_id: &'static str,
+    pub evidence_id: &'static str,
+}
+
+#[derive(Clone, Copy)]
+pub struct TerminalIdentity {
+    pub source_document_id: &'static str,
+    pub checked_form_id: &'static str,
+    pub expanded_form_id: &'static str,
+    pub plan_id: &'static str,
+    pub fragment_id: &'static str,
+    pub host_id: &'static str,
+    pub boot_id: &'static str,
+    pub active_play_id: &'static str,
+    pub evidence_id: &'static str,
 }
 
 /// Task that runs the USB device state machine.
@@ -67,40 +107,154 @@ pub fn init_usb(
 }
 
 impl UsbCdc {
-    /// Write a machine-readable receipt for one Signal presentation.
-    pub async fn write_receipt(&mut self, sequence: u64, level: bool) {
-        let mut line: HString<256> = HString::new();
+    /// Write the boot-scoped identity record for this generated firmware image.
+    pub async fn write_boot_identity(&mut self, identity: BootIdentity) {
+        let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         let _ = core::fmt::write(
             &mut line,
             format_args!(
-                "{{\"schema\":\"conduit-pico-w-signal/receipt@1\",\"sequence\":{},\"level\":{}}}\n",
+                concat!(
+                    "{{",
+                    "\"schema\":\"conduit-pico-w-signal/boot@1\",",
+                    "\"source_document_id\":\"{}\",",
+                    "\"checked_form_id\":\"{}\",",
+                    "\"expanded_form_id\":\"{}\",",
+                    "\"plan_id\":\"{}\",",
+                    "\"fragment_id\":\"{}\",",
+                    "\"host_id\":\"{}\",",
+                    "\"boot_id\":\"{}\",",
+                    "\"evidence_id\":\"{}\"",
+                    "}}\n"
+                ),
+                identity.source_document_id,
+                identity.checked_form_id,
+                identity.expanded_form_id,
+                identity.plan_id,
+                identity.fragment_id,
+                identity.host_id,
+                identity.boot_id,
+                identity.boot_evidence_id,
+            ),
+        );
+        self.write_all(line.as_bytes()).await;
+    }
+
+    /// Write a machine-readable receipt for one Signal presentation.
+    pub async fn write_receipt(
+        &mut self,
+        sequence: u64,
+        level: bool,
+        identity: PresentationReceiptIdentity,
+    ) {
+        let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
+        let _ = core::fmt::write(
+            &mut line,
+            format_args!(
+                concat!(
+                    "{{",
+                    "\"schema\":\"conduit-pico-w-signal/receipt@1\",",
+                    "\"source_document_id\":\"{}\",",
+                    "\"checked_form_id\":\"{}\",",
+                    "\"expanded_form_id\":\"{}\",",
+                    "\"plan_id\":\"{}\",",
+                    "\"fragment_id\":\"{}\",",
+                    "\"host_id\":\"{}\",",
+                    "\"boot_id\":\"{}\",",
+                    "\"active_play_id\":\"{}\",",
+                    "\"sequence\":{},",
+                    "\"level\":{},",
+                    "\"presentation_id\":\"{}\",",
+                    "\"evidence_id\":\"{}\"",
+                    "}}\n"
+                ),
+                identity.source_document_id,
+                identity.checked_form_id,
+                identity.expanded_form_id,
+                identity.plan_id,
+                identity.fragment_id,
+                identity.host_id,
+                identity.boot_id,
+                identity.active_play_id,
                 sequence,
                 level,
+                identity.presentation_id,
+                identity.evidence_id,
             ),
         );
         self.write_all(line.as_bytes()).await;
     }
 
     /// Write a terminal completion record.
-    pub async fn write_terminal(&mut self, success: bool) {
-        let mut line: HString<128> = HString::new();
+    pub async fn write_terminal(&mut self, success: bool, identity: TerminalIdentity) {
+        let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         let _ = core::fmt::write(
             &mut line,
             format_args!(
-                "{{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":{}}}\n",
+                concat!(
+                    "{{",
+                    "\"schema\":\"conduit-pico-w-signal/terminal@1\",",
+                    "\"source_document_id\":\"{}\",",
+                    "\"checked_form_id\":\"{}\",",
+                    "\"expanded_form_id\":\"{}\",",
+                    "\"plan_id\":\"{}\",",
+                    "\"fragment_id\":\"{}\",",
+                    "\"host_id\":\"{}\",",
+                    "\"boot_id\":\"{}\",",
+                    "\"active_play_id\":\"{}\",",
+                    "\"success\":{},",
+                    "\"evidence_id\":\"{}\"",
+                    "}}\n"
+                ),
+                identity.source_document_id,
+                identity.checked_form_id,
+                identity.expanded_form_id,
+                identity.plan_id,
+                identity.fragment_id,
+                identity.host_id,
+                identity.boot_id,
+                identity.active_play_id,
                 success,
+                identity.evidence_id,
             ),
         );
         self.write_all(line.as_bytes()).await;
     }
 
     /// Write a kernel error record.
-    pub async fn write_error(&mut self, e: conduit_kernel::scheduler::SchedulerError) {
-        let mut line: HString<128> = HString::new();
+    pub async fn write_error(
+        &mut self,
+        e: conduit_kernel::scheduler::SchedulerError,
+        identity: TerminalIdentity,
+    ) {
+        let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         let _ = core::fmt::write(
             &mut line,
             format_args!(
-                "{{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":false,\"error\":\"{:?}\"}}\n",
+                concat!(
+                    "{{",
+                    "\"schema\":\"conduit-pico-w-signal/terminal@1\",",
+                    "\"source_document_id\":\"{}\",",
+                    "\"checked_form_id\":\"{}\",",
+                    "\"expanded_form_id\":\"{}\",",
+                    "\"plan_id\":\"{}\",",
+                    "\"fragment_id\":\"{}\",",
+                    "\"host_id\":\"{}\",",
+                    "\"boot_id\":\"{}\",",
+                    "\"active_play_id\":\"{}\",",
+                    "\"success\":false,",
+                    "\"evidence_id\":\"{}\",",
+                    "\"error\":\"{:?}\"",
+                    "}}\n"
+                ),
+                identity.source_document_id,
+                identity.checked_form_id,
+                identity.expanded_form_id,
+                identity.plan_id,
+                identity.fragment_id,
+                identity.host_id,
+                identity.boot_id,
+                identity.active_play_id,
+                identity.evidence_id,
                 e,
             ),
         );

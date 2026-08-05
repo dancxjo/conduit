@@ -141,18 +141,14 @@ pub fn parse_activate_configuration(
         match (entry.key.as_str(), &entry.value) {
             ("count", ConfigurationValue::U64(value)) => count = Some(*value),
             ("count", _) => {
-                return Err(crate::SignalProfileError::InvalidConfiguration(
-                    entry.key.clone(),
-                ));
+                return Err(crate::SignalProfileError::InvalidConfiguration("count"));
             }
             _ => {}
         }
     }
     let count = count.ok_or(crate::SignalProfileError::MissingConfiguration("count"))?;
     if count > MAX_SIGNAL_COUNT {
-        return Err(crate::SignalProfileError::InvalidConfiguration(
-            "count".to_string(),
-        ));
+        return Err(crate::SignalProfileError::InvalidConfiguration("count"));
     }
     Ok(ActivateConfiguration { count })
 }
@@ -172,9 +168,7 @@ pub fn parse_toggle_configuration(
         match (entry.key.as_str(), &entry.value) {
             ("initial", ConfigurationValue::Bool(value)) => initial = Some(*value),
             ("initial", _) => {
-                return Err(crate::SignalProfileError::InvalidConfiguration(
-                    entry.key.clone(),
-                ));
+                return Err(crate::SignalProfileError::InvalidConfiguration("initial"));
             }
             _ => {}
         }
@@ -195,9 +189,7 @@ pub fn encode_activation(activation: &Activation) -> ValuePayload {
 
 pub fn decode_activation(payload: &ValuePayload) -> Result<Activation, crate::SignalProfileError> {
     if payload.value_kind.as_str() != ACTIVATION_VALUE_KIND {
-        return Err(crate::SignalProfileError::WrongValueKind(
-            payload.value_kind.as_str().to_string(),
-        ));
+        return Err(crate::SignalProfileError::WrongValueKind);
     }
     decode_activation_bytes(&payload.encoded)
 }

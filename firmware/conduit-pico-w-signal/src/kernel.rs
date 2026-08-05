@@ -1,225 +1,243 @@
-//! Conduit kernel execution for the Signal demo on Pico W.
+//! Conduit kernel execution for the generated Signal demo image on Pico W.
 //!
-//! Pre-encodes all 16 signal values into a fixed-size FixedScheduler plan,
-//! drives Embassy timers for waits, and calls the radio and receipt modules.
-//! No heap allocator is used; all storage is statically sized.
+//! The build script parses `examples/signal-demo.form`, plans it onto the
+//! Pico-local advertisement, lowers the exact fragment, and emits the fixed
+//! tables consumed here.
 
 use conduit_kernel::{
-    Failure, FailureCode,
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, SchedulerStatus,
-        StepIo, StepOperation, StepOutcome,
+        FixedScheduler, OperationDriver, SchedulerStatus, StepIo, StepOperation, StepOutcome,
     },
-    BoundedValueRef, CordEndpoint, CordId, FixedEvidenceLog, FixedHostOperationBindings,
-    FixedRoutes, FixedValueStore, HostOperationBinding, HostOperationDisposition,
-    HostOperationId, HostOperationOutcome, NodeId, Operation, OperationAction, OperationInput,
-    PortId, RequestId, RouteRange, RouteTarget, ValueRef, ValueStorage,
+    BoundedValueRef, EvidenceSink, Failure, FailureCode, FixedEvidenceLog, FixedValueStore,
+    HostOperationDisposition, HostOperationId, HostOperationOutcome, NodeId, Operation,
+    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+};
+use conduit_signal::{
+    decode_signal_bytes, encode_signal_fixed, signal_level_for_sequence, Signal,
+    SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN_USIZE,
 };
 use cyw43::Control;
 use embassy_time::{Duration, Timer};
 
 use crate::receipts::UsbCdc;
+use crate::signal_image::{
+    decode_wait_ms, generated_cords, generated_host_bindings, generated_nodes, generated_routes,
+    signal_layout, value_store_bytes, EMPTY_VALUE_REF, CORDS, HOST_BINDING_SLOTS,
+    MAX_STORED_SIGNAL_VALUES, NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS,
+    ROUTE_TARGETS, RUNTIME_EVIDENCE_BYTES, RUNTIME_EVIDENCE_EVENTS, VALUE_SLOTS,
+    WAIT_VALUE_BYTES,
+};
 
-// Signal encoding constants (matches conduit-signal: 8-byte LE sequence + 1-byte level).
-const SIGNAL_ENCODED_LEN: u32 = 9;
-
-/// Decode 9 encoded signal bytes into (sequence, level).
-fn decode_signal_bytes(encoded: &[u8]) -> Option<(u64, bool)> {
-    if encoded.len() != SIGNAL_ENCODED_LEN as usize {
-        return None;
-    }
-    let mut seq_bytes = [0u8; 8];
-    seq_bytes.copy_from_slice(&encoded[..8]);
-    Some((u64::from_le_bytes(seq_bytes), encoded[8] != 0))
-}
-
-// Signal demo fixed parameters (matches signal-demo.form)
-const COUNT: usize = 16;
-const PERIOD_MS: u64 = 250;
-const INITIAL_LEVEL: bool = false;
-
-// Plan topology constants
-const NODE_PULSE: NodeId = NodeId(0);
-const NODE_SHOW: NodeId = NodeId(1);
-const CORD_SIGNAL: CordId = CordId(0);
-const PORT_SIGNAL: PortId = PortId(0);
-
-// Host operation IDs
-const HOP_WAIT: HostOperationId = HostOperationId(0);
-const HOP_PRESENT: HostOperationId = HostOperationId(1);
-
-/// Encode a signal value into 9 bytes: 8 bytes sequence LE + 1 byte level.
-fn encode_signal_bytes(seq: u64, level: bool) -> [u8; 9] {
-    let mut buf = [0u8; 9];
-    buf[..8].copy_from_slice(&seq.to_le_bytes());
-    buf[8] = level as u8;
-    buf
-}
-
-fn signal_level(seq: u64) -> bool {
-    if seq % 2 == 0 { INITIAL_LEVEL } else { !INITIAL_LEVEL }
-}
-
-/// Run the fixed 16-signal local demo through conduit-kernel.
+/// Run the generated local Signal demo through conduit-kernel.
 pub async fn run_signal_demo(control: &mut Control<'_>, cdc: &mut UsbCdc) {
-    // Value store: 16 slots, each up to 9 bytes
+    let layout = signal_layout().expect("generated Signal image layout is valid");
     let mut values =
-        FixedValueStore::<16, 9>::new(SIGNAL_ENCODED_LEN * COUNT as u32)
-            .expect("value store capacity valid");
+        FixedValueStore::<VALUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>::new(value_store_bytes(
+            layout.configuration.count,
+        ))
+        .expect("value store capacity valid");
 
-    // Pre-store all 16 encoded signal values
-    let mut value_refs = [ValueRef { slot: 0, generation: 0, byte_len: 0 }; COUNT];
-    for i in 0..COUNT {
-        let bytes = encode_signal_bytes(i as u64, signal_level(i as u64));
-        value_refs[i] = values.store(&bytes).expect("signal fits in store");
+    let mut signal_values = [EMPTY_VALUE_REF; MAX_STORED_SIGNAL_VALUES];
+    for (sequence, slot) in signal_values
+        .iter_mut()
+        .enumerate()
+        .take(layout.configuration.count)
+    {
+        let signal = Signal {
+            sequence: sequence as u64,
+            level: signal_level_for_sequence(
+                sequence as u64,
+                layout.configuration.initial_level,
+            ),
+        };
+        *slot = values
+            .store(&encode_signal_fixed(&signal))
+            .expect("signal fits in generated store");
     }
 
-    let evidence = FixedEvidenceLog::<64>::new(1024).expect("evidence log valid");
+    let mut wait_values = [EMPTY_VALUE_REF; MAX_STORED_SIGNAL_VALUES];
+    let wait_bytes = layout.configuration.period_ms.to_le_bytes();
+    for slot in wait_values
+        .iter_mut()
+        .take(layout.configuration.count)
+        .skip(1)
+    {
+        *slot = values
+            .store(&wait_bytes)
+            .expect("wait duration fits in generated store");
+    }
 
-    let pulse = PulseDriver::new(value_refs);
-    let show = ShowDriver::new();
+    let evidence =
+        FixedEvidenceLog::<RUNTIME_EVIDENCE_EVENTS>::new(RUNTIME_EVIDENCE_BYTES)
+            .expect("evidence log valid");
+    let routes = generated_routes();
+    let host_bindings = generated_host_bindings();
 
-    // Node specs (PORTS = 2 max)
-    let node_specs = [
-        NodeSpec { input_cords: [None, None], maximum_step_work: 8 },
-        NodeSpec { input_cords: [Some(CORD_SIGNAL), None], maximum_step_work: 8 },
-    ];
+    let pulse = PulseDriver::new(
+        signal_values,
+        wait_values,
+        layout.configuration.count,
+        layout.pulse_output_port,
+        layout.wait_operation,
+    );
+    let show = ShowDriver::new(layout.show_input_port, layout.present_operation);
+    let drivers = generated_drivers(layout.pulse_node, layout.show_node, pulse, show);
 
-    let cord_specs = [CordSpec::local(
-        CORD_SIGNAL,
-        (NODE_PULSE, PORT_SIGNAL),
-        (NODE_SHOW, PORT_SIGNAL),
-        CordCapacity { slot_start: 0, item_capacity: 4, byte_capacity: SIGNAL_ENCODED_LEN * 4 },
-    )];
-
-    // Routes: ROUTE_SLOTS = max port index across nodes, TARGETS = number of route targets
-    // Pulse node 0, port 0 -> cord 0 sink (Show node 1, port 0)
-    let mut routes = FixedRoutes::<2, 1>::new(2);
-    routes.install(
-        NODE_PULSE,
-        PORT_SIGNAL,
-        RouteRange { start: 0, len: 1 },
-        &[RouteTarget {
-            cord: CORD_SIGNAL,
-            sink: CordEndpoint::local(NODE_SHOW, PORT_SIGNAL),
-        }],
-    ).expect("route table valid");
-    routes.seal().expect("route table sealed");
-
-    // Host operation bindings: per-node
-    // Pulse (node 0): wait (HOP_WAIT), no input bytes (timer has no input), no output bytes
-    // Show (node 1): present (HOP_PRESENT), input = signal bytes
-    let mut host_bindings = FixedHostOperationBindings::<4>::new(2);
-    host_bindings.install(
-        NODE_PULSE,
-        HostOperationBinding {
-            operation: HOP_WAIT,
-            maximum_input_bytes: SIGNAL_ENCODED_LEN, // must be > 0 per API check
-            maximum_output_bytes: 0,
-        },
-    ).expect("wait binding valid");
-    host_bindings.install(
-        NODE_SHOW,
-        HostOperationBinding {
-            operation: HOP_PRESENT,
-            maximum_input_bytes: SIGNAL_ENCODED_LEN,
-            maximum_output_bytes: 0,
-        },
-    ).expect("present binding valid");
-    host_bindings.seal().expect("host bindings sealed");
-
-    let pulse_driver = OperationDriver::<_, 2>::new(pulse).expect("pulse driver valid");
-    let show_driver = OperationDriver::<_, 2>::new(show).expect("show driver valid");
-    let drivers = [
-        SignalDriver::Pulse(pulse_driver),
-        SignalDriver::Show(show_driver),
-    ];
-
-    // FixedScheduler type params:
-    // D, S, E, NODES=2, CORDS=1, PORTS=2, QUEUE_SLOTS=4,
-    // ROUTE_SLOTS=2, ROUTE_TARGETS=1, HOST_BINDING_SLOTS=4, PENDING_REQUESTS=2
-    let mut scheduler = FixedScheduler::<_, _, _, 2, 1, 2, 4, 2, 1, 4, 2>::new_with_host_operations(
-        node_specs,
-        cord_specs,
+    let mut scheduler = FixedScheduler::<
+        _,
+        _,
+        _,
+        NODES,
+        CORDS,
+        PORTS,
+        QUEUE_SLOTS,
+        ROUTE_SLOTS,
+        ROUTE_TARGETS,
+        HOST_BINDING_SLOTS,
+        PENDING_REQUESTS,
+    >::new_with_host_operations(
+        generated_nodes(),
+        generated_cords(),
         routes,
         host_bindings,
         drivers,
         values,
         evidence,
-    ).expect("signal demo plan valid");
+    )
+    .expect("generated signal demo plan valid");
 
     let mut error = false;
     loop {
         match scheduler.step() {
             Ok(SchedulerStatus::Complete) => break,
-            Ok(SchedulerStatus::Cancelled) => { error = true; break; }
+            Ok(SchedulerStatus::Cancelled) => {
+                error = true;
+                break;
+            }
             Ok(SchedulerStatus::Progress { .. }) => continue,
             Ok(SchedulerStatus::Idle) => {
                 let Some(req) = scheduler.next_host_request() else {
-                    error = true; // idle with no pending request = deadlock
+                    error = true;
                     break;
                 };
-                match req.operation {
-                    HOP_WAIT => {
-                        Timer::after(Duration::from_millis(PERIOD_MS)).await;
-                        scheduler.complete_host_operation(
-                            req.node,
-                            req.request,
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Completed,
-                                output: None,
-                                failure: None,
-                            },
-                        ).expect("wait completion accepted");
-                    }
-                    HOP_PRESENT => {
-                        let bytes = scheduler.host_value(req.input.value)
-                            .expect("present value in store");
-                        let (sequence, level) = decode_signal_bytes(bytes)
-                            .expect("valid signal encoding");
-                        // Drive CYW43 onboard LED (GPIO 0)
-                        control.gpio_set(0, level).await;
-                        // Emit machine-readable USB receipt
-                        cdc.write_receipt(sequence, level).await;
-                        scheduler.complete_host_operation(
-                            req.node,
-                            req.request,
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Completed,
-                                output: None,
-                                failure: None,
-                            },
-                        ).expect("present completion accepted");
-                    }
-                    _ => {
-                        let _ = scheduler.complete_host_operation(
-                            req.node,
-                            req.request,
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Failed,
-                                output: None,
-                                failure: None,
-                            },
-                        );
+                if req.node == layout.pulse_node && req.operation == layout.wait_operation {
+                    let duration_ms = scheduler
+                        .host_value(req.input.value)
+                        .ok()
+                        .and_then(decode_wait_ms);
+                    let Some(duration_ms) = duration_ms else {
+                        fail_host_request(&mut scheduler, req.node, req.request);
                         error = true;
                         break;
-                    }
+                    };
+                    Timer::after(Duration::from_millis(duration_ms)).await;
+                    complete_host_request(&mut scheduler, req.node, req.request);
+                } else if req.node == layout.show_node
+                    && req.operation == layout.present_operation
+                {
+                    let signal = scheduler
+                        .host_value(req.input.value)
+                        .ok()
+                        .and_then(|bytes| decode_signal_bytes(bytes).ok());
+                    let Some(signal) = signal else {
+                        fail_host_request(&mut scheduler, req.node, req.request);
+                        error = true;
+                        break;
+                    };
+                    control.gpio_set(0, signal.level).await;
+                    cdc.write_receipt(signal.sequence, signal.level).await;
+                    complete_host_request(&mut scheduler, req.node, req.request);
+                } else {
+                    fail_host_request(&mut scheduler, req.node, req.request);
+                    error = true;
+                    break;
                 }
             }
-            Err(err) => { cdc.write_error(err).await; error = true; break; }
+            Err(err) => {
+                cdc.write_error(err).await;
+                error = true;
+                break;
+            }
         }
     }
 
     cdc.write_terminal(!error).await;
 }
 
-enum SignalDriver {
-    Pulse(OperationDriver<PulseDriver, 2>),
-    Show(OperationDriver<ShowDriver, 2>),
+type SignalScheduler<S, E> = FixedScheduler<
+    SignalDriver,
+    S,
+    E,
+    NODES,
+    CORDS,
+    PORTS,
+    QUEUE_SLOTS,
+    ROUTE_SLOTS,
+    ROUTE_TARGETS,
+    HOST_BINDING_SLOTS,
+    PENDING_REQUESTS,
+>;
+
+fn complete_host_request<S: ValueStorage, E: EvidenceSink>(
+    scheduler: &mut SignalScheduler<S, E>,
+    node: NodeId,
+    request: RequestId,
+) {
+    scheduler
+        .complete_host_operation(
+            node,
+            request,
+            HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: None,
+                failure: None,
+            },
+        )
+        .expect("host completion accepted");
 }
 
-impl StepOperation<2> for SignalDriver {
-    fn step(&mut self, io: &mut StepIo<2>) -> StepOutcome {
+fn fail_host_request<S: ValueStorage, E: EvidenceSink>(
+    scheduler: &mut SignalScheduler<S, E>,
+    node: NodeId,
+    request: RequestId,
+) {
+    let _ = scheduler.complete_host_operation(
+        node,
+        request,
+        HostOperationOutcome {
+            disposition: HostOperationDisposition::Failed,
+            output: None,
+            failure: None,
+        },
+    );
+}
+
+fn generated_drivers(
+    pulse_node: NodeId,
+    show_node: NodeId,
+    pulse: PulseDriver,
+    show: ShowDriver,
+) -> [SignalDriver; NODES] {
+    let pulse = OperationDriver::<_, PORTS>::new(pulse).expect("pulse driver valid");
+    let show = OperationDriver::<_, PORTS>::new(show).expect("show driver valid");
+    match (pulse_node.0, show_node.0) {
+        (0, 1) => [SignalDriver::Pulse(pulse), SignalDriver::Show(show)],
+        (1, 0) => [SignalDriver::Show(show), SignalDriver::Pulse(pulse)],
+        _ => panic!("generated Signal image must have one pulse and one show node"),
+    }
+}
+
+#[allow(
+    clippy::large_enum_variant,
+    reason = "allocator-free firmware keeps operation drivers inline"
+)]
+enum SignalDriver {
+    Pulse(OperationDriver<PulseDriver, PORTS>),
+    Show(OperationDriver<ShowDriver, PORTS>),
+}
+
+impl StepOperation<PORTS> for SignalDriver {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         match self {
             Self::Pulse(driver) => driver.step(io),
             Self::Show(driver) => driver.step(io),
@@ -234,20 +252,43 @@ impl StepOperation<2> for SignalDriver {
     }
 }
 
-/// Pulse operation: emits pre-stored signal values, requests timer waits between emissions.
 struct PulseDriver {
-    values: [ValueRef; COUNT],
+    signal_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
+    wait_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
+    count: usize,
+    output_port: PortId,
+    wait_operation: HostOperationId,
     next: usize,
-    state: PulseState,
     pending_request: Option<RequestId>,
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum PulseState { Ready, AwaitingTimer }
-
 impl PulseDriver {
-    fn new(values: [ValueRef; COUNT]) -> Self {
-        Self { values, next: 0, state: PulseState::Ready, pending_request: None }
+    fn new(
+        signal_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
+        wait_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
+        count: usize,
+        output_port: PortId,
+        wait_operation: HostOperationId,
+    ) -> Self {
+        Self {
+            signal_values,
+            wait_values,
+            count,
+            output_port,
+            wait_operation,
+            next: 0,
+            pending_request: None,
+        }
+    }
+
+    fn emit_current(&self) -> OperationAction {
+        if self.next >= self.count {
+            return OperationAction::Complete;
+        }
+        OperationAction::Emit {
+            port: self.output_port,
+            value: self.signal_values[self.next],
+        }
     }
 }
 
@@ -257,22 +298,18 @@ impl Operation for PulseDriver {
     }
 
     fn advance(&mut self) -> OperationAction {
-        // Called after Emit is accepted by the scheduler
         self.next += 1;
-        if self.next >= COUNT {
+        if self.next >= self.count {
             return OperationAction::Complete;
         }
         let req = RequestId(self.next as u32);
         self.pending_request = Some(req);
-        self.state = PulseState::AwaitingTimer;
-        // For the wait, we pass the next signal as the "input" value so the
-        // host operation has a non-zero input (required by the binding check).
         OperationAction::RequestHostOperation {
             request: req,
-            operation: HOP_WAIT,
+            operation: self.wait_operation,
             input: BoundedValueRef {
-                value: self.values[self.next],
-                admitted_bytes: SIGNAL_ENCODED_LEN,
+                value: self.wait_values[self.next],
+                admitted_bytes: WAIT_VALUE_BYTES,
             },
         }
     }
@@ -287,7 +324,6 @@ impl Operation for PulseDriver {
                     });
                 }
                 self.pending_request = None;
-                self.state = PulseState::Ready;
                 match outcome.disposition {
                     HostOperationDisposition::Completed => self.emit_current(),
                     _ => OperationAction::Fail(Failure {
@@ -304,24 +340,21 @@ impl Operation for PulseDriver {
     }
 }
 
-impl PulseDriver {
-    fn emit_current(&self) -> OperationAction {
-        if self.next >= COUNT {
-            return OperationAction::Complete;
-        }
-        OperationAction::Emit { port: PORT_SIGNAL, value: self.values[self.next] }
-    }
-}
-
-/// Show operation: receives signal values and requests LED presentation.
 struct ShowDriver {
+    input_port: PortId,
+    present_operation: HostOperationId,
     pending_request: Option<RequestId>,
     presented: usize,
 }
 
 impl ShowDriver {
-    fn new() -> Self {
-        Self { pending_request: None, presented: 0 }
+    fn new(input_port: PortId, present_operation: HostOperationId) -> Self {
+        Self {
+            input_port,
+            present_operation,
+            pending_request: None,
+            presented: 0,
+        }
     }
 }
 
@@ -332,13 +365,22 @@ impl Operation for ShowDriver {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::Value { port: _, value } => {
+            OperationInput::Value { port, value } => {
+                if port != self.input_port {
+                    return OperationAction::Fail(Failure {
+                        code: FailureCode::InvalidLifecycle,
+                        detail: 9,
+                    });
+                }
                 let req = RequestId(self.presented as u32);
                 self.pending_request = Some(req);
                 OperationAction::RequestHostOperation {
                     request: req,
-                    operation: HOP_PRESENT,
-                    input: BoundedValueRef { value, admitted_bytes: SIGNAL_ENCODED_LEN },
+                    operation: self.present_operation,
+                    input: BoundedValueRef {
+                        value,
+                        admitted_bytes: SIGNAL_ENCODED_LEN,
+                    },
                 }
             }
             OperationInput::HostOperationCompleted { request, outcome } => {
