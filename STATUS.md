@@ -6,13 +6,13 @@ adapter or physical proof.
 
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, node-scoped correlated host operations, cancellation, and exact local/remote-plan numeric lowering | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, cancellation, exact signal/multi-value lowering, remote pressure/delivery, and zero-allocation activation vectors | same scheduler with preallocated hosted storage; installed Signal pair, local three-sink fan-out, typed multi-value std profiles, and the std half of the distributed Signal checkpoint execute through it; unsupported forms fail closed without a production legacy pump | browser/WASM sink executes an exact remote-ingress fragment through the same scheduler before bounded DOM presentation | no; Thumb kernel compiles | one bounded loopback WebSocket remote cord; provider owns carrier I/O only | no |
-| Exact plan, play, evidence, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued evidence identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/activation mutation, unique evidence, wrong-presentation identity, and wrong session identity vectors | yes, std preparation enforces S2 truth and the distributed source binds exact plan/fragment/play/link/connection identities | browser sink independently reconstructs and lowers its exact fragment and rejects stale/wrong session facts | no | live session verifies exact provider instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | no |
+| Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, node-scoped correlated host operations, cancellation, and exact local/remote-plan numeric lowering | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, cancellation, exact signal/multi-value lowering, remote pressure/delivery, and zero-allocation activation vectors | same scheduler with preallocated hosted storage; installed Signal pair, local three-sink fan-out, typed multi-value std profiles, and the std half of the distributed Signal checkpoint execute through it; unsupported forms fail closed without a production legacy pump | browser/WASM sink executes an exact remote-ingress fragment through the same scheduler before bounded DOM presentation | allocator-free Pico W firmware substrate compiles and runs a fixed local Signal kernel profile; unchanged-form planning/lowering is not yet installed | one bounded loopback WebSocket remote cord; provider owns carrier I/O only | no |
+| Exact plan, play, evidence, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued evidence identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/activation mutation, unique evidence, wrong-presentation identity, and wrong session identity vectors | yes, std preparation enforces S2 truth and the distributed source binds exact plan/fragment/play/link/connection identities | browser sink independently reconstructs and lowers its exact fragment and rejects stale/wrong session facts | partial: firmware receipts and tooling exist, but the complete source/checked/expanded/plan/fragment/play/presentation/evidence chain is not yet carried | live session verifies exact provider instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | no |
 | Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal evidence, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
 | Connection envelope and session wire formats | allocating fixture envelope plus allocation-stable borrowed live-session protocol | deterministic envelope corpus and session lifecycle/mutation vectors | native binary-only RFC 6455 provider with fixed message bounds | real browser WebSocket API with one-message inbox and explicit send bounds | no | actual loopback socket; Hello/Ready/Offered/Pressure/Accepted/Delivered/InputClosed/Cancelled/Failed/Terminal frames | no |
-| Portable Signal | yes | multi-value fixtures | std kernel pulse source and local stdout/timer paths | browser/WASM kernel show sink with sixteen exact DOM receipts | no | sixteen ordered values over the bounded WebSocket remote cord | no |
+| Portable Signal | yes | multi-value fixtures | std kernel pulse source and local stdout/timer paths | browser/WASM kernel show sink with sixteen exact DOM receipts | fixed local firmware profile with sixteen ordered USB CDC Signal receipts; not yet derived from the unchanged form | sixteen ordered values over the bounded WebSocket remote cord | no |
 | Browser manifestation | local and remote-ingress Signal profiles | yes, `conduit-browser-sim` | actual Rust/WASM planner plus exact-plan-lowered `conduit-kernel` execution for local and distributed sink fragments | thin DOM adapter with exact fixed-frame completion correlation and sixteen receipts | no | actual loopback WebSocket to the std kernel source | no |
-| Pico-shaped manifestation | partial | yes, `conduit-pico-sim` | test-only | no | no BSP/image/driver | no UDP/TCP | no board run |
+| Pico-shaped manifestation | partial | yes, `conduit-pico-sim` | test-only | no | allocator-free RP2040 image, CYW43 GPIO 0 LED driver, pinned radio assets, and USB CDC receipt/verifier substrate; fixed profile only | USB CDC path implemented but no recorded board session; no UDP/TCP | no recorded board run |
 | Realm membership | retired prototype | deterministic table tests | no production body model | no | no | no | no |
 | Observatory | report-schema prototype | synthetic fleet | synthetic command only | no | no | no | no |
 | `conduit.std` | prototype contracts | one-value demonstrations | incomplete semantics | no | no | no | no |
@@ -57,14 +57,15 @@ The `check` workflow requires:
   evidence, stable sealed capacities, zero retained/in-flight values, and
   bounded lifecycle/identity/frame failure negatives;
 - WASM compilation of the browser-shaped simulation;
-- Thumb compilation of allocator-free contracts and the Pico-shaped simulation.
+- Thumb compilation of allocator-free contracts, the Pico-shaped simulation,
+  and the real Pico W firmware package.
 
-WASM compilation is not browser execution by itself. Thumb compilation is not firmware
-or board acceptance. The previously accepted Chromium proof is browser-local
-and not a live link; the suite now also includes one narrow live loopback
-std-to-browser link. That link is not a public network, TLS, discovery,
-reconnection, or general transport claim. Frame/datagram fixtures are not
-WebSocket or UDP sockets.
+WASM compilation is not browser execution by itself. Thumb compilation proves
+that the firmware builds; it is not board execution or physical acceptance. The
+previously accepted Chromium proof is browser-local and not a live link; the
+suite now also includes one narrow live loopback std-to-browser link. That link
+is not a public network, TLS, discovery, reconnection, or general transport
+claim. Frame/datagram fixtures are not WebSocket or UDP sockets.
 
 ## Salvage stop line
 
@@ -169,9 +170,21 @@ identity mutation, malformed/truncated/oversized/trailing frames,
 duplicate/reordered sequence, early disconnect, sink failure, cancellation,
 late acknowledgement, and evidence exhaustion fail closed.
 
-No actual Pico host or firmware, UDP, GPIO/LED, BODY, catalog expansion,
-Observatory acceptance, discovery, TLS, public hosting, reconnection policy, or
-physical proof is implied. The next #350 checkpoint is actual constrained Pico
-W firmware executing its local kernel fragment and driving its LED locally.
-Only after that separately reviewed gate may bounded std-to-Pico transport and
-the final three-host proof be considered.
+PR #421 merged actual Pico W firmware and operator-tooling substrate at current
+main `227b457e065fd8f5c34371921ca2b8654a47ba31`. Exact PR head
+`991685daed8e22aa9a9fff0422988ef83315438f` passed workflow `31050423893`
+with both `check` and `browser-host` successful. The tree now contains an
+allocator-free RP2040 image using fixed `conduit-kernel` storage, pinned and
+hash-verified CYW43 assets, CYW43 GPIO 0 LED control, bounded USB CDC Signal
+receipts with host-side verifier negatives, typed build/flash/verify commands,
+and a hardware-free firmware compilation gate.
+
+This is firmware/tooling substrate, not the #415 acceptance proof. The firmware
+currently installs a fixed local Signal profile rather than consuming unchanged
+`examples/signal-demo.form` through the current capability advertisement,
+planner, exact fragment lowering, and complete source/checked/expanded/plan/
+fragment/play/presentation/evidence identity chain. No physical `just pico`
+board run is recorded. No bounded std-to-Pico transport, final three-host proof,
+UDP, BODY, catalog expansion, Observatory acceptance, discovery, TLS, public
+hosting, reconnection policy, or physical proof is implied. #415 remains the
+next #350 acceptance checkpoint.
