@@ -2,6 +2,9 @@
 
 extern crate alloc;
 
+mod activation;
+pub use activation::*;
+
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
@@ -337,9 +340,15 @@ pub fn distributed_websocket_link_binding() -> LinkBinding {
 mod host_profile;
 #[cfg(feature = "host-profile")]
 pub use host_profile::{
-    install_signal_profile, signal_profile_catalog, signal_registry, PulseImplementation,
-    ShowImplementation,
+    install_signal_profile, signal_registry, PulseImplementation, ShowImplementation,
 };
+
+#[cfg(feature = "host-profile")]
+pub fn signal_profile_catalog() -> conduit_form::ProfileCatalog {
+    let mut catalog = host_profile::signal_profile_catalog();
+    activation::extend_profile_catalog(&mut catalog);
+    catalog
+}
 
 #[cfg(test)]
 mod tests;
