@@ -223,9 +223,7 @@ mod tests {
             expected_activations: vec![correct],
             next: 0,
         };
-        // Start returns Await
         assert_eq!(op.start(), OperationAction::Await);
-        // Presenting the wrong ref fails with detail 17
         let action = op.resume(OperationInput::Value {
             port: PortId(0),
             value: wrong,
@@ -277,7 +275,6 @@ mod tests {
             expected_activations: vec![first, second],
             next: 0,
         };
-        // Present second before first
         let action = op.resume(OperationInput::Value {
             port: PortId(0),
             value: second,
@@ -304,13 +301,11 @@ mod tests {
             expected_activations: vec![first, second],
             next: 0,
         };
-        // Accept first
         let _ = op.resume(OperationInput::Value {
             port: PortId(0),
             value: first,
         });
         op.advance();
-        // Present first again (duplicate)
         let action = op.resume(OperationInput::Value {
             port: PortId(0),
             value: first,
@@ -338,7 +333,6 @@ mod tests {
             pending: None,
         };
         op.start();
-        // Complete with wrong request id (1 instead of 0)
         let action = op.resume(OperationInput::HostOperationCompleted {
             request: RequestId(1),
             outcome: HostOperationOutcome {
@@ -361,13 +355,8 @@ mod tests {
     #[test]
     fn activate_full_sixteen_cycles_reach_complete() {
         const N: usize = 16;
-        // Items: N tokens + N values; max item size is 8 bytes (u64 activation).
-        let mut store = HostedValueStore::new(
-            (N * 2) as u16,
-            8,
-            (N * 2 * 8) as u32,
-        )
-        .expect("test store");
+        let mut store =
+            HostedValueStore::new((N * 2) as u16, 8, (N * 2 * 8) as u32).expect("test store");
 
         let mut tokens: Vec<ValueRef> = Vec::with_capacity(N);
         let mut values: Vec<ValueRef> = Vec::with_capacity(N);
@@ -387,7 +376,6 @@ mod tests {
             pending: None,
         };
 
-        // start() issues request for token[0] with RequestId(0).
         let action = op.start();
         assert!(
             matches!(
@@ -401,7 +389,6 @@ mod tests {
         );
 
         for cycle in 0..N {
-            // Complete the pending request.
             let complete_action = op.resume(OperationInput::HostOperationCompleted {
                 request: RequestId(cycle as u32),
                 outcome: HostOperationOutcome {
@@ -421,21 +408,14 @@ mod tests {
 
             let advance_action = op.advance();
             if cycle + 1 == N {
-                // After emitting the last value, advance() must complete.
                 assert_eq!(
                     advance_action,
                     OperationAction::Complete,
                     "cycle {cycle}: final advance should Complete"
                 );
             } else {
-                // Each subsequent request must carry the token for that cycle index,
-                // not a repeated token[0].
                 match advance_action {
-                    OperationAction::RequestHostOperation {
-                        request,
-                        input,
-                        ..
-                    } => {
+                    OperationAction::RequestHostOperation { request, input, .. } => {
                         assert_eq!(
                             request,
                             RequestId((cycle + 1) as u32),
@@ -449,9 +429,9 @@ mod tests {
                             cycle + 1
                         );
                     }
-                    other => panic!(
-                        "cycle {cycle}: advance should RequestHostOperation, got {other:?}"
-                    ),
+                    other => {
+                        panic!("cycle {cycle}: advance should RequestHostOperation, got {other:?}")
+                    }
                 }
             }
         }
