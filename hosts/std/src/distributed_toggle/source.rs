@@ -38,7 +38,7 @@ pub(super) const MAXIMUM_WAITS: usize = MAXIMUM_VALUES;
 const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES * 2 + MAXIMUM_WAITS) as u16;
 const MAXIMUM_STORED_BYTES: u32 = MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN
     + MAXIMUM_VALUES as u32 * ACTIVATION_ENCODED_LEN
-    + MAXIMUM_WAITS as u32; // 1-byte tokens per await-activation op
+    + MAXIMUM_WAITS as u32;
 pub(super) const EVIDENCE_ITEMS: u16 = 256;
 
 pub(super) type ToggleScheduler = FixedScheduler<
@@ -89,16 +89,15 @@ impl DistributedToggleSource {
             ));
         }
 
-        // Find activate and toggle placements by kind_id
         let activate_placement = fragment
             .placements
             .iter()
-            .find(|p| p.kind_id.as_str() == "interaction/activate")
+            .find(|placement| placement.kind_id.as_str() == "interaction/activate")
             .ok_or("activate placement missing")?;
         let toggle_placement = fragment
             .placements
             .iter()
-            .find(|p| p.kind_id.as_str() == "state/toggle")
+            .find(|placement| placement.kind_id.as_str() == "state/toggle")
             .ok_or("toggle placement missing")?;
 
         let activate_config = parse_activate_configuration(&activate_placement.configuration)
@@ -109,7 +108,6 @@ impl DistributedToggleSource {
             return Err("toggle form activation count is not the S4 vector".to_string());
         }
 
-        // Pre-store all values
         let mut store = HostedValueStore::new(
             MAXIMUM_STORED_ITEMS,
             SIGNAL_ENCODED_LEN,
@@ -117,7 +115,6 @@ impl DistributedToggleSource {
         )
         .map_err(|error| format!("{error:?}"))?;
 
-        // Activation payloads: 8 bytes each (sequence as u64 LE)
         let mut activation_values = Vec::with_capacity(MAXIMUM_VALUES);
         for sequence in 0..activate_config.count {
             let encoded = sequence.to_le_bytes();
@@ -128,20 +125,15 @@ impl DistributedToggleSource {
             );
         }
 
-        // 1-byte sequence correlation tokens for the await-activation host operation.
-        // The token value is the sequence index (0..MAXIMUM_WAITS) as a single byte.
-        // The std adapter reads stdin when completing the host-operation request.
         let mut token_values = Vec::with_capacity(MAXIMUM_WAITS);
-        for seq in 0..MAXIMUM_WAITS {
-            let token_byte = [seq as u8];
+        for sequence in 0..MAXIMUM_WAITS {
             token_values.push(
                 store
-                    .store(&token_byte)
+                    .store(&[sequence as u8])
                     .map_err(|error| format!("{error:?}"))?,
             );
         }
 
-        // Pre-compute toggle signals
         let mut signal_values = Vec::with_capacity(MAXIMUM_VALUES);
         let mut current_level = toggle_config.initial;
         for sequence in 0..activate_config.count {
@@ -157,7 +149,6 @@ impl DistributedToggleSource {
             );
         }
 
-        // Install routes
         let mut routes = FixedRoutes::<ROUTE_SLOTS, 2>::new(PORTS as u16);
         for route in &lowered.routes {
             routes
@@ -171,7 +162,6 @@ impl DistributedToggleSource {
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
 
-        // Install host operation bindings
         let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
         host_bindings
             .install(
@@ -181,27 +171,24 @@ impl DistributedToggleSource {
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
 
-        // Find activate vs toggle node index by matching to lowered node ordering
         let activate_node_idx = lowered
             .nodes
             .iter()
-            .position(|n| {
+            .position(|node| {
                 fragment
                     .placements
-                    .get(usize::from(n.node.0))
-                    .map(|p| p.kind_id.as_str() == "interaction/activate")
-                    .unwrap_or(false)
+                    .get(usize::from(node.node.0))
+                    .is_some_and(|placement| placement.kind_id.as_str() == "interaction/activate")
             })
             .ok_or("activate node not found in lowered fragment")?;
         let toggle_node_idx = lowered
             .nodes
             .iter()
-            .position(|n| {
+            .position(|node| {
                 fragment
                     .placements
-                    .get(usize::from(n.node.0))
-                    .map(|p| p.kind_id.as_str() == "state/toggle")
-                    .unwrap_or(false)
+                    .get(usize::from(node.node.0))
+                    .is_some_and(|placement| placement.kind_id.as_str() == "state/toggle")
             })
             .ok_or("toggle node not found in lowered fragment")?;
 
@@ -219,7 +206,6 @@ impl DistributedToggleSource {
         })
         .map_err(|error| format!("{error:?}"))?;
 
-        // Build the [driver; 2] array in node index order
         let drivers = if activate_node_idx < toggle_node_idx {
             [activate_driver, toggle_driver]
         } else {
@@ -275,7 +261,6 @@ impl DistributedToggleSource {
         let mut identity =
             KernelExecutionIdentityMap::new(&lowered.identity, &active_play, MAXIMUM_WAITS, 0, 1)
                 .map_err(|error| format!("{error:?}"))?;
-        // Bind request identities for the activate node's waits
         let activate_node = lowered.nodes[activate_node_idx].node;
         for sequence in 0..MAXIMUM_WAITS {
             identity
@@ -296,7 +281,7 @@ impl DistributedToggleSource {
             drivers: scheduler
                 .drivers()
                 .iter()
-                .map(|d| d.operation().allocation_capacity())
+                .map(|driver| driver.operation().allocation_capacity())
                 .sum(),
             identity: identity.allocation_capacities(),
         };
@@ -320,7 +305,7 @@ impl DistributedToggleSource {
                 .scheduler
                 .drivers()
                 .iter()
-                .map(|d| d.operation().allocation_capacity())
+                .map(|driver| driver.operation().allocation_capacity())
                 .sum(),
             identity: self.identity.allocation_capacities(),
         }
@@ -331,12 +316,6 @@ impl DistributedToggleSource {
         (remote.endpoint, remote.cord)
     }
 
-    /// Complete an await-activation host-operation request by blocking on one
-    /// operator input line.  The stdin read happens here — inside the admitted
-    /// host-operation lifecycle — not before the kernel issues the request.
-    ///
-    /// `Ok(0)` from `read_line` means EOF; that is a structured cancellation, not a
-    /// successful activation.  An I/O error is also a structured failure.
     fn complete_activation_wait<R: BufRead>(
         &mut self,
         request: HostOperationRequest,
@@ -355,13 +334,16 @@ impl DistributedToggleSource {
             report,
             "Press Enter to activate ({activation_index}/{MAXIMUM_VALUES})"
         )
-        .map_err(|e| e.to_string())?;
+        .map_err(|error| error.to_string())?;
         let mut line = String::new();
-        let n = stdin
+        let bytes_read = stdin
             .read_line(&mut line)
-            .map_err(|e| format!("CND-TOG-ACTIVATE-EOF stdin read failed: {e}"))?;
-        if n == 0 {
-            return Err("CND-TOG-ACTIVATE-EOF stdin reached EOF before all activations were received".to_string());
+            .map_err(|error| format!("CND-TOG-ACTIVATE-EOF stdin read failed: {error}"))?;
+        if bytes_read == 0 {
+            return Err(
+                "CND-TOG-ACTIVATE-EOF stdin reached EOF before all activations were received"
+                    .to_string(),
+            );
         }
         self.scheduler
             .complete_host_operation(
@@ -438,7 +420,6 @@ impl DistributedToggleSource {
         super::carrier::receive(self, carrier, input)
     }
 
-    /// Drive the source, reading Enter from `stdin` before each activation.
     pub fn run<R: BufRead, W: Write>(
         self,
         listener: NativeWebSocketListener,
