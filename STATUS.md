@@ -6,7 +6,7 @@ adapter or physical proof.
 
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Port-aware salvage kernel | port protocol, fixed scheduler, correlated host operations, cancellation | fixed/hosted multi-value, host-lifecycle, and cancellation vectors | same scheduler with preallocated hosted storage | no | no; Thumb kernel compiles | no | no |
+| Port-aware salvage kernel | port protocol, fixed scheduler, retained state, correlated host operations, cancellation | fixed/hosted multi-value, atomic join, real latest, host-lifecycle, no-growth-shape, and cancellation vectors | same scheduler with preallocated hosted storage; Operation adapter pending | no | no; Thumb kernel compiles | no | no |
 | Exact plan and fragment identities | prototype | mutation-negative fixtures | yes, std runtime | no | no | no | no |
 | Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
 | Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
@@ -23,8 +23,8 @@ The `check` workflow requires:
 
 - workspace formatting, Clippy, and tests;
 - no-std checks for the salvage kernel, semantic, wire, and std-catalog contracts;
-- hosted/fixed salvage-kernel protocol, storage, scheduler, pressure, closure,
-  and cancellation vectors;
+- hosted/fixed salvage-kernel protocol, storage, scheduler, pressure, atomic
+  join, retained-state/latest, host lifecycle, closure, and cancellation vectors;
 - exact-plan mutation-negative tests;
 - deterministic wire and simulated-host conformance vectors;
 - WASM compilation of the browser-shaped simulation;
@@ -38,7 +38,9 @@ or board acceptance. Frame/datagram fixtures are not WebSocket or UDP sockets.
 S0 restores truth. S1 now includes the port-aware protocol, bounded storage,
 deterministic fixed-capacity scheduling, transactional fanout, per-port closure,
 correlated bounded host operations, late-completion rejection, and matching
-hosted/fixed lifecycle vectors. The final semantic conformance form and complete
-hosted no-growth proof remain pending. No actual browser/Pico host, BODY,
-catalog expansion, Observatory acceptance, or useful task advances before #349
-is accepted.
+hosted/fixed lifecycle vectors. The capacity-one conformance graph now includes
+a stateful latest operation, atomic joins, and a stable hosted allocation shape.
+Direct adaptation of the published `OperationInput`/`OperationAction` contract
+into the scheduler remains pending. No actual browser/Pico host, BODY, catalog
+expansion, Observatory acceptance, or useful task advances before #349 is
+accepted.

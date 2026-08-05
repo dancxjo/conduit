@@ -603,6 +603,13 @@ mod hosted {
             })
         }
 
+        pub fn allocation_capacities(&self) -> (usize, usize) {
+            (
+                self.slots.capacity(),
+                self.slots.iter().map(|slot| slot.bytes.capacity()).sum(),
+            )
+        }
+
         fn slot(&self, value: ValueRef) -> Result<&HostedValueSlot, StorageError> {
             let slot = self
                 .slots
@@ -912,6 +919,10 @@ impl HostedEvidenceLog {
 
     pub fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
         self.entries.iter().copied().flatten()
+    }
+
+    pub fn allocation_capacity(&self) -> usize {
+        self.entries.capacity()
     }
 }
 
