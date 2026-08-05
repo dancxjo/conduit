@@ -47,6 +47,7 @@ pub struct StdKernelExecutionReport {
     pub value_allocation_capacity_before: (usize, usize),
     pub value_allocation_capacity_after: (usize, usize),
     pub presentation_ids: Vec<conduit_core::PresentationId>,
+    pub identity: conduit_runtime::lowering::KernelExecutionIdentityMap,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -573,6 +574,46 @@ mod tests {
         assert_eq!(lowered.identity.placements.len(), 2);
         assert_eq!(lowered.identity.connections.len(), 1);
         assert_eq!(lowered.identity.ports.len(), 2);
+        for (node, placement) in &lowered.identity.placements {
+            assert_eq!(lowered.identity.placement_for_node(*node), Some(placement));
+            assert_eq!(lowered.identity.node_for_placement(placement), Some(*node));
+        }
+        for (cord, connection) in &lowered.identity.connections {
+            assert_eq!(
+                lowered.identity.connection_for_cord(*cord),
+                Some(connection)
+            );
+            assert_eq!(
+                lowered.identity.cord_for_connection(connection),
+                Some(*cord)
+            );
+        }
+        for port in &lowered.identity.ports {
+            assert_eq!(
+                lowered
+                    .identity
+                    .port_identity(port.node, port.direction, port.port),
+                Some(port)
+            );
+            assert_eq!(
+                lowered
+                    .identity
+                    .port_for_identity(port.node, port.direction, &port.port_id),
+                Some(port.port)
+            );
+        }
+        for (node, operation, contract) in &lowered.identity.host_operations {
+            assert_eq!(
+                lowered.identity.host_operation_contract(*node, *operation),
+                Some(contract)
+            );
+            assert_eq!(
+                lowered
+                    .identity
+                    .host_operation_for_contract(*node, contract),
+                Some(*operation)
+            );
+        }
         assert!(lowered
             .identity
             .ports
@@ -727,6 +768,9 @@ mod tests {
         assert!(kernel.kernel_events > 0);
         assert_ne!(kernel.active_play_id.as_str(), plan_id.as_str());
         assert_eq!(kernel.presentation_ids.len(), 3);
+        assert_eq!(kernel.identity.plan_id, plan_id);
+        assert_eq!(kernel.identity.active_play_id, kernel.active_play_id);
+        assert_eq!(kernel.identity.lengths(), (5, 3, 4));
         assert!(kernel
             .presentation_ids
             .windows(2)
@@ -746,6 +790,44 @@ mod tests {
                 .count()
                 == 3
         );
+        for observation in &report.observations {
+            let evidence = kernel
+                .identity
+                .evidence(&observation.evidence_id)
+                .expect("host evidence reverses to its kernel identity row");
+            assert_eq!(
+                evidence.presentation_id.as_ref(),
+                observation.presentation_id.as_ref()
+            );
+            if let Some(presentation_id) = &observation.presentation_id {
+                let presentation = kernel
+                    .identity
+                    .presentation(presentation_id)
+                    .expect("presentation reverses to one kernel request");
+                let request = kernel
+                    .identity
+                    .request(presentation.node, presentation.request)
+                    .expect("presentation request reverses to its host-operation contract");
+                assert!(kernel
+                    .identity
+                    .request_for_contract(presentation.node, &request.contract_id)
+                    .any(|candidate| candidate == request));
+                assert_eq!(
+                    kernel
+                        .identity
+                        .presentation_for_request(presentation.node, presentation.request)
+                        .map(|identity| &identity.presentation_id),
+                    Some(presentation_id)
+                );
+                assert_eq!(
+                    kernel
+                        .identity
+                        .evidence_for_presentation(presentation_id)
+                        .map(|identity| &identity.evidence_id),
+                    Some(&observation.evidence_id)
+                );
+            }
+        }
         assert!(report.observations.iter().any(|observation| matches!(
             observation.kind,
             conduit_core::ObservationKind::PlanTerminal {

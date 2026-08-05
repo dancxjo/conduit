@@ -12,7 +12,9 @@ use conduit_kernel::{
     HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
     ValueStorage,
 };
-use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_runtime::lowering::{
+    lower_plan_fragment, KernelExecutionIdentityMap, MAXIMUM_KERNEL_PORTS_PER_NODE,
+};
 use conduit_signal::{
     decode_signal, encode_signal, parse_pulse_configuration, signal_value_kind, Signal, PULSE_KIND,
     SHOW_KIND, SIGNAL_ENCODED_LEN,
@@ -386,11 +388,34 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
         &advertisement.boot_id,
         activation_sequence,
     );
+    let request_capacity = count
+        .checked_add(wait_count)
+        .ok_or_else(|| "execution request identity capacity overflow".to_string())?;
+    let evidence_capacity = count
+        .checked_add(1)
+        .ok_or_else(|| "execution evidence identity capacity overflow".to_string())?;
+    let mut execution_identity = KernelExecutionIdentityMap::new(
+        &lowered.identity,
+        &active_play,
+        request_capacity,
+        count,
+        evidence_capacity,
+    )
+    .map_err(|error| format!("prepare execution identity map: {error:?}"))?;
+    let identity_capacity_before = execution_identity.allocation_capacities();
     let mut receipts = Vec::with_capacity(count);
     let mut observations = Vec::with_capacity(count.saturating_add(1));
     let mut presentation_ids = Vec::with_capacity(count);
     loop {
         while let Some(request) = scheduler.next_host_request() {
+            execution_identity
+                .bind_request(
+                    &lowered.identity,
+                    request.node,
+                    request.request,
+                    request.operation,
+                )
+                .map_err(|error| format!("bind host request identity: {error:?}"))?;
             let input = scheduler
                 .host_value(request.input.value)
                 .map_err(|error| format!("read host-operation input: {error:?}"))?;
@@ -418,6 +443,14 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
                     &show_placement.placement_id,
                     signal.sequence,
                 );
+                execution_identity
+                    .bind_presentation(
+                        &lowered.identity,
+                        request.node,
+                        request.request,
+                        &presentation,
+                    )
+                    .map_err(|error| format!("bind presentation identity: {error:?}"))?;
                 writeln!(
                     output,
                     "signal {} {}",
@@ -447,6 +480,14 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
                 *next_evidence_sequence = next_evidence_sequence
                     .checked_add(1)
                     .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
+                execution_identity
+                    .bind_evidence(
+                        &evidence,
+                        Some(request.node),
+                        Some(request.request),
+                        Some(&presentation.presentation_id),
+                    )
+                    .map_err(|error| format!("bind presentation evidence identity: {error:?}"))?;
                 observations.push(Observation {
                     evidence_id: evidence.evidence_id,
                     active_play_id: Some(active_play.active_play_id.clone()),
@@ -515,6 +556,9 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
     *next_evidence_sequence = next_evidence_sequence
         .checked_add(1)
         .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
+    execution_identity
+        .bind_evidence(&terminal_evidence, None, None, None)
+        .map_err(|error| format!("bind terminal evidence identity: {error:?}"))?;
     observations.push(Observation {
         evidence_id: terminal_evidence.evidence_id,
         active_play_id: Some(active_play.active_play_id.clone()),
@@ -528,6 +572,11 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
             disposition: TerminalDisposition::Completed,
         },
     });
+    if execution_identity.lengths() != (request_capacity, count, evidence_capacity)
+        || execution_identity.allocation_capacities() != identity_capacity_before
+    {
+        return Err("execution identity map is incomplete or grew after activation".to_string());
+    }
 
     Ok(StdRunReport {
         observations,
@@ -539,6 +588,7 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids,
+            identity: execution_identity,
         }),
     })
 }
