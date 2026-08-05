@@ -19,6 +19,9 @@
 //!   wrong_wire_version.bin   — wire-format byte changed to 0xFF
 //!   wrong_protocol_version.bin — protocol_version field = PROTOCOL_VERSION + 1
 //!   wrong_sequence.bin       — different sequence; still valid (no seq validation)
+//!   wrong_plan.bin           — valid frame with plan_id = "other-plan"
+//!   wrong_connection.bin     — valid frame with connection_id = "other-conn"
+//!   wrong_kind.bin           — valid frame with value_kind = "other/kind"
 //!   non_utf8_plan.bin        — plan_id bytes are not valid UTF-8
 //!   id_length_overflow.bin   — plan_id declared length of 4 097 (> MAX_ID_BYTES)
 //! ```
@@ -110,16 +113,14 @@ fn zero_capacity_ids_fixture_round_trips() {
 #[test]
 fn max_id_fixture_round_trips() {
     let bytes = fixture("max_id.bin");
-    let env =
-        decode_envelope(&bytes, MAX_PAYLOAD).expect("max_id.bin must decode");
+    let env = decode_envelope(&bytes, MAX_PAYLOAD).expect("max_id.bin must decode");
     assert_eq!(env.plan_id.as_str().len(), MAX_ID_BYTES);
     assert_eq!(env.connection_id.as_str().len(), MAX_ID_BYTES);
     assert_eq!(env.value_kind.as_str().len(), MAX_ID_BYTES);
-    // Re-encode needs a generous frame budget
-    let re = encode_envelope(&env, MAX_PAYLOAD).expect("re-encode");
     assert_eq!(
-        decode_envelope(&re, MAX_PAYLOAD).expect("second decode"),
-        env
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes,
+        "max_id.bin re-encode must be bit-for-bit identical"
     );
 }
 
@@ -242,6 +243,53 @@ fn encode_rejects_wrong_protocol_version() {
 }
 
 // ---------------------------------------------------------------------------
+// Wrong plan / connection / kind — valid mutation vectors
+// ---------------------------------------------------------------------------
+
+#[test]
+fn wrong_plan_fixture_decodes_to_mutated_plan() {
+    let bytes = fixture("wrong_plan.bin");
+    let env = decode_envelope(&bytes, MAX_PAYLOAD).expect("wrong_plan.bin must decode");
+    assert_eq!(env.plan_id.as_str(), "other-plan");
+    // Codec fields other than plan_id are unchanged from the golden envelope.
+    assert_eq!(env.connection_id.as_str(), golden_envelope().connection_id.as_str());
+    assert_eq!(env.value_kind.as_str(), golden_envelope().value_kind.as_str());
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes,
+        "wrong_plan.bin re-encode must be bit-for-bit identical"
+    );
+}
+
+#[test]
+fn wrong_connection_fixture_decodes_to_mutated_connection() {
+    let bytes = fixture("wrong_connection.bin");
+    let env = decode_envelope(&bytes, MAX_PAYLOAD).expect("wrong_connection.bin must decode");
+    assert_eq!(env.connection_id.as_str(), "other-conn");
+    assert_eq!(env.plan_id.as_str(), golden_envelope().plan_id.as_str());
+    assert_eq!(env.value_kind.as_str(), golden_envelope().value_kind.as_str());
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes,
+        "wrong_connection.bin re-encode must be bit-for-bit identical"
+    );
+}
+
+#[test]
+fn wrong_kind_fixture_decodes_to_mutated_kind() {
+    let bytes = fixture("wrong_kind.bin");
+    let env = decode_envelope(&bytes, MAX_PAYLOAD).expect("wrong_kind.bin must decode");
+    assert_eq!(env.value_kind.as_str(), "other/kind");
+    assert_eq!(env.plan_id.as_str(), golden_envelope().plan_id.as_str());
+    assert_eq!(env.connection_id.as_str(), golden_envelope().connection_id.as_str());
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes,
+        "wrong_kind.bin re-encode must be bit-for-bit identical"
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Wrong plan / connection / kind (invalid encoding)
 // ---------------------------------------------------------------------------
 
@@ -257,12 +305,12 @@ fn non_utf8_plan_id_is_rejected() {
 #[test]
 fn id_length_overflow_is_rejected() {
     let bytes = fixture("id_length_overflow.bin");
-    // The declared plan_id length is 4097 > MAX_ID_BYTES, so we get IdentifierTooLong.
-    // The actual bytes aren't present so TruncatedFrame is also acceptable.
-    let err = decode_envelope(&bytes, MAX_PAYLOAD).expect_err("must fail");
-    assert!(
-        matches!(err, WireError::IdentifierTooLong | WireError::TruncatedFrame),
-        "expected IdentifierTooLong or TruncatedFrame, got {err:?}"
+    // The declared plan_id length is 4097 > MAX_ID_BYTES; the decoder checks the
+    // decoded u16 length before reading any identifier bytes, so this must
+    // produce exactly IdentifierTooLong.
+    assert_eq!(
+        decode_envelope(&bytes, MAX_PAYLOAD),
+        Err(WireError::IdentifierTooLong)
     );
 }
 
@@ -303,10 +351,15 @@ fn encode_rejects_oversized_kind_id() {
 #[test]
 fn wrong_sequence_fixture_still_decodes() {
     // The wire format carries sequence as an opaque u64; there is no validity
-    // check, so any value must be accepted.
+    // check, so any value must be accepted and re-encoded identically.
     let bytes = fixture("wrong_sequence.bin");
     let env = decode_envelope(&bytes, MAX_PAYLOAD).expect("arbitrary sequence must decode");
     assert_eq!(env.sequence, 0xDEAD_BEEF_CAFE_BABE_u64);
+    assert_eq!(
+        encode_envelope(&env, MAX_PAYLOAD).expect("re-encode"),
+        bytes,
+        "wrong_sequence.bin re-encode must be bit-for-bit identical"
+    );
 }
 
 #[test]
@@ -384,11 +437,14 @@ fn zero_maximum_payload_bytes_rejects_nonempty_payload() {
 }
 
 #[test]
-fn maximum_legal_payload_capacity_round_trips() {
+fn large_payload_capacity_round_trips() {
+    // u16::MAX bytes is a useful large test value for the u32 payload-length
+    // field; it is not the codec's maximum (u32::MAX) but exercises the
+    // allocation path without exhausting test memory.
     let mut env = golden_envelope();
     env.payload = vec![0xFFu8; u16::MAX as usize];
     let cap = u16::MAX as u32;
-    let encoded = encode_envelope(&env, cap).expect("max u16 payload encodes");
-    let decoded = decode_envelope(&encoded, cap).expect("max u16 payload decodes");
+    let encoded = encode_envelope(&env, cap).expect("u16::MAX payload encodes");
+    let decoded = decode_envelope(&encoded, cap).expect("u16::MAX payload decodes");
     assert_eq!(decoded.payload.len(), u16::MAX as usize);
 }
