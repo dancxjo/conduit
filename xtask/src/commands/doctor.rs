@@ -1,114 +1,306 @@
-use std::process::Command;
+use std::path::Path;
+
+use serde::Serialize;
 
 use crate::{
     cli::{DoctorArgs, DoctorTarget, GlobalOpts},
-    process::StepError,
+    process::{run_probe, ProbeOutcome, Step, StepError},
     workspace::workspace_root,
 };
 
+const REPORT_SCHEMA: &str = "conduit.xtask-doctor-report/v1";
+
+#[derive(Debug, Serialize)]
+struct DoctorReport {
+    schema: &'static str,
+    command: &'static str,
+    target: &'static str,
+    dry_run: bool,
+    exact_git_commit: Option<String>,
+    dirty: Option<bool>,
+    probes: Vec<DoctorProbe>,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorProbe {
+    section: &'static str,
+    repair: Option<&'static str>,
+    #[serde(flatten)]
+    outcome: ProbeOutcome,
+}
+
+struct ProbeSpec {
+    section: &'static str,
+    step: Step,
+    repair: Option<&'static str>,
+}
+
 pub fn run(args: DoctorArgs, opts: &GlobalOpts) -> Result<(), StepError> {
-    let root = workspace_root()
-        .map_err(|e| StepError::prereq("workspace-root", e))?;
+    let root = workspace_root().map_err(|error| StepError::prereq("workspace-root", error))?;
+    let report = build_report(args.target, opts, &root);
 
-    match args.target {
-        DoctorTarget::All => {
-            general(opts);
-            browser_doctor(opts);
-        }
-        DoctorTarget::Browser => browser_doctor(opts),
-        DoctorTarget::Pico => pico_doctor(opts),
+    if opts.json {
+        let encoded = serde_json::to_string_pretty(&report)
+            .map_err(|error| StepError::prereq("doctor-json", error.to_string()))?;
+        println!("{encoded}");
+    } else if !opts.quiet {
+        print_human_report(&report);
     }
-    let _ = root;
-    Ok(())
+
+    let failed = report
+        .probes
+        .iter()
+        .filter(|probe| !probe.outcome.skipped && !probe.outcome.success)
+        .map(|probe| probe.outcome.id.as_str())
+        .collect::<Vec<_>>();
+
+    if failed.is_empty() {
+        Ok(())
+    } else {
+        Err(StepError::prereq(
+            "doctor",
+            format!("failed prerequisite probes: {}", failed.join(", ")),
+        ))
+    }
 }
 
-fn tool_version(program: &str, args: &[&str]) -> String {
-    Command::new(program)
-        .args(args)
-        .output()
-        .ok()
-        .and_then(|o| String::from_utf8(o.stdout).ok())
-        .map(|s| s.trim().to_string())
-        .unwrap_or_else(|| "(not found)".into())
-}
-
-fn general(opts: &GlobalOpts) {
-    if opts.quiet {
-        return;
-    }
-    println!("── General prerequisites ────────────────────────────────");
-
-    let rustc = tool_version("rustc", &["--version"]);
-    let cargo = tool_version("cargo", &["--version"]);
-    println!("  rustc   : {rustc}");
-    println!("  cargo   : {cargo}");
-
-    let node = tool_version("node", &["--version"]);
-    let npm = tool_version("npm", &["--version"]);
-    let npx = tool_version("npx", &["--version"]);
-    println!("  node    : {node}");
-    println!("  npm     : {npm}");
-    println!("  npx     : {npx}");
-
-    let targets = tool_version("rustup", &["target", "list", "--installed"]);
-    println!("  rustup targets installed:\n{}", indent(&targets, 4));
-
-    // Git commit / dirty state.
-    let commit = tool_version("git", &["rev-parse", "--short", "HEAD"]);
-    let dirty = Command::new("git")
-        .args(["status", "--porcelain"])
-        .output()
-        .ok()
-        .map(|o| !o.stdout.is_empty())
-        .unwrap_or(false);
-    println!("  git commit : {commit}{}", if dirty { " (dirty)" } else { "" });
-}
-
-fn browser_doctor(opts: &GlobalOpts) {
-    if opts.quiet {
-        return;
-    }
-    println!("── Browser prerequisites ─────────────────────────────────");
-
-    let pw = tool_version("npx", &["playwright", "--version"]);
-    println!("  playwright : {pw}");
-
-    // Check for chromium install by querying playwright.
-    let chromium = Command::new("npx")
-        .args(["playwright", "install", "--dry-run", "chromium"])
-        .output()
-        .ok()
-        .map(|o| {
-            let s = String::from_utf8_lossy(&o.stdout).to_string()
-                + &String::from_utf8_lossy(&o.stderr);
-            if s.contains("chromium") { "present (or installable)" } else { "unknown" }
+fn build_report(target: DoctorTarget, opts: &GlobalOpts, root: &Path) -> DoctorReport {
+    let probes = probe_specs(target)
+        .into_iter()
+        .map(|spec| {
+            let mut outcome = run_probe(&spec.step, root, opts);
+            if outcome.id == "doctor.pico.thumb-target"
+                && !outcome.skipped
+                && outcome.success
+                && !outcome
+                    .stdout
+                    .lines()
+                    .any(|line| line.trim() == "thumbv6m-none-eabi")
+            {
+                outcome.success = false;
+                outcome.stderr = "required Rust target is not installed".to_string();
+            }
+            DoctorProbe {
+                section: spec.section,
+                repair: spec.repair,
+                outcome,
+            }
         })
-        .unwrap_or("unknown");
-    println!("  chromium   : {chromium}");
-    println!("  Repair hint: npx playwright install chromium");
-}
+        .collect::<Vec<_>>();
 
-fn pico_doctor(opts: &GlobalOpts) {
-    if opts.quiet {
-        return;
-    }
-    println!("── Pico prerequisites ────────────────────────────────────");
+    let exact_git_commit = probe_stdout(&probes, "doctor.git.commit");
+    let dirty = probes
+        .iter()
+        .find(|probe| probe.outcome.id == "doctor.git.status")
+        .and_then(|probe| {
+            (!probe.outcome.skipped && probe.outcome.success)
+                .then_some(!probe.outcome.stdout.is_empty())
+        });
 
-    let targets = tool_version("rustup", &["target", "list", "--installed"]);
-    let thumb = if targets.contains("thumbv6m-none-eabi") { "installed" } else { "MISSING" };
-    println!("  thumbv6m-none-eabi target : {thumb}");
-    if thumb == "MISSING" {
-        println!("  Repair hint: rustup target add thumbv6m-none-eabi");
-    }
-
-    let elf2uf2 = tool_version("elf2uf2-rs", &["--version"]);
-    println!("  elf2uf2-rs : {elf2uf2}");
-    if elf2uf2 == "(not found)" {
-        println!("  Repair hint: cargo install elf2uf2-rs");
+    DoctorReport {
+        schema: REPORT_SCHEMA,
+        command: "doctor",
+        target: target.as_str(),
+        dry_run: opts.dry_run,
+        exact_git_commit,
+        dirty,
+        probes,
     }
 }
 
-fn indent(s: &str, n: usize) -> String {
-    let pad = " ".repeat(n);
-    s.lines().map(|l| format!("{pad}{l}")).collect::<Vec<_>>().join("\n")
+fn probe_stdout(probes: &[DoctorProbe], id: &str) -> Option<String> {
+    probes
+        .iter()
+        .find(|probe| probe.outcome.id == id)
+        .filter(|probe| {
+            !probe.outcome.skipped
+                && probe.outcome.success
+                && !probe.outcome.stdout.is_empty()
+        })
+        .map(|probe| probe.outcome.stdout.clone())
+}
+
+fn probe_specs(target: DoctorTarget) -> Vec<ProbeSpec> {
+    let mut probes = Vec::new();
+
+    if matches!(target, DoctorTarget::All) {
+        probes.extend(general_probes());
+    }
+    if matches!(target, DoctorTarget::All | DoctorTarget::Browser) {
+        probes.extend(browser_probes());
+    }
+    if matches!(target, DoctorTarget::All | DoctorTarget::Pico) {
+        probes.extend(pico_probes());
+    }
+
+    probes
+}
+
+fn general_probes() -> Vec<ProbeSpec> {
+    vec![
+        probe("general", "doctor.rustc", "Rust compiler", "rustc", &["--version"], None),
+        probe("general", "doctor.cargo", "Cargo", "cargo", &["--version"], None),
+        probe(
+            "general",
+            "doctor.rustup.targets",
+            "installed Rust targets",
+            "rustup",
+            &["target", "list", "--installed"],
+            Some("rustup target add wasm32-unknown-unknown thumbv6m-none-eabi"),
+        ),
+        probe("general", "doctor.node", "Node.js", "node", &["--version"], None),
+        probe("general", "doctor.npm", "npm", "npm", &["--version"], None),
+        probe("general", "doctor.npx", "npx", "npx", &["--version"], None),
+        probe(
+            "git",
+            "doctor.git.commit",
+            "exact Git commit",
+            "git",
+            &["rev-parse", "HEAD"],
+            None,
+        ),
+        probe(
+            "git",
+            "doctor.git.status",
+            "Git dirty state",
+            "git",
+            &["status", "--porcelain"],
+            None,
+        ),
+    ]
+}
+
+fn browser_probes() -> Vec<ProbeSpec> {
+    vec![
+        probe(
+            "browser",
+            "doctor.browser.playwright",
+            "Playwright CLI",
+            "npx",
+            &["playwright", "--version"],
+            Some("npm ci --ignore-scripts"),
+        ),
+        probe(
+            "browser",
+            "doctor.browser.chromium",
+            "pinned Chromium availability",
+            "npx",
+            &["playwright", "install", "--dry-run", "chromium"],
+            Some("npx playwright install chromium"),
+        ),
+    ]
+}
+
+fn pico_probes() -> Vec<ProbeSpec> {
+    vec![
+        probe(
+            "pico",
+            "doctor.pico.thumb-target",
+            "thumbv6m-none-eabi target",
+            "rustup",
+            &["target", "list", "--installed"],
+            Some("rustup target add thumbv6m-none-eabi"),
+        ),
+        probe(
+            "pico",
+            "doctor.pico.elf2uf2",
+            "ELF to UF2 converter",
+            "elf2uf2-rs",
+            &["--version"],
+            Some("cargo install elf2uf2-rs --locked"),
+        ),
+    ]
+}
+
+fn probe(
+    section: &'static str,
+    id: &'static str,
+    description: &'static str,
+    program: &'static str,
+    args: &'static [&'static str],
+    repair: Option<&'static str>,
+) -> ProbeSpec {
+    ProbeSpec {
+        section,
+        step: Step::new(id, description, program, args),
+        repair,
+    }
+}
+
+fn print_human_report(report: &DoctorReport) {
+    println!("Conduit doctor ({})", report.target);
+    if report.dry_run {
+        println!("dry run: no external probes were executed");
+    }
+
+    let mut previous_section = None;
+    for probe in &report.probes {
+        if previous_section != Some(probe.section) {
+            println!("\n{}:", probe.section);
+            previous_section = Some(probe.section);
+        }
+
+        let status = if probe.outcome.skipped {
+            "planned"
+        } else if probe.outcome.success {
+            "ok"
+        } else {
+            "missing/failing"
+        };
+        println!("  {:<30} {status}", probe.outcome.description);
+        if !probe.outcome.stdout.is_empty() {
+            for line in probe.outcome.stdout.lines() {
+                println!("    {line}");
+            }
+        }
+        if let Some(error) = &probe.outcome.launch_error {
+            println!("    {error}");
+        } else if !probe.outcome.stderr.is_empty() {
+            for line in probe.outcome.stderr.lines() {
+                println!("    {line}");
+            }
+        }
+        if !probe.outcome.success {
+            if let Some(repair) = probe.repair {
+                println!("    repair: {repair}");
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dry_json_opts() -> GlobalOpts {
+        GlobalOpts {
+            dry_run: true,
+            quiet: true,
+            json: true,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn dry_run_report_executes_no_probes() {
+        let root = workspace_root().expect("workspace root");
+        let report = build_report(DoctorTarget::All, &dry_json_opts(), &root);
+        assert!(report.dry_run);
+        assert!(!report.probes.is_empty());
+        assert!(report.probes.iter().all(|probe| probe.outcome.skipped));
+        assert!(report.exact_git_commit.is_none());
+        assert!(report.dirty.is_none());
+    }
+
+    #[test]
+    fn JSON_report_has_stable_schema_and_target() {
+        let root = workspace_root().expect("workspace root");
+        let report = build_report(DoctorTarget::Browser, &dry_json_opts(), &root);
+        let value = serde_json::to_value(report).expect("serialize doctor report");
+        assert_eq!(value["schema"], REPORT_SCHEMA);
+        assert_eq!(value["command"], "doctor");
+        assert_eq!(value["target"], "browser");
+        assert_eq!(value["dry_run"], true);
+        assert!(value["probes"].as_array().is_some_and(|probes| !probes.is_empty()));
+    }
 }
