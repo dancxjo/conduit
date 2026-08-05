@@ -542,10 +542,10 @@ impl HostRuntime {
                 (ConnectionProvider::Local, true, true) => ConnectionRole::Local,
                 (ConnectionProvider::InMemory, true, false) => ConnectionRole::Outbound,
                 (ConnectionProvider::InMemory, false, true) => ConnectionRole::Inbound,
-                (ConnectionProvider::WebSocket, true, false) => ConnectionRole::Outbound,
-                (ConnectionProvider::WebSocket, false, true) => ConnectionRole::Inbound,
-                (ConnectionProvider::Udp, true, false) => ConnectionRole::Outbound,
-                (ConnectionProvider::Udp, false, true) => ConnectionRole::Inbound,
+                (ConnectionProvider::FixtureFrame, true, false) => ConnectionRole::Outbound,
+                (ConnectionProvider::FixtureFrame, false, true) => ConnectionRole::Inbound,
+                (ConnectionProvider::FixtureDatagram, true, false) => ConnectionRole::Outbound,
+                (ConnectionProvider::FixtureDatagram, false, true) => ConnectionRole::Inbound,
                 _ => {
                     output.events.push(HostEvent::PreparationRejected {
                         plan_id: fragment.plan_id,

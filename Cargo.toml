@@ -11,8 +11,8 @@ members = [
 	"crates/conduit-observatory",
 	"crates/conduit-std-catalog",
 	"crates/conduit",
-	"hosts/browser",
-	"hosts/pico",
+	"fixtures/browser-sim",
+	"fixtures/pico-sim",
 	"hosts/std",
 ]
 resolver = "2"

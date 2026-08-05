@@ -14,7 +14,7 @@ use conduit_core::{
 use conduit_signal::{decode_signal, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PicoHostConfig {
+pub struct PicoSimConfig {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -30,13 +30,13 @@ pub struct LedReceipt {
 }
 
 #[derive(Debug, Clone)]
-pub struct BoundedUdpRelay {
+pub struct BoundedDatagramRelayFixture {
     max_payload_bytes: u32,
     max_datagram_bytes: usize,
     datagrams: Vec<Vec<u8>>,
 }
 
-impl BoundedUdpRelay {
+impl BoundedDatagramRelayFixture {
     pub fn new(max_payload_bytes: u32, max_datagram_bytes: usize) -> Self {
         Self {
             max_payload_bytes,
@@ -54,22 +54,22 @@ impl BoundedUdpRelay {
         envelope: &ConnectionEnvelope,
     ) -> Result<ConnectionEnvelope, String> {
         let datagram = conduit_wire::encode_envelope(envelope, self.max_payload_bytes)
-            .map_err(|err| format!("udp relay encode failed: {err:?}"))?;
+            .map_err(|err| format!("datagram fixture encode failed: {err:?}"))?;
         if datagram.len() > self.max_datagram_bytes {
             return Err(format!(
-                "udp relay datagram {} exceeds bound {}",
+                "datagram fixture datagram {} exceeds bound {}",
                 datagram.len(),
                 self.max_datagram_bytes
             ));
         }
         let decoded = conduit_wire::decode_envelope(&datagram, self.max_payload_bytes)
-            .map_err(|err| format!("udp relay decode failed: {err:?}"))?;
+            .map_err(|err| format!("datagram fixture decode failed: {err:?}"))?;
         self.datagrams.push(datagram);
         Ok(decoded)
     }
 }
 
-pub fn pico_advertisement(config: PicoHostConfig) -> HostAdvertisement {
+pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: config.host_id,
@@ -122,7 +122,7 @@ pub fn led_receipt(
 
 #[cfg(feature = "std")]
 mod std_fixture {
-    use super::{led_receipt, pico_advertisement, LedReceipt, PicoHostConfig};
+    use super::{led_receipt, pico_advertisement, LedReceipt, PicoSimConfig};
     use alloc::vec::Vec;
     use conduit_core::{
         CapabilityId, ConnectionProvider, HostAdvertisement, HostCommand, HostEvent, HostId,
@@ -134,13 +134,13 @@ mod std_fixture {
     use conduit_signal::{signal_registry, SIGNAL_PRESENTATION_KIND};
     use std::collections::BTreeMap;
 
-    pub struct PicoHost {
+    pub struct PicoSim {
         runtime: HostRuntime,
         receipts: Vec<LedReceipt>,
     }
 
-    impl PicoHost {
-        pub fn new(config: PicoHostConfig) -> Self {
+    impl PicoSim {
+        pub fn new(config: PicoSimConfig) -> Self {
             let advertisement = pico_advertisement(config);
             let registry = signal_registry(
                 ImplementationId::from("pico/pulse-v1"),
@@ -219,7 +219,7 @@ mod std_fixture {
                 form,
                 &[std_advertisement.clone(), self.advertisement().clone()],
                 &placements,
-                &[ConnectionProvider::Udp],
+                &[ConnectionProvider::FixtureDatagram],
                 4,
                 64,
             )?)
@@ -274,7 +274,7 @@ mod std_fixture {
                     } => {
                         if presentation_kind.as_str() != SIGNAL_PRESENTATION_KIND {
                             return Err(format!(
-                                "pico host cannot manifest presentation kind '{}'",
+                                "Pico simulation cannot manifest presentation kind '{}'",
                                 presentation_kind.as_str()
                             ));
                         }
@@ -336,11 +336,11 @@ mod std_fixture {
 }
 
 #[cfg(feature = "std")]
-pub use std_fixture::PicoHost;
+pub use std_fixture::PicoSim;
 
 #[cfg(test)]
 mod tests {
-    use super::{pico_advertisement, BoundedUdpRelay, PicoHost, PicoHostConfig};
+    use super::{pico_advertisement, BoundedDatagramRelayFixture, PicoSim, PicoSimConfig};
     use conduit_core::{
         BootId, ConnectionId, ConnectionOutcome, ConnectionProvider, HostCommand, HostEvent,
         HostId, OfferGeneration, PlatformEffect, TerminalDisposition,
@@ -353,7 +353,7 @@ mod tests {
 
     #[test]
     fn constrained_advertisement_names_pico_led_without_transport_claims() {
-        let advertisement = pico_advertisement(PicoHostConfig {
+        let advertisement = pico_advertisement(PicoSimConfig {
             host_id: HostId::from("pico-1"),
             boot_id: BootId::from("boot-pico-1"),
             offer_generation: OfferGeneration(1),
@@ -371,13 +371,13 @@ mod tests {
     }
 
     #[test]
-    fn pico_host_runs_pair_form_to_onboard_led_receipts() {
+    fn pico_simulation_runs_pair_form_to_onboard_led_receipts() {
         let form = parse(
             include_str!("../../../examples/signal-demo.form"),
             &signal_profile_catalog(),
         )
         .expect("signal form parses");
-        let mut host = PicoHost::new(PicoHostConfig {
+        let mut host = PicoSim::new(PicoSimConfig {
             host_id: HostId::from("pico-1"),
             boot_id: BootId::from("boot-pico-1"),
             offer_generation: OfferGeneration(1),
@@ -413,7 +413,7 @@ mod tests {
     }
 
     #[test]
-    fn std_host_sends_signal_to_pico_over_bounded_udp_relay() {
+    fn std_host_sends_signal_to_pico_through_bounded_datagram_fixture() {
         let form = parse(
             include_str!("../../../examples/signal-demo.form"),
             &signal_profile_catalog(),
@@ -424,9 +424,9 @@ mod tests {
             boot_id: BootId::from("std-boot-1"),
             offer_generation: OfferGeneration(1),
         });
-        let mut pico = PicoHost::new(PicoHostConfig {
-            host_id: HostId::from("pico-udp-1"),
-            boot_id: BootId::from("pico-boot-udp-1"),
+        let mut pico = PicoSim::new(PicoSimConfig {
+            host_id: HostId::from("pico-sim-datagram-1"),
+            boot_id: BootId::from("pico-sim-boot-datagram-1"),
             offer_generation: OfferGeneration(1),
         });
         let plan = pico
@@ -436,8 +436,8 @@ mod tests {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .find(|connection| connection.provider == ConnectionProvider::Udp)
-            .expect("udp connection is planned");
+            .find(|connection| connection.provider == ConnectionProvider::FixtureDatagram)
+            .expect("datagram fixture connection is planned");
         assert_eq!(connection.item_capacity, 4);
         assert_eq!(connection.byte_capacity, 64);
         let connection_id = connection.connection_id.clone();
@@ -468,7 +468,7 @@ mod tests {
             );
         }
 
-        let mut relay = BoundedUdpRelay::new(64, 512);
+        let mut relay = BoundedDatagramRelayFixture::new(64, 512);
         while let Some((host_id, effect)) = pending.pop_front() {
             if host_id == std_host.advertisement().host_id {
                 pending.extend(drive_std_effect(
@@ -506,8 +506,8 @@ mod tests {
 
     fn drive_std_effect(
         std_host: &mut StdHost,
-        pico: &mut PicoHost,
-        relay: &mut BoundedUdpRelay,
+        pico: &mut PicoSim,
+        relay: &mut BoundedDatagramRelayFixture,
         effect: PlatformEffect,
     ) -> Vec<(HostId, PlatformEffect)> {
         match effect {
@@ -548,7 +548,7 @@ mod tests {
 
     fn drive_pico_effect_with_std_ack(
         std_host: &mut StdHost,
-        pico: &mut PicoHost,
+        pico: &mut PicoSim,
         connection_id: &ConnectionId,
         effect: PlatformEffect,
     ) -> Vec<(HostId, PlatformEffect)> {
@@ -589,7 +589,7 @@ mod tests {
 
     fn std_output_effects(
         std_host: &mut StdHost,
-        pico: &mut PicoHost,
+        pico: &mut PicoSim,
         output: RuntimeOutput,
     ) -> Vec<(HostId, PlatformEffect)> {
         let mut pending = output
@@ -629,7 +629,7 @@ mod tests {
             fragment
                 .connections
                 .iter()
-                .any(|connection| connection.provider == ConnectionProvider::Udp)
+                .any(|connection| connection.provider == ConnectionProvider::FixtureDatagram)
                 && fragment
                     .placements
                     .iter()
@@ -684,7 +684,7 @@ mod tests {
             )
     }
 
-    fn inspect(pico: &mut PicoHost) -> Vec<conduit_core::Observation> {
+    fn inspect(pico: &mut PicoSim) -> Vec<conduit_core::Observation> {
         pico.handle(HostCommand::Inspect)
             .events
             .into_iter()

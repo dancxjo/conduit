@@ -14,13 +14,13 @@ use conduit_signal::{
 use std::collections::{BTreeMap, VecDeque};
 
 #[derive(Debug, Clone)]
-pub struct BoundedWebSocketRelay {
+pub struct BoundedFrameRelayFixture {
     max_payload_bytes: u32,
     max_frame_bytes: usize,
     frames: Vec<Vec<u8>>,
 }
 
-impl BoundedWebSocketRelay {
+impl BoundedFrameRelayFixture {
     pub fn new(max_payload_bytes: u32, max_frame_bytes: usize) -> Self {
         Self {
             max_payload_bytes,
@@ -38,23 +38,23 @@ impl BoundedWebSocketRelay {
         envelope: &ConnectionEnvelope,
     ) -> Result<ConnectionEnvelope, String> {
         let frame = conduit_wire::encode_envelope(envelope, self.max_payload_bytes)
-            .map_err(|err| format!("websocket relay encode failed: {err:?}"))?;
+            .map_err(|err| format!("frame fixture encode failed: {err:?}"))?;
         if frame.len() > self.max_frame_bytes {
             return Err(format!(
-                "websocket relay frame {} exceeds bound {}",
+                "frame fixture frame {} exceeds bound {}",
                 frame.len(),
                 self.max_frame_bytes
             ));
         }
         let decoded = conduit_wire::decode_envelope(&frame, self.max_payload_bytes)
-            .map_err(|err| format!("websocket relay decode failed: {err:?}"))?;
+            .map_err(|err| format!("frame fixture decode failed: {err:?}"))?;
         self.frames.push(frame);
         Ok(decoded)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BrowserHostConfig {
+pub struct BrowserSimConfig {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -71,20 +71,20 @@ pub struct BrowserReceipt {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BrowserHostSnapshot {
+pub struct BrowserSimSnapshot {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub capabilities: Vec<CapabilityOffer>,
     pub receipts: Vec<BrowserReceipt>,
 }
 
-pub struct BrowserHost {
+pub struct BrowserSim {
     runtime: HostRuntime,
     receipts: Vec<BrowserReceipt>,
 }
 
-impl BrowserHost {
-    pub fn new(config: BrowserHostConfig) -> Self {
+impl BrowserSim {
+    pub fn new(config: BrowserSimConfig) -> Self {
         let advertisement = browser_advertisement(config);
         let registry = signal_registry(
             ImplementationId::from("browser/pulse-v1"),
@@ -148,8 +148,8 @@ impl BrowserHost {
             .unwrap_or_default()
     }
 
-    fn snapshot(&self) -> BrowserHostSnapshot {
-        BrowserHostSnapshot {
+    fn snapshot(&self) -> BrowserSimSnapshot {
+        BrowserSimSnapshot {
             host_id: self.advertisement().host_id.clone(),
             boot_id: self.advertisement().boot_id.clone(),
             capabilities: self.advertisement().capabilities.clone(),
@@ -158,19 +158,19 @@ impl BrowserHost {
     }
 }
 
-pub struct BrowserPage {
-    hosts: BTreeMap<HostId, BrowserHost>,
+pub struct BrowserSimPage {
+    hosts: BTreeMap<HostId, BrowserSim>,
     inbound_routes: BTreeMap<(PlanId, ConnectionId), HostId>,
     delivery_ack_routes: BTreeMap<(PlanId, PlacementId), (HostId, ConnectionId)>,
 }
 
-impl BrowserPage {
-    pub fn with_hosts(configs: impl IntoIterator<Item = BrowserHostConfig>) -> Self {
+impl BrowserSimPage {
+    pub fn with_hosts(configs: impl IntoIterator<Item = BrowserSimConfig>) -> Self {
         Self {
             hosts: configs
                 .into_iter()
                 .map(|config| {
-                    let host = BrowserHost::new(config);
+                    let host = BrowserSim::new(config);
                     (host.advertisement().host_id.clone(), host)
                 })
                 .collect(),
@@ -179,10 +179,10 @@ impl BrowserPage {
         }
     }
 
-    pub fn host_snapshots(&self) -> Vec<BrowserHostSnapshot> {
+    pub fn host_snapshots(&self) -> Vec<BrowserSimSnapshot> {
         self.hosts
             .values()
-            .map(BrowserHost::snapshot)
+            .map(BrowserSim::snapshot)
             .collect::<Vec<_>>()
     }
 
@@ -258,7 +258,7 @@ impl BrowserPage {
             form,
             &realm,
             &placements,
-            &[ConnectionProvider::WebSocket],
+            &[ConnectionProvider::FixtureFrame],
             4,
             64,
         )?)
@@ -300,7 +300,7 @@ impl BrowserPage {
         let observations = self
             .hosts
             .values_mut()
-            .flat_map(BrowserHost::inspect)
+            .flat_map(BrowserSim::inspect)
             .collect::<Vec<_>>();
         Ok(BrowserRunReport {
             plan_id: plan.plan_id,
@@ -335,7 +335,7 @@ impl BrowserPage {
             } => {
                 if presentation_kind.as_str() != SIGNAL_PRESENTATION_KIND {
                     return Err(format!(
-                        "browser host cannot manifest presentation kind '{}'",
+                        "browser simulation cannot manifest presentation kind '{}'",
                         presentation_kind.as_str()
                     ));
                 }
@@ -351,7 +351,7 @@ impl BrowserPage {
                     .host_for_inbound_connection(&envelope.plan_id, &envelope.connection_id)
                     .ok_or_else(|| {
                         format!(
-                            "no browser host has inbound connection '{}'",
+                            "no browser simulation has inbound connection '{}'",
                             envelope.connection_id.as_str()
                         )
                     })?;
@@ -441,10 +441,10 @@ impl BrowserPage {
         Ok(pending)
     }
 
-    fn host_mut(&mut self, host_id: &HostId) -> Result<&mut BrowserHost, String> {
+    fn host_mut(&mut self, host_id: &HostId) -> Result<&mut BrowserSim, String> {
         self.hosts
             .get_mut(host_id)
-            .ok_or_else(|| format!("unknown browser host '{}'", host_id.as_str()))
+            .ok_or_else(|| format!("unknown browser simulation '{}'", host_id.as_str()))
     }
 
     fn host_for_inbound_connection(
@@ -463,7 +463,7 @@ pub struct BrowserRunReport {
     pub plan_id: conduit_core::PlanId,
     pub receipts: Vec<BrowserReceipt>,
     pub observations: Vec<Observation>,
-    pub snapshots: Vec<BrowserHostSnapshot>,
+    pub snapshots: Vec<BrowserSimSnapshot>,
 }
 
 pub fn load_checked_form(path: &str) -> Result<CheckedForm, Box<dyn std::error::Error>> {
@@ -473,7 +473,7 @@ pub fn load_checked_form(path: &str) -> Result<CheckedForm, Box<dyn std::error::
     )?)
 }
 
-fn browser_advertisement(config: BrowserHostConfig) -> HostAdvertisement {
+fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: config.host_id,
@@ -565,7 +565,7 @@ fn delivery_ack_routes(
 fn is_remote_provider(provider: ConnectionProvider) -> bool {
     matches!(
         provider,
-        ConnectionProvider::InMemory | ConnectionProvider::WebSocket
+        ConnectionProvider::InMemory | ConnectionProvider::FixtureFrame
     )
 }
 
@@ -599,7 +599,7 @@ fn pending_success(output: &RuntimeOutput, sequence: u64) -> Result<(), String> 
         })
         .filter(|outcome| *outcome == ConnectionOutcome::Accepted)
         .map(|_| ())
-        .ok_or_else(|| format!("remote browser host did not accept sequence {sequence}"))
+        .ok_or_else(|| format!("remote browser simulation did not accept sequence {sequence}"))
 }
 
 fn ensure_prepared(output: &RuntimeOutput) -> Result<(), String> {
@@ -608,7 +608,7 @@ fn ensure_prepared(output: &RuntimeOutput) -> Result<(), String> {
         .iter()
         .any(|event| matches!(event, HostEvent::Prepared { .. }))
         .then_some(())
-        .ok_or_else(|| format!("browser host prepare failed: {:?}", output.events))
+        .ok_or_else(|| format!("browser simulation prepare failed: {:?}", output.events))
 }
 
 fn ensure_activated(output: &RuntimeOutput) -> Result<(), String> {
@@ -617,18 +617,18 @@ fn ensure_activated(output: &RuntimeOutput) -> Result<(), String> {
         .iter()
         .any(|event| matches!(event, HostEvent::Activated { .. }))
         .then_some(())
-        .ok_or_else(|| format!("browser host activation failed: {:?}", output.events))
+        .ok_or_else(|| format!("browser simulation activation failed: {:?}", output.events))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{BoundedWebSocketRelay, BrowserHostConfig, BrowserPage};
+    use super::{BoundedFrameRelayFixture, BrowserSimConfig, BrowserSimPage};
     use conduit_core::{
         kind_id, BootId, ConnectionId, ConnectionOutcome, ConnectionProvider, HostCommand,
         HostEvent, HostId, OfferGeneration, PlacementId, PlatformEffect, TerminalDisposition,
     };
     use conduit_form::parse;
-    use conduit_pico_host::{BoundedUdpRelay, PicoHost, PicoHostConfig};
+    use conduit_pico_sim::{BoundedDatagramRelayFixture, PicoSim, PicoSimConfig};
     use conduit_planner::{
         plan_with_connection_limits_and_provider_overrides, PlacementChoice, PlacementChoices,
     };
@@ -637,16 +637,16 @@ mod tests {
     use conduit_std_host::{SignalReceipt, StdHost, StdHostConfig};
     use std::collections::{BTreeMap, VecDeque};
 
-    fn page() -> BrowserPage {
-        BrowserPage::with_hosts([
-            BrowserHostConfig {
-                host_id: HostId::from("browser-host-a"),
-                boot_id: BootId::from("browser-boot-a"),
+    fn page() -> BrowserSimPage {
+        BrowserSimPage::with_hosts([
+            BrowserSimConfig {
+                host_id: HostId::from("browser-sim-a"),
+                boot_id: BootId::from("browser-sim-boot-a"),
                 offer_generation: OfferGeneration(1),
             },
-            BrowserHostConfig {
-                host_id: HostId::from("browser-host-b"),
-                boot_id: BootId::from("browser-boot-b"),
+            BrowserSimConfig {
+                host_id: HostId::from("browser-sim-b"),
+                boot_id: BootId::from("browser-sim-boot-b"),
                 offer_generation: OfferGeneration(1),
             },
         ])
@@ -669,7 +669,7 @@ mod tests {
     }
 
     #[test]
-    fn one_page_owns_multiple_independent_browser_host_instances() {
+    fn one_page_owns_multiple_independent_browser_simulations() {
         let page = page();
         let snapshots = page.host_snapshots();
         assert_eq!(snapshots.len(), 2);
@@ -691,10 +691,10 @@ mod tests {
     }
 
     #[test]
-    fn two_browser_hosts_execute_pair_form_over_bounded_memory_link() {
+    fn two_browser_simulations_execute_pair_form_over_bounded_memory_link() {
         let mut page = page();
-        let source_host = HostId::from("browser-host-a");
-        let sink_host = HostId::from("browser-host-b");
+        let source_host = HostId::from("browser-sim-a");
+        let sink_host = HostId::from("browser-sim-b");
         let plan = page
             .plan_pair(&pair_form(), &source_host, &sink_host)
             .expect("browser pair plan resolves");
@@ -740,18 +740,18 @@ mod tests {
     }
 
     #[test]
-    fn std_host_sends_signal_to_browser_over_bounded_websocket_relay() {
+    fn std_host_sends_signal_to_browser_through_bounded_frame_fixture() {
         let mut std_host = StdHost::new_with_config(StdHostConfig {
             host_id: HostId::from("std-host-1"),
             boot_id: BootId::from("std-boot-1"),
             offer_generation: OfferGeneration(1),
         });
-        let mut page = BrowserPage::with_hosts([BrowserHostConfig {
-            host_id: HostId::from("browser-host-web"),
-            boot_id: BootId::from("browser-boot-web"),
+        let mut page = BrowserSimPage::with_hosts([BrowserSimConfig {
+            host_id: HostId::from("browser-sim-web"),
+            boot_id: BootId::from("browser-sim-boot-web"),
             offer_generation: OfferGeneration(1),
         }]);
-        let browser_host = HostId::from("browser-host-web");
+        let browser_host = HostId::from("browser-sim-web");
         let plan = page
             .plan_std_to_browser(&pair_form(), std_host.advertisement(), &browser_host)
             .expect("std-to-browser plan resolves");
@@ -759,8 +759,8 @@ mod tests {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .find(|connection| connection.provider == ConnectionProvider::WebSocket)
-            .expect("websocket connection is planned");
+            .find(|connection| connection.provider == ConnectionProvider::FixtureFrame)
+            .expect("frame fixture connection is planned");
         assert_eq!(connection.item_capacity, 4);
         assert_eq!(connection.byte_capacity, 64);
 
@@ -774,7 +774,7 @@ mod tests {
                 super::ensure_prepared(
                     &page
                         .host_mut(&fragment.host_id)
-                        .expect("browser host exists")
+                        .expect("browser simulation exists")
                         .handle(HostCommand::Prepare(fragment.clone())),
                 )
                 .expect("browser sink prepares");
@@ -795,7 +795,7 @@ mod tests {
             } else {
                 let output = page
                     .host_mut(&fragment.host_id)
-                    .expect("browser host exists")
+                    .expect("browser simulation exists")
                     .handle(HostCommand::Activate(fragment.plan_id.clone()));
                 super::ensure_activated(&output).expect("browser activates");
                 pending.extend(
@@ -807,7 +807,7 @@ mod tests {
             }
         }
 
-        let mut relay = BoundedWebSocketRelay::new(64, 512);
+        let mut relay = BoundedFrameRelayFixture::new(64, 512);
         while let Some((host_id, effect)) = pending.pop_front() {
             if host_id == std_host.advertisement().host_id {
                 pending.extend(drive_std_effect(
@@ -839,7 +839,7 @@ mod tests {
         assert!(sink.receipts[15].level);
         let observations = page
             .host_mut(&browser_host)
-            .expect("browser host exists")
+            .expect("browser simulation exists")
             .inspect();
         assert!(observations.iter().any(|observation| matches!(
             observation.kind,
@@ -850,25 +850,25 @@ mod tests {
     }
 
     #[test]
-    fn triple_signal_form_fans_out_to_std_browser_and_pico_receipts() {
+    fn triple_signal_form_fans_out_to_std_and_simulated_receipts() {
         let mut std_host = StdHost::new_with_config(StdHostConfig {
             host_id: HostId::from("std-host-triple"),
             boot_id: BootId::from("std-boot-triple"),
             offer_generation: OfferGeneration(1),
         });
-        let mut page = BrowserPage::with_hosts([BrowserHostConfig {
-            host_id: HostId::from("browser-host-triple"),
-            boot_id: BootId::from("browser-boot-triple"),
+        let mut page = BrowserSimPage::with_hosts([BrowserSimConfig {
+            host_id: HostId::from("browser-sim-triple"),
+            boot_id: BootId::from("browser-sim-boot-triple"),
             offer_generation: OfferGeneration(1),
         }]);
-        let mut pico = PicoHost::new(PicoHostConfig {
-            host_id: HostId::from("pico-host-triple"),
-            boot_id: BootId::from("pico-boot-triple"),
+        let mut pico = PicoSim::new(PicoSimConfig {
+            host_id: HostId::from("pico-sim-triple"),
+            boot_id: BootId::from("pico-sim-boot-triple"),
             offer_generation: OfferGeneration(1),
         });
 
         let form = triple_form();
-        let browser_host = HostId::from("browser-host-triple");
+        let browser_host = HostId::from("browser-sim-triple");
         let placements = PlacementChoices {
             by_operation: BTreeMap::from([
                 (
@@ -914,14 +914,14 @@ mod tests {
                     conduit_core::OperationId::from("pulse"),
                     conduit_core::OperationId::from("web"),
                 ),
-                ConnectionProvider::WebSocket,
+                ConnectionProvider::FixtureFrame,
             ),
             (
                 (
                     conduit_core::OperationId::from("pulse"),
                     conduit_core::OperationId::from("light"),
                 ),
-                ConnectionProvider::Udp,
+                ConnectionProvider::FixtureDatagram,
             ),
         ]);
         let realm = [
@@ -938,14 +938,14 @@ mod tests {
             &placements,
             &[
                 ConnectionProvider::Local,
-                ConnectionProvider::WebSocket,
-                ConnectionProvider::Udp,
+                ConnectionProvider::FixtureFrame,
+                ConnectionProvider::FixtureDatagram,
             ],
             &connection_providers,
             4,
             64,
         )
-        .expect("triple-host plan resolves");
+        .expect("triple-simulation plan resolves");
         let connection_provider_by_id = plan
             .fragments
             .iter()
@@ -962,14 +962,14 @@ mod tests {
         assert_eq!(
             connection_provider_by_id
                 .values()
-                .filter(|provider| **provider == ConnectionProvider::WebSocket)
+                .filter(|provider| **provider == ConnectionProvider::FixtureFrame)
                 .count(),
             1
         );
         assert_eq!(
             connection_provider_by_id
                 .values()
-                .filter(|provider| **provider == ConnectionProvider::Udp)
+                .filter(|provider| **provider == ConnectionProvider::FixtureDatagram)
                 .count(),
             1
         );
@@ -993,7 +993,7 @@ mod tests {
                 std_host.handle(HostCommand::Prepare(fragment.clone()))
             } else if fragment.host_id == browser_host {
                 page.host_mut(&fragment.host_id)
-                    .expect("browser host exists")
+                    .expect("browser simulation exists")
                     .handle(HostCommand::Prepare(fragment.clone()))
             } else {
                 pico.handle(HostCommand::Prepare(fragment.clone()))
@@ -1007,7 +1007,7 @@ mod tests {
                 std_host.handle(HostCommand::Activate(fragment.plan_id.clone()))
             } else if fragment.host_id == browser_host {
                 page.host_mut(&fragment.host_id)
-                    .expect("browser host exists")
+                    .expect("browser simulation exists")
                     .handle(HostCommand::Activate(fragment.plan_id.clone()))
             } else {
                 pico.handle(HostCommand::Activate(fragment.plan_id.clone()))
@@ -1021,8 +1021,8 @@ mod tests {
             );
         }
 
-        let mut websocket = BoundedWebSocketRelay::new(64, 512);
-        let mut udp = BoundedUdpRelay::new(64, 512);
+        let mut frame_fixture = BoundedFrameRelayFixture::new(64, 512);
+        let mut datagram_fixture = BoundedDatagramRelayFixture::new(64, 512);
         let mut stdout_receipts = Vec::new();
         while let Some((host_id, effect)) = pending.pop_front() {
             if host_id == std_host.advertisement().host_id {
@@ -1031,8 +1031,8 @@ mod tests {
                     &mut page,
                     &mut pico,
                     &connection_provider_by_id,
-                    &mut websocket,
-                    &mut udp,
+                    &mut frame_fixture,
+                    &mut datagram_fixture,
                     &mut stdout_receipts,
                     effect,
                 ));
@@ -1059,8 +1059,8 @@ mod tests {
         }
 
         assert_eq!(stdout_receipts.len(), 16);
-        assert_eq!(websocket.frames().len(), 16);
-        assert_eq!(udp.datagrams().len(), 16);
+        assert_eq!(frame_fixture.frames().len(), 16);
+        assert_eq!(datagram_fixture.datagrams().len(), 16);
         let browser_receipts = page
             .host_snapshots()
             .into_iter()
@@ -1090,7 +1090,7 @@ mod tests {
             )));
         assert!(page
             .host_mut(&browser_host)
-            .expect("browser host exists")
+            .expect("browser simulation exists")
             .inspect()
             .iter()
             .any(|observation| matches!(
@@ -1110,11 +1110,11 @@ mod tests {
     #[allow(clippy::too_many_arguments)]
     fn drive_triple_std_effect(
         std_host: &mut StdHost,
-        page: &mut BrowserPage,
-        pico: &mut PicoHost,
+        page: &mut BrowserSimPage,
+        pico: &mut PicoSim,
         connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
-        websocket: &mut BoundedWebSocketRelay,
-        udp: &mut BoundedUdpRelay,
+        frame_fixture: &mut BoundedFrameRelayFixture,
+        datagram_fixture: &mut BoundedDatagramRelayFixture,
         stdout_receipts: &mut Vec<SignalReceipt>,
         effect: PlatformEffect,
     ) -> Vec<(HostId, PlatformEffect)> {
@@ -1161,14 +1161,16 @@ mod tests {
                     .copied()
                     .expect("connection provider exists")
                 {
-                    ConnectionProvider::WebSocket => {
-                        let decoded = websocket.transmit(&envelope).expect("relay accepts frame");
+                    ConnectionProvider::FixtureFrame => {
+                        let decoded = frame_fixture
+                            .transmit(&envelope)
+                            .expect("relay accepts frame");
                         let sink_host_id = page
                             .host_for_inbound_connection(&decoded.plan_id, &decoded.connection_id)
                             .expect("browser inbound route exists");
                         let accepted = page
                             .host_mut(&sink_host_id)
-                            .expect("browser host exists")
+                            .expect("browser simulation exists")
                             .handle(HostCommand::AcceptConnectionEnvelope(decoded.clone()));
                         super::pending_success(&accepted, decoded.sequence)
                             .expect("browser accepts frame");
@@ -1193,8 +1195,10 @@ mod tests {
                         ));
                         pending
                     }
-                    ConnectionProvider::Udp => {
-                        let decoded = udp.transmit(&envelope).expect("relay accepts datagram");
+                    ConnectionProvider::FixtureDatagram => {
+                        let decoded = datagram_fixture
+                            .transmit(&envelope)
+                            .expect("relay accepts datagram");
                         let accepted =
                             pico.handle(HostCommand::AcceptConnectionEnvelope(decoded.clone()));
                         pending_success(&accepted, decoded.sequence)
@@ -1230,8 +1234,8 @@ mod tests {
 
     fn drive_triple_browser_effect(
         std_host: &mut StdHost,
-        page: &mut BrowserPage,
-        pico: &mut PicoHost,
+        page: &mut BrowserSimPage,
+        pico: &mut PicoSim,
         connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
         source_connection_by_sink: &BTreeMap<PlacementId, ConnectionId>,
         host_id: &HostId,
@@ -1255,7 +1259,7 @@ mod tests {
                     .expect("browser sink connection exists");
                 let output = page
                     .host_mut(host_id)
-                    .expect("browser host exists")
+                    .expect("browser simulation exists")
                     .complete_dom_presentation(plan_id.clone(), placement_id, value)
                     .expect("browser presentation completes");
                 let delivered = std_host.handle(HostCommand::CompleteConnectionDelivery {
@@ -1286,8 +1290,8 @@ mod tests {
 
     fn drive_triple_pico_effect(
         std_host: &mut StdHost,
-        page: &mut BrowserPage,
-        pico: &mut PicoHost,
+        page: &mut BrowserSimPage,
+        pico: &mut PicoSim,
         connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
         source_connection_by_sink: &BTreeMap<PlacementId, ConnectionId>,
         effect: PlatformEffect,
@@ -1339,8 +1343,8 @@ mod tests {
 
     fn triple_std_output_effects(
         std_host: &mut StdHost,
-        page: &mut BrowserPage,
-        pico: &mut PicoHost,
+        page: &mut BrowserSimPage,
+        pico: &mut PicoSim,
         connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
         output: RuntimeOutput,
     ) -> Vec<(HostId, PlatformEffect)> {
@@ -1358,13 +1362,13 @@ mod tests {
             {
                 if matches!(disposition.disposition, TerminalDisposition::Completed) {
                     match connection_provider_by_id.get(&connection_id).copied() {
-                        Some(ConnectionProvider::WebSocket) => {
+                        Some(ConnectionProvider::FixtureFrame) => {
                             if let Some(sink_host_id) =
                                 page.host_for_inbound_connection(&plan_id, &connection_id)
                             {
                                 let close = page
                                     .host_mut(&sink_host_id)
-                                    .expect("browser host exists")
+                                    .expect("browser simulation exists")
                                     .handle(HostCommand::CloseConnection {
                                         plan_id,
                                         connection_id,
@@ -1377,7 +1381,7 @@ mod tests {
                                 );
                             }
                         }
-                        Some(ConnectionProvider::Udp) => {
+                        Some(ConnectionProvider::FixtureDatagram) => {
                             let close = pico.handle(HostCommand::CloseConnection {
                                 plan_id,
                                 connection_id,
@@ -1428,7 +1432,7 @@ mod tests {
             .unwrap_or_default()
     }
 
-    fn pico_inspect(pico: &mut PicoHost) -> Vec<conduit_core::Observation> {
+    fn pico_inspect(pico: &mut PicoSim) -> Vec<conduit_core::Observation> {
         pico.handle(HostCommand::Inspect)
             .events
             .into_iter()
@@ -1441,8 +1445,8 @@ mod tests {
 
     fn drive_std_effect(
         std_host: &mut StdHost,
-        page: &mut BrowserPage,
-        relay: &mut BoundedWebSocketRelay,
+        page: &mut BrowserSimPage,
+        relay: &mut BoundedFrameRelayFixture,
         effect: PlatformEffect,
     ) -> Vec<(HostId, PlatformEffect)> {
         match effect {
@@ -1464,7 +1468,7 @@ mod tests {
                     .expect("browser inbound route exists");
                 let accepted = page
                     .host_mut(&sink_host_id)
-                    .expect("browser host exists")
+                    .expect("browser simulation exists")
                     .handle(HostCommand::AcceptConnectionEnvelope(decoded.clone()));
                 super::pending_success(&accepted, decoded.sequence).expect("browser accepts frame");
                 let source_accepted = std_host.handle(HostCommand::CompleteConnectionDelivery {
@@ -1489,7 +1493,7 @@ mod tests {
 
     fn drive_browser_effect_with_std_ack(
         std_host: &mut StdHost,
-        page: &mut BrowserPage,
+        page: &mut BrowserSimPage,
         host_id: &HostId,
         effect: PlatformEffect,
     ) -> Vec<(HostId, PlatformEffect)> {
@@ -1506,7 +1510,7 @@ mod tests {
                 );
                 let output = page
                     .host_mut(host_id)
-                    .expect("browser host exists")
+                    .expect("browser simulation exists")
                     .complete_dom_presentation(plan_id, placement_id, value)
                     .expect("browser presentation completes");
                 let mut pending = output
@@ -1547,7 +1551,7 @@ mod tests {
 
     fn std_output_effects(
         std_host: &mut StdHost,
-        page: &mut BrowserPage,
+        page: &mut BrowserSimPage,
         output: conduit_runtime::RuntimeOutput,
     ) -> Vec<(HostId, PlatformEffect)> {
         let mut pending = output
@@ -1568,7 +1572,7 @@ mod tests {
                     {
                         let close = page
                             .host_mut(&sink_host_id)
-                            .expect("browser host exists")
+                            .expect("browser simulation exists")
                             .handle(HostCommand::CloseConnection {
                                 plan_id,
                                 connection_id,

@@ -5,14 +5,26 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
-conduit-browser-host = { path = "../../hosts/browser" }
-conduit-form = { path = "../conduit-form" }
-conduit-observatory = { path = "../conduit-observatory" }
-conduit-pico-host = { path = "../../hosts/pico" }
-conduit-planner = { path = "../conduit-planner" }
-conduit-realm = { path = "../conduit-realm" }
-conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
+conduit-browser-sim = { path = "../../fixtures/browser-sim", optional = true }
+conduit-form = { path = "../conduit-form", optional = true }
+conduit-observatory = { path = "../conduit-observatory", optional = true }
+conduit-pico-sim = { path = "../../fixtures/pico-sim", optional = true }
+conduit-planner = { path = "../conduit-planner", optional = true }
+conduit-realm = { path = "../conduit-realm", optional = true }
+conduit-signal = { path = "../conduit-signal", features = ["host-profile"], optional = true }
 conduit-std-host = { path = "../../hosts/std" }
+
+[features]
+default = []
+sim-fixtures = [
+    "dep:conduit-browser-sim",
+    "dep:conduit-form",
+    "dep:conduit-observatory",
+    "dep:conduit-pico-sim",
+    "dep:conduit-planner",
+    "dep:conduit-realm",
+    "dep:conduit-signal",
+]
 
 [[test]]
 name = "hello"

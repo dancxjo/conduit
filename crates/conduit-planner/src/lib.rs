@@ -491,8 +491,8 @@ fn select_provider(
         let supported = match provider {
             ConnectionProvider::Local => source.host_id == sink.host_id,
             ConnectionProvider::InMemory
-            | ConnectionProvider::WebSocket
-            | ConnectionProvider::Udp => source.host_id != sink.host_id,
+            | ConnectionProvider::FixtureFrame
+            | ConnectionProvider::FixtureDatagram => source.host_id != sink.host_id,
         };
         if supported && providers.contains(&provider) {
             return Ok(provider);
@@ -510,11 +510,11 @@ fn select_provider(
     if source.host_id != sink.host_id && providers.contains(&ConnectionProvider::InMemory) {
         return Ok(ConnectionProvider::InMemory);
     }
-    if source.host_id != sink.host_id && providers.contains(&ConnectionProvider::WebSocket) {
-        return Ok(ConnectionProvider::WebSocket);
+    if source.host_id != sink.host_id && providers.contains(&ConnectionProvider::FixtureFrame) {
+        return Ok(ConnectionProvider::FixtureFrame);
     }
-    if source.host_id != sink.host_id && providers.contains(&ConnectionProvider::Udp) {
-        return Ok(ConnectionProvider::Udp);
+    if source.host_id != sink.host_id && providers.contains(&ConnectionProvider::FixtureDatagram) {
+        return Ok(ConnectionProvider::FixtureDatagram);
     }
     Err(PlannerError::UnavailableConnectionProvider(format!(
         "no provider for '{}' -> '{}'",

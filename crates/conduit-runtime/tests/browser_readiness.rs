@@ -13,21 +13,19 @@ fn dependency_and_profile_installation_drawbridge_is_explicit() {
     assert!(signal_manifest.contains("host-profile ="));
     assert!(std_manifest.contains("features = [\"host-profile\"]"));
     assert!(std_host.contains("signal_registry("));
-    assert!(justfile.contains("check-browser-readiness:"));
+    assert!(justfile.contains("check-sim-readiness:"));
     assert!(justfile.contains("cargo test -p conduit-wire"));
-    assert!(justfile.contains("cargo test -p conduit-browser-host"));
-    assert!(
-        justfile.contains("cargo check -p conduit-browser-host --target wasm32-unknown-unknown")
-    );
-    assert!(justfile.contains("cargo test -p conduit-pico-host"));
+    assert!(justfile.contains("cargo test -p conduit-browser-sim"));
+    assert!(justfile.contains("cargo check -p conduit-browser-sim --target wasm32-unknown-unknown"));
+    assert!(justfile.contains("cargo test -p conduit-pico-sim"));
     assert!(justfile.contains(
-        "cargo test -p conduit-pico-host std_host_sends_signal_to_pico_over_bounded_udp_relay"
+        "cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture"
     ));
     assert!(justfile.contains(
-        "cargo test -p conduit-browser-host triple_signal_form_fans_out_to_std_browser_and_pico_receipts"
+        "cargo test -p conduit-browser-sim triple_signal_form_fans_out_to_std_and_simulated_receipts"
     ));
     assert!(justfile.contains(
-        "cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi"
+        "cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi"
     ));
     assert!(justfile.contains("--test host_contract"));
 }
@@ -42,21 +40,44 @@ fn readiness_contract_names_the_platform_stop_line() {
         "cargo check -p conduit-signal --no-default-features",
         "conduit-wire",
         "fake browser-style adapter",
-        "conduit-browser-host",
-        "multiple independent browser host instances",
+        "conduit-browser-sim",
+        "multiple independent simulated browser instances",
         "wasm32-unknown-unknown",
-        "bounded `WebSocket` relay using `conduit-wire`",
+        "bounded frame relay fixture using `conduit-wire`",
         "examples/triple-signal.form",
-        "stdout, DOM-state, and onboard-LED receipts",
-        "conduit-pico-host",
+        "stdout, DOM-state, and onboard-LED-shaped receipts",
+        "conduit-pico-sim",
         "thumbv6m-none-eabi",
         "onboard-LED receipts",
-        "bounded `Udp` relay using `conduit-wire`",
+        "bounded datagram relay fixture using `conduit-wire`",
         "Browser UI, physical Pico LED acceptance, live WebSocket sockets, live UDP sockets, TCP",
     ] {
         assert!(
             readiness.contains(required),
             "missing readiness item: {required}"
+        );
+    }
+}
+
+#[test]
+fn repository_status_matrix_keeps_proof_classes_distinct() {
+    let status = include_str!("../../../STATUS.md");
+    for required in [
+        "Contract",
+        "Simulation",
+        "Executable hosted implementation",
+        "Actual browser adapter",
+        "Actual firmware",
+        "Live transport",
+        "Physical/HIL proof",
+        "unsafe prototype disabled",
+        "WASM compilation is not browser execution",
+        "Thumb compilation is not firmware",
+        "Frame/datagram fixtures are not WebSocket or UDP sockets",
+    ] {
+        assert!(
+            status.contains(required),
+            "missing status boundary: {required}"
         );
     }
 }
