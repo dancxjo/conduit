@@ -29,6 +29,7 @@ use conduit_signal::{
 use std::cell::RefCell;
 
 mod distributed;
+mod distributed_toggle;
 
 const FRAME_CAPACITY: usize = 4_096;
 const MAXIMUM_RECEIPTS: usize = 16;

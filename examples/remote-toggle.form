@@ -1,0 +1,13 @@
+form 0
+
+remote-toggle {
+    activate: interaction/activate
+    toggle: state/toggle
+    show: presentation/show
+
+    activate.count = 16
+    toggle.initial = false
+
+    activate > toggle
+    toggle > show
+}

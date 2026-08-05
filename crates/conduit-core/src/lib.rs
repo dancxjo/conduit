@@ -14,9 +14,11 @@ pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
 pub const DEFAULT_CONNECTION_BYTE_CAPACITY: u32 = 64;
 pub const WAIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/wait@1";
 pub const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
+pub const AWAIT_ACTIVATION_HOST_OPERATION_CONTRACT: &str = "conduit.host/await-activation@1";
 pub const MAX_PRESENTATION_COMPLETION_BYTES: u32 = 256;
 pub const TIMER_RESOURCE_CLASS: &str = "conduit.resource/timer-slot@1";
 pub const PRESENTATION_RESOURCE_CLASS: &str = "conduit.resource/presentation-slot@1";
+pub const INPUT_RESOURCE_CLASS: &str = "conduit.resource/input-slot@1";
 pub const PRESENT_AUTHORITY_CONTRACT: &str = "conduit.authority/present@1";
 
 macro_rules! identity_type {
@@ -1324,6 +1326,20 @@ pub fn present_host_operation_requirement(
         maximum_in_flight: 1,
         maximum_input_bytes,
         maximum_output_bytes: MAX_PRESENTATION_COMPLETION_BYTES,
+    }
+}
+
+/// Host-operation requirement for exactly one human/physical activation input.
+/// The platform adapter must block on the admitted input resource (e.g. stdin)
+/// until the operator provides the activation, then complete the request.
+/// A 1-byte sequence counter is admitted as a correlation token (no timer semantics).
+pub fn await_activation_host_operation_requirement() -> HostOperationRequirement {
+    HostOperationRequirement {
+        contract_id: HostOperationContractId::from(AWAIT_ACTIVATION_HOST_OPERATION_CONTRACT),
+        target_kind: None,
+        maximum_in_flight: 1,
+        maximum_input_bytes: 1,
+        maximum_output_bytes: 0,
     }
 }
 
