@@ -1,11 +1,12 @@
 use conduit_core::{
-    kind_id, port_id, seal_plan, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, CheckedFormId, ConnectionOutcome, ConnectionProvider, ExecutionProfileId,
-    ExpandedFormId, ExpectedEvidence, ExpectedTerminal, FailureReason, FormIdentity, FragmentId,
-    HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, ObservationKind, OfferGeneration, OperationId, PlacementId, PlanFragment,
-    PlanId, PlannedOperation, PlatformEffect, PortDescriptor, PortDirection, SourceDocumentId,
-    TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
+    kind_id, mandatory_evidence_storage_requirement, port_id, seal_plan, ArtifactId, BootId,
+    CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
+    ConnectionOutcome, ConnectionProvider, ExecutionProfileId, ExpandedFormId, ExpectedEvidence,
+    ExpectedTerminal, FailureReason, FormIdentity, FragmentId, HostAdvertisement, HostCommand,
+    HostEvent, HostId, HostProfileId, ImplementationId, KindContractRevision, ObservationKind,
+    OfferGeneration, OperationId, PlacementId, PlanFragment, PlanId, PlannedOperation,
+    PlatformEffect, PortDescriptor, PortDirection, SourceDocumentId, TerminalDisposition,
+    TerminalPolicy, ValuePayload, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
 use conduit_planner::{default_placements, plan, PlacementChoice, PlacementChoices};
@@ -558,7 +559,19 @@ fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
+    mutated.startup_dependencies.clear();
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
     mutated.startup_order.reverse();
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.cancellation_policy = CancellationPolicy::DrainBeforeCancel;
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.terminal_policy = TerminalPolicy::RequirePlacementsOnly;
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
@@ -567,6 +580,14 @@ fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
 
     let mut mutated = original.clone();
     mutated.expected_evidence.pop();
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.evidence_storage_budget.item_capacity -= 1;
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.evidence_storage_budget.byte_capacity -= 1;
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
@@ -614,6 +635,59 @@ fn preparation_rejects_resealed_contract_profile_and_port_lies() {
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
         Some(FailureReason::PortContractMismatch)
+    );
+}
+
+#[test]
+fn preparation_rejects_resealed_policy_dependency_and_budget_lies() {
+    let advertised = advertisement();
+
+    let mut mutated = fragment(&advertised);
+    mutated.startup_dependencies.clear();
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::InvalidStartupDependencies)
+    );
+
+    let mut mutated = fragment(&advertised);
+    mutated.startup_order.reverse();
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::InvalidStartupDependencies)
+    );
+
+    let mut mutated = fragment(&advertised);
+    mutated.cancellation_policy = CancellationPolicy::DrainBeforeCancel;
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::UnsupportedCancellationPolicy)
+    );
+
+    let mut mutated = fragment(&advertised);
+    mutated.terminal_policy = TerminalPolicy::RequirePlacementsOnly;
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::UnsupportedTerminalPolicy)
+    );
+
+    let mut mutated = fragment(&advertised);
+    mutated.evidence_storage_budget.item_capacity -= 1;
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::EvidenceBudgetExceeded)
+    );
+
+    let mut mutated = fragment(&advertised);
+    mutated.evidence_storage_budget.byte_capacity -= 1;
+    let mut runtime = HostRuntime::new(advertised, registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::EvidenceBudgetExceeded)
     );
 }
 
@@ -725,6 +799,14 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
         }],
     };
     let placement_id = PlacementId::from("echo-placement");
+    let expected_evidence = vec![
+        ExpectedEvidence::PlanFragmentReceived,
+        ExpectedEvidence::PlacementPrepared(placement_id.clone()),
+        ExpectedEvidence::PlacementTerminal(placement_id.clone()),
+        ExpectedEvidence::PlanTerminal,
+    ];
+    let evidence_storage_budget = mandatory_evidence_storage_requirement(&expected_evidence)
+        .expect("echo evidence fits budget types");
     let mut echo_plan = seal_plan(
         FormIdentity {
             source_document_id: SourceDocumentId::from("echo-source"),
@@ -757,17 +839,16 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
                 outputs: Vec::new(),
             }],
             connections: Vec::new(),
+            startup_dependencies: Vec::new(),
             startup_order: vec![placement_id.clone()],
+            cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
+            terminal_policy: TerminalPolicy::RequireAllPlacementsAndConnections,
             expected_terminals: vec![
                 ExpectedTerminal::PlacementCompleted(placement_id.clone()),
                 ExpectedTerminal::PlanCompleted,
             ],
-            expected_evidence: vec![
-                ExpectedEvidence::PlanFragmentReceived,
-                ExpectedEvidence::PlacementPrepared(placement_id.clone()),
-                ExpectedEvidence::PlacementTerminal(placement_id),
-                ExpectedEvidence::PlanTerminal,
-            ],
+            expected_evidence,
+            evidence_storage_budget,
             plan_fragments: Vec::new(),
         }],
     );

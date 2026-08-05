@@ -2,7 +2,8 @@
 
 Issue #363 replaces the reboot planner's single-value-kind capability claim
 with exact semantic and execution-profile bindings. This document records the
-accepted boundary of the first S2 slice; the remaining plan facts stay open.
+accepted boundary of the completed S2 slices; the remaining plan facts stay
+open.
 
 ## Exact semantic capability slice
 
@@ -53,6 +54,34 @@ with the top-level plan, and hosted/Observatory reports render them separately.
 A comment-only source edit therefore changes only `SourceDocumentId`; a
 semantic edit changes checked and expanded identity as well.
 
+## Startup, cancellation, terminal, and evidence contracts
+
+Every fragment now binds an explicit startup dependency graph and a
+deterministic local startup order. Each cord makes its sink a prerequisite of
+its source, so downstream placements are ready before upstream placements can
+emit. The planner rejects cyclic dependency graphs. A remote cord can name a
+placement on another host in the dependency graph; a host checks the ordering
+constraint when both endpoints are local, while later remote-link work must
+prove cross-host readiness before activation.
+
+The first executable policy profile is deliberately narrow:
+
+- cancellation is `CancelAllAndRejectLateCompletion`; and
+- terminal completion requires every planned placement and connection.
+
+Preparation rejects any other resealed policy. It also reconstructs the exact
+terminal and mandatory-evidence descriptors from placements and connections,
+so deleting, reordering, or inventing descriptors cannot relax the contract.
+
+`EvidenceStorageBudget` binds independent item and byte capacities. The
+first-profile byte rule charges one discriminant byte per mandatory descriptor
+plus the UTF-8 byte length of its placement or connection identity when one is
+present. Planning fails if the requirement cannot be represented by the public
+budget types. Preparation fails closed if either capacity is below the exact
+mandatory requirement. This commits the minimum storage requirement; wiring
+that budget into the S1 evidence store remains part of the later executable
+resource slice.
+
 ## Deterministic proof
 
 The focused vectors prove:
@@ -63,19 +92,24 @@ The focused vectors prove:
   distinct, and mutating any one changes plan identity or fails verification;
 - planning binds exact contract/profile identity and every port;
 - planning rejects a different revision or an additional non-first port;
+- planning orders sinks before sources and rejects a cyclic startup graph;
 - post-seal contract, profile, and per-port mutations fail identity
   verification; and
 - resealed contract, profile, and port lies fail preparation against the
-  current advertisement and installed implementation.
+  current advertisement and installed implementation; and
+- post-seal and resealed startup, cancellation, terminal, and independent
+  evidence-item/evidence-byte mutations fail identity or preparation.
 
 ## Acceptance boundary
 
 This satisfies the first acceptance item and the three-form-identity portion
-of the second item in #363. S2 remains open. Plans do not yet bind
-host-operation/resource/authority requirements, observed `LinkBinding` values,
-cancellation policy, terminal policy, or mandatory evidence storage budgets.
-The existing `ConnectionProvider` remains a prototype until the remote-link
-slice replaces it.
+of the second item in #363. It also binds the startup dependency,
+cancellation, terminal, mandatory-evidence, and evidence-storage-budget parts
+of that item. S2 remains open. Plans do not yet bind host-operation,
+resource/authority, or observed `LinkBinding` values, and the planned budget is
+not yet the constructor of the S1 evidence store. The existing
+`ConnectionProvider` remains a prototype until the remote-link slice replaces
+it.
 
 ## Checkpoint
 

@@ -1,12 +1,13 @@
 use conduit_core::{
-    seal_plan, CapabilityId, ConnectionId, ConnectionProvider, ExpectedEvidence, ExpectedTerminal,
-    FragmentId, HostAdvertisement, HostId, OperationId, PlacementId, Plan, PlanFragment, PlanId,
-    PlannedConnection, PlannedOperation, DEFAULT_CONNECTION_BYTE_CAPACITY,
-    DEFAULT_CONNECTION_ITEM_CAPACITY,
+    mandatory_evidence_storage_requirement, seal_plan, CancellationPolicy, CapabilityId,
+    ConnectionId, ConnectionProvider, ExpectedEvidence, ExpectedTerminal, FragmentId,
+    HostAdvertisement, HostId, OperationId, PlacementId, Plan, PlanFragment, PlanId,
+    PlannedConnection, PlannedOperation, StartupDependency, TerminalPolicy,
+    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
-use conduit_form::{CheckedConnection, CheckedForm, CheckedOperation};
+use conduit_form::{CheckedForm, CheckedOperation};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlacementChoice {
@@ -32,6 +33,8 @@ pub enum PlannerError {
     UnavailableConnectionProvider(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
+    CyclicStartupDependencies(String),
+    EvidenceBudgetOverflow(String),
     InvalidPlacementSyntax(String),
 }
 
@@ -60,6 +63,12 @@ impl std::fmt::Display for PlannerError {
             }
             PlannerError::CapabilityInstanceLimitExceeded(value) => {
                 write!(f, "capability instance limit exceeded: {value}")
+            }
+            PlannerError::CyclicStartupDependencies(value) => {
+                write!(f, "cyclic startup dependencies: {value}")
+            }
+            PlannerError::EvidenceBudgetOverflow(value) => {
+                write!(f, "mandatory evidence budget overflow: {value}")
             }
             PlannerError::InvalidPlacementSyntax(value) => {
                 write!(f, "invalid placement syntax: {value}")
@@ -357,16 +366,19 @@ pub fn plan_with_connection_limits_and_provider_overrides(
         });
     }
 
+    let global_startup_order = startup_order(&planned_operations, &planned_connections)
+        .ok_or_else(|| PlannerError::CyclicStartupDependencies(form.name.clone()))?;
+
     let fragments = realm
         .iter()
-        .filter_map(|host| {
+        .map(|host| -> Result<Option<PlanFragment>, PlannerError> {
             let placements = planned_operations
                 .iter()
                 .filter(|item| item.host_id == host.host_id)
                 .cloned()
                 .collect::<Vec<_>>();
             if placements.is_empty() {
-                return None;
+                return Ok(None);
             }
             let connections = planned_connections
                 .iter()
@@ -380,7 +392,24 @@ pub fn plan_with_connection_limits_and_provider_overrides(
                 })
                 .cloned()
                 .collect::<Vec<_>>();
-            let startup_order = startup_order(&placements, &form.connections);
+            let startup_order = global_startup_order
+                .iter()
+                .filter(|placement_id| {
+                    placements
+                        .iter()
+                        .any(|placement| &placement.placement_id == *placement_id)
+                })
+                .cloned()
+                .collect();
+            let startup_dependencies = connections
+                .iter()
+                .map(|connection| StartupDependency {
+                    prerequisite_placement_id: connection.sink_placement_id.clone(),
+                    dependent_placement_id: connection.source_placement_id.clone(),
+                })
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect();
             let expected_terminals = placements
                 .iter()
                 .map(|placement| {
@@ -402,8 +431,12 @@ pub fn plan_with_connection_limits_and_provider_overrides(
                     ExpectedEvidence::ConnectionTerminal(connection.connection_id.clone())
                 }))
                 .chain(core::iter::once(ExpectedEvidence::PlanTerminal))
-                .collect();
-            Some(PlanFragment {
+                .collect::<Vec<_>>();
+            let evidence_storage_budget =
+                mandatory_evidence_storage_requirement(&expected_evidence).ok_or_else(|| {
+                    PlannerError::EvidenceBudgetOverflow(host.host_id.as_str().to_string())
+                })?;
+            Ok(Some(PlanFragment {
                 plan_id: PlanId::from(""),
                 fragment_id: FragmentId::from(""),
                 source_document_id: form.source_document_id.clone(),
@@ -414,12 +447,19 @@ pub fn plan_with_connection_limits_and_provider_overrides(
                 offer_generation: host.offer_generation,
                 placements,
                 connections,
+                startup_dependencies,
                 startup_order,
+                cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
+                terminal_policy: TerminalPolicy::RequireAllPlacementsAndConnections,
                 expected_terminals,
                 expected_evidence,
+                evidence_storage_budget,
                 plan_fragments: Vec::new(),
-            })
+            }))
         })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten()
         .collect::<Vec<_>>();
 
     Ok(seal_plan(form.identity(), fragments))
@@ -427,23 +467,27 @@ pub fn plan_with_connection_limits_and_provider_overrides(
 
 fn startup_order(
     placements: &[PlannedOperation],
-    connections: &[CheckedConnection],
-) -> Vec<PlacementId> {
-    let mut ordered = placements.to_vec();
-    ordered.sort_by_key(|placement| {
-        if connections
+    connections: &[PlannedConnection],
+) -> Option<Vec<PlacementId>> {
+    let mut remaining = placements
+        .iter()
+        .map(|placement| placement.placement_id.clone())
+        .collect::<BTreeSet<_>>();
+    let mut ordered = Vec::with_capacity(remaining.len());
+    while !remaining.is_empty() {
+        let next = remaining
             .iter()
-            .any(|connection| connection.sink_operation_id == placement.operation_id)
-        {
-            0u8
-        } else {
-            1u8
-        }
-    });
-    ordered
-        .into_iter()
-        .map(|placement| placement.placement_id)
-        .collect()
+            .find(|candidate| {
+                connections.iter().all(|connection| {
+                    &connection.source_placement_id != *candidate
+                        || !remaining.contains(&connection.sink_placement_id)
+                })
+            })
+            .cloned()?;
+        remaining.remove(&next);
+        ordered.push(next);
+    }
+    Some(ordered)
 }
 
 fn validate_operation_capability(
@@ -556,11 +600,12 @@ fn hex(nibble: u8) -> char {
 
 #[cfg(test)]
 mod tests {
-    use super::{default_placements, parse_placements, plan, PlannerError};
+    use super::{default_placements, parse_placements, plan, startup_order, PlannerError};
     use conduit_core::{
-        kind_id, verify_plan, ArtifactId, CapabilityLimits, CapabilityOffer, ConnectionProvider,
-        ExpandedFormId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-        OfferGeneration, SourceDocumentId, PROTOCOL_VERSION,
+        kind_id, mandatory_evidence_storage_requirement, verify_plan, ArtifactId,
+        CancellationPolicy, CapabilityLimits, CapabilityOffer, ConnectionProvider, ExpandedFormId,
+        HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration,
+        SourceDocumentId, StartupDependency, TerminalPolicy, PROTOCOL_VERSION,
     };
     use conduit_form::parse;
     use conduit_signal::{
@@ -680,6 +725,58 @@ mod tests {
             assert_eq!(placement.inputs, operation.inputs);
             assert_eq!(placement.outputs, operation.outputs);
         }
+        let fragment = &plan.fragments[0];
+        assert_eq!(
+            fragment.startup_dependencies,
+            vec![StartupDependency {
+                prerequisite_placement_id: fragment.connections[0].sink_placement_id.clone(),
+                dependent_placement_id: fragment.connections[0].source_placement_id.clone(),
+            }]
+        );
+        assert_eq!(
+            fragment.startup_order,
+            vec![
+                fragment.connections[0].sink_placement_id.clone(),
+                fragment.connections[0].source_placement_id.clone(),
+            ]
+        );
+        assert_eq!(
+            fragment.cancellation_policy,
+            CancellationPolicy::CancelAllAndRejectLateCompletion
+        );
+        assert_eq!(
+            fragment.terminal_policy,
+            TerminalPolicy::RequireAllPlacementsAndConnections
+        );
+        assert_eq!(
+            fragment.evidence_storage_budget,
+            mandatory_evidence_storage_requirement(&fragment.expected_evidence)
+                .expect("focused evidence fits public budget types")
+        );
+    }
+
+    #[test]
+    fn planning_rejects_cyclic_startup_dependencies() {
+        let form = form();
+        let host = host();
+        let placements = default_placements(&form, std::slice::from_ref(&host))
+            .expect("placements must resolve");
+        let plan = plan(
+            &form,
+            std::slice::from_ref(&host),
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("acyclic plan resolves");
+        let fragment = &plan.fragments[0];
+        let mut connections = fragment.connections.clone();
+        let mut reverse = connections[0].clone();
+        core::mem::swap(
+            &mut reverse.source_placement_id,
+            &mut reverse.sink_placement_id,
+        );
+        connections.push(reverse);
+        assert_eq!(startup_order(&fragment.placements, &connections), None);
     }
 
     #[test]

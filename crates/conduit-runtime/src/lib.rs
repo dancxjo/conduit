@@ -1,9 +1,11 @@
 use conduit_core::{
-    verify_plan_fragment, BoundedQueue, CancellationReason, ConnectionEnvelope, ConnectionId,
-    ConnectionOutcome, ConnectionProvider, ConnectionTerminalDisposition, FailureReason,
+    mandatory_evidence_storage_requirement, verify_plan_fragment, BoundedQueue, CancellationPolicy,
+    CancellationReason, ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider,
+    ConnectionTerminalDisposition, ExpectedEvidence, ExpectedTerminal, FailureReason,
     HostAdvertisement, HostCommand, HostEvent, Observation, ObservationKind, PlacementId,
     PlacementLifecycleState, PlanFragment, PlanId, PlannedConnection, PlannedOperation,
-    PlatformEffect, TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
+    PlatformEffect, StartupDependency, TerminalDisposition, TerminalPolicy, ValuePayload,
+    PROTOCOL_VERSION,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -232,6 +234,126 @@ enum ConnectionRole {
     Inbound,
 }
 
+fn validate_fragment_execution_contract(
+    fragment: &PlanFragment,
+) -> Option<(FailureReason, String)> {
+    if fragment.cancellation_policy != CancellationPolicy::CancelAllAndRejectLateCompletion {
+        return Some((
+            FailureReason::UnsupportedCancellationPolicy,
+            "host supports only cancel-all with late-completion rejection".to_string(),
+        ));
+    }
+    if fragment.terminal_policy != TerminalPolicy::RequireAllPlacementsAndConnections {
+        return Some((
+            FailureReason::UnsupportedTerminalPolicy,
+            "host requires terminal evidence for every placement and connection".to_string(),
+        ));
+    }
+
+    let expected_dependencies = fragment
+        .connections
+        .iter()
+        .map(|connection| StartupDependency {
+            prerequisite_placement_id: connection.sink_placement_id.clone(),
+            dependent_placement_id: connection.source_placement_id.clone(),
+        })
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    if fragment.startup_dependencies != expected_dependencies {
+        return Some((
+            FailureReason::InvalidStartupDependencies,
+            "startup dependencies do not match the exact cord endpoints".to_string(),
+        ));
+    }
+
+    let local_placements = fragment
+        .placements
+        .iter()
+        .map(|placement| placement.placement_id.clone())
+        .collect::<BTreeSet<_>>();
+    let ordered_placements = fragment
+        .startup_order
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    if ordered_placements != local_placements
+        || fragment.startup_order.len() != local_placements.len()
+    {
+        return Some((
+            FailureReason::InvalidStartupDependencies,
+            "startup order must name every local placement exactly once".to_string(),
+        ));
+    }
+    let positions = fragment
+        .startup_order
+        .iter()
+        .enumerate()
+        .map(|(index, placement_id)| (placement_id.clone(), index))
+        .collect::<BTreeMap<_, _>>();
+    if fragment.startup_dependencies.iter().any(|dependency| {
+        let prerequisite = positions.get(&dependency.prerequisite_placement_id);
+        let dependent = positions.get(&dependency.dependent_placement_id);
+        matches!((prerequisite, dependent), (Some(before), Some(after)) if before >= after)
+    }) {
+        return Some((
+            FailureReason::InvalidStartupDependencies,
+            "startup order violates a local prerequisite".to_string(),
+        ));
+    }
+
+    let expected_terminals = fragment
+        .placements
+        .iter()
+        .map(|placement| ExpectedTerminal::PlacementCompleted(placement.placement_id.clone()))
+        .chain(fragment.connections.iter().map(|connection| {
+            ExpectedTerminal::ConnectionCompleted(connection.connection_id.clone())
+        }))
+        .chain(core::iter::once(ExpectedTerminal::PlanCompleted))
+        .collect::<Vec<_>>();
+    if fragment.expected_terminals != expected_terminals {
+        return Some((
+            FailureReason::UnsupportedTerminalPolicy,
+            "terminal requirements do not cover every planned placement and connection".to_string(),
+        ));
+    }
+
+    let expected_evidence =
+        core::iter::once(ExpectedEvidence::PlanFragmentReceived)
+            .chain(fragment.placements.iter().map(|placement| {
+                ExpectedEvidence::PlacementPrepared(placement.placement_id.clone())
+            }))
+            .chain(fragment.placements.iter().map(|placement| {
+                ExpectedEvidence::PlacementTerminal(placement.placement_id.clone())
+            }))
+            .chain(fragment.connections.iter().map(|connection| {
+                ExpectedEvidence::ConnectionTerminal(connection.connection_id.clone())
+            }))
+            .chain(core::iter::once(ExpectedEvidence::PlanTerminal))
+            .collect::<Vec<_>>();
+    if fragment.expected_evidence != expected_evidence {
+        return Some((
+            FailureReason::EvidenceBudgetExceeded,
+            "mandatory evidence descriptors do not cover the exact fragment".to_string(),
+        ));
+    }
+    let Some(required) = mandatory_evidence_storage_requirement(&fragment.expected_evidence) else {
+        return Some((
+            FailureReason::EvidenceBudgetExceeded,
+            "mandatory evidence cannot be represented by the public budget types".to_string(),
+        ));
+    };
+    if fragment.evidence_storage_budget.item_capacity < required.item_capacity
+        || fragment.evidence_storage_budget.byte_capacity < required.byte_capacity
+    {
+        return Some((
+            FailureReason::EvidenceBudgetExceeded,
+            "mandatory evidence exceeds its planned item or byte budget".to_string(),
+        ));
+    }
+    None
+}
+
 impl HostRuntime {
     pub fn new(
         advertisement: HostAdvertisement,
@@ -306,6 +428,14 @@ impl HostRuntime {
                 plan_id: fragment.plan_id,
                 reason: FailureReason::PlanIdentityMismatch,
                 message: Some("plan fragment does not match its exact identity".to_string()),
+            });
+            return output;
+        }
+        if let Some((reason, message)) = validate_fragment_execution_contract(&fragment) {
+            output.events.push(HostEvent::PreparationRejected {
+                plan_id: fragment.plan_id,
+                reason,
+                message: Some(message),
             });
             return output;
         }
