@@ -236,6 +236,7 @@ pub enum FailureReason {
     StalePlan,
     CompositeCapabilityFailed,
     UnknownImplementation,
+    UnsupportedKind,
     ImplementationKindMismatch,
     AdvertisedImplementationMismatch,
     InvalidOperationConfiguration,

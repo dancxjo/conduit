@@ -50,6 +50,11 @@ pub enum OperationAction {
     Fail(ImplementationFailure),
 }
 
+/// Profile-owned operation state expressed only in host-neutral runtime actions.
+///
+/// `start`/`resume` cover emit, wait, present, complete, and fail. Cancellation and release are
+/// separate lifecycle callbacks so implementations can discard or relinquish opaque state without
+/// introducing platform concepts into the runtime contract.
 pub trait OperationState {
     fn start(&mut self) -> OperationAction;
     fn resume(&mut self, completion: OperationCompletion) -> OperationAction;
@@ -318,6 +323,22 @@ impl HostRuntime {
 
         let mut counts = BTreeMap::<_, u16>::new();
         for placement in &fragment.placements {
+            if !self
+                .advertisement
+                .capabilities
+                .iter()
+                .any(|offer| offer.kind_id == placement.kind_id)
+            {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::UnsupportedKind,
+                    message: Some(format!(
+                        "operation kind '{}' is not advertised by this host",
+                        placement.kind_id.as_str()
+                    )),
+                });
+                return output;
+            }
             let capability = match self
                 .advertisement
                 .capabilities
@@ -384,6 +405,40 @@ impl HostRuntime {
                         placement.implementation_id.as_str(),
                         implementation.kind_id().as_str(),
                         placement.kind_id.as_str()
+                    )),
+                });
+                return output;
+            }
+            let planned_value_kinds = placement
+                .inputs
+                .iter()
+                .chain(&placement.outputs)
+                .map(|port| &port.value_kind)
+                .collect::<BTreeSet<_>>();
+            if planned_value_kinds
+                .iter()
+                .any(|value_kind| **value_kind != capability.limits.value_kind)
+            {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::UnsupportedValueKind,
+                    message: Some(format!(
+                        "capability '{}' does not advertise every planned value kind",
+                        capability.capability_id.as_str()
+                    )),
+                });
+                return output;
+            }
+            if planned_value_kinds
+                .iter()
+                .any(|value_kind| implementation.minimum_value_size(value_kind).is_none())
+            {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::UnsupportedValueKind,
+                    message: Some(format!(
+                        "implementation '{}' does not support every planned value kind",
+                        placement.implementation_id.as_str()
                     )),
                 });
                 return output;
@@ -887,10 +942,20 @@ impl HostRuntime {
         let front_sequence = connection.queue.front().map(|queued| queued.sequence);
         let requires_in_flight = matches!(
             outcome,
-            ConnectionOutcome::Accepted | ConnectionOutcome::Full | ConnectionOutcome::Malformed
+            ConnectionOutcome::Accepted | ConnectionOutcome::Full
         );
         if requires_in_flight
             && (!connection.transmission_in_flight || front_sequence != Some(sequence))
+        {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::MalformedConnectionEnvelope,
+            });
+            return output;
+        }
+        if outcome == ConnectionOutcome::Malformed
+            && !((connection.transmission_in_flight && front_sequence == Some(sequence))
+                || connection.accepted_remote_sequences.contains(&sequence))
         {
             output.events.push(HostEvent::CommandRejected {
                 plan_id: Some(plan_id.clone()),
@@ -955,6 +1020,7 @@ impl HostRuntime {
             | ConnectionOutcome::Malformed
             | ConnectionOutcome::Terminal => {
                 connection.transmission_in_flight = false;
+                connection.accepted_remote_sequences.remove(&sequence);
                 terminate_connection(
                     connection,
                     TerminalDisposition::Failed {
@@ -1815,7 +1881,9 @@ mod conformance {
         ObservationKind, OfferGeneration, PlatformEffect, PortDescriptor, PortDirection,
         TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
     };
-    use conduit_form::{parse, ConfigurationField, KindDefinition, ProfileCatalog};
+    use conduit_form::{
+        parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
+    };
     use conduit_planner::{default_placements, plan};
     use std::collections::{BTreeMap, VecDeque};
 
@@ -1902,14 +1970,17 @@ mod conformance {
                     ConfigurationField {
                         key: "count".to_string(),
                         default_value: ConfigurationValue::U64(16),
+                        validation: ConfigurationRule::Any,
                     },
                     ConfigurationField {
                         key: "period-ms".to_string(),
                         default_value: ConfigurationValue::U64(250),
+                        validation: ConfigurationRule::Any,
                     },
                     ConfigurationField {
                         key: "initial".to_string(),
                         default_value: ConfigurationValue::Bool(false),
+                        validation: ConfigurationRule::Any,
                     },
                 ],
             })

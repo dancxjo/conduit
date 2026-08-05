@@ -116,12 +116,6 @@ impl InMemoryConnectionProvider {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum Child {
-    Source,
-    Sink,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum ExternalState {
     Prepared,
     Active,
@@ -144,13 +138,18 @@ pub struct CompositeBoundary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChildHostBinding {
+    pub host_id: HostId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompositeDefinition {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
     pub profile: HostProfileId,
     pub external_capability: CapabilityOffer,
-    pub child_hosts: Vec<HostId>,
+    pub children: Vec<ChildHostBinding>,
     pub internal_plan: Plan,
     pub boundary: CompositeBoundary,
     pub failure_translation: FailureReason,
@@ -160,23 +159,27 @@ pub struct CompositeDefinition {
 struct ExternalPlan {
     state: ExternalState,
     terminal_emitted: bool,
-    source_terminal: Option<TerminalDisposition>,
-    sink_terminal: Option<TerminalDisposition>,
+    child_terminals: BTreeMap<HostId, TerminalDisposition>,
+}
+
+#[derive(Debug)]
+struct ChildRuntime {
+    runtime: HostRuntime,
+    fragment: PlanFragment,
 }
 
 #[derive(Debug)]
 pub struct CompositeHost {
     advertisement: HostAdvertisement,
-    source: HostRuntime,
-    sink: HostRuntime,
-    source_fragment: PlanFragment,
-    sink_fragment: PlanFragment,
+    children: BTreeMap<HostId, ChildRuntime>,
+    boundary: CompositeBoundary,
     internal_plan_id: PlanId,
     connection_id: ConnectionId,
     provider: InMemoryConnectionProvider,
     external_plans: BTreeMap<PlanId, ExternalPlan>,
     released_plans: BTreeSet<PlanId>,
     observations: Vec<Observation>,
+    internal_events: Vec<(HostId, HostEvent)>,
     observation_limit: usize,
     fail_next_presentation: bool,
     delivery_mode: DeliveryMode,
@@ -222,7 +225,14 @@ impl CompositeHost {
                     max_queue_bytes: connection.byte_capacity,
                 },
             },
-            child_hosts: vec![source_host_id.clone(), sink_host_id.clone()],
+            children: vec![
+                ChildHostBinding {
+                    host_id: source_host_id.clone(),
+                },
+                ChildHostBinding {
+                    host_id: sink_host_id.clone(),
+                },
+            ],
             internal_plan,
             boundary: CompositeBoundary {
                 source_child: source_host_id,
@@ -231,49 +241,73 @@ impl CompositeHost {
             },
             failure_translation: FailureReason::CompositeCapabilityFailed,
         };
-        Self::from_definition(definition, source, sink, observation_limit)
+        Self::from_definition(definition, vec![source, sink], observation_limit)
     }
 
     pub fn from_definition(
         definition: CompositeDefinition,
-        source: HostRuntime,
-        sink: HostRuntime,
+        child_runtimes: Vec<HostRuntime>,
         observation_limit: usize,
     ) -> Result<Self, CompositeError> {
-        let source_host_id = source.advertisement().host_id.clone();
-        let sink_host_id = sink.advertisement().host_id.clone();
-        if source_host_id == sink_host_id {
+        let declared_ids = definition
+            .children
+            .iter()
+            .map(|binding| binding.host_id.clone())
+            .collect::<BTreeSet<_>>();
+        if declared_ids.len() != definition.children.len() {
             return Err(CompositeError::InvalidInternalPlan(
-                "child hosts must have distinct identities".to_string(),
+                "definition contains a duplicate child host".into(),
             ));
         }
-        if source.advertisement().boot_id == sink.advertisement().boot_id {
+        let plan_ids = definition
+            .internal_plan
+            .fragments
+            .iter()
+            .map(|fragment| fragment.host_id.clone())
+            .collect::<BTreeSet<_>>();
+        if plan_ids != declared_ids {
             return Err(CompositeError::InvalidInternalPlan(
-                "child hosts must have distinct boot identities".to_string(),
+                "definition children must exactly match internal plan fragments".into(),
             ));
         }
-        if definition.boundary.source_child != source_host_id
-            || definition.boundary.sink_child != sink_host_id
-            || definition.child_hosts != vec![source_host_id.clone(), sink_host_id.clone()]
+        let runtime_ids = child_runtimes
+            .iter()
+            .map(|runtime| runtime.advertisement().host_id.clone())
+            .collect::<BTreeSet<_>>();
+        if runtime_ids.len() != child_runtimes.len() || runtime_ids != declared_ids {
+            return Err(CompositeError::InvalidInternalPlan(
+                "supplied child runtimes must exactly match definition children".into(),
+            ));
+        }
+        let boot_ids = child_runtimes
+            .iter()
+            .map(|runtime| runtime.advertisement().boot_id.clone())
+            .collect::<BTreeSet<_>>();
+        if boot_ids.len() != child_runtimes.len() {
+            return Err(CompositeError::InvalidInternalPlan(
+                "child hosts must have distinct boot identities".into(),
+            ));
+        }
+        if !declared_ids.contains(&definition.boundary.source_child)
+            || !declared_ids.contains(&definition.boundary.sink_child)
+            || definition.boundary.source_child == definition.boundary.sink_child
         {
             return Err(CompositeError::InvalidInternalPlan(
-                "definition child identities do not match supplied runtimes".to_string(),
+                "boundary must name two distinct declared children".into(),
             ));
         }
         let source_fragment = definition
             .internal_plan
             .fragments
             .iter()
-            .find(|fragment| fragment.host_id == source_host_id)
-            .cloned()
-            .ok_or_else(|| CompositeError::InvalidInternalPlan("missing source fragment".into()))?;
+            .find(|fragment| fragment.host_id == definition.boundary.source_child)
+            .expect("declared child has a plan fragment");
         let sink_fragment = definition
             .internal_plan
             .fragments
             .iter()
-            .find(|fragment| fragment.host_id == sink_host_id)
-            .cloned()
-            .ok_or_else(|| CompositeError::InvalidInternalPlan("missing sink fragment".into()))?;
+            .find(|fragment| fragment.host_id == definition.boundary.sink_child)
+            .expect("declared child has a plan fragment");
         let connection = source_fragment
             .connections
             .iter()
@@ -294,26 +328,50 @@ impl CompositeHost {
                 "child fragments do not share an exact boundary".into(),
             ));
         }
-        let source_instances = source
-            .advertisement()
-            .capabilities
-            .iter()
-            .map(|offer| offer.limits.max_active_instances)
-            .min()
-            .unwrap_or(0);
-        let sink_instances = sink
-            .advertisement()
-            .capabilities
-            .iter()
-            .map(|offer| offer.limits.max_active_instances)
-            .min()
-            .unwrap_or(0);
+        let relevant_limit = |host_id: &HostId, placement_id: &conduit_core::PlacementId| {
+            let runtime = child_runtimes
+                .iter()
+                .find(|runtime| runtime.advertisement().host_id == *host_id)?;
+            let fragment = definition
+                .internal_plan
+                .fragments
+                .iter()
+                .find(|fragment| fragment.host_id == *host_id)?;
+            let placement = fragment
+                .placements
+                .iter()
+                .find(|placement| placement.placement_id == *placement_id)?;
+            runtime
+                .advertisement()
+                .capabilities
+                .iter()
+                .find(|offer| offer.capability_id == placement.capability_id)
+                .map(|offer| offer.limits.clone())
+        };
+        let source_limits = relevant_limit(
+            &definition.boundary.source_child,
+            &connection.source_placement_id,
+        )
+        .ok_or_else(|| {
+            CompositeError::InvalidInternalPlan(
+                "boundary source placement has no matching child capability".into(),
+            )
+        })?;
+        let sink_limits = relevant_limit(
+            &definition.boundary.sink_child,
+            &connection.sink_placement_id,
+        )
+        .ok_or_else(|| {
+            CompositeError::InvalidInternalPlan(
+                "boundary sink placement has no matching child capability".into(),
+            )
+        })?;
         let mut external_capability = definition.external_capability;
         external_capability.limits.max_active_instances = external_capability
             .limits
             .max_active_instances
-            .min(source_instances)
-            .min(sink_instances)
+            .min(source_limits.max_active_instances)
+            .min(sink_limits.max_active_instances)
             .min(1);
         external_capability.limits.max_queue_items = external_capability
             .limits
@@ -339,18 +397,29 @@ impl CompositeHost {
         let internal_plan_id = definition.internal_plan.plan_id.clone();
         let connection_id = connection.connection_id.clone();
         let provider = InMemoryConnectionProvider::new(internal_plan_id.clone(), &connection);
+        let mut children = BTreeMap::new();
+        for runtime in child_runtimes {
+            let host_id = runtime.advertisement().host_id.clone();
+            let fragment = definition
+                .internal_plan
+                .fragments
+                .iter()
+                .find(|fragment| fragment.host_id == host_id)
+                .expect("validated runtime has a plan fragment")
+                .clone();
+            children.insert(host_id, ChildRuntime { runtime, fragment });
+        }
         let mut host = Self {
             advertisement,
-            source,
-            sink,
-            source_fragment,
-            sink_fragment,
+            children,
+            boundary: definition.boundary,
             internal_plan_id,
             connection_id,
             provider,
             external_plans: BTreeMap::new(),
             released_plans: BTreeSet::new(),
             observations: Vec::new(),
+            internal_events: Vec::new(),
             observation_limit,
             fail_next_presentation: false,
             delivery_mode: DeliveryMode::Immediate,
@@ -386,13 +455,34 @@ impl CompositeHost {
     }
 
     pub fn deliver_next(&mut self, external_plan_id: &PlanId) -> RuntimeOutput {
+        self.deliver_next_with_mutation(external_plan_id, |_| {})
+    }
+
+    /// Exercises the malformed-envelope translation path without exposing the child transport.
+    pub fn deliver_next_malformed(&mut self, external_plan_id: &PlanId) -> RuntimeOutput {
+        self.deliver_next_with_mutation(external_plan_id, |envelope| {
+            envelope.value_kind = kind_id("composite/test-malformed-value");
+        })
+    }
+
+    fn deliver_next_with_mutation(
+        &mut self,
+        external_plan_id: &PlanId,
+        mutate: impl FnOnce(&mut ConnectionEnvelope),
+    ) -> RuntimeOutput {
         let mut external = RuntimeOutput::default();
-        let Some((ConnectionOutcome::Delivered, envelope)) = self.provider.deliver() else {
+        let Some((ConnectionOutcome::Delivered, mut envelope)) = self.provider.deliver() else {
             return external;
         };
+        mutate(&mut envelope);
         let sequence = envelope.sequence;
+        let source_child = self.boundary.source_child.clone();
+        let sink_child = self.boundary.sink_child.clone();
         let sink_output = self
-            .sink
+            .children
+            .get_mut(&sink_child)
+            .expect("validated boundary sink exists")
+            .runtime
             .handle(HostCommand::AcceptConnectionEnvelope(envelope));
         let sink_accepted = sink_output.events.iter().any(|event| {
             matches!(
@@ -403,19 +493,24 @@ impl CompositeHost {
                 }
             )
         });
-        let source_output = self.source.handle(HostCommand::CompleteConnectionDelivery {
-            plan_id: self.internal_plan_id.clone(),
-            connection_id: self.connection_id.clone(),
-            sequence,
-            outcome: if sink_accepted {
-                ConnectionOutcome::Delivered
-            } else {
-                ConnectionOutcome::Malformed
-            },
-        });
+        let source_output = self
+            .children
+            .get_mut(&source_child)
+            .expect("validated boundary source exists")
+            .runtime
+            .handle(HostCommand::CompleteConnectionDelivery {
+                plan_id: self.internal_plan_id.clone(),
+                connection_id: self.connection_id.clone(),
+                sequence,
+                outcome: if sink_accepted {
+                    ConnectionOutcome::Delivered
+                } else {
+                    ConnectionOutcome::Malformed
+                },
+            });
         self.drive_internal(
             external_plan_id,
-            vec![(Child::Sink, sink_output), (Child::Source, source_output)],
+            vec![(sink_child, sink_output), (source_child, source_output)],
             &mut external,
         );
         external
@@ -423,16 +518,26 @@ impl CompositeHost {
 
     pub fn disconnect_provider(&mut self, external_plan_id: &PlanId) -> RuntimeOutput {
         let mut external = RuntimeOutput::default();
+        let had_queued_envelopes = self.provider.queued_items() > 0;
         let outcome = self.provider.disconnect();
-        let source = self.source.handle(HostCommand::CompleteConnectionDelivery {
-            plan_id: self.internal_plan_id.clone(),
-            connection_id: self.connection_id.clone(),
-            sequence: 0,
-            outcome,
-        });
+        if !had_queued_envelopes {
+            return external;
+        }
+        let source_child = self.boundary.source_child.clone();
+        let source = self
+            .children
+            .get_mut(&source_child)
+            .expect("validated boundary source exists")
+            .runtime
+            .handle(HostCommand::CompleteConnectionDelivery {
+                plan_id: self.internal_plan_id.clone(),
+                connection_id: self.connection_id.clone(),
+                sequence: 0,
+                outcome,
+            });
         self.drive_internal(
             external_plan_id,
-            vec![(Child::Source, source)],
+            vec![(source_child, source)],
             &mut external,
         );
         external
@@ -465,7 +570,7 @@ impl CompositeHost {
         }
     }
 
-    pub fn internal_observations(&mut self) -> (Vec<Observation>, Vec<Observation>) {
+    pub fn internal_observations(&mut self) -> BTreeMap<HostId, Vec<Observation>> {
         fn inspect(runtime: &mut HostRuntime) -> Vec<Observation> {
             runtime
                 .handle(HostCommand::Inspect)
@@ -477,7 +582,14 @@ impl CompositeHost {
                 })
                 .unwrap_or_default()
         }
-        (inspect(&mut self.source), inspect(&mut self.sink))
+        self.children
+            .iter_mut()
+            .map(|(host_id, child)| (host_id.clone(), inspect(&mut child.runtime)))
+            .collect()
+    }
+
+    pub fn internal_events(&self) -> &[(HostId, HostEvent)] {
+        &self.internal_events
     }
 
     fn prepare(&mut self, fragment: PlanFragment) -> RuntimeOutput {
@@ -505,19 +617,17 @@ impl CompositeHost {
             });
             return output;
         }
-        let sink_prepare = self
-            .sink
-            .handle(HostCommand::Prepare(self.sink_fragment.clone()));
-        let source_prepare = self
-            .source
-            .handle(HostCommand::Prepare(self.source_fragment.clone()));
-        if let Some((reason, message)) =
-            preparation_failure(&sink_prepare).or_else(|| preparation_failure(&source_prepare))
-        {
+        let preparation_failure = self.children.values_mut().find_map(|child| {
+            let result = child
+                .runtime
+                .handle(HostCommand::Prepare(child.fragment.clone()));
+            preparation_failure(&result)
+        });
+        if preparation_failure.is_some() {
             output.events.push(HostEvent::PreparationRejected {
                 plan_id,
-                reason,
-                message,
+                reason: self.failure_translation,
+                message: Some("composite child preparation failed".into()),
             });
             return output;
         }
@@ -526,8 +636,7 @@ impl CompositeHost {
             ExternalPlan {
                 state: ExternalState::Prepared,
                 terminal_emitted: false,
-                source_terminal: None,
-                sink_terminal: None,
+                child_terminals: BTreeMap::new(),
             },
         );
         self.record(Some(plan_id.clone()), ObservationKind::PlanFragmentReceived);
@@ -558,29 +667,35 @@ impl CompositeHost {
         output.events.push(HostEvent::Activated {
             plan_id: plan_id.clone(),
         });
-        let sink = self
-            .sink
-            .handle(HostCommand::Activate(self.internal_plan_id.clone()));
-        let source = self
-            .source
-            .handle(HostCommand::Activate(self.internal_plan_id.clone()));
-        self.drive_internal(
-            &plan_id,
-            vec![(Child::Sink, sink), (Child::Source, source)],
-            &mut output,
-        );
+        let source_child = self.boundary.source_child.clone();
+        let mut child_ids = self.children.keys().cloned().collect::<Vec<_>>();
+        child_ids.sort_by_key(|host_id| host_id == &source_child);
+        let initial = child_ids
+            .into_iter()
+            .map(|host_id| {
+                let child_output = self
+                    .children
+                    .get_mut(&host_id)
+                    .expect("listed child exists")
+                    .runtime
+                    .handle(HostCommand::Activate(self.internal_plan_id.clone()));
+                (host_id, child_output)
+            })
+            .collect();
+        self.drive_internal(&plan_id, initial, &mut output);
         output
     }
 
     fn drive_internal(
         &mut self,
         external_plan_id: &PlanId,
-        initial: Vec<(Child, RuntimeOutput)>,
+        initial: Vec<(HostId, RuntimeOutput)>,
         external: &mut RuntimeOutput,
     ) {
         let mut pending = VecDeque::from(initial);
         while let Some((child, output)) = pending.pop_front() {
             for event in output.events {
+                self.internal_events.push((child.clone(), event.clone()));
                 match event {
                     HostEvent::ConnectionTerminated {
                         connection_id,
@@ -590,34 +705,41 @@ impl CompositeHost {
                                 ..
                             },
                         ..
-                    } if child == Child::Source && connection_id == self.connection_id => {
-                        let closed = self.sink.handle(HostCommand::CloseConnection {
-                            plan_id: self.internal_plan_id.clone(),
-                            connection_id,
-                        });
-                        pending.push_back((Child::Sink, closed));
+                    } if child == self.boundary.source_child
+                        && connection_id == self.connection_id =>
+                    {
+                        let sink_child = self.boundary.sink_child.clone();
+                        let closed = self
+                            .children
+                            .get_mut(&sink_child)
+                            .expect("validated boundary sink exists")
+                            .runtime
+                            .handle(HostCommand::CloseConnection {
+                                plan_id: self.internal_plan_id.clone(),
+                                connection_id,
+                            });
+                        pending.push_back((sink_child, closed));
                     }
                     HostEvent::PlanTerminated { disposition, .. } => {
                         if let Some(plan) = self.external_plans.get_mut(external_plan_id) {
-                            match child {
-                                Child::Source => plan.source_terminal = Some(disposition),
-                                Child::Sink => plan.sink_terminal = Some(disposition),
-                            }
+                            plan.child_terminals.insert(child.clone(), disposition);
                         }
                         if matches!(disposition, TerminalDisposition::Failed { .. }) {
-                            let other = match child {
-                                Child::Source => Child::Sink,
-                                Child::Sink => Child::Source,
-                            };
-                            let cancellation = match other {
-                                Child::Source => self
-                                    .source
-                                    .handle(HostCommand::Cancel(self.internal_plan_id.clone())),
-                                Child::Sink => self
-                                    .sink
-                                    .handle(HostCommand::Cancel(self.internal_plan_id.clone())),
-                            };
-                            pending.push_back((other, cancellation));
+                            let other_ids = self
+                                .children
+                                .keys()
+                                .filter(|host_id| *host_id != &child)
+                                .cloned()
+                                .collect::<Vec<_>>();
+                            for other_id in other_ids {
+                                let cancellation = self
+                                    .children
+                                    .get_mut(&other_id)
+                                    .expect("listed child exists")
+                                    .runtime
+                                    .handle(HostCommand::Cancel(self.internal_plan_id.clone()));
+                                pending.push_back((other_id, cancellation));
+                            }
                         }
                     }
                     _ => {}
@@ -630,17 +752,16 @@ impl CompositeHost {
                         placement_id,
                         ..
                     } => {
-                        let next = match child {
-                            Child::Source => self.source.handle(HostCommand::CompleteWait {
+                        let next = self
+                            .children
+                            .get_mut(&child)
+                            .expect("effect came from a known child")
+                            .runtime
+                            .handle(HostCommand::CompleteWait {
                                 plan_id,
                                 placement_id,
-                            }),
-                            Child::Sink => self.sink.handle(HostCommand::CompleteWait {
-                                plan_id,
-                                placement_id,
-                            }),
-                        };
-                        pending.push_back((child, next));
+                            });
+                        pending.push_back((child.clone(), next));
                     }
                     PlatformEffect::PresentValue {
                         plan_id,
@@ -650,35 +771,49 @@ impl CompositeHost {
                     } => {
                         let success = !self.fail_next_presentation;
                         self.fail_next_presentation = false;
-                        let next = self.sink.handle(HostCommand::CompletePresentation {
-                            plan_id,
-                            placement_id,
-                            value,
-                            success,
-                            message: (!success).then(|| "injected child sink failure".into()),
-                        });
-                        pending.push_back((Child::Sink, next));
+                        let next = self
+                            .children
+                            .get_mut(&child)
+                            .expect("effect came from a known child")
+                            .runtime
+                            .handle(HostCommand::CompletePresentation {
+                                plan_id,
+                                placement_id,
+                                value,
+                                success,
+                                message: (!success)
+                                    .then(|| "injected child presentation failure".into()),
+                            });
+                        pending.push_back((child.clone(), next));
                     }
                     PlatformEffect::TransmitConnection { envelope } => {
                         let sequence = envelope.sequence;
                         let outcome = self.provider.accept(envelope);
                         if outcome == ConnectionOutcome::Accepted {
-                            let accepted =
-                                self.source.handle(HostCommand::CompleteConnectionDelivery {
+                            let accepted = self
+                                .children
+                                .get_mut(&child)
+                                .expect("effect came from a known child")
+                                .runtime
+                                .handle(HostCommand::CompleteConnectionDelivery {
                                     plan_id: self.internal_plan_id.clone(),
                                     connection_id: self.connection_id.clone(),
                                     sequence,
                                     outcome: ConnectionOutcome::Accepted,
                                 });
-                            pending.push_back((Child::Source, accepted));
+                            pending.push_back((child.clone(), accepted));
                             if self.delivery_mode == DeliveryMode::Immediate {
                                 let (delivery_outcome, delivered) = self
                                     .provider
                                     .deliver()
                                     .expect("accepted envelope must be queued");
                                 debug_assert_eq!(delivery_outcome, ConnectionOutcome::Delivered);
+                                let sink_child = self.boundary.sink_child.clone();
                                 let sink_output = self
-                                    .sink
+                                    .children
+                                    .get_mut(&sink_child)
+                                    .expect("validated boundary sink exists")
+                                    .runtime
                                     .handle(HostCommand::AcceptConnectionEnvelope(delivered));
                                 let sink_accepted = sink_output.events.iter().any(|event| {
                                     matches!(
@@ -689,9 +824,13 @@ impl CompositeHost {
                                         }
                                     )
                                 });
-                                pending.push_back((Child::Sink, sink_output));
-                                let source_output =
-                                    self.source.handle(HostCommand::CompleteConnectionDelivery {
+                                pending.push_back((sink_child, sink_output));
+                                let source_output = self
+                                    .children
+                                    .get_mut(&child)
+                                    .expect("effect came from a known child")
+                                    .runtime
+                                    .handle(HostCommand::CompleteConnectionDelivery {
                                         plan_id: self.internal_plan_id.clone(),
                                         connection_id: self.connection_id.clone(),
                                         sequence,
@@ -701,17 +840,21 @@ impl CompositeHost {
                                             ConnectionOutcome::Malformed
                                         },
                                     });
-                                pending.push_back((Child::Source, source_output));
+                                pending.push_back((child.clone(), source_output));
                             }
                         } else {
-                            let source_output =
-                                self.source.handle(HostCommand::CompleteConnectionDelivery {
+                            let source_output = self
+                                .children
+                                .get_mut(&child)
+                                .expect("effect came from a known child")
+                                .runtime
+                                .handle(HostCommand::CompleteConnectionDelivery {
                                     plan_id: self.internal_plan_id.clone(),
                                     connection_id: self.connection_id.clone(),
                                     sequence,
                                     outcome,
                                 });
-                            pending.push_back((Child::Source, source_output));
+                            pending.push_back((child.clone(), source_output));
                         }
                     }
                 }
@@ -724,20 +867,17 @@ impl CompositeHost {
         let Some(plan) = self.external_plans.get_mut(plan_id) else {
             return;
         };
-        if plan.terminal_emitted || plan.source_terminal.is_none() || plan.sink_terminal.is_none() {
+        if plan.terminal_emitted || plan.child_terminals.len() != self.children.len() {
             return;
         }
-        let failed = matches!(
-            plan.source_terminal,
-            Some(TerminalDisposition::Failed { .. })
-        ) || matches!(plan.sink_terminal, Some(TerminalDisposition::Failed { .. }));
-        let cancelled = matches!(
-            plan.source_terminal,
-            Some(TerminalDisposition::Cancelled { .. })
-        ) || matches!(
-            plan.sink_terminal,
-            Some(TerminalDisposition::Cancelled { .. })
-        );
+        let failed = plan
+            .child_terminals
+            .values()
+            .any(|disposition| matches!(disposition, TerminalDisposition::Failed { .. }));
+        let cancelled = plan
+            .child_terminals
+            .values()
+            .any(|disposition| matches!(disposition, TerminalDisposition::Cancelled { .. }));
         let disposition = if failed {
             plan.state = ExternalState::Failed;
             TerminalDisposition::Failed {
@@ -783,17 +923,20 @@ impl CompositeHost {
             return output;
         }
         plan.state = ExternalState::Cancelled;
-        let source = self
-            .source
-            .handle(HostCommand::Cancel(self.internal_plan_id.clone()));
-        let sink = self
-            .sink
-            .handle(HostCommand::Cancel(self.internal_plan_id.clone()));
-        self.drive_internal(
-            &plan_id,
-            vec![(Child::Source, source), (Child::Sink, sink)],
-            &mut output,
-        );
+        let child_ids = self.children.keys().cloned().collect::<Vec<_>>();
+        let initial = child_ids
+            .into_iter()
+            .map(|host_id| {
+                let child_output = self
+                    .children
+                    .get_mut(&host_id)
+                    .expect("listed child exists")
+                    .runtime
+                    .handle(HostCommand::Cancel(self.internal_plan_id.clone()));
+                (host_id, child_output)
+            })
+            .collect();
+        self.drive_internal(&plan_id, initial, &mut output);
         output.events.push(HostEvent::Cancelled { plan_id });
         output
     }
@@ -816,12 +959,11 @@ impl CompositeHost {
         }
         self.external_plans.remove(&plan_id);
         self.released_plans.insert(plan_id.clone());
-        let _ = self
-            .source
-            .handle(HostCommand::Release(self.internal_plan_id.clone()));
-        let _ = self
-            .sink
-            .handle(HostCommand::Release(self.internal_plan_id.clone()));
+        for child in self.children.values_mut() {
+            let _ = child
+                .runtime
+                .handle(HostCommand::Release(self.internal_plan_id.clone()));
+        }
         self.record(Some(plan_id.clone()), ObservationKind::Released);
         output.events.push(HostEvent::Released { plan_id });
         output
@@ -894,7 +1036,7 @@ fn preparation_failure(output: &RuntimeOutput) -> Option<(FailureReason, Option<
 #[cfg(test)]
 mod tests {
     use super::{
-        CompositeBoundary, CompositeDefinition, CompositeHost, DeliveryMode,
+        ChildHostBinding, CompositeBoundary, CompositeDefinition, CompositeHost, DeliveryMode,
         InMemoryConnectionProvider, COMPOSITE_DEMONSTRATION_KIND,
     };
     use conduit_core::{
@@ -978,14 +1120,66 @@ mod tests {
         plan
     }
 
+    fn three_child_internal_plan() -> conduit_core::Plan {
+        let form = parse(
+            "form 0\n\ninternal {\n pulse: flow/pulse\n show: presentation/show\n auxiliary: flow/pulse\n pulse.count = 1\n pulse.period-ms = 0\n pulse.initial = false\n auxiliary.count = 0\n auxiliary.period-ms = 0\n auxiliary.initial = false\n pulse > show\n}\n",
+            &signal_profile_catalog(),
+        )
+        .expect("three-child internal form parses");
+        let source = child_advertisement("child-source", "source-boot", true);
+        let sink = child_advertisement("child-sink", "sink-boot", false);
+        let auxiliary = child_advertisement("child-auxiliary", "auxiliary-boot", true);
+        let placements = PlacementChoices {
+            by_operation: BTreeMap::from([
+                (
+                    OperationId::from("pulse"),
+                    PlacementChoice {
+                        host_id: source.host_id.clone(),
+                        capability_id: CapabilityId::from("pulse"),
+                    },
+                ),
+                (
+                    OperationId::from("show"),
+                    PlacementChoice {
+                        host_id: sink.host_id.clone(),
+                        capability_id: CapabilityId::from("show"),
+                    },
+                ),
+                (
+                    OperationId::from("auxiliary"),
+                    PlacementChoice {
+                        host_id: auxiliary.host_id.clone(),
+                        capability_id: CapabilityId::from("pulse"),
+                    },
+                ),
+            ]),
+        };
+        plan(
+            &form,
+            &[source, sink, auxiliary],
+            &placements,
+            &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+        )
+        .expect("three-child plan succeeds")
+    }
+
     fn composite(item_capacity: u16, byte_capacity: u32) -> CompositeHost {
+        let definition = composite_definition(item_capacity, byte_capacity);
+        CompositeHost::from_definition(definition, child_runtimes(), 64)
+            .expect("composite is valid")
+    }
+
+    fn child_runtimes() -> Vec<HostRuntime> {
         let source_ad = child_advertisement("child-source", "source-boot", true);
         let sink_ad = child_advertisement("child-sink", "sink-boot", false);
-        CompositeHost::new(
-            HostId::from("composite-host"),
-            BootId::from("composite-boot"),
-            OfferGeneration(7),
-            CapabilityId::from("run-signal"),
+        child_runtimes_with_advertisements(source_ad, sink_ad)
+    }
+
+    fn child_runtimes_with_advertisements(
+        source_ad: HostAdvertisement,
+        sink_ad: HostAdvertisement,
+    ) -> Vec<HostRuntime> {
+        vec![
             HostRuntime::new(
                 source_ad,
                 signal_registry(
@@ -1004,10 +1198,50 @@ mod tests {
                 .expect("sink registry installs"),
                 128,
             ),
-            internal_plan(item_capacity, byte_capacity),
-            64,
-        )
-        .expect("composite is valid")
+        ]
+    }
+
+    fn composite_definition(item_capacity: u16, byte_capacity: u32) -> CompositeDefinition {
+        let plan = internal_plan(item_capacity, byte_capacity);
+        let connection = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .next()
+            .expect("composite plan has its exposed boundary")
+            .clone();
+        CompositeDefinition {
+            host_id: HostId::from("composite-host"),
+            boot_id: BootId::from("composite-boot"),
+            offer_generation: OfferGeneration(7),
+            profile: HostProfileId::from("composite/in-memory-v1"),
+            external_capability: CapabilityOffer {
+                capability_id: CapabilityId::from("run-signal"),
+                kind_id: kind_id(COMPOSITE_DEMONSTRATION_KIND),
+                implementation_id: ImplementationId::from("composite/pulse-show-v1"),
+                limits: CapabilityLimits {
+                    value_kind: connection.value_kind.clone(),
+                    max_active_instances: 1,
+                    max_queue_items: connection.item_capacity,
+                    max_queue_bytes: connection.byte_capacity,
+                },
+            },
+            children: vec![
+                ChildHostBinding {
+                    host_id: HostId::from("child-source"),
+                },
+                ChildHostBinding {
+                    host_id: HostId::from("child-sink"),
+                },
+            ],
+            internal_plan: plan,
+            boundary: CompositeBoundary {
+                source_child: HostId::from("child-source"),
+                sink_child: HostId::from("child-sink"),
+                connection_id: connection.connection_id,
+            },
+            failure_translation: conduit_core::FailureReason::CompositeCapabilityFailed,
+        }
     }
 
     fn parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragment {
@@ -1103,6 +1337,88 @@ mod tests {
         assert_eq!(provider.queued_items(), 0);
         assert_eq!(provider.disconnect(), ConnectionOutcome::Disconnected);
         assert_eq!(provider.status(), ConnectionOutcome::Terminal);
+        assert_eq!(provider.accept(envelope), ConnectionOutcome::Terminal);
+    }
+
+    #[test]
+    fn definition_rejects_missing_extra_and_mismatched_children() {
+        let definition = composite_definition(2, 18);
+        let mut runtimes = child_runtimes();
+        runtimes.pop();
+        assert!(CompositeHost::from_definition(definition.clone(), runtimes, 16).is_err());
+
+        let mut missing_declared_child = definition.clone();
+        missing_declared_child.children.pop();
+        assert!(
+            CompositeHost::from_definition(missing_declared_child, child_runtimes(), 16).is_err()
+        );
+
+        let mut extra_declared_child = definition.clone();
+        extra_declared_child.children.push(ChildHostBinding {
+            host_id: HostId::from("unused-child"),
+        });
+        let mut runtimes = child_runtimes();
+        runtimes.push(HostRuntime::new(
+            child_advertisement("unused-child", "unused-boot", true),
+            signal_registry(
+                ImplementationId::from("test/pulse-v1"),
+                ImplementationId::from("unused/show-v1"),
+            )
+            .expect("unused child registry installs"),
+            16,
+        ));
+        assert!(CompositeHost::from_definition(extra_declared_child, runtimes, 16).is_err());
+
+        let mut mismatched_boundary = definition;
+        std::mem::swap(
+            &mut mismatched_boundary.boundary.source_child,
+            &mut mismatched_boundary.boundary.sink_child,
+        );
+        assert!(CompositeHost::from_definition(mismatched_boundary, child_runtimes(), 16).is_err());
+    }
+
+    #[test]
+    fn definition_runs_three_plan_used_children_without_new_role_fields() {
+        let plan = three_child_internal_plan();
+        let connection = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .next()
+            .expect("three-child plan has its exposed boundary")
+            .clone();
+        let mut definition = composite_definition(4, 64);
+        definition.internal_plan = plan;
+        definition.children.push(ChildHostBinding {
+            host_id: HostId::from("child-auxiliary"),
+        });
+        definition.boundary.connection_id = connection.connection_id;
+
+        let mut runtimes = child_runtimes();
+        runtimes.push(HostRuntime::new(
+            child_advertisement("child-auxiliary", "auxiliary-boot", true),
+            signal_registry(
+                ImplementationId::from("test/pulse-v1"),
+                ImplementationId::from("unused/show-v1"),
+            )
+            .expect("auxiliary registry installs"),
+            32,
+        ));
+        let mut composite = CompositeHost::from_definition(definition, runtimes, 64)
+            .expect("three-child composite is valid");
+        let fragment = parent_fragment(&composite);
+        composite.handle(HostCommand::Prepare(fragment.clone()));
+        let output = composite.handle(HostCommand::Activate(fragment.plan_id));
+        assert!(output.events.iter().any(|event| matches!(
+            event,
+            HostEvent::PlanTerminated {
+                disposition: TerminalDisposition::Completed,
+                ..
+            }
+        )));
+        assert!(composite
+            .internal_observations()
+            .contains_key(&HostId::from("child-auxiliary")));
     }
 
     #[test]
@@ -1125,7 +1441,11 @@ mod tests {
                 ..
             }
         )));
-        let (source, sink) = composite.internal_observations();
+        assert!(!format!("{output:?}").contains("child-source"));
+        assert!(!format!("{output:?}").contains("child-sink"));
+        let observations = composite.internal_observations();
+        let source = &observations[&HostId::from("child-source")];
+        let sink = &observations[&HostId::from("child-sink")];
         assert!(source
             .iter()
             .all(|item| item.host_id.as_str() == "child-source"));
@@ -1153,6 +1473,8 @@ mod tests {
             output.events.first(),
             Some(HostEvent::Prepared { .. })
         ));
+        assert!(!format!("{output:?}").contains("child-source"));
+        assert!(!format!("{output:?}").contains("child-sink"));
         let output = composite.handle(HostCommand::Activate(fragment.plan_id));
         let failures = output
             .events
@@ -1171,7 +1493,8 @@ mod tests {
             .count();
         assert_eq!(failures, 1);
         assert!(!format!("{output:?}").contains("child-sink"));
-        let (_, sink) = composite.internal_observations();
+        let observations = composite.internal_observations();
+        let sink = &observations[&HostId::from("child-sink")];
         assert!(sink
             .iter()
             .any(|item| matches!(item.kind, conduit_core::ObservationKind::Failure { .. })));
@@ -1188,6 +1511,33 @@ mod tests {
         assert_eq!(narrow_limits.max_queue_bytes, 18);
         assert_eq!(wide_limits.max_queue_items, 4);
         assert_eq!(wide_limits.max_queue_bytes, 64);
+
+        let definition = composite_definition(4, 64);
+        let mut source_ad = child_advertisement("child-source", "source-boot", true);
+        source_ad.capabilities.push(CapabilityOffer {
+            capability_id: CapabilityId::from("unrelated-narrow-capability"),
+            kind_id: kind_id("unrelated/kind"),
+            implementation_id: ImplementationId::from("unrelated/implementation"),
+            limits: CapabilityLimits {
+                value_kind: kind_id("unrelated/value"),
+                max_active_instances: 0,
+                max_queue_items: 0,
+                max_queue_bytes: 0,
+            },
+        });
+        let sink_ad = child_advertisement("child-sink", "sink-boot", false);
+        let relevant_only = CompositeHost::from_definition(
+            definition,
+            child_runtimes_with_advertisements(source_ad, sink_ad),
+            16,
+        )
+        .expect("unrelated child capability does not narrow exposed limits");
+        assert_eq!(
+            relevant_only.advertisement().capabilities[0]
+                .limits
+                .max_active_instances,
+            1
+        );
     }
 
     #[test]
@@ -1205,9 +1555,32 @@ mod tests {
         assert_eq!(composite.provider_status(), ConnectionOutcome::Full);
         assert_eq!(composite.provider_queued_items(), 2);
         assert_eq!(composite.provider_queued_bytes(), 18);
+        let before_delivery = composite.internal_observations();
+        assert_eq!(
+            before_delivery[&HostId::from("child-sink")]
+                .iter()
+                .filter(|item| matches!(
+                    item.kind,
+                    conduit_core::ObservationKind::ValuePresented { .. }
+                ))
+                .count(),
+            0
+        );
+        assert!(composite.internal_events().iter().any(|(host_id, event)| {
+            host_id.as_str() == "child-source"
+                && matches!(event, HostEvent::ConnectionBlocked { .. })
+        }));
+
+        let first_delivery = composite.deliver_next(&plan_id);
+        assert!(!first_delivery
+            .events
+            .iter()
+            .any(|event| matches!(event, HostEvent::PlanTerminated { .. })));
+        assert_eq!(composite.provider_queued_items(), 2);
+        assert_eq!(composite.provider_queued_bytes(), 18);
 
         let mut terminal = false;
-        for _ in 0..4 {
+        for _ in 0..3 {
             let output = composite.deliver_next(&plan_id);
             terminal |= output.events.iter().any(|event| {
                 matches!(
@@ -1225,6 +1598,108 @@ mod tests {
         assert!(terminal);
         assert_eq!(composite.provider_queued_items(), 0);
         assert_eq!(composite.provider_queued_bytes(), 0);
+        let after_delivery = composite.internal_observations();
+        assert_eq!(
+            after_delivery[&HostId::from("child-sink")]
+                .iter()
+                .filter(|item| matches!(
+                    item.kind,
+                    conduit_core::ObservationKind::ValuePresented { .. }
+                ))
+                .count(),
+            3
+        );
+    }
+
+    #[test]
+    fn configured_failure_translation_is_the_only_parent_failure_contract() {
+        let mut definition = composite_definition(4, 64);
+        definition.failure_translation = conduit_core::FailureReason::RequiredBranchFailed;
+        let mut composite = CompositeHost::from_definition(definition, child_runtimes(), 64)
+            .expect("configured composite is valid");
+        composite.fail_next_presentation();
+        let fragment = parent_fragment(&composite);
+        composite.handle(HostCommand::Prepare(fragment.clone()));
+        let output = composite.handle(HostCommand::Activate(fragment.plan_id));
+        assert!(output.events.iter().any(|event| matches!(
+            event,
+            HostEvent::PlanTerminated {
+                disposition: TerminalDisposition::Failed {
+                    reason: conduit_core::FailureReason::RequiredBranchFailed
+                },
+                ..
+            }
+        )));
+        let rendered = format!("{output:?}");
+        assert!(!rendered.contains("child-source"));
+        assert!(!rendered.contains("child-sink"));
+    }
+
+    #[test]
+    fn malformed_sink_delivery_becomes_source_failure_without_topology_leakage() {
+        let mut composite = composite(2, 18);
+        composite.set_delivery_mode(DeliveryMode::Controlled);
+        let fragment = parent_fragment(&composite);
+        let plan_id = fragment.plan_id.clone();
+        composite.handle(HostCommand::Prepare(fragment));
+        composite.handle(HostCommand::Activate(plan_id.clone()));
+
+        let failed = composite.deliver_next_malformed(&plan_id);
+        assert!(
+            failed.events.iter().any(|event| matches!(
+                event,
+                HostEvent::PlanTerminated {
+                    disposition: TerminalDisposition::Failed {
+                        reason: conduit_core::FailureReason::CompositeCapabilityFailed
+                    },
+                    ..
+                }
+            )),
+            "{failed:?}"
+        );
+        assert!(!format!("{failed:?}").contains("child-source"));
+        assert!(!format!("{failed:?}").contains("child-sink"));
+        let observations = composite.internal_observations();
+        assert!(observations[&HostId::from("child-source")]
+            .iter()
+            .any(|item| matches!(
+                &item.kind,
+                conduit_core::ObservationKind::ConnectionTerminal { disposition }
+                    if matches!(
+                        disposition.disposition,
+                        TerminalDisposition::Failed {
+                            reason: conduit_core::FailureReason::MalformedConnectionEnvelope
+                        }
+                    )
+            )));
+    }
+
+    #[test]
+    fn disconnect_with_empty_provider_fails_composite_and_rejects_future_delivery() {
+        let mut composite = composite(2, 18);
+        composite.set_delivery_mode(DeliveryMode::Controlled);
+        let fragment = parent_fragment(&composite);
+        let plan_id = fragment.plan_id.clone();
+        composite.handle(HostCommand::Prepare(fragment));
+        let disconnected = composite.disconnect_provider(&plan_id);
+        assert_eq!(composite.provider_status(), ConnectionOutcome::Terminal);
+        assert!(disconnected
+            .events
+            .iter()
+            .all(|event| !matches!(event, HostEvent::PlanTerminated { .. })));
+        let activated = composite.handle(HostCommand::Activate(plan_id));
+        assert!(
+            activated.events.iter().any(|event| matches!(
+                event,
+                HostEvent::PlanTerminated {
+                    disposition: TerminalDisposition::Failed {
+                        reason: conduit_core::FailureReason::CompositeCapabilityFailed
+                    },
+                    ..
+                }
+            )),
+            "{activated:?}"
+        );
     }
 
     #[test]
@@ -1250,6 +1725,20 @@ mod tests {
                 ..
             }
         )));
+        let observations = composite.internal_observations();
+        assert!(observations[&HostId::from("child-source")]
+            .iter()
+            .any(|item| matches!(
+                &item.kind,
+                conduit_core::ObservationKind::ConnectionTerminal { disposition }
+                    if disposition.undeliverable_items == 2
+                        && matches!(
+                            disposition.disposition,
+                            TerminalDisposition::Failed {
+                                reason: conduit_core::FailureReason::ConnectionDisconnected
+                            }
+                        )
+            )));
     }
 
     #[test]
@@ -1274,7 +1763,14 @@ mod tests {
                     max_queue_bytes: 99,
                 },
             },
-            child_hosts: vec![source_ad.host_id.clone(), sink_ad.host_id.clone()],
+            children: vec![
+                ChildHostBinding {
+                    host_id: source_ad.host_id.clone(),
+                },
+                ChildHostBinding {
+                    host_id: sink_ad.host_id.clone(),
+                },
+            ],
             internal_plan: plan,
             boundary: CompositeBoundary {
                 source_child: source_ad.host_id.clone(),
@@ -1285,24 +1781,26 @@ mod tests {
         };
         let host = CompositeHost::from_definition(
             definition,
-            HostRuntime::new(
-                source_ad,
-                signal_registry(
-                    ImplementationId::from("test/pulse-v1"),
-                    ImplementationId::from("unused/show-v1"),
-                )
-                .expect("source registry installs"),
-                64,
-            ),
-            HostRuntime::new(
-                sink_ad,
-                signal_registry(
-                    ImplementationId::from("unused/pulse-v1"),
-                    ImplementationId::from("test/show-v1"),
-                )
-                .expect("sink registry installs"),
-                64,
-            ),
+            vec![
+                HostRuntime::new(
+                    source_ad,
+                    signal_registry(
+                        ImplementationId::from("test/pulse-v1"),
+                        ImplementationId::from("unused/show-v1"),
+                    )
+                    .expect("source registry installs"),
+                    64,
+                ),
+                HostRuntime::new(
+                    sink_ad,
+                    signal_registry(
+                        ImplementationId::from("unused/pulse-v1"),
+                        ImplementationId::from("test/show-v1"),
+                    )
+                    .expect("sink registry installs"),
+                    64,
+                ),
+            ],
             64,
         )
         .expect("data-driven composite builds");

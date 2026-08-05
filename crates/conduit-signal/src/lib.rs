@@ -171,7 +171,7 @@ mod host_profile {
     use conduit_core::{
         kind_id, ConfigurationValue, FailureReason, ImplementationId, KindId, PlannedOperation,
     };
-    use conduit_form::{ConfigurationField, KindDefinition, ProfileCatalog};
+    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
     use conduit_runtime::{
         ImplementationFailure, ImplementationRegistry, OperationAction, OperationCompletion,
         OperationImplementation, OperationState,
@@ -399,14 +399,23 @@ mod host_profile {
                     ConfigurationField {
                         key: "count".to_string(),
                         default_value: ConfigurationValue::U64(16),
+                        validation: ConfigurationRule::U64Range {
+                            minimum: 0,
+                            maximum: u64::MAX,
+                        },
                     },
                     ConfigurationField {
                         key: "period-ms".to_string(),
                         default_value: ConfigurationValue::U64(250),
+                        validation: ConfigurationRule::U64Range {
+                            minimum: 0,
+                            maximum: u64::MAX,
+                        },
                     },
                     ConfigurationField {
                         key: "initial".to_string(),
                         default_value: ConfigurationValue::Bool(false),
+                        validation: ConfigurationRule::Any,
                     },
                 ],
             })

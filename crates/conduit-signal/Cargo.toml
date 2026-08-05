@@ -10,5 +10,5 @@ conduit-runtime = { path = "../conduit-runtime", optional = true }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
 [features]
-default = ["host-profile"]
+default = []
 host-profile = ["dep:conduit-form", "dep:conduit-runtime"]

@@ -10,4 +10,4 @@ conduit-runtime = { path = "../conduit-runtime" }
 [dev-dependencies]
 conduit-form = { path = "../conduit-form" }
 conduit-planner = { path = "../conduit-planner" }
-conduit-signal = { path = "../conduit-signal" }
+conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }

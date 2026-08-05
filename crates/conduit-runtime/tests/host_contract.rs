@@ -141,8 +141,14 @@ impl OperationImplementation for SourceImplementation {
 
     fn prepare(
         &self,
-        _placement: &PlannedOperation,
+        placement: &PlannedOperation,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
+        if !placement.configuration.is_empty() {
+            return Err(ImplementationFailure::new(
+                FailureReason::InvalidOperationConfiguration,
+                "contract source accepts no configuration",
+            ));
+        }
         Ok(Box::new(SourceState { emitted: false }))
     }
 
@@ -244,6 +250,7 @@ impl OperationState for SinkState {
 }
 
 fn rejection_reason(output: &conduit_runtime::RuntimeOutput) -> Option<FailureReason> {
+    // Conformance deliberately discards human prose and compares only the stable reason enum.
     output.events.iter().find_map(|event| match event {
         HostEvent::PreparationRejected { reason, .. } => Some(*reason),
         _ => None,
@@ -296,6 +303,85 @@ fn preparation_rejects_uninstalled_and_mismatched_implementations_structurally()
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(mismatched_fragment))),
         Some(FailureReason::AdvertisedImplementationMismatch)
+    );
+}
+
+#[test]
+fn preparation_rejects_unsupported_kind_and_invalid_configuration_structurally() {
+    let advertised = advertisement();
+    let mut unsupported = fragment(&advertised);
+    unsupported.placements[0].kind_id = kind_id("contract/not-installed");
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(unsupported))),
+        Some(FailureReason::UnsupportedKind)
+    );
+
+    let mut invalid = fragment(&advertised);
+    invalid
+        .placements
+        .iter_mut()
+        .find(|placement| placement.kind_id.as_str() == SOURCE_KIND)
+        .expect("source placement exists")
+        .configuration
+        .push(conduit_core::ConfigurationEntry {
+            key: "unexpected".into(),
+            value: conduit_core::ConfigurationValue::Bool(true),
+        });
+    let mut runtime = HostRuntime::new(advertised, registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(invalid))),
+        Some(FailureReason::InvalidOperationConfiguration)
+    );
+}
+
+struct UnsupportedValueImplementation(SourceImplementation);
+
+impl OperationImplementation for UnsupportedValueImplementation {
+    fn kind_id(&self) -> &conduit_core::KindId {
+        self.0.kind_id()
+    }
+
+    fn implementation_id(&self) -> &ImplementationId {
+        self.0.implementation_id()
+    }
+
+    fn prepare(
+        &self,
+        placement: &PlannedOperation,
+    ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
+        self.0.prepare(placement)
+    }
+}
+
+#[test]
+fn preparation_requires_capability_and_implementation_value_kind_agreement() {
+    let advertised = advertisement();
+    let planned = fragment(&advertised);
+
+    let mut lying_capability = advertised.clone();
+    lying_capability.capabilities[0].limits.value_kind = kind_id("contract/other-value");
+    let mut runtime = HostRuntime::new(lying_capability, registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(planned.clone()))),
+        Some(FailureReason::UnsupportedValueKind)
+    );
+
+    let mut unsupported_registry = ImplementationRegistry::new();
+    unsupported_registry
+        .install(UnsupportedValueImplementation(SourceImplementation::new(
+            ImplementationId::from("contract/source-v1"),
+        )))
+        .expect("unsupported-value fixture installs");
+    unsupported_registry
+        .install(SinkImplementation::new(ImplementationId::from(
+            "contract/sink-v1",
+        )))
+        .expect("sink installs");
+    let mut runtime = HostRuntime::new(advertised, unsupported_registry, 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(planned))),
+        Some(FailureReason::UnsupportedValueKind)
     );
 }
 

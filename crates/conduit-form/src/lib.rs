@@ -34,6 +34,25 @@ pub struct CheckedForm {
 pub struct ConfigurationField {
     pub key: String,
     pub default_value: ConfigurationValue,
+    pub validation: ConfigurationRule,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConfigurationRule {
+    Any,
+    U64Range { minimum: u64, maximum: u64 },
+}
+
+impl ConfigurationRule {
+    fn accepts(&self, value: &ConfigurationValue) -> bool {
+        match (self, value) {
+            (Self::Any, _) => true,
+            (Self::U64Range { minimum, maximum }, ConfigurationValue::U64(value)) => {
+                (*minimum..=*maximum).contains(value)
+            }
+            (Self::U64Range { .. }, _) => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -205,7 +224,21 @@ pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedForm, Form
                         operation.definition.kind_id.as_str()
                     ))
                 })?;
-            entry.value = parse_configuration_value(right.trim(), &entry.value)?;
+            let value = parse_configuration_value(right.trim(), &entry.value)?;
+            let field = operation
+                .definition
+                .configuration
+                .iter()
+                .find(|field| field.key == key.trim())
+                .expect("configuration entry came from its catalog field");
+            if !field.validation.accepts(&value) {
+                return Err(FormError::InvalidConfiguration(format!(
+                    "value for '{}.{}' violates the profile catalog rule",
+                    operation_id.trim(),
+                    key.trim()
+                )));
+            }
+            entry.value = value;
             continue;
         }
         if let Some((left, right)) = line.split_once("->") {
@@ -421,7 +454,7 @@ fn hex(nibble: u8) -> char {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse, ConfigurationField, KindDefinition, ProfileCatalog};
+    use super::{parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
     use conduit_core::{kind_id, port_id, ConfigurationValue, PortDescriptor, PortDirection};
 
     fn catalog() -> ProfileCatalog {
@@ -439,6 +472,10 @@ mod tests {
                 configuration: vec![ConfigurationField {
                     key: "count".to_string(),
                     default_value: ConfigurationValue::U64(1),
+                    validation: ConfigurationRule::U64Range {
+                        minimum: 1,
+                        maximum: 4,
+                    },
                 }],
             })
             .expect("source kind installs");
@@ -475,5 +512,15 @@ mod tests {
         let error = parse("form 0\n\nbad {\n op: missing/kind\n}\n", &catalog())
             .expect_err("unknown kind fails");
         assert!(error.to_string().contains("missing/kind"));
+    }
+
+    #[test]
+    fn enforces_catalog_supplied_configuration_rules() {
+        let error = parse(
+            "form 0\n\ndemo {\n source: test/source\n source.count = 5\n}\n",
+            &catalog(),
+        )
+        .expect_err("out-of-range catalog value fails");
+        assert!(matches!(error, super::FormError::InvalidConfiguration(_)));
     }
 }
