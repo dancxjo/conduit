@@ -2,8 +2,8 @@ use conduit_core::{
     kind_id, verify_plan, ArtifactId, BootId, CapabilityLimits, CapabilityOffer,
     ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider, ExecutionProfileId,
     FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId,
-    ImplementationId, KindContractRevision, Observation, ObservationKind, OfferGeneration, Plan,
-    PlanFragment, PlanId, PlatformEffect, TerminalDisposition, PROTOCOL_VERSION,
+    ImplementationId, Observation, ObservationKind, OfferGeneration, Plan, PlanFragment, PlanId,
+    PlatformEffect, TerminalDisposition, PROTOCOL_VERSION,
 };
 use conduit_form::CheckedForm;
 use conduit_runtime::{
@@ -91,11 +91,9 @@ impl CompositeDefinition {
                 "authored form and exact internal plan do not agree".into(),
             ));
         }
-        let export = form
-            .exports
-            .iter()
-            .find(|export| &export.capability_id == export_capability_id)
-            .ok_or_else(|| CompositeError::InvalidInternalPlan("missing authored export".into()))?;
+        let boundary = form
+            .export_boundary(export_capability_id)
+            .map_err(|error| CompositeError::InvalidInternalPlan(error.to_string()))?;
         let placement_for = |operation_id: &conduit_core::OperationId| {
             internal_plan
                 .fragments
@@ -103,10 +101,10 @@ impl CompositeDefinition {
                 .flat_map(|fragment| &fragment.placements)
                 .find(|placement| &placement.operation_id == operation_id)
         };
-        let source = placement_for(&export.source_operation_id).ok_or_else(|| {
+        let source = placement_for(&boundary.source_operation_id).ok_or_else(|| {
             CompositeError::InvalidInternalPlan("export source is absent from plan".into())
         })?;
-        let sink = placement_for(&export.sink_operation_id).ok_or_else(|| {
+        let sink = placement_for(&boundary.sink_operation_id).ok_or_else(|| {
             CompositeError::InvalidInternalPlan("export sink is absent from plan".into())
         })?;
         let connection = internal_plan
@@ -115,10 +113,10 @@ impl CompositeDefinition {
             .flat_map(|fragment| &fragment.connections)
             .find(|connection| {
                 connection.source_placement_id == source.placement_id
-                    && connection.source_port_id == export.source_port_id
+                    && connection.source_port_id == boundary.source_port_id
                     && connection.sink_placement_id == sink.placement_id
-                    && connection.sink_port_id == export.sink_port_id
-                    && connection.value_kind == export.value_kind
+                    && connection.sink_port_id == boundary.sink_port_id
+                    && connection.value_kind == boundary.value_kind
                     && connection.provider == ConnectionProvider::InMemory
             })
             .cloned()
@@ -129,15 +127,6 @@ impl CompositeDefinition {
             })?;
         let source_child = source.host_id.clone();
         let sink_child = sink.host_id.clone();
-        let external_inputs = Vec::new();
-        let external_outputs = source
-            .outputs
-            .iter()
-            .filter(|port| port.port_id == export.source_port_id)
-            .cloned()
-            .collect();
-        let kind_contract_revision =
-            KindContractRevision::from(format!("{}@1", export.kind_id.as_str()));
         let execution_profile_id =
             ExecutionProfileId::from(format!("composite:{}@1", implementation_id.as_str()));
         Ok(Self {
@@ -146,14 +135,14 @@ impl CompositeDefinition {
             offer_generation,
             profile,
             external_capability: CapabilityOffer {
-                capability_id: export.capability_id.clone(),
-                kind_id: export.kind_id.clone(),
-                kind_contract_revision,
+                capability_id: boundary.capability_id,
+                kind_id: boundary.kind_id,
+                kind_contract_revision: boundary.kind_contract_revision,
                 execution_profile_id,
                 implementation_id,
                 artifact_id,
-                inputs: external_inputs,
-                outputs: external_outputs,
+                inputs: boundary.inputs,
+                outputs: boundary.outputs,
                 host_operations: Vec::new(),
                 resource_requirements: Vec::new(),
                 authority_requirements: Vec::new(),
@@ -1030,13 +1019,13 @@ mod tests {
         ChildHostBinding, CompositeBoundary, CompositeDefinition, CompositeHost, DeliveryMode,
     };
     use conduit_core::{
-        kind_id, port_id, process_owned_link_binding, ArtifactId, BootId, CapabilityId,
-        CapabilityLimits, CapabilityOffer, CheckedFormId, ConnectionEnvelope, ConnectionOutcome,
-        ConnectionProvider, ExecutionProfileId, HostAdvertisement, HostCommand, HostEvent, HostId,
-        HostProfileId, ImplementationId, KindContractRevision, KindId, OfferGeneration,
-        OperationId, PortDescriptor, PortDirection, TerminalDisposition, PROTOCOL_VERSION,
+        kind_id, process_owned_link_binding, ArtifactId, BootId, CapabilityId, CapabilityLimits,
+        CapabilityOffer, CheckedFormId, ConnectionEnvelope, ConnectionOutcome, ConnectionProvider,
+        ExecutionProfileId, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId,
+        ImplementationId, KindContractRevision, KindId, OfferGeneration, OperationId,
+        TerminalDisposition, PROTOCOL_VERSION,
     };
-    use conduit_form::{parse, CheckedForm, CheckedOperation, KindDefinition, ProfileCatalog};
+    use conduit_form::{parse, CheckedForm, CheckedOperation, ProfileCatalog};
     use conduit_planner::{plan, plan_with_link_bindings, PlacementChoice, PlacementChoices};
     use conduit_runtime::{providers::in_memory::InMemoryConnectionProvider, HostRuntime};
     use conduit_signal::{
@@ -1044,7 +1033,6 @@ mod tests {
         pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
         show_host_operation_requirements, show_inputs, show_resource_requirements,
         signal_profile_catalog, signal_registry, signal_resource_offers, PULSE_KIND, SHOW_KIND,
-        SIGNAL_VALUE_KIND,
     };
     use std::collections::BTreeMap;
 
@@ -1059,22 +1047,10 @@ mod tests {
     }
 
     fn parent_catalog() -> ProfileCatalog {
-        let mut catalog = ProfileCatalog::new();
+        let mut catalog = signal_profile_catalog();
         catalog
-            .insert(KindDefinition {
-                kind_id: kind_id(COMPOSITE_DEMONSTRATION_KIND),
-                kind_contract_revision: KindContractRevision::from(format!(
-                    "{COMPOSITE_DEMONSTRATION_KIND}@1"
-                )),
-                inputs: Vec::new(),
-                outputs: vec![PortDescriptor {
-                    port_id: port_id("signal"),
-                    value_kind: kind_id(SIGNAL_VALUE_KIND),
-                    direction: PortDirection::Output,
-                }],
-                configuration: Vec::new(),
-            })
-            .expect("parent composite kind installs");
+            .insert_export(&authored_internal_form(), &CapabilityId::from("run-signal"))
+            .expect("authored export installs into the parent catalog");
         catalog
     }
 
@@ -1329,6 +1305,72 @@ mod tests {
         .into_iter()
         .find(|fragment| fragment.host_id == composite.advertisement().host_id)
         .expect("composite fragment exists")
+    }
+
+    #[test]
+    fn authored_parent_consumes_derived_export_through_an_ordinary_planned_cord() {
+        let internal = authored_internal_form();
+        let boundary = internal
+            .export_boundary(&CapabilityId::from("run-signal"))
+            .expect("authored export checks");
+        let composite = composite(4, 64);
+        let sink = child_advertisement("parent-sink", "parent-sink-boot", false);
+        let parent = parse(
+            "form 0\nparent {\n child: demonstration/run-signal\n sink: presentation/show\n child.signal -> sink.signal\n}\n",
+            &parent_catalog(),
+        )
+        .expect("parent consumes the derived output as an ordinary port");
+        let placements = PlacementChoices {
+            by_operation: BTreeMap::from([
+                (
+                    OperationId::from("child"),
+                    PlacementChoice {
+                        host_id: composite.advertisement().host_id.clone(),
+                        capability_id: CapabilityId::from("run-signal"),
+                    },
+                ),
+                (
+                    OperationId::from("sink"),
+                    PlacementChoice {
+                        host_id: sink.host_id.clone(),
+                        capability_id: CapabilityId::from("show"),
+                    },
+                ),
+            ]),
+        };
+        let links = [process_owned_link_binding(
+            "link/parent-child",
+            ConnectionProvider::InMemory,
+            "fixture/in-memory/parent-child",
+            composite.advertisement(),
+            &sink,
+            8,
+            128,
+        )];
+        let plan = plan_with_link_bindings(
+            &parent,
+            &[composite.advertisement().clone(), sink],
+            &placements,
+            &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+            4,
+            64,
+            &links,
+        )
+        .expect("ordinary parent cord plans against the composite offer");
+        let connection = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .next()
+            .expect("parent plan has the ordinary cord");
+
+        assert_eq!(
+            parent.operations[0].kind_contract_revision,
+            boundary.kind_contract_revision
+        );
+        assert_eq!(connection.source_port_id.as_str(), "signal");
+        assert_eq!(connection.sink_port_id.as_str(), "signal");
+        assert_eq!(connection.value_kind, boundary.value_kind);
     }
 
     #[test]

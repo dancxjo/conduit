@@ -104,6 +104,71 @@ impl CheckedForm {
             expanded_form_id: self.expanded_form_id.clone(),
         }
     }
+
+    /// Derives the only composite boundary contract this form may expose for
+    /// `capability_id`. Every field comes from a checked authored export and
+    /// its checked endpoint descriptors.
+    pub fn export_boundary(
+        &self,
+        capability_id: &CapabilityId,
+    ) -> Result<CheckedCompositeBoundary, FormError> {
+        let export = self
+            .exports
+            .iter()
+            .find(|export| &export.capability_id == capability_id)
+            .ok_or_else(|| {
+                FormError::InvalidExport(format!(
+                    "checked form has no authored capability '{}'",
+                    capability_id.as_str()
+                ))
+            })?;
+        let source = self
+            .operations
+            .iter()
+            .find(|operation| operation.operation_id == export.source_operation_id)
+            .ok_or_else(|| {
+                FormError::InvalidExport("export source operation is not checked".into())
+            })?;
+        let output = source
+            .outputs
+            .iter()
+            .find(|port| port.port_id == export.source_port_id)
+            .cloned()
+            .ok_or_else(|| FormError::InvalidExport("export source port is not checked".into()))?;
+        let sink = self
+            .operations
+            .iter()
+            .find(|operation| operation.operation_id == export.sink_operation_id)
+            .ok_or_else(|| {
+                FormError::InvalidExport("export sink operation is not checked".into())
+            })?;
+        let input = sink
+            .inputs
+            .iter()
+            .find(|port| port.port_id == export.sink_port_id)
+            .ok_or_else(|| FormError::InvalidExport("export sink port is not checked".into()))?;
+        if output.value_kind != export.value_kind || input.value_kind != export.value_kind {
+            return Err(FormError::InvalidExport(
+                "export value kind differs from its checked endpoints".into(),
+            ));
+        }
+        Ok(CheckedCompositeBoundary {
+            capability_id: export.capability_id.clone(),
+            kind_id: export.kind_id.clone(),
+            kind_contract_revision: KindContractRevision::from(format!(
+                "checked-form:{}:export:{}",
+                self.checked_form_id.as_str(),
+                export.capability_id.as_str()
+            )),
+            inputs: Vec::new(),
+            outputs: vec![output],
+            source_operation_id: export.source_operation_id.clone(),
+            source_port_id: export.source_port_id.clone(),
+            sink_operation_id: export.sink_operation_id.clone(),
+            sink_port_id: export.sink_port_id.clone(),
+            value_kind: export.value_kind.clone(),
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,6 +180,32 @@ pub struct CheckedExport {
     pub sink_operation_id: OperationId,
     pub sink_port_id: PortId,
     pub value_kind: KindId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedCompositeBoundary {
+    pub capability_id: CapabilityId,
+    pub kind_id: KindId,
+    pub kind_contract_revision: KindContractRevision,
+    pub inputs: Vec<PortDescriptor>,
+    pub outputs: Vec<PortDescriptor>,
+    pub source_operation_id: OperationId,
+    pub source_port_id: PortId,
+    pub sink_operation_id: OperationId,
+    pub sink_port_id: PortId,
+    pub value_kind: KindId,
+}
+
+impl CheckedCompositeBoundary {
+    pub fn kind_definition(&self) -> KindDefinition {
+        KindDefinition {
+            kind_id: self.kind_id.clone(),
+            kind_contract_revision: self.kind_contract_revision.clone(),
+            inputs: self.inputs.clone(),
+            outputs: self.outputs.clone(),
+            configuration: Vec::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -173,6 +264,16 @@ impl ProfileCatalog {
 
     pub fn get(&self, kind_id: &KindId) -> Option<&KindDefinition> {
         self.kinds.get(kind_id)
+    }
+
+    pub fn insert_export(
+        &mut self,
+        form: &CheckedForm,
+        capability_id: &CapabilityId,
+    ) -> Result<CheckedCompositeBoundary, FormError> {
+        let boundary = form.export_boundary(capability_id)?;
+        self.insert(boundary.kind_definition())?;
+        Ok(boundary)
     }
 
     fn supported_kinds(&self) -> String {
@@ -352,10 +453,21 @@ fn parse_checked_with_span(
     for located in &lines[2..lines.len() - 1] {
         let line = located.text;
         if let Some(export) = line.strip_prefix("export ") {
-            exports.push(
-                parse_export(export, &operations, &connections)
-                    .map_err(|error| (error, located.span))?,
-            );
+            let export = parse_export(export, &operations, &connections)
+                .map_err(|error| (error, located.span))?;
+            if exports
+                .iter()
+                .any(|checked| checked.capability_id == export.capability_id)
+            {
+                return Err((
+                    FormError::InvalidExport(format!(
+                        "duplicate capability '{}'",
+                        export.capability_id.as_str()
+                    )),
+                    located.span,
+                ));
+            }
+            exports.push(export);
             continue;
         }
         if let Some((left, right)) = line.split_once(':') {
@@ -890,7 +1002,8 @@ mod tests {
         ProfileCatalog, MAXIMUM_FORM_SOURCE_BYTES, MAXIMUM_FORM_TOKENS,
     };
     use conduit_core::{
-        kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
+        kind_id, port_id, CapabilityId, ConfigurationValue, KindContractRevision, PortDescriptor,
+        PortDirection,
     };
 
     fn catalog() -> ProfileCatalog {
@@ -1144,5 +1257,62 @@ mod tests {
         )
         .expect_err("an export cannot invent a connection");
         assert!(matches!(error, super::FormError::InvalidExport(_)));
+    }
+
+    #[test]
+    fn checked_export_is_the_only_source_of_a_parent_kind_boundary() {
+        let source = "form 0\nchild {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite = source.out -> sink.in\n}\n";
+        let child = parse(source, &catalog()).expect("child checks");
+        let capability_id = CapabilityId::from("run");
+        let boundary = child
+            .export_boundary(&capability_id)
+            .expect("authored export derives a boundary");
+
+        assert_eq!(boundary.kind_id.as_str(), "test/composite");
+        assert_eq!(boundary.inputs, Vec::new());
+        assert_eq!(boundary.outputs.len(), 1);
+        assert_eq!(boundary.outputs[0].port_id.as_str(), "out");
+        assert_eq!(boundary.value_kind.as_str(), "test/value");
+        assert!(child
+            .export_boundary(&CapabilityId::from("invented"))
+            .is_err());
+
+        let mut parent_catalog = catalog();
+        let installed = parent_catalog
+            .insert_export(&child, &capability_id)
+            .expect("checked boundary installs");
+        let parent = parse(
+            "form 0\nparent {\n child: test/composite\n sink: test/sink\n child.out -> sink.in\n}\n",
+            &parent_catalog,
+        )
+        .expect("ordinary parent cord checks");
+        assert_eq!(
+            parent.operations[0].kind_contract_revision,
+            installed.kind_contract_revision
+        );
+        assert_eq!(parent.connections[0].source_port_id.as_str(), "out");
+
+        let changed = parse(
+            "form 0\nchild {\n source: test/source\n sink: test/sink\n source.count = 2\n source > sink\n export run: test/composite = source.out -> sink.in\n}\n",
+            &catalog(),
+        )
+        .expect("semantic change checks");
+        assert_ne!(
+            boundary.kind_contract_revision,
+            changed
+                .export_boundary(&capability_id)
+                .expect("changed export derives a boundary")
+                .kind_contract_revision
+        );
+    }
+
+    #[test]
+    fn duplicate_export_capabilities_are_rejected() {
+        let error = parse(
+            "form 0\nchild {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite = source.out -> sink.in\n export run: test/other = source.out -> sink.in\n}\n",
+            &catalog(),
+        )
+        .expect_err("one capability cannot name two boundaries");
+        assert!(matches!(error, FormError::InvalidExport(_)));
     }
 }
