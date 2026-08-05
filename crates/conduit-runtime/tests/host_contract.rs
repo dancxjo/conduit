@@ -1,11 +1,11 @@
 use conduit_core::{
     kind_id, port_id, seal_plan, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConnectionOutcome, ConnectionProvider, ExecutionProfileId, ExpectedEvidence,
-    ExpectedTerminal, FailureReason, FormId, FragmentId, HostAdvertisement, HostCommand, HostEvent,
-    HostId, HostProfileId, ImplementationId, KindContractRevision, ObservationKind,
-    OfferGeneration, OperationId, PlacementId, PlanFragment, PlanId, PlannedOperation,
-    PlatformEffect, PortDescriptor, PortDirection, TerminalDisposition, ValuePayload,
-    PROTOCOL_VERSION,
+    CapabilityOffer, CheckedFormId, ConnectionOutcome, ConnectionProvider, ExecutionProfileId,
+    ExpandedFormId, ExpectedEvidence, ExpectedTerminal, FailureReason, FormIdentity, FragmentId,
+    HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
+    KindContractRevision, ObservationKind, OfferGeneration, OperationId, PlacementId, PlanFragment,
+    PlanId, PlannedOperation, PlatformEffect, PortDescriptor, PortDirection, SourceDocumentId,
+    TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
 use conduit_planner::{default_placements, plan, PlacementChoice, PlacementChoices};
@@ -314,11 +314,18 @@ fn reseal_fragment(mut fragment: PlanFragment) -> PlanFragment {
     fragment.plan_id = PlanId::from("");
     fragment.fragment_id = FragmentId::from("");
     fragment.plan_fragments.clear();
-    seal_plan(fragment.form_id.clone(), vec![fragment])
-        .fragments
-        .into_iter()
-        .next()
-        .expect("single-fragment plan reseals")
+    seal_plan(
+        FormIdentity {
+            source_document_id: fragment.source_document_id.clone(),
+            checked_form_id: fragment.checked_form_id.clone(),
+            expanded_form_id: fragment.expanded_form_id.clone(),
+        },
+        vec![fragment],
+    )
+    .fragments
+    .into_iter()
+    .next()
+    .expect("single-fragment plan reseals")
 }
 
 #[test]
@@ -479,6 +486,18 @@ fn assert_post_identity_mutation_is_rejected(
 fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
     let advertised = advertisement();
     let original = fragment(&advertised);
+
+    let mut mutated = original.clone();
+    mutated.source_document_id = SourceDocumentId::from("mutated-source");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.checked_form_id = CheckedFormId::from("mutated-checked");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.expanded_form_id = ExpandedFormId::from("mutated-expanded");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
     mutated.placements[0].implementation_id = ImplementationId::from("mutated/implementation");
@@ -707,11 +726,17 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
     };
     let placement_id = PlacementId::from("echo-placement");
     let mut echo_plan = seal_plan(
-        FormId::from("echo-form"),
+        FormIdentity {
+            source_document_id: SourceDocumentId::from("echo-source"),
+            checked_form_id: CheckedFormId::from("echo-form"),
+            expanded_form_id: ExpandedFormId::from("echo-expanded"),
+        },
         vec![PlanFragment {
             plan_id: PlanId::from(""),
             fragment_id: FragmentId::from(""),
-            form_id: FormId::from("echo-form"),
+            source_document_id: SourceDocumentId::from("echo-source"),
+            checked_form_id: CheckedFormId::from("echo-form"),
+            expanded_form_id: ExpandedFormId::from("echo-expanded"),
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
             offer_generation: advertisement.offer_generation,

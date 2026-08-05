@@ -1,6 +1,7 @@
 use conduit_core::{
-    CapabilityId, ConfigurationEntry, ConfigurationValue, FormId, KindContractRevision, KindId,
-    OperationId, PortDescriptor, PortId,
+    CapabilityId, CheckedFormId, ConfigurationEntry, ConfigurationValue, ExpandedFormId,
+    FormIdentity, KindContractRevision, KindId, OperationId, PortDescriptor, PortId,
+    SourceDocumentId,
 };
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -26,11 +27,23 @@ pub struct CheckedConnection {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedForm {
-    pub form_id: FormId,
+    pub source_document_id: SourceDocumentId,
+    pub checked_form_id: CheckedFormId,
+    pub expanded_form_id: ExpandedFormId,
     pub name: String,
     pub operations: Vec<CheckedOperation>,
     pub connections: Vec<CheckedConnection>,
     pub exports: Vec<CheckedExport>,
+}
+
+impl CheckedForm {
+    pub fn identity(&self) -> FormIdentity {
+        FormIdentity {
+            source_document_id: self.source_document_id.clone(),
+            checked_form_id: self.checked_form_id.clone(),
+            expanded_form_id: self.expanded_form_id.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -289,14 +302,22 @@ pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedForm, Form
             configuration: draft.configuration.clone(),
         })
         .collect::<Vec<_>>();
-    let form_id = FormId::from(hash_string(&canonical_form_text(
+    let checked_form_id = CheckedFormId::from(hash_string(&canonical_form_text(
         &name,
         &checked_operations,
         &connections,
         &exports,
     )));
+    let source_document_id =
+        SourceDocumentId::from(hash_string(&format!("source-document:{source}")));
+    let expanded_form_id = ExpandedFormId::from(hash_string(&format!(
+        "expanded-form:{}",
+        checked_form_id.as_str()
+    )));
     Ok(CheckedForm {
-        form_id,
+        source_document_id,
+        checked_form_id,
+        expanded_form_id,
         name,
         operations: checked_operations,
         connections,
@@ -614,9 +635,41 @@ mod tests {
         )
         .expect("retyped port parses");
 
-        assert_ne!(baseline.form_id, revised.form_id);
-        assert_ne!(baseline.form_id, renamed_port.form_id);
-        assert_ne!(baseline.form_id, retyped_port.form_id);
+        assert_ne!(baseline.checked_form_id, revised.checked_form_id);
+        assert_ne!(baseline.checked_form_id, renamed_port.checked_form_id);
+        assert_ne!(baseline.checked_form_id, retyped_port.checked_form_id);
+        assert_eq!(baseline.source_document_id, revised.source_document_id);
+        assert_ne!(baseline.expanded_form_id, revised.expanded_form_id);
+        assert_ne!(baseline.expanded_form_id, renamed_port.expanded_form_id);
+        assert_ne!(baseline.expanded_form_id, retyped_port.expanded_form_id);
+    }
+
+    #[test]
+    fn source_checked_and_expanded_form_identities_stay_distinct() {
+        let baseline_source =
+            "form 0\n\nidentity {\n source: test/source\n sink: test/sink\n source > sink\n}\n";
+        let spelling_only_source = "# author note\nform 0\nidentity {\n\n source: test/source\n sink: test/sink\n source > sink\n}\n";
+        let semantic_change_source = "form 0\n\nidentity {\n source: test/source\n sink: test/sink\n source.count = 2\n source > sink\n}\n";
+
+        let baseline = parse(baseline_source, &catalog()).expect("baseline parses");
+        let spelling_only =
+            parse(spelling_only_source, &catalog()).expect("spelling-only edit parses");
+        let semantic_change =
+            parse(semantic_change_source, &catalog()).expect("semantic edit parses");
+
+        assert_ne!(
+            baseline.source_document_id,
+            spelling_only.source_document_id
+        );
+        assert_eq!(baseline.checked_form_id, spelling_only.checked_form_id);
+        assert_eq!(baseline.expanded_form_id, spelling_only.expanded_form_id);
+
+        assert_ne!(
+            baseline.source_document_id,
+            semantic_change.source_document_id
+        );
+        assert_ne!(baseline.checked_form_id, semantic_change.checked_form_id);
+        assert_ne!(baseline.expanded_form_id, semantic_change.expanded_form_id);
     }
 
     #[test]

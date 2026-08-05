@@ -246,7 +246,7 @@ pub fn plan_with_connection_limits_and_provider_overrides(
 
         let placement_id = PlacementId::from(hash_string(&format!(
             "placement:{}:{}:{}:{}",
-            form.form_id.as_str(),
+            form.checked_form_id.as_str(),
             operation.operation_id.as_str(),
             host.host_id.as_str(),
             capability.capability_id.as_str()
@@ -339,7 +339,7 @@ pub fn plan_with_connection_limits_and_provider_overrides(
         planned_connections.push(PlannedConnection {
             connection_id: ConnectionId::from(hash_string(&format!(
                 "connection:{}:{}:{}:{}:{}:{}",
-                form.form_id.as_str(),
+                form.checked_form_id.as_str(),
                 connection.source_operation_id.as_str(),
                 connection.source_port_id.as_str(),
                 connection.sink_operation_id.as_str(),
@@ -406,7 +406,9 @@ pub fn plan_with_connection_limits_and_provider_overrides(
             Some(PlanFragment {
                 plan_id: PlanId::from(""),
                 fragment_id: FragmentId::from(""),
-                form_id: form.form_id.clone(),
+                source_document_id: form.source_document_id.clone(),
+                checked_form_id: form.checked_form_id.clone(),
+                expanded_form_id: form.expanded_form_id.clone(),
                 host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(),
                 offer_generation: host.offer_generation,
@@ -420,7 +422,7 @@ pub fn plan_with_connection_limits_and_provider_overrides(
         })
         .collect::<Vec<_>>();
 
-    Ok(seal_plan(form.form_id.clone(), fragments))
+    Ok(seal_plan(form.identity(), fragments))
 }
 
 fn startup_order(
@@ -556,9 +558,9 @@ fn hex(nibble: u8) -> char {
 mod tests {
     use super::{default_placements, parse_placements, plan, PlannerError};
     use conduit_core::{
-        kind_id, ArtifactId, CapabilityLimits, CapabilityOffer, ConnectionProvider,
-        HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration,
-        PROTOCOL_VERSION,
+        kind_id, verify_plan, ArtifactId, CapabilityLimits, CapabilityOffer, ConnectionProvider,
+        ExpandedFormId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+        OfferGeneration, SourceDocumentId, PROTOCOL_VERSION,
     };
     use conduit_form::parse;
     use conduit_signal::{
@@ -644,6 +646,14 @@ mod tests {
             &[ConnectionProvider::Local],
         )
         .expect("exact plan resolves");
+        assert_eq!(plan.source_document_id, form.source_document_id);
+        assert_eq!(plan.checked_form_id, form.checked_form_id);
+        assert_eq!(plan.expanded_form_id, form.expanded_form_id);
+        assert!(plan.fragments.iter().all(|fragment| {
+            fragment.source_document_id == form.source_document_id
+                && fragment.checked_form_id == form.checked_form_id
+                && fragment.expanded_form_id == form.expanded_form_id
+        }));
         for placement in &plan.fragments[0].placements {
             let operation = form
                 .operations
@@ -670,6 +680,66 @@ mod tests {
             assert_eq!(placement.inputs, operation.inputs);
             assert_eq!(placement.outputs, operation.outputs);
         }
+    }
+
+    #[test]
+    fn planning_verification_rejects_each_top_level_form_identity_mutation() {
+        let form = form();
+        let host = host();
+        let placements = default_placements(&form, std::slice::from_ref(&host))
+            .expect("placements must resolve");
+        let original = plan(
+            &form,
+            std::slice::from_ref(&host),
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("exact plan resolves");
+
+        let mut source_changed = form.clone();
+        source_changed.source_document_id = SourceDocumentId::from("changed-source");
+        let source_plan = plan(
+            &source_changed,
+            std::slice::from_ref(&host),
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("source-identity plan resolves");
+        assert_ne!(original.plan_id, source_plan.plan_id);
+
+        let mut checked_changed = form.clone();
+        checked_changed.checked_form_id = conduit_core::CheckedFormId::from("changed-checked");
+        let checked_plan = plan(
+            &checked_changed,
+            std::slice::from_ref(&host),
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("checked-identity plan resolves");
+        assert_ne!(original.plan_id, checked_plan.plan_id);
+
+        let mut expanded_changed = form.clone();
+        expanded_changed.expanded_form_id = ExpandedFormId::from("changed-expanded");
+        let expanded_plan = plan(
+            &expanded_changed,
+            std::slice::from_ref(&host),
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("expanded-identity plan resolves");
+        assert_ne!(original.plan_id, expanded_plan.plan_id);
+
+        let mut mutated = original.clone();
+        mutated.source_document_id = SourceDocumentId::from("mutated-source");
+        assert!(!verify_plan(&mutated));
+
+        let mut mutated = original.clone();
+        mutated.checked_form_id = conduit_core::CheckedFormId::from("mutated-checked");
+        assert!(!verify_plan(&mutated));
+
+        let mut mutated = original;
+        mutated.expanded_form_id = ExpandedFormId::from("mutated-expanded");
+        assert!(!verify_plan(&mutated));
     }
 
     #[test]

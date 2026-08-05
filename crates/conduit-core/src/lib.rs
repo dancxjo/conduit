@@ -51,7 +51,9 @@ identity_type!(KindContractRevision);
 identity_type!(ExecutionProfileId);
 identity_type!(ImplementationId);
 identity_type!(ArtifactId);
-identity_type!(FormId);
+identity_type!(SourceDocumentId);
+identity_type!(CheckedFormId);
+identity_type!(ExpandedFormId);
 identity_type!(PlanId);
 identity_type!(FragmentId);
 identity_type!(PlacementId);
@@ -62,6 +64,13 @@ identity_type!(HostProfileId);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct OfferGeneration(pub u64);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FormIdentity {
+    pub source_document_id: SourceDocumentId,
+    pub checked_form_id: CheckedFormId,
+    pub expanded_form_id: ExpandedFormId,
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PortDirection {
@@ -231,7 +240,9 @@ pub struct PlannedConnection {
 pub struct PlanFragment {
     pub plan_id: PlanId,
     pub fragment_id: FragmentId,
-    pub form_id: FormId,
+    pub source_document_id: SourceDocumentId,
+    pub checked_form_id: CheckedFormId,
+    pub expanded_form_id: ExpandedFormId,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -246,13 +257,18 @@ pub struct PlanFragment {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Plan {
     pub plan_id: PlanId,
-    pub form_id: FormId,
+    pub source_document_id: SourceDocumentId,
+    pub checked_form_id: CheckedFormId,
+    pub expanded_form_id: ExpandedFormId,
     pub fragments: Vec<PlanFragment>,
 }
 
-pub fn seal_plan(form_id: FormId, mut fragments: Vec<PlanFragment>) -> Plan {
+pub fn seal_plan(form_identity: FormIdentity, mut fragments: Vec<PlanFragment>) -> Plan {
     for fragment in &mut fragments {
         fragment.plan_id = PlanId::from("");
+        fragment.source_document_id = form_identity.source_document_id.clone();
+        fragment.checked_form_id = form_identity.checked_form_id.clone();
+        fragment.expanded_form_id = form_identity.expanded_form_id.clone();
         fragment.fragment_id = compute_fragment_id(fragment);
         fragment.plan_fragments.clear();
     }
@@ -264,24 +280,28 @@ pub fn seal_plan(form_id: FormId, mut fragments: Vec<PlanFragment>) -> Plan {
         })
         .collect::<Vec<_>>();
     commitments.sort();
-    let plan_id = compute_plan_id(&form_id, &commitments);
+    let plan_id = compute_plan_id(&form_identity, &commitments);
     for fragment in &mut fragments {
         fragment.plan_id = plan_id.clone();
         fragment.plan_fragments = commitments.clone();
     }
     Plan {
         plan_id,
-        form_id,
+        source_document_id: form_identity.source_document_id,
+        checked_form_id: form_identity.checked_form_id,
+        expanded_form_id: form_identity.expanded_form_id,
         fragments,
     }
 }
 
 pub fn verify_plan(plan: &Plan) -> bool {
     plan.fragments.iter().all(verify_plan_fragment)
-        && plan
-            .fragments
-            .iter()
-            .all(|fragment| fragment.plan_id == plan.plan_id && fragment.form_id == plan.form_id)
+        && plan.fragments.iter().all(|fragment| {
+            fragment.plan_id == plan.plan_id
+                && fragment.source_document_id == plan.source_document_id
+                && fragment.checked_form_id == plan.checked_form_id
+                && fragment.expanded_form_id == plan.expanded_form_id
+        })
         && plan
             .fragments
             .first()
@@ -305,12 +325,22 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
         .iter()
         .filter(|item| item.host_id == fragment.host_id && item.fragment_id == fragment.fragment_id)
         .count();
-    own_matches == 1 && compute_plan_id(&fragment.form_id, &commitments) == fragment.plan_id
+    own_matches == 1
+        && compute_plan_id(
+            &FormIdentity {
+                source_document_id: fragment.source_document_id.clone(),
+                checked_form_id: fragment.checked_form_id.clone(),
+                expanded_form_id: fragment.expanded_form_id.clone(),
+            },
+            &commitments,
+        ) == fragment.plan_id
 }
 
 pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     let mut canonical = Vec::new();
-    push_string(&mut canonical, fragment.form_id.as_str());
+    push_string(&mut canonical, fragment.source_document_id.as_str());
+    push_string(&mut canonical, fragment.checked_form_id.as_str());
+    push_string(&mut canonical, fragment.expanded_form_id.as_str());
     push_string(&mut canonical, fragment.host_id.as_str());
     push_string(&mut canonical, fragment.boot_id.as_str());
     push_u64(&mut canonical, fragment.offer_generation.0);
@@ -401,9 +431,11 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     FragmentId::from(hash_bytes(&canonical))
 }
 
-fn compute_plan_id(form_id: &FormId, commitments: &[FragmentCommitment]) -> PlanId {
+fn compute_plan_id(form_identity: &FormIdentity, commitments: &[FragmentCommitment]) -> PlanId {
     let mut canonical = Vec::new();
-    push_string(&mut canonical, form_id.as_str());
+    push_string(&mut canonical, form_identity.source_document_id.as_str());
+    push_string(&mut canonical, form_identity.checked_form_id.as_str());
+    push_string(&mut canonical, form_identity.expanded_form_id.as_str());
     push_u32(&mut canonical, commitments.len() as u32);
     for commitment in commitments {
         push_string(&mut canonical, commitment.host_id.as_str());

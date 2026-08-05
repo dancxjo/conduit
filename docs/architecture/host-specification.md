@@ -203,6 +203,7 @@ A **plan** is an immutable, exact realization of a form for a particular set of 
 
 A plan selects:
 
+- the exact source document, checked semantic form, and expanded graph;
 - implementations;
 - host placements;
 - capability offers;
