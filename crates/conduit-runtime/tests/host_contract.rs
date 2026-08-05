@@ -1,11 +1,11 @@
 use conduit_core::{
     authority_grant, kind_id, mandatory_evidence_storage_requirement, port_id,
-    present_authority_requirement, present_host_operation_requirement, resource_offer,
-    resource_requirement, seal_plan, wait_host_operation_requirement, ArtifactId, AuthorityGrant,
-    BootId, CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
-    ConnectionOutcome, ConnectionProvider, ExecutionProfileId, ExpandedFormId, ExpectedEvidence,
-    ExpectedTerminal, FailureReason, FormIdentity, FragmentId, HostAdvertisement, HostCommand,
-    HostEvent, HostId, HostOperationContractId, HostProfileId, ImplementationId,
+    present_authority_requirement, present_host_operation_requirement, process_owned_link_binding,
+    resource_offer, resource_requirement, seal_plan, wait_host_operation_requirement, ArtifactId,
+    AuthorityGrant, BootId, CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer,
+    CheckedFormId, ConnectionOutcome, ConnectionProvider, ExecutionProfileId, ExpandedFormId,
+    ExpectedEvidence, ExpectedTerminal, FailureReason, FormIdentity, FragmentId, HostAdvertisement,
+    HostCommand, HostEvent, HostId, HostOperationContractId, HostProfileId, ImplementationId,
     KindContractRevision, ObservationKind, OfferGeneration, OperationId, PlacementId, PlanFragment,
     PlanId, PlannedOperation, PlatformEffect, PortDescriptor, PortDirection, SourceDocumentId,
     TerminalDisposition, TerminalPolicy, ValuePayload, PRESENTATION_RESOURCE_CLASS,
@@ -13,7 +13,8 @@ use conduit_core::{
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
 use conduit_planner::{
-    default_placements, plan, plan_with_authority_grants, PlacementChoice, PlacementChoices,
+    default_placements, plan, plan_with_authority_grants, plan_with_link_bindings, PlacementChoice,
+    PlacementChoices,
 };
 use conduit_runtime::{
     HostRuntime, ImplementationFailure, ImplementationRegistry, OperationAction,
@@ -1518,6 +1519,64 @@ fn adapter_advertisement() -> HostAdvertisement {
     advertised
 }
 
+fn remote_link_source_fixture() -> (HostAdvertisement, PlanFragment, conduit_core::LinkBinding) {
+    let form = parse(
+        "form 0\n\nlink-runtime {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
+        &profile_catalog(),
+    )
+    .expect("remote link form parses");
+    let mut source = adapter_advertisement();
+    source.host_id = HostId::from("link-source-host");
+    source.boot_id = BootId::from("link-source-boot");
+    source.capabilities.truncate(1);
+    let mut sink = advertisement();
+    sink.host_id = HostId::from("link-sink-host");
+    sink.boot_id = BootId::from("link-sink-boot");
+    sink.capabilities.remove(0);
+    let placements = PlacementChoices {
+        by_operation: BTreeMap::from([
+            (
+                OperationId::from("source"),
+                PlacementChoice {
+                    host_id: source.host_id.clone(),
+                    capability_id: CapabilityId::from("pulse"),
+                },
+            ),
+            (
+                OperationId::from("sink"),
+                PlacementChoice {
+                    host_id: sink.host_id.clone(),
+                    capability_id: CapabilityId::from("show"),
+                },
+            ),
+        ]),
+    };
+    let link = process_owned_link_binding(
+        "link/runtime",
+        ConnectionProvider::InMemory,
+        "fixture/in-memory/runtime",
+        &source,
+        &sink,
+        conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
+        conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+    );
+    let fragment = plan_with_link_bindings(
+        &form,
+        &[source.clone(), sink],
+        &placements,
+        &[],
+        conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
+        conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+        std::slice::from_ref(&link),
+    )
+    .expect("observed remote link resolves")
+    .fragments
+    .into_iter()
+    .find(|fragment| fragment.host_id == source.host_id)
+    .expect("source fragment exists");
+    (source, fragment, link)
+}
+
 fn observations(runtime: &mut HostRuntime) -> Vec<conduit_core::Observation> {
     runtime
         .handle(HostCommand::Inspect)
@@ -1773,6 +1832,73 @@ fn effect_admission_rejects_a_planned_host_operation_outside_the_bound_grant_sub
 }
 
 #[test]
+fn preparation_requires_the_exact_current_boot_scoped_link_observation() {
+    let (source, fragment, link) = remote_link_source_fixture();
+
+    let mut runtime = HostRuntime::new(source.clone(), adapter_registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(fragment.clone()))),
+        Some(FailureReason::LinkUnavailable)
+    );
+
+    let mut stale = link.clone();
+    stale.source.boot_id = BootId::from("stale-link-source-boot");
+    let mut runtime = HostRuntime::new_with_external_state(
+        source.clone(),
+        adapter_registry(),
+        64,
+        vec![],
+        vec![stale],
+    );
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(fragment.clone()))),
+        Some(FailureReason::LinkUnavailable)
+    );
+
+    let mut conflicting = link.clone();
+    conflicting.provider_instance_id =
+        conduit_core::ConnectionProviderInstanceId::from("conflicting/provider");
+    let mut runtime = HostRuntime::new_with_external_state(
+        source.clone(),
+        adapter_registry(),
+        64,
+        vec![],
+        vec![link.clone(), conflicting],
+    );
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(fragment.clone()))),
+        Some(FailureReason::LinkUnavailable)
+    );
+
+    let mut mutated = fragment.clone();
+    mutated.connections[0]
+        .link_binding
+        .as_mut()
+        .expect("link binding exists")
+        .source
+        .boot_id = BootId::from("resealed-wrong-boot");
+    let mut runtime = HostRuntime::new_with_external_state(
+        source.clone(),
+        adapter_registry(),
+        64,
+        vec![],
+        vec![link.clone()],
+    );
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::LinkBindingMismatch)
+    );
+
+    let mut runtime =
+        HostRuntime::new_with_external_state(source, adapter_registry(), 64, vec![], vec![link]);
+    assert!(runtime
+        .handle(HostCommand::Prepare(fragment))
+        .events
+        .iter()
+        .any(|event| matches!(event, HostEvent::Prepared { .. })));
+}
+
+#[test]
 fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
     let local_advertisement = adapter_advertisement();
     let local_fragment = fragment(&local_advertisement);
@@ -1883,11 +2009,23 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
             ),
         ]),
     };
-    let cross_host_plan = plan(
+    let link_binding = process_owned_link_binding(
+        "link/adapter",
+        ConnectionProvider::InMemory,
+        "fixture/in-memory/adapter",
+        &source_advertisement,
+        &sink_advertisement,
+        conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
+        conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+    );
+    let cross_host_plan = plan_with_link_bindings(
         &form,
         &[source_advertisement.clone(), sink_advertisement],
         &placements,
         &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+        conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
+        conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+        std::slice::from_ref(&link_binding),
     )
     .expect("cross-host adapter plan resolves");
     let source_fragment = cross_host_plan
@@ -1895,7 +2033,13 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
         .into_iter()
         .find(|fragment| fragment.host_id == source_advertisement.host_id)
         .expect("source fragment exists");
-    let mut source_runtime = HostRuntime::new(source_advertisement, adapter_registry(), 128);
+    let mut source_runtime = HostRuntime::new_with_external_state(
+        source_advertisement,
+        adapter_registry(),
+        128,
+        vec![],
+        vec![link_binding],
+    );
     source_runtime.handle(HostCommand::Prepare(source_fragment.clone()));
     let activated = source_runtime.handle(HostCommand::Activate(source_fragment.plan_id.clone()));
     let wait = activated

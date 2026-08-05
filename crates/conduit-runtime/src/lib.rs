@@ -169,6 +169,7 @@ pub struct HostRuntime {
     released_plans: BTreeSet<PlanId>,
     implementations: ImplementationRegistry,
     authority_grants: Vec<conduit_core::AuthorityGrant>,
+    link_bindings: Vec<conduit_core::LinkBinding>,
 }
 
 impl core::fmt::Debug for HostRuntime {
@@ -181,6 +182,7 @@ impl core::fmt::Debug for HostRuntime {
             .field("released_plans", &self.released_plans)
             .field("implementations", &self.implementations)
             .field("authority_grants", &self.authority_grants.len())
+            .field("link_bindings", &self.link_bindings.len())
             .finish()
     }
 }
@@ -335,6 +337,49 @@ fn validate_fragment_execution_contract(
         return Some((
             FailureReason::HostOperationContractMismatch,
             "host-operation requirements must have non-empty identities, unique canonical ordering, and nonzero in-flight bounds".to_string(),
+        ));
+    }
+    if fragment.connections.iter().any(|connection| {
+        let invalid_binding = connection.link_binding.as_ref().is_some_and(|binding| {
+            binding.binding_id.as_str().is_empty()
+                || binding.source.host_id.as_str().is_empty()
+                || binding.source.boot_id.as_str().is_empty()
+                || binding.source.endpoint_id.as_str().is_empty()
+                || binding.sink.host_id.as_str().is_empty()
+                || binding.sink.boot_id.as_str().is_empty()
+                || binding.sink.endpoint_id.as_str().is_empty()
+                || binding.source.endpoint_id == binding.sink.endpoint_id
+                || binding.source.host_id == binding.sink.host_id
+                || binding.provider == ConnectionProvider::Local
+                || binding.provider_instance_id.as_str().is_empty()
+                || binding.availability != conduit_core::LinkAvailability::Ready
+                || binding.limits.maximum_in_flight_items < connection.item_capacity
+                || binding.limits.maximum_buffered_bytes < connection.byte_capacity
+                || matches!(
+                    &binding.credential,
+                    conduit_core::LinkCredentialReference::Opaque(reference)
+                        if reference.as_str().is_empty()
+                )
+                || matches!(
+                    &binding.authority,
+                    conduit_core::LinkAuthorityReference::Grant(grant_id)
+                        if grant_id.as_str().is_empty()
+                )
+        });
+        invalid_binding
+            || match connection.provider {
+                ConnectionProvider::Local => connection.link_binding.is_some(),
+                ConnectionProvider::InMemory
+                | ConnectionProvider::FixtureFrame
+                | ConnectionProvider::FixtureDatagram => connection
+                    .link_binding
+                    .as_ref()
+                    .is_none_or(|binding| binding.provider != connection.provider),
+            }
+    }) {
+        return Some((
+            FailureReason::LinkBindingMismatch,
+            "remote connections require one ready exact non-local link binding with initialized provider, explicit credential/authority references, and sufficient limits; local connections must not bind a link".to_string(),
         ));
     }
     if fragment.placements.iter().any(|placement| {
@@ -589,6 +634,19 @@ fn authority_binding_matches_current_grant(
     }) && matches.next().is_none()
 }
 
+fn link_binding_matches_current_observation(
+    binding: &conduit_core::LinkBinding,
+    observations: &[conduit_core::LinkBinding],
+) -> bool {
+    let mut matches = observations
+        .iter()
+        .filter(|observation| observation.binding_id == binding.binding_id);
+    matches
+        .next()
+        .is_some_and(|observation| observation == binding)
+        && matches.next().is_none()
+}
+
 impl HostRuntime {
     pub fn new(
         advertisement: HostAdvertisement,
@@ -609,6 +667,22 @@ impl HostRuntime {
         observation_limit: usize,
         authority_grants: Vec<conduit_core::AuthorityGrant>,
     ) -> Self {
+        Self::new_with_external_state(
+            advertisement,
+            implementations,
+            observation_limit,
+            authority_grants,
+            Vec::new(),
+        )
+    }
+
+    pub fn new_with_external_state(
+        advertisement: HostAdvertisement,
+        implementations: ImplementationRegistry,
+        observation_limit: usize,
+        authority_grants: Vec<conduit_core::AuthorityGrant>,
+        link_bindings: Vec<conduit_core::LinkBinding>,
+    ) -> Self {
         let mut runtime = Self {
             advertisement,
             observation_limit,
@@ -617,10 +691,15 @@ impl HostRuntime {
             released_plans: BTreeSet::new(),
             implementations,
             authority_grants,
+            link_bindings,
         };
         runtime.record_observation(None, None, None, ObservationKind::HostStarted);
         runtime.record_observation(None, None, None, ObservationKind::AdvertisementPublished);
         runtime
+    }
+
+    pub fn replace_link_bindings(&mut self, link_bindings: Vec<conduit_core::LinkBinding>) {
+        self.link_bindings = link_bindings;
     }
 
     pub fn advertisement(&self) -> &HostAdvertisement {
@@ -1192,6 +1271,41 @@ impl HostRuntime {
                     return output;
                 }
             };
+            if let Some(binding) = &connection.link_binding {
+                let local_endpoint_matches = match role {
+                    ConnectionRole::Outbound => {
+                        binding.source.host_id == fragment.host_id
+                            && binding.source.boot_id == fragment.boot_id
+                    }
+                    ConnectionRole::Inbound => {
+                        binding.sink.host_id == fragment.host_id
+                            && binding.sink.boot_id == fragment.boot_id
+                    }
+                    ConnectionRole::Local => false,
+                };
+                if !local_endpoint_matches {
+                    output.events.push(HostEvent::PreparationRejected {
+                        plan_id: fragment.plan_id,
+                        reason: FailureReason::LinkBindingMismatch,
+                        message: Some(format!(
+                            "connection '{}' link endpoint differs from local fragment identity",
+                            connection.connection_id.as_str()
+                        )),
+                    });
+                    return output;
+                }
+                if !link_binding_matches_current_observation(binding, &self.link_bindings) {
+                    output.events.push(HostEvent::PreparationRejected {
+                        plan_id: fragment.plan_id,
+                        reason: FailureReason::LinkUnavailable,
+                        message: Some(format!(
+                            "connection '{}' lacks its exact current link observation",
+                            connection.connection_id.as_str()
+                        )),
+                    });
+                    return output;
+                }
+            }
             let local_capabilities = source
                 .into_iter()
                 .chain(sink)

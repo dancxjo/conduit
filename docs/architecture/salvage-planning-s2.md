@@ -2,8 +2,8 @@
 
 Issue #363 replaces the reboot planner's single-value-kind capability claim
 with exact semantic and execution-profile bindings. This document records the
-accepted boundary of the completed S2 slices; the remaining plan facts stay
-open.
+accepted boundary of the completed S2 plan-fact slices. Lowering the hosted
+commitments into the S1 fixed stores remains separate integration work.
 
 ## Exact semantic capability slice
 
@@ -61,8 +61,9 @@ deterministic local startup order. Each cord makes its sink a prerequisite of
 its source, so downstream placements are ready before upstream placements can
 emit. The planner rejects cyclic dependency graphs. A remote cord can name a
 placement on another host in the dependency graph; a host checks the ordering
-constraint when both endpoints are local, while later remote-link work must
-prove cross-host readiness before activation.
+constraint when both endpoints are local. Remote link readiness is now pinned
+and revalidated as described below; a coordinated cross-host prepared handshake
+remains later activation integration rather than a claim of this hosted model.
 
 The first executable policy profile is deliberately narrow:
 
@@ -145,8 +146,9 @@ does not release them, while the explicit release transition does.
 
 Resource availability remains separate from authority. An advertised pool
 allows planning and reservation only; it does not grant permission to operate
-on an external subject. Authority grants remain the next S2 slice. These hosted
-bindings are also not yet lowered into an S1 fixed-storage resource table.
+on an external subject. The authority contract below supplies that proof
+independently. These hosted bindings are also not yet lowered into an S1
+fixed-storage resource table.
 
 ## Exact authority requirements and grants
 
@@ -180,6 +182,39 @@ claim external DOM, device, or physical authority. Actual adapters must declare
 and receive suitable grants when they are introduced. Authority bindings are
 not yet lowered into an S1 fixed-storage authority table.
 
+## Observed remote link bindings
+
+A remote cord now carries one exact `LinkBinding`; a global
+`ConnectionProvider` list can no longer manufacture connectivity. Link
+observations enter planning independently and bind:
+
+- a directional binding identity;
+- source and sink host, boot, and provider-owned endpoint identities;
+- one initialized provider instance and its execution class;
+- explicit ready or unavailable state;
+- an opaque credential reference or an explicit no-credential fact;
+- an authority-grant reference or an explicit process-owned fact; and
+- finite maximum in-flight item and buffered-byte limits.
+
+Planning rejects malformed or duplicate observation identities, stale boot
+scope, unavailable or underbounded observations, and ambiguous ready links. An
+optional authored provider preference may filter observations, but the selected
+provider is always derived from the one exact observation. Local cords retain
+the `Local` execution tag and must not carry a link binding; every remote cord
+must carry one. Top-level plan verification resolves both placement endpoints,
+requires the same complete connection fact in both host fragments, and checks
+that host/boot endpoint scope, provider, readiness, and limits agree.
+
+Hosted preparation checks the local endpoint against the fragment host and
+boot, then requires exactly one current observation with the same binding
+identity and every immutable fact. The deterministic in-memory, frame, and
+datagram fixtures use explicit no-credential and process-owned authority facts;
+those are simulation facts, not credential, socket, browser, firmware, or
+physical proof. Future live carriers must supply their real opaque credential
+and authority references. Carrier configuration, secret material, retry,
+reconnect, encryption, and session protocols remain outside this compact S2
+binding and require their own later runtime contracts.
+
 ## Deterministic proof
 
 The focused vectors prove:
@@ -210,19 +245,24 @@ The focused vectors prove:
 - planning keeps grants separate from advertisements and rejects malformed,
   missing, stale, duplicate, or ambiguous authority; every binding field is
   identity-covered; preparation requires the exact current grant; and
-  ungranted subjects fail before effects.
+  ungranted subjects fail before effects; and
+- a remote provider enum alone cannot plan a cord; planning rejects missing,
+  stale, unavailable, underbounded, malformed, duplicate, and ambiguous link
+  observations; every binding field is identity-covered; preparation requires
+  the exact current boot-scoped observation; and Observatory renders the same
+  complete fact.
 
 ## Acceptance boundary
 
-This satisfies the first acceptance item and the three-form-identity portion
-of the second item in #363. It also binds the startup dependency,
-cancellation, terminal, mandatory-evidence, and evidence-storage-budget parts
-of that item, plus exact hosted host-operation, resource, and authority
-requirements. S2 remains open for observed `LinkBinding` values. The planned
-evidence, host-operation, resource, and authority commitments are not yet
-lowered into the S1 kernel stores. The existing
-`ConnectionProvider` remains a prototype until the remote-link slice replaces
-it.
+This satisfies the six acceptance items in #363: all enumerated plan facts are
+sealed, remote cords bind exact current link observations, bound-fact mutation
+changes identity or fails verification, preparation recomputes the executable
+commitments, and deterministic negatives cover every field group. The
+`ConnectionProvider` enum remains only a runtime dispatch class derived from a
+`LinkBinding`; it is no longer evidence of remote availability. Planned
+evidence, host-operation, resource, authority, and link commitments are not yet
+lowered into the S1 kernel stores, which remains explicit integration work
+rather than an unproven S2 plan claim.
 
 ## Checkpoint
 

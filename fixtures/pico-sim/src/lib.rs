@@ -143,11 +143,12 @@ mod std_fixture {
     use super::{led_receipt, pico_advertisement, LedReceipt, PicoSimConfig};
     use alloc::vec::Vec;
     use conduit_core::{
-        CapabilityId, ConnectionProvider, HostAdvertisement, HostCommand, HostEvent, HostId,
-        ImplementationId, Observation, PlacementId, Plan, PlanFragment, PlatformEffect,
+        process_owned_link_binding, CapabilityId, ConnectionProvider, HostAdvertisement,
+        HostCommand, HostEvent, HostId, ImplementationId, Observation, PlacementId, Plan,
+        PlanFragment, PlatformEffect,
     };
     use conduit_form::CheckedForm;
-    use conduit_planner::{plan, plan_with_connection_limits, PlacementChoice, PlacementChoices};
+    use conduit_planner::{plan, plan_with_link_bindings, PlacementChoice, PlacementChoices};
     use conduit_runtime::{HostRuntime, RuntimeOutput};
     use conduit_signal::{signal_registry, SIGNAL_PRESENTATION_KIND};
     use std::collections::BTreeMap;
@@ -181,6 +182,10 @@ mod std_fixture {
 
         pub fn handle(&mut self, command: HostCommand) -> RuntimeOutput {
             self.runtime.handle(command)
+        }
+
+        pub fn replace_link_bindings(&mut self, bindings: Vec<conduit_core::LinkBinding>) {
+            self.runtime.replace_link_bindings(bindings);
         }
 
         pub fn plan_local(&self, form: &CheckedForm) -> Result<Plan, Box<dyn std::error::Error>> {
@@ -233,13 +238,23 @@ mod std_fixture {
                     ),
                 ]),
             };
-            Ok(plan_with_connection_limits(
+            let links = [process_owned_link_binding(
+                "link/std-pico",
+                ConnectionProvider::FixtureDatagram,
+                "fixture/datagram/std-pico",
+                std_advertisement,
+                self.advertisement(),
+                4,
+                64,
+            )];
+            Ok(plan_with_link_bindings(
                 form,
                 &[std_advertisement.clone(), self.advertisement().clone()],
                 &placements,
                 &[ConnectionProvider::FixtureDatagram],
                 4,
                 64,
+                &links,
             )?)
         }
 
@@ -459,6 +474,12 @@ mod tests {
         assert_eq!(connection.item_capacity, 4);
         assert_eq!(connection.byte_capacity, 64);
         let connection_id = connection.connection_id.clone();
+        let link_binding = connection
+            .link_binding
+            .clone()
+            .expect("remote datagram connection binds an observed link");
+        std_host.replace_link_bindings(vec![link_binding.clone()]);
+        pico.replace_link_bindings(vec![link_binding]);
 
         for fragment in &plan.fragments {
             if fragment.host_id == std_host.advertisement().host_id {

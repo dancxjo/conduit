@@ -69,6 +69,7 @@ check-planning-s2:
     cargo test -p conduit-runtime --test host_contract authority_binding_mutations_change_fragment_identity
     cargo test -p conduit-runtime --test host_contract preparation_and_effect_admission_require_the_exact_current_authority_grant
     cargo test -p conduit-runtime --test host_contract effect_admission_rejects_a_planned_host_operation_outside_the_bound_grant_subject
+    cargo test -p conduit-runtime --test host_contract preparation_requires_the_exact_current_boot_scoped_link_observation
     cargo test -p conduit-runtime --test host_contract planned_evidence_storage_survives_observation_overflow
     cargo check -p conduit-core --target thumbv6m-none-eabi
 

@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::VecDeque;
+use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -64,6 +65,14 @@ identity_type!(PlanId);
 identity_type!(FragmentId);
 identity_type!(PlacementId);
 identity_type!(ConnectionId);
+// Identity of one observed, directional, boot-scoped remote link.
+identity_type!(LinkBindingId);
+// Provider-owned identity of one exact initialized link endpoint.
+identity_type!(LinkEndpointId);
+// Identity of one initialized provider instance behind a link observation.
+identity_type!(ConnectionProviderInstanceId);
+// Opaque reference only; credential material never enters a plan.
+identity_type!(CredentialReferenceId);
 identity_type!(PortId);
 identity_type!(OperationId);
 identity_type!(HostProfileId);
@@ -226,6 +235,52 @@ pub enum ConnectionProvider {
     FixtureDatagram,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LinkAvailability {
+    Ready,
+    Unavailable,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LinkCredentialReference {
+    None,
+    Opaque(CredentialReferenceId),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LinkAuthorityReference {
+    ProcessOwned,
+    Grant(AuthorityGrantId),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LinkEndpoint {
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub endpoint_id: LinkEndpointId,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LinkLimits {
+    pub maximum_in_flight_items: u16,
+    pub maximum_buffered_bytes: u32,
+}
+
+/// One observed, directional remote-link fact. It identifies an initialized
+/// provider instance but contains no provider configuration or secret material.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LinkBinding {
+    pub binding_id: LinkBindingId,
+    pub source: LinkEndpoint,
+    pub sink: LinkEndpoint,
+    pub provider: ConnectionProvider,
+    pub provider_instance_id: ConnectionProviderInstanceId,
+    pub availability: LinkAvailability,
+    pub credential: LinkCredentialReference,
+    pub authority: LinkAuthorityReference,
+    pub limits: LinkLimits,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConnectionEnvelope {
     pub protocol_version: u16,
@@ -371,6 +426,7 @@ pub struct PlannedConnection {
     pub sink_port_id: PortId,
     pub value_kind: KindId,
     pub provider: ConnectionProvider,
+    pub link_binding: Option<LinkBinding>,
     pub item_capacity: u16,
     pub byte_capacity: u32,
 }
@@ -449,6 +505,86 @@ pub fn verify_plan(plan: &Plan) -> bool {
             .fragments
             .first()
             .is_none_or(|first| first.plan_fragments.len() == plan.fragments.len())
+        && verify_plan_connections(plan)
+}
+
+fn verify_plan_connections(plan: &Plan) -> bool {
+    let connections = plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.connections)
+        .collect::<Vec<_>>();
+    for (index, connection) in connections.iter().enumerate() {
+        if connections[..index]
+            .iter()
+            .any(|prior| prior.connection_id == connection.connection_id)
+        {
+            continue;
+        }
+        let occurrences = connections
+            .iter()
+            .filter(|candidate| candidate.connection_id == connection.connection_id)
+            .collect::<Vec<_>>();
+        if occurrences.iter().any(|candidate| *candidate != connection) {
+            return false;
+        }
+        let source = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .filter(|placement| placement.placement_id == connection.source_placement_id)
+            .collect::<Vec<_>>();
+        let sink = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .filter(|placement| placement.placement_id == connection.sink_placement_id)
+            .collect::<Vec<_>>();
+        if source.len() != 1 || sink.len() != 1 {
+            return false;
+        }
+        let source = source[0];
+        let sink = sink[0];
+        if source.host_id == sink.host_id {
+            if occurrences.len() != 1
+                || connection.provider != ConnectionProvider::Local
+                || connection.link_binding.is_some()
+            {
+                return false;
+            }
+        } else {
+            let Some(binding) = &connection.link_binding else {
+                return false;
+            };
+            if occurrences.len() != 2
+                || connection.provider == ConnectionProvider::Local
+                || binding.binding_id.as_str().is_empty()
+                || binding.provider != connection.provider
+                || binding.provider_instance_id.as_str().is_empty()
+                || binding.availability != LinkAvailability::Ready
+                || binding.source.host_id != source.host_id
+                || binding.source.boot_id != source.boot_id
+                || binding.source.endpoint_id.as_str().is_empty()
+                || binding.sink.host_id != sink.host_id
+                || binding.sink.boot_id != sink.boot_id
+                || binding.sink.endpoint_id.as_str().is_empty()
+                || binding.source.endpoint_id == binding.sink.endpoint_id
+                || binding.limits.maximum_in_flight_items < connection.item_capacity
+                || binding.limits.maximum_buffered_bytes < connection.byte_capacity
+                || matches!(
+                    &binding.credential,
+                    LinkCredentialReference::Opaque(reference) if reference.as_str().is_empty()
+                )
+                || matches!(
+                    &binding.authority,
+                    LinkAuthorityReference::Grant(grant_id) if grant_id.as_str().is_empty()
+                )
+            {
+                return false;
+            }
+        }
+    }
+    true
 }
 
 pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
@@ -561,6 +697,46 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             ConnectionProvider::FixtureFrame => 2,
             ConnectionProvider::FixtureDatagram => 3,
         });
+        match &connection.link_binding {
+            Some(binding) => {
+                canonical.push(1);
+                push_string(&mut canonical, binding.binding_id.as_str());
+                push_string(&mut canonical, binding.source.host_id.as_str());
+                push_string(&mut canonical, binding.source.boot_id.as_str());
+                push_string(&mut canonical, binding.source.endpoint_id.as_str());
+                push_string(&mut canonical, binding.sink.host_id.as_str());
+                push_string(&mut canonical, binding.sink.boot_id.as_str());
+                push_string(&mut canonical, binding.sink.endpoint_id.as_str());
+                canonical.push(match binding.provider {
+                    ConnectionProvider::Local => 0,
+                    ConnectionProvider::InMemory => 1,
+                    ConnectionProvider::FixtureFrame => 2,
+                    ConnectionProvider::FixtureDatagram => 3,
+                });
+                push_string(&mut canonical, binding.provider_instance_id.as_str());
+                canonical.push(match binding.availability {
+                    LinkAvailability::Ready => 0,
+                    LinkAvailability::Unavailable => 1,
+                });
+                match &binding.credential {
+                    LinkCredentialReference::None => canonical.push(0),
+                    LinkCredentialReference::Opaque(reference) => {
+                        canonical.push(1);
+                        push_string(&mut canonical, reference.as_str());
+                    }
+                }
+                match &binding.authority {
+                    LinkAuthorityReference::ProcessOwned => canonical.push(0),
+                    LinkAuthorityReference::Grant(grant_id) => {
+                        canonical.push(1);
+                        push_string(&mut canonical, grant_id.as_str());
+                    }
+                }
+                canonical.extend_from_slice(&binding.limits.maximum_in_flight_items.to_le_bytes());
+                push_u32(&mut canonical, binding.limits.maximum_buffered_bytes);
+            }
+            None => canonical.push(0),
+        }
         canonical.extend_from_slice(&connection.item_capacity.to_le_bytes());
         push_u32(&mut canonical, connection.byte_capacity);
     }
@@ -718,6 +894,8 @@ pub enum FailureReason {
     ResourceCapacityExceeded,
     AuthorityContractMismatch,
     AuthorityDenied,
+    LinkBindingMismatch,
+    LinkUnavailable,
     ConnectionDisconnected,
     MalformedConnectionEnvelope,
     StalePlan,
@@ -1070,6 +1248,43 @@ pub fn authority_grant(
         host_id,
         boot_id,
         capability_id,
+    }
+}
+
+/// Build a ready link observation for a provider whose endpoint access is
+/// wholly owned by the current process. This is suitable for deterministic
+/// in-process fixtures; actual carriers should supply explicit credential and
+/// grant references instead.
+pub fn process_owned_link_binding(
+    binding_id: &str,
+    provider: ConnectionProvider,
+    provider_instance_id: &str,
+    source: &HostAdvertisement,
+    sink: &HostAdvertisement,
+    maximum_in_flight_items: u16,
+    maximum_buffered_bytes: u32,
+) -> LinkBinding {
+    LinkBinding {
+        binding_id: LinkBindingId::from(binding_id),
+        source: LinkEndpoint {
+            host_id: source.host_id.clone(),
+            boot_id: source.boot_id.clone(),
+            endpoint_id: LinkEndpointId::from(format!("{binding_id}/source")),
+        },
+        sink: LinkEndpoint {
+            host_id: sink.host_id.clone(),
+            boot_id: sink.boot_id.clone(),
+            endpoint_id: LinkEndpointId::from(format!("{binding_id}/sink")),
+        },
+        provider,
+        provider_instance_id: ConnectionProviderInstanceId::from(provider_instance_id),
+        availability: LinkAvailability::Ready,
+        credential: LinkCredentialReference::None,
+        authority: LinkAuthorityReference::ProcessOwned,
+        limits: LinkLimits {
+            maximum_in_flight_items,
+            maximum_buffered_bytes,
+        },
     }
 }
 

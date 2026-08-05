@@ -1,10 +1,10 @@
 use conduit_core::{
     mandatory_evidence_storage_requirement, seal_plan, AuthorityBinding, AuthorityGrant,
     CancellationPolicy, CapabilityId, ConnectionId, ConnectionProvider, ExpectedEvidence,
-    ExpectedTerminal, FragmentId, HostAdvertisement, HostId, OperationId, PlacementId, Plan,
-    PlanFragment, PlanId, PlannedConnection, PlannedOperation, ResourceBinding, ResourcePoolId,
-    StartupDependency, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
-    DEFAULT_CONNECTION_ITEM_CAPACITY,
+    ExpectedTerminal, FragmentId, HostAdvertisement, HostId, LinkAvailability, LinkBinding,
+    OperationId, PlacementId, Plan, PlanFragment, PlanId, PlannedConnection, PlannedOperation,
+    ResourceBinding, ResourcePoolId, StartupDependency, TerminalPolicy,
+    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedForm, CheckedOperation};
 use sha2::{Digest, Sha256};
@@ -27,6 +27,7 @@ pub struct PlanningOptions<'a> {
     pub connection_item_capacity: u16,
     pub connection_byte_capacity: u32,
     pub authority_grants: &'a [AuthorityGrant],
+    pub link_bindings: &'a [LinkBinding],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -46,6 +47,10 @@ pub enum PlannerError {
     InvalidAuthorityContract(String),
     AuthorityGrantMissing(String),
     AuthorityGrantAmbiguous(String),
+    InvalidLinkBinding(String),
+    LinkBindingMissing(String),
+    LinkBindingUnavailable(String),
+    LinkBindingAmbiguous(String),
     UnavailableConnectionProvider(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
@@ -91,6 +96,18 @@ impl std::fmt::Display for PlannerError {
             }
             PlannerError::AuthorityGrantAmbiguous(value) => {
                 write!(f, "authority grant ambiguous: {value}")
+            }
+            PlannerError::InvalidLinkBinding(value) => {
+                write!(f, "invalid link binding: {value}")
+            }
+            PlannerError::LinkBindingMissing(value) => {
+                write!(f, "link binding missing: {value}")
+            }
+            PlannerError::LinkBindingUnavailable(value) => {
+                write!(f, "link binding unavailable: {value}")
+            }
+            PlannerError::LinkBindingAmbiguous(value) => {
+                write!(f, "link binding ambiguous: {value}")
             }
             PlannerError::UnavailableConnectionProvider(value) => {
                 write!(f, "unavailable connection provider: {value}")
@@ -239,6 +256,31 @@ pub fn plan_with_authority_grants(
             connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
             connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
             authority_grants,
+            link_bindings: &[],
+        },
+    )
+}
+
+pub fn plan_with_link_bindings(
+    form: &CheckedForm,
+    realm: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    providers: &[ConnectionProvider],
+    connection_item_capacity: u16,
+    connection_byte_capacity: u32,
+    link_bindings: &[LinkBinding],
+) -> Result<Plan, PlannerError> {
+    plan_with_options(
+        form,
+        realm,
+        placements,
+        providers,
+        PlanningOptions {
+            connection_providers: &BTreeMap::new(),
+            connection_item_capacity,
+            connection_byte_capacity,
+            authority_grants: &[],
+            link_bindings,
         },
     )
 }
@@ -281,6 +323,7 @@ pub fn plan_with_connection_limits_and_provider_overrides(
             connection_item_capacity,
             connection_byte_capacity,
             authority_grants: &[],
+            link_bindings: &[],
         },
     )
 }
@@ -297,6 +340,7 @@ pub fn plan_with_options(
         connection_item_capacity,
         connection_byte_capacity,
         authority_grants,
+        link_bindings,
     } = options;
     let realm_index = realm
         .iter()
@@ -307,6 +351,7 @@ pub fn plan_with_options(
         validate_host_resources(host)?;
     }
     validate_authority_grants(authority_grants)?;
+    validate_link_bindings(link_bindings)?;
 
     let mut placement_count = BTreeMap::<(HostId, CapabilityId), u16>::new();
     let mut resource_usage = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
@@ -486,7 +531,7 @@ pub fn plan_with_options(
             .iter()
             .find(|item| &item.placement_id == sink_placement)
             .expect("sink placement must exist");
-        let provider = select_provider(
+        let (provider, link_binding) = select_provider(
             source_plan,
             sink_plan,
             providers,
@@ -496,6 +541,9 @@ pub fn plan_with_options(
                     connection.sink_operation_id.clone(),
                 ))
                 .copied(),
+            link_bindings,
+            connection_item_capacity,
+            connection_byte_capacity,
         )?;
         let source_capability =
             find_capability(realm, &source_plan.host_id, &source_plan.capability_id)?;
@@ -536,6 +584,7 @@ pub fn plan_with_options(
             sink_port_id: connection.sink_port_id.clone(),
             value_kind: connection.value_kind.clone(),
             provider,
+            link_binding,
             item_capacity: connection_item_capacity,
             byte_capacity: connection_byte_capacity,
         });
@@ -811,41 +860,114 @@ fn select_provider(
     sink: &PlannedOperation,
     providers: &[ConnectionProvider],
     requested: Option<ConnectionProvider>,
-) -> Result<ConnectionProvider, PlannerError> {
-    if let Some(provider) = requested {
-        let supported = match provider {
-            ConnectionProvider::Local => source.host_id == sink.host_id,
-            ConnectionProvider::InMemory
-            | ConnectionProvider::FixtureFrame
-            | ConnectionProvider::FixtureDatagram => source.host_id != sink.host_id,
-        };
-        if supported && providers.contains(&provider) {
-            return Ok(provider);
+    link_bindings: &[LinkBinding],
+    connection_item_capacity: u16,
+    connection_byte_capacity: u32,
+) -> Result<(ConnectionProvider, Option<LinkBinding>), PlannerError> {
+    if source.host_id == sink.host_id {
+        if requested.is_some_and(|provider| provider != ConnectionProvider::Local)
+            || !providers.contains(&ConnectionProvider::Local)
+        {
+            return Err(PlannerError::UnavailableConnectionProvider(format!(
+                "local provider unavailable for '{}' -> '{}'",
+                source.operation_id.as_str(),
+                sink.operation_id.as_str()
+            )));
         }
+        return Ok((ConnectionProvider::Local, None));
+    }
+
+    if requested == Some(ConnectionProvider::Local) {
         return Err(PlannerError::UnavailableConnectionProvider(format!(
-            "provider {:?} unavailable for '{}' -> '{}'",
-            provider,
+            "local provider cannot connect '{}' -> '{}'",
             source.operation_id.as_str(),
             sink.operation_id.as_str()
         )));
     }
-    if source.host_id == sink.host_id && providers.contains(&ConnectionProvider::Local) {
-        return Ok(ConnectionProvider::Local);
+    let endpoint_matches = |binding: &&LinkBinding| {
+        binding.source.host_id == source.host_id
+            && binding.source.boot_id == source.boot_id
+            && binding.sink.host_id == sink.host_id
+            && binding.sink.boot_id == sink.boot_id
+            && requested.is_none_or(|provider| binding.provider == provider)
+    };
+    let exact = link_bindings
+        .iter()
+        .filter(endpoint_matches)
+        .collect::<Vec<_>>();
+    if exact.is_empty() {
+        return Err(PlannerError::LinkBindingMissing(format!(
+            "no observed boot-scoped link for '{}' -> '{}'",
+            source.operation_id.as_str(),
+            sink.operation_id.as_str()
+        )));
     }
-    if source.host_id != sink.host_id && providers.contains(&ConnectionProvider::InMemory) {
-        return Ok(ConnectionProvider::InMemory);
+    let ready = exact
+        .into_iter()
+        .filter(|binding| {
+            binding.availability == LinkAvailability::Ready
+                && binding.limits.maximum_in_flight_items >= connection_item_capacity
+                && binding.limits.maximum_buffered_bytes >= connection_byte_capacity
+        })
+        .collect::<Vec<_>>();
+    if ready.is_empty() {
+        return Err(PlannerError::LinkBindingUnavailable(format!(
+            "observed link for '{}' -> '{}' is unavailable or below item/byte limits",
+            source.operation_id.as_str(),
+            sink.operation_id.as_str()
+        )));
     }
-    if source.host_id != sink.host_id && providers.contains(&ConnectionProvider::FixtureFrame) {
-        return Ok(ConnectionProvider::FixtureFrame);
+    if ready.len() != 1 {
+        return Err(PlannerError::LinkBindingAmbiguous(format!(
+            "multiple observed links satisfy '{}' -> '{}'",
+            source.operation_id.as_str(),
+            sink.operation_id.as_str()
+        )));
     }
-    if source.host_id != sink.host_id && providers.contains(&ConnectionProvider::FixtureDatagram) {
-        return Ok(ConnectionProvider::FixtureDatagram);
+    let binding = ready[0].clone();
+    Ok((binding.provider, Some(binding)))
+}
+
+fn validate_link_bindings(bindings: &[LinkBinding]) -> Result<(), PlannerError> {
+    if bindings.iter().any(|binding| {
+        binding.binding_id.as_str().is_empty()
+            || binding.source.host_id.as_str().is_empty()
+            || binding.source.boot_id.as_str().is_empty()
+            || binding.source.endpoint_id.as_str().is_empty()
+            || binding.sink.host_id.as_str().is_empty()
+            || binding.sink.boot_id.as_str().is_empty()
+            || binding.sink.endpoint_id.as_str().is_empty()
+            || binding.source.endpoint_id == binding.sink.endpoint_id
+            || binding.source.host_id == binding.sink.host_id
+            || binding.provider == ConnectionProvider::Local
+            || binding.provider_instance_id.as_str().is_empty()
+            || binding.limits.maximum_in_flight_items == 0
+            || binding.limits.maximum_buffered_bytes == 0
+            || matches!(
+                &binding.credential,
+                conduit_core::LinkCredentialReference::Opaque(reference)
+                    if reference.as_str().is_empty()
+            )
+            || matches!(
+                &binding.authority,
+                conduit_core::LinkAuthorityReference::Grant(grant_id)
+                    if grant_id.as_str().is_empty()
+            )
+    }) {
+        return Err(PlannerError::InvalidLinkBinding(
+            "remote link bindings require non-empty distinct boot-scoped endpoints, one initialized non-local provider, and positive limits".to_string(),
+        ));
     }
-    Err(PlannerError::UnavailableConnectionProvider(format!(
-        "no provider for '{}' -> '{}'",
-        source.operation_id.as_str(),
-        sink.operation_id.as_str()
-    )))
+    let unique_ids = bindings
+        .iter()
+        .map(|binding| &binding.binding_id)
+        .collect::<BTreeSet<_>>();
+    if unique_ids.len() != bindings.len() {
+        return Err(PlannerError::InvalidLinkBinding(
+            "link binding identities must be unique".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 fn hash_string(text: &str) -> String {
@@ -869,15 +991,16 @@ fn hex(nibble: u8) -> char {
 #[cfg(test)]
 mod tests {
     use super::{
-        default_placements, parse_placements, plan, plan_with_authority_grants, startup_order,
-        PlannerError,
+        default_placements, parse_placements, plan, plan_with_authority_grants,
+        plan_with_link_bindings, startup_order, PlacementChoice, PlacementChoices, PlannerError,
     };
     use conduit_core::{
         authority_grant, kind_id, mandatory_evidence_storage_requirement,
-        present_authority_requirement, verify_plan, ArtifactId, CancellationPolicy,
-        CapabilityLimits, CapabilityOffer, ConnectionProvider, ExpandedFormId, HostAdvertisement,
-        HostId, HostProfileId, ImplementationId, OfferGeneration, SourceDocumentId,
-        StartupDependency, TerminalPolicy, PROTOCOL_VERSION,
+        present_authority_requirement, process_owned_link_binding, verify_plan,
+        verify_plan_fragment, ArtifactId, CancellationPolicy, CapabilityLimits, CapabilityOffer,
+        ConnectionProvider, ExpandedFormId, HostAdvertisement, HostId, HostProfileId,
+        ImplementationId, OfferGeneration, SourceDocumentId, StartupDependency, TerminalPolicy,
+        PROTOCOL_VERSION,
     };
     use conduit_form::parse;
     use conduit_signal::{
@@ -887,6 +1010,7 @@ mod tests {
         signal_profile_catalog, signal_resource_offers, PULSE_KIND, SHOW_KIND,
         SIGNAL_PRESENTATION_KIND,
     };
+    use std::collections::BTreeMap;
 
     fn form() -> conduit_form::CheckedForm {
         parse(
@@ -1278,6 +1402,232 @@ mod tests {
         assert_eq!(show.authority[0].grant_id, grant.grant_id);
         assert_eq!(show.authority[0].host_id, advertised.host_id);
         assert_eq!(show.authority[0].boot_id, advertised.boot_id);
+    }
+
+    #[test]
+    fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_providers() {
+        let form = form();
+        let source = host();
+        let mut sink = host();
+        sink.host_id = HostId::from("remote-host");
+        sink.boot_id = conduit_core::BootId::from("remote-boot");
+        let realm = [source.clone(), sink.clone()];
+        let placements = PlacementChoices {
+            by_operation: BTreeMap::from([
+                (
+                    conduit_core::OperationId::from("pulse"),
+                    PlacementChoice {
+                        host_id: source.host_id.clone(),
+                        capability_id: conduit_core::CapabilityId::from("pulse-1"),
+                    },
+                ),
+                (
+                    conduit_core::OperationId::from("show"),
+                    PlacementChoice {
+                        host_id: sink.host_id.clone(),
+                        capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
+                    },
+                ),
+            ]),
+        };
+        assert!(matches!(
+            plan_with_link_bindings(
+                &form,
+                &realm,
+                &placements,
+                &[ConnectionProvider::FixtureFrame],
+                4,
+                64,
+                &[],
+            ),
+            Err(PlannerError::LinkBindingMissing(_))
+        ));
+
+        let exact = process_owned_link_binding(
+            "link/source-remote",
+            ConnectionProvider::FixtureFrame,
+            "fixture/frame/source-remote",
+            &source,
+            &sink,
+            4,
+            64,
+        );
+        let mut stale = exact.clone();
+        stale.sink.boot_id = conduit_core::BootId::from("stale-boot");
+        assert!(matches!(
+            plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[stale]),
+            Err(PlannerError::LinkBindingMissing(_))
+        ));
+
+        let mut unavailable = exact.clone();
+        unavailable.availability = conduit_core::LinkAvailability::Unavailable;
+        assert!(matches!(
+            plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[unavailable],),
+            Err(PlannerError::LinkBindingUnavailable(_))
+        ));
+
+        let mut underbounded = exact.clone();
+        underbounded.limits.maximum_buffered_bytes = 63;
+        assert!(matches!(
+            plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[underbounded],),
+            Err(PlannerError::LinkBindingUnavailable(_))
+        ));
+
+        let mut alternate = exact.clone();
+        alternate.binding_id = conduit_core::LinkBindingId::from("link/source-remote-alternate");
+        assert!(matches!(
+            plan_with_link_bindings(
+                &form,
+                &realm,
+                &placements,
+                &[],
+                4,
+                64,
+                &[exact.clone(), alternate],
+            ),
+            Err(PlannerError::LinkBindingAmbiguous(_))
+        ));
+
+        let mut invalid = exact.clone();
+        invalid.provider_instance_id = conduit_core::ConnectionProviderInstanceId::from("");
+        assert!(matches!(
+            plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[invalid]),
+            Err(PlannerError::InvalidLinkBinding(_))
+        ));
+
+        let mut invalid_credential = exact.clone();
+        invalid_credential.credential = conduit_core::LinkCredentialReference::Opaque(
+            conduit_core::CredentialReferenceId::from(""),
+        );
+        assert!(matches!(
+            plan_with_link_bindings(
+                &form,
+                &realm,
+                &placements,
+                &[],
+                4,
+                64,
+                &[invalid_credential],
+            ),
+            Err(PlannerError::InvalidLinkBinding(_))
+        ));
+
+        let mut invalid_authority = exact.clone();
+        invalid_authority.authority =
+            conduit_core::LinkAuthorityReference::Grant(conduit_core::AuthorityGrantId::from(""));
+        assert!(matches!(
+            plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[invalid_authority],),
+            Err(PlannerError::InvalidLinkBinding(_))
+        ));
+
+        let mut secured = exact;
+        secured.credential = conduit_core::LinkCredentialReference::Opaque(
+            conduit_core::CredentialReferenceId::from("credential/source-remote"),
+        );
+        secured.authority = conduit_core::LinkAuthorityReference::Grant(
+            conduit_core::AuthorityGrantId::from("grant/source-remote"),
+        );
+        let plan = plan_with_link_bindings(
+            &form,
+            &realm,
+            &placements,
+            &[],
+            4,
+            64,
+            std::slice::from_ref(&secured),
+        )
+        .expect("an observed link, not a global provider enum, resolves the remote cord");
+        assert!(verify_plan(&plan));
+        let connection = plan.fragments[0]
+            .connections
+            .first()
+            .expect("remote connection exists");
+        assert_eq!(connection.provider, secured.provider);
+        assert_eq!(connection.link_binding.as_ref(), Some(&secured));
+    }
+
+    #[test]
+    fn planning_link_binding_mutations_change_fragment_identity() {
+        let form = form();
+        let source = host();
+        let mut sink = host();
+        sink.host_id = HostId::from("remote-host");
+        sink.boot_id = conduit_core::BootId::from("remote-boot");
+        let realm = [source.clone(), sink.clone()];
+        let placements = PlacementChoices {
+            by_operation: BTreeMap::from([
+                (
+                    conduit_core::OperationId::from("pulse"),
+                    PlacementChoice {
+                        host_id: source.host_id.clone(),
+                        capability_id: conduit_core::CapabilityId::from("pulse-1"),
+                    },
+                ),
+                (
+                    conduit_core::OperationId::from("show"),
+                    PlacementChoice {
+                        host_id: sink.host_id.clone(),
+                        capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
+                    },
+                ),
+            ]),
+        };
+        let link = process_owned_link_binding(
+            "link/mutation",
+            ConnectionProvider::FixtureFrame,
+            "fixture/frame/mutation",
+            &source,
+            &sink,
+            4,
+            64,
+        );
+        let original = plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[link])
+            .expect("remote plan resolves")
+            .fragments[0]
+            .clone();
+
+        for field in 0..14 {
+            let mut mutated = original.clone();
+            let binding = mutated.connections[0]
+                .link_binding
+                .as_mut()
+                .expect("remote binding exists");
+            match field {
+                0 => binding.binding_id = conduit_core::LinkBindingId::from("mutated/link"),
+                1 => binding.source.host_id = HostId::from("mutated-source"),
+                2 => binding.source.boot_id = conduit_core::BootId::from("mutated-source-boot"),
+                3 => {
+                    binding.source.endpoint_id =
+                        conduit_core::LinkEndpointId::from("mutated-source-endpoint")
+                }
+                4 => binding.sink.host_id = HostId::from("mutated-sink"),
+                5 => binding.sink.boot_id = conduit_core::BootId::from("mutated-sink-boot"),
+                6 => {
+                    binding.sink.endpoint_id =
+                        conduit_core::LinkEndpointId::from("mutated-sink-endpoint")
+                }
+                7 => binding.provider = ConnectionProvider::FixtureDatagram,
+                8 => {
+                    binding.provider_instance_id =
+                        conduit_core::ConnectionProviderInstanceId::from("mutated/provider")
+                }
+                9 => binding.availability = conduit_core::LinkAvailability::Unavailable,
+                10 => {
+                    binding.credential = conduit_core::LinkCredentialReference::Opaque(
+                        conduit_core::CredentialReferenceId::from("mutated/credential"),
+                    )
+                }
+                11 => {
+                    binding.authority = conduit_core::LinkAuthorityReference::Grant(
+                        conduit_core::AuthorityGrantId::from("mutated/grant"),
+                    )
+                }
+                12 => binding.limits.maximum_in_flight_items += 1,
+                13 => binding.limits.maximum_buffered_bytes += 1,
+                _ => unreachable!(),
+            }
+            assert!(!verify_plan_fragment(&mutated));
+        }
     }
 
     #[test]
