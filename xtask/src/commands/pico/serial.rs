@@ -161,9 +161,7 @@ mod tests {
         for sequence in 0..EXPECTED_RECEIPTS {
             input.push_str(&receipt(sequence));
         }
-        input.push_str(
-            "{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":true}\n",
-        );
+        input.push_str("{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":true}\n");
         verify_receipts(Cursor::new(input)).expect("valid receipt stream");
     }
 
