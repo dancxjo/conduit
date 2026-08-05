@@ -1,3 +1,8 @@
+//! Hosted compatibility implementations for the portable Signal profile.
+//!
+//! Semantic values and contracts remain in the crate root; this module owns only
+//! hosted implementation state, registry installation, and profile catalog wiring.
+
 use super::{
     decode_signal, encode_signal, parse_pulse_configuration, pulse_contract_revision,
     pulse_execution_profile, pulse_host_operation_requirements, pulse_kind, pulse_outputs,
