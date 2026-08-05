@@ -16,6 +16,12 @@ browser-websocket-relay:
 browser-wasm-check:
     cargo check -p conduit-browser-host --target wasm32-unknown-unknown
 
+pico-host:
+    cargo test -p conduit-pico-host
+
+pico-thumb-check:
+    cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi
+
 check:
     cargo fmt --check
     cargo clippy --workspace --all-targets -- -D warnings
@@ -29,4 +35,6 @@ check-browser-readiness:
     cargo test -p conduit-runtime --test host_contract
     cargo test -p conduit-browser-host
     cargo check -p conduit-browser-host --target wasm32-unknown-unknown
+    cargo test -p conduit-pico-host
+    cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi
     @if rg -i 'playwright' -g 'Cargo.toml' -g 'package.json' -g 'package-lock.json' .; then echo 'Playwright dependency is forbidden before browser host work'; exit 1; fi

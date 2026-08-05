@@ -52,6 +52,19 @@ That fixture plans the pair form across std and browser advertisements with the
 `conduit-wire`, enforces frame bounds, and compares the browser DOM-state
 receipts against the same sixteen ordered signal values.
 
+The Pico host crate can run the pair form locally as a deterministic hosted
+fixture while preserving a constrained no-`std` build boundary:
+
+```text
+cargo test -p conduit-pico-host
+cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi
+```
+
+This proves the Pico W advertisement exposes only bounded `flow/pulse` and
+`display/show` capabilities, the hosted protocol fixture manifests show values
+as retained onboard-LED receipts, and the non-hosted crate surface still checks
+for the Cortex-M0+ target without Rust `std`.
+
 ## Receipts
 
 Each completed std manifestation emits a machine-readable receipt line:
@@ -64,13 +77,15 @@ The local std pair proof emits sixteen receipt lines. The local std triple
 fixture emits forty-eight receipt lines: sixteen for each of the three show
 sinks. The deterministic browser pair fixture and std-to-browser WebSocket relay
 fixture each retain sixteen DOM-state receipts on the sink browser host
-instance.
+instance. The deterministic Pico fixture retains sixteen onboard-LED receipts
+with the same sequence and level values.
 
 ## Current Stop Line
 
-The repository now contains a deterministic browser host crate, a canonical
-`WebSocket` connection provider, and a bounded std-to-browser relay fixture. It
-does not yet contain a WASM operator page, browser socket client/server runtime,
-or Pico W host crate. M1 remains open until the same
+The repository now contains deterministic browser and Pico host crates, a
+canonical `WebSocket` connection provider, and a bounded std-to-browser relay
+fixture. It does not yet contain a WASM operator page, browser socket
+client/server runtime, physical Pico LED acceptance, std-to-Pico transport, or
+final std/browser/Pico fan-out proof. M1 remains open until the same
 `examples/triple-signal.form` can be planned across std, browser, and Pico W
 hosts, with matching ordered receipts from stdout, DOM, and LED manifestations.

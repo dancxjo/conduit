@@ -19,6 +19,10 @@ fn dependency_and_profile_installation_drawbridge_is_explicit() {
     assert!(
         justfile.contains("cargo check -p conduit-browser-host --target wasm32-unknown-unknown")
     );
+    assert!(justfile.contains("cargo test -p conduit-pico-host"));
+    assert!(justfile.contains(
+        "cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi"
+    ));
     assert!(justfile.contains("--test host_contract"));
 }
 
@@ -36,7 +40,10 @@ fn readiness_contract_names_the_platform_stop_line() {
         "multiple independent browser host instances",
         "wasm32-unknown-unknown",
         "bounded `WebSocket` relay using `conduit-wire`",
-        "Browser UI, Pico W, live WebSocket sockets, TCP, UDP",
+        "conduit-pico-host",
+        "thumbv6m-none-eabi",
+        "onboard-LED receipts",
+        "Browser UI, physical Pico LED acceptance, live WebSocket sockets, TCP, UDP",
     ] {
         assert!(
             readiness.contains(required),

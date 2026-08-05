@@ -1,0 +1,20 @@
+[package]
+name = "conduit-pico-host"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../crates/conduit-core" }
+conduit-form = { path = "../../crates/conduit-form", optional = true }
+conduit-planner = { path = "../../crates/conduit-planner", optional = true }
+conduit-runtime = { path = "../../crates/conduit-runtime", optional = true }
+conduit-signal = { path = "../../crates/conduit-signal", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "conduit-signal/host-profile",
+    "dep:conduit-form",
+    "dep:conduit-planner",
+    "dep:conduit-runtime",
+]

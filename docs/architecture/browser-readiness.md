@@ -14,6 +14,7 @@ acceptance claims remain gated until the deterministic checks below stay green.
 - The reusable in-memory provider belongs to `conduit-runtime::providers`, not the composite fixture.
 - A fake browser-style adapter manually completes waits and presentations, delays a connection delivery, injects presentation failure and provider disconnect, and inspects structured observations.
 - `conduit-browser-host` models multiple independent browser host instances in one page, advertises capabilities per instance, runs `flow/pulse -> display/show` over a bounded in-memory browser link without Playwright, plans std-to-browser delivery over a bounded `WebSocket` relay using `conduit-wire`, and compiles for `wasm32-unknown-unknown`.
+- `conduit-pico-host` exposes a constrained Pico W advertisement without `std`, compiles for `thumbv6m-none-eabi` with default features disabled, and its hosted fixture runs `flow/pulse -> display/show` locally to retained onboard-LED receipts.
 - A composite definition owns a set of child bindings and exact plan fragments. The current fixture permits one exposed in-memory boundary, while runtime dispatch and terminal tracking are keyed by child host identity rather than source/sink fields.
 - Parent-facing events and observations use only the composite identity. Child host IDs and child details are available only through explicit internal diagnostic methods.
 - Host-contract tests pass without browser automation.
@@ -28,7 +29,8 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo test -p conduit-browser-host std_host_sends_signal_to_browser_over_bounded_websocket_relay
 cargo check -p conduit-browser-host --target wasm32-unknown-unknown
+cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi
 just check-browser-readiness
 ```
 
-Only after this drawbridge is green may browser work advance beyond the deterministic host fixture. Browser UI, Pico W, live WebSocket sockets, TCP, UDP, LED, DHCP, DNS, discovery, durable body identity, and `.soul` remain beyond this checkpoint.
+Only after this drawbridge is green may browser and Pico work advance beyond deterministic host fixtures. Browser UI, physical Pico LED acceptance, live WebSocket sockets, TCP, UDP, DHCP, DNS, discovery, durable body identity, and `.soul` remain beyond this checkpoint.
