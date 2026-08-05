@@ -2,6 +2,8 @@ use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::Command;
 
+use super::doctor::repo_root;
+use super::firmware::{read_identity_manifest, GeneratedImageIdentity};
 use super::{PicoArgs, PicoResult};
 
 const EXPECTED_RECEIPTS: usize = 16;
@@ -35,12 +37,15 @@ pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
         ])
         .status();
 
+    let identity = read_identity_manifest(&repo_root())?;
     let file = std::fs::OpenOptions::new().read(true).open(&port)?;
-    verify_receipts(BufReader::new(file))
+    verify_receipts(BufReader::new(file), &identity.generated_image)
 }
 
-fn verify_receipts(reader: impl BufRead) -> PicoResult<()> {
-    let mut receipts = Vec::new();
+fn verify_receipts(reader: impl BufRead, expected: &GeneratedImageIdentity) -> PicoResult<()> {
+    validate_expected_identity(expected)?;
+    let mut boot_seen = false;
+    let mut receipts = 0usize;
     let mut terminal_seen = false;
 
     for line in reader.lines() {
@@ -53,54 +58,156 @@ fn verify_receipts(reader: impl BufRead) -> PicoResult<()> {
             .map_err(|error| format!("malformed receipt JSON: {error}; line: {line}"))?;
         let schema = record["schema"].as_str().unwrap_or_default();
 
+        if schema.starts_with("conduit-pico-w-signal/boot") {
+            if boot_seen {
+                return Err("duplicate boot identity record received".into());
+            }
+            if receipts > 0 {
+                return Err("boot identity record arrived after presentation receipts".into());
+            }
+            verify_boot_identity(&record, expected)?;
+            boot_seen = true;
+            continue;
+        }
+
         if schema.starts_with("conduit-pico-w-signal/terminal") {
+            if !boot_seen {
+                return Err("terminal record arrived before boot identity".into());
+            }
             if record["success"].as_bool() != Some(true) {
                 return Err(format!("firmware reported terminal failure: {line}").into());
             }
+            verify_terminal_identity(&record, expected)?;
             terminal_seen = true;
             break;
         }
 
         if schema.starts_with("conduit-pico-w-signal/receipt") {
+            if !boot_seen {
+                return Err("presentation receipt arrived before boot identity".into());
+            }
             let sequence = record["sequence"]
                 .as_u64()
                 .ok_or("receipt missing sequence")?;
-            let expected = receipts.len() as u64;
-            if sequence != expected {
+            let expected_sequence = receipts as u64;
+            if sequence != expected_sequence {
                 return Err(format!(
-                    "out-of-order receipt: expected sequence {expected}, got {sequence}"
+                    "out-of-order receipt: expected sequence {expected_sequence}, got {sequence}"
                 )
                 .into());
             }
-            receipts.push(record);
+            verify_presentation_identity(&record, receipts, expected)?;
+            receipts += 1;
+            continue;
         }
+
+        return Err(format!("unexpected Pico receipt schema: {schema}").into());
     }
 
-    if receipts.len() != EXPECTED_RECEIPTS {
-        return Err(format!(
-            "expected {EXPECTED_RECEIPTS} receipts, got {}",
-            receipts.len()
-        )
-        .into());
+    if !boot_seen {
+        return Err("no boot identity record received".into());
+    }
+    if receipts != EXPECTED_RECEIPTS {
+        return Err(format!("expected {EXPECTED_RECEIPTS} receipts, got {receipts}").into());
     }
     if !terminal_seen {
         return Err("no successful terminal completion record received".into());
     }
 
-    for (index, receipt) in receipts.iter().enumerate() {
-        let expected_level = index % 2 == 1;
-        let level = receipt["level"]
-            .as_bool()
-            .ok_or_else(|| format!("receipt {index} missing level"))?;
-        if level != expected_level {
-            return Err(format!(
-                "receipt {index}: expected level={expected_level}, got level={level}"
-            )
-            .into());
-        }
-    }
-
     println!("==> pico verify: all {EXPECTED_RECEIPTS} receipts valid");
+    Ok(())
+}
+
+fn validate_expected_identity(expected: &GeneratedImageIdentity) -> PicoResult<()> {
+    if expected.presentation_ids.len() != EXPECTED_RECEIPTS {
+        return Err(format!(
+            "identity manifest contains {} presentation IDs; expected {EXPECTED_RECEIPTS}",
+            expected.presentation_ids.len()
+        )
+        .into());
+    }
+    if expected.presentation_evidence_ids.len() != EXPECTED_RECEIPTS {
+        return Err(format!(
+            "identity manifest contains {} presentation evidence IDs; expected {EXPECTED_RECEIPTS}",
+            expected.presentation_evidence_ids.len()
+        )
+        .into());
+    }
+    Ok(())
+}
+
+fn verify_boot_identity(
+    record: &serde_json::Value,
+    expected: &GeneratedImageIdentity,
+) -> PicoResult<()> {
+    verify_static_identity(record, expected, false)?;
+    verify_field(record, "evidence_id", &expected.boot_evidence_id)
+}
+
+fn verify_presentation_identity(
+    record: &serde_json::Value,
+    sequence: usize,
+    expected: &GeneratedImageIdentity,
+) -> PicoResult<()> {
+    verify_static_identity(record, expected, true)?;
+    let expected_level = sequence % 2 == 1;
+    let level = record["level"]
+        .as_bool()
+        .ok_or_else(|| format!("receipt {sequence} missing level"))?;
+    if level != expected_level {
+        return Err(format!(
+            "receipt {sequence}: expected level={expected_level}, got level={level}"
+        )
+        .into());
+    }
+    verify_field(
+        record,
+        "presentation_id",
+        &expected.presentation_ids[sequence],
+    )?;
+    verify_field(
+        record,
+        "evidence_id",
+        &expected.presentation_evidence_ids[sequence],
+    )
+}
+
+fn verify_terminal_identity(
+    record: &serde_json::Value,
+    expected: &GeneratedImageIdentity,
+) -> PicoResult<()> {
+    verify_static_identity(record, expected, true)?;
+    verify_field(record, "evidence_id", &expected.terminal_evidence_id)
+}
+
+fn verify_static_identity(
+    record: &serde_json::Value,
+    expected: &GeneratedImageIdentity,
+    require_active_play: bool,
+) -> PicoResult<()> {
+    verify_field(record, "source_document_id", &expected.source_document_id)?;
+    verify_field(record, "checked_form_id", &expected.checked_form_id)?;
+    verify_field(record, "expanded_form_id", &expected.expanded_form_id)?;
+    verify_field(record, "plan_id", &expected.plan_id)?;
+    verify_field(record, "fragment_id", &expected.fragment_id)?;
+    verify_field(record, "host_id", &expected.host_id)?;
+    verify_field(record, "boot_id", &expected.boot_id)?;
+    if require_active_play {
+        verify_field(record, "active_play_id", &expected.active_play_id)?;
+    }
+    Ok(())
+}
+
+fn verify_field(record: &serde_json::Value, field: &str, expected: &str) -> PicoResult<()> {
+    let actual = record[field]
+        .as_str()
+        .ok_or_else(|| format!("receipt missing identity field `{field}`"))?;
+    if actual != expected {
+        return Err(format!(
+            "receipt identity field `{field}` mismatch: expected {expected}, got {actual}"
+        )
+        .into());
+    }
     Ok(())
 }
 
@@ -148,30 +255,117 @@ mod tests {
     use super::*;
     use std::io::Cursor;
 
+    fn expected_identity() -> GeneratedImageIdentity {
+        GeneratedImageIdentity {
+            schema: "conduit.pico-signal.generated-image@1".into(),
+            source_document_id: "source".into(),
+            checked_form_id: "checked".into(),
+            expanded_form_id: "expanded".into(),
+            plan_id: "plan".into(),
+            fragment_id: "fragment".into(),
+            host_id: "host".into(),
+            boot_id: "boot".into(),
+            active_play_id: "play".into(),
+            boot_evidence_id: "boot-evidence".into(),
+            presentation_ids: (0..EXPECTED_RECEIPTS)
+                .map(|sequence| format!("presentation-{sequence}"))
+                .collect(),
+            presentation_evidence_ids: (0..EXPECTED_RECEIPTS)
+                .map(|sequence| format!("evidence-{sequence}"))
+                .collect(),
+            terminal_evidence_id: "terminal-evidence".into(),
+            offer_generation: 1,
+            nodes: 2,
+            cords: 1,
+            host_operations: 2,
+            cord_value_slots: 1,
+            cord_value_bytes: 9,
+            evidence_items: 7,
+            evidence_bytes: 327,
+        }
+    }
+
+    fn boot() -> String {
+        concat!(
+            "{\"schema\":\"conduit-pico-w-signal/boot@1\",",
+            "\"source_document_id\":\"source\",",
+            "\"checked_form_id\":\"checked\",",
+            "\"expanded_form_id\":\"expanded\",",
+            "\"plan_id\":\"plan\",",
+            "\"fragment_id\":\"fragment\",",
+            "\"host_id\":\"host\",",
+            "\"boot_id\":\"boot\",",
+            "\"evidence_id\":\"boot-evidence\"}\n"
+        )
+        .to_owned()
+    }
+
     fn receipt(sequence: usize) -> String {
         format!(
-            "{{\"schema\":\"conduit-pico-w-signal/receipt@1\",\"sequence\":{sequence},\"level\":{}}}\n",
-            sequence % 2 == 1
+            concat!(
+                "{{\"schema\":\"conduit-pico-w-signal/receipt@1\",",
+                "\"source_document_id\":\"source\",",
+                "\"checked_form_id\":\"checked\",",
+                "\"expanded_form_id\":\"expanded\",",
+                "\"plan_id\":\"plan\",",
+                "\"fragment_id\":\"fragment\",",
+                "\"host_id\":\"host\",",
+                "\"boot_id\":\"boot\",",
+                "\"active_play_id\":\"play\",",
+                "\"sequence\":{},",
+                "\"level\":{},",
+                "\"presentation_id\":\"presentation-{}\",",
+                "\"evidence_id\":\"evidence-{}\"}}\n"
+            ),
+            sequence,
+            sequence % 2 == 1,
+            sequence,
+            sequence,
         )
+    }
+
+    fn terminal() -> String {
+        concat!(
+            "{\"schema\":\"conduit-pico-w-signal/terminal@1\",",
+            "\"source_document_id\":\"source\",",
+            "\"checked_form_id\":\"checked\",",
+            "\"expanded_form_id\":\"expanded\",",
+            "\"plan_id\":\"plan\",",
+            "\"fragment_id\":\"fragment\",",
+            "\"host_id\":\"host\",",
+            "\"boot_id\":\"boot\",",
+            "\"active_play_id\":\"play\",",
+            "\"success\":true,",
+            "\"evidence_id\":\"terminal-evidence\"}\n"
+        )
+        .to_owned()
     }
 
     #[test]
     fn accepts_exact_sixteen_receipts_and_terminal() {
         let mut input = String::new();
+        input.push_str(&boot());
         for sequence in 0..EXPECTED_RECEIPTS {
             input.push_str(&receipt(sequence));
         }
-        input.push_str("{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":true}\n");
-        verify_receipts(Cursor::new(input)).expect("valid receipt stream");
+        input.push_str(&terminal());
+        verify_receipts(Cursor::new(input), &expected_identity()).expect("valid receipt stream");
     }
 
     #[test]
     fn rejects_reordered_receipt() {
-        let input = format!(
-            "{}{}",
-            receipt(1),
-            "{\"schema\":\"conduit-pico-w-signal/terminal@1\",\"success\":true}\n"
-        );
-        assert!(verify_receipts(Cursor::new(input)).is_err());
+        let input = format!("{}{}{}", boot(), receipt(1), terminal());
+        assert!(verify_receipts(Cursor::new(input), &expected_identity()).is_err());
+    }
+
+    #[test]
+    fn rejects_mutated_identity_field() {
+        let mut input = String::new();
+        input.push_str(&boot());
+        for sequence in 0..EXPECTED_RECEIPTS {
+            input.push_str(&receipt(sequence));
+        }
+        input.push_str(&terminal().replace("\"plan_id\":\"plan\"", "\"plan_id\":\"mutated\""));
+        assert!(verify_receipts(Cursor::new(input), &expected_identity()).is_err());
     }
 }

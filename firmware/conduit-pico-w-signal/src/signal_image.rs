@@ -48,8 +48,8 @@ pub struct PresentationIdentity {
 
 pub fn presentation_identity(sequence: usize) -> Option<PresentationIdentity> {
     Some(PresentationIdentity {
-        presentation_id: *generated_signal::PRESENTATION_IDS.get(sequence)?,
-        evidence_id: *generated_signal::PRESENTATION_EVIDENCE_IDS.get(sequence)?,
+        presentation_id: generated_signal::PRESENTATION_IDS.get(sequence)?,
+        evidence_id: generated_signal::PRESENTATION_EVIDENCE_IDS.get(sequence)?,
     })
 }
 
