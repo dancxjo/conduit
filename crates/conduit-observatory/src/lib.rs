@@ -12,6 +12,7 @@ use conduit_core::{
     ObservationKind, OfferGeneration, PlacementId, Plan, PlanId, TerminalDisposition,
 };
 use conduit_realm::{LinkId, LinkState, MembershipState, RealmId, RealmView};
+use core::fmt::Write;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -502,14 +503,146 @@ pub fn unsupported_state() -> OperationalState {
     OperationalState::Unsupported
 }
 
+pub fn render_text_report(report: &ObservatoryReport) -> String {
+    let mut output = String::new();
+    let _ = writeln!(output, "host observatory report");
+    let _ = writeln!(output, "hosts {}", report.hosts.len());
+    for host in &report.hosts {
+        let _ = writeln!(
+            output,
+            "host id={} boot={} realm={} state={:?} membership={:?} capabilities={}",
+            host.host_id.as_str(),
+            host.boot_id
+                .as_ref()
+                .map(BootId::as_str)
+                .unwrap_or("unknown"),
+            host.realm_id
+                .as_ref()
+                .map(RealmId::as_str)
+                .unwrap_or("unknown"),
+            host.state,
+            host.membership,
+            host.capability_count
+        );
+    }
+    let _ = writeln!(output, "capabilities {}", report.capabilities.len());
+    for capability in &report.capabilities {
+        let _ = writeln!(
+            output,
+            "capability host={} boot={} capability={} kind={} implementation={} value_kind={} active_limit={} queue_items={} queue_bytes={} freshness={:?} support={:?} availability={:?}",
+            capability.host_id.as_str(),
+            capability.boot_id.as_str(),
+            capability.capability_id.as_str(),
+            capability.kind_id.as_str(),
+            capability.implementation_id.as_str(),
+            capability.limits.value_kind.as_str(),
+            capability.limits.max_active_instances,
+            capability.limits.max_queue_items,
+            capability.limits.max_queue_bytes,
+            capability.freshness,
+            capability.support,
+            capability.availability
+        );
+    }
+    let _ = writeln!(output, "links {}", report.links.len());
+    for link in &report.links {
+        let _ = writeln!(
+            output,
+            "link realm={} host={} boot={} link={} remote={} state={:?}",
+            link.realm_id.as_str(),
+            link.host_id.as_str(),
+            link.boot_id.as_str(),
+            link.link_id.as_str(),
+            link.remote_host_id.as_str(),
+            link.state
+        );
+    }
+    let _ = writeln!(output, "plans {}", report.plans.len());
+    for plan in &report.plans {
+        let _ = writeln!(
+            output,
+            "plan id={} form={} lifecycle={:?} terminal={:?} placements={} connections={}",
+            plan.plan_id.as_str(),
+            plan.form_id.as_str(),
+            plan.lifecycle,
+            plan.terminal_disposition,
+            plan.placement_count,
+            plan.connection_count
+        );
+    }
+    let _ = writeln!(output, "placements {}", report.placements.len());
+    for placement in &report.placements {
+        let _ = writeln!(
+            output,
+            "placement plan={} placement={} host={} boot={} capability={} kind={} implementation={} lifecycle={:?}",
+            placement.plan_id.as_str(),
+            placement.placement_id.as_str(),
+            placement.host_id.as_str(),
+            placement.boot_id.as_str(),
+            placement.capability_id.as_str(),
+            placement.kind_id.as_str(),
+            placement.implementation_id.as_str(),
+            placement.lifecycle
+        );
+    }
+    let _ = writeln!(output, "connections {}", report.connections.len());
+    for connection in &report.connections {
+        let _ = writeln!(
+            output,
+            "connection plan={} connection={} source={} sink={} value_kind={} provider={:?} queue_items={} queue_bytes={} lifecycle={:?}",
+            connection.plan_id.as_str(),
+            connection.connection_id.as_str(),
+            connection.source_placement_id.as_str(),
+            connection.sink_placement_id.as_str(),
+            connection.value_kind.as_str(),
+            connection.provider,
+            connection.item_capacity,
+            connection.byte_capacity,
+            connection.lifecycle
+        );
+    }
+    let _ = writeln!(output, "evidence {}", report.evidence.len());
+    for evidence in &report.evidence {
+        let _ = writeln!(
+            output,
+            "evidence id={} host={} boot={} plan={} placement={} connection={} kind={:?}",
+            evidence.evidence_id.as_str(),
+            evidence.host_id.as_str(),
+            evidence.boot_id.as_str(),
+            evidence
+                .plan_id
+                .as_ref()
+                .map(PlanId::as_str)
+                .unwrap_or("none"),
+            evidence
+                .placement_id
+                .as_ref()
+                .map(PlacementId::as_str)
+                .unwrap_or("none"),
+            evidence
+                .connection_id
+                .as_ref()
+                .map(ConnectionId::as_str)
+                .unwrap_or("none"),
+            evidence.kind
+        );
+    }
+    let _ = writeln!(
+        output,
+        "retention bounded={} visible_gaps={} explanation={}",
+        report.retention.bounded, report.retention.visible_gap_count, report.retention.explanation
+    );
+    output
+}
+
 #[cfg(test)]
 mod tests {
     use alloc::collections::BTreeMap;
     use alloc::vec;
 
     use super::{
-        build_report, unsupported_state, CapabilityAvailability, CapabilitySupport, OfferFreshness,
-        OperationalState, PlanLifecycle,
+        build_report, render_text_report, unsupported_state, CapabilityAvailability,
+        CapabilitySupport, OfferFreshness, OperationalState, PlanLifecycle,
     };
     use conduit_browser_host::{BrowserHostConfig, BrowserPage};
     use conduit_core::{
@@ -695,6 +828,13 @@ mod tests {
                 && matches!(row.kind, ObservationKind::PlanActivated)
         }));
         assert!(report.retention.bounded);
+
+        let rendered = render_text_report(&report);
+        assert!(rendered.contains("host observatory report"));
+        assert!(rendered.contains("host id=std-host-triple boot=std-boot-triple"));
+        assert!(rendered.contains("capability host=browser-host-triple"));
+        assert!(rendered.contains("provider=WebSocket"));
+        assert!(rendered.contains("evidence id=evidence/"));
     }
 
     #[test]

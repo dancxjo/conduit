@@ -5,8 +5,13 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
+conduit-browser-host = { path = "../../hosts/browser" }
 conduit-form = { path = "../conduit-form" }
+conduit-observatory = { path = "../conduit-observatory" }
+conduit-pico-host = { path = "../../hosts/pico" }
 conduit-planner = { path = "../conduit-planner" }
+conduit-realm = { path = "../conduit-realm" }
+conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
 conduit-std-host = { path = "../../hosts/std" }
 
 [[test]]

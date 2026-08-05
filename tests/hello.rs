@@ -149,3 +149,42 @@ fn triple_signal_form_runs_against_local_std_fixture() {
         "missing triple receipt summary: {stdout}"
     );
 }
+
+#[test]
+fn observatory_report_is_operator_openable_without_running_work() {
+    let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
+        .arg("observatory-report")
+        .output()
+        .expect("failed to run conduit observatory report");
+
+    assert!(output.status.success(), "process failed: {output:?}");
+
+    let stdout = String::from_utf8(output.stdout).expect("stdout must be utf-8");
+    assert!(stdout.contains("host observatory report"), "{stdout}");
+    assert!(stdout.contains("hosts 3"), "{stdout}");
+    assert!(
+        stdout.contains("host id=std-host-triple boot=std-boot-triple"),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains("host id=browser-host-triple boot=browser-boot-triple"),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains("host id=pico-host-triple boot=pico-boot-triple"),
+        "{stdout}"
+    );
+    assert!(stdout.contains("capabilities 6"), "{stdout}");
+    assert!(stdout.contains("links 3"), "{stdout}");
+    assert!(stdout.contains("plans 1"), "{stdout}");
+    assert!(stdout.contains("placements 4"), "{stdout}");
+    assert!(stdout.contains("connections 3"), "{stdout}");
+    assert!(stdout.contains("provider=WebSocket"), "{stdout}");
+    assert!(stdout.contains("provider=Udp"), "{stdout}");
+    assert!(stdout.contains("evidence id=evidence/"), "{stdout}");
+    assert!(stdout.contains("retention bounded=true"), "{stdout}");
+    assert!(
+        !stdout.contains("receipt signal placement="),
+        "observatory report must not activate work: {stdout}"
+    );
+}
