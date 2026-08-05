@@ -84,5 +84,9 @@ jobs:
       options: --ipc=host
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - run: cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
       - run: npm ci --ignore-scripts
       - run: npm run test:browser-host

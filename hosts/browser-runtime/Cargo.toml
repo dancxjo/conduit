@@ -1,0 +1,14 @@
+[package]
+name = "conduit-browser-runtime"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+conduit-core = { path = "../../crates/conduit-core" }
+conduit-form = { path = "../../crates/conduit-form" }
+conduit-planner = { path = "../../crates/conduit-planner" }
+conduit-runtime = { path = "../../crates/conduit-runtime" }
+conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
