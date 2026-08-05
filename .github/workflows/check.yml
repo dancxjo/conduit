@@ -55,6 +55,11 @@ jobs:
           cargo test -p conduit-runtime --test browser_readiness dependency_and_profile_installation_drawbridge_is_explicit
           cargo test -p conduit --test hello typed_multi_value_form_runs_through_the_std_kernel
           cargo test -p conduit-kernel admitted_sink_host_operation_may_have_no_output_payload
+      - name: browser kernel takeover contract
+        run: |
+          cargo test -p conduit-browser-runtime
+          cargo test -p conduit-runtime --test browser_readiness production_browser_host_cannot_regain_the_legacy_runtime
+          cargo check -p conduit-browser-runtime --target wasm32-unknown-unknown
       - name: bounded lossless form document
         run: |
           cargo test -p conduit-form lossless_document_

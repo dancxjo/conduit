@@ -32,5 +32,13 @@ test("two actual page hosts retain bounded exactly correlated DOM receipts", asy
     itemOverflowCode: "CND-BRW-S4-004",
     byteOverflowCode: "CND-BRW-S4-004",
     malformedCode: "CND-BRW-S4-002",
+    duplicateRuntimeCode: -10,
+    malformedRuntimeCode: -9,
+    cancellationCode: -11,
+    terminalFailureCode: -13,
+    hostACapacityStable: true,
+    hostBCapacityStable: true,
+    sharedSourceIdentity: true,
+    distinctActivePlayIdentity: true,
   });
 });

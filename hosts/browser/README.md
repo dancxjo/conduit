@@ -1,15 +1,17 @@
 # Browser host
 
-This host runs `examples/signal-demo.form` through the real Rust planner, runtime, and
-`conduit-signal` implementation compiled to `wasm32-unknown-unknown`. JavaScript owns only the
-browser platform effects: real timers and DOM presentation.
+This host parses and plans unchanged `examples/signal-demo.form`, lowers its exact local fragment
+through the shared plan-to-kernel contract, and executes it with `conduit-kernel`'s port-aware
+fixed scheduler compiled to `wasm32-unknown-unknown`. It does not construct `HostRuntime`.
+JavaScript owns only the browser platform effects: real timers and DOM presentation.
 
 Each page host receives an independent WebAssembly instance, so its runtime state, host/boot
-identity, active play, presentation identities, fixed-size ABI buffers, and receipt count are not
-shared with the other page host. The runtime emits one effect through a 4,096-byte output frame and
-accepts one completion through a separate 4,096-byte input frame. A completion advances execution
-only when its plan, placement, active-play, presentation, value-kind, and encoded-value fields are
-the exact bytes expected for the outstanding effect.
+identity, exact plan fragment, active play, scheduler, presentation/evidence identities, fixed-size
+ABI buffers, and receipt count are not shared with the other page host. The runtime emits one host
+operation request through a 4,096-byte output frame and accepts one completion through a separate
+4,096-byte input frame. A completion advances execution only when its source, checked, expanded,
+plan, fragment, host, boot, active-play, node/request/operation, placement, presentation/evidence,
+value-kind, and encoded-value fields are the exact bytes expected for the outstanding request.
 
 Run the proof with:
 
@@ -21,4 +23,7 @@ just check-browser-s4
 The Chromium test has one pinned project, one worker, no retries, and no forced interaction. It
 runs two independent page hosts concurrently, waits on all fifteen 250 ms intervals per host,
 retains sixteen nine-byte signal receipts per host, and verifies duplicate, malformed, item-bound,
-byte-bound, and mismatched-runtime-identity rejection.
+byte-bound, cancellation, platform-failure, and mismatched-runtime-identity rejection. Rust seals
+numeric routes, operation slots, values, evidence, identities, and capture capacities before its
+first scheduler step and checks that those capacities do not grow. This is a bounded-capacity proof,
+not a claim that browser allocation can be measured reliably from JavaScript.

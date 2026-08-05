@@ -32,6 +32,12 @@ class FrameReader {
     return value;
   }
 
+  u32() {
+    const value = this.view.getUint32(this.offset, true);
+    this.take(4);
+    return value;
+  }
+
   u64() {
     const value = this.view.getBigUint64(this.offset, true);
     this.take(8);
@@ -93,21 +99,34 @@ class FrameWriter {
 function decodeEffect(bytes) {
   const frame = new FrameReader(bytes);
   const kind = frame.byte();
+  const common = {
+    sourceDocumentId: frame.text(),
+    checkedFormId: frame.text(),
+    expandedFormId: frame.text(),
+    planId: frame.text(),
+    fragmentId: frame.text(),
+    hostId: frame.text(),
+    bootId: frame.text(),
+    activePlayId: frame.text(),
+    requestNode: frame.u16(),
+    requestId: frame.u32(),
+    operationId: frame.u16(),
+    hostOperationContractId: frame.text(),
+    placementId: frame.text(),
+  };
   let effect;
   if (kind === EFFECT_WAIT) {
     effect = Object.freeze({
       kind,
-      planId: frame.text(),
-      placementId: frame.text(),
+      ...common,
       durationMs: frame.u64(),
     });
   } else if (kind === EFFECT_PRESENT) {
     effect = Object.freeze({
       kind,
-      planId: frame.text(),
-      activePlayId: frame.text(),
+      ...common,
       presentationId: frame.text(),
-      placementId: frame.text(),
+      evidenceId: frame.text(),
       presentationKind: frame.text(),
       value: Object.freeze({
         valueKind: frame.text(),
@@ -124,17 +143,49 @@ function decodeEffect(bytes) {
 function encodeCompletion(effect, completion) {
   const frame = new FrameWriter();
   frame.byte(effect.kind);
+  frame.text(completion.sourceDocumentId);
+  frame.text(completion.checkedFormId);
+  frame.text(completion.expandedFormId);
   frame.text(completion.planId);
-  if (effect.kind === EFFECT_PRESENT) {
-    frame.text(completion.activePlayId);
-    frame.text(completion.presentationId);
-  }
+  frame.text(completion.fragmentId);
+  frame.text(completion.hostId);
+  frame.text(completion.bootId);
+  frame.text(completion.activePlayId);
+  const numeric = new Uint8Array(8);
+  const view = new DataView(numeric.buffer);
+  view.setUint16(0, completion.requestNode, true);
+  view.setUint32(2, completion.requestId, true);
+  view.setUint16(6, completion.operationId, true);
+  frame.write(numeric);
+  frame.text(completion.hostOperationContractId);
   frame.text(completion.placementId);
   if (effect.kind === EFFECT_PRESENT) {
+    frame.text(completion.presentationId);
+    frame.text(completion.evidenceId);
     frame.text(completion.value.valueKind);
     frame.bytesField(Uint8Array.from(completion.value.encoded));
   }
+  frame.byte(completion.success ? 1 : 0);
   return frame.finish();
+}
+
+function commonCompletion(effect, success = true) {
+  return {
+    sourceDocumentId: effect.sourceDocumentId,
+    checkedFormId: effect.checkedFormId,
+    expandedFormId: effect.expandedFormId,
+    planId: effect.planId,
+    fragmentId: effect.fragmentId,
+    hostId: effect.hostId,
+    bootId: effect.bootId,
+    activePlayId: effect.activePlayId,
+    requestNode: effect.requestNode,
+    requestId: effect.requestId,
+    operationId: effect.operationId,
+    hostOperationContractId: effect.hostOperationContractId,
+    placementId: effect.placementId,
+    success,
+  };
 }
 
 export async function instantiateBrowserRuntime(wasmBytes, hostIndex) {
@@ -150,7 +201,10 @@ export async function instantiateBrowserRuntime(wasmBytes, hostIndex) {
     "conduit_browser_input_ptr",
     "conduit_browser_input_capacity",
     "conduit_browser_complete",
+    "conduit_browser_cancel",
     "conduit_browser_receipt_count",
+    "conduit_browser_capacity_stable",
+    "conduit_browser_terminal_failure",
   ];
   if (required.some((name) => !(name in api))) {
     throw new Error("CND-BRW-S4-007 incomplete browser runtime ABI");
@@ -180,8 +234,14 @@ export function currentEffect(runtime) {
 }
 
 export function submitCompletion(runtime, effect, completion) {
+  return submitRawCompletion(runtime, encodeCompletion(effect, completion));
+}
+
+export function submitRawCompletion(runtime, bytes) {
   const { api } = runtime;
-  const bytes = encodeCompletion(effect, completion);
+  if (!(bytes instanceof Uint8Array)) {
+    throw new TypeError("CND-BRW-S4-006 completion must be bytes");
+  }
   const capacity = api.conduit_browser_input_capacity();
   if (bytes.length > capacity) {
     throw new Error("CND-BRW-S4-006 completion exceeds runtime input capacity");
@@ -208,8 +268,7 @@ export async function runBrowserRuntime(runtime, domHost) {
       timerCount += 1;
       requestedTimerMs += durationMs;
       completion = Object.freeze({
-        planId: effect.planId,
-        placementId: effect.placementId,
+        ...commonCompletion(effect),
       });
     } else {
       const result = domHost.completePresentation(effect);
@@ -231,6 +290,27 @@ export async function runBrowserRuntime(runtime, domHost) {
     requestedTimerMs,
     completionCount,
     receiptCount: runtime.api.conduit_browser_receipt_count(),
+    capacityStable: runtime.api.conduit_browser_capacity_stable() === 1,
+    terminalFailure: runtime.api.conduit_browser_terminal_failure() === 1,
     presentations: Object.freeze(presentations),
   });
+}
+
+export function successfulCompletion(effect) {
+  const completion = commonCompletion(effect);
+  if (effect.kind === EFFECT_PRESENT) {
+    completion.presentationId = effect.presentationId;
+    completion.evidenceId = effect.evidenceId;
+    completion.value = effect.value;
+  }
+  return Object.freeze(completion);
+}
+
+export function failedCompletion(effect) {
+  const completion = { ...successfulCompletion(effect), success: false };
+  return Object.freeze(completion);
+}
+
+export function completionBytes(effect, completion) {
+  return encodeCompletion(effect, completion);
 }
