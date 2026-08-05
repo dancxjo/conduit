@@ -71,13 +71,12 @@ impl OperationImplementation for PulseImplementation {
         &self,
         placement: &PlannedOperation,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
-        let configuration =
-            parse_pulse_configuration(&placement.configuration).map_err(|err| {
-                ImplementationFailure::new(
-                    FailureReason::InvalidOperationConfiguration,
-                    err.to_string(),
-                )
-            })?;
+        let configuration = parse_pulse_configuration(&placement.configuration).map_err(|err| {
+            ImplementationFailure::new(
+                FailureReason::InvalidOperationConfiguration,
+                err.to_string(),
+            )
+        })?;
         Ok(Box::new(PulseState {
             configuration,
             next_sequence: 0,
