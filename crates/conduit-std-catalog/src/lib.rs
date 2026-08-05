@@ -22,7 +22,6 @@ pub const LATEST_KIND: &str = "state/latest";
 pub const SIGNAL_VALUE_KIND: &str = "value/signal";
 pub const GENERIC_VALUE_KIND: &str = "value/any";
 pub const TEXT_VALUE_KIND: &str = "value/text";
-pub const TICK_VALUE_KIND: &str = "value/tick";
 
 pub const IN_PORT: &str = "in";
 pub const OUT_PORT: &str = "out";
@@ -76,13 +75,13 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             plain_name: "Pulse".to_string(),
             summary: "Emit a bounded alternating signal sequence.".to_string(),
             inputs: Vec::new(),
-            outputs: vec![port(SIGNAL_PORT, SIGNAL_VALUE_KIND, PortDirection::Output)],
+            outputs: vec![port(SIGNAL_PORT, GENERIC_VALUE_KIND, PortDirection::Output)],
             configuration: vec![
                 u64_field("count", 16, 0, 4_096),
                 u64_field("period-ms", 250, 0, u64::MAX),
                 bool_field("initial", false),
             ],
-            limits: limits(SIGNAL_VALUE_KIND, 16, 4, 64),
+            limits: limits(GENERIC_VALUE_KIND, 16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesAfterConfiguredCount,
             hosted_implementation_required: true,
             browser_manifestation_honest: true,
@@ -93,10 +92,10 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             kind_id: kind_id(SHOW_KIND),
             plain_name: "Show".to_string(),
             summary: "Present each input value through a host-honest manifestation.".to_string(),
-            inputs: vec![port(SIGNAL_PORT, SIGNAL_VALUE_KIND, PortDirection::Input)],
+            inputs: vec![port(SIGNAL_PORT, GENERIC_VALUE_KIND, PortDirection::Input)],
             outputs: Vec::new(),
             configuration: Vec::new(),
-            limits: limits(SIGNAL_VALUE_KIND, 16, 4, 64),
+            limits: limits(GENERIC_VALUE_KIND, 16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
             hosted_implementation_required: true,
             browser_manifestation_honest: true,
@@ -154,9 +153,9 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             plain_name: "Format text".to_string(),
             summary: "Render each input value into a bounded text value.".to_string(),
             inputs: vec![port(IN_PORT, GENERIC_VALUE_KIND, PortDirection::Input)],
-            outputs: vec![port(TEXT_PORT, TEXT_VALUE_KIND, PortDirection::Output)],
+            outputs: vec![port(TEXT_PORT, GENERIC_VALUE_KIND, PortDirection::Output)],
             configuration: vec![u64_field("template-id", 0, 0, u64::MAX)],
-            limits: limits(TEXT_VALUE_KIND, 16, 4, 256),
+            limits: limits(GENERIC_VALUE_KIND, 16, 4, 256),
             terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
             hosted_implementation_required: true,
             browser_manifestation_honest: false,
@@ -168,12 +167,12 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             plain_name: "Tick".to_string(),
             summary: "Emit a bounded timer tick sequence.".to_string(),
             inputs: Vec::new(),
-            outputs: vec![port(TICK_PORT, TICK_VALUE_KIND, PortDirection::Output)],
+            outputs: vec![port(TICK_PORT, GENERIC_VALUE_KIND, PortDirection::Output)],
             configuration: vec![
                 u64_field("count", 16, 0, 4_096),
                 u64_field("period-ms", 1_000, 0, u64::MAX),
             ],
-            limits: limits(TICK_VALUE_KIND, 16, 4, 64),
+            limits: limits(GENERIC_VALUE_KIND, 16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesAfterConfiguredCount,
             hosted_implementation_required: true,
             browser_manifestation_honest: false,
@@ -284,22 +283,413 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
     catalog
 }
 
+pub fn standard_capability_offers(
+    implementation_prefix: &str,
+) -> Vec<conduit_core::CapabilityOffer> {
+    standard_contracts()
+        .into_iter()
+        .map(|contract| conduit_core::CapabilityOffer {
+            capability_id: conduit_core::CapabilityId::from(capability_slug(
+                contract.kind_id.as_str(),
+            )),
+            kind_id: contract.kind_id.clone(),
+            implementation_id: conduit_core::ImplementationId::from(alloc::format!(
+                "{implementation_prefix}/{}-v1",
+                capability_slug(contract.kind_id.as_str())
+            )),
+            artifact_id: conduit_core::ArtifactId::from(alloc::format!(
+                "conduit-std-catalog/{}",
+                capability_slug(contract.kind_id.as_str())
+            )),
+            limits: contract.limits,
+        })
+        .collect()
+}
+
+pub fn standard_host_advertisement(
+    host_id: conduit_core::HostId,
+    boot_id: conduit_core::BootId,
+    offer_generation: conduit_core::OfferGeneration,
+) -> conduit_core::HostAdvertisement {
+    conduit_core::HostAdvertisement {
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id,
+        boot_id,
+        offer_generation,
+        profile: conduit_core::HostProfileId::from("conduit.std/hosted-v1"),
+        capabilities: standard_capability_offers("std"),
+    }
+}
+
+fn capability_slug(kind: &str) -> String {
+    kind.replace('/', "-")
+}
+
+#[cfg(feature = "host-profile")]
+mod host_profile {
+    use super::{
+        capability_slug, standard_contracts, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND,
+        LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND, TEE_KIND, TICK_KIND,
+    };
+    use alloc::boxed::Box;
+    use alloc::format;
+    use alloc::string::ToString;
+    use conduit_core::{
+        kind_id, ArtifactId, ConfigurationValue, FailureReason, ImplementationId, KindId,
+        PlannedOperation, ValuePayload,
+    };
+    use conduit_runtime::{
+        ImplementationFailure, ImplementationRegistry, OperationAction, OperationCompletion,
+        OperationImplementation, OperationState,
+    };
+
+    pub fn standard_registry(
+        implementation_prefix: &str,
+    ) -> Result<ImplementationRegistry, ImplementationFailure> {
+        let mut registry = ImplementationRegistry::new();
+        install_standard_profile(&mut registry, implementation_prefix)?;
+        Ok(registry)
+    }
+
+    pub fn install_standard_profile(
+        registry: &mut ImplementationRegistry,
+        implementation_prefix: &str,
+    ) -> Result<(), ImplementationFailure> {
+        for contract in standard_contracts() {
+            registry.install(StandardImplementation {
+                kind_id: contract.kind_id.clone(),
+                implementation_id: ImplementationId::from(format!(
+                    "{implementation_prefix}/{}-v1",
+                    capability_slug(contract.kind_id.as_str())
+                )),
+                artifact_id: ArtifactId::from(format!(
+                    "conduit-std-catalog/{}",
+                    capability_slug(contract.kind_id.as_str())
+                )),
+            })?;
+        }
+        Ok(())
+    }
+
+    struct StandardImplementation {
+        kind_id: KindId,
+        implementation_id: ImplementationId,
+        artifact_id: ArtifactId,
+    }
+
+    impl OperationImplementation for StandardImplementation {
+        fn kind_id(&self) -> &KindId {
+            &self.kind_id
+        }
+
+        fn implementation_id(&self) -> &ImplementationId {
+            &self.implementation_id
+        }
+
+        fn artifact_id(&self) -> &ArtifactId {
+            &self.artifact_id
+        }
+
+        fn prepare(
+            &self,
+            placement: &PlannedOperation,
+        ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
+            match self.kind_id.as_str() {
+                PULSE_KIND => Ok(Box::new(CountedSourceState::new(
+                    placement,
+                    GENERIC_VALUE_KIND,
+                    16,
+                    250,
+                )?)),
+                TICK_KIND => Ok(Box::new(CountedSourceState::new(
+                    placement,
+                    GENERIC_VALUE_KIND,
+                    16,
+                    1_000,
+                )?)),
+                SHOW_KIND => Ok(Box::new(ShowState)),
+                MAP_KIND => Ok(Box::new(PassState)),
+                FILTER_KIND => Ok(Box::new(FilterState {
+                    predicate_id: u64_config(placement, "predicate-id", 0)?,
+                })),
+                TEE_KIND => Ok(Box::new(PassState)),
+                FORMAT_KIND => Ok(Box::new(FormatState)),
+                LATEST_KIND => Ok(Box::new(LatestState { latest: None })),
+                _ => Err(ImplementationFailure::new(
+                    FailureReason::UnsupportedKind,
+                    format!("unsupported standard kind '{}'", self.kind_id.as_str()),
+                )),
+            }
+        }
+
+        fn minimum_value_size(&self, value_kind: &KindId) -> Option<u32> {
+            match value_kind.as_str() {
+                SIGNAL_VALUE_KIND | GENERIC_VALUE_KIND => Some(8),
+                super::TEXT_VALUE_KIND => Some(1),
+                _ => None,
+            }
+        }
+    }
+
+    struct CountedSourceState {
+        value_kind: KindId,
+        next: u64,
+        count: u64,
+        period_ms: u64,
+        waiting: bool,
+    }
+
+    impl CountedSourceState {
+        fn new(
+            placement: &PlannedOperation,
+            value_kind: &str,
+            default_count: u64,
+            default_period_ms: u64,
+        ) -> Result<Self, ImplementationFailure> {
+            Ok(Self {
+                value_kind: kind_id(value_kind),
+                next: 0,
+                count: u64_config(placement, "count", default_count)?,
+                period_ms: u64_config(placement, "period-ms", default_period_ms)?,
+                waiting: false,
+            })
+        }
+
+        fn next_action(&mut self) -> OperationAction {
+            if self.next >= self.count {
+                OperationAction::Complete
+            } else if self.waiting {
+                OperationAction::Idle
+            } else {
+                self.waiting = true;
+                OperationAction::Wait {
+                    duration_ms: self.period_ms,
+                }
+            }
+        }
+    }
+
+    impl OperationState for CountedSourceState {
+        fn start(&mut self) -> OperationAction {
+            self.next_action()
+        }
+
+        fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
+            match completion {
+                OperationCompletion::TimerElapsed => {
+                    self.waiting = false;
+                    OperationAction::Emit(number_payload(&self.value_kind, self.next))
+                }
+                OperationCompletion::Emitted => {
+                    self.next += 1;
+                    self.next_action()
+                }
+                _ => OperationAction::Fail(ImplementationFailure::new(
+                    FailureReason::InvalidLifecycleCommand,
+                    "counted source received invalid completion",
+                )),
+            }
+        }
+    }
+
+    struct PassState;
+
+    impl OperationState for PassState {
+        fn start(&mut self) -> OperationAction {
+            OperationAction::Idle
+        }
+
+        fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
+            match completion {
+                OperationCompletion::Value(value) => OperationAction::Emit(value),
+                OperationCompletion::Emitted => OperationAction::Complete,
+                OperationCompletion::InputsClosed => OperationAction::Complete,
+                _ => OperationAction::Fail(ImplementationFailure::new(
+                    FailureReason::InvalidLifecycleCommand,
+                    "pass operation received invalid completion",
+                )),
+            }
+        }
+    }
+
+    struct FilterState {
+        predicate_id: u64,
+    }
+
+    impl OperationState for FilterState {
+        fn start(&mut self) -> OperationAction {
+            OperationAction::Idle
+        }
+
+        fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
+            match completion {
+                OperationCompletion::Value(value) => {
+                    if self.accepts(&value) {
+                        OperationAction::Emit(value)
+                    } else {
+                        OperationAction::Idle
+                    }
+                }
+                OperationCompletion::Emitted => OperationAction::Complete,
+                OperationCompletion::InputsClosed => OperationAction::Complete,
+                _ => OperationAction::Fail(ImplementationFailure::new(
+                    FailureReason::InvalidLifecycleCommand,
+                    "filter operation received invalid completion",
+                )),
+            }
+        }
+    }
+
+    impl FilterState {
+        fn accepts(&self, value: &ValuePayload) -> bool {
+            self.predicate_id == 0 || decode_number(value).is_none_or(|number| number % 2 == 0)
+        }
+    }
+
+    struct FormatState;
+
+    impl OperationState for FormatState {
+        fn start(&mut self) -> OperationAction {
+            OperationAction::Idle
+        }
+
+        fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
+            match completion {
+                OperationCompletion::Value(value) => {
+                    let text = match decode_number(&value) {
+                        Some(number) => format!("value:{number}"),
+                        None => format!("bytes:{}", value.encoded.len()),
+                    };
+                    OperationAction::Emit(ValuePayload {
+                        value_kind: kind_id(GENERIC_VALUE_KIND),
+                        encoded: text.into_bytes(),
+                    })
+                }
+                OperationCompletion::Emitted => OperationAction::Complete,
+                OperationCompletion::InputsClosed => OperationAction::Complete,
+                _ => OperationAction::Fail(ImplementationFailure::new(
+                    FailureReason::InvalidLifecycleCommand,
+                    "format operation received invalid completion",
+                )),
+            }
+        }
+    }
+
+    struct LatestState {
+        latest: Option<ValuePayload>,
+    }
+
+    impl OperationState for LatestState {
+        fn start(&mut self) -> OperationAction {
+            OperationAction::Idle
+        }
+
+        fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
+            match completion {
+                OperationCompletion::Value(value) => {
+                    self.latest = Some(value.clone());
+                    OperationAction::Emit(value)
+                }
+                OperationCompletion::Emitted => OperationAction::Complete,
+                OperationCompletion::InputsClosed => OperationAction::Complete,
+                _ => OperationAction::Fail(ImplementationFailure::new(
+                    FailureReason::InvalidLifecycleCommand,
+                    "latest operation received invalid completion",
+                )),
+            }
+        }
+
+        fn release(&mut self) {
+            self.latest = None;
+        }
+    }
+
+    struct ShowState;
+
+    impl OperationState for ShowState {
+        fn start(&mut self) -> OperationAction {
+            OperationAction::Idle
+        }
+
+        fn resume(&mut self, completion: OperationCompletion) -> OperationAction {
+            match completion {
+                OperationCompletion::Value(value) => OperationAction::Present {
+                    presentation_kind: kind_id("presentation/stdout"),
+                    value,
+                },
+                OperationCompletion::PresentationCompleted { success, message } => {
+                    if success {
+                        OperationAction::Complete
+                    } else {
+                        OperationAction::Fail(ImplementationFailure::new(
+                            FailureReason::ManifestationFailed,
+                            message.unwrap_or_else(|| "presentation failed".to_string()),
+                        ))
+                    }
+                }
+                OperationCompletion::InputsClosed => OperationAction::Complete,
+                _ => OperationAction::Fail(ImplementationFailure::new(
+                    FailureReason::InvalidLifecycleCommand,
+                    "show operation received invalid completion",
+                )),
+            }
+        }
+    }
+
+    fn u64_config(
+        placement: &PlannedOperation,
+        key: &str,
+        default_value: u64,
+    ) -> Result<u64, ImplementationFailure> {
+        placement
+            .configuration
+            .iter()
+            .find(|entry| entry.key == key)
+            .map_or(Ok(default_value), |entry| match entry.value {
+                ConfigurationValue::U64(value) => Ok(value),
+                _ => Err(ImplementationFailure::new(
+                    FailureReason::InvalidOperationConfiguration,
+                    format!("configuration '{key}' must be u64"),
+                )),
+            })
+    }
+
+    fn number_payload(value_kind: &KindId, value: u64) -> ValuePayload {
+        ValuePayload {
+            value_kind: value_kind.clone(),
+            encoded: value.to_le_bytes().to_vec(),
+        }
+    }
+
+    fn decode_number(value: &ValuePayload) -> Option<u64> {
+        let bytes = value.encoded.get(..8)?;
+        let mut number = [0; 8];
+        number.copy_from_slice(bytes);
+        Some(u64::from_le_bytes(number))
+    }
+}
+
+#[cfg(feature = "host-profile")]
+pub use host_profile::{install_standard_profile, standard_registry};
+
 #[cfg(test)]
 mod tests {
     use alloc::collections::BTreeMap;
     use alloc::vec;
 
     use super::{
-        find_contract, standard_contracts, standard_profile_catalog, FILTER_KIND, FORMAT_KIND,
-        GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND,
-        TEE_KIND, TEXT_VALUE_KIND, TICK_KIND,
+        find_contract, standard_contracts, standard_host_advertisement, standard_profile_catalog,
+        standard_registry, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND,
+        PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND,
     };
     use conduit_core::{
         kind_id, ArtifactId, CapabilityId, CapabilityOffer, ConnectionProvider, HostAdvertisement,
-        HostId, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
+        HostCommand, HostEvent, HostId, HostProfileId, ImplementationId, ObservationKind,
+        OfferGeneration, PlatformEffect, PROTOCOL_VERSION,
     };
     use conduit_form::parse;
     use conduit_planner::{plan, PlacementChoice, PlacementChoices};
+    use conduit_runtime::HostRuntime;
 
     #[test]
     fn standard_catalog_contains_the_m4_socket_set() {
@@ -350,23 +740,23 @@ mod tests {
         assert_eq!(form.connections.len(), 1);
 
         let flow_form = parse(
-            "form 0\n\nstd_flow {\n source: flow/map\n filtered: flow/filter\n latest: state/latest\n split: flow/tee\n formatted: text/format\n clock: time/tick\n source > filtered\n filtered > latest\n}\n",
+            "form 0\n\nstd_flow {\n clock: time/tick\n source: flow/map\n filtered: flow/filter\n split: flow/tee\n latest: state/latest\n formatted: text/format\n clock.tick -> source.in\n source > filtered\n filtered > split\n split.left -> latest.in\n split.right -> formatted.in\n}\n",
             &catalog,
         )
         .expect("new standard flow form parses");
         assert_eq!(flow_form.operations.len(), 6);
-        assert_eq!(flow_form.connections.len(), 2);
+        assert_eq!(flow_form.connections.len(), 5);
     }
 
     #[test]
     fn conformance_fixture_plans_standard_contracts_without_ui() {
         let catalog = standard_profile_catalog();
         let form = parse(
-            "form 0\n\nstd_conformance {\n source: flow/map\n filter: flow/filter\n latest: state/latest\n split: flow/tee\n format: text/format\n clock: time/tick\n source > filter\n filter > latest\n}\n",
+            "form 0\n\nstd_conformance {\n clock: time/tick\n source: flow/map\n filter: flow/filter\n split: flow/tee\n latest: state/latest\n format: text/format\n clock.tick -> source.in\n source > filter\n filter > split\n split.left -> latest.in\n split.right -> format.in\n}\n",
             &catalog,
         )
         .expect("standard conformance form parses");
-        let host = standard_host_advertisement();
+        let host = conformance_host_advertisement();
         let placements = PlacementChoices {
             by_operation: BTreeMap::from([
                 ("source", "flow-map"),
@@ -398,11 +788,70 @@ mod tests {
         assert_eq!(plan.fragments.len(), 1);
         let fragment = &plan.fragments[0];
         assert_eq!(fragment.placements.len(), 6);
-        assert_eq!(fragment.connections.len(), 2);
+        assert_eq!(fragment.connections.len(), 5);
         assert!(fragment
             .placements
             .iter()
             .all(|placement| placement.implementation_id.as_str().starts_with("std/")));
+    }
+
+    #[test]
+    fn hosted_standard_profile_runs_bounded_flow_form_without_ui() {
+        let observations = run_hosted_standard_form(
+            "form 0\n\nstd_exec {\n clock: time/tick\n map: flow/map\n filter: flow/filter\n split: flow/tee\n latest: state/latest\n format: text/format\n show_latest: presentation/show\n show_text: presentation/show\n clock.count = 1\n clock.period-ms = 0\n clock.tick -> map.in\n map > filter\n filter > split\n split.left -> latest.in\n split.right -> format.in\n latest > show_latest\n format.text -> show_text.signal\n}\n",
+            [
+                ("clock", "time-tick"),
+                ("map", "flow-map"),
+                ("filter", "flow-filter"),
+                ("split", "flow-tee"),
+                ("latest", "state-latest"),
+                ("format", "text-format"),
+                ("show_latest", "presentation-show"),
+                ("show_text", "presentation-show"),
+            ],
+        );
+        assert_completed_plan(&observations);
+        assert!(
+            observations
+                .iter()
+                .filter(|observation| matches!(
+                    observation.kind,
+                    ObservationKind::ValueAccepted { .. }
+                ))
+                .count()
+                >= 5,
+            "latest and format should receive values through tee branches"
+        );
+    }
+
+    #[test]
+    fn hosted_standard_profile_runs_pulse_show_form_without_ui() {
+        let observations = run_hosted_standard_form(
+            "form 0\n\nstd_pulse_show {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 1\n pulse.period-ms = 0\n pulse.signal -> show.signal\n}\n",
+            [("pulse", "flow-pulse"), ("show", "presentation-show")],
+        );
+        assert_completed_plan(&observations);
+        assert_presented_value(&observations);
+    }
+
+    #[test]
+    fn hosted_standard_profile_runs_tick_format_show_form_without_ui() {
+        let observations = run_hosted_standard_form(
+            "form 0\n\nstd_tick_format {\n clock: time/tick\n format: text/format\n show: presentation/show\n clock.count = 1\n clock.period-ms = 0\n clock.tick -> format.in\n format.text -> show.signal\n}\n",
+            [
+                ("clock", "time-tick"),
+                ("format", "text-format"),
+                ("show", "presentation-show"),
+            ],
+        );
+        assert_completed_plan(&observations);
+        assert!(observations.iter().any(|observation| {
+            matches!(
+                &observation.kind,
+                ObservationKind::ValuePresented { value }
+                    if value.encoded.as_slice() == b"value:0"
+            )
+        }));
     }
 
     #[test]
@@ -425,7 +874,7 @@ mod tests {
         }
     }
 
-    fn standard_host_advertisement() -> HostAdvertisement {
+    fn conformance_host_advertisement() -> HostAdvertisement {
         HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
             host_id: HostId::from("std-catalog-host"),
@@ -433,11 +882,11 @@ mod tests {
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("conduit.std/conformance"),
             capabilities: vec![
-                offer("flow-pulse", PULSE_KIND, SIGNAL_VALUE_KIND, "std/pulse-v1"),
+                offer("flow-pulse", PULSE_KIND, GENERIC_VALUE_KIND, "std/pulse-v1"),
                 offer(
                     "presentation-show",
                     SHOW_KIND,
-                    SIGNAL_VALUE_KIND,
+                    GENERIC_VALUE_KIND,
                     "std/show-v1",
                 ),
                 offer("flow-map", MAP_KIND, GENERIC_VALUE_KIND, "std/map-v1"),
@@ -451,13 +900,13 @@ mod tests {
                 offer(
                     "text-format",
                     FORMAT_KIND,
-                    TEXT_VALUE_KIND,
+                    GENERIC_VALUE_KIND,
                     "std/text-format-v1",
                 ),
                 offer(
                     "time-tick",
                     TICK_KIND,
-                    super::TICK_VALUE_KIND,
+                    GENERIC_VALUE_KIND,
                     "std/time-tick-v1",
                 ),
                 offer(
@@ -488,5 +937,130 @@ mod tests {
                 max_queue_bytes: 64,
             },
         }
+    }
+
+    fn placements_for<const N: usize>(
+        host: &HostAdvertisement,
+        mappings: [(&str, &str); N],
+    ) -> PlacementChoices {
+        PlacementChoices {
+            by_operation: mappings
+                .into_iter()
+                .map(|(operation, capability)| {
+                    (
+                        conduit_core::OperationId::from(operation),
+                        PlacementChoice {
+                            host_id: host.host_id.clone(),
+                            capability_id: CapabilityId::from(capability),
+                        },
+                    )
+                })
+                .collect(),
+        }
+    }
+
+    fn run_hosted_standard_form<const N: usize>(
+        form_source: &str,
+        mappings: [(&str, &str); N],
+    ) -> Vec<conduit_core::Observation> {
+        let catalog = standard_profile_catalog();
+        let form = parse(form_source, &catalog).expect("executable standard form parses");
+        let host = standard_host_advertisement(
+            HostId::from("std-catalog-host"),
+            conduit_core::BootId::from("std-catalog-boot"),
+            OfferGeneration(1),
+        );
+        let placements = placements_for(&host, mappings);
+        let plan = plan(
+            &form,
+            core::slice::from_ref(&host),
+            &placements,
+            &[ConnectionProvider::Local],
+        )
+        .expect("hosted standard form plans");
+        let fragment = plan.fragments.first().expect("fragment exists").clone();
+        let mut runtime = HostRuntime::new(
+            host,
+            standard_registry("std").expect("standard registry installs"),
+            128,
+        );
+        let prepared = runtime.handle(HostCommand::Prepare(fragment.clone()));
+        assert!(
+            prepared.events.iter().any(|event| {
+                matches!(
+                    event,
+                    HostEvent::Prepared { plan_id } if plan_id == &fragment.plan_id
+                )
+            }),
+            "prepare events: {:?}",
+            prepared.events
+        );
+        drive_runtime(&mut runtime, fragment.plan_id);
+        inspect(&mut runtime)
+    }
+
+    fn assert_completed_plan(observations: &[conduit_core::Observation]) {
+        assert!(
+            observations.iter().any(|observation| {
+                matches!(
+                    observation.kind,
+                    ObservationKind::PlanTerminal {
+                        disposition: conduit_core::TerminalDisposition::Completed
+                    }
+                )
+            }),
+            "observations: {:?}",
+            observations
+        );
+    }
+
+    fn assert_presented_value(observations: &[conduit_core::Observation]) {
+        assert!(observations
+            .iter()
+            .any(|observation| matches!(observation.kind, ObservationKind::ValuePresented { .. })));
+    }
+
+    fn drive_runtime(runtime: &mut HostRuntime, plan_id: conduit_core::PlanId) {
+        let mut pending = runtime.handle(HostCommand::Activate(plan_id)).effects;
+        while let Some(effect) = pending.pop() {
+            let output = match effect {
+                PlatformEffect::Wait {
+                    plan_id,
+                    placement_id,
+                    ..
+                } => runtime.handle(HostCommand::CompleteWait {
+                    plan_id,
+                    placement_id,
+                }),
+                PlatformEffect::PresentValue {
+                    plan_id,
+                    placement_id,
+                    value,
+                    ..
+                } => runtime.handle(HostCommand::CompletePresentation {
+                    plan_id,
+                    placement_id,
+                    value,
+                    success: true,
+                    message: None,
+                }),
+                PlatformEffect::TransmitConnection { .. } => {
+                    panic!("standard catalog conformance uses only local connections")
+                }
+            };
+            pending.extend(output.effects);
+        }
+    }
+
+    fn inspect(runtime: &mut HostRuntime) -> Vec<conduit_core::Observation> {
+        runtime
+            .handle(HostCommand::Inspect)
+            .events
+            .into_iter()
+            .find_map(|event| match event {
+                HostEvent::Observations { items } => Some(items),
+                _ => None,
+            })
+            .expect("inspect returns observations")
     }
 }

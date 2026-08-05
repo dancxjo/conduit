@@ -6,11 +6,13 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form", optional = true }
+conduit-runtime = { path = "../conduit-runtime", optional = true }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
 [dev-dependencies]
 conduit-planner = { path = "../conduit-planner" }
 
 [features]
-default = ["form-catalog"]
+default = ["form-catalog", "host-profile"]
 form-catalog = ["dep:conduit-form"]
+host-profile = ["dep:conduit-runtime"]
