@@ -367,6 +367,7 @@ pub trait ValueStorage {
     fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError>;
     fn retain(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn release(&mut self, value: ValueRef) -> Result<(), StorageError>;
+    fn clear(&mut self);
 }
 
 #[derive(Clone, Copy)]
@@ -529,6 +530,15 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
             self.used_bytes -= len;
         }
         Ok(())
+    }
+
+    fn clear(&mut self) {
+        for slot in &mut self.slots {
+            slot.references = 0;
+            slot.len = 0;
+        }
+        self.used_items = 0;
+        self.used_bytes = 0;
     }
 }
 
@@ -699,6 +709,15 @@ mod hosted {
             }
             Ok(())
         }
+
+        fn clear(&mut self) {
+            for slot in &mut self.slots {
+                slot.references = 0;
+                slot.bytes.clear();
+            }
+            self.used_items = 0;
+            self.used_bytes = 0;
+        }
     }
 
     pub use HostedValueStore as Store;
@@ -719,6 +738,7 @@ pub enum KernelEventKind {
     OperationCompleted,
     OperationFailed,
     CancellationRequested,
+    RunCancelled,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -6,7 +6,7 @@ adapter or physical proof.
 
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Port-aware salvage kernel | initial protocol/storage | fixed/hosted storage vectors | preallocated storage only; scheduler pending | no | no; Thumb contract compiles | no | no |
+| Port-aware salvage kernel | port protocol, fixed scheduler, cancellation | fixed/hosted multi-value and cancellation vectors | same scheduler with preallocated hosted storage | no | no; Thumb kernel compiles | no | no |
 | Exact plan and fragment identities | prototype | mutation-negative fixtures | yes, std runtime | no | no | no | no |
 | Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
 | Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
@@ -23,7 +23,8 @@ The `check` workflow requires:
 
 - workspace formatting, Clippy, and tests;
 - no-std checks for the salvage kernel, semantic, wire, and std-catalog contracts;
-- hosted/fixed salvage-kernel protocol and storage vectors;
+- hosted/fixed salvage-kernel protocol, storage, scheduler, pressure, closure,
+  and cancellation vectors;
 - exact-plan mutation-negative tests;
 - deterministic wire and simulated-host conformance vectors;
 - WASM compilation of the browser-shaped simulation;
@@ -34,7 +35,10 @@ or board acceptance. Frame/datagram fixtures are not WebSocket or UDP sockets.
 
 ## Salvage stop line
 
-S0 restores truth. The first S1 slice defines the port-aware protocol and
-bounded storage, but the deterministic scheduler and semantic conformance form
-remain pending. No actual browser/Pico host, BODY, catalog expansion,
-Observatory acceptance, or useful task advances before #349 is accepted.
+S0 restores truth. S1 now includes the port-aware protocol, bounded storage,
+deterministic fixed-capacity scheduling, transactional fanout, per-port closure,
+and matching hosted/fixed multi-value and cancellation vectors. Correlated
+pending host operations, late-completion rejection, and the final semantic
+conformance form remain pending. No actual browser/Pico host, BODY, catalog
+expansion, Observatory acceptance, or useful task advances before #349 is
+accepted.
