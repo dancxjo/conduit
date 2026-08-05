@@ -247,7 +247,9 @@ pub fn parse_activate_configuration(
     }
     let count = count.ok_or(SignalProfileError::MissingConfiguration("count"))?;
     if count > MAX_SIGNAL_COUNT {
-        return Err(SignalProfileError::InvalidConfiguration("count".to_string()));
+        return Err(SignalProfileError::InvalidConfiguration(
+            "count".to_string(),
+        ));
     }
     Ok(ActivateConfiguration { count })
 }
@@ -511,7 +513,11 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(DISTRIBUTED_TOGGLE_STD_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-kernel"),
-        resources: vec![resource_offer("s4/toggle-std-input", INPUT_RESOURCE_CLASS, 1)],
+        resources: vec![resource_offer(
+            "s4/toggle-std-input",
+            INPUT_RESOURCE_CLASS,
+            1,
+        )],
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("activate-1"),
@@ -618,19 +624,19 @@ pub fn distributed_toggle_websocket_link_binding() -> LinkBinding {
 #[cfg(feature = "host-profile")]
 mod host_profile {
     use super::{
-        activate_contract_revision, activate_execution_profile, activate_host_operation_requirements,
-        activate_kind, activate_outputs, activate_resource_requirements,
-        activation_value_kind, decode_activation_bytes, decode_signal, encode_activation,
-        encode_signal, parse_activate_configuration, parse_pulse_configuration,
-        parse_toggle_configuration, pulse_contract_revision, pulse_execution_profile,
-        pulse_host_operation_requirements, pulse_kind, pulse_outputs, pulse_resource_requirements,
-        show_contract_revision, show_execution_profile, show_host_operation_requirements,
-        show_inputs, show_kind, show_resource_requirements, signal_value_kind,
-        toggle_contract_revision, toggle_execution_profile, toggle_host_operation_requirements,
-        toggle_inputs, toggle_kind, toggle_outputs, toggle_resource_requirements,
-        ActivateConfiguration, Activation, PulseConfiguration, Signal, MAX_SIGNAL_COUNT,
-        ACTIVATE_PORT, ACTIVATION_ENCODED_LEN, SIGNAL_ENCODED_LEN, SIGNAL_PORT,
-        SIGNAL_PRESENTATION_KIND,
+        activate_contract_revision, activate_execution_profile,
+        activate_host_operation_requirements, activate_kind, activate_outputs,
+        activate_resource_requirements, activation_value_kind, decode_activation_bytes,
+        decode_signal, encode_activation, encode_signal, parse_activate_configuration,
+        parse_pulse_configuration, parse_toggle_configuration, pulse_contract_revision,
+        pulse_execution_profile, pulse_host_operation_requirements, pulse_kind, pulse_outputs,
+        pulse_resource_requirements, show_contract_revision, show_execution_profile,
+        show_host_operation_requirements, show_inputs, show_kind, show_resource_requirements,
+        signal_value_kind, toggle_contract_revision, toggle_execution_profile,
+        toggle_host_operation_requirements, toggle_inputs, toggle_kind, toggle_outputs,
+        toggle_resource_requirements, ActivateConfiguration, Activation, PulseConfiguration,
+        Signal, ACTIVATE_PORT, ACTIVATION_ENCODED_LEN, MAX_SIGNAL_COUNT, SIGNAL_ENCODED_LEN,
+        SIGNAL_PORT, SIGNAL_PRESENTATION_KIND,
     };
     use alloc::boxed::Box;
     use conduit_core::{
@@ -1112,7 +1118,8 @@ mod host_profile {
                             FailureReason::MalformedConnectionEnvelope,
                             alloc::format!(
                                 "expected activation sequence {}, received {}",
-                                self.expected_sequence, activation.sequence
+                                self.expected_sequence,
+                                activation.sequence
                             ),
                         )),
                         Err(err) => OperationAction::Fail(ImplementationFailure::new(
@@ -1231,11 +1238,11 @@ pub use host_profile::{
 #[cfg(test)]
 mod tests {
     use super::{
-        decode_activation_bytes, decode_signal, decode_signal_bytes, encode_activation,
-        encode_signal, parse_activate_configuration, parse_pulse_configuration,
-        parse_toggle_configuration, activate_configuration_entries, toggle_configuration_entries,
-        pulse_configuration_entries, ActivateConfiguration, Activation, PulseConfiguration,
-        ToggleConfiguration, Signal,
+        activate_configuration_entries, decode_activation_bytes, decode_signal,
+        decode_signal_bytes, encode_activation, encode_signal, parse_activate_configuration,
+        parse_pulse_configuration, parse_toggle_configuration, pulse_configuration_entries,
+        toggle_configuration_entries, ActivateConfiguration, Activation, PulseConfiguration,
+        Signal, ToggleConfiguration,
     };
 
     #[test]
@@ -1269,7 +1276,10 @@ mod tests {
     fn round_trips_activation_payload() {
         let activation = Activation { sequence: 42 };
         let payload = encode_activation(&activation);
-        assert_eq!(payload.encoded.len(), super::ACTIVATION_ENCODED_LEN as usize);
+        assert_eq!(
+            payload.encoded.len(),
+            super::ACTIVATION_ENCODED_LEN as usize
+        );
         let decoded =
             decode_activation_bytes(&payload.encoded).expect("activation payload should decode");
         assert_eq!(decoded.sequence, 42);

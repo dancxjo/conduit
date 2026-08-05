@@ -3,13 +3,9 @@
 //! Thread-local state and `#[no_mangle]` extern C functions called from JavaScript
 //! to drive the toggle demonstration.
 
-use super::sink::ToggleDistributedSink;
-use super::{
-    ERROR_CANCELLED, ERROR_CAPACITY, ERROR_EVIDENCE, ERROR_KERNEL, ERROR_NOT_STARTED,
-    ERROR_PREPARE, ERROR_PRESENTATION, ERROR_SESSION, OUTPUT_NONE, OUTPUT_PRESENT,
-    OUTPUT_SESSION, STATUS_COMPLETE, STATUS_RUNNING,
-};
 use super::super::FRAME_CAPACITY;
+use super::sink::ToggleDistributedSink;
+use super::{ERROR_NOT_STARTED, ERROR_PRESENTATION, ERROR_SESSION, OUTPUT_NONE, STATUS_RUNNING};
 use std::cell::RefCell;
 
 thread_local! {
@@ -158,7 +154,6 @@ pub extern "C" fn conduit_browser_toggle_distributed_capacity_stable() -> u32 {
             .unwrap_or(0)
     })
 }
-
 
 #[cfg(test)]
 mod tests {

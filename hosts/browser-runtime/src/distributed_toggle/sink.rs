@@ -3,12 +3,12 @@
 //! `ToggleDistributedSink` prepares and drives the `presentation/show` fragment
 //! receiving `Signal` values over the WebSocket cord from the std source.
 
-use super::operation::{CapacitySeal, ToggleShowOperation};
 use super::super::{
     map_scheduler_error, write_common_frame, write_presentation_completion_frame,
     write_presentation_frame, FrameWriter, PreparedProjection, FRAME_CAPACITY, MAXIMUM_RECEIPTS,
     PORTS,
 };
+use super::operation::{CapacitySeal, ToggleShowOperation};
 use conduit_core::{
     bind_active_play, bind_evidence, bind_presentation, CapabilityId, ConnectionProvider,
     OperationId, Plan, PlanFragment,
@@ -510,7 +510,10 @@ impl ToggleDistributedSink {
         }
     }
 
-    pub(super) fn prepare_presentation(&mut self, request: HostOperationRequest) -> Result<(), i32> {
+    pub(super) fn prepare_presentation(
+        &mut self,
+        request: HostOperationRequest,
+    ) -> Result<(), i32> {
         let projection = self
             .projections
             .get(self.receipts)
@@ -629,4 +632,3 @@ impl ToggleDistributedSink {
         }
     }
 }
-

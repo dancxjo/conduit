@@ -4,8 +4,8 @@
 //! requests) and `state/toggle` (stateful bool flip with exact ValueRef validation).
 
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

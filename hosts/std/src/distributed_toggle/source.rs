@@ -24,8 +24,7 @@ use conduit_runtime::lowering::{
 };
 use conduit_signal::{
     encode_signal, parse_activate_configuration, parse_toggle_configuration, Signal,
-    ACTIVATION_ENCODED_LEN, DISTRIBUTED_MAXIMUM_FRAME_BYTES, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-    SIGNAL_ENCODED_LEN,
+    ACTIVATION_ENCODED_LEN, DISTRIBUTED_MAXIMUM_FRAME_BYTES, SIGNAL_ENCODED_LEN,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
@@ -40,7 +39,7 @@ const MAXIMUM_WAITS: usize = MAXIMUM_VALUES;
 const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES * 2 + MAXIMUM_WAITS) as u16;
 const MAXIMUM_STORED_BYTES: u32 = MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN
     + MAXIMUM_VALUES as u32 * ACTIVATION_ENCODED_LEN
-    + MAXIMUM_WAITS as u32 * 1; // 1-byte tokens for await-activation ops
+    + MAXIMUM_WAITS as u32; // 1-byte tokens per await-activation op
 const EVIDENCE_ITEMS: u16 = 256;
 
 type ToggleScheduler = FixedScheduler<
@@ -103,12 +102,10 @@ impl DistributedToggleSource {
             .find(|p| p.kind_id.as_str() == "state/toggle")
             .ok_or("toggle placement missing")?;
 
-        let activate_config =
-            parse_activate_configuration(&activate_placement.configuration)
-                .map_err(|error| error.to_string())?;
-        let toggle_config =
-            parse_toggle_configuration(&toggle_placement.configuration)
-                .map_err(|error| error.to_string())?;
+        let activate_config = parse_activate_configuration(&activate_placement.configuration)
+            .map_err(|error| error.to_string())?;
+        let toggle_config = parse_toggle_configuration(&toggle_placement.configuration)
+            .map_err(|error| error.to_string())?;
         if activate_config.count != MAXIMUM_VALUES as u64 {
             return Err("toggle form activation count is not the S4 vector".to_string());
         }
@@ -497,7 +494,8 @@ impl DistributedToggleSource {
         }
 
         let mut activation_index = 0usize;
-        while let Some((sequence, payload)) = self.next_offer(report, stdin, &mut activation_index)?
+        while let Some((sequence, payload)) =
+            self.next_offer(report, stdin, &mut activation_index)?
         {
             loop {
                 self.send(
@@ -626,17 +624,16 @@ pub fn bind_listener() -> Result<NativeWebSocketListener, String> {
         .map_err(|error| format!("{error:?}"))
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::plan::exact_distributed_toggle_plan;
+    use super::*;
     use conduit_core::{CapabilityId, ConnectionProvider, OperationId};
     use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
     use conduit_runtime::lowering::RemoteCordDirection;
     use conduit_signal::{
-        distributed_toggle_browser_sink_advertisement,
-        distributed_toggle_std_source_advertisement, signal_profile_catalog,
+        distributed_toggle_browser_sink_advertisement, distributed_toggle_std_source_advertisement,
+        signal_profile_catalog,
     };
     use std::collections::BTreeMap;
 

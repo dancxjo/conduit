@@ -4,8 +4,8 @@
 //! and drives `presentation/show` through the browser kernel.
 
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    Operation, OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    OperationAction, OperationInput, PortId, RequestId,
 };
 use conduit_signal::SIGNAL_ENCODED_LEN;
 
@@ -76,4 +76,3 @@ impl Operation for ToggleShowOperation {
         }
     }
 }
-

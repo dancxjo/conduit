@@ -6,8 +6,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    await_activation_host_operation_requirement, kind_id, port_id,
-    present_host_operation_requirement, resource_offer, resource_requirement,
+    kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, CapabilityLimits, ConfigurationValue, ExecutionProfileId,
     HostOperationRequirement, KindContractRevision, KindId, PortDescriptor, PortDirection,
     ResourceOffer, ResourceRequirement, INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS,
@@ -207,7 +206,11 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             plain_name: "Activate".to_string(),
             summary: "Emit a bounded sequence of deliberate human activations.".to_string(),
             inputs: Vec::new(),
-            outputs: vec![port(ACTIVATE_PORT, ACTIVATION_VALUE_KIND, PortDirection::Output)],
+            outputs: vec![port(
+                ACTIVATE_PORT,
+                ACTIVATION_VALUE_KIND,
+                PortDirection::Output,
+            )],
             configuration: vec![u64_field("count", 16, 0, 4_096)],
             limits: limits(16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesAfterConfiguredCount,
@@ -220,7 +223,11 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             kind_id: kind_id(TOGGLE_KIND),
             plain_name: "Toggle".to_string(),
             summary: "Flip a boolean signal on each received activation.".to_string(),
-            inputs: vec![port(ACTIVATE_PORT, ACTIVATION_VALUE_KIND, PortDirection::Input)],
+            inputs: vec![port(
+                ACTIVATE_PORT,
+                ACTIVATION_VALUE_KIND,
+                PortDirection::Input,
+            )],
             outputs: vec![port(SIGNAL_PORT, SIGNAL_VALUE_KIND, PortDirection::Output)],
             configuration: vec![bool_field("initial", false)],
             limits: limits(16, 4, 64),
@@ -1030,8 +1037,9 @@ mod tests {
         contract_revision, execution_profile, find_contract, standard_contracts,
         standard_host_advertisement, standard_host_operation_requirements,
         standard_profile_catalog, standard_registry, standard_resource_offers,
-        standard_resource_requirements, ACTIVATE_KIND, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND,
-        LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND, TOGGLE_KIND,
+        standard_resource_requirements, ACTIVATE_KIND, FILTER_KIND, FORMAT_KIND,
+        GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND,
+        TOGGLE_KIND,
     };
     use conduit_core::{
         kind_id, ArtifactId, CapabilityId, CapabilityOffer, ConnectionProvider, HostAdvertisement,
