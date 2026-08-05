@@ -493,6 +493,7 @@ mod tests {
                     value_kind: KindId::from("test/value"),
                     direction: PortDirection::Output,
                 }],
+                host_operations: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 4,

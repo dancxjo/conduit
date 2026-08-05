@@ -11,6 +11,9 @@ use sha2::{Digest, Sha256};
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
 pub const DEFAULT_CONNECTION_BYTE_CAPACITY: u32 = 64;
+pub const WAIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/wait@1";
+pub const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
+pub const MAX_PRESENTATION_COMPLETION_BYTES: u32 = 256;
 
 macro_rules! identity_type {
     ($name:ident) => {
@@ -61,6 +64,8 @@ identity_type!(ConnectionId);
 identity_type!(PortId);
 identity_type!(OperationId);
 identity_type!(HostProfileId);
+// Immutable identity of one host-operation boundary contract.
+identity_type!(HostOperationContractId);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct OfferGeneration(pub u64);
@@ -116,6 +121,15 @@ pub struct CapabilityLimits {
     pub max_queue_bytes: u32,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct HostOperationRequirement {
+    pub contract_id: HostOperationContractId,
+    pub target_kind: Option<KindId>,
+    pub maximum_in_flight: u16,
+    pub maximum_input_bytes: u32,
+    pub maximum_output_bytes: u32,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CapabilityOffer {
     pub capability_id: CapabilityId,
@@ -126,6 +140,7 @@ pub struct CapabilityOffer {
     pub artifact_id: ArtifactId,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    pub host_operations: Vec<HostOperationRequirement>,
     pub limits: CapabilityLimits,
 }
 
@@ -199,6 +214,7 @@ pub struct PlannedOperation {
     pub artifact_id: ArtifactId,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    pub host_operations: Vec<HostOperationRequirement>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -436,6 +452,20 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, operation.artifact_id.as_str());
         push_ports(&mut canonical, &operation.inputs);
         push_ports(&mut canonical, &operation.outputs);
+        push_u32(&mut canonical, operation.host_operations.len() as u32);
+        for requirement in &operation.host_operations {
+            push_string(&mut canonical, requirement.contract_id.as_str());
+            match &requirement.target_kind {
+                Some(target_kind) => {
+                    canonical.push(1);
+                    push_string(&mut canonical, target_kind.as_str());
+                }
+                None => canonical.push(0),
+            }
+            canonical.extend_from_slice(&requirement.maximum_in_flight.to_le_bytes());
+            push_u32(&mut canonical, requirement.maximum_input_bytes);
+            push_u32(&mut canonical, requirement.maximum_output_bytes);
+        }
     }
     push_u32(&mut canonical, fragment.connections.len() as u32);
     for connection in &fragment.connections {
@@ -600,6 +630,10 @@ pub enum FailureReason {
     UnsupportedCancellationPolicy,
     UnsupportedTerminalPolicy,
     EvidenceBudgetExceeded,
+    HostOperationContractMismatch,
+    HostOperationNotPlanned,
+    HostOperationInputExceeded,
+    HostOperationOutputExceeded,
     ConnectionDisconnected,
     MalformedConnectionEnvelope,
     StalePlan,
@@ -889,6 +923,29 @@ pub fn kind_id(value: &str) -> KindId {
 
 pub fn port_id(value: &str) -> PortId {
     PortId::from(value)
+}
+
+pub fn wait_host_operation_requirement() -> HostOperationRequirement {
+    HostOperationRequirement {
+        contract_id: HostOperationContractId::from(WAIT_HOST_OPERATION_CONTRACT),
+        target_kind: None,
+        maximum_in_flight: 1,
+        maximum_input_bytes: core::mem::size_of::<u64>() as u32,
+        maximum_output_bytes: 0,
+    }
+}
+
+pub fn present_host_operation_requirement(
+    target_kind: KindId,
+    maximum_input_bytes: u32,
+) -> HostOperationRequirement {
+    HostOperationRequirement {
+        contract_id: HostOperationContractId::from(PRESENT_HOST_OPERATION_CONTRACT),
+        target_kind: Some(target_kind),
+        maximum_in_flight: 1,
+        maximum_input_bytes,
+        maximum_output_bytes: MAX_PRESENTATION_COMPLETION_BYTES,
+    }
 }
 
 #[cfg(test)]

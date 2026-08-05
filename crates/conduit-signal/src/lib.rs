@@ -6,7 +6,8 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, ConfigurationEntry, ConfigurationValue, ExecutionProfileId,
+    kind_id, port_id, present_host_operation_requirement, wait_host_operation_requirement,
+    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
     KindContractRevision, KindId, PortDescriptor, PortDirection, ValuePayload,
 };
 use serde::{Deserialize, Serialize};
@@ -89,6 +90,17 @@ pub fn pulse_execution_profile() -> ExecutionProfileId {
 
 pub fn show_execution_profile() -> ExecutionProfileId {
     ExecutionProfileId::from(SHOW_EXECUTION_PROFILE)
+}
+
+pub fn pulse_host_operation_requirements() -> Vec<HostOperationRequirement> {
+    vec![wait_host_operation_requirement()]
+}
+
+pub fn show_host_operation_requirements() -> Vec<HostOperationRequirement> {
+    vec![present_host_operation_requirement(
+        kind_id(SIGNAL_PRESENTATION_KIND),
+        SIGNAL_ENCODED_LEN,
+    )]
 }
 
 pub fn pulse_outputs() -> Vec<PortDescriptor> {
@@ -191,9 +203,10 @@ pub fn signal_payload_size() -> u32 {
 mod host_profile {
     use super::{
         decode_signal, encode_signal, parse_pulse_configuration, pulse_contract_revision,
-        pulse_execution_profile, pulse_kind, pulse_outputs, show_contract_revision,
-        show_execution_profile, show_inputs, show_kind, signal_value_kind, PulseConfiguration,
-        Signal, MAX_SIGNAL_COUNT, SIGNAL_ENCODED_LEN, SIGNAL_PRESENTATION_KIND,
+        pulse_execution_profile, pulse_host_operation_requirements, pulse_kind, pulse_outputs,
+        show_contract_revision, show_execution_profile, show_host_operation_requirements,
+        show_inputs, show_kind, signal_value_kind, PulseConfiguration, Signal, MAX_SIGNAL_COUNT,
+        SIGNAL_ENCODED_LEN, SIGNAL_PRESENTATION_KIND,
     };
     use alloc::boxed::Box;
     use conduit_core::{
@@ -241,6 +254,10 @@ mod host_profile {
 
         fn artifact_id(&self) -> &ArtifactId {
             &self.artifact_id
+        }
+
+        fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
+            pulse_host_operation_requirements()
         }
 
         fn prepare(
@@ -350,6 +367,10 @@ mod host_profile {
 
         fn artifact_id(&self) -> &ArtifactId {
             &self.artifact_id
+        }
+
+        fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
+            show_host_operation_requirements()
         }
 
         fn prepare(

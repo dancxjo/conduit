@@ -30,6 +30,7 @@ pub enum PlannerError {
     WrongSemanticKind(String),
     WrongKindContractRevision(String),
     IncompatiblePortContract(String),
+    InvalidHostOperationRequirement(String),
     UnavailableConnectionProvider(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
@@ -54,6 +55,9 @@ impl std::fmt::Display for PlannerError {
             }
             PlannerError::IncompatiblePortContract(value) => {
                 write!(f, "incompatible port contract: {value}")
+            }
+            PlannerError::InvalidHostOperationRequirement(value) => {
+                write!(f, "invalid host-operation requirement: {value}")
             }
             PlannerError::UnavailableConnectionProvider(value) => {
                 write!(f, "unavailable connection provider: {value}")
@@ -276,6 +280,7 @@ pub fn plan_with_connection_limits_and_provider_overrides(
             artifact_id: capability.artifact_id.clone(),
             inputs: operation.inputs.clone(),
             outputs: operation.outputs.clone(),
+            host_operations: capability.host_operations.clone(),
         });
     }
 
@@ -519,6 +524,23 @@ fn validate_operation_capability(
             capability.capability_id.as_str()
         )));
     }
+    if capability.host_operations.iter().any(|requirement| {
+        requirement.contract_id.as_str().is_empty()
+            || requirement
+                .target_kind
+                .as_ref()
+                .is_some_and(|target| target.as_str().is_empty())
+            || requirement.maximum_in_flight == 0
+    }) || capability
+        .host_operations
+        .windows(2)
+        .any(|pair| pair[0] >= pair[1])
+    {
+        return Err(PlannerError::InvalidHostOperationRequirement(format!(
+            "capability '{}' requirements must have non-empty identities, unique canonical ordering, and nonzero in-flight bounds",
+            capability.capability_id.as_str()
+        )));
+    }
     Ok(())
 }
 
@@ -609,8 +631,10 @@ mod tests {
     };
     use conduit_form::parse;
     use conduit_signal::{
-        pulse_contract_revision, pulse_execution_profile, pulse_outputs, show_contract_revision,
-        show_execution_profile, show_inputs, signal_profile_catalog, PULSE_KIND, SHOW_KIND,
+        pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
+        pulse_outputs, show_contract_revision, show_execution_profile,
+        show_host_operation_requirements, show_inputs, signal_profile_catalog, PULSE_KIND,
+        SHOW_KIND,
     };
 
     fn form() -> conduit_form::CheckedForm {
@@ -638,6 +662,7 @@ mod tests {
                     artifact_id: ArtifactId::from("test/pulse-artifact-v1"),
                     inputs: vec![],
                     outputs: pulse_outputs(),
+                    host_operations: pulse_host_operation_requirements(),
                     limits: CapabilityLimits {
                         max_active_instances: 4,
                         max_queue_items: 4,
@@ -653,6 +678,7 @@ mod tests {
                     artifact_id: ArtifactId::from("test/show-artifact-v1"),
                     inputs: show_inputs(),
                     outputs: vec![],
+                    host_operations: show_host_operation_requirements(),
                     limits: CapabilityLimits {
                         max_active_instances: 4,
                         max_queue_items: 4,
@@ -724,7 +750,12 @@ mod tests {
             );
             assert_eq!(placement.inputs, operation.inputs);
             assert_eq!(placement.outputs, operation.outputs);
+            assert_eq!(placement.host_operations, capability.host_operations);
         }
+        assert!(plan.fragments[0]
+            .placements
+            .iter()
+            .all(|placement| !placement.host_operations.is_empty()));
         let fragment = &plan.fragments[0];
         assert_eq!(
             fragment.startup_dependencies,
@@ -777,6 +808,24 @@ mod tests {
         );
         connections.push(reverse);
         assert_eq!(startup_order(&fragment.placements, &connections), None);
+    }
+
+    #[test]
+    fn planning_rejects_invalid_host_operation_requirements() {
+        let form = form();
+        let mut host = host();
+        host.capabilities[0].host_operations[0].maximum_in_flight = 0;
+        let placements = default_placements(&form, std::slice::from_ref(&host))
+            .expect("placements still resolve");
+        assert!(matches!(
+            plan(
+                &form,
+                std::slice::from_ref(&host),
+                &placements,
+                &[ConnectionProvider::Local],
+            ),
+            Err(PlannerError::InvalidHostOperationRequirement(_))
+        ));
     }
 
     #[test]

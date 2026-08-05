@@ -62,6 +62,9 @@ check-planning-s2:
     cargo test -p conduit-runtime --test host_contract preparation_rejects_mutation_of_every_executable_identity_field_group
     cargo test -p conduit-runtime --test host_contract preparation_rejects_resealed_contract_profile_and_port_lies
     cargo test -p conduit-runtime --test host_contract preparation_rejects_resealed_policy_dependency_and_budget_lies
+    cargo test -p conduit-runtime --test host_contract runtime_rejects_an_implementation_that_requests_an_unplanned_host_operation
+    cargo test -p conduit-runtime --test host_contract runtime_rejects_a_host_operation_input_above_its_planned_bound
+    cargo test -p conduit-runtime --test host_contract fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection
     cargo test -p conduit-runtime --test host_contract planned_evidence_storage_survives_observation_overflow
     cargo check -p conduit-core --target thumbv6m-none-eabi
 

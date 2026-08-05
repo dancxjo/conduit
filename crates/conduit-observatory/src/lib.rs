@@ -8,9 +8,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{
     BootId, CapabilityId, CapabilityLimits, CheckedFormId, ConnectionId, ConnectionProvider,
-    ExecutionProfileId, ExpandedFormId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, KindId, Observation, ObservationKind, OfferGeneration, PlacementId, Plan,
-    PlanId, PortDescriptor, SourceDocumentId, TerminalDisposition,
+    ExecutionProfileId, ExpandedFormId, HostAdvertisement, HostId, HostOperationRequirement,
+    HostProfileId, ImplementationId, KindContractRevision, KindId, Observation, ObservationKind,
+    OfferGeneration, PlacementId, Plan, PlanId, PortDescriptor, SourceDocumentId,
+    TerminalDisposition,
 };
 use conduit_realm::{LinkId, LinkState, MembershipState, RealmId, RealmView};
 use core::fmt::Write;
@@ -89,6 +90,7 @@ pub struct CapabilityRow {
     pub implementation_id: ImplementationId,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    pub host_operations: Vec<HostOperationRequirement>,
     pub limits: CapabilityLimits,
     pub freshness: OfferFreshness,
     pub support: CapabilitySupport,
@@ -128,6 +130,7 @@ pub struct PlacementRow {
     pub kind_contract_revision: KindContractRevision,
     pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
+    pub host_operations: Vec<HostOperationRequirement>,
     pub lifecycle: PlanLifecycle,
 }
 
@@ -252,6 +255,7 @@ pub fn build_report(
                     implementation_id: capability.implementation_id.clone(),
                     inputs: capability.inputs.clone(),
                     outputs: capability.outputs.clone(),
+                    host_operations: capability.host_operations.clone(),
                     limits: capability.limits.clone(),
                     freshness,
                     support: CapabilitySupport::Supported,
@@ -326,6 +330,7 @@ pub fn build_report(
                         kind_contract_revision: placement.kind_contract_revision.clone(),
                         execution_profile_id: placement.execution_profile_id.clone(),
                         implementation_id: placement.implementation_id.clone(),
+                        host_operations: placement.host_operations.clone(),
                         lifecycle: placement_lifecycle(
                             &plan.plan_id,
                             &placement.placement_id,
@@ -546,7 +551,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for capability in &report.capabilities {
         let _ = writeln!(
             output,
-            "capability host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} input_ports={} output_ports={} active_limit={} queue_items={} queue_bytes={} freshness={:?} support={:?} availability={:?}",
+            "capability host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} input_ports={} output_ports={} host_operations={:?} active_limit={} queue_items={} queue_bytes={} freshness={:?} support={:?} availability={:?}",
             capability.host_id.as_str(),
             capability.boot_id.as_str(),
             capability.capability_id.as_str(),
@@ -556,6 +561,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             capability.implementation_id.as_str(),
             capability.inputs.len(),
             capability.outputs.len(),
+            capability.host_operations,
             capability.limits.max_active_instances,
             capability.limits.max_queue_items,
             capability.limits.max_queue_bytes,
@@ -596,7 +602,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for placement in &report.placements {
         let _ = writeln!(
             output,
-            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} lifecycle={:?}",
+            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} host_operations={:?} lifecycle={:?}",
             placement.plan_id.as_str(),
             placement.placement_id.as_str(),
             placement.host_id.as_str(),
@@ -606,6 +612,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             placement.kind_contract_revision.as_str(),
             placement.execution_profile_id.as_str(),
             placement.implementation_id.as_str(),
+            placement.host_operations,
             placement.lifecycle
         );
     }
@@ -857,6 +864,8 @@ mod tests {
         assert!(rendered.contains("host observatory report"));
         assert!(rendered.contains("host id=std-host-triple boot=std-boot-triple"));
         assert!(rendered.contains("capability host=browser-sim-triple"));
+        assert!(rendered.contains(conduit_core::PRESENT_HOST_OPERATION_CONTRACT));
+        assert!(rendered.contains("presentation/signal"));
         assert!(rendered.contains("provider=FixtureFrame"));
         assert!(rendered.contains("provider=FixtureDatagram"));
         assert!(rendered.contains("evidence id=evidence/"));

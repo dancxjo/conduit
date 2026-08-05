@@ -1,12 +1,13 @@
 use conduit_core::{
-    kind_id, mandatory_evidence_storage_requirement, port_id, seal_plan, ArtifactId, BootId,
-    CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
-    ConnectionOutcome, ConnectionProvider, ExecutionProfileId, ExpandedFormId, ExpectedEvidence,
-    ExpectedTerminal, FailureReason, FormIdentity, FragmentId, HostAdvertisement, HostCommand,
-    HostEvent, HostId, HostProfileId, ImplementationId, KindContractRevision, ObservationKind,
-    OfferGeneration, OperationId, PlacementId, PlanFragment, PlanId, PlannedOperation,
-    PlatformEffect, PortDescriptor, PortDirection, SourceDocumentId, TerminalDisposition,
-    TerminalPolicy, ValuePayload, PROTOCOL_VERSION,
+    kind_id, mandatory_evidence_storage_requirement, port_id, present_host_operation_requirement,
+    seal_plan, wait_host_operation_requirement, ArtifactId, BootId, CancellationPolicy,
+    CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId, ConnectionOutcome,
+    ConnectionProvider, ExecutionProfileId, ExpandedFormId, ExpectedEvidence, ExpectedTerminal,
+    FailureReason, FormIdentity, FragmentId, HostAdvertisement, HostCommand, HostEvent, HostId,
+    HostOperationContractId, HostProfileId, ImplementationId, KindContractRevision,
+    ObservationKind, OfferGeneration, OperationId, PlacementId, PlanFragment, PlanId,
+    PlannedOperation, PlatformEffect, PortDescriptor, PortDirection, SourceDocumentId,
+    TerminalDisposition, TerminalPolicy, ValuePayload, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
 use conduit_planner::{default_placements, plan, PlacementChoice, PlacementChoices};
@@ -81,6 +82,7 @@ fn advertisement() -> HostAdvertisement {
                 artifact_id: ArtifactId::from("contract/source-artifact-v1"),
                 inputs: vec![],
                 outputs: source_outputs(),
+                host_operations: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 2,
                     max_queue_items: 4,
@@ -96,6 +98,10 @@ fn advertisement() -> HostAdvertisement {
                 artifact_id: ArtifactId::from("contract/sink-artifact-v1"),
                 inputs: sink_inputs(),
                 outputs: vec![],
+                host_operations: vec![present_host_operation_requirement(
+                    kind_id(PRESENTATION_KIND),
+                    1,
+                )],
                 limits: CapabilityLimits {
                     max_active_instances: 2,
                     max_queue_items: 4,
@@ -226,6 +232,7 @@ struct SinkImplementation {
     kind_id: conduit_core::KindId,
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
+    maximum_presentation_bytes: u32,
 }
 
 impl SinkImplementation {
@@ -234,7 +241,13 @@ impl SinkImplementation {
             kind_id: kind_id(SINK_KIND),
             implementation_id,
             artifact_id: ArtifactId::from("contract/sink-artifact-v1"),
+            maximum_presentation_bytes: 1,
         }
+    }
+
+    fn with_maximum_presentation_bytes(mut self, maximum: u32) -> Self {
+        self.maximum_presentation_bytes = maximum;
+        self
     }
 }
 
@@ -257,6 +270,13 @@ impl OperationImplementation for SinkImplementation {
 
     fn artifact_id(&self) -> &ArtifactId {
         &self.artifact_id
+    }
+
+    fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
+        vec![present_host_operation_requirement(
+            kind_id(PRESENTATION_KIND),
+            self.maximum_presentation_bytes,
+        )]
     }
 
     fn prepare(
@@ -452,7 +472,7 @@ fn preparation_rejects_uninstalled_and_mismatched_implementations_structurally()
         .expect("sink placement exists")
         .implementation_id = ImplementationId::from("other/sink-v1");
     let mismatched_fragment = reseal_fragment(mismatched_fragment);
-    let mut runtime = HostRuntime::new(advertised, registry(), 64);
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(mismatched_fragment))),
         Some(FailureReason::AdvertisedImplementationMismatch)
@@ -483,7 +503,7 @@ fn preparation_rejects_unsupported_kind_and_invalid_configuration_structurally()
             value: conduit_core::ConfigurationValue::Bool(true),
         });
     let invalid = reseal_fragment(invalid);
-    let mut runtime = HostRuntime::new(advertised, registry(), 64);
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(invalid))),
         Some(FailureReason::InvalidOperationConfiguration)
@@ -511,6 +531,10 @@ impl OperationImplementation for UnsupportedValueImplementation {
 
     fn artifact_id(&self) -> &ArtifactId {
         self.0.artifact_id()
+    }
+
+    fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
+        self.0.host_operation_requirements()
     }
 
     fn prepare(
@@ -604,6 +628,51 @@ fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
         .expect("source placement exists")
         .outputs[0]
         .port_id = port_id("mutated-output");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    let requirement = mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.host_operations.first_mut())
+        .expect("host-operation requirement exists");
+    requirement.contract_id = HostOperationContractId::from("mutated/host-operation@1");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    let requirement = mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.host_operations.first_mut())
+        .expect("host-operation requirement exists");
+    requirement.target_kind = Some(kind_id("mutated/host-operation-target"));
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    let requirement = mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.host_operations.first_mut())
+        .expect("host-operation requirement exists");
+    requirement.maximum_in_flight += 1;
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    let requirement = mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.host_operations.first_mut())
+        .expect("host-operation requirement exists");
+    requirement.maximum_input_bytes += 1;
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    let requirement = mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.host_operations.first_mut())
+        .expect("host-operation requirement exists");
+    requirement.maximum_output_bytes += 1;
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
@@ -711,10 +780,43 @@ fn preparation_rejects_resealed_contract_profile_and_port_lies() {
         .find(|placement| !placement.outputs.is_empty())
         .expect("source placement exists");
     placement.outputs[0].port_id = port_id("mutated-output");
-    let mut runtime = HostRuntime::new(advertised, registry(), 64);
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
         Some(FailureReason::PortContractMismatch)
+    );
+
+    let mut mutated = fragment(&advertised);
+    mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.host_operations.first_mut())
+        .expect("host-operation requirement exists")
+        .maximum_input_bytes += 1;
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::HostOperationContractMismatch)
+    );
+
+    let mut mutated = fragment(&advertised);
+    mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.host_operations.first_mut())
+        .expect("host-operation requirement exists")
+        .target_kind = Some(kind_id("mutated/presentation-target"));
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::HostOperationContractMismatch)
+    );
+
+    let fragment = fragment(&advertised);
+    let mut runtime = HostRuntime::new(advertised, undersized_presentation_registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(fragment))),
+        Some(FailureReason::HostOperationContractMismatch)
     );
 }
 
@@ -871,6 +973,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
             artifact_id: ArtifactId::from("test/echo-artifact-v1"),
             inputs: vec![],
             outputs: vec![],
+            host_operations: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 0,
@@ -917,6 +1020,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
                 artifact_id: ArtifactId::from("test/echo-artifact-v1"),
                 inputs: Vec::new(),
                 outputs: Vec::new(),
+                host_operations: Vec::new(),
             }],
             connections: Vec::new(),
             startup_dependencies: Vec::new(),
@@ -1015,6 +1119,7 @@ struct AdapterSourceImplementation {
     kind_id: conduit_core::KindId,
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
+    declares_wait: bool,
 }
 
 impl OperationImplementation for AdapterSourceImplementation {
@@ -1036,6 +1141,14 @@ impl OperationImplementation for AdapterSourceImplementation {
 
     fn artifact_id(&self) -> &ArtifactId {
         &self.artifact_id
+    }
+
+    fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
+        if self.declares_wait {
+            vec![wait_host_operation_requirement()]
+        } else {
+            Vec::new()
+        }
     }
 
     fn prepare(
@@ -1105,6 +1218,7 @@ fn adapter_registry() -> ImplementationRegistry {
             kind_id: kind_id(SOURCE_KIND),
             implementation_id: ImplementationId::from("contract/source-v1"),
             artifact_id: ArtifactId::from("contract/source-artifact-v1"),
+            declares_wait: true,
         })
         .expect("adapter source installs");
     registry
@@ -1113,6 +1227,46 @@ fn adapter_registry() -> ImplementationRegistry {
         )))
         .expect("adapter sink installs");
     registry
+}
+
+fn undeclared_adapter_registry() -> ImplementationRegistry {
+    let mut registry = ImplementationRegistry::new();
+    registry
+        .install(AdapterSourceImplementation {
+            kind_id: kind_id(SOURCE_KIND),
+            implementation_id: ImplementationId::from("contract/source-v1"),
+            artifact_id: ArtifactId::from("contract/source-artifact-v1"),
+            declares_wait: false,
+        })
+        .expect("undeclared adapter source installs");
+    registry
+        .install(SinkImplementation::new(ImplementationId::from(
+            "contract/sink-v1",
+        )))
+        .expect("sink installs");
+    registry
+}
+
+fn undersized_presentation_registry() -> ImplementationRegistry {
+    let mut registry = ImplementationRegistry::new();
+    registry
+        .install(SourceImplementation::new(ImplementationId::from(
+            "contract/source-v1",
+        )))
+        .expect("source installs");
+    registry
+        .install(
+            SinkImplementation::new(ImplementationId::from("contract/sink-v1"))
+                .with_maximum_presentation_bytes(0),
+        )
+        .expect("bounded sink installs");
+    registry
+}
+
+fn adapter_advertisement() -> HostAdvertisement {
+    let mut advertised = advertisement();
+    advertised.capabilities[0].host_operations = vec![wait_host_operation_requirement()];
+    advertised
 }
 
 fn observations(runtime: &mut HostRuntime) -> Vec<conduit_core::Observation> {
@@ -1128,8 +1282,57 @@ fn observations(runtime: &mut HostRuntime) -> Vec<conduit_core::Observation> {
 }
 
 #[test]
+fn runtime_rejects_an_implementation_that_requests_an_unplanned_host_operation() {
+    let advertised = advertisement();
+    let fragment = fragment(&advertised);
+    let plan_id = fragment.plan_id.clone();
+    let mut runtime = HostRuntime::new(advertised, undeclared_adapter_registry(), 64);
+    assert!(runtime
+        .handle(HostCommand::Prepare(fragment))
+        .events
+        .iter()
+        .any(|event| matches!(event, HostEvent::Prepared { .. })));
+    let activated = runtime.handle(HostCommand::Activate(plan_id));
+    assert!(activated.effects.is_empty());
+    assert!(activated.events.iter().any(|event| matches!(
+        event,
+        HostEvent::PlacementTerminated {
+            disposition: TerminalDisposition::Failed {
+                reason: FailureReason::HostOperationNotPlanned
+            },
+            ..
+        }
+    )));
+}
+
+#[test]
+fn runtime_rejects_a_host_operation_input_above_its_planned_bound() {
+    let mut advertised = advertisement();
+    advertised.capabilities[1].host_operations[0].maximum_input_bytes = 0;
+    let fragment = fragment(&advertised);
+    let plan_id = fragment.plan_id.clone();
+    let mut runtime = HostRuntime::new(advertised, undersized_presentation_registry(), 64);
+    assert!(runtime
+        .handle(HostCommand::Prepare(fragment))
+        .events
+        .iter()
+        .any(|event| matches!(event, HostEvent::Prepared { .. })));
+    let activated = runtime.handle(HostCommand::Activate(plan_id));
+    assert!(activated.effects.is_empty());
+    assert!(activated.events.iter().any(|event| matches!(
+        event,
+        HostEvent::PlacementTerminated {
+            disposition: TerminalDisposition::Failed {
+                reason: FailureReason::HostOperationInputExceeded
+            },
+            ..
+        }
+    )));
+}
+
+#[test]
 fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
-    let local_advertisement = advertisement();
+    let local_advertisement = adapter_advertisement();
     let local_fragment = fragment(&local_advertisement);
     let mut local_runtime = HostRuntime::new(local_advertisement, adapter_registry(), 128);
     local_runtime.handle(HostCommand::Prepare(local_fragment.clone()));
@@ -1164,6 +1367,25 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
         .expect("wait completion reaches presentation adapter");
     adapter.receive(waited.effects);
     assert!(adapter.saw_presentation);
+    let oversized = local_runtime.handle(HostCommand::CompletePresentation {
+        plan_id: presentation.0.clone(),
+        placement_id: presentation.1.clone(),
+        value: presentation.2.clone(),
+        success: false,
+        message: Some(
+            "x".repeat(
+                usize::try_from(conduit_core::MAX_PRESENTATION_COMPLETION_BYTES + 1)
+                    .expect("test bound fits usize"),
+            ),
+        ),
+    });
+    assert!(oversized.events.iter().any(|event| matches!(
+        event,
+        HostEvent::CommandRejected {
+            reason: FailureReason::HostOperationOutputExceeded,
+            ..
+        }
+    )));
     let failed = local_runtime.handle(HostCommand::CompletePresentation {
         plan_id: presentation.0,
         placement_id: presentation.1,
@@ -1193,7 +1415,7 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
         &profile_catalog(),
     )
     .expect("adapter form parses");
-    let mut source_advertisement = advertisement();
+    let mut source_advertisement = adapter_advertisement();
     source_advertisement.host_id = HostId::from("adapter-source-host");
     source_advertisement.boot_id = BootId::from("adapter-source-boot");
     source_advertisement.capabilities.truncate(1);

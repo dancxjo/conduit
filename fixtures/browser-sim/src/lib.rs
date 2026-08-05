@@ -8,8 +8,9 @@ use conduit_form::CheckedForm;
 use conduit_planner::{plan_with_connection_limits, PlacementChoice, PlacementChoices};
 use conduit_runtime::{HostRuntime, RuntimeOutput};
 use conduit_signal::{
-    decode_signal, pulse_contract_revision, pulse_execution_profile, pulse_outputs,
-    show_contract_revision, show_execution_profile, show_inputs, signal_profile_catalog,
+    decode_signal, pulse_contract_revision, pulse_execution_profile,
+    pulse_host_operation_requirements, pulse_outputs, show_contract_revision,
+    show_execution_profile, show_host_operation_requirements, show_inputs, signal_profile_catalog,
     signal_registry, PULSE_KIND, SHOW_KIND, SIGNAL_PRESENTATION_KIND,
 };
 use std::collections::{BTreeMap, VecDeque};
@@ -491,6 +492,7 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
                 artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
                 inputs: vec![],
                 outputs: pulse_outputs(),
+                host_operations: pulse_host_operation_requirements(),
                 limits: CapabilityLimits {
                     max_active_instances: 16,
                     max_queue_items: 4,
@@ -506,6 +508,7 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
                 artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
                 inputs: show_inputs(),
                 outputs: vec![],
+                host_operations: show_host_operation_requirements(),
                 limits: CapabilityLimits {
                     max_active_instances: 16,
                     max_queue_items: 4,

@@ -81,6 +81,9 @@ pub trait OperationImplementation {
     fn execution_profile_id(&self) -> conduit_core::ExecutionProfileId;
     fn implementation_id(&self) -> &conduit_core::ImplementationId;
     fn artifact_id(&self) -> &conduit_core::ArtifactId;
+    fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
+        Vec::new()
+    }
     fn prepare(
         &self,
         placement: &PlannedOperation,
@@ -308,6 +311,24 @@ enum ConnectionRole {
 fn validate_fragment_execution_contract(
     fragment: &PlanFragment,
 ) -> Option<(FailureReason, String)> {
+    if fragment.placements.iter().any(|placement| {
+        placement.host_operations.iter().any(|requirement| {
+            requirement.contract_id.as_str().is_empty()
+                || requirement
+                    .target_kind
+                    .as_ref()
+                    .is_some_and(|target| target.as_str().is_empty())
+                || requirement.maximum_in_flight == 0
+        }) || placement
+            .host_operations
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+    }) {
+        return Some((
+            FailureReason::HostOperationContractMismatch,
+            "host-operation requirements must have non-empty identities, unique canonical ordering, and nonzero in-flight bounds".to_string(),
+        ));
+    }
     if fragment.cancellation_policy != CancellationPolicy::CancelAllAndRejectLateCompletion {
         return Some((
             FailureReason::UnsupportedCancellationPolicy,
@@ -423,6 +444,54 @@ fn validate_fragment_execution_contract(
         ));
     }
     None
+}
+
+fn validate_host_operation_action(
+    placement: &PlannedOperation,
+    action: &OperationAction,
+) -> Result<(), ImplementationFailure> {
+    let (contract, target_kind, input_bytes) = match action {
+        OperationAction::Wait { .. } => (
+            conduit_core::WAIT_HOST_OPERATION_CONTRACT,
+            None,
+            core::mem::size_of::<u64>() as u32,
+        ),
+        OperationAction::Present {
+            presentation_kind,
+            value,
+        } => (
+            conduit_core::PRESENT_HOST_OPERATION_CONTRACT,
+            Some(presentation_kind),
+            value.encoded_len(),
+        ),
+        _ => return Ok(()),
+    };
+    let Some(requirement) = placement.host_operations.iter().find(|requirement| {
+        requirement.contract_id.as_str() == contract
+            && requirement.target_kind.as_ref() == target_kind
+    }) else {
+        return Err(ImplementationFailure::new(
+            FailureReason::HostOperationNotPlanned,
+            format!(
+                "placement '{}' requested unplanned host operation '{}'",
+                placement.placement_id.as_str(),
+                contract
+            ),
+        ));
+    };
+    if requirement.maximum_in_flight == 0 || input_bytes > requirement.maximum_input_bytes {
+        return Err(ImplementationFailure::new(
+            FailureReason::HostOperationInputExceeded,
+            format!(
+                "placement '{}' host operation '{}' input requires {} bytes above bound {}",
+                placement.placement_id.as_str(),
+                contract,
+                input_bytes,
+                requirement.maximum_input_bytes
+            ),
+        ));
+    }
+    Ok(())
 }
 
 impl HostRuntime {
@@ -642,6 +711,18 @@ impl HostRuntime {
                 });
                 return output;
             }
+            if capability.host_operations != placement.host_operations {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::HostOperationContractMismatch,
+                    message: Some(format!(
+                        "capability '{}' host-operation requirements differ from placement '{}'",
+                        capability.capability_id.as_str(),
+                        placement.placement_id.as_str()
+                    )),
+                });
+                return output;
+            }
             if capability.implementation_id != placement.implementation_id {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
@@ -715,6 +796,18 @@ impl HostRuntime {
                         placement.implementation_id.as_str(),
                         implementation.execution_profile_id().as_str(),
                         placement.execution_profile_id.as_str()
+                    )),
+                });
+                return output;
+            }
+            if implementation.host_operation_requirements() != placement.host_operations {
+                output.events.push(HostEvent::PreparationRejected {
+                    plan_id: fragment.plan_id,
+                    reason: FailureReason::HostOperationContractMismatch,
+                    message: Some(format!(
+                        "installed implementation '{}' host-operation requirements differ from placement '{}'",
+                        placement.implementation_id.as_str(),
+                        placement.placement_id.as_str()
                     )),
                 });
                 return output;
@@ -1078,11 +1171,13 @@ impl HostRuntime {
             });
             return output;
         }
-        let presented_value = match &placement.action {
+        let (presented_value, presentation_kind) = match &placement.action {
             OperationAction::Present {
+                presentation_kind,
                 value: action_value,
-                ..
-            } if placement.effect_issued && action_value == &value => action_value.clone(),
+            } if placement.effect_issued && action_value == &value => {
+                (action_value.clone(), presentation_kind)
+            }
             _ => {
                 output.events.push(HostEvent::CommandRejected {
                     plan_id: Some(plan_id.clone()),
@@ -1091,6 +1186,26 @@ impl HostRuntime {
                 return output;
             }
         };
+        let completion_bytes = match &message {
+            Some(value) => u32::try_from(value.len()).unwrap_or(u32::MAX),
+            None => 0,
+        };
+        let output_bound = placement
+            .spec
+            .host_operations
+            .iter()
+            .find(|requirement| {
+                requirement.contract_id.as_str() == conduit_core::PRESENT_HOST_OPERATION_CONTRACT
+                    && requirement.target_kind.as_ref() == Some(presentation_kind)
+            })
+            .map(|requirement| requirement.maximum_output_bytes);
+        if output_bound.is_none_or(|bound| completion_bytes > bound) {
+            output.events.push(HostEvent::CommandRejected {
+                plan_id: Some(plan_id.clone()),
+                reason: FailureReason::HostOperationOutputExceeded,
+            });
+            return output;
+        }
         if success {
             if let Some(connection_id) = placement.pending_input_connection.take() {
                 if let Some(connection) = plan.connections.get_mut(&connection_id) {
@@ -1520,6 +1635,22 @@ impl HostRuntime {
                     }
                     _ => continue,
                 };
+                let host_operation_failure =
+                    plan.placements.get(&placement_id).and_then(|placement| {
+                        validate_host_operation_action(&placement.spec, &action).err()
+                    });
+                if let Some(failure) = host_operation_failure {
+                    fail_operation(
+                        plan,
+                        &placement_id,
+                        failure,
+                        &mut pending_observations,
+                        &mut pending_terminal_events,
+                        plan_id,
+                    );
+                    changed = true;
+                    continue;
+                }
                 match action {
                     OperationAction::Idle => {}
                     OperationAction::Wait { duration_ms } => {
@@ -2211,12 +2342,12 @@ mod conformance {
         OperationCompletion, OperationImplementation, OperationState,
     };
     use conduit_core::{
-        kind_id, port_id, ArtifactId, BootId, CancellationReason, CapabilityId, CapabilityLimits,
-        CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionProvider,
-        ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId,
-        HostProfileId, ImplementationId, KindContractRevision, ObservationKind, OfferGeneration,
-        PlatformEffect, PortDescriptor, PortDirection, TerminalDisposition, ValuePayload,
-        PROTOCOL_VERSION,
+        kind_id, port_id, present_host_operation_requirement, wait_host_operation_requirement,
+        ArtifactId, BootId, CancellationReason, CapabilityId, CapabilityLimits, CapabilityOffer,
+        ConfigurationEntry, ConfigurationValue, ConnectionProvider, ExecutionProfileId,
+        FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId,
+        ImplementationId, KindContractRevision, ObservationKind, OfferGeneration, PlatformEffect,
+        PortDescriptor, PortDirection, TerminalDisposition, ValuePayload, PROTOCOL_VERSION,
     };
     use conduit_form::{
         parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
@@ -2373,6 +2504,7 @@ mod conformance {
                     artifact_id: ArtifactId::from("test/pulse-artifact-v1"),
                     inputs: vec![],
                     outputs: pulse_outputs(),
+                    host_operations: vec![wait_host_operation_requirement()],
                     limits: CapabilityLimits {
                         max_active_instances: 8,
                         max_queue_items: queue_items,
@@ -2388,6 +2520,10 @@ mod conformance {
                     artifact_id: ArtifactId::from("test/show-artifact-v1"),
                     inputs: show_inputs(),
                     outputs: vec![],
+                    host_operations: vec![present_host_operation_requirement(
+                        kind_id(SIGNAL_PRESENTATION_KIND),
+                        SIGNAL_ENCODED_LEN,
+                    )],
                     limits: CapabilityLimits {
                         max_active_instances: 8,
                         max_queue_items: queue_items,
@@ -2442,6 +2578,10 @@ mod conformance {
 
         fn artifact_id(&self) -> &ArtifactId {
             &self.artifact_id
+        }
+
+        fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
+            vec![wait_host_operation_requirement()]
         }
 
         fn prepare(
@@ -2541,6 +2681,13 @@ mod conformance {
 
         fn artifact_id(&self) -> &ArtifactId {
             &self.artifact_id
+        }
+
+        fn host_operation_requirements(&self) -> Vec<conduit_core::HostOperationRequirement> {
+            vec![present_host_operation_requirement(
+                kind_id(SIGNAL_PRESENTATION_KIND),
+                SIGNAL_ENCODED_LEN,
+            )]
         }
 
         fn prepare(
