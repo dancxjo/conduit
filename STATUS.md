@@ -8,7 +8,7 @@ adapter or physical proof.
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, node-scoped correlated host operations, cancellation, and exact local-plan numeric lowering | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, cancellation, exact signal/multi-value lowering, and zero-allocation activation vectors | same scheduler with preallocated hosted storage; installed Signal pair, local three-sink fan-out, and typed multi-value std profiles execute through it; unsupported forms fail closed without a production legacy pump | no | no; Thumb kernel compiles | no | no |
 | Exact plan, play, evidence, and presentation identities | S2 planning plus S3 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued evidence identities; exact active-play/presentation correlation at the platform completion boundary | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/activation mutation, unique evidence, and wrong-presentation-identity vectors | yes, std runtime preparation enforces S2 truth and activation/evidence/presentation identities flow through hosted/composite adapters and Observatory | no | no | fixture providers only; no sockets | no |
-| Lossless form and composite boundary | S3 checkpoints: exact source, bounded lossless CST tokens, UTF-8 byte spans plus line/column locations, stable diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip, spelling/semantic identity separation, recoverable outer/inner invalid-line/EOF, source/token/depth ceilings, face mutation/duplicate denial, standalone/nested equality, two-input/two-output multi-kind, input-only/output-only, derived-offer equality, and ordinary parent-cord checking/planning | parser/checker and planner are general; hosted composite execution remains proven only for the existing signal flow while named parent-to-child value routing is open in #399 | no | no | fixture in-memory links only; face mappings are not transport | no |
+| Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal evidence, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
 | Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
 | Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
 | Browser manifestation | partial | yes, `conduit-browser-sim` | test-only Rust fixture | actual Chromium DOM effect/completion adapter with two independent page hosts; browser-side planner/runtime remains open | no | no WebSocket | no |
@@ -42,6 +42,9 @@ The `check` workflow requires:
   multi-face and zero-sided contracts, and face mutation rejection;
 - boot-scoped active-play issuance, runtime-issued evidence identities, exact
   presentation completion correlation, and Observatory identity projection;
+- named composite face planning/execution with two value kinds, exact
+  parent-to-child input/output routing, retry pressure, independent closure,
+  cancellation/failure translation, terminal evidence, and mutation denial;
 - deterministic wire and simulated-host conformance vectors;
 - one actual Chromium DOM adapter proof with two independent bounded host
   instances and exact presentation completion identities;
@@ -114,8 +117,10 @@ inferred from an internal cord. Two-input/two-output multi-kind, input-only,
 and output-only exports check as ordinary parent kinds, while duplicate or
 mutated faces fail closed. The hosted composite offer and parent catalog
 consume that same boundary. Parent-to-child hosted value/closure/pressure
-routing across every face remains open in #399. The third checkpoint adds
-`operation: capability { ... }` inline
+routing now crosses every face through the compatibility composite host. The
+hosted operation façade retains input port identity and admits each atomic set
+of named output values without broadcast; production std execution remains on
+the port-aware kernel. The third checkpoint adds `operation: capability { ... }` inline
 nesting with a hard depth limit. The child is an ordinary checked form whose
 selected authored export becomes the parent operation; standalone and nested
 spellings produce the same checked/expanded child and boundary identities, and
@@ -130,6 +135,6 @@ evidence IDs are issued by the recording host rather than synthesized from UI
 row indexes; and adapters must return the exact active-play and presentation
 IDs carried by each effect. S3 is accepted at this boundary.
 No actual Pico host, BODY, catalog expansion, Observatory acceptance, live
-transport, or useful task advances before general named composite faces
-[#399](https://github.com/dancxjo/conduit/issues/399) and their later salvage
-gates.
+transport, or useful task is implied by the named-face correction. Those
+surfaces remain behind their own later salvage gates; S4 sequencing resumes at
+[#350](https://github.com/dancxjo/conduit/issues/350).

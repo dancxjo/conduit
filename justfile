@@ -102,6 +102,10 @@ check-form-s3:
     cargo test -p conduit-form nested_errors_keep_the_outer_document_and_exact_inner_span
     cargo test -p conduit-form inline_nesting_has_a_hard_depth_ceiling
     cargo test -p conduit-composite authored_parent_consumes_derived_export_through_an_ordinary_planned_cord
+    cargo test -p conduit-composite two_input_two_output_multi_kind_faces_execute_with_exact_pressure_and_closure
+    cargo test -p conduit-composite input_only_and_output_only_exports_plan_as_ordinary_operations
+    cargo test -p conduit-composite composite_definition_rejects_every_face_mapping_mutation
+    cargo test -p conduit-composite named_face_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks
     cargo test -p conduit-core execution_identity_chain_keeps_plan_play_evidence_and_presentation_distinct
     cargo test -p conduit-runtime --test host_contract fake_adapter_failure_is_structured_and_terminal
     cargo test -p conduit-observatory report_separates_identity_capability_plan_connection_and_evidence_tables

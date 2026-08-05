@@ -60,8 +60,18 @@ declare a boundary absent from the child source. A parent operation created
 from the installed export uses the normal checker and planner cord path; it
 does not address internal child identities. The checker covers
 multi-input/multi-output faces with different value kinds plus input-only and
-output-only composites. Hosted execution across every named face remains an
-explicit #399 integration boundary.
+output-only composites.
+
+The hosted composite compatibility façade configures those checked mappings
+on each exact child fragment before activation. Parent connection envelopes
+enter only the mapped child input port; atomic named child outputs leave only
+the matching parent face. Item/byte pressure retains and retries the same
+envelope, each input/output closes independently, and cancellation or child
+failure terminalizes every visible connection before parent plan evidence.
+External events and observations use only parent plan/connection identities;
+child host and placement identities remain internal. This does not restore the
+legacy runtime as the production engine: `conduit-std-host` continues to run
+its installed profiles through `conduit-kernel`.
 
 ## Inline nesting checkpoint
 
