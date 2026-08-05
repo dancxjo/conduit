@@ -480,6 +480,7 @@ mod tests {
             boot_id: BootId::from(boot),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("test-host"),
+            resources: vec![],
             capabilities: vec![CapabilityOffer {
                 capability_id: CapabilityId::from("capability-1"),
                 kind_id: KindId::from("test/kind"),
@@ -494,6 +495,7 @@ mod tests {
                     direction: PortDirection::Output,
                 }],
                 host_operations: vec![],
+                resource_requirements: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 4,

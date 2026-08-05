@@ -116,6 +116,38 @@ subsequent conforming completion can settle it. The semantic requirement IDs
 are not yet lowered into the S1 kernel's numeric `FixedHostOperationBindings`;
 that remains explicit integration work.
 
+## Exact resource requirements and reservations
+
+The first S2 resource profile uses three separate contracts:
+
+- a host advertises boot-scoped `ResourceOffer` pools with an immutable pool
+  identity, semantic resource class, and finite unit capacity;
+- a capability and its installed implementation declare ordered
+  `ResourceRequirement` class/unit pairs; and
+- planning resolves each requirement to one exact `ResourceBinding` pool.
+
+The first profile deliberately permits only one pool per required class on a
+host. Ambiguity fails planning instead of hiding a provider choice. The initial
+classes are timer slots and presentation slots, each used by the corresponding
+wait or presentation execution profile. These are countable host-managed slots,
+not claims about unmeasured RAM, browser APIs, firmware peripherals, or physical
+availability.
+
+Planning validates pool and requirement shape, resolves the pool, sums every
+placement's units per host, rejects arithmetic overflow, and rejects demand
+above the boot-scoped offer. The selected pool, class, and units participate in
+fragment identity. Preparation reconstructs the generic requirements from the
+bindings, compares them with the pinned capability and installed
+implementation, verifies each pool against the current advertisement, and
+recomputes aggregate use across the incoming fragment and every unreleased
+plan. A successful prepare reserves those units; completion or cancellation
+does not release them, while the explicit release transition does.
+
+Resource availability remains separate from authority. An advertised pool
+allows planning and reservation only; it does not grant permission to operate
+on an external subject. Authority grants remain the next S2 slice. These hosted
+bindings are also not yet lowered into an S1 fixed-storage resource table.
+
 ## Deterministic proof
 
 The focused vectors prove:
@@ -138,17 +170,20 @@ The focused vectors prove:
   overflows; and
 - planning, fragment identity, preparation, action admission, and completion
   admission all preserve exact host-operation contracts, targets, concurrency,
-  and byte bounds.
+  and byte bounds; and
+- planning rejects malformed, unavailable, ambiguous, overflowing, and
+  exhausted resource contracts; resource binding mutations fail identity or
+  preparation; and hosted reservations remain occupied until explicit release.
 
 ## Acceptance boundary
 
 This satisfies the first acceptance item and the three-form-identity portion
 of the second item in #363. It also binds the startup dependency,
 cancellation, terminal, mandatory-evidence, and evidence-storage-budget parts
-of that item, plus exact hosted host-operation requirements. S2 remains open.
-Plans do not yet bind resource/authority or observed `LinkBinding` values, and
-the planned evidence and host-operation commitments are not yet lowered into
-the S1 kernel stores. The existing
+of that item, plus exact hosted host-operation and resource requirements. S2
+remains open. Plans do not yet bind authority grants or observed `LinkBinding`
+values, and the planned evidence, host-operation, and resource commitments are
+not yet lowered into the S1 kernel stores. The existing
 `ConnectionProvider` remains a prototype until the remote-link slice replaces
 it.
 

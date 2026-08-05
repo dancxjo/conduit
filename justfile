@@ -65,6 +65,7 @@ check-planning-s2:
     cargo test -p conduit-runtime --test host_contract runtime_rejects_an_implementation_that_requests_an_unplanned_host_operation
     cargo test -p conduit-runtime --test host_contract runtime_rejects_a_host_operation_input_above_its_planned_bound
     cargo test -p conduit-runtime --test host_contract fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection
+    cargo test -p conduit-runtime --test host_contract preparation_reserves_resource_pool_capacity_until_release
     cargo test -p conduit-runtime --test host_contract planned_evidence_storage_survives_observation_overflow
     cargo check -p conduit-core --target thumbv6m-none-eabi
 

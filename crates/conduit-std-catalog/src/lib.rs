@@ -6,9 +6,10 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, wait_host_operation_requirement,
-    CapabilityLimits, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
-    KindContractRevision, KindId, PortDescriptor, PortDirection,
+    kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
+    wait_host_operation_requirement, CapabilityLimits, ConfigurationValue, ExecutionProfileId,
+    HostOperationRequirement, KindContractRevision, KindId, PortDescriptor, PortDirection,
+    ResourceOffer, ResourceRequirement, PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
@@ -324,6 +325,7 @@ pub fn standard_capability_offers(
                 &contract.kind_id,
                 contract.limits.max_queue_bytes,
             ),
+            resource_requirements: standard_resource_requirements(&contract.kind_id),
             limits: contract.limits,
         })
         .collect()
@@ -343,6 +345,25 @@ pub fn standard_host_operation_requirements(
     }
 }
 
+pub fn standard_resource_requirements(kind_id: &KindId) -> Vec<ResourceRequirement> {
+    match kind_id.as_str() {
+        PULSE_KIND | TICK_KIND => vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
+        SHOW_KIND => vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        _ => Vec::new(),
+    }
+}
+
+pub fn standard_resource_offers(capacity_units: u32) -> Vec<ResourceOffer> {
+    vec![
+        resource_offer(
+            "std-catalog/presentation",
+            PRESENTATION_RESOURCE_CLASS,
+            capacity_units,
+        ),
+        resource_offer("std-catalog/timer", TIMER_RESOURCE_CLASS, capacity_units),
+    ]
+}
+
 pub fn standard_host_advertisement(
     host_id: conduit_core::HostId,
     boot_id: conduit_core::BootId,
@@ -354,6 +375,7 @@ pub fn standard_host_advertisement(
         boot_id,
         offer_generation,
         profile: conduit_core::HostProfileId::from("conduit.std/hosted-v1"),
+        resources: standard_resource_offers(16),
         capabilities: standard_capability_offers("std"),
     }
 }
@@ -366,8 +388,9 @@ fn capability_slug(kind: &str) -> String {
 mod host_profile {
     use super::{
         capability_slug, contract_revision, execution_profile, standard_contracts,
-        standard_host_operation_requirements, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND,
-        LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, SIGNAL_VALUE_KIND, TEE_KIND, TICK_KIND,
+        standard_host_operation_requirements, standard_resource_requirements, FILTER_KIND,
+        FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND,
+        SIGNAL_VALUE_KIND, TEE_KIND, TICK_KIND,
     };
     use alloc::boxed::Box;
     use alloc::format;
@@ -442,6 +465,10 @@ mod host_profile {
                 .find(|contract| contract.kind_id == self.kind_id)
                 .map_or(0, |contract| contract.limits.max_queue_bytes);
             standard_host_operation_requirements(&self.kind_id, maximum_value_bytes)
+        }
+
+        fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
+            standard_resource_requirements(&self.kind_id)
         }
 
         fn prepare(
@@ -734,8 +761,9 @@ mod tests {
     use super::{
         contract_revision, execution_profile, find_contract, standard_contracts,
         standard_host_advertisement, standard_host_operation_requirements,
-        standard_profile_catalog, standard_registry, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND,
-        LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND,
+        standard_profile_catalog, standard_registry, standard_resource_offers,
+        standard_resource_requirements, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND,
+        MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND,
     };
     use conduit_core::{
         kind_id, ArtifactId, CapabilityId, CapabilityOffer, ConnectionProvider, HostAdvertisement,
@@ -935,6 +963,7 @@ mod tests {
             boot_id: conduit_core::BootId::from("std-catalog-boot"),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("conduit.std/conformance"),
+            resources: standard_resource_offers(16),
             capabilities: vec![
                 offer("flow-pulse", PULSE_KIND, "std/pulse-v1"),
                 offer("presentation-show", SHOW_KIND, "std/show-v1"),
@@ -964,6 +993,7 @@ mod tests {
                 &kind_id,
                 contract.limits.max_queue_bytes,
             ),
+            resource_requirements: standard_resource_requirements(&kind_id),
             limits: conduit_core::CapabilityLimits {
                 max_active_instances: 16,
                 max_queue_items: 4,

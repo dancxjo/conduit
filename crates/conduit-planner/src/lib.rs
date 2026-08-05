@@ -2,8 +2,8 @@ use conduit_core::{
     mandatory_evidence_storage_requirement, seal_plan, CancellationPolicy, CapabilityId,
     ConnectionId, ConnectionProvider, ExpectedEvidence, ExpectedTerminal, FragmentId,
     HostAdvertisement, HostId, OperationId, PlacementId, Plan, PlanFragment, PlanId,
-    PlannedConnection, PlannedOperation, StartupDependency, TerminalPolicy,
-    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
+    PlannedConnection, PlannedOperation, ResourceBinding, ResourcePoolId, StartupDependency,
+    TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedForm, CheckedOperation};
 use sha2::{Digest, Sha256};
@@ -31,6 +31,9 @@ pub enum PlannerError {
     WrongKindContractRevision(String),
     IncompatiblePortContract(String),
     InvalidHostOperationRequirement(String),
+    InvalidResourceContract(String),
+    UnavailableResource(String),
+    ResourceCapacityExceeded(String),
     UnavailableConnectionProvider(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
@@ -58,6 +61,15 @@ impl std::fmt::Display for PlannerError {
             }
             PlannerError::InvalidHostOperationRequirement(value) => {
                 write!(f, "invalid host-operation requirement: {value}")
+            }
+            PlannerError::InvalidResourceContract(value) => {
+                write!(f, "invalid resource contract: {value}")
+            }
+            PlannerError::UnavailableResource(value) => {
+                write!(f, "unavailable resource: {value}")
+            }
+            PlannerError::ResourceCapacityExceeded(value) => {
+                write!(f, "resource capacity exceeded: {value}")
             }
             PlannerError::UnavailableConnectionProvider(value) => {
                 write!(f, "unavailable connection provider: {value}")
@@ -222,7 +234,12 @@ pub fn plan_with_connection_limits_and_provider_overrides(
         .map(|host| (host.host_id.clone(), host))
         .collect::<BTreeMap<_, _>>();
 
+    for host in realm {
+        validate_host_resources(host)?;
+    }
+
     let mut placement_count = BTreeMap::<(HostId, CapabilityId), u16>::new();
+    let mut resource_usage = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
     let mut planned_operations = Vec::<PlannedOperation>::new();
     let mut placement_lookup = BTreeMap::<OperationId, PlacementId>::new();
 
@@ -257,6 +274,48 @@ pub fn plan_with_connection_limits_and_provider_overrides(
             )));
         }
 
+        let mut resource_bindings = Vec::with_capacity(capability.resource_requirements.len());
+        for requirement in &capability.resource_requirements {
+            let mut matches = host
+                .resources
+                .iter()
+                .filter(|resource| resource.class_id == requirement.class_id);
+            let Some(resource) = matches.next() else {
+                return Err(PlannerError::UnavailableResource(format!(
+                    "host '{}' has no pool for class '{}'",
+                    host.host_id.as_str(),
+                    requirement.class_id.as_str()
+                )));
+            };
+            if matches.next().is_some() {
+                return Err(PlannerError::InvalidResourceContract(format!(
+                    "host '{}' has multiple pools for class '{}' in the first planning profile",
+                    host.host_id.as_str(),
+                    requirement.class_id.as_str()
+                )));
+            }
+            let used = resource_usage
+                .entry((host.host_id.clone(), resource.pool_id.clone()))
+                .or_insert(0);
+            *used = used.checked_add(requirement.units).ok_or_else(|| {
+                PlannerError::ResourceCapacityExceeded(resource.pool_id.as_str().to_string())
+            })?;
+            if *used > resource.capacity_units {
+                return Err(PlannerError::ResourceCapacityExceeded(format!(
+                    "pool '{}' requires {} units above capacity {}",
+                    resource.pool_id.as_str(),
+                    *used,
+                    resource.capacity_units
+                )));
+            }
+            resource_bindings.push(ResourceBinding {
+                pool_id: resource.pool_id.clone(),
+                class_id: resource.class_id.clone(),
+                units: requirement.units,
+            });
+        }
+        resource_bindings.sort();
+
         let placement_id = PlacementId::from(hash_string(&format!(
             "placement:{}:{}:{}:{}",
             form.checked_form_id.as_str(),
@@ -281,6 +340,7 @@ pub fn plan_with_connection_limits_and_provider_overrides(
             inputs: operation.inputs.clone(),
             outputs: operation.outputs.clone(),
             host_operations: capability.host_operations.clone(),
+            resources: resource_bindings,
         });
     }
 
@@ -541,6 +601,38 @@ fn validate_operation_capability(
             capability.capability_id.as_str()
         )));
     }
+    if capability
+        .resource_requirements
+        .iter()
+        .any(|requirement| requirement.class_id.as_str().is_empty() || requirement.units == 0)
+        || capability
+            .resource_requirements
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+    {
+        return Err(PlannerError::InvalidResourceContract(format!(
+            "capability '{}' requirements must have non-empty classes, positive units, and unique canonical ordering",
+            capability.capability_id.as_str()
+        )));
+    }
+    Ok(())
+}
+
+fn validate_host_resources(host: &HostAdvertisement) -> Result<(), PlannerError> {
+    if host.resources.iter().any(|resource| {
+        resource.pool_id.as_str().is_empty()
+            || resource.class_id.as_str().is_empty()
+            || resource.capacity_units == 0
+    }) || host
+        .resources
+        .windows(2)
+        .any(|pair| pair[0].pool_id >= pair[1].pool_id)
+    {
+        return Err(PlannerError::InvalidResourceContract(format!(
+            "host '{}' pools must have non-empty identities, positive capacity, and unique pool-id ordering",
+            host.host_id.as_str()
+        )));
+    }
     Ok(())
 }
 
@@ -632,9 +724,9 @@ mod tests {
     use conduit_form::parse;
     use conduit_signal::{
         pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
-        pulse_outputs, show_contract_revision, show_execution_profile,
-        show_host_operation_requirements, show_inputs, signal_profile_catalog, PULSE_KIND,
-        SHOW_KIND,
+        pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
+        show_host_operation_requirements, show_inputs, show_resource_requirements,
+        signal_profile_catalog, signal_resource_offers, PULSE_KIND, SHOW_KIND,
     };
 
     fn form() -> conduit_form::CheckedForm {
@@ -652,6 +744,7 @@ mod tests {
             boot_id: conduit_core::BootId::from("boot-1"),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("rust-std"),
+            resources: signal_resource_offers("test/timer", "test/presentation", 4),
             capabilities: vec![
                 CapabilityOffer {
                     capability_id: conduit_core::CapabilityId::from("pulse-1"),
@@ -663,6 +756,7 @@ mod tests {
                     inputs: vec![],
                     outputs: pulse_outputs(),
                     host_operations: pulse_host_operation_requirements(),
+                    resource_requirements: pulse_resource_requirements(),
                     limits: CapabilityLimits {
                         max_active_instances: 4,
                         max_queue_items: 4,
@@ -679,6 +773,7 @@ mod tests {
                     inputs: show_inputs(),
                     outputs: vec![],
                     host_operations: show_host_operation_requirements(),
+                    resource_requirements: show_resource_requirements(),
                     limits: CapabilityLimits {
                         max_active_instances: 4,
                         max_queue_items: 4,
@@ -751,6 +846,18 @@ mod tests {
             assert_eq!(placement.inputs, operation.inputs);
             assert_eq!(placement.outputs, operation.outputs);
             assert_eq!(placement.host_operations, capability.host_operations);
+            assert_eq!(
+                placement.resources.len(),
+                capability.resource_requirements.len()
+            );
+            for binding in &placement.resources {
+                assert!(capability.resource_requirements.iter().any(|requirement| {
+                    requirement.class_id == binding.class_id && requirement.units == binding.units
+                }));
+                assert!(host.resources.iter().any(|resource| {
+                    resource.pool_id == binding.pool_id && resource.class_id == binding.class_id
+                }));
+            }
         }
         assert!(plan.fragments[0]
             .placements
@@ -825,6 +932,90 @@ mod tests {
                 &[ConnectionProvider::Local],
             ),
             Err(PlannerError::InvalidHostOperationRequirement(_))
+        ));
+    }
+
+    #[test]
+    fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
+        let form = form();
+
+        let mut advertised = host();
+        advertised.capabilities[0].resource_requirements[0].units = 0;
+        let placements = default_placements(&form, std::slice::from_ref(&advertised))
+            .expect("placements still resolve");
+        assert!(matches!(
+            plan(
+                &form,
+                std::slice::from_ref(&advertised),
+                &placements,
+                &[ConnectionProvider::Local],
+            ),
+            Err(PlannerError::InvalidResourceContract(_))
+        ));
+
+        let mut advertised = host();
+        advertised.resources.retain(|resource| {
+            resource.class_id.as_str() != conduit_core::PRESENTATION_RESOURCE_CLASS
+        });
+        let placements = default_placements(&form, std::slice::from_ref(&advertised))
+            .expect("placements still resolve");
+        assert!(matches!(
+            plan(
+                &form,
+                std::slice::from_ref(&advertised),
+                &placements,
+                &[ConnectionProvider::Local],
+            ),
+            Err(PlannerError::UnavailableResource(_))
+        ));
+
+        let mut advertised = host();
+        advertised.resources.push(conduit_core::resource_offer(
+            "zz-test/presentation",
+            conduit_core::PRESENTATION_RESOURCE_CLASS,
+            4,
+        ));
+        let placements = default_placements(&form, std::slice::from_ref(&advertised))
+            .expect("placements still resolve");
+        assert!(matches!(
+            plan(
+                &form,
+                std::slice::from_ref(&advertised),
+                &placements,
+                &[ConnectionProvider::Local],
+            ),
+            Err(PlannerError::InvalidResourceContract(_))
+        ));
+
+        let mut advertised = host();
+        advertised.capabilities[1].resource_requirements[0].units = 5;
+        let placements = default_placements(&form, std::slice::from_ref(&advertised))
+            .expect("placements still resolve");
+        assert!(matches!(
+            plan(
+                &form,
+                std::slice::from_ref(&advertised),
+                &placements,
+                &[ConnectionProvider::Local],
+            ),
+            Err(PlannerError::ResourceCapacityExceeded(_))
+        ));
+
+        let mut advertised = host();
+        advertised.resources[1].capacity_units = u32::MAX;
+        advertised.capabilities[0].resource_requirements[0].units = u32::MAX;
+        advertised.capabilities[1].resource_requirements[0] =
+            conduit_core::resource_requirement(conduit_core::TIMER_RESOURCE_CLASS, 1);
+        let placements = default_placements(&form, std::slice::from_ref(&advertised))
+            .expect("placements still resolve");
+        assert!(matches!(
+            plan(
+                &form,
+                std::slice::from_ref(&advertised),
+                &placements,
+                &[ConnectionProvider::Local],
+            ),
+            Err(PlannerError::ResourceCapacityExceeded(_))
         ));
     }
 

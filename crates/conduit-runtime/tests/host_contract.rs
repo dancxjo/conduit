@@ -1,13 +1,14 @@
 use conduit_core::{
     kind_id, mandatory_evidence_storage_requirement, port_id, present_host_operation_requirement,
-    seal_plan, wait_host_operation_requirement, ArtifactId, BootId, CancellationPolicy,
-    CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId, ConnectionOutcome,
-    ConnectionProvider, ExecutionProfileId, ExpandedFormId, ExpectedEvidence, ExpectedTerminal,
-    FailureReason, FormIdentity, FragmentId, HostAdvertisement, HostCommand, HostEvent, HostId,
-    HostOperationContractId, HostProfileId, ImplementationId, KindContractRevision,
-    ObservationKind, OfferGeneration, OperationId, PlacementId, PlanFragment, PlanId,
-    PlannedOperation, PlatformEffect, PortDescriptor, PortDirection, SourceDocumentId,
-    TerminalDisposition, TerminalPolicy, ValuePayload, PROTOCOL_VERSION,
+    resource_offer, resource_requirement, seal_plan, wait_host_operation_requirement, ArtifactId,
+    BootId, CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
+    ConnectionOutcome, ConnectionProvider, ExecutionProfileId, ExpandedFormId, ExpectedEvidence,
+    ExpectedTerminal, FailureReason, FormIdentity, FragmentId, HostAdvertisement, HostCommand,
+    HostEvent, HostId, HostOperationContractId, HostProfileId, ImplementationId,
+    KindContractRevision, ObservationKind, OfferGeneration, OperationId, PlacementId, PlanFragment,
+    PlanId, PlannedOperation, PlatformEffect, PortDescriptor, PortDirection, SourceDocumentId,
+    TerminalDisposition, TerminalPolicy, ValuePayload, PRESENTATION_RESOURCE_CLASS,
+    PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
 use conduit_planner::{default_placements, plan, PlacementChoice, PlacementChoices};
@@ -72,6 +73,10 @@ fn advertisement() -> HostAdvertisement {
         boot_id: BootId::from("contract-boot"),
         offer_generation: OfferGeneration(4),
         profile: HostProfileId::from("contract-test"),
+        resources: vec![
+            resource_offer("contract/presentation", PRESENTATION_RESOURCE_CLASS, 2),
+            resource_offer("contract/timer", TIMER_RESOURCE_CLASS, 2),
+        ],
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("pulse"),
@@ -83,6 +88,7 @@ fn advertisement() -> HostAdvertisement {
                 inputs: vec![],
                 outputs: source_outputs(),
                 host_operations: vec![],
+                resource_requirements: vec![],
                 limits: CapabilityLimits {
                     max_active_instances: 2,
                     max_queue_items: 4,
@@ -102,6 +108,7 @@ fn advertisement() -> HostAdvertisement {
                     kind_id(PRESENTATION_KIND),
                     1,
                 )],
+                resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
                 limits: CapabilityLimits {
                     max_active_instances: 2,
                     max_queue_items: 4,
@@ -233,6 +240,7 @@ struct SinkImplementation {
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
     maximum_presentation_bytes: u32,
+    presentation_resource_units: u32,
 }
 
 impl SinkImplementation {
@@ -242,11 +250,17 @@ impl SinkImplementation {
             implementation_id,
             artifact_id: ArtifactId::from("contract/sink-artifact-v1"),
             maximum_presentation_bytes: 1,
+            presentation_resource_units: 1,
         }
     }
 
     fn with_maximum_presentation_bytes(mut self, maximum: u32) -> Self {
         self.maximum_presentation_bytes = maximum;
+        self
+    }
+
+    fn with_presentation_resource_units(mut self, units: u32) -> Self {
+        self.presentation_resource_units = units;
         self
     }
 }
@@ -277,6 +291,16 @@ impl OperationImplementation for SinkImplementation {
             kind_id(PRESENTATION_KIND),
             self.maximum_presentation_bytes,
         )]
+    }
+
+    fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
+        (self.presentation_resource_units != 0)
+            .then_some(resource_requirement(
+                PRESENTATION_RESOURCE_CLASS,
+                self.presentation_resource_units,
+            ))
+            .into_iter()
+            .collect()
     }
 
     fn prepare(
@@ -537,6 +561,10 @@ impl OperationImplementation for UnsupportedValueImplementation {
         self.0.host_operation_requirements()
     }
 
+    fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
+        self.0.resource_requirements()
+    }
+
     fn prepare(
         &self,
         placement: &PlannedOperation,
@@ -676,6 +704,33 @@ fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
+    let binding = mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.resources.first_mut())
+        .expect("resource binding exists");
+    binding.pool_id = conduit_core::ResourcePoolId::from("mutated/resource-pool");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    let binding = mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.resources.first_mut())
+        .expect("resource binding exists");
+    binding.class_id = conduit_core::ResourceClassId::from("mutated/resource-class@1");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    let binding = mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.resources.first_mut())
+        .expect("resource binding exists");
+    binding.units += 1;
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
     mutated
         .placements
         .iter_mut()
@@ -812,11 +867,41 @@ fn preparation_rejects_resealed_contract_profile_and_port_lies() {
         Some(FailureReason::HostOperationContractMismatch)
     );
 
-    let fragment = fragment(&advertised);
+    let host_operation_fragment = fragment(&advertised);
     let mut runtime = HostRuntime::new(advertised, undersized_presentation_registry(), 64);
     assert_eq!(
-        rejection_reason(&runtime.handle(HostCommand::Prepare(fragment))),
+        rejection_reason(&runtime.handle(HostCommand::Prepare(host_operation_fragment))),
         Some(FailureReason::HostOperationContractMismatch)
+    );
+
+    let advertised = advertisement();
+    let mut mutated = fragment(&advertised);
+    mutated
+        .placements
+        .iter_mut()
+        .find_map(|placement| placement.resources.first_mut())
+        .expect("resource binding exists")
+        .units += 1;
+    let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
+        Some(FailureReason::ResourceContractMismatch)
+    );
+
+    let unavailable_pool_fragment = fragment(&advertised);
+    let mut current = advertised.clone();
+    current.resources[0].class_id = conduit_core::ResourceClassId::from("mutated/resource-class@1");
+    let mut runtime = HostRuntime::new(current, registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(unavailable_pool_fragment))),
+        Some(FailureReason::ResourceContractMismatch)
+    );
+
+    let implementation_mismatch_fragment = fragment(&advertised);
+    let mut runtime = HostRuntime::new(advertised, missing_resource_registry(), 64);
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(implementation_mismatch_fragment))),
+        Some(FailureReason::ResourceContractMismatch)
     );
 }
 
@@ -964,6 +1049,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
         boot_id: BootId::from("echo-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("echo-test"),
+        resources: vec![],
         capabilities: vec![CapabilityOffer {
             capability_id: CapabilityId::from("echo-capability"),
             kind_id: echo_kind_id.clone(),
@@ -974,6 +1060,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
             inputs: vec![],
             outputs: vec![],
             host_operations: vec![],
+            resource_requirements: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 0,
@@ -1021,6 +1108,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
                 inputs: Vec::new(),
                 outputs: Vec::new(),
                 host_operations: Vec::new(),
+                resources: Vec::new(),
             }],
             connections: Vec::new(),
             startup_dependencies: Vec::new(),
@@ -1151,6 +1239,14 @@ impl OperationImplementation for AdapterSourceImplementation {
         }
     }
 
+    fn resource_requirements(&self) -> Vec<conduit_core::ResourceRequirement> {
+        if self.declares_wait {
+            vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)]
+        } else {
+            Vec::new()
+        }
+    }
+
     fn prepare(
         &self,
         _placement: &PlannedOperation,
@@ -1263,9 +1359,27 @@ fn undersized_presentation_registry() -> ImplementationRegistry {
     registry
 }
 
+fn missing_resource_registry() -> ImplementationRegistry {
+    let mut registry = ImplementationRegistry::new();
+    registry
+        .install(SourceImplementation::new(ImplementationId::from(
+            "contract/source-v1",
+        )))
+        .expect("source installs");
+    registry
+        .install(
+            SinkImplementation::new(ImplementationId::from("contract/sink-v1"))
+                .with_presentation_resource_units(0),
+        )
+        .expect("resource-mismatched sink installs");
+    registry
+}
+
 fn adapter_advertisement() -> HostAdvertisement {
     let mut advertised = advertisement();
     advertised.capabilities[0].host_operations = vec![wait_host_operation_requirement()];
+    advertised.capabilities[0].resource_requirements =
+        vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)];
     advertised
 }
 
@@ -1328,6 +1442,47 @@ fn runtime_rejects_a_host_operation_input_above_its_planned_bound() {
             ..
         }
     )));
+}
+
+#[test]
+fn preparation_reserves_resource_pool_capacity_until_release() {
+    let mut advertised = advertisement();
+    for resource in &mut advertised.resources {
+        resource.capacity_units = 1;
+    }
+    let first = fragment(&advertised);
+    let first_plan_id = first.plan_id.clone();
+    let mut second = fragment(&advertised);
+    second.source_document_id = SourceDocumentId::from("second/source-document");
+    let second = reseal_fragment(second);
+
+    let mut runtime = HostRuntime::new(advertised, registry(), 64);
+    assert!(runtime
+        .handle(HostCommand::Prepare(first))
+        .events
+        .iter()
+        .any(|event| matches!(event, HostEvent::Prepared { .. })));
+    assert_eq!(
+        rejection_reason(&runtime.handle(HostCommand::Prepare(second.clone()))),
+        Some(FailureReason::ResourceCapacityExceeded)
+    );
+
+    let _ = runtime.handle(HostCommand::Activate(first_plan_id.clone()));
+    assert!(runtime
+        .handle(HostCommand::Cancel(first_plan_id.clone()))
+        .events
+        .iter()
+        .any(|event| matches!(event, HostEvent::Cancelled { .. })));
+    assert!(runtime
+        .handle(HostCommand::Release(first_plan_id))
+        .events
+        .iter()
+        .any(|event| matches!(event, HostEvent::Released { .. })));
+    assert!(runtime
+        .handle(HostCommand::Prepare(second))
+        .events
+        .iter()
+        .any(|event| matches!(event, HostEvent::Prepared { .. })));
 }
 
 #[test]
