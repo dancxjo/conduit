@@ -156,10 +156,12 @@ impl Operation for ToggleSourceOperation {
                 ..
             } => {
                 *next += 1;
-                if *next > tokens.len() {
+                if *next >= tokens.len() {
+                    // All admitted activations have been emitted.
                     return OperationAction::Complete;
                 }
-                let Some(token) = tokens.get(*next - 1).copied() else {
+                // Use token[next] (the token for the upcoming request).
+                let Some(token) = tokens.get(*next).copied() else {
                     return Self::fail(14);
                 };
                 let Ok(sequence) = u32::try_from(*next) else {
@@ -352,5 +354,106 @@ mod tests {
                 detail: 13,
             })
         );
+    }
+
+    /// All sixteen admitted request/completion/emission cycles reach `Complete` without error.
+    /// Also verifies each cycle uses a distinct token (not token[0] repeated).
+    #[test]
+    fn activate_full_sixteen_cycles_reach_complete() {
+        const N: usize = 16;
+        // Items: N tokens + N values; max item size is 8 bytes (u64 activation).
+        let mut store = HostedValueStore::new(
+            (N * 2) as u16,
+            8,
+            (N * 2 * 8) as u32,
+        )
+        .expect("test store");
+
+        let mut tokens: Vec<ValueRef> = Vec::with_capacity(N);
+        let mut values: Vec<ValueRef> = Vec::with_capacity(N);
+        for seq in 0..N {
+            tokens.push(store.store(&[seq as u8]).expect("store token"));
+            values.push(
+                store
+                    .store(&(seq as u64).to_le_bytes())
+                    .expect("store value"),
+            );
+        }
+
+        let mut op = ToggleSourceOperation::Activate {
+            tokens: tokens.clone(),
+            values: values.clone(),
+            next: 0,
+            pending: None,
+        };
+
+        // start() issues request for token[0] with RequestId(0).
+        let action = op.start();
+        assert!(
+            matches!(
+                action,
+                OperationAction::RequestHostOperation {
+                    request: RequestId(0),
+                    ..
+                }
+            ),
+            "start should request with RequestId(0)"
+        );
+
+        for cycle in 0..N {
+            // Complete the pending request.
+            let complete_action = op.resume(OperationInput::HostOperationCompleted {
+                request: RequestId(cycle as u32),
+                outcome: HostOperationOutcome {
+                    disposition: HostOperationDisposition::Completed,
+                    output: None,
+                    failure: None,
+                },
+            });
+            assert_eq!(
+                complete_action,
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value: values[cycle],
+                },
+                "cycle {cycle}: resume should emit values[{cycle}]"
+            );
+
+            let advance_action = op.advance();
+            if cycle + 1 == N {
+                // After emitting the last value, advance() must complete.
+                assert_eq!(
+                    advance_action,
+                    OperationAction::Complete,
+                    "cycle {cycle}: final advance should Complete"
+                );
+            } else {
+                // Each subsequent request must carry the token for that cycle index,
+                // not a repeated token[0].
+                match advance_action {
+                    OperationAction::RequestHostOperation {
+                        request,
+                        input,
+                        ..
+                    } => {
+                        assert_eq!(
+                            request,
+                            RequestId((cycle + 1) as u32),
+                            "cycle {cycle}: advance should request RequestId({})",
+                            cycle + 1
+                        );
+                        assert_eq!(
+                            input.value,
+                            tokens[cycle + 1],
+                            "cycle {cycle}: advance should use token[{}]",
+                            cycle + 1
+                        );
+                    }
+                    other => panic!(
+                        "cycle {cycle}: advance should RequestHostOperation, got {other:?}"
+                    ),
+                }
+            }
+        }
     }
 }

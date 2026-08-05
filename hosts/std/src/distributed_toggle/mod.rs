@@ -3,11 +3,14 @@
 //! Split by stable responsibility:
 //! - `plan`: planning, advertisement resolution, two-fragment plan creation.
 //! - `operation`: `ToggleSourceOperation` kernel state machine with mutation tests.
-//! - `source`: `DistributedToggleSource` orchestration and WebSocket transport.
+//! - `source`: `DistributedToggleSource` struct, preparation, and host-op adapter.
+//! - `carrier`: WebSocket session and carrier transport for the source.
 
+mod carrier;
 mod operation;
 mod plan;
 mod source;
 
+pub use carrier::bind_listener;
 pub use plan::{exact_distributed_toggle_plan, DistributedTogglePlan};
-pub use source::{bind_listener, DistributedToggleSource};
+pub use source::DistributedToggleSource;
