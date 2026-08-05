@@ -4,13 +4,18 @@ extern crate alloc;
 
 use alloc::format;
 use alloc::string::String;
+#[cfg(feature = "std")]
 use alloc::vec;
 use alloc::vec::Vec;
+use conduit_core::ConnectionEnvelope;
+
+#[cfg(feature = "std")]
 use conduit_core::{
     kind_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConnectionEnvelope, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    OfferGeneration, PlacementId, PROTOCOL_VERSION,
+    HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, PlacementId,
+    PROTOCOL_VERSION,
 };
+#[cfg(feature = "std")]
 use conduit_signal::{
     decode_signal, pulse_contract_revision, pulse_execution_profile,
     pulse_host_operation_requirements, pulse_outputs, pulse_resource_requirements,
@@ -18,6 +23,7 @@ use conduit_signal::{
     show_resource_requirements, signal_resource_offers, PULSE_KIND, SHOW_KIND,
 };
 
+#[cfg(feature = "std")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PicoSimConfig {
     pub host_id: HostId,
@@ -25,6 +31,7 @@ pub struct PicoSimConfig {
     pub offer_generation: OfferGeneration,
 }
 
+#[cfg(feature = "std")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LedReceipt {
     pub host_id: HostId,
@@ -74,6 +81,7 @@ impl BoundedDatagramRelayFixture {
     }
 }
 
+#[cfg(feature = "std")]
 pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -123,6 +131,7 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
     }
 }
 
+#[cfg(feature = "std")]
 pub fn led_receipt(
     host_id: HostId,
     placement_id: PlacementId,
@@ -383,7 +392,7 @@ mod std_fixture {
 #[cfg(feature = "std")]
 pub use std_fixture::PicoSim;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::{pico_advertisement, BoundedDatagramRelayFixture, PicoSim, PicoSimConfig};
     use conduit_core::{

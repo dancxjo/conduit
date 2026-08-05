@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::SystemTime;
+
+use crate::process::command_for;
 
 use super::doctor::{
     repo_root, sha256_file, verify_sha256, CYW43_ASSETS, CYW43_ASSET_DIR, CYW43_COMMIT,
@@ -18,8 +21,34 @@ pub struct FirmwareIdentity {
     pub target: String,
     pub profile: String,
     pub firmware_sha256: String,
+    pub generated_image: GeneratedImageIdentity,
     pub cyw43_commit: String,
     pub cyw43_assets: Vec<AssetEntry>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GeneratedImageIdentity {
+    pub schema: String,
+    pub source_document_id: String,
+    pub checked_form_id: String,
+    pub expanded_form_id: String,
+    pub plan_id: String,
+    pub fragment_id: String,
+    pub host_id: String,
+    pub boot_id: String,
+    pub active_play_id: String,
+    pub boot_evidence_id: String,
+    pub presentation_ids: Vec<String>,
+    pub presentation_evidence_ids: Vec<String>,
+    pub terminal_evidence_id: String,
+    pub offer_generation: u64,
+    pub nodes: usize,
+    pub cords: usize,
+    pub host_operations: usize,
+    pub cord_value_slots: u16,
+    pub cord_value_bytes: u32,
+    pub evidence_items: u16,
+    pub evidence_bytes: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -41,10 +70,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         }
     }
 
-    let manifest = root
-        .join("firmware")
-        .join(FIRMWARE_PACKAGE)
-        .join("Cargo.toml");
+    let manifest = firmware_root(&root).join("Cargo.toml");
     let manifest_text = manifest
         .to_str()
         .ok_or("firmware manifest path is not UTF-8")?;
@@ -67,11 +93,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         }
     }
 
-    let elf = root
-        .join("target")
-        .join(TARGET)
-        .join(PROFILE)
-        .join(FIRMWARE_PACKAGE);
+    let elf = firmware_elf_path(&root);
     let uf2 = elf.with_extension("uf2");
 
     println!(
@@ -80,7 +102,14 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         uf2.display()
     );
     if !args.dry_run {
-        let status = Command::new("elf2uf2-rs").arg(&elf).arg(&uf2).status()?;
+        if !elf.exists() {
+            return Err(format!(
+                "Pico firmware ELF not found at {}; cargo built an unexpected artifact path",
+                elf.display()
+            )
+            .into());
+        }
+        let status = command_for("elf2uf2-rs").arg(&elf).arg(&uf2).status()?;
         if !status.success() {
             return Err("elf2uf2-rs conversion failed".into());
         }
@@ -101,6 +130,7 @@ fn write_identity_manifest(root: &Path, elf: &Path) -> PicoResult<()> {
     }
     let git_revision = String::from_utf8(git_output.stdout)?.trim().to_owned();
     let firmware_sha256 = sha256_file(elf)?;
+    let generated_image = read_generated_image_identity(root)?;
 
     let cyw43_assets = CYW43_ASSETS
         .iter()
@@ -116,15 +146,13 @@ fn write_identity_manifest(root: &Path, elf: &Path) -> PicoResult<()> {
         target: TARGET.into(),
         profile: PROFILE.into(),
         firmware_sha256,
+        generated_image,
         cyw43_commit: CYW43_COMMIT.into(),
         cyw43_assets,
     };
 
-    let manifest_path = root
-        .join("target")
-        .join(TARGET)
-        .join(PROFILE)
-        .join(format!("{FIRMWARE_PACKAGE}.identity.json"));
+    let manifest_path =
+        firmware_target_profile_dir(root).join(format!("{FIRMWARE_PACKAGE}.identity.json"));
     std::fs::create_dir_all(
         manifest_path
             .parent()
@@ -133,6 +161,58 @@ fn write_identity_manifest(root: &Path, elf: &Path) -> PicoResult<()> {
     std::fs::write(&manifest_path, serde_json::to_string_pretty(&identity)?)?;
     println!("  identity manifest: {}", manifest_path.display());
     Ok(())
+}
+
+pub fn read_identity_manifest(root: &Path) -> PicoResult<FirmwareIdentity> {
+    let manifest_path =
+        firmware_target_profile_dir(root).join(format!("{FIRMWARE_PACKAGE}.identity.json"));
+    let text = std::fs::read_to_string(&manifest_path).map_err(|error| {
+        format!(
+            "failed to read Pico identity manifest at {}: {error}; run `cargo xtask pico build` first",
+            manifest_path.display()
+        )
+    })?;
+    Ok(serde_json::from_str(&text)?)
+}
+
+fn read_generated_image_identity(root: &Path) -> PicoResult<GeneratedImageIdentity> {
+    let sidecar = newest_generated_identity_sidecar(root)?;
+    let text = std::fs::read_to_string(&sidecar)?;
+    Ok(serde_json::from_str(&text)?)
+}
+
+fn newest_generated_identity_sidecar(root: &Path) -> PicoResult<PathBuf> {
+    let build_dir = firmware_target_profile_dir(root).join("build");
+    let mut newest: Option<(SystemTime, PathBuf)> = None;
+    for entry in std::fs::read_dir(&build_dir).map_err(|error| {
+        format!(
+            "failed to inspect firmware build outputs under {}: {error}",
+            build_dir.display()
+        )
+    })? {
+        let path = entry?.path().join("out").join("pico_signal_identity.json");
+        if !path.is_file() {
+            continue;
+        }
+        let modified = std::fs::metadata(&path)?
+            .modified()
+            .unwrap_or(SystemTime::UNIX_EPOCH);
+        if newest
+            .as_ref()
+            .is_none_or(|(current, _)| modified > *current)
+        {
+            newest = Some((modified, path));
+        }
+    }
+    newest
+        .map(|(_, path)| path)
+        .ok_or_else(|| {
+            format!(
+                "generated Pico Signal identity sidecar not found under {}; run `cargo xtask pico build` first",
+                build_dir.display()
+            )
+            .into()
+        })
 }
 
 pub fn refresh_radio_assets(dry_run: bool) -> PicoResult<()> {
@@ -165,8 +245,20 @@ pub fn refresh_radio_assets(dry_run: bool) -> PicoResult<()> {
 }
 
 pub fn uf2_path(root: &Path) -> PathBuf {
-    root.join("target")
+    firmware_elf_path(root).with_extension("uf2")
+}
+
+fn firmware_elf_path(root: &Path) -> PathBuf {
+    firmware_target_profile_dir(root).join(FIRMWARE_PACKAGE)
+}
+
+fn firmware_target_profile_dir(root: &Path) -> PathBuf {
+    firmware_root(root)
+        .join("target")
         .join(TARGET)
         .join(PROFILE)
-        .join(format!("{FIRMWARE_PACKAGE}.uf2"))
+}
+
+fn firmware_root(root: &Path) -> PathBuf {
+    root.join("firmware").join(FIRMWARE_PACKAGE)
 }

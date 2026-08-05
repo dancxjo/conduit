@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-conduit-core = { path = "../conduit-core" }
+conduit-core = { path = "../conduit-core", optional = true }
 conduit-form = { path = "../conduit-form", optional = true }
 conduit-runtime = { path = "../conduit-runtime", optional = true }
-serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+serde = { version = "1", default-features = false, features = ["derive"] }
 
 [features]
 default = []
-host-profile = ["dep:conduit-form", "dep:conduit-runtime"]
+host-profile = ["dep:conduit-core", "dep:conduit-form", "dep:conduit-runtime"]

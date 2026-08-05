@@ -9,4 +9,5 @@ conduit-form = { path = "../conduit-form" }
 sha2 = "0.10"
 
 [dev-dependencies]
+conduit-runtime = { path = "../conduit-runtime" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }

@@ -225,7 +225,7 @@ fn pico_probes() -> Vec<ProbeSpec> {
             "doctor.pico.elf2uf2",
             "ELF to UF2 converter",
             "elf2uf2-rs",
-            &["--version"],
+            &["--help"],
             Some("cargo install elf2uf2-rs --locked"),
         ),
     ]

@@ -9,6 +9,7 @@
 mod kernel;
 mod radio;
 mod receipts;
+mod signal_image;
 
 use aligned::{A4, Aligned};
 use embassy_executor::Spawner;

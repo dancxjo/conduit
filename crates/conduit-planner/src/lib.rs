@@ -1002,7 +1002,8 @@ fn hex(nibble: u8) -> char {
 mod tests {
     use super::{
         default_placements, parse_placements, plan, plan_with_authority_grants,
-        plan_with_link_bindings, startup_order, PlacementChoice, PlacementChoices, PlannerError,
+        plan_with_connection_limits, plan_with_link_bindings, startup_order, PlacementChoice,
+        PlacementChoices, PlannerError,
     };
     use conduit_core::{
         authority_grant, kind_id, mandatory_evidence_storage_requirement,
@@ -1017,11 +1018,12 @@ mod tests {
         parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
     };
     use conduit_signal::{
-        pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
-        pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
-        show_host_operation_requirements, show_inputs, show_resource_requirements,
-        signal_profile_catalog, signal_resource_offers, PULSE_KIND, SHOW_KIND,
-        SIGNAL_PRESENTATION_KIND,
+        pico_local_advertisement, pulse_contract_revision, pulse_execution_profile,
+        pulse_host_operation_requirements, pulse_outputs, pulse_resource_requirements,
+        show_contract_revision, show_execution_profile, show_host_operation_requirements,
+        show_inputs, show_resource_requirements, signal_profile_catalog, signal_resource_offers,
+        DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID, PULSE_KIND, SHOW_KIND,
+        SIGNAL_ENCODED_LEN, SIGNAL_PRESENTATION_KIND,
     };
     use std::collections::BTreeMap;
 
@@ -1272,6 +1274,79 @@ mod tests {
             mandatory_evidence_storage_requirement(&fragment.expected_evidence)
                 .expect("focused evidence fits public budget types")
         );
+    }
+
+    #[test]
+    fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
+        let form = parse(
+            include_str!("../../../examples/signal-demo.form"),
+            &signal_profile_catalog(),
+        )
+        .expect("unchanged Signal demo form must parse");
+        let host = pico_local_advertisement();
+        assert_eq!(host.host_id.as_str(), PICO_LOCAL_HOST_ID);
+
+        let placements = default_placements(&form, std::slice::from_ref(&host))
+            .expect("Pico advertisement covers the exact Signal form");
+        assert_eq!(placements.by_operation.len(), 2);
+        assert!(placements.by_operation.values().all(|choice| {
+            choice.host_id == host.host_id
+                && host
+                    .capabilities
+                    .iter()
+                    .any(|offer| offer.capability_id == choice.capability_id)
+        }));
+
+        let plan = plan_with_connection_limits(
+            &form,
+            std::slice::from_ref(&host),
+            &placements,
+            &[ConnectionProvider::Local],
+            DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+            SIGNAL_ENCODED_LEN,
+        )
+        .expect("Signal demo must plan onto one local Pico fragment");
+        assert!(verify_plan(&plan));
+        assert_eq!(plan.fragments.len(), 1);
+
+        let fragment = &plan.fragments[0];
+        assert!(verify_plan_fragment(fragment));
+        assert_eq!(fragment.host_id, host.host_id);
+        assert_eq!(fragment.boot_id, host.boot_id);
+        assert_eq!(fragment.placements.len(), 2);
+        assert_eq!(fragment.connections.len(), 1);
+        assert!(fragment.placements.iter().all(
+            |placement| placement.host_id == host.host_id && placement.boot_id == host.boot_id
+        ));
+        assert!(fragment.placements.iter().any(
+            |placement| placement.implementation_id.as_str() == "pico-w/kernel-pulse-timer-v1"
+        ));
+        assert!(fragment
+            .placements
+            .iter()
+            .any(|placement| placement.implementation_id.as_str()
+                == "pico-w/kernel-cyw43-show-signal-v1"));
+
+        let connection = &fragment.connections[0];
+        assert_eq!(connection.provider, ConnectionProvider::Local);
+        assert!(connection.link_binding.is_none());
+        assert_eq!(
+            connection.item_capacity,
+            DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS
+        );
+        assert_eq!(connection.byte_capacity, SIGNAL_ENCODED_LEN);
+
+        let lowered =
+            conduit_runtime::lowering::lower_plan_fragment(fragment).expect("fragment lowers");
+        assert_eq!(lowered.nodes.len(), 2);
+        assert_eq!(lowered.cords.len(), 1);
+        assert!(lowered.remote_endpoints.is_empty());
+        assert_eq!(lowered.host_operations.len(), 2);
+        assert_eq!(
+            lowered.cord_value_slots,
+            DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS
+        );
+        assert_eq!(lowered.cord_value_bytes, SIGNAL_ENCODED_LEN);
     }
 
     #[test]
