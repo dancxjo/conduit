@@ -26,6 +26,13 @@ pub struct PortId(pub u16);
 #[repr(transparent)]
 pub struct CordId(pub u16);
 
+/// Numeric identity for one plan-lowered carrier boundary. The kernel does not
+/// interpret provider or transport configuration; the host binds this identity
+/// to the exact observed link before activation.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[repr(transparent)]
+pub struct RemoteEndpointId(pub u16);
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct RequestId(pub u32);
@@ -176,6 +183,18 @@ pub enum ProtocolError {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CordEndpoint {
+    Local { node: NodeId, port: PortId },
+    Remote(RemoteEndpointId),
+}
+
+impl CordEndpoint {
+    pub const fn local(node: NodeId, port: PortId) -> Self {
+        Self::Local { node, port }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HostOperationBinding {
     pub operation: HostOperationId,
     pub maximum_input_bytes: u32,
@@ -274,8 +293,7 @@ pub struct RouteRange {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RouteTarget {
     pub cord: CordId,
-    pub sink_node: NodeId,
-    pub sink_port: PortId,
+    pub sink: CordEndpoint,
 }
 
 /// Precomputed numeric routing table. Route lookup is direct after sealing:
@@ -773,6 +791,12 @@ pub enum KernelEventKind {
     ValueStored,
     ValueRouted,
     ValueConsumed,
+    RemoteValueOffered,
+    RemoteValueAccepted,
+    RemoteValueDelivered,
+    RemoteOutputClosed,
+    RemoteInputAdmitted,
+    RemoteInputClosed,
     InputClosed,
     HostOperationRequested,
     HostOperationCompleted,
@@ -1098,13 +1122,11 @@ mod tests {
                 &[
                     RouteTarget {
                         cord: CordId(0),
-                        sink_node: NodeId(1),
-                        sink_port: PortId(0),
+                        sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
                     },
                     RouteTarget {
                         cord: CordId(1),
-                        sink_node: NodeId(2),
-                        sink_port: PortId(0),
+                        sink: crate::CordEndpoint::local(NodeId(2), PortId(0)),
                     },
                 ],
             )
@@ -1116,8 +1138,7 @@ mod tests {
                 RouteRange { start: 2, len: 1 },
                 &[RouteTarget {
                     cord: CordId(2),
-                    sink_node: NodeId(3),
-                    sink_port: PortId(4),
+                    sink: crate::CordEndpoint::local(NodeId(3), PortId(4)),
                 }],
             )
             .unwrap();
@@ -1130,7 +1151,7 @@ mod tests {
         let mut right = routes.route(NodeId(0), PortId(1)).unwrap();
         let right = right.next().unwrap();
         assert_eq!(right.cord, CordId(2));
-        assert_eq!(right.sink_port, PortId(4));
+        assert_eq!(right.sink, crate::CordEndpoint::local(NodeId(3), PortId(4)));
     }
 
     #[test]

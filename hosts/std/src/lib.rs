@@ -691,7 +691,8 @@ mod tests {
         let remote = seal_plan(form_identity.clone(), vec![remote]);
         assert!(matches!(
             conduit_runtime::lowering::lower_plan_fragment(&remote.fragments[0]),
-            Err(conduit_runtime::lowering::LoweringError::UnsupportedRemoteConnection(_))
+            Err(conduit_runtime::lowering::LoweringError::InvalidFragment)
+                | Err(conduit_runtime::lowering::LoweringError::InvalidRemoteConnection(_))
         ));
 
         let mut too_wide = fragment.clone();
