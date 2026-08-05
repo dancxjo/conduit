@@ -608,7 +608,7 @@ pub struct FixedScheduler<
     completed: [bool; NODES],
     cursor: usize,
     decisions: u32,
-    last_host_request: Option<RequestId>,
+    last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
 }
 
@@ -674,7 +674,7 @@ where
             completed: [false; NODES],
             cursor: 0,
             decisions: 0,
-            last_host_request: None,
+            last_host_request: [None; NODES],
             cancelled: false,
         })
     }
@@ -775,6 +775,7 @@ where
 
     pub fn complete_host_operation(
         &mut self,
+        node: NodeId,
         request: RequestId,
         outcome: HostOperationOutcome,
     ) -> Result<(), SchedulerError> {
@@ -786,7 +787,9 @@ where
             .iter()
             .position(|pending| {
                 pending
-                    .map(|pending| pending.request.request == request)
+                    .map(|pending| {
+                        pending.request.node == node && pending.request.request == request
+                    })
                     .unwrap_or(false)
             })
             .ok_or(SchedulerError::HostOperationCompletionRejected)?;
@@ -1181,7 +1184,7 @@ where
                 dispatched: false,
                 completion: None,
             });
-            self.last_host_request = Some(request);
+            self.last_host_request[node] = Some(request);
             self.evidence.record(
                 NodeId(as_u16(node)?),
                 None,
@@ -1256,7 +1259,7 @@ where
             None
         };
         let admitted_host_request = if let Some((request, operation, input)) = host_request {
-            if self.last_host_request.is_some_and(|last| request <= last)
+            if self.last_host_request[node].is_some_and(|last| request <= last)
                 || self
                     .pending_host_operations
                     .iter()
@@ -2461,6 +2464,7 @@ mod tests {
         let output = scheduler.store_host_value(&[2]).unwrap();
         scheduler
             .complete_host_operation(
+                request.node,
                 request.request,
                 HostOperationOutcome {
                     disposition: HostOperationDisposition::Completed,
@@ -2640,6 +2644,7 @@ mod tests {
                 let output = scheduler.store_host_value(bytes).unwrap();
                 scheduler
                     .complete_host_operation(
+                        request.node,
                         request.request,
                         HostOperationOutcome {
                             disposition: HostOperationDisposition::Completed,
@@ -2957,6 +2962,7 @@ mod tests {
         let output = scheduler.store_host_value(&[4]).unwrap();
         scheduler
             .complete_host_operation(
+                request.node,
                 request.request,
                 HostOperationOutcome {
                     disposition: HostOperationDisposition::Completed,
@@ -3015,6 +3021,7 @@ mod tests {
         let output = scheduler.store_host_value(&[4]).unwrap();
         scheduler
             .complete_host_operation(
+                request.node,
                 request.request,
                 HostOperationOutcome {
                     disposition: HostOperationDisposition::Completed,
@@ -3045,6 +3052,7 @@ mod tests {
         assert_eq!(scheduler.values().used_items(), 0);
         assert_eq!(
             scheduler.complete_host_operation(
+                NodeId(1),
                 RequestId(7),
                 HostOperationOutcome {
                     disposition: HostOperationDisposition::Cancelled,
@@ -3099,6 +3107,7 @@ mod tests {
         assert_eq!(scheduler.pending_host_operation_count(), 1);
         assert_eq!(
             scheduler.complete_host_operation(
+                NodeId(1),
                 RequestId(7),
                 HostOperationOutcome {
                     disposition: HostOperationDisposition::Completed,
@@ -3113,6 +3122,19 @@ mod tests {
         input.copy_from_slice(scheduler.host_value(request.input.value).unwrap());
         assert_eq!(
             scheduler.complete_host_operation(
+                NodeId(0),
+                request.request,
+                HostOperationOutcome {
+                    disposition: HostOperationDisposition::Completed,
+                    output: None,
+                    failure: None,
+                },
+            ),
+            Err(super::SchedulerError::HostOperationCompletionRejected)
+        );
+        assert_eq!(
+            scheduler.complete_host_operation(
+                NodeId(1),
                 RequestId(8),
                 HostOperationOutcome {
                     disposition: HostOperationDisposition::Completed,
@@ -3125,6 +3147,7 @@ mod tests {
         let oversized = scheduler.store_host_value(&[0, 1, 2, 3, 4]).unwrap();
         assert_eq!(
             scheduler.complete_host_operation(
+                request.node,
                 request.request,
                 HostOperationOutcome {
                     disposition: HostOperationDisposition::Completed,
@@ -3138,6 +3161,7 @@ mod tests {
         let output = scheduler.store_host_value(&[4]).unwrap();
         scheduler
             .complete_host_operation(
+                request.node,
                 request.request,
                 HostOperationOutcome {
                     disposition: HostOperationDisposition::Completed,
@@ -3148,6 +3172,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             scheduler.complete_host_operation(
+                request.node,
                 request.request,
                 HostOperationOutcome {
                     disposition: HostOperationDisposition::Completed,

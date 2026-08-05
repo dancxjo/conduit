@@ -19,6 +19,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+mod kernel_signal;
+
 static BOOT_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Debug, Clone)]
@@ -32,6 +34,17 @@ pub struct StdHostConfig {
 pub struct StdRunReport {
     pub observations: Vec<Observation>,
     pub receipts: Vec<SignalReceipt>,
+    pub kernel: Option<StdKernelExecutionReport>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StdKernelExecutionReport {
+    pub active_play_id: conduit_core::ActivePlayId,
+    pub decisions: u32,
+    pub kernel_events: u16,
+    pub value_allocation_capacity_before: (usize, usize),
+    pub value_allocation_capacity_after: (usize, usize),
+    pub presentation_ids: Vec<conduit_core::PresentationId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,6 +68,8 @@ impl TimerAdapter for ThreadTimer {
 
 pub struct StdHost {
     runtime: HostRuntime,
+    next_kernel_activation_sequence: u64,
+    next_kernel_evidence_sequence: u64,
 }
 
 impl Default for StdHost {
@@ -81,6 +96,8 @@ impl StdHost {
         .expect("std signal implementations have unique identities");
         Self {
             runtime: HostRuntime::new(advertisement, registry, 256),
+            next_kernel_activation_sequence: 0,
+            next_kernel_evidence_sequence: 0,
         }
     }
 
@@ -122,6 +139,62 @@ impl StdHost {
     ) -> Result<StdRunReport, String> {
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
+        if !is_installed_kernel_signal_pair(&fragment) {
+            return self.run_fragment_legacy_to(fragment, output, timer);
+        }
+
+        // The old runtime is used only as an effect-free S2 preparation
+        // validator. Dropping this temporary facade cannot leave an alternate
+        // operation pump or a resource reservation alive beside the kernel.
+        let registry = signal_registry(
+            ImplementationId::from("std/pulse-v1"),
+            ImplementationId::from("std/stdout-show-signal-v1"),
+        )
+        .map_err(|error| format!("signal registry: {error:?}"))?;
+        let mut preparation = HostRuntime::new(self.advertisement().clone(), registry, 256);
+        let prepare = preparation.handle(HostCommand::Prepare(fragment.clone()));
+        if let Some(reason) = preparation_rejection(&prepare) {
+            return Err(reason);
+        }
+        drop(preparation);
+        let activation_sequence = self.next_kernel_activation_sequence;
+        self.next_kernel_activation_sequence = activation_sequence
+            .checked_add(1)
+            .ok_or_else(|| "kernel activation sequence exhausted".to_string())?;
+        let advertisement = self.advertisement().clone();
+        let report = kernel_signal::run_signal_fragment(
+            &advertisement,
+            &fragment,
+            activation_sequence,
+            &mut self.next_kernel_evidence_sequence,
+            output,
+            timer,
+        )?;
+        writeln!(output, "plan {} complete", fragment.plan_id.as_str())
+            .map_err(|error| error.to_string())?;
+        if let (Some(first), Some(last)) = (report.receipts.first(), report.receipts.last()) {
+            writeln!(
+                output,
+                "receipts {} first=({}, {}) last=({}, {})",
+                report.receipts.len(),
+                first.sequence,
+                first.level,
+                last.sequence,
+                last.level
+            )
+            .map_err(|error| error.to_string())?;
+        } else {
+            writeln!(output, "receipts 0").map_err(|error| error.to_string())?;
+        }
+        Ok(report)
+    }
+
+    fn run_fragment_legacy_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        output: &mut W,
+        timer: &mut T,
+    ) -> Result<StdRunReport, String> {
         let prepare = self.runtime.handle(HostCommand::Prepare(fragment.clone()));
         if let Some(reason) = preparation_rejection(&prepare) {
             return Err(reason);
@@ -220,8 +293,26 @@ impl StdHost {
         Ok(StdRunReport {
             observations,
             receipts,
+            kernel: None,
         })
     }
+}
+
+fn is_installed_kernel_signal_pair(fragment: &PlanFragment) -> bool {
+    fragment.placements.len() == 2
+        && fragment.connections.len() == 1
+        && fragment
+            .placements
+            .iter()
+            .filter(|placement| placement.kind_id.as_str() == PULSE_KIND)
+            .count()
+            == 1
+        && fragment
+            .placements
+            .iter()
+            .filter(|placement| placement.kind_id.as_str() == SHOW_KIND)
+            .count()
+            == 1
 }
 
 pub fn load_checked_form(path: &str) -> Result<CheckedForm, Box<dyn std::error::Error>> {
@@ -344,18 +435,6 @@ fn write_operator_report<W: Write>(
     Ok(())
 }
 
-fn inspect_observations(runtime: &mut HostRuntime) -> Vec<Observation> {
-    runtime
-        .handle(HostCommand::Inspect)
-        .events
-        .into_iter()
-        .find_map(|event| match event {
-            HostEvent::Observations { items } => Some(items),
-            _ => None,
-        })
-        .unwrap_or_default()
-}
-
 fn preparation_rejection(output: &RuntimeOutput) -> Option<String> {
     output.events.iter().find_map(|event| match event {
         HostEvent::PreparationRejected {
@@ -372,6 +451,18 @@ fn activation_rejection(output: &RuntimeOutput) -> Option<String> {
         } => Some(message.clone().unwrap_or_else(|| format!("{reason:?}"))),
         _ => None,
     })
+}
+
+fn inspect_observations(runtime: &mut HostRuntime) -> Vec<Observation> {
+    runtime
+        .handle(HostCommand::Inspect)
+        .events
+        .into_iter()
+        .find_map(|event| match event {
+            HostEvent::Observations { items } => Some(items),
+            _ => None,
+        })
+        .unwrap_or_default()
 }
 
 fn fresh_boot_id() -> String {
@@ -418,8 +509,8 @@ mod tests {
         assert_eq!(lowered.routes.len(), 1);
         assert_eq!(lowered.host_operations.len(), 2);
         assert_eq!(lowered.resources.len(), 2);
-        assert_eq!(lowered.value_slots, 4);
-        assert_eq!(lowered.value_bytes, 64);
+        assert_eq!(lowered.cord_value_slots, 4);
+        assert_eq!(lowered.cord_value_bytes, 64);
         assert_eq!(
             lowered.evidence_items,
             fragment.expected_evidence.len() as u16
@@ -550,6 +641,7 @@ mod tests {
         .expect("virtual-clock form parses");
         let plan = host.plan_local(&form, None).expect("local plan resolves");
         let fragment = plan.fragments[0].clone();
+        let plan_id = fragment.plan_id.clone();
         let mut output = Vec::new();
         let mut timer = VirtualTimer::default();
         let report = host
@@ -575,6 +667,30 @@ mod tests {
         assert!(!report.receipts[0].level);
         assert_eq!(report.receipts[2].sequence, 2);
         assert!(!report.receipts[2].level);
+        let kernel = report.kernel.as_ref().expect("signal pair uses kernel");
+        assert!(kernel.decisions > 0);
+        assert!(kernel.kernel_events > 0);
+        assert_ne!(kernel.active_play_id.as_str(), plan_id.as_str());
+        assert_eq!(kernel.presentation_ids.len(), 3);
+        assert!(kernel
+            .presentation_ids
+            .windows(2)
+            .all(|pair| pair[0] != pair[1]));
+        assert_eq!(
+            kernel.value_allocation_capacity_before,
+            kernel.value_allocation_capacity_after
+        );
+        assert!(
+            report
+                .observations
+                .iter()
+                .filter(|observation| {
+                    observation.active_play_id.as_ref() == Some(&kernel.active_play_id)
+                        && observation.presentation_id.is_some()
+                })
+                .count()
+                == 3
+        );
         assert!(report.observations.iter().any(|observation| matches!(
             observation.kind,
             conduit_core::ObservationKind::PlanTerminal {

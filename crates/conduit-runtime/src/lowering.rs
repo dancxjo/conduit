@@ -133,8 +133,8 @@ pub struct LoweredPlanFragment {
     pub host_operations: Vec<LoweredHostOperation>,
     pub resources: Vec<LoweredResource>,
     pub evidence: Vec<LoweredEvidence>,
-    pub value_slots: u16,
-    pub value_bytes: u32,
+    pub cord_value_slots: u16,
+    pub cord_value_bytes: u32,
     pub evidence_items: u16,
     pub evidence_bytes: u32,
 }
@@ -395,8 +395,8 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         host_operations,
         resources,
         evidence,
-        value_slots,
-        value_bytes,
+        cord_value_slots: value_slots,
+        cord_value_bytes: value_bytes,
         evidence_items: fragment.evidence_storage_budget.item_capacity,
         evidence_bytes: fragment.evidence_storage_budget.byte_capacity,
     })

@@ -57,6 +57,7 @@ check-kernel-s1:
 
 check-kernel-takeover:
     cargo test -p conduit-std-host exact_signal_fragment_lowers_to_numeric_kernel_tables
+    cargo test -p conduit-std-host streamed_output_uses_a_virtual_clock_and_retains_terminal_evidence
     cargo test -p conduit-kernel admitted_sink_host_operation_may_have_no_output_payload
     cargo check -p conduit-kernel --target thumbv6m-none-eabi
     cargo check -p conduit-core --target thumbv6m-none-eabi
