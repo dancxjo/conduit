@@ -1,11 +1,11 @@
 use conduit_core::{
     mandatory_evidence_storage_requirement, verify_plan_fragment, BoundedQueue, CancellationPolicy,
     CancellationReason, ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider,
-    ConnectionTerminalDisposition, ExpectedEvidence, ExpectedTerminal, FailureReason,
-    HostAdvertisement, HostCommand, HostEvent, Observation, ObservationKind, PlacementId,
-    PlacementLifecycleState, PlanFragment, PlanId, PlannedConnection, PlannedOperation,
-    PlatformEffect, StartupDependency, TerminalDisposition, TerminalPolicy, ValuePayload,
-    PROTOCOL_VERSION,
+    ConnectionTerminalDisposition, EvidenceStorageBudget, ExpectedEvidence, ExpectedTerminal,
+    FailureReason, HostAdvertisement, HostCommand, HostEvent, MandatoryEvidenceReport, Observation,
+    ObservationKind, PlacementId, PlacementLifecycleState, PlanFragment, PlanId, PlannedConnection,
+    PlannedOperation, PlatformEffect, StartupDependency, TerminalDisposition, TerminalPolicy,
+    ValuePayload, PROTOCOL_VERSION,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -176,11 +176,82 @@ impl core::fmt::Debug for HostRuntime {
 
 struct RuntimePlan {
     fragment: PlanFragment,
+    mandatory_evidence: MandatoryEvidenceLog,
     placements: BTreeMap<PlacementId, RuntimePlacement>,
     connections: BTreeMap<ConnectionId, RuntimeConnection>,
     state: PlanState,
     terminal: Option<TerminalDisposition>,
     terminal_emitted: bool,
+}
+
+#[derive(Debug)]
+struct MandatoryEvidenceLog {
+    recorded_indices: Vec<u16>,
+    allocated_item_slots: u32,
+    storage_budget: EvidenceStorageBudget,
+    used_bytes: u32,
+    overflowed: bool,
+}
+
+impl MandatoryEvidenceLog {
+    fn new(fragment: &PlanFragment) -> Self {
+        let recorded_indices =
+            Vec::with_capacity(usize::from(fragment.evidence_storage_budget.item_capacity));
+        Self {
+            allocated_item_slots: u32::try_from(recorded_indices.capacity()).unwrap_or(u32::MAX),
+            recorded_indices,
+            storage_budget: fragment.evidence_storage_budget,
+            used_bytes: 0,
+            overflowed: false,
+        }
+    }
+
+    fn record(&mut self, expected: &[ExpectedEvidence], evidence: ExpectedEvidence) {
+        let Some(index) = expected.iter().position(|item| item == &evidence) else {
+            self.overflowed = true;
+            return;
+        };
+        let Ok(index) = u16::try_from(index) else {
+            self.overflowed = true;
+            return;
+        };
+        if self.recorded_indices.contains(&index) {
+            return;
+        }
+        let Some(charge) = mandatory_evidence_storage_requirement(core::slice::from_ref(&evidence))
+        else {
+            self.overflowed = true;
+            return;
+        };
+        let Some(used_bytes) = self.used_bytes.checked_add(charge.byte_capacity) else {
+            self.overflowed = true;
+            return;
+        };
+        if self.recorded_indices.len() >= usize::from(self.storage_budget.item_capacity)
+            || used_bytes > self.storage_budget.byte_capacity
+        {
+            self.overflowed = true;
+            return;
+        }
+        self.recorded_indices.push(index);
+        self.used_bytes = used_bytes;
+    }
+
+    fn report(&self, plan_id: PlanId, expected: &[ExpectedEvidence]) -> MandatoryEvidenceReport {
+        MandatoryEvidenceReport {
+            plan_id,
+            expected: expected.to_vec(),
+            recorded: self
+                .recorded_indices
+                .iter()
+                .map(|index| expected[usize::from(*index)].clone())
+                .collect(),
+            storage_budget: self.storage_budget,
+            allocated_item_slots: self.allocated_item_slots,
+            used_bytes: self.used_bytes,
+            overflowed: self.overflowed,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -413,9 +484,21 @@ impl HostRuntime {
             HostCommand::Cancel(plan_id) => self.cancel(&plan_id),
             HostCommand::Release(plan_id) => self.release(&plan_id),
             HostCommand::Inspect => RuntimeOutput {
-                events: vec![HostEvent::Observations {
-                    items: self.observations.clone(),
-                }],
+                events: vec![
+                    HostEvent::Observations {
+                        items: self.observations.clone(),
+                    },
+                    HostEvent::MandatoryEvidenceReports {
+                        items: self
+                            .plans
+                            .iter()
+                            .map(|(plan_id, plan)| {
+                                plan.mandatory_evidence
+                                    .report(plan_id.clone(), &plan.fragment.expected_evidence)
+                            })
+                            .collect(),
+                    },
+                ],
                 effects: Vec::new(),
             },
         }
@@ -825,23 +908,10 @@ impl HostRuntime {
             );
         }
 
-        for placement in placements.values() {
-            self.record_observation(
-                Some(fragment.plan_id.clone()),
-                Some(placement.spec.placement_id.clone()),
-                None,
-                ObservationKind::PlacementPrepared,
-            );
-        }
-        self.record_observation(
-            Some(fragment.plan_id.clone()),
-            None,
-            None,
-            ObservationKind::PlanFragmentReceived,
-        );
         self.plans.insert(
             fragment.plan_id.clone(),
             RuntimePlan {
+                mandatory_evidence: MandatoryEvidenceLog::new(&fragment),
                 fragment: fragment.clone(),
                 placements,
                 connections,
@@ -850,6 +920,20 @@ impl HostRuntime {
                 terminal_emitted: false,
             },
         );
+        self.record_observation(
+            Some(fragment.plan_id.clone()),
+            None,
+            None,
+            ObservationKind::PlanFragmentReceived,
+        );
+        for placement in &fragment.placements {
+            self.record_observation(
+                Some(fragment.plan_id.clone()),
+                Some(placement.placement_id.clone()),
+                None,
+                ObservationKind::PlacementPrepared,
+            );
+        }
         output.events.push(HostEvent::Prepared {
             plan_id: fragment.plan_id,
         });
@@ -1790,6 +1874,28 @@ impl HostRuntime {
         connection_id: Option<ConnectionId>,
         kind: ObservationKind,
     ) {
+        let mandatory_evidence = match (&kind, &placement_id, &connection_id) {
+            (ObservationKind::PlanFragmentReceived, _, _) => {
+                Some(ExpectedEvidence::PlanFragmentReceived)
+            }
+            (ObservationKind::PlacementPrepared, Some(placement_id), _) => {
+                Some(ExpectedEvidence::PlacementPrepared(placement_id.clone()))
+            }
+            (ObservationKind::PlacementTerminal { .. }, Some(placement_id), _) => {
+                Some(ExpectedEvidence::PlacementTerminal(placement_id.clone()))
+            }
+            (ObservationKind::ConnectionTerminal { .. }, _, Some(connection_id)) => {
+                Some(ExpectedEvidence::ConnectionTerminal(connection_id.clone()))
+            }
+            (ObservationKind::PlanTerminal { .. }, _, _) => Some(ExpectedEvidence::PlanTerminal),
+            _ => None,
+        };
+        if let (Some(plan_id), Some(evidence)) = (&plan_id, mandatory_evidence) {
+            if let Some(plan) = self.plans.get_mut(plan_id) {
+                plan.mandatory_evidence
+                    .record(&plan.fragment.expected_evidence, evidence);
+            }
+        }
         if self.observation_limit == 0 {
             return;
         }

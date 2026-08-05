@@ -311,6 +311,20 @@ fn rejection_reason(output: &conduit_runtime::RuntimeOutput) -> Option<FailureRe
     })
 }
 
+fn mandatory_evidence_reports(
+    runtime: &mut HostRuntime,
+) -> Vec<conduit_core::MandatoryEvidenceReport> {
+    runtime
+        .handle(HostCommand::Inspect)
+        .events
+        .into_iter()
+        .find_map(|event| match event {
+            HostEvent::MandatoryEvidenceReports { items } => Some(items),
+            _ => None,
+        })
+        .expect("inspection returns mandatory evidence reports")
+}
+
 fn reseal_fragment(mut fragment: PlanFragment) -> PlanFragment {
     fragment.plan_id = PlanId::from("");
     fragment.fragment_id = FragmentId::from("");
@@ -349,6 +363,72 @@ fn prepare_is_effect_free_and_installed_profile_activates_generically() {
             ..
         } if presentation_kind.as_str() == PRESENTATION_KIND
     )));
+}
+
+#[test]
+fn planned_evidence_storage_survives_observation_overflow() {
+    let advertised = advertisement();
+    let fragment = fragment(&advertised);
+    let plan_id = fragment.plan_id.clone();
+    let mut runtime = HostRuntime::new(advertised, registry(), 1);
+
+    runtime.handle(HostCommand::Prepare(fragment.clone()));
+    let prepared_report = mandatory_evidence_reports(&mut runtime)
+        .into_iter()
+        .next()
+        .expect("prepared plan has a mandatory evidence report");
+    assert_eq!(prepared_report.recorded, fragment.expected_evidence[..3]);
+    assert!(!prepared_report.overflowed);
+    let allocated_item_slots = prepared_report.allocated_item_slots;
+    assert!(allocated_item_slots >= u32::from(fragment.evidence_storage_budget.item_capacity));
+
+    let activated = runtime.handle(HostCommand::Activate(plan_id));
+    let (plan_id, placement_id, value) = activated
+        .effects
+        .into_iter()
+        .find_map(|effect| match effect {
+            PlatformEffect::PresentValue {
+                plan_id,
+                placement_id,
+                value,
+                ..
+            } => Some((plan_id, placement_id, value)),
+            _ => None,
+        })
+        .expect("presentation effect exists");
+    runtime.handle(HostCommand::CompletePresentation {
+        plan_id,
+        placement_id,
+        value,
+        success: true,
+        message: None,
+    });
+
+    let completed_report = mandatory_evidence_reports(&mut runtime)
+        .into_iter()
+        .next()
+        .expect("completed plan retains mandatory evidence");
+    assert_eq!(
+        completed_report.recorded.len(),
+        completed_report.expected.len()
+    );
+    assert!(completed_report
+        .expected
+        .iter()
+        .all(|item| completed_report.recorded.contains(item)));
+    assert_eq!(
+        completed_report.storage_budget,
+        fragment.evidence_storage_budget
+    );
+    assert_eq!(
+        completed_report.used_bytes,
+        fragment.evidence_storage_budget.byte_capacity
+    );
+    assert_eq!(completed_report.allocated_item_slots, allocated_item_slots);
+    assert!(!completed_report.overflowed);
+    assert!(observations(&mut runtime)
+        .iter()
+        .any(|observation| matches!(observation.kind, ObservationKind::EvidenceGap { .. })));
 }
 
 #[test]

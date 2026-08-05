@@ -241,6 +241,17 @@ pub struct EvidenceStorageBudget {
     pub byte_capacity: u32,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MandatoryEvidenceReport {
+    pub plan_id: PlanId,
+    pub expected: Vec<ExpectedEvidence>,
+    pub recorded: Vec<ExpectedEvidence>,
+    pub storage_budget: EvidenceStorageBudget,
+    pub allocated_item_slots: u32,
+    pub used_bytes: u32,
+    pub overflowed: bool,
+}
+
 pub fn mandatory_evidence_storage_requirement(
     evidence: &[ExpectedEvidence],
 ) -> Option<EvidenceStorageBudget> {
@@ -800,6 +811,9 @@ pub enum HostEvent {
     },
     Observations {
         items: Vec<Observation>,
+    },
+    MandatoryEvidenceReports {
+        items: Vec<MandatoryEvidenceReport>,
     },
 }
 
