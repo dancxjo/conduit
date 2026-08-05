@@ -137,6 +137,7 @@ pub enum SchedulerStatus {
     Progress { node: NodeId },
     Idle,
     Complete,
+    Cancelled,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -150,6 +151,7 @@ pub enum SchedulerError {
     FalseProgress,
     DecisionLimitExceeded,
     OperationFailed(u16),
+    Cancelled,
     Storage(StorageError),
     Evidence(EvidenceError),
     Routing(ProtocolError),
@@ -217,6 +219,7 @@ pub struct FixedScheduler<
     completed: [bool; NODES],
     cursor: usize,
     decisions: u32,
+    cancelled: bool,
 }
 
 impl<
@@ -264,10 +267,14 @@ where
             completed: [false; NODES],
             cursor: 0,
             decisions: 0,
+            cancelled: false,
         })
     }
 
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+        if self.cancelled {
+            return Ok(SchedulerStatus::Cancelled);
+        }
         let Some(node) = self.next_ready() else {
             return if self.completed.iter().all(|value| *value)
                 && self.cords.iter().all(|cord| cord.len == 0)
@@ -309,6 +316,7 @@ where
                 SchedulerStatus::Complete => return Ok(()),
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle => return Err(SchedulerError::FalseProgress),
+                SchedulerStatus::Cancelled => return Err(SchedulerError::Cancelled),
             }
         }
         Err(SchedulerError::DecisionLimitExceeded)
@@ -328,6 +336,37 @@ where
 
     pub fn evidence(&self) -> &E {
         &self.evidence
+    }
+
+    pub fn cancel(&mut self) -> Result<(), SchedulerError> {
+        if self.cancelled {
+            return Ok(());
+        }
+        self.ensure_evidence_capacity(2)?;
+        self.evidence.record(
+            NodeId(0),
+            None,
+            None,
+            KernelEventKind::CancellationRequested,
+        )?;
+        for (node, driver) in self.drivers.iter_mut().enumerate() {
+            if !self.completed[node] {
+                driver.cancel();
+            }
+        }
+        self.values.clear();
+        self.queue_slots.fill(None);
+        for cord in &mut self.cords {
+            cord.head = 0;
+            cord.len = 0;
+            cord.queued_bytes = 0;
+            cord.producer_closed = true;
+        }
+        self.ready.fill(false);
+        self.cancelled = true;
+        self.evidence
+            .record(NodeId(0), None, None, KernelEventKind::RunCancelled)?;
+        Ok(())
     }
 
     fn next_ready(&mut self) -> Option<usize> {
@@ -934,6 +973,9 @@ mod tests {
             len: usize,
             stall: bool,
         },
+        BlockedSink {
+            cancelled: bool,
+        },
     }
 
     impl StepOperation<PORTS> for Driver {
@@ -1013,6 +1055,13 @@ mod tests {
                         StepOutcome::Await
                     }
                 }
+                Self::BlockedSink { .. } => StepOutcome::Await,
+            }
+        }
+
+        fn cancel(&mut self) {
+            if let Self::BlockedSink { cancelled } = self {
+                *cancelled = true;
             }
         }
     }
@@ -1047,6 +1096,133 @@ mod tests {
             HostedEvidenceLog::new(128, event_charge * 128).unwrap(),
         );
         assert_eq!(fixed, hosted);
+    }
+
+    #[test]
+    fn cancellation_releases_queued_and_driver_owned_values_and_is_terminal() {
+        let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
+        let normalized = execute_cancellation(
+            FixedValueStore::<4, 4>::new(8).unwrap(),
+            FixedEvidenceLog::<16>::new(charge * 16).unwrap(),
+        );
+        assert_eq!(normalized.used_items, 0);
+        assert!(normalized.driver_cancelled);
+        assert_eq!(normalized.status, SchedulerStatus::Cancelled);
+        assert!(normalized.saw_cancellation_requested);
+        assert!(normalized.saw_run_cancelled);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn hosted_and_fixed_cancellation_vectors_match() {
+        use crate::{HostedEvidenceLog, HostedValueStore};
+
+        let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
+        let fixed = execute_cancellation(
+            FixedValueStore::<4, 4>::new(8).unwrap(),
+            FixedEvidenceLog::<16>::new(charge * 16).unwrap(),
+        );
+        let hosted = execute_cancellation(
+            HostedValueStore::new(4, 4, 8).unwrap(),
+            HostedEvidenceLog::new(16, charge * 16).unwrap(),
+        );
+        assert_eq!(fixed, hosted);
+    }
+
+    #[derive(Debug, Eq, PartialEq)]
+    struct CancellationNormalized {
+        used_items: u16,
+        evidence_len: u16,
+        evidence_bytes: u32,
+        driver_cancelled: bool,
+        status: SchedulerStatus,
+        saw_cancellation_requested: bool,
+        saw_run_cancelled: bool,
+    }
+
+    fn execute_cancellation<S, E>(mut values: S, evidence: E) -> CancellationNormalized
+    where
+        S: ValueStorage,
+        E: EvidenceSink + EvidenceQuery,
+    {
+        let source_values = [
+            Some(values.store(&[0]).unwrap()),
+            Some(values.store(&[1]).unwrap()),
+            None,
+            None,
+        ];
+        let mut routes = FixedRoutes::<2, 1>::new(1);
+        routes
+            .install(
+                NodeId(0),
+                PortId(0),
+                RouteRange { start: 0, len: 1 },
+                &[RouteTarget {
+                    cord: CordId(0),
+                    sink_node: NodeId(1),
+                    sink_port: PortId(0),
+                }],
+            )
+            .unwrap();
+        routes.seal().unwrap();
+        let mut scheduler = FixedScheduler::<_, _, _, 2, 1, 2, 1, 2, 1>::new(
+            [
+                NodeSpec {
+                    input_cords: [None, None],
+                    maximum_step_work: 1,
+                },
+                NodeSpec {
+                    input_cords: [Some(CordId(0)), None],
+                    maximum_step_work: 1,
+                },
+            ],
+            [CordSpec {
+                cord: CordId(0),
+                source_node: NodeId(0),
+                source_port: PortId(0),
+                sink_node: NodeId(1),
+                sink_port: PortId(0),
+                slot_start: 0,
+                item_capacity: 1,
+                byte_capacity: 4,
+            }],
+            routes,
+            [
+                Driver::Source {
+                    values: source_values,
+                    next: 0,
+                },
+                Driver::BlockedSink { cancelled: false },
+            ],
+            values,
+            evidence,
+        )
+        .unwrap();
+        assert!(matches!(
+            scheduler.step().unwrap(),
+            SchedulerStatus::Progress { node: NodeId(0) }
+        ));
+        assert!(matches!(
+            scheduler.step().unwrap(),
+            SchedulerStatus::Progress { node: NodeId(1) }
+        ));
+        scheduler.cancel().unwrap();
+        let Driver::BlockedSink { cancelled } = scheduler.drivers()[1] else {
+            panic!("blocked sink");
+        };
+        CancellationNormalized {
+            used_items: scheduler.values().used_items(),
+            evidence_len: scheduler.evidence().len(),
+            evidence_bytes: scheduler.evidence().used_bytes(),
+            driver_cancelled: cancelled,
+            status: scheduler.step().unwrap(),
+            saw_cancellation_requested: scheduler
+                .evidence()
+                .contains_kind(KernelEventKind::CancellationRequested),
+            saw_run_cancelled: scheduler
+                .evidence()
+                .contains_kind(KernelEventKind::RunCancelled),
+        }
     }
 
     #[derive(Debug, Eq, PartialEq)]
