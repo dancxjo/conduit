@@ -37,7 +37,7 @@ use std::collections::BTreeMap;
 
 const OUTPUT_NONE: i32 = 0;
 const OUTPUT_SESSION: i32 = 1;
-const OUTPUT_PRESENT: i32 = 2;
+const OUTPUT_PRESENT: i32 = 3;
 const STATUS_RUNNING: i32 = 0;
 const STATUS_COMPLETE: i32 = 1;
 const ERROR_NOT_STARTED: i32 = -101;
@@ -608,6 +608,7 @@ impl DistributedSink {
             &request_identity.contract_id,
             &placement.placement_id,
         )?;
+        write_remote_identity_frame(&mut output, &self.binding)?;
         write_presentation_frame(&mut output, projection, input)?;
         self.output_len = output.len();
         let mut expected = FrameWriter::new(&mut self.expected_completion);
@@ -620,6 +621,7 @@ impl DistributedSink {
             &request_identity.contract_id,
             &placement.placement_id,
         )?;
+        write_remote_identity_frame(&mut expected, &self.binding)?;
         write_presentation_completion_frame(&mut expected, projection, input)?;
         self.expected_completion_len = expected.len();
         self.current = Some((request, self.receipts));
@@ -694,6 +696,26 @@ impl DistributedSink {
             STATUS_RUNNING
         }
     }
+}
+
+fn write_remote_identity_frame(
+    writer: &mut FrameWriter<'_>,
+    binding: &SessionBinding,
+) -> Result<(), i32> {
+    for identity in [
+        binding.source_fragment_id.as_str(),
+        binding.source.host_id.as_str(),
+        binding.source.boot_id.as_str(),
+        binding.source_active_play_id.as_str(),
+        binding.source.endpoint_id.as_str(),
+        binding.sink.endpoint_id.as_str(),
+        binding.connection_id.as_str(),
+        binding.link_binding_id.as_str(),
+        binding.provider_instance_id.as_str(),
+    ] {
+        writer.text(identity)?;
+    }
+    Ok(())
 }
 
 fn with_sink<T>(action: impl FnOnce(&mut DistributedSink) -> Result<T, i32>) -> Result<T, i32> {
@@ -873,100 +895,4 @@ pub extern "C" fn conduit_browser_distributed_in_flight_items() -> u32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn activate(sink: &mut DistributedSink) {
-        let binding = sink.binding.clone();
-        sink.session
-            .admit_inbound(binding.hello_frame())
-            .expect("peer hello");
-        sink.session
-            .admit_outbound(binding.frame(SessionMessage::Ready))
-            .expect("local ready");
-        sink.session
-            .admit_inbound(binding.frame(SessionMessage::Ready))
-            .expect("peer ready");
-        sink.clear_output();
-        assert!(sink.session.is_active());
-    }
-
-    fn offered(binding: &SessionBinding, sequence: u64) -> Vec<u8> {
-        let payload = conduit_signal::encode_signal(&conduit_signal::Signal {
-            sequence,
-            level: sequence % 2 == 1,
-        });
-        let mut frame = [0_u8; FRAME_CAPACITY];
-        let length = encode_session_frame_into(
-            binding.frame(SessionMessage::Offered {
-                sequence,
-                payload: &payload.encoded,
-            }),
-            &mut frame,
-            SIGNAL_ENCODED_LEN,
-            DISTRIBUTED_MAXIMUM_FRAME_BYTES,
-        )
-        .unwrap();
-        frame[..length].to_vec()
-    }
-
-    #[test]
-    fn browser_reconstructs_the_exact_sink_fragment_and_session() {
-        let sink = DistributedSink::prepare(None).expect("sink prepares");
-        assert_eq!(sink.fragment.placements.len(), 1);
-        assert_eq!(sink.lowered.remote_endpoints.len(), 1);
-        assert_eq!(sink.binding.plan_id, sink.fragment.plan_id);
-        assert_eq!(sink.binding.sink_fragment_id, sink.fragment.fragment_id);
-        assert_eq!(sink.capacity_seal(), sink.seal);
-    }
-
-    #[test]
-    fn evidence_exhaustion_is_structured_before_remote_admission_changes_sequence() {
-        let mut sink = DistributedSink::prepare(Some(1)).expect("small evidence sink prepares");
-        activate(&mut sink);
-        let binding = sink.binding.clone();
-        sink.ingest(&offered(&binding, 0)).expect("first admits");
-        sink.advance().expect("first delivered");
-        sink.advance().expect("first held for pressure");
-        assert_eq!(sink.ingest(&offered(&binding, 1)), Err(ERROR_EVIDENCE));
-        assert_eq!(sink.output_kind, OUTPUT_SESSION);
-        assert_eq!(sink.output[5], 8, "structured Failed frame");
-        assert_eq!(sink.advance(), Err(ERROR_EVIDENCE));
-        assert_eq!(sink.output[5], 9, "evidence terminal frame");
-        assert_eq!(
-            sink.scheduler.values().used_items(),
-            1,
-            "evidence exhaustion preserves rather than silently releases the admitted value"
-        );
-        assert_eq!(sink.capacity_seal(), sink.seal);
-    }
-
-    #[test]
-    fn browser_sink_failure_and_cancellation_emit_structured_terminal_frames() {
-        let mut failed = DistributedSink::prepare(None).expect("sink prepares");
-        activate(&mut failed);
-        let binding = failed.binding.clone();
-        failed.ingest(&offered(&binding, 0)).expect("value admits");
-        failed.advance().expect("value delivered");
-        failed.hold_first_value = false;
-        failed.advance().expect("presentation prepared");
-        let mut completion = failed.expected_completion[..failed.expected_completion_len].to_vec();
-        completion.push(0);
-        assert_eq!(
-            failed.complete_presentation(&completion),
-            Err(ERROR_PRESENTATION)
-        );
-        assert_eq!(failed.output[5], 8, "sink failure frame");
-        assert_eq!(failed.advance(), Err(ERROR_PRESENTATION));
-        assert_eq!(failed.output[5], 9, "failed terminal frame");
-        assert_eq!(failed.scheduler.values().used_items(), 0);
-
-        let mut cancelled = DistributedSink::prepare(None).expect("sink prepares");
-        activate(&mut cancelled);
-        assert_eq!(cancelled.cancel(), Err(ERROR_CANCELLED));
-        assert_eq!(cancelled.output[5], 7, "cancelled frame");
-        assert_eq!(cancelled.advance(), Err(ERROR_CANCELLED));
-        assert_eq!(cancelled.output[5], 9, "cancelled terminal frame");
-        assert_eq!(cancelled.scheduler.values().used_items(), 0);
-    }
-}
+mod tests;

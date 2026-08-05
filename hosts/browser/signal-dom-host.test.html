@@ -29,6 +29,7 @@ const encodeSignal = (sequence, level) => {
   return [...encoded];
 };
 const effect = (host, sequence) => ({
+  kind: 2,
   sourceDocumentId: `source/${host}`,
   checkedFormId: `checked/${host}`,
   expandedFormId: `expanded/${host}`,

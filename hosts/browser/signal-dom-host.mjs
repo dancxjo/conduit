@@ -7,6 +7,8 @@ export const BrowserDomFailure = Object.freeze({
 
 const SIGNAL_VALUE_KIND = "value/signal";
 const SIGNAL_PRESENTATION_KIND = "presentation/signal";
+const LOCAL_PRESENTATION_EFFECT = 2;
+const DISTRIBUTED_PRESENTATION_EFFECT = 3;
 const SIGNAL_ENCODED_LENGTH = 9;
 const MAXIMUM_IDENTITY_LENGTH = 256;
 
@@ -75,8 +77,25 @@ export class BrowserDomHost {
       effect?.hostOperationContractId,
       effect?.placementId,
     ];
+    const remoteIdentityFields = [
+      effect?.sourceFragmentId,
+      effect?.sourceHostId,
+      effect?.sourceBootId,
+      effect?.sourceActivePlayId,
+      effect?.sourceEndpointId,
+      effect?.sinkEndpointId,
+      effect?.connectionId,
+      effect?.linkBindingId,
+      effect?.providerInstanceId,
+    ];
+    const hasRemoteIdentity = remoteIdentityFields.some((value) => value !== undefined);
+    const requiresRemoteIdentity = effect?.kind === DISTRIBUTED_PRESENTATION_EFFECT;
     const signal = decodeSignal(effect?.value);
     if (identityFields.some((value) => !boundedIdentity(value)) ||
+        (effect?.kind !== LOCAL_PRESENTATION_EFFECT && !requiresRemoteIdentity) ||
+        requiresRemoteIdentity !== hasRemoteIdentity ||
+        (requiresRemoteIdentity &&
+          remoteIdentityFields.some((value) => !boundedIdentity(value))) ||
         effect?.presentationKind !== SIGNAL_PRESENTATION_KIND ||
         effect?.hostId !== this.hostId ||
         effect?.bootId !== this.bootId ||
@@ -112,6 +131,20 @@ export class BrowserDomHost {
       placementId: effect.placementId,
       sequence: signal.sequence.toString(),
       level: signal.level,
+      encoded: signal.encoded,
+      ...(hasRemoteIdentity
+        ? {
+            sourceFragmentId: effect.sourceFragmentId,
+            sourceHostId: effect.sourceHostId,
+            sourceBootId: effect.sourceBootId,
+            sourceActivePlayId: effect.sourceActivePlayId,
+            sourceEndpointId: effect.sourceEndpointId,
+            sinkEndpointId: effect.sinkEndpointId,
+            connectionId: effect.connectionId,
+            linkBindingId: effect.linkBindingId,
+            providerInstanceId: effect.providerInstanceId,
+          }
+        : {}),
     });
     const output = document.createElement("output");
     output.dataset.hostId = receipt.hostId;
@@ -151,6 +184,19 @@ export class BrowserDomHost {
         presentationId: effect.presentationId,
         evidenceId: effect.evidenceId,
         placementId: effect.placementId,
+        ...(hasRemoteIdentity
+          ? {
+              sourceFragmentId: effect.sourceFragmentId,
+              sourceHostId: effect.sourceHostId,
+              sourceBootId: effect.sourceBootId,
+              sourceActivePlayId: effect.sourceActivePlayId,
+              sourceEndpointId: effect.sourceEndpointId,
+              sinkEndpointId: effect.sinkEndpointId,
+              connectionId: effect.connectionId,
+              linkBindingId: effect.linkBindingId,
+              providerInstanceId: effect.providerInstanceId,
+            }
+          : {}),
         value: Object.freeze({
           valueKind: SIGNAL_VALUE_KIND,
           encoded: signal.encoded,

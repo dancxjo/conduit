@@ -5,7 +5,7 @@ import {
 } from "./signal-wasm-runtime.mjs";
 
 const OUTPUT_SESSION = 1;
-const OUTPUT_PRESENT = 2;
+const OUTPUT_PRESENT = 3;
 const STATUS_COMPLETE = 1;
 const SESSION_ACCEPTED = 4;
 const SESSION_DELIVERED = 5;
