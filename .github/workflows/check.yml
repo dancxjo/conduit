@@ -88,6 +88,7 @@ jobs:
         run: apt-get update && apt-get install -y --no-install-recommends build-essential
       - uses: dtolnay/rust-toolchain@stable
         with:
+          components: clippy
           targets: wasm32-unknown-unknown
       - run: cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
       - run: cargo build -p conduit-browser-runtime --features native-link --bin conduit-browser-link-host
