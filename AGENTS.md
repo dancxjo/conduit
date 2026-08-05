@@ -58,6 +58,23 @@ Parallel work is encouraged only when ownership is clear.
 - Do not close an issue through a PR-body keyword unless every acceptance criterion is complete and exact-main evidence exists.
 - Preserve old evidence and discussion. Correct stale claims in place; do not erase history to make the present look cleaner.
 
+## Rust module boundaries
+
+Large Rust files are an architectural warning, not a badge of productivity. Do not make a crate root, host adapter, scheduler, parser, or integration-test file the dumping ground for an entire subsystem.
+
+- Keep `lib.rs` and `main.rs` primarily as façades: module declarations, narrow public re-exports, top-level composition, and genuinely crate-wide types. Put substantive implementations in responsibility-named modules.
+- A new or materially expanded production `.rs` file should normally remain below 500 lines. Crossing that threshold requires an explicit explanation in the PR and a reason a coherent module boundary would be worse.
+- Do not add more responsibility to an existing production file above 500 lines without extracting at least one coherent responsibility in the same change or in a prerequisite extraction PR. Files above 800 lines are frozen against unrelated growth.
+- Test files are not exempt. Split integration tests by contract or proof surface before they become a chronological grab bag. Shared fixtures and builders belong in a small `common` support module, not duplicated across giant test files.
+- Split by stable responsibility and dependency direction, not by arbitrary size. Use names such as `identity.rs`, `validation.rs`, `admission.rs`, `scheduler.rs`, `evidence.rs`, or `tests/authority.rs`; never use `part1.rs`, `misc.rs`, `helpers2.rs`, or numbered shards.
+- Preserve public paths deliberately with narrow `pub use` re-exports when compatibility matters. Do not make every extracted item public merely to satisfy the compiler.
+- Prefer extraction-only PRs: move one coherent responsibility, preserve behavior and public contracts, and avoid semantic cleanup, renaming, or redesign in the same diff.
+- Before extraction, identify the module's inputs, outputs, invariants, and private collaborators. After extraction, prove there are no dependency cycles and that lower-level modules do not import orchestration layers.
+- Every module-splitting PR must run `cargo fmt --all --check`, relevant focused tests, `cargo clippy --workspace --all-targets -- -D warnings`, and the full workspace test suite unless the PR documents a precise infrastructure blocker.
+- Agents working in parallel must own disjoint source files. Do not assign two agents to split the same monster file at once; establish and merge the first seam before opening work on the next seam.
+
+Line count is a smoke alarm rather than the design itself. A 300-line file with five responsibilities still needs separation; a compact table or generated declaration may justify more lines when its ownership and contract remain singular.
+
 ## Proof and CI
 
 A green check proves only the commands and environments it actually ran.
