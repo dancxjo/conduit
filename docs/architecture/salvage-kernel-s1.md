@@ -104,6 +104,20 @@ vector, including two tee emits committed from one input. A separate
 host-enabled adapter vector proves that a public `RequestHostOperation` action
 waits for and resumes from the exact correlated completion.
 
+The final conformance vector drives four bounded host-generated tick values
+entirely through `OperationDriver`:
+
+```text
+tick -> tee.left  -> filter -> show-a
+        tee.right -> latest -> show-b
+```
+
+The tee publishes both named outputs atomically, filter admits two values,
+latest retains and supersedes until closure, and both shows reach terminal
+closure with no stored values or pending requests left. Fixed and hosted
+profiles match outputs, decisions, evidence counts and bytes, closure, and
+terminal state.
+
 ## Deliberate archive reuse
 
 The slice reuses the archived scheduler's staged-port/fixed-storage concepts,
@@ -111,12 +125,12 @@ not its implementation. The old broad plan, provider, policy, registry, and
 catalog layers were not copied. The reboot runtime remains a prototype during
 the transition and no semantic kind has been adapted to the new kernel yet.
 
-## Current stop line
+## Acceptance boundary
 
-This is not completion of #349. The full multi-value
-tick/tee/filter/latest/show conformance form still runs on the scheduler's
-lower-level test drivers. It must be rerun entirely through `OperationDriver`
-before S1 is accepted.
+This completes the S1 execution-kernel contract in #349. It does not promote
+the reboot runtime or prototype catalog: no semantic kind is installed on the
+new kernel yet. S2 must next bind exact semantic, implementation, resource,
+authority, and observed-link facts before host or catalog expansion.
 
 ## Checkpoint
 
