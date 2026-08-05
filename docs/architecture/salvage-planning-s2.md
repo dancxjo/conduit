@@ -33,12 +33,34 @@ standard fixtures advertise their actual per-port contracts, but retain their
 existing truth classifications: this slice does not promote simulations into
 adapters or physical proof.
 
+## Separate form identities
+
+The planner now carries three different identity types end to end:
+
+- `SourceDocumentId` hashes the exact authored UTF-8 document, including
+  comments and spelling;
+- `CheckedFormId` hashes the canonical checked semantic graph; and
+- `ExpandedFormId` hashes the expanded graph domain.
+
+The current small parser has no nesting, so expansion is deliberately the
+identity transform over the checked graph while retaining a distinct,
+domain-separated identity. S3 must recompute `ExpandedFormId` from the actual
+expanded cells and ports when nesting is restored.
+
+Every fragment and top-level plan binds all three values. Fragment and plan
+canonicalization hash all three, verification requires every fragment to agree
+with the top-level plan, and hosted/Observatory reports render them separately.
+A comment-only source edit therefore changes only `SourceDocumentId`; a
+semantic edit changes checked and expanded identity as well.
+
 ## Deterministic proof
 
 The focused vectors prove:
 
 - checked-form identity changes when a contract revision, port identity, port
   value kind, or direction changes;
+- source spelling, checked semantics, and expanded graph identity remain
+  distinct, and mutating any one changes plan identity or fails verification;
 - planning binds exact contract/profile identity and every port;
 - planning rejects a different revision or an additional non-first port;
 - post-seal contract, profile, and per-port mutations fail identity
@@ -48,12 +70,12 @@ The focused vectors prove:
 
 ## Acceptance boundary
 
-This satisfies the first acceptance item in #363. S2 remains open. Plans do not
-yet bind separate source/checked/expanded identities, host-operation/resource/
-authority requirements, observed `LinkBinding` values, cancellation policy,
-terminal policy, or mandatory evidence storage budgets. The existing
-`ConnectionProvider` remains a prototype until the remote-link slice replaces
-it.
+This satisfies the first acceptance item and the three-form-identity portion
+of the second item in #363. S2 remains open. Plans do not yet bind
+host-operation/resource/authority requirements, observed `LinkBinding` values,
+cancellation policy, terminal policy, or mandatory evidence storage budgets.
+The existing `ConnectionProvider` remains a prototype until the remote-link
+slice replaces it.
 
 ## Checkpoint
 

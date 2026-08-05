@@ -82,7 +82,11 @@ impl CompositeDefinition {
         internal_plan: Plan,
         failure_translation: FailureReason,
     ) -> Result<Self, CompositeError> {
-        if internal_plan.form_id != form.form_id || !verify_plan(&internal_plan) {
+        if internal_plan.source_document_id != form.source_document_id
+            || internal_plan.checked_form_id != form.checked_form_id
+            || internal_plan.expanded_form_id != form.expanded_form_id
+            || !verify_plan(&internal_plan)
+        {
             return Err(CompositeError::InvalidInternalPlan(
                 "authored form and exact internal plan do not agree".into(),
             ));
@@ -1023,10 +1027,10 @@ mod tests {
     };
     use conduit_core::{
         kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-        ConnectionEnvelope, ConnectionOutcome, ConnectionProvider, ExecutionProfileId, FormId,
-        HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
-        KindContractRevision, KindId, OfferGeneration, OperationId, PortDescriptor, PortDirection,
-        TerminalDisposition, PROTOCOL_VERSION,
+        CheckedFormId, ConnectionEnvelope, ConnectionOutcome, ConnectionProvider,
+        ExecutionProfileId, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId,
+        ImplementationId, KindContractRevision, KindId, OfferGeneration, OperationId,
+        PortDescriptor, PortDirection, TerminalDisposition, PROTOCOL_VERSION,
     };
     use conduit_form::{parse, CheckedForm, CheckedOperation, KindDefinition, ProfileCatalog};
     use conduit_planner::{plan, plan_with_connection_limits, PlacementChoice, PlacementChoices};
@@ -1469,7 +1473,9 @@ mod tests {
     fn parent_planning_cannot_address_an_internal_child_identity() {
         let composite = composite(4, 64);
         let form = CheckedForm {
-            form_id: FormId::from("parent-child-leak-form"),
+            source_document_id: conduit_core::SourceDocumentId::from("parent-child-leak-source"),
+            checked_form_id: CheckedFormId::from("parent-child-leak-form"),
+            expanded_form_id: conduit_core::ExpandedFormId::from("parent-child-leak-expanded"),
             name: "parent-child-leak".into(),
             operations: vec![CheckedOperation {
                 operation_id: OperationId::from("run"),

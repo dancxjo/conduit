@@ -1,6 +1,6 @@
 use conduit_core::{
     kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionProvider,
-    FormId, HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
+    HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
     Observation, OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect, PROTOCOL_VERSION,
 };
 use conduit_form::CheckedForm;
@@ -114,13 +114,7 @@ impl StdHost {
         output: &mut W,
         timer: &mut T,
     ) -> Result<StdRunReport, String> {
-        write_operator_report(
-            output,
-            self.advertisement(),
-            &fragment.plan_id,
-            &fragment.form_id,
-            &fragment,
-        )?;
+        write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
         let prepare = self.runtime.handle(HostCommand::Prepare(fragment.clone()));
         if let Some(reason) = preparation_rejection(&prepare) {
@@ -282,7 +276,6 @@ fn write_operator_report<W: Write>(
     out: &mut W,
     advertisement: &HostAdvertisement,
     plan_id: &PlanId,
-    form_id: &FormId,
     fragment: &PlanFragment,
 ) -> Result<(), String> {
     writeln!(
@@ -294,8 +287,15 @@ fn write_operator_report<W: Write>(
         advertisement.protocol_version
     )
     .map_err(|error| error.to_string())?;
-    writeln!(out, "plan {} form {}", plan_id.as_str(), form_id.as_str())
-        .map_err(|error| error.to_string())?;
+    writeln!(
+        out,
+        "plan {} source_document={} checked_form={} expanded_form={}",
+        plan_id.as_str(),
+        fragment.source_document_id.as_str(),
+        fragment.checked_form_id.as_str(),
+        fragment.expanded_form_id.as_str()
+    )
+    .map_err(|error| error.to_string())?;
     for placement in &fragment.placements {
         writeln!(
             out,

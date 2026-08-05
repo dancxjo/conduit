@@ -7,7 +7,7 @@ adapter or physical proof.
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, correlated host operations, cancellation | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, no-growth-shape, and cancellation vectors | same scheduler with preallocated hosted storage; S1 accepted | no | no; Thumb kernel compiles | no | no |
-| Exact plan and fragment identities | S2 semantic slice: exact kind revision, execution profile, and every port; remaining facts open | mutation and resealed-lie negatives | yes, std runtime preparation enforces current offer and installed profile | no | no | no | no |
+| Exact plan and fragment identities | S2 slices: separate source/checked/expanded identity plus exact kind revision, execution profile, and every port; remaining facts open | semantic/spelling and mutation/resealed-lie negatives | yes, std runtime preparation enforces current offer and installed profile | no | no | no | no |
 | Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
 | Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
 | Browser-shaped manifestation | partial | yes, `conduit-browser-sim` | test-only | no DOM adapter | no | no WebSocket | no |
@@ -45,7 +45,9 @@ four-value tick/tee/filter/latest/show graph through the same fixed-capacity
 scheduler in fixed and hosted profiles. S1 is accepted. The first S2 slice
 removes `CapabilityLimits.value_kind` and binds exact semantic contract
 revisions, execution profiles, and complete per-port contracts through form
-identity, planning, preparation, and Observatory projection. S2 remains the
+identity, planning, preparation, and Observatory projection. Source-document,
+checked-form, and expanded-form identities are now distinct and all participate
+in fragment and plan identity. S2 remains the
 forward stop line until every remaining plan fact and observed remote
 `LinkBinding` is committed. No actual browser/Pico host, BODY, catalog
 expansion, Observatory acceptance, or useful task advances before their later

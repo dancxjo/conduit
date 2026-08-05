@@ -651,7 +651,9 @@ At minimum:
 ```rust
 pub struct Plan {
     pub plan_id: PlanId,
-    pub form_digest: FormDigest,
+    pub source_document_id: SourceDocumentId,
+    pub checked_form_id: CheckedFormId,
+    pub expanded_form_id: ExpandedFormId,
     pub hosts: BoundedHostSelections,
     pub cells: BoundedCellPlacements,
     pub cords: BoundedCordRealizations,

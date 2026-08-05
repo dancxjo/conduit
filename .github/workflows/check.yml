@@ -28,6 +28,7 @@ jobs:
       - name: exact semantic planning and mutation negatives
         run: |
           cargo test -p conduit-form checked_form_identity_binds_contract_revision_and_ports
+          cargo test -p conduit-form source_checked_and_expanded_form_identities_stay_distinct
           cargo test -p conduit-planner planning_
           cargo test -p conduit-runtime --test host_contract preparation_rejects_mutation_of_every_executable_identity_field_group
           cargo test -p conduit-runtime --test host_contract preparation_rejects_resealed_contract_profile_and_port_lies

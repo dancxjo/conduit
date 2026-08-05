@@ -7,10 +7,10 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{
-    BootId, CapabilityId, CapabilityLimits, ConnectionId, ConnectionProvider, ExecutionProfileId,
-    FormId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindContractRevision,
-    KindId, Observation, ObservationKind, OfferGeneration, PlacementId, Plan, PlanId,
-    PortDescriptor, TerminalDisposition,
+    BootId, CapabilityId, CapabilityLimits, CheckedFormId, ConnectionId, ConnectionProvider,
+    ExecutionProfileId, ExpandedFormId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    KindContractRevision, KindId, Observation, ObservationKind, OfferGeneration, PlacementId, Plan,
+    PlanId, PortDescriptor, SourceDocumentId, TerminalDisposition,
 };
 use conduit_realm::{LinkId, LinkState, MembershipState, RealmId, RealmView};
 use core::fmt::Write;
@@ -108,7 +108,9 @@ pub struct LinkRow {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlanRow {
     pub plan_id: PlanId,
-    pub form_id: FormId,
+    pub source_document_id: SourceDocumentId,
+    pub checked_form_id: CheckedFormId,
+    pub expanded_form_id: ExpandedFormId,
     pub lifecycle: PlanLifecycle,
     pub terminal_disposition: Option<TerminalDisposition>,
     pub placement_count: usize,
@@ -284,7 +286,9 @@ pub fn build_report(
             let (lifecycle, terminal_disposition) = plan_lifecycle(&plan.plan_id, observations);
             PlanRow {
                 plan_id: plan.plan_id.clone(),
-                form_id: plan.form_id.clone(),
+                source_document_id: plan.source_document_id.clone(),
+                checked_form_id: plan.checked_form_id.clone(),
+                expanded_form_id: plan.expanded_form_id.clone(),
                 lifecycle,
                 terminal_disposition,
                 placement_count: plan
@@ -577,9 +581,11 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for plan in &report.plans {
         let _ = writeln!(
             output,
-            "plan id={} form={} lifecycle={:?} terminal={:?} placements={} connections={}",
+            "plan id={} source_document={} checked_form={} expanded_form={} lifecycle={:?} terminal={:?} placements={} connections={}",
             plan.plan_id.as_str(),
-            plan.form_id.as_str(),
+            plan.source_document_id.as_str(),
+            plan.checked_form_id.as_str(),
+            plan.expanded_form_id.as_str(),
             plan.lifecycle,
             plan.terminal_disposition,
             plan.placement_count,
