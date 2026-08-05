@@ -84,6 +84,8 @@ jobs:
       options: --ipc=host
     steps:
       - uses: actions/checkout@v4
+      - name: Install Rust build-script linker
+        run: apt-get update && apt-get install -y --no-install-recommends build-essential
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
