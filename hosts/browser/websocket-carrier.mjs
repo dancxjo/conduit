@@ -9,6 +9,8 @@ export const BrowserWebSocketFailure = Object.freeze({
   ReceivePending: "CND-WS-S4-008",
 });
 
+const encoder = new TextEncoder();
+
 function failure(code, detail) {
   return Object.freeze({ ok: false, code, detail });
 }
@@ -107,11 +109,17 @@ export class BrowserWebSocketCarrier {
     return this.#closedPromise;
   }
 
-  close() {
+  close(code = 1000, reason = "conduit-terminal") {
+    if (!Number.isSafeInteger(code) ||
+        (code !== 1000 && (code < 3000 || code > 4999)) ||
+        typeof reason !== "string" ||
+        encoder.encode(reason).length > 123) {
+      throw new TypeError(BrowserWebSocketFailure.InvalidBinding);
+    }
     if (this.#socket &&
         (this.#socket.readyState === WebSocket.OPEN ||
          this.#socket.readyState === WebSocket.CONNECTING)) {
-      this.#socket.close(1000, "conduit-terminal");
+      this.#socket.close(code, reason);
     }
     return this.#closedPromise;
   }
