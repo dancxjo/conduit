@@ -6,6 +6,7 @@ adapter or physical proof.
 
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
+| Port-aware salvage kernel | initial protocol/storage | fixed/hosted storage vectors | preallocated storage only; scheduler pending | no | no; Thumb contract compiles | no | no |
 | Exact plan and fragment identities | prototype | mutation-negative fixtures | yes, std runtime | no | no | no | no |
 | Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
 | Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
@@ -21,7 +22,8 @@ adapter or physical proof.
 The `check` workflow requires:
 
 - workspace formatting, Clippy, and tests;
-- no-std checks for semantic, wire, and std-catalog contracts;
+- no-std checks for the salvage kernel, semantic, wire, and std-catalog contracts;
+- hosted/fixed salvage-kernel protocol and storage vectors;
 - exact-plan mutation-negative tests;
 - deterministic wire and simulated-host conformance vectors;
 - WASM compilation of the browser-shaped simulation;
@@ -32,7 +34,7 @@ or board acceptance. Frame/datagram fixtures are not WebSocket or UDP sockets.
 
 ## Salvage stop line
 
-S0 restores truth. S1 replaces the broadcast operation protocol with a
-port-aware bounded kernel. No actual browser/Pico host, BODY, catalog expansion,
-Observatory acceptance, or useful task advances before its prerequisite gate in
-issues #349 and #361 is accepted.
+S0 restores truth. The first S1 slice defines the port-aware protocol and
+bounded storage, but the deterministic scheduler and semantic conformance form
+remain pending. No actual browser/Pico host, BODY, catalog expansion,
+Observatory acceptance, or useful task advances before #349 is accepted.

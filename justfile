@@ -51,6 +51,10 @@ check:
     cargo clippy --workspace --all-targets -- -D warnings
     cargo test --workspace
 
+check-kernel-s1:
+    cargo test -p conduit-kernel --features alloc
+    cargo check -p conduit-kernel --target thumbv6m-none-eabi
+
 check-realm-readiness:
     cargo test -p conduit-realm
     cargo check -p conduit-realm --target thumbv6m-none-eabi
