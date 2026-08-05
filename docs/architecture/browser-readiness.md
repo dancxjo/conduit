@@ -1,8 +1,10 @@
 # Simulated-host conformance drawbridge
 
 The browser-shaped and Pico-shaped crates are deterministic protocol fixtures.
-They are not platform hosts. Browser UI, firmware, live transport, visual or
-physical smoke tests, and platform acceptance claims remain gated.
+They are not platform hosts. S4 has crossed one narrower drawbridge: an actual
+Chromium document now runs the bounded DOM presentation adapter described in
+`browser-host-s4.md`. Browser-side planning/runtime, firmware, live transport,
+and physical acceptance claims remain gated.
 
 - `conduit-runtime` has no dependency on `conduit-signal` and dispatches only through installed operation implementations.
 - `conduit-form` has no dependency on `conduit-signal`; callers supply a `ProfileCatalog` containing kind IDs, ports, configuration defaults, and validation rules.
@@ -13,7 +15,8 @@ physical smoke tests, and platform acceptance claims remain gated.
 - `conduit-wire` defines and tests the deterministic, bounded, `no_std`-compatible connection-envelope representation documented in `connection-envelope-wire.md`.
 - The reusable in-memory provider belongs to `conduit-runtime::providers`, not the composite fixture.
 - A fake browser-style adapter manually completes waits and presentations, delays a connection delivery, injects presentation failure and provider disconnect, and inspects structured observations.
-- `conduit-browser-sim` models multiple independent simulated browser instances, advertises fixture capabilities, and runs `flow/pulse -> presentation/show` through memory plus a bounded frame relay fixture using `conduit-wire`. It compiles for `wasm32-unknown-unknown`, but has no DOM adapter or socket.
+- `conduit-browser-sim` models multiple independent simulated browser instances, advertises fixture capabilities, and runs `flow/pulse -> presentation/show` through memory plus a bounded frame relay fixture using `conduit-wire`. It compiles for `wasm32-unknown-unknown`, but is not the DOM adapter and has no socket.
+- `hosts/browser/signal-dom-host.mjs` is an actual browser DOM effect/completion adapter. Its single Chromium proof creates two independent host/boot-bound instances and checks exact identities plus item/byte receipt bounds. It does not plan or run forms in the browser.
 - `conduit-pico-sim` exposes a Pico-shaped contract fixture, compiles for `thumbv6m-none-eabi` without default features, and retains simulated onboard-LED receipts through memory plus a bounded datagram relay fixture using `conduit-wire`. It is not firmware and has no device driver.
 - `examples/triple-signal.form` is planned unchanged across std and the two simulations. The compared stdout, DOM-state, and onboard-LED-shaped receipts are conformance data, not three-host acceptance.
 - A composite definition owns a set of child bindings and exact plan fragments. The current fixture permits one exposed in-memory boundary, while runtime dispatch and terminal tracking are keyed by child host identity rather than source/sink fields.
@@ -34,6 +37,10 @@ cargo check -p conduit-browser-sim --target wasm32-unknown-unknown
 cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture
 cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
 just check-sim-readiness
+npm run test:browser-host
 ```
 
-Only after this drawbridge is green may browser and Pico work advance beyond deterministic host fixtures. Browser UI, physical Pico LED acceptance, live WebSocket sockets, live UDP sockets, TCP, DHCP, DNS, discovery, durable body identity, and `.soul` remain beyond this checkpoint.
+The deterministic fixture drawbridge and the actual DOM adapter are green.
+Browser-side form execution, physical Pico LED acceptance, live WebSocket
+sockets, live UDP sockets, TCP, DHCP, DNS, discovery, durable body identity,
+and `.soul` remain beyond this checkpoint.

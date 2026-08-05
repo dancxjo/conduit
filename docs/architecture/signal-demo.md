@@ -1,7 +1,8 @@
 # Signal conformance fixtures
 
 This records the current implementation state for the portable signal proof
-tracked by GitHub issue #350. This document describes simulations only.
+tracked by GitHub issue #350. Most cross-host paths below remain simulations;
+the separately named DOM boundary is actual browser execution.
 
 ## Current Slice
 
@@ -37,8 +38,20 @@ cargo check -p conduit-browser-sim --target wasm32-unknown-unknown
 ```
 
 This proves fixture identity separation, bounded in-memory delivery, DOM-shaped
-receipts, and a WASM compile boundary. It does not prove a DOM adapter or an
-actual browser host.
+receipts, and a WASM compile boundary. It is not the actual DOM adapter or a
+browser-side host runtime.
+
+The first actual browser checkpoint runs a presentation effect/completion
+adapter in Chromium:
+
+```text
+npm run test:browser-host
+```
+
+It creates two independent host/boot-bound instances in one page, appends
+sixteen machine-readable DOM receipts to each, echoes exact play/presentation
+identities, and rejects duplicate, malformed, and capacity-exhausted requests.
+It does not yet plan or run the authored form in the browser.
 
 The std host can also run the pulse source while the browser simulation runs
 the show sink through a deterministic bounded frame relay fixture:
@@ -106,6 +119,7 @@ proof compares all three streams from the unchanged form.
 ## Current Stop Line
 
 The repository contains deterministic browser-shaped and Pico-shaped
-simulations plus frame/datagram relay fixtures. It does not contain a browser
-DOM adapter, live WebSocket or UDP provider, Pico firmware, physical LED
-acceptance, or three-host manifestation proof.
+simulations plus frame/datagram relay fixtures and one actual Chromium DOM
+presentation adapter. It does not contain a browser-side planner/runtime, live
+WebSocket or UDP provider, Pico firmware, physical LED acceptance, or
+three-host manifestation proof.
