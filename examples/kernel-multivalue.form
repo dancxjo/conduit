@@ -1,0 +1,19 @@
+form 0
+
+kernel-multivalue {
+    clock: time/tick
+    split: flow/tee
+    even: flow/filter-even
+    latest: state/latest
+    show-even: presentation/show
+    show-latest: presentation/show
+
+    clock.count = 4
+    clock.period-ms = 0
+
+    clock.tick -> split.in
+    split.left -> even.in
+    even.out -> show-even.in
+    split.right -> latest.in
+    latest.out -> show-latest.in
+}

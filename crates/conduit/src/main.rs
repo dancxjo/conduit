@@ -19,7 +19,9 @@ use conduit_realm::{AdmissionRequest, LinkId, Realm, RealmId};
 use conduit_signal::signal_profile_catalog;
 #[cfg(feature = "sim-fixtures")]
 use conduit_std_host::StdHostConfig;
-use conduit_std_host::{load_checked_form, load_placements, StdHost, ThreadTimer};
+use conduit_std_host::{
+    load_checked_form, load_placements, run_kernel_multivalue_path_to, StdHost, ThreadTimer,
+};
 #[cfg(feature = "sim-fixtures")]
 use std::collections::BTreeMap;
 use std::env;
@@ -262,6 +264,22 @@ fn main() {
                 std::process::exit(1);
             }
         }
+    }
+    if path == "kernel-multivalue" {
+        let Some(form_path) = args.next() else {
+            eprintln!("usage: conduit kernel-multivalue <form-file>");
+            std::process::exit(2);
+        };
+        if args.next().is_some() {
+            eprintln!("usage: conduit kernel-multivalue <form-file>");
+            std::process::exit(2);
+        }
+        let mut stdout = io::stdout().lock();
+        if let Err(err) = run_kernel_multivalue_path_to(&form_path, &mut stdout, &mut ThreadTimer) {
+            eprintln!("error: {err}");
+            std::process::exit(1);
+        }
+        return;
     }
 
     let placements_path = match (args.next().as_deref(), args.next()) {
