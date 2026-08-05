@@ -56,6 +56,28 @@ plumbing; it is not the future `conduit.std` state/latest semantic operation.
 The fixed and hosted storage/evidence profiles produce identical normalized
 decisions, outputs, closure, and cancellation evidence.
 
+## Host-operation scheduler slice
+
+A host-enabled scheduler is constructed with a sealed
+`FixedHostOperationBindings` table and a const-generic pending-request array.
+An operation can atomically consume inputs and stage one bounded host request.
+Admission happens before queue/reference mutation; an absent binding, duplicate
+or retired request identity, full pending table, or oversized input rejects the
+step without consuming its inputs.
+
+The host pulls a numeric `HostOperationRequest`, reads only its bounded stored
+input, stores a budgeted outcome value, and completes the exact request. The
+scheduler validates the output byte bound, keeps the waiting node asleep until
+completion, then wakes it with the correlated outcome. Completion storage owns
+the output reference until the operation consumes it. Completion before
+dispatch, a wrong or repeated identity, and completion after cancellation are
+rejected. Request identities increase for the lifetime of a run, preventing a
+retired identity from being rebound to a later request.
+
+Cancellation clears the fixed pending table and all run-owned values before
+recording the terminal cancellation event. The fixed and hosted profiles match
+for request, completion, decision, output, evidence, and terminal vectors.
+
 ## Deliberate archive reuse
 
 The slice reuses the archived scheduler's staged-port/fixed-storage concepts,
@@ -67,7 +89,6 @@ the transition and no semantic kind has been adapted to the new kernel yet.
 
 This is not completion of #349. Still required:
 
-- correlated pending host-operation storage and late-completion rejection;
 - no-growth activation proof for the complete hosted executor;
 - the final semantic tee/filter/latest implementation rather than kernel test
   drivers.

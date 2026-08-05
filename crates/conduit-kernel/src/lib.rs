@@ -219,6 +219,10 @@ impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
         Ok(binding)
     }
 
+    pub const fn is_sealed(&self) -> bool {
+        self.sealed
+    }
+
     fn slot(&self, node: NodeId, operation: HostOperationId) -> Result<usize, ProtocolError> {
         if operation.0 >= self.maximum_operations_per_node {
             return Err(ProtocolError::HostOperationMissing);
