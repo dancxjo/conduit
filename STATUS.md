@@ -8,7 +8,7 @@ adapter or physical proof.
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, correlated host operations, cancellation | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, no-growth-shape, and cancellation vectors | same scheduler with preallocated hosted storage; S1 accepted | no | no; Thumb kernel compiles | no | no |
 | Exact plan and fragment identities | S2 accepted: separate source/checked/expanded identity; exact kind revision, execution profile, every port and cord endpoint, hosted host-operation/resource/authority requirements, observed boot-scoped remote link bindings, startup/cancellation/terminal/evidence-budget contracts | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority denial-before-effect, missing/stale/unavailable/ambiguous/underbounded link denial, and observation-overflow evidence vectors | yes, std runtime preparation enforces current offer, installed profile, exact host-operation contract/target/bounds, exact boot-scoped resource pool/class/units, independently supplied exact authority grants where declared, exact current remote link observations, supported policy/budget minimums, and fixed mandatory-evidence allocation | no | no | fixture providers only; no sockets | no |
-| Lossless form document | S3 checkpoint: exact source, bounded lossless CST tokens, UTF-8 byte spans plus line/column locations, stable diagnostics, and the existing checked-form model | round-trip, spelling/semantic identity separation, recoverable invalid-line/EOF, and source/token ceiling vectors | parser/checker library only; nesting and composite consumption remain open | no | no | no | no |
+| Lossless form and composite boundary | S3 checkpoints: exact source, bounded lossless CST tokens, UTF-8 byte spans plus line/column locations, stable diagnostics, and an exact checked export boundary shared by composite offers and parent kinds | round-trip, spelling/semantic identity separation, recoverable invalid-line/EOF, source/token ceilings, missing/duplicate export denial, derived-offer equality, and ordinary parent-cord planning | parser/checker, planner, and hosted composite fixture; inline nesting remains open | no | no | fixture in-memory links only | no |
 | Connection envelope wire format | allocating prototype | deterministic vectors | yes, in-memory/frame/datagram fixtures | no | no | no | no |
 | Portable Signal | yes | multi-value fixtures | yes, std stdout/timer | no | no | no | no |
 | Browser-shaped manifestation | partial | yes, `conduit-browser-sim` | test-only | no DOM adapter | no | no WebSocket | no |
@@ -77,8 +77,11 @@ The first S3 checkpoint wraps the existing small `form 0` checker in a bounded
 lossless source document: exact source and CST tokens survive invalid edits,
 diagnostics carry stable codes and UTF-8 byte/line/column spans, and no checked
 form is manufactured after an error. This does not restore the archived broad
-grammar. Nested forms, checked composite exports/offers, parent consumption,
-and later plan/play/evidence/presentation identity boundaries remain open S3
-work.
+grammar. The second checkpoint derives one exact composite contract revision
+and its ports from an explicit checked export. The hosted composite offer and a
+parent catalog consume that same boundary, and an authored parent cord checks
+and plans normally; missing and duplicate boundaries fail closed. Inline nested
+syntax and later plan/play/evidence/presentation identity boundaries remain
+open S3 work.
 No actual browser/Pico host, BODY, catalog expansion, Observatory
 acceptance, or useful task advances before their later salvage gates.

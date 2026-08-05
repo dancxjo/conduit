@@ -31,6 +31,24 @@ conflated with this document and remain work for their own salvage checkpoints.
 
 This is not a transplant of the archived panel grammar. It does not restore
 modules, packages, a formatter, UI recovery nodes, or panel-era compatibility.
-Nested forms, checked composite boundaries, exports-derived offers, and normal
-parent consumption of child exports remain the next S3 work. The current
-one-cell syntax and its export rule are unchanged.
+The current one-cell syntax and its export rule are unchanged by the lossless
+document layer. Inline nesting remains later S3 work.
+
+## Checked composite boundary checkpoint
+
+`CheckedForm::export_boundary` is the sole conversion from an authored export
+to an externally consumable composite contract. It binds the authored
+capability and kind, the checked form identity as the contract revision, the
+exact internal source/sink endpoints, and the checked external ports. Missing
+or duplicate capability exports fail closed.
+
+Both `CompositeDefinition::from_authored_export` and
+`ProfileCatalog::insert_export` consume this same checked object. The composite
+helper no longer fabricates a `kind@1` revision, and parent helper code cannot
+declare a boundary absent from the child source. A parent operation created
+from the installed export uses the normal checker and planner cord path; it
+does not address internal child identities.
+
+Inline nested syntax is still excluded from this checkpoint. The next slice
+will make authored nesting produce the same checked boundary rather than a
+second representation.
