@@ -89,6 +89,21 @@ The hosted profile also records its value-slot, per-slot byte-buffer, and
 evidence-vector capacities at activation and proves those capacities are
 unchanged after a complete host-enabled run.
 
+## Public operation adapter
+
+`OperationDriver` adapts the published `OperationInput`/`OperationAction`
+state machine into `FixedScheduler`. `Operation::advance` lets an operation
+produce more than one named output for one input; the adapter collects those
+actions in fixed arrays and publishes them as one scheduler transaction only
+when every target is ready. Defaulted ownership hooks preserve the required
+action vocabulary while allowing bounded state operations to retain a resumed
+value and release one superseded value.
+
+The fixed and hosted profiles match for a public-operation source/tee/two-sink
+vector, including two tee emits committed from one input. A separate
+host-enabled adapter vector proves that a public `RequestHostOperation` action
+waits for and resumes from the exact correlated completion.
+
 ## Deliberate archive reuse
 
 The slice reuses the archived scheduler's staged-port/fixed-storage concepts,
@@ -98,10 +113,10 @@ the transition and no semantic kind has been adapted to the new kernel yet.
 
 ## Current stop line
 
-This is not completion of #349. `FixedScheduler` currently drives the bounded
-`StepOperation` transaction boundary directly. An adapter that drives the
-published `OperationInput`/`OperationAction` state-machine contract through the
-same scheduler remains required before S1 is accepted.
+This is not completion of #349. The full multi-value
+tick/tee/filter/latest/show conformance form still runs on the scheduler's
+lower-level test drivers. It must be rerun entirely through `OperationDriver`
+before S1 is accepted.
 
 ## Checkpoint
 

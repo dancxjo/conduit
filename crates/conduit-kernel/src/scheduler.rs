@@ -3,8 +3,8 @@
 use crate::{
     BoundedValueRef, CordId, EvidenceError, EvidenceSink, FixedHostOperationBindings, FixedRoutes,
     HostOperationBinding, HostOperationId, HostOperationOutcome, KernelEventKind, NodeId,
-    OperationAction, PortId, ProtocolError, RequestId, RouteTarget, StorageError, ValueRef,
-    ValueStorage,
+    Operation, OperationAction, OperationInput, PortId, ProtocolError, RequestId, RouteTarget,
+    StorageError, ValueRef, ValueStorage,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -56,6 +56,267 @@ pub trait StepOperation<const PORTS: usize> {
     fn cancel(&mut self) {}
 }
 
+#[derive(Clone, Copy)]
+enum AdapterEvent {
+    None,
+    Value {
+        port: PortId,
+        value: ValueRef,
+    },
+    Closed {
+        port: PortId,
+    },
+    HostCompleted {
+        request: RequestId,
+        outcome: HostOperationOutcome,
+    },
+}
+
+impl AdapterEvent {
+    fn operation_input(self) -> Option<OperationInput> {
+        match self {
+            Self::None => None,
+            Self::Value { port, value } => Some(OperationInput::Value { port, value }),
+            Self::Closed { port } => Some(OperationInput::Closed { port }),
+            Self::HostCompleted { request, outcome } => {
+                Some(OperationInput::HostOperationCompleted { request, outcome })
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum AdapterTerminal {
+    Continue,
+    Complete,
+    Fail(u16),
+}
+
+#[derive(Clone, Copy)]
+struct AdapterTransaction<const PORTS: usize> {
+    event: AdapterEvent,
+    outputs: [Option<ValueRef>; PORTS],
+    host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
+    retain_resumed_value: bool,
+    released_value: Option<ValueRef>,
+    terminal: AdapterTerminal,
+}
+
+impl<const PORTS: usize> AdapterTransaction<PORTS> {
+    fn is_empty_continue(&self) -> bool {
+        self.outputs.iter().all(Option::is_none)
+            && self.host_request.is_none()
+            && !self.retain_resumed_value
+            && self.released_value.is_none()
+            && matches!(self.terminal, AdapterTerminal::Continue)
+    }
+}
+
+/// Fixed-capacity adapter from the public operation state machine into one
+/// transactional scheduler step.
+pub struct OperationDriver<O, const PORTS: usize> {
+    operation: O,
+    pending: Option<AdapterTransaction<PORTS>>,
+    delivered_closed: [bool; PORTS],
+    input_cursor: usize,
+    protocol_failed: bool,
+}
+
+impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
+    pub fn new(mut operation: O) -> Result<Self, SchedulerError> {
+        let first = operation.start();
+        let mut driver = Self {
+            operation,
+            pending: None,
+            delivered_closed: [false; PORTS],
+            input_cursor: 0,
+            protocol_failed: false,
+        };
+        let transaction = driver.collect(AdapterEvent::None, first)?;
+        if !transaction.is_empty_continue() {
+            driver.pending = Some(transaction);
+        }
+        Ok(driver)
+    }
+
+    pub fn operation(&self) -> &O {
+        &self.operation
+    }
+
+    fn collect(
+        &mut self,
+        event: AdapterEvent,
+        first: OperationAction,
+    ) -> Result<AdapterTransaction<PORTS>, SchedulerError> {
+        let mut transaction = AdapterTransaction {
+            event,
+            outputs: [None; PORTS],
+            host_request: None,
+            retain_resumed_value: false,
+            released_value: None,
+            terminal: AdapterTerminal::Continue,
+        };
+        let mut action = first;
+        for _ in 0..PORTS.saturating_add(3) {
+            match action {
+                OperationAction::Await => return Ok(transaction),
+                OperationAction::Emit { port, value } => {
+                    let output = transaction
+                        .outputs
+                        .get_mut(usize::from(port.0))
+                        .ok_or(SchedulerError::InvalidPortAccess)?;
+                    if output.is_some() {
+                        return Err(SchedulerError::OperationProtocolViolation);
+                    }
+                    *output = Some(value);
+                    action = self.operation.advance();
+                }
+                OperationAction::RequestHostOperation {
+                    request,
+                    operation,
+                    input,
+                } => {
+                    if transaction.host_request.is_some() {
+                        return Err(SchedulerError::OperationProtocolViolation);
+                    }
+                    transaction.host_request = Some((request, operation, input));
+                    return Ok(transaction);
+                }
+                OperationAction::Complete => {
+                    transaction.terminal = AdapterTerminal::Complete;
+                    return Ok(transaction);
+                }
+                OperationAction::Fail(failure) => {
+                    transaction.terminal = AdapterTerminal::Fail(failure.detail);
+                    return Ok(transaction);
+                }
+            }
+        }
+        Err(SchedulerError::OperationProtocolViolation)
+    }
+
+    fn next_event(&self, io: &StepIo<PORTS>) -> Option<AdapterEvent> {
+        if let Some((request, outcome)) = io.host_completion() {
+            return Some(AdapterEvent::HostCompleted { request, outcome });
+        }
+        for offset in 0..PORTS {
+            let port = (self.input_cursor + offset) % PORTS;
+            if let Some(value) = io.input(PortId(u16::try_from(port).ok()?)) {
+                return Some(AdapterEvent::Value {
+                    port: PortId(u16::try_from(port).ok()?),
+                    value,
+                });
+            }
+        }
+        for offset in 0..PORTS {
+            let port = (self.input_cursor + offset) % PORTS;
+            if !self.delivered_closed[port] && io.input_closed(PortId(u16::try_from(port).ok()?)) {
+                return Some(AdapterEvent::Closed {
+                    port: PortId(u16::try_from(port).ok()?),
+                });
+            }
+        }
+        None
+    }
+}
+
+impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<O, PORTS> {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if self.protocol_failed {
+            return StepOutcome::Fail(u16::MAX);
+        }
+        if self.pending.is_none() {
+            let Some(event) = self.next_event(io) else {
+                return StepOutcome::Await;
+            };
+            let Some(input) = event.operation_input() else {
+                return StepOutcome::Fail(u16::MAX);
+            };
+            let action = self.operation.resume(input);
+            match self.collect(event, action) {
+                Ok(mut transaction) => {
+                    transaction.retain_resumed_value = matches!(event, AdapterEvent::Value { .. })
+                        && self.operation.retains_resumed_value();
+                    transaction.released_value = self.operation.take_released_value();
+                    self.pending = Some(transaction);
+                }
+                Err(_) => {
+                    self.protocol_failed = true;
+                    return StepOutcome::Fail(u16::MAX);
+                }
+            }
+        }
+        let transaction = self.pending.expect("adapter pending transaction");
+        for (port, output) in transaction.outputs.iter().enumerate() {
+            if output.is_some() && !io.output_ready(PortId(u16::try_from(port).unwrap_or(u16::MAX)))
+            {
+                return StepOutcome::Await;
+            }
+        }
+        match transaction.event {
+            AdapterEvent::None => {}
+            AdapterEvent::Value { port, value } => {
+                if io.input(port) != Some(value) {
+                    return StepOutcome::Fail(u16::MAX);
+                }
+                let consumed = if transaction.retain_resumed_value {
+                    io.take_input(port)
+                } else {
+                    io.consume(port)
+                };
+                if consumed.is_err() {
+                    return StepOutcome::Fail(u16::MAX);
+                }
+                self.input_cursor = (usize::from(port.0) + 1) % PORTS;
+            }
+            AdapterEvent::Closed { port } => {
+                self.delivered_closed[usize::from(port.0)] = true;
+                self.input_cursor = (usize::from(port.0) + 1) % PORTS;
+                io.mark_internal_progress();
+            }
+            AdapterEvent::HostCompleted { request, .. } => {
+                if io.consume_host_completion().map(|completion| completion.0) != Ok(request) {
+                    return StepOutcome::Fail(u16::MAX);
+                }
+            }
+        }
+        if let Some(value) = transaction.released_value {
+            if io.discard(value).is_err() {
+                return StepOutcome::Fail(u16::MAX);
+            }
+        }
+        for (port, output) in transaction.outputs.iter().copied().enumerate() {
+            if let Some(value) = output {
+                if io
+                    .send(PortId(u16::try_from(port).unwrap_or(u16::MAX)), value)
+                    .is_err()
+                {
+                    return StepOutcome::Fail(u16::MAX);
+                }
+            }
+        }
+        if let Some((request, operation, input)) = transaction.host_request {
+            if io
+                .request_host_operation(request, operation, input)
+                .is_err()
+            {
+                return StepOutcome::Fail(u16::MAX);
+            }
+        }
+        self.pending = None;
+        match transaction.terminal {
+            AdapterTerminal::Continue => StepOutcome::Progress,
+            AdapterTerminal::Complete => StepOutcome::Complete,
+            AdapterTerminal::Fail(detail) => StepOutcome::Fail(detail),
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.operation.cancel();
+    }
+}
+
 pub struct StepIo<const PORTS: usize> {
     inputs: [Option<ValueRef>; PORTS],
     input_closed: [bool; PORTS],
@@ -67,6 +328,7 @@ pub struct StepIo<const PORTS: usize> {
     host_completion: Option<(RequestId, HostOperationOutcome)>,
     consumed_host_completion: bool,
     host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
+    internal_progress: bool,
     maximum_work: u16,
     work: u16,
     fault: Option<SchedulerError>,
@@ -201,6 +463,10 @@ impl<const PORTS: usize> StepIo<PORTS> {
         Ok(())
     }
 
+    pub fn mark_internal_progress(&mut self) {
+        self.internal_progress = true;
+    }
+
     pub fn charge_work(&mut self, units: u16) -> Result<(), SchedulerError> {
         let work = self
             .work
@@ -230,6 +496,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
             || self.discards.iter().any(Option::is_some)
             || self.consumed_host_completion
             || self.host_request.is_some()
+            || self.internal_progress
     }
 
     fn staged_step(&self) -> StagedStep<PORTS> {
@@ -264,6 +531,7 @@ pub enum SchedulerError {
     FalseProgress,
     DecisionLimitExceeded,
     OperationFailed(u16),
+    OperationProtocolViolation,
     HostOperationCapacityExceeded,
     HostOperationRequestDuplicate,
     HostOperationCompletionRejected,
@@ -702,6 +970,7 @@ where
             host_completion,
             consumed_host_completion: false,
             host_request: None,
+            internal_progress: false,
             maximum_work: self.node_specs[node].maximum_step_work,
             work: 0,
             fault: None,
@@ -1477,14 +1746,15 @@ impl<I: Iterator<Item = RouteTarget>> CollectTargets for I {}
 #[cfg(test)]
 mod tests {
     use super::{
-        CordSpec, FixedScheduler, NodeSpec, SchedulerStatus, StepIo, StepOperation, StepOutcome,
+        CordSpec, FixedScheduler, NodeSpec, OperationDriver, SchedulerStatus, StepIo,
+        StepOperation, StepOutcome,
     };
     use crate::{
         BoundedValueRef, CordId, EvidenceQuery, EvidenceSink, Failure, FailureCode,
         FixedEvidenceLog, FixedHostOperationBindings, FixedRoutes, FixedValueStore,
         HostOperationBinding, HostOperationDisposition, HostOperationId, HostOperationOutcome,
-        KernelEventKind, NodeId, PortId, ProtocolError, RequestId, RouteRange, RouteTarget,
-        ValueRef, ValueStorage,
+        KernelEventKind, NodeId, Operation, OperationAction, OperationInput, PortId, ProtocolError,
+        RequestId, RouteRange, RouteTarget, ValueRef, ValueStorage,
     };
 
     const NODES: usize = 6;
@@ -1750,6 +2020,114 @@ mod tests {
         }
     }
 
+    #[derive(Clone, Copy, Debug)]
+    enum AdapterOperation {
+        Source { value: ValueRef, advanced: bool },
+        Tee { value: Option<ValueRef>, phase: u8 },
+        HostEffect,
+        Sink { seen: Option<ValueRef> },
+    }
+
+    impl Operation for AdapterOperation {
+        fn start(&mut self) -> OperationAction {
+            match self {
+                Self::Source { value, .. } => OperationAction::Emit {
+                    port: PortId(0),
+                    value: *value,
+                },
+                _ => OperationAction::Await,
+            }
+        }
+
+        fn resume(&mut self, input: OperationInput) -> OperationAction {
+            match (self, input) {
+                (
+                    Self::Tee { value, phase },
+                    OperationInput::Value {
+                        port: PortId(0),
+                        value: input,
+                    },
+                ) => {
+                    *value = Some(input);
+                    *phase = 1;
+                    OperationAction::Emit {
+                        port: PortId(0),
+                        value: input,
+                    }
+                }
+                (Self::Tee { .. }, OperationInput::Closed { port: PortId(0) }) => {
+                    OperationAction::Complete
+                }
+                (
+                    Self::HostEffect,
+                    OperationInput::Value {
+                        port: PortId(0),
+                        value,
+                    },
+                ) => OperationAction::RequestHostOperation {
+                    request: RequestId(11),
+                    operation: HostOperationId(0),
+                    input: BoundedValueRef::new(value, 4).unwrap(),
+                },
+                (
+                    Self::HostEffect,
+                    OperationInput::HostOperationCompleted {
+                        request: RequestId(11),
+                        outcome,
+                    },
+                ) => OperationAction::Emit {
+                    port: PortId(0),
+                    value: outcome.output.expect("adapter host output").value,
+                },
+                (Self::HostEffect, OperationInput::Closed { port: PortId(0) }) => {
+                    OperationAction::Complete
+                }
+                (
+                    Self::Sink { seen },
+                    OperationInput::Value {
+                        port: PortId(0),
+                        value,
+                    },
+                ) => {
+                    *seen = Some(value);
+                    OperationAction::Await
+                }
+                (Self::Sink { .. }, OperationInput::Closed { port: PortId(0) }) => {
+                    OperationAction::Complete
+                }
+                _ => OperationAction::Fail(Failure {
+                    code: FailureCode::InvalidInput,
+                    detail: 91,
+                }),
+            }
+        }
+
+        fn advance(&mut self) -> OperationAction {
+            match self {
+                Self::Source { advanced, .. } if !*advanced => {
+                    *advanced = true;
+                    OperationAction::Complete
+                }
+                Self::Tee {
+                    value: Some(value),
+                    phase,
+                } if *phase == 1 => {
+                    *phase = 2;
+                    OperationAction::Emit {
+                        port: PortId(1),
+                        value: *value,
+                    }
+                }
+                Self::Tee { value, phase } if *phase == 2 => {
+                    *value = None;
+                    *phase = 0;
+                    OperationAction::Await
+                }
+                _ => OperationAction::Await,
+            }
+        }
+    }
+
     #[test]
     fn multi_value_port_graph_handles_pressure_closure_and_uneven_consumers() {
         let event_charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
@@ -1763,6 +2141,201 @@ mod tests {
         assert_eq!(normalized.show_b[0], 3);
         assert_eq!(normalized.used_items, 0);
         assert!(normalized.saw_input_closed);
+    }
+
+    #[test]
+    fn public_operation_state_machine_drives_atomic_tee_scheduler_step() {
+        let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
+        let normalized = execute_operation_adapter(
+            FixedValueStore::<4, 4>::new(16).unwrap(),
+            FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        );
+        assert_eq!(normalized.left, 0);
+        assert_eq!(normalized.right, 0);
+        assert_eq!(normalized.used_items, 0);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn hosted_and_fixed_operation_adapter_vectors_match() {
+        use crate::{HostedEvidenceLog, HostedValueStore};
+
+        let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
+        let fixed = execute_operation_adapter(
+            FixedValueStore::<4, 4>::new(16).unwrap(),
+            FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        );
+        let hosted = execute_operation_adapter(
+            HostedValueStore::new(4, 4, 16).unwrap(),
+            HostedEvidenceLog::new(64, charge * 64).unwrap(),
+        );
+        assert_eq!(fixed, hosted);
+    }
+
+    #[test]
+    fn operation_adapter_routes_correlated_host_completion() {
+        let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
+        let mut values = FixedValueStore::<4, 4>::new(16).unwrap();
+        let input = values.store(&[1]).unwrap();
+        let mut routes = FixedRoutes::<6, 2>::new(2);
+        for (source, cord_id, sink) in [(0, 0, 1), (1, 1, 2)] {
+            routes
+                .install(
+                    NodeId(source),
+                    PortId(0),
+                    RouteRange {
+                        start: cord_id,
+                        len: 1,
+                    },
+                    &[RouteTarget {
+                        cord: CordId(cord_id),
+                        sink_node: NodeId(sink),
+                        sink_port: PortId(0),
+                    }],
+                )
+                .unwrap();
+        }
+        routes.seal().unwrap();
+        let mut bindings = FixedHostOperationBindings::<3>::new(1);
+        bindings
+            .install(
+                NodeId(1),
+                HostOperationBinding {
+                    operation: HostOperationId(0),
+                    maximum_input_bytes: 4,
+                    maximum_output_bytes: 4,
+                },
+            )
+            .unwrap();
+        bindings.seal().unwrap();
+        let mut scheduler =
+            FixedScheduler::<_, _, _, 3, 2, 2, 2, 6, 2, 3, 1>::new_with_host_operations(
+                [
+                    node([None, None]),
+                    node([Some(CordId(0)), None]),
+                    node([Some(CordId(1)), None]),
+                ],
+                [cord(0, 0, 0, 1, 0), cord(1, 1, 0, 2, 0)],
+                routes,
+                bindings,
+                [
+                    OperationDriver::new(AdapterOperation::Source {
+                        value: input,
+                        advanced: false,
+                    })
+                    .unwrap(),
+                    OperationDriver::new(AdapterOperation::HostEffect).unwrap(),
+                    OperationDriver::new(AdapterOperation::Sink { seen: None }).unwrap(),
+                ],
+                values,
+                FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+            )
+            .unwrap();
+        scheduler.step().unwrap();
+        scheduler.step().unwrap();
+        let request = scheduler.next_host_request().unwrap();
+        assert_eq!(request.request, RequestId(11));
+        let output = scheduler.store_host_value(&[2]).unwrap();
+        scheduler
+            .complete_host_operation(
+                request.request,
+                HostOperationOutcome {
+                    disposition: HostOperationDisposition::Completed,
+                    output: Some(BoundedValueRef::new(output, 4).unwrap()),
+                    failure: None,
+                },
+            )
+            .unwrap();
+        scheduler.run(32).unwrap();
+        let AdapterOperation::Sink { seen: Some(seen) } = scheduler.drivers()[2].operation() else {
+            panic!("adapter host sink");
+        };
+        assert_eq!(seen.slot, output.slot);
+        assert_eq!(scheduler.values().used_items(), 0);
+    }
+
+    #[derive(Debug, Eq, PartialEq)]
+    struct AdapterNormalized {
+        left: u16,
+        right: u16,
+        decisions: u32,
+        evidence_len: u16,
+        evidence_bytes: u32,
+        used_items: u16,
+    }
+
+    fn execute_operation_adapter<S, E>(mut values: S, evidence: E) -> AdapterNormalized
+    where
+        S: ValueStorage,
+        E: EvidenceSink,
+    {
+        let value = values.store(&[42]).unwrap();
+        let mut routes = FixedRoutes::<8, 3>::new(2);
+        for (source, port, cord_id, sink) in [(0, 0, 0, 1), (1, 0, 1, 2), (1, 1, 2, 3)] {
+            routes
+                .install(
+                    NodeId(source),
+                    PortId(port),
+                    RouteRange {
+                        start: cord_id,
+                        len: 1,
+                    },
+                    &[RouteTarget {
+                        cord: CordId(cord_id),
+                        sink_node: NodeId(sink),
+                        sink_port: PortId(0),
+                    }],
+                )
+                .unwrap();
+        }
+        routes.seal().unwrap();
+        let mut scheduler = FixedScheduler::<_, _, _, 4, 3, 2, 3, 8, 3>::new(
+            [
+                node([None, None]),
+                node([Some(CordId(0)), None]),
+                node([Some(CordId(1)), None]),
+                node([Some(CordId(2)), None]),
+            ],
+            [
+                cord(0, 0, 0, 1, 0),
+                cord(1, 1, 0, 2, 0),
+                cord(2, 1, 1, 3, 0),
+            ],
+            routes,
+            [
+                OperationDriver::new(AdapterOperation::Source {
+                    value,
+                    advanced: false,
+                })
+                .unwrap(),
+                OperationDriver::new(AdapterOperation::Tee {
+                    value: None,
+                    phase: 0,
+                })
+                .unwrap(),
+                OperationDriver::new(AdapterOperation::Sink { seen: None }).unwrap(),
+                OperationDriver::new(AdapterOperation::Sink { seen: None }).unwrap(),
+            ],
+            values,
+            evidence,
+        )
+        .unwrap();
+        scheduler.run(32).unwrap();
+        let AdapterOperation::Sink { seen: Some(left) } = scheduler.drivers()[2].operation() else {
+            panic!("left adapter sink");
+        };
+        let AdapterOperation::Sink { seen: Some(right) } = scheduler.drivers()[3].operation()
+        else {
+            panic!("right adapter sink");
+        };
+        AdapterNormalized {
+            left: left.slot,
+            right: right.slot,
+            decisions: scheduler.decisions(),
+            evidence_len: scheduler.evidence().len(),
+            evidence_bytes: scheduler.evidence().used_bytes(),
+            used_items: scheduler.values().used_items(),
+        }
     }
 
     #[test]
