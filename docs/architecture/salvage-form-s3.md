@@ -49,6 +49,16 @@ declare a boundary absent from the child source. A parent operation created
 from the installed export uses the normal checker and planner cord path; it
 does not address internal child identities.
 
-Inline nested syntax is still excluded from this checkpoint. The next slice
-will make authored nesting produce the same checked boundary rather than a
-second representation.
+## Inline nesting checkpoint
+
+An inline child uses `operation: capability { ... }`. The inner block is
+checked recursively as the same `CheckedForm` used for a standalone document.
+The named capability must be an explicit checked export; that boundary becomes
+the parent operation's exact kind revision and ports. Parent connections then
+use the ordinary explicit or single-port shorthand checker.
+
+Nesting is limited to 16 levels. Inner diagnostics retain exact outer-document
+spans and all later tokens. A standalone child and the same inline child have
+different source-document identities but identical checked, expanded, and
+export-boundary identities. The parent retains the checked child rather than a
+parallel recovery AST.

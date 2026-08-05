@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 
 pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_FORM_TOKENS: usize = 131_072;
+pub const MAXIMUM_FORM_NESTING_DEPTH: usize = 16;
 
 /// Exact UTF-8 byte extent plus one-based source locations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,6 +95,7 @@ pub struct CheckedForm {
     pub operations: Vec<CheckedOperation>,
     pub connections: Vec<CheckedConnection>,
     pub exports: Vec<CheckedExport>,
+    pub nested_forms: Vec<CheckedNestedForm>,
 }
 
 impl CheckedForm {
@@ -169,6 +171,13 @@ impl CheckedForm {
             value_kind: export.value_kind.clone(),
         })
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedNestedForm {
+    pub operation_id: OperationId,
+    pub export_capability_id: CapabilityId,
+    pub form: CheckedForm,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -289,6 +298,8 @@ impl ProfileCatalog {
 pub enum FormError {
     SourceLimitExceeded,
     TokenLimitExceeded,
+    NestingLimitExceeded,
+    InvalidNestedForm(String),
     InvalidHeader,
     IncompleteForm,
     InvalidBlockStart,
@@ -315,6 +326,11 @@ impl std::fmt::Display for FormError {
                 f,
                 "form source exceeds the {MAXIMUM_FORM_TOKENS}-token limit"
             ),
+            Self::NestingLimitExceeded => write!(
+                f,
+                "form nesting exceeds the {MAXIMUM_FORM_NESTING_DEPTH}-level limit"
+            ),
+            Self::InvalidNestedForm(message) => write!(f, "invalid nested form: {message}"),
             Self::InvalidHeader => write!(f, "expected first non-comment line to be 'form 0'"),
             Self::IncompleteForm => write!(f, "incomplete form"),
             Self::InvalidBlockStart => write!(f, "expected form block opener like 'name {{'"),
@@ -432,26 +448,140 @@ fn parse_checked_with_span(
     if lines.first().map_or("", |line| line.text) != "form 0" {
         return Err((FormError::InvalidHeader, first_span));
     }
-    if lines.len() < 3 {
+    if lines.len() < 2 {
         return Err((FormError::IncompleteForm, eof));
     }
-    let block_start = lines[1].text;
-    if !block_start.ends_with('{') {
-        return Err((FormError::InvalidBlockStart, lines[1].span));
+    let (form, next) = parse_form_block(source, &lines, 1, catalog, 0, Some(source))?;
+    if next != lines.len() {
+        return Err((
+            FormError::InvalidStatement(lines[next].text.to_string()),
+            lines[next].span,
+        ));
     }
-    let name = block_start.trim_end_matches('{').trim().to_string();
+    Ok(form)
+}
+
+fn parse_form_block(
+    source: &str,
+    lines: &[LocatedLine<'_>],
+    start: usize,
+    catalog: &ProfileCatalog,
+    depth: usize,
+    identity_source: Option<&str>,
+) -> Result<(CheckedForm, usize), (FormError, Span)> {
+    let header = lines
+        .get(start)
+        .copied()
+        .ok_or_else(|| (FormError::IncompleteForm, eof_span(source)))?;
+    if depth > MAXIMUM_FORM_NESTING_DEPTH {
+        return Err((FormError::NestingLimitExceeded, header.span));
+    }
+    if !header.text.ends_with('{') {
+        return Err((FormError::InvalidBlockStart, header.span));
+    }
+    let declaration = header.text.trim_end_matches('{').trim();
+    let name = if identity_source.is_some() {
+        declaration
+    } else {
+        declaration
+            .split_once(':')
+            .map_or(declaration, |(name, _)| name)
+    }
+    .trim()
+    .to_string();
     if name.is_empty() {
-        return Err((FormError::EmptyFormName, lines[1].span));
-    }
-    if lines.last().map_or("", |line| line.text) != "}" {
-        return Err((FormError::MissingBlockEnd, eof));
+        return Err((FormError::EmptyFormName, header.span));
     }
 
     let mut operations = BTreeMap::<String, OperationDraft>::new();
     let mut connections = Vec::<CheckedConnection>::new();
     let mut exports = Vec::<CheckedExport>::new();
-    for located in &lines[2..lines.len() - 1] {
+    let mut nested_forms = Vec::<CheckedNestedForm>::new();
+    let mut index = start + 1;
+    while index < lines.len() {
+        let located = lines[index];
         let line = located.text;
+        if line == "}" {
+            let checked_operations = operations
+                .iter()
+                .map(|(operation_name, draft)| CheckedOperation {
+                    operation_id: OperationId::from(operation_name.as_str()),
+                    kind_id: draft.definition.kind_id.clone(),
+                    kind_contract_revision: draft.definition.kind_contract_revision.clone(),
+                    inputs: draft.definition.inputs.clone(),
+                    outputs: draft.definition.outputs.clone(),
+                    configuration: draft.configuration.clone(),
+                })
+                .collect::<Vec<_>>();
+            let checked_form_id = CheckedFormId::from(hash_string(&canonical_form_text(
+                &name,
+                &checked_operations,
+                &connections,
+                &exports,
+            )));
+            let checked_source =
+                identity_source.unwrap_or_else(|| &source[header.span.start..located.span.end]);
+            let source_document_id =
+                SourceDocumentId::from(hash_string(&format!("source-document:{checked_source}")));
+            let expanded_form_id = ExpandedFormId::from(hash_string(&format!(
+                "expanded-form:{}",
+                checked_form_id.as_str()
+            )));
+            return Ok((
+                CheckedForm {
+                    source_document_id,
+                    checked_form_id,
+                    expanded_form_id,
+                    name,
+                    operations: checked_operations,
+                    connections,
+                    exports,
+                    nested_forms,
+                },
+                index + 1,
+            ));
+        }
+        if line.ends_with('{') {
+            let nested_declaration = line.trim_end_matches('{').trim();
+            let (operation_name, capability_name) =
+                nested_declaration.split_once(':').ok_or_else(|| {
+                    (
+                        FormError::InvalidNestedForm("expected 'operation: capability {'".into()),
+                        located.span,
+                    )
+                })?;
+            let operation_name = operation_name.trim();
+            let capability_name = capability_name.trim();
+            if operation_name.is_empty() || capability_name.is_empty() {
+                return Err((FormError::InvalidBlockStart, located.span));
+            }
+            if operations.contains_key(operation_name) {
+                return Err((
+                    FormError::DuplicateOperation(operation_name.to_string()),
+                    located.span,
+                ));
+            }
+            let (nested_form, next) =
+                parse_form_block(source, lines, index, catalog, depth + 1, None)?;
+            let export_capability_id = CapabilityId::from(capability_name);
+            let boundary = nested_form
+                .export_boundary(&export_capability_id)
+                .map_err(|error| (error, located.span))?;
+            operations.insert(
+                operation_name.to_string(),
+                OperationDraft {
+                    definition: boundary.kind_definition(),
+                    configuration: Vec::new(),
+                },
+            );
+            nested_forms.push(CheckedNestedForm {
+                operation_id: OperationId::from(operation_name),
+                export_capability_id,
+                form: nested_form,
+            });
+            index = next;
+            continue;
+        }
         if let Some(export) = line.strip_prefix("export ") {
             let export = parse_export(export, &operations, &connections)
                 .map_err(|error| (error, located.span))?;
@@ -468,6 +598,7 @@ fn parse_checked_with_span(
                 ));
             }
             exports.push(export);
+            index += 1;
             continue;
         }
         if let Some((left, right)) = line.split_once(':') {
@@ -480,6 +611,7 @@ fn parse_checked_with_span(
                 OperationDraft::new(right.trim(), catalog)
                     .map_err(|error| (error, located.span))?,
             );
+            index += 1;
             continue;
         }
         if let Some((left, right)) = line.split_once('=') {
@@ -528,6 +660,7 @@ fn parse_checked_with_span(
                 ));
             }
             entry.value = value;
+            index += 1;
             continue;
         }
         if let Some((left, right)) = line.split_once("->") {
@@ -535,6 +668,7 @@ fn parse_checked_with_span(
                 parse_connection(left.trim(), right.trim(), &operations)
                     .map_err(|error| (error, located.span))?,
             );
+            index += 1;
             continue;
         }
         if let Some((left, right)) = line.split_once('>') {
@@ -542,43 +676,12 @@ fn parse_checked_with_span(
                 parse_shorthand_connection(left.trim(), right.trim(), &operations)
                     .map_err(|error| (error, located.span))?,
             );
+            index += 1;
             continue;
         }
         return Err((FormError::InvalidStatement(line.to_string()), located.span));
     }
-
-    let checked_operations = operations
-        .iter()
-        .map(|(operation_name, draft)| CheckedOperation {
-            operation_id: OperationId::from(operation_name.as_str()),
-            kind_id: draft.definition.kind_id.clone(),
-            kind_contract_revision: draft.definition.kind_contract_revision.clone(),
-            inputs: draft.definition.inputs.clone(),
-            outputs: draft.definition.outputs.clone(),
-            configuration: draft.configuration.clone(),
-        })
-        .collect::<Vec<_>>();
-    let checked_form_id = CheckedFormId::from(hash_string(&canonical_form_text(
-        &name,
-        &checked_operations,
-        &connections,
-        &exports,
-    )));
-    let source_document_id =
-        SourceDocumentId::from(hash_string(&format!("source-document:{source}")));
-    let expanded_form_id = ExpandedFormId::from(hash_string(&format!(
-        "expanded-form:{}",
-        checked_form_id.as_str()
-    )));
-    Ok(CheckedForm {
-        source_document_id,
-        checked_form_id,
-        expanded_form_id,
-        name,
-        operations: checked_operations,
-        connections,
-        exports,
-    })
+    Err((FormError::MissingBlockEnd, eof_span(source)))
 }
 
 fn significant_lines(source: &str) -> Vec<LocatedLine<'_>> {
@@ -752,6 +855,8 @@ fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
         FormError::InvalidStatement(_) => "CND-FRM-013",
         FormError::SourceLimitExceeded => "CND-FRM-014",
         FormError::TokenLimitExceeded => "CND-FRM-015",
+        FormError::NestingLimitExceeded => "CND-FRM-016",
+        FormError::InvalidNestedForm(_) => "CND-FRM-017",
     };
     FormDiagnostic {
         code,
@@ -999,7 +1104,7 @@ fn hex(nibble: u8) -> char {
 mod tests {
     use super::{
         parse, parse_document, ConfigurationField, ConfigurationRule, FormError, KindDefinition,
-        ProfileCatalog, MAXIMUM_FORM_SOURCE_BYTES, MAXIMUM_FORM_TOKENS,
+        ProfileCatalog, MAXIMUM_FORM_NESTING_DEPTH, MAXIMUM_FORM_SOURCE_BYTES, MAXIMUM_FORM_TOKENS,
     };
     use conduit_core::{
         kind_id, port_id, CapabilityId, ConfigurationValue, KindContractRevision, PortDescriptor,
@@ -1314,5 +1419,69 @@ mod tests {
         )
         .expect_err("one capability cannot name two boundaries");
         assert!(matches!(error, FormError::InvalidExport(_)));
+    }
+
+    #[test]
+    fn inline_nested_form_uses_the_same_checked_boundary_as_a_standalone_form() {
+        let standalone_source = "form 0\nchild {\n source: test/source\n sink: test/sink\n source > sink\n export run: test/composite = source.out -> sink.in\n}\n";
+        let nested_source = "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n final: test/sink\n child.out -> final.in\n}\n";
+        let standalone = parse(standalone_source, &catalog()).expect("standalone child checks");
+        let parent = parse(nested_source, &catalog()).expect("inline nested form checks");
+        let nested = &parent.nested_forms[0];
+        let capability_id = CapabilityId::from("run");
+
+        assert_eq!(nested.operation_id.as_str(), "child");
+        assert_eq!(nested.export_capability_id, capability_id);
+        assert_eq!(nested.form.checked_form_id, standalone.checked_form_id);
+        assert_eq!(nested.form.expanded_form_id, standalone.expanded_form_id);
+        assert_ne!(
+            nested.form.source_document_id,
+            standalone.source_document_id
+        );
+        assert_eq!(
+            nested
+                .form
+                .export_boundary(&capability_id)
+                .expect("nested boundary checks"),
+            standalone
+                .export_boundary(&capability_id)
+                .expect("standalone boundary checks")
+        );
+        assert_eq!(parent.connections.len(), 1);
+        assert_eq!(parent.connections[0].source_operation_id.as_str(), "child");
+        assert_eq!(parent.connections[0].source_port_id.as_str(), "out");
+        assert_eq!(parent.connections[0].sink_operation_id.as_str(), "final");
+    }
+
+    #[test]
+    fn nested_errors_keep_the_outer_document_and_exact_inner_span() {
+        let source = "form 0\nparent {\n child: run {\n  source: test/source\n  ?? inner error\n  sink: test/sink\n  source > sink\n  export run: test/composite = source.out -> sink.in\n }\n}\n";
+        let document = parse_document(source, &catalog());
+        let diagnostic = &document.diagnostics[0];
+
+        assert_eq!(document.round_trip(), source);
+        assert_eq!(diagnostic.code, "CND-FRM-013");
+        assert_eq!(diagnostic.span.line, 5);
+        assert_eq!(
+            &source[diagnostic.span.start..diagnostic.span.end],
+            "?? inner error"
+        );
+        assert!(document.checked_form.is_none());
+        assert!(document
+            .tokens
+            .iter()
+            .any(|token| token.text == "test/sink"));
+    }
+
+    #[test]
+    fn inline_nesting_has_a_hard_depth_ceiling() {
+        let mut source = String::from("form 0\nroot {\n");
+        for depth in 0..=MAXIMUM_FORM_NESTING_DEPTH {
+            source.push_str(&format!("n{depth}: run {{\n"));
+        }
+        let document = parse_document(&source, &catalog());
+
+        assert_eq!(document.diagnostics[0].code, "CND-FRM-016");
+        assert!(document.checked_form.is_none());
     }
 }

@@ -79,6 +79,9 @@ check-form-s3:
     cargo test -p conduit-form source_checked_and_expanded_form_identities_stay_distinct
     cargo test -p conduit-form checked_export_is_the_only_source_of_a_parent_kind_boundary
     cargo test -p conduit-form duplicate_export_capabilities_are_rejected
+    cargo test -p conduit-form inline_nested_form_uses_the_same_checked_boundary_as_a_standalone_form
+    cargo test -p conduit-form nested_errors_keep_the_outer_document_and_exact_inner_span
+    cargo test -p conduit-form inline_nesting_has_a_hard_depth_ceiling
     cargo test -p conduit-composite authored_parent_consumes_derived_export_through_an_ordinary_planned_cord
 
 check-realm-readiness:
