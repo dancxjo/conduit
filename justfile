@@ -28,10 +28,20 @@ pico-udp-relay:
 pico-thumb-check:
     cargo check -p conduit-pico-host --no-default-features --target thumbv6m-none-eabi
 
+realm:
+    cargo test -p conduit-realm
+
+realm-thumb-check:
+    cargo check -p conduit-realm --target thumbv6m-none-eabi
+
 check:
     cargo fmt --check
     cargo clippy --workspace --all-targets -- -D warnings
     cargo test --workspace
+
+check-realm-readiness:
+    cargo test -p conduit-realm
+    cargo check -p conduit-realm --target thumbv6m-none-eabi
 
 check-browser-readiness:
     @if cargo tree -p conduit-runtime --edges normal --prefix none | rg -q '^conduit-signal '; then echo 'conduit-runtime must not depend on conduit-signal'; exit 1; fi

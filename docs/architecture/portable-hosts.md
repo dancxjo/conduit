@@ -54,6 +54,8 @@ A realm is the set of host instances currently visible to one planning session.
 
 For the first implementation, realm membership may be explicit and development-oriented. A host can register with the local operator or planner and become available for placement.
 
+The current implementation checkpoint is recorded in [Realm membership readiness](realm-membership.md).
+
 A realm records or observes:
 
 - host identities;
