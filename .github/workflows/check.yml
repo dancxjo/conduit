@@ -42,6 +42,7 @@ jobs:
       - name: Extra feature and no-std contracts
         run: |
           cargo test --locked -p conduit-kernel --features alloc
+          cargo test --locked -p conduit --features sim-fixtures --test hello observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work
           cargo check --locked -p conduit-kernel --no-default-features
           cargo check --locked -p conduit-signal --no-default-features
           cargo check --locked -p conduit-wire --no-default-features
