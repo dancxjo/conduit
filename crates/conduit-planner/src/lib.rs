@@ -500,7 +500,7 @@ mod tests {
 
     fn form() -> conduit_form::CheckedForm {
         parse(
-            "form 0\n\nsignal-demo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
+            "form 0\n\nsignal-demo {\n    pulse: flow/pulse\n    show: display/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
             &signal_profile_catalog(),
         )
         .expect("form must parse")

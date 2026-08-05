@@ -1,6 +1,6 @@
 form 0
 
-fanout-std {
+triple-signal {
     pulse: flow/pulse
     local: display/show
     web: display/show

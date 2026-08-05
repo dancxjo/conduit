@@ -43,9 +43,19 @@ fn signal_demo_runs_locally() {
     assert!(
         lines
             .iter()
-            .any(|line| line.starts_with("place show kind=presentation/show host=std-host-1 boot=boot-")
+            .any(|line| line.starts_with("place show kind=display/show host=std-host-1 boot=boot-")
                 && line.ends_with(" capability=stdout-show-1 implementation=std/stdout-show-signal-v1 artifact=conduit-signal/show-artifact-v1")),
         "missing show placement line: {stdout}"
+    );
+    let receipt_lines = lines
+        .iter()
+        .filter(|line| line.starts_with("receipt signal placement="))
+        .copied()
+        .collect::<Vec<_>>();
+    assert_eq!(
+        receipt_lines.len(),
+        16,
+        "expected one machine-readable receipt per signal: {stdout}"
     );
     assert!(
         lines.iter().any(|line| line == &"signal 0 off"),
@@ -60,6 +70,18 @@ fn signal_demo_runs_locally() {
         "missing last signal line: {stdout}"
     );
     assert!(
+        receipt_lines
+            .iter()
+            .any(|line| line.ends_with(" sequence=0 level=false")),
+        "missing first signal receipt: {stdout}"
+    );
+    assert!(
+        receipt_lines
+            .iter()
+            .any(|line| line.ends_with(" sequence=15 level=true")),
+        "missing last signal receipt: {stdout}"
+    );
+    assert!(
         lines
             .iter()
             .any(|line| line.starts_with("plan ") && line.ends_with(" complete")),
@@ -70,5 +92,60 @@ fn signal_demo_runs_locally() {
             .iter()
             .any(|line| line == &"receipts 16 first=(0, false) last=(15, true)"),
         "missing receipt summary: {stdout}"
+    );
+}
+
+#[test]
+fn triple_signal_form_runs_against_local_std_fixture() {
+    let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .canonicalize()
+        .expect("workspace root must exist");
+    let form_path = workspace_root.join("examples/triple-signal.form");
+    let placements_path = workspace_root.join("examples/triple-local.placements");
+
+    let source = std::fs::read_to_string(&form_path).expect("triple form exists");
+    for platform_fact in [
+        "stdout",
+        "DOM",
+        "GPIO",
+        "browser",
+        "Pico",
+        "WebSocket",
+        "TCP",
+        "UDP",
+    ] {
+        assert!(
+            !source.contains(platform_fact),
+            "triple form should not contain platform fact {platform_fact}"
+        );
+    }
+
+    let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
+        .args([
+            form_path.to_str().expect("form path must be utf-8"),
+            "--placements",
+            placements_path
+                .to_str()
+                .expect("placements path must be utf-8"),
+        ])
+        .output()
+        .expect("failed to run conduit binary");
+
+    assert!(output.status.success(), "process failed: {output:?}");
+
+    let stdout = String::from_utf8(output.stdout).expect("stdout must be utf-8");
+    let receipt_lines = stdout
+        .lines()
+        .filter(|line| line.starts_with("receipt signal placement="))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        receipt_lines.len(),
+        48,
+        "expected three local show sinks to receipt sixteen signals each: {stdout}"
+    );
+    assert!(
+        stdout.contains("receipts 48 first=(0, false) last=(15, true)"),
+        "missing triple receipt summary: {stdout}"
     );
 }

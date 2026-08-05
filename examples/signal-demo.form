@@ -2,7 +2,7 @@ form 0
 
 signal-demo {
     pulse: flow/pulse
-    show: presentation/show
+    show: display/show
 
     pulse.count = 16
     pulse.period-ms = 250

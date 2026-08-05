@@ -28,6 +28,14 @@ pub struct StdHostConfig {
 #[derive(Debug, Clone)]
 pub struct StdRunReport {
     pub observations: Vec<Observation>,
+    pub receipts: Vec<SignalReceipt>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SignalReceipt {
+    pub placement_id: conduit_core::PlacementId,
+    pub sequence: u64,
+    pub level: bool,
 }
 
 pub trait TimerAdapter {
@@ -121,9 +129,7 @@ impl StdHost {
         }
 
         let mut pending_effects = activated_output.effects;
-        let mut receipt_count = 0u64;
-        let mut first_receipt = None;
-        let mut last_receipt = None;
+        let mut receipts = Vec::new();
         while let Some(effect) = pending_effects.pop() {
             let follow_up = match effect {
                 PlatformEffect::Wait {
@@ -157,11 +163,19 @@ impl StdHost {
                         if signal.level { "on" } else { "off" }
                     )
                     .map_err(|error| error.to_string())?;
-                    receipt_count += 1;
-                    if first_receipt.is_none() {
-                        first_receipt = Some(signal.clone());
-                    }
-                    last_receipt = Some(signal);
+                    writeln!(
+                        output,
+                        "receipt signal placement={} sequence={} level={}",
+                        placement_id.as_str(),
+                        signal.sequence,
+                        signal.level
+                    )
+                    .map_err(|error| error.to_string())?;
+                    receipts.push(SignalReceipt {
+                        placement_id: placement_id.clone(),
+                        sequence: signal.sequence,
+                        level: signal.level,
+                    });
                     self.runtime.handle(HostCommand::CompletePresentation {
                         plan_id,
                         placement_id,
@@ -180,17 +194,24 @@ impl StdHost {
         let observations = inspect_observations(&mut self.runtime);
         writeln!(output, "plan {} complete", fragment.plan_id.as_str())
             .map_err(|error| error.to_string())?;
-        if let (Some(first), Some(last)) = (&first_receipt, &last_receipt) {
+        if let (Some(first), Some(last)) = (receipts.first(), receipts.last()) {
             writeln!(
                 output,
                 "receipts {} first=({}, {}) last=({}, {})",
-                receipt_count, first.sequence, first.level, last.sequence, last.level
+                receipts.len(),
+                first.sequence,
+                first.level,
+                last.sequence,
+                last.level
             )
             .map_err(|error| error.to_string())?;
         } else {
             writeln!(output, "receipts 0").map_err(|error| error.to_string())?;
         }
-        Ok(StdRunReport { observations })
+        Ok(StdRunReport {
+            observations,
+            receipts,
+        })
     }
 }
 
@@ -382,7 +403,7 @@ mod tests {
             offer_generation: OfferGeneration(1),
         });
         let form = parse(
-            "form 0\n\nvirtual {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 3\n pulse.period-ms = 7\n pulse.initial = false\n pulse > show\n}\n",
+            "form 0\n\nvirtual {\n pulse: flow/pulse\n show: display/show\n pulse.count = 3\n pulse.period-ms = 7\n pulse.initial = false\n pulse > show\n}\n",
             &signal_profile_catalog(),
         )
         .expect("virtual-clock form parses");
@@ -396,8 +417,23 @@ mod tests {
 
         assert_eq!(timer.waits, vec![Duration::from_millis(7); 2]);
         let output = String::from_utf8(output).expect("stream is utf-8");
-        assert!(output.contains("signal 0 off\nsignal 1 on\nsignal 2 off\n"));
+        assert!(output.lines().any(|line| line == "signal 0 off"));
+        assert!(output.lines().any(|line| line == "signal 1 on"));
+        assert!(output.lines().any(|line| line == "signal 2 off"));
+        assert!(output
+            .lines()
+            .any(|line| line.starts_with("receipt signal placement=")
+                && line.ends_with(" sequence=0 level=false")));
+        assert!(output
+            .lines()
+            .any(|line| line.starts_with("receipt signal placement=")
+                && line.ends_with(" sequence=2 level=false")));
         assert!(output.contains("receipts 3 first=(0, false) last=(2, false)"));
+        assert_eq!(report.receipts.len(), 3);
+        assert_eq!(report.receipts[0].sequence, 0);
+        assert!(!report.receipts[0].level);
+        assert_eq!(report.receipts[2].sequence, 2);
+        assert!(!report.receipts[2].level);
         assert!(report.observations.iter().any(|observation| matches!(
             observation.kind,
             conduit_core::ObservationKind::PlanTerminal {
