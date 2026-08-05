@@ -8,8 +8,9 @@
 //! cargo check -p conduit-wire --target wasm32-unknown-unknown --test wire_corpus_vectors
 //! ```
 //!
-//! All assertions here mirror `wire_corpus.rs`; if a fixture changes both
-//! files will fail in unison.
+//! The assertions here intentionally cover a subset of `wire_corpus.rs` (focused on
+//! deterministic fixture vectors that can be validated without filesystem access); if a
+//! shared fixture changes, both files should fail where applicable.
 
 use conduit_core::{ConnectionEnvelope, ConnectionId, KindId, PlanId, PROTOCOL_VERSION};
 use conduit_wire::{decode_envelope, encode_envelope, WireError, MAX_ID_BYTES};
