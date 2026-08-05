@@ -23,6 +23,88 @@ pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
 
+#[cfg(test)]
+mod allocation_probe {
+    use std::alloc::{GlobalAlloc, Layout, System};
+    use std::cell::Cell;
+
+    pub struct TrackingAllocator;
+
+    thread_local! {
+        static TRACKING: Cell<bool> = const { Cell::new(false) };
+        static ALLOCATIONS: Cell<usize> = const { Cell::new(0) };
+    }
+
+    fn record() {
+        let _ = TRACKING.try_with(|tracking| {
+            if tracking.get() {
+                let _ = ALLOCATIONS.try_with(|allocations| {
+                    allocations.set(allocations.get().saturating_add(1));
+                });
+            }
+        });
+    }
+
+    unsafe impl GlobalAlloc for TrackingAllocator {
+        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+            let pointer = unsafe { System.alloc(layout) };
+            if !pointer.is_null() {
+                record();
+            }
+            pointer
+        }
+
+        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+            let pointer = unsafe { System.alloc_zeroed(layout) };
+            if !pointer.is_null() {
+                record();
+            }
+            pointer
+        }
+
+        unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+            unsafe { System.dealloc(pointer, layout) };
+        }
+
+        unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+            let pointer = unsafe { System.realloc(pointer, layout, new_size) };
+            if !pointer.is_null() {
+                record();
+            }
+            pointer
+        }
+    }
+
+    #[global_allocator]
+    static ALLOCATOR: TrackingAllocator = TrackingAllocator;
+
+    pub struct Guard {
+        finished: bool,
+    }
+
+    impl Guard {
+        pub fn finish(mut self) -> usize {
+            self.finished = true;
+            TRACKING.with(|tracking| tracking.set(false));
+            ALLOCATIONS.with(Cell::get)
+        }
+    }
+
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            if !self.finished {
+                TRACKING.with(|tracking| tracking.set(false));
+            }
+        }
+    }
+
+    pub fn begin() -> Guard {
+        ALLOCATIONS.with(|allocations| allocations.set(0));
+        TRACKING.with(|tracking| tracking.set(true));
+        Guard { finished: false }
+    }
+}
+
 static BOOT_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Debug, Clone)]
@@ -48,6 +130,8 @@ pub struct StdKernelExecutionReport {
     pub value_allocation_capacity_after: (usize, usize),
     pub presentation_ids: Vec<conduit_core::PresentationId>,
     pub identity: conduit_runtime::lowering::KernelExecutionIdentityMap,
+    #[cfg(test)]
+    pub post_activation_allocations: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -541,6 +625,47 @@ mod tests {
     use conduit_signal::signal_profile_catalog;
     use std::time::Duration;
 
+    fn sealed_activation_region(source: &str) -> &str {
+        source
+            .split_once("SEALED PROFILE ACTIVATION BEGIN")
+            .and_then(|(_, remainder)| {
+                remainder
+                    .split_once("SEALED PROFILE ACTIVATION END")
+                    .map(|(activation, _)| activation)
+            })
+            .expect("sealed activation markers remain paired")
+    }
+
+    #[test]
+    fn sealed_profiles_do_not_reenter_semantic_or_allocating_preparation() {
+        let forbidden = [
+            "fragment.",
+            "lowered.",
+            "kind_id(",
+            "provider",
+            "registry",
+            ".find(",
+            ".collect(",
+            "Vec::",
+            "vec![",
+            ".to_vec(",
+            ".clone(",
+            ".reserve(",
+        ];
+        for (name, source) in [
+            ("signal", include_str!("kernel_signal.rs")),
+            ("multi-value", include_str!("kernel_multivalue.rs")),
+        ] {
+            let activation = sealed_activation_region(source);
+            for token in forbidden {
+                assert!(
+                    !activation.contains(token),
+                    "{name} sealed activation reintroduced '{token}'"
+                );
+            }
+        }
+    }
+
     #[test]
     fn exact_signal_fragment_lowers_to_numeric_kernel_tables() {
         let host = StdHost::new_with_config(StdHostConfig {
@@ -738,8 +863,10 @@ mod tests {
         let plan = host.plan_local(&form, None).expect("local plan resolves");
         let fragment = plan.fragments[0].clone();
         let plan_id = fragment.plan_id.clone();
-        let mut output = Vec::new();
-        let mut timer = VirtualTimer::default();
+        let mut output = Vec::with_capacity(65_536);
+        let mut timer = VirtualTimer {
+            waits: Vec::with_capacity(2),
+        };
         let report = host
             .run_fragment_to(fragment, &mut output, &mut timer)
             .expect("streamed run completes");
@@ -771,6 +898,7 @@ mod tests {
         assert_eq!(kernel.identity.plan_id, plan_id);
         assert_eq!(kernel.identity.active_play_id, kernel.active_play_id);
         assert_eq!(kernel.identity.lengths(), (5, 3, 4));
+        assert_eq!(kernel.post_activation_allocations, 0);
         assert!(kernel
             .presentation_ids
             .windows(2)

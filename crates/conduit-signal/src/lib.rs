@@ -209,16 +209,18 @@ pub fn decode_signal(payload: &ValuePayload) -> Result<Signal, SignalProfileErro
             payload.value_kind.as_str().to_string(),
         ));
     }
-    if payload.encoded.len() != SIGNAL_ENCODED_LEN as usize {
-        return Err(SignalProfileError::WrongEncodedLength(
-            payload.encoded.len(),
-        ));
+    decode_signal_bytes(&payload.encoded)
+}
+
+pub fn decode_signal_bytes(encoded: &[u8]) -> Result<Signal, SignalProfileError> {
+    if encoded.len() != SIGNAL_ENCODED_LEN as usize {
+        return Err(SignalProfileError::WrongEncodedLength(encoded.len()));
     }
     let mut sequence = [0u8; 8];
-    sequence.copy_from_slice(&payload.encoded[..8]);
+    sequence.copy_from_slice(&encoded[..8]);
     Ok(Signal {
         sequence: u64::from_le_bytes(sequence),
-        level: payload.encoded[8] != 0,
+        level: encoded[8] != 0,
     })
 }
 
@@ -557,8 +559,8 @@ pub use host_profile::{
 #[cfg(test)]
 mod tests {
     use super::{
-        decode_signal, encode_signal, parse_pulse_configuration, pulse_configuration_entries,
-        PulseConfiguration, Signal,
+        decode_signal, decode_signal_bytes, encode_signal, parse_pulse_configuration,
+        pulse_configuration_entries, PulseConfiguration, Signal,
     };
 
     #[test]
@@ -570,6 +572,10 @@ mod tests {
         let decoded = decode_signal(&payload).expect("signal payload should decode");
         assert_eq!(decoded.sequence, 7);
         assert!(decoded.level);
+        assert_eq!(
+            decode_signal_bytes(&payload.encoded).expect("fixed bytes should decode"),
+            decoded
+        );
     }
 
     #[test]
