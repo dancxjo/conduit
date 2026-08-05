@@ -1,4 +1,0 @@
-cargo:rustc-link-search=/home/runner/work/conduit/conduit/firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/debug/build/embassy-rp-683e4bc5b4b47d3c/out
-cargo:rerun-if-changed=build.rs
-cargo:rerun-if-changed=link-rp.x.in
-cargo::rustc-check-cfg=cfg(has_fpu)
