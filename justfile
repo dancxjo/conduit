@@ -145,3 +145,27 @@ check-sim-readiness:
     cargo test -p conduit-pico-sim
     cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture
     cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
+
+# Pico W local LED proof — full workflow (doctor -> build -> flash -> verify)
+pico *args:
+    cargo run -p xtask -- pico {{args}}
+
+# Alias for the complete local workflow
+pico-local *args:
+    cargo run -p xtask -- pico-local {{args}}
+
+# Sub-actions
+pico-doctor:
+    cargo run -p xtask -- pico doctor
+
+pico-build:
+    cargo run -p xtask -- pico build
+
+pico-flash:
+    cargo run -p xtask -- pico flash
+
+pico-verify:
+    cargo run -p xtask -- pico verify
+
+pico-local-run:
+    cargo run -p xtask -- pico local

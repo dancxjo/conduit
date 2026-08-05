@@ -1,0 +1,14 @@
+/home/runner/work/conduit/conduit/firmware/conduit-pico-w-signal/target/debug/deps/serde-d83b3535b9ac6c07.d: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/runner/work/conduit/conduit/firmware/conduit-pico-w-signal/target/debug/build/serde-6e9daf7555a36488/out/private.rs
+
+/home/runner/work/conduit/conduit/firmware/conduit-pico-w-signal/target/debug/deps/libserde-d83b3535b9ac6c07.rlib: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/runner/work/conduit/conduit/firmware/conduit-pico-w-signal/target/debug/build/serde-6e9daf7555a36488/out/private.rs
+
+/home/runner/work/conduit/conduit/firmware/conduit-pico-w-signal/target/debug/deps/libserde-d83b3535b9ac6c07.rmeta: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/runner/work/conduit/conduit/firmware/conduit-pico-w-signal/target/debug/build/serde-6e9daf7555a36488/out/private.rs
+
+/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs:
+/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs:
+/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs:
+/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs:
+/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs:
+/home/runner/work/conduit/conduit/firmware/conduit-pico-w-signal/target/debug/build/serde-6e9daf7555a36488/out/private.rs:
+
+# env-dep:OUT_DIR=/home/runner/work/conduit/conduit/firmware/conduit-pico-w-signal/target/debug/build/serde-6e9daf7555a36488/out

@@ -1,0 +1,3 @@
+cargo:rustc-link-search=/home/runner/work/conduit/conduit/firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/debug/build/rp-pac-d18b853033585362/out
+cargo:rerun-if-changed=device.x
+cargo:rerun-if-changed=build.rs
