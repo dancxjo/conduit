@@ -11,7 +11,11 @@ use conduit_planner::{
 };
 use conduit_realm::{AdmissionRequest, LinkId, Realm, RealmId};
 use conduit_signal::signal_profile_catalog;
-use conduit_std_host::{load_checked_form, load_placements, StdHost, StdHostConfig, ThreadTimer};
+use conduit_std_host::{
+    load_checked_form, load_placements, render_copy_task_inspect, render_copy_task_report,
+    run_copy_file_task, CopyFileRequest, CopyReplaceMode, CopyTaskResult, StdHost, StdHostConfig,
+    ThreadTimer,
+};
 use std::collections::BTreeMap;
 use std::env;
 use std::io;
@@ -201,7 +205,7 @@ fn main() {
     let path = match args.next() {
         Some(path) => path,
         None => {
-            eprintln!("usage: conduit <form-file> [--placements <placements-file>]\n       conduit observatory-report");
+            eprintln!("usage: conduit <form-file> [--placements <placements-file>]\n       conduit observatory-report\n       conduit copy-file --source <path> --destination <path> [--replace|--reject-existing] [--max-bytes <n>] [--inspect]");
             std::process::exit(2);
         }
     };
@@ -221,6 +225,15 @@ fn main() {
             }
         }
     }
+    if path == "copy-file" {
+        match copy_file_from_args(args.collect()) {
+            Ok(success) => std::process::exit(if success { 0 } else { 1 }),
+            Err(err) => {
+                eprintln!("error: {err}");
+                std::process::exit(2);
+            }
+        }
+    }
 
     let placements_path = match (args.next().as_deref(), args.next()) {
         (Some("--placements"), value) => value,
@@ -237,4 +250,59 @@ fn main() {
         eprintln!("error: {err}");
         std::process::exit(1);
     }
+}
+
+fn copy_file_from_args(args: Vec<String>) -> Result<bool, String> {
+    let mut source = None;
+    let mut destination = None;
+    let mut replace_mode = CopyReplaceMode::RejectExisting;
+    let mut max_bytes = 16 * 1024 * 1024;
+    let mut inspect = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--source" => {
+                index += 1;
+                source = args.get(index).cloned();
+            }
+            "--destination" => {
+                index += 1;
+                destination = args.get(index).cloned();
+            }
+            "--replace" => {
+                replace_mode = CopyReplaceMode::ReplaceExisting;
+            }
+            "--reject-existing" | "--create-only" => {
+                replace_mode = CopyReplaceMode::RejectExisting;
+            }
+            "--max-bytes" => {
+                index += 1;
+                let value = args
+                    .get(index)
+                    .ok_or_else(|| "--max-bytes requires a value".to_string())?;
+                max_bytes = value
+                    .parse::<u64>()
+                    .map_err(|_| "--max-bytes must be an unsigned integer".to_string())?;
+            }
+            "--inspect" => {
+                inspect = true;
+            }
+            other => return Err(format!("unexpected copy-file argument: {other}")),
+        }
+        index += 1;
+    }
+    let source = source.ok_or_else(|| "copy-file requires --source <path>".to_string())?;
+    let destination =
+        destination.ok_or_else(|| "copy-file requires --destination <path>".to_string())?;
+    let request = CopyFileRequest::new(source, destination, replace_mode, max_bytes, inspect);
+    let report = run_copy_file_task(request);
+    let mut stdout = io::stdout().lock();
+    render_copy_task_report(&report, &mut stdout)?;
+    if report.inspect_requested {
+        render_copy_task_inspect(&report, &mut stdout)?;
+    }
+    Ok(matches!(
+        report.result,
+        CopyTaskResult::Created { .. } | CopyTaskResult::Replaced { .. }
+    ))
 }
