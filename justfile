@@ -73,6 +73,11 @@ check-planning-s2:
     cargo test -p conduit-runtime --test host_contract planned_evidence_storage_survives_observation_overflow
     cargo check -p conduit-core --target thumbv6m-none-eabi
 
+check-form-s3:
+    cargo test -p conduit-form lossless_document_
+    cargo test -p conduit-form missing_close_is_diagnosed_at_eof_without_losing_source
+    cargo test -p conduit-form source_checked_and_expanded_form_identities_stay_distinct
+
 check-realm-readiness:
     cargo test -p conduit-realm
     cargo check -p conduit-realm --target thumbv6m-none-eabi
