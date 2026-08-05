@@ -132,8 +132,8 @@ fn repository_status_matrix_keeps_proof_classes_distinct() {
         "unsafe prototype disabled",
         "WASM compilation is not browser execution",
         "Thumb compilation is not firmware",
-        "The Chromium DOM boundary is browser execution",
-        "browser-side planner/runtime or a live link",
+        "accepted Chromium proof is browser-local",
+        "not a live link",
         "Frame/datagram fixtures",
         "WebSocket or UDP sockets",
     ] {
