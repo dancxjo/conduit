@@ -34,6 +34,7 @@ pub const FRAGMENT_ID: &str = generated_signal::FRAGMENT_ID;
 pub const HOST_ID: &str = generated_signal::HOST_ID;
 pub const BOOT_ID: &str = generated_signal::BOOT_ID;
 pub const ACTIVE_PLAY_ID: &str = generated_signal::ACTIVE_PLAY_ID;
+pub const FIRMWARE_BUILD_ID: &str = generated_signal::FIRMWARE_BUILD_ID;
 pub const BOOT_EVIDENCE_ID: &str = generated_signal::BOOT_EVIDENCE_ID;
 pub const TERMINAL_EVIDENCE_ID: &str = generated_signal::TERMINAL_EVIDENCE_ID;
 
@@ -48,8 +49,8 @@ pub struct PresentationIdentity {
 
 pub fn presentation_identity(sequence: usize) -> Option<PresentationIdentity> {
     Some(PresentationIdentity {
-        presentation_id: *generated_signal::PRESENTATION_IDS.get(sequence)?,
-        evidence_id: *generated_signal::PRESENTATION_EVIDENCE_IDS.get(sequence)?,
+        presentation_id: generated_signal::PRESENTATION_IDS.get(sequence)?,
+        evidence_id: generated_signal::PRESENTATION_EVIDENCE_IDS.get(sequence)?,
     })
 }
 

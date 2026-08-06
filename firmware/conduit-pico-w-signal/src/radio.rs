@@ -40,6 +40,10 @@ async fn cyw43_task(
     runner.run().await
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the Pico W radio boundary names each fixed peripheral and asset explicitly"
+)]
 pub async fn init_cyw43(
     spawner: &Spawner,
     pio0: Peri<'static, PIO0>,

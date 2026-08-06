@@ -3,7 +3,9 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use super::doctor::repo_root;
-use super::firmware::{read_identity_manifest, GeneratedImageIdentity};
+#[cfg(test)]
+use super::firmware::GeneratedImageIdentity;
+use super::firmware::{read_identity_manifest, FirmwareIdentity};
 use super::{PicoArgs, PicoResult};
 
 const EXPECTED_RECEIPTS: usize = 16;
@@ -39,11 +41,11 @@ pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
 
     let identity = read_identity_manifest(&repo_root())?;
     let file = std::fs::OpenOptions::new().read(true).open(&port)?;
-    verify_receipts(BufReader::new(file), &identity.generated_image)
+    verify_receipts(BufReader::new(file), &identity)
 }
 
-fn verify_receipts(reader: impl BufRead, expected: &GeneratedImageIdentity) -> PicoResult<()> {
-    validate_expected_identity(expected)?;
+fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoResult<()> {
+    validate_expected_identity(identity)?;
     let mut boot_seen = false;
     let mut receipts = 0usize;
     let mut terminal_seen = false;
@@ -65,7 +67,7 @@ fn verify_receipts(reader: impl BufRead, expected: &GeneratedImageIdentity) -> P
             if receipts > 0 {
                 return Err("boot identity record arrived after presentation receipts".into());
             }
-            verify_boot_identity(&record, expected)?;
+            verify_boot_identity(&record, identity)?;
             boot_seen = true;
             continue;
         }
@@ -77,7 +79,7 @@ fn verify_receipts(reader: impl BufRead, expected: &GeneratedImageIdentity) -> P
             if record["success"].as_bool() != Some(true) {
                 return Err(format!("firmware reported terminal failure: {line}").into());
             }
-            verify_terminal_identity(&record, expected)?;
+            verify_terminal_identity(&record, identity)?;
             terminal_seen = true;
             break;
         }
@@ -96,7 +98,7 @@ fn verify_receipts(reader: impl BufRead, expected: &GeneratedImageIdentity) -> P
                 )
                 .into());
             }
-            verify_presentation_identity(&record, receipts, expected)?;
+            verify_presentation_identity(&record, receipts, identity)?;
             receipts += 1;
             continue;
         }
@@ -118,7 +120,15 @@ fn verify_receipts(reader: impl BufRead, expected: &GeneratedImageIdentity) -> P
     Ok(())
 }
 
-fn validate_expected_identity(expected: &GeneratedImageIdentity) -> PicoResult<()> {
+fn validate_expected_identity(identity: &FirmwareIdentity) -> PicoResult<()> {
+    let expected = &identity.generated_image;
+    if identity.firmware_build_id != expected.firmware_build_id {
+        return Err(format!(
+            "identity manifest firmware_build_id mismatch: top-level {}, generated image {}",
+            identity.firmware_build_id, expected.firmware_build_id
+        )
+        .into());
+    }
     if expected.presentation_ids.len() != EXPECTED_RECEIPTS {
         return Err(format!(
             "identity manifest contains {} presentation IDs; expected {EXPECTED_RECEIPTS}",
@@ -136,20 +146,19 @@ fn validate_expected_identity(expected: &GeneratedImageIdentity) -> PicoResult<(
     Ok(())
 }
 
-fn verify_boot_identity(
-    record: &serde_json::Value,
-    expected: &GeneratedImageIdentity,
-) -> PicoResult<()> {
-    verify_static_identity(record, expected, false)?;
+fn verify_boot_identity(record: &serde_json::Value, identity: &FirmwareIdentity) -> PicoResult<()> {
+    let expected = &identity.generated_image;
+    verify_static_identity(record, identity, false)?;
     verify_field(record, "evidence_id", &expected.boot_evidence_id)
 }
 
 fn verify_presentation_identity(
     record: &serde_json::Value,
     sequence: usize,
-    expected: &GeneratedImageIdentity,
+    identity: &FirmwareIdentity,
 ) -> PicoResult<()> {
-    verify_static_identity(record, expected, true)?;
+    let expected = &identity.generated_image;
+    verify_static_identity(record, identity, true)?;
     let expected_level = sequence % 2 == 1;
     let level = record["level"]
         .as_bool()
@@ -174,17 +183,20 @@ fn verify_presentation_identity(
 
 fn verify_terminal_identity(
     record: &serde_json::Value,
-    expected: &GeneratedImageIdentity,
+    identity: &FirmwareIdentity,
 ) -> PicoResult<()> {
-    verify_static_identity(record, expected, true)?;
+    let expected = &identity.generated_image;
+    verify_static_identity(record, identity, true)?;
     verify_field(record, "evidence_id", &expected.terminal_evidence_id)
 }
 
 fn verify_static_identity(
     record: &serde_json::Value,
-    expected: &GeneratedImageIdentity,
+    identity: &FirmwareIdentity,
     require_active_play: bool,
 ) -> PicoResult<()> {
+    let expected = &identity.generated_image;
+    verify_field(record, "firmware_build_id", &identity.firmware_build_id)?;
     verify_field(record, "source_document_id", &expected.source_document_id)?;
     verify_field(record, "checked_form_id", &expected.checked_form_id)?;
     verify_field(record, "expanded_form_id", &expected.expanded_form_id)?;
@@ -258,6 +270,7 @@ mod tests {
     fn expected_identity() -> GeneratedImageIdentity {
         GeneratedImageIdentity {
             schema: "conduit.pico-signal.generated-image@1".into(),
+            firmware_build_id: "firmware-build".into(),
             source_document_id: "source".into(),
             checked_form_id: "checked".into(),
             expanded_form_id: "expanded".into(),
@@ -285,9 +298,24 @@ mod tests {
         }
     }
 
+    fn expected_firmware_identity() -> FirmwareIdentity {
+        FirmwareIdentity {
+            schema: "conduit-pico-w-signal/identity@1".into(),
+            git_revision: "revision".into(),
+            target: "thumbv6m-none-eabi".into(),
+            profile: "release".into(),
+            firmware_build_id: "firmware-build".into(),
+            firmware_sha256: "sha256".into(),
+            generated_image: expected_identity(),
+            cyw43_commit: "commit".into(),
+            cyw43_assets: Vec::new(),
+        }
+    }
+
     fn boot() -> String {
         concat!(
             "{\"schema\":\"conduit-pico-w-signal/boot@1\",",
+            "\"firmware_build_id\":\"firmware-build\",",
             "\"source_document_id\":\"source\",",
             "\"checked_form_id\":\"checked\",",
             "\"expanded_form_id\":\"expanded\",",
@@ -304,6 +332,7 @@ mod tests {
         format!(
             concat!(
                 "{{\"schema\":\"conduit-pico-w-signal/receipt@1\",",
+                "\"firmware_build_id\":\"firmware-build\",",
                 "\"source_document_id\":\"source\",",
                 "\"checked_form_id\":\"checked\",",
                 "\"expanded_form_id\":\"expanded\",",
@@ -327,6 +356,7 @@ mod tests {
     fn terminal() -> String {
         concat!(
             "{\"schema\":\"conduit-pico-w-signal/terminal@1\",",
+            "\"firmware_build_id\":\"firmware-build\",",
             "\"source_document_id\":\"source\",",
             "\"checked_form_id\":\"checked\",",
             "\"expanded_form_id\":\"expanded\",",
@@ -349,13 +379,14 @@ mod tests {
             input.push_str(&receipt(sequence));
         }
         input.push_str(&terminal());
-        verify_receipts(Cursor::new(input), &expected_identity()).expect("valid receipt stream");
+        verify_receipts(Cursor::new(input), &expected_firmware_identity())
+            .expect("valid receipt stream");
     }
 
     #[test]
     fn rejects_reordered_receipt() {
         let input = format!("{}{}{}", boot(), receipt(1), terminal());
-        assert!(verify_receipts(Cursor::new(input), &expected_identity()).is_err());
+        assert!(verify_receipts(Cursor::new(input), &expected_firmware_identity()).is_err());
     }
 
     #[test]
@@ -366,6 +397,20 @@ mod tests {
             input.push_str(&receipt(sequence));
         }
         input.push_str(&terminal().replace("\"plan_id\":\"plan\"", "\"plan_id\":\"mutated\""));
-        assert!(verify_receipts(Cursor::new(input), &expected_identity()).is_err());
+        assert!(verify_receipts(Cursor::new(input), &expected_firmware_identity()).is_err());
+    }
+
+    #[test]
+    fn rejects_mutated_firmware_build_identity() {
+        let mut input = String::new();
+        input.push_str(&boot());
+        for sequence in 0..EXPECTED_RECEIPTS {
+            input.push_str(&receipt(sequence));
+        }
+        input.push_str(&terminal().replace(
+            "\"firmware_build_id\":\"firmware-build\"",
+            "\"firmware_build_id\":\"other-build\"",
+        ));
+        assert!(verify_receipts(Cursor::new(input), &expected_firmware_identity()).is_err());
     }
 }

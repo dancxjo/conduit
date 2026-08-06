@@ -26,6 +26,7 @@ pub struct UsbCdc {
 
 #[derive(Clone, Copy)]
 pub struct BootIdentity {
+    pub firmware_build_id: &'static str,
     pub source_document_id: &'static str,
     pub checked_form_id: &'static str,
     pub expanded_form_id: &'static str,
@@ -38,6 +39,7 @@ pub struct BootIdentity {
 
 #[derive(Clone, Copy)]
 pub struct PresentationReceiptIdentity {
+    pub firmware_build_id: &'static str,
     pub source_document_id: &'static str,
     pub checked_form_id: &'static str,
     pub expanded_form_id: &'static str,
@@ -52,6 +54,7 @@ pub struct PresentationReceiptIdentity {
 
 #[derive(Clone, Copy)]
 pub struct TerminalIdentity {
+    pub firmware_build_id: &'static str,
     pub source_document_id: &'static str,
     pub checked_form_id: &'static str,
     pub expanded_form_id: &'static str,
@@ -116,6 +119,7 @@ impl UsbCdc {
                 concat!(
                     "{{",
                     "\"schema\":\"conduit-pico-w-signal/boot@1\",",
+                    "\"firmware_build_id\":\"{}\",",
                     "\"source_document_id\":\"{}\",",
                     "\"checked_form_id\":\"{}\",",
                     "\"expanded_form_id\":\"{}\",",
@@ -126,6 +130,7 @@ impl UsbCdc {
                     "\"evidence_id\":\"{}\"",
                     "}}\n"
                 ),
+                identity.firmware_build_id,
                 identity.source_document_id,
                 identity.checked_form_id,
                 identity.expanded_form_id,
@@ -153,6 +158,7 @@ impl UsbCdc {
                 concat!(
                     "{{",
                     "\"schema\":\"conduit-pico-w-signal/receipt@1\",",
+                    "\"firmware_build_id\":\"{}\",",
                     "\"source_document_id\":\"{}\",",
                     "\"checked_form_id\":\"{}\",",
                     "\"expanded_form_id\":\"{}\",",
@@ -167,6 +173,7 @@ impl UsbCdc {
                     "\"evidence_id\":\"{}\"",
                     "}}\n"
                 ),
+                identity.firmware_build_id,
                 identity.source_document_id,
                 identity.checked_form_id,
                 identity.expanded_form_id,
@@ -193,6 +200,7 @@ impl UsbCdc {
                 concat!(
                     "{{",
                     "\"schema\":\"conduit-pico-w-signal/terminal@1\",",
+                    "\"firmware_build_id\":\"{}\",",
                     "\"source_document_id\":\"{}\",",
                     "\"checked_form_id\":\"{}\",",
                     "\"expanded_form_id\":\"{}\",",
@@ -205,6 +213,7 @@ impl UsbCdc {
                     "\"evidence_id\":\"{}\"",
                     "}}\n"
                 ),
+                identity.firmware_build_id,
                 identity.source_document_id,
                 identity.checked_form_id,
                 identity.expanded_form_id,
@@ -233,6 +242,7 @@ impl UsbCdc {
                 concat!(
                     "{{",
                     "\"schema\":\"conduit-pico-w-signal/terminal@1\",",
+                    "\"firmware_build_id\":\"{}\",",
                     "\"source_document_id\":\"{}\",",
                     "\"checked_form_id\":\"{}\",",
                     "\"expanded_form_id\":\"{}\",",
@@ -246,6 +256,7 @@ impl UsbCdc {
                     "\"error\":\"{:?}\"",
                     "}}\n"
                 ),
+                identity.firmware_build_id,
                 identity.source_document_id,
                 identity.checked_form_id,
                 identity.expanded_form_id,

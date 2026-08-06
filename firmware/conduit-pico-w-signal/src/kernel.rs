@@ -23,9 +23,9 @@ use crate::receipts::{BootIdentity, PresentationReceiptIdentity, TerminalIdentit
 use crate::signal_image::{
     decode_wait_ms, generated_cords, generated_host_bindings, generated_nodes, generated_routes,
     presentation_identity, signal_layout, value_store_bytes, ACTIVE_PLAY_ID, BOOT_EVIDENCE_ID,
-    BOOT_ID, CHECKED_FORM_ID, EMPTY_VALUE_REF, EXPANDED_FORM_ID, FRAGMENT_ID, HOST_BINDING_SLOTS,
-    HOST_ID, MAX_STORED_SIGNAL_VALUES, NODES, PENDING_REQUESTS, PLAN_ID, PORTS, QUEUE_SLOTS,
-    ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_EVIDENCE_BYTES, RUNTIME_EVIDENCE_EVENTS,
+    BOOT_ID, CHECKED_FORM_ID, EMPTY_VALUE_REF, EXPANDED_FORM_ID, FIRMWARE_BUILD_ID, FRAGMENT_ID,
+    HOST_BINDING_SLOTS, HOST_ID, MAX_STORED_SIGNAL_VALUES, NODES, PENDING_REQUESTS, PLAN_ID, PORTS,
+    QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_EVIDENCE_BYTES, RUNTIME_EVIDENCE_EVENTS,
     SOURCE_DOCUMENT_ID, TERMINAL_EVIDENCE_ID, VALUE_SLOTS, WAIT_VALUE_BYTES, CORDS,
 };
 
@@ -178,6 +178,7 @@ pub async fn run_signal_demo(control: &mut Control<'_>, cdc: &mut UsbCdc) {
 
 fn boot_identity() -> BootIdentity {
     BootIdentity {
+        firmware_build_id: FIRMWARE_BUILD_ID,
         source_document_id: SOURCE_DOCUMENT_ID,
         checked_form_id: CHECKED_FORM_ID,
         expanded_form_id: EXPANDED_FORM_ID,
@@ -193,6 +194,7 @@ fn presentation_receipt_identity(
     identity: crate::signal_image::PresentationIdentity,
 ) -> PresentationReceiptIdentity {
     PresentationReceiptIdentity {
+        firmware_build_id: FIRMWARE_BUILD_ID,
         source_document_id: SOURCE_DOCUMENT_ID,
         checked_form_id: CHECKED_FORM_ID,
         expanded_form_id: EXPANDED_FORM_ID,
@@ -208,6 +210,7 @@ fn presentation_receipt_identity(
 
 fn terminal_identity() -> TerminalIdentity {
     TerminalIdentity {
+        firmware_build_id: FIRMWARE_BUILD_ID,
         source_document_id: SOURCE_DOCUMENT_ID,
         checked_form_id: CHECKED_FORM_ID,
         expanded_form_id: EXPANDED_FORM_ID,
