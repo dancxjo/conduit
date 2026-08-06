@@ -364,6 +364,7 @@ impl DistributedToggleSource {
         activation_index: &mut usize,
     ) -> Result<Option<(u64, [u8; SIGNAL_ENCODED_LEN as usize])>, String> {
         let (endpoint, cord) = self.remote();
+        let mut completed_activation = false;
         loop {
             if let Some(offer) = self
                 .scheduler
@@ -379,11 +380,14 @@ impl DistributedToggleSource {
                     .map_err(|_| "remote Signal payload width mismatch".to_string())?;
                 return Ok(Some((offer.sequence, payload)));
             }
-            if let Some(request) = self.scheduler.next_host_request() {
-                let current_index = *activation_index;
-                *activation_index += 1;
-                self.complete_activation_wait(request, report, stdin, current_index)?;
-                continue;
+            if !completed_activation {
+                if let Some(request) = self.scheduler.next_host_request() {
+                    let current_index = *activation_index;
+                    *activation_index += 1;
+                    self.complete_activation_wait(request, report, stdin, current_index)?;
+                    completed_activation = true;
+                    continue;
+                }
             }
             match self
                 .scheduler

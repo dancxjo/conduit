@@ -46,6 +46,7 @@ use super::{
 
 pub(super) const ROUTE_SLOTS: usize = 1;
 pub(super) const EVIDENCE_ITEMS: u16 = 256;
+const PRESSURE_HOLD_SEQUENCE: u64 = 1;
 
 pub(super) type ToggleSinkScheduler = FixedScheduler<
     OperationDriver<ToggleShowOperation, PORTS>,
@@ -76,10 +77,10 @@ pub(super) struct ToggleDistributedSink {
     expected_completion_len: usize,
     current: Option<(HostOperationRequest, usize)>,
     pending_delivery: Option<u64>,
+    delivery_after_presentation: Option<u64>,
     pending_pressure: Option<u64>,
     pending_failure_terminal: Option<SessionTerminalDisposition>,
-    drive_after_delivery: bool,
-    hold_first_value: bool,
+    hold_for_pressure: bool,
     input_closed: bool,
     pub(super) receipts: usize,
     pressure_retries: u32,
@@ -296,10 +297,10 @@ impl ToggleDistributedSink {
             expected_completion_len: 0,
             current: None,
             pending_delivery: None,
+            delivery_after_presentation: None,
             pending_pressure: None,
             pending_failure_terminal: None,
-            drive_after_delivery: false,
-            hold_first_value: false,
+            hold_for_pressure: false,
             input_closed: false,
             receipts: 0,
             pressure_retries: 0,
@@ -397,8 +398,8 @@ impl ToggleDistributedSink {
                 match admission {
                     RemoteIngressOutcome::Accepted { .. } => {
                         self.pending_delivery = Some(sequence);
-                        if sequence == 0 && self.pressure_retries == 0 {
-                            self.hold_first_value = true;
+                        if sequence == PRESSURE_HOLD_SEQUENCE && self.pressure_retries == 0 {
+                            self.hold_for_pressure = true;
                         }
                         self.encode_session(SessionMessage::Accepted { sequence })
                     }
@@ -449,16 +450,15 @@ impl ToggleDistributedSink {
         }
         self.clear_output();
         if let Some(sequence) = self.pending_delivery.take() {
-            self.drive_after_delivery = !(sequence == 0 && self.hold_first_value);
-            return self.encode_session(SessionMessage::Delivered { sequence });
-        }
-        if self.hold_first_value {
-            self.hold_first_value = false;
-            return Ok(());
-        }
-        if self.drive_after_delivery {
-            self.drive_after_delivery = false;
+            if sequence == PRESSURE_HOLD_SEQUENCE && self.hold_for_pressure {
+                return self.encode_session(SessionMessage::Delivered { sequence });
+            }
+            self.delivery_after_presentation = Some(sequence);
             return self.drive_scheduler();
+        }
+        if self.hold_for_pressure {
+            self.hold_for_pressure = false;
+            return Ok(());
         }
         self.drive_scheduler()
     }
@@ -608,6 +608,9 @@ impl ToggleDistributedSink {
         self.receipts += 1;
         self.expected_completion_len = 0;
         self.clear_output();
+        if let Some(sequence) = self.delivery_after_presentation.take() {
+            return self.encode_session(SessionMessage::Delivered { sequence });
+        }
         if let Some(sequence) = self.pending_pressure.take() {
             return self.encode_session(SessionMessage::Pressure { sequence });
         }
