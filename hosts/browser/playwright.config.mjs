@@ -8,6 +8,7 @@ export default defineConfig({
     "signal-dom-host.spec.mjs",
     "websocket-carrier.spec.mjs",
     "distributed-signal.spec.mjs",
+    "distributed-toggle.spec.mjs",
   ],
   fullyParallel: false,
   workers: 1,
