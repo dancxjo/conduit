@@ -56,6 +56,16 @@ prove-std-browser-s4:
     cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
     npx playwright test --config hosts/browser/playwright.config.mjs hosts/browser/distributed-signal.spec.mjs
 
+# Interactive S4 toggle demo: Enter presses drive activations through a real WebSocket to the browser.
+toggle:
+    cargo xtask demo toggle
+
+# One live loopback std-kernel to browser-WASM-kernel toggle proof.
+prove-std-browser-toggle:
+    cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
+    npx playwright test --config hosts/browser/playwright.config.mjs hosts/browser/distributed-toggle.spec.mjs
+
+
 check-kernel-s1:
     cargo test -p conduit-kernel --features alloc
     cargo check -p conduit-kernel --target thumbv6m-none-eabi

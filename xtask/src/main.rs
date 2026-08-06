@@ -10,7 +10,7 @@ mod suites;
 mod workspace;
 
 use clap::Parser;
-use cli::{Cli, Command, GlobalOpts};
+use cli::{Cli, Command, DemoCommand, GlobalOpts};
 
 fn main() {
     let cli = Cli::parse();
@@ -20,6 +20,9 @@ fn main() {
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Pico(mut args) => run_pico(&opts, &mut args, false),
         Command::PicoLocal(mut args) => run_pico(&opts, &mut args, true),
+        Command::Demo(args) => match args.command {
+            DemoCommand::Toggle => commands::toggle::run(),
+        },
     };
 
     if let Err(error) = result {

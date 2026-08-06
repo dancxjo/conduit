@@ -36,6 +36,20 @@ pub enum Command {
     Pico(PicoArgs),
     /// Run the complete Pico W local workflow.
     PicoLocal(PicoArgs),
+    /// Run interactive demonstrations.
+    Demo(DemoArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct DemoArgs {
+    #[command(subcommand)]
+    pub command: DemoCommand,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum DemoCommand {
+    /// Run the S4 distributed toggle proof interactively.
+    Toggle,
 }
 
 #[derive(Args, Debug)]
@@ -75,5 +89,14 @@ mod tests {
 
         let pico = Cli::try_parse_from(["xtask", "pico", "build"]).expect("pico command parses");
         assert!(matches!(pico.command, Command::Pico(_)));
+
+        let toggle =
+            Cli::try_parse_from(["xtask", "demo", "toggle"]).expect("demo toggle command parses");
+        assert!(matches!(
+            toggle.command,
+            Command::Demo(DemoArgs {
+                command: DemoCommand::Toggle
+            })
+        ));
     }
 }
