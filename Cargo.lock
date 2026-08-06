@@ -205,8 +205,11 @@ name = "conduit-embedded-build"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
  "conduit-kernel",
+ "conduit-planner",
  "conduit-runtime",
+ "conduit-signal",
 ]
 
 [[package]]
