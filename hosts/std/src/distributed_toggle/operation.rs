@@ -143,6 +143,18 @@ impl Operation for ToggleSourceOperation {
                     },
                 )
             }
+            (
+                Self::Toggle {
+                    next,
+                    expected_activations,
+                    ..
+                },
+                OperationInput::Closed { port: PortId(0) },
+            ) if *next == expected_activations.len() => {
+                // The Activate operation completed and the local cord closed
+                // after delivering all expected activations.
+                OperationAction::Complete
+            }
             _ => Self::fail(13),
         }
     }
@@ -435,5 +447,77 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// Toggle operation completes when it receives Closed after consuming all expected activations.
+    #[test]
+    fn toggle_completes_on_closed_after_all_activations() {
+        let mut store = make_value_store();
+        let act = store_bytes(&mut store, &[0x01]);
+        let sig = store_bytes(&mut store, &[0x02]);
+
+        let mut op = ToggleSourceOperation::Toggle {
+            signals: vec![sig],
+            expected_activations: vec![act],
+            next: 0,
+        };
+
+        // Start: Toggle awaits input.
+        assert_eq!(op.start(), OperationAction::Await);
+
+        // Receive the expected activation value.
+        let action = op.resume(OperationInput::Value {
+            port: PortId(0),
+            value: act,
+        });
+        assert_eq!(
+            action,
+            OperationAction::Emit {
+                port: PortId(0),
+                value: sig,
+            },
+        );
+        let advance = op.advance();
+        assert_eq!(advance, OperationAction::Await);
+
+        // Now the Activate producer closes the cord. Toggle should complete.
+        let closed = op.resume(OperationInput::Closed { port: PortId(0) });
+        assert_eq!(closed, OperationAction::Complete);
+    }
+
+    /// Toggle operation fails (13) if Closed arrives before all activations are consumed.
+    #[test]
+    fn toggle_rejects_early_closed() {
+        let mut store = make_value_store();
+        let act1 = store_bytes(&mut store, &[0x01]);
+        let act2 = store_bytes(&mut store, &[0x02]);
+        let sig1 = store_bytes(&mut store, &[0x11]);
+        let sig2 = store_bytes(&mut store, &[0x12]);
+
+        let mut op = ToggleSourceOperation::Toggle {
+            signals: vec![sig1, sig2],
+            expected_activations: vec![act1, act2],
+            next: 0,
+        };
+
+        assert_eq!(op.start(), OperationAction::Await);
+
+        // Only receive one of two expected activations.
+        let action = op.resume(OperationInput::Value {
+            port: PortId(0),
+            value: act1,
+        });
+        assert!(matches!(action, OperationAction::Emit { .. }));
+        op.advance();
+
+        // Closed arrives before second activation — should fail.
+        let closed = op.resume(OperationInput::Closed { port: PortId(0) });
+        assert_eq!(
+            closed,
+            OperationAction::Fail(Failure {
+                code: FailureCode::InvalidLifecycle,
+                detail: 13,
+            }),
+        );
     }
 }
