@@ -38,6 +38,7 @@ async fn main(spawner: Spawner) {
     let usb_driver = embassy_rp::usb::Driver::new(p.USB, radio::UsbIrq);
     let (usb_fut, mut cdc) = receipts::init_usb(usb_driver);
     spawner.spawn(receipts::usb_task_spawn(usb_fut).unwrap());
+    let runtime = receipts::RuntimeTranscriptIdentity::new();
 
     // Initialise CYW43 radio (required for onboard LED)
     let (mut control, _) = radio::init_cyw43(
@@ -58,5 +59,5 @@ async fn main(spawner: Spawner) {
     control.set_power_management(cyw43::PowerManagementMode::PowerSave).await;
 
     // Execute the Signal demo through the Conduit kernel
-    kernel::run_signal_demo(&mut control, &mut cdc).await;
+    kernel::run_signal_demo(&mut control, &mut cdc, &runtime).await;
 }

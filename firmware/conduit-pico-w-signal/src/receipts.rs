@@ -4,8 +4,11 @@
 //! The verifier (xtask pico verify) reads these records to confirm the
 //! exact Signal sequence, levels, and terminal disposition.
 
+use core::fmt::Write as _;
+use embassy_rp::clocks::RoscRng;
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb;
+use embassy_time::Instant;
 use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
 use embassy_usb::{Builder, UsbDevice};
 use heapless::String as HString;
@@ -13,6 +16,7 @@ use static_cell::StaticCell;
 
 const MAX_PACKET_SIZE: u8 = 64;
 const RECEIPT_BUFFER_BYTES: usize = 1536;
+const RUNTIME_ID_BYTES: usize = 128;
 
 static USB_STATE: StaticCell<State> = StaticCell::new();
 static USB_DEVICE_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
@@ -22,6 +26,45 @@ static USB_CONTROL_BUF: StaticCell<[u8; 64]> = StaticCell::new();
 
 pub struct UsbCdc {
     sender: embassy_usb::class::cdc_acm::Sender<'static, usb::Driver<'static, USB>>,
+}
+
+pub struct RuntimeTranscriptIdentity {
+    boot_id: HString<RUNTIME_ID_BYTES>,
+    active_play_id: HString<RUNTIME_ID_BYTES>,
+}
+
+impl RuntimeTranscriptIdentity {
+    pub fn new() -> Self {
+        let mut rng = RoscRng;
+        let ticks = Instant::now().as_ticks();
+        let entropy_a = rng.next_u64();
+        let entropy_b = rng.next_u64();
+        let mut boot_id = HString::new();
+        let _ = write!(
+            boot_id,
+            "conduit-pico-w-signal/runtime-boot:{ticks:016x}:{entropy_a:016x}{entropy_b:016x}"
+        );
+        let mut active_play_id = HString::new();
+        let _ = write!(active_play_id, "{boot_id}:play:0");
+        Self {
+            boot_id,
+            active_play_id,
+        }
+    }
+
+    pub fn boot_id(&self) -> &str {
+        &self.boot_id
+    }
+
+    pub fn active_play_id(&self) -> &str {
+        &self.active_play_id
+    }
+}
+
+impl Default for RuntimeTranscriptIdentity {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -111,7 +154,11 @@ pub fn init_usb(
 
 impl UsbCdc {
     /// Write the boot-scoped identity record for this generated firmware image.
-    pub async fn write_boot_identity(&mut self, identity: BootIdentity) {
+    pub async fn write_boot_identity(
+        &mut self,
+        identity: BootIdentity,
+        runtime: &RuntimeTranscriptIdentity,
+    ) {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         let _ = core::fmt::write(
             &mut line,
@@ -127,6 +174,8 @@ impl UsbCdc {
                     "\"fragment_id\":\"{}\",",
                     "\"host_id\":\"{}\",",
                     "\"boot_id\":\"{}\",",
+                    "\"runtime_boot_id\":\"{}\",",
+                    "\"runtime_active_play_id\":\"{}\",",
                     "\"evidence_id\":\"{}\"",
                     "}}\n"
                 ),
@@ -138,6 +187,8 @@ impl UsbCdc {
                 identity.fragment_id,
                 identity.host_id,
                 identity.boot_id,
+                runtime.boot_id(),
+                runtime.active_play_id(),
                 identity.boot_evidence_id,
             ),
         );
@@ -150,6 +201,7 @@ impl UsbCdc {
         sequence: u64,
         level: bool,
         identity: PresentationReceiptIdentity,
+        runtime: &RuntimeTranscriptIdentity,
     ) {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         let _ = core::fmt::write(
@@ -167,6 +219,8 @@ impl UsbCdc {
                     "\"host_id\":\"{}\",",
                     "\"boot_id\":\"{}\",",
                     "\"active_play_id\":\"{}\",",
+                    "\"runtime_boot_id\":\"{}\",",
+                    "\"runtime_active_play_id\":\"{}\",",
                     "\"sequence\":{},",
                     "\"level\":{},",
                     "\"presentation_id\":\"{}\",",
@@ -182,6 +236,8 @@ impl UsbCdc {
                 identity.host_id,
                 identity.boot_id,
                 identity.active_play_id,
+                runtime.boot_id(),
+                runtime.active_play_id(),
                 sequence,
                 level,
                 identity.presentation_id,
@@ -192,48 +248,11 @@ impl UsbCdc {
     }
 
     /// Write a terminal completion record.
-    pub async fn write_terminal(&mut self, success: bool, identity: TerminalIdentity) {
-        let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
-        let _ = core::fmt::write(
-            &mut line,
-            format_args!(
-                concat!(
-                    "{{",
-                    "\"schema\":\"conduit-pico-w-signal/terminal@1\",",
-                    "\"firmware_build_id\":\"{}\",",
-                    "\"source_document_id\":\"{}\",",
-                    "\"checked_form_id\":\"{}\",",
-                    "\"expanded_form_id\":\"{}\",",
-                    "\"plan_id\":\"{}\",",
-                    "\"fragment_id\":\"{}\",",
-                    "\"host_id\":\"{}\",",
-                    "\"boot_id\":\"{}\",",
-                    "\"active_play_id\":\"{}\",",
-                    "\"success\":{},",
-                    "\"evidence_id\":\"{}\"",
-                    "}}\n"
-                ),
-                identity.firmware_build_id,
-                identity.source_document_id,
-                identity.checked_form_id,
-                identity.expanded_form_id,
-                identity.plan_id,
-                identity.fragment_id,
-                identity.host_id,
-                identity.boot_id,
-                identity.active_play_id,
-                success,
-                identity.evidence_id,
-            ),
-        );
-        self.write_all(line.as_bytes()).await;
-    }
-
-    /// Write a kernel error record.
-    pub async fn write_error(
+    pub async fn write_terminal(
         &mut self,
-        e: conduit_kernel::scheduler::SchedulerError,
+        success: bool,
         identity: TerminalIdentity,
+        runtime: &RuntimeTranscriptIdentity,
     ) {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         let _ = core::fmt::write(
@@ -251,6 +270,55 @@ impl UsbCdc {
                     "\"host_id\":\"{}\",",
                     "\"boot_id\":\"{}\",",
                     "\"active_play_id\":\"{}\",",
+                    "\"runtime_boot_id\":\"{}\",",
+                    "\"runtime_active_play_id\":\"{}\",",
+                    "\"success\":{},",
+                    "\"evidence_id\":\"{}\"",
+                    "}}\n"
+                ),
+                identity.firmware_build_id,
+                identity.source_document_id,
+                identity.checked_form_id,
+                identity.expanded_form_id,
+                identity.plan_id,
+                identity.fragment_id,
+                identity.host_id,
+                identity.boot_id,
+                identity.active_play_id,
+                runtime.boot_id(),
+                runtime.active_play_id(),
+                success,
+                identity.evidence_id,
+            ),
+        );
+        self.write_all(line.as_bytes()).await;
+    }
+
+    /// Write a kernel error record.
+    pub async fn write_error(
+        &mut self,
+        e: conduit_kernel::scheduler::SchedulerError,
+        identity: TerminalIdentity,
+        runtime: &RuntimeTranscriptIdentity,
+    ) {
+        let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
+        let _ = core::fmt::write(
+            &mut line,
+            format_args!(
+                concat!(
+                    "{{",
+                    "\"schema\":\"conduit-pico-w-signal/terminal@1\",",
+                    "\"firmware_build_id\":\"{}\",",
+                    "\"source_document_id\":\"{}\",",
+                    "\"checked_form_id\":\"{}\",",
+                    "\"expanded_form_id\":\"{}\",",
+                    "\"plan_id\":\"{}\",",
+                    "\"fragment_id\":\"{}\",",
+                    "\"host_id\":\"{}\",",
+                    "\"boot_id\":\"{}\",",
+                    "\"active_play_id\":\"{}\",",
+                    "\"runtime_boot_id\":\"{}\",",
+                    "\"runtime_active_play_id\":\"{}\",",
                     "\"success\":false,",
                     "\"evidence_id\":\"{}\",",
                     "\"error\":\"{:?}\"",
@@ -265,6 +333,8 @@ impl UsbCdc {
                 identity.host_id,
                 identity.boot_id,
                 identity.active_play_id,
+                runtime.boot_id(),
+                runtime.active_play_id(),
                 identity.evidence_id,
                 e,
             ),
