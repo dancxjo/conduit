@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::process::command_for;
 
@@ -20,6 +20,7 @@ pub struct FirmwareIdentity {
     pub git_revision: String,
     pub target: String,
     pub profile: String,
+    pub firmware_build_id: String,
     pub firmware_sha256: String,
     pub generated_image: GeneratedImageIdentity,
     pub cyw43_commit: String,
@@ -29,6 +30,7 @@ pub struct FirmwareIdentity {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GeneratedImageIdentity {
     pub schema: String,
+    pub firmware_build_id: String,
     pub source_document_id: String,
     pub checked_form_id: String,
     pub expanded_form_id: String,
@@ -86,8 +88,24 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         "--release",
     ];
     println!("==> pico build: cargo {}", build_args.join(" "));
-    if !args.dry_run {
-        let status = Command::new("cargo").args(build_args).status()?;
+    let generated_identity_sidecar = generated_identity_sidecar_path(&root);
+    if args.dry_run {
+        println!(
+            "  planned: generated identity sidecar {}",
+            generated_identity_sidecar.display()
+        );
+    } else {
+        if generated_identity_sidecar.exists() {
+            std::fs::remove_file(&generated_identity_sidecar)?;
+        }
+        let status = Command::new("cargo")
+            .args(build_args)
+            .env(
+                "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR",
+                &generated_identity_sidecar,
+            )
+            .env("CONDUIT_PICO_SIGNAL_IDENTITY_RERUN", build_rerun_nonce())
+            .status()?;
         if !status.success() {
             return Err("cargo build for Pico W firmware failed".into());
         }
@@ -113,14 +131,18 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         if !status.success() {
             return Err("elf2uf2-rs conversion failed".into());
         }
-        write_identity_manifest(&root, &elf)?;
+        write_identity_manifest(&root, &elf, &generated_identity_sidecar)?;
     }
 
     println!("==> pico build: done — {}", uf2.display());
     Ok(())
 }
 
-fn write_identity_manifest(root: &Path, elf: &Path) -> PicoResult<()> {
+fn write_identity_manifest(
+    root: &Path,
+    elf: &Path,
+    generated_identity_sidecar: &Path,
+) -> PicoResult<()> {
     let git_output = Command::new("git")
         .args(["rev-parse", "HEAD"])
         .current_dir(root)
@@ -130,7 +152,7 @@ fn write_identity_manifest(root: &Path, elf: &Path) -> PicoResult<()> {
     }
     let git_revision = String::from_utf8(git_output.stdout)?.trim().to_owned();
     let firmware_sha256 = sha256_file(elf)?;
-    let generated_image = read_generated_image_identity(root)?;
+    let generated_image = read_generated_image_identity(generated_identity_sidecar)?;
 
     let cyw43_assets = CYW43_ASSETS
         .iter()
@@ -145,6 +167,7 @@ fn write_identity_manifest(root: &Path, elf: &Path) -> PicoResult<()> {
         git_revision,
         target: TARGET.into(),
         profile: PROFILE.into(),
+        firmware_build_id: generated_image.firmware_build_id.clone(),
         firmware_sha256,
         generated_image,
         cyw43_commit: CYW43_COMMIT.into(),
@@ -175,44 +198,14 @@ pub fn read_identity_manifest(root: &Path) -> PicoResult<FirmwareIdentity> {
     Ok(serde_json::from_str(&text)?)
 }
 
-fn read_generated_image_identity(root: &Path) -> PicoResult<GeneratedImageIdentity> {
-    let sidecar = newest_generated_identity_sidecar(root)?;
-    let text = std::fs::read_to_string(&sidecar)?;
-    Ok(serde_json::from_str(&text)?)
-}
-
-fn newest_generated_identity_sidecar(root: &Path) -> PicoResult<PathBuf> {
-    let build_dir = firmware_target_profile_dir(root).join("build");
-    let mut newest: Option<(SystemTime, PathBuf)> = None;
-    for entry in std::fs::read_dir(&build_dir).map_err(|error| {
+fn read_generated_image_identity(sidecar: &Path) -> PicoResult<GeneratedImageIdentity> {
+    let text = std::fs::read_to_string(sidecar).map_err(|error| {
         format!(
-            "failed to inspect firmware build outputs under {}: {error}",
-            build_dir.display()
+            "failed to read generated Pico Signal identity sidecar at {}: {error}",
+            sidecar.display()
         )
-    })? {
-        let path = entry?.path().join("out").join("pico_signal_identity.json");
-        if !path.is_file() {
-            continue;
-        }
-        let modified = std::fs::metadata(&path)?
-            .modified()
-            .unwrap_or(SystemTime::UNIX_EPOCH);
-        if newest
-            .as_ref()
-            .is_none_or(|(current, _)| modified > *current)
-        {
-            newest = Some((modified, path));
-        }
-    }
-    newest
-        .map(|(_, path)| path)
-        .ok_or_else(|| {
-            format!(
-                "generated Pico Signal identity sidecar not found under {}; run `cargo xtask pico build` first",
-                build_dir.display()
-            )
-            .into()
-        })
+    })?;
+    Ok(serde_json::from_str(&text)?)
 }
 
 pub fn refresh_radio_assets(dry_run: bool) -> PicoResult<()> {
@@ -250,6 +243,17 @@ pub fn uf2_path(root: &Path) -> PathBuf {
 
 fn firmware_elf_path(root: &Path) -> PathBuf {
     firmware_target_profile_dir(root).join(FIRMWARE_PACKAGE)
+}
+
+fn generated_identity_sidecar_path(root: &Path) -> PathBuf {
+    firmware_target_profile_dir(root).join(format!("{FIRMWARE_PACKAGE}.generated-image.json"))
+}
+
+fn build_rerun_nonce() -> String {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos().to_string())
+        .unwrap_or_else(|_| "clock-before-unix-epoch".to_owned())
 }
 
 fn firmware_target_profile_dir(root: &Path) -> PathBuf {

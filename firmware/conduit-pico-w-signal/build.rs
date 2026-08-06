@@ -17,6 +17,8 @@ use conduit_signal::{
 };
 
 const SIGNAL_DEMO_FORM: &str = include_str!("../../examples/signal-demo.form");
+const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
+const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
 const MAX_STORED_SIGNAL_VALUES: usize = 16;
 const WAIT_VALUE_BYTES: u32 = 8;
 const RUNTIME_EVIDENCE_EVENTS: usize = 64;
@@ -41,6 +43,8 @@ fn main() {
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=../../examples/signal-demo.form");
+    println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_ENV}");
+    println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_RERUN_ENV}");
 }
 
 fn generate_pico_signal_image(out: &Path) {
@@ -74,11 +78,18 @@ fn generate_pico_signal_image(out: &Path) {
         render_firmware_module(&generated, &identity),
     )
     .expect("generated Pico Signal image should be writable");
-    fs::write(
-        out.join("pico_signal_identity.json"),
-        render_identity_sidecar(&generated, &identity),
-    )
-    .expect("generated Pico Signal identity sidecar should be writable");
+    let sidecar = render_identity_sidecar(&generated, &identity);
+    fs::write(out.join("pico_signal_identity.json"), &sidecar)
+        .expect("generated Pico Signal identity sidecar should be writable");
+    if let Ok(path) = env::var(IDENTITY_SIDECAR_ENV) {
+        let path = PathBuf::from(path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)
+                .expect("explicit generated Pico Signal identity directory should be writable");
+        }
+        fs::write(path, &sidecar)
+            .expect("explicit generated Pico Signal identity sidecar should be writable");
+    }
 }
 
 fn render_firmware_module(
@@ -103,6 +114,7 @@ fn render_firmware_module(
 }
 
 struct GeneratedSignalIdentity {
+    firmware_build_id: String,
     source_document_id: String,
     checked_form_id: String,
     expanded_form_id: String,
@@ -155,8 +167,10 @@ impl GeneratedSignalIdentity {
             .evidence_id
             .as_str()
             .to_owned();
+        let firmware_build_id = firmware_build_id(form, generated, &active_play.active_play_id);
 
         Self {
+            firmware_build_id,
             source_document_id: form.source_document_id.as_str().to_owned(),
             checked_form_id: form.checked_form_id.as_str().to_owned(),
             expanded_form_id: form.expanded_form_id.as_str().to_owned(),
@@ -169,6 +183,50 @@ impl GeneratedSignalIdentity {
     }
 }
 
+fn firmware_build_id(
+    form: &conduit_form::CheckedForm,
+    generated: &GeneratedEmbeddedPlan,
+    active_play_id: &conduit_core::ActivePlayId,
+) -> String {
+    format!(
+        "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        git_revision(),
+        git_tree_state(),
+        env::var("TARGET").unwrap_or_else(|_| "unknown-target".to_owned()),
+        env::var("PROFILE").unwrap_or_else(|_| "unknown-profile".to_owned()),
+        form.source_document_id.as_str(),
+        form.checked_form_id.as_str(),
+        form.expanded_form_id.as_str(),
+        generated.plan_id,
+        generated.fragment_id,
+        active_play_id.as_str(),
+    )
+}
+
+fn git_revision() -> String {
+    command_stdout(["rev-parse", "--verify", "HEAD"]).unwrap_or_else(|| "unknown-revision".into())
+}
+
+fn git_tree_state() -> &'static str {
+    if std::process::Command::new("git")
+        .args(["diff", "--quiet", "--ignore-submodules", "--"])
+        .status()
+        .is_ok_and(|status| status.success())
+    {
+        "clean"
+    } else {
+        "dirty"
+    }
+}
+
+fn command_stdout<const N: usize>(args: [&str; N]) -> Option<String> {
+    let output = std::process::Command::new("git").args(args).output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    Some(String::from_utf8_lossy(&output.stdout).trim().to_owned())
+}
+
 fn show_placement_id(generated: &GeneratedEmbeddedPlan) -> PlacementId {
     let node = generated
         .nodes
@@ -179,6 +237,7 @@ fn show_placement_id(generated: &GeneratedEmbeddedPlan) -> PlacementId {
 }
 
 fn render_identity_constants(module: &mut String, identity: &GeneratedSignalIdentity) {
+    render_string_constant(module, "FIRMWARE_BUILD_ID", &identity.firmware_build_id);
     render_string_constant(module, "SOURCE_DOCUMENT_ID", &identity.source_document_id);
     render_string_constant(module, "CHECKED_FORM_ID", &identity.checked_form_id);
     render_string_constant(module, "EXPANDED_FORM_ID", &identity.expanded_form_id);
@@ -239,6 +298,7 @@ fn render_identity_sidecar(
         concat!(
             "{{\n",
             "  \"schema\": \"conduit.pico-signal.generated-image@1\",\n",
+            "  \"firmware_build_id\": \"{}\",\n",
             "  \"source_document_id\": \"{}\",\n",
             "  \"checked_form_id\": \"{}\",\n",
             "  \"expanded_form_id\": \"{}\",\n",
@@ -261,6 +321,7 @@ fn render_identity_sidecar(
             "  \"evidence_bytes\": {}\n",
             "}}\n"
         ),
+        json_escape(&identity.firmware_build_id),
         json_escape(&identity.source_document_id),
         json_escape(&identity.checked_form_id),
         json_escape(&identity.expanded_form_id),
