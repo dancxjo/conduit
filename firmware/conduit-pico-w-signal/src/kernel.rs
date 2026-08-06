@@ -19,7 +19,9 @@ use conduit_signal::{
 use cyw43::Control;
 use embassy_time::{Duration, Timer};
 
-use crate::receipts::{BootIdentity, PresentationReceiptIdentity, TerminalIdentity, UsbCdc};
+use crate::receipts::{
+    BootIdentity, PresentationReceiptIdentity, RuntimeTranscriptIdentity, TerminalIdentity, UsbCdc,
+};
 use crate::signal_image::{
     decode_wait_ms, generated_cords, generated_host_bindings, generated_nodes, generated_routes,
     presentation_identity, signal_layout, value_store_bytes, ACTIVE_PLAY_ID, BOOT_EVIDENCE_ID,
@@ -30,9 +32,13 @@ use crate::signal_image::{
 };
 
 /// Run the generated local Signal demo through conduit-kernel.
-pub async fn run_signal_demo(control: &mut Control<'_>, cdc: &mut UsbCdc) {
+pub async fn run_signal_demo(
+    control: &mut Control<'_>,
+    cdc: &mut UsbCdc,
+    runtime: &RuntimeTranscriptIdentity,
+) {
     let layout = signal_layout().expect("generated Signal image layout is valid");
-    cdc.write_boot_identity(boot_identity()).await;
+    cdc.write_boot_identity(boot_identity(), runtime).await;
     let mut values =
         FixedValueStore::<VALUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>::new(value_store_bytes(
             layout.configuration.count,
@@ -156,6 +162,7 @@ pub async fn run_signal_demo(control: &mut Control<'_>, cdc: &mut UsbCdc) {
                         signal.sequence,
                         signal.level,
                         presentation_receipt_identity(identity),
+                        runtime,
                     )
                     .await;
                     complete_host_request(&mut scheduler, req.node, req.request);
@@ -166,14 +173,15 @@ pub async fn run_signal_demo(control: &mut Control<'_>, cdc: &mut UsbCdc) {
                 }
             }
             Err(err) => {
-                cdc.write_error(err, terminal_identity()).await;
+                cdc.write_error(err, terminal_identity(), runtime).await;
                 error = true;
                 break;
             }
         }
     }
 
-    cdc.write_terminal(!error, terminal_identity()).await;
+    cdc.write_terminal(!error, terminal_identity(), runtime)
+        .await;
 }
 
 fn boot_identity() -> BootIdentity {

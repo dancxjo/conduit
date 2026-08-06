@@ -3,9 +3,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use super::doctor::repo_root;
-#[cfg(test)]
-use super::firmware::GeneratedImageIdentity;
-use super::firmware::{read_identity_manifest, FirmwareIdentity};
+use super::firmware::{read_identity_manifest, FirmwareIdentity, GeneratedImageIdentity};
 use super::{PicoArgs, PicoResult};
 
 const EXPECTED_RECEIPTS: usize = 16;
@@ -49,6 +47,7 @@ fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoRes
     let mut boot_seen = false;
     let mut receipts = 0usize;
     let mut terminal_seen = false;
+    let mut runtime_identity: Option<RuntimeTranscriptIdentity> = None;
 
     for line in reader.lines() {
         let line = line?;
@@ -67,7 +66,8 @@ fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoRes
             if receipts > 0 {
                 return Err("boot identity record arrived after presentation receipts".into());
             }
-            verify_boot_identity(&record, identity)?;
+            let runtime = verify_boot_identity(&record, identity)?;
+            runtime_identity = Some(runtime);
             boot_seen = true;
             continue;
         }
@@ -79,7 +79,13 @@ fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoRes
             if record["success"].as_bool() != Some(true) {
                 return Err(format!("firmware reported terminal failure: {line}").into());
             }
-            verify_terminal_identity(&record, identity)?;
+            verify_terminal_identity(
+                &record,
+                identity,
+                runtime_identity
+                    .as_ref()
+                    .ok_or("terminal record arrived before runtime boot identity")?,
+            )?;
             terminal_seen = true;
             break;
         }
@@ -98,7 +104,14 @@ fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoRes
                 )
                 .into());
             }
-            verify_presentation_identity(&record, receipts, identity)?;
+            verify_presentation_identity(
+                &record,
+                receipts,
+                identity,
+                runtime_identity
+                    .as_ref()
+                    .ok_or("presentation receipt arrived before runtime boot identity")?,
+            )?;
             receipts += 1;
             continue;
         }
@@ -146,19 +159,25 @@ fn validate_expected_identity(identity: &FirmwareIdentity) -> PicoResult<()> {
     Ok(())
 }
 
-fn verify_boot_identity(record: &serde_json::Value, identity: &FirmwareIdentity) -> PicoResult<()> {
+fn verify_boot_identity(
+    record: &serde_json::Value,
+    identity: &FirmwareIdentity,
+) -> PicoResult<RuntimeTranscriptIdentity> {
     let expected = &identity.generated_image;
     verify_static_identity(record, identity, false)?;
-    verify_field(record, "evidence_id", &expected.boot_evidence_id)
+    verify_field(record, "evidence_id", &expected.boot_evidence_id)?;
+    read_runtime_identity(record, expected)
 }
 
 fn verify_presentation_identity(
     record: &serde_json::Value,
     sequence: usize,
     identity: &FirmwareIdentity,
+    runtime: &RuntimeTranscriptIdentity,
 ) -> PicoResult<()> {
     let expected = &identity.generated_image;
     verify_static_identity(record, identity, true)?;
+    verify_runtime_identity(record, runtime)?;
     let expected_level = sequence % 2 == 1;
     let level = record["level"]
         .as_bool()
@@ -184,9 +203,11 @@ fn verify_presentation_identity(
 fn verify_terminal_identity(
     record: &serde_json::Value,
     identity: &FirmwareIdentity,
+    runtime: &RuntimeTranscriptIdentity,
 ) -> PicoResult<()> {
     let expected = &identity.generated_image;
     verify_static_identity(record, identity, true)?;
+    verify_runtime_identity(record, runtime)?;
     verify_field(record, "evidence_id", &expected.terminal_evidence_id)
 }
 
@@ -221,6 +242,58 @@ fn verify_field(record: &serde_json::Value, field: &str, expected: &str) -> Pico
         .into());
     }
     Ok(())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct RuntimeTranscriptIdentity {
+    boot_id: String,
+    active_play_id: String,
+}
+
+fn read_runtime_identity(
+    record: &serde_json::Value,
+    expected: &GeneratedImageIdentity,
+) -> PicoResult<RuntimeTranscriptIdentity> {
+    let boot_id = read_runtime_field(record, "runtime_boot_id")?;
+    let active_play_id = read_runtime_field(record, "runtime_active_play_id")?;
+    if boot_id == expected.boot_id {
+        return Err("runtime_boot_id must be distinct from planned boot_id".into());
+    }
+    if active_play_id == expected.active_play_id {
+        return Err("runtime_active_play_id must be distinct from planned active_play_id".into());
+    }
+    Ok(RuntimeTranscriptIdentity {
+        boot_id,
+        active_play_id,
+    })
+}
+
+fn verify_runtime_identity(
+    record: &serde_json::Value,
+    expected: &RuntimeTranscriptIdentity,
+) -> PicoResult<()> {
+    let actual = RuntimeTranscriptIdentity {
+        boot_id: read_runtime_field(record, "runtime_boot_id")?,
+        active_play_id: read_runtime_field(record, "runtime_active_play_id")?,
+    };
+    if &actual != expected {
+        return Err(format!(
+            "runtime transcript identity changed: expected boot {} play {}, got boot {} play {}",
+            expected.boot_id, expected.active_play_id, actual.boot_id, actual.active_play_id
+        )
+        .into());
+    }
+    Ok(())
+}
+
+fn read_runtime_field(record: &serde_json::Value, field: &str) -> PicoResult<String> {
+    let value = record[field]
+        .as_str()
+        .ok_or_else(|| format!("receipt missing runtime identity field `{field}`"))?;
+    if value.is_empty() {
+        return Err(format!("runtime identity field `{field}` must not be empty").into());
+    }
+    Ok(value.to_owned())
 }
 
 fn resolve_port(args: &PicoArgs) -> PicoResult<PathBuf> {
@@ -323,6 +396,8 @@ mod tests {
             "\"fragment_id\":\"fragment\",",
             "\"host_id\":\"host\",",
             "\"boot_id\":\"boot\",",
+            "\"runtime_boot_id\":\"runtime-boot\",",
+            "\"runtime_active_play_id\":\"runtime-play\",",
             "\"evidence_id\":\"boot-evidence\"}\n"
         )
         .to_owned()
@@ -341,6 +416,8 @@ mod tests {
                 "\"host_id\":\"host\",",
                 "\"boot_id\":\"boot\",",
                 "\"active_play_id\":\"play\",",
+                "\"runtime_boot_id\":\"runtime-boot\",",
+                "\"runtime_active_play_id\":\"runtime-play\",",
                 "\"sequence\":{},",
                 "\"level\":{},",
                 "\"presentation_id\":\"presentation-{}\",",
@@ -365,6 +442,8 @@ mod tests {
             "\"host_id\":\"host\",",
             "\"boot_id\":\"boot\",",
             "\"active_play_id\":\"play\",",
+            "\"runtime_boot_id\":\"runtime-boot\",",
+            "\"runtime_active_play_id\":\"runtime-play\",",
             "\"success\":true,",
             "\"evidence_id\":\"terminal-evidence\"}\n"
         )
@@ -410,6 +489,50 @@ mod tests {
         input.push_str(&terminal().replace(
             "\"firmware_build_id\":\"firmware-build\"",
             "\"firmware_build_id\":\"other-build\"",
+        ));
+        assert!(verify_receipts(Cursor::new(input), &expected_firmware_identity()).is_err());
+    }
+
+    #[test]
+    fn rejects_missing_runtime_identity_field() {
+        let input = format!(
+            "{}{}{}",
+            boot().replace("\"runtime_boot_id\":\"runtime-boot\",", ""),
+            (0..EXPECTED_RECEIPTS).map(receipt).collect::<String>(),
+            terminal()
+        );
+        assert!(verify_receipts(Cursor::new(input), &expected_firmware_identity()).is_err());
+    }
+
+    #[test]
+    fn rejects_runtime_identity_reusing_planned_identity() {
+        let input = format!(
+            "{}{}{}",
+            boot()
+                .replace(
+                    "\"runtime_boot_id\":\"runtime-boot\"",
+                    "\"runtime_boot_id\":\"boot\"",
+                )
+                .replace(
+                    "\"runtime_active_play_id\":\"runtime-play\"",
+                    "\"runtime_active_play_id\":\"play\"",
+                ),
+            (0..EXPECTED_RECEIPTS).map(receipt).collect::<String>(),
+            terminal()
+        );
+        assert!(verify_receipts(Cursor::new(input), &expected_firmware_identity()).is_err());
+    }
+
+    #[test]
+    fn rejects_runtime_identity_change_after_boot() {
+        let mut input = String::new();
+        input.push_str(&boot());
+        for sequence in 0..EXPECTED_RECEIPTS {
+            input.push_str(&receipt(sequence));
+        }
+        input.push_str(&terminal().replace(
+            "\"runtime_active_play_id\":\"runtime-play\"",
+            "\"runtime_active_play_id\":\"other-runtime-play\"",
         ));
         assert!(verify_receipts(Cursor::new(input), &expected_firmware_identity()).is_err());
     }
