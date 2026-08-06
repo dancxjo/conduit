@@ -8,3 +8,8 @@ description = "Host-only current-plan to fixed Conduit kernel table generator"
 conduit-core = { path = "../conduit-core" }
 conduit-kernel = { path = "../conduit-kernel" }
 conduit-runtime = { path = "../conduit-runtime" }
+
+[dev-dependencies]
+conduit-form = { path = "../conduit-form" }
+conduit-planner = { path = "../conduit-planner" }
+conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }

@@ -8,6 +8,10 @@ use conduit_core::{
     StartupDependency, TerminalPolicy,
 };
 use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_signal::{
+    pico_local_advertisement, signal_profile_catalog, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+    PICO_LOCAL_HOST_ID, SIGNAL_ENCODED_LEN,
+};
 
 use crate::validate::validate_range;
 use crate::{
@@ -64,6 +68,110 @@ fn current_fragment_generation_rejects_a_reviewed_bound_overflow() {
             actual: 2,
             maximum: 1,
         })
+    );
+}
+
+#[test]
+fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
+    let form = conduit_form::parse(
+        include_str!("../../../examples/signal-demo.form"),
+        &signal_profile_catalog(),
+    )
+    .expect("unchanged Signal form checks");
+    let host = pico_local_advertisement();
+    let placements = conduit_planner::default_placements(&form, std::slice::from_ref(&host))
+        .expect("Pico profile covers the unchanged Signal form");
+    let plan = conduit_planner::plan_with_connection_limits(
+        &form,
+        std::slice::from_ref(&host),
+        &placements,
+        &[ConnectionProvider::Local],
+        DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+        SIGNAL_ENCODED_LEN,
+    )
+    .expect("unchanged Signal form plans locally");
+    let fragment = plan
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id.as_str() == PICO_LOCAL_HOST_ID)
+        .expect("Pico plan contains its exact fragment");
+    let lowered = lower_plan_fragment(fragment).expect("Pico fragment lowers");
+    let generated = generate_embedded_plan(
+        fragment,
+        &lowered,
+        EmbeddedImageBounds {
+            maximum_nodes: 2,
+            maximum_cords: 1,
+            maximum_routes: 1,
+            maximum_route_targets: 1,
+            maximum_host_operations: 2,
+            maximum_resources: 2,
+            maximum_evidence_expectations: 8,
+            maximum_configuration_entries: 3,
+            maximum_ports_per_node: MAXIMUM_KERNEL_PORTS_PER_NODE,
+            maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+            maximum_cord_value_bytes: SIGNAL_ENCODED_LEN,
+            maximum_evidence_items: 16,
+            maximum_evidence_bytes: 1024,
+        },
+    )
+    .expect("Pico fragment fits the firmware image contract");
+
+    assert_eq!(generated.plan_id, plan.plan_id.as_str());
+    assert_eq!(generated.fragment_id, fragment.fragment_id.as_str());
+    assert_eq!(generated.nodes.len(), 2);
+    assert_eq!(generated.cords.len(), 1);
+    assert_eq!(generated.routes.len(), 1);
+    assert_eq!(generated.route_targets.len(), 1);
+    assert_eq!(
+        generated.cord_value_slots,
+        DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS
+    );
+    assert_eq!(generated.cord_value_bytes, SIGNAL_ENCODED_LEN);
+    let rendered = generated.render_no_alloc_firmware_module();
+    assert!(rendered.contains("pub const GENERATED_NODES"));
+    assert!(rendered.contains("pub const GENERATED_CORDS"));
+    assert!(rendered.contains("pub const GENERATED_ROUTES"));
+    assert!(rendered.contains("pub const GENERATED_HOST_OPERATIONS"));
+    assert!(!rendered.contains("ExecutionPlan"));
+}
+
+#[test]
+fn generation_rejects_lowering_with_a_different_fragment_identity() {
+    let fragment = sealed_current_fragment();
+    let mut lowered = lower_plan_fragment(&fragment).expect("current fragment lowers");
+    lowered.identity.fragment_id = FragmentId::from("mutated-fragment");
+
+    assert_eq!(
+        generate_embedded_plan(&fragment, &lowered, EmbeddedImageBounds::HOST_TOOLING),
+        Err(GenerationError::IdentityMismatch)
+    );
+}
+
+#[test]
+fn generation_rejects_inconsistent_lowered_node_identity() {
+    let fragment = sealed_current_fragment();
+    let mut lowered = lower_plan_fragment(&fragment).expect("current fragment lowers");
+    lowered.nodes[0].placement_id = PlacementId::from("mutated-placement");
+
+    assert!(matches!(
+        generate_embedded_plan(&fragment, &lowered, EmbeddedImageBounds::HOST_TOOLING),
+        Err(GenerationError::InconsistentLowering(_))
+    ));
+}
+
+#[test]
+fn generation_rejects_an_unsupported_remote_cord() {
+    let fragment = sealed_current_fragment();
+    let mut lowered = lower_plan_fragment(&fragment).expect("current fragment lowers");
+    lowered.cords[0].spec.sink =
+        conduit_kernel::CordEndpoint::Remote(conduit_kernel::RemoteEndpointId(0));
+
+    assert_eq!(
+        generate_embedded_plan(&fragment, &lowered, EmbeddedImageBounds::HOST_TOOLING),
+        Err(GenerationError::Unsupported(
+            crate::UnsupportedPlanFeature::RemoteConnection
+        ))
     );
 }
 
