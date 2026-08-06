@@ -37,7 +37,32 @@ if (!url) {
       maximumReceiptBytes: 144,
     });
     const runtime = await instantiateDistributedToggleRuntime(wasmBytes);
-    const result = await runDistributedToggleRuntime(runtime, carrier, domHost);
+    const observableDomHost = {
+      completePresentation(effect) {
+        const result = domHost.completePresentation(effect);
+        if (result.ok) {
+          const output = document.querySelector("#browser-sink output:last-child");
+          output.dataset.encoded = JSON.stringify(result.receipt.encoded);
+        }
+        return result;
+      },
+    };
+    const result = await runDistributedToggleRuntime(runtime, carrier, observableDomHost);
+    const closed = await carrier.closed();
+    globalThis.__distributedToggleProof = {
+      ...result,
+      presentations: result.presentations.map((effect) => {
+        const { value, ...identity } = effect;
+        return {
+          ...identity,
+          sequence: Number(new DataView(Uint8Array.from(value.encoded).buffer)
+            .getBigUint64(0, true)),
+          encoded: value.encoded,
+        };
+      }),
+      receipts: domHost.receipts(),
+      closed,
+    };
     document.querySelector("#result").textContent =
       `ok receipts=${result.receiptCount} capacity_stable=${result.capacityStable}`;
   } catch (error) {

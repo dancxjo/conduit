@@ -70,64 +70,34 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
     const url = await lines.line(0);
     expect(url).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/conduit$/);
     process.stdout.write(`distributed toggle URL ${url}\n`);
-    await page.goto("/hosts/browser/distributed-toggle.test.html");
-    const browserReady = page.evaluate(async ({ url }) => {
-      const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
-      const { BrowserWebSocketCarrier } = await import(
-        "/hosts/browser/websocket-carrier.mjs"
-      );
-      const {
-        instantiateDistributedToggleRuntime,
-        runDistributedToggleRuntime,
-      } = await import("/hosts/browser/distributed-toggle-runtime.mjs");
-      const wasmBytes = await fetch(
-        "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
-      ).then((response) => {
-        if (!response.ok) throw new Error("distributed browser WASM artifact missing");
-        return response.arrayBuffer();
-      });
-      const carrier = await new BrowserWebSocketCarrier({
-        url,
-        maximumMessageBytes: 2048,
-        maximumBufferedBytes: 8192,
-      }).open();
-      const domHost = new BrowserDomHost({
-        hostId: "s4/toggle-browser-sink",
-        bootId: "s4/toggle-browser-sink-boot",
-        root: document.querySelector("#browser-sink"),
-        maximumReceiptItems: 16,
-        maximumReceiptBytes: 144,
-      });
-      const runtime = await instantiateDistributedToggleRuntime(wasmBytes);
-      const run = await runDistributedToggleRuntime(runtime, carrier, domHost);
-      const closed = await carrier.closed();
-      const receipts = domHost.receipts();
-      document.querySelector("#result").textContent = "ok";
-      return {
-        ...run,
-        presentations: run.presentations.map((effect) => {
-          const { value, ...identity } = effect;
-          return {
-            ...identity,
-            sequence: Number(new DataView(Uint8Array.from(value.encoded).buffer)
-              .getBigUint64(0, true)),
-            encoded: value.encoded,
-          };
-        }),
-        receipts,
-        closed,
-      };
-    }, { url });
+    await page.goto(
+      `/hosts/browser/distributed-toggle.test.html?ws=${encodeURIComponent(url)}`,
+    );
 
-    // Wait for the first prompt, then send Enter presses.
-    // The server prompts "Press Enter to activate (N/16)" for each activation.
-    for (let i = 0; i < 16; i++) {
-      // Wait for the prompt line before sending Enter.
+    // Prove one admitted Enter reaches the remote DOM before allowing any more input.
+    await lines.line(1);
+    await new Promise((resolve, reject) => {
+      source.stdin.write("\n", (error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+    const firstOutput = page.locator("#browser-sink output");
+    await expect(firstOutput).toHaveCount(1);
+    await expect(firstOutput.first()).toHaveAttribute("data-sequence", "0");
+    await expect(firstOutput.first()).toHaveAttribute(
+      "data-encoded",
+      "[0,0,0,0,0,0,0,0,1]",
+    );
+
+    // Only after that liveness proof, send the remaining admitted activations.
+    for (let i = 1; i < 16; i++) {
       await lines.line(1 + i);
       source.stdin.write("\n");
     }
 
-    const result = await browserReady;
+    await expect(page.locator("#result")).toHaveText(/^ok receipts=16 /);
+    const result = await page.evaluate(() => globalThis.__distributedToggleProof);
     process.stdout.write(
       `browser receipts=${result.receiptCount} ` +
       `capacity_stable=${result.capacityStable}\n`,
@@ -189,7 +159,9 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
     expect(new Set(result.presentations.map(({ presentationId }) => presentationId)).size).toBe(16);
     expect(new Set(result.presentations.map(({ evidenceId }) => evidenceId)).size).toBe(16);
     expect(new Set(result.presentations.map(({ requestId }) => requestId)).size).toBe(16);
-    await expect(page.locator("#result")).toHaveText("ok");
+    await expect(page.locator("#result")).toHaveText(
+      "ok receipts=16 capacity_stable=true",
+    );
     await expect(page.locator("#browser-sink output")).toHaveCount(16);
     await expect(page.locator("#browser-sink output").last()).toHaveAttribute(
       "data-sequence",

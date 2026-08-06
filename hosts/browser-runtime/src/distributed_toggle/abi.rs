@@ -158,6 +158,24 @@ pub extern "C" fn conduit_browser_toggle_distributed_capacity_stable() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::super::sink::ToggleDistributedSink;
+    use super::super::OUTPUT_PRESENT;
+    use conduit_signal::{
+        encode_signal, Signal, DISTRIBUTED_MAXIMUM_FRAME_BYTES, SIGNAL_ENCODED_LEN,
+    };
+    use conduit_wire::{encode_session_frame_into, SessionFrame, SessionMessage};
+
+    fn ingest(sink: &mut ToggleDistributedSink, frame: SessionFrame<'_>) {
+        let mut bytes = [0_u8; DISTRIBUTED_MAXIMUM_FRAME_BYTES as usize];
+        let length = encode_session_frame_into(
+            frame,
+            &mut bytes,
+            SIGNAL_ENCODED_LEN,
+            DISTRIBUTED_MAXIMUM_FRAME_BYTES,
+        )
+        .expect("session frame encodes");
+        sink.ingest(&bytes[..length])
+            .expect("session frame ingests");
+    }
 
     #[test]
     fn toggle_browser_reconstructs_exact_sink_fragment_and_session() {
@@ -167,5 +185,28 @@ mod tests {
         assert_eq!(sink.binding.plan_id, sink.fragment.plan_id);
         assert_eq!(sink.binding.sink_fragment_id, sink.fragment.fragment_id);
         assert_eq!(sink.capacity_seal(), sink.seal);
+    }
+
+    #[test]
+    fn first_accepted_value_drives_presentation_before_delivery() {
+        let mut sink = ToggleDistributedSink::prepare(None).expect("toggle sink prepares");
+        let binding = sink.binding.clone();
+        ingest(&mut sink, binding.hello_frame());
+        ingest(&mut sink, binding.frame(SessionMessage::Ready));
+
+        let signal = encode_signal(&Signal {
+            sequence: 0,
+            level: true,
+        });
+        ingest(
+            &mut sink,
+            binding.frame(SessionMessage::Offered {
+                sequence: 0,
+                payload: &signal.encoded,
+            }),
+        );
+        sink.advance().expect("accepted value advances");
+
+        assert_eq!(sink.output_kind, OUTPUT_PRESENT);
     }
 }
