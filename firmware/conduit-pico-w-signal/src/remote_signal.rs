@@ -23,11 +23,6 @@ pub async fn run_remote_signal_sink(
     control: &mut Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), UsbLinkError> {
-    // Wait for the host to open CDC 1 (DTR asserted) before emitting the boot identity
-    // to prevent the host from missing the one-time boot message.
-    evidence_cdc.wait_connection().await;
-    evidence_cdc.write_boot_identity(boot_identity(), runtime).await;
-
     let plan_id = PlanId::from(PLAN_ID);
     let source_host_id = HostId::from("host/std");
     let source_boot_id = BootId::from("boot/std");
@@ -74,23 +69,50 @@ pub async fn run_remote_signal_sink(
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink)
         .map_err(UsbLinkError::Codec)?;
 
-    let mut frame_buf = [0u8; 1024];
+    let mut frame_buf = [0u8; 2048];
+
+    // Phase 1: Wait for host to connect by repeatedly emitting the boot identity
+    // and waiting for the Hello frame to arrive.
+    loop {
+        evidence_cdc.write_boot_identity(boot_identity(), runtime).await;
+
+        match embassy_time::with_timeout(
+            embassy_time::Duration::from_millis(500),
+            link_session.receive_frame(&mut frame_buf),
+        )
+        .await
+        {
+            Ok(Ok(frame)) => {
+                let is_hello = matches!(frame.message, SessionMessage::Hello(_));
+                if machine.admit_inbound(frame.clone()).is_err() {
+                    break;
+                }
+
+                if is_hello {
+                    let ready_frame = SessionFrame {
+                        identity: session_identity,
+                        message: SessionMessage::Ready,
+                    };
+                    if machine.admit_outbound(ready_frame.clone()).is_ok() {
+                        let _ = link_session.send_frame(&ready_frame).await;
+                    }
+                    break;
+                }
+            }
+            Ok(Err(e)) => return Err(e),
+            Err(_) => {
+                // Timeout, loop to emit boot identity again
+                continue;
+            }
+        }
+    }
+
+    // Phase 2: Main event loop
     loop {
         let frame = link_session.receive_frame(&mut frame_buf).await?;
-        let is_hello = matches!(frame.message, SessionMessage::Hello(_));
-
-        if machine.admit_inbound(frame).is_err() {
+        
+        if machine.admit_inbound(frame.clone()).is_err() {
             break;
-        }
-
-        if is_hello {
-            let ready_frame = SessionFrame {
-                identity: session_identity,
-                message: SessionMessage::Ready,
-            };
-            if machine.admit_outbound(ready_frame).is_ok() {
-                let _ = link_session.send_frame(&ready_frame).await;
-            }
         }
 
         if let SessionMessage::Offered { payload, .. } = frame.message {
