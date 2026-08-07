@@ -35,6 +35,7 @@ impl UsbCdc {
     }
 
     /// Wait for a USB host to connect and assert DTR on this CDC interface.
+    #[allow(dead_code)]
     pub async fn wait_connection(&mut self) {
         self.sender.wait_connection().await;
     }
@@ -47,6 +48,7 @@ impl UsbCdc {
     }
 
     /// Write a mandatory proof marker to CDC 1.
+    #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
     pub async fn write_marker(&mut self, msg: &str) -> Result<(), UsbEvidenceError> {
         self.write_all_mandatory(msg.as_bytes()).await?;
         self.write_all_mandatory(b"\n").await
@@ -286,6 +288,7 @@ impl UsbCdc {
     }
 
     /// Write a kernel error record.
+    #[allow(dead_code)]
     pub async fn write_error(
         &mut self,
         e: conduit_kernel::scheduler::SchedulerError,
@@ -336,6 +339,7 @@ impl UsbCdc {
 
     /// Write terminal failure evidence for a transport/session/kernel failure
     /// that is not representable as a scheduler error value.
+    #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
     pub async fn write_failure(
         &mut self,
         code: &str,

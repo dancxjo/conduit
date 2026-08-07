@@ -173,7 +173,27 @@ the current executable conformance path lives in the std-host tests.
 
 ## 4. Drive a physical Pico W over USB CDC
 
-With a Pico W attached, the interactive physical std-to-Pico program is:
+To run the physical std-to-Pico USB proof, build and flash the `usb-remote` firmware image to a Pico W in BOOTSEL mode:
+
+```bash
+just pico-build-remote
+just pico-flash-remote
+```
+
+Or using `xtask` directly:
+
+```bash
+cargo xtask pico build --usb-remote
+cargo xtask pico flash --usb-remote
+```
+
+Then start the interactive std-to-Pico session:
+
+```bash
+just prove-std-pico-usb --interactive
+```
+
+or via `xtask`:
 
 ```bash
 cargo xtask prove std-pico-usb --interactive
@@ -196,6 +216,12 @@ the board.
 The non-interactive exact carrier proof is:
 
 ```bash
+just prove-std-pico-usb
+```
+
+or:
+
+```bash
 cargo xtask prove std-pico-usb
 ```
 
@@ -214,8 +240,15 @@ ordinary no-hardware browser suite.
 Build and flash the exact Pico image:
 
 ```bash
-cargo xtask pico --triple-remote build
-cargo xtask pico --triple-remote flash
+just pico-build --triple-remote
+just pico-flash --triple-remote
+```
+
+or via `xtask`:
+
+```bash
+cargo xtask pico build --triple-remote
+cargo xtask pico flash --triple-remote
 ```
 
 Then run the hardware-gated browser/physical proof:

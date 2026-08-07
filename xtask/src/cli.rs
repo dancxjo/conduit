@@ -151,6 +151,22 @@ mod tests {
         let pico = Cli::try_parse_from(["xtask", "pico", "build"]).expect("pico command parses");
         assert!(matches!(pico.command, Command::Pico(_)));
 
+        let pico_build_remote = Cli::try_parse_from(["xtask", "pico", "build", "--usb-remote"])
+            .expect("pico build --usb-remote parses");
+        if let Command::Pico(args) = pico_build_remote.command {
+            assert!(args.usb_remote);
+        } else {
+            panic!("expected Command::Pico");
+        }
+
+        let pico_flash_remote = Cli::try_parse_from(["xtask", "pico", "flash", "--usb-remote"])
+            .expect("pico flash --usb-remote parses");
+        if let Command::Pico(args) = pico_flash_remote.command {
+            assert!(args.usb_remote);
+        } else {
+            panic!("expected Command::Pico");
+        }
+
         let toggle =
             Cli::try_parse_from(["xtask", "demo", "toggle"]).expect("demo toggle command parses");
         assert!(matches!(
