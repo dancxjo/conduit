@@ -1,6 +1,6 @@
 //! Typed std -> Pico W USB-CDC session proof & interactive console runner.
 
-use std::io::{BufRead, BufReader, Read, Write as _};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::time::{Duration, Instant};
 
 use conduit_core::{
@@ -229,55 +229,41 @@ pub fn run_prove_std_pico_usb(
     source_machine
         .admit_outbound(hello)
         .map_err(|e| format!("Source failed to admit outbound Hello: {e:?}"))?;
+    carrier.send_frame(&hello)?;
+    println!("  [Source SessionMachine] Sent outbound SessionFrame::Hello");
 
+    // Handshake Step 2 (Source): Receive inbound Hello from Sink over CDC 0
     let mut frame_buf = [0u8; 2048];
+    let start = Instant::now();
     let mut hello_received = false;
-
-    // Retry sending Hello until Pico replies with its Hello
-    for attempt in 1..=10 {
-        if let Err(err) = carrier.send_frame(&hello) {
-            println!(
-                "  [attempt {}/10] send_frame(Hello) error: {:?}",
-                attempt, err
-            );
-        } else {
-            println!("  [attempt {}/10] Sent SessionFrame::Hello", attempt);
-        }
-
-        let start = Instant::now();
-        while start.elapsed() < Duration::from_millis(500) {
-            match carrier.receive_frame(&mut frame_buf) {
-                Ok(res) => {
-                    println!(
-                        "  [attempt {}/10] Received frame: {:?}",
-                        attempt, res.message
-                    );
-                    if matches!(res.message, SessionMessage::Hello(_)) {
-                        // Handshake Step 2 (Source): Admit inbound Hello from Sink
-                        source_machine.admit_inbound(res).map_err(|e| {
-                            format!("Source failed to admit inbound Hello from Sink: {e:?}")
-                        })?;
-                        println!("  [Source SessionMachine] Admitted inbound Hello from Sink");
-                        hello_received = true;
-                        break;
-                    }
-                }
-                Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
-                Err(err) => {
-                    println!("  [attempt {}/10] receive_frame error: {:?}", attempt, err);
+    while start.elapsed() < Duration::from_secs(5) {
+        match carrier.receive_frame(&mut frame_buf) {
+            Ok(res) => {
+                println!(
+                    "  [Source SessionMachine] Received frame: {:?}",
+                    res.message
+                );
+                if matches!(res.message, SessionMessage::Hello(_)) {
+                    source_machine.admit_inbound(res).map_err(|e| {
+                        format!("Source failed to admit inbound Hello from Sink: {e:?}")
+                    })?;
+                    println!("  [Source SessionMachine] Admitted inbound Hello from Sink");
+                    hello_received = true;
+                    break;
                 }
             }
-            std::thread::sleep(Duration::from_millis(50));
-        }
-
-        if hello_received {
-            break;
+            Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
+            Err(err) => {
+                println!("  [Source SessionMachine] receive_frame error: {:?}", err);
+            }
         }
 
         let mut evidence_line = String::new();
         if evidence_reader.read_line(&mut evidence_line).unwrap_or(0) > 0 {
             println!("  [Pico evidence CDC 1]: {}", evidence_line.trim());
         }
+
+        std::thread::sleep(Duration::from_millis(50));
     }
 
     if !hello_received {
@@ -295,7 +281,7 @@ pub fn run_prove_std_pico_usb(
     // Handshake Step 4 (Source): Receive inbound Ready from Sink over CDC 0
     let start = Instant::now();
     let mut ready_received = false;
-    while start.elapsed() < Duration::from_secs(3) {
+    while start.elapsed() < Duration::from_secs(5) {
         match carrier.receive_frame(&mut frame_buf) {
             Ok(res) => {
                 println!(
@@ -316,6 +302,12 @@ pub fn run_prove_std_pico_usb(
                 println!("  [Source SessionMachine] receive_frame error: {:?}", err);
             }
         }
+
+        let mut evidence_line = String::new();
+        if evidence_reader.read_line(&mut evidence_line).unwrap_or(0) > 0 {
+            println!("  [Pico evidence CDC 1]: {}", evidence_line.trim());
+        }
+
         std::thread::sleep(Duration::from_millis(50));
     }
 
@@ -362,60 +354,38 @@ pub fn run_prove_std_pico_usb(
             }
 
             // 1. KEY DOWN: level = true (Pico LED ON)
-            let press_signal = Signal {
-                sequence,
-                level: true,
-            };
-            let press_payload = encode_signal_fixed(&press_signal);
-            let press_offer = SessionFrame {
-                identity: binding.identity(),
-                message: SessionMessage::Offered {
-                    sequence,
-                    payload: &press_payload,
-                },
-            };
-            carrier.send_frame(&press_offer)?;
             print!(
                 "\r\n  [KEY DOWN] Key 0x{:02x} -> Sent Signal seq {} (level: true) -> Pico LED ON\r\n",
                 b, sequence
             );
             let _ = std::io::stdout().flush();
-
-            let mut press_receipt = String::new();
-            if evidence_reader.read_line(&mut press_receipt)? > 0 {
-                print!("  [RECEIPT ] <- CDC 1: {}\r\n", press_receipt.trim());
-                let _ = std::io::stdout().flush();
-            }
+            send_and_verify_item(
+                &mut source_machine,
+                &mut carrier,
+                &mut evidence_reader,
+                &binding,
+                sequence,
+                true,
+            )?;
 
             // Hold button pulse for 250ms
             std::thread::sleep(Duration::from_millis(250));
 
             // 2. KEY UP: level = false (Pico LED OFF)
             sequence += 1;
-            let release_signal = Signal {
-                sequence,
-                level: false,
-            };
-            let release_payload = encode_signal_fixed(&release_signal);
-            let release_offer = SessionFrame {
-                identity: binding.identity(),
-                message: SessionMessage::Offered {
-                    sequence,
-                    payload: &release_payload,
-                },
-            };
-            carrier.send_frame(&release_offer)?;
             print!(
                 "  [KEY UP  ] Released -> Sent Signal seq {} (level: false) -> Pico LED OFF\r\n",
                 sequence
             );
             let _ = std::io::stdout().flush();
-
-            let mut release_receipt = String::new();
-            if evidence_reader.read_line(&mut release_receipt)? > 0 {
-                print!("  [RECEIPT ] <- CDC 1: {}\r\n", release_receipt.trim());
-                let _ = std::io::stdout().flush();
-            }
+            send_and_verify_item(
+                &mut source_machine,
+                &mut carrier,
+                &mut evidence_reader,
+                &binding,
+                sequence,
+                false,
+            )?;
 
             sequence += 1;
         }
@@ -435,27 +405,120 @@ pub fn run_prove_std_pico_usb(
     println!("==> Streaming 16 Signal items over physical USB CDC link...");
     for sequence in 0..16u64 {
         let level = (sequence % 2) == 1;
-        let signal = Signal { sequence, level };
-        let payload = encode_signal_fixed(&signal);
-
-        let offer = SessionFrame {
-            identity: binding.identity(),
-            message: SessionMessage::Offered {
-                sequence,
-                payload: &payload,
-            },
-        };
-
-        carrier.send_frame(&offer)?;
-
-        let mut receipt_line = String::new();
-        evidence_reader.read_line(&mut receipt_line)?;
-        let receipt_record: serde_json::Value = serde_json::from_str(receipt_line.trim())?;
-        if receipt_record["sequence"].as_u64() != Some(sequence) {
-            return Err(format!("sequence mismatch in receipt: expected {sequence}").into());
-        }
+        send_and_verify_item(
+            &mut source_machine,
+            &mut carrier,
+            &mut evidence_reader,
+            &binding,
+            sequence,
+            level,
+        )?;
     }
 
-    println!("==> Physical std -> Pico W USB-CDC remote session acceptance passed 100%!");
+    let terminal = SessionFrame {
+        identity: binding.identity(),
+        message: SessionMessage::Terminal {
+            disposition: conduit_wire::SessionTerminalDisposition::Completed,
+            final_sequence: 16,
+        },
+    };
+    let _ = carrier.send_frame(&terminal);
+    println!("==> Pico W USB-CDC proof completed successfully.");
+    Ok(())
+}
+
+fn send_and_verify_item<R: Read, W: Write>(
+    source_machine: &mut conduit_wire::SessionMachine,
+    carrier: &mut NativeUsbCdcCarrier<R, W>,
+    evidence_reader: &mut BufReader<std::fs::File>,
+    binding: &SessionBinding,
+    sequence: u64,
+    level: bool,
+) -> PicoResult<()> {
+    let signal = Signal { sequence, level };
+    let payload = encode_signal_fixed(&signal);
+    let offer = binding.frame(SessionMessage::Offered {
+        sequence,
+        payload: &payload,
+    });
+
+    // 1. Admit outbound Offered & send frame
+    source_machine
+        .admit_outbound(offer)
+        .map_err(|e| format!("Source failed to admit outbound Offered: {e:?}"))?;
+    carrier.send_frame(&offer)?;
+
+    // 2. Wait for Accepted(sequence) over CDC 0
+    let mut frame_buf = [0u8; 2048];
+    let start = Instant::now();
+    let mut accepted = false;
+    while start.elapsed() < Duration::from_secs(2) {
+        match carrier.receive_frame(&mut frame_buf) {
+            Ok(res) => {
+                if matches!(res.message, SessionMessage::Accepted { sequence: s } if s == sequence)
+                {
+                    source_machine
+                        .admit_inbound(res)
+                        .map_err(|e| format!("Source failed to admit inbound Accepted: {e:?}"))?;
+                    accepted = true;
+                    break;
+                }
+            }
+            Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
+            Err(err) => {
+                return Err(format!("receive_frame error waiting for Accepted: {err:?}").into());
+            }
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    if !accepted {
+        return Err(format!("timed out waiting for SessionMessage::Accepted {sequence}").into());
+    }
+
+    // 3. Read receipt line from CDC 1
+    let mut receipt_line = String::new();
+    let start_ev = Instant::now();
+    while start_ev.elapsed() < Duration::from_secs(2) {
+        if evidence_reader.read_line(&mut receipt_line)? > 0 {
+            let trimmed = receipt_line.trim();
+            if trimmed.starts_with('{') {
+                print!("  [RECEIPT ] <- CDC 1: {}\r\n", trimmed);
+                let _ = std::io::stdout().flush();
+                break;
+            } else {
+                print!("  [Pico log] <- CDC 1: {}\r\n", trimmed);
+                let _ = std::io::stdout().flush();
+                receipt_line.clear();
+            }
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+
+    // 4. Wait for Delivered(sequence) over CDC 0
+    let start_del = Instant::now();
+    let mut delivered = false;
+    while start_del.elapsed() < Duration::from_secs(2) {
+        match carrier.receive_frame(&mut frame_buf) {
+            Ok(res) => {
+                if matches!(res.message, SessionMessage::Delivered { sequence: s } if s == sequence)
+                {
+                    source_machine
+                        .admit_inbound(res)
+                        .map_err(|e| format!("Source failed to admit inbound Delivered: {e:?}"))?;
+                    delivered = true;
+                    break;
+                }
+            }
+            Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
+            Err(err) => {
+                return Err(format!("receive_frame error waiting for Delivered: {err:?}").into());
+            }
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    if !delivered {
+        return Err(format!("timed out waiting for SessionMessage::Delivered {sequence}").into());
+    }
+
     Ok(())
 }

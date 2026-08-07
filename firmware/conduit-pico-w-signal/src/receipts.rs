@@ -30,6 +30,12 @@ impl UsbCdc {
     pub async fn wait_connection(&mut self) {
         self.sender.wait_connection().await;
     }
+
+    /// Write a diagnostic text line to CDC 1.
+    pub async fn write_log(&mut self, msg: &str) {
+        let _ = self.sender.write_packet(msg.as_bytes()).await;
+        let _ = self.sender.write_packet(b"\n").await;
+    }
 }
 
 pub struct RuntimeTranscriptIdentity {
