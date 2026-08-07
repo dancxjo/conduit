@@ -1,0 +1,81 @@
+//! Composite USB device initialisation for dual CDC interfaces.
+//!
+//! Creates CDC 0 (Conduit UsbCdc link interface) and CDC 1 (evidence transcript interface).
+
+use embassy_rp::peripherals::USB;
+use embassy_rp::usb;
+use embassy_usb::class::cdc_acm::{CdcAcmClass, Receiver, Sender, State};
+use embassy_usb::{Builder, UsbDevice};
+use static_cell::StaticCell;
+
+pub const MAX_PACKET_SIZE: u8 = 64;
+
+static LINK_STATE: StaticCell<State> = StaticCell::new();
+static EVIDENCE_STATE: StaticCell<State> = StaticCell::new();
+
+static USB_DEVICE_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
+static USB_CONFIG_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
+static USB_BOS_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
+static USB_CONTROL_BUF: StaticCell<[u8; 64]> = StaticCell::new();
+
+pub struct PicoUsbCdcCarrier {
+    pub sender: Sender<'static, usb::Driver<'static, USB>>,
+    pub receiver: Receiver<'static, usb::Driver<'static, USB>>,
+}
+
+pub struct UsbEvidenceSender {
+    pub sender: Sender<'static, usb::Driver<'static, USB>>,
+}
+
+pub fn init_composite_usb(
+    driver: usb::Driver<'static, USB>,
+) -> (
+    UsbDevice<'static, usb::Driver<'static, USB>>,
+    PicoUsbCdcCarrier,
+    UsbEvidenceSender,
+) {
+    let device_descriptor = USB_DEVICE_DESCRIPTOR.init([0u8; 256]);
+    let config_descriptor = USB_CONFIG_DESCRIPTOR.init([0u8; 256]);
+    let bos_descriptor = USB_BOS_DESCRIPTOR.init([0u8; 256]);
+    let control_buf = USB_CONTROL_BUF.init([0u8; 64]);
+
+    let link_state = LINK_STATE.init(State::new());
+    let evidence_state = EVIDENCE_STATE.init(State::new());
+
+    let mut config = embassy_usb::Config::new(0x2e8a, 0x000a);
+    config.manufacturer = Some("Conduit");
+    config.product = Some("Pico W Signal");
+    config.serial_number = Some("conduit-pico-w-signal");
+    config.max_power = 100;
+    config.max_packet_size_0 = MAX_PACKET_SIZE;
+
+    let mut builder = Builder::new(
+        driver,
+        config,
+        device_descriptor,
+        config_descriptor,
+        bos_descriptor,
+        control_buf,
+    );
+
+    // CDC 0: Link interface
+    let link_class = CdcAcmClass::new(&mut builder, link_state, MAX_PACKET_SIZE as u16);
+    let (link_sender, link_receiver) = link_class.split();
+
+    // CDC 1: Evidence interface
+    let evidence_class = CdcAcmClass::new(&mut builder, evidence_state, MAX_PACKET_SIZE as u16);
+    let (evidence_sender, _evidence_receiver) = evidence_class.split();
+
+    let device = builder.build();
+
+    (
+        device,
+        PicoUsbCdcCarrier {
+            sender: link_sender,
+            receiver: link_receiver,
+        },
+        UsbEvidenceSender {
+            sender: evidence_sender,
+        },
+    )
+}

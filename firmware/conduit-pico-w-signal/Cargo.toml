@@ -21,8 +21,10 @@ cyw43-pio = "0.10"
 fixed = "=1.29.0"
 heapless = "0.8"
 
+conduit-core = { path = "../../crates/conduit-core", default-features = false }
 conduit-kernel = { path = "../../crates/conduit-kernel" }
 conduit-signal = { path = "../../crates/conduit-signal", default-features = false }
+conduit-wire = { path = "../../crates/conduit-wire", default-features = false }
 
 [build-dependencies]
 conduit-core = { path = "../../crates/conduit-core" }

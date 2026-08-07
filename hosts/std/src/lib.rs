@@ -28,6 +28,7 @@ pub mod distributed_toggle;
 pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
+pub mod usb_cdc;
 pub mod websocket;
 
 #[cfg(test)]

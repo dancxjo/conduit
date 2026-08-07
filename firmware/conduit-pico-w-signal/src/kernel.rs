@@ -184,7 +184,7 @@ pub async fn run_signal_demo(
         .await;
 }
 
-fn boot_identity() -> BootIdentity {
+pub fn boot_identity() -> BootIdentity {
     BootIdentity {
         firmware_build_id: FIRMWARE_BUILD_ID,
         source_document_id: SOURCE_DOCUMENT_ID,
@@ -198,7 +198,7 @@ fn boot_identity() -> BootIdentity {
     }
 }
 
-fn presentation_receipt_identity(
+pub fn presentation_receipt_identity(
     identity: crate::signal_image::PresentationIdentity,
 ) -> PresentationReceiptIdentity {
     PresentationReceiptIdentity {
@@ -216,7 +216,7 @@ fn presentation_receipt_identity(
     }
 }
 
-fn terminal_identity() -> TerminalIdentity {
+pub fn terminal_identity() -> TerminalIdentity {
     TerminalIdentity {
         firmware_build_id: FIRMWARE_BUILD_ID,
         source_document_id: SOURCE_DOCUMENT_ID,
