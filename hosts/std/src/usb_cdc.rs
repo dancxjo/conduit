@@ -16,6 +16,7 @@ pub enum NativeUsbCdcError {
     Codec(WireError),
     WouldBlock,
     Disconnected,
+    TtyConfig(std::io::Error),
 }
 
 impl From<StreamFrameError> for NativeUsbCdcError {
@@ -40,11 +41,102 @@ impl std::fmt::Display for NativeUsbCdcError {
             Self::Codec(err) => write!(f, "USB CDC codec error: {err:?}"),
             Self::WouldBlock => write!(f, "USB CDC read timed out / would block"),
             Self::Disconnected => write!(f, "USB CDC device disconnected"),
+            Self::TtyConfig(err) => write!(f, "USB CDC TTY configuration error: {err}"),
         }
     }
 }
 
 impl std::error::Error for NativeUsbCdcError {}
+
+#[cfg(unix)]
+use std::os::unix::io::AsRawFd;
+
+/// Configure raw serial CDC line settings (115200 8N1, raw mode, CLOCAL | CREAD, VMIN, VTIME)
+/// on a file or serial port descriptor using native POSIX termios.
+#[cfg(unix)]
+pub fn configure_cdc_port<F: AsRawFd>(
+    file: &F,
+    min_bytes: u8,
+    timeout_deciseconds: u8,
+) -> Result<(), NativeUsbCdcError> {
+    let fd = file.as_raw_fd();
+    unsafe {
+        let mut termios: libc::termios = std::mem::zeroed();
+        if libc::tcgetattr(fd, &mut termios) != 0 {
+            return Err(NativeUsbCdcError::TtyConfig(std::io::Error::last_os_error()));
+        }
+
+        // Set raw mode
+        libc::cfmakeraw(&mut termios);
+
+        // Set baud rates to 115200
+        libc::cfsetispeed(&mut termios, libc::B115200);
+        libc::cfsetospeed(&mut termios, libc::B115200);
+
+        // 8 data bits, 1 stop bit, no parity, enable receiver, ignore modem control lines
+        termios.c_cflag &= !libc::CSIZE;
+        termios.c_cflag |= libc::CS8;
+        termios.c_cflag &= !libc::CSTOPB;
+        termios.c_cflag &= !libc::PARENB;
+        termios.c_cflag |= libc::CLOCAL | libc::CREAD;
+
+        // VMIN and VTIME configuration
+        termios.c_cc[libc::VMIN] = min_bytes as libc::cc_t;
+        termios.c_cc[libc::VTIME] = timeout_deciseconds as libc::cc_t;
+
+        if libc::tcsetattr(fd, libc::TCSANOW, &termios) != 0 {
+            return Err(NativeUsbCdcError::TtyConfig(std::io::Error::last_os_error()));
+        }
+    }
+    Ok(())
+}
+
+/// RAII guard that saves prior `/dev/tty` termios state and restores it on Drop.
+#[cfg(unix)]
+pub struct RawTerminalGuard {
+    tty_file: std::fs::File,
+    saved_termios: libc::termios,
+}
+
+#[cfg(unix)]
+impl RawTerminalGuard {
+    pub fn new() -> Result<Self, NativeUsbCdcError> {
+        let tty_file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open("/dev/tty")
+            .map_err(NativeUsbCdcError::TtyConfig)?;
+        let fd = tty_file.as_raw_fd();
+        unsafe {
+            let mut saved_termios: libc::termios = std::mem::zeroed();
+            if libc::tcgetattr(fd, &mut saved_termios) != 0 {
+                return Err(NativeUsbCdcError::TtyConfig(std::io::Error::last_os_error()));
+            }
+
+            let mut raw_termios = saved_termios;
+            libc::cfmakeraw(&mut raw_termios);
+
+            if libc::tcsetattr(fd, libc::TCSANOW, &raw_termios) != 0 {
+                return Err(NativeUsbCdcError::TtyConfig(std::io::Error::last_os_error()));
+            }
+
+            Ok(Self {
+                tty_file,
+                saved_termios,
+            })
+        }
+    }
+}
+
+#[cfg(unix)]
+impl Drop for RawTerminalGuard {
+    fn drop(&mut self) {
+        let fd = self.tty_file.as_raw_fd();
+        unsafe {
+            let _ = libc::tcsetattr(fd, libc::TCSANOW, &self.saved_termios);
+        }
+    }
+}
 
 pub struct NativeUsbCdcCarrier<R, W> {
     reader: R,

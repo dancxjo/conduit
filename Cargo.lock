@@ -313,6 +313,7 @@ dependencies = [
  "conduit-runtime",
  "conduit-signal",
  "conduit-wire",
+ "libc",
  "tungstenite",
 ]
 

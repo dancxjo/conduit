@@ -17,4 +17,7 @@ conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profi
 conduit-wire = { path = "../../crates/conduit-wire" }
 tungstenite = "0.30.0"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]

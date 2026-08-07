@@ -8,7 +8,7 @@ use conduit_core::{
     FragmentId, HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_signal::{encode_signal_fixed, Signal};
-use conduit_std_host::usb_cdc::NativeUsbCdcCarrier;
+use conduit_std_host::usb_cdc::{configure_cdc_port, NativeUsbCdcCarrier, RawTerminalGuard};
 use conduit_wire::{SessionBinding, SessionFrame, SessionMessage};
 
 use super::doctor::repo_root;
@@ -16,25 +16,6 @@ use super::firmware::read_identity_manifest;
 use super::serial::resolve_dual_ports;
 use super::{PicoArgs, PicoResult};
 use crate::cli::GlobalOpts;
-
-struct RawTerminalGuard;
-
-impl RawTerminalGuard {
-    fn new() -> Self {
-        let _ = std::process::Command::new("stty")
-            .args(["-F", "/dev/tty", "raw", "-echo"])
-            .status();
-        Self
-    }
-}
-
-impl Drop for RawTerminalGuard {
-    fn drop(&mut self) {
-        let _ = std::process::Command::new("stty")
-            .args(["-F", "/dev/tty", "-raw", "echo", "sane"])
-            .status();
-    }
-}
 
 pub fn run_prove_std_pico_usb(
     link_port_opt: Option<&str>,
@@ -96,45 +77,6 @@ pub fn run_prove_std_pico_usb(
         evidence_port_path.display()
     );
 
-    // CDC 0 (link): non-blocking timeout mode
-    println!("==> Configuring CDC 0 (link port) with stty...");
-    let _ = std::process::Command::new("stty")
-        .args([
-            "-F",
-            link_port_path.to_str().ok_or("port path not UTF-8")?,
-            "115200",
-            "cs8",
-            "-cstopb",
-            "-parenb",
-            "clocal",
-            "raw",
-            "-echo",
-            "min",
-            "0",
-            "time",
-            "1",
-        ])
-        .status();
-
-    println!("==> Configuring CDC 1 (evidence port) with stty...");
-    let _ = std::process::Command::new("stty")
-        .args([
-            "-F",
-            evidence_port_path.to_str().ok_or("port path not UTF-8")?,
-            "115200",
-            "cs8",
-            "-cstopb",
-            "-parenb",
-            "clocal",
-            "raw",
-            "-echo",
-            "min",
-            "0",
-            "time",
-            "50",
-        ])
-        .status();
-
     let identity = read_identity_manifest(&repo_root())?;
 
     // Open CDC 1 for receipt observation
@@ -151,6 +93,16 @@ pub fn run_prove_std_pico_usb(
                 format!("Failed to open evidence port {}: {}", evidence_port_path.display(), e)
             }
         })?;
+
+    // Configure CDC 1 (evidence port) raw mode with 5.0 second timeout (50 deciseconds)
+    configure_cdc_port(&evidence_file, 0, 50).map_err(|e| {
+        format!(
+            "Failed to configure evidence CDC port {}: {}",
+            evidence_port_path.display(),
+            e
+        )
+    })?;
+
     let mut evidence_reader = BufReader::new(evidence_file);
 
     // Read initial boot identity line from CDC 1 (retry loop in case port opened right after boot)
@@ -162,7 +114,11 @@ pub fn run_prove_std_pico_usb(
             if len > 0 {
                 let trimmed = boot_line.trim();
                 if !trimmed.is_empty() {
-                    println!("==> Received boot line ({} bytes): {}", trimmed.len(), trimmed);
+                    println!(
+                        "==> Received boot line ({} bytes): {}",
+                        trimmed.len(),
+                        trimmed
+                    );
                     break;
                 }
             }
@@ -171,7 +127,10 @@ pub fn run_prove_std_pico_usb(
     }
 
     if boot_line.trim().is_empty() {
-        return Err("timed out reading Pico boot identity from CDC 1 (5 seconds elapsed without data)".into());
+        return Err(
+            "timed out reading Pico boot identity from CDC 1 (5 seconds elapsed without data)"
+                .into(),
+        );
     }
 
     let boot_record: serde_json::Value = serde_json::from_str(boot_line.trim())?;
@@ -204,6 +163,15 @@ pub fn run_prove_std_pico_usb(
                 format!("Failed to open link port {}: {}", link_port_path.display(), e)
             }
         })?;
+
+    // Configure CDC 0 (link port) non-blocking timeout mode
+    configure_cdc_port(&link_file, 0, 1).map_err(|e| {
+        format!(
+            "Failed to configure link CDC port {}: {}",
+            link_port_path.display(),
+            e
+        )
+    })?;
 
     let mut carrier = NativeUsbCdcCarrier::new(link_file.try_clone()?, link_file, 1024)?;
 
@@ -328,7 +296,8 @@ pub fn run_prove_std_pico_usb(
         println!(" [Press 'q' / ESC] -> Exit interactive session");
         println!("===============================================================\n");
 
-        let _guard = RawTerminalGuard::new();
+        let _guard = RawTerminalGuard::new()
+            .map_err(|e| format!("Failed to initialize interactive raw terminal mode: {}", e))?;
         let mut stdin = std::io::stdin();
         let mut byte_buf = [0u8; 1];
         let mut sequence = 0u64;

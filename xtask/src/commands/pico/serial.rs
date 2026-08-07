@@ -1,6 +1,5 @@
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
-use std::process::Command;
 
 use super::doctor::repo_root;
 use super::firmware::{read_identity_manifest, FirmwareIdentity, GeneratedImageIdentity};
@@ -24,21 +23,15 @@ pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
     let (_, port) = resolve_dual_ports(None, args.port.as_deref())?;
     println!("==> pico verify: reading receipts from {}", port.display());
 
-    let _ = Command::new("stty")
-        .args([
-            "-F",
-            port.to_str().ok_or("serial path is not UTF-8")?,
-            "115200",
-            "cs8",
-            "-cstopb",
-            "-parenb",
-            "raw",
-            "-echo",
-        ])
-        .status();
-
     let identity = read_identity_manifest(&repo_root())?;
     let file = std::fs::OpenOptions::new().read(true).open(&port)?;
+    conduit_std_host::usb_cdc::configure_cdc_port(&file, 0, 50).map_err(|e| {
+        format!(
+            "Failed to configure evidence serial port {}: {}",
+            port.display(),
+            e
+        )
+    })?;
     verify_receipts(BufReader::new(file), &identity)
 }
 
