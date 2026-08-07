@@ -330,9 +330,36 @@ pub enum ConnectionProvider {
     /// Actual RFC 6455 binary-message carrier. Availability is valid only for
     /// an initialized provider instance observed at exact boot-scoped endpoints.
     WebSocket,
+    /// Bounded length-framed USB CDC ACM byte-stream carrier.
+    UsbCdc,
 }
 
 impl ConnectionProvider {
+    /// Returns the canonical 1-byte wire/plan code for this provider.
+    pub const fn canonical_code(self) -> u8 {
+        match self {
+            Self::Local => 0,
+            Self::InMemory => 1,
+            Self::FixtureFrame => 2,
+            Self::FixtureDatagram => 3,
+            Self::WebSocket => 4,
+            Self::UsbCdc => 5,
+        }
+    }
+
+    /// Parses a canonical 1-byte wire/plan code into a provider variant, if valid.
+    pub const fn from_canonical_code(code: u8) -> Option<Self> {
+        match code {
+            0 => Some(Self::Local),
+            1 => Some(Self::InMemory),
+            2 => Some(Self::FixtureFrame),
+            3 => Some(Self::FixtureDatagram),
+            4 => Some(Self::WebSocket),
+            5 => Some(Self::UsbCdc),
+            _ => None,
+        }
+    }
+
     /// Indicates whether this provider's contract is compatible with the exact
     /// framed `SessionMachine` protocol.
     ///
@@ -340,7 +367,7 @@ impl ConnectionProvider {
     /// exact framed SessionMachine protocol. It does not claim that an actual
     /// carrier implementation is installed, runnable, production-ready, or proven.
     pub const fn supports_remote_session(self) -> bool {
-        matches!(self, Self::FixtureFrame | Self::WebSocket)
+        matches!(self, Self::FixtureFrame | Self::WebSocket | Self::UsbCdc)
     }
 }
 
@@ -804,13 +831,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, connection.sink_placement_id.as_str());
         push_string(&mut canonical, connection.sink_port_id.as_str());
         push_string(&mut canonical, connection.value_kind.as_str());
-        canonical.push(match connection.provider {
-            ConnectionProvider::Local => 0,
-            ConnectionProvider::InMemory => 1,
-            ConnectionProvider::FixtureFrame => 2,
-            ConnectionProvider::FixtureDatagram => 3,
-            ConnectionProvider::WebSocket => 4,
-        });
+        canonical.push(connection.provider.canonical_code());
         match &connection.link_binding {
             Some(binding) => {
                 canonical.push(1);
@@ -821,13 +842,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                 push_string(&mut canonical, binding.sink.host_id.as_str());
                 push_string(&mut canonical, binding.sink.boot_id.as_str());
                 push_string(&mut canonical, binding.sink.endpoint_id.as_str());
-                canonical.push(match binding.provider {
-                    ConnectionProvider::Local => 0,
-                    ConnectionProvider::InMemory => 1,
-                    ConnectionProvider::FixtureFrame => 2,
-                    ConnectionProvider::FixtureDatagram => 3,
-                    ConnectionProvider::WebSocket => 4,
-                });
+                canonical.push(binding.provider.canonical_code());
                 push_string(&mut canonical, binding.provider_instance_id.as_str());
                 canonical.push(match binding.availability {
                     LinkAvailability::Ready => 0,

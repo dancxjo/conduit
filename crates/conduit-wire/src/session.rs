@@ -767,19 +767,12 @@ fn provider_code(provider: ConnectionProvider) -> Result<u8, WireError> {
     if !provider.supports_remote_session() {
         return Err(WireError::InvalidProvider);
     }
-    match provider {
-        ConnectionProvider::FixtureFrame => Ok(2),
-        ConnectionProvider::WebSocket => Ok(4),
-        _ => Err(WireError::InvalidProvider),
-    }
+    Ok(provider.canonical_code())
 }
 
 fn decode_provider(code: u8) -> Result<ConnectionProvider, WireError> {
-    let provider = match code {
-        2 => ConnectionProvider::FixtureFrame,
-        4 => ConnectionProvider::WebSocket,
-        _ => return Err(WireError::InvalidProvider),
-    };
+    let provider =
+        ConnectionProvider::from_canonical_code(code).ok_or(WireError::InvalidProvider)?;
     if !provider.supports_remote_session() {
         return Err(WireError::InvalidProvider);
     }

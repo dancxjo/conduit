@@ -9,6 +9,9 @@ use conduit_core::{ConnectionEnvelope, ConnectionId, KindId, PlanId, PROTOCOL_VE
 mod session;
 pub use session::*;
 
+mod stream_framing;
+pub use stream_framing::*;
+
 const MAGIC: [u8; 4] = *b"CNDW";
 const WIRE_FORMAT_VERSION: u8 = 1;
 pub const MAX_ID_BYTES: usize = 4_096;
