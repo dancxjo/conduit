@@ -97,6 +97,7 @@ pub fn run_prove_std_pico_usb(
     );
 
     // CDC 0 (link): non-blocking timeout mode
+    println!("==> Configuring CDC 0 (link port) with stty...");
     let _ = std::process::Command::new("stty")
         .args([
             "-F",
@@ -105,6 +106,7 @@ pub fn run_prove_std_pico_usb(
             "cs8",
             "-cstopb",
             "-parenb",
+            "clocal",
             "raw",
             "-echo",
             "min",
@@ -114,7 +116,7 @@ pub fn run_prove_std_pico_usb(
         ])
         .status();
 
-    // CDC 1 (evidence): blocking line-read mode with 5 second timeout (time 50 deciseconds)
+    println!("==> Configuring CDC 1 (evidence port) with stty...");
     let _ = std::process::Command::new("stty")
         .args([
             "-F",
@@ -123,6 +125,7 @@ pub fn run_prove_std_pico_usb(
             "cs8",
             "-cstopb",
             "-parenb",
+            "clocal",
             "raw",
             "-echo",
             "min",
