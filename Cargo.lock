@@ -149,9 +149,10 @@ dependencies = [
  "conduit-observatory",
  "conduit-pico-sim",
  "conduit-planner",
- "conduit-realm",
  "conduit-signal",
  "conduit-std-host",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -233,7 +234,6 @@ dependencies = [
  "conduit-form",
  "conduit-pico-sim",
  "conduit-planner",
- "conduit-realm",
  "conduit-signal",
  "conduit-std-host",
  "serde",
