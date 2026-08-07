@@ -44,6 +44,11 @@ pub(crate) fn validate_shape(
         lowered.evidence.len(),
         bounds.maximum_evidence_expectations,
     )?;
+    check_bound(
+        "remote endpoints",
+        lowered.remote_endpoints.len(),
+        bounds.maximum_remote_endpoints,
+    )?;
     let configuration_entries =
         fragment
             .placements

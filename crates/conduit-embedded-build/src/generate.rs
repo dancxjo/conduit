@@ -1,14 +1,18 @@
 use conduit_core::{
-    verify_plan_fragment, ConfigurationValue, ExpectedEvidence, ExpectedTerminal, PlanFragment,
+    verify_plan_fragment, ConfigurationValue, ConnectionProvider, ExpectedEvidence,
+    ExpectedTerminal, PlanFragment,
 };
 use conduit_kernel::{CordEndpoint, EvidenceExpectationTarget};
-use conduit_runtime::lowering::{LoweredPlanFragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_runtime::lowering::{
+    LoweredPlanFragment, RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE,
+};
 
 use crate::model::{
     EmbeddedImageBounds, GeneratedConfigurationEntry, GeneratedConfigurationValue,
-    GeneratedEmbeddedPlan, GeneratedEvidenceTarget, GeneratedExpectedTerminal,
-    GeneratedHostOperation, GeneratedPort, GeneratedStartupDependency, GeneratedStaticCord,
-    GeneratedStaticEvidence, GeneratedStaticNode, GeneratedStaticResource, GeneratedStaticRoute,
+    GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedEvidenceTarget,
+    GeneratedExpectedTerminal, GeneratedHostOperation, GeneratedPort, GeneratedStartupDependency,
+    GeneratedStaticCord, GeneratedStaticEvidence, GeneratedStaticNode,
+    GeneratedStaticRemoteEndpoint, GeneratedStaticResource, GeneratedStaticRoute,
     GeneratedStaticRouteTarget, GenerationError, UnsupportedPlanFeature,
 };
 use crate::validate::validate_shape;
@@ -33,11 +37,6 @@ pub fn generate_embedded_plan(
     {
         return Err(GenerationError::IdentityMismatch);
     }
-    if !lowered.remote_endpoints.is_empty() {
-        return Err(GenerationError::Unsupported(
-            UnsupportedPlanFeature::RemoteConnection,
-        ));
-    }
     if bounds.maximum_ports_per_node > MAXIMUM_KERNEL_PORTS_PER_NODE {
         return Err(GenerationError::Unsupported(
             UnsupportedPlanFeature::WiderKernelPortTable,
@@ -50,6 +49,7 @@ pub fn generate_embedded_plan(
     let input_ports = generate_ports(lowered, true);
     let output_ports = generate_ports(lowered, false);
     let cords = generate_cords(lowered)?;
+    let remote_endpoints = generate_remote_endpoints(lowered, bounds)?;
     let (routes, route_targets) = generate_routes(lowered)?;
     let host_operations = lowered
         .host_operations
@@ -109,6 +109,7 @@ pub fn generate_embedded_plan(
         output_ports,
         configuration,
         cords,
+        remote_endpoints,
         routes,
         route_targets,
         host_operations,
@@ -122,6 +123,55 @@ pub fn generate_embedded_plan(
         evidence_items: lowered.evidence_items,
         evidence_bytes: lowered.evidence_bytes,
     })
+}
+
+fn generate_remote_endpoints(
+    lowered: &LoweredPlanFragment,
+    bounds: EmbeddedImageBounds,
+) -> Result<Vec<GeneratedStaticRemoteEndpoint>, GenerationError> {
+    if lowered.remote_endpoints.len() > bounds.maximum_remote_endpoints {
+        return Err(GenerationError::BoundExceeded {
+            table: "remote endpoints",
+            actual: lowered.remote_endpoints.len() as u64,
+            maximum: bounds.maximum_remote_endpoints as u64,
+        });
+    }
+    let mut result = Vec::with_capacity(lowered.remote_endpoints.len());
+    for endpoint in &lowered.remote_endpoints {
+        if endpoint.direction != RemoteCordDirection::Ingress {
+            return Err(GenerationError::Unsupported(
+                UnsupportedPlanFeature::RemoteConnection,
+            ));
+        }
+        if endpoint.binding.provider != ConnectionProvider::UsbCdc {
+            return Err(GenerationError::Unsupported(
+                UnsupportedPlanFeature::RemoteConnection,
+            ));
+        }
+        result.push(GeneratedStaticRemoteEndpoint {
+            endpoint: endpoint.endpoint.0,
+            cord: endpoint.cord.0,
+            connection_id: endpoint.connection_id.as_str().to_owned(),
+            source_fragment_id: endpoint.source_fragment_id.as_str().to_owned(),
+            sink_fragment_id: endpoint.sink_fragment_id.as_str().to_owned(),
+            direction: endpoint.direction,
+            local_host: endpoint.local.host_id.as_str().to_owned(),
+            local_boot: endpoint.local.boot_id.as_str().to_owned(),
+            local_endpoint: endpoint.local.endpoint_id.as_str().to_owned(),
+            peer_host: endpoint.peer.host_id.as_str().to_owned(),
+            peer_boot: endpoint.peer.boot_id.as_str().to_owned(),
+            peer_endpoint: endpoint.peer.endpoint_id.as_str().to_owned(),
+            provider: endpoint.binding.provider,
+            provider_instance_id: endpoint.binding.provider_instance_id.as_str().to_owned(),
+            link_binding_id: endpoint.binding.binding_id.as_str().to_owned(),
+            value_kind: endpoint.value_kind.as_str().to_owned(),
+            maximum_in_flight_items: endpoint.binding.limits.maximum_in_flight_items,
+            maximum_payload_bytes: endpoint.binding.limits.maximum_payload_bytes,
+            maximum_buffered_bytes: endpoint.binding.limits.maximum_buffered_bytes,
+            maximum_frame_bytes: endpoint.binding.limits.maximum_frame_bytes,
+        });
+    }
+    Ok(result)
 }
 
 fn generate_configuration(
@@ -209,22 +259,43 @@ fn generate_cords(
         .cords
         .iter()
         .map(|cord| {
-            let (source_node, source_port) =
-                cord.spec
-                    .source_local()
-                    .ok_or(GenerationError::Unsupported(
-                        UnsupportedPlanFeature::RemoteConnection,
-                    ))?;
-            let (sink_node, sink_port) = cord.spec.sink_local().ok_or(
-                GenerationError::Unsupported(UnsupportedPlanFeature::RemoteConnection),
-            )?;
+            let source = match cord.spec.source {
+                CordEndpoint::Local { node, port } => GeneratedCordEndpoint::Local {
+                    node: node.0,
+                    port: port.0,
+                },
+                CordEndpoint::Remote(endpoint) => {
+                    if (endpoint.0 as usize) >= lowered.remote_endpoints.len() {
+                        return Err(GenerationError::Unsupported(
+                            UnsupportedPlanFeature::RemoteConnection,
+                        ));
+                    }
+                    GeneratedCordEndpoint::Remote {
+                        endpoint: endpoint.0,
+                    }
+                }
+            };
+            let sink = match cord.spec.sink {
+                CordEndpoint::Local { node, port } => GeneratedCordEndpoint::Local {
+                    node: node.0,
+                    port: port.0,
+                },
+                CordEndpoint::Remote(endpoint) => {
+                    if (endpoint.0 as usize) >= lowered.remote_endpoints.len() {
+                        return Err(GenerationError::Unsupported(
+                            UnsupportedPlanFeature::RemoteConnection,
+                        ));
+                    }
+                    GeneratedCordEndpoint::Remote {
+                        endpoint: endpoint.0,
+                    }
+                }
+            };
             Ok(GeneratedStaticCord {
                 cord: cord.spec.cord.0,
                 connection_id: cord.connection_id.as_str().to_owned(),
-                source_node: source_node.0,
-                source_port: source_port.0,
-                sink_node: sink_node.0,
-                sink_port: sink_port.0,
+                source,
+                sink,
                 slot_start: cord.spec.slot_start,
                 item_capacity: cord.spec.item_capacity,
                 byte_capacity: cord.spec.byte_capacity,

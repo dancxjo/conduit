@@ -1,8 +1,8 @@
 use std::error::Error;
 use std::fmt;
 
-use conduit_core::{CancellationPolicy, TerminalPolicy};
-use conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
+use conduit_core::{CancellationPolicy, ConnectionProvider, TerminalPolicy};
+use conduit_runtime::lowering::{RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE};
 
 /// Reviewed finite ceilings for one generated fixed image.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -16,6 +16,7 @@ pub struct EmbeddedImageBounds {
     pub maximum_evidence_expectations: usize,
     pub maximum_configuration_entries: usize,
     pub maximum_ports_per_node: usize,
+    pub maximum_remote_endpoints: usize,
     pub maximum_cord_value_slots: u16,
     pub maximum_cord_value_bytes: u32,
     pub maximum_evidence_items: u16,
@@ -35,6 +36,7 @@ impl EmbeddedImageBounds {
         maximum_evidence_expectations: u16::MAX as usize,
         maximum_configuration_entries: u16::MAX as usize,
         maximum_ports_per_node: MAXIMUM_KERNEL_PORTS_PER_NODE,
+        maximum_remote_endpoints: u16::MAX as usize,
         maximum_cord_value_slots: u16::MAX,
         maximum_cord_value_bytes: u32::MAX,
         maximum_evidence_items: u16::MAX,
@@ -142,14 +144,18 @@ pub struct GeneratedStaticNode {
     pub maximum_step_work: u16,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum GeneratedCordEndpoint {
+    Local { node: u16, port: u16 },
+    Remote { endpoint: u16 },
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GeneratedStaticCord {
     pub cord: u16,
     pub connection_id: String,
-    pub source_node: u16,
-    pub source_port: u16,
-    pub sink_node: u16,
-    pub sink_port: u16,
+    pub source: GeneratedCordEndpoint,
+    pub sink: GeneratedCordEndpoint,
     pub slot_start: u16,
     pub item_capacity: u16,
     pub byte_capacity: u32,
@@ -215,6 +221,30 @@ pub struct GeneratedStartupDependency {
     pub dependent_node: u16,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GeneratedStaticRemoteEndpoint {
+    pub endpoint: u16,
+    pub cord: u16,
+    pub connection_id: String,
+    pub source_fragment_id: String,
+    pub sink_fragment_id: String,
+    pub direction: RemoteCordDirection,
+    pub local_host: String,
+    pub local_boot: String,
+    pub local_endpoint: String,
+    pub peer_host: String,
+    pub peer_boot: String,
+    pub peer_endpoint: String,
+    pub provider: ConnectionProvider,
+    pub provider_instance_id: String,
+    pub link_binding_id: String,
+    pub value_kind: String,
+    pub maximum_in_flight_items: u16,
+    pub maximum_payload_bytes: u32,
+    pub maximum_buffered_bytes: u32,
+    pub maximum_frame_bytes: u32,
+}
+
 /// Owned build output. Firmware may consume only the rendered module and does
 /// not need to link this host-only crate.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -232,6 +262,7 @@ pub struct GeneratedEmbeddedPlan {
     pub output_ports: Vec<GeneratedPort>,
     pub configuration: Vec<GeneratedConfigurationEntry>,
     pub cords: Vec<GeneratedStaticCord>,
+    pub remote_endpoints: Vec<GeneratedStaticRemoteEndpoint>,
     pub routes: Vec<GeneratedStaticRoute>,
     pub route_targets: Vec<GeneratedStaticRouteTarget>,
     pub host_operations: Vec<GeneratedHostOperation>,
