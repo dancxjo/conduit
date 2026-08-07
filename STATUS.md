@@ -15,7 +15,7 @@ adapter or physical proof.
 | Interactive activation/toggle | typed `interaction/activate -> state/toggle -> presentation/show` contract with admitted input and exact remote planning | deterministic activation/toggle lifecycle and identity negatives | native std source services one admitted stdin activation through the kernel before realizing the corresponding remote offer | pinned Chromium proves the first Enter causes exactly one sequence-0 DOM update before later inputs, then completes sixteen exact presentations with one real pressure retry | no | actual bounded loopback WebSocket with structured link-break failure | no |
 | Pico-shaped manifestation | Pico-local advertisement and reviewed fixed-image bounds | yes, `conduit-pico-sim` | host-side unchanged-form planning/lowering/image generation and exact verifier tests | no | allocator-free RP2040 image, generated current-form kernel tables, CYW43 GPIO 0 LED driver, pinned radio assets, firmware-build identity, runtime boot/play receipt identity, and USB CDC verifier substrate | USB CDC path implemented but no recorded board session; no std-to-Pico network transport | no recorded board run |
 | Realm membership | retired prototype | deterministic table tests | no production body model | no | no | no | no |
-| Observatory | report-schema prototype | synthetic fleet retained only as a dedicated integration test | no production `conduct` synthetic command | no | no | no | no |
+| Observatory | versioned neutral host/capability/link/plan/Play/pressure/evidence/retention reports with exact identity and bound validation | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store | no new transport; observed links are report facts only | no new physical/HIL claim |
 | `conduit.std` | prototype contracts | one-value demonstrations | incomplete semantics | no | no | no | no |
 | Copy a file | unsafe prototype disabled | tests removed from default tree | no admitted host operation | no chooser | no | no | no |
 
@@ -245,8 +245,20 @@ link binding, host/boot/endpoint identity, payload/frame bounds, pressure,
 delivery, and terminal semantics remain exact. This does not implement a new
 production carrier; WebSocket remains the only proven live carrier.
 
+PR #476 exact head `7f83f916b179e098ed0a2af6bd816594a47ea406` merged as
+`2ef736ca3013c4473a3fc4c523a0c42d4a71c3e0`; that exact main commit passed
+workflow `31193349046`. Observatory now consumes neutral current-model reports
+instead of retired Realm state. It separately projects host/boot, capability
+kind/implementation/limits/status, link, plan/fragment, Play, placement,
+connection, presentation, evidence, pressure, terminal/failure, and bounded
+retention facts. Actual std execution can emit the artifact and the inspection
+command performs no planning, activation, cancellation, or release. Tests bind
+the projection to the exact current std/Pico USB plan while explicitly making
+no physical-proof claim; the final three-host physical acceptance remains #350.
+
 No physical `just pico` run, CYW43 LED observation, or accepted USB board
 transcript is recorded. No bounded std-to-Pico transport or final unchanged
 three-host stdout/DOM/LED proof exists. Those remain the next #415/#350 S4
-acceptance gates. No UDP, Zenoh, TCP, BODY, catalog expansion, Observatory
-acceptance, discovery, TLS, public hosting, or reconnection policy is implied.
+acceptance gates. No UDP, Zenoh, TCP, BODY, catalog expansion, browser
+Observatory UI, discovery, TLS, public hosting, or reconnection policy is
+implied.
