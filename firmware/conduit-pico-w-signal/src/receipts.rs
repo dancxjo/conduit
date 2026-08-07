@@ -168,7 +168,7 @@ impl UsbCdc {
                 identity.boot_evidence_id,
             ),
         );
-        self.write_all(line.as_bytes()).await;
+        self.write_all_mandatory(line.as_bytes()).await;
     }
 
     /// Write a machine-readable receipt for one Signal presentation.
@@ -316,6 +316,22 @@ impl UsbCdc {
             ),
         );
         self.write_all(line.as_bytes()).await;
+    }
+
+    async fn write_all_mandatory(&mut self, data: &[u8]) {
+        let mut offset = 0;
+        while offset < data.len() {
+            let chunk_len = (data.len() - offset).min(MAX_PACKET_SIZE as usize);
+            if self
+                .sender
+                .write_packet(&data[offset..offset + chunk_len])
+                .await
+                .is_err()
+            {
+                break;
+            }
+            offset += chunk_len;
+        }
     }
 
     async fn write_all(&mut self, data: &[u8]) {

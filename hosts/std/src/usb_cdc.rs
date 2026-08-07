@@ -364,6 +364,67 @@ impl NativePathCdcCarrier {
         }
     }
 
+    pub fn send_raw_stream_frame(
+        &mut self,
+        payload: &[u8],
+        timeout: Duration,
+    ) -> Result<(), NativeUsbCdcError> {
+        let mut framed_buf = [0u8; 1024];
+        let total_bytes = encode_stream_frame(payload, self.maximum_frame_bytes, &mut framed_buf)?;
+        self.write_raw_bytes(&framed_buf[..total_bytes], timeout)
+    }
+
+    pub fn receive_raw_stream_frame<'a>(
+        &mut self,
+        frame_buf: &'a mut [u8],
+        timeout: Duration,
+    ) -> Result<&'a [u8], NativeUsbCdcError> {
+        let deadline = Instant::now() + timeout;
+        let mut chunk = [0u8; 64];
+        loop {
+            if let Some(frame_bytes) = self.decoder.next_frame()? {
+                if frame_buf.len() < frame_bytes.len() {
+                    return Err(NativeUsbCdcError::InvalidLimit);
+                }
+                frame_buf[..frame_bytes.len()].copy_from_slice(frame_bytes);
+                return Ok(&frame_buf[..frame_bytes.len()]);
+            }
+
+            let now = Instant::now();
+            if now >= deadline {
+                return Err(NativeUsbCdcError::WouldBlock);
+            }
+            let remaining = deadline - now;
+            let millis = remaining.as_millis().min(i32::MAX as u128) as libc::c_int;
+            let mut pfd = libc::pollfd {
+                fd: self.fd.0,
+                events: libc::POLLIN,
+                revents: 0,
+            };
+            let ret = unsafe { libc::poll(&mut pfd, 1, millis) };
+            if ret < 0 {
+                return Err(NativeUsbCdcError::Read(
+                    std::io::Error::last_os_error().kind(),
+                ));
+            }
+            if ret > 0 && (pfd.revents & libc::POLLIN) != 0 {
+                let n = unsafe { libc::read(self.fd.0, chunk.as_mut_ptr() as *mut _, chunk.len()) };
+                if n > 0 {
+                    self.decoder.accept_bytes(&chunk[..n as usize])?;
+                } else if n == 0 {
+                    return Err(NativeUsbCdcError::Disconnected);
+                } else {
+                    let err = std::io::Error::last_os_error();
+                    if err.kind() != std::io::ErrorKind::WouldBlock
+                        && err.kind() != std::io::ErrorKind::TimedOut
+                    {
+                        return Err(NativeUsbCdcError::Read(err.kind()));
+                    }
+                }
+            }
+        }
+    }
+
     pub fn receive_raw_bytes(
         &mut self,
         len: usize,

@@ -71,39 +71,33 @@ pub async fn run_remote_signal_sink(
 
     let mut frame_buf = [0u8; 2048];
 
-    // Emit boot identity ONCE over CDC 1 at startup
+    // Wait for CDC 1 host connection/DTR, then emit ONE COMPLETE boot identity
+    evidence_cdc.wait_connection().await;
     evidence_cdc.write_boot_identity(boot_identity(), runtime).await;
 
-    // Phase 0/1: Raw CDC 0 bidirectional probe checkpoint & SessionMessage::Hello wait
+    // Phase 0/1: Raw stream-framed CDC 0 probe & SessionMessage::Hello wait
     loop {
-        let frame = link_session.receive_frame(&mut frame_buf).await?;
-        if let SessionMessage::Offered { payload, .. } = frame.message {
-            if payload == b"CONDUIT_RAW_CDC0_PROBE" {
-                let reply_probe = SessionFrame {
-                    identity: session_identity,
-                    message: SessionMessage::Offered {
-                        sequence: 0,
-                        payload: b"CONDUIT_RAW_CDC0_REPLY",
-                    },
-                };
-                link_session.send_frame(&reply_probe).await?;
-                continue;
-            }
+        let raw_bytes = link_session.receive_raw_stream_frame(&mut frame_buf).await?;
+        if raw_bytes == b"CONDUIT_RAW_CDC0_PROBE" {
+            link_session.send_raw_stream_frame(b"CONDUIT_RAW_CDC0_REPLY").await?;
+            continue;
         }
 
-        if matches!(frame.message, SessionMessage::Hello(_)) {
-            // Handshake Step 1 (Sink): Admit inbound Hello from Source
-            machine
-                .admit_inbound(frame)
-                .map_err(UsbLinkError::Codec)?;
+        if let Ok(frame) = conduit_wire::decode_session_frame(raw_bytes, 1024, 1024) {
+            if matches!(frame.message, SessionMessage::Hello(_)) {
+                // Handshake Step 1 (Sink): Admit inbound Hello from Source
+                machine
+                    .admit_inbound(frame)
+                    .map_err(UsbLinkError::Codec)?;
 
-            // Handshake Step 2 (Sink): Admit outbound Hello from Sink and send to Source
-            let hello_frame = binding.hello_frame();
-            machine
-                .admit_outbound(hello_frame)
-                .map_err(UsbLinkError::Codec)?;
-            link_session.send_frame(&hello_frame).await?;
-            break;
+                // Handshake Step 2 (Sink): Admit outbound Hello from Sink and send to Source
+                let hello_frame = binding.hello_frame();
+                machine
+                    .admit_outbound(hello_frame)
+                    .map_err(UsbLinkError::Codec)?;
+                link_session.send_frame(&hello_frame).await?;
+                break;
+            }
         }
     }
 

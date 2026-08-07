@@ -100,4 +100,55 @@ impl UsbLinkSession {
 
         Ok(())
     }
+
+    /// Receive next raw length-prefixed stream frame payload without SessionFrame decoding.
+    pub async fn receive_raw_stream_frame<'a>(
+        &mut self,
+        buf: &'a mut [u8],
+    ) -> Result<&'a [u8], UsbLinkError> {
+        let mut packet_buf = [0u8; 64];
+        loop {
+            if let Some(frame_bytes) = self.decoder.next_frame()? {
+                if buf.len() < frame_bytes.len() {
+                    return Err(UsbLinkError::BufferOverflow);
+                }
+                buf[..frame_bytes.len()].copy_from_slice(frame_bytes);
+                return Ok(&buf[..frame_bytes.len()]);
+            }
+
+            let read_bytes = self
+                .receiver
+                .read_packet(&mut packet_buf)
+                .await
+                .map_err(|_| UsbLinkError::UsbDisconnected)?;
+
+            if read_bytes == 0 {
+                continue;
+            }
+
+            self.decoder.accept_bytes(&packet_buf[..read_bytes])?;
+        }
+    }
+
+    /// Send raw stream frame payload without SessionFrame encoding.
+    pub async fn send_raw_stream_frame(&mut self, payload: &[u8]) -> Result<(), UsbLinkError> {
+        let mut framed_buf = [0u8; 1024];
+        let total_bytes = encode_stream_frame(payload, 1024, &mut framed_buf)?;
+
+        let mut offset = 0;
+        while offset < total_bytes {
+            let chunk_size = (total_bytes - offset).min(64);
+            self.sender
+                .write_packet(&framed_buf[offset..offset + chunk_size])
+                .await
+                .map_err(|_| UsbLinkError::UsbDisconnected)?;
+            offset += chunk_size;
+        }
+
+        if total_bytes > 0 && total_bytes % 64 == 0 {
+            let _ = self.sender.write_packet(&[]).await;
+        }
+
+        Ok(())
+    }
 }

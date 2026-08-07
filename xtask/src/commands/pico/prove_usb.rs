@@ -180,26 +180,16 @@ pub fn run_prove_std_pico_usb(
     {
         // 3. Raw CDC0 Physical Checkpoint before SessionMachine
         println!("==> Executing raw CDC0 bidirectional physical checkpoint...");
-        let probe_frame = SessionFrame {
-            identity: binding.identity(),
-            message: SessionMessage::Offered {
-                sequence: 0,
-                payload: b"CONDUIT_RAW_CDC0_PROBE",
-            },
-        };
-        carrier.send_frame(&probe_frame, Duration::from_secs(2))?;
-        println!("  [Source] Sent raw CDC0 probe frame");
+        carrier.send_raw_stream_frame(b"CONDUIT_RAW_CDC0_PROBE", Duration::from_secs(2))?;
+        println!("  [Source] Sent raw CDC0 stream frame probe");
 
         let mut frame_buf = [0u8; 2048];
-        let probe_reply = carrier.receive_frame(&mut frame_buf, Duration::from_secs(5))?;
-        if let SessionMessage::Offered { payload, .. } = probe_reply.message {
-            if payload == b"CONDUIT_RAW_CDC0_REPLY" {
-                println!("==> CDC0 raw bidirectional checkpoint passed");
-            } else {
-                return Err("raw CDC0 probe reply payload mismatch".into());
-            }
+        let probe_reply =
+            carrier.receive_raw_stream_frame(&mut frame_buf, Duration::from_secs(5))?;
+        if probe_reply == b"CONDUIT_RAW_CDC0_REPLY" {
+            println!("==> CDC0 raw bidirectional checkpoint passed");
         } else {
-            return Err("raw CDC0 probe received invalid message type".into());
+            return Err("raw CDC0 probe reply payload mismatch".into());
         }
     }
 
