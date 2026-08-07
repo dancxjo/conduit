@@ -9,7 +9,7 @@ use conduit_core::{
     FragmentId, HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_signal::decode_signal_bytes;
-use conduit_wire::{SessionBinding, SessionMachine, SessionMessage, SessionRole};
+use conduit_wire::{SessionBinding, SessionFrame, SessionMachine, SessionMessage, SessionRole};
 use cyw43::Control;
 
 use crate::kernel::{boot_identity, presentation_receipt_identity};
@@ -30,9 +30,9 @@ pub async fn run_remote_signal_sink(
         plan_id: PlanId::from(PLAN_ID),
         source_fragment_id: FragmentId::from("fragment/std-source"),
         sink_fragment_id: FragmentId::from(FRAGMENT_ID),
-        source_active_play_id: ActivePlayId::from("play/std"),
+        source_active_play_id: ActivePlayId::from("play/std-host"),
         sink_active_play_id: ActivePlayId::from(runtime.active_play_id()),
-        connection_id: ConnectionId::from("conn/signal-0"),
+        connection_id: ConnectionId::from("conn/std-pico-signal"),
         link_binding_id: LinkBindingId::from("link/usb-cdc-0"),
         provider: ConnectionProvider::UsbCdc,
         provider_instance_id: ConnectionProviderInstanceId::from("pico-usb-cdc-0"),
@@ -55,14 +55,28 @@ pub async fn run_remote_signal_sink(
         },
     };
 
-    let mut machine = SessionMachine::new(binding, SessionRole::Sink)
+    let session_identity = binding.identity();
+
+    let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink)
         .map_err(UsbLinkError::Codec)?;
 
     let mut frame_buf = [0u8; 512];
     loop {
         let frame = link_session.receive_frame(&mut frame_buf).await?;
+        let is_hello = matches!(frame.message, SessionMessage::Hello(_));
+
         if machine.admit_inbound(frame).is_err() {
             break;
+        }
+
+        if is_hello {
+            let ready_frame = SessionFrame {
+                identity: session_identity,
+                message: SessionMessage::Ready,
+            };
+            if machine.admit_outbound(ready_frame).is_ok() {
+                let _ = link_session.send_frame(&ready_frame).await;
+            }
         }
 
         if let SessionMessage::Offered { payload, .. } = frame.message {
