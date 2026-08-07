@@ -595,7 +595,6 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
 }
 
 #[cfg(feature = "alloc")]
-#[cfg(feature = "alloc")]
 mod hosted;
 
 #[cfg(feature = "alloc")]
