@@ -23,6 +23,9 @@ pub async fn run_remote_signal_sink(
     control: &mut Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), UsbLinkError> {
+    // Wait for the host to open CDC 1 (DTR asserted) before emitting the boot identity
+    // to prevent the host from missing the one-time boot message.
+    evidence_cdc.wait_connection().await;
     evidence_cdc.write_boot_identity(boot_identity(), runtime).await;
 
     let plan_id = PlanId::from(PLAN_ID);

@@ -25,6 +25,11 @@ impl UsbCdc {
     pub fn new(sender: embassy_usb::class::cdc_acm::Sender<'static, usb::Driver<'static, USB>>) -> Self {
         Self { sender }
     }
+
+    /// Wait for a USB host to connect and assert DTR on this CDC interface.
+    pub async fn wait_connection(&mut self) {
+        self.sender.wait_connection().await;
+    }
 }
 
 pub struct RuntimeTranscriptIdentity {
