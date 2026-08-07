@@ -3685,6 +3685,7 @@ mod conformance {
                 resource_offer("test/presentation", PRESENTATION_RESOURCE_CLASS, 8),
                 resource_offer("test/timer", TIMER_RESOURCE_CLASS, 8),
             ],
+            planner_capabilities: vec![],
             capabilities: vec![
                 CapabilityOffer {
                     capability_id: CapabilityId::from("pulse-1"),

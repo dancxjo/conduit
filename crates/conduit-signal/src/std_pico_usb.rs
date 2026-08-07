@@ -47,6 +47,7 @@ pub fn std_pico_usb_source_advertisement() -> HostAdvertisement {
             .into_iter()
             .filter(|resource| resource.class_id.as_str() == conduit_core::TIMER_RESOURCE_CLASS)
             .collect(),
+        planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
             capability_id: CapabilityId::from("std-pico-pulse-1"),
             kind_id: crate::pulse_kind(),
@@ -81,6 +82,7 @@ pub fn std_pico_usb_sink_advertisement() -> HostAdvertisement {
                 resource.class_id.as_str() == conduit_core::PRESENTATION_RESOURCE_CLASS
             })
             .collect(),
+        planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
             capability_id: CapabilityId::from("pico-cyw43-show-1"),
             kind_id: crate::show_kind(),

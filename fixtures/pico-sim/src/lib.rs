@@ -90,6 +90,7 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
         offer_generation: config.offer_generation,
         profile: HostProfileId::from("pico-w"),
         resources: signal_resource_offers("pico/timer", "pico/presentation", 1),
+        planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("pico-pulse"),
