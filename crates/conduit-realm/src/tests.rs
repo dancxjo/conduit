@@ -18,6 +18,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test-host"),
         resources: vec![],
+        planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
             capability_id: CapabilityId::from("capability-1"),
             kind_id: KindId::from("test/kind"),

@@ -2,7 +2,8 @@ use conduit_core::{
     bind_active_play, bind_evidence, bind_presentation, kind_id, ArtifactId, BootId, CapabilityId,
     CapabilityLimits, CapabilityOffer, ConnectionProvider, EvidenceIdentity, HostAdvertisement,
     HostId, HostOperationContractId, HostProfileId, ImplementationId, OfferGeneration, PlacementId,
-    PlanFragment, PresentationIdentity, PROTOCOL_VERSION,
+    PlanFragment, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PresentationIdentity,
+    PROTOCOL_VERSION,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
@@ -13,7 +14,9 @@ use conduit_kernel::{
     HostedValueStore, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
     ValueRef, ValueStorage,
 };
-use conduit_planner::{default_placements, plan};
+use conduit_planner::{
+    default_placements, plan_with_advertised_profile, PlanningOptions, BROWSER_PLANNER_PROFILE,
+};
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment,
     MAXIMUM_KERNEL_PORTS_PER_NODE,
@@ -26,7 +29,7 @@ use conduit_signal::{
     signal_profile_catalog, signal_resource_offers, Signal, PULSE_KIND, SHOW_KIND,
     SIGNAL_ENCODED_LEN,
 };
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::BTreeMap};
 
 mod distributed;
 mod distributed_toggle;
@@ -323,8 +326,23 @@ impl BrowserSession {
         .map_err(|_| ERROR_START)?;
         let realm = [advertisement.clone()];
         let placements = default_placements(&form, &realm).map_err(|_| ERROR_START)?;
-        let mut planned = plan(&form, &realm, &placements, &[ConnectionProvider::Local])
-            .map_err(|_| ERROR_START)?;
+        let provider_overrides = BTreeMap::new();
+        let mut planned = plan_with_advertised_profile(
+            &advertisement,
+            &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
+            &form,
+            &realm,
+            &placements,
+            &[ConnectionProvider::Local],
+            PlanningOptions {
+                connection_providers: &provider_overrides,
+                connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
+                connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+                authority_grants: &[],
+                link_bindings: &[],
+            },
+        )
+        .map_err(|_| ERROR_START)?;
         let fragment = planned.fragments.pop().ok_or(ERROR_START)?;
         let lowered = lower_plan_fragment(&fragment).map_err(|_| ERROR_START)?;
         let PreparedKernel {
@@ -1002,6 +1020,16 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser-wasm-kernel"),
         resources: signal_resource_offers("browser/timer", "browser/dom", 16),
+        planner_capabilities: vec![PlannerCapabilityOffer {
+            profile_id: PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
+            limits: PlannerLimits {
+                maximum_host_advertisements: 16,
+                maximum_operations: 64,
+                maximum_connections: 128,
+                maximum_authority_grants: 64,
+                maximum_link_bindings: 128,
+            },
+        }],
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("pulse-1"),

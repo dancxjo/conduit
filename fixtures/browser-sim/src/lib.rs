@@ -559,6 +559,7 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
         offer_generation: config.offer_generation,
         profile: HostProfileId::from("browser/wasm-page-v1"),
         resources: signal_resource_offers("browser/timer", "browser/presentation", 16),
+        planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("pulse"),

@@ -326,6 +326,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("pico-w-signal-kernel"),
         resources: signal_resource_offers(PICO_TIMER_POOL_ID, PICO_PRESENTATION_POOL_ID, 1),
+        planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("pico-pulse-1"),
@@ -379,6 +380,7 @@ pub fn distributed_std_source_advertisement() -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-kernel"),
         resources: vec![resource_offer("s4/std-timer", TIMER_RESOURCE_CLASS, 1)],
+        planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
             capability_id: CapabilityId::from("pulse-1"),
             kind_id: pulse_kind(),
@@ -413,6 +415,7 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
             PRESENTATION_RESOURCE_CLASS,
             1,
         )],
+        planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
             capability_id: CapabilityId::from("dom-show-1"),
             kind_id: show_kind(),

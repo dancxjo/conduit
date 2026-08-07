@@ -217,6 +217,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
             INPUT_RESOURCE_CLASS,
             1,
         )],
+        planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("activate-1"),
@@ -270,6 +271,7 @@ pub fn distributed_toggle_browser_sink_advertisement() -> HostAdvertisement {
             PRESENTATION_RESOURCE_CLASS,
             1,
         )],
+        planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
             capability_id: CapabilityId::from("toggle-dom-show-1"),
             kind_id: show_kind(),

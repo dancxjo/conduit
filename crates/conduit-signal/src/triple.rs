@@ -103,6 +103,7 @@ pub fn source_advertisement() -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-triple-kernel"),
         resources: signal_resource_offers("s4/triple-std-timer", "s4/triple-stdout", 1),
+        planner_capabilities: vec![],
         capabilities: vec![
             capability(PULSE_CAPABILITY_ID, "std/kernel-pulse-v1", true),
             capability(
@@ -127,6 +128,7 @@ pub fn browser_advertisement() -> HostAdvertisement {
                 resource.class_id.as_str() == conduit_core::PRESENTATION_RESOURCE_CLASS
             })
             .collect(),
+        planner_capabilities: vec![],
         capabilities: vec![capability(
             BROWSER_CAPABILITY_ID,
             "browser/kernel-dom-show-signal-v1",
@@ -148,6 +150,7 @@ pub fn pico_advertisement() -> HostAdvertisement {
                 resource.class_id.as_str() == conduit_core::PRESENTATION_RESOURCE_CLASS
             })
             .collect(),
+        planner_capabilities: vec![],
         capabilities: vec![capability(
             PICO_CAPABILITY_ID,
             "pico/kernel-cyw43-show-signal-v1",

@@ -38,6 +38,7 @@ fn host() -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std"),
         resources: signal_resource_offers("test/timer", "test/presentation", 4),
+        planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
                 capability_id: conduit_core::CapabilityId::from("pulse-1"),
@@ -125,6 +126,7 @@ fn host_for_checked_form(form: &conduit_form::CheckedForm) -> HostAdvertisement 
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("nested-test"),
         resources: vec![],
+        planner_capabilities: vec![],
         capabilities: form
             .operations
             .iter()

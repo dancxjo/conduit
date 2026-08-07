@@ -53,6 +53,7 @@ macro_rules! identity_type {
 identity_type!(HostId);
 identity_type!(BootId);
 identity_type!(CapabilityId);
+identity_type!(PlannerProfileId);
 identity_type!(KindId);
 // Immutable identity of one exact semantic-kind contract revision.
 identity_type!(KindContractRevision);
@@ -331,6 +332,30 @@ pub struct CapabilityOffer {
     pub limits: CapabilityLimits,
 }
 
+/// Finite request shape accepted by one optional planner profile.
+///
+/// These are admission limits, not hints. A planner must refuse before
+/// planning when any supplied portable input exceeds the advertised shape.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannerLimits {
+    pub maximum_host_advertisements: u16,
+    pub maximum_operations: u16,
+    pub maximum_connections: u16,
+    pub maximum_authority_grants: u16,
+    pub maximum_link_bindings: u16,
+}
+
+/// An optional host capability to perform deterministic Conduit planning.
+///
+/// The offer identifies a portable execution profile and its exact limits. It
+/// deliberately contains no coordinator role, service endpoint, or delegation
+/// target. Its host and boot scope come from the containing advertisement.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannerCapabilityOffer {
+    pub profile_id: PlannerProfileId,
+    pub limits: PlannerLimits,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HostAdvertisement {
     pub protocol_version: u16,
@@ -340,6 +365,8 @@ pub struct HostAdvertisement {
     pub profile: HostProfileId,
     pub resources: Vec<ResourceOffer>,
     pub capabilities: Vec<CapabilityOffer>,
+    #[serde(default)]
+    pub planner_capabilities: Vec<PlannerCapabilityOffer>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
