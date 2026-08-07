@@ -227,24 +227,41 @@ pub fn run_prove_std_pico_usb(
     let mut frame_buf = [0u8; 512];
     let mut handshake_ok = false;
     for attempt in 1..=10 {
-        let _ = carrier.send_frame(&hello);
+        if let Err(err) = carrier.send_frame(&hello) {
+            println!("  [attempt {}/10] send_frame error: {:?}", attempt, err);
+        } else {
+            println!("  [attempt {}/10] Sent SessionFrame::Hello", attempt);
+        }
+
         let start = Instant::now();
         while start.elapsed() < Duration::from_millis(500) {
-            if let Ok(res) = carrier.receive_frame(&mut frame_buf) {
-                if matches!(res.message, SessionMessage::Ready) {
-                    handshake_ok = true;
-                    break;
+            match carrier.receive_frame(&mut frame_buf) {
+                Ok(res) => {
+                    println!(
+                        "  [attempt {}/10] Received frame: {:?}",
+                        attempt, res.message
+                    );
+                    if matches!(res.message, SessionMessage::Ready) {
+                        handshake_ok = true;
+                        break;
+                    }
+                }
+                Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
+                Err(err) => {
+                    println!("  [attempt {}/10] receive_frame error: {:?}", attempt, err);
                 }
             }
             std::thread::sleep(Duration::from_millis(50));
         }
+
         if handshake_ok {
             break;
         }
-        println!(
-            "  [handshake retry {}/10] Resending SessionFrame::Hello...",
-            attempt
-        );
+
+        let mut evidence_line = String::new();
+        if evidence_reader.read_line(&mut evidence_line).unwrap_or(0) > 0 {
+            println!("  [Pico evidence CDC 1]: {}", evidence_line.trim());
+        }
     }
 
     if !handshake_ok {
