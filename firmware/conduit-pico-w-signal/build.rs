@@ -13,11 +13,13 @@ use conduit_embedded_build::{
 use conduit_runtime::lowering::lower_plan_fragment;
 use conduit_signal::{
     exact_std_pico_usb_plan, pico_local_advertisement, signal_profile_catalog,
+    triple,
     DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID, SHOW_KIND, SIGNAL_ENCODED_LEN,
     STD_PICO_USB_SINK_HOST_ID,
 };
 
 const SIGNAL_DEMO_FORM: &str = include_str!("../../examples/signal-demo.form");
+const TRIPLE_SIGNAL_FORM: &str = include_str!("../../examples/triple-signal.form");
 const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
 const MAX_STORED_SIGNAL_VALUES: usize = 16;
@@ -43,14 +45,23 @@ fn main() {
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=../../examples/signal-demo.form");
+    println!("cargo:rerun-if-changed=../../examples/triple-signal.form");
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_ENV}");
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_RERUN_ENV}");
 }
 
 fn generate_pico_signal_image(out: &Path) {
-    let form = conduit_form::parse(SIGNAL_DEMO_FORM, &signal_profile_catalog())
-        .expect("examples/signal-demo.form must check against conduit-signal profile");
-    let (plan, target_host) = if firmware_mode() == "usb-remote" {
+    let source = if firmware_mode() == "triple-remote" {
+        TRIPLE_SIGNAL_FORM
+    } else {
+        SIGNAL_DEMO_FORM
+    };
+    let form = conduit_form::parse(source, &signal_profile_catalog())
+        .expect("selected Signal form must check against conduit-signal profile");
+    let (plan, target_host) = if firmware_mode() == "triple-remote" {
+        let exact = triple::exact_plan().expect("exact three-host Signal plan must resolve");
+        (exact.plan, triple::PICO_HOST_ID)
+    } else if firmware_mode() == "usb-remote" {
         let exact = exact_std_pico_usb_plan().expect("exact std-to-Pico UsbCdc plan must resolve");
         (exact.plan, STD_PICO_USB_SINK_HOST_ID)
     } else {
@@ -211,7 +222,9 @@ fn firmware_build_id(
 }
 
 fn firmware_mode() -> &'static str {
-    if env::var_os("CARGO_FEATURE_USB_REMOTE").is_some() {
+    if env::var_os("CARGO_FEATURE_TRIPLE_REMOTE").is_some() {
+        "triple-remote"
+    } else if env::var_os("CARGO_FEATURE_USB_REMOTE").is_some() {
         "usb-remote"
     } else {
         "pico-local"

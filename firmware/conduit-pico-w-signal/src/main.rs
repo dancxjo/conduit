@@ -8,34 +8,42 @@
 #![no_std]
 #![no_main]
 
-#[cfg(all(feature = "pico-local", feature = "usb-remote"))]
+#[cfg(any(
+    all(feature = "pico-local", feature = "usb-remote"),
+    all(feature = "pico-local", feature = "triple-remote"),
+    all(feature = "usb-remote", feature = "triple-remote")
+))]
 compile_error!("select exactly one Pico firmware mode");
-#[cfg(not(any(feature = "pico-local", feature = "usb-remote")))]
+#[cfg(not(any(
+    feature = "pico-local",
+    feature = "usb-remote",
+    feature = "triple-remote"
+)))]
 compile_error!("select exactly one Pico firmware mode");
 
 mod kernel;
 mod bootsel;
 mod radio;
 mod receipts;
-#[cfg(feature = "usb-remote")]
+#[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 mod remote_signal;
-#[cfg(feature = "usb-remote")]
+#[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 mod remote_kernel;
 mod signal_image;
-#[cfg(feature = "usb-remote")]
+#[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 mod startup_arena;
 mod usb;
 mod usb_link;
 
 use aligned::{A4, Aligned};
 use embassy_executor::Spawner;
-#[cfg(feature = "usb-remote")]
+#[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 use embassy_futures::join::join;
 #[cfg(feature = "pico-local")]
 use embassy_futures::select::{select, Either};
 use panic_halt as _;
 
-#[cfg(feature = "usb-remote")]
+#[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 #[global_allocator]
 static ALLOCATOR: startup_arena::StartupArena = startup_arena::StartupArena::new();
 
@@ -108,50 +116,50 @@ async fn main(spawner: Spawner) {
         let _ = bootsel::wait_for_request(&mut link_session).await;
     }
 
-    #[cfg(feature = "usb-remote")]
+    #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
     {
-    let mut link_session = usb_link::UsbLinkSession::new(link_carrier).unwrap();
+        let mut link_session = usb_link::UsbLinkSession::new(link_carrier).unwrap();
 
-    // Service the physical USB startup while CYW43 initializes. Enumeration is
-    // not a live CDC service: both futures must be polled from the beginning.
-    let usb_startup =
-        remote_signal::establish_usb_channels(&mut link_session, &mut cdc, &runtime);
-    let radio_startup = async {
-        let (control, _) = radio::init_cyw43(
-            &spawner,
-            p.PIO0,
-            p.DMA_CH0,
-            p.PIN_23,
-            p.PIN_24,
-            p.PIN_25,
-            p.PIN_29,
-            &CYW43_FW,
-            &CYW43_NVRAM,
+        // Service the physical USB startup while CYW43 initializes. Enumeration is
+        // not a live CDC service: both futures must be polled from the beginning.
+        let usb_startup =
+            remote_signal::establish_usb_channels(&mut link_session, &mut cdc, &runtime);
+        let radio_startup = async {
+            let (control, _) = radio::init_cyw43(
+                &spawner,
+                p.PIO0,
+                p.DMA_CH0,
+                p.PIN_23,
+                p.PIN_24,
+                p.PIN_25,
+                p.PIN_29,
+                &CYW43_FW,
+                &CYW43_NVRAM,
+            )
+            .await;
+            control
+        };
+        let (usb_result, mut control) = join(usb_startup, radio_startup).await;
+        if usb_result.is_err() {
+            core::future::pending::<()>().await;
+        }
+        if cdc.write_marker("CONDUIT_CYW43_GPIO_READY").await.is_err() {
+            core::future::pending::<()>().await;
+        }
+
+        // Execute the USB-CDC remote session sink.
+        let result = remote_signal::run_remote_signal_sink(
+            &mut link_session,
+            &mut cdc,
+            &mut control,
+            &runtime,
         )
         .await;
-        control
-    };
-    let (usb_result, mut control) = join(usb_startup, radio_startup).await;
-    if usb_result.is_err() {
-        core::future::pending::<()>().await;
-    }
-    if cdc.write_marker("CONDUIT_CYW43_GPIO_READY").await.is_err() {
-        core::future::pending::<()>().await;
-    }
-
-    // Execute the USB-CDC remote session sink
-    let result = remote_signal::run_remote_signal_sink(
-        &mut link_session,
-        &mut cdc,
-        &mut control,
-        &runtime,
-    )
-    .await;
-    if let Err(error) = result {
-        let _ = cdc
-            .write_failure(error.code(), kernel::terminal_identity(), &runtime)
-            .await;
-    }
-    let _ = bootsel::wait_for_request(&mut link_session).await;
+        if let Err(error) = result {
+            let _ = cdc
+                .write_failure(error.code(), kernel::terminal_identity(), &runtime)
+                .await;
+        }
+        let _ = bootsel::wait_for_request(&mut link_session).await;
     }
 }

@@ -25,8 +25,8 @@ use conduit_runtime::lowering::{
 use conduit_signal::{
     decode_signal_bytes, distributed_browser_sink_advertisement,
     distributed_std_source_advertisement, distributed_websocket_link_binding,
-    signal_profile_catalog, DISTRIBUTED_MAXIMUM_FRAME_BYTES, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-    SHOW_KIND, SIGNAL_ENCODED_LEN,
+    signal_profile_catalog, triple, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
+    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SHOW_KIND, SIGNAL_ENCODED_LEN,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
@@ -163,7 +163,18 @@ struct DistributedSink {
     seal: CapacitySeal,
 }
 
-fn exact_plan() -> Result<Plan, i32> {
+#[derive(Clone, Copy)]
+enum PlanKind {
+    StdBrowser,
+    Triple,
+}
+
+fn exact_plan(kind: PlanKind) -> Result<Plan, i32> {
+    if matches!(kind, PlanKind::Triple) {
+        return triple::exact_plan()
+            .map(|exact| exact.plan)
+            .map_err(|_| ERROR_PREPARE);
+    }
     let source = distributed_std_source_advertisement();
     let sink = distributed_browser_sink_advertisement();
     let form = conduit_form::parse(
@@ -202,9 +213,12 @@ fn exact_plan() -> Result<Plan, i32> {
 }
 
 impl DistributedSink {
-    fn prepare(evidence_override: Option<u16>) -> Result<Self, i32> {
-        let advertisement = distributed_browser_sink_advertisement();
-        let plan = exact_plan()?;
+    fn prepare(evidence_override: Option<u16>, kind: PlanKind) -> Result<Self, i32> {
+        let advertisement = match kind {
+            PlanKind::StdBrowser => distributed_browser_sink_advertisement(),
+            PlanKind::Triple => triple::browser_advertisement(),
+        };
+        let plan = exact_plan(kind)?;
         let fragment = plan
             .fragments
             .into_iter()
@@ -718,181 +732,8 @@ fn write_remote_identity_frame(
     Ok(())
 }
 
-fn with_sink<T>(action: impl FnOnce(&mut DistributedSink) -> Result<T, i32>) -> Result<T, i32> {
-    DISTRIBUTED.with(|slot| {
-        let mut slot = slot.borrow_mut();
-        action(slot.as_mut().ok_or(ERROR_NOT_STARTED)?)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_start() -> i32 {
-    match DistributedSink::prepare(None) {
-        Ok(sink) => {
-            DISTRIBUTED.with(|slot| *slot.borrow_mut() = Some(sink));
-            STATUS_RUNNING
-        }
-        Err(code) => code,
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_status() -> i32 {
-    DISTRIBUTED.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(DistributedSink::status)
-            .unwrap_or(ERROR_NOT_STARTED)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_output_kind() -> i32 {
-    DISTRIBUTED.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| sink.output_kind)
-            .unwrap_or(OUTPUT_NONE)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_output_ptr() -> *const u8 {
-    DISTRIBUTED.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| sink.output.as_ptr())
-            .unwrap_or(core::ptr::null())
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_output_len() -> u32 {
-    DISTRIBUTED.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| sink.output_len as u32)
-            .unwrap_or(0)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_input_ptr() -> *mut u8 {
-    DISTRIBUTED_INPUT.with(|input| input.borrow_mut().as_mut_ptr())
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_input_capacity() -> u32 {
-    FRAME_CAPACITY as u32
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_ingest(length: u32) -> i32 {
-    let length = length as usize;
-    if length > FRAME_CAPACITY {
-        return ERROR_SESSION;
-    }
-    DISTRIBUTED_INPUT.with(|input| {
-        let input = input.borrow();
-        with_sink(|sink| sink.ingest(&input[..length]))
-            .map(|_| conduit_browser_distributed_status())
-            .unwrap_or_else(|code| code)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_advance() -> i32 {
-    with_sink(DistributedSink::advance)
-        .map(|_| conduit_browser_distributed_status())
-        .unwrap_or_else(|code| code)
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_clear_output() -> i32 {
-    with_sink(|sink| {
-        sink.clear_output();
-        Ok(())
-    })
-    .map(|_| conduit_browser_distributed_status())
-    .unwrap_or_else(|code| code)
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_complete(length: u32) -> i32 {
-    let length = length as usize;
-    if length > FRAME_CAPACITY {
-        return ERROR_PRESENTATION;
-    }
-    DISTRIBUTED_INPUT.with(|input| {
-        let input = input.borrow();
-        with_sink(|sink| sink.complete_presentation(&input[..length]))
-            .map(|_| conduit_browser_distributed_status())
-            .unwrap_or_else(|code| code)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_cancel() -> i32 {
-    with_sink(DistributedSink::cancel)
-        .map(|_| conduit_browser_distributed_status())
-        .unwrap_or_else(|code| code)
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_receipt_count() -> u32 {
-    DISTRIBUTED.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| sink.receipts as u32)
-            .unwrap_or(0)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_pressure_retries() -> u32 {
-    DISTRIBUTED.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| sink.pressure_retries)
-            .unwrap_or(0)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_capacity_stable() -> u32 {
-    DISTRIBUTED.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| u32::from(sink.capacity_seal() == sink.seal))
-            .unwrap_or(0)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_retained_values() -> u32 {
-    DISTRIBUTED.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|sink| u32::from(sink.scheduler.values().used_items()))
-            .unwrap_or(0)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_browser_distributed_in_flight_items() -> u32 {
-    DISTRIBUTED.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .and_then(|sink| {
-                let (_, cord) = sink.remote();
-                sink.scheduler
-                    .cord_usage(cord)
-                    .ok()
-                    .map(|(items, _)| u32::from(items))
-            })
-            .unwrap_or(0)
-    })
-}
+#[path = "distributed_abi.rs"]
+mod abi;
 
 #[cfg(test)]
 mod tests;

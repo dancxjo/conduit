@@ -315,6 +315,7 @@ dependencies = [
  "conduit-signal",
  "conduit-wire",
  "libc",
+ "serde_json",
  "tungstenite",
 ]
 
