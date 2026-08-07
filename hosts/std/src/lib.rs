@@ -28,8 +28,8 @@ pub mod distributed_toggle;
 pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
-pub mod websocket;
 pub mod usb_cdc;
+pub mod websocket;
 
 #[cfg(test)]
 mod allocation_probe {

@@ -12,6 +12,8 @@ use embassy_time::Instant;
 use embassy_usb::UsbDevice;
 use heapless::String as HString;
 
+use crate::usb::MAX_PACKET_SIZE;
+
 const RECEIPT_BUFFER_BYTES: usize = 1536;
 const RUNTIME_ID_BYTES: usize = 128;
 

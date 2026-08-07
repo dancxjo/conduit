@@ -5,9 +5,7 @@
 use std::io::{Read, Write};
 
 use conduit_wire::stream_framing::{encode_stream_frame, StreamFrameDecoder, StreamFrameError};
-use conduit_wire::{
-    decode_session_frame, encode_session_frame_into, SessionFrame, WireError,
-};
+use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionFrame, WireError};
 
 #[derive(Debug)]
 pub enum NativeUsbCdcError {
@@ -39,7 +37,11 @@ pub struct NativeUsbCdcCarrier<R, W> {
 }
 
 impl<R: Read, W: Write> NativeUsbCdcCarrier<R, W> {
-    pub fn new(reader: R, writer: W, maximum_frame_bytes: usize) -> Result<Self, NativeUsbCdcError> {
+    pub fn new(
+        reader: R,
+        writer: W,
+        maximum_frame_bytes: usize,
+    ) -> Result<Self, NativeUsbCdcError> {
         if maximum_frame_bytes == 0 || maximum_frame_bytes > 2048 {
             return Err(NativeUsbCdcError::InvalidLimit);
         }
