@@ -71,19 +71,14 @@ pub async fn run_remote_signal_sink(
 
     let mut frame_buf = [0u8; 2048];
 
-    // Emit boot identity ONCE over CDC 1 at startup
-    evidence_cdc.write_boot_identity(boot_identity(), runtime).await;
-
-    // Phase 1: Wait for host to send SessionMessage::Hello on CDC 0
+    // Phase 1: Wait for host to send SessionMessage::Hello on CDC 0 (Zero CDC 1 calls in critical path)
     loop {
         let frame = link_session.receive_frame(&mut frame_buf).await?;
         if matches!(frame.message, SessionMessage::Hello(_)) {
-            evidence_cdc.write_log("[CDC0] Inbound Hello received").await;
             // Handshake Step 1 (Sink): Admit inbound Hello from Source
             machine
                 .admit_inbound(frame)
                 .map_err(UsbLinkError::Codec)?;
-            evidence_cdc.write_log("[CDC0] Admitted inbound Hello").await;
 
             // Handshake Step 2 (Sink): Admit outbound Hello from Sink and send to Source
             let hello_frame = binding.hello_frame();
@@ -91,7 +86,6 @@ pub async fn run_remote_signal_sink(
                 .admit_outbound(hello_frame)
                 .map_err(UsbLinkError::Codec)?;
             link_session.send_frame(&hello_frame).await?;
-            evidence_cdc.write_log("[CDC0] Sent outbound Hello").await;
             break;
         }
     }
@@ -99,10 +93,8 @@ pub async fn run_remote_signal_sink(
     // Phase 2: Receive SessionMessage::Ready from Source and emit SessionMessage::Ready from Sink
     let ready_inbound = link_session.receive_frame(&mut frame_buf).await?;
     if !matches!(ready_inbound.message, SessionMessage::Ready) {
-        evidence_cdc.write_log("[CDC0] Error: Expected Ready message").await;
         return Err(UsbLinkError::Codec(conduit_wire::WireError::InvalidState));
     }
-    evidence_cdc.write_log("[CDC0] Inbound Ready received").await;
     machine
         .admit_inbound(ready_inbound)
         .map_err(UsbLinkError::Codec)?;
@@ -112,20 +104,16 @@ pub async fn run_remote_signal_sink(
         .admit_outbound(ready_outbound)
         .map_err(UsbLinkError::Codec)?;
     link_session.send_frame(&ready_outbound).await?;
-    evidence_cdc.write_log("[CDC0] Sent outbound Ready").await;
 
     if !machine.is_active() {
-        evidence_cdc.write_log("[CDC0] Error: Sink machine not active").await;
         return Err(UsbLinkError::Codec(conduit_wire::WireError::InvalidState));
     }
-    evidence_cdc.write_log("[CDC0] Sink SessionMachine active").await;
 
     // Phase 3: Main event loop - full Offered -> Accepted -> Delivered lifecycle
     loop {
         let frame = link_session.receive_frame(&mut frame_buf).await?;
 
         if let SessionMessage::Offered { sequence, payload } = frame.message {
-            evidence_cdc.write_log("[CDC0] Inbound Offered received").await;
             machine.admit_inbound(frame).map_err(UsbLinkError::Codec)?;
 
             // Admit outbound Accepted frame and send over CDC 0
@@ -134,7 +122,6 @@ pub async fn run_remote_signal_sink(
                 .admit_outbound(accepted_frame)
                 .map_err(UsbLinkError::Codec)?;
             link_session.send_frame(&accepted_frame).await?;
-            evidence_cdc.write_log("[CDC0] Sent outbound Accepted").await;
 
             // Execute hardware effect (LED toggle + evidence receipt)
             if let Ok(signal) = decode_signal_bytes(payload) {
@@ -157,13 +144,11 @@ pub async fn run_remote_signal_sink(
                 .admit_outbound(delivered_frame)
                 .map_err(UsbLinkError::Codec)?;
             link_session.send_frame(&delivered_frame).await?;
-            evidence_cdc.write_log("[CDC0] Sent outbound Delivered").await;
         } else {
             machine.admit_inbound(frame).map_err(UsbLinkError::Codec)?;
         }
 
         if machine.is_terminal() {
-            evidence_cdc.write_log("[CDC0] Session terminal").await;
             break;
         }
     }

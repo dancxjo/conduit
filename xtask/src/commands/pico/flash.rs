@@ -88,11 +88,8 @@ fn resolve_mount(args: &PicoArgs) -> PicoResult<PathBuf> {
     }
 
     println!(
-        "No RPI-RP2 volume detected. Hold BOOTSEL while connecting the Pico W, then press Enter."
+        "==> Waiting up to {BOOTSEL_WAIT_SECS} seconds for RPI-RP2 volume (hold BOOTSEL while connecting Pico W)..."
     );
-    let mut line = String::new();
-    std::io::stdin().read_line(&mut line)?;
-
     let deadline = Instant::now() + Duration::from_secs(BOOTSEL_WAIT_SECS);
     while Instant::now() < deadline {
         let candidates = discover_bootsel_mounts()?;
@@ -102,10 +99,13 @@ fn resolve_mount(args: &PicoArgs) -> PicoResult<PathBuf> {
         if candidates.len() > 1 {
             return Err("multiple RPI-RP2 volumes detected; pass --mount".into());
         }
-        std::thread::sleep(Duration::from_secs(2));
+        if let Some(path) = try_udisks_mount()? {
+            return Ok(path);
+        }
+        std::thread::sleep(Duration::from_millis(500));
     }
 
-    Err(format!("timed out waiting for RPI-RP2 after {BOOTSEL_WAIT_SECS} seconds").into())
+    Err(format!("timed out waiting for RPI-RP2 volume after {BOOTSEL_WAIT_SECS} seconds").into())
 }
 
 fn discover_bootsel_mounts() -> PicoResult<Vec<PathBuf>> {
