@@ -9,11 +9,25 @@
 mod kernel;
 mod radio;
 mod receipts;
+mod remote_signal;
 mod signal_image;
+mod usb;
+mod usb_link;
 
 use aligned::{A4, Aligned};
 use embassy_executor::Spawner;
 use panic_halt as _;
+
+struct DummyAllocator;
+unsafe impl core::alloc::GlobalAlloc for DummyAllocator {
+    unsafe fn alloc(&self, _layout: core::alloc::Layout) -> *mut u8 {
+        core::ptr::null_mut()
+    }
+    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: core::alloc::Layout) {}
+}
+
+#[global_allocator]
+static ALLOCATOR: DummyAllocator = DummyAllocator;
 
 // Vendored CYW43 firmware assets — checked at build time via xtask doctor.
 static CYW43_FW: Aligned<A4, [u8; 231077]> = Aligned(*include_bytes!(
@@ -34,11 +48,12 @@ const _CYW43_LICENSE: &[u8] = include_bytes!(
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
-    // Initialise USB CDC receipt channel
+    // Initialise USB CDC receipt & link channels
     let usb_driver = embassy_rp::usb::Driver::new(p.USB, radio::UsbIrq);
-    let (usb_fut, mut cdc) = receipts::init_usb(usb_driver);
+    let (usb_fut, _link_carrier, evidence_sender) = usb::init_composite_usb(usb_driver);
     spawner.spawn(receipts::usb_task_spawn(usb_fut).unwrap());
     let runtime = receipts::RuntimeTranscriptIdentity::new();
+    let mut cdc = receipts::UsbCdc::new(evidence_sender.sender);
 
     // Initialise CYW43 radio (required for onboard LED)
     let (mut control, _) = radio::init_cyw43(

@@ -186,6 +186,7 @@ dependencies = [
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-wire",
  "cortex-m",
  "cortex-m-rt",
  "cyw43",
@@ -228,6 +229,13 @@ dependencies = [
  "conduit-form",
  "conduit-runtime",
  "serde",
+]
+
+[[package]]
+name = "conduit-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
 ]
 
 [[package]]

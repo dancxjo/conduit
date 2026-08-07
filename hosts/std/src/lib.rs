@@ -29,6 +29,7 @@ pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
 pub mod websocket;
+pub mod usb_cdc;
 
 #[cfg(test)]
 mod allocation_probe {

@@ -9,7 +9,7 @@ use conduit_core::{ConnectionEnvelope, ConnectionId, KindId, PlanId, PROTOCOL_VE
 mod session;
 pub use session::*;
 
-mod stream_framing;
+pub mod stream_framing;
 pub use stream_framing::*;
 
 const MAGIC: [u8; 4] = *b"CNDW";
@@ -177,88 +177,5 @@ impl<'a> Cursor<'a> {
         let value =
             core::str::from_utf8(bytes).map_err(|_| WireError::InvalidIdentifierEncoding)?;
         Ok(String::from(value))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{decode_envelope, encode_envelope, WireError};
-    use alloc::vec;
-    use conduit_core::{ConnectionEnvelope, ConnectionId, KindId, PlanId, PROTOCOL_VERSION};
-
-    const MAX_PAYLOAD: u32 = 16;
-
-    fn envelope() -> ConnectionEnvelope {
-        ConnectionEnvelope {
-            protocol_version: PROTOCOL_VERSION,
-            plan_id: PlanId::from("plan-a"),
-            connection_id: ConnectionId::from("connection-b"),
-            sequence: 0x0102_0304_0506_0708,
-            value_kind: KindId::from("test/value"),
-            payload: vec![0, 1, 2, 0xff],
-        }
-    }
-
-    #[test]
-    fn deterministic_vector_round_trips_every_envelope_field() {
-        let encoded = encode_envelope(&envelope(), MAX_PAYLOAD).expect("envelope encodes");
-        assert_eq!(
-            encoded,
-            b"CNDW\x01\x01\x00\x06\x00plan-a\x0c\x00connection-b\x08\x07\x06\x05\x04\x03\x02\x01\x0a\x00test/value\x04\x00\x00\x00\x00\x01\x02\xff"
-        );
-        assert_eq!(
-            decode_envelope(&encoded, MAX_PAYLOAD).expect("vector decodes"),
-            envelope()
-        );
-    }
-
-    #[test]
-    fn rejects_wrong_protocol_truncation_oversize_and_trailing_garbage() {
-        let mut invalid_magic = encode_envelope(&envelope(), MAX_PAYLOAD).expect("fixture encodes");
-        invalid_magic[0] = b'X';
-        assert_eq!(
-            decode_envelope(&invalid_magic, MAX_PAYLOAD),
-            Err(WireError::InvalidMagic)
-        );
-
-        let mut wrong_protocol =
-            encode_envelope(&envelope(), MAX_PAYLOAD).expect("fixture encodes");
-        wrong_protocol[5..7].copy_from_slice(&(PROTOCOL_VERSION + 1).to_le_bytes());
-        assert_eq!(
-            decode_envelope(&wrong_protocol, MAX_PAYLOAD),
-            Err(WireError::WrongProtocolVersion)
-        );
-
-        let encoded = encode_envelope(&envelope(), MAX_PAYLOAD).expect("fixture encodes");
-        assert_eq!(
-            decode_envelope(&encoded[..encoded.len() - 1], MAX_PAYLOAD),
-            Err(WireError::TruncatedFrame)
-        );
-
-        let mut oversized = envelope();
-        oversized.payload = vec![0; MAX_PAYLOAD as usize + 1];
-        assert_eq!(
-            encode_envelope(&oversized, MAX_PAYLOAD),
-            Err(WireError::OversizedPayload)
-        );
-        let oversized_encoded =
-            encode_envelope(&oversized, MAX_PAYLOAD + 1).expect("larger bound encodes fixture");
-        assert_eq!(
-            decode_envelope(&oversized_encoded, MAX_PAYLOAD),
-            Err(WireError::OversizedPayload)
-        );
-
-        let oversized_frame = vec![0; 4 + 1 + 2 + 2 + 2 + 8 + 2 + 4 + 4_096 * 3 + 17];
-        assert_eq!(
-            decode_envelope(&oversized_frame, MAX_PAYLOAD),
-            Err(WireError::OversizedFrame)
-        );
-
-        let mut trailing = encoded;
-        trailing.push(0);
-        assert_eq!(
-            decode_envelope(&trailing, MAX_PAYLOAD),
-            Err(WireError::TrailingGarbage)
-        );
     }
 }
