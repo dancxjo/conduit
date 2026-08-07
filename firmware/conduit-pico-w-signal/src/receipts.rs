@@ -31,6 +31,13 @@ impl UsbCdc {
         self.sender.wait_connection().await;
     }
 
+    /// Wait for a USB host to assert DTR on this CDC interface.
+    pub async fn wait_dtr(&mut self) {
+        while !self.sender.dtr() {
+            embassy_time::Timer::after_millis(10).await;
+        }
+    }
+
     /// Write a diagnostic text line to CDC 1 with bounded timeout.
     pub async fn write_log(&mut self, msg: &str) {
         self.write_all(msg.as_bytes()).await;

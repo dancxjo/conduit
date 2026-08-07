@@ -1,6 +1,5 @@
 //! Typed std -> Pico W USB-CDC session proof & interactive console runner.
 
-use std::io::{BufRead, BufReader};
 use std::time::{Duration, Instant};
 
 use conduit_core::{
@@ -9,7 +8,7 @@ use conduit_core::{
 };
 use conduit_signal::{encode_signal_fixed, Signal};
 #[cfg(unix)]
-use conduit_std_host::usb_cdc::{NativePathCdcCarrier, OperatorTerminal};
+use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader, OperatorTerminal};
 use conduit_wire::{SessionBinding, SessionFrame, SessionMessage};
 
 use super::doctor::repo_root;
@@ -71,161 +70,132 @@ pub fn run_prove_std_pico_usb(
         identity.firmware_build_id, identity.generated_image.plan_id
     );
 
-    // 2. Open CDC 1 evidence port in background thread
-    let evidence_file = std::fs::OpenOptions::new()
-        .read(true)
-        .open(&evidence_port_path)
-        .map_err(|e| {
+    #[cfg(unix)]
+    {
+        // 1. Open CDC 1 evidence port with O_RDWR | O_NOCTTY | O_NONBLOCK and assert DTR
+        let mut evidence_reader =
+            NativePathCdcLineReader::open(&evidence_port_path).map_err(|e| {
+                format!(
+                    "Failed to open CDC1 evidence port {}: {}",
+                    evidence_port_path.display(),
+                    e
+                )
+            })?;
+        println!("==> CDC1 opened; DTR asserted");
+
+        // 2. Open CDC 0 link port
+        let mut carrier = NativePathCdcCarrier::open(&link_port_path, 1024).map_err(|e| {
             format!(
-                "Failed to open evidence port {}: {}",
-                evidence_port_path.display(),
+                "Failed to open CDC0 link port {}: {}",
+                link_port_path.display(),
                 e
             )
         })?;
+        println!("==> CDC0 opened");
 
-    let (evidence_tx, evidence_rx) = std::sync::mpsc::channel::<String>();
-    std::thread::spawn(move || {
-        let mut reader = BufReader::new(evidence_file);
-        let mut line = String::new();
-        while reader.read_line(&mut line).unwrap_or(0) > 0 {
-            let trimmed = line.trim().to_string();
-            if !trimmed.is_empty() {
-                let _ = evidence_tx.send(trimmed);
-            }
-            line.clear();
-        }
-    });
-
-    println!("==> Starting 5 second blocking wait for Pico W boot identity from CDC 1...");
-    let boot_line = evidence_rx
-        .recv_timeout(Duration::from_secs(5))
-        .map_err(|_| {
-            "timed out reading Pico boot identity from CDC 1 (5 seconds elapsed without data)"
-        })?;
-
-    println!(
-        "==> Received boot line ({} bytes): {}",
-        boot_line.len(),
-        boot_line
-    );
-
-    let boot_record: serde_json::Value = serde_json::from_str(&boot_line)?;
-    let runtime_boot_id = boot_record["runtime_boot_id"]
-        .as_str()
-        .ok_or("missing runtime_boot_id in Pico boot identity record")?
-        .to_string();
-    let runtime_active_play_id = boot_record["runtime_active_play_id"]
-        .as_str()
-        .ok_or("missing runtime_active_play_id in Pico boot identity record")?
-        .to_string();
-
-    println!(
-        "==> Observed Pico W runtime link/boot identity: boot_id={}, play_id={}",
-        runtime_boot_id, runtime_active_play_id
-    );
-
-    // Open CDC 0 native path carrier
-    #[cfg(unix)]
-    let mut carrier = NativePathCdcCarrier::open(&link_port_path, 1024).map_err(|e| {
-        format!(
-            "Failed to open native CDC port {}: {}",
-            link_port_path.display(),
-            e
-        )
-    })?;
-
-    // Construct truthful SessionBinding with observed Pico runtime boot/link identity
-    let plan_id = PlanId::from(identity.generated_image.plan_id.as_str());
-    let source_host_id = HostId::from("host/std");
-    let source_boot_id = BootId::from("boot/std");
-    let sink_host_id = HostId::from(identity.generated_image.host_id.as_str());
-    let sink_boot_id = BootId::from(runtime_boot_id.as_str());
-
-    let source_active_play_id =
-        bind_active_play(&plan_id, &source_host_id, &source_boot_id, 0).active_play_id;
-    let sink_active_play_id =
-        bind_active_play(&plan_id, &sink_host_id, &sink_boot_id, 0).active_play_id;
-
-    let binding = SessionBinding {
-        protocol_version: 1,
-        plan_id,
-        source_fragment_id: FragmentId::from("fragment/std-source"),
-        sink_fragment_id: FragmentId::from(identity.generated_image.fragment_id.as_str()),
-        source_active_play_id,
-        sink_active_play_id,
-        connection_id: ConnectionId::from("conn/std-pico-signal"),
-        link_binding_id: LinkBindingId::from("link/usb-cdc-0"),
-        provider: ConnectionProvider::UsbCdc,
-        provider_instance_id: ConnectionProviderInstanceId::from("pico-usb-cdc-0"),
-        source: LinkEndpoint {
-            host_id: source_host_id,
-            boot_id: source_boot_id,
-            endpoint_id: LinkEndpointId::from("endpoint/std-out"),
-        },
-        sink: LinkEndpoint {
-            host_id: sink_host_id,
-            boot_id: sink_boot_id,
-            endpoint_id: LinkEndpointId::from("endpoint/pico-in"),
-        },
-        value_kind: KindId::from("value/signal"),
-        limits: LinkLimits {
-            maximum_in_flight_items: 1,
-            maximum_payload_bytes: 9,
-            maximum_buffered_bytes: 1024,
-            maximum_frame_bytes: 1024,
-        },
-    };
-
-    #[cfg(unix)]
-    {
-        // 3. Raw CDC0 Physical Checkpoint before SessionMachine
-        println!("==> Executing raw CDC0 bidirectional physical checkpoint...");
+        // 3. Raw CDC0 Physical Checkpoint
         carrier.send_raw_stream_frame(b"CONDUIT_RAW_CDC0_PROBE", Duration::from_secs(2))?;
-        println!("  [Source] Sent raw CDC0 stream frame probe");
+        println!("==> CDC0 raw host -> Pico bytes observed");
 
         let mut frame_buf = [0u8; 2048];
         let probe_reply =
             carrier.receive_raw_stream_frame(&mut frame_buf, Duration::from_secs(5))?;
         if probe_reply == b"CONDUIT_RAW_CDC0_REPLY" {
-            println!("==> CDC0 raw bidirectional checkpoint passed");
+            println!("==> CDC0 raw Pico -> host reply observed");
         } else {
             return Err("raw CDC0 probe reply payload mismatch".into());
         }
-    }
 
-    // Create stateful Source-side SessionMachine
-    let mut source_machine =
-        conduit_wire::SessionMachine::new(binding.clone(), conduit_wire::SessionRole::Source)
-            .map_err(|e| format!("Failed to create Source SessionMachine: {e:?}"))?;
+        // 4. Read Pico W boot identity from CDC 1
+        let boot_line = evidence_reader
+            .read_line(Duration::from_secs(5))
+            .map_err(|e| {
+                format!("timed out reading Pico boot identity from CDC 1 (5 seconds elapsed): {e}")
+            })?;
+        println!("==> CDC1 boot identity received and validated");
 
-    println!("==> Initiating stateful 4-message SessionMachine handshake over USB CDC 0...");
+        let boot_record: serde_json::Value = serde_json::from_str(&boot_line)?;
+        let runtime_boot_id = boot_record["runtime_boot_id"]
+            .as_str()
+            .ok_or("missing runtime_boot_id in Pico boot identity record")?
+            .to_string();
+        let runtime_active_play_id = boot_record["runtime_active_play_id"]
+            .as_str()
+            .ok_or("missing runtime_active_play_id in Pico boot identity record")?
+            .to_string();
 
-    #[cfg(unix)]
-    {
-        // Handshake Step 1 (Source): Admit outbound Hello on Source SessionMachine and send over CDC 0
+        println!(
+            "==> Observed Pico W runtime link/boot identity: boot_id={}, play_id={}",
+            runtime_boot_id, runtime_active_play_id
+        );
+
+        // Construct truthful SessionBinding with observed Pico runtime boot/link identity
+        let plan_id = PlanId::from(identity.generated_image.plan_id.as_str());
+        let source_host_id = HostId::from("host/std");
+        let source_boot_id = BootId::from("boot/std");
+        let sink_host_id = HostId::from(identity.generated_image.host_id.as_str());
+        let sink_boot_id = BootId::from(runtime_boot_id.as_str());
+
+        let source_active_play_id =
+            bind_active_play(&plan_id, &source_host_id, &source_boot_id, 0).active_play_id;
+        let sink_active_play_id =
+            bind_active_play(&plan_id, &sink_host_id, &sink_boot_id, 0).active_play_id;
+
+        let binding = SessionBinding {
+            protocol_version: 1,
+            plan_id,
+            source_fragment_id: FragmentId::from("fragment/std-source"),
+            sink_fragment_id: FragmentId::from(identity.generated_image.fragment_id.as_str()),
+            source_active_play_id,
+            sink_active_play_id,
+            connection_id: ConnectionId::from("conn/std-pico-signal"),
+            link_binding_id: LinkBindingId::from("link/usb-cdc-0"),
+            provider: ConnectionProvider::UsbCdc,
+            provider_instance_id: ConnectionProviderInstanceId::from("pico-usb-cdc-0"),
+            source: LinkEndpoint {
+                host_id: source_host_id,
+                boot_id: source_boot_id,
+                endpoint_id: LinkEndpointId::from("endpoint/std-out"),
+            },
+            sink: LinkEndpoint {
+                host_id: sink_host_id,
+                boot_id: sink_boot_id,
+                endpoint_id: LinkEndpointId::from("endpoint/pico-in"),
+            },
+            value_kind: KindId::from("value/signal"),
+            limits: LinkLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: 9,
+                maximum_buffered_bytes: 1024,
+                maximum_frame_bytes: 1024,
+            },
+        };
+
+        // Create stateful Source-side SessionMachine
+        let mut source_machine =
+            conduit_wire::SessionMachine::new(binding.clone(), conduit_wire::SessionRole::Source)
+                .map_err(|e| format!("Failed to create Source SessionMachine: {e:?}"))?;
+
+        // Handshake Step 1 (Source): Outbound Hello
         let hello = binding.hello_frame();
         source_machine
             .admit_outbound(hello)
             .map_err(|e| format!("Source failed to admit outbound Hello: {e:?}"))?;
         carrier.send_frame(&hello, Duration::from_secs(2))?;
-        println!("  [Source SessionMachine] Sent outbound SessionFrame::Hello");
+        println!("==> std  -> pico Hello");
 
-        // Handshake Step 2 (Source): Receive inbound Hello from Sink over CDC 0
+        // Handshake Step 2 (Source): Inbound Hello
         let mut frame_buf = [0u8; 2048];
         let start = Instant::now();
         let mut hello_received = false;
         while start.elapsed() < Duration::from_secs(5) {
             match carrier.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
                 Ok(res) => {
-                    println!(
-                        "  [Source SessionMachine] Received frame: {:?}",
-                        res.message
-                    );
                     if matches!(res.message, SessionMessage::Hello(_)) {
                         source_machine.admit_inbound(res).map_err(|e| {
                             format!("Source failed to admit inbound Hello from Sink: {e:?}")
                         })?;
-                        println!("  [Source SessionMachine] Admitted inbound Hello from Sink");
+                        println!("==> pico -> std  Hello");
                         hello_received = true;
                         break;
                     }
@@ -235,11 +205,6 @@ pub fn run_prove_std_pico_usb(
                     println!("  [Source SessionMachine] receive_frame error: {:?}", err);
                 }
             }
-
-            while let Ok(evidence_line) = evidence_rx.try_recv() {
-                println!("  [Pico evidence CDC 1]: {}", evidence_line);
-            }
-
             std::thread::sleep(Duration::from_millis(50));
         }
 
@@ -247,29 +212,25 @@ pub fn run_prove_std_pico_usb(
             return Err("timed out waiting for SessionMessage::Hello from Pico W".into());
         }
 
-        // Handshake Step 3 (Source): Admit outbound Ready on Source SessionMachine and send over CDC 0
+        // Handshake Step 3 (Source): Outbound Ready
         let ready_outbound = binding.frame(SessionMessage::Ready);
         source_machine
             .admit_outbound(ready_outbound)
             .map_err(|e| format!("Source failed to admit outbound Ready: {e:?}"))?;
         carrier.send_frame(&ready_outbound, Duration::from_secs(2))?;
-        println!("  [Source SessionMachine] Sent outbound SessionMessage::Ready");
+        println!("==> std  -> pico Ready");
 
-        // Handshake Step 4 (Source): Receive inbound Ready from Sink over CDC 0
+        // Handshake Step 4 (Source): Inbound Ready
         let start = Instant::now();
         let mut ready_received = false;
         while start.elapsed() < Duration::from_secs(5) {
             match carrier.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
                 Ok(res) => {
-                    println!(
-                        "  [Source SessionMachine] Received frame: {:?}",
-                        res.message
-                    );
                     if matches!(res.message, SessionMessage::Ready) {
                         source_machine.admit_inbound(res).map_err(|e| {
                             format!("Source failed to admit inbound Ready from Sink: {e:?}")
                         })?;
-                        println!("  [Source SessionMachine] Admitted inbound Ready from Sink");
+                        println!("==> pico -> std  Ready");
                         ready_received = true;
                         break;
                     }
@@ -279,11 +240,6 @@ pub fn run_prove_std_pico_usb(
                     println!("  [Source SessionMachine] receive_frame error: {:?}", err);
                 }
             }
-
-            while let Ok(evidence_line) = evidence_rx.try_recv() {
-                println!("  [Pico evidence CDC 1]: {}", evidence_line);
-            }
-
             std::thread::sleep(Duration::from_millis(50));
         }
 
@@ -294,10 +250,6 @@ pub fn run_prove_std_pico_usb(
         if !source_machine.is_active() {
             return Err("Source SessionMachine is not active after 4-message handshake".into());
         }
-
-        println!(
-            "==> Real two-sided SessionMachine handshake complete (source_machine.is_active() == true)"
-        );
 
         if interactive {
             println!("\n===============================================================");
@@ -336,7 +288,7 @@ pub fn run_prove_std_pico_usb(
                 send_and_verify_item(
                     &mut source_machine,
                     &mut carrier,
-                    &evidence_rx,
+                    &mut evidence_reader,
                     &binding,
                     sequence,
                     true,
@@ -354,7 +306,7 @@ pub fn run_prove_std_pico_usb(
                 send_and_verify_item(
                     &mut source_machine,
                     &mut carrier,
-                    &evidence_rx,
+                    &mut evidence_reader,
                     &binding,
                     sequence,
                     false,
@@ -381,7 +333,7 @@ pub fn run_prove_std_pico_usb(
             send_and_verify_item(
                 &mut source_machine,
                 &mut carrier,
-                &evidence_rx,
+                &mut evidence_reader,
                 &binding,
                 sequence,
                 level,
@@ -406,7 +358,7 @@ pub fn run_prove_std_pico_usb(
 fn send_and_verify_item(
     source_machine: &mut conduit_wire::SessionMachine,
     carrier: &mut NativePathCdcCarrier,
-    evidence_rx: &std::sync::mpsc::Receiver<String>,
+    evidence_reader: &mut NativePathCdcLineReader,
     binding: &SessionBinding,
     sequence: u64,
     level: bool,
@@ -418,7 +370,7 @@ fn send_and_verify_item(
         payload: &payload,
     });
 
-    // 1. Admit outbound Offered & send frame
+    // 1. Admit outbound Offered & send frame over CDC 0
     source_machine
         .admit_outbound(offer)
         .map_err(|e| format!("Source failed to admit outbound Offered: {e:?}"))?;
@@ -445,37 +397,21 @@ fn send_and_verify_item(
                 return Err(format!("receive_frame error waiting for Accepted: {err:?}").into());
             }
         }
-
-        while let Ok(line) = evidence_rx.try_recv() {
-            if line.starts_with('{') {
-                println!("  [RECEIPT ] <- CDC 1: {}", line);
-            } else {
-                println!("  [Pico log] <- CDC 1: {}", line);
-            }
-        }
-
-        std::thread::sleep(Duration::from_millis(10));
     }
     if !accepted {
         return Err(format!("timed out waiting for SessionMessage::Accepted {sequence}").into());
     }
 
     // 3. Read receipt line from CDC 1
-    let start_ev = Instant::now();
-    let mut receipt_received = false;
-    while start_ev.elapsed() < Duration::from_secs(2) {
-        while let Ok(line) = evidence_rx.try_recv() {
-            if line.starts_with('{') {
-                println!("  [RECEIPT ] <- CDC 1: {}", line);
-                receipt_received = true;
-            } else {
-                println!("  [Pico log] <- CDC 1: {}", line);
-            }
-        }
-        if receipt_received {
-            break;
-        }
-        std::thread::sleep(Duration::from_millis(10));
+    let line = evidence_reader
+        .read_line(Duration::from_secs(2))
+        .map_err(|e| {
+            format!("timed out reading receipt for sequence {sequence} from CDC 1: {e}")
+        })?;
+    if line.starts_with('{') {
+        println!("  [RECEIPT ] <- CDC 1: {}", line);
+    } else {
+        println!("  [Pico log] <- CDC 1: {}", line);
     }
 
     // 4. Wait for Delivered(sequence) over CDC 0
@@ -498,16 +434,6 @@ fn send_and_verify_item(
                 return Err(format!("receive_frame error waiting for Delivered: {err:?}").into());
             }
         }
-
-        while let Ok(line) = evidence_rx.try_recv() {
-            if line.starts_with('{') {
-                println!("  [RECEIPT ] <- CDC 1: {}", line);
-            } else {
-                println!("  [Pico log] <- CDC 1: {}", line);
-            }
-        }
-
-        std::thread::sleep(Duration::from_millis(10));
     }
     if !delivered {
         return Err(format!("timed out waiting for SessionMessage::Delivered {sequence}").into());

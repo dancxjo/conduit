@@ -470,6 +470,97 @@ impl NativePathCdcCarrier {
     }
 }
 
+/// Physical path-based native USB CDC line reader using poll(2), DTR assertion, and raw non-blocking POSIX descriptor.
+#[cfg(unix)]
+pub struct NativePathCdcLineReader {
+    fd: FdGuard,
+    line_buf: Vec<u8>,
+}
+
+#[cfg(unix)]
+impl NativePathCdcLineReader {
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, NativeUsbCdcError> {
+        use std::os::unix::ffi::OsStrExt;
+        let path_c =
+            std::ffi::CString::new(path.as_ref().as_os_str().as_bytes()).map_err(|_| {
+                NativeUsbCdcError::TtyConfig(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "invalid path",
+                ))
+            })?;
+
+        let fd = unsafe {
+            libc::open(
+                path_c.as_ptr(),
+                libc::O_RDWR | libc::O_NOCTTY | libc::O_NONBLOCK,
+            )
+        };
+        if fd < 0 {
+            return Err(NativeUsbCdcError::TtyConfig(std::io::Error::last_os_error()));
+        }
+        let guard = FdGuard(fd);
+        configure_raw_termios(fd)?;
+
+        // Explicitly assert DTR on the CDC interface via TIOCMBIS ioctl
+        let mut flags: libc::c_int = libc::TIOCM_DTR;
+        unsafe {
+            let _ = libc::ioctl(fd, libc::TIOCMBIS, &mut flags);
+        }
+
+        Ok(Self {
+            fd: guard,
+            line_buf: Vec::with_capacity(1024),
+        })
+    }
+
+    pub fn read_line(&mut self, timeout: Duration) -> Result<String, NativeUsbCdcError> {
+        let deadline = Instant::now() + timeout;
+        let mut chunk = [0u8; 64];
+        loop {
+            if let Some(pos) = self.line_buf.iter().position(|&b| b == b'\n') {
+                let line_bytes: Vec<u8> = self.line_buf.drain(..=pos).collect();
+                let line_str = String::from_utf8_lossy(&line_bytes).trim().to_string();
+                if !line_str.is_empty() {
+                    return Ok(line_str);
+                }
+            }
+
+            let now = Instant::now();
+            if now >= deadline {
+                return Err(NativeUsbCdcError::WouldBlock);
+            }
+            let remaining = deadline - now;
+            let millis = remaining.as_millis().min(i32::MAX as u128) as libc::c_int;
+            let mut pfd = libc::pollfd {
+                fd: self.fd.0,
+                events: libc::POLLIN,
+                revents: 0,
+            };
+            let ret = unsafe { libc::poll(&mut pfd, 1, millis) };
+            if ret < 0 {
+                return Err(NativeUsbCdcError::Read(
+                    std::io::Error::last_os_error().kind(),
+                ));
+            }
+            if ret > 0 && (pfd.revents & libc::POLLIN) != 0 {
+                let n = unsafe { libc::read(self.fd.0, chunk.as_mut_ptr() as *mut _, chunk.len()) };
+                if n > 0 {
+                    self.line_buf.extend_from_slice(&chunk[..n as usize]);
+                } else if n == 0 {
+                    return Err(NativeUsbCdcError::Disconnected);
+                } else {
+                    let err = std::io::Error::last_os_error();
+                    if err.kind() != std::io::ErrorKind::WouldBlock
+                        && err.kind() != std::io::ErrorKind::TimedOut
+                    {
+                        return Err(NativeUsbCdcError::Read(err.kind()));
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// Generic stream-based carrier for hardware-free unit tests.
 pub struct NativeUsbCdcCarrier<R, W> {
     reader: R,
