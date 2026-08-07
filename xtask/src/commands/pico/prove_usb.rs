@@ -195,7 +195,7 @@ pub fn run_prove_std_pico_usb(
             }
         })?;
 
-    let mut carrier = NativeUsbCdcCarrier::new(link_file.try_clone()?, link_file, 512)?;
+    let mut carrier = NativeUsbCdcCarrier::new(link_file.try_clone()?, link_file, 1024)?;
 
     // Construct truthful SessionBinding with observed Pico runtime boot/link identity
     let plan_id = PlanId::from(identity.generated_image.plan_id.as_str());
@@ -234,8 +234,8 @@ pub fn run_prove_std_pico_usb(
         limits: LinkLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: 9,
-            maximum_buffered_bytes: 9,
-            maximum_frame_bytes: 512,
+            maximum_buffered_bytes: 1024,
+            maximum_frame_bytes: 1024,
         },
     };
 

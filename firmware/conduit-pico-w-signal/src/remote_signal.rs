@@ -61,8 +61,8 @@ pub async fn run_remote_signal_sink(
         limits: LinkLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: 9,
-            maximum_buffered_bytes: 9,
-            maximum_frame_bytes: 512,
+            maximum_buffered_bytes: 1024,
+            maximum_frame_bytes: 1024,
         },
     };
 
@@ -71,7 +71,7 @@ pub async fn run_remote_signal_sink(
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink)
         .map_err(UsbLinkError::Codec)?;
 
-    let mut frame_buf = [0u8; 512];
+    let mut frame_buf = [0u8; 1024];
     loop {
         let frame = link_session.receive_frame(&mut frame_buf).await?;
         let is_hello = matches!(frame.message, SessionMessage::Hello(_));

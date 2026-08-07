@@ -59,7 +59,7 @@ impl UsbLinkSession {
                     return Err(UsbLinkError::BufferOverflow);
                 }
                 frame_buf[..frame_bytes.len()].copy_from_slice(frame_bytes);
-                let frame = decode_session_frame(&frame_buf[..frame_bytes.len()], 512, 512)?;
+                let frame = decode_session_frame(&frame_buf[..frame_bytes.len()], 1024, 1024)?;
                 return Ok(frame);
             }
 
@@ -79,10 +79,10 @@ impl UsbLinkSession {
 
     /// Send a SessionFrame over the USB CDC ACM link using length-prefixed framing.
     pub async fn send_frame(&mut self, frame: &SessionFrame<'_>) -> Result<(), UsbLinkError> {
-        let mut wire_buf = [0u8; 512];
-        let frame_len = encode_session_frame_into(*frame, &mut wire_buf[2..], 512, 512)?;
-        let mut framed_buf = [0u8; 514];
-        let total_bytes = encode_stream_frame(&wire_buf[2..2 + frame_len], 512, &mut framed_buf)?;
+        let mut wire_buf = [0u8; 1024];
+        let frame_len = encode_session_frame_into(*frame, &mut wire_buf[2..], 1024, 1024)?;
+        let mut framed_buf = [0u8; 1026];
+        let total_bytes = encode_stream_frame(&wire_buf[2..2 + frame_len], 1024, &mut framed_buf)?;
 
         let mut offset = 0;
         while offset < total_bytes {
