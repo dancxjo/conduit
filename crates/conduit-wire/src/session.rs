@@ -40,7 +40,7 @@ impl SessionBinding {
             .link_binding
             .as_ref()
             .ok_or(WireError::InvalidSession)?;
-        if connection.provider != ConnectionProvider::WebSocket
+        if !connection.provider.supports_remote_session()
             || link.provider != connection.provider
             || connection.item_capacity > link.limits.maximum_in_flight_items
             || connection.byte_capacity > link.limits.maximum_payload_bytes
@@ -77,7 +77,7 @@ impl SessionBinding {
         if self.protocol_version != PROTOCOL_VERSION {
             return Err(WireError::WrongProtocolVersion);
         }
-        if self.provider != ConnectionProvider::WebSocket {
+        if !self.provider.supports_remote_session() {
             return Err(WireError::InvalidProvider);
         }
         let identities = [
@@ -764,17 +764,26 @@ fn message_kind(message: SessionMessage<'_>) -> u8 {
 }
 
 fn provider_code(provider: ConnectionProvider) -> Result<u8, WireError> {
+    if !provider.supports_remote_session() {
+        return Err(WireError::InvalidProvider);
+    }
     match provider {
+        ConnectionProvider::FixtureFrame => Ok(2),
         ConnectionProvider::WebSocket => Ok(4),
         _ => Err(WireError::InvalidProvider),
     }
 }
 
 fn decode_provider(code: u8) -> Result<ConnectionProvider, WireError> {
-    match code {
-        4 => Ok(ConnectionProvider::WebSocket),
-        _ => Err(WireError::InvalidProvider),
+    let provider = match code {
+        2 => ConnectionProvider::FixtureFrame,
+        4 => ConnectionProvider::WebSocket,
+        _ => return Err(WireError::InvalidProvider),
+    };
+    if !provider.supports_remote_session() {
+        return Err(WireError::InvalidProvider);
     }
+    Ok(provider)
 }
 
 fn terminal_code(disposition: SessionTerminalDisposition) -> u8 {
@@ -1326,5 +1335,215 @@ mod tests {
             ),
             Err(WireError::TrailingGarbage)
         );
+    }
+
+    #[test]
+    fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
+        // Contract-level proof that FixtureFrame exercises the exact framed remote session
+        // protocol. This proves session carrier neutrality without claiming that FixtureFrame
+        // is an installed, runnable, or production-ready physical transport.
+        let mut expected = binding();
+        expected.provider = ConnectionProvider::FixtureFrame;
+        assert!(expected.provider.supports_remote_session());
+
+        let connection = PlannedConnection {
+            connection_id: expected.connection_id.clone(),
+            source_placement_id: PlacementId::from("test/source-placement"),
+            source_port_id: conduit_core::PortId::from("out"),
+            sink_placement_id: PlacementId::from("test/sink-placement"),
+            sink_port_id: conduit_core::PortId::from("in"),
+            value_kind: expected.value_kind.clone(),
+            provider: ConnectionProvider::FixtureFrame,
+            link_binding: Some(LinkBinding {
+                binding_id: expected.link_binding_id.clone(),
+                source: expected.source.clone(),
+                sink: expected.sink.clone(),
+                provider: ConnectionProvider::FixtureFrame,
+                provider_instance_id: expected.provider_instance_id.clone(),
+                availability: LinkAvailability::Ready,
+                credential: LinkCredentialReference::None,
+                authority: LinkAuthorityReference::ProcessOwned,
+                limits: expected.limits,
+            }),
+            item_capacity: 1,
+            byte_capacity: MAXIMUM_PAYLOAD_BYTES,
+        };
+
+        let actual = SessionBinding::from_planned_connection(
+            expected.plan_id.clone(),
+            expected.source_fragment_id.clone(),
+            expected.sink_fragment_id.clone(),
+            &connection,
+        )
+        .unwrap();
+        assert_eq!(actual, expected);
+        actual.validate().unwrap();
+
+        let mut output = [0_u8; MAXIMUM_FRAME_BYTES as usize];
+        let length = encode_session_frame_into(
+            actual.hello_frame(),
+            &mut output,
+            MAXIMUM_PAYLOAD_BYTES,
+            MAXIMUM_FRAME_BYTES,
+        )
+        .unwrap();
+        let decoded = decode_session_frame(
+            &output[..length],
+            MAXIMUM_PAYLOAD_BYTES,
+            MAXIMUM_FRAME_BYTES,
+        )
+        .unwrap();
+        assert_eq!(decoded, actual.hello_frame());
+
+        let mut machine = SessionMachine::new(actual.clone(), SessionRole::Source).unwrap();
+        activate(&mut machine);
+        assert!(machine.is_active());
+    }
+
+    #[test]
+    fn local_and_in_memory_providers_remain_rejected() {
+        let base = binding();
+        for provider in [ConnectionProvider::Local, ConnectionProvider::InMemory] {
+            assert!(!provider.supports_remote_session());
+            let mut invalid = base.clone();
+            invalid.provider = provider;
+            assert_eq!(invalid.validate(), Err(WireError::InvalidProvider));
+
+            let connection = PlannedConnection {
+                connection_id: base.connection_id.clone(),
+                source_placement_id: PlacementId::from("test/source-placement"),
+                source_port_id: conduit_core::PortId::from("out"),
+                sink_placement_id: PlacementId::from("test/sink-placement"),
+                sink_port_id: conduit_core::PortId::from("in"),
+                value_kind: base.value_kind.clone(),
+                provider,
+                link_binding: Some(LinkBinding {
+                    binding_id: base.link_binding_id.clone(),
+                    source: base.source.clone(),
+                    sink: base.sink.clone(),
+                    provider,
+                    provider_instance_id: base.provider_instance_id.clone(),
+                    availability: LinkAvailability::Ready,
+                    credential: LinkCredentialReference::None,
+                    authority: LinkAuthorityReference::ProcessOwned,
+                    limits: base.limits,
+                }),
+                item_capacity: 1,
+                byte_capacity: MAXIMUM_PAYLOAD_BYTES,
+            };
+            assert_eq!(
+                SessionBinding::from_planned_connection(
+                    base.plan_id.clone(),
+                    base.source_fragment_id.clone(),
+                    base.sink_fragment_id.clone(),
+                    &connection,
+                ),
+                Err(WireError::InvalidSession)
+            );
+        }
+    }
+
+    #[test]
+    fn fixture_datagram_provider_remains_rejected() {
+        // Explicit negative proving datagram fixtures are not promoted into frame wire sessions
+        // and that eligibility is an explicit allowlist rather than merely provider != Local.
+        let provider = ConnectionProvider::FixtureDatagram;
+        assert!(!provider.supports_remote_session());
+
+        let mut invalid = binding();
+        invalid.provider = provider;
+        assert_eq!(invalid.validate(), Err(WireError::InvalidProvider));
+
+        let connection = PlannedConnection {
+            connection_id: invalid.connection_id.clone(),
+            source_placement_id: PlacementId::from("test/source-placement"),
+            source_port_id: conduit_core::PortId::from("out"),
+            sink_placement_id: PlacementId::from("test/sink-placement"),
+            sink_port_id: conduit_core::PortId::from("in"),
+            value_kind: invalid.value_kind.clone(),
+            provider,
+            link_binding: Some(LinkBinding {
+                binding_id: invalid.link_binding_id.clone(),
+                source: invalid.source.clone(),
+                sink: invalid.sink.clone(),
+                provider,
+                provider_instance_id: invalid.provider_instance_id.clone(),
+                availability: LinkAvailability::Ready,
+                credential: LinkCredentialReference::None,
+                authority: LinkAuthorityReference::ProcessOwned,
+                limits: invalid.limits,
+            }),
+            item_capacity: 1,
+            byte_capacity: MAXIMUM_PAYLOAD_BYTES,
+        };
+        assert_eq!(
+            SessionBinding::from_planned_connection(
+                invalid.plan_id,
+                invalid.source_fragment_id,
+                invalid.sink_fragment_id,
+                &connection,
+            ),
+            Err(WireError::InvalidSession)
+        );
+    }
+
+    #[test]
+    fn provider_link_mismatch_remains_rejected() {
+        let expected = binding();
+        let connection = PlannedConnection {
+            connection_id: expected.connection_id.clone(),
+            source_placement_id: PlacementId::from("test/source-placement"),
+            source_port_id: conduit_core::PortId::from("out"),
+            sink_placement_id: PlacementId::from("test/sink-placement"),
+            sink_port_id: conduit_core::PortId::from("in"),
+            value_kind: expected.value_kind.clone(),
+            provider: ConnectionProvider::WebSocket,
+            link_binding: Some(LinkBinding {
+                binding_id: expected.link_binding_id.clone(),
+                source: expected.source.clone(),
+                sink: expected.sink.clone(),
+                provider: ConnectionProvider::FixtureFrame, // Mismatched link provider
+                provider_instance_id: expected.provider_instance_id.clone(),
+                availability: LinkAvailability::Ready,
+                credential: LinkCredentialReference::None,
+                authority: LinkAuthorityReference::ProcessOwned,
+                limits: expected.limits,
+            }),
+            item_capacity: 1,
+            byte_capacity: MAXIMUM_PAYLOAD_BYTES,
+        };
+        assert_eq!(
+            SessionBinding::from_planned_connection(
+                expected.plan_id,
+                expected.source_fragment_id,
+                expected.sink_fragment_id,
+                &connection,
+            ),
+            Err(WireError::InvalidSession)
+        );
+    }
+
+    #[test]
+    fn mutated_provider_in_peer_hello_remains_rejected() {
+        let binding = binding();
+        let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
+        let mut hello = match binding.hello_frame().message {
+            SessionMessage::Hello(hello) => hello,
+            _ => unreachable!(),
+        };
+        hello.provider = ConnectionProvider::FixtureFrame; // Peer Hello specifies different provider
+        assert_eq!(
+            machine.admit_inbound(binding.frame(SessionMessage::Hello(hello))),
+            Err(WireError::InvalidSession)
+        );
+    }
+
+    #[test]
+    fn mutated_provider_instance_identity_in_session_identity_remains_rejected() {
+        let binding = binding();
+        let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
+        let mut frame = binding.hello_frame();
+        frame.identity.provider_instance_id = "test/different-provider-instance";
+        assert_eq!(machine.admit_inbound(frame), Err(WireError::InvalidSession));
     }
 }

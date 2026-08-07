@@ -332,6 +332,18 @@ pub enum ConnectionProvider {
     WebSocket,
 }
 
+impl ConnectionProvider {
+    /// Indicates whether this provider's contract is compatible with the exact
+    /// framed `SessionMachine` protocol.
+    ///
+    /// This means only that the provider's contract is compatible with the
+    /// exact framed SessionMachine protocol. It does not claim that an actual
+    /// carrier implementation is installed, runnable, production-ready, or proven.
+    pub const fn supports_remote_session(self) -> bool {
+        matches!(self, Self::FixtureFrame | Self::WebSocket)
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LinkAvailability {
     Ready,
