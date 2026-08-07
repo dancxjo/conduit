@@ -151,17 +151,24 @@ pub fn run_prove_std_pico_usb(
     let mut evidence_reader = BufReader::new(evidence_file);
 
     // Read initial boot identity line from CDC 1 (retry loop in case port opened right after boot)
+    println!("==> Starting 5 second blocking wait for Pico W boot identity from CDC 1...");
     let mut boot_line = String::new();
-    let start = Instant::now();
-    while start.elapsed() < Duration::from_secs(5) {
-        if evidence_reader.read_line(&mut boot_line)? > 0 && !boot_line.trim().is_empty() {
-            break;
+    let start = std::time::Instant::now();
+    while start.elapsed() < std::time::Duration::from_secs(5) {
+        if let Ok(len) = evidence_reader.read_line(&mut boot_line) {
+            if len > 0 {
+                let trimmed = boot_line.trim();
+                if !trimmed.is_empty() {
+                    println!("==> Received boot line ({} bytes): {}", trimmed.len(), trimmed);
+                    break;
+                }
+            }
         }
-        std::thread::sleep(Duration::from_millis(100));
+        std::thread::sleep(std::time::Duration::from_millis(50));
     }
 
     if boot_line.trim().is_empty() {
-        return Err("timed out reading Pico boot identity from CDC 1".into());
+        return Err("timed out reading Pico boot identity from CDC 1 (5 seconds elapsed without data)".into());
     }
 
     let boot_record: serde_json::Value = serde_json::from_str(boot_line.trim())?;
