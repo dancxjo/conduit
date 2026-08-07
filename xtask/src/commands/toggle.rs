@@ -1,8 +1,8 @@
-//! `xtask demo toggle` — operator command for the S4 toggle-demo.
+//! Interactive browser demos backed by the current distributed-toggle program.
 //!
 //! Builds the browser WASM runtime, spawns the distributed-toggle-server,
 //! starts the static file server, and pipes stdin through so the operator
-//! can press Enter to drive activations.
+//! can press Enter to drive admitted activations.
 
 use crate::workspace::workspace_root;
 use std::io::{BufRead, Read, Write};
@@ -13,6 +13,8 @@ use std::time::{Duration, Instant};
 
 const STATIC_PORTS: std::ops::RangeInclusive<u16> = 4174..=4183;
 const STATIC_STARTUP_TIMEOUT: Duration = Duration::from_secs(5);
+const TOGGLE_PAGE: &str = "hosts/browser/distributed-toggle.test.html";
+const SITE_PAGE: &str = "hosts/browser/conduit-site.html";
 
 struct ChildGuard {
     child: Option<Child>,
@@ -65,7 +67,7 @@ fn available_static_port() -> Result<u16, Box<dyn std::error::Error>> {
     .into())
 }
 
-fn serves_toggle_page(port: u16) -> bool {
+fn serves_page(port: u16, page_path: &str) -> bool {
     let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) else {
         return false;
     };
@@ -73,12 +75,10 @@ fn serves_toggle_page(port: u16) -> bool {
     if stream.set_read_timeout(timeout).is_err() || stream.set_write_timeout(timeout).is_err() {
         return false;
     }
-    if stream
-        .write_all(
-            b"GET /hosts/browser/distributed-toggle.test.html HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
-        )
-        .is_err()
-    {
+    let request = format!(
+        "GET /{page_path} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+    );
+    if stream.write_all(request.as_bytes()).is_err() {
         return false;
     }
     let mut response = [0_u8; 64];
@@ -90,13 +90,14 @@ fn serves_toggle_page(port: u16) -> bool {
 fn wait_for_static_server(
     server: &mut ChildGuard,
     port: u16,
+    page_path: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let deadline = Instant::now() + STATIC_STARTUP_TIMEOUT;
     while Instant::now() < deadline {
         if server.child_mut().try_wait()?.is_some() {
             break;
         }
-        if serves_toggle_page(port) {
+        if serves_page(port, page_path) {
             return Ok(());
         }
         thread::sleep(Duration::from_millis(50));
@@ -104,7 +105,7 @@ fn wait_for_static_server(
 
     let output = server.terminate_with_output()?;
     Err(format!(
-        "static server failed to serve on 127.0.0.1:{port}\nstdout:\n{}\nstderr:\n{}",
+        "static server failed to serve /{page_path} on 127.0.0.1:{port}\nstdout:\n{}\nstderr:\n{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr),
     )
@@ -127,10 +128,18 @@ fn encode_query_component(value: &str) -> String {
 }
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+    run_page("toggle", TOGGLE_PAGE)
+}
+
+pub fn run_site() -> Result<(), Box<dyn std::error::Error>> {
+    run_page("site", SITE_PAGE)
+}
+
+fn run_page(label: &str, page_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
 
     // 1. Build the WASM runtime.
-    eprintln!("[toggle] building browser WASM runtime …");
+    eprintln!("[{label}] building browser WASM runtime …");
     let status = Command::new("cargo")
         .args([
             "build",
@@ -147,7 +156,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // 2. Start the static file server on an available port and prove it is serving.
-    eprintln!("[toggle] starting static server …");
+    eprintln!("[{label}] starting static server …");
     let static_port = available_static_port()?;
     let mut static_command = Command::new("node");
     static_command
@@ -157,10 +166,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     let mut static_server = ChildGuard::spawn(&mut static_command)?;
-    wait_for_static_server(&mut static_server, static_port)?;
+    wait_for_static_server(&mut static_server, static_port, page_path)?;
 
-    // 3. Spawn the distributed-toggle-server and capture the WS URL.
-    eprintln!("[toggle] starting toggle server …");
+    // 3. Spawn the existing current-model distributed-toggle server and capture its WS URL.
+    eprintln!("[{label}] starting Conduit toggle source …");
     let mut server_command = Command::new("cargo");
     server_command
         .args([
@@ -177,7 +186,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .stderr(Stdio::inherit());
     let mut server = ChildGuard::spawn(&mut server_command)?;
 
-    // Read the first line (the WebSocket URL) from the server's stdout.
     let server_stdout = server
         .child_mut()
         .stdout
@@ -192,19 +200,17 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let encoded_url = encode_query_component(&url);
-    eprintln!("[toggle] WebSocket URL: {url}");
+    eprintln!("[{label}] WebSocket URL: {url}");
     eprintln!(
-        "[toggle] open http://127.0.0.1:{static_port}/hosts/browser/distributed-toggle.test.html?ws={encoded_url} in a browser",
+        "[{label}] open http://127.0.0.1:{static_port}/{page_path}?ws={encoded_url} in a browser",
     );
-    eprintln!("[toggle] then press Enter in this terminal to drive activations");
+    eprintln!("[{label}] then press Enter in this terminal to drive Conduit activations");
     eprintln!();
 
-    // Forward the remaining stdout (prompts and summary).
     let copy_thread = std::thread::spawn(move || {
         std::io::copy(&mut reader, &mut std::io::stdout().lock()).ok();
     });
 
-    // Wait for the server to exit (stdin is inherited, user presses Enter).
     let status = server.wait()?;
     let _ = copy_thread.join();
 
@@ -216,7 +222,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
-    use super::encode_query_component;
+    use super::{encode_query_component, SITE_PAGE, TOGGLE_PAGE};
 
     #[test]
     fn websocket_url_is_encoded_as_one_query_value() {
@@ -224,5 +230,11 @@ mod tests {
             encode_query_component("ws://127.0.0.1:4174/conduit?x=1&y=2"),
             "ws%3A%2F%2F127.0.0.1%3A4174%2Fconduit%3Fx%3D1%26y%3D2"
         );
+    }
+
+    #[test]
+    fn interactive_pages_are_repository_relative() {
+        assert_eq!(TOGGLE_PAGE, "hosts/browser/distributed-toggle.test.html");
+        assert_eq!(SITE_PAGE, "hosts/browser/conduit-site.html");
     }
 }
