@@ -498,8 +498,8 @@ impl<R: Read, W: Write> NativeUsbCdcCarrier<R, W> {
 mod tests {
     use super::*;
     use conduit_core::{
-        BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId, FragmentId,
-        HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
+        BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId, FragmentId, HostId,
+        KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
     };
     use conduit_wire::{SessionBinding, SessionMachine, SessionMessage, SessionRole};
     use std::io::Cursor;
@@ -550,8 +550,7 @@ mod tests {
         let binding = test_binding();
         let frame = binding.hello_frame();
         let mut wire_buf = [0u8; 2048];
-        let frame_len =
-            encode_session_frame_into(frame, &mut wire_buf[2..], 1024, 1024).unwrap();
+        let frame_len = encode_session_frame_into(frame, &mut wire_buf[2..], 1024, 1024).unwrap();
         let mut framed_buf = [0u8; 2048];
         let total_bytes =
             encode_stream_frame(&wire_buf[2..2 + frame_len], 1024, &mut framed_buf).unwrap();

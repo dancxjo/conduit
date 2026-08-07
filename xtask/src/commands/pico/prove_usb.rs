@@ -65,15 +65,7 @@ pub fn run_prove_std_pico_usb(
 
     // Read expected compiled firmware identity manifest
     let root = repo_root();
-    let manifest_path = root
-        .join("firmware")
-        .join("conduit-pico-w-signal")
-        .join("target")
-        .join("thumbv6m-none-eabi")
-        .join("release")
-        .join("conduit-pico-w-signal.identity.json");
-
-    let identity = read_identity_manifest(&manifest_path)?;
+    let identity = read_identity_manifest(&root)?;
     println!(
         "==> Loaded build identity: build_id={}, plan_id={}",
         identity.firmware_build_id, identity.generated_image.plan_id
