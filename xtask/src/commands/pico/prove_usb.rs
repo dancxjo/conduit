@@ -114,7 +114,7 @@ pub fn run_prove_std_pico_usb(
         ])
         .status();
 
-    // CDC 1 (evidence): blocking line-read mode
+    // CDC 1 (evidence): blocking line-read mode with 5 second timeout (time 50 deciseconds)
     let _ = std::process::Command::new("stty")
         .args([
             "-F",
@@ -126,9 +126,9 @@ pub fn run_prove_std_pico_usb(
             "raw",
             "-echo",
             "min",
-            "1",
-            "time",
             "0",
+            "time",
+            "50",
         ])
         .status();
 
