@@ -24,7 +24,8 @@ pub const MAX_STORED_WAIT_VALUES: usize = MAX_STORED_SIGNAL_VALUES - 1;
 pub const VALUE_SLOTS: usize = MAX_STORED_SIGNAL_VALUES + MAX_STORED_WAIT_VALUES;
 pub const WAIT_VALUE_BYTES: u32 = generated_signal::WAIT_VALUE_BYTES;
 pub const RUNTIME_EVIDENCE_EVENTS: usize = generated_signal::RUNTIME_EVIDENCE_EVENTS;
-pub const RUNTIME_EVIDENCE_BYTES: u32 = generated_signal::RUNTIME_EVIDENCE_BYTES;
+pub const RUNTIME_EVIDENCE_BYTES: u32 =
+    (RUNTIME_EVIDENCE_EVENTS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32;
 
 pub const SOURCE_DOCUMENT_ID: &str = generated_signal::SOURCE_DOCUMENT_ID;
 pub const CHECKED_FORM_ID: &str = generated_signal::CHECKED_FORM_ID;

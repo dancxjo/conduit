@@ -38,7 +38,13 @@ pub async fn run_signal_demo(
     runtime: &RuntimeTranscriptIdentity,
 ) {
     let layout = signal_layout().expect("generated Signal image layout is valid");
-    cdc.write_boot_identity(boot_identity(), runtime).await;
+    if cdc
+        .write_boot_identity(boot_identity(), runtime)
+        .await
+        .is_err()
+    {
+        return;
+    }
     let mut values =
         FixedValueStore::<VALUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>::new(value_store_bytes(
             layout.configuration.count,
@@ -158,13 +164,20 @@ pub async fn run_signal_demo(
                         break;
                     };
                     control.gpio_set(0, signal.level).await;
-                    cdc.write_receipt(
-                        signal.sequence,
-                        signal.level,
-                        presentation_receipt_identity(identity),
-                        runtime,
-                    )
-                    .await;
+                    if cdc
+                        .write_receipt(
+                            signal.sequence,
+                            signal.level,
+                            presentation_receipt_identity(identity),
+                            runtime,
+                        )
+                        .await
+                        .is_err()
+                    {
+                        fail_host_request(&mut scheduler, req.node, req.request);
+                        error = true;
+                        break;
+                    }
                     complete_host_request(&mut scheduler, req.node, req.request);
                 } else {
                     fail_host_request(&mut scheduler, req.node, req.request);
@@ -173,14 +186,15 @@ pub async fn run_signal_demo(
                 }
             }
             Err(err) => {
-                cdc.write_error(err, terminal_identity(), runtime).await;
+                let _ = cdc.write_error(err, terminal_identity(), runtime).await;
                 error = true;
                 break;
             }
         }
     }
 
-    cdc.write_terminal(!error, terminal_identity(), runtime)
+    let _ = cdc
+        .write_terminal(!error, terminal_identity(), runtime)
         .await;
 }
 

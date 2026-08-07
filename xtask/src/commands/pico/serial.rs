@@ -24,6 +24,13 @@ pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
     println!("==> pico verify: reading receipts from {}", port.display());
 
     let identity = read_identity_manifest(&repo_root())?;
+    if identity.firmware_mode != "pico-local" {
+        return Err(format!(
+            "pico verify requires a pico-local image, but the current artifact is {}; rebuild with `cargo xtask pico build`",
+            identity.firmware_mode
+        )
+        .into());
+    }
     let file = std::fs::OpenOptions::new().read(true).open(&port)?;
     conduit_std_host::usb_cdc::configure_cdc_port(&file, 0, 50).map_err(|e| {
         format!(
@@ -128,6 +135,13 @@ fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoRes
 
 fn validate_expected_identity(identity: &FirmwareIdentity) -> PicoResult<()> {
     let expected = &identity.generated_image;
+    if identity.firmware_mode != expected.firmware_mode {
+        return Err(format!(
+            "identity manifest firmware mode mismatch: top-level {}, generated image {}",
+            identity.firmware_mode, expected.firmware_mode
+        )
+        .into());
+    }
     if identity.firmware_build_id != expected.firmware_build_id {
         return Err(format!(
             "identity manifest firmware_build_id mismatch: top-level {}, generated image {}",
@@ -347,6 +361,7 @@ mod tests {
     fn expected_identity() -> GeneratedImageIdentity {
         GeneratedImageIdentity {
             schema: "conduit.pico-signal.generated-image@1".into(),
+            firmware_mode: "pico-local".into(),
             firmware_build_id: "firmware-build".into(),
             source_document_id: "source".into(),
             checked_form_id: "checked".into(),
@@ -381,6 +396,7 @@ mod tests {
             git_revision: "revision".into(),
             target: "thumbv6m-none-eabi".into(),
             profile: "release".into(),
+            firmware_mode: "pico-local".into(),
             firmware_build_id: "firmware-build".into(),
             firmware_sha256: "sha256".into(),
             generated_image: expected_identity(),

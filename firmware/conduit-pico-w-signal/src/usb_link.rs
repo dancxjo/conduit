@@ -11,12 +11,14 @@ use embassy_rp::usb;
 use embassy_usb::class::cdc_acm::CdcAcmClass;
 
 use super::usb::PicoUsbCdcCarrier;
+use crate::receipts::UsbEvidenceError;
 
 #[derive(Debug)]
 pub enum UsbLinkError {
     UsbDisconnected,
     Framing(StreamFrameError),
     Codec(WireError),
+    Evidence(UsbEvidenceError),
     BufferOverflow,
 }
 
@@ -29,6 +31,12 @@ impl From<StreamFrameError> for UsbLinkError {
 impl From<WireError> for UsbLinkError {
     fn from(err: WireError) -> Self {
         Self::Codec(err)
+    }
+}
+
+impl From<UsbEvidenceError> for UsbLinkError {
+    fn from(err: UsbEvidenceError) -> Self {
+        Self::Evidence(err)
     }
 }
 

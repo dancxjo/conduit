@@ -14,11 +14,19 @@ use heapless::String as HString;
 
 use crate::usb::MAX_PACKET_SIZE;
 
-const RECEIPT_BUFFER_BYTES: usize = 1536;
+// The longest current identity-bearing receipt is about 1.6 KiB. This fixed
+// bound leaves room for longer exact runtime IDs without allocating.
+const RECEIPT_BUFFER_BYTES: usize = 2048;
 const RUNTIME_ID_BYTES: usize = 128;
 
 pub struct UsbCdc {
     sender: embassy_usb::class::cdc_acm::Sender<'static, usb::Driver<'static, USB>>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UsbEvidenceError {
+    FormatOverflow,
+    Disconnected,
 }
 
 impl UsbCdc {
@@ -38,10 +46,10 @@ impl UsbCdc {
         }
     }
 
-    /// Write a diagnostic text line to CDC 1 with bounded timeout.
-    pub async fn write_log(&mut self, msg: &str) {
-        self.write_all(msg.as_bytes()).await;
-        self.write_all(b"\n").await;
+    /// Write a mandatory proof marker to CDC 1.
+    pub async fn write_marker(&mut self, msg: &str) -> Result<(), UsbEvidenceError> {
+        self.write_all_mandatory(msg.as_bytes()).await?;
+        self.write_all_mandatory(b"\n").await
     }
 }
 
@@ -141,9 +149,9 @@ impl UsbCdc {
         &mut self,
         identity: BootIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) {
+    ) -> Result<(), UsbEvidenceError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
-        let _ = core::fmt::write(
+        core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
@@ -174,8 +182,9 @@ impl UsbCdc {
                 runtime.active_play_id(),
                 identity.boot_evidence_id,
             ),
-        );
-        self.write_all_mandatory(line.as_bytes()).await;
+        )
+        .map_err(|_| UsbEvidenceError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
     }
 
     /// Write a machine-readable receipt for one Signal presentation.
@@ -185,9 +194,9 @@ impl UsbCdc {
         level: bool,
         identity: PresentationReceiptIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) {
+    ) -> Result<(), UsbEvidenceError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
-        let _ = core::fmt::write(
+        core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
@@ -226,8 +235,9 @@ impl UsbCdc {
                 identity.presentation_id,
                 identity.evidence_id,
             ),
-        );
-        self.write_all(line.as_bytes()).await;
+        )
+        .map_err(|_| UsbEvidenceError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
     }
 
     /// Write a terminal completion record.
@@ -236,9 +246,9 @@ impl UsbCdc {
         success: bool,
         identity: TerminalIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) {
+    ) -> Result<(), UsbEvidenceError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
-        let _ = core::fmt::write(
+        core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
@@ -273,8 +283,9 @@ impl UsbCdc {
                 success,
                 identity.evidence_id,
             ),
-        );
-        self.write_all(line.as_bytes()).await;
+        )
+        .map_err(|_| UsbEvidenceError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
     }
 
     /// Write a kernel error record.
@@ -283,9 +294,9 @@ impl UsbCdc {
         e: conduit_kernel::scheduler::SchedulerError,
         identity: TerminalIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) {
+    ) -> Result<(), UsbEvidenceError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
-        let _ = core::fmt::write(
+        core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
@@ -321,11 +332,12 @@ impl UsbCdc {
                 identity.evidence_id,
                 e,
             ),
-        );
-        self.write_all(line.as_bytes()).await;
+        )
+        .map_err(|_| UsbEvidenceError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
     }
 
-    async fn write_all_mandatory(&mut self, data: &[u8]) {
+    async fn write_all_mandatory(&mut self, data: &[u8]) -> Result<(), UsbEvidenceError> {
         let mut offset = 0;
         while offset < data.len() {
             let chunk_len = (data.len() - offset).min(MAX_PACKET_SIZE as usize);
@@ -335,26 +347,11 @@ impl UsbCdc {
                 .await
                 .is_err()
             {
-                break;
+                return Err(UsbEvidenceError::Disconnected);
             }
             offset += chunk_len;
         }
+        Ok(())
     }
 
-    async fn write_all(&mut self, data: &[u8]) {
-        let mut offset = 0;
-        while offset < data.len() {
-            let chunk_len = (data.len() - offset).min(MAX_PACKET_SIZE as usize);
-            let res = embassy_time::with_timeout(
-                embassy_time::Duration::from_millis(20),
-                self.sender.write_packet(&data[offset..offset + chunk_len]),
-            )
-            .await;
-            if res.is_err() {
-                // If CDC 1 write times out (host not reading), drop packet to prevent blocking CDC 0
-                break;
-            }
-            offset += chunk_len;
-        }
-    }
 }

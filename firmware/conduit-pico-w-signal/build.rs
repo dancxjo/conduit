@@ -21,8 +21,7 @@ const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
 const MAX_STORED_SIGNAL_VALUES: usize = 16;
 const WAIT_VALUE_BYTES: u32 = 8;
-const RUNTIME_EVIDENCE_EVENTS: usize = 64;
-const RUNTIME_EVIDENCE_BYTES: u32 = 1024;
+const RUNTIME_EVIDENCE_EVENTS: usize = 256;
 
 fn main() {
     let target = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
@@ -103,17 +102,16 @@ fn render_firmware_module(
             "pub const MAX_STORED_SIGNAL_VALUES: usize = {};\n",
             "pub const WAIT_VALUE_BYTES: u32 = {};\n",
             "pub const RUNTIME_EVIDENCE_EVENTS: usize = {};\n",
-            "pub const RUNTIME_EVIDENCE_BYTES: u32 = {};\n",
         ),
         MAX_STORED_SIGNAL_VALUES,
         WAIT_VALUE_BYTES,
         RUNTIME_EVIDENCE_EVENTS,
-        RUNTIME_EVIDENCE_BYTES
     ));
     module
 }
 
 struct GeneratedSignalIdentity {
+    firmware_mode: &'static str,
     firmware_build_id: String,
     source_document_id: String,
     checked_form_id: String,
@@ -170,6 +168,7 @@ impl GeneratedSignalIdentity {
         let firmware_build_id = firmware_build_id(form, generated, &active_play.active_play_id);
 
         Self {
+            firmware_mode: firmware_mode(),
             firmware_build_id,
             source_document_id: form.source_document_id.as_str().to_owned(),
             checked_form_id: form.checked_form_id.as_str().to_owned(),
@@ -189,11 +188,12 @@ fn firmware_build_id(
     active_play_id: &conduit_core::ActivePlayId,
 ) -> String {
     format!(
-        "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
         git_revision(),
         git_tree_state(),
         env::var("TARGET").unwrap_or_else(|_| "unknown-target".to_owned()),
         env::var("PROFILE").unwrap_or_else(|_| "unknown-profile".to_owned()),
+        firmware_mode(),
         form.source_document_id.as_str(),
         form.checked_form_id.as_str(),
         form.expanded_form_id.as_str(),
@@ -201,6 +201,14 @@ fn firmware_build_id(
         generated.fragment_id,
         active_play_id.as_str(),
     )
+}
+
+fn firmware_mode() -> &'static str {
+    if env::var_os("CARGO_FEATURE_USB_REMOTE").is_some() {
+        "usb-remote"
+    } else {
+        "pico-local"
+    }
 }
 
 fn git_revision() -> String {
@@ -299,6 +307,7 @@ fn render_identity_sidecar(
         concat!(
             "{{\n",
             "  \"schema\": \"conduit.pico-signal.generated-image@1\",\n",
+            "  \"firmware_mode\": \"{}\",\n",
             "  \"firmware_build_id\": \"{}\",\n",
             "  \"source_document_id\": \"{}\",\n",
             "  \"checked_form_id\": \"{}\",\n",
@@ -322,6 +331,7 @@ fn render_identity_sidecar(
             "  \"evidence_bytes\": {}\n",
             "}}\n"
         ),
+        identity.firmware_mode,
         json_escape(&identity.firmware_build_id),
         json_escape(&identity.source_document_id),
         json_escape(&identity.checked_form_id),

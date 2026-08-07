@@ -12,7 +12,7 @@ use conduit_signal::decode_signal_bytes;
 use conduit_wire::{SessionBinding, SessionMachine, SessionMessage, SessionRole};
 use cyw43::Control;
 
-use crate::kernel::{boot_identity, presentation_receipt_identity};
+use crate::kernel::{boot_identity, presentation_receipt_identity, terminal_identity};
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::signal_image::{presentation_identity, FRAGMENT_ID, HOST_ID, PLAN_ID};
 use crate::usb_link::{UsbLinkError, UsbLinkSession};
@@ -33,6 +33,9 @@ pub async fn establish_usb_channels(
         let raw_bytes = link_session
             .receive_raw_stream_frame(&mut frame_buf)
             .await?;
+        if crate::bootsel::handle_request(link_session, raw_bytes).await? {
+            continue;
+        }
         if raw_bytes == b"CONDUIT_RAW_CDC0_PROBE" {
             link_session
                 .send_raw_stream_frame(b"CONDUIT_RAW_CDC0_REPLY")
@@ -46,7 +49,7 @@ pub async fn establish_usb_channels(
     evidence_cdc.wait_dtr().await;
     evidence_cdc
         .write_boot_identity(boot_identity(), runtime)
-        .await;
+        .await?;
 
     Ok(())
 }
@@ -57,7 +60,6 @@ pub async fn run_remote_signal_sink(
     control: &mut Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), UsbLinkError> {
-    evidence_cdc.write_log("SESSION_BINDING_BUILD_STARTED").await;
     let plan_id = PlanId::from(PLAN_ID);
     let source_host_id = HostId::from("host/std");
     let source_boot_id = BootId::from("boot/std");
@@ -99,49 +101,28 @@ pub async fn run_remote_signal_sink(
         },
     };
 
-    let mut machine = match SessionMachine::new(binding.clone(), SessionRole::Sink) {
-        Ok(machine) => machine,
-        Err(err) => {
-            evidence_cdc
-                .write_log("SESSION_BINDING_BUILD_FAILED")
-                .await;
-            return Err(UsbLinkError::Codec(err));
-        }
-    };
-    evidence_cdc.write_log("SESSION_BINDING_BUILD_READY").await;
+    let mut machine =
+        SessionMachine::new(binding.clone(), SessionRole::Sink).map_err(UsbLinkError::Codec)?;
 
     let mut frame_buf = [0u8; 2048];
 
     // Phase 1: SessionMessage::Hello wait on the proven CDC 0 path.
     loop {
         let raw_bytes = link_session.receive_raw_stream_frame(&mut frame_buf).await?;
-        let frame = match conduit_wire::decode_session_frame(raw_bytes, 1024, 1024) {
-            Ok(frame) => frame,
-            Err(_) => {
-                evidence_cdc.write_log("CDC0_HELLO_DECODE_FAILED").await;
-                continue;
-            }
-        };
-        if matches!(frame.message, SessionMessage::Hello(_)) {
-            evidence_cdc.write_log("CDC0_HELLO_DECODED").await;
-            // Handshake Step 1 (Sink): Admit inbound Hello from Source
-            if let Err(err) = machine.admit_inbound(frame) {
-                evidence_cdc.write_log("CDC0_HELLO_ADMISSION_FAILED").await;
-                return Err(UsbLinkError::Codec(err));
-            }
-
-            // Handshake Step 2 (Sink): Admit outbound Hello from Sink and send to Source
-            let hello_frame = binding.hello_frame();
-            if let Err(err) = machine.admit_outbound(hello_frame) {
-                evidence_cdc
-                    .write_log("CDC0_REPLY_HELLO_ADMISSION_FAILED")
-                    .await;
-                return Err(UsbLinkError::Codec(err));
-            }
-            link_session.send_frame(&hello_frame).await?;
-            evidence_cdc.write_log("CDC0_REPLY_HELLO_SENT").await;
-            break;
+        let frame = conduit_wire::decode_session_frame(raw_bytes, 1024, 1024)?;
+        if !matches!(frame.message, SessionMessage::Hello(_)) {
+            return Err(UsbLinkError::Codec(conduit_wire::WireError::InvalidState));
         }
+        machine
+            .admit_inbound(frame)
+            .map_err(UsbLinkError::Codec)?;
+
+        let hello_frame = binding.hello_frame();
+        machine
+            .admit_outbound(hello_frame)
+            .map_err(UsbLinkError::Codec)?;
+        link_session.send_frame(&hello_frame).await?;
+        break;
     }
 
     // Phase 2: Receive SessionMessage::Ready from Source and emit SessionMessage::Ready from Sink
@@ -188,7 +169,7 @@ pub async fn run_remote_signal_sink(
                             presentation_receipt_identity(identity),
                             runtime,
                         )
-                        .await;
+                        .await?;
                 }
             }
 
@@ -198,6 +179,20 @@ pub async fn run_remote_signal_sink(
                 .admit_outbound(delivered_frame)
                 .map_err(UsbLinkError::Codec)?;
             link_session.send_frame(&delivered_frame).await?;
+        } else if let SessionMessage::Terminal {
+            disposition,
+            final_sequence,
+        } = frame.message
+        {
+            machine.admit_inbound(frame).map_err(UsbLinkError::Codec)?;
+            let terminal = binding.frame(SessionMessage::Terminal {
+                disposition,
+                final_sequence,
+            });
+            machine
+                .admit_outbound(terminal)
+                .map_err(UsbLinkError::Codec)?;
+            link_session.send_frame(&terminal).await?;
         } else {
             machine.admit_inbound(frame).map_err(UsbLinkError::Codec)?;
         }
@@ -206,6 +201,10 @@ pub async fn run_remote_signal_sink(
             break;
         }
     }
+
+    evidence_cdc
+        .write_terminal(true, terminal_identity(), runtime)
+        .await?;
 
     Ok(())
 }

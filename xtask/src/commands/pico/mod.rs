@@ -1,13 +1,18 @@
+mod bootsel;
 mod doctor;
 mod firmware;
 mod flash;
 mod prove_usb;
 mod serial;
+#[cfg(unix)]
+mod session_completion;
+mod transcript;
 
 use clap::{Args, Subcommand};
 
 pub type PicoResult<T> = Result<T, Box<dyn std::error::Error>>;
 
+pub use bootsel::run_bootsel;
 pub use doctor::run_doctor;
 pub use firmware::run_build;
 pub use flash::run_flash;
@@ -36,9 +41,17 @@ pub struct PicoArgs {
     #[arg(long)]
     pub port: Option<String>,
 
+    /// Explicit CDC 0 link port used for the BOOTSEL reboot request.
+    #[arg(long)]
+    pub link_port: Option<String>,
+
     /// Verify firmware build but skip flashing and live hardware check.
     #[arg(long)]
     pub verify: bool,
+
+    /// Build or flash the explicit std-to-Pico USB remote image.
+    #[arg(long)]
+    pub usb_remote: bool,
 
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
     #[arg(long)]
@@ -55,6 +68,8 @@ pub enum PicoSubcommand {
     Flash,
     /// Verify USB receipts from a running Pico W.
     Verify,
+    /// Ask the exact running firmware to reboot into BOOTSEL over CDC 0.
+    Bootsel,
     /// Full local workflow: doctor + build + flash + verify.
     Local,
 }
@@ -65,6 +80,9 @@ pub fn apply_environment_defaults(args: &mut PicoArgs) {
     }
     if args.port.is_none() {
         args.port = std::env::var("PICO_W_PORT").ok();
+    }
+    if args.link_port.is_none() {
+        args.link_port = std::env::var("PICO_W_LINK_PORT").ok();
     }
 }
 
@@ -80,11 +98,15 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         Some(PicoSubcommand::Build) => run_build(&args),
         Some(PicoSubcommand::Flash) => run_flash(&args),
         Some(PicoSubcommand::Verify) => run_verify(&args),
+        Some(PicoSubcommand::Bootsel) => run_bootsel(&args),
     }
 }
 
 pub fn run_local(mut args: PicoArgs) -> PicoResult<()> {
     apply_environment_defaults(&mut args);
+    if args.usb_remote {
+        return Err("the complete `pico local` workflow requires the pico-local image; use `pico build --usb-remote`, `pico flash --usb-remote`, then `prove std-pico-usb` for the remote proof".into());
+    }
     run_doctor(args.dry_run)?;
     run_build(&args)?;
     if args.build_only {

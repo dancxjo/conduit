@@ -9,11 +9,12 @@ use conduit_core::{
 use conduit_signal::{encode_signal_fixed, Signal};
 #[cfg(unix)]
 use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader, OperatorTerminal};
-use conduit_wire::{SessionBinding, SessionFrame, SessionMessage};
+use conduit_wire::{SessionBinding, SessionMessage};
 
 use super::doctor::repo_root;
 use super::firmware::read_identity_manifest;
 use super::serial::resolve_dual_ports;
+use super::transcript::{self, RuntimeTranscriptIdentity};
 use super::{PicoArgs, PicoResult};
 use crate::cli::GlobalOpts;
 
@@ -65,6 +66,13 @@ pub fn run_prove_std_pico_usb(
     // Read expected compiled firmware identity manifest
     let root = repo_root();
     let identity = read_identity_manifest(&root)?;
+    if identity.firmware_mode != "usb-remote" {
+        return Err(format!(
+            "std-to-Pico USB proof requires a usb-remote image, but the current artifact is {}; rebuild with `cargo xtask pico build --usb-remote` and flash it with `cargo xtask pico flash --usb-remote`",
+            identity.firmware_mode
+        )
+        .into());
+    }
     println!(
         "==> Loaded build identity: build_id={}, plan_id={}",
         identity.firmware_build_id, identity.generated_image.plan_id
@@ -73,7 +81,7 @@ pub fn run_prove_std_pico_usb(
     #[cfg(unix)]
     {
         let mut attempts = 0;
-        let (mut evidence_reader, mut carrier, runtime_boot_id, runtime_active_play_id) = loop {
+        let (mut evidence_reader, mut carrier, runtime) = loop {
             attempts += 1;
             match (|| -> Result<_, String> {
                 // 1. Open CDC 1 and require the kernel to report DTR high.
@@ -112,16 +120,8 @@ pub fn run_prove_std_pico_usb(
                     .map_err(|e| format!("Timed out reading boot identity from CDC 1: {e}"))?;
                 println!("==> CDC1 boot identity received and validated");
 
-                let boot_record: serde_json::Value = serde_json::from_str(&boot_line)
-                    .map_err(|e| format!("Malformed boot record JSON: {e}"))?;
-                let runtime_boot_id = boot_record["runtime_boot_id"]
-                    .as_str()
-                    .ok_or("missing runtime_boot_id in Pico boot identity record")?
-                    .to_string();
-                let runtime_active_play_id = boot_record["runtime_active_play_id"]
-                    .as_str()
-                    .ok_or("missing runtime_active_play_id in Pico boot identity record")?
-                    .to_string();
+                let runtime = transcript::verify_boot(&boot_line, &identity)
+                    .map_err(|error| error.to_string())?;
 
                 let gpio_ready = reader
                     .read_line(Duration::from_secs(10))
@@ -131,7 +131,7 @@ pub fn run_prove_std_pico_usb(
                 }
                 println!("==> Pico CYW43 GPIO service ready");
 
-                Ok((reader, carrier, runtime_boot_id, runtime_active_play_id))
+                Ok((reader, carrier, runtime))
             })() {
                 Ok(res) => break res,
                 Err(err) => {
@@ -149,7 +149,7 @@ pub fn run_prove_std_pico_usb(
 
         println!(
             "==> Observed Pico W runtime link/boot identity: boot_id={}, play_id={}",
-            runtime_boot_id, runtime_active_play_id
+            runtime.boot_id, runtime.active_play_id
         );
 
         // Construct truthful SessionBinding with observed Pico runtime boot/link identity
@@ -157,7 +157,7 @@ pub fn run_prove_std_pico_usb(
         let source_host_id = HostId::from("host/std");
         let source_boot_id = BootId::from("boot/std");
         let sink_host_id = HostId::from(identity.generated_image.host_id.as_str());
-        let sink_boot_id = BootId::from(runtime_boot_id.as_str());
+        let sink_boot_id = BootId::from(runtime.boot_id.as_str());
 
         let source_active_play_id =
             bind_active_play(&plan_id, &source_host_id, &source_boot_id, 0).active_play_id;
@@ -227,9 +227,6 @@ pub fn run_prove_std_pico_usb(
                 Err(err) => {
                     println!("  [Source SessionMachine] receive_frame error: {:?}", err);
                 }
-            }
-            if let Ok(line) = evidence_reader.read_line(Duration::from_millis(1)) {
-                println!("  [Pico startup] <- CDC 1: {line}");
             }
             std::thread::sleep(Duration::from_millis(50));
         }
@@ -318,6 +315,8 @@ pub fn run_prove_std_pico_usb(
                     &binding,
                     sequence,
                     true,
+                    &identity,
+                    &runtime,
                 )?;
 
                 // Hold button pulse for 250ms
@@ -336,19 +335,22 @@ pub fn run_prove_std_pico_usb(
                     &binding,
                     sequence,
                     false,
+                    &identity,
+                    &runtime,
                 )?;
 
                 sequence += 1;
             }
 
-            let terminal = SessionFrame {
-                identity: binding.identity(),
-                message: SessionMessage::Terminal {
-                    disposition: conduit_wire::SessionTerminalDisposition::Completed,
-                    final_sequence: sequence,
-                },
-            };
-            let _ = carrier.send_frame(&terminal, Duration::from_secs(1));
+            super::session_completion::complete(
+                &mut source_machine,
+                &mut carrier,
+                &mut evidence_reader,
+                &binding,
+                sequence,
+                &identity,
+                &runtime,
+            )?;
             println!("==> Pico W USB-CDC interactive session completed.");
             return Ok(());
         }
@@ -363,17 +365,20 @@ pub fn run_prove_std_pico_usb(
                 &binding,
                 sequence,
                 level,
+                &identity,
+                &runtime,
             )?;
         }
 
-        let terminal = SessionFrame {
-            identity: binding.identity(),
-            message: SessionMessage::Terminal {
-                disposition: conduit_wire::SessionTerminalDisposition::Completed,
-                final_sequence: 16,
-            },
-        };
-        let _ = carrier.send_frame(&terminal, Duration::from_secs(1));
+        super::session_completion::complete(
+            &mut source_machine,
+            &mut carrier,
+            &mut evidence_reader,
+            &binding,
+            16,
+            &identity,
+            &runtime,
+        )?;
         println!("==> Pico W USB-CDC proof completed successfully.");
     }
 
@@ -388,6 +393,8 @@ fn send_and_verify_item(
     binding: &SessionBinding,
     sequence: u64,
     level: bool,
+    identity: &super::firmware::FirmwareIdentity,
+    runtime: &RuntimeTranscriptIdentity,
 ) -> PicoResult<()> {
     let signal = Signal { sequence, level };
     let payload = encode_signal_fixed(&signal);
@@ -434,11 +441,8 @@ fn send_and_verify_item(
         .map_err(|e| {
             format!("timed out reading receipt for sequence {sequence} from CDC 1: {e}")
         })?;
-    if line.starts_with('{') {
-        println!("  [RECEIPT ] <- CDC 1: {}", line);
-    } else {
-        println!("  [Pico log] <- CDC 1: {}", line);
-    }
+    transcript::verify_receipt(&line, sequence as usize, level, identity, runtime)?;
+    println!("  [RECEIPT ] <- CDC 1: {line}");
 
     // 4. Wait for Delivered(sequence) over CDC 0
     let start_del = Instant::now();
