@@ -3,7 +3,8 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 
 use super::doctor::repo_root;
-use super::firmware::uf2_path;
+use super::firmware::{read_identity_manifest, uf2_path};
+use super::run_bootsel;
 use super::{PicoArgs, PicoResult};
 
 const BOOTSEL_WAIT_SECS: u64 = 90;
@@ -30,6 +31,28 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
         .into());
     }
 
+    let identity = read_identity_manifest(&root)?;
+    let expected_mode = if args.usb_remote {
+        "usb-remote"
+    } else {
+        "pico-local"
+    };
+    if identity.firmware_mode != expected_mode {
+        return Err(format!(
+            "refusing to flash {} artifact as {expected_mode}; rebuild with the matching pico build mode",
+            identity.firmware_mode
+        )
+        .into());
+    }
+
+    if discover_bootsel_mounts()?.is_empty() {
+        match run_bootsel(args) {
+            Ok(()) => println!("==> pico flash: waiting for firmware-requested BOOTSEL"),
+            Err(error) => println!(
+                "==> pico flash: automatic BOOTSEL unavailable ({error}); waiting for a manual BOOTSEL connection"
+            ),
+        }
+    }
     let mount = resolve_mount(args)?;
     let destination = mount.join(
         uf2.file_name()

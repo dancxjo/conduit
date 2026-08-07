@@ -6,7 +6,8 @@ mod generated_signal {
 }
 
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, HostOperationId, NodeId, PortId, ValueRef,
+    CordId, FixedHostOperationBindings, FixedRoutes, HostOperationId, NodeId, PortId,
+    RemoteEndpointId, ValueRef,
 };
 use conduit_signal::{PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN, SIGNAL_PORT, SIGNAL_VALUE_KIND};
 
@@ -24,7 +25,8 @@ pub const MAX_STORED_WAIT_VALUES: usize = MAX_STORED_SIGNAL_VALUES - 1;
 pub const VALUE_SLOTS: usize = MAX_STORED_SIGNAL_VALUES + MAX_STORED_WAIT_VALUES;
 pub const WAIT_VALUE_BYTES: u32 = generated_signal::WAIT_VALUE_BYTES;
 pub const RUNTIME_EVIDENCE_EVENTS: usize = generated_signal::RUNTIME_EVIDENCE_EVENTS;
-pub const RUNTIME_EVIDENCE_BYTES: u32 = generated_signal::RUNTIME_EVIDENCE_BYTES;
+pub const RUNTIME_EVIDENCE_BYTES: u32 =
+    (RUNTIME_EVIDENCE_EVENTS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32;
 
 pub const SOURCE_DOCUMENT_ID: &str = generated_signal::SOURCE_DOCUMENT_ID;
 pub const CHECKED_FORM_ID: &str = generated_signal::CHECKED_FORM_ID;
@@ -133,6 +135,22 @@ pub struct SignalConfiguration {
     pub initial_level: bool,
 }
 
+#[derive(Clone, Copy)]
+pub struct RemoteSignalLayout {
+    pub show_node: NodeId,
+    pub show_input_port: PortId,
+    pub present_operation: HostOperationId,
+}
+
+pub fn remote_signal_layout() -> Option<RemoteSignalLayout> {
+    let show_node = generated_node_for_kind(SHOW_KIND)?;
+    Some(RemoteSignalLayout {
+        show_node,
+        show_input_port: generated_port(&generated_signal::GENERATED_INPUT_PORTS, show_node)?,
+        present_operation: generated_host_operation(show_node, PRESENT_HOST_OPERATION_CONTRACT)?,
+    })
+}
+
 pub fn signal_layout() -> Option<SignalLayout> {
     let pulse_node = generated_node_for_kind(PULSE_KIND)?;
     let show_node = generated_node_for_kind(SHOW_KIND)?;
@@ -230,3 +248,59 @@ pub const EMPTY_VALUE_REF: ValueRef = ValueRef {
     generation: 0,
     byte_len: 0,
 };
+
+#[derive(Clone, Copy)]
+pub struct RemoteEndpointIdentity {
+    pub endpoint: RemoteEndpointId,
+    pub cord: CordId,
+    pub connection_id: &'static str,
+    pub source_fragment_id: &'static str,
+    pub sink_fragment_id: &'static str,
+    pub local_host: &'static str,
+    pub local_boot: &'static str,
+    pub local_endpoint: &'static str,
+    pub peer_host: &'static str,
+    pub peer_boot: &'static str,
+    pub peer_endpoint: &'static str,
+    pub provider_code: u8,
+    pub provider_instance_id: &'static str,
+    pub link_binding_id: &'static str,
+    pub value_kind: &'static str,
+    pub maximum_in_flight_items: u16,
+    pub maximum_payload_bytes: u32,
+    pub maximum_buffered_bytes: u32,
+    pub maximum_frame_bytes: u32,
+}
+
+pub fn generated_remote_endpoint() -> Option<RemoteEndpointIdentity> {
+    if generated_signal::GENERATED_REMOTE_ENDPOINT_COUNT != 1 {
+        return None;
+    }
+    Some(RemoteEndpointIdentity {
+        endpoint: RemoteEndpointId(*generated_signal::GENERATED_REMOTE_ENDPOINT_IDS.first()?),
+        cord: CordId(*generated_signal::GENERATED_REMOTE_ENDPOINT_CORDS.first()?),
+        connection_id: generated_signal::GENERATED_REMOTE_ENDPOINT_CONNECTION_IDS.first()?,
+        source_fragment_id: generated_signal::GENERATED_REMOTE_ENDPOINT_SOURCE_FRAGMENT_IDS
+            .first()?,
+        sink_fragment_id: generated_signal::GENERATED_REMOTE_ENDPOINT_SINK_FRAGMENT_IDS.first()?,
+        local_host: generated_signal::GENERATED_REMOTE_ENDPOINT_LOCAL_HOSTS.first()?,
+        local_boot: generated_signal::GENERATED_REMOTE_ENDPOINT_LOCAL_BOOTS.first()?,
+        local_endpoint: generated_signal::GENERATED_REMOTE_ENDPOINT_LOCAL_ENDPOINTS.first()?,
+        peer_host: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_HOSTS.first()?,
+        peer_boot: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_BOOTS.first()?,
+        peer_endpoint: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_ENDPOINTS.first()?,
+        provider_code: *generated_signal::GENERATED_REMOTE_ENDPOINT_PROVIDER_CODES.first()?,
+        provider_instance_id: generated_signal::GENERATED_REMOTE_ENDPOINT_PROVIDER_INSTANCE_IDS
+            .first()?,
+        link_binding_id: generated_signal::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS.first()?,
+        value_kind: generated_signal::GENERATED_REMOTE_ENDPOINT_VALUE_KINDS.first()?,
+        maximum_in_flight_items: *generated_signal::GENERATED_REMOTE_ENDPOINT_MAXIMUM_IN_FLIGHT_ITEMS
+            .first()?,
+        maximum_payload_bytes: *generated_signal::GENERATED_REMOTE_ENDPOINT_MAXIMUM_PAYLOAD_BYTES
+            .first()?,
+        maximum_buffered_bytes: *generated_signal::GENERATED_REMOTE_ENDPOINT_MAXIMUM_BUFFERED_BYTES
+            .first()?,
+        maximum_frame_bytes: *generated_signal::GENERATED_REMOTE_ENDPOINT_MAXIMUM_FRAME_BYTES
+            .first()?,
+    })
+}

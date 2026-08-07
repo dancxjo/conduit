@@ -12,8 +12,9 @@ use conduit_embedded_build::{
 };
 use conduit_runtime::lowering::lower_plan_fragment;
 use conduit_signal::{
-    pico_local_advertisement, signal_profile_catalog, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-    PICO_LOCAL_HOST_ID, SHOW_KIND, SIGNAL_ENCODED_LEN,
+    exact_std_pico_usb_plan, pico_local_advertisement, signal_profile_catalog,
+    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID, SHOW_KIND, SIGNAL_ENCODED_LEN,
+    STD_PICO_USB_SINK_HOST_ID,
 };
 
 const SIGNAL_DEMO_FORM: &str = include_str!("../../examples/signal-demo.form");
@@ -21,8 +22,7 @@ const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
 const MAX_STORED_SIGNAL_VALUES: usize = 16;
 const WAIT_VALUE_BYTES: u32 = 8;
-const RUNTIME_EVIDENCE_EVENTS: usize = 64;
-const RUNTIME_EVIDENCE_BYTES: u32 = 1024;
+const RUNTIME_EVIDENCE_EVENTS: usize = 256;
 
 fn main() {
     let target = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
@@ -50,27 +50,33 @@ fn main() {
 fn generate_pico_signal_image(out: &Path) {
     let form = conduit_form::parse(SIGNAL_DEMO_FORM, &signal_profile_catalog())
         .expect("examples/signal-demo.form must check against conduit-signal profile");
-    let advertisement = pico_local_advertisement();
-    let placements =
-        conduit_planner::default_placements(&form, std::slice::from_ref(&advertisement))
-            .expect("Pico local advertisement must cover the Signal form");
-    let plan = conduit_planner::plan_with_connection_limits(
-        &form,
-        std::slice::from_ref(&advertisement),
-        &placements,
-        &[ConnectionProvider::Local],
-        DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-        SIGNAL_ENCODED_LEN,
-    )
-    .expect("Pico local Signal form must plan");
+    let (plan, target_host) = if firmware_mode() == "usb-remote" {
+        let exact = exact_std_pico_usb_plan().expect("exact std-to-Pico UsbCdc plan must resolve");
+        (exact.plan, STD_PICO_USB_SINK_HOST_ID)
+    } else {
+        let advertisement = pico_local_advertisement();
+        let placements =
+            conduit_planner::default_placements(&form, std::slice::from_ref(&advertisement))
+                .expect("Pico local advertisement must cover the Signal form");
+        let plan = conduit_planner::plan_with_connection_limits(
+            &form,
+            std::slice::from_ref(&advertisement),
+            &placements,
+            &[ConnectionProvider::Local],
+            DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+            SIGNAL_ENCODED_LEN,
+        )
+        .expect("Pico local Signal form must plan");
+        (plan, PICO_LOCAL_HOST_ID)
+    };
     let fragment = plan
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == PICO_LOCAL_HOST_ID)
-        .expect("Pico local plan must contain one Pico fragment");
-    let lowered = lower_plan_fragment(fragment).expect("Pico local fragment must lower");
+        .find(|fragment| fragment.host_id.as_str() == target_host)
+        .expect("selected plan must contain one Pico fragment");
+    let lowered = lower_plan_fragment(fragment).expect("Pico fragment must lower");
     let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())
-        .expect("Pico local fragment must fit the reviewed fixed-image bounds");
+        .expect("Pico fragment must fit the reviewed fixed-image bounds");
     let identity = GeneratedSignalIdentity::new(&form, &generated);
 
     fs::write(
@@ -103,17 +109,16 @@ fn render_firmware_module(
             "pub const MAX_STORED_SIGNAL_VALUES: usize = {};\n",
             "pub const WAIT_VALUE_BYTES: u32 = {};\n",
             "pub const RUNTIME_EVIDENCE_EVENTS: usize = {};\n",
-            "pub const RUNTIME_EVIDENCE_BYTES: u32 = {};\n",
         ),
         MAX_STORED_SIGNAL_VALUES,
         WAIT_VALUE_BYTES,
         RUNTIME_EVIDENCE_EVENTS,
-        RUNTIME_EVIDENCE_BYTES
     ));
     module
 }
 
 struct GeneratedSignalIdentity {
+    firmware_mode: &'static str,
     firmware_build_id: String,
     source_document_id: String,
     checked_form_id: String,
@@ -170,6 +175,7 @@ impl GeneratedSignalIdentity {
         let firmware_build_id = firmware_build_id(form, generated, &active_play.active_play_id);
 
         Self {
+            firmware_mode: firmware_mode(),
             firmware_build_id,
             source_document_id: form.source_document_id.as_str().to_owned(),
             checked_form_id: form.checked_form_id.as_str().to_owned(),
@@ -189,11 +195,12 @@ fn firmware_build_id(
     active_play_id: &conduit_core::ActivePlayId,
 ) -> String {
     format!(
-        "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
         git_revision(),
         git_tree_state(),
         env::var("TARGET").unwrap_or_else(|_| "unknown-target".to_owned()),
         env::var("PROFILE").unwrap_or_else(|_| "unknown-profile".to_owned()),
+        firmware_mode(),
         form.source_document_id.as_str(),
         form.checked_form_id.as_str(),
         form.expanded_form_id.as_str(),
@@ -201,6 +208,14 @@ fn firmware_build_id(
         generated.fragment_id,
         active_play_id.as_str(),
     )
+}
+
+fn firmware_mode() -> &'static str {
+    if env::var_os("CARGO_FEATURE_USB_REMOTE").is_some() {
+        "usb-remote"
+    } else {
+        "pico-local"
+    }
 }
 
 fn git_revision() -> String {
@@ -299,6 +314,7 @@ fn render_identity_sidecar(
         concat!(
             "{{\n",
             "  \"schema\": \"conduit.pico-signal.generated-image@1\",\n",
+            "  \"firmware_mode\": \"{}\",\n",
             "  \"firmware_build_id\": \"{}\",\n",
             "  \"source_document_id\": \"{}\",\n",
             "  \"checked_form_id\": \"{}\",\n",
@@ -322,6 +338,7 @@ fn render_identity_sidecar(
             "  \"evidence_bytes\": {}\n",
             "}}\n"
         ),
+        identity.firmware_mode,
         json_escape(&identity.firmware_build_id),
         json_escape(&identity.source_document_id),
         json_escape(&identity.checked_form_id),

@@ -11,13 +11,47 @@ use embassy_rp::usb;
 use embassy_usb::class::cdc_acm::CdcAcmClass;
 
 use super::usb::PicoUsbCdcCarrier;
+use crate::receipts::UsbEvidenceError;
+
+pub type UsbLinkResult<T> = Result<T, UsbLinkError>;
 
 #[derive(Debug)]
 pub enum UsbLinkError {
     UsbDisconnected,
     Framing(StreamFrameError),
     Codec(WireError),
+    Evidence(UsbEvidenceError),
     BufferOverflow,
+    InvalidGeneratedEndpoint,
+    InvalidSignal,
+    Storage(conduit_kernel::StorageError),
+    Kernel(conduit_kernel::scheduler::SchedulerError),
+    EvidenceStorage(conduit_kernel::EvidenceError),
+    KernelIdle,
+    KernelCompletedEarly,
+    KernelCancelled,
+    KernelTerminalInvariant,
+}
+
+impl UsbLinkError {
+    pub const fn code(&self) -> &'static str {
+        match self {
+            Self::UsbDisconnected => "usb-disconnected",
+            Self::Framing(_) => "malformed-stream-frame",
+            Self::Codec(_) => "invalid-session-frame",
+            Self::Evidence(_) => "evidence-channel-failure",
+            Self::BufferOverflow => "bounded-buffer-overflow",
+            Self::InvalidGeneratedEndpoint => "invalid-generated-endpoint",
+            Self::InvalidSignal => "invalid-signal",
+            Self::Storage(_) => "kernel-storage-failure",
+            Self::Kernel(_) => "kernel-scheduler-failure",
+            Self::EvidenceStorage(_) => "kernel-evidence-failure",
+            Self::KernelIdle => "kernel-idle-before-effect",
+            Self::KernelCompletedEarly => "kernel-completed-before-effect",
+            Self::KernelCancelled => "kernel-cancelled",
+            Self::KernelTerminalInvariant => "kernel-terminal-invariant",
+        }
+    }
 }
 
 impl From<StreamFrameError> for UsbLinkError {
@@ -29,6 +63,12 @@ impl From<StreamFrameError> for UsbLinkError {
 impl From<WireError> for UsbLinkError {
     fn from(err: WireError) -> Self {
         Self::Codec(err)
+    }
+}
+
+impl From<UsbEvidenceError> for UsbLinkError {
+    fn from(err: UsbEvidenceError) -> Self {
+        Self::Evidence(err)
     }
 }
 

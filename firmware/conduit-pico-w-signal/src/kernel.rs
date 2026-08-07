@@ -4,6 +4,7 @@
 //! Pico-local advertisement, lowers the exact fragment, and emits the fixed
 //! tables consumed here.
 
+#[cfg(feature = "pico-local")]
 use conduit_kernel::{
     scheduler::{
         FixedScheduler, OperationDriver, SchedulerStatus, StepIo, StepOperation, StepOutcome,
@@ -12,33 +13,47 @@ use conduit_kernel::{
     HostOperationDisposition, HostOperationId, HostOperationOutcome, NodeId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
+#[cfg(feature = "pico-local")]
 use conduit_signal::{
     decode_signal_bytes, encode_signal_fixed, signal_level_for_sequence, Signal,
     SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN_USIZE,
 };
+#[cfg(feature = "pico-local")]
 use cyw43::Control;
+#[cfg(feature = "pico-local")]
 use embassy_time::{Duration, Timer};
 
-use crate::receipts::{
-    BootIdentity, PresentationReceiptIdentity, RuntimeTranscriptIdentity, TerminalIdentity, UsbCdc,
+use crate::receipts::{BootIdentity, PresentationReceiptIdentity, TerminalIdentity};
+#[cfg(feature = "pico-local")]
+use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
+use crate::signal_image::{
+    ACTIVE_PLAY_ID, BOOT_EVIDENCE_ID, BOOT_ID, CHECKED_FORM_ID, EXPANDED_FORM_ID,
+    FIRMWARE_BUILD_ID, FRAGMENT_ID, HOST_ID, PLAN_ID, SOURCE_DOCUMENT_ID, TERMINAL_EVIDENCE_ID,
 };
+#[cfg(feature = "pico-local")]
 use crate::signal_image::{
     decode_wait_ms, generated_cords, generated_host_bindings, generated_nodes, generated_routes,
-    presentation_identity, signal_layout, value_store_bytes, ACTIVE_PLAY_ID, BOOT_EVIDENCE_ID,
-    BOOT_ID, CHECKED_FORM_ID, EMPTY_VALUE_REF, EXPANDED_FORM_ID, FIRMWARE_BUILD_ID, FRAGMENT_ID,
-    HOST_BINDING_SLOTS, HOST_ID, MAX_STORED_SIGNAL_VALUES, NODES, PENDING_REQUESTS, PLAN_ID, PORTS,
-    QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_EVIDENCE_BYTES, RUNTIME_EVIDENCE_EVENTS,
-    SOURCE_DOCUMENT_ID, TERMINAL_EVIDENCE_ID, VALUE_SLOTS, WAIT_VALUE_BYTES, CORDS,
+    presentation_identity, signal_layout, value_store_bytes, CORDS, EMPTY_VALUE_REF,
+    HOST_BINDING_SLOTS, MAX_STORED_SIGNAL_VALUES, NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS,
+    ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_EVIDENCE_BYTES, RUNTIME_EVIDENCE_EVENTS, VALUE_SLOTS,
+    WAIT_VALUE_BYTES,
 };
 
 /// Run the generated local Signal demo through conduit-kernel.
+#[cfg(feature = "pico-local")]
 pub async fn run_signal_demo(
     control: &mut Control<'_>,
     cdc: &mut UsbCdc,
     runtime: &RuntimeTranscriptIdentity,
 ) {
     let layout = signal_layout().expect("generated Signal image layout is valid");
-    cdc.write_boot_identity(boot_identity(), runtime).await;
+    if cdc
+        .write_boot_identity(boot_identity(), runtime)
+        .await
+        .is_err()
+    {
+        return;
+    }
     let mut values =
         FixedValueStore::<VALUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>::new(value_store_bytes(
             layout.configuration.count,
@@ -158,13 +173,20 @@ pub async fn run_signal_demo(
                         break;
                     };
                     control.gpio_set(0, signal.level).await;
-                    cdc.write_receipt(
-                        signal.sequence,
-                        signal.level,
-                        presentation_receipt_identity(identity),
-                        runtime,
-                    )
-                    .await;
+                    if cdc
+                        .write_receipt(
+                            signal.sequence,
+                            signal.level,
+                            presentation_receipt_identity(identity),
+                            runtime,
+                        )
+                        .await
+                        .is_err()
+                    {
+                        fail_host_request(&mut scheduler, req.node, req.request);
+                        error = true;
+                        break;
+                    }
                     complete_host_request(&mut scheduler, req.node, req.request);
                 } else {
                     fail_host_request(&mut scheduler, req.node, req.request);
@@ -173,14 +195,15 @@ pub async fn run_signal_demo(
                 }
             }
             Err(err) => {
-                cdc.write_error(err, terminal_identity(), runtime).await;
+                let _ = cdc.write_error(err, terminal_identity(), runtime).await;
                 error = true;
                 break;
             }
         }
     }
 
-    cdc.write_terminal(!error, terminal_identity(), runtime)
+    let _ = cdc
+        .write_terminal(!error, terminal_identity(), runtime)
         .await;
 }
 
@@ -231,6 +254,7 @@ pub fn terminal_identity() -> TerminalIdentity {
     }
 }
 
+#[cfg(feature = "pico-local")]
 type SignalScheduler<S, E> = FixedScheduler<
     SignalDriver,
     S,
@@ -245,6 +269,7 @@ type SignalScheduler<S, E> = FixedScheduler<
     PENDING_REQUESTS,
 >;
 
+#[cfg(feature = "pico-local")]
 fn complete_host_request<S: ValueStorage, E: EvidenceSink>(
     scheduler: &mut SignalScheduler<S, E>,
     node: NodeId,
@@ -263,6 +288,7 @@ fn complete_host_request<S: ValueStorage, E: EvidenceSink>(
         .expect("host completion accepted");
 }
 
+#[cfg(feature = "pico-local")]
 fn fail_host_request<S: ValueStorage, E: EvidenceSink>(
     scheduler: &mut SignalScheduler<S, E>,
     node: NodeId,
@@ -279,6 +305,7 @@ fn fail_host_request<S: ValueStorage, E: EvidenceSink>(
     );
 }
 
+#[cfg(feature = "pico-local")]
 fn generated_drivers(
     pulse_node: NodeId,
     show_node: NodeId,
@@ -298,11 +325,13 @@ fn generated_drivers(
     clippy::large_enum_variant,
     reason = "allocator-free firmware keeps operation drivers inline"
 )]
+#[cfg(feature = "pico-local")]
 enum SignalDriver {
     Pulse(OperationDriver<PulseDriver, PORTS>),
     Show(OperationDriver<ShowDriver, PORTS>),
 }
 
+#[cfg(feature = "pico-local")]
 impl StepOperation<PORTS> for SignalDriver {
     fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         match self {
@@ -319,6 +348,7 @@ impl StepOperation<PORTS> for SignalDriver {
     }
 }
 
+#[cfg(feature = "pico-local")]
 struct PulseDriver {
     signal_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
     wait_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
@@ -329,6 +359,7 @@ struct PulseDriver {
     pending_request: Option<RequestId>,
 }
 
+#[cfg(feature = "pico-local")]
 impl PulseDriver {
     fn new(
         signal_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
@@ -359,6 +390,7 @@ impl PulseDriver {
     }
 }
 
+#[cfg(feature = "pico-local")]
 impl Operation for PulseDriver {
     fn start(&mut self) -> OperationAction {
         self.emit_current()
@@ -407,6 +439,7 @@ impl Operation for PulseDriver {
     }
 }
 
+#[cfg(feature = "pico-local")]
 struct ShowDriver {
     input_port: PortId,
     present_operation: HostOperationId,
@@ -414,6 +447,7 @@ struct ShowDriver {
     presented: usize,
 }
 
+#[cfg(feature = "pico-local")]
 impl ShowDriver {
     fn new(input_port: PortId, present_operation: HostOperationId) -> Self {
         Self {
@@ -425,6 +459,7 @@ impl ShowDriver {
     }
 }
 
+#[cfg(feature = "pico-local")]
 impl Operation for ShowDriver {
     fn start(&mut self) -> OperationAction {
         OperationAction::Await

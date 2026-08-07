@@ -73,6 +73,31 @@ impl SessionBinding {
         Ok(binding)
     }
 
+    /// Materialize the boot-scoped session identity from an exact planned
+    /// connection plus the two observed runtime boot facts. All planner-owned
+    /// host, endpoint, provider, instance, link, connection, kind, fragment,
+    /// and limit identities remain unchanged.
+    pub fn with_observed_boots(
+        mut self,
+        source_boot_id: conduit_core::BootId,
+        sink_boot_id: conduit_core::BootId,
+    ) -> Result<Self, WireError> {
+        self.validate()?;
+        if source_boot_id.as_str().is_empty() || sink_boot_id.as_str().is_empty() {
+            return Err(WireError::InvalidSession);
+        }
+        self.source.boot_id = source_boot_id;
+        self.sink.boot_id = sink_boot_id;
+        self.source_active_play_id =
+            bind_active_play(&self.plan_id, &self.source.host_id, &self.source.boot_id, 0)
+                .active_play_id;
+        self.sink_active_play_id =
+            bind_active_play(&self.plan_id, &self.sink.host_id, &self.sink.boot_id, 0)
+                .active_play_id;
+        self.validate()?;
+        Ok(self)
+    }
+
     pub fn validate(&self) -> Result<(), WireError> {
         if self.protocol_version != PROTOCOL_VERSION {
             return Err(WireError::WrongProtocolVersion);

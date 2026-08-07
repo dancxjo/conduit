@@ -20,6 +20,7 @@ pub struct FirmwareIdentity {
     pub git_revision: String,
     pub target: String,
     pub profile: String,
+    pub firmware_mode: String,
     pub firmware_build_id: String,
     pub firmware_sha256: String,
     pub generated_image: GeneratedImageIdentity,
@@ -30,6 +31,7 @@ pub struct FirmwareIdentity {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GeneratedImageIdentity {
     pub schema: String,
+    pub firmware_mode: String,
     pub firmware_build_id: String,
     pub source_document_id: String,
     pub checked_form_id: String,
@@ -76,7 +78,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     let manifest_text = manifest
         .to_str()
         .ok_or("firmware manifest path is not UTF-8")?;
-    let build_args = [
+    let mut build_args = vec![
         "build",
         "--locked",
         "--manifest-path",
@@ -87,6 +89,9 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         TARGET,
         "--release",
     ];
+    if args.usb_remote {
+        build_args.extend(["--no-default-features", "--features", "usb-remote"]);
+    }
     println!("==> pico build: cargo {}", build_args.join(" "));
     let generated_identity_sidecar = generated_identity_sidecar_path(&root);
     if args.dry_run {
@@ -167,6 +172,7 @@ fn write_identity_manifest(
         git_revision,
         target: TARGET.into(),
         profile: PROFILE.into(),
+        firmware_mode: generated_image.firmware_mode.clone(),
         firmware_build_id: generated_image.firmware_build_id.clone(),
         firmware_sha256,
         generated_image,

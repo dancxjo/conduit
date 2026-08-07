@@ -14,11 +14,19 @@ use heapless::String as HString;
 
 use crate::usb::MAX_PACKET_SIZE;
 
-const RECEIPT_BUFFER_BYTES: usize = 1536;
+// The longest current identity-bearing receipt is about 1.6 KiB. This fixed
+// bound leaves room for longer exact runtime IDs without allocating.
+const RECEIPT_BUFFER_BYTES: usize = 2048;
 const RUNTIME_ID_BYTES: usize = 128;
 
 pub struct UsbCdc {
     sender: embassy_usb::class::cdc_acm::Sender<'static, usb::Driver<'static, USB>>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UsbEvidenceError {
+    FormatOverflow,
+    Disconnected,
 }
 
 impl UsbCdc {
@@ -38,10 +46,10 @@ impl UsbCdc {
         }
     }
 
-    /// Write a diagnostic text line to CDC 1 with bounded timeout.
-    pub async fn write_log(&mut self, msg: &str) {
-        self.write_all(msg.as_bytes()).await;
-        self.write_all(b"\n").await;
+    /// Write a mandatory proof marker to CDC 1.
+    pub async fn write_marker(&mut self, msg: &str) -> Result<(), UsbEvidenceError> {
+        self.write_all_mandatory(msg.as_bytes()).await?;
+        self.write_all_mandatory(b"\n").await
     }
 }
 
@@ -51,7 +59,7 @@ pub struct RuntimeTranscriptIdentity {
 }
 
 impl RuntimeTranscriptIdentity {
-    pub fn new() -> Self {
+    pub fn new(plan_id: &str, host_id: &str) -> Self {
         let mut rng = RoscRng;
         let ticks = Instant::now().as_ticks();
         let entropy_a = rng.next_u64();
@@ -61,8 +69,11 @@ impl RuntimeTranscriptIdentity {
             boot_id,
             "conduit-pico-w-signal/runtime-boot:{ticks:016x}:{entropy_a:016x}{entropy_b:016x}"
         );
+        let digest = conduit_core::active_play_digest(plan_id, host_id, &boot_id, 0);
         let mut active_play_id = HString::new();
-        let _ = write!(active_play_id, "{boot_id}:play:0");
+        for byte in digest {
+            let _ = write!(active_play_id, "{byte:02x}");
+        }
         Self {
             boot_id,
             active_play_id,
@@ -75,12 +86,6 @@ impl RuntimeTranscriptIdentity {
 
     pub fn active_play_id(&self) -> &str {
         &self.active_play_id
-    }
-}
-
-impl Default for RuntimeTranscriptIdentity {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -141,9 +146,9 @@ impl UsbCdc {
         &mut self,
         identity: BootIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) {
+    ) -> Result<(), UsbEvidenceError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
-        let _ = core::fmt::write(
+        core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
@@ -174,8 +179,9 @@ impl UsbCdc {
                 runtime.active_play_id(),
                 identity.boot_evidence_id,
             ),
-        );
-        self.write_all_mandatory(line.as_bytes()).await;
+        )
+        .map_err(|_| UsbEvidenceError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
     }
 
     /// Write a machine-readable receipt for one Signal presentation.
@@ -185,9 +191,9 @@ impl UsbCdc {
         level: bool,
         identity: PresentationReceiptIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) {
+    ) -> Result<(), UsbEvidenceError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
-        let _ = core::fmt::write(
+        core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
@@ -226,8 +232,9 @@ impl UsbCdc {
                 identity.presentation_id,
                 identity.evidence_id,
             ),
-        );
-        self.write_all(line.as_bytes()).await;
+        )
+        .map_err(|_| UsbEvidenceError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
     }
 
     /// Write a terminal completion record.
@@ -236,9 +243,9 @@ impl UsbCdc {
         success: bool,
         identity: TerminalIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) {
+    ) -> Result<(), UsbEvidenceError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
-        let _ = core::fmt::write(
+        core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
@@ -273,8 +280,9 @@ impl UsbCdc {
                 success,
                 identity.evidence_id,
             ),
-        );
-        self.write_all(line.as_bytes()).await;
+        )
+        .map_err(|_| UsbEvidenceError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
     }
 
     /// Write a kernel error record.
@@ -283,9 +291,9 @@ impl UsbCdc {
         e: conduit_kernel::scheduler::SchedulerError,
         identity: TerminalIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) {
+    ) -> Result<(), UsbEvidenceError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
-        let _ = core::fmt::write(
+        core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
@@ -321,11 +329,62 @@ impl UsbCdc {
                 identity.evidence_id,
                 e,
             ),
-        );
-        self.write_all(line.as_bytes()).await;
+        )
+        .map_err(|_| UsbEvidenceError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
     }
 
-    async fn write_all_mandatory(&mut self, data: &[u8]) {
+    /// Write terminal failure evidence for a transport/session/kernel failure
+    /// that is not representable as a scheduler error value.
+    pub async fn write_failure(
+        &mut self,
+        code: &str,
+        identity: TerminalIdentity,
+        runtime: &RuntimeTranscriptIdentity,
+    ) -> Result<(), UsbEvidenceError> {
+        let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
+        core::fmt::write(
+            &mut line,
+            format_args!(
+                concat!(
+                    "{{",
+                    "\"schema\":\"conduit-pico-w-signal/terminal@1\",",
+                    "\"firmware_build_id\":\"{}\",",
+                    "\"source_document_id\":\"{}\",",
+                    "\"checked_form_id\":\"{}\",",
+                    "\"expanded_form_id\":\"{}\",",
+                    "\"plan_id\":\"{}\",",
+                    "\"fragment_id\":\"{}\",",
+                    "\"host_id\":\"{}\",",
+                    "\"boot_id\":\"{}\",",
+                    "\"active_play_id\":\"{}\",",
+                    "\"runtime_boot_id\":\"{}\",",
+                    "\"runtime_active_play_id\":\"{}\",",
+                    "\"success\":false,",
+                    "\"evidence_id\":\"{}\",",
+                    "\"error_code\":\"{}\"",
+                    "}}\n"
+                ),
+                identity.firmware_build_id,
+                identity.source_document_id,
+                identity.checked_form_id,
+                identity.expanded_form_id,
+                identity.plan_id,
+                identity.fragment_id,
+                identity.host_id,
+                identity.boot_id,
+                identity.active_play_id,
+                runtime.boot_id(),
+                runtime.active_play_id(),
+                identity.evidence_id,
+                code,
+            ),
+        )
+        .map_err(|_| UsbEvidenceError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
+    }
+
+    async fn write_all_mandatory(&mut self, data: &[u8]) -> Result<(), UsbEvidenceError> {
         let mut offset = 0;
         while offset < data.len() {
             let chunk_len = (data.len() - offset).min(MAX_PACKET_SIZE as usize);
@@ -335,26 +394,11 @@ impl UsbCdc {
                 .await
                 .is_err()
             {
-                break;
+                return Err(UsbEvidenceError::Disconnected);
             }
             offset += chunk_len;
         }
+        Ok(())
     }
 
-    async fn write_all(&mut self, data: &[u8]) {
-        let mut offset = 0;
-        while offset < data.len() {
-            let chunk_len = (data.len() - offset).min(MAX_PACKET_SIZE as usize);
-            let res = embassy_time::with_timeout(
-                embassy_time::Duration::from_millis(20),
-                self.sender.write_packet(&data[offset..offset + chunk_len]),
-            )
-            .await;
-            if res.is_err() {
-                // If CDC 1 write times out (host not reading), drop packet to prevent blocking CDC 0
-                break;
-            }
-            offset += chunk_len;
-        }
-    }
 }

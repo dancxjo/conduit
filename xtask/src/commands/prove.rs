@@ -23,6 +23,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                 args.link_port.as_deref(),
                 args.evidence_port.as_deref(),
                 args.interactive,
+                args.induce_sink_failure,
                 &pico_args,
                 opts,
             )
