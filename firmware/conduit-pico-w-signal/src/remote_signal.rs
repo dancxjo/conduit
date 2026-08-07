@@ -71,6 +71,9 @@ pub async fn run_remote_signal_sink(
 
     let mut frame_buf = [0u8; 2048];
 
+    // Emit boot identity ONCE over CDC 1 at startup
+    evidence_cdc.write_boot_identity(boot_identity(), runtime).await;
+
     // Phase 0/1: Raw CDC 0 bidirectional probe checkpoint & SessionMessage::Hello wait
     loop {
         let frame = link_session.receive_frame(&mut frame_buf).await?;
