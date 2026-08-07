@@ -1,6 +1,7 @@
 //! Typed std -> Pico W USB-CDC session proof & interactive console runner.
 
 use std::io::{BufRead, BufReader, Write as _};
+use std::time::{Duration, Instant};
 
 use conduit_core::{
     ActivePlayId, BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
@@ -39,15 +40,36 @@ pub fn run_prove_std_pico_usb(
         return Ok(());
     }
 
-    // 1. Build firmware UF2
-    super::firmware::run_build(pico_args)?;
+    // 1. Resolve dual CDC ports if board is already running, or build+flash if not
+    let (link_port_path, evidence_port_path) = match resolve_dual_ports(
+        link_port_opt,
+        evidence_port_opt,
+    ) {
+        Ok(ports) => {
+            println!("==> Detected active Pico W dual CDC ports");
+            ports
+        }
+        Err(_) => {
+            super::firmware::run_build(pico_args)?;
+            super::flash::run_flash(pico_args)?;
 
-    // 2. Flash to connected Pico W
-    super::flash::run_flash(pico_args)?;
-
-    // 3. Resolve dual CDC ports
-    let (link_port_path, evidence_port_path) =
-        resolve_dual_ports(link_port_opt, evidence_port_opt)?;
+            println!("==> Waiting for USB CDC serial ports to enumerate...");
+            let deadline = Instant::now() + Duration::from_secs(15);
+            let mut resolved = None;
+            while Instant::now() < deadline {
+                if let Ok(ports) = resolve_dual_ports(link_port_opt, evidence_port_opt) {
+                    resolved = Some(ports);
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(500));
+            }
+            resolved.ok_or_else(|| {
+                    Box::<dyn std::error::Error>::from(
+                        "timed out waiting for Pico W USB CDC ports to enumerate (/dev/ttyACM0, /dev/ttyACM1)",
+                    )
+                })?
+        }
+    };
 
     println!(
         "==> prove std-pico-usb: link port {}, evidence port {}",
