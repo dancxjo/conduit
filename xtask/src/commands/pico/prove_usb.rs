@@ -96,32 +96,58 @@ pub fn run_prove_std_pico_usb(
         evidence_port_path.display()
     );
 
-    // Set baud/raw/timeout mode on both CDC serial ports
-    for p in [&link_port_path, &evidence_port_path] {
-        let _ = std::process::Command::new("stty")
-            .args([
-                "-F",
-                p.to_str().ok_or("port path not UTF-8")?,
-                "115200",
-                "cs8",
-                "-cstopb",
-                "-parenb",
-                "raw",
-                "-echo",
-                "min",
-                "0",
-                "time",
-                "1",
-            ])
-            .status();
-    }
+    // CDC 0 (link): non-blocking timeout mode
+    let _ = std::process::Command::new("stty")
+        .args([
+            "-F",
+            link_port_path.to_str().ok_or("port path not UTF-8")?,
+            "115200",
+            "cs8",
+            "-cstopb",
+            "-parenb",
+            "raw",
+            "-echo",
+            "min",
+            "0",
+            "time",
+            "1",
+        ])
+        .status();
+
+    // CDC 1 (evidence): blocking line-read mode
+    let _ = std::process::Command::new("stty")
+        .args([
+            "-F",
+            evidence_port_path.to_str().ok_or("port path not UTF-8")?,
+            "115200",
+            "cs8",
+            "-cstopb",
+            "-parenb",
+            "raw",
+            "-echo",
+            "min",
+            "1",
+            "time",
+            "0",
+        ])
+        .status();
 
     let identity = read_identity_manifest(&repo_root())?;
 
     // Open CDC 1 for receipt observation
     let evidence_file = std::fs::OpenOptions::new()
         .read(true)
-        .open(&evidence_port_path)?;
+        .open(&evidence_port_path)
+        .map_err(|e| {
+            if e.kind() == std::io::ErrorKind::PermissionDenied {
+                format!(
+                    "Permission denied opening evidence port {}. Fix permissions: sudo chmod 666 /dev/ttyACM*",
+                    evidence_port_path.display()
+                )
+            } else {
+                format!("Failed to open evidence port {}: {}", evidence_port_path.display(), e)
+            }
+        })?;
     let mut evidence_reader = BufReader::new(evidence_file);
 
     // Read initial boot identity line from CDC 1 (retry loop in case port opened right after boot)
@@ -157,7 +183,17 @@ pub fn run_prove_std_pico_usb(
     let link_file = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
-        .open(&link_port_path)?;
+        .open(&link_port_path)
+        .map_err(|e| {
+            if e.kind() == std::io::ErrorKind::PermissionDenied {
+                format!(
+                    "Permission denied opening link port {}. Fix permissions: sudo chmod 666 /dev/ttyACM*",
+                    link_port_path.display()
+                )
+            } else {
+                format!("Failed to open link port {}: {}", link_port_path.display(), e)
+            }
+        })?;
 
     let mut carrier = NativeUsbCdcCarrier::new(link_file.try_clone()?, link_file, 512)?;
 
