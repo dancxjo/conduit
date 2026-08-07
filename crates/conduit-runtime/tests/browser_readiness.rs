@@ -133,7 +133,7 @@ fn repository_status_matrix_keeps_proof_classes_distinct() {
         "WASM compilation is not browser execution",
         "Thumb compilation proves",
         "not board execution or physical acceptance",
-        "fixed local Signal profile",
+        "generated fixed image",
         "no recorded board run",
         "accepted Chromium proof is browser-local",
         "not a live link",
