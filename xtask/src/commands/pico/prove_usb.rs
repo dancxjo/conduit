@@ -109,9 +109,9 @@ pub fn run_prove_std_pico_usb(
                 "raw",
                 "-echo",
                 "min",
-                "1",
-                "time",
                 "0",
+                "time",
+                "1",
             ])
             .status();
     }

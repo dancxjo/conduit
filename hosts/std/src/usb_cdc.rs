@@ -14,6 +14,7 @@ pub enum NativeUsbCdcError {
     Write(std::io::ErrorKind),
     Framing(StreamFrameError),
     Codec(WireError),
+    WouldBlock,
     Disconnected,
 }
 
@@ -37,6 +38,7 @@ impl std::fmt::Display for NativeUsbCdcError {
             Self::Write(err) => write!(f, "USB CDC write error: {err:?}"),
             Self::Framing(err) => write!(f, "USB CDC framing error: {err}"),
             Self::Codec(err) => write!(f, "USB CDC codec error: {err:?}"),
+            Self::WouldBlock => write!(f, "USB CDC read timed out / would block"),
             Self::Disconnected => write!(f, "USB CDC device disconnected"),
         }
     }
@@ -117,23 +119,17 @@ impl<R: Read, W: Write> NativeUsbCdcCarrier<R, W> {
             }
 
             let read_bytes = match self.reader.read(&mut chunk) {
-                Ok(0) => {
-                    std::thread::sleep(std::time::Duration::from_millis(10));
-                    0
-                }
+                Ok(0) => return Err(NativeUsbCdcError::WouldBlock),
                 Ok(n) => n,
                 Err(e)
                     if e.kind() == std::io::ErrorKind::WouldBlock
                         || e.kind() == std::io::ErrorKind::TimedOut =>
                 {
-                    std::thread::sleep(std::time::Duration::from_millis(10));
-                    0
+                    return Err(NativeUsbCdcError::WouldBlock);
                 }
                 Err(e) => return Err(NativeUsbCdcError::Read(e.kind())),
             };
-            if read_bytes > 0 {
-                self.decoder.accept_bytes(&chunk[..read_bytes])?;
-            }
+            self.decoder.accept_bytes(&chunk[..read_bytes])?;
         }
     }
 }
