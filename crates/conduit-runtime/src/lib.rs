@@ -450,7 +450,8 @@ fn validate_fragment_execution_contract(
                 ConnectionProvider::InMemory
                 | ConnectionProvider::FixtureFrame
                 | ConnectionProvider::FixtureDatagram
-                | ConnectionProvider::WebSocket => connection
+                | ConnectionProvider::WebSocket
+                | ConnectionProvider::UsbCdc => connection
                     .link_binding
                     .as_ref()
                     .is_none_or(|binding| binding.provider != connection.provider),

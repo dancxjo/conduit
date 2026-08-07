@@ -567,3 +567,49 @@ fn mutated_provider_instance_identity_in_session_identity_remains_rejected() {
     frame.identity.provider_instance_id = "test/different-provider-instance";
     assert_eq!(machine.admit_inbound(frame), Err(WireError::InvalidSession));
 }
+
+#[test]
+fn usb_cdc_provider_round_trip_and_session_eligibility() {
+    let mut b = binding();
+    b.provider = ConnectionProvider::UsbCdc;
+
+    assert!(ConnectionProvider::UsbCdc.supports_remote_session());
+    assert_eq!(ConnectionProvider::UsbCdc.canonical_code(), 5);
+    assert_eq!(
+        ConnectionProvider::from_canonical_code(5),
+        Some(ConnectionProvider::UsbCdc)
+    );
+
+    let hello_frame = b.hello_frame();
+    let mut buf = [0u8; 1024];
+    let encoded_len = encode_session_frame_into(
+        hello_frame,
+        &mut buf,
+        MAXIMUM_PAYLOAD_BYTES,
+        MAXIMUM_FRAME_BYTES,
+    )
+    .expect("encode hello frame");
+    let decoded_frame = decode_session_frame(
+        &buf[..encoded_len],
+        MAXIMUM_PAYLOAD_BYTES,
+        MAXIMUM_FRAME_BYTES,
+    )
+    .expect("decode hello frame");
+
+    let hello_msg = match decoded_frame.message {
+        SessionMessage::Hello(hello) => hello,
+        _ => panic!("expected Hello message"),
+    };
+    assert_eq!(hello_msg.provider, ConnectionProvider::UsbCdc);
+
+    let mut machine = SessionMachine::new(b.clone(), SessionRole::Source).unwrap();
+    machine.admit_outbound(hello_frame).unwrap();
+    machine.admit_inbound(hello_frame).unwrap();
+    machine
+        .admit_outbound(b.frame(SessionMessage::Ready))
+        .unwrap();
+    machine
+        .admit_inbound(b.frame(SessionMessage::Ready))
+        .unwrap();
+    assert!(machine.is_active());
+}
