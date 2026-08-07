@@ -2,11 +2,9 @@
 
 use std::time::{Duration, Instant};
 
-use conduit_core::{
-    bind_active_play, BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
-    FragmentId, HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
-};
-use conduit_signal::{encode_signal_fixed, Signal};
+use conduit_signal::decode_signal_bytes;
+#[cfg(unix)]
+use conduit_std_host::pico_usb_source::PicoUsbSource;
 #[cfg(unix)]
 use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader, OperatorTerminal};
 use conduit_wire::{SessionBinding, SessionMessage};
@@ -22,6 +20,7 @@ pub fn run_prove_std_pico_usb(
     link_port_opt: Option<&str>,
     evidence_port_opt: Option<&str>,
     interactive: bool,
+    induce_sink_failure: bool,
     pico_args: &PicoArgs,
     opts: &GlobalOpts,
 ) -> PicoResult<()> {
@@ -38,6 +37,7 @@ pub fn run_prove_std_pico_usb(
             evidence_port_opt.unwrap_or("<auto-discover CDC 1>")
         );
         println!("  interactive console: {}", interactive);
+        println!("  induced sink failure: {}", induce_sink_failure);
         return Ok(());
     }
 
@@ -152,56 +152,37 @@ pub fn run_prove_std_pico_usb(
             runtime.boot_id, runtime.active_play_id
         );
 
-        // Construct truthful SessionBinding with observed Pico runtime boot/link identity
-        let plan_id = PlanId::from(identity.generated_image.plan_id.as_str());
-        let source_host_id = HostId::from("host/std");
-        let source_boot_id = BootId::from("boot/std");
-        let sink_host_id = HostId::from(identity.generated_image.host_id.as_str());
-        let sink_boot_id = BootId::from(runtime.boot_id.as_str());
-
-        let source_active_play_id =
-            bind_active_play(&plan_id, &source_host_id, &source_boot_id, 0).active_play_id;
-        let sink_active_play_id =
-            bind_active_play(&plan_id, &sink_host_id, &sink_boot_id, 0).active_play_id;
-
-        let binding = SessionBinding {
-            protocol_version: 1,
-            plan_id,
-            source_fragment_id: FragmentId::from("fragment/std-source"),
-            sink_fragment_id: FragmentId::from(identity.generated_image.fragment_id.as_str()),
-            source_active_play_id,
-            sink_active_play_id,
-            connection_id: ConnectionId::from("conn/std-pico-signal"),
-            link_binding_id: LinkBindingId::from("link/usb-cdc-0"),
-            provider: ConnectionProvider::UsbCdc,
-            provider_instance_id: ConnectionProviderInstanceId::from("pico-usb-cdc-0"),
-            source: LinkEndpoint {
-                host_id: source_host_id,
-                boot_id: source_boot_id,
-                endpoint_id: LinkEndpointId::from("endpoint/std-out"),
-            },
-            sink: LinkEndpoint {
-                host_id: sink_host_id,
-                boot_id: sink_boot_id,
-                endpoint_id: LinkEndpointId::from("endpoint/pico-in"),
-            },
-            value_kind: KindId::from("value/signal"),
-            limits: LinkLimits {
-                maximum_in_flight_items: 1,
-                maximum_payload_bytes: 9,
-                maximum_buffered_bytes: 1024,
-                maximum_frame_bytes: 1024,
-            },
-        };
-
-        // Create stateful Source-side SessionMachine
-        let mut source_machine =
-            conduit_wire::SessionMachine::new(binding.clone(), conduit_wire::SessionRole::Source)
-                .map_err(|e| format!("Failed to create Source SessionMachine: {e:?}"))?;
+        let mut source = PicoUsbSource::prepare()
+            .map_err(|error| format!("failed to prepare exact std kernel source: {error}"))?;
+        let binding = source.binding().clone();
+        if binding.plan_id.as_str() != identity.generated_image.plan_id
+            || binding.sink_fragment_id.as_str() != identity.generated_image.fragment_id
+            || binding.sink.host_id.as_str() != identity.generated_image.host_id
+            || binding.sink.boot_id.as_str() != identity.generated_image.boot_id
+        {
+            return Err(
+                "running firmware image is not the sink fragment of the exact std kernel plan"
+                    .into(),
+            );
+        }
+        source.observe_sink_boot(conduit_core::BootId::from(runtime.boot_id.as_str()))?;
+        let binding = source.binding().clone();
+        if binding.sink_active_play_id.as_str() != runtime.active_play_id {
+            return Err(
+                "observed Pico boot produced inconsistent session/runtime play identity".into(),
+            );
+        }
+        println!(
+            "==> Exact generated plan installed: plan={}, source_fragment={}, sink_fragment={}, link={}",
+            binding.plan_id.as_str(),
+            binding.source_fragment_id.as_str(),
+            binding.sink_fragment_id.as_str(),
+            binding.link_binding_id.as_str(),
+        );
 
         // Handshake Step 1 (Source): Outbound Hello
         let hello = binding.hello_frame();
-        source_machine
+        source
             .admit_outbound(hello)
             .map_err(|e| format!("Source failed to admit outbound Hello: {e:?}"))?;
         carrier.send_frame(&hello, Duration::from_secs(2))?;
@@ -215,7 +196,7 @@ pub fn run_prove_std_pico_usb(
             match carrier.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
                 Ok(res) => {
                     if matches!(res.message, SessionMessage::Hello(_)) {
-                        source_machine.admit_inbound(res).map_err(|e| {
+                        source.admit_inbound(res).map_err(|e| {
                             format!("Source failed to admit inbound Hello from Sink: {e:?}")
                         })?;
                         println!("==> pico -> std  Hello");
@@ -237,7 +218,7 @@ pub fn run_prove_std_pico_usb(
 
         // Handshake Step 3 (Source): Outbound Ready
         let ready_outbound = binding.frame(SessionMessage::Ready);
-        source_machine
+        source
             .admit_outbound(ready_outbound)
             .map_err(|e| format!("Source failed to admit outbound Ready: {e:?}"))?;
         carrier.send_frame(&ready_outbound, Duration::from_secs(2))?;
@@ -250,7 +231,7 @@ pub fn run_prove_std_pico_usb(
             match carrier.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
                 Ok(res) => {
                     if matches!(res.message, SessionMessage::Ready) {
-                        source_machine.admit_inbound(res).map_err(|e| {
+                        source.admit_inbound(res).map_err(|e| {
                             format!("Source failed to admit inbound Ready from Sink: {e:?}")
                         })?;
                         println!("==> pico -> std  Ready");
@@ -270,8 +251,12 @@ pub fn run_prove_std_pico_usb(
             return Err("timed out waiting for SessionMessage::Ready from Pico W".into());
         }
 
-        if !source_machine.is_active() {
+        if !source.is_active() {
             return Err("Source SessionMachine is not active after 4-message handshake".into());
+        }
+
+        if interactive && induce_sink_failure {
+            return Err("interactive and induced sink-failure modes are mutually exclusive".into());
         }
 
         if interactive {
@@ -289,9 +274,7 @@ pub fn run_prove_std_pico_usb(
             let mut term = OperatorTerminal::open().map_err(|e| {
                 format!("Failed to initialize interactive operator terminal: {}", e)
             })?;
-            let mut sequence = 0u64;
-
-            loop {
+            while let Some((sequence, payload)) = source.next_offer()? {
                 let key = match term.read_key(Duration::from_millis(100)) {
                     Ok(Some(k)) => k,
                     Ok(None) => continue,
@@ -299,55 +282,34 @@ pub fn run_prove_std_pico_usb(
                 };
 
                 if key == b'q' || key == b'Q' || key == 3 || key == 27 {
-                    println!("\n==> Exiting Pico W USB-CDC interactive session...");
-                    break;
+                    return Err("interactive exit requested before the exact kernel plan reached terminal; cancellation is not yet an accepted #465 path".into());
                 }
-
-                // 1. KEY DOWN: level = true (Pico LED ON)
+                let signal = decode_signal_bytes(&payload).map_err(|error| error.to_string())?;
                 println!(
-                    "  [KEY DOWN] Key 0x{:02x} -> Sent Signal seq {} (level: true) -> Pico LED ON",
-                    key, sequence
+                    "  [KEY 0x{:02x}] releasing planned kernel Signal seq {} (level: {})",
+                    key, sequence, signal.level
                 );
                 send_and_verify_item(
-                    &mut source_machine,
-                    &mut carrier,
-                    &mut evidence_reader,
-                    &binding,
+                    &mut source,
+                    ItemProofContext {
+                        carrier: &mut carrier,
+                        evidence_reader: &mut evidence_reader,
+                        binding: &binding,
+                        identity: &identity,
+                        runtime: &runtime,
+                    },
                     sequence,
-                    true,
-                    &identity,
-                    &runtime,
+                    &payload,
+                    signal.level,
                 )?;
-
-                // Hold button pulse for 250ms
-                std::thread::sleep(Duration::from_millis(250));
-
-                // 2. KEY UP: level = false (Pico LED OFF)
-                sequence += 1;
-                println!(
-                    "  [KEY UP  ] Released -> Sent Signal seq {} (level: false) -> Pico LED OFF",
-                    sequence
-                );
-                send_and_verify_item(
-                    &mut source_machine,
-                    &mut carrier,
-                    &mut evidence_reader,
-                    &binding,
-                    sequence,
-                    false,
-                    &identity,
-                    &runtime,
-                )?;
-
-                sequence += 1;
             }
-
+            let final_sequence = source.finish_kernel()?;
             super::session_completion::complete(
-                &mut source_machine,
+                &mut source,
                 &mut carrier,
                 &mut evidence_reader,
                 &binding,
-                sequence,
+                final_sequence,
                 &identity,
                 &runtime,
             )?;
@@ -355,27 +317,70 @@ pub fn run_prove_std_pico_usb(
             return Ok(());
         }
 
-        println!("==> Streaming 16 Signal items over physical USB CDC link...");
-        for sequence in 0..16u64 {
-            let level = (sequence % 2) == 1;
+        println!("==> Executing the std source fragment through conduit-kernel...");
+        let mut observed = 0_u64;
+        while let Some((sequence, payload)) = source.next_offer()? {
+            if sequence != observed {
+                return Err(format!("std kernel emitted out-of-order sequence {sequence}").into());
+            }
+            let signal = decode_signal_bytes(&payload).map_err(|error| error.to_string())?;
+            if signal.sequence != sequence {
+                return Err(
+                    "std kernel Signal payload sequence disagrees with remote offer".into(),
+                );
+            }
+            if induce_sink_failure {
+                if sequence != 0 {
+                    return Err("sink-failure probe did not terminate on the first value".into());
+                }
+                let mut invalid_payload = payload;
+                // Keep the payload width valid but make its semantic sequence
+                // disagree with the exact kernel offer identity.
+                invalid_payload[0] = 1;
+                super::session_failure::complete_induced_sink_failure(
+                    &mut source,
+                    &mut carrier,
+                    &binding,
+                    sequence,
+                    &invalid_payload,
+                )?;
+                let terminal = evidence_reader
+                    .read_line(Duration::from_secs(2))
+                    .map_err(|error| format!("missing Pico terminal failure evidence: {error}"))?;
+                transcript::verify_terminal_failure(&terminal, &identity, &runtime)?;
+                println!(
+                    "==> Induced Pico sink failure reached reciprocal Failed and terminal agreement"
+                );
+                return Ok(());
+            }
             send_and_verify_item(
-                &mut source_machine,
-                &mut carrier,
-                &mut evidence_reader,
-                &binding,
+                &mut source,
+                ItemProofContext {
+                    carrier: &mut carrier,
+                    evidence_reader: &mut evidence_reader,
+                    binding: &binding,
+                    identity: &identity,
+                    runtime: &runtime,
+                },
                 sequence,
-                level,
-                &identity,
-                &runtime,
+                &payload,
+                signal.level,
             )?;
+            observed += 1;
         }
-
+        let final_sequence = source.finish_kernel()?;
+        if observed != final_sequence {
+            return Err(format!(
+                "std kernel terminal sequence {final_sequence} disagrees with {observed} delivered values"
+            )
+                .into());
+        }
         super::session_completion::complete(
-            &mut source_machine,
+            &mut source,
             &mut carrier,
             &mut evidence_reader,
             &binding,
-            16,
+            final_sequence,
             &identity,
             &runtime,
         )?;
@@ -386,75 +391,118 @@ pub fn run_prove_std_pico_usb(
 }
 
 #[cfg(unix)]
+struct ItemProofContext<'a> {
+    carrier: &'a mut NativePathCdcCarrier,
+    evidence_reader: &'a mut NativePathCdcLineReader,
+    binding: &'a SessionBinding,
+    identity: &'a super::firmware::FirmwareIdentity,
+    runtime: &'a RuntimeTranscriptIdentity,
+}
+
+#[cfg(unix)]
 fn send_and_verify_item(
-    source_machine: &mut conduit_wire::SessionMachine,
-    carrier: &mut NativePathCdcCarrier,
-    evidence_reader: &mut NativePathCdcLineReader,
-    binding: &SessionBinding,
+    source: &mut PicoUsbSource,
+    context: ItemProofContext<'_>,
     sequence: u64,
+    payload: &[u8; conduit_signal::SIGNAL_ENCODED_LEN as usize],
     level: bool,
-    identity: &super::firmware::FirmwareIdentity,
-    runtime: &RuntimeTranscriptIdentity,
 ) -> PicoResult<()> {
-    let signal = Signal { sequence, level };
-    let payload = encode_signal_fixed(&signal);
-    let offer = binding.frame(SessionMessage::Offered {
-        sequence,
-        payload: &payload,
-    });
+    let offer = context
+        .binding
+        .frame(SessionMessage::Offered { sequence, payload });
 
-    // 1. Admit outbound Offered & send frame over CDC 0
-    source_machine
-        .admit_outbound(offer)
-        .map_err(|e| format!("Source failed to admit outbound Offered: {e:?}"))?;
-    carrier.send_frame(&offer, Duration::from_secs(2))?;
-
-    // 2. Wait for Accepted(sequence) over CDC 0
     let mut frame_buf = [0u8; 2048];
-    let start = Instant::now();
-    let mut accepted = false;
-    while start.elapsed() < Duration::from_secs(2) {
-        match carrier.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
-            Ok(res) => {
-                if matches!(res.message, SessionMessage::Accepted { sequence: s } if s == sequence)
-                {
-                    source_machine
-                        .admit_inbound(res)
-                        .map_err(|e| format!("Source failed to admit inbound Accepted: {e:?}"))?;
-                    accepted = true;
-                    break;
+    let mut pressure_retries = 0_u8;
+    loop {
+        // The source kernel retains ownership until Accepted. Pressure permits
+        // only this exact offer to be retried, once, by the proof policy.
+        source
+            .admit_outbound(offer)
+            .map_err(|e| format!("Source failed to admit outbound Offered: {e:?}"))?;
+        context.carrier.send_frame(&offer, Duration::from_secs(2))?;
+
+        let start = Instant::now();
+        let mut retry = false;
+        let mut accepted = false;
+        while start.elapsed() < Duration::from_secs(2) {
+            match context
+                .carrier
+                .receive_frame(&mut frame_buf, Duration::from_millis(100))
+            {
+                Ok(res) => {
+                    if matches!(res.message, SessionMessage::Accepted { sequence: s } if s == sequence)
+                    {
+                        source.admit_inbound(res).map_err(|e| {
+                            format!("Source failed to admit inbound Accepted: {e:?}")
+                        })?;
+                        source.accepted(sequence)?;
+                        accepted = true;
+                        break;
+                    }
+                    if matches!(res.message, SessionMessage::Pressure { sequence: s } if s == sequence)
+                    {
+                        source.admit_inbound(res).map_err(|e| {
+                            format!("Source failed to admit inbound Pressure: {e:?}")
+                        })?;
+                        source.pressure(sequence)?;
+                        pressure_retries += 1;
+                        if pressure_retries > 1 {
+                            return Err(
+                                "Pico repeated pressure beyond the proof's admitted retry policy"
+                                    .into(),
+                            );
+                        }
+                        retry = true;
+                        break;
+                    }
+                }
+                Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
+                Err(err) => {
+                    return Err(format!("receive_frame error waiting for Accepted: {err:?}").into());
                 }
             }
-            Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
-            Err(err) => {
-                return Err(format!("receive_frame error waiting for Accepted: {err:?}").into());
-            }
         }
-    }
-    if !accepted {
-        return Err(format!("timed out waiting for SessionMessage::Accepted {sequence}").into());
+        if accepted {
+            break;
+        }
+        if !retry {
+            return Err(
+                format!("timed out waiting for SessionMessage::Accepted {sequence}").into(),
+            );
+        }
     }
 
     // 3. Read receipt line from CDC 1
-    let line = evidence_reader
+    let line = context
+        .evidence_reader
         .read_line(Duration::from_secs(2))
         .map_err(|e| {
             format!("timed out reading receipt for sequence {sequence} from CDC 1: {e}")
         })?;
-    transcript::verify_receipt(&line, sequence as usize, level, identity, runtime)?;
-    println!("  [RECEIPT ] <- CDC 1: {line}");
+    transcript::verify_receipt(
+        &line,
+        sequence as usize,
+        level,
+        context.identity,
+        context.runtime,
+    )?;
+    println!("  [RECEIPT ] <- CDC 1: sequence={sequence}, level={level}, identity=verified");
 
     // 4. Wait for Delivered(sequence) over CDC 0
     let start_del = Instant::now();
     let mut delivered = false;
     while start_del.elapsed() < Duration::from_secs(2) {
-        match carrier.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
+        match context
+            .carrier
+            .receive_frame(&mut frame_buf, Duration::from_millis(100))
+        {
             Ok(res) => {
                 if matches!(res.message, SessionMessage::Delivered { sequence: s } if s == sequence)
                 {
-                    source_machine
+                    source
                         .admit_inbound(res)
                         .map_err(|e| format!("Source failed to admit inbound Delivered: {e:?}"))?;
+                    source.delivered(sequence)?;
                     delivered = true;
                     break;
                 }

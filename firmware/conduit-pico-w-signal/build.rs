@@ -12,8 +12,9 @@ use conduit_embedded_build::{
 };
 use conduit_runtime::lowering::lower_plan_fragment;
 use conduit_signal::{
-    pico_local_advertisement, signal_profile_catalog, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-    PICO_LOCAL_HOST_ID, SHOW_KIND, SIGNAL_ENCODED_LEN,
+    exact_std_pico_usb_plan, pico_local_advertisement, signal_profile_catalog,
+    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID, SHOW_KIND, SIGNAL_ENCODED_LEN,
+    STD_PICO_USB_SINK_HOST_ID,
 };
 
 const SIGNAL_DEMO_FORM: &str = include_str!("../../examples/signal-demo.form");
@@ -49,27 +50,33 @@ fn main() {
 fn generate_pico_signal_image(out: &Path) {
     let form = conduit_form::parse(SIGNAL_DEMO_FORM, &signal_profile_catalog())
         .expect("examples/signal-demo.form must check against conduit-signal profile");
-    let advertisement = pico_local_advertisement();
-    let placements =
-        conduit_planner::default_placements(&form, std::slice::from_ref(&advertisement))
-            .expect("Pico local advertisement must cover the Signal form");
-    let plan = conduit_planner::plan_with_connection_limits(
-        &form,
-        std::slice::from_ref(&advertisement),
-        &placements,
-        &[ConnectionProvider::Local],
-        DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-        SIGNAL_ENCODED_LEN,
-    )
-    .expect("Pico local Signal form must plan");
+    let (plan, target_host) = if firmware_mode() == "usb-remote" {
+        let exact = exact_std_pico_usb_plan().expect("exact std-to-Pico UsbCdc plan must resolve");
+        (exact.plan, STD_PICO_USB_SINK_HOST_ID)
+    } else {
+        let advertisement = pico_local_advertisement();
+        let placements =
+            conduit_planner::default_placements(&form, std::slice::from_ref(&advertisement))
+                .expect("Pico local advertisement must cover the Signal form");
+        let plan = conduit_planner::plan_with_connection_limits(
+            &form,
+            std::slice::from_ref(&advertisement),
+            &placements,
+            &[ConnectionProvider::Local],
+            DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+            SIGNAL_ENCODED_LEN,
+        )
+        .expect("Pico local Signal form must plan");
+        (plan, PICO_LOCAL_HOST_ID)
+    };
     let fragment = plan
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == PICO_LOCAL_HOST_ID)
-        .expect("Pico local plan must contain one Pico fragment");
-    let lowered = lower_plan_fragment(fragment).expect("Pico local fragment must lower");
+        .find(|fragment| fragment.host_id.as_str() == target_host)
+        .expect("selected plan must contain one Pico fragment");
+    let lowered = lower_plan_fragment(fragment).expect("Pico fragment must lower");
     let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())
-        .expect("Pico local fragment must fit the reviewed fixed-image bounds");
+        .expect("Pico fragment must fit the reviewed fixed-image bounds");
     let identity = GeneratedSignalIdentity::new(&form, &generated);
 
     fs::write(

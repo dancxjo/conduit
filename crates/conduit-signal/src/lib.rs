@@ -7,6 +7,10 @@ extern crate alloc;
 mod activation;
 #[cfg(feature = "host-profile")]
 pub use activation::*;
+#[cfg(feature = "host-profile")]
+mod std_pico_usb;
+#[cfg(feature = "host-profile")]
+pub use std_pico_usb::*;
 
 #[cfg(feature = "host-profile")]
 use alloc::string::ToString;

@@ -86,6 +86,11 @@ pub struct ProveArgs {
     /// Run interactive button console control mode.
     #[arg(long)]
     pub interactive: bool,
+
+    /// Corrupt the first planned Signal after kernel emission and require an
+    /// honest two-sided sink-failure terminal instead of success.
+    #[arg(long)]
+    pub induce_sink_failure: bool,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]

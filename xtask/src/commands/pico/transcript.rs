@@ -27,6 +27,18 @@ pub fn verify_boot(
     {
         return Err("runtime transcript identity reused generated-image identity".into());
     }
+    let expected_play = conduit_core::bind_active_play(
+        &conduit_core::PlanId::from(identity.generated_image.plan_id.as_str()),
+        &conduit_core::HostId::from(identity.generated_image.host_id.as_str()),
+        &conduit_core::BootId::from(runtime.boot_id.as_str()),
+        0,
+    )
+    .active_play_id;
+    if runtime.active_play_id != expected_play.as_str() {
+        return Err(
+            "runtime active-play identity is not canonically bound to plan/host/boot".into(),
+        );
+    }
     Ok(runtime)
 }
 
@@ -71,11 +83,28 @@ pub fn verify_terminal(
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
 ) -> PicoResult<()> {
+    verify_terminal_disposition(line, identity, runtime, true)
+}
+
+pub fn verify_terminal_failure(
+    line: &str,
+    identity: &FirmwareIdentity,
+    runtime: &RuntimeTranscriptIdentity,
+) -> PicoResult<()> {
+    verify_terminal_disposition(line, identity, runtime, false)
+}
+
+fn verify_terminal_disposition(
+    line: &str,
+    identity: &FirmwareIdentity,
+    runtime: &RuntimeTranscriptIdentity,
+    expected_success: bool,
+) -> PicoResult<()> {
     let record = parse_schema(line, "conduit-pico-w-signal/terminal@1")?;
     verify_static(&record, identity, true)?;
     verify_runtime(&record, runtime)?;
-    if record["success"].as_bool() != Some(true) {
-        return Err(format!("Pico reported terminal failure: {line}").into());
+    if record["success"].as_bool() != Some(expected_success) {
+        return Err(format!("Pico terminal disposition disagrees with proof: {line}").into());
     }
     verify_field(
         &record,

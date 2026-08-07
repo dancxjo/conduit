@@ -269,6 +269,16 @@ fn read_runtime_identity(
     if active_play_id == expected.active_play_id {
         return Err("runtime_active_play_id must be distinct from planned active_play_id".into());
     }
+    let canonical = conduit_core::bind_active_play(
+        &conduit_core::PlanId::from(expected.plan_id.as_str()),
+        &conduit_core::HostId::from(expected.host_id.as_str()),
+        &conduit_core::BootId::from(boot_id.as_str()),
+        0,
+    )
+    .active_play_id;
+    if active_play_id != canonical.as_str() {
+        return Err("runtime_active_play_id is not canonically bound to plan/host/boot".into());
+    }
     Ok(RuntimeTranscriptIdentity {
         boot_id,
         active_play_id,
@@ -406,21 +416,23 @@ mod tests {
     }
 
     fn boot() -> String {
-        concat!(
-            "{\"schema\":\"conduit-pico-w-signal/boot@1\",",
-            "\"firmware_build_id\":\"firmware-build\",",
-            "\"source_document_id\":\"source\",",
-            "\"checked_form_id\":\"checked\",",
-            "\"expanded_form_id\":\"expanded\",",
-            "\"plan_id\":\"plan\",",
-            "\"fragment_id\":\"fragment\",",
-            "\"host_id\":\"host\",",
-            "\"boot_id\":\"boot\",",
-            "\"runtime_boot_id\":\"runtime-boot\",",
-            "\"runtime_active_play_id\":\"runtime-play\",",
-            "\"evidence_id\":\"boot-evidence\"}\n"
+        format!(
+            concat!(
+                "{{\"schema\":\"conduit-pico-w-signal/boot@1\",",
+                "\"firmware_build_id\":\"firmware-build\",",
+                "\"source_document_id\":\"source\",",
+                "\"checked_form_id\":\"checked\",",
+                "\"expanded_form_id\":\"expanded\",",
+                "\"plan_id\":\"plan\",",
+                "\"fragment_id\":\"fragment\",",
+                "\"host_id\":\"host\",",
+                "\"boot_id\":\"boot\",",
+                "\"runtime_boot_id\":\"runtime-boot\",",
+                "\"runtime_active_play_id\":\"{}\",",
+                "\"evidence_id\":\"boot-evidence\"}}\n"
+            ),
+            runtime_play(),
         )
-        .to_owned()
     }
 
     fn receipt(sequence: usize) -> String {
@@ -437,12 +449,13 @@ mod tests {
                 "\"boot_id\":\"boot\",",
                 "\"active_play_id\":\"play\",",
                 "\"runtime_boot_id\":\"runtime-boot\",",
-                "\"runtime_active_play_id\":\"runtime-play\",",
+                "\"runtime_active_play_id\":\"{}\",",
                 "\"sequence\":{},",
                 "\"level\":{},",
                 "\"presentation_id\":\"presentation-{}\",",
                 "\"evidence_id\":\"evidence-{}\"}}\n"
             ),
+            runtime_play(),
             sequence,
             sequence % 2 == 1,
             sequence,
@@ -451,22 +464,36 @@ mod tests {
     }
 
     fn terminal() -> String {
-        concat!(
-            "{\"schema\":\"conduit-pico-w-signal/terminal@1\",",
-            "\"firmware_build_id\":\"firmware-build\",",
-            "\"source_document_id\":\"source\",",
-            "\"checked_form_id\":\"checked\",",
-            "\"expanded_form_id\":\"expanded\",",
-            "\"plan_id\":\"plan\",",
-            "\"fragment_id\":\"fragment\",",
-            "\"host_id\":\"host\",",
-            "\"boot_id\":\"boot\",",
-            "\"active_play_id\":\"play\",",
-            "\"runtime_boot_id\":\"runtime-boot\",",
-            "\"runtime_active_play_id\":\"runtime-play\",",
-            "\"success\":true,",
-            "\"evidence_id\":\"terminal-evidence\"}\n"
+        format!(
+            concat!(
+                "{{\"schema\":\"conduit-pico-w-signal/terminal@1\",",
+                "\"firmware_build_id\":\"firmware-build\",",
+                "\"source_document_id\":\"source\",",
+                "\"checked_form_id\":\"checked\",",
+                "\"expanded_form_id\":\"expanded\",",
+                "\"plan_id\":\"plan\",",
+                "\"fragment_id\":\"fragment\",",
+                "\"host_id\":\"host\",",
+                "\"boot_id\":\"boot\",",
+                "\"active_play_id\":\"play\",",
+                "\"runtime_boot_id\":\"runtime-boot\",",
+                "\"runtime_active_play_id\":\"{}\",",
+                "\"success\":true,",
+                "\"evidence_id\":\"terminal-evidence\"}}\n"
+            ),
+            runtime_play(),
         )
+    }
+
+    fn runtime_play() -> String {
+        conduit_core::bind_active_play(
+            &conduit_core::PlanId::from("plan"),
+            &conduit_core::HostId::from("host"),
+            &conduit_core::BootId::from("runtime-boot"),
+            0,
+        )
+        .active_play_id
+        .as_str()
         .to_owned()
     }
 
@@ -534,8 +561,8 @@ mod tests {
                     "\"runtime_boot_id\":\"boot\"",
                 )
                 .replace(
-                    "\"runtime_active_play_id\":\"runtime-play\"",
-                    "\"runtime_active_play_id\":\"play\"",
+                    &format!("\"runtime_active_play_id\":\"{}\"", runtime_play()),
+                    "\"runtime_active_play_id\":\"play\""
                 ),
             (0..EXPECTED_RECEIPTS).map(receipt).collect::<String>(),
             terminal()
@@ -551,7 +578,7 @@ mod tests {
             input.push_str(&receipt(sequence));
         }
         input.push_str(&terminal().replace(
-            "\"runtime_active_play_id\":\"runtime-play\"",
+            &format!("\"runtime_active_play_id\":\"{}\"", runtime_play()),
             "\"runtime_active_play_id\":\"other-runtime-play\"",
         ));
         assert!(verify_receipts(Cursor::new(input), &expected_firmware_identity()).is_err());

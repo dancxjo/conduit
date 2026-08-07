@@ -59,7 +59,7 @@ pub struct RuntimeTranscriptIdentity {
 }
 
 impl RuntimeTranscriptIdentity {
-    pub fn new() -> Self {
+    pub fn new(plan_id: &str, host_id: &str) -> Self {
         let mut rng = RoscRng;
         let ticks = Instant::now().as_ticks();
         let entropy_a = rng.next_u64();
@@ -69,8 +69,11 @@ impl RuntimeTranscriptIdentity {
             boot_id,
             "conduit-pico-w-signal/runtime-boot:{ticks:016x}:{entropy_a:016x}{entropy_b:016x}"
         );
+        let digest = conduit_core::active_play_digest(plan_id, host_id, &boot_id, 0);
         let mut active_play_id = HString::new();
-        let _ = write!(active_play_id, "{boot_id}:play:0");
+        for byte in digest {
+            let _ = write!(active_play_id, "{byte:02x}");
+        }
         Self {
             boot_id,
             active_play_id,
@@ -83,12 +86,6 @@ impl RuntimeTranscriptIdentity {
 
     pub fn active_play_id(&self) -> &str {
         &self.active_play_id
-    }
-}
-
-impl Default for RuntimeTranscriptIdentity {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -331,6 +328,56 @@ impl UsbCdc {
                 runtime.active_play_id(),
                 identity.evidence_id,
                 e,
+            ),
+        )
+        .map_err(|_| UsbEvidenceError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
+    }
+
+    /// Write terminal failure evidence for a transport/session/kernel failure
+    /// that is not representable as a scheduler error value.
+    pub async fn write_failure(
+        &mut self,
+        code: &str,
+        identity: TerminalIdentity,
+        runtime: &RuntimeTranscriptIdentity,
+    ) -> Result<(), UsbEvidenceError> {
+        let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
+        core::fmt::write(
+            &mut line,
+            format_args!(
+                concat!(
+                    "{{",
+                    "\"schema\":\"conduit-pico-w-signal/terminal@1\",",
+                    "\"firmware_build_id\":\"{}\",",
+                    "\"source_document_id\":\"{}\",",
+                    "\"checked_form_id\":\"{}\",",
+                    "\"expanded_form_id\":\"{}\",",
+                    "\"plan_id\":\"{}\",",
+                    "\"fragment_id\":\"{}\",",
+                    "\"host_id\":\"{}\",",
+                    "\"boot_id\":\"{}\",",
+                    "\"active_play_id\":\"{}\",",
+                    "\"runtime_boot_id\":\"{}\",",
+                    "\"runtime_active_play_id\":\"{}\",",
+                    "\"success\":false,",
+                    "\"evidence_id\":\"{}\",",
+                    "\"error_code\":\"{}\"",
+                    "}}\n"
+                ),
+                identity.firmware_build_id,
+                identity.source_document_id,
+                identity.checked_form_id,
+                identity.expanded_form_id,
+                identity.plan_id,
+                identity.fragment_id,
+                identity.host_id,
+                identity.boot_id,
+                identity.active_play_id,
+                runtime.boot_id(),
+                runtime.active_play_id(),
+                identity.evidence_id,
+                code,
             ),
         )
         .map_err(|_| UsbEvidenceError::FormatOverflow)?;

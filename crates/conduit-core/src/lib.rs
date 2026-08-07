@@ -133,19 +133,42 @@ pub fn bind_active_play(
     boot_id: &BootId,
     activation_sequence: u64,
 ) -> ActivePlayIdentity {
-    let mut canonical = Vec::new();
-    push_string(&mut canonical, "active-play");
-    push_string(&mut canonical, plan_id.as_str());
-    push_string(&mut canonical, host_id.as_str());
-    push_string(&mut canonical, boot_id.as_str());
-    push_u64(&mut canonical, activation_sequence);
+    let digest = active_play_digest(
+        plan_id.as_str(),
+        host_id.as_str(),
+        boot_id.as_str(),
+        activation_sequence,
+    );
     ActivePlayIdentity {
-        active_play_id: ActivePlayId::from(hash_bytes(&canonical)),
+        active_play_id: ActivePlayId::from(hex_digest(&digest)),
         plan_id: plan_id.clone(),
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
         activation_sequence,
     }
+}
+
+/// Allocation-independent canonical digest for a boot-scoped active play.
+/// Firmware can format this into fixed storage while hosted callers use
+/// [`bind_active_play`] for the owned identity wrapper.
+pub fn active_play_digest(
+    plan_id: &str,
+    host_id: &str,
+    boot_id: &str,
+    activation_sequence: u64,
+) -> [u8; 32] {
+    let mut hash = Sha256::new();
+    hash_identity_string(&mut hash, "active-play");
+    hash_identity_string(&mut hash, plan_id);
+    hash_identity_string(&mut hash, host_id);
+    hash_identity_string(&mut hash, boot_id);
+    hash.update(activation_sequence.to_le_bytes());
+    hash.finalize().into()
+}
+
+fn hash_identity_string(hash: &mut Sha256, value: &str) {
+    hash.update((value.len() as u32).to_le_bytes());
+    hash.update(value.as_bytes());
 }
 
 pub fn bind_evidence(
@@ -973,6 +996,10 @@ fn push_u64(canonical: &mut Vec<u8>, value: u64) {
 
 fn hash_bytes(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
+    hex_digest(&digest)
+}
+
+fn hex_digest(digest: &[u8]) -> String {
     let mut encoded = String::with_capacity(digest.len() * 2);
     for byte in digest {
         encoded.push(hex(byte >> 4));

@@ -339,23 +339,26 @@ fn generate_startup_dependencies(
     fragment
         .startup_dependencies
         .iter()
-        .map(|dependency| {
-            Ok(GeneratedStartupDependency {
-                prerequisite_node: lowered
-                    .identity
-                    .node_for_placement(&dependency.prerequisite_placement_id)
-                    .ok_or(GenerationError::InconsistentLowering(
-                        "startup dependency prerequisite",
-                    ))?
-                    .0,
-                dependent_node: lowered
-                    .identity
-                    .node_for_placement(&dependency.dependent_placement_id)
-                    .ok_or(GenerationError::InconsistentLowering(
-                        "startup dependency dependent",
-                    ))?
-                    .0,
-            })
+        .filter_map(|dependency| {
+            let prerequisite = lowered
+                .identity
+                .node_for_placement(&dependency.prerequisite_placement_id);
+            let dependent = lowered
+                .identity
+                .node_for_placement(&dependency.dependent_placement_id);
+            match (prerequisite, dependent) {
+                (Some(prerequisite), Some(dependent)) => Some(Ok(GeneratedStartupDependency {
+                    prerequisite_node: prerequisite.0,
+                    dependent_node: dependent.0,
+                })),
+                // A remote cord's exact fragment dependency names one peer
+                // placement. Link/session readiness owns that cross-host gate;
+                // it cannot become a local fixed-kernel node dependency.
+                (Some(_), None) | (None, Some(_)) => None,
+                (None, None) => Some(Err(GenerationError::InconsistentLowering(
+                    "startup dependency endpoints",
+                ))),
+            }
         })
         .collect()
 }

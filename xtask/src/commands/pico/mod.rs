@@ -6,6 +6,8 @@ mod prove_usb;
 mod serial;
 #[cfg(unix)]
 mod session_completion;
+#[cfg(unix)]
+mod session_failure;
 mod transcript;
 
 use clap::{Args, Subcommand};

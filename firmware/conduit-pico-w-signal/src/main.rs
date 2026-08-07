@@ -19,6 +19,8 @@ mod radio;
 mod receipts;
 #[cfg(feature = "usb-remote")]
 mod remote_signal;
+#[cfg(feature = "usb-remote")]
+mod remote_kernel;
 mod signal_image;
 #[cfg(feature = "usb-remote")]
 mod startup_arena;
@@ -74,7 +76,10 @@ async fn main(spawner: Spawner) {
     let usb_driver = embassy_rp::usb::Driver::new(p.USB, radio::UsbIrq);
     let (usb_fut, link_carrier, evidence_sender) = usb::init_composite_usb(usb_driver);
     spawner.spawn(receipts::usb_task_spawn(usb_fut).unwrap());
-    let runtime = receipts::RuntimeTranscriptIdentity::new();
+    let runtime = receipts::RuntimeTranscriptIdentity::new(
+        signal_image::PLAN_ID,
+        signal_image::HOST_ID,
+    );
     let mut cdc = receipts::UsbCdc::new(evidence_sender.sender);
 
     #[cfg(feature = "pico-local")]
@@ -135,13 +140,18 @@ async fn main(spawner: Spawner) {
     }
 
     // Execute the USB-CDC remote session sink
-    let _ = remote_signal::run_remote_signal_sink(
+    let result = remote_signal::run_remote_signal_sink(
         &mut link_session,
         &mut cdc,
         &mut control,
         &runtime,
     )
     .await;
+    if let Err(error) = result {
+        let _ = cdc
+            .write_failure(error.code(), kernel::terminal_identity(), &runtime)
+            .await;
+    }
     let _ = bootsel::wait_for_request(&mut link_session).await;
     }
 }

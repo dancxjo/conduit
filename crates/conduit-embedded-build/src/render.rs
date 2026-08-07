@@ -569,6 +569,16 @@ fn render_remote_endpoints(output: &mut String, plan: &GeneratedEmbeddedPlan) {
             .iter()
             .map(|re| re.connection_id.as_str()),
     );
+    render_u16_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_IDS",
+        plan.remote_endpoints.iter().map(|re| re.endpoint),
+    );
+    render_u16_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_CORDS",
+        plan.remote_endpoints.iter().map(|re| re.cord),
+    );
     render_string_slice(
         output,
         "GENERATED_REMOTE_ENDPOINT_SOURCE_FRAGMENT_IDS",
@@ -578,10 +588,55 @@ fn render_remote_endpoints(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     );
     render_string_slice(
         output,
+        "GENERATED_REMOTE_ENDPOINT_LOCAL_HOSTS",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.local_host.as_str()),
+    );
+    render_string_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_LOCAL_BOOTS",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.local_boot.as_str()),
+    );
+    render_string_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_LOCAL_ENDPOINTS",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.local_endpoint.as_str()),
+    );
+    render_string_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_PEER_HOSTS",
+        plan.remote_endpoints.iter().map(|re| re.peer_host.as_str()),
+    );
+    render_string_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_PEER_BOOTS",
+        plan.remote_endpoints.iter().map(|re| re.peer_boot.as_str()),
+    );
+    render_string_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_PEER_ENDPOINTS",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.peer_endpoint.as_str()),
+    );
+    render_string_slice(
+        output,
         "GENERATED_REMOTE_ENDPOINT_SINK_FRAGMENT_IDS",
         plan.remote_endpoints
             .iter()
             .map(|re| re.sink_fragment_id.as_str()),
+    );
+    render_u8_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_PROVIDER_CODES",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.provider.canonical_code()),
     );
     render_string_slice(
         output,
@@ -604,4 +659,65 @@ fn render_remote_endpoints(output: &mut String, plan: &GeneratedEmbeddedPlan) {
             .iter()
             .map(|re| re.value_kind.as_str()),
     );
+    render_u16_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_MAXIMUM_IN_FLIGHT_ITEMS",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.maximum_in_flight_items),
+    );
+    render_u32_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_MAXIMUM_PAYLOAD_BYTES",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.maximum_payload_bytes),
+    );
+    render_u32_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_MAXIMUM_BUFFERED_BYTES",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.maximum_buffered_bytes),
+    );
+    render_u32_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_MAXIMUM_FRAME_BYTES",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.maximum_frame_bytes),
+    );
+}
+
+fn render_u8_slice(output: &mut String, name: &str, values: impl Iterator<Item = u8>) {
+    let values = values.collect::<Vec<_>>();
+    writeln!(
+        output,
+        "pub const {name}: [u8; {}] = {:?};",
+        values.len(),
+        values
+    )
+    .expect("String writes cannot fail");
+}
+
+fn render_u16_slice(output: &mut String, name: &str, values: impl Iterator<Item = u16>) {
+    let values = values.collect::<Vec<_>>();
+    writeln!(
+        output,
+        "pub const {name}: [u16; {}] = {:?};",
+        values.len(),
+        values
+    )
+    .expect("String writes cannot fail");
+}
+
+fn render_u32_slice(output: &mut String, name: &str, values: impl Iterator<Item = u32>) {
+    let values = values.collect::<Vec<_>>();
+    writeln!(
+        output,
+        "pub const {name}: [u32; {}] = {:?};",
+        values.len(),
+        values
+    )
+    .expect("String writes cannot fail");
 }
