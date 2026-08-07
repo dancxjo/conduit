@@ -46,6 +46,29 @@ The executable nucleus among the eight audited `conduit.std/*@1` revisions is
 empty. Their matching planner fixtures and `HostRuntime` implementations are
 not production support.
 
+S5 now begins with one separate revision: `conduit.std/time-tick@2`. It emits
+only `value/tick@1` on its exact `tick` port, accepts bounded `count` and
+`period-ms` configuration, waits through the admitted timer host-operation
+contract, and completes after exactly the configured count. The std host offer
+binds `std/kernel-time-tick@2` and
+`conduit-std-host/time-tick@2`; preparation resolves that implementation from
+a static installed table before activation, lowers the exact fragment, and
+executes it through `conduit-kernel`.
+
+The UI-independent conformance vector uses a `cfg(test)` kind named
+`conduit.test/tick-observer`. That fixture is only a typed sink for observing
+ordered tick payloads; it is neither advertised by production builds nor a
+second supported standard kind. With a capacity-one cord, the vector proves
+three ordered ticks, three configured waits, pressure, exact request and
+terminal evidence identities, stable preallocated storage, and zero allocation
+after activation. A zero-count vector completes without a wait or value, and
+mutation plus cancellation vectors reject stale executable identity and late
+timer completion before either can become success.
+
+This proof does not promote `conduit.std/time-tick@1`, the other seven audited
+compatibility rows, the sealed six-node multi-value profile, browser/Pico
+manifestation, dynamic provider installation, or general graph installation.
+
 This does not mean S5 starts without evidence. The narrower profiles below have
 already earned relevant kernel behavior, but S5 must deliberately adopt or
 rearticulate an exact contract instead of transferring proof by semantic kind

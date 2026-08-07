@@ -13,6 +13,9 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
+mod tick;
+pub use tick::*;
+
 pub const PULSE_KIND: &str = "flow/pulse";
 pub const SHOW_KIND: &str = "presentation/show";
 pub const MAP_KIND: &str = "flow/map";

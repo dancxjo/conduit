@@ -25,6 +25,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub mod distributed_signal;
 pub mod distributed_toggle;
+mod installed_std;
+#[cfg(test)]
+mod installed_std_tests;
 pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
@@ -282,7 +285,8 @@ impl StdHost {
     ) -> Result<StdRunReport, String> {
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
-        if !is_installed_kernel_signal_profile(&fragment) {
+        let installed_standard = installed_std::supports(&fragment);
+        if !installed_standard && !is_installed_kernel_signal_profile(&fragment) {
             return Err("fragment does not match the installed std kernel profile".to_string());
         }
 
@@ -295,14 +299,25 @@ impl StdHost {
             self.next_kernel_activation_sequence = activation_sequence
                 .checked_add(1)
                 .ok_or_else(|| "kernel activation sequence exhausted".to_string())?;
-            kernel_signal::run_signal_fragment(
-                &advertisement,
-                &fragment,
-                activation_sequence,
-                &mut self.next_kernel_evidence_sequence,
-                output,
-                timer,
-            )
+            if installed_standard {
+                installed_std::run_fragment(
+                    &advertisement,
+                    &fragment,
+                    activation_sequence,
+                    &mut self.next_kernel_evidence_sequence,
+                    output,
+                    timer,
+                )
+            } else {
+                kernel_signal::run_signal_fragment(
+                    &advertisement,
+                    &fragment,
+                    activation_sequence,
+                    &mut self.next_kernel_evidence_sequence,
+                    output,
+                    timer,
+                )
+            }
         })();
         let release = self.kernel_resources.release(reservation);
         let report = result?;
@@ -400,6 +415,48 @@ pub fn load_placements(
 }
 
 fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
+    #[allow(unused_mut)]
+    let mut capabilities = vec![
+        CapabilityOffer {
+            capability_id: CapabilityId::from("pulse-1"),
+            kind_id: kind_id(PULSE_KIND),
+            kind_contract_revision: pulse_contract_revision(),
+            execution_profile_id: pulse_execution_profile(),
+            implementation_id: ImplementationId::from("std/pulse-v1"),
+            artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
+            inputs: vec![],
+            outputs: pulse_outputs(),
+            host_operations: pulse_host_operation_requirements(),
+            resource_requirements: pulse_resource_requirements(),
+            authority_requirements: vec![],
+            limits: CapabilityLimits {
+                max_active_instances: 16,
+                max_queue_items: 4,
+                max_queue_bytes: 64,
+            },
+        },
+        CapabilityOffer {
+            capability_id: CapabilityId::from("stdout-show-1"),
+            kind_id: kind_id(SHOW_KIND),
+            kind_contract_revision: show_contract_revision(),
+            execution_profile_id: show_execution_profile(),
+            implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
+            artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
+            inputs: show_inputs(),
+            outputs: vec![],
+            host_operations: show_host_operation_requirements(),
+            resource_requirements: show_resource_requirements(),
+            authority_requirements: vec![],
+            limits: CapabilityLimits {
+                max_active_instances: 16,
+                max_queue_items: 4,
+                max_queue_bytes: 64,
+            },
+        },
+        installed_std::tick_offer(),
+    ];
+    #[cfg(test)]
+    capabilities.push(installed_std::test_observer_offer());
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: config.host_id,
@@ -411,44 +468,7 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
             profile_id: conduit_core::PlannerProfileId::from(conduit_planner::FULL_PLANNER_PROFILE),
             limits: conduit_planner::FULL_PLANNER_LIMITS,
         }],
-        capabilities: vec![
-            CapabilityOffer {
-                capability_id: CapabilityId::from("pulse-1"),
-                kind_id: kind_id(PULSE_KIND),
-                kind_contract_revision: pulse_contract_revision(),
-                execution_profile_id: pulse_execution_profile(),
-                implementation_id: ImplementationId::from("std/pulse-v1"),
-                artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
-                inputs: vec![],
-                outputs: pulse_outputs(),
-                host_operations: pulse_host_operation_requirements(),
-                resource_requirements: pulse_resource_requirements(),
-                authority_requirements: vec![],
-                limits: CapabilityLimits {
-                    max_active_instances: 16,
-                    max_queue_items: 4,
-                    max_queue_bytes: 64,
-                },
-            },
-            CapabilityOffer {
-                capability_id: CapabilityId::from("stdout-show-1"),
-                kind_id: kind_id(SHOW_KIND),
-                kind_contract_revision: show_contract_revision(),
-                execution_profile_id: show_execution_profile(),
-                implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
-                artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
-                inputs: show_inputs(),
-                outputs: vec![],
-                host_operations: show_host_operation_requirements(),
-                resource_requirements: show_resource_requirements(),
-                authority_requirements: vec![],
-                limits: CapabilityLimits {
-                    max_active_instances: 16,
-                    max_queue_items: 4,
-                    max_queue_bytes: 64,
-                },
-            },
-        ],
+        capabilities,
     }
 }
 

@@ -2,11 +2,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use conduit_core::ConfigurationValue;
 use conduit_std_catalog::{
-    standard_contracts, StandardConfigurationRule, StandardKindContract, FILTER_KIND, FORMAT_KIND,
-    GENERIC_VALUE_KIND, MAP_KIND,
+    standard_contracts, tick_capability_offer, tick_contract, StandardConfigurationRule,
+    StandardKindContract, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND, MAP_KIND,
+    TICK_CONTRACT_REVISION, TICK_IMPLEMENTATION, TICK_VALUE_KIND,
 };
 
 const INVENTORY: &str = include_str!("../../../docs/architecture/std-catalog-truth-inventory.tsv");
+const HOST_TICK_CONTRACT: &str = include_str!("../../../hosts/std/src/installed_std/contract.rs");
 const EXPECTED_HEADER: &str = "kind_id\trevision\tports\tconfiguration\tlimits\tdeclared_terminal_behavior\tinstalled_hosted_implementation\tplanning_binding\tkernel_execution\tcurrent_proof\tbrowser_claim\tpico_claim\tclassification\tstop_line";
 const MISDESIGNED: &str = "misdesigned / needs rearticulation";
 
@@ -168,5 +170,41 @@ fn narrower_kernel_proofs_are_named_without_being_promoted_across_revisions() {
             "{kind} must fence narrower proof from the audited revision"
         );
         assert_eq!(rows[kind][12], MISDESIGNED);
+    }
+}
+
+#[test]
+fn rearticulated_tick_is_distinct_from_the_audited_compatibility_row() {
+    let legacy = standard_contracts()
+        .into_iter()
+        .find(|contract| contract.kind_id.as_str() == "time/tick")
+        .expect("legacy tick remains inventoried");
+    assert_eq!(legacy.outputs[0].value_kind.as_str(), GENERIC_VALUE_KIND);
+    assert_eq!(inventory_rows()["time/tick"][12], MISDESIGNED);
+
+    let tick = tick_contract();
+    let offer = tick_capability_offer();
+    assert_eq!(tick.outputs[0].value_kind.as_str(), TICK_VALUE_KIND);
+    assert_eq!(
+        offer.kind_contract_revision.as_str(),
+        TICK_CONTRACT_REVISION
+    );
+    assert_eq!(offer.implementation_id.as_str(), TICK_IMPLEMENTATION);
+    assert_eq!(offer.outputs, tick.outputs);
+    assert_ne!(
+        offer.kind_contract_revision.as_str(),
+        inventory_rows()["time/tick"][1]
+    );
+    for exact_identity in [
+        TICK_CONTRACT_REVISION,
+        TICK_IMPLEMENTATION,
+        TICK_VALUE_KIND,
+        conduit_std_catalog::TICK_EXECUTION_PROFILE,
+        conduit_std_catalog::TICK_ARTIFACT,
+    ] {
+        assert!(
+            HOST_TICK_CONTRACT.contains(exact_identity),
+            "std-host installation must bind exact tick identity {exact_identity}"
+        );
     }
 }
