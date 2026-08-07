@@ -1,6 +1,6 @@
 //! Typed std -> Pico W USB-CDC session proof & interactive console runner.
 
-use std::io::{BufRead, BufReader, Write as _};
+use std::io::{BufRead, BufReader, Read, Write as _};
 use std::time::{Duration, Instant};
 
 use conduit_core::{
@@ -16,6 +16,25 @@ use super::firmware::read_identity_manifest;
 use super::serial::resolve_dual_ports;
 use super::{PicoArgs, PicoResult};
 use crate::cli::GlobalOpts;
+
+struct RawTerminalGuard;
+
+impl RawTerminalGuard {
+    fn new() -> Self {
+        let _ = std::process::Command::new("stty")
+            .args(["-F", "/dev/tty", "raw", "-echo"])
+            .status();
+        Self
+    }
+}
+
+impl Drop for RawTerminalGuard {
+    fn drop(&mut self) {
+        let _ = std::process::Command::new("stty")
+            .args(["-F", "/dev/tty", "-raw", "echo", "sane"])
+            .status();
+    }
+}
 
 pub fn run_prove_std_pico_usb(
     link_port_opt: Option<&str>,
@@ -206,24 +225,26 @@ pub fn run_prove_std_pico_usb(
         println!(" Link Port:     {}", link_port_path.display());
         println!(" Evidence Port: {}", evidence_port_path.display());
         println!("===============================================================");
-        println!(" [Press ENTER]     -> Trigger Button Pulse (Key Down -> LED ON -> Key Up -> LED OFF)");
-        println!(" [Type 'q' + ENTER] -> Exit interactive session");
+        println!(
+            " [Press ANY KEY]  -> Instant Button Pulse (Key Down -> LED ON -> Key Up -> LED OFF)"
+        );
+        println!(" [Press 'q' / ESC] -> Exit interactive session");
         println!("===============================================================\n");
 
+        let _guard = RawTerminalGuard::new();
+        let mut stdin = std::io::stdin();
+        let mut byte_buf = [0u8; 1];
         let mut sequence = 0u64;
-        let mut stdin_lines = BufReader::new(std::io::stdin()).lines();
 
         loop {
-            print!("press [ENTER] to pulse button > ");
-            let _ = std::io::stdout().flush();
-            let line = match stdin_lines.next() {
-                Some(Ok(l)) => l,
-                _ => break,
-            };
+            if stdin.read(&mut byte_buf).is_err() || byte_buf[0] == 0 {
+                break;
+            }
 
-            let trimmed = line.trim();
-            if trimmed == "q" || trimmed == "quit" || trimmed == "exit" {
-                println!("==> Closing Pico W USB-CDC session...");
+            let b = byte_buf[0];
+            if b == b'q' || b == b'Q' || b == 3 || b == 27 {
+                print!("\r\n==> Exiting Pico W USB-CDC interactive session...\r\n");
+                let _ = std::io::stdout().flush();
                 break;
             }
 
@@ -241,18 +262,20 @@ pub fn run_prove_std_pico_usb(
                 },
             };
             carrier.send_frame(&press_offer)?;
-            println!(
-                "\n  [KEY DOWN] -> Sent Signal seq {} (level: true) over USB CDC 0",
-                sequence
+            print!(
+                "\r\n  [KEY DOWN] Key 0x{:02x} -> Sent Signal seq {} (level: true) -> Pico LED ON\r\n",
+                b, sequence
             );
+            let _ = std::io::stdout().flush();
 
             let mut press_receipt = String::new();
             if evidence_reader.read_line(&mut press_receipt)? > 0 {
-                println!("  [RECEIPT ] <- CDC 1: {}", press_receipt.trim());
+                print!("  [RECEIPT ] <- CDC 1: {}\r\n", press_receipt.trim());
+                let _ = std::io::stdout().flush();
             }
 
-            // Hold button pulse for 300ms
-            std::thread::sleep(Duration::from_millis(300));
+            // Hold button pulse for 250ms
+            std::thread::sleep(Duration::from_millis(250));
 
             // 2. KEY UP: level = false (Pico LED OFF)
             sequence += 1;
@@ -269,14 +292,16 @@ pub fn run_prove_std_pico_usb(
                 },
             };
             carrier.send_frame(&release_offer)?;
-            println!(
-                "  [KEY UP  ] -> Sent Signal seq {} (level: false) over USB CDC 0",
+            print!(
+                "  [KEY UP  ] Released -> Sent Signal seq {} (level: false) -> Pico LED OFF\r\n",
                 sequence
             );
+            let _ = std::io::stdout().flush();
 
             let mut release_receipt = String::new();
             if evidence_reader.read_line(&mut release_receipt)? > 0 {
-                println!("  [RECEIPT ] <- CDC 1: {}\n", release_receipt.trim());
+                print!("  [RECEIPT ] <- CDC 1: {}\r\n", release_receipt.trim());
+                let _ = std::io::stdout().flush();
             }
 
             sequence += 1;
