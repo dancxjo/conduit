@@ -71,8 +71,7 @@ pub async fn run_remote_signal_sink(
 
     let mut frame_buf = [0u8; 2048];
 
-    // Phase 1: Wait for host to connect by repeatedly emitting the boot identity
-    // and waiting for the Hello frame to arrive.
+    // Phase 1: Emit boot identity on CDC 1 until host sends SessionMessage::Hello on CDC 0
     loop {
         evidence_cdc.write_boot_identity(boot_identity(), runtime).await;
 
@@ -83,40 +82,53 @@ pub async fn run_remote_signal_sink(
         .await
         {
             Ok(Ok(frame)) => {
-                let is_hello = matches!(frame.message, SessionMessage::Hello(_));
-                if machine.admit_inbound(frame.clone()).is_err() {
-                    break;
-                }
+                if matches!(frame.message, SessionMessage::Hello(_)) {
+                    // Handshake Step 1 (Sink): Admit inbound Hello from Source
+                    machine
+                        .admit_inbound(frame)
+                        .map_err(UsbLinkError::Codec)?;
 
-                if is_hello {
+                    // Handshake Step 2 (Sink): Admit outbound Hello from Sink and send to Source
                     let hello_frame = binding.hello_frame();
-                    if machine.admit_outbound(hello_frame.clone()).is_ok() {
-                        let _ = link_session.send_frame(&hello_frame).await;
-                    }
-
-                    let ready_frame = SessionFrame {
-                        identity: session_identity,
-                        message: SessionMessage::Ready,
-                    };
-                    if machine.admit_outbound(ready_frame.clone()).is_ok() {
-                        let _ = link_session.send_frame(&ready_frame).await;
-                    }
+                    machine
+                        .admit_outbound(hello_frame)
+                        .map_err(UsbLinkError::Codec)?;
+                    link_session.send_frame(&hello_frame).await?;
                     break;
                 }
             }
             Ok(Err(e)) => return Err(e),
             Err(_) => {
-                // Timeout, loop to emit boot identity again
+                // Timeout, emit boot identity again
                 continue;
             }
         }
+    }
+
+    // Phase 2: Receive SessionMessage::Ready from Source and emit SessionMessage::Ready from Sink
+    let ready_inbound = link_session.receive_frame(&mut frame_buf).await?;
+    if !matches!(ready_inbound.message, SessionMessage::Ready) {
+        return Err(UsbLinkError::Codec(conduit_wire::WireError::InvalidState));
+    }
+    machine
+        .admit_inbound(ready_inbound)
+        .map_err(UsbLinkError::Codec)?;
+
+    let ready_outbound = binding.frame(SessionMessage::Ready);
+    machine
+        .admit_outbound(ready_outbound)
+        .map_err(UsbLinkError::Codec)?;
+    link_session.send_frame(&ready_outbound).await?;
+
+    if !machine.is_active() {
+        return Err(UsbLinkError::Codec(conduit_wire::WireError::InvalidState));
     }
 
     // Phase 2: Main event loop
     loop {
         let frame = link_session.receive_frame(&mut frame_buf).await?;
         
-        if machine.admit_inbound(frame.clone()).is_err() {
+        if machine.admit_inbound(frame).is_err() {
             break;
         }
 

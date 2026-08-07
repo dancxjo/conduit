@@ -217,32 +217,29 @@ pub fn run_prove_std_pico_usb(
         },
     };
 
-    // Session frame exchange: Hello -> Ready -> Offered items
-    let hello = SessionFrame {
-        identity: binding.identity(),
-        message: SessionMessage::Hello(conduit_wire::SessionHello {
-            provider: ConnectionProvider::UsbCdc,
-            source: conduit_wire::SessionEndpoint {
-                host_id: "host/std",
-                boot_id: "boot/std",
-                endpoint_id: "endpoint/std-out",
-            },
-            sink: conduit_wire::SessionEndpoint {
-                host_id: identity.generated_image.host_id.as_str(),
-                boot_id: runtime_boot_id.as_str(),
-                endpoint_id: "endpoint/pico-in",
-            },
-            value_kind: "value/signal",
-            limits: binding.limits,
-        }),
-    };
+    // Create stateful Source-side SessionMachine
+    let mut source_machine =
+        conduit_wire::SessionMachine::new(binding.clone(), conduit_wire::SessionRole::Source)
+            .map_err(|e| format!("Failed to create Source SessionMachine: {e:?}"))?;
 
-    println!("==> Initiating SessionMachine handshake over USB CDC 0...");
-    let mut frame_buf = [0u8; 512];
-    let mut handshake_ok = false;
+    println!("==> Initiating stateful 4-message SessionMachine handshake over USB CDC 0...");
+
+    // Handshake Step 1 (Source): Admit outbound Hello on Source SessionMachine and send over CDC 0
+    let hello = binding.hello_frame();
+    source_machine
+        .admit_outbound(hello)
+        .map_err(|e| format!("Source failed to admit outbound Hello: {e:?}"))?;
+
+    let mut frame_buf = [0u8; 2048];
+    let mut hello_received = false;
+
+    // Retry sending Hello until Pico replies with its Hello
     for attempt in 1..=10 {
         if let Err(err) = carrier.send_frame(&hello) {
-            println!("  [attempt {}/10] send_frame error: {:?}", attempt, err);
+            println!(
+                "  [attempt {}/10] send_frame(Hello) error: {:?}",
+                attempt, err
+            );
         } else {
             println!("  [attempt {}/10] Sent SessionFrame::Hello", attempt);
         }
@@ -255,8 +252,13 @@ pub fn run_prove_std_pico_usb(
                         "  [attempt {}/10] Received frame: {:?}",
                         attempt, res.message
                     );
-                    if matches!(res.message, SessionMessage::Ready) {
-                        handshake_ok = true;
+                    if matches!(res.message, SessionMessage::Hello(_)) {
+                        // Handshake Step 2 (Source): Admit inbound Hello from Sink
+                        source_machine.admit_inbound(res).map_err(|e| {
+                            format!("Source failed to admit inbound Hello from Sink: {e:?}")
+                        })?;
+                        println!("  [Source SessionMachine] Admitted inbound Hello from Sink");
+                        hello_received = true;
                         break;
                     }
                 }
@@ -268,7 +270,7 @@ pub fn run_prove_std_pico_usb(
             std::thread::sleep(Duration::from_millis(50));
         }
 
-        if handshake_ok {
+        if hello_received {
             break;
         }
 
@@ -278,11 +280,56 @@ pub fn run_prove_std_pico_usb(
         }
     }
 
-    if !handshake_ok {
+    if !hello_received {
+        return Err("timed out waiting for SessionMessage::Hello from Pico W".into());
+    }
+
+    // Handshake Step 3 (Source): Admit outbound Ready on Source SessionMachine and send over CDC 0
+    let ready_outbound = binding.frame(SessionMessage::Ready);
+    source_machine
+        .admit_outbound(ready_outbound)
+        .map_err(|e| format!("Source failed to admit outbound Ready: {e:?}"))?;
+    carrier.send_frame(&ready_outbound)?;
+    println!("  [Source SessionMachine] Sent outbound SessionMessage::Ready");
+
+    // Handshake Step 4 (Source): Receive inbound Ready from Sink over CDC 0
+    let start = Instant::now();
+    let mut ready_received = false;
+    while start.elapsed() < Duration::from_secs(3) {
+        match carrier.receive_frame(&mut frame_buf) {
+            Ok(res) => {
+                println!(
+                    "  [Source SessionMachine] Received frame: {:?}",
+                    res.message
+                );
+                if matches!(res.message, SessionMessage::Ready) {
+                    source_machine.admit_inbound(res).map_err(|e| {
+                        format!("Source failed to admit inbound Ready from Sink: {e:?}")
+                    })?;
+                    println!("  [Source SessionMachine] Admitted inbound Ready from Sink");
+                    ready_received = true;
+                    break;
+                }
+            }
+            Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
+            Err(err) => {
+                println!("  [Source SessionMachine] receive_frame error: {:?}", err);
+            }
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+
+    if !ready_received {
         return Err("timed out waiting for SessionMessage::Ready from Pico W".into());
     }
 
-    println!("==> SessionMachine handshake complete (Ready received)");
+    if !source_machine.is_active() {
+        return Err("Source SessionMachine is not active after 4-message handshake".into());
+    }
+
+    println!(
+        "==> Real two-sided SessionMachine handshake complete (source_machine.is_active() == true)"
+    );
 
     if interactive {
         println!("\n===============================================================");
