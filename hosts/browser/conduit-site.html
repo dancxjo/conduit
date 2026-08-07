@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en" data-conduit-level="waiting">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Conduit — programs that become real</title>
+  <style>
+    :root {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #f7f5ef;
+      background: #11130f;
+      --ink: #f7f5ef;
+      --muted: #a9ad9f;
+      --line: rgba(247, 245, 239, 0.14);
+      --panel: rgba(255, 255, 255, 0.055);
+      --accent: #b9ff66;
+      --accent-2: #65e7ff;
+      --live-glow: rgba(185, 255, 102, 0.22);
+      --off-glow: rgba(101, 231, 255, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% -5%, rgba(101, 231, 255, 0.09), transparent 35rem),
+        radial-gradient(circle at 88% 8%, rgba(185, 255, 102, 0.07), transparent 38rem),
+        #11130f;
+      color: var(--ink);
+    }
+
+    a { color: inherit; }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+
+    .frame {
+      width: min(1160px, calc(100% - 2rem));
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: .75rem;
+      font-weight: 760;
+      letter-spacing: -.02em;
+      text-decoration: none;
+    }
+
+    .mark {
+      width: 1.05rem;
+      aspect-ratio: 1;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 0 .35rem rgba(185, 255, 102, .07);
+    }
+
+    nav { display: flex; gap: 1rem; color: var(--muted); font-size: .92rem; }
+    nav a { text-decoration: none; }
+    nav a:hover { color: var(--ink); }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr);
+      gap: clamp(2rem, 6vw, 5rem);
+      align-items: center;
+      padding: clamp(4.5rem, 10vw, 8rem) 0 4.5rem;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: .55rem;
+      align-items: center;
+      color: var(--accent);
+      font: 700 .78rem/1.2 "SFMono-Regular", Consolas, monospace;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 1.6rem;
+      height: 1px;
+      background: currentColor;
+    }
+
+    h1 {
+      margin: 1.15rem 0 1.4rem;
+      max-width: 12ch;
+      font-size: clamp(3.15rem, 8vw, 7.5rem);
+      line-height: .91;
+      letter-spacing: -.075em;
+      font-weight: 820;
+    }
+
+    .lede {
+      max-width: 44rem;
+      color: #ced1c7;
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      line-height: 1.6;
+    }
+
+    .hero-note {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .7rem;
+      align-items: center;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .key {
+      border: 1px solid var(--line);
+      border-bottom-color: rgba(247,245,239,.34);
+      border-radius: .45rem;
+      padding: .24rem .5rem;
+      background: rgba(255,255,255,.05);
+      color: var(--ink);
+      font: 700 .78rem/1.1 monospace;
+    }
+
+    .live-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 390px;
+      padding: 1.3rem;
+      border: 1px solid var(--line);
+      border-radius: 1.5rem;
+      background: linear-gradient(150deg, rgba(255,255,255,.075), rgba(255,255,255,.025));
+      box-shadow: 0 30px 80px rgba(0,0,0,.28);
+    }
+
+    .live-card::after {
+      content: "";
+      position: absolute;
+      inset: 42% -30% -40% 25%;
+      border-radius: 50%;
+      background: var(--off-glow);
+      filter: blur(42px);
+      transition: background .35s ease, transform .35s ease;
+    }
+
+    html[data-conduit-level="true"] .live-card::after {
+      background: var(--live-glow);
+      transform: scale(1.15);
+    }
+
+    .live-top {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      font: 700 .74rem/1.2 monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: .62rem;
+      height: .62rem;
+      margin-right: .45rem;
+      border-radius: 50%;
+      background: #74786e;
+      box-shadow: 0 0 0 .28rem rgba(116,120,110,.08);
+      transition: .25s ease;
+    }
+
+    html[data-conduit-level="true"] .status-dot {
+      background: var(--accent);
+      box-shadow: 0 0 0 .28rem rgba(185,255,102,.09), 0 0 1.5rem rgba(185,255,102,.42);
+    }
+
+    html[data-conduit-level="false"] .status-dot { background: var(--accent-2); }
+
+    .signal {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      height: 260px;
+    }
+
+    .orb {
+      display: grid;
+      place-items: center;
+      width: 11.5rem;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 1px solid rgba(247,245,239,.16);
+      background: rgba(5,8,4,.42);
+      box-shadow: inset 0 0 3rem rgba(101,231,255,.04);
+      transition: .4s cubic-bezier(.2,.8,.2,1);
+    }
+
+    html[data-conduit-level="true"] .orb {
+      transform: scale(1.07);
+      border-color: rgba(185,255,102,.6);
+      box-shadow:
+        0 0 4rem rgba(185,255,102,.18),
+        inset 0 0 3rem rgba(185,255,102,.09);
+    }
+
+    .orb strong {
+      font-size: 2.3rem;
+      letter-spacing: -.055em;
+    }
+
+    .orb small {
+      display: block;
+      margin-top: .35rem;
+      text-align: center;
+      color: var(--muted);
+      font: 700 .7rem/1.2 monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .live-caption {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: .86rem;
+    }
+
+    .section {
+      padding: 5rem 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: .7fr 1.3fr;
+      gap: 2rem;
+      margin-bottom: 2.4rem;
+    }
+
+    .section-kicker {
+      color: var(--accent);
+      font: 700 .78rem/1.2 monospace;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0;
+      max-width: 18ch;
+      font-size: clamp(2rem, 4.4vw, 4rem);
+      line-height: 1;
+      letter-spacing: -.055em;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .card {
+      min-height: 220px;
+      padding: 1.3rem;
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      background: var(--panel);
+    }
+
+    .card .num { color: var(--muted); font: 700 .72rem/1.2 monospace; }
+    .card h3 { margin: 2.8rem 0 .7rem; font-size: 1.35rem; letter-spacing: -.025em; }
+    .card p { margin: 0; color: var(--muted); line-height: 1.55; }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: .7rem;
+    }
+
+    .flow > div {
+      position: relative;
+      padding: 1rem;
+      min-height: 112px;
+      border: 1px solid var(--line);
+      border-radius: .9rem;
+      background: rgba(255,255,255,.035);
+    }
+
+    .flow > div:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -.62rem;
+      top: 42%;
+      z-index: 3;
+      color: var(--accent);
+      background: #11130f;
+      padding: .1rem;
+    }
+
+    .flow strong { display: block; margin-bottom: .55rem; }
+    .flow span { color: var(--muted); font-size: .82rem; line-height: 1.4; }
+
+    .proof-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .code-card, .evidence {
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      background: rgba(0,0,0,.16);
+      overflow: hidden;
+    }
+
+    .panel-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .8rem 1rem;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font: 700 .7rem/1.2 monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    pre {
+      margin: 0;
+      padding: 1.25rem;
+      overflow: auto;
+      color: #daddd4;
+      font-size: .83rem;
+      line-height: 1.65;
+    }
+
+    dl {
+      display: grid;
+      grid-template-columns: 7rem 1fr;
+      gap: .58rem .9rem;
+      margin: 0;
+      padding: 1.25rem;
+      font-size: .8rem;
+    }
+
+    dt { color: var(--muted); }
+    dd {
+      margin: 0;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-family: monospace;
+    }
+
+    #browser-sink {
+      max-height: 9rem;
+      overflow: auto;
+      padding: 0 1.25rem 1.25rem;
+    }
+
+    #browser-sink output {
+      display: block;
+      padding: .45rem 0;
+      border-top: 1px solid rgba(247,245,239,.07);
+      color: var(--muted);
+      font: .72rem/1.45 monospace;
+    }
+
+    footer {
+      padding: 2.5rem 0 4rem;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      font-size: .86rem;
+    }
+
+    @media (max-width: 820px) {
+      nav { display: none; }
+      .hero, .section-head, .proof-grid { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: 1fr; }
+      .flow > div:not(:last-child)::after {
+        content: "↓";
+        right: auto;
+        left: 50%;
+        top: auto;
+        bottom: -.75rem;
+      }
+      h1 { max-width: 10ch; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <header>
+      <a class="brand" href="#top"><span class="mark" aria-hidden="true"></span>Conduit</a>
+      <nav aria-label="Primary">
+        <a href="#idea">The idea</a>
+        <a href="#hosts">Hosts</a>
+        <a href="#proof">Live proof</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div>
+          <div class="eyebrow">portable execution substrate</div>
+          <h1 id="hero-title">Programs describe meaning. Conduit makes them real.</h1>
+          <p class="lede">
+            Write the operation you mean. Let hosts advertise what they can do.
+            Conduit plans one exact realization, executes it through bounded kernels,
+            moves values across real links, and leaves receipts behind.
+          </p>
+          <p class="hero-note">
+            This page is live. Press <span class="key">Enter</span> in the terminal that launched it.
+            The browser does not toggle itself.
+          </p>
+        </div>
+
+        <aside class="live-card" aria-label="Live Conduit manifestation">
+          <div class="live-top">
+            <span><span class="status-dot" aria-hidden="true"></span><span id="connection-status">connecting</span></span>
+            <span id="receipt-count">0 receipts</span>
+          </div>
+          <div class="signal">
+            <div class="orb" aria-live="polite">
+              <div>
+                <strong id="signal-state">WAIT</strong>
+                <small>browser manifestation</small>
+              </div>
+            </div>
+          </div>
+          <p class="live-caption" id="live-caption">
+            Waiting for an admitted Signal to cross the Conduit session and complete at the browser host.
+          </p>
+        </aside>
+      </section>
+
+      <section class="section" id="idea">
+        <div class="section-head">
+          <div class="section-kicker">The idea</div>
+          <h2>Meaning first. Placement later. Evidence always.</h2>
+        </div>
+        <div class="flow" aria-label="Conduit execution flow">
+          <div><strong>Form</strong><span>Portable semantic intent with typed ports and finite configuration.</span></div>
+          <div><strong>Offers</strong><span>Hosts truthfully advertise capabilities, resources, limits, and implementations.</span></div>
+          <div><strong>Plan</strong><span>A planner seals one exact realization, including placement and link facts.</span></div>
+          <div><strong>Play</strong><span>Bounded kernels execute the admitted fragments without inventing new semantics.</span></div>
+          <div><strong>Evidence</strong><span>Presentation and lifecycle receipts prove what actually happened.</span></div>
+        </div>
+      </section>
+
+      <section class="section" id="hosts">
+        <div class="section-head">
+          <div class="section-kicker">One model, many machines</div>
+          <h2>A browser, a workstation, and a Pico can all be peers.</h2>
+        </div>
+        <div class="cards">
+          <article class="card">
+            <span class="num">01 / std</span>
+            <h3>Native hosts</h3>
+            <p>Plan and execute ordinary work with hosted resources while retaining exact Conduit identities and bounds.</p>
+          </article>
+          <article class="card">
+            <span class="num">02 / wasm</span>
+            <h3>Browser hosts</h3>
+            <p>Rust/WASM kernels receive planned values over bounded WebSocket sessions and complete real DOM presentations.</p>
+          </article>
+          <article class="card">
+            <span class="num">03 / rp2040</span>
+            <h3>Embedded hosts</h3>
+            <p>A physical Pico W runs generated bounded fragments, presents through GPIO, and speaks the same session semantics over USB CDC.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="proof">
+        <div class="section-head">
+          <div class="section-kicker">The page proves itself</div>
+          <h2>The pretty bit is downstream of the protocol.</h2>
+        </div>
+        <div class="proof-grid">
+          <article class="code-card">
+            <div class="panel-title"><span>semantic program</span><span>examples/remote-toggle.form</span></div>
+            <pre>interaction/activate
+        ↓
+   state/toggle
+        ↓
+presentation/show
+
+terminal Enter
+  → std kernel
+  → WebSocket SessionMachine
+  → browser/WASM kernel
+  → DOM completion
+  → this page changes</pre>
+          </article>
+
+          <article class="evidence">
+            <div class="panel-title"><span>latest browser evidence</span><span id="proof-status">waiting</span></div>
+            <dl>
+              <dt>plan</dt><dd id="evidence-plan">—</dd>
+              <dt>fragment</dt><dd id="evidence-fragment">—</dd>
+              <dt>play</dt><dd id="evidence-play">—</dd>
+              <dt>placement</dt><dd id="evidence-placement">—</dd>
+              <dt>presentation</dt><dd id="evidence-presentation">—</dd>
+              <dt>sequence</dt><dd id="evidence-sequence">—</dd>
+              <dt>level</dt><dd id="evidence-level">—</dd>
+            </dl>
+            <section id="browser-sink" aria-label="Bounded raw presentation receipts"></section>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Conduit is an experiment in making execution portable without making reality vague.
+      This homepage's live state is carried by the same browser-host path used by the accepted distributed toggle proof.
+    </footer>
+  </div>
+
+  <script type="module" src="./conduit-site.mjs"></script>
+</body>
+</html>
