@@ -71,9 +71,23 @@ pub async fn run_remote_signal_sink(
 
     let mut frame_buf = [0u8; 2048];
 
-    // Phase 1: Wait for host to send SessionMessage::Hello on CDC 0 (Zero CDC 1 calls in critical path)
+    // Phase 0/1: Raw CDC 0 bidirectional probe checkpoint & SessionMessage::Hello wait
     loop {
         let frame = link_session.receive_frame(&mut frame_buf).await?;
+        if let SessionMessage::Offered { payload, .. } = frame.message {
+            if payload == b"CONDUIT_RAW_CDC0_PROBE" {
+                let reply_probe = SessionFrame {
+                    identity: session_identity,
+                    message: SessionMessage::Offered {
+                        sequence: 0,
+                        payload: b"CONDUIT_RAW_CDC0_REPLY",
+                    },
+                };
+                link_session.send_frame(&reply_probe).await?;
+                continue;
+            }
+        }
+
         if matches!(frame.message, SessionMessage::Hello(_)) {
             // Handshake Step 1 (Sink): Admit inbound Hello from Source
             machine

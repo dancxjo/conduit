@@ -1,6 +1,6 @@
 //! Typed std -> Pico W USB-CDC session proof & interactive console runner.
 
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader};
 use std::time::{Duration, Instant};
 
 use conduit_core::{
@@ -8,7 +8,8 @@ use conduit_core::{
     FragmentId, HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_signal::{encode_signal_fixed, Signal};
-use conduit_std_host::usb_cdc::{configure_cdc_port, NativeUsbCdcCarrier, RawTerminalGuard};
+#[cfg(unix)]
+use conduit_std_host::usb_cdc::{NativePathCdcCarrier, OperatorTerminal};
 use conduit_wire::{SessionBinding, SessionFrame, SessionMessage};
 
 use super::doctor::repo_root;
@@ -41,35 +42,20 @@ pub fn run_prove_std_pico_usb(
     }
 
     // 1. Resolve dual CDC ports if board is already running, or build+flash if not
-    let (link_port_path, evidence_port_path) = match resolve_dual_ports(
-        link_port_opt,
-        evidence_port_opt,
-    ) {
-        Ok(ports) => {
-            println!("==> Detected active Pico W dual CDC ports");
-            ports
-        }
-        Err(_) => {
-            super::firmware::run_build(pico_args)?;
-            super::flash::run_flash(pico_args)?;
-
-            println!("==> Waiting for USB CDC serial ports to enumerate...");
-            let deadline = Instant::now() + Duration::from_secs(15);
-            let mut resolved = None;
-            while Instant::now() < deadline {
-                if let Ok(ports) = resolve_dual_ports(link_port_opt, evidence_port_opt) {
-                    resolved = Some(ports);
-                    break;
-                }
-                std::thread::sleep(Duration::from_millis(500));
+    let (link_port_path, evidence_port_path) =
+        match resolve_dual_ports(link_port_opt, evidence_port_opt) {
+            Ok(ports) => {
+                println!("==> Detected active Pico W dual CDC ports");
+                ports
             }
-            resolved.ok_or_else(|| {
-                    Box::<dyn std::error::Error>::from(
-                        "timed out waiting for Pico W USB CDC ports to enumerate (/dev/ttyACM0, /dev/ttyACM1)",
-                    )
-                })?
-        }
-    };
+            Err(_) => {
+                println!("==> Active Pico W CDC ports not found. Flashing firmware candidate...");
+                super::flash::run_flash(pico_args)?;
+                println!("==> Waiting for USB CDC serial ports to enumerate...");
+                std::thread::sleep(Duration::from_secs(3));
+                resolve_dual_ports(link_port_opt, evidence_port_opt)?
+            }
+        };
 
     println!(
         "==> prove std-pico-usb: link port {}, evidence port {}",
@@ -77,55 +63,47 @@ pub fn run_prove_std_pico_usb(
         evidence_port_path.display()
     );
 
-    let identity = read_identity_manifest(&repo_root())?;
+    // Read expected compiled firmware identity manifest
+    let root = repo_root();
+    let manifest_path = root
+        .join("firmware")
+        .join("conduit-pico-w-signal")
+        .join("target")
+        .join("thumbv6m-none-eabi")
+        .join("release")
+        .join("conduit-pico-w-signal.identity.json");
 
-    // Open CDC 1 for receipt observation
+    let identity = read_identity_manifest(&manifest_path)?;
+    println!(
+        "==> Loaded build identity: build_id={}, plan_id={}",
+        identity.firmware_build_id, identity.generated_image.plan_id
+    );
+
+    // 2. Open CDC 1 evidence port in background thread
     let evidence_file = std::fs::OpenOptions::new()
         .read(true)
         .open(&evidence_port_path)
         .map_err(|e| {
-            if e.kind() == std::io::ErrorKind::PermissionDenied {
-                format!(
-                    "Permission denied opening evidence port {}. Fix permissions: sudo chmod 666 /dev/ttyACM*",
-                    evidence_port_path.display()
-                )
-            } else {
-                format!("Failed to open evidence port {}: {}", evidence_port_path.display(), e)
-            }
+            format!(
+                "Failed to open evidence port {}: {}",
+                evidence_port_path.display(),
+                e
+            )
         })?;
 
-    // Configure CDC 1 (evidence port) raw mode with 5.0 second timeout (50 deciseconds)
-    configure_cdc_port(&evidence_file, 0, 50).map_err(|e| {
-        format!(
-            "Failed to configure evidence CDC port {}: {}",
-            evidence_port_path.display(),
-            e
-        )
-    })?;
-
     let (evidence_tx, evidence_rx) = std::sync::mpsc::channel::<String>();
-    let evidence_file_clone = evidence_file.try_clone()?;
     std::thread::spawn(move || {
-        let mut reader = BufReader::new(evidence_file_clone);
+        let mut reader = BufReader::new(evidence_file);
         let mut line = String::new();
-        loop {
-            line.clear();
-            match reader.read_line(&mut line) {
-                Ok(0) => break,
-                Ok(_) => {
-                    let trimmed = line.trim().to_string();
-                    if !trimmed.is_empty() {
-                        let _ = evidence_tx.send(trimmed);
-                    }
-                }
-                Err(_) => {
-                    std::thread::sleep(Duration::from_millis(10));
-                }
+        while reader.read_line(&mut line).unwrap_or(0) > 0 {
+            let trimmed = line.trim().to_string();
+            if !trimmed.is_empty() {
+                let _ = evidence_tx.send(trimmed);
             }
+            line.clear();
         }
     });
 
-    // Read initial boot identity line from CDC 1 background receiver
     println!("==> Starting 5 second blocking wait for Pico W boot identity from CDC 1...");
     let boot_line = evidence_rx
         .recv_timeout(Duration::from_secs(5))
@@ -154,32 +132,15 @@ pub fn run_prove_std_pico_usb(
         runtime_boot_id, runtime_active_play_id
     );
 
-    // Open CDC 0 link session
-    let link_file = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(&link_port_path)
-        .map_err(|e| {
-            if e.kind() == std::io::ErrorKind::PermissionDenied {
-                format!(
-                    "Permission denied opening link port {}. Fix permissions: sudo chmod 666 /dev/ttyACM*",
-                    link_port_path.display()
-                )
-            } else {
-                format!("Failed to open link port {}: {}", link_port_path.display(), e)
-            }
-        })?;
-
-    // Configure CDC 0 (link port) non-blocking timeout mode
-    configure_cdc_port(&link_file, 0, 1).map_err(|e| {
+    // Open CDC 0 native path carrier
+    #[cfg(unix)]
+    let mut carrier = NativePathCdcCarrier::open(&link_port_path, 1024).map_err(|e| {
         format!(
-            "Failed to configure link CDC port {}: {}",
+            "Failed to open native CDC port {}: {}",
             link_port_path.display(),
             e
         )
     })?;
-
-    let mut carrier = NativeUsbCdcCarrier::new(link_file.try_clone()?, link_file, 1024)?;
 
     // Construct truthful SessionBinding with observed Pico runtime boot/link identity
     let plan_id = PlanId::from(identity.generated_image.plan_id.as_str());
@@ -223,6 +184,33 @@ pub fn run_prove_std_pico_usb(
         },
     };
 
+    #[cfg(unix)]
+    {
+        // 3. Raw CDC0 Physical Checkpoint before SessionMachine
+        println!("==> Executing raw CDC0 bidirectional physical checkpoint...");
+        let probe_frame = SessionFrame {
+            identity: binding.identity(),
+            message: SessionMessage::Offered {
+                sequence: 0,
+                payload: b"CONDUIT_RAW_CDC0_PROBE",
+            },
+        };
+        carrier.send_frame(&probe_frame, Duration::from_secs(2))?;
+        println!("  [Source] Sent raw CDC0 probe frame");
+
+        let mut frame_buf = [0u8; 2048];
+        let probe_reply = carrier.receive_frame(&mut frame_buf, Duration::from_secs(5))?;
+        if let SessionMessage::Offered { payload, .. } = probe_reply.message {
+            if payload == b"CONDUIT_RAW_CDC0_REPLY" {
+                println!("==> CDC0 raw bidirectional checkpoint passed");
+            } else {
+                return Err("raw CDC0 probe reply payload mismatch".into());
+            }
+        } else {
+            return Err("raw CDC0 probe received invalid message type".into());
+        }
+    }
+
     // Create stateful Source-side SessionMachine
     let mut source_machine =
         conduit_wire::SessionMachine::new(binding.clone(), conduit_wire::SessionRole::Source)
@@ -230,210 +218,212 @@ pub fn run_prove_std_pico_usb(
 
     println!("==> Initiating stateful 4-message SessionMachine handshake over USB CDC 0...");
 
-    // Handshake Step 1 (Source): Admit outbound Hello on Source SessionMachine and send over CDC 0
-    let hello = binding.hello_frame();
-    source_machine
-        .admit_outbound(hello)
-        .map_err(|e| format!("Source failed to admit outbound Hello: {e:?}"))?;
-    carrier.send_frame(&hello)?;
-    println!("  [Source SessionMachine] Sent outbound SessionFrame::Hello");
+    #[cfg(unix)]
+    {
+        // Handshake Step 1 (Source): Admit outbound Hello on Source SessionMachine and send over CDC 0
+        let hello = binding.hello_frame();
+        source_machine
+            .admit_outbound(hello)
+            .map_err(|e| format!("Source failed to admit outbound Hello: {e:?}"))?;
+        carrier.send_frame(&hello, Duration::from_secs(2))?;
+        println!("  [Source SessionMachine] Sent outbound SessionFrame::Hello");
 
-    // Handshake Step 2 (Source): Receive inbound Hello from Sink over CDC 0
-    let mut frame_buf = [0u8; 2048];
-    let start = Instant::now();
-    let mut hello_received = false;
-    while start.elapsed() < Duration::from_secs(5) {
-        match carrier.receive_frame(&mut frame_buf) {
-            Ok(res) => {
-                println!(
-                    "  [Source SessionMachine] Received frame: {:?}",
-                    res.message
-                );
-                if matches!(res.message, SessionMessage::Hello(_)) {
-                    source_machine.admit_inbound(res).map_err(|e| {
-                        format!("Source failed to admit inbound Hello from Sink: {e:?}")
-                    })?;
-                    println!("  [Source SessionMachine] Admitted inbound Hello from Sink");
-                    hello_received = true;
-                    break;
+        // Handshake Step 2 (Source): Receive inbound Hello from Sink over CDC 0
+        let mut frame_buf = [0u8; 2048];
+        let start = Instant::now();
+        let mut hello_received = false;
+        while start.elapsed() < Duration::from_secs(5) {
+            match carrier.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
+                Ok(res) => {
+                    println!(
+                        "  [Source SessionMachine] Received frame: {:?}",
+                        res.message
+                    );
+                    if matches!(res.message, SessionMessage::Hello(_)) {
+                        source_machine.admit_inbound(res).map_err(|e| {
+                            format!("Source failed to admit inbound Hello from Sink: {e:?}")
+                        })?;
+                        println!("  [Source SessionMachine] Admitted inbound Hello from Sink");
+                        hello_received = true;
+                        break;
+                    }
+                }
+                Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
+                Err(err) => {
+                    println!("  [Source SessionMachine] receive_frame error: {:?}", err);
                 }
             }
-            Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
-            Err(err) => {
-                println!("  [Source SessionMachine] receive_frame error: {:?}", err);
+
+            while let Ok(evidence_line) = evidence_rx.try_recv() {
+                println!("  [Pico evidence CDC 1]: {}", evidence_line);
             }
+
+            std::thread::sleep(Duration::from_millis(50));
         }
 
-        while let Ok(evidence_line) = evidence_rx.try_recv() {
-            println!("  [Pico evidence CDC 1]: {}", evidence_line);
+        if !hello_received {
+            return Err("timed out waiting for SessionMessage::Hello from Pico W".into());
         }
 
-        std::thread::sleep(Duration::from_millis(50));
-    }
+        // Handshake Step 3 (Source): Admit outbound Ready on Source SessionMachine and send over CDC 0
+        let ready_outbound = binding.frame(SessionMessage::Ready);
+        source_machine
+            .admit_outbound(ready_outbound)
+            .map_err(|e| format!("Source failed to admit outbound Ready: {e:?}"))?;
+        carrier.send_frame(&ready_outbound, Duration::from_secs(2))?;
+        println!("  [Source SessionMachine] Sent outbound SessionMessage::Ready");
 
-    if !hello_received {
-        return Err("timed out waiting for SessionMessage::Hello from Pico W".into());
-    }
-
-    // Handshake Step 3 (Source): Admit outbound Ready on Source SessionMachine and send over CDC 0
-    let ready_outbound = binding.frame(SessionMessage::Ready);
-    source_machine
-        .admit_outbound(ready_outbound)
-        .map_err(|e| format!("Source failed to admit outbound Ready: {e:?}"))?;
-    carrier.send_frame(&ready_outbound)?;
-    println!("  [Source SessionMachine] Sent outbound SessionMessage::Ready");
-
-    // Handshake Step 4 (Source): Receive inbound Ready from Sink over CDC 0
-    let start = Instant::now();
-    let mut ready_received = false;
-    while start.elapsed() < Duration::from_secs(5) {
-        match carrier.receive_frame(&mut frame_buf) {
-            Ok(res) => {
-                println!(
-                    "  [Source SessionMachine] Received frame: {:?}",
-                    res.message
-                );
-                if matches!(res.message, SessionMessage::Ready) {
-                    source_machine.admit_inbound(res).map_err(|e| {
-                        format!("Source failed to admit inbound Ready from Sink: {e:?}")
-                    })?;
-                    println!("  [Source SessionMachine] Admitted inbound Ready from Sink");
-                    ready_received = true;
-                    break;
+        // Handshake Step 4 (Source): Receive inbound Ready from Sink over CDC 0
+        let start = Instant::now();
+        let mut ready_received = false;
+        while start.elapsed() < Duration::from_secs(5) {
+            match carrier.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
+                Ok(res) => {
+                    println!(
+                        "  [Source SessionMachine] Received frame: {:?}",
+                        res.message
+                    );
+                    if matches!(res.message, SessionMessage::Ready) {
+                        source_machine.admit_inbound(res).map_err(|e| {
+                            format!("Source failed to admit inbound Ready from Sink: {e:?}")
+                        })?;
+                        println!("  [Source SessionMachine] Admitted inbound Ready from Sink");
+                        ready_received = true;
+                        break;
+                    }
+                }
+                Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
+                Err(err) => {
+                    println!("  [Source SessionMachine] receive_frame error: {:?}", err);
                 }
             }
-            Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}
-            Err(err) => {
-                println!("  [Source SessionMachine] receive_frame error: {:?}", err);
+
+            while let Ok(evidence_line) = evidence_rx.try_recv() {
+                println!("  [Pico evidence CDC 1]: {}", evidence_line);
             }
+
+            std::thread::sleep(Duration::from_millis(50));
         }
 
-        while let Ok(evidence_line) = evidence_rx.try_recv() {
-            println!("  [Pico evidence CDC 1]: {}", evidence_line);
+        if !ready_received {
+            return Err("timed out waiting for SessionMessage::Ready from Pico W".into());
         }
 
-        std::thread::sleep(Duration::from_millis(50));
-    }
+        if !source_machine.is_active() {
+            return Err("Source SessionMachine is not active after 4-message handshake".into());
+        }
 
-    if !ready_received {
-        return Err("timed out waiting for SessionMessage::Ready from Pico W".into());
-    }
-
-    if !source_machine.is_active() {
-        return Err("Source SessionMachine is not active after 4-message handshake".into());
-    }
-
-    println!(
-        "==> Real two-sided SessionMachine handshake complete (source_machine.is_active() == true)"
-    );
-
-    if interactive {
-        println!("\n===============================================================");
-        println!(" Conduit USB-CDC Pico W Interactive Control (#350)");
-        println!(" Link Port:     {}", link_port_path.display());
-        println!(" Evidence Port: {}", evidence_port_path.display());
-        println!("===============================================================");
         println!(
-            " [Press ANY KEY]  -> Instant Button Pulse (Key Down -> LED ON -> Key Up -> LED OFF)"
+            "==> Real two-sided SessionMachine handshake complete (source_machine.is_active() == true)"
         );
-        println!(" [Press 'q' / ESC] -> Exit interactive session");
-        println!("===============================================================\n");
 
-        let _guard = RawTerminalGuard::new()
-            .map_err(|e| format!("Failed to initialize interactive raw terminal mode: {}", e))?;
-        let mut stdin = std::io::stdin();
-        let mut byte_buf = [0u8; 1];
-        let mut sequence = 0u64;
-
-        loop {
-            if stdin.read(&mut byte_buf).is_err() || byte_buf[0] == 0 {
-                break;
-            }
-
-            let b = byte_buf[0];
-            if b == b'q' || b == b'Q' || b == 3 || b == 27 {
-                print!("\r\n==> Exiting Pico W USB-CDC interactive session...\r\n");
-                let _ = std::io::stdout().flush();
-                break;
-            }
-
-            // 1. KEY DOWN: level = true (Pico LED ON)
-            print!(
-                "\r\n  [KEY DOWN] Key 0x{:02x} -> Sent Signal seq {} (level: true) -> Pico LED ON\r\n",
-                b, sequence
+        if interactive {
+            println!("\n===============================================================");
+            println!(" Conduit USB-CDC Pico W Interactive Control (#350)");
+            println!(" Link Port:     {}", link_port_path.display());
+            println!(" Evidence Port: {}", evidence_port_path.display());
+            println!("===============================================================");
+            println!(
+                " [Press ANY KEY]  -> Instant Button Pulse (Key Down -> LED ON -> Key Up -> LED OFF)"
             );
-            let _ = std::io::stdout().flush();
+            println!(" [Press 'q' / ESC] -> Exit interactive session");
+            println!("===============================================================\n");
+
+            let mut term = OperatorTerminal::open().map_err(|e| {
+                format!("Failed to initialize interactive operator terminal: {}", e)
+            })?;
+            let mut sequence = 0u64;
+
+            loop {
+                let key = match term.read_key(Duration::from_millis(100)) {
+                    Ok(Some(k)) => k,
+                    Ok(None) => continue,
+                    Err(_) => break,
+                };
+
+                if key == b'q' || key == b'Q' || key == 3 || key == 27 {
+                    println!("\n==> Exiting Pico W USB-CDC interactive session...");
+                    break;
+                }
+
+                // 1. KEY DOWN: level = true (Pico LED ON)
+                println!(
+                    "  [KEY DOWN] Key 0x{:02x} -> Sent Signal seq {} (level: true) -> Pico LED ON",
+                    key, sequence
+                );
+                send_and_verify_item(
+                    &mut source_machine,
+                    &mut carrier,
+                    &evidence_rx,
+                    &binding,
+                    sequence,
+                    true,
+                )?;
+
+                // Hold button pulse for 250ms
+                std::thread::sleep(Duration::from_millis(250));
+
+                // 2. KEY UP: level = false (Pico LED OFF)
+                sequence += 1;
+                println!(
+                    "  [KEY UP  ] Released -> Sent Signal seq {} (level: false) -> Pico LED OFF",
+                    sequence
+                );
+                send_and_verify_item(
+                    &mut source_machine,
+                    &mut carrier,
+                    &evidence_rx,
+                    &binding,
+                    sequence,
+                    false,
+                )?;
+
+                sequence += 1;
+            }
+
+            let terminal = SessionFrame {
+                identity: binding.identity(),
+                message: SessionMessage::Terminal {
+                    disposition: conduit_wire::SessionTerminalDisposition::Completed,
+                    final_sequence: sequence,
+                },
+            };
+            let _ = carrier.send_frame(&terminal, Duration::from_secs(1));
+            println!("==> Pico W USB-CDC interactive session completed.");
+            return Ok(());
+        }
+
+        println!("==> Streaming 16 Signal items over physical USB CDC link...");
+        for sequence in 0..16u64 {
+            let level = (sequence % 2) == 1;
             send_and_verify_item(
                 &mut source_machine,
                 &mut carrier,
                 &evidence_rx,
                 &binding,
                 sequence,
-                true,
+                level,
             )?;
-
-            // Hold button pulse for 250ms
-            std::thread::sleep(Duration::from_millis(250));
-
-            // 2. KEY UP: level = false (Pico LED OFF)
-            sequence += 1;
-            print!(
-                "  [KEY UP  ] Released -> Sent Signal seq {} (level: false) -> Pico LED OFF\r\n",
-                sequence
-            );
-            let _ = std::io::stdout().flush();
-            send_and_verify_item(
-                &mut source_machine,
-                &mut carrier,
-                &evidence_rx,
-                &binding,
-                sequence,
-                false,
-            )?;
-
-            sequence += 1;
         }
 
         let terminal = SessionFrame {
             identity: binding.identity(),
             message: SessionMessage::Terminal {
                 disposition: conduit_wire::SessionTerminalDisposition::Completed,
-                final_sequence: sequence,
+                final_sequence: 16,
             },
         };
-        let _ = carrier.send_frame(&terminal);
-        println!("==> Pico W USB-CDC interactive session completed.");
-        return Ok(());
+        let _ = carrier.send_frame(&terminal, Duration::from_secs(1));
+        println!("==> Pico W USB-CDC proof completed successfully.");
     }
 
-    println!("==> Streaming 16 Signal items over physical USB CDC link...");
-    for sequence in 0..16u64 {
-        let level = (sequence % 2) == 1;
-        send_and_verify_item(
-            &mut source_machine,
-            &mut carrier,
-            &evidence_rx,
-            &binding,
-            sequence,
-            level,
-        )?;
-    }
-
-    let terminal = SessionFrame {
-        identity: binding.identity(),
-        message: SessionMessage::Terminal {
-            disposition: conduit_wire::SessionTerminalDisposition::Completed,
-            final_sequence: 16,
-        },
-    };
-    let _ = carrier.send_frame(&terminal);
-    println!("==> Pico W USB-CDC proof completed successfully.");
     Ok(())
 }
 
-fn send_and_verify_item<R: Read, W: Write>(
+#[cfg(unix)]
+fn send_and_verify_item(
     source_machine: &mut conduit_wire::SessionMachine,
-    carrier: &mut NativeUsbCdcCarrier<R, W>,
+    carrier: &mut NativePathCdcCarrier,
     evidence_rx: &std::sync::mpsc::Receiver<String>,
     binding: &SessionBinding,
     sequence: u64,
@@ -450,14 +440,14 @@ fn send_and_verify_item<R: Read, W: Write>(
     source_machine
         .admit_outbound(offer)
         .map_err(|e| format!("Source failed to admit outbound Offered: {e:?}"))?;
-    carrier.send_frame(&offer)?;
+    carrier.send_frame(&offer, Duration::from_secs(2))?;
 
     // 2. Wait for Accepted(sequence) over CDC 0
     let mut frame_buf = [0u8; 2048];
     let start = Instant::now();
     let mut accepted = false;
     while start.elapsed() < Duration::from_secs(2) {
-        match carrier.receive_frame(&mut frame_buf) {
+        match carrier.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
             Ok(res) => {
                 if matches!(res.message, SessionMessage::Accepted { sequence: s } if s == sequence)
                 {
@@ -476,11 +466,9 @@ fn send_and_verify_item<R: Read, W: Write>(
 
         while let Ok(line) = evidence_rx.try_recv() {
             if line.starts_with('{') {
-                print!("  [RECEIPT ] <- CDC 1: {}\r\n", line);
-                let _ = std::io::stdout().flush();
+                println!("  [RECEIPT ] <- CDC 1: {}", line);
             } else {
-                print!("  [Pico log] <- CDC 1: {}\r\n", line);
-                let _ = std::io::stdout().flush();
+                println!("  [Pico log] <- CDC 1: {}", line);
             }
         }
 
@@ -496,12 +484,10 @@ fn send_and_verify_item<R: Read, W: Write>(
     while start_ev.elapsed() < Duration::from_secs(2) {
         while let Ok(line) = evidence_rx.try_recv() {
             if line.starts_with('{') {
-                print!("  [RECEIPT ] <- CDC 1: {}\r\n", line);
-                let _ = std::io::stdout().flush();
+                println!("  [RECEIPT ] <- CDC 1: {}", line);
                 receipt_received = true;
             } else {
-                print!("  [Pico log] <- CDC 1: {}\r\n", line);
-                let _ = std::io::stdout().flush();
+                println!("  [Pico log] <- CDC 1: {}", line);
             }
         }
         if receipt_received {
@@ -514,7 +500,7 @@ fn send_and_verify_item<R: Read, W: Write>(
     let start_del = Instant::now();
     let mut delivered = false;
     while start_del.elapsed() < Duration::from_secs(2) {
-        match carrier.receive_frame(&mut frame_buf) {
+        match carrier.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
             Ok(res) => {
                 if matches!(res.message, SessionMessage::Delivered { sequence: s } if s == sequence)
                 {
@@ -533,11 +519,9 @@ fn send_and_verify_item<R: Read, W: Write>(
 
         while let Ok(line) = evidence_rx.try_recv() {
             if line.starts_with('{') {
-                print!("  [RECEIPT ] <- CDC 1: {}\r\n", line);
-                let _ = std::io::stdout().flush();
+                println!("  [RECEIPT ] <- CDC 1: {}", line);
             } else {
-                print!("  [Pico log] <- CDC 1: {}\r\n", line);
-                let _ = std::io::stdout().flush();
+                println!("  [Pico log] <- CDC 1: {}", line);
             }
         }
 
