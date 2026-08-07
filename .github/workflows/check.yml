@@ -30,40 +30,8 @@ jobs:
         with:
           cache-on-failure: true
 
-      - name: Formatting
-        run: cargo fmt --all --check
-
-      - name: Clippy
-        run: cargo clippy --locked --workspace --all-targets -- -D warnings
-
-      - name: Workspace tests
-        run: cargo test --locked --workspace
-
-      - name: Extra feature and no-std contracts
-        run: |
-          cargo test --locked -p conduit-kernel --features alloc
-          cargo test --locked -p conduit --test observatory_fixture
-          cargo check --locked -p conduit-kernel --no-default-features
-          cargo check --locked -p conduit-signal --no-default-features
-          cargo check --locked -p conduit-wire --no-default-features
-          cargo check --locked -p conduit-std-catalog --no-default-features
-          cargo check --locked -p conduit-std-host --no-default-features
-
-      - name: WASM contracts
-        run: |
-          cargo check --locked -p conduit-browser-runtime --target wasm32-unknown-unknown
-          cargo check --locked -p conduit-browser-sim --target wasm32-unknown-unknown
-          cargo check --locked -p conduit-wire --target wasm32-unknown-unknown --test session_wire_corpus
-
-      - name: Thumb contracts
-        run: |
-          cargo check --locked -p conduit-kernel --target thumbv6m-none-eabi
-          cargo check --locked -p conduit-core --target thumbv6m-none-eabi
-          cargo check --locked -p conduit-realm --target thumbv6m-none-eabi
-          cargo check --locked -p conduit-observatory --target thumbv6m-none-eabi
-          cargo check --locked -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
-          cargo check --locked -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
-          cargo check --locked --manifest-path firmware/conduit-pico-w-signal/Cargo.toml --target thumbv6m-none-eabi
+      - name: Run workspace check suite
+        run: cargo xtask check workspace --locked
 
   browser-host:
     runs-on: ubuntu-latest
@@ -86,7 +54,5 @@ jobs:
           cache-on-failure: true
       - name: Install browser test dependencies
         run: npm ci --ignore-scripts --prefer-offline
-      - name: Build browser runtime
-        run: cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release
-      - name: Run browser host proof
-        run: npm run test:browser-host
+      - name: Run browser host proof suite
+        run: cargo xtask prove browser-host --locked

@@ -8,6 +8,9 @@ fn dependency_and_profile_installation_drawbridge_is_explicit() {
     let browser_package = include_str!("../../../package.json");
     let browser_config = include_str!("../../../hosts/browser/playwright.config.mjs");
     let justfile = include_str!("../../../justfile");
+    let check_suite = include_str!("../../../xtask/src/suites/check.rs");
+    let prove_suite = include_str!("../../../xtask/src/suites/prove.rs");
+    let test_corpus = format!("{justfile}\n{check_suite}\n{prove_suite}");
 
     assert!(!runtime_manifest.contains("conduit-signal"));
     assert!(!form_manifest.contains("conduit-signal"));
@@ -35,22 +38,16 @@ fn dependency_and_profile_installation_drawbridge_is_explicit() {
     assert!(!browser_config.contains("firefox"));
     assert!(!browser_config.contains("webkit"));
     assert!(justfile.contains("check-browser-s4:"));
-    assert!(justfile.contains("npm run test:browser-host"));
+    assert!(test_corpus.contains("test:browser-host"));
     assert!(justfile.contains("check-sim-readiness:"));
-    assert!(justfile.contains("cargo test -p conduit-wire"));
-    assert!(justfile.contains("cargo test -p conduit-browser-sim"));
-    assert!(justfile.contains("cargo check -p conduit-browser-sim --target wasm32-unknown-unknown"));
-    assert!(justfile.contains("cargo test -p conduit-pico-sim"));
-    assert!(justfile.contains(
-        "cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture"
-    ));
-    assert!(justfile.contains(
-        "cargo test -p conduit-browser-sim triple_signal_form_fans_out_to_std_and_simulated_receipts"
-    ));
-    assert!(justfile.contains(
-        "cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi"
-    ));
-    assert!(justfile.contains("--test host_contract"));
+    assert!(test_corpus.contains("conduit-wire"));
+    assert!(test_corpus.contains("conduit-browser-sim"));
+    assert!(test_corpus.contains("wasm32-unknown-unknown"));
+    assert!(test_corpus.contains("conduit-pico-sim"));
+    assert!(test_corpus.contains("std_host_sends_signal_to_pico_through_bounded_datagram_fixture"));
+    assert!(test_corpus.contains("triple_signal_form_fans_out_to_std_and_simulated_receipts"));
+    assert!(test_corpus.contains("thumbv6m-none-eabi"));
+    assert!(test_corpus.contains("host_contract"));
 }
 
 #[test]

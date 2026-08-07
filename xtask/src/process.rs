@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use crate::cli::GlobalOpts;
 
-/// A single read-only probe with stable identity and provenance.
+/// A single read-only probe or orchestrated task step with stable identity and provenance.
 #[derive(Debug, Clone)]
 pub struct Step {
     /// Stable identifier used in JSON reports and error messages.
@@ -20,6 +20,14 @@ pub struct Step {
     pub program: &'static str,
     /// Arguments.
     pub args: &'static [&'static str],
+    /// Working directory relative to workspace root (None for root).
+    pub cwd: Option<&'static str>,
+    /// Required tool or build target.
+    pub tool_or_target: Option<&'static str>,
+    /// Proof class or proof purpose.
+    pub proof_class: Option<&'static str>,
+    /// Expected output artifacts.
+    pub expected_artifacts: &'static [&'static str],
 }
 
 impl Step {
@@ -34,6 +42,33 @@ impl Step {
             description,
             program,
             args,
+            cwd: None,
+            tool_or_target: None,
+            proof_class: None,
+            expected_artifacts: &[],
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub const fn typed(
+        id: &'static str,
+        description: &'static str,
+        program: &'static str,
+        args: &'static [&'static str],
+        cwd: Option<&'static str>,
+        tool_or_target: Option<&'static str>,
+        proof_class: Option<&'static str>,
+        expected_artifacts: &'static [&'static str],
+    ) -> Self {
+        Self {
+            id,
+            description,
+            program,
+            args,
+            cwd,
+            tool_or_target,
+            proof_class,
+            expected_artifacts,
         }
     }
 }
@@ -162,6 +197,71 @@ pub fn run_probe(step: &Step, working_dir: &Path, opts: &GlobalOpts) -> ProbeOut
     }
 }
 
+/// Run a sequence of orchestrated steps in order.
+pub fn run_suite(steps: &[Step], root: &Path, opts: &GlobalOpts) -> Result<(), StepError> {
+    for step in steps {
+        run_step(step, root, opts)?;
+    }
+    Ok(())
+}
+
+/// Run one orchestrated step, forwarding `--locked` to Cargo when specified in `opts`.
+pub fn run_step(step: &Step, root: &Path, opts: &GlobalOpts) -> Result<(), StepError> {
+    let work_dir = match step.cwd {
+        Some(rel) => root.join(rel),
+        None => root.to_path_buf(),
+    };
+
+    let mut effective_args: Vec<String> = step.args.iter().map(|s| s.to_string()).collect();
+    if opts.locked
+        && step.program == "cargo"
+        && !effective_args.is_empty()
+        && effective_args[0] != "fmt"
+        && !effective_args.iter().any(|a| a == "--locked")
+    {
+        effective_args.insert(1, "--locked".to_string());
+    }
+
+    let command_line = format!("{} {}", step.program, effective_args.join(" "));
+
+    if !opts.quiet && !opts.json {
+        let meta = match (step.tool_or_target, step.proof_class) {
+            (Some(t), Some(p)) => format!(" [{t}/{p}]"),
+            (Some(t), None) => format!(" [{t}]"),
+            (None, Some(p)) => format!(" [{p}]"),
+            (None, None) => String::new(),
+        };
+        println!("» [{}{}] {}", step.id, meta, step.description);
+        println!("  $ {command_line}");
+        if !step.expected_artifacts.is_empty() {
+            println!("    artifacts: {}", step.expected_artifacts.join(", "));
+        }
+    }
+
+    if opts.dry_run {
+        return Ok(());
+    }
+
+    let mut cmd = command_for(step.program);
+    cmd.args(&effective_args).current_dir(&work_dir);
+
+    match cmd.status() {
+        Ok(status) if status.success() => Ok(()),
+        Ok(status) => Err(StepError {
+            id: step.id.to_string(),
+            command_line,
+            status: Some(status),
+            message: String::new(),
+        }),
+        Err(error) => Err(StepError {
+            id: step.id.to_string(),
+            command_line,
+            status: None,
+            message: error.to_string(),
+        }),
+    }
+}
+
 /// Build a command for a tool, accepting Cargo-installed binaries even when the
 /// invoking shell did not source Cargo's PATH setup.
 pub fn command_for(program: &str) -> Command {
@@ -236,5 +336,31 @@ mod tests {
     fn step_display_renders_command_line() {
         let step = Step::new("x", "d", "cargo", &["test", "--lib"]);
         assert_eq!(step.to_string(), "cargo test --lib");
+    }
+
+    #[test]
+    fn run_step_dry_run_succeeds() {
+        let step = Step::typed(
+            "test.step",
+            "test step",
+            "cargo",
+            &["check", "-p", "conduit-kernel"],
+            None,
+            Some("kernel"),
+            Some("workspace"),
+            &[],
+        );
+        let result = run_step(&step, &workspace(), &dry_opts());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn run_suite_dry_run_executes_all_steps() {
+        let steps = &[
+            Step::new("step1", "step one", "cargo", &["fmt", "--check"]),
+            Step::new("step2", "step two", "cargo", &["check"]),
+        ];
+        let result = run_suite(steps, &workspace(), &dry_opts());
+        assert!(result.is_ok());
     }
 }
