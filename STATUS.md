@@ -9,7 +9,7 @@ adapter or physical proof.
 | Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, node-scoped correlated host operations, cancellation, and exact local/remote-plan numeric lowering | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, cancellation, exact signal/multi-value lowering, remote pressure/delivery, and zero-allocation activation vectors | same scheduler with preallocated hosted storage; installed Signal pair, local three-sink fan-out, typed multi-value std profiles, the std half of the distributed Signal checkpoint, and the admitted activation/toggle source execute through it; unsupported forms fail closed without a production legacy pump | browser/WASM Signal and toggle sinks execute exact remote-ingress fragments through the same scheduler before bounded DOM presentation | allocator-free Pico W firmware consumes fixed kernel tables generated from unchanged `examples/signal-demo.form` through the current checker, Pico-local planner, lowering, and embedded-image generator; physical execution is not yet recorded | one bounded loopback WebSocket remote cord; provider owns carrier I/O only | no |
 | Exact plan, play, evidence, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued evidence identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/activation mutation, unique evidence, wrong-presentation identity, wrong session identity, generated-image mutation, firmware-build mismatch, and runtime-identity mutation vectors | yes, std preparation enforces S2 truth and distributed sources bind exact plan/fragment/play/link/connection identities | browser sinks independently reconstruct and lower exact fragments and reject stale/wrong session facts | generated image and manifest bind source/checked/expanded/plan/fragment identities and firmware build identity; runtime-generated boot/play IDs plus presentation/evidence IDs are carried in USB records and checked for consistency by `xtask pico verify`; no physical transcript is recorded | live session verifies exact provider instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | no |
 | Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal evidence, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
-| Connection envelope and session wire formats | allocating fixture envelope plus allocation-stable borrowed live-session protocol | deterministic envelope corpus and session lifecycle/mutation vectors | native binary-only RFC 6455 provider with fixed message bounds | real browser WebSocket API with one-message inbox and explicit send bounds | no | actual loopback socket; Hello/Ready/Offered/Pressure/Accepted/Delivered/InputClosed/Cancelled/Failed/Terminal frames | no |
+| Connection envelope and session wire formats | allocating fixture envelope plus allocation-stable borrowed exact session protocol; framed session eligibility is carrier-neutral across `FixtureFrame` and `WebSocket`, while `Local`, `InMemory`, and `FixtureDatagram` fail closed | deterministic envelope corpus and session lifecycle/mutation/provider-eligibility vectors | native binary-only RFC 6455 provider with fixed message bounds | real browser WebSocket API with one-message inbox and explicit send bounds | no | actual loopback WebSocket socket; `FixtureFrame` is synthetic conformance only, not a production carrier | no |
 | Portable Signal | yes | multi-value fixtures | std kernel pulse source and local stdout/timer paths | browser/WASM kernel show sink with sixteen exact DOM receipts | unchanged Signal form compiles through the Pico-local plan/lowering path into a generated fixed image with the sixteen-value Signal profile and USB receipt path | sixteen ordered values over the bounded WebSocket remote cord | no |
 | Browser manifestation | local and remote-ingress Signal profiles | yes, `conduit-browser-sim` | actual Rust/WASM planner plus exact-plan-lowered `conduit-kernel` execution for local and distributed sink fragments | thin DOM adapter with exact fixed-frame completion correlation and sixteen receipts | no | actual loopback WebSocket to the std kernel source | no |
 | Interactive activation/toggle | typed `interaction/activate -> state/toggle -> presentation/show` contract with admitted input and exact remote planning | deterministic activation/toggle lifecycle and identity negatives | native std source services one admitted stdin activation through the kernel before realizing the corresponding remote offer | pinned Chromium proves the first Enter causes exactly one sequence-0 DOM update before later inputs, then completes sixteen exact presentations with one real pressure retry | no | actual bounded loopback WebSocket with structured link-break failure | no |
@@ -47,6 +47,10 @@ The `check` workflow requires:
   parent-to-child input/output routing, retry pressure, independent closure,
   cancellation/failure translation, terminal evidence, and mutation denial;
 - deterministic wire and simulated-host conformance vectors;
+- carrier-neutral framed-session eligibility vectors proving `FixtureFrame` and
+  `WebSocket` preserve exact provider/provider-instance/link/endpoint identity,
+  while `Local`, `InMemory`, and `FixtureDatagram` remain invalid for the exact
+  remote session contract;
 - one actual Chromium browser-local kernel proof with two independent WASM
   instances, exact source/checked/expanded/plan/fragment/play/request/
   presentation/evidence identities, stable sealed capacity, sixteen ordered
@@ -78,7 +82,9 @@ generated fixed image and a valid USB verifier are also not a board transcript.
 The previously accepted Chromium proof is browser-local and not a live link; the
 suite also includes narrow live loopback std-to-browser Signal and toggle links.
 Those links are not public networks, TLS, discovery, reconnection, or general
-transport claims. Frame/datagram fixtures are not WebSocket or UDP sockets.
+transport claims. A carrier-neutral session contract is likewise not a new
+carrier implementation. Frame/datagram fixtures are not WebSocket or UDP
+sockets.
 
 ## Salvage stop line
 
@@ -222,15 +228,25 @@ plan, selected `PlanFragment`, `LoweredPlanFragment`, and
 fail-closed negatives for mismatched fragment/lowering identity, unsupported
 remote cords, and range/bound overflow.
 
-Current main `aeb6ecbe60edd09ef1ecc516a2e399a904113143` additionally removes
-the synthetic Observatory/Realm/browser/Pico fixture from the production
-`conduct` executable and retains it only as a dedicated integration test with
-dev-scoped dependencies. No PR-triggered exact-head workflow is attached to
-that direct cleanup commit, so it is merged repository state but is not a new
-S4 acceptance verdict.
+Direct commit `aeb6ecbe60edd09ef1ecc516a2e399a904113143` removes the synthetic
+Observatory/Realm/browser/Pico fixture from the production `conduct` executable
+and retains it only as a dedicated integration test with dev-scoped
+dependencies. No PR-triggered exact-head workflow is attached to that direct
+cleanup commit, so it is merged repository state but is not a new S4 acceptance
+verdict.
+
+PR #436 exact head `f911c1d8007608b1db5fece731a998e42a085c28` passed workflow
+`31137116246` and merged as current main
+`82fec9f1b65ff537148244698cd16744416ce8dc`. The exact framed session contract
+is now carrier-neutral at the semantic boundary: `FixtureFrame` and
+`WebSocket` are eligible providers, while `Local`, `InMemory`, and
+`FixtureDatagram` remain invalid. Provider identity, provider-instance identity,
+link binding, host/boot/endpoint identity, payload/frame bounds, pressure,
+delivery, and terminal semantics remain exact. This does not implement a new
+production carrier; WebSocket remains the only proven live carrier.
 
 No physical `just pico` run, CYW43 LED observation, or accepted USB board
 transcript is recorded. No bounded std-to-Pico transport or final unchanged
 three-host stdout/DOM/LED proof exists. Those remain the next #415/#350 S4
-acceptance gates. No UDP, BODY, catalog expansion, Observatory acceptance,
-discovery, TLS, public hosting, or reconnection policy is implied.
+acceptance gates. No UDP, Zenoh, TCP, BODY, catalog expansion, Observatory
+acceptance, discovery, TLS, public hosting, or reconnection policy is implied.
