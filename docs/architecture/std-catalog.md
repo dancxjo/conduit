@@ -1,89 +1,93 @@
-# Small `conduit.std` catalog readiness
+# `conduit.std` catalog truth boundary
 
-This is the M4 baseline for a small standard catalog.
+The current `conduit-std-catalog` crate is a pre-S5 compatibility catalog, not
+an executable standard-library claim. Its eight contracts can be checked and
+their matching offers can be planned, but their optional hosted implementations
+run through `conduit-runtime::HostRuntime`. They do not lower or execute through
+`conduit-kernel`.
 
-The implementation lives in `conduit-std-catalog`. It is a contract catalog,
-not a runtime special case. The crate exposes allocator-backed contracts under
-`no_std`; the optional `form-catalog` feature converts those contracts into the
-existing `conduit-form::ProfileCatalog` for parser/planner conformance. The
-optional `host-profile` feature installs hosted implementations through the
-existing `conduit-runtime::ImplementationRegistry`.
+The authoritative row-by-row audit is the checked-in
+[`std-catalog-truth-inventory.tsv`](std-catalog-truth-inventory.tsv). Each row
+names the exact catalog revision, ports and value kinds, configuration, hosted
+fixture, planning boundary, execution path, proof, platform claim, truth
+classification, and stop line. A test keeps the inventory in one-to-one
+agreement with `standard_contracts()`.
 
-## Initial socket set
+## Audit result
 
-The catalog starts with the M4 candidate set:
+Every current catalog row is classified `misdesigned / needs rearticulation`.
+That result is about these exact revisions, not the worth of the semantic ideas.
+The recurring gaps are:
 
-- `flow/pulse` — Pulse: emit a bounded alternating signal sequence.
-- `presentation/show` — Show: present input values through a host-honest manifestation.
-- `flow/map` — Map: transform one bounded input stream into one bounded output stream.
-- `flow/filter` — Filter: forward only values accepted by a bounded predicate.
-- `flow/tee` — Tee: copy each input value to two bounded output branches.
-- `text/format` — Format text: render input values into bounded text values.
-- `time/tick` — Tick: emit a bounded timer tick sequence.
-- `state/latest` — Latest state: retain the latest input value and emit bounded updates.
+- every port uses `value/any`, so the contract erases distinctions required for
+  exact planning and execution;
+- `flow/map`, `flow/filter`, and `text/format` use numeric selectors that are
+  interpreted by host-side switches rather than binding portable semantic
+  artifacts;
+- several compatibility implementations complete after the first emitted
+  value, so their hosted demonstrations do not prove the advertised stream
+  behavior;
+- `text/format` advertises a generic output even though its label promises
+  text;
+- historical browser and Pico booleans for `flow/pulse` and
+  `presentation/show` conflated these generic revisions with narrower
+  `conduit-signal` contracts; the audited catalog now reports every platform
+  manifestation flag as false.
 
-Each contract declares:
+No catalog kind is classified `kernel-native and proven`, `contract-only`,
+`fixture-only`, or `placeholder`: the architectural defects take precedence as
+the single required classification. The inventory still names the fixture-only
+implementation path explicitly so it cannot be presented as production
+support.
 
-- semantic kind ID;
-- plain-language name and summary;
-- inputs and outputs;
-- configuration fields;
-- capability limits;
-- terminal behavior;
-- whether hosted implementation is required;
-- whether browser/Pico manifestation claims are honest for that kind;
-- a minimal example line.
+## Resulting executable nucleus
 
-## Boundary
+The executable nucleus among the eight audited `conduit.std/*@1` revisions is
+empty. Their matching planner fixtures and `HostRuntime` implementations are
+not production support.
 
-`conduit-std-catalog` does not modify `conduit-runtime`. Adding these kinds is
-represented by installing profile contracts and hosted operation implementations
-through the existing runtime implementation registry.
+This does not mean S5 starts without evidence. The narrower profiles below have
+already earned relevant kernel behavior, but S5 must deliberately adopt or
+rearticulate an exact contract instead of transferring proof by semantic kind
+name. The strongest inputs are typed `flow/pulse` and `presentation/show` over
+`value/signal`, plus typed `time/tick`, `flow/tee`, `state/latest`, and
+`presentation/show` over `value/tick@1`. The generic `flow/map`, `flow/filter`,
+and `text/format` rows are not nucleus candidates; concrete operations such as
+`text/uppercase` avoid their numeric-selector ambiguity.
 
-The default hosted profile provides bounded implementations for all eight
-catalog kinds:
+## Existing proof that must remain separate
 
-- `flow/pulse` and `time/tick` emit bounded numeric values and complete after
-  the configured count.
-- `flow/map` forwards one accepted value in the default hosted implementation.
-- `flow/filter` forwards all values for predicate `0`; other predicates keep
-  even numeric values.
-- `flow/tee` relies on the host's existing multi-output connection delivery to
-  copy a value to both branches.
-- `text/format` emits bounded UTF-8 bytes such as `value:0`.
-- `state/latest` stores and emits the most recent value, then clears retained
-  state on release.
-- `presentation/show` requests a host presentation and completes once the host
-  reports that presentation as successful.
+Some semantic kind IDs also appear in narrower, current profiles:
 
-The executable std profile uses the generic `value/any` wire kind. The stricter
-signal-specific browser/Pico manifestation profile remains in `conduit-signal`;
-the std catalog does not claim browser or Pico implementations for the generic
-flow/map, flow/filter, flow/tee, text/format, time/tick, or state/latest kinds.
+- `conduit-signal` defines typed `value/signal` revisions for `flow/pulse` and
+  `presentation/show`, with std, browser, and Pico kernel/platform proofs at the
+  proof classes recorded in `STATUS.md`.
+- `hosts/std::kernel_multivalue` defines typed `value/tick@1` revisions for
+  `time/tick`, `flow/tee`, `flow/filter-even`, `state/latest`, and
+  `presentation/show`, with bounded hosted kernel conformance.
 
-The current form grammar supports shorthand connections for one-output to
-one-input operations and explicit port selections such as
-`split.left -> latest.in` and `split.right -> format.in`.
+Those profiles differ in contract revision and exact port types. Their proof is
+useful input to rearticulation, but it does not promote a
+`conduit.std/*@1`/`value/any` row.
 
-## Executable conformance receipts
+## S5 stop line
 
-The crate tests three UI-independent hosted forms through `HostRuntime`:
+This audit adds no kinds and changes no parser, planner, runtime, kernel, or
+platform semantics. S5 should rearticulate one concrete kind per reviewed pull
+request, beginning with the sequence owned by issue #353. Each promoted item
+must bind exact typed ports, limits, lifecycle and terminal behavior to an
+installed implementation that plans, lowers, executes, and records evidence
+through `conduit-kernel`.
 
-- `flow/pulse -> presentation/show`
-- `time/tick -> text/format -> presentation/show`
-- `time/tick -> flow/map -> flow/filter -> flow/tee`, with one branch to
-  `state/latest -> presentation/show` and the other to
-  `text/format -> presentation/show`
+The compatibility catalog and its `HostRuntime` receipts may remain as
+historical fixtures until a separately owned cleanup removes or fences them.
+They must not be used in generated/status-facing output as evidence of current
+standard-library support.
 
-These receipts exercise the same host protocol used by other profiles:
-advertisement, planning, preparation, activation, bounded local delivery,
-presentation completion, placement terminals, connection terminals, and a
-completed plan terminal observation.
-
-## Checkpoint commands
+## Audit checks
 
 ```text
+cargo test -p conduit-std-catalog --test truth_inventory
 cargo test -p conduit-std-catalog
 cargo check -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
-just check-std-catalog-readiness
 ```
