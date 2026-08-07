@@ -76,14 +76,14 @@ impl<R: Read, W: Write> NativeUsbCdcCarrier<R, W> {
     }
 
     pub fn send_frame(&mut self, frame: &SessionFrame<'_>) -> Result<(), NativeUsbCdcError> {
-        let mut wire_buf = [0u8; 1024];
+        let mut wire_buf = [0u8; 2048];
         let frame_len = encode_session_frame_into(
             *frame,
             &mut wire_buf[2..],
             self.maximum_frame_bytes as u32,
             self.maximum_frame_bytes as u32,
         )?;
-        let mut framed_buf = [0u8; 1026];
+        let mut framed_buf = [0u8; 2048];
         let total_bytes = encode_stream_frame(
             &wire_buf[2..2 + frame_len],
             self.maximum_frame_bytes,
