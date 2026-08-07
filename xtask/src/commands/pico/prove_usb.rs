@@ -212,12 +212,35 @@ pub fn run_prove_std_pico_usb(
         }),
     };
 
-    carrier.send_frame(&hello)?;
+    println!("==> Initiating SessionMachine handshake over USB CDC 0...");
     let mut frame_buf = [0u8; 512];
-    let ready_res = carrier.receive_frame(&mut frame_buf)?;
-    if !matches!(ready_res.message, SessionMessage::Ready) {
-        return Err("expected Ready session response from Pico W".into());
+    let mut handshake_ok = false;
+    for attempt in 1..=10 {
+        let _ = carrier.send_frame(&hello);
+        let start = Instant::now();
+        while start.elapsed() < Duration::from_millis(500) {
+            if let Ok(res) = carrier.receive_frame(&mut frame_buf) {
+                if matches!(res.message, SessionMessage::Ready) {
+                    handshake_ok = true;
+                    break;
+                }
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        if handshake_ok {
+            break;
+        }
+        println!(
+            "  [handshake retry {}/10] Resending SessionFrame::Hello...",
+            attempt
+        );
     }
+
+    if !handshake_ok {
+        return Err("timed out waiting for SessionMessage::Ready from Pico W".into());
+    }
+
+    println!("==> SessionMachine handshake complete (Ready received)");
 
     if interactive {
         println!("\n===============================================================");
