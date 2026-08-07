@@ -281,6 +281,7 @@ fn pico_signal_bounds() -> EmbeddedImageBounds {
         maximum_evidence_expectations: 8,
         maximum_configuration_entries: 3,
         maximum_ports_per_node: conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE,
+        maximum_remote_endpoints: 1,
         maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         maximum_cord_value_bytes: SIGNAL_ENCODED_LEN,
         maximum_evidence_items: 16,

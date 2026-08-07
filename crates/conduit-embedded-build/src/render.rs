@@ -4,8 +4,8 @@ use conduit_core::{CancellationPolicy, TerminalPolicy};
 use conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
 
 use crate::model::{
-    GeneratedConfigurationEntry, GeneratedConfigurationValue, GeneratedEmbeddedPlan,
-    GeneratedEvidenceTarget, GeneratedPort, GeneratedStaticNode,
+    GeneratedConfigurationEntry, GeneratedConfigurationValue, GeneratedCordEndpoint,
+    GeneratedEmbeddedPlan, GeneratedEvidenceTarget, GeneratedPort, GeneratedStaticNode,
 };
 
 impl GeneratedEmbeddedPlan {
@@ -62,6 +62,7 @@ impl GeneratedEmbeddedPlan {
         render_ports(&mut output, "GENERATED_OUTPUT_PORTS", &self.output_ports);
         render_configuration(&mut output, &self.configuration);
         render_cords(&mut output, self);
+        render_remote_endpoints(&mut output, self);
         render_routes(&mut output, self);
         render_host_operations(&mut output, self);
         render_resources(&mut output, self);
@@ -130,6 +131,7 @@ impl GeneratedEmbeddedPlan {
         render_ports(&mut output, "GENERATED_OUTPUT_PORTS", &self.output_ports);
         render_no_alloc_configuration(&mut output, &self.configuration);
         render_cords(&mut output, self);
+        render_remote_endpoints(&mut output, self);
         render_routes(&mut output, self);
         render_host_operations(&mut output, self);
         render_resources(&mut output, self);
@@ -236,14 +238,28 @@ fn render_cords(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     )
     .expect("String writes cannot fail");
     for cord in &plan.cords {
+        let source = match cord.source {
+            GeneratedCordEndpoint::Local { node, port } => format!(
+                "conduit_kernel::CordEndpoint::local(conduit_kernel::NodeId({node}), conduit_kernel::PortId({port}))"
+            ),
+            GeneratedCordEndpoint::Remote { endpoint } => format!(
+                "conduit_kernel::CordEndpoint::Remote(conduit_kernel::RemoteEndpointId({endpoint}))"
+            ),
+        };
+        let sink = match cord.sink {
+            GeneratedCordEndpoint::Local { node, port } => format!(
+                "conduit_kernel::CordEndpoint::local(conduit_kernel::NodeId({node}), conduit_kernel::PortId({port}))"
+            ),
+            GeneratedCordEndpoint::Remote { endpoint } => format!(
+                "conduit_kernel::CordEndpoint::Remote(conduit_kernel::RemoteEndpointId({endpoint}))"
+            ),
+        };
         writeln!(
             output,
-            "    conduit_kernel::scheduler::CordSpec::local(conduit_kernel::CordId({}), (conduit_kernel::NodeId({}), conduit_kernel::PortId({})), (conduit_kernel::NodeId({}), conduit_kernel::PortId({})), conduit_kernel::scheduler::CordCapacity {{ slot_start: {}, item_capacity: {}, byte_capacity: {} }}),",
+            "    conduit_kernel::scheduler::CordSpec {{ cord: conduit_kernel::CordId({}), source: {}, sink: {}, slot_start: {}, item_capacity: {}, byte_capacity: {} }},",
             cord.cord,
-            cord.source_node,
-            cord.source_port,
-            cord.sink_node,
-            cord.sink_port,
+            source,
+            sink,
             cord.slot_start,
             cord.item_capacity,
             cord.byte_capacity
@@ -536,4 +552,56 @@ fn render_no_alloc_configuration(
 fn render_kind_subject(output: &mut String, kind: &str, subject: Option<&str>) {
     let subject = subject.map_or_else(|| "None".to_owned(), |value| format!("Some({value:?})"));
     writeln!(output, "    ({kind:?}, {subject}),").expect("String writes cannot fail");
+}
+
+fn render_remote_endpoints(output: &mut String, plan: &GeneratedEmbeddedPlan) {
+    writeln!(
+        output,
+        "pub const GENERATED_REMOTE_ENDPOINT_COUNT: usize = {};",
+        plan.remote_endpoints.len()
+    )
+    .expect("String writes cannot fail");
+
+    render_string_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_CONNECTION_IDS",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.connection_id.as_str()),
+    );
+    render_string_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_SOURCE_FRAGMENT_IDS",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.source_fragment_id.as_str()),
+    );
+    render_string_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_SINK_FRAGMENT_IDS",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.sink_fragment_id.as_str()),
+    );
+    render_string_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.link_binding_id.as_str()),
+    );
+    render_string_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_PROVIDER_INSTANCE_IDS",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.provider_instance_id.as_str()),
+    );
+    render_string_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_VALUE_KINDS",
+        plan.remote_endpoints
+            .iter()
+            .map(|re| re.value_kind.as_str()),
+    );
 }
