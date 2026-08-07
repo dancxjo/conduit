@@ -87,8 +87,8 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             limits: limits(16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesAfterConfiguredCount,
             hosted_implementation_required: true,
-            browser_manifestation_honest: true,
-            pico_manifestation_honest: true,
+            browser_manifestation_honest: false,
+            pico_manifestation_honest: false,
             example: "pulse: flow/pulse".to_string(),
         },
         StandardKindContract {
@@ -101,8 +101,8 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             limits: limits(16, 4, 64),
             terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
             hosted_implementation_required: true,
-            browser_manifestation_honest: true,
-            pico_manifestation_honest: true,
+            browser_manifestation_honest: false,
+            pico_manifestation_honest: false,
             example: "show: presentation/show".to_string(),
         },
         StandardKindContract {
@@ -577,20 +577,9 @@ mod tests {
     #[test]
     fn platform_manifestation_truth_is_explicit() {
         let contracts = standard_contracts();
-        let show = contracts
-            .iter()
-            .find(|contract| contract.kind_id.as_str() == SHOW_KIND)
-            .expect("show contract exists");
-        assert!(show.browser_manifestation_honest);
-        assert!(show.pico_manifestation_honest);
-        for contract in contracts
-            .iter()
-            .filter(|contract| contract.kind_id.as_str() != SHOW_KIND)
-        {
-            if contract.kind_id.as_str() != PULSE_KIND {
-                assert!(!contract.browser_manifestation_honest);
-                assert!(!contract.pico_manifestation_honest);
-            }
+        for contract in contracts {
+            assert!(!contract.browser_manifestation_honest);
+            assert!(!contract.pico_manifestation_honest);
         }
     }
 
