@@ -13,8 +13,10 @@ use embassy_usb::class::cdc_acm::CdcAcmClass;
 use super::usb::PicoUsbCdcCarrier;
 use crate::receipts::UsbEvidenceError;
 
+#[allow(dead_code)]
 pub type UsbLinkResult<T> = Result<T, UsbLinkError>;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum UsbLinkError {
     UsbDisconnected,
@@ -34,6 +36,7 @@ pub enum UsbLinkError {
 }
 
 impl UsbLinkError {
+    #[allow(dead_code)]
     pub const fn code(&self) -> &'static str {
         match self {
             Self::UsbDisconnected => "usb-disconnected",
@@ -91,6 +94,7 @@ impl UsbLinkSession {
     }
 
     /// Receive the next framed SessionFrame from the USB CDC ACM link.
+    #[allow(dead_code)]
     pub async fn receive_frame<'a>(
         &mut self,
         frame_buf: &'a mut [u8],
@@ -121,6 +125,7 @@ impl UsbLinkSession {
     }
 
     /// Send a SessionFrame over the USB CDC ACM link using length-prefixed framing.
+    #[allow(dead_code)]
     pub async fn send_frame(&mut self, frame: &SessionFrame<'_>) -> Result<(), UsbLinkError> {
         let mut wire_buf = [0u8; 2048];
         let frame_len = encode_session_frame_into(*frame, &mut wire_buf[2..], 1024, 1024)?;

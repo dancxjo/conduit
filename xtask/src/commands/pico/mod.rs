@@ -32,35 +32,35 @@ pub struct PicoArgs {
     pub dry_run: bool,
 
     /// Build firmware only; do not flash or verify.
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub build_only: bool,
 
     /// Explicit BOOTSEL mount point (overrides auto-discovery and PICO_W_MOUNT).
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub mount: Option<String>,
 
     /// Explicit USB CDC serial port (overrides auto-discovery and PICO_W_PORT).
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub port: Option<String>,
 
     /// Explicit CDC 0 link port used for the BOOTSEL reboot request.
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub link_port: Option<String>,
 
     /// Verify firmware build but skip flashing and live hardware check.
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub verify: bool,
 
     /// Build or flash the explicit std-to-Pico USB remote image.
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub usb_remote: bool,
 
     /// Build or flash the final exact three-host remote sink image.
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub triple_remote: bool,
 
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub refresh_radio_assets: bool,
 }
 

@@ -20,9 +20,13 @@ pub const ROUTE_TARGETS: usize = generated_signal::GENERATED_ROUTE_TARGETS.len()
 pub const HOST_BINDING_SLOTS: usize = generated_signal::GENERATED_HOST_OPERATIONS.len();
 pub const PENDING_REQUESTS: usize = generated_signal::GENERATED_HOST_OPERATIONS.len();
 
+#[allow(dead_code)]
 pub const MAX_STORED_SIGNAL_VALUES: usize = generated_signal::MAX_STORED_SIGNAL_VALUES;
+#[allow(dead_code)]
 pub const MAX_STORED_WAIT_VALUES: usize = MAX_STORED_SIGNAL_VALUES - 1;
+#[allow(dead_code)]
 pub const VALUE_SLOTS: usize = MAX_STORED_SIGNAL_VALUES + MAX_STORED_WAIT_VALUES;
+#[allow(dead_code)]
 pub const WAIT_VALUE_BYTES: u32 = generated_signal::WAIT_VALUE_BYTES;
 pub const RUNTIME_EVIDENCE_EVENTS: usize = generated_signal::RUNTIME_EVIDENCE_EVENTS;
 pub const RUNTIME_EVIDENCE_BYTES: u32 =
@@ -40,6 +44,7 @@ pub const FIRMWARE_BUILD_ID: &str = generated_signal::FIRMWARE_BUILD_ID;
 pub const BOOT_EVIDENCE_ID: &str = generated_signal::BOOT_EVIDENCE_ID;
 pub const TERMINAL_EVIDENCE_ID: &str = generated_signal::TERMINAL_EVIDENCE_ID;
 
+#[allow(dead_code)]
 const WAIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/wait@1";
 const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
 
@@ -117,6 +122,7 @@ fn maximum_host_operations_per_node() -> u16 {
     maximum
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub struct SignalLayout {
     pub pulse_node: NodeId,
@@ -128,6 +134,7 @@ pub struct SignalLayout {
     pub configuration: SignalConfiguration,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub struct SignalConfiguration {
     pub count: usize,
@@ -135,6 +142,7 @@ pub struct SignalConfiguration {
     pub initial_level: bool,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub struct RemoteSignalLayout {
     pub show_node: NodeId,
@@ -142,6 +150,7 @@ pub struct RemoteSignalLayout {
     pub present_operation: HostOperationId,
 }
 
+#[allow(dead_code)]
 pub fn remote_signal_layout() -> Option<RemoteSignalLayout> {
     let show_node = generated_node_for_kind(SHOW_KIND)?;
     Some(RemoteSignalLayout {
@@ -151,6 +160,7 @@ pub fn remote_signal_layout() -> Option<RemoteSignalLayout> {
     })
 }
 
+#[allow(dead_code)]
 pub fn signal_layout() -> Option<SignalLayout> {
     let pulse_node = generated_node_for_kind(PULSE_KIND)?;
     let show_node = generated_node_for_kind(SHOW_KIND)?;
@@ -193,6 +203,7 @@ fn generated_host_operation(node: NodeId, contract_id: &str) -> Option<HostOpera
         .map(|((_, binding), _)| binding.operation)
 }
 
+#[allow(dead_code)]
 fn generated_signal_configuration(pulse_node: NodeId) -> Option<SignalConfiguration> {
     let mut count = None;
     let mut period_ms = None;
@@ -228,12 +239,14 @@ fn generated_signal_configuration(pulse_node: NodeId) -> Option<SignalConfigurat
     })
 }
 
+#[allow(dead_code)]
 pub fn value_store_bytes(count: usize) -> u32 {
     let signal_bytes = count as u32 * SIGNAL_ENCODED_LEN;
     let wait_bytes = count.saturating_sub(1) as u32 * WAIT_VALUE_BYTES;
     signal_bytes + wait_bytes
 }
 
+#[allow(dead_code)]
 pub fn decode_wait_ms(bytes: &[u8]) -> Option<u64> {
     if bytes.len() != WAIT_VALUE_BYTES as usize {
         return None;
@@ -243,12 +256,14 @@ pub fn decode_wait_ms(bytes: &[u8]) -> Option<u64> {
     Some(u64::from_le_bytes(encoded))
 }
 
+#[allow(dead_code)]
 pub const EMPTY_VALUE_REF: ValueRef = ValueRef {
     slot: 0,
     generation: 0,
     byte_len: 0,
 };
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub struct RemoteEndpointIdentity {
     pub endpoint: RemoteEndpointId,
@@ -272,6 +287,7 @@ pub struct RemoteEndpointIdentity {
     pub maximum_frame_bytes: u32,
 }
 
+#[allow(dead_code)]
 pub fn generated_remote_endpoint() -> Option<RemoteEndpointIdentity> {
     if generated_signal::GENERATED_REMOTE_ENDPOINT_COUNT != 1 {
         return None;

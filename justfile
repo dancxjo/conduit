@@ -61,6 +61,10 @@ toggle:
 prove-std-browser-toggle:
     cargo xtask prove std-browser-toggle
 
+# Live hardware std-kernel to Pico W USB-CDC signal proof.
+prove-std-pico-usb *args:
+    cargo xtask prove std-pico-usb {{args}}
+
 check-kernel-s1:
     cargo xtask check kernel-takeover
 
@@ -102,14 +106,20 @@ pico-local *args:
 pico-doctor:
     cargo xtask pico doctor
 
-pico-build:
-    cargo xtask pico build
+pico-build *args:
+    cargo xtask pico build {{args}}
 
-pico-flash:
-    cargo xtask pico flash
+pico-flash *args:
+    cargo xtask pico flash {{args}}
 
-pico-verify:
-    cargo xtask pico verify
+pico-verify *args:
+    cargo xtask pico verify {{args}}
+
+pico-build-remote *args:
+    cargo xtask pico build --usb-remote {{args}}
+
+pico-flash-remote *args:
+    cargo xtask pico flash --usb-remote {{args}}
 
 pico-local-run:
     cargo xtask pico local
