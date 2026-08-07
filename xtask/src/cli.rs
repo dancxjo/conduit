@@ -111,6 +111,8 @@ pub struct DemoArgs {
 pub enum DemoCommand {
     /// Run the S4 distributed toggle proof interactively.
     Toggle,
+    /// Run the polished Conduit homepage on the real browser-host path.
+    Site,
 }
 
 #[derive(Args, Debug)]
@@ -173,6 +175,15 @@ mod tests {
             toggle.command,
             Command::Demo(DemoArgs {
                 command: DemoCommand::Toggle
+            })
+        ));
+
+        let site =
+            Cli::try_parse_from(["xtask", "demo", "site"]).expect("demo site command parses");
+        assert!(matches!(
+            site.command,
+            Command::Demo(DemoArgs {
+                command: DemoCommand::Site
             })
         ));
 
