@@ -626,6 +626,7 @@ pub enum SchedulerStatus {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SchedulerError {
     InvalidPlan,
+    InvalidActiveCapacity,
     InvalidPortAccess,
     InvalidHostOperationAccess,
     OutputBlocked,
@@ -710,6 +711,8 @@ pub struct FixedScheduler<
 {
     node_specs: [NodeSpec<PORTS>; NODES],
     cord_specs: [CordSpec; CORDS],
+    active_nodes: usize,
+    active_cords: usize,
     routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
     host_bindings: Option<FixedHostOperationBindings<HOST_BINDING_SLOTS>>,
     pending_host_operations: [Option<PendingHostOperation>; PENDING_REQUESTS],
@@ -765,10 +768,37 @@ where
         values: S,
         evidence: E,
     ) -> Result<Self, SchedulerError> {
-        if NODES == 0 || CORDS == 0 || PORTS == 0 || QUEUE_SLOTS == 0 || !routes.is_sealed() {
+        if NODES == 0 || CORDS == 0 {
             return Err(SchedulerError::InvalidPlan);
         }
+        Self::new_with_active_counts(
+            NODES, CORDS, node_specs, cord_specs, routes, drivers, values, evidence,
+        )
+    }
+
+    /// Installs an admitted topology prefix inside the compile-time capacity.
+    /// Slots outside the active counts remain inert for the scheduler lifetime.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_with_active_counts(
+        active_nodes: usize,
+        active_cords: usize,
+        node_specs: [NodeSpec<PORTS>; NODES],
+        cord_specs: [CordSpec; CORDS],
+        routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
+        drivers: [D; NODES],
+        values: S,
+        evidence: E,
+    ) -> Result<Self, SchedulerError> {
+        if active_nodes == 0 || active_nodes > NODES || active_cords == 0 || active_cords > CORDS {
+            return Err(SchedulerError::InvalidActiveCapacity);
+        }
+        if PORTS == 0 || QUEUE_SLOTS == 0 || !routes.is_sealed() {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        routes.validate_active_prefix(active_nodes, active_cords)?;
         validate_plan::<NODES, CORDS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS>(
+            active_nodes,
+            active_cords,
             &node_specs,
             &cord_specs,
             &routes,
@@ -776,6 +806,8 @@ where
         Ok(Self {
             node_specs,
             cord_specs,
+            active_nodes,
+            active_cords,
             routes,
             host_bindings: None,
             pending_host_operations: [None; PENDING_REQUESTS],
@@ -784,7 +816,7 @@ where
             evidence,
             cords: [CordState::EMPTY; CORDS],
             queue_slots: [None; QUEUE_SLOTS],
-            ready: [true; NODES],
+            ready: core::array::from_fn(|node| node < active_nodes),
             completed: [false; NODES],
             cursor: 0,
             decisions: 0,
@@ -802,10 +834,53 @@ where
         values: S,
         evidence: E,
     ) -> Result<Self, SchedulerError> {
+        if NODES == 0 || CORDS == 0 {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        Self::new_with_active_counts_and_host_operations(
+            NODES,
+            CORDS,
+            node_specs,
+            cord_specs,
+            routes,
+            host_bindings,
+            drivers,
+            values,
+            evidence,
+        )
+    }
+
+    /// Installs an admitted topology prefix and its sealed host-operation table
+    /// inside the compile-time capacities.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_with_active_counts_and_host_operations(
+        active_nodes: usize,
+        active_cords: usize,
+        node_specs: [NodeSpec<PORTS>; NODES],
+        cord_specs: [CordSpec; CORDS],
+        routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
+        host_bindings: FixedHostOperationBindings<HOST_BINDING_SLOTS>,
+        drivers: [D; NODES],
+        values: S,
+        evidence: E,
+    ) -> Result<Self, SchedulerError> {
+        if active_nodes == 0 || active_nodes > NODES || active_cords == 0 || active_cords > CORDS {
+            return Err(SchedulerError::InvalidActiveCapacity);
+        }
         if PENDING_REQUESTS == 0 || !host_bindings.is_sealed() {
             return Err(SchedulerError::InvalidPlan);
         }
-        let mut scheduler = Self::new(node_specs, cord_specs, routes, drivers, values, evidence)?;
+        host_bindings.validate_active_nodes(active_nodes)?;
+        let mut scheduler = Self::new_with_active_counts(
+            active_nodes,
+            active_cords,
+            node_specs,
+            cord_specs,
+            routes,
+            drivers,
+            values,
+            evidence,
+        )?;
         scheduler.host_bindings = Some(host_bindings);
         Ok(scheduler)
     }
@@ -815,8 +890,12 @@ where
             return Ok(SchedulerStatus::Cancelled);
         }
         let Some(node) = self.next_ready() else {
-            return if self.completed.iter().all(|value| *value)
-                && self.cords.iter().all(|cord| cord.len == 0)
+            return if self.completed[..self.active_nodes]
+                .iter()
+                .all(|value| *value)
+                && self.cords[..self.active_cords]
+                    .iter()
+                    .all(|cord| cord.len == 0)
             {
                 Ok(SchedulerStatus::Complete)
             } else {
@@ -836,7 +915,12 @@ where
             return Err(fault);
         }
         self.apply_step(node, outcome, io)?;
-        if self.completed.iter().all(|value| *value) && self.cords.iter().all(|cord| cord.len == 0)
+        if self.completed[..self.active_nodes]
+            .iter()
+            .all(|value| *value)
+            && self.cords[..self.active_cords]
+                .iter()
+                .all(|cord| cord.len == 0)
         {
             Ok(SchedulerStatus::Complete)
         } else {
@@ -878,6 +962,9 @@ where
     }
 
     pub fn cord_usage(&self, cord: CordId) -> Result<(u16, u32), SchedulerError> {
+        if usize::from(cord.0) >= self.active_cords {
+            return Err(SchedulerError::InvalidPlan);
+        }
         let state = self
             .cords
             .get(usize::from(cord.0))
@@ -897,6 +984,9 @@ where
             return Err(SchedulerError::Cancelled);
         }
         let cord_index = usize::from(cord.0);
+        if cord_index >= self.active_cords {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
         let spec = *self
             .cord_specs
             .get(cord_index)
@@ -942,6 +1032,9 @@ where
             return Err(SchedulerError::Cancelled);
         }
         let cord_index = usize::from(cord.0);
+        if cord_index >= self.active_cords {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
         let spec = *self
             .cord_specs
             .get(cord_index)
@@ -987,6 +1080,9 @@ where
             return Err(SchedulerError::RemoteDeliveryRejected);
         }
         let cord_index = usize::from(cord.0);
+        if cord_index >= self.active_cords {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
         let spec = *self
             .cord_specs
             .get(cord_index)
@@ -1041,6 +1137,9 @@ where
             return Err(SchedulerError::Cancelled);
         }
         let cord_index = usize::from(cord.0);
+        if cord_index >= self.active_cords {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
         let spec = *self
             .cord_specs
             .get(cord_index)
@@ -1096,6 +1195,9 @@ where
             return Err(SchedulerError::Cancelled);
         }
         let cord_index = usize::from(cord.0);
+        if cord_index >= self.active_cords {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
         let spec = *self
             .cord_specs
             .get(cord_index)
@@ -1129,6 +1231,9 @@ where
         cord: CordId,
     ) -> Result<bool, SchedulerError> {
         let cord_index = usize::from(cord.0);
+        if cord_index >= self.active_cords {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
         let spec = *self
             .cord_specs
             .get(cord_index)
@@ -1163,6 +1268,9 @@ where
         outcome: HostOperationOutcome,
     ) -> Result<(), SchedulerError> {
         if self.cancelled {
+            return Err(SchedulerError::HostOperationCompletionRejected);
+        }
+        if usize::from(node.0) >= self.active_nodes {
             return Err(SchedulerError::HostOperationCompletionRejected);
         }
         let slot = self
@@ -1262,7 +1370,7 @@ where
             None,
             KernelEventKind::CancellationRequested,
         )?;
-        for (node, driver) in self.drivers.iter_mut().enumerate() {
+        for (node, driver) in self.drivers[..self.active_nodes].iter_mut().enumerate() {
             if !self.completed[node] {
                 driver.cancel();
             }
@@ -1270,7 +1378,7 @@ where
         self.values.clear();
         self.pending_host_operations.fill(None);
         self.queue_slots.fill(None);
-        for cord in &mut self.cords {
+        for cord in &mut self.cords[..self.active_cords] {
             cord.head = 0;
             cord.len = 0;
             cord.queued_bytes = 0;
@@ -1286,8 +1394,8 @@ where
     }
 
     fn next_ready(&mut self) -> Option<usize> {
-        for offset in 0..NODES {
-            let node = (self.cursor + offset) % NODES;
+        for offset in 0..self.active_nodes {
+            let node = (self.cursor + offset) % self.active_nodes;
             let waiting_for_host_completion =
                 self.pending_host_operations
                     .iter()
@@ -1296,7 +1404,7 @@ where
                         usize::from(pending.request.node.0) == node && pending.completion.is_none()
                     });
             if self.ready[node] && !self.completed[node] && !waiting_for_host_completion {
-                self.cursor = (node + 1) % NODES;
+                self.cursor = (node + 1) % self.active_nodes;
                 return Some(node);
             }
         }
@@ -2045,11 +2153,13 @@ fn validate_plan<
     const ROUTE_SLOTS: usize,
     const ROUTE_TARGETS: usize,
 >(
+    active_nodes: usize,
+    active_cords: usize,
     nodes: &[NodeSpec<PORTS>; NODES],
     cords: &[CordSpec; CORDS],
     routes: &FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
 ) -> Result<(), SchedulerError> {
-    for (node_index, node) in nodes.iter().enumerate() {
+    for (node_index, node) in nodes[..active_nodes].iter().enumerate() {
         if node.maximum_step_work == 0 {
             return Err(SchedulerError::InvalidPlan);
         }
@@ -2059,6 +2169,7 @@ fn validate_plan<
             };
             let spec = cords
                 .get(usize::from(cord.0))
+                .filter(|_| usize::from(cord.0) < active_cords)
                 .ok_or(SchedulerError::InvalidPlan)?;
             if spec.sink_local() != Some((NodeId(as_u16(node_index)?), PortId(as_u16(port)?))) {
                 return Err(SchedulerError::InvalidPlan);
@@ -2072,7 +2183,10 @@ fn validate_plan<
             let mut seen = [false; CORDS];
             for target in targets {
                 let cord = usize::from(target.cord.0);
-                let spec = cords.get(cord).ok_or(SchedulerError::InvalidPlan)?;
+                let spec = cords
+                    .get(cord)
+                    .filter(|_| cord < active_cords)
+                    .ok_or(SchedulerError::InvalidPlan)?;
                 if seen[cord]
                     || spec.source_local()
                         != Some((NodeId(as_u16(node_index)?), PortId(as_u16(port)?)))
@@ -2084,7 +2198,7 @@ fn validate_plan<
             }
         }
     }
-    for (cord_index, cord) in cords.iter().copied().enumerate() {
+    for (cord_index, cord) in cords[..active_cords].iter().copied().enumerate() {
         if usize::from(cord.cord.0) != cord_index
             || cord.item_capacity == 0
             || cord.byte_capacity == 0
@@ -2102,8 +2216,8 @@ fn validate_plan<
                     port: sink_port,
                 },
             ) => {
-                if usize::from(source_node.0) >= NODES
-                    || usize::from(sink_node.0) >= NODES
+                if usize::from(source_node.0) >= active_nodes
+                    || usize::from(sink_node.0) >= active_nodes
                     || usize::from(source_port.0) >= PORTS
                     || usize::from(sink_port.0) >= PORTS
                 {
@@ -2117,7 +2231,8 @@ fn validate_plan<
                 },
                 CordEndpoint::Remote(_),
             ) => {
-                if usize::from(source_node.0) >= NODES || usize::from(source_port.0) >= PORTS {
+                if usize::from(source_node.0) >= active_nodes || usize::from(source_port.0) >= PORTS
+                {
                     return Err(SchedulerError::InvalidPlan);
                 }
             }
@@ -2128,7 +2243,7 @@ fn validate_plan<
                     port: sink_port,
                 },
             ) => {
-                if usize::from(sink_node.0) >= NODES || usize::from(sink_port.0) >= PORTS {
+                if usize::from(sink_node.0) >= active_nodes || usize::from(sink_port.0) >= PORTS {
                     return Err(SchedulerError::InvalidPlan);
                 }
             }

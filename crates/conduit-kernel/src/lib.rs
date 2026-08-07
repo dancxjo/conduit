@@ -272,6 +272,19 @@ impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
         self.sealed
     }
 
+    pub(crate) fn validate_active_nodes(&self, active_nodes: usize) -> Result<(), ProtocolError> {
+        if !self.sealed || self.maximum_operations_per_node == 0 {
+            return Err(ProtocolError::HostOperationTableInvalid);
+        }
+        let operations_per_node = usize::from(self.maximum_operations_per_node);
+        for (slot, binding) in self.bindings.iter().enumerate() {
+            if binding.is_some() && slot / operations_per_node >= active_nodes {
+                return Err(ProtocolError::HostOperationTableInvalid);
+            }
+        }
+        Ok(())
+    }
+
     fn slot(&self, node: NodeId, operation: HostOperationId) -> Result<usize, ProtocolError> {
         if operation.0 >= self.maximum_operations_per_node {
             return Err(ProtocolError::HostOperationMissing);
@@ -385,6 +398,46 @@ impl<const ROUTE_SLOTS: usize, const TARGETS: usize> FixedRoutes<ROUTE_SLOTS, TA
 
     pub const fn is_sealed(&self) -> bool {
         self.sealed
+    }
+
+    pub(crate) fn validate_active_prefix(
+        &self,
+        active_nodes: usize,
+        active_cords: usize,
+    ) -> Result<(), ProtocolError> {
+        if !self.sealed || self.maximum_ports_per_node == 0 {
+            return Err(ProtocolError::RouteTableInvalid);
+        }
+        let ports_per_node = usize::from(self.maximum_ports_per_node);
+        for (slot, range) in self.ranges.iter().enumerate() {
+            let Some(range) = range else {
+                continue;
+            };
+            if slot / ports_per_node >= active_nodes {
+                return Err(ProtocolError::RouteTableInvalid);
+            }
+            let start = usize::from(range.start);
+            let end = start
+                .checked_add(usize::from(range.len))
+                .ok_or(ProtocolError::RouteTargetExceeded)?;
+            for target in self
+                .targets
+                .get(start..end)
+                .ok_or(ProtocolError::RouteTargetExceeded)?
+                .iter()
+                .flatten()
+            {
+                if usize::from(target.cord.0) >= active_cords
+                    || match target.sink {
+                        CordEndpoint::Local { node, .. } => usize::from(node.0) >= active_nodes,
+                        CordEndpoint::Remote(_) => false,
+                    }
+                {
+                    return Err(ProtocolError::RouteTableInvalid);
+                }
+            }
+        }
+        Ok(())
     }
 
     fn slot(&self, node: NodeId, port: PortId) -> Result<usize, ProtocolError> {
