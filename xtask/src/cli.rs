@@ -74,6 +74,18 @@ pub enum CheckSuite {
 pub struct ProveArgs {
     /// Which proof suite to execute.
     pub proof: ProveTarget,
+
+    /// Explicit USB CDC link port (CDC 0).
+    #[arg(long)]
+    pub link_port: Option<String>,
+
+    /// Explicit USB CDC evidence port (CDC 1).
+    #[arg(long)]
+    pub evidence_port: Option<String>,
+
+    /// Run interactive button console control mode.
+    #[arg(long)]
+    pub interactive: bool,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,6 +93,7 @@ pub enum ProveTarget {
     StdBrowserS4,
     StdBrowserToggle,
     BrowserHost,
+    StdPicoUsb,
 }
 
 #[derive(Args, Debug)]

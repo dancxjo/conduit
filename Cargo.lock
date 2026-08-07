@@ -685,6 +685,10 @@ name = "xtask"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "conduit-core",
+ "conduit-signal",
+ "conduit-std-host",
+ "conduit-wire",
  "serde",
  "serde_json",
 ]

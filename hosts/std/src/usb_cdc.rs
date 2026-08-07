@@ -29,6 +29,21 @@ impl From<WireError> for NativeUsbCdcError {
     }
 }
 
+impl std::fmt::Display for NativeUsbCdcError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidLimit => write!(f, "invalid frame size limit"),
+            Self::Read(err) => write!(f, "USB CDC read error: {err:?}"),
+            Self::Write(err) => write!(f, "USB CDC write error: {err:?}"),
+            Self::Framing(err) => write!(f, "USB CDC framing error: {err}"),
+            Self::Codec(err) => write!(f, "USB CDC codec error: {err:?}"),
+            Self::Disconnected => write!(f, "USB CDC device disconnected"),
+        }
+    }
+}
+
+impl std::error::Error for NativeUsbCdcError {}
+
 pub struct NativeUsbCdcCarrier<R, W> {
     reader: R,
     writer: W,

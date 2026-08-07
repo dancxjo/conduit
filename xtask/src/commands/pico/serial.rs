@@ -21,7 +21,7 @@ pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
         return Ok(());
     }
 
-    let port = resolve_port(args)?;
+    let (_, port) = resolve_dual_ports(None, args.port.as_deref())?;
     println!("==> pico verify: reading receipts from {}", port.display());
 
     let _ = Command::new("stty")
@@ -296,18 +296,17 @@ fn read_runtime_field(record: &serde_json::Value, field: &str) -> PicoResult<Str
     Ok(value.to_owned())
 }
 
-fn resolve_port(args: &PicoArgs) -> PicoResult<PathBuf> {
-    if let Some(port) = &args.port {
-        let path = PathBuf::from(port);
-        if path.exists() {
-            return Ok(path);
-        }
-        return Err(format!("serial port does not exist: {}", path.display()).into());
+pub fn resolve_dual_ports(
+    link_arg: Option<&str>,
+    evidence_arg: Option<&str>,
+) -> PicoResult<(PathBuf, PathBuf)> {
+    if let (Some(l), Some(e)) = (link_arg, evidence_arg) {
+        return Ok((PathBuf::from(l), PathBuf::from(e)));
     }
 
     let by_id = PathBuf::from("/dev/serial/by-id");
     if by_id.is_dir() {
-        let matches = std::fs::read_dir(&by_id)?
+        let mut matches = std::fs::read_dir(&by_id)?
             .filter_map(Result::ok)
             .filter(|entry| {
                 entry
@@ -318,21 +317,33 @@ fn resolve_port(args: &PicoArgs) -> PicoResult<PathBuf> {
             })
             .map(|entry| entry.path())
             .collect::<Vec<_>>();
-        return match matches.len() {
-            1 => Ok(matches[0].clone()),
-            0 => Err(
-                "no Conduit Pico W serial device found; pass --port after connecting the board"
-                    .into(),
-            ),
-            count => Err(format!(
-                "{count} matching serial devices found under {}; pass --port",
-                by_id.display()
-            )
-            .into()),
-        };
+
+        matches.sort();
+
+        if matches.len() >= 2 {
+            let link = link_arg
+                .map(PathBuf::from)
+                .unwrap_or_else(|| matches[0].clone());
+            let evidence = evidence_arg
+                .map(PathBuf::from)
+                .unwrap_or_else(|| matches[1].clone());
+            return Ok((link, evidence));
+        } else if matches.len() == 1 {
+            let single = matches[0].clone();
+            return Ok((
+                link_arg
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| single.clone()),
+                evidence_arg.map(PathBuf::from).unwrap_or(single),
+            ));
+        }
     }
 
-    Err("/dev/serial/by-id is unavailable; pass --port explicitly".into())
+    if let (Some(l), None) = (link_arg, evidence_arg) {
+        return Ok((PathBuf::from(l), PathBuf::from(l)));
+    }
+
+    Err("no Conduit Pico W serial device found under /dev/serial/by-id; pass --link-port and --evidence-port".into())
 }
 
 #[cfg(test)]
