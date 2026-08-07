@@ -50,10 +50,11 @@ async fn main(spawner: Spawner) {
 
     // Initialise USB CDC receipt & link channels
     let usb_driver = embassy_rp::usb::Driver::new(p.USB, radio::UsbIrq);
-    let (usb_fut, _link_carrier, evidence_sender) = usb::init_composite_usb(usb_driver);
+    let (usb_fut, link_carrier, evidence_sender) = usb::init_composite_usb(usb_driver);
     spawner.spawn(receipts::usb_task_spawn(usb_fut).unwrap());
     let runtime = receipts::RuntimeTranscriptIdentity::new();
     let mut cdc = receipts::UsbCdc::new(evidence_sender.sender);
+    let mut link_session = usb_link::UsbLinkSession::new(link_carrier).unwrap();
 
     // Initialise CYW43 radio (required for onboard LED)
     let (mut control, _) = radio::init_cyw43(
@@ -73,6 +74,12 @@ async fn main(spawner: Spawner) {
     control.init(CYW43_CLM).await;
     control.set_power_management(cyw43::PowerManagementMode::PowerSave).await;
 
-    // Execute the Signal demo through the Conduit kernel
-    kernel::run_signal_demo(&mut control, &mut cdc, &runtime).await;
+    // Execute the USB-CDC remote session sink
+    let _ = remote_signal::run_remote_signal_sink(
+        &mut link_session,
+        &mut cdc,
+        &mut control,
+        &runtime,
+    )
+    .await;
 }

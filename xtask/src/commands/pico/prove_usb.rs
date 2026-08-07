@@ -77,7 +77,7 @@ pub fn run_prove_std_pico_usb(
         evidence_port_path.display()
     );
 
-    // Set baud/raw mode on both CDC serial ports
+    // Set baud/raw/timeout mode on both CDC serial ports
     for p in [&link_port_path, &evidence_port_path] {
         let _ = std::process::Command::new("stty")
             .args([
@@ -89,6 +89,10 @@ pub fn run_prove_std_pico_usb(
                 "-parenb",
                 "raw",
                 "-echo",
+                "min",
+                "0",
+                "time",
+                "2",
             ])
             .status();
     }
@@ -101,9 +105,20 @@ pub fn run_prove_std_pico_usb(
         .open(&evidence_port_path)?;
     let mut evidence_reader = BufReader::new(evidence_file);
 
-    // Read initial boot identity line from CDC 1
+    // Read initial boot identity line from CDC 1 (retry loop in case port opened right after boot)
     let mut boot_line = String::new();
-    evidence_reader.read_line(&mut boot_line)?;
+    let start = Instant::now();
+    while start.elapsed() < Duration::from_secs(5) {
+        if evidence_reader.read_line(&mut boot_line)? > 0 && !boot_line.trim().is_empty() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+
+    if boot_line.trim().is_empty() {
+        return Err("timed out reading Pico boot identity from CDC 1".into());
+    }
+
     let boot_record: serde_json::Value = serde_json::from_str(boot_line.trim())?;
     let runtime_boot_id = boot_record["runtime_boot_id"]
         .as_str()
