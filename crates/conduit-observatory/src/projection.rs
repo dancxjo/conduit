@@ -55,8 +55,8 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
                     authority_requirements: capability.authority_requirements.clone(),
                     limits: capability.limits.clone(),
                     freshness: status.map_or(OfferFreshness::Unknown, |status| status.freshness),
-                    support: status.map_or(CapabilitySupport::Unsupported, |status| status.support),
-                    availability: status.map_or(CapabilityAvailability::Unavailable, |status| {
+                    support: status.map_or(CapabilitySupport::Unknown, |status| status.support),
+                    availability: status.map_or(CapabilityAvailability::Unknown, |status| {
                         status.availability
                     }),
                 }
@@ -219,7 +219,9 @@ pub fn validate_snapshot(snapshot: &ObservatorySnapshot) -> Result<(), String> {
             snapshot.schema
         ));
     }
-    if snapshot.retention.retained_items != snapshot.observations.len() as u32
+    let observation_count = u32::try_from(snapshot.observations.len())
+        .map_err(|_| "Observatory snapshot observation count exceeds u32".to_string())?;
+    if snapshot.retention.retained_items != observation_count
         || snapshot.retention.retained_items > snapshot.retention.item_capacity
     {
         return Err("Observatory snapshot retention accounting is invalid".to_string());

@@ -176,6 +176,16 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     );
     assert!(stdout.contains("play-placement play="), "{stdout}");
     assert!(stdout.contains("play-connection play="), "{stdout}");
+    assert!(
+        stdout.contains("placement=")
+            && stdout.contains("lifecycle=Completed terminal=Some(Completed)"),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains("connection=")
+            && stdout.contains("lifecycle=Completed terminal=None pressure=unknown"),
+        "{stdout}"
+    );
     assert!(stdout.contains("pressure=unknown"), "{stdout}");
     assert!(
         stdout.contains("active_play=") && stdout.contains("presentation="),

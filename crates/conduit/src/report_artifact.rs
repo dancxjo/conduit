@@ -1,6 +1,6 @@
 use conduit_core::{
-    ConnectionTerminalDisposition, HostAdvertisement, LinkAvailability, Observation,
-    ObservationKind, Plan, TerminalDisposition,
+    ConnectionTerminalDisposition, ExpectedTerminal, HostAdvertisement, LinkAvailability,
+    Observation, ObservationKind, Plan, TerminalDisposition,
 };
 use conduit_observatory::{
     validate_snapshot, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
@@ -117,8 +117,14 @@ fn plays_from_observations(plans: &[Plan], observations: &[Observation]) -> Vec<
                 lifecycle,
                 terminal_disposition,
                 failure_message,
-                placements: play_placements(plan, &host_id, &boot_id, &play_observations),
-                connections: play_connections(plan, &play_observations),
+                placements: play_placements(
+                    plan,
+                    &host_id,
+                    &boot_id,
+                    terminal_disposition,
+                    &play_observations,
+                ),
+                connections: play_connections(plan, terminal_disposition, &play_observations),
             })
         })
         .collect()
@@ -147,6 +153,7 @@ fn play_placements(
     plan: &Plan,
     host_id: &conduit_core::HostId,
     boot_id: &conduit_core::BootId,
+    play_terminal: Option<TerminalDisposition>,
     observations: &[&Observation],
 ) -> Vec<PlayPlacementReport> {
     plan.fragments
@@ -174,6 +181,18 @@ fn play_placements(
                     _ => {}
                 }
             }
+            if lifecycle == PlanLifecycle::Unknown
+                && play_terminal == Some(TerminalDisposition::Completed)
+                && plan.fragments.iter().any(|fragment| {
+                    fragment.expected_terminals.iter().any(|terminal| {
+                        terminal
+                            == &ExpectedTerminal::PlacementCompleted(placement.placement_id.clone())
+                    })
+                })
+            {
+                lifecycle = PlanLifecycle::Completed;
+                terminal = Some(TerminalDisposition::Completed);
+            }
             PlayPlacementReport {
                 placement_id: placement.placement_id.clone(),
                 lifecycle,
@@ -184,7 +203,11 @@ fn play_placements(
         .collect()
 }
 
-fn play_connections(plan: &Plan, observations: &[&Observation]) -> Vec<PlayConnectionReport> {
+fn play_connections(
+    plan: &Plan,
+    play_terminal: Option<TerminalDisposition>,
+    observations: &[&Observation],
+) -> Vec<PlayConnectionReport> {
     let mut connection_ids = BTreeSet::new();
     plan.fragments
         .iter()
@@ -208,6 +231,19 @@ fn play_connections(plan: &Plan, observations: &[&Observation]) -> Vec<PlayConne
                     }
                     _ => {}
                 }
+            }
+            if lifecycle == PlanLifecycle::Unknown
+                && play_terminal == Some(TerminalDisposition::Completed)
+                && plan.fragments.iter().any(|fragment| {
+                    fragment.expected_terminals.iter().any(|terminal| {
+                        terminal
+                            == &ExpectedTerminal::ConnectionCompleted(
+                                connection.connection_id.clone(),
+                            )
+                    })
+                })
+            {
+                lifecycle = PlanLifecycle::Completed;
             }
             PlayConnectionReport {
                 connection_id: connection.connection_id.clone(),

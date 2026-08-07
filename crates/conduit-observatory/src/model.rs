@@ -33,12 +33,14 @@ pub enum OfferFreshness {
 pub enum CapabilitySupport {
     Supported,
     Unsupported,
+    Unknown,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CapabilityAvailability {
     Available,
     Unavailable,
+    Unknown,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -53,6 +55,7 @@ pub enum PlanLifecycle {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CapabilityStatusReport {
     pub capability_id: CapabilityId,
     pub freshness: OfferFreshness,
@@ -61,6 +64,7 @@ pub struct CapabilityStatusReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct HostReport {
     pub advertisement: HostAdvertisement,
     pub state: OperationalState,
@@ -68,12 +72,14 @@ pub struct HostReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct LinkReport {
     pub binding: LinkBinding,
     pub state: OperationalState,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PressureReport {
     pub current_in_flight_items: Option<u16>,
     pub current_buffered_bytes: Option<u32>,
@@ -82,6 +88,7 @@ pub struct PressureReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlayPlacementReport {
     pub placement_id: PlacementId,
     pub lifecycle: PlanLifecycle,
@@ -90,6 +97,7 @@ pub struct PlayPlacementReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlayConnectionReport {
     pub connection_id: ConnectionId,
     pub lifecycle: PlanLifecycle,
@@ -99,6 +107,7 @@ pub struct PlayConnectionReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlayReport {
     pub active_play_id: ActivePlayId,
     pub plan_id: PlanId,
@@ -112,6 +121,7 @@ pub struct PlayReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RetentionReport {
     pub item_capacity: u32,
     pub retained_items: u32,
@@ -119,6 +129,7 @@ pub struct RetentionReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ObservatorySnapshot {
     pub schema: String,
     pub hosts: Vec<HostReport>,

@@ -16,7 +16,7 @@ use conduit_core::{
 use conduit_form::parse;
 use conduit_pico_sim::{pico_advertisement, PicoSimConfig};
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
-use conduit_signal::signal_profile_catalog;
+use conduit_signal::{exact_std_pico_usb_plan, signal_profile_catalog};
 use conduit_std_host::{LegacyStdFixtureHost, StdHostConfig};
 
 #[test]
@@ -367,6 +367,11 @@ fn status_vocabulary_keeps_failure_modes_distinct() {
     assert_ne!(OperationalState::Stale, OperationalState::Unreachable);
     assert_ne!(OperationalState::Failed, OperationalState::Denied);
     assert_ne!(OperationalState::Unknown, unsupported_state());
+    assert_ne!(CapabilitySupport::Unsupported, CapabilitySupport::Unknown);
+    assert_ne!(
+        CapabilityAvailability::Unavailable,
+        CapabilityAvailability::Unknown
+    );
     assert_ne!(PlanLifecycle::Failed, PlanLifecycle::Cancelled);
     assert_ne!(
         TerminalDisposition::Completed,
@@ -374,4 +379,57 @@ fn status_vocabulary_keeps_failure_modes_distinct() {
             reason: conduit_core::FailureReason::UnsupportedKind,
         }
     );
+}
+
+#[test]
+fn projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof() {
+    let exact = exact_std_pico_usb_plan().expect("current std/Pico USB plan resolves");
+    let hosts = [
+        exact.source_advertisement.clone(),
+        exact.sink_advertisement.clone(),
+    ]
+    .into_iter()
+    .map(|advertisement| HostReport {
+        capabilities: advertisement
+            .capabilities
+            .iter()
+            .map(|capability| CapabilityStatusReport {
+                capability_id: capability.capability_id.clone(),
+                freshness: OfferFreshness::Fresh,
+                support: CapabilitySupport::Supported,
+                availability: CapabilityAvailability::Available,
+            })
+            .collect(),
+        advertisement,
+        state: OperationalState::Available,
+    })
+    .collect();
+    let snapshot = ObservatorySnapshot {
+        schema: SNAPSHOT_SCHEMA.into(),
+        hosts,
+        links: vec![LinkReport {
+            binding: exact.link_binding.clone(),
+            state: OperationalState::Available,
+        }],
+        plans: vec![exact.plan],
+        plays: vec![],
+        observations: vec![],
+        retention: RetentionReport {
+            item_capacity: 256,
+            retained_items: 0,
+            dropped_items: 0,
+        },
+    };
+
+    let report = build_report(&snapshot).expect("exact S4 arrangement projects");
+    assert_eq!(report.hosts.len(), 2);
+    assert_eq!(report.fragments.len(), 2);
+    assert_eq!(report.links.len(), 1);
+    assert_eq!(report.links[0].binding, exact.link_binding);
+    let rendered = render_text_report(&report);
+    assert!(rendered.contains("provider=UsbCdc"));
+    assert!(rendered.contains("s4/std-pico-usb-cdc-link"));
+    assert!(rendered.contains("profile=rust-std-kernel"));
+    assert!(rendered.contains("profile=rp2040-kernel"));
+    assert!(rendered.contains("plays 0"));
 }
