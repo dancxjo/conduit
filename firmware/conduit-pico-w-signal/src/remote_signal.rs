@@ -5,7 +5,7 @@
 //! CDC 1 (evidence interface), and returns session truth on CDC 0.
 
 use conduit_core::{
-    ActivePlayId, BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
+    bind_active_play, BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
     FragmentId, HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_signal::decode_signal_bytes;
@@ -25,25 +25,36 @@ pub async fn run_remote_signal_sink(
 ) -> Result<(), UsbLinkError> {
     evidence_cdc.write_boot_identity(boot_identity(), runtime).await;
 
+    let plan_id = PlanId::from(PLAN_ID);
+    let source_host_id = HostId::from("host/std");
+    let source_boot_id = BootId::from("boot/std");
+    let sink_host_id = HostId::from(HOST_ID);
+    let sink_boot_id = BootId::from(runtime.boot_id());
+
+    let source_active_play_id =
+        bind_active_play(&plan_id, &source_host_id, &source_boot_id, 0).active_play_id;
+    let sink_active_play_id =
+        bind_active_play(&plan_id, &sink_host_id, &sink_boot_id, 0).active_play_id;
+
     let binding = SessionBinding {
         protocol_version: 1,
-        plan_id: PlanId::from(PLAN_ID),
+        plan_id,
         source_fragment_id: FragmentId::from("fragment/std-source"),
         sink_fragment_id: FragmentId::from(FRAGMENT_ID),
-        source_active_play_id: ActivePlayId::from("play/std-host"),
-        sink_active_play_id: ActivePlayId::from(runtime.active_play_id()),
+        source_active_play_id,
+        sink_active_play_id,
         connection_id: ConnectionId::from("conn/std-pico-signal"),
         link_binding_id: LinkBindingId::from("link/usb-cdc-0"),
         provider: ConnectionProvider::UsbCdc,
         provider_instance_id: ConnectionProviderInstanceId::from("pico-usb-cdc-0"),
         source: LinkEndpoint {
-            host_id: HostId::from("host/std"),
-            boot_id: BootId::from("boot/std"),
+            host_id: source_host_id,
+            boot_id: source_boot_id,
             endpoint_id: LinkEndpointId::from("endpoint/std-out"),
         },
         sink: LinkEndpoint {
-            host_id: HostId::from(HOST_ID),
-            boot_id: BootId::from(runtime.boot_id()),
+            host_id: sink_host_id,
+            boot_id: sink_boot_id,
             endpoint_id: LinkEndpointId::from("endpoint/pico-in"),
         },
         value_kind: KindId::from("value/signal"),
