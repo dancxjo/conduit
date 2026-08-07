@@ -121,27 +121,22 @@ fn readiness_contract_names_the_platform_stop_line() {
 #[test]
 fn repository_status_matrix_keeps_proof_classes_distinct() {
     let status = include_str!("../../../STATUS.md");
+    let normalized_status = status.split_whitespace().collect::<Vec<_>>().join(" ");
+
     for required in [
-        "Contract",
-        "Simulation",
-        "Executable hosted implementation",
-        "Actual browser adapter",
-        "Actual firmware",
-        "Live transport",
-        "Physical/HIL proof",
+        "| Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |",
         "unsafe prototype disabled",
         "WASM compilation is not browser execution",
         "Thumb compilation proves",
         "not board execution or physical acceptance",
         "generated fixed image",
         "no recorded board run",
-        "accepted Chromium proof is browser-local",
-        "not a live link",
-        "Frame/datagram fixtures",
-        "WebSocket or UDP sockets",
+        "`FixtureFrame` is synthetic conformance only, not a production carrier",
+        "no std-to-Pico network transport",
+        "Frame/datagram fixtures are not WebSocket or UDP sockets",
     ] {
         assert!(
-            status.contains(required),
+            normalized_status.contains(required),
             "missing status boundary: {required}"
         );
     }
