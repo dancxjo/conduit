@@ -72,57 +72,72 @@ pub fn run_prove_std_pico_usb(
 
     #[cfg(unix)]
     {
-        // 1. Open CDC 1 evidence port with O_RDWR | O_NOCTTY | O_NONBLOCK and assert DTR
-        let mut evidence_reader =
-            NativePathCdcLineReader::open(&evidence_port_path).map_err(|e| {
-                format!(
-                    "Failed to open CDC1 evidence port {}: {}",
-                    evidence_port_path.display(),
-                    e
-                )
-            })?;
-        println!("==> CDC1 opened; DTR asserted");
+        let mut attempts = 0;
+        let (mut evidence_reader, mut carrier, runtime_boot_id, runtime_active_play_id) = loop {
+            attempts += 1;
+            match (|| -> Result<_, String> {
+                // 1. Open CDC 1 evidence port with O_RDWR | O_NOCTTY | O_NONBLOCK and assert DTR
+                let evidence_reader = NativePathCdcLineReader::open(&evidence_port_path)
+                    .map_err(|e| format!("Failed to open CDC1 evidence port: {e}"))?;
+                println!("==> CDC1 opened; DTR asserted");
 
-        // 2. Open CDC 0 link port
-        let mut carrier = NativePathCdcCarrier::open(&link_port_path, 1024).map_err(|e| {
-            format!(
-                "Failed to open CDC0 link port {}: {}",
-                link_port_path.display(),
-                e
-            )
-        })?;
-        println!("==> CDC0 opened");
+                // 2. Open CDC 0 link port
+                let mut carrier = NativePathCdcCarrier::open(&link_port_path, 1024)
+                    .map_err(|e| format!("Failed to open CDC0 link port: {e}"))?;
+                println!("==> CDC0 opened");
 
-        // 3. Raw CDC0 Physical Checkpoint
-        carrier.send_raw_stream_frame(b"CONDUIT_RAW_CDC0_PROBE", Duration::from_secs(2))?;
-        println!("==> CDC0 raw host -> Pico bytes observed");
+                // 3. Settle 250 ms to race host open against Pico firmware USB loop
+                std::thread::sleep(Duration::from_millis(250));
 
-        let mut frame_buf = [0u8; 2048];
-        let probe_reply =
-            carrier.receive_raw_stream_frame(&mut frame_buf, Duration::from_secs(5))?;
-        if probe_reply == b"CONDUIT_RAW_CDC0_REPLY" {
-            println!("==> CDC0 raw Pico -> host reply observed");
-        } else {
-            return Err("raw CDC0 probe reply payload mismatch".into());
-        }
+                // 4. Raw CDC0 Physical Checkpoint
+                carrier
+                    .send_raw_stream_frame(b"CONDUIT_RAW_CDC0_PROBE", Duration::from_secs(2))
+                    .map_err(|e| format!("Failed to send raw CDC0 probe: {e}"))?;
+                println!("  [Source] Sent raw CDC0 stream frame probe");
 
-        // 4. Read Pico W boot identity from CDC 1
-        let boot_line = evidence_reader
-            .read_line(Duration::from_secs(5))
-            .map_err(|e| {
-                format!("timed out reading Pico boot identity from CDC 1 (5 seconds elapsed): {e}")
-            })?;
-        println!("==> CDC1 boot identity received and validated");
+                let mut frame_buf = [0u8; 2048];
+                let probe_reply = carrier
+                    .receive_raw_stream_frame(&mut frame_buf, Duration::from_secs(3))
+                    .map_err(|e| format!("Timed out waiting for CDC0 probe reply: {e}"))?;
+                if probe_reply == b"CONDUIT_RAW_CDC0_REPLY" {
+                    println!("==> CDC0 raw Pico -> host reply observed");
+                } else {
+                    return Err("raw CDC0 probe reply payload mismatch".into());
+                }
 
-        let boot_record: serde_json::Value = serde_json::from_str(&boot_line)?;
-        let runtime_boot_id = boot_record["runtime_boot_id"]
-            .as_str()
-            .ok_or("missing runtime_boot_id in Pico boot identity record")?
-            .to_string();
-        let runtime_active_play_id = boot_record["runtime_active_play_id"]
-            .as_str()
-            .ok_or("missing runtime_active_play_id in Pico boot identity record")?
-            .to_string();
+                // 5. Read Pico W boot identity from CDC 1
+                let mut reader = evidence_reader;
+                let boot_line = reader
+                    .read_line(Duration::from_secs(3))
+                    .map_err(|e| format!("Timed out reading boot identity from CDC 1: {e}"))?;
+                println!("==> CDC1 boot identity received and validated");
+
+                let boot_record: serde_json::Value = serde_json::from_str(&boot_line)
+                    .map_err(|e| format!("Malformed boot record JSON: {e}"))?;
+                let runtime_boot_id = boot_record["runtime_boot_id"]
+                    .as_str()
+                    .ok_or("missing runtime_boot_id in Pico boot identity record")?
+                    .to_string();
+                let runtime_active_play_id = boot_record["runtime_active_play_id"]
+                    .as_str()
+                    .ok_or("missing runtime_active_play_id in Pico boot identity record")?
+                    .to_string();
+
+                Ok((reader, carrier, runtime_boot_id, runtime_active_play_id))
+            })() {
+                Ok(res) => break res,
+                Err(err) => {
+                    if attempts >= 3 {
+                        return Err(format!(
+                            "Connection attempt failed after {attempts} retries: {err}"
+                        )
+                        .into());
+                    }
+                    println!("==> Connection attempt {attempts} failed ({err}); retrying fresh connection in 250 ms...");
+                    std::thread::sleep(Duration::from_millis(250));
+                }
+            }
+        };
 
         println!(
             "==> Observed Pico W runtime link/boot identity: boot_id={}, play_id={}",

@@ -8,7 +8,7 @@ use conduit_wire::{
 };
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb;
-use embassy_usb::class::cdc_acm::{Receiver, Sender};
+use embassy_usb::class::cdc_acm::CdcAcmClass;
 
 use super::usb::PicoUsbCdcCarrier;
 
@@ -33,18 +33,21 @@ impl From<WireError> for UsbLinkError {
 }
 
 pub struct UsbLinkSession {
-    sender: Sender<'static, usb::Driver<'static, USB>>,
-    receiver: Receiver<'static, usb::Driver<'static, USB>>,
+    class: CdcAcmClass<'static, usb::Driver<'static, USB>>,
     decoder: StreamFrameDecoder<1024>,
 }
 
 impl UsbLinkSession {
     pub fn new(carrier: PicoUsbCdcCarrier) -> Result<Self, UsbLinkError> {
         Ok(Self {
-            sender: carrier.sender,
-            receiver: carrier.receiver,
+            class: carrier.class,
             decoder: StreamFrameDecoder::new(1024).map_err(UsbLinkError::Framing)?,
         })
+    }
+
+    /// Wait for USB host connection on CDC 0 interface.
+    pub async fn wait_connection(&mut self) {
+        self.class.wait_connection().await;
     }
 
     /// Receive the next framed SessionFrame from the USB CDC ACM link.
@@ -64,7 +67,7 @@ impl UsbLinkSession {
             }
 
             let read_bytes = self
-                .receiver
+                .class
                 .read_packet(&mut packet_buf)
                 .await
                 .map_err(|_| UsbLinkError::UsbDisconnected)?;
@@ -87,7 +90,7 @@ impl UsbLinkSession {
         let mut offset = 0;
         while offset < total_bytes {
             let chunk_size = (total_bytes - offset).min(64);
-            self.sender
+            self.class
                 .write_packet(&framed_buf[offset..offset + chunk_size])
                 .await
                 .map_err(|_| UsbLinkError::UsbDisconnected)?;
@@ -95,7 +98,7 @@ impl UsbLinkSession {
         }
 
         if total_bytes > 0 && total_bytes % 64 == 0 {
-            let _ = self.sender.write_packet(&[]).await;
+            let _ = self.class.write_packet(&[]).await;
         }
 
         Ok(())
@@ -117,7 +120,7 @@ impl UsbLinkSession {
             }
 
             let read_bytes = self
-                .receiver
+                .class
                 .read_packet(&mut packet_buf)
                 .await
                 .map_err(|_| UsbLinkError::UsbDisconnected)?;
@@ -138,7 +141,7 @@ impl UsbLinkSession {
         let mut offset = 0;
         while offset < total_bytes {
             let chunk_size = (total_bytes - offset).min(64);
-            self.sender
+            self.class
                 .write_packet(&framed_buf[offset..offset + chunk_size])
                 .await
                 .map_err(|_| UsbLinkError::UsbDisconnected)?;
@@ -146,7 +149,7 @@ impl UsbLinkSession {
         }
 
         if total_bytes > 0 && total_bytes % 64 == 0 {
-            let _ = self.sender.write_packet(&[]).await;
+            let _ = self.class.write_packet(&[]).await;
         }
 
         Ok(())

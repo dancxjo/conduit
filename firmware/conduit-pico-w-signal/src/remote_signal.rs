@@ -71,7 +71,8 @@ pub async fn run_remote_signal_sink(
 
     let mut frame_buf = [0u8; 2048];
 
-    // Wait for CDC 1 host connection/DTR, then emit ONE COMPLETE boot identity
+    // Wait for CDC 0 connection and CDC 1 host DTR, then emit ONE COMPLETE boot identity
+    link_session.wait_connection().await;
     evidence_cdc.wait_dtr().await;
     evidence_cdc.write_boot_identity(boot_identity(), runtime).await;
 
