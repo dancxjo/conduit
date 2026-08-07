@@ -90,9 +90,9 @@ pub fn run_prove_std_pico_usb(
                 "raw",
                 "-echo",
                 "min",
-                "0",
+                "1",
                 "time",
-                "2",
+                "0",
             ])
             .status();
     }
@@ -206,16 +206,15 @@ pub fn run_prove_std_pico_usb(
         println!(" Link Port:     {}", link_port_path.display());
         println!(" Evidence Port: {}", evidence_port_path.display());
         println!("===============================================================");
-        println!(" [Press ENTER]     -> Toggle Pico W onboard LED ON/OFF");
+        println!(" [Press ENTER]     -> Trigger Button Pulse (Key Down -> LED ON -> Key Up -> LED OFF)");
         println!(" [Type 'q' + ENTER] -> Exit interactive session");
         println!("===============================================================\n");
 
         let mut sequence = 0u64;
-        let mut level = false;
         let mut stdin_lines = BufReader::new(std::io::stdin()).lines();
 
         loop {
-            print!("> ");
+            print!("press [ENTER] to pulse button > ");
             let _ = std::io::stdout().flush();
             let line = match stdin_lines.next() {
                 Some(Ok(l)) => l,
@@ -228,28 +227,56 @@ pub fn run_prove_std_pico_usb(
                 break;
             }
 
-            level = !level;
-            let signal = Signal { sequence, level };
-            let payload = encode_signal_fixed(&signal);
-
-            let offer = SessionFrame {
+            // 1. KEY DOWN: level = true (Pico LED ON)
+            let press_signal = Signal {
+                sequence,
+                level: true,
+            };
+            let press_payload = encode_signal_fixed(&press_signal);
+            let press_offer = SessionFrame {
                 identity: binding.identity(),
                 message: SessionMessage::Offered {
                     sequence,
-                    payload: &payload,
+                    payload: &press_payload,
                 },
             };
-
-            carrier.send_frame(&offer)?;
+            carrier.send_frame(&press_offer)?;
             println!(
-                "  [-> USB CDC] Sent Signal sequence {} -> Pico LED {}",
-                sequence,
-                if level { "ON" } else { "OFF" }
+                "\n  [KEY DOWN] -> Sent Signal seq {} (level: true) over USB CDC 0",
+                sequence
             );
 
-            let mut receipt_line = String::new();
-            if evidence_reader.read_line(&mut receipt_line)? > 0 {
-                println!("  [<- CDC 1] Receipt: {}", receipt_line.trim());
+            let mut press_receipt = String::new();
+            if evidence_reader.read_line(&mut press_receipt)? > 0 {
+                println!("  [RECEIPT ] <- CDC 1: {}", press_receipt.trim());
+            }
+
+            // Hold button pulse for 300ms
+            std::thread::sleep(Duration::from_millis(300));
+
+            // 2. KEY UP: level = false (Pico LED OFF)
+            sequence += 1;
+            let release_signal = Signal {
+                sequence,
+                level: false,
+            };
+            let release_payload = encode_signal_fixed(&release_signal);
+            let release_offer = SessionFrame {
+                identity: binding.identity(),
+                message: SessionMessage::Offered {
+                    sequence,
+                    payload: &release_payload,
+                },
+            };
+            carrier.send_frame(&release_offer)?;
+            println!(
+                "  [KEY UP  ] -> Sent Signal seq {} (level: false) over USB CDC 0",
+                sequence
+            );
+
+            let mut release_receipt = String::new();
+            if evidence_reader.read_line(&mut release_receipt)? > 0 {
+                println!("  [RECEIPT ] <- CDC 1: {}\n", release_receipt.trim());
             }
 
             sequence += 1;

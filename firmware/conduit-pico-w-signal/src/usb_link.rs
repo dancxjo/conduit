@@ -63,7 +63,6 @@ impl UsbLinkSession {
                 return Ok(frame);
             }
 
-            self.receiver.wait_connection().await;
             let read_bytes = self
                 .receiver
                 .read_packet(&mut packet_buf)
@@ -84,8 +83,6 @@ impl UsbLinkSession {
         let frame_len = encode_session_frame_into(*frame, &mut wire_buf[2..], 512, 512)?;
         let mut framed_buf = [0u8; 514];
         let total_bytes = encode_stream_frame(&wire_buf[2..2 + frame_len], 512, &mut framed_buf)?;
-
-        self.sender.wait_connection().await;
 
         let mut offset = 0;
         while offset < total_bytes {

@@ -116,14 +116,24 @@ impl<R: Read, W: Write> NativeUsbCdcCarrier<R, W> {
                 return Ok(frame);
             }
 
-            let read_bytes = self
-                .reader
-                .read(&mut chunk)
-                .map_err(|e| NativeUsbCdcError::Read(e.kind()))?;
-            if read_bytes == 0 {
-                return Err(NativeUsbCdcError::Disconnected);
+            let read_bytes = match self.reader.read(&mut chunk) {
+                Ok(0) => {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    0
+                }
+                Ok(n) => n,
+                Err(e)
+                    if e.kind() == std::io::ErrorKind::WouldBlock
+                        || e.kind() == std::io::ErrorKind::TimedOut =>
+                {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    0
+                }
+                Err(e) => return Err(NativeUsbCdcError::Read(e.kind())),
+            };
+            if read_bytes > 0 {
+                self.decoder.accept_bytes(&chunk[..read_bytes])?;
             }
-            self.decoder.accept_bytes(&chunk[..read_bytes])?;
         }
     }
 }
