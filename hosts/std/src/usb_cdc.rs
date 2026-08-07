@@ -126,6 +126,27 @@ pub fn configure_raw_termios(fd: libc::c_int) -> Result<(), NativeUsbCdcError> {
     Ok(())
 }
 
+/// Assert DTR and verify that the kernel reports it high for this CDC endpoint.
+#[cfg(unix)]
+fn assert_dtr(fd: libc::c_int) -> Result<(), NativeUsbCdcError> {
+    let mut set_flags: libc::c_int = libc::TIOCM_DTR;
+    if unsafe { libc::ioctl(fd, libc::TIOCMBIS, &mut set_flags) } != 0 {
+        return Err(NativeUsbCdcError::TtyConfig(std::io::Error::last_os_error()));
+    }
+
+    let mut observed_flags: libc::c_int = 0;
+    if unsafe { libc::ioctl(fd, libc::TIOCMGET, &mut observed_flags) } != 0 {
+        return Err(NativeUsbCdcError::TtyConfig(std::io::Error::last_os_error()));
+    }
+    if observed_flags & libc::TIOCM_DTR == 0 {
+        return Err(NativeUsbCdcError::TtyConfig(std::io::Error::other(
+            "USB CDC DTR remained low after assertion",
+        )));
+    }
+
+    Ok(())
+}
+
 /// Owned `/dev/tty` operator terminal abstraction for interactive key input.
 #[cfg(unix)]
 pub struct OperatorTerminal {
@@ -229,6 +250,7 @@ impl NativePathCdcCarrier {
         }
         let guard = FdGuard(fd);
         configure_raw_termios(fd)?;
+        assert_dtr(fd)?;
 
         let decoder = StreamFrameDecoder::new(maximum_frame_bytes)?;
         Ok(Self {
@@ -500,12 +522,7 @@ impl NativePathCdcLineReader {
         }
         let guard = FdGuard(fd);
         configure_raw_termios(fd)?;
-
-        // Explicitly assert DTR on the CDC interface via TIOCMBIS ioctl
-        let mut flags: libc::c_int = libc::TIOCM_DTR;
-        unsafe {
-            let _ = libc::ioctl(fd, libc::TIOCMBIS, &mut flags);
-        }
+        assert_dtr(fd)?;
 
         Ok(Self {
             fd: guard,

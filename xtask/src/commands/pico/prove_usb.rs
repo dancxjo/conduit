@@ -76,15 +76,15 @@ pub fn run_prove_std_pico_usb(
         let (mut evidence_reader, mut carrier, runtime_boot_id, runtime_active_play_id) = loop {
             attempts += 1;
             match (|| -> Result<_, String> {
-                // 1. Open CDC 1 evidence port with O_RDWR | O_NOCTTY | O_NONBLOCK and assert DTR
+                // 1. Open CDC 1 and require the kernel to report DTR high.
                 let evidence_reader = NativePathCdcLineReader::open(&evidence_port_path)
                     .map_err(|e| format!("Failed to open CDC1 evidence port: {e}"))?;
-                println!("==> CDC1 opened; DTR asserted");
+                println!("==> CDC1 opened; DTR verified high");
 
-                // 2. Open CDC 0 link port
+                // 2. Open CDC 0 link port and verify DTR there independently.
                 let mut carrier = NativePathCdcCarrier::open(&link_port_path, 1024)
                     .map_err(|e| format!("Failed to open CDC0 link port: {e}"))?;
-                println!("==> CDC0 opened");
+                println!("==> CDC0 opened; DTR verified high");
 
                 // 3. Settle 250 ms to race host open against Pico firmware USB loop
                 std::thread::sleep(Duration::from_millis(250));
@@ -122,6 +122,14 @@ pub fn run_prove_std_pico_usb(
                     .as_str()
                     .ok_or("missing runtime_active_play_id in Pico boot identity record")?
                     .to_string();
+
+                let gpio_ready = reader
+                    .read_line(Duration::from_secs(10))
+                    .map_err(|e| format!("Timed out waiting for CYW43 GPIO readiness: {e}"))?;
+                if gpio_ready != "CONDUIT_CYW43_GPIO_READY" {
+                    return Err(format!("unexpected CDC1 startup record: {gpio_ready}"));
+                }
+                println!("==> Pico CYW43 GPIO service ready");
 
                 Ok((reader, carrier, runtime_boot_id, runtime_active_play_id))
             })() {
@@ -219,6 +227,9 @@ pub fn run_prove_std_pico_usb(
                 Err(err) => {
                     println!("  [Source SessionMachine] receive_frame error: {:?}", err);
                 }
+            }
+            if let Ok(line) = evidence_reader.read_line(Duration::from_millis(1)) {
+                println!("  [Pico startup] <- CDC 1: {line}");
             }
             std::thread::sleep(Duration::from_millis(50));
         }

@@ -4,7 +4,7 @@
 
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb;
-use embassy_usb::class::cdc_acm::{CdcAcmClass, Receiver, Sender, State};
+use embassy_usb::class::cdc_acm::{CdcAcmClass, Sender, State};
 use embassy_usb::{Builder, UsbDevice};
 use static_cell::StaticCell;
 

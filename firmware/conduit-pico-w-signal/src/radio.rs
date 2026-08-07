@@ -5,7 +5,7 @@
 //!   PIN_23 (power), PIN_24 (DIO), PIN_25 (CS), PIN_29 (clock)
 
 use cyw43::Control;
-use cyw43_pio::PioSpi;
+use cyw43_pio::{PioSpi, DEFAULT_CLOCK_DIVIDER};
 use embassy_executor::Spawner;
 use embassy_rp::{
     bind_interrupts,
@@ -16,18 +16,14 @@ use embassy_rp::{
     usb,
     Peri,
 };
-use fixed::{types::extra::U8, FixedU32};
 use static_cell::StaticCell;
 
 bind_interrupts!(pub struct UsbIrq {
     USBCTRL_IRQ => usb::InterruptHandler<USB>;
 });
 
-bind_interrupts!(struct PioIrq {
+bind_interrupts!(struct RadioIrqs {
     PIO0_IRQ_0 => embassy_rp::pio::InterruptHandler<PIO0>;
-});
-
-bind_interrupts!(struct DmaIrq {
     DMA_IRQ_0 => dma::InterruptHandler<embassy_rp::peripherals::DMA_CH0>;
 });
 
@@ -57,12 +53,12 @@ pub async fn init_cyw43(
 ) -> (Control<'static>, ()) {
     let pwr = Output::new(pin23, Level::Low);
     let cs = Output::new(pin25, Level::High);
-    let mut pio = Pio::new(pio0, PioIrq);
-    let dma = dma::Channel::new(dma_ch0, DmaIrq);
+    let mut pio = Pio::new(pio0, RadioIrqs);
+    let dma = dma::Channel::new(dma_ch0, RadioIrqs);
     let spi = PioSpi::new(
         &mut pio.common,
         pio.sm0,
-        FixedU32::<U8>::from_num(2u32),
+        DEFAULT_CLOCK_DIVIDER,
         pio.irq0,
         cs,
         pin24,
