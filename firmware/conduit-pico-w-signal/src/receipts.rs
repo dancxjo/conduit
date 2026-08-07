@@ -31,10 +31,10 @@ impl UsbCdc {
         self.sender.wait_connection().await;
     }
 
-    /// Write a diagnostic text line to CDC 1.
+    /// Write a diagnostic text line to CDC 1 with bounded timeout.
     pub async fn write_log(&mut self, msg: &str) {
-        let _ = self.sender.write_packet(msg.as_bytes()).await;
-        let _ = self.sender.write_packet(b"\n").await;
+        self.write_all(msg.as_bytes()).await;
+        self.write_all(b"\n").await;
     }
 }
 
@@ -322,7 +322,15 @@ impl UsbCdc {
         let mut offset = 0;
         while offset < data.len() {
             let chunk_len = (data.len() - offset).min(MAX_PACKET_SIZE as usize);
-            let _ = self.sender.write_packet(&data[offset..offset + chunk_len]).await;
+            let res = embassy_time::with_timeout(
+                embassy_time::Duration::from_millis(20),
+                self.sender.write_packet(&data[offset..offset + chunk_len]),
+            )
+            .await;
+            if res.is_err() {
+                // If CDC 1 write times out (host not reading), drop packet to prevent blocking CDC 0
+                break;
+            }
             offset += chunk_len;
         }
     }

@@ -103,37 +103,43 @@ pub fn run_prove_std_pico_usb(
         )
     })?;
 
-    let mut evidence_reader = BufReader::new(evidence_file);
-
-    // Read initial boot identity line from CDC 1 (retry loop in case port opened right after boot)
-    println!("==> Starting 5 second blocking wait for Pico W boot identity from CDC 1...");
-    let mut boot_line = String::new();
-    let start = std::time::Instant::now();
-    while start.elapsed() < std::time::Duration::from_secs(5) {
-        if let Ok(len) = evidence_reader.read_line(&mut boot_line) {
-            if len > 0 {
-                let trimmed = boot_line.trim();
-                if !trimmed.is_empty() {
-                    println!(
-                        "==> Received boot line ({} bytes): {}",
-                        trimmed.len(),
-                        trimmed
-                    );
-                    break;
+    let (evidence_tx, evidence_rx) = std::sync::mpsc::channel::<String>();
+    let evidence_file_clone = evidence_file.try_clone()?;
+    std::thread::spawn(move || {
+        let mut reader = BufReader::new(evidence_file_clone);
+        let mut line = String::new();
+        loop {
+            line.clear();
+            match reader.read_line(&mut line) {
+                Ok(0) => break,
+                Ok(_) => {
+                    let trimmed = line.trim().to_string();
+                    if !trimmed.is_empty() {
+                        let _ = evidence_tx.send(trimmed);
+                    }
+                }
+                Err(_) => {
+                    std::thread::sleep(Duration::from_millis(10));
                 }
             }
         }
-        std::thread::sleep(std::time::Duration::from_millis(50));
-    }
+    });
 
-    if boot_line.trim().is_empty() {
-        return Err(
+    // Read initial boot identity line from CDC 1 background receiver
+    println!("==> Starting 5 second blocking wait for Pico W boot identity from CDC 1...");
+    let boot_line = evidence_rx
+        .recv_timeout(Duration::from_secs(5))
+        .map_err(|_| {
             "timed out reading Pico boot identity from CDC 1 (5 seconds elapsed without data)"
-                .into(),
-        );
-    }
+        })?;
 
-    let boot_record: serde_json::Value = serde_json::from_str(boot_line.trim())?;
+    println!(
+        "==> Received boot line ({} bytes): {}",
+        boot_line.len(),
+        boot_line
+    );
+
+    let boot_record: serde_json::Value = serde_json::from_str(&boot_line)?;
     let runtime_boot_id = boot_record["runtime_boot_id"]
         .as_str()
         .ok_or("missing runtime_boot_id in Pico boot identity record")?
@@ -258,9 +264,8 @@ pub fn run_prove_std_pico_usb(
             }
         }
 
-        let mut evidence_line = String::new();
-        if evidence_reader.read_line(&mut evidence_line).unwrap_or(0) > 0 {
-            println!("  [Pico evidence CDC 1]: {}", evidence_line.trim());
+        while let Ok(evidence_line) = evidence_rx.try_recv() {
+            println!("  [Pico evidence CDC 1]: {}", evidence_line);
         }
 
         std::thread::sleep(Duration::from_millis(50));
@@ -303,9 +308,8 @@ pub fn run_prove_std_pico_usb(
             }
         }
 
-        let mut evidence_line = String::new();
-        if evidence_reader.read_line(&mut evidence_line).unwrap_or(0) > 0 {
-            println!("  [Pico evidence CDC 1]: {}", evidence_line.trim());
+        while let Ok(evidence_line) = evidence_rx.try_recv() {
+            println!("  [Pico evidence CDC 1]: {}", evidence_line);
         }
 
         std::thread::sleep(Duration::from_millis(50));
@@ -362,7 +366,7 @@ pub fn run_prove_std_pico_usb(
             send_and_verify_item(
                 &mut source_machine,
                 &mut carrier,
-                &mut evidence_reader,
+                &evidence_rx,
                 &binding,
                 sequence,
                 true,
@@ -381,7 +385,7 @@ pub fn run_prove_std_pico_usb(
             send_and_verify_item(
                 &mut source_machine,
                 &mut carrier,
-                &mut evidence_reader,
+                &evidence_rx,
                 &binding,
                 sequence,
                 false,
@@ -408,7 +412,7 @@ pub fn run_prove_std_pico_usb(
         send_and_verify_item(
             &mut source_machine,
             &mut carrier,
-            &mut evidence_reader,
+            &evidence_rx,
             &binding,
             sequence,
             level,
@@ -430,7 +434,7 @@ pub fn run_prove_std_pico_usb(
 fn send_and_verify_item<R: Read, W: Write>(
     source_machine: &mut conduit_wire::SessionMachine,
     carrier: &mut NativeUsbCdcCarrier<R, W>,
-    evidence_reader: &mut BufReader<std::fs::File>,
+    evidence_rx: &std::sync::mpsc::Receiver<String>,
     binding: &SessionBinding,
     sequence: u64,
     level: bool,
@@ -469,6 +473,17 @@ fn send_and_verify_item<R: Read, W: Write>(
                 return Err(format!("receive_frame error waiting for Accepted: {err:?}").into());
             }
         }
+
+        while let Ok(line) = evidence_rx.try_recv() {
+            if line.starts_with('{') {
+                print!("  [RECEIPT ] <- CDC 1: {}\r\n", line);
+                let _ = std::io::stdout().flush();
+            } else {
+                print!("  [Pico log] <- CDC 1: {}\r\n", line);
+                let _ = std::io::stdout().flush();
+            }
+        }
+
         std::thread::sleep(Duration::from_millis(10));
     }
     if !accepted {
@@ -476,20 +491,21 @@ fn send_and_verify_item<R: Read, W: Write>(
     }
 
     // 3. Read receipt line from CDC 1
-    let mut receipt_line = String::new();
     let start_ev = Instant::now();
+    let mut receipt_received = false;
     while start_ev.elapsed() < Duration::from_secs(2) {
-        if evidence_reader.read_line(&mut receipt_line)? > 0 {
-            let trimmed = receipt_line.trim();
-            if trimmed.starts_with('{') {
-                print!("  [RECEIPT ] <- CDC 1: {}\r\n", trimmed);
+        while let Ok(line) = evidence_rx.try_recv() {
+            if line.starts_with('{') {
+                print!("  [RECEIPT ] <- CDC 1: {}\r\n", line);
                 let _ = std::io::stdout().flush();
-                break;
+                receipt_received = true;
             } else {
-                print!("  [Pico log] <- CDC 1: {}\r\n", trimmed);
+                print!("  [Pico log] <- CDC 1: {}\r\n", line);
                 let _ = std::io::stdout().flush();
-                receipt_line.clear();
             }
+        }
+        if receipt_received {
+            break;
         }
         std::thread::sleep(Duration::from_millis(10));
     }
@@ -514,6 +530,17 @@ fn send_and_verify_item<R: Read, W: Write>(
                 return Err(format!("receive_frame error waiting for Delivered: {err:?}").into());
             }
         }
+
+        while let Ok(line) = evidence_rx.try_recv() {
+            if line.starts_with('{') {
+                print!("  [RECEIPT ] <- CDC 1: {}\r\n", line);
+                let _ = std::io::stdout().flush();
+            } else {
+                print!("  [Pico log] <- CDC 1: {}\r\n", line);
+                let _ = std::io::stdout().flush();
+            }
+        }
+
         std::thread::sleep(Duration::from_millis(10));
     }
     if !delivered {

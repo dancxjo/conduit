@@ -71,40 +71,28 @@ pub async fn run_remote_signal_sink(
 
     let mut frame_buf = [0u8; 2048];
 
-    // Phase 1: Emit boot identity on CDC 1 until host sends SessionMessage::Hello on CDC 0
+    // Emit boot identity ONCE over CDC 1 at startup
+    evidence_cdc.write_boot_identity(boot_identity(), runtime).await;
+
+    // Phase 1: Wait for host to send SessionMessage::Hello on CDC 0
     loop {
-        evidence_cdc.write_boot_identity(boot_identity(), runtime).await;
+        let frame = link_session.receive_frame(&mut frame_buf).await?;
+        if matches!(frame.message, SessionMessage::Hello(_)) {
+            evidence_cdc.write_log("[CDC0] Inbound Hello received").await;
+            // Handshake Step 1 (Sink): Admit inbound Hello from Source
+            machine
+                .admit_inbound(frame)
+                .map_err(UsbLinkError::Codec)?;
+            evidence_cdc.write_log("[CDC0] Admitted inbound Hello").await;
 
-        match embassy_time::with_timeout(
-            embassy_time::Duration::from_millis(500),
-            link_session.receive_frame(&mut frame_buf),
-        )
-        .await
-        {
-            Ok(Ok(frame)) => {
-                if matches!(frame.message, SessionMessage::Hello(_)) {
-                    evidence_cdc.write_log("[CDC0] Inbound Hello received").await;
-                    // Handshake Step 1 (Sink): Admit inbound Hello from Source
-                    machine
-                        .admit_inbound(frame)
-                        .map_err(UsbLinkError::Codec)?;
-                    evidence_cdc.write_log("[CDC0] Admitted inbound Hello").await;
-
-                    // Handshake Step 2 (Sink): Admit outbound Hello from Sink and send to Source
-                    let hello_frame = binding.hello_frame();
-                    machine
-                        .admit_outbound(hello_frame)
-                        .map_err(UsbLinkError::Codec)?;
-                    link_session.send_frame(&hello_frame).await?;
-                    evidence_cdc.write_log("[CDC0] Sent outbound Hello").await;
-                    break;
-                }
-            }
-            Ok(Err(e)) => return Err(e),
-            Err(_) => {
-                // Timeout, emit boot identity again
-                continue;
-            }
+            // Handshake Step 2 (Sink): Admit outbound Hello from Sink and send to Source
+            let hello_frame = binding.hello_frame();
+            machine
+                .admit_outbound(hello_frame)
+                .map_err(UsbLinkError::Codec)?;
+            link_session.send_frame(&hello_frame).await?;
+            evidence_cdc.write_log("[CDC0] Sent outbound Hello").await;
+            break;
         }
     }
 
