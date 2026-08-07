@@ -1,6 +1,7 @@
 mod doctor;
 mod firmware;
 mod flash;
+mod prove_usb;
 mod serial;
 
 use clap::{Args, Subcommand};
@@ -10,6 +11,7 @@ pub type PicoResult<T> = Result<T, Box<dyn std::error::Error>>;
 pub use doctor::run_doctor;
 pub use firmware::run_build;
 pub use flash::run_flash;
+pub use prove_usb::run_prove_std_pico_usb;
 pub use serial::run_verify;
 
 /// Arguments shared across all Pico subcommands and the top-level `pico-local` alias.

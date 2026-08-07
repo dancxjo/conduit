@@ -4,7 +4,7 @@
 
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb;
-use embassy_usb::class::cdc_acm::{CdcAcmClass, Receiver, Sender, State};
+use embassy_usb::class::cdc_acm::{CdcAcmClass, Sender, State};
 use embassy_usb::{Builder, UsbDevice};
 use static_cell::StaticCell;
 
@@ -19,8 +19,7 @@ static USB_BOS_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
 static USB_CONTROL_BUF: StaticCell<[u8; 64]> = StaticCell::new();
 
 pub struct PicoUsbCdcCarrier {
-    pub sender: Sender<'static, usb::Driver<'static, USB>>,
-    pub receiver: Receiver<'static, usb::Driver<'static, USB>>,
+    pub class: CdcAcmClass<'static, usb::Driver<'static, USB>>,
 }
 
 pub struct UsbEvidenceSender {
@@ -58,9 +57,8 @@ pub fn init_composite_usb(
         control_buf,
     );
 
-    // CDC 0: Link interface
+    // CDC 0: Link interface (unsplit CdcAcmClass)
     let link_class = CdcAcmClass::new(&mut builder, link_state, MAX_PACKET_SIZE as u16);
-    let (link_sender, link_receiver) = link_class.split();
 
     // CDC 1: Evidence interface
     let evidence_class = CdcAcmClass::new(&mut builder, evidence_state, MAX_PACKET_SIZE as u16);
@@ -70,10 +68,7 @@ pub fn init_composite_usb(
 
     (
         device,
-        PicoUsbCdcCarrier {
-            sender: link_sender,
-            receiver: link_receiver,
-        },
+        PicoUsbCdcCarrier { class: link_class },
         UsbEvidenceSender {
             sender: evidence_sender,
         },

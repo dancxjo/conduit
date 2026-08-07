@@ -238,6 +238,18 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         Some("thumb"),
         &[],
     ),
+    Step::new(
+        "check.pico-local.dry-run",
+        "Dry-run verify of Pico W receipts",
+        "cargo",
+        &["xtask", "pico", "verify", "--dry-run"],
+    ),
+    Step::new(
+        "check.std-pico-usb.dry-run",
+        "Dry-run verify of std-to-Pico USB-CDC remote session proof",
+        "cargo",
+        &["xtask", "prove", "std-pico-usb", "--dry-run"],
+    ),
 ];
 
 pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[

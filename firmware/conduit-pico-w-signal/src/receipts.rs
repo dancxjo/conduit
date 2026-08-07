@@ -25,6 +25,24 @@ impl UsbCdc {
     pub fn new(sender: embassy_usb::class::cdc_acm::Sender<'static, usb::Driver<'static, USB>>) -> Self {
         Self { sender }
     }
+
+    /// Wait for a USB host to connect and assert DTR on this CDC interface.
+    pub async fn wait_connection(&mut self) {
+        self.sender.wait_connection().await;
+    }
+
+    /// Wait for a USB host to assert DTR on this CDC interface.
+    pub async fn wait_dtr(&mut self) {
+        while !self.sender.dtr() {
+            embassy_time::Timer::after_millis(10).await;
+        }
+    }
+
+    /// Write a diagnostic text line to CDC 1 with bounded timeout.
+    pub async fn write_log(&mut self, msg: &str) {
+        self.write_all(msg.as_bytes()).await;
+        self.write_all(b"\n").await;
+    }
 }
 
 pub struct RuntimeTranscriptIdentity {
@@ -157,7 +175,7 @@ impl UsbCdc {
                 identity.boot_evidence_id,
             ),
         );
-        self.write_all(line.as_bytes()).await;
+        self.write_all_mandatory(line.as_bytes()).await;
     }
 
     /// Write a machine-readable receipt for one Signal presentation.
@@ -307,11 +325,35 @@ impl UsbCdc {
         self.write_all(line.as_bytes()).await;
     }
 
+    async fn write_all_mandatory(&mut self, data: &[u8]) {
+        let mut offset = 0;
+        while offset < data.len() {
+            let chunk_len = (data.len() - offset).min(MAX_PACKET_SIZE as usize);
+            if self
+                .sender
+                .write_packet(&data[offset..offset + chunk_len])
+                .await
+                .is_err()
+            {
+                break;
+            }
+            offset += chunk_len;
+        }
+    }
+
     async fn write_all(&mut self, data: &[u8]) {
         let mut offset = 0;
         while offset < data.len() {
             let chunk_len = (data.len() - offset).min(MAX_PACKET_SIZE as usize);
-            let _ = self.sender.write_packet(&data[offset..offset + chunk_len]).await;
+            let res = embassy_time::with_timeout(
+                embassy_time::Duration::from_millis(20),
+                self.sender.write_packet(&data[offset..offset + chunk_len]),
+            )
+            .await;
+            if res.is_err() {
+                // If CDC 1 write times out (host not reading), drop packet to prevent blocking CDC 0
+                break;
+            }
             offset += chunk_len;
         }
     }

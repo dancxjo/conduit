@@ -6,7 +6,6 @@ use super::doctor::repo_root;
 use super::firmware::uf2_path;
 use super::{PicoArgs, PicoResult};
 
-const RPI_RP2_LABEL: &str = "RPI-RP2";
 const BOOTSEL_WAIT_SECS: u64 = 90;
 
 pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
@@ -89,11 +88,8 @@ fn resolve_mount(args: &PicoArgs) -> PicoResult<PathBuf> {
     }
 
     println!(
-        "No RPI-RP2 volume detected. Hold BOOTSEL while connecting the Pico W, then press Enter."
+        "==> Waiting up to {BOOTSEL_WAIT_SECS} seconds for RPI-RP2 volume (hold BOOTSEL while connecting Pico W)..."
     );
-    let mut line = String::new();
-    std::io::stdin().read_line(&mut line)?;
-
     let deadline = Instant::now() + Duration::from_secs(BOOTSEL_WAIT_SECS);
     while Instant::now() < deadline {
         let candidates = discover_bootsel_mounts()?;
@@ -103,10 +99,13 @@ fn resolve_mount(args: &PicoArgs) -> PicoResult<PathBuf> {
         if candidates.len() > 1 {
             return Err("multiple RPI-RP2 volumes detected; pass --mount".into());
         }
-        std::thread::sleep(Duration::from_secs(2));
+        if let Some(path) = try_udisks_mount()? {
+            return Ok(path);
+        }
+        std::thread::sleep(Duration::from_millis(500));
     }
 
-    Err(format!("timed out waiting for RPI-RP2 after {BOOTSEL_WAIT_SECS} seconds").into())
+    Err(format!("timed out waiting for RPI-RP2 volume after {BOOTSEL_WAIT_SECS} seconds").into())
 }
 
 fn discover_bootsel_mounts() -> PicoResult<Vec<PathBuf>> {
@@ -115,22 +114,10 @@ fn discover_bootsel_mounts() -> PicoResult<Vec<PathBuf>> {
         .filter(|path| path.is_dir())
         .collect::<Vec<_>>();
 
-    let output = Command::new("lsblk")
-        .args(["-rnpo", "LABEL,PATH,MOUNTPOINT,FSTYPE"])
-        .output()?;
-    if output.status.success() {
-        let listing = String::from_utf8(output.stdout)?;
-        for line in listing.lines() {
-            let fields = line.split_whitespace().collect::<Vec<_>>();
-            if fields.first() == Some(&RPI_RP2_LABEL)
-                && fields.get(3) == Some(&"vfat")
-                && fields.get(2).is_some_and(|mount| *mount != "-")
-            {
-                let path = PathBuf::from(fields[2]);
-                if path.is_dir() && !candidates.contains(&path) {
-                    candidates.push(path);
-                }
-            }
+    let (mounted, _) = find_rpi_rp2_devices()?;
+    for path in mounted {
+        if !candidates.contains(&path) {
+            candidates.push(path);
         }
     }
 
@@ -140,35 +127,68 @@ fn discover_bootsel_mounts() -> PicoResult<Vec<PathBuf>> {
 }
 
 fn try_udisks_mount() -> PicoResult<Option<PathBuf>> {
-    let output = Command::new("lsblk")
-        .args(["-rnpo", "LABEL,PATH,MOUNTPOINT,FSTYPE"])
-        .output()?;
-    if !output.status.success() {
-        return Ok(None);
+    let (_, unmounted) = find_rpi_rp2_devices()?;
+    for block in unmounted {
+        let output = Command::new("udisksctl")
+            .args(["mount", "-b", block.to_str().unwrap_or_default()])
+            .output()?;
+        if output.status.success() {
+            let text = String::from_utf8(output.stdout)?;
+            if let Some((_, mount)) = text.split_once(" at ") {
+                let path = PathBuf::from(mount.trim().trim_end_matches('.'));
+                if path.is_dir() {
+                    return Ok(Some(path));
+                }
+            }
+        }
+        for path in standard_paths() {
+            if path.is_dir() {
+                return Ok(Some(path));
+            }
+        }
     }
-    let listing = String::from_utf8(output.stdout)?;
-    let block = listing.lines().find_map(|line| {
-        let fields = line.split_whitespace().collect::<Vec<_>>();
-        (fields.first() == Some(&RPI_RP2_LABEL)
-            && fields.get(3) == Some(&"vfat")
-            && fields.get(2).is_some_and(|mount| *mount == "-"))
-        .then(|| fields.get(1).copied())
-        .flatten()
-    });
-    let Some(block) = block else {
-        return Ok(None);
-    };
+    Ok(None)
+}
 
-    let output = Command::new("udisksctl")
-        .args(["mount", "-b", block])
+fn find_rpi_rp2_devices() -> PicoResult<(Vec<PathBuf>, Vec<PathBuf>)> {
+    let output = Command::new("lsblk")
+        .args(["-P", "-o", "LABEL,PATH,MOUNTPOINT,FSTYPE"])
         .output()?;
-    if !output.status.success() {
-        return Ok(None);
+    let mut mounted = Vec::new();
+    let mut unmounted = Vec::new();
+
+    if output.status.success() {
+        let listing = String::from_utf8(output.stdout)?;
+        for line in listing.lines() {
+            let is_rpi_rp2 = line.contains("LABEL=\"RPI-RP2\"")
+                || line.contains("LABEL=\"rpi-rp2\"")
+                || line.contains("LABEL=\"BOOTSEL\"");
+            let is_vfat = line.contains("FSTYPE=\"vfat\"") || line.contains("FSTYPE=\"msdos\"");
+            if is_rpi_rp2 && is_vfat {
+                if let Some(path_str) = extract_kv(line, "PATH") {
+                    if let Some(mount_str) = extract_kv(line, "MOUNTPOINT") {
+                        if !mount_str.is_empty() && mount_str != "-" {
+                            let mount_path = PathBuf::from(mount_str);
+                            if mount_path.is_dir() {
+                                mounted.push(mount_path);
+                            }
+                        } else {
+                            unmounted.push(PathBuf::from(path_str));
+                        }
+                    }
+                }
+            }
+        }
     }
-    let text = String::from_utf8(output.stdout)?;
-    Ok(text
-        .split_once(" at ")
-        .map(|(_, mount)| PathBuf::from(mount.trim().trim_end_matches('.'))))
+
+    Ok((mounted, unmounted))
+}
+
+fn extract_kv(line: &str, key: &str) -> Option<String> {
+    let needle = format!("{key}=\"");
+    let start = line.find(&needle)? + needle.len();
+    let end = line[start..].find('"')? + start;
+    Some(line[start..end].to_string())
 }
 
 fn standard_paths() -> Vec<PathBuf> {

@@ -16,10 +16,7 @@ const REQUIRED_TOOLS: &[(&str, &str)] = &[
     ("sync", "Install coreutils"),
 ];
 
-const OPTIONAL_TOOLS: &[(&str, &str)] = &[
-    ("udisksctl", "optional BOOTSEL auto-mount helper"),
-    ("stty", "optional serial configuration helper"),
-];
+const OPTIONAL_TOOLS: &[(&str, &str)] = &[("udisksctl", "optional BOOTSEL auto-mount helper")];
 
 const REQUIRED_TARGET: &str = "thumbv6m-none-eabi";
 
