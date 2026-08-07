@@ -136,8 +136,8 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
         &std::fs::read(&report_path).expect("runtime report artifact must exist"),
     )
     .expect("runtime report artifact must be json");
-    assert_eq!(artifact["schema"], "conduit.observatory.runtime-report/v1");
-    assert_eq!(artifact["advertisements"].as_array().unwrap().len(), 1);
+    assert_eq!(artifact["schema"], "conduit.observatory.snapshot/v1");
+    assert_eq!(artifact["hosts"].as_array().unwrap().len(), 1);
     assert_eq!(artifact["plans"].as_array().unwrap().len(), 1);
     let observations = artifact["observations"].as_array().unwrap();
     assert!(!observations.is_empty());
@@ -168,8 +168,21 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     assert!(stdout.contains("host observatory report"), "{stdout}");
     assert!(stdout.contains("hosts 1"), "{stdout}");
     assert!(stdout.contains("plans 1"), "{stdout}");
-    assert!(stdout.contains("retained "), "{stdout}");
-    assert!(stdout.contains("artifact observation slots"), "{stdout}");
+    assert!(stdout.contains("fragments 1"), "{stdout}");
+    assert!(stdout.contains("plays 1"), "{stdout}");
+    assert!(
+        stdout.contains("lifecycle=Completed terminal=Some(Completed)"),
+        "{stdout}"
+    );
+    assert!(stdout.contains("play-placement play="), "{stdout}");
+    assert!(stdout.contains("play-connection play="), "{stdout}");
+    assert!(stdout.contains("pressure=unknown"), "{stdout}");
+    assert!(
+        stdout.contains("active_play=") && stdout.contains("presentation="),
+        "{stdout}"
+    );
+    assert!(stdout.contains("retained="), "{stdout}");
+    assert!(stdout.contains("evidence slots"), "{stdout}");
     assert!(
         !stdout.contains("receipt signal placement=") && !stdout.contains("signal 0 off"),
         "read-only inspection must not activate work: {stdout}"
@@ -194,7 +207,7 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     );
     let gap_stdout = String::from_utf8(gap_report.stdout).expect("gap report must be utf-8");
     assert!(gap_stdout.contains("visible_gaps=7"), "{gap_stdout}");
-    assert!(gap_stdout.contains("artifact dropped 7"), "{gap_stdout}");
+    assert!(gap_stdout.contains("snapshot dropped 7"), "{gap_stdout}");
 
     artifact["observations"][0]["boot_id"] = serde_json::Value::String("stale-boot".into());
     std::fs::write(

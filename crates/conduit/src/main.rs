@@ -8,7 +8,7 @@ use std::env;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::report_artifact::{read_report, write_report, RuntimeReportArtifact};
+use crate::report_artifact::{read_report, snapshot_from_execution, write_report};
 
 fn run_with_placements(
     path: &str,
@@ -30,35 +30,19 @@ fn run_with_placements(
     let mut stdout = io::stdout().lock();
     let report = host.run_fragment_to(fragment, &mut stdout, &mut ThreadTimer)?;
     if let Some(report_path) = report_path {
-        let artifact = RuntimeReportArtifact::from_execution(
+        let snapshot = snapshot_from_execution(
             vec![host.advertisement().clone()],
             vec![plan],
             report.observations,
         );
-        write_report(report_path, &artifact)?;
+        write_report(report_path, &snapshot)?;
     }
     Ok(())
 }
 
 fn render_runtime_report(path: &Path) -> Result<String, String> {
-    let artifact = read_report(path)?;
-    let mut report = build_report(
-        &artifact.advertisements,
-        None,
-        &artifact.plans,
-        &artifact.observations,
-    );
-    let host_reported_gaps = report.retention.visible_gap_count;
-    report.retention.visible_gap_count = host_reported_gaps
-        .checked_add(artifact.retention.dropped_items)
-        .ok_or_else(|| "combined runtime report retention gap count overflowed".to_string())?;
-    report.retention.explanation = format!(
-        "retained {} of {} artifact observation slots; artifact dropped {}; hosts reported {} additional gaps",
-        artifact.retention.retained_items,
-        artifact.retention.item_capacity,
-        artifact.retention.dropped_items,
-        host_reported_gaps
-    );
+    let snapshot = read_report(path)?;
+    let report = build_report(&snapshot)?;
     Ok(render_text_report(&report))
 }
 

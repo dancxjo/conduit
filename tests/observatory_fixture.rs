@@ -4,10 +4,13 @@ use conduit_core::{
     HostId, OfferGeneration, OperationId,
 };
 use conduit_form::parse;
-use conduit_observatory::{build_report, render_text_report};
+use conduit_observatory::{
+    build_report, render_text_report, CapabilityAvailability, CapabilityStatusReport,
+    CapabilitySupport, HostReport, LinkReport, ObservatorySnapshot, OfferFreshness,
+    OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
+};
 use conduit_pico_sim::{pico_advertisement, PicoSim, PicoSimConfig};
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
-use conduit_realm::{AdmissionRequest, LinkId, Realm, RealmId};
 use conduit_signal::signal_profile_catalog;
 use conduit_std_host::{LegacyStdFixtureHost, StdHostConfig};
 use std::collections::BTreeMap;
@@ -77,30 +80,6 @@ fn observatory_fixture_report() -> Result<String, String> {
         browser_advertisement.clone(),
         pico_advertisement.clone(),
     ];
-
-    let mut realm = Realm::found(
-        RealmId::from("realm-observatory"),
-        std_host.advertisement().clone(),
-        LinkId::from("link-std"),
-        16,
-    );
-    realm
-        .admit(AdmissionRequest {
-            advertisement: browser_advertisement,
-            link_id: LinkId::from("link-browser"),
-            allow: true,
-        })
-        .map_err(|reason| format!("browser admission failed: {reason:?}"))?;
-    realm
-        .admit(AdmissionRequest {
-            advertisement: pico_advertisement,
-            link_id: LinkId::from("link-pico"),
-            allow: true,
-        })
-        .map_err(|reason| format!("pico admission failed: {reason:?}"))?;
-    let realm_view = realm
-        .view_for(&HostId::from("std-host-triple"))
-        .ok_or_else(|| "realm view missing".to_string())?;
 
     let form = parse(
         include_str!("../examples/triple-signal.form"),
@@ -194,7 +173,43 @@ fn observatory_fixture_report() -> Result<String, String> {
 
     let mut observations = inspect(&mut std_host);
     observations.extend(inspect(&mut pico));
-    let report = build_report(&advertisements, Some(&realm_view), &[plan], &observations);
+    let snapshot = ObservatorySnapshot {
+        schema: SNAPSHOT_SCHEMA.into(),
+        hosts: advertisements
+            .iter()
+            .cloned()
+            .map(|advertisement| HostReport {
+                capabilities: advertisement
+                    .capabilities
+                    .iter()
+                    .map(|capability| CapabilityStatusReport {
+                        capability_id: capability.capability_id.clone(),
+                        freshness: OfferFreshness::Fresh,
+                        support: CapabilitySupport::Supported,
+                        availability: CapabilityAvailability::Available,
+                    })
+                    .collect(),
+                advertisement,
+                state: OperationalState::Available,
+            })
+            .collect(),
+        links: link_bindings
+            .into_iter()
+            .map(|binding| LinkReport {
+                binding,
+                state: OperationalState::Available,
+            })
+            .collect(),
+        plans: vec![plan],
+        plays: vec![],
+        retention: RetentionReport {
+            item_capacity: 64,
+            retained_items: observations.len() as u32,
+            dropped_items: 0,
+        },
+        observations,
+    };
+    let report = build_report(&snapshot)?;
     Ok(format!(
         "SIMULATION ONLY: synthetic observatory fixture; not connected-host evidence\n{}",
         render_text_report(&report)
@@ -223,7 +238,7 @@ fn observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work() {
         "{stdout}"
     );
     assert!(stdout.contains("capabilities 6"), "{stdout}");
-    assert!(stdout.contains("links 3"), "{stdout}");
+    assert!(stdout.contains("links 2"), "{stdout}");
     assert!(stdout.contains("plans 1"), "{stdout}");
     assert!(stdout.contains("placements 4"), "{stdout}");
     assert!(stdout.contains("connections 3"), "{stdout}");
