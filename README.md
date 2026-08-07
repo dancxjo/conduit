@@ -88,12 +88,16 @@ The repository is a Rust workspace containing:
 - a `no_std`, port-aware bounded execution kernel;
 - a lossless form parser and checker;
 - exact planning, identity, resource, authority, link, and evidence contracts;
-- native std-host execution;
-- an actual Rust/WASM browser host and thin DOM adapter;
-- a bounded loopback WebSocket path between native and browser kernels;
-- Pico W firmware and typed build/flash/verify tooling;
-- deterministic browser-shaped and Pico-shaped conformance fixtures;
-- early composite, catalog, body/realm, and Observatory contracts.
+- native std-host execution and boot-scoped portable planner offers;
+- an actual Rust/WASM browser host, browser-local planning, and thin DOM adapter;
+- bounded live WebSocket sessions between native and browser kernels;
+- Pico W firmware with bounded dual-CDC USB transport and physical evidence;
+- an accepted exact three-host Signal path spanning stdout, browser DOM, and a
+  physical Pico W LED;
+- a read-only Observatory path over neutral runtime-report artifacts;
+- deterministic browser-shaped and Pico-shaped conformance fixtures; and
+- the first installed `conduit.std` kind, `conduit.std/time-tick@2` over
+  `value/tick@1`.
 
 Conduit is still under active development. Compile checks, simulations, hosted
 execution, browser execution, live transport, firmware, and physical hardware
@@ -101,40 +105,82 @@ proof are deliberately treated as different evidence classes. See
 [STATUS.md](STATUS.md) for the exact claims established by current code and named
 checks.
 
-## Run the examples
+## Try Conduit now
 
 Install a recent Rust toolchain and [`just`](https://github.com/casey/just), then
-run:
+start with the native host:
 
 ```bash
 just demo-std
-just demo-triple-local
 ```
 
-Run the accepted native-to-browser loopback demonstration with:
+That command parses the unchanged Signal form, plans it onto the actual std
+host, executes it through `conduit-kernel`, and prints the selected host,
+placements, connection, sixteen Signal values, receipts, and terminal result.
+
+To **see an actual browser host**, run:
+
+```bash
+just doctor browser
+just toggle
+```
+
+`just toggle` builds the Rust/WASM browser runtime, starts a bounded WebSocket
+session from the std host, and prints an HTTP URL. Open that exact URL in a
+normal browser, then press Enter in the terminal. Each admitted activation runs
+through the std kernel, crosses the live session, enters the browser kernel, and
+appears as a DOM receipt. This is an interactive hosted demonstration, not the
+browser simulation.
+
+To inspect what Conduit actually planned and executed, write a runtime report:
+
+```bash
+cargo run -p conduit -- \
+  examples/signal-demo.form \
+  --placements examples/std-local.placements \
+  --report /tmp/conduit-run.json
+
+cargo run -p conduit -- \
+  observatory-report /tmp/conduit-run.json
+```
+
+The Observatory report shows hosts, capability offers, resources, plan,
+fragments, placements, connections, the active Play, evidence, and bounded
+retention. Current std-host reports also expose the installed
+`conduit.std/time-tick@2` capability even though a polished standalone tick demo
+is still separate usability work.
+
+With a Pico W attached, try the real physical USB-CDC session:
+
+```bash
+cargo xtask prove std-pico-usb --interactive
+```
+
+CDC 0 carries the bounded Conduit session and CDC 1 carries physical evidence.
+The operator tool verifies the running Pico identity and exact plan relationship
+before entering the interactive session.
+
+The accepted final S4 demonstration goes further: one unchanged three-host form
+fans out through one source kernel to stdout, a real browser DOM over WebSocket,
+and a physical Pico LED over USB CDC. Because that proof requires attached
+hardware, it is deliberately hardware-gated rather than part of ordinary CI.
+
+For exact commands, expected behavior, proof-class distinctions, and the final
+three-host hardware workflow, see **[Try Conduit](docs/try-conduit.md)**.
+
+Useful non-interactive proof commands include:
 
 ```bash
 just prove-std-browser-s4
+just prove-std-browser-toggle
+cargo xtask prove std-pico-usb
 ```
 
-That command also requires the repository's Node and Playwright dependencies.
-It is a deliberately bounded local proof, not a claim of a general network
-stack.
-
-Inspect host prerequisites with:
+Inspect host prerequisites at any time with:
 
 ```bash
 just doctor
 ```
-
-Build the Pico W firmware with:
-
-```bash
-just pico-build
-```
-
-The flash and verification commands require a connected board and the host-side
-tools reported by `just doctor pico`.
 
 ## Repository guide
 
@@ -150,6 +196,7 @@ tools reported by `just doctor pico`.
 
 Start with:
 
+- [Try Conduit](docs/try-conduit.md) for runnable programs and proofs;
 - [The Conduit canon](docs/conduit-canon.md) for the durable project model and
   architectural invariants;
 - [STATUS.md](STATUS.md) for the current executable claim boundary;
