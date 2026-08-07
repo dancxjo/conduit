@@ -16,6 +16,7 @@ conduit-runtime = { path = "../../crates/conduit-runtime" }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-wire = { path = "../../crates/conduit-wire" }
 tungstenite = "0.30.0"
+serde_json = "1"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

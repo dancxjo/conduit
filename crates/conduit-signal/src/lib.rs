@@ -11,6 +11,8 @@ pub use activation::*;
 mod std_pico_usb;
 #[cfg(feature = "host-profile")]
 pub use std_pico_usb::*;
+#[cfg(feature = "host-profile")]
+pub mod triple;
 
 #[cfg(feature = "host-profile")]
 use alloc::string::ToString;

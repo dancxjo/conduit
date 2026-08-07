@@ -55,6 +55,10 @@ pub struct PicoArgs {
     #[arg(long)]
     pub usb_remote: bool,
 
+    /// Build or flash the final exact three-host remote sink image.
+    #[arg(long)]
+    pub triple_remote: bool,
+
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
     #[arg(long)]
     pub refresh_radio_assets: bool,
@@ -90,6 +94,9 @@ pub fn apply_environment_defaults(args: &mut PicoArgs) {
 
 pub fn run(mut args: PicoArgs) -> PicoResult<()> {
     apply_environment_defaults(&mut args);
+    if args.usb_remote && args.triple_remote {
+        return Err("select only one remote Pico firmware mode".into());
+    }
     if args.refresh_radio_assets {
         firmware::refresh_radio_assets(args.dry_run)?;
         return Ok(());
@@ -106,7 +113,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
 
 pub fn run_local(mut args: PicoArgs) -> PicoResult<()> {
     apply_environment_defaults(&mut args);
-    if args.usb_remote {
+    if args.usb_remote || args.triple_remote {
         return Err("the complete `pico local` workflow requires the pico-local image; use `pico build --usb-remote`, `pico flash --usb-remote`, then `prove std-pico-usb` for the remote proof".into());
     }
     run_doctor(args.dry_run)?;

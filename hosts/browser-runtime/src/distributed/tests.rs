@@ -36,7 +36,7 @@ fn offered(binding: &SessionBinding, sequence: u64) -> Vec<u8> {
 
 #[test]
 fn browser_reconstructs_the_exact_sink_fragment_and_session() {
-    let sink = DistributedSink::prepare(None).expect("sink prepares");
+    let sink = DistributedSink::prepare(None, PlanKind::StdBrowser).expect("sink prepares");
     assert_eq!(sink.fragment.placements.len(), 1);
     assert_eq!(sink.lowered.remote_endpoints.len(), 1);
     assert_eq!(sink.binding.plan_id, sink.fragment.plan_id);
@@ -45,8 +45,24 @@ fn browser_reconstructs_the_exact_sink_fragment_and_session() {
 }
 
 #[test]
+fn triple_browser_reconstructs_its_fragment_from_the_same_three_host_plan() {
+    let sink = DistributedSink::prepare(None, PlanKind::Triple).expect("triple sink prepares");
+    let exact = conduit_signal::triple::exact_plan().expect("triple plan resolves");
+    assert_eq!(sink.fragment.host_id, exact.browser_advertisement.host_id);
+    assert_eq!(sink.binding.plan_id, exact.plan.plan_id);
+    assert_eq!(sink.binding.link_binding_id, exact.browser_link.binding_id);
+    assert_eq!(
+        sink.binding.provider_instance_id,
+        exact.browser_link.provider_instance_id
+    );
+    assert_eq!(sink.lowered.remote_endpoints.len(), 1);
+    assert_eq!(sink.capacity_seal(), sink.seal);
+}
+
+#[test]
 fn evidence_exhaustion_is_structured_before_remote_admission_changes_sequence() {
-    let mut sink = DistributedSink::prepare(Some(1)).expect("small evidence sink prepares");
+    let mut sink = DistributedSink::prepare(Some(1), PlanKind::StdBrowser)
+        .expect("small evidence sink prepares");
     activate(&mut sink);
     let binding = sink.binding.clone();
     sink.ingest(&offered(&binding, 0)).expect("first admits");
@@ -67,7 +83,7 @@ fn evidence_exhaustion_is_structured_before_remote_admission_changes_sequence() 
 
 #[test]
 fn browser_sink_failure_and_cancellation_emit_structured_terminal_frames() {
-    let mut failed = DistributedSink::prepare(None).expect("sink prepares");
+    let mut failed = DistributedSink::prepare(None, PlanKind::Triple).expect("sink prepares");
     activate(&mut failed);
     let binding = failed.binding.clone();
     failed.ingest(&offered(&binding, 0)).expect("value admits");
@@ -85,7 +101,7 @@ fn browser_sink_failure_and_cancellation_emit_structured_terminal_frames() {
     assert_eq!(failed.output[5], 9, "failed terminal frame");
     assert_eq!(failed.scheduler.values().used_items(), 0);
 
-    let mut cancelled = DistributedSink::prepare(None).expect("sink prepares");
+    let mut cancelled = DistributedSink::prepare(None, PlanKind::Triple).expect("sink prepares");
     activate(&mut cancelled);
     assert_eq!(cancelled.cancel(), Err(ERROR_CANCELLED));
     assert_eq!(cancelled.output[5], 7, "cancelled frame");
@@ -95,8 +111,17 @@ fn browser_sink_failure_and_cancellation_emit_structured_terminal_frames() {
 }
 
 #[test]
+fn triple_browser_rejects_a_malformed_live_frame_without_admission() {
+    let mut sink = DistributedSink::prepare(None, PlanKind::Triple).expect("sink prepares");
+    activate(&mut sink);
+    assert_eq!(sink.ingest(&[0_u8; 8]), Err(ERROR_SESSION));
+    assert_eq!(sink.session.next_sequence(), 0);
+    assert_eq!(sink.scheduler.values().used_items(), 0);
+}
+
+#[test]
 fn wrong_remote_completion_identity_fails_closed() {
-    let mut sink = DistributedSink::prepare(None).expect("sink prepares");
+    let mut sink = DistributedSink::prepare(None, PlanKind::StdBrowser).expect("sink prepares");
     activate(&mut sink);
     let binding = sink.binding.clone();
     sink.ingest(&offered(&binding, 0)).expect("value admits");

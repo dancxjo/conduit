@@ -22,7 +22,7 @@ function writeInput(runtime, bytes) {
   ).set(bytes);
 }
 
-export async function instantiateDistributedBrowserRuntime(wasmBytes) {
+export async function instantiateDistributedBrowserRuntime(wasmBytes, { triple = false } = {}) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   const required = [
@@ -46,10 +46,13 @@ export async function instantiateDistributedBrowserRuntime(wasmBytes) {
     "conduit_browser_distributed_in_flight_items",
   ];
   if (required.some((name) => !(name in api)) ||
+      (triple && !("conduit_browser_triple_start" in api)) ||
       api.conduit_browser_distributed_input_capacity() !== FRAME_CAPACITY) {
     throw new Error("CND-DST-S4-002 incomplete distributed WASM ABI");
   }
-  const status = api.conduit_browser_distributed_start();
+  const status = triple
+    ? api.conduit_browser_triple_start()
+    : api.conduit_browser_distributed_start();
   if (status !== 0) throw new Error(`CND-DST-S4-003 browser prepare failed ${status}`);
   return Object.freeze({ api });
 }

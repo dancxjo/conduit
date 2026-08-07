@@ -89,7 +89,9 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         TARGET,
         "--release",
     ];
-    if args.usb_remote {
+    if args.triple_remote {
+        build_args.extend(["--no-default-features", "--features", "triple-remote"]);
+    } else if args.usb_remote {
         build_args.extend(["--no-default-features", "--features", "usb-remote"]);
     }
     println!("==> pico build: cargo {}", build_args.join(" "));
