@@ -294,6 +294,7 @@ mod tests {
             dry_run: true,
             quiet: true,
             json: true,
+            ..Default::default()
         }
     }
 

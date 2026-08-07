@@ -26,10 +26,18 @@ pub struct GlobalOpts {
     /// Emit one structured JSON report to stdout.
     #[arg(long, global = true)]
     pub json: bool,
+
+    /// Forward --locked to Cargo commands.
+    #[arg(long, global = true)]
+    pub locked: bool,
 }
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
+    /// Execute repository validation check suites.
+    Check(CheckArgs),
+    /// Execute platform and protocol proof suites.
+    Prove(ProveArgs),
     /// Inspect repository and platform prerequisites.
     Doctor(DoctorArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
@@ -38,6 +46,41 @@ pub enum Command {
     PicoLocal(PicoArgs),
     /// Run interactive demonstrations.
     Demo(DemoArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct CheckArgs {
+    /// Which check suite to execute (default: workspace).
+    #[arg(default_value = "workspace")]
+    pub suite: CheckSuite,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckSuite {
+    Workspace,
+    Browser,
+    BrowserHost,
+    Sim,
+    KernelTakeover,
+    PlanningS2,
+    FormS3,
+    Realm,
+    Observatory,
+    StdCatalog,
+    All,
+}
+
+#[derive(Args, Debug)]
+pub struct ProveArgs {
+    /// Which proof suite to execute.
+    pub proof: ProveTarget,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProveTarget {
+    StdBrowserS4,
+    StdBrowserToggle,
+    BrowserHost,
 }
 
 #[derive(Args, Debug)]
@@ -98,5 +141,13 @@ mod tests {
                 command: DemoCommand::Toggle
             })
         ));
+
+        let check =
+            Cli::try_parse_from(["xtask", "check", "workspace"]).expect("check command parses");
+        assert!(matches!(check.command, Command::Check(_)));
+
+        let prove = Cli::try_parse_from(["xtask", "prove", "std-browser-s4"])
+            .expect("prove command parses");
+        assert!(matches!(prove.command, Command::Prove(_)));
     }
 }
