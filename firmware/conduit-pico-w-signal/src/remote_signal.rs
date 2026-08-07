@@ -89,6 +89,11 @@ pub async fn run_remote_signal_sink(
                 }
 
                 if is_hello {
+                    let hello_frame = binding.hello_frame();
+                    if machine.admit_outbound(hello_frame.clone()).is_ok() {
+                        let _ = link_session.send_frame(&hello_frame).await;
+                    }
+
                     let ready_frame = SessionFrame {
                         identity: session_identity,
                         message: SessionMessage::Ready,
