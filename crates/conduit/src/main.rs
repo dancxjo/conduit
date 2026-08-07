@@ -1,10 +1,20 @@
+mod report_artifact;
+
+use conduit_observatory::{build_report, render_text_report};
 use conduit_std_host::{
     load_checked_form, load_placements, run_kernel_multivalue_path_to, StdHost, ThreadTimer,
 };
 use std::env;
 use std::io;
+use std::path::{Path, PathBuf};
 
-fn run_with_placements(path: &str, placements_path: Option<&str>) -> Result<(), String> {
+use crate::report_artifact::{read_report, write_report, RuntimeReportArtifact};
+
+fn run_with_placements(
+    path: &str,
+    placements_path: Option<&str>,
+    report_path: Option<&Path>,
+) -> Result<(), String> {
     let form = load_checked_form(path).map_err(|err| err.to_string())?;
     let placements = load_placements(placements_path).map_err(|err| err.to_string())?;
     let mut host = StdHost::new();
@@ -13,12 +23,43 @@ fn run_with_placements(path: &str, placements_path: Option<&str>) -> Result<(), 
         .map_err(|err| err.to_string())?;
     let fragment = plan
         .fragments
-        .into_iter()
+        .iter()
         .find(|fragment| fragment.host_id == host.advertisement().host_id)
+        .cloned()
         .ok_or_else(|| "no local fragment for std host".to_string())?;
     let mut stdout = io::stdout().lock();
-    host.run_fragment_to(fragment, &mut stdout, &mut ThreadTimer)?;
+    let report = host.run_fragment_to(fragment, &mut stdout, &mut ThreadTimer)?;
+    if let Some(report_path) = report_path {
+        let artifact = RuntimeReportArtifact::from_execution(
+            vec![host.advertisement().clone()],
+            vec![plan],
+            report.observations,
+        );
+        write_report(report_path, &artifact)?;
+    }
     Ok(())
+}
+
+fn render_runtime_report(path: &Path) -> Result<String, String> {
+    let artifact = read_report(path)?;
+    let mut report = build_report(
+        &artifact.advertisements,
+        None,
+        &artifact.plans,
+        &artifact.observations,
+    );
+    let host_reported_gaps = report.retention.visible_gap_count;
+    report.retention.visible_gap_count = host_reported_gaps
+        .checked_add(artifact.retention.dropped_items)
+        .ok_or_else(|| "combined runtime report retention gap count overflowed".to_string())?;
+    report.retention.explanation = format!(
+        "retained {} of {} artifact observation slots; artifact dropped {}; hosts reported {} additional gaps",
+        artifact.retention.retained_items,
+        artifact.retention.item_capacity,
+        artifact.retention.dropped_items,
+        host_reported_gaps
+    );
+    Ok(render_text_report(&report))
 }
 
 fn main() {
@@ -31,6 +72,24 @@ fn main() {
             std::process::exit(2);
         }
     };
+    if path == "observatory-report" {
+        let Some(report_path) = args.next() else {
+            eprintln!("usage: conduit observatory-report <runtime-report.json>");
+            std::process::exit(2);
+        };
+        if args.next().is_some() {
+            eprintln!("usage: conduit observatory-report <runtime-report.json>");
+            std::process::exit(2);
+        }
+        match render_runtime_report(Path::new(&report_path)) {
+            Ok(rendered) => print!("{rendered}"),
+            Err(err) => {
+                eprintln!("error: {err}");
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
     if path == "kernel-multivalue" {
         let Some(form_path) = args.next() else {
             eprintln!("usage: conduit kernel-multivalue <form-file>");
@@ -48,18 +107,25 @@ fn main() {
         return;
     }
 
-    let placements_path = match (args.next().as_deref(), args.next()) {
-        (Some("--placements"), value) => value,
-        (Some(other), _) => {
-            eprintln!(
-                "usage: conduit <form-file> [--placements <placements-file>]\nunexpected argument: {other}"
-            );
+    let mut placements_path = None;
+    let mut report_path = None;
+    while let Some(option) = args.next() {
+        let value = args.next().unwrap_or_else(|| {
+            eprintln!("missing value for {option}");
             std::process::exit(2);
+        });
+        match option.as_str() {
+            "--placements" if placements_path.is_none() => placements_path = Some(value),
+            "--report" if report_path.is_none() => report_path = Some(PathBuf::from(value)),
+            _ => {
+                eprintln!("usage: conduit <form-file> [--placements <placements-file>] [--report <runtime-report.json>]\nunexpected or duplicate argument: {option}");
+                std::process::exit(2);
+            }
         }
-        (None, _) => None,
-    };
+    }
 
-    if let Err(err) = run_with_placements(&path, placements_path.as_deref()) {
+    if let Err(err) = run_with_placements(&path, placements_path.as_deref(), report_path.as_deref())
+    {
         eprintln!("error: {err}");
         std::process::exit(1);
     }

@@ -152,6 +152,8 @@ dependencies = [
  "conduit-realm",
  "conduit-signal",
  "conduit-std-host",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
