@@ -1,5 +1,6 @@
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
+use std::time::{Duration, Instant};
 
 use super::doctor::repo_root;
 use super::firmware::{read_identity_manifest, FirmwareIdentity, GeneratedImageIdentity};
@@ -20,7 +21,16 @@ pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
         return Ok(());
     }
 
-    let (_, port) = resolve_dual_ports(None, args.port.as_deref())?;
+    let start = Instant::now();
+    let (_, port) = loop {
+        match resolve_dual_ports(None, args.port.as_deref()) {
+            Ok(ports) => break ports,
+            Err(_) if start.elapsed() < Duration::from_secs(10) => {
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            Err(error) => return Err(error),
+        }
+    };
     println!("==> pico verify: reading receipts from {}", port.display());
 
     let identity = read_identity_manifest(&repo_root())?;
