@@ -220,6 +220,7 @@ fn multi_child_advertisement() -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/multi-child"),
         resources: Vec::new(),
+        planner_capabilities: vec![],
         capabilities: vec![
             hosted_offer(
                 "number-echo",
@@ -356,6 +357,7 @@ fn parent_endpoint_advertisement(host: &str, source: bool) -> HostAdvertisement 
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/parent-endpoint"),
         resources: Vec::new(),
+        planner_capabilities: vec![],
         capabilities,
     }
 }
@@ -475,6 +477,7 @@ fn child_advertisement(host: &str, boot: &str, source: bool) -> HostAdvertisemen
             &format!("{host}/presentation"),
             2,
         ),
+        planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
             capability_id: CapabilityId::from(if source { "pulse" } else { "show" }),
             kind_id: kind_id(if source { PULSE_KIND } else { SHOW_KIND }),

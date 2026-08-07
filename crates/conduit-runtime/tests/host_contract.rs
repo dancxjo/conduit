@@ -82,6 +82,7 @@ fn advertisement() -> HostAdvertisement {
             resource_offer("contract/presentation", PRESENTATION_RESOURCE_CLASS, 2),
             resource_offer("contract/timer", TIMER_RESOURCE_CLASS, 2),
         ],
+        planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("pulse"),
@@ -1161,6 +1162,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("echo-test"),
         resources: vec![],
+        planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
             capability_id: CapabilityId::from("echo-capability"),
             kind_id: echo_kind_id.clone(),

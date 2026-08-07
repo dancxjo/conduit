@@ -481,6 +481,7 @@ impl CompositeHost {
             offer_generation: definition.offer_generation,
             profile: definition.profile,
             resources: Vec::new(),
+            planner_capabilities: vec![],
             capabilities: vec![external_capability],
         };
         let internal_plan_id = definition.internal_plan.plan_id.clone();

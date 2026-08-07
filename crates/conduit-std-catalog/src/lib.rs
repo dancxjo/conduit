@@ -377,6 +377,7 @@ pub fn standard_host_advertisement(
         offer_generation,
         profile: conduit_core::HostProfileId::from("conduit.std/hosted-v1"),
         resources: standard_resource_offers(16),
+        planner_capabilities: vec![],
         capabilities: standard_capability_offers("std"),
     }
 }
@@ -591,6 +592,7 @@ mod tests {
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("conduit.std/conformance"),
             resources: standard_resource_offers(16),
+            planner_capabilities: vec![],
             capabilities: vec![
                 offer("flow-pulse", PULSE_KIND, "std/pulse-v1"),
                 offer("presentation-show", SHOW_KIND, "std/show-v1"),

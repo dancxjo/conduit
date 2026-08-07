@@ -407,6 +407,10 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
         offer_generation: config.offer_generation,
         profile: HostProfileId::from("rust-std"),
         resources: signal_resource_offers("std/timer", "std/presentation", 16),
+        planner_capabilities: vec![conduit_core::PlannerCapabilityOffer {
+            profile_id: conduit_core::PlannerProfileId::from(conduit_planner::FULL_PLANNER_PROFILE),
+            limits: conduit_planner::FULL_PLANNER_LIMITS,
+        }],
         capabilities: vec![
             CapabilityOffer {
                 capability_id: CapabilityId::from("pulse-1"),
