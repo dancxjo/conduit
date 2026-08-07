@@ -127,9 +127,10 @@ fn repository_status_matrix_keeps_proof_classes_distinct() {
         "Thumb compilation proves",
         "not board execution or physical acceptance",
         "generated fixed image",
-        "no recorded board run",
-        "`FixtureFrame` is synthetic conformance only, not a production carrier",
-        "no std-to-Pico network transport",
+        "exact Pico-local, std↔Pico, and final std/browser/Pico board runs recorded",
+        "attached-board Playwright cases remain explicitly hardware-gated",
+        "fixture providers remain synthetic conformance only",
+        "No UDP, Zenoh, TCP",
         "Frame/datagram fixtures are not WebSocket or UDP sockets",
     ] {
         assert!(
