@@ -42,6 +42,8 @@ pub enum PlannerError {
     WrongKindContractRevision(String),
     IncompatiblePortContract(String),
     IncompatibleCheckedFace(String),
+    InvalidHardRealizationRequirement(String),
+    HardRealizationRequirementUnsatisfied(String),
     InvalidHostOperationRequirement(String),
     InvalidResourceContract(String),
     UnavailableResource(String),
@@ -90,6 +92,12 @@ impl std::fmt::Display for PlannerError {
             }
             Self::IncompatibleCheckedFace(value) => {
                 write!(f, "incompatible checked face: {value}")
+            }
+            Self::InvalidHardRealizationRequirement(value) => {
+                write!(f, "invalid hard realization requirement: {value}")
+            }
+            Self::HardRealizationRequirementUnsatisfied(value) => {
+                write!(f, "hard realization requirement unsatisfied: {value}")
             }
             Self::InvalidHostOperationRequirement(value) => {
                 write!(f, "invalid host-operation requirement: {value}")

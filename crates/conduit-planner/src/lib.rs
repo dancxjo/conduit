@@ -16,6 +16,7 @@ mod diagnostic;
 mod functional_compatibility;
 mod profile;
 mod protected_resources;
+mod requirements;
 
 use functional_compatibility::default_placements_unvalidated;
 use protected_resources::{bind_protected_resource, validate_protected_resource_grants};
@@ -32,6 +33,7 @@ pub use profile::{
     plan_with_advertised_profile, BROWSER_PLANNER_PROFILE, FULL_PLANNER_LIMITS,
     FULL_PLANNER_PROFILE,
 };
+pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements};
 
 pub fn default_placements(
     form: &CheckedForm,

@@ -39,6 +39,10 @@ fn classification(error: &PlannerError) -> Option<(&'static str, &'static str)> 
             "CND-PLN-012",
             "selected realization has a different canonical checked face",
         )),
+        PlannerError::HardRealizationRequirementUnsatisfied(_) => Some((
+            "CND-PLN-013",
+            "selected realization does not satisfy a hard planning requirement",
+        )),
         PlannerError::IncompatiblePortContract(_) => Some((
             "CND-PLN-011",
             "selected realization has an incompatible port contract",
@@ -98,6 +102,19 @@ mod tests {
             diagnostic.summary,
             "no face-compatible realization is available"
         );
+    }
+
+    #[test]
+    fn hard_requirement_refusal_has_a_stable_non_policy_code() {
+        let diagnostic = structured_planner_diagnostic(
+            &checked_form(),
+            &PlannerError::HardRealizationRequirementUnsatisfied("private candidate facts".into()),
+        )
+        .unwrap();
+        let json = serde_json::to_string(&diagnostic).unwrap();
+        assert_eq!(diagnostic.code, "CND-PLN-013");
+        assert!(diagnostic.summary.contains("hard planning requirement"));
+        assert!(!json.contains("private candidate facts"));
     }
 
     #[test]
