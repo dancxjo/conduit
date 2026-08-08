@@ -1,0 +1,91 @@
+# Host core, families, providers, and compositions
+
+**Status:** first executable architecture slice for issues #463 and #514
+
+**Current proof boundary:** [STATUS.md](../STATUS.md)
+
+**Durable vocabulary and invariants:** [The Conduit canon](conduit-canon.md)
+
+Conduit defines a portable host contract, not one privileged host implementation.
+The distinctions below are load-bearing:
+
+```text
+host core contract
+    + selected operation/capability families
+    + providers and platform adapters for those families
+    + host-specific policy and configuration
+    = one concrete host composition
+    -> one boot-scoped advertisement of exact current offers
+```
+
+## What each layer means
+
+- **Host core contract:** boot-scoped identity, exact finite advertisements,
+  planning inputs, activation/effect/completion protocol, and evidence correlation.
+  It has no mandatory filesystem, process, socket, display, audio, GPIO, USB,
+  Wi-Fi, Tokio, Embassy, DOM, or operating-system method.
+- **Catalog category:** an organizational namespace such as `text/`, `time/`, or
+  `state/`. A category is neither a provider nor a planner promise.
+- **Operation:** one semantic callable face, such as `text/upper`. Compatibility
+  is equality of its canonical checked face. Its authored name and revision are
+  provenance and diagnostics, not nominal compatibility gates (issue #522).
+- **Family:** a composition boundary that can contribute a related set of
+  operation implementations. Selecting a family includes machinery; it does not
+  itself advertise a category prefix or promise every operation in that category.
+- **Provider/platform adapter:** the implementation of an admitted effect or
+  carrier, such as a Rust timer, browser DOM presentation, CYW43 GPIO, or USB CDC.
+  It does not plan, schedule, invent connectivity, or define semantic meaning.
+- **Host composition:** the deliberately selected families, providers, and
+  policy in one binary or firmware image.
+- **Runtime offer:** one exact boot-scoped `CapabilityOffer`, including canonical
+  checked face, implementation/artifact provenance, limits, resources, and
+  authority requirements. This is planner truth.
+
+Compile-time inclusion is therefore only an upper bound. Startup conditions,
+resource admission, policy, and initialization can make the runtime offer set a
+strict subset. The planner consumes only the resulting exact offers.
+
+## Current inventory
+
+| Surface | Classification | Current role and boundary |
+|---|---|---|
+| `conduit-core::HostAdvertisement` and capability/resource/authority/link facts | host core and planner advertisement | Portable, bounded facts; no platform methods |
+| `conduit-kernel` operation protocol | host core execution contract | Numeric admitted effects/completions; owns no platform implementation |
+| `conduit-runtime::lowering` | plan-to-kernel boundary | Lowers exact selected placements; not a host composition |
+| `conduit-planner` | planner | Matches canonical checked faces against current offers, then admits exact facts |
+| `conduit-std-catalog` | semantic catalog plus some reference offers | Operation contracts are semantic; offer constructors are current reference-host implementation facts |
+| `conduit-signal` host-profile modules | capability contracts and profile fixtures | Shared Signal faces plus exact std/browser/Pico offers used by accepted vertical proofs |
+| `hosts/std::StdHostComposition` | host composition | Selects existing Signal, time, text, and state implementation families; `reference()` is broad and `minimal()` promises none of them |
+| `hosts/std` timers, stdout, WebSocket, and USB code | providers/platform implementations | Real std effects and carriers beneath selected plans; WebSocket/USB are not host-core methods |
+| `hosts/browser-runtime` | browser composition and providers | Exact browser/WASM offers with timer/DOM/WebSocket machinery; not a compatibility runtime |
+| `firmware/conduit-pico-w-signal` and generated image | Pico W composition and providers | Fixed selected Signal timer/GPIO/USB/radio image; no general Pico capability claim |
+| fixture hosts and legacy drivers | legacy/compatibility coupling | Test-only fenced paths; not production host definitions or a second accepted runtime |
+
+The std `reference()` composition is the batteries-included example, not the
+definition of `Host`. `minimal()` demonstrates that the same host shell can be
+constructed without mandatory operation families, while a text-only composition
+demonstrates that compiled code for other families does not become an ambient
+runtime promise.
+
+## Reference compositions today
+
+The checked examples intentionally expose different sets:
+
+- std reference: Signal, time, text, and state operation families;
+- browser distributed sink: the exact presentation face required by that image;
+- Pico-local Signal image: the exact pulse and GPIO-backed presentation faces;
+- minimal std composition: no production operation offers;
+- text-only std composition: the implemented `text/literal`, `text/upper`,
+  `text/join`, and `presentation/text` subset, not the entire `text/` namespace.
+
+Resources and reachability remain separate from offers. Compiling or initializing
+a provider does not authorize it, and selecting a family does not bypass resource,
+authority, policy, or link admission.
+
+## Remaining architecture work
+
+This slice does not yet establish a general downstream BYOKernel composition API,
+separate every provider boundary, or make Pico firmware families selectable in its
+build interface. Those remain owned by #463/#514. It also does not create a dynamic
+registry, package manager, plugin ABI, mega-Host trait, or one Cargo feature per
+operation.

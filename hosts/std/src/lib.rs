@@ -1,9 +1,10 @@
 #[cfg(feature = "legacy-fixture-driver")]
 use conduit_core::HostCommand;
+#[cfg(feature = "legacy-fixture-driver")]
+use conduit_core::ImplementationId;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionProvider,
-    HostAdvertisement, HostId, HostProfileId, ImplementationId, Observation, OfferGeneration, Plan,
-    PlanFragment, PlanId, PROTOCOL_VERSION,
+    ConnectionProvider, HostAdvertisement, HostId, Observation, OfferGeneration, Plan,
+    PlanFragment, PlanId,
 };
 use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
@@ -11,20 +12,17 @@ use conduit_planner::{default_placements, parse_placements, plan, PlacementChoic
 use conduit_runtime::{HostRuntime, RuntimeOutput};
 #[cfg(feature = "legacy-fixture-driver")]
 use conduit_signal::signal_registry;
-use conduit_signal::{
-    pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
-    pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
-    show_host_operation_requirements, show_inputs, show_resource_requirements,
-    signal_profile_catalog, signal_resource_offers, PULSE_KIND, SHOW_KIND,
-};
+use conduit_signal::{signal_profile_catalog, PULSE_KIND, SHOW_KIND};
 use std::fs;
 use std::io::Write;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+mod composition;
 pub mod distributed_signal;
 pub mod distributed_toggle;
+pub use composition::StdHostComposition;
 mod installed_std;
 #[cfg(test)]
 mod installed_std_tests;
@@ -244,7 +242,11 @@ impl StdHost {
     }
 
     pub fn new_with_config(config: StdHostConfig) -> Self {
-        let advertisement = build_advertisement(config);
+        Self::new_with_composition(config, StdHostComposition::reference())
+    }
+
+    pub fn new_with_composition(config: StdHostConfig, composition: StdHostComposition) -> Self {
+        let advertisement = composition::build_advertisement(config, composition);
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)
             .expect("std kernel resource offers are exact and bounded");
         Self {
@@ -366,7 +368,8 @@ pub struct LegacyStdFixtureHost {
 #[cfg(feature = "legacy-fixture-driver")]
 impl LegacyStdFixtureHost {
     pub fn new_with_config(config: StdHostConfig) -> Self {
-        let advertisement = build_advertisement(config);
+        let advertisement =
+            composition::build_advertisement(config, StdHostComposition::reference());
         let registry = signal_registry(
             ImplementationId::from("std/pulse-v1"),
             ImplementationId::from("std/stdout-show-signal-v1"),
@@ -425,79 +428,6 @@ pub fn load_placements(
     match path {
         Some(path) => Ok(Some(parse_placements(&fs::read_to_string(path)?)?)),
         None => Ok(None),
-    }
-}
-
-fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
-    #[allow(unused_mut)]
-    let mut capabilities = vec![
-        CapabilityOffer {
-            startup_parameters: conduit_signal::pulse_face_startup_parameters(),
-            shorthand: None,
-            capability_id: CapabilityId::from("pulse-1"),
-            kind_id: kind_id(PULSE_KIND),
-            kind_contract_revision: pulse_contract_revision(),
-            execution_profile_id: pulse_execution_profile(),
-            implementation_id: ImplementationId::from("std/pulse-v1"),
-            artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
-            inputs: vec![],
-            outputs: pulse_outputs(),
-            host_operations: pulse_host_operation_requirements(),
-            resource_requirements: pulse_resource_requirements(),
-            authority_requirements: vec![],
-            limits: CapabilityLimits {
-                max_active_instances: 16,
-                max_queue_items: 4,
-                max_queue_bytes: 64,
-            },
-        },
-        CapabilityOffer {
-            startup_parameters: vec![],
-            shorthand: None,
-            capability_id: CapabilityId::from("stdout-show-1"),
-            kind_id: kind_id(SHOW_KIND),
-            kind_contract_revision: show_contract_revision(),
-            execution_profile_id: show_execution_profile(),
-            implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
-            artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
-            inputs: show_inputs(),
-            outputs: vec![],
-            host_operations: show_host_operation_requirements(),
-            resource_requirements: show_resource_requirements(),
-            authority_requirements: vec![],
-            limits: CapabilityLimits {
-                max_active_instances: 16,
-                max_queue_items: 4,
-                max_queue_bytes: 64,
-            },
-        },
-        installed_std::tick_offer(),
-        installed_std::every_offer(),
-        conduit_std_catalog::tick_presentation_offer(),
-        conduit_std_catalog::text_literal_offer(),
-        conduit_std_catalog::text_upper_offer(),
-        conduit_std_catalog::text_join_offer(),
-        installed_std::text_offer(),
-        conduit_std_catalog::state_count_offer(),
-        conduit_std_catalog::count_presentation_offer(),
-    ];
-    #[cfg(test)]
-    {
-        capabilities.push(installed_std::test_observer_offer());
-        capabilities.push(installed_std::test_text_source_offer());
-    }
-    HostAdvertisement {
-        protocol_version: PROTOCOL_VERSION,
-        host_id: config.host_id,
-        boot_id: config.boot_id,
-        offer_generation: config.offer_generation,
-        profile: HostProfileId::from("rust-std"),
-        resources: signal_resource_offers("std/timer", "std/presentation", 16),
-        planner_capabilities: vec![conduit_core::PlannerCapabilityOffer {
-            profile_id: conduit_core::PlannerProfileId::from(conduit_planner::FULL_PLANNER_PROFILE),
-            limits: conduit_planner::FULL_PLANNER_LIMITS,
-        }],
-        capabilities,
     }
 }
 
