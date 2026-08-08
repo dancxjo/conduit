@@ -474,6 +474,7 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
         installed_std::tick_offer(),
         conduit_std_catalog::text_literal_offer(),
         conduit_std_catalog::text_upper_offer(),
+        conduit_std_catalog::text_join_offer(),
         installed_std::text_offer(),
     ];
     #[cfg(test)]

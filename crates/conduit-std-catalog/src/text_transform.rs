@@ -27,6 +27,15 @@ pub const TEXT_UPPER_CAPABILITY: &str = "text-upper-v1";
 pub const TEXT_UPPER_HOST_OPERATION_CONTRACT: &str = "conduit.host/text-upper@1";
 pub const TEXT_UPPER_HOST_OPERATION_TARGET: &str = "text/uppercase-utf8";
 
+pub const TEXT_JOIN_KIND: &str = "text/join";
+pub const TEXT_JOIN_CONTRACT_REVISION: &str = "conduit.std/text-join@1";
+pub const TEXT_JOIN_EXECUTION_PROFILE: &str = "conduit.std/text-join-kernel-hosted@1";
+pub const TEXT_JOIN_IMPLEMENTATION: &str = "std/kernel-text-join@1";
+pub const TEXT_JOIN_ARTIFACT: &str = "conduit-std-host/text-join@1";
+pub const TEXT_JOIN_CAPABILITY: &str = "text-join-v1";
+pub const TEXT_JOIN_HOST_OPERATION_CONTRACT: &str = "conduit.host/text-join@1";
+pub const TEXT_JOIN_HOST_OPERATION_TARGET: &str = "text/prefix-concat-utf8";
+
 pub fn text_literal_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(TEXT_LITERAL_KIND),
@@ -64,6 +73,30 @@ pub fn text_upper_contract() -> StandardKindContract {
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "upper: text/upper".to_string(),
+    }
+}
+
+pub fn text_join_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(TEXT_JOIN_KIND),
+        plain_name: "Prefix text".to_string(),
+        summary: "Prepend one immutable bounded UTF-8 prefix without an implicit separator."
+            .to_string(),
+        inputs: vec![text_port("text", PortDirection::Input)],
+        outputs: vec![text_port("text", PortDirection::Output)],
+        configuration: vec![StandardConfigurationField {
+            key: "prefix".to_string(),
+            default_value: ConfigurationValue::Text(String::new()),
+            rule: StandardConfigurationRule::TextBytes {
+                maximum: MAX_TEXT_BYTES,
+            },
+        }],
+        limits: text_limits(),
+        terminal_behavior: TerminalBehavior::MirrorsInputTerminal,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "join: text/join(\"Hello\")".to_string(),
     }
 }
 
@@ -109,6 +142,35 @@ pub fn text_upper_offer() -> CapabilityOffer {
     offer
 }
 
+pub fn text_join_offer() -> CapabilityOffer {
+    let mut offer = offer(
+        &text_join_contract(),
+        TEXT_JOIN_CAPABILITY,
+        TEXT_JOIN_CONTRACT_REVISION,
+        TEXT_JOIN_EXECUTION_PROFILE,
+        TEXT_JOIN_IMPLEMENTATION,
+        TEXT_JOIN_ARTIFACT,
+        vec![FaceStartupParameter {
+            name: "prefix".to_string(),
+            value_type: "Text".to_string(),
+            has_default: false,
+        }],
+        Some((port_id("text"), port_id("text"))),
+    );
+    offer
+        .host_operations
+        .push(conduit_core::HostOperationRequirement {
+            contract_id: conduit_core::HostOperationContractId::from(
+                TEXT_JOIN_HOST_OPERATION_CONTRACT,
+            ),
+            target_kind: Some(kind_id(TEXT_JOIN_HOST_OPERATION_TARGET)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: MAX_TEXT_BYTES,
+            maximum_output_bytes: MAX_TEXT_BYTES,
+        });
+    offer
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_text_pipeline_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -131,6 +193,14 @@ pub fn install_text_pipeline_catalogs(
         startup_parameters: Vec::new(),
     })?;
     startup.insert(OperationSignature {
+        operation: TEXT_JOIN_KIND.to_string(),
+        startup_parameters: vec![StartupParameterSignature {
+            name: "prefix".to_string(),
+            value_type: "Text".to_string(),
+            default: None,
+        }],
+    })?;
+    startup.insert(OperationSignature {
         operation: super::TEXT_PRESENTATION_KIND.to_string(),
         startup_parameters: vec![StartupParameterSignature {
             name: "maximum-values".to_string(),
@@ -141,6 +211,7 @@ pub fn install_text_pipeline_catalogs(
     for (contract, revision) in [
         (text_literal_contract(), TEXT_LITERAL_CONTRACT_REVISION),
         (text_upper_contract(), TEXT_UPPER_CONTRACT_REVISION),
+        (text_join_contract(), TEXT_JOIN_CONTRACT_REVISION),
     ] {
         let configuration = contract
             .configuration
@@ -244,8 +315,11 @@ mod tests {
     fn text_pipeline_contracts_are_typed_bounded_and_hosted_only() {
         let literal = text_literal_offer();
         let upper = text_upper_offer();
+        let join = text_join_offer();
         assert_eq!(literal.outputs[0].value_kind, upper.inputs[0].value_kind);
         assert_eq!(upper.inputs[0].value_kind, upper.outputs[0].value_kind);
+        assert_eq!(join.inputs[0].value_kind, join.outputs[0].value_kind);
+        assert_eq!(join.startup_parameters[0].value_type, "Text");
         assert_eq!(literal.startup_parameters[0].value_type, "Text");
         assert!(!literal.startup_parameters[0].has_default);
         assert!(!text_upper_contract().browser_manifestation_honest);

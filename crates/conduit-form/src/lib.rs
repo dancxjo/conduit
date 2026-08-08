@@ -15,6 +15,7 @@ pub mod syntax;
 mod syntax_check;
 mod syntax_identity;
 mod text_value;
+mod value_type;
 
 pub use canonical_expansion::*;
 pub use checked_syntax::*;

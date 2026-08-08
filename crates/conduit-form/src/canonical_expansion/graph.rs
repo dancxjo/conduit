@@ -243,7 +243,7 @@ fn require_face_kind(
     value_type: &str,
     actual: &KindId,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
-    if value_type != actual.as_str() {
+    if crate::value_type::canonical_value_kind(value_type) != *actual {
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-045",
             format!(

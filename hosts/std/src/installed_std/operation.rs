@@ -2,7 +2,9 @@ use super::contract::{
     encode_tick, parse_tick_configuration, TICK_ARTIFACT, TICK_CONTRACT_REVISION, TICK_ENCODED_LEN,
     TICK_EXECUTION_PROFILE, TICK_IMPLEMENTATION, TICK_KIND, TICK_VALUE_KIND,
 };
-use super::text_operations::{TextLiteralOperation, TextPresentationOperation, TextUpperOperation};
+use super::text_operations::{
+    TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
+};
 use conduit_core::{PlannedOperation, PortDirection};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
@@ -55,7 +57,8 @@ pub(super) static TEST_OBSERVER_FACTORY: InstalledFactory = InstalledFactory {
 pub(super) enum InstalledOperation {
     Tick(TickOperation),
     TextLiteral(TextLiteralOperation),
-    TextUpper(TextUpperOperation),
+    TextUpper(TextTransformOperation),
+    TextJoin(TextTransformOperation),
     TextPresentation(TextPresentationOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
@@ -85,7 +88,7 @@ impl InstalledOperation {
     pub(super) fn allocation_capacity(&self) -> usize {
         match self {
             Self::Tick(operation) => operation.values.capacity() + operation.waits.capacity(),
-            Self::TextLiteral(_) | Self::TextUpper(_) => 0,
+            Self::TextLiteral(_) | Self::TextUpper(_) | Self::TextJoin(_) => 0,
             Self::TextPresentation(_) => 0,
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.values.capacity(),
@@ -111,6 +114,7 @@ impl Operation for InstalledOperation {
                 .unwrap_or(OperationAction::Complete),
             Self::TextLiteral(operation) => operation.start(),
             Self::TextUpper(operation) => operation.start(),
+            Self::TextJoin(operation) => operation.start(),
             Self::TextPresentation(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
@@ -141,6 +145,7 @@ impl Operation for InstalledOperation {
             }
             (Self::TextLiteral(operation), input) => operation.resume(input),
             (Self::TextUpper(operation), input) => operation.resume(input),
+            (Self::TextJoin(operation), input) => operation.resume(input),
             (Self::TextPresentation(operation), input) => operation.resume(input),
             #[cfg(test)]
             (
@@ -197,6 +202,7 @@ impl Operation for InstalledOperation {
             }
             Self::TextLiteral(operation) => operation.advance(),
             Self::TextUpper(_) => OperationAction::Await,
+            Self::TextJoin(_) => OperationAction::Await,
             Self::TextPresentation(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestTextSource(operation) => {
@@ -214,6 +220,7 @@ impl Operation for InstalledOperation {
             Self::Tick(operation) => operation.pending = None,
             Self::TextLiteral(_) => {}
             Self::TextUpper(operation) => operation.cancel(),
+            Self::TextJoin(operation) => operation.cancel(),
             Self::TextPresentation(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}

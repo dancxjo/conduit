@@ -5,6 +5,8 @@ mod test_support;
 #[cfg(test)]
 mod test_text_source;
 mod text_operations;
+#[cfg(test)]
+mod text_operations_tests;
 
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
@@ -14,7 +16,9 @@ use self::operation::{InstalledFactory, InstalledOperation, TICK_FACTORY};
 use self::operation::{TEST_OBSERVER_FACTORY, TEST_OBSERVER_IMPLEMENTATION};
 #[cfg(test)]
 use self::test_text_source::TEST_TEXT_SOURCE_FACTORY;
-use self::text_operations::{TEXT_LITERAL_FACTORY, TEXT_PRESENTATION_FACTORY, TEXT_UPPER_FACTORY};
+use self::text_operations::{
+    TEXT_JOIN_FACTORY, TEXT_LITERAL_FACTORY, TEXT_PRESENTATION_FACTORY, TEXT_UPPER_FACTORY,
+};
 use super::{StdKernelExecutionReport, StdRunReport, TimerAdapter};
 #[cfg(test)]
 use conduit_core::present_host_operation_requirement;
@@ -72,6 +76,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TICK_FACTORY,
     &TEXT_LITERAL_FACTORY,
     &TEXT_UPPER_FACTORY,
+    &TEXT_JOIN_FACTORY,
     &TEXT_PRESENTATION_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
@@ -273,6 +278,10 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT,
     );
     let upper_target_kind = kind_id(conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_TARGET);
+    let join_contract_id = conduit_core::HostOperationContractId::from(
+        conduit_std_catalog::TEXT_JOIN_HOST_OPERATION_CONTRACT,
+    );
+    let join_target_kind = kind_id(conduit_std_catalog::TEXT_JOIN_HOST_OPERATION_TARGET);
     let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
     #[cfg(test)]
     let mut observed_ticks = Vec::with_capacity(request_capacity / 2);
@@ -317,6 +326,27 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         text_operations::completed_with_output(value),
                     )
                     .map_err(|error| format!("complete text/upper host operation: {error:?}"))?;
+                continue;
+            } else if contract == &join_contract_id
+                && lowered_operation.target_kind.as_ref() == Some(&join_target_kind)
+            {
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or_else(|| "text/join request has no exact placement".to_string())?;
+                let prefix = text_operations::join_prefix(placement)?;
+                text_operations::prefix_utf8(prefix, input, &mut uppercase_buffer)?;
+                let value = scheduler
+                    .store_host_value(&uppercase_buffer)
+                    .map_err(|error| format!("store joined text output: {error:?}"))?;
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        text_operations::completed_with_output(value),
+                    )
+                    .map_err(|error| format!("complete text/join host operation: {error:?}"))?;
                 continue;
             } else if lowered_operation.target_kind.as_ref() == Some(&text_target_kind) {
                 let text = std::str::from_utf8(input)
