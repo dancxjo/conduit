@@ -1,6 +1,6 @@
 //! Native window/event-loop adapter for Patchbay.
 
-use patchbay_model::{FormEditor, GraphItemKind, PatchbayModel, PatchbayTopology};
+use patchbay_model::{DistributedRouteDemo, FormEditor, PatchbayModel, PatchbayTopology};
 use std::num::NonZeroU32;
 use std::rc::Rc;
 use winit::application::ApplicationHandler;
@@ -10,10 +10,10 @@ use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
 
 const HISTORY_CAPACITY: usize = 4;
-const MAX_FORM_PRESENTATION_LINES: usize = 256;
 mod arguments;
 mod control;
 mod file_task;
+mod presentation;
 mod render;
 mod resource;
 use arguments::{parse_arguments, Arguments};
@@ -30,6 +30,7 @@ struct PatchbayApplication {
     modifiers: winit::keyboard::ModifiersState,
     control: NativeControl,
     file_task: NativeFileTask,
+    route_demo: Option<DistributedRouteDemo>,
     window: Option<Rc<Window>>,
     exit_after_window: bool,
     rendered_once: bool,
@@ -66,6 +67,11 @@ impl PatchbayApplication {
             .transpose()
             .map_err(|error| error.to_string())?;
         let file_task = probe_native_file_task();
+        let route_demo = arguments
+            .distributed_route_demo
+            .then(DistributedRouteDemo::build)
+            .transpose()
+            .map_err(|error| format!("distributed route demo: {error:?}"))?;
         let mut application = Self {
             model,
             topology_lines,
@@ -74,6 +80,7 @@ impl PatchbayApplication {
             modifiers: winit::keyboard::ModifiersState::empty(),
             control: NativeControl::new(),
             file_task,
+            route_demo,
             window: None,
             exit_after_window: arguments.exit_after_window,
             rendered_once: false,
@@ -143,77 +150,6 @@ impl PatchbayApplication {
         );
         self.rendered_once = true;
         Ok(())
-    }
-
-    fn presentation_lines(&self) -> Vec<String> {
-        let Some(editor) = &self.form_editor else {
-            return self.topology_lines.clone();
-        };
-        let view = editor.view();
-        let mut lines = vec![
-            format!("SOURCE {} revision={}", view.path.display(), view.revision),
-            "  Form: edit/end Backspace/delete Ctrl-S/save Tab/open-back Up/Down/select | Play: F5/Plan F6/Run Esc/Stop | File: F7/source F8/create Shift-F8/replace F9/Plan F10/Run F11/Stop".into(),
-        ];
-        lines.extend(
-            view.source
-                .lines()
-                .take(MAX_FORM_PRESENTATION_LINES.saturating_sub(4))
-                .map(|line| format!("  {line}")),
-        );
-        if let Some(diagnostic) = view.checked.diagnostics.first() {
-            lines.push(format!(
-                "DIAGNOSTIC {} {}:{}-{}:{} bytes={}..{} {}",
-                diagnostic.code,
-                diagnostic.span.line,
-                diagnostic.span.column,
-                diagnostic.span.end_line,
-                diagnostic.span.end_column,
-                diagnostic.span.start,
-                diagnostic.span.end,
-                diagnostic.message
-            ));
-            lines.truncate(MAX_FORM_PRESENTATION_LINES);
-            return lines;
-        }
-        lines.push(format!(
-            "CHECKED source={} forms={} OPEN BACK {}",
-            view.checked
-                .source_document_id
-                .as_ref()
-                .map(|id| id.as_str())
-                .unwrap_or("none"),
-            view.checked.forms.len(),
-            view.open_form
-        ));
-        if let Some(form) = view
-            .checked
-            .forms
-            .iter()
-            .find(|form| form.name == view.open_form)
-        {
-            for (index, item) in form.items.iter().enumerate() {
-                let marker = if index == self.form_selection {
-                    ">"
-                } else {
-                    " "
-                };
-                let kind = match item.kind {
-                    GraphItemKind::FaceInput => "face-in",
-                    GraphItemKind::FaceOutput => "face-out",
-                    GraphItemKind::StartupValue => "startup",
-                    GraphItemKind::Cell => "cell",
-                    GraphItemKind::Cord => "cord",
-                };
-                lines.push(format!(
-                    "{marker} {kind} {} [{}..{}] {}",
-                    item.identity, item.source_span.start, item.source_span.end, item.label
-                ));
-            }
-        }
-        lines.extend(self.control.lines());
-        lines.extend(self.file_task.lines());
-        lines.truncate(MAX_FORM_PRESENTATION_LINES);
-        lines
     }
 
     fn edit_source(&mut self, update: impl FnOnce(&mut String)) -> Result<(), String> {
