@@ -41,11 +41,17 @@ pub(super) fn configuration(
                     )
                 })
                 .and_then(|binding| substitute(&binding.value, environment))
-                .and_then(|value| parse_configuration_value(&field.key, value))?;
+                .and_then(|value| {
+                    parse_configuration_value(&field.key, value, &field.validation)
+                })?;
             let accepted = match (&field.validation, &value) {
                 (ConfigurationRule::Any, _) => true,
                 (
                     ConfigurationRule::U64Range { minimum, maximum },
+                    ConfigurationValue::U64(value),
+                ) => (*minimum..=*maximum).contains(value),
+                (
+                    ConfigurationRule::DurationMillis { minimum, maximum },
                     ConfigurationValue::U64(value),
                 ) => (*minimum..=*maximum).contains(value),
                 (ConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
@@ -73,6 +79,7 @@ pub(super) fn configuration(
 fn parse_configuration_value(
     name: &str,
     value: CanonicalStartupValue,
+    validation: &ConfigurationRule,
 ) -> Result<ConfigurationValue, CanonicalExpansionDiagnostic> {
     let CanonicalStartupValue::Literal(literal) = value else {
         return Err(CanonicalExpansionDiagnostic::new(
@@ -80,7 +87,16 @@ fn parse_configuration_value(
             format!("startup value '{name}' remains unresolved"),
         ));
     };
-    if literal == "true" || literal == "false" {
+    if matches!(validation, ConfigurationRule::DurationMillis { .. }) {
+        parse_duration_millis(&literal)
+            .map(ConfigurationValue::U64)
+            .ok_or_else(|| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-041",
+                    format!("primitive startup duration '{name}' is invalid or overflows"),
+                )
+            })
+    } else if literal == "true" || literal == "false" {
         Ok(ConfigurationValue::Bool(literal == "true"))
     } else if let Ok(value) = literal.parse::<u64>() {
         Ok(ConfigurationValue::U64(value))
@@ -92,6 +108,17 @@ fn parse_configuration_value(
             format!("primitive startup value '{name}' cannot be represented by the current planner contract"),
         ))
     }
+}
+
+fn parse_duration_millis(literal: &str) -> Option<u64> {
+    let (digits, multiplier) = literal
+        .strip_suffix("ms")
+        .map(|digits| (digits, 1))
+        .or_else(|| literal.strip_suffix('s').map(|digits| (digits, 1_000)))?;
+    if digits.is_empty() || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    digits.parse::<u64>().ok()?.checked_mul(multiplier)
 }
 
 pub(super) fn resolve_reference(

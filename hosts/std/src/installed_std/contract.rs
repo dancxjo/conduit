@@ -22,9 +22,37 @@ pub(super) const TICK_ARTIFACT: &str = "conduit-std-host/time-tick@2";
 const TICK_CAPABILITY: &str = "time-tick-v2";
 const MAX_TICK_COUNT: u64 = 4_096;
 
+pub(super) use conduit_std_catalog::{
+    TIME_EVERY_ARTIFACT, TIME_EVERY_CONTRACT_REVISION, TIME_EVERY_COUNT,
+    TIME_EVERY_EXECUTION_PROFILE, TIME_EVERY_IMPLEMENTATION, TIME_EVERY_KIND,
+};
+
 pub(super) struct TickConfiguration {
     pub(super) count: u64,
     pub(super) period_ms: u64,
+}
+
+pub(crate) fn every_offer() -> CapabilityOffer {
+    conduit_std_catalog::time_every_offer()
+}
+
+pub(super) fn parse_every_configuration(
+    entries: &[ConfigurationEntry],
+) -> Result<TickConfiguration, String> {
+    if entries.len() != 1 {
+        return Err("time/every requires exactly one planned configuration field".to_string());
+    }
+    let period_ms = entries
+        .iter()
+        .find_map(|entry| match (entry.key.as_str(), &entry.value) {
+            ("freq", ConfigurationValue::U64(value)) => Some(*value),
+            _ => None,
+        })
+        .ok_or_else(|| "missing or invalid time/every configuration 'freq'".to_string())?;
+    Ok(TickConfiguration {
+        count: TIME_EVERY_COUNT,
+        period_ms,
+    })
 }
 
 pub(crate) fn tick_offer() -> CapabilityOffer {

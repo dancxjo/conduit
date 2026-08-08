@@ -7,11 +7,12 @@ mod test_text_source;
 mod text_operations;
 #[cfg(test)]
 mod text_operations_tests;
+mod tick_presentation;
 
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
-use self::operation::{InstalledFactory, InstalledOperation, TICK_FACTORY};
+use self::operation::{InstalledFactory, InstalledOperation, EVERY_FACTORY, TICK_FACTORY};
 #[cfg(test)]
 use self::operation::{TEST_OBSERVER_FACTORY, TEST_OBSERVER_IMPLEMENTATION};
 #[cfg(test)]
@@ -19,6 +20,7 @@ use self::test_text_source::TEST_TEXT_SOURCE_FACTORY;
 use self::text_operations::{
     TEXT_JOIN_FACTORY, TEXT_LITERAL_FACTORY, TEXT_PRESENTATION_FACTORY, TEXT_UPPER_FACTORY,
 };
+use self::tick_presentation::TICK_PRESENTATION_FACTORY;
 use super::{StdKernelExecutionReport, StdRunReport, TimerAdapter};
 #[cfg(test)]
 use conduit_core::present_host_operation_requirement;
@@ -74,6 +76,8 @@ type InstalledScheduler = FixedScheduler<
 
 const FACTORIES: &[&InstalledFactory] = &[
     &TICK_FACTORY,
+    &EVERY_FACTORY,
+    &TICK_PRESENTATION_FACTORY,
     &TEXT_LITERAL_FACTORY,
     &TEXT_UPPER_FACTORY,
     &TEXT_JOIN_FACTORY,
@@ -84,6 +88,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEST_OBSERVER_FACTORY,
 ];
 
+pub(super) use contract::every_offer;
 pub(super) use contract::tick_offer;
 
 fn factory(implementation_id: &ImplementationId) -> Option<&'static InstalledFactory> {
@@ -274,6 +279,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
     let wait_contract_id = wait_host_operation_requirement().contract_id;
     let text_target_kind = kind_id("presentation/stdout-text");
+    let tick_target_kind = kind_id(conduit_std_catalog::TICK_PRESENTATION_TARGET);
     let upper_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT,
     );
@@ -352,6 +358,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 let text = std::str::from_utf8(input)
                     .map_err(|_| "text presentation input is not valid UTF-8".to_string())?;
                 writeln!(_output, "{text}").map_err(|error| error.to_string())?;
+            } else if lowered_operation.target_kind.as_ref() == Some(&tick_target_kind) {
+                let tick = decode_tick(input).map_err(|error| error.to_string())?;
+                writeln!(_output, "tick sequence={tick}").map_err(|error| error.to_string())?;
             } else {
                 #[cfg(test)]
                 {
