@@ -1351,9 +1351,11 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-observatory",
+ "conduit-planner",
  "conduit-signal",
  "conduit-std-catalog",
  "conduit-std-host",
+ "conduit-wire",
 ]
 
 [[package]]

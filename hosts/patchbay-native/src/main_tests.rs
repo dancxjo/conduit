@@ -1,4 +1,6 @@
-use super::{arguments::parse_arguments, render::draw_document, Arguments, BACKGROUND};
+use super::{
+    arguments::parse_arguments, render::draw_document, Arguments, PatchbayApplication, BACKGROUND,
+};
 use std::path::PathBuf;
 
 #[test]
@@ -39,9 +41,28 @@ fn arguments_are_explicit_and_fail_closed() {
             .unwrap()
             .native_copy_demo
     );
+    assert!(
+        parse_arguments(vec!["--distributed-route-demo".into()].into_iter())
+            .unwrap()
+            .distributed_route_demo
+    );
     assert!(parse_arguments(vec!["--unknown".into()].into_iter()).is_err());
     assert!(parse_arguments(vec!["--observatory-snapshot".into()].into_iter()).is_err());
     assert!(parse_arguments(vec!["--form".into()].into_iter()).is_err());
+}
+
+#[test]
+fn native_document_exposes_both_route_recovery_cases() {
+    let application = PatchbayApplication::new(Arguments {
+        distributed_route_demo: true,
+        ..Arguments::default()
+    })
+    .expect("distributed route document");
+    let text = application.presentation_lines().join("\n");
+    assert!(text.contains("PLAN-A replan-required"));
+    assert!(text.contains("OUTCOME replan=true"));
+    assert!(text.contains("PLAN-B predeclared-fallback"));
+    assert!(text.contains("OUTCOME replan=false"));
 }
 
 #[test]

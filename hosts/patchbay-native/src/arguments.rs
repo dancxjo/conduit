@@ -8,6 +8,7 @@ pub struct Arguments {
     pub control_demo: bool,
     pub control_demo_stop: bool,
     pub native_copy_demo: bool,
+    pub distributed_route_demo: bool,
 }
 
 pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Arguments, String> {
@@ -36,6 +37,9 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
             }
             "--native-copy-demo" if !parsed.native_copy_demo => {
                 parsed.native_copy_demo = true;
+            }
+            "--distributed-route-demo" if !parsed.distributed_route_demo => {
+                parsed.distributed_route_demo = true;
             }
             _ => {
                 return Err(format!(

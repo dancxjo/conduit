@@ -21,6 +21,9 @@ pub fn draw_document(buffer: &mut [u32], width: usize, height: usize, lines: &[S
             || line.starts_with("OBSERVATIONS")
             || line.starts_with("CHECKED")
             || line.starts_with("DIAGNOSTIC")
+            || line.starts_with("DISTRIBUTED")
+            || line.starts_with("FORM ")
+            || line.starts_with("PLAN-")
         {
             ACCENT
         } else {
