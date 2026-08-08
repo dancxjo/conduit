@@ -18,9 +18,10 @@ mod presentation;
 mod render;
 mod resource;
 use arguments::{parse_arguments, Arguments};
+use conduit_std_host::StdHostComposition;
 use control::NativeControl;
 use distributed_play::{run_server as run_distributed_server, NativeDistributedPlay};
-use file_task::{probe_native_file_task, DestinationPolicy, NativeFileTask};
+use file_task::{probe_native_file_provider, DestinationPolicy, NativeFileTask};
 use render::{draw_document, BACKGROUND};
 use resource::{open_form_resource, save_form_resource};
 
@@ -42,7 +43,16 @@ struct PatchbayApplication {
 
 impl PatchbayApplication {
     fn new(arguments: Arguments) -> Result<Self, String> {
-        let model = PatchbayModel::fresh();
+        let native_file_provider = probe_native_file_provider();
+        let mut composition = StdHostComposition::minimal()
+            .with_signal()
+            .with_time()
+            .with_text()
+            .with_state();
+        if native_file_provider.is_some() {
+            composition = composition.with_files();
+        }
+        let model = PatchbayModel::fresh_with_composition(composition);
         emit_report("startup", &model.startup_snapshot())?;
         let mut topology =
             PatchbayTopology::new(HISTORY_CAPACITY).map_err(|error| error.to_string())?;
@@ -69,9 +79,16 @@ impl PatchbayApplication {
             .map(open_form_resource)
             .transpose()
             .map_err(|error| error.to_string())?;
-        let file_task = probe_native_file_task();
         let source_host_id = model.projection().host_id().clone();
         let source_boot_id = model.projection().boot_id().clone();
+        let control =
+            NativeControl::for_host(source_host_id.clone(), source_boot_id.clone(), composition);
+        let file_task = NativeFileTask::for_host(
+            native_file_provider,
+            source_host_id.clone(),
+            source_boot_id.clone(),
+            composition,
+        );
         let route_demo = (arguments.distributed_route_demo || arguments.distributed_play)
             .then(|| {
                 DistributedRouteDemo::build_for_source(
@@ -91,7 +108,7 @@ impl PatchbayApplication {
             form_editor,
             form_selection: 0,
             modifiers: winit::keyboard::ModifiersState::empty(),
-            control: NativeControl::new(),
+            control,
             file_task,
             route_demo,
             distributed_play,

@@ -24,17 +24,26 @@ pub struct NativeControl {
 }
 
 impl NativeControl {
+    #[cfg(test)]
     pub fn new() -> Self {
-        let host_config = StdHostConfig {
-            host_id: HostId::from("patchbay-native/std-realization"),
-            boot_id: BootId::from("patchbay-native/std-boot-1"),
-            offer_generation: OfferGeneration(1),
-        };
         let composition = StdHostComposition::minimal()
             .with_signal()
             .with_time()
             .with_text()
             .with_state();
+        Self::for_host(
+            HostId::from("patchbay-native/std-realization"),
+            BootId::from("patchbay-native/std-boot-1"),
+            composition,
+        )
+    }
+
+    pub fn for_host(host_id: HostId, boot_id: BootId, composition: StdHostComposition) -> Self {
+        let host_config = StdHostConfig {
+            host_id,
+            boot_id,
+            offer_generation: OfferGeneration(1),
+        };
         let host = StdHost::new_with_composition(host_config.clone(), composition);
         Self {
             host_config,
@@ -243,6 +252,11 @@ impl NativeControl {
 
     pub fn is_running(&self) -> bool {
         self.active.is_some()
+    }
+
+    #[cfg(test)]
+    pub fn host_identity(&self) -> (&HostId, &BootId) {
+        (&self.host_config.host_id, &self.host_config.boot_id)
     }
 
     fn next_request(&mut self, action: &str) -> String {

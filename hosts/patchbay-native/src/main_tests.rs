@@ -4,6 +4,25 @@ use super::{
 use std::path::PathBuf;
 
 #[test]
+fn application_adapters_share_the_fresh_advertised_host_identity() {
+    let application = PatchbayApplication::new(Arguments::default()).unwrap();
+    let advertised = application.model.advertisement();
+    let (control_host, control_boot) = application.control.host_identity();
+    let (file_host, file_boot) = application.file_task.host_identity();
+
+    assert_eq!(control_host, &advertised.host_id);
+    assert_eq!(control_boot, &advertised.boot_id);
+    assert_eq!(file_host, &advertised.host_id);
+    assert_eq!(file_boot, &advertised.boot_id);
+    assert_eq!(
+        advertised.capabilities.iter().any(|offer| {
+            offer.capability_id.as_str() == conduit_std_catalog::COPY_FILE_CAPABILITY
+        }),
+        application.file_task.provider_available()
+    );
+}
+
+#[test]
 fn arguments_are_explicit_and_fail_closed() {
     assert_eq!(
         parse_arguments(Vec::new().into_iter()).unwrap(),
