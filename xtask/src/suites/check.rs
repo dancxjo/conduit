@@ -244,22 +244,6 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         Some(ProofClass::ContractCompile),
         &[],
     ),
-    Step::typed(
-        "check.thumb.firmware",
-        "Pico W firmware thumb target check",
-        "cargo",
-        &[
-            "check",
-            "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
-            "--target",
-            "thumbv6m-none-eabi",
-        ],
-        None,
-        Some("thumbv6m-none-eabi"),
-        Some(ProofClass::ContractCompile),
-        &[],
-    ),
     Step::new(
         "check.pico-local.dry-run",
         "Dry-run verify of Pico W receipts",

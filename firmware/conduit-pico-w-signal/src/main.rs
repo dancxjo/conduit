@@ -5,23 +5,31 @@
 //! The default image runs the generated Pico-local plan without heap
 //! allocation. The explicit `usb-remote` image uses one finite startup arena
 //! for owned session identities; active transport remains statically bounded.
+//! `pico-local-minimal` is a compile-only composition proof with the same
+//! kernel-backed Signal faces and USB evidence, but no wire/session or BOOTSEL
+//! lifecycle-control provider. It is not a substitute for physical acceptance.
 #![no_std]
 #![no_main]
 
 #[cfg(any(
     all(feature = "pico-local", feature = "usb-remote"),
     all(feature = "pico-local", feature = "triple-remote"),
+    all(feature = "pico-local", feature = "pico-local-minimal"),
+    all(feature = "pico-local-minimal", feature = "usb-remote"),
+    all(feature = "pico-local-minimal", feature = "triple-remote"),
     all(feature = "usb-remote", feature = "triple-remote")
 ))]
 compile_error!("select exactly one Pico firmware mode");
 #[cfg(not(any(
     feature = "pico-local",
+    feature = "pico-local-minimal",
     feature = "usb-remote",
     feature = "triple-remote"
 )))]
 compile_error!("select exactly one Pico firmware mode");
 
 mod kernel;
+#[cfg(feature = "session-control")]
 mod bootsel;
 mod radio;
 mod receipts;
@@ -33,6 +41,7 @@ mod signal_image;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 mod startup_arena;
 mod usb;
+#[cfg(feature = "session-control")]
 mod usb_link;
 
 use aligned::{A4, Aligned};
@@ -47,10 +56,10 @@ use panic_halt as _;
 #[global_allocator]
 static ALLOCATOR: startup_arena::StartupArena = startup_arena::StartupArena::new();
 
-#[cfg(feature = "pico-local")]
+#[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 struct NoAllocator;
 
-#[cfg(feature = "pico-local")]
+#[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 unsafe impl core::alloc::GlobalAlloc for NoAllocator {
     unsafe fn alloc(&self, _layout: core::alloc::Layout) -> *mut u8 {
         core::ptr::null_mut()
@@ -59,7 +68,7 @@ unsafe impl core::alloc::GlobalAlloc for NoAllocator {
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: core::alloc::Layout) {}
 }
 
-#[cfg(feature = "pico-local")]
+#[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 #[global_allocator]
 static ALLOCATOR: NoAllocator = NoAllocator;
 
@@ -79,10 +88,14 @@ const _CYW43_LICENSE: &[u8] = include_bytes!(
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
-    // Both modes expose the same dual-CDC physical shape. The local proof owns
-    // CDC 1 only; the remote proof additionally installs CDC 0 as its carrier.
+    // Physical-proof and remote modes expose dual CDC: CDC 0 owns session and
+    // lifecycle control, while CDC 1 owns evidence. The minimal composition
+    // omits that optional family and exposes one evidence-only CDC interface.
     let usb_driver = embassy_rp::usb::Driver::new(p.USB, radio::UsbIrq);
-    let (usb_fut, link_carrier, evidence_sender) = usb::init_composite_usb(usb_driver);
+    #[cfg(feature = "session-control")]
+    let (usb_fut, session_carrier, evidence_sender) = usb::init_composite_usb(usb_driver);
+    #[cfg(not(feature = "session-control"))]
+    let (usb_fut, evidence_sender) = usb::init_evidence_usb(usb_driver);
     spawner.spawn(receipts::usb_task_spawn(usb_fut).unwrap());
     let runtime = receipts::RuntimeTranscriptIdentity::new(
         signal_image::PLAN_ID,
@@ -92,7 +105,7 @@ async fn main(spawner: Spawner) {
 
     #[cfg(feature = "pico-local")]
     {
-        let mut link_session = usb_link::UsbLinkSession::new(link_carrier).unwrap();
+        let mut link_session = usb_link::UsbLinkSession::new(session_carrier).unwrap();
         let (mut control, _) = radio::init_cyw43(
             &spawner,
             p.PIO0,
@@ -116,9 +129,28 @@ async fn main(spawner: Spawner) {
         let _ = bootsel::wait_for_request(&mut link_session).await;
     }
 
+    #[cfg(feature = "pico-local-minimal")]
+    {
+        let (mut control, _) = radio::init_cyw43(
+            &spawner,
+            p.PIO0,
+            p.DMA_CH0,
+            p.PIN_23,
+            p.PIN_24,
+            p.PIN_25,
+            p.PIN_29,
+            &CYW43_FW,
+            &CYW43_NVRAM,
+        )
+        .await;
+        cdc.wait_dtr().await;
+        kernel::run_signal_demo(&mut control, &mut cdc, &runtime).await;
+        core::future::pending::<()>().await;
+    }
+
     #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
     {
-        let mut link_session = usb_link::UsbLinkSession::new(link_carrier).unwrap();
+        let mut link_session = usb_link::UsbLinkSession::new(session_carrier).unwrap();
 
         // Service the physical USB startup while CYW43 initializes. Enumeration is
         // not a live CDC service: both futures must be polled from the beginning.

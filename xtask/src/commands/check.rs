@@ -6,6 +6,7 @@ use crate::{
         PLANNING_S2_STEPS, REALM_READINESS_STEPS, SIM_READINESS_STEPS, STD_CATALOG_READINESS_STEPS,
         WORKSPACE_STEPS,
     },
+    suites::pico_compositions::PICO_COMPOSITION_STEPS,
     workspace::workspace_root,
 };
 
@@ -13,7 +14,10 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
     let root = workspace_root().map_err(|error| StepError::prereq("workspace-root", error))?;
 
     match args.suite {
-        CheckSuite::Workspace => run_suite(WORKSPACE_STEPS, &root, opts),
+        CheckSuite::Workspace => {
+            run_suite(WORKSPACE_STEPS, &root, opts)?;
+            run_suite(PICO_COMPOSITION_STEPS, &root, opts)
+        }
         CheckSuite::Browser | CheckSuite::BrowserHost => {
             run_suite(BROWSER_CHECK_STEPS, &root, opts)
         }
@@ -26,6 +30,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::StdCatalog => run_suite(STD_CATALOG_READINESS_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
+            run_suite(PICO_COMPOSITION_STEPS, &root, opts)?;
             run_suite(BROWSER_CHECK_STEPS, &root, opts)
         }
     }
