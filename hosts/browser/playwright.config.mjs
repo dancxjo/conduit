@@ -9,6 +9,7 @@ export default defineConfig({
     "websocket-carrier.spec.mjs",
     "distributed-signal.spec.mjs",
     "distributed-toggle.spec.mjs",
+    "conduit-site.spec.mjs",
     "triple-signal.spec.mjs",
   ],
   fullyParallel: false,
