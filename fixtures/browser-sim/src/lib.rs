@@ -1080,6 +1080,7 @@ mod tests {
                 connection_item_capacity: 4,
                 connection_byte_capacity: 64,
                 authority_grants: &[],
+                protected_resource_grants: &[],
                 link_bindings: &link_bindings,
             },
         )

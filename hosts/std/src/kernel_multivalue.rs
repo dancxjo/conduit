@@ -556,6 +556,7 @@ pub fn plan_local(
             connection_item_capacity: 1,
             connection_byte_capacity: 8,
             authority_grants: &[],
+            protected_resource_grants: &[],
             link_bindings: &[],
         },
     )

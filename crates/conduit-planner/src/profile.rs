@@ -13,6 +13,7 @@ pub const FULL_PLANNER_LIMITS: PlannerLimits = PlannerLimits {
     maximum_operations: u16::MAX,
     maximum_connections: u16::MAX,
     maximum_authority_grants: u16::MAX,
+    maximum_protected_resource_grants: u16::MAX,
     maximum_link_bindings: u16::MAX,
 };
 
@@ -77,6 +78,11 @@ fn admit_request(
         "authority grants",
         options.authority_grants.len(),
         offer.limits.maximum_authority_grants,
+    )?;
+    admit_count(
+        "protected resource grants",
+        options.protected_resource_grants.len(),
+        offer.limits.maximum_protected_resource_grants,
     )?;
     admit_count(
         "link bindings",

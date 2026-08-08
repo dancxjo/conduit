@@ -168,6 +168,10 @@ fn validate_exact_profile(
             .map(|binding| ResourceRequirement {
                 class_id: binding.class_id.clone(),
                 units: binding.units,
+                protected_role: binding
+                    .protected
+                    .as_ref()
+                    .map(|protected| protected.role_id.clone()),
             })
             .collect::<Vec<_>>();
         if capability.kind_id != placement.kind_id

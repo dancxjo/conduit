@@ -1,6 +1,8 @@
 use conduit_core::{
     verify_plan, BootId, ConnectionProvider, HostAdvertisement, HostId, OperationId,
-    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId,
+    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, ProtectedResourceAccess,
+    ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId,
+    ResourceHandleId,
 };
 use conduit_planner::{
     default_placements, plan_with_advertised_profile, PlannerError, PlanningOptions,
@@ -41,6 +43,7 @@ fn options<'a>(
         connection_item_capacity: 1,
         connection_byte_capacity: 9,
         authority_grants: &[],
+        protected_resource_grants: &[],
         link_bindings: &[],
     }
 }
@@ -65,6 +68,7 @@ fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
             maximum_operations: 2,
             maximum_connections: 1,
             maximum_authority_grants: 0,
+            maximum_protected_resource_grants: 0,
             maximum_link_bindings: 0,
         },
     );
@@ -113,6 +117,7 @@ fn bounded_profile_refuses_before_planning_without_delegation() {
             maximum_operations: 1,
             maximum_connections: 1,
             maximum_authority_grants: 0,
+            maximum_protected_resource_grants: 0,
             maximum_link_bindings: 0,
         },
     );
@@ -157,4 +162,53 @@ fn host_must_truthfully_advertise_the_requested_profile() {
         error,
         PlannerError::PlannerCapabilityNotAdvertised(_)
     ));
+}
+
+#[test]
+fn portable_profile_admits_protected_grants_before_planning() {
+    let (form, realm) = portable_inputs();
+    let placements = default_placements(&form, &realm).expect("target placement");
+    let overrides = BTreeMap::new();
+    let bounded = planner_host(
+        "bounded-planner",
+        "bounded-boot",
+        BROWSER_PLANNER_PROFILE,
+        PlannerLimits {
+            maximum_host_advertisements: 1,
+            maximum_operations: 2,
+            maximum_connections: 1,
+            maximum_authority_grants: 0,
+            maximum_protected_resource_grants: 0,
+            maximum_link_bindings: 0,
+        },
+    );
+    let grant = ProtectedResourceGrant {
+        role_id: ResourceBindingRoleId::from("source"),
+        handle_id: ResourceHandleId::from("opaque/source"),
+        operation_id: OperationId::from("pulse"),
+        host_id: realm[0].host_id.clone(),
+        boot_id: realm[0].boot_id.clone(),
+        capability_id: realm[0].capabilities[0].capability_id.clone(),
+        class_id: ResourceClassId::from("conduit.resource/test@1"),
+        access: ProtectedResourceAccess::ReadExisting,
+        maximum_bytes: 1,
+        commit_policy: ProtectedResourceCommitPolicy::NotApplicable,
+    };
+    let mut request = options(&overrides);
+    request.protected_resource_grants = core::slice::from_ref(&grant);
+
+    assert_eq!(
+        plan_with_advertised_profile(
+            &bounded,
+            &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
+            &form,
+            &realm,
+            &placements,
+            &[ConnectionProvider::Local],
+            request,
+        ),
+        Err(PlannerError::PlannerLimitExceeded(
+            "profile input has 1 protected resource grants, above advertised maximum 0".to_string()
+        ))
+    );
 }

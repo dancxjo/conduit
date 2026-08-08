@@ -12,10 +12,12 @@ use sha2::{Digest, Sha256};
 mod configuration;
 mod face;
 mod port;
+mod resource;
 
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use face::{CheckedFace, FaceStartupParameter};
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
+pub use resource::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
@@ -96,6 +98,10 @@ identity_type!(HostOperationContractId);
 identity_type!(ResourceClassId);
 // Boot-scoped identity of one concrete host resource pool.
 identity_type!(ResourcePoolId);
+// Semantic identity of one protected resource role within an operation.
+identity_type!(ResourceBindingRoleId);
+// Opaque provider-owned reference; resource locator material never enters a plan.
+identity_type!(ResourceHandleId);
 // Immutable identity of one authority contract and one issued grant.
 identity_type!(AuthorityContractId);
 identity_type!(AuthorityGrantId);
@@ -251,26 +257,6 @@ pub struct HostOperationRequirement {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct ResourceRequirement {
-    pub class_id: ResourceClassId,
-    pub units: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct ResourceOffer {
-    pub pool_id: ResourcePoolId,
-    pub class_id: ResourceClassId,
-    pub capacity_units: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct ResourceBinding {
-    pub pool_id: ResourcePoolId,
-    pub class_id: ResourceClassId,
-    pub units: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct AuthorityRequirement {
     pub contract_id: AuthorityContractId,
     pub host_operation_contract_id: HostOperationContractId,
@@ -329,6 +315,8 @@ pub struct PlannerLimits {
     pub maximum_operations: u16,
     pub maximum_connections: u16,
     pub maximum_authority_grants: u16,
+    #[serde(default)]
+    pub maximum_protected_resource_grants: u16,
     pub maximum_link_bindings: u16,
 }
 
@@ -854,6 +842,17 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             push_string(&mut canonical, binding.pool_id.as_str());
             push_string(&mut canonical, binding.class_id.as_str());
             push_u32(&mut canonical, binding.units);
+            match &binding.protected {
+                Some(protected) => {
+                    canonical.push(1);
+                    push_string(&mut canonical, protected.role_id.as_str());
+                    push_string(&mut canonical, protected.handle_id.as_str());
+                    canonical.push(protected.access as u8);
+                    push_u64(&mut canonical, protected.maximum_bytes);
+                    canonical.push(protected.commit_policy as u8);
+                }
+                None => canonical.push(0),
+            }
         }
         push_u32(&mut canonical, operation.authority.len() as u32);
         for binding in &operation.authority {
@@ -1426,21 +1425,6 @@ pub fn await_activation_host_operation_requirement() -> HostOperationRequirement
         maximum_in_flight: 1,
         maximum_input_bytes: 1,
         maximum_output_bytes: 0,
-    }
-}
-
-pub fn resource_requirement(class_id: &str, units: u32) -> ResourceRequirement {
-    ResourceRequirement {
-        class_id: ResourceClassId::from(class_id),
-        units,
-    }
-}
-
-pub fn resource_offer(pool_id: &str, class_id: &str, capacity_units: u32) -> ResourceOffer {
-    ResourceOffer {
-        pool_id: ResourcePoolId::from(pool_id),
-        class_id: ResourceClassId::from(class_id),
-        capacity_units,
     }
 }
 

@@ -1299,6 +1299,10 @@ impl HostRuntime {
                 .map(|binding| conduit_core::ResourceRequirement {
                     class_id: binding.class_id.clone(),
                     units: binding.units,
+                    protected_role: binding
+                        .protected
+                        .as_ref()
+                        .map(|protected| protected.role_id.clone()),
                 })
                 .collect::<Vec<_>>();
             bound_requirements.sort();
