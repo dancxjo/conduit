@@ -1,4 +1,4 @@
-use crate::process::Step;
+use crate::{process::Step, proof::ProofClass};
 
 /// Authoritative definition of the normal Rust workspace check gate.
 pub const WORKSPACE_STEPS: &[Step] = &[
@@ -93,7 +93,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -109,7 +109,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
         None,
         Some("wasm32-unknown-unknown"),
-        Some("wasm"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -125,7 +125,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
         None,
         Some("wasm32-unknown-unknown"),
-        Some("wasm"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -143,7 +143,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
         None,
         Some("wasm32-unknown-unknown"),
-        Some("wasm"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -159,7 +159,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -175,7 +175,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -191,7 +191,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -207,7 +207,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -224,7 +224,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -241,7 +241,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -257,7 +257,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::new(
@@ -387,7 +387,7 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -403,7 +403,7 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
 ];
@@ -606,7 +606,7 @@ pub const PLANNING_S2_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
 ];
@@ -669,7 +669,7 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         ],
         None,
         Some("wasm32-unknown-unknown"),
-        Some("browser"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::typed(
@@ -679,7 +679,7 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &["run", "test:browser-host"],
         None,
         Some("playwright"),
-        Some("browser"),
+        Some(ProofClass::LiveBrowser),
         &[],
     ),
 ];
@@ -704,7 +704,7 @@ pub const REALM_READINESS_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
 ];
@@ -729,7 +729,7 @@ pub const OBSERVATORY_READINESS_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
 ];
@@ -755,7 +755,7 @@ pub const STD_CATALOG_READINESS_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
 ];
@@ -815,7 +815,7 @@ pub const SIM_READINESS_STEPS: &[Step] = &[
         ],
         None,
         Some("wasm32-unknown-unknown"),
-        Some("wasm"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
     Step::new(
@@ -849,7 +849,7 @@ pub const SIM_READINESS_STEPS: &[Step] = &[
         ],
         None,
         Some("thumbv6m-none-eabi"),
-        Some("thumb"),
+        Some(ProofClass::ContractCompile),
         &[],
     ),
 ];
