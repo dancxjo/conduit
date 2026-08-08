@@ -43,6 +43,10 @@ fn classification(error: &PlannerError) -> Option<(&'static str, &'static str)> 
             "CND-PLN-013",
             "selected realization does not satisfy a hard planning requirement",
         )),
+        PlannerError::CurrentResourceObservationUnavailable(_) => Some((
+            "CND-PLN-014",
+            "no realization is admissible under current resource observations",
+        )),
         PlannerError::IncompatiblePortContract(_) => Some((
             "CND-PLN-011",
             "selected realization has an incompatible port contract",
@@ -115,6 +119,19 @@ mod tests {
         assert_eq!(diagnostic.code, "CND-PLN-013");
         assert!(diagnostic.summary.contains("hard planning requirement"));
         assert!(!json.contains("private candidate facts"));
+    }
+
+    #[test]
+    fn current_observation_refusal_is_distinct_and_redacted() {
+        let diagnostic = structured_planner_diagnostic(
+            &checked_form(),
+            &PlannerError::CurrentResourceObservationUnavailable("private pool state".into()),
+        )
+        .unwrap();
+        let json = serde_json::to_string(&diagnostic).unwrap();
+        assert_eq!(diagnostic.code, "CND-PLN-014");
+        assert!(diagnostic.summary.contains("current resource observations"));
+        assert!(!json.contains("private pool state"));
     }
 
     #[test]
