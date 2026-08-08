@@ -331,6 +331,7 @@ dependencies = [
  "conduit-core",
  "conduit-observatory",
  "conduit-signal",
+ "conduit-wire",
  "serde",
 ]
 
