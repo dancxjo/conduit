@@ -313,6 +313,7 @@ dependencies = [
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-std-catalog",
  "conduit-wire",
  "libc",
  "serde_json",

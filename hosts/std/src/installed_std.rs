@@ -1,21 +1,26 @@
 pub(super) mod contract;
 mod operation;
+#[cfg(test)]
+mod test_support;
+#[cfg(test)]
+mod test_text_source;
 
+#[cfg(test)]
+use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
-#[cfg(test)]
-use self::contract::{parse_tick_configuration, TICK_VALUE_KIND};
-use self::operation::{InstalledFactory, InstalledOperation, TICK_FACTORY};
-#[cfg(test)]
-use self::operation::{TEST_OBSERVER_FACTORY, TEST_OBSERVER_IMPLEMENTATION, TEST_OBSERVER_KIND};
-use super::{StdKernelExecutionReport, StdRunReport, TimerAdapter};
-use conduit_core::{
-    bind_active_play, bind_evidence, wait_host_operation_requirement, HostAdvertisement,
-    ImplementationId, Observation, ObservationKind, PlanFragment, TerminalDisposition,
+use self::operation::{
+    InstalledFactory, InstalledOperation, TEXT_PRESENTATION_FACTORY, TICK_FACTORY,
 };
 #[cfg(test)]
+use self::operation::{TEST_OBSERVER_FACTORY, TEST_OBSERVER_IMPLEMENTATION};
+#[cfg(test)]
+use self::test_text_source::TEST_TEXT_SOURCE_FACTORY;
+use super::{StdKernelExecutionReport, StdRunReport, TimerAdapter};
+#[cfg(test)]
+use conduit_core::present_host_operation_requirement;
 use conduit_core::{
-    kind_id, present_host_operation_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, KindContractRevision, PortDescriptor, PortDirection,
+    bind_active_play, bind_evidence, kind_id, wait_host_operation_requirement, HostAdvertisement,
+    ImplementationId, Observation, ObservationKind, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver, SchedulerStatus,
@@ -37,6 +42,15 @@ const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 const MAX_QUEUE_SLOTS: usize = 64;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 64;
+
+pub(super) use contract::text_offer;
+#[cfg(test)]
+pub(super) use test_support::{test_catalog, test_observer_offer};
+
+#[cfg(test)]
+pub(super) fn test_text_source_offer() -> conduit_core::CapabilityOffer {
+    test_text_source::offer()
+}
 const HOST_BINDING_SLOTS: usize = MAX_NODES;
 const PENDING_REQUESTS: usize = MAX_NODES;
 
@@ -56,6 +70,9 @@ type InstalledScheduler = FixedScheduler<
 
 const FACTORIES: &[&InstalledFactory] = &[
     &TICK_FACTORY,
+    &TEXT_PRESENTATION_FACTORY,
+    #[cfg(test)]
+    &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]
     &TEST_OBSERVER_FACTORY,
 ];
@@ -110,6 +127,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut value_items = 0_u16;
     let mut value_bytes = 0_u32;
     let mut request_capacity = 0_usize;
+    let mut maximum_value_bytes = TICK_ENCODED_LEN;
     let mut evidence_items = 32_u16;
     for placement in &fragment.placements {
         let factory = factory(&placement.implementation_id)
@@ -127,6 +145,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         evidence_items = evidence_items
             .checked_add(budget.evidence_items)
             .ok_or_else(|| "installed evidence item budget overflow".to_string())?;
+        maximum_value_bytes = maximum_value_bytes.max(budget.maximum_value_bytes);
     }
     #[cfg(test)]
     if fragment
@@ -140,7 +159,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     }
 
     let mut values =
-        HostedValueStore::new(value_items.max(1), TICK_ENCODED_LEN, value_bytes.max(1))
+        HostedValueStore::new(value_items.max(1), maximum_value_bytes, value_bytes.max(1))
             .map_err(|error| format!("installed value store: {error:?}"))?;
     let mut operations = Vec::with_capacity(MAX_NODES);
     for node in &lowered.nodes {
@@ -247,6 +266,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             .map_err(|error| format!("prepare std execution identity: {error:?}"))?;
     let mut requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
     let wait_contract_id = wait_host_operation_requirement().contract_id;
+    let text_target_kind = kind_id("presentation/stdout-text");
     #[cfg(test)]
     let mut observed_ticks = Vec::with_capacity(request_capacity / 2);
     #[cfg(test)]
@@ -256,23 +276,35 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     )
     .contract_id;
     #[cfg(test)]
+    let observer_target_kind = kind_id("conduit.test/tick-observation");
+    #[cfg(test)]
     let activation_probe = crate::allocation_probe::begin();
     loop {
         while let Some(request) = scheduler.next_host_request() {
             let input = scheduler
                 .host_value(request.input.value)
                 .map_err(|error| format!("read std host input: {error:?}"))?;
-            let contract = lowered
-                .identity
-                .host_operation_contract(request.node, request.operation)
+            let lowered_operation = lowered
+                .host_operations
+                .iter()
+                .find(|operation| {
+                    operation.node == request.node && operation.operation == request.operation
+                })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
+            let contract = &lowered_operation.contract_id;
             if contract == &wait_contract_id {
                 let duration = decode_tick(input).map_err(|error| error.to_string())?;
                 timer.wait(Duration::from_millis(duration));
+            } else if lowered_operation.target_kind.as_ref() == Some(&text_target_kind) {
+                let text = std::str::from_utf8(input)
+                    .map_err(|_| "text presentation input is not valid UTF-8".to_string())?;
+                writeln!(_output, "{text}").map_err(|error| error.to_string())?;
             } else {
                 #[cfg(test)]
                 {
-                    if contract != &observer_contract_id {
+                    if contract != &observer_contract_id
+                        || lowered_operation.target_kind.as_ref() != Some(&observer_target_kind)
+                    {
                         return Err("installed host-operation contract is unsupported".to_string());
                     }
                     let tick = decode_tick(input).map_err(|error| error.to_string())?;
@@ -395,62 +427,4 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             post_activation_allocations,
         }),
     })
-}
-
-#[cfg(test)]
-const TEST_OBSERVER_REVISION: &str = "conduit.test/tick-observer@1";
-#[cfg(test)]
-const TEST_OBSERVER_PROFILE: &str = "conduit.test/tick-observer-kernel@1";
-#[cfg(test)]
-const TEST_OBSERVER_ARTIFACT: &str = "conduit-std-host/test-tick-observer@1";
-
-#[cfg(test)]
-pub(super) fn test_observer_offer() -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from("test-tick-observer"),
-        kind_id: kind_id(TEST_OBSERVER_KIND),
-        kind_contract_revision: KindContractRevision::from(TEST_OBSERVER_REVISION),
-        execution_profile_id: ExecutionProfileId::from(TEST_OBSERVER_PROFILE),
-        implementation_id: ImplementationId::from(TEST_OBSERVER_IMPLEMENTATION),
-        artifact_id: ArtifactId::from(TEST_OBSERVER_ARTIFACT),
-        inputs: vec![PortDescriptor {
-            port_id: conduit_core::port_id("in"),
-            value_kind: kind_id(TICK_VALUE_KIND),
-            direction: PortDirection::Input,
-        }],
-        outputs: Vec::new(),
-        host_operations: vec![present_host_operation_requirement(
-            kind_id("conduit.test/tick-observation"),
-            TICK_ENCODED_LEN,
-        )],
-        resource_requirements: vec![conduit_core::resource_requirement(
-            conduit_core::PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 4,
-            max_queue_bytes: 64,
-        },
-    }
-}
-
-#[cfg(test)]
-pub(super) fn test_catalog() -> conduit_form::ProfileCatalog {
-    use conduit_form::KindDefinition;
-
-    let mut catalog = contract::test_tick_catalog();
-    catalog
-        .insert(KindDefinition {
-            kind_id: kind_id(TEST_OBSERVER_KIND),
-            kind_contract_revision: KindContractRevision::from(TEST_OBSERVER_REVISION),
-            inputs: test_observer_offer().inputs,
-            outputs: Vec::new(),
-            configuration: Vec::new(),
-        })
-        .expect("test observer kind is distinct from typed tick");
-    catalog
 }

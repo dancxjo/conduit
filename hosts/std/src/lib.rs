@@ -458,9 +458,13 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
             },
         },
         installed_std::tick_offer(),
+        installed_std::text_offer(),
     ];
     #[cfg(test)]
-    capabilities.push(installed_std::test_observer_offer());
+    {
+        capabilities.push(installed_std::test_observer_offer());
+        capabilities.push(installed_std::test_text_source_offer());
+    }
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: config.host_id,

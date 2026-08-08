@@ -151,3 +151,132 @@ fn mutated_tick_executable_identity_fails_before_any_wait() {
     );
     assert!(timer.waits.is_empty());
 }
+
+fn text_plan(host: &StdHost, invalid: bool) -> conduit_core::Plan {
+    let form = parse(
+        &format!(
+            "form 0\n\ntext_demo {{\n source: conduit.test/text-source\n show: presentation/text\n source.invalid = {invalid}\n source.text -> show.text\n}}\n"
+        ),
+        &installed_std::test_catalog(),
+    )
+    .expect("typed text fixture parses");
+    host.plan_local(&form, None)
+        .expect("typed text presentation plans")
+}
+
+#[test]
+fn typed_text_plans_presents_and_completes_through_the_installed_kernel() {
+    let mut host = host("typed-text-host");
+    let plan = text_plan(&host, false);
+    let presentation = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.kind_id.as_str() == installed_std::contract::TEXT_PRESENTATION_KIND
+        })
+        .expect("text presentation placement exists");
+    assert_eq!(
+        presentation.kind_contract_revision.as_str(),
+        installed_std::contract::TEXT_PRESENTATION_CONTRACT_REVISION
+    );
+    assert_eq!(
+        presentation.implementation_id.as_str(),
+        installed_std::contract::TEXT_PRESENTATION_IMPLEMENTATION
+    );
+    assert_eq!(
+        presentation.inputs[0].value_kind.as_str(),
+        installed_std::contract::TEXT_PRESENTATION_VALUE_KIND
+    );
+
+    let mut output = Vec::with_capacity(1_024);
+    let mut timer = RecordingTimer { waits: Vec::new() };
+    let report = host
+        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .expect("typed text executes through the production installed path");
+    let output = String::from_utf8(output).unwrap();
+    assert!(output.contains("Hello\n"));
+    assert!(timer.waits.is_empty());
+    assert!(matches!(
+        report.observations.last().map(|item| &item.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+    let kernel = report.kernel.expect("kernel report exists");
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+    assert_eq!(kernel.post_activation_allocations, 0);
+}
+
+#[test]
+fn invalid_utf8_fails_before_a_successful_text_presentation() {
+    let mut host = host("invalid-text-host");
+    let plan = text_plan(&host, true);
+    let mut output = Vec::with_capacity(1_024);
+    let mut timer = RecordingTimer { waits: Vec::new() };
+    let error = host
+        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .expect_err("invalid UTF-8 must fail before presentation succeeds");
+    assert!(
+        error.contains("not valid UTF-8"),
+        "unexpected error: {error}"
+    );
+    assert!(!String::from_utf8_lossy(&output).contains("Hello\n"));
+    assert!(timer.waits.is_empty());
+}
+
+#[test]
+fn every_text_presentation_executable_identity_mutation_fails_before_output() {
+    let baseline_host = host("mutated-text-host");
+    let plan = text_plan(&baseline_host, false);
+    let baseline = plan.fragments[0].clone();
+    let presentation_index = baseline
+        .placements
+        .iter()
+        .position(|placement| {
+            placement.kind_id.as_str() == installed_std::contract::TEXT_PRESENTATION_KIND
+        })
+        .expect("text presentation placement exists");
+    let mutations: [fn(&mut conduit_core::PlannedOperation); 14] = [
+        |placement| placement.kind_id = conduit_core::KindId::from("wrong/text"),
+        |placement| {
+            placement.kind_contract_revision =
+                conduit_core::KindContractRevision::from("wrong/text@1")
+        },
+        |placement| {
+            placement.execution_profile_id =
+                conduit_core::ExecutionProfileId::from("wrong/profile@1")
+        },
+        |placement| placement.capability_id = conduit_core::CapabilityId::from("wrong-capability"),
+        |placement| {
+            placement.implementation_id = conduit_core::ImplementationId::from("wrong/impl@1")
+        },
+        |placement| placement.artifact_id = conduit_core::ArtifactId::from("wrong/artifact@1"),
+        |placement| placement.inputs[0].value_kind = conduit_core::KindId::from("wrong/value@1"),
+        |placement| placement.inputs[0].port_id = conduit_core::PortId::from("wrong-port"),
+        |placement| placement.host_id = conduit_core::HostId::from("wrong-host"),
+        |placement| placement.boot_id = conduit_core::BootId::from("wrong-boot"),
+        |placement| placement.offer_generation = conduit_core::OfferGeneration(99),
+        |placement| placement.configuration[0].value = conduit_core::ConfigurationValue::U64(5),
+        |placement| {
+            placement.host_operations[0].target_kind =
+                Some(conduit_core::KindId::from("wrong/presentation"))
+        },
+        |placement| {
+            placement.resources[0].pool_id = conduit_core::ResourcePoolId::from("wrong-pool")
+        },
+    ];
+    for mutate in mutations {
+        let mut fragment = baseline.clone();
+        mutate(&mut fragment.placements[presentation_index]);
+        let mut host = host("mutated-text-host");
+        let mut output = Vec::with_capacity(1_024);
+        let mut timer = RecordingTimer { waits: Vec::new() };
+        host.run_fragment_to(fragment, &mut output, &mut timer)
+            .expect_err("mutated executable identity must fail closed");
+        assert!(!String::from_utf8_lossy(&output).contains("Hello\n"));
+        assert!(timer.waits.is_empty());
+    }
+}
