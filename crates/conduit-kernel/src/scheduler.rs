@@ -7,6 +7,9 @@ use crate::{
     RequestId, RouteTarget, StorageError, ValueRef, ValueStorage,
 };
 
+mod active_capacity;
+use active_capacity::validate_active_capacity;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NodeSpec<const PORTS: usize> {
     /// Exact inbound cord for each input-port ordinal.
@@ -789,9 +792,7 @@ where
         values: S,
         evidence: E,
     ) -> Result<Self, SchedulerError> {
-        if active_nodes == 0 || active_nodes > NODES || active_cords == 0 || active_cords > CORDS {
-            return Err(SchedulerError::InvalidActiveCapacity);
-        }
+        validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
         if PORTS == 0 || QUEUE_SLOTS == 0 || !routes.is_sealed() {
             return Err(SchedulerError::InvalidPlan);
         }
@@ -864,9 +865,7 @@ where
         values: S,
         evidence: E,
     ) -> Result<Self, SchedulerError> {
-        if active_nodes == 0 || active_nodes > NODES || active_cords == 0 || active_cords > CORDS {
-            return Err(SchedulerError::InvalidActiveCapacity);
-        }
+        validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
         if PENDING_REQUESTS == 0 || !host_bindings.is_sealed() {
             return Err(SchedulerError::InvalidPlan);
         }

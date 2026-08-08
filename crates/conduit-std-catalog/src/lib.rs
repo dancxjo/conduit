@@ -27,6 +27,8 @@ mod text_transform;
 pub use text_transform::*;
 mod state_count;
 pub use state_count::*;
+mod copy_file;
+pub use copy_file::*;
 
 /// Exact typed contracts currently supported by the executable `conduit.std` nucleus.
 ///
@@ -44,6 +46,7 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         text_presentation_contract(),
         state_count_contract(),
         count_presentation_contract(),
+        copy_file_contract(),
     ]
 }
 
@@ -63,6 +66,7 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         text_presentation_offer(),
         state_count_offer(),
         count_presentation_offer(),
+        copy_file_offer(),
     ]
 }
 
@@ -265,7 +269,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 9);
+        assert_eq!(contracts.len(), 10);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts

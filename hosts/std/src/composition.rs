@@ -6,8 +6,9 @@
 use crate::installed_std;
 use crate::StdHostConfig;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement,
-    HostProfileId, ImplementationId, PlannerCapabilityOffer, PlannerProfileId, PROTOCOL_VERSION,
+    kind_id, resource_offer, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    HostAdvertisement, HostProfileId, ImplementationId, PlannerCapabilityOffer, PlannerProfileId,
+    PROTOCOL_VERSION,
 };
 use conduit_signal::{
     pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
@@ -23,6 +24,7 @@ pub struct StdHostComposition {
     pub time: bool,
     pub text: bool,
     pub state: bool,
+    pub files: bool,
 }
 
 impl StdHostComposition {
@@ -33,6 +35,7 @@ impl StdHostComposition {
             time: true,
             text: true,
             state: true,
+            files: true,
         }
     }
 
@@ -44,6 +47,7 @@ impl StdHostComposition {
             time: false,
             text: false,
             state: false,
+            files: false,
         }
     }
 
@@ -64,6 +68,11 @@ impl StdHostComposition {
 
     pub const fn with_state(mut self) -> Self {
         self.state = true;
+        self
+    }
+
+    pub const fn with_files(mut self) -> Self {
+        self.files = true;
         self
     }
 }
@@ -103,6 +112,9 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::count_presentation_offer(),
         ]);
     }
+    if composition.files {
+        capabilities.push(conduit_std_catalog::copy_file_offer());
+    }
     #[cfg(test)]
     {
         capabilities.push(installed_std::test_observer_offer());
@@ -116,6 +128,14 @@ pub(super) fn build_advertisement(
         }
         _ => false,
     });
+    if composition.files {
+        resources.push(resource_offer(
+            "std/protected-file",
+            conduit_std_catalog::PROTECTED_FILE_RESOURCE_CLASS,
+            2,
+        ));
+        resources.sort();
+    }
 
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -235,6 +255,7 @@ mod tests {
             "presentation/text",
             "state/count",
             "presentation/count",
+            "file/copy",
         ] {
             assert!(!offered(&minimal, kind), "minimal host offered {kind}");
             assert!(offered(&reference, kind), "reference host omitted {kind}");
