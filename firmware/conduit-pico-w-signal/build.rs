@@ -226,6 +226,8 @@ fn firmware_mode() -> &'static str {
         "triple-remote"
     } else if env::var_os("CARGO_FEATURE_USB_REMOTE").is_some() {
         "usb-remote"
+    } else if env::var_os("CARGO_FEATURE_PICO_LOCAL_MINIMAL").is_some() {
+        "pico-local-minimal"
     } else {
         "pico-local"
     }

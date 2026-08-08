@@ -58,7 +58,7 @@ strict subset. The planner consumes only the resulting exact offers.
 | `hosts/std::StdHostComposition` | host composition | Selects existing Signal, time, text, and state implementation families; `reference()` is broad and `minimal()` promises none of them |
 | `hosts/std` timers, stdout, WebSocket, and USB code | providers/platform implementations | Real std effects and carriers beneath selected plans; WebSocket/USB are not host-core methods |
 | `hosts/browser-runtime` | browser composition and providers | Exact browser/WASM offers with timer/DOM/WebSocket machinery; not a compatibility runtime |
-| `firmware/conduit-pico-w-signal` and generated image | Pico W composition and providers | Fixed selected Signal timer/GPIO/USB/radio image; no general Pico capability claim |
+| `firmware/conduit-pico-w-signal` and generated image | Pico W composition and providers | Selectable fixed Signal images; local-minimal omits Conduit session/lifecycle control, while physical-proof and remote modes include it explicitly; no general Pico capability claim |
 | fixture hosts and legacy drivers | legacy/compatibility coupling | Test-only fenced paths; not production host definitions or a second accepted runtime |
 
 The std `reference()` composition is the batteries-included example, not the
@@ -74,6 +74,10 @@ The checked examples intentionally expose different sets:
 - std reference: Signal, time, text, and state operation families;
 - browser distributed sink: the exact presentation face required by that image;
 - Pico-local Signal image: the exact pulse and GPIO-backed presentation faces;
+- Pico-local-minimal image: the same exact Signal faces and evidence provider,
+  without the optional Conduit wire/session or BOOTSEL lifecycle-control family;
+- Pico USB/triple remote images: the exact GPIO-backed presentation sink face
+  plus the explicitly selected bounded USB session-control provider;
 - minimal std composition: no production operation offers;
 - text-only std composition: the implemented `text/literal`, `text/upper`,
   `text/join`, and `presentation/text` subset, not the entire `text/` namespace.
@@ -113,8 +117,8 @@ names `ImplementationId`, `ArtifactId`, a provider, or a platform.
 
 ## Remaining architecture work
 
-This slice does not yet establish a general downstream BYOKernel composition API,
-separate every provider boundary, or make Pico firmware families selectable in its
-build interface. Those remain owned by #463/#514. It also does not create a dynamic
-registry, package manager, plugin ABI, mega-Host trait, or one Cargo feature per
-operation.
+This slice does not yet establish a general downstream BYOKernel composition API
+or separate every provider boundary. Pico's reviewed Signal images are selectable,
+but they are not a general Pico host generator. Those broader questions remain
+owned by #463. This also does not create a dynamic registry, package manager,
+plugin ABI, mega-Host trait, or one Cargo feature per operation.

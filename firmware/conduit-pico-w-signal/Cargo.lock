@@ -197,7 +197,6 @@ dependencies = [
  "embassy-rp",
  "embassy-time",
  "embassy-usb",
- "embedded-io-async 0.7.0",
  "fixed",
  "heapless 0.8.0",
  "panic-halt",
