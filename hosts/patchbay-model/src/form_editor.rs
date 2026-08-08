@@ -1,0 +1,399 @@
+//! Revisioned canonical Form source and a presentation-only checked graph.
+
+use conduit_form::{
+    check_syntax_document, parse_syntax_document, BackStatement, CheckedCordStage,
+    CheckedSyntaxDocument, FormSyntax, Span, StartupCatalog, SyntaxCheckDiagnostic,
+};
+use std::path::{Path, PathBuf};
+
+const MAX_GRAPH_ITEMS: usize = 512;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FormEditorError {
+    NotCanonicalFormPath,
+    SourceTooLarge,
+    Catalog(String),
+    StaleRevision { current: u64, offered: u64 },
+    UnknownForm(String),
+    GraphTooLarge,
+}
+
+impl std::fmt::Display for FormEditorError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotCanonicalFormPath => f.write_str("canonical Form paths must end in .conduit"),
+            Self::SourceTooLarge => {
+                f.write_str("canonical Form source exceeds its finite byte bound")
+            }
+            Self::Catalog(message) => write!(f, "Form catalog error: {message}"),
+            Self::StaleRevision { current, offered } => write!(
+                f,
+                "stale checked revision {offered} cannot replace current revision {current}"
+            ),
+            Self::UnknownForm(name) => write!(f, "checked Form has no reusable form '{name}'"),
+            Self::GraphTooLarge => f.write_str("checked Form graph exceeds its finite item bound"),
+        }
+    }
+}
+
+impl std::error::Error for FormEditorError {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EditorDiagnostic {
+    pub code: &'static str,
+    pub message: String,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GraphItemKind {
+    FaceInput,
+    FaceOutput,
+    StartupValue,
+    Cell,
+    Cord,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GraphItem {
+    pub identity: String,
+    pub label: String,
+    pub kind: GraphItemKind,
+    pub source_span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GraphForm {
+    pub name: String,
+    pub source_span: Span,
+    pub items: Vec<GraphItem>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedRevision {
+    pub revision: u64,
+    pub source_document_id: Option<conduit_core::SourceDocumentId>,
+    pub diagnostics: Vec<EditorDiagnostic>,
+    pub forms: Vec<GraphForm>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceSelection {
+    pub identity: String,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FormDocumentView {
+    pub revision: u64,
+    pub path: PathBuf,
+    pub source: String,
+    pub checked: CheckedRevision,
+    pub open_form: String,
+    pub selection: Option<SourceSelection>,
+}
+
+pub struct FormEditor {
+    path: PathBuf,
+    source: String,
+    revision: u64,
+    checked: CheckedRevision,
+    open_form: String,
+    selection: Option<SourceSelection>,
+}
+
+impl FormEditor {
+    pub fn from_source(path: PathBuf, source: String) -> Result<Self, FormEditorError> {
+        validate_path(&path)?;
+        ensure_source_bound(&source)?;
+        let checked = check_revision(0, &source)?;
+        let open_form = checked
+            .forms
+            .first()
+            .map(|form| form.name.clone())
+            .unwrap_or_default();
+        Ok(Self {
+            path,
+            source,
+            revision: 0,
+            checked,
+            open_form,
+            selection: None,
+        })
+    }
+
+    pub fn replace_source(&mut self, source: String) -> Result<u64, FormEditorError> {
+        ensure_source_bound(&source)?;
+        self.revision = self.revision.saturating_add(1);
+        self.source = source;
+        self.selection = None;
+        Ok(self.revision)
+    }
+
+    /// Computes a result independently so an async host can publish it later.
+    pub fn check_current(&self) -> Result<CheckedRevision, FormEditorError> {
+        check_revision(self.revision, &self.source)
+    }
+
+    pub fn publish_checked(&mut self, checked: CheckedRevision) -> Result<(), FormEditorError> {
+        if checked.revision != self.revision {
+            return Err(FormEditorError::StaleRevision {
+                current: self.revision,
+                offered: checked.revision,
+            });
+        }
+        if !checked.forms.iter().any(|form| form.name == self.open_form) {
+            self.open_form = checked
+                .forms
+                .first()
+                .map(|form| form.name.clone())
+                .unwrap_or_default();
+        }
+        self.checked = checked;
+        Ok(())
+    }
+
+    pub fn recheck(&mut self) -> Result<(), FormEditorError> {
+        let checked = self.check_current()?;
+        self.publish_checked(checked)
+    }
+
+    pub fn open_back(&mut self, name: &str) -> Result<(), FormEditorError> {
+        if !self.checked.forms.iter().any(|form| form.name == name) {
+            return Err(FormEditorError::UnknownForm(name.into()));
+        }
+        self.open_form = name.into();
+        self.selection = None;
+        Ok(())
+    }
+
+    pub fn select_graph_item(&mut self, identity: &str) -> bool {
+        let item = self
+            .checked
+            .forms
+            .iter()
+            .flat_map(|form| &form.items)
+            .find(|item| item.identity == identity);
+        self.selection = item.map(|item| SourceSelection {
+            identity: item.identity.clone(),
+            span: item.source_span,
+        });
+        self.selection.is_some()
+    }
+
+    pub fn select_source_span(&mut self, span: Span) -> bool {
+        let item = self
+            .checked
+            .forms
+            .iter()
+            .flat_map(|form| &form.items)
+            .find(|item| item.source_span == span);
+        self.selection = item.map(|item| SourceSelection {
+            identity: item.identity.clone(),
+            span: item.source_span,
+        });
+        self.selection.is_some()
+    }
+
+    pub fn view(&self) -> FormDocumentView {
+        FormDocumentView {
+            revision: self.revision,
+            path: self.path.clone(),
+            source: self.source.clone(),
+            checked: self.checked.clone(),
+            open_form: self.open_form.clone(),
+            selection: self.selection.clone(),
+        }
+    }
+}
+
+fn check_revision(revision: u64, source: &str) -> Result<CheckedRevision, FormEditorError> {
+    let syntax = parse_syntax_document(source);
+    if let Some(diagnostic) = syntax.diagnostics.first() {
+        return Ok(invalid_revision(
+            revision,
+            diagnostic.code,
+            &diagnostic.message,
+            diagnostic.span,
+        ));
+    }
+    let mut startup = StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
+    match check_syntax_document(&syntax, &startup) {
+        Ok(checked) => graph_revision(revision, &syntax.forms, checked),
+        Err(diagnostic) => Ok(check_error_revision(revision, diagnostic)),
+    }
+}
+
+fn graph_revision(
+    revision: u64,
+    syntax_forms: &[FormSyntax],
+    checked: CheckedSyntaxDocument,
+) -> Result<CheckedRevision, FormEditorError> {
+    let mut forms = Vec::with_capacity(checked.forms.len());
+    for form in &checked.forms {
+        let syntax = syntax_forms
+            .iter()
+            .find(|candidate| candidate.name.text == form.name)
+            .expect("checked forms retain parsed names");
+        let mut items = Vec::new();
+        for parameter in &syntax.face.startup_parameters {
+            push_item(
+                &mut items,
+                &form.name,
+                "startup",
+                &parameter.name.text,
+                GraphItemKind::StartupValue,
+                parameter.span,
+            )?;
+        }
+        for port in &syntax.face.runtime_ports {
+            let kind = match port.direction {
+                conduit_form::RuntimePortDirection::Input => GraphItemKind::FaceInput,
+                conduit_form::RuntimePortDirection::Output => GraphItemKind::FaceOutput,
+            };
+            push_item(
+                &mut items,
+                &form.name,
+                "port",
+                &port.name.text,
+                kind,
+                port.span,
+            )?;
+        }
+        let mut cord_index = 0;
+        for statement in &syntax.back {
+            match statement {
+                BackStatement::NamedCell(cell) => {
+                    push_item(
+                        &mut items,
+                        &form.name,
+                        "cell",
+                        &cell.name.text,
+                        GraphItemKind::Cell,
+                        cell.span,
+                    )?;
+                    let operation = form
+                        .cells
+                        .iter()
+                        .find(|checked_cell| checked_cell.name.as_deref() == Some(&cell.name.text))
+                        .map(|checked_cell| checked_cell.operation.as_str())
+                        .unwrap_or("unknown");
+                    items.last_mut().expect("cell item was admitted").label =
+                        format!("{}: {operation}", cell.name.text);
+                }
+                BackStatement::Cord(cord) => {
+                    let label = form
+                        .cords
+                        .get(cord_index)
+                        .map(cord_label)
+                        .unwrap_or_else(|| "cord".into());
+                    push_item(
+                        &mut items,
+                        &form.name,
+                        "cord",
+                        &cord_index.to_string(),
+                        GraphItemKind::Cord,
+                        cord.span,
+                    )?;
+                    if let Some(item) = items.last_mut() {
+                        item.label = label;
+                    }
+                    cord_index += 1;
+                }
+                BackStatement::Pool(_) | BackStatement::LocalValue(_) => {}
+            }
+        }
+        forms.push(GraphForm {
+            name: form.name.clone(),
+            source_span: syntax.span,
+            items,
+        });
+    }
+    Ok(CheckedRevision {
+        revision,
+        source_document_id: Some(checked.source_document_id),
+        diagnostics: Vec::new(),
+        forms,
+    })
+}
+
+fn cord_label(cord: &conduit_form::CheckedCanonicalCord) -> String {
+    cord.stages
+        .iter()
+        .map(|stage| match stage {
+            CheckedCordStage::Reference(name) => name.clone(),
+            CheckedCordStage::InlineCell(cell) => cell.operation.clone(),
+            CheckedCordStage::Literal { value, .. } => format!("{value:?}"),
+        })
+        .collect::<Vec<_>>()
+        .join(" -> ")
+}
+
+fn push_item(
+    items: &mut Vec<GraphItem>,
+    form: &str,
+    class: &str,
+    name: &str,
+    kind: GraphItemKind,
+    source_span: Span,
+) -> Result<(), FormEditorError> {
+    if items.len() == MAX_GRAPH_ITEMS {
+        return Err(FormEditorError::GraphTooLarge);
+    }
+    items.push(GraphItem {
+        identity: format!("form/{form}/{class}/{name}"),
+        label: name.into(),
+        kind,
+        source_span,
+    });
+    Ok(())
+}
+
+fn check_error_revision(revision: u64, diagnostic: SyntaxCheckDiagnostic) -> CheckedRevision {
+    invalid_revision(
+        revision,
+        diagnostic.code,
+        &diagnostic.message,
+        diagnostic.span,
+    )
+}
+
+fn invalid_revision(
+    revision: u64,
+    code: &'static str,
+    message: &str,
+    span: Span,
+) -> CheckedRevision {
+    CheckedRevision {
+        revision,
+        source_document_id: None,
+        diagnostics: vec![EditorDiagnostic {
+            code,
+            message: message.into(),
+            span,
+        }],
+        forms: Vec::new(),
+    }
+}
+
+fn validate_path(path: &Path) -> Result<(), FormEditorError> {
+    if path.extension().and_then(|extension| extension.to_str()) != Some("conduit") {
+        return Err(FormEditorError::NotCanonicalFormPath);
+    }
+    Ok(())
+}
+
+fn ensure_source_bound(source: &str) -> Result<(), FormEditorError> {
+    if source.len() > conduit_form::MAXIMUM_FORM_SOURCE_BYTES {
+        Err(FormEditorError::SourceTooLarge)
+    } else {
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+#[path = "form_editor_tests.rs"]
+mod tests;

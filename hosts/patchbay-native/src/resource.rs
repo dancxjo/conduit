@@ -1,0 +1,77 @@
+//! Native protected file/resource adapter for canonical Form documents.
+
+use patchbay_model::FormEditor;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::path::PathBuf;
+
+pub fn open_form_resource(path: PathBuf) -> Result<FormEditor, String> {
+    if path.extension().and_then(|extension| extension.to_str()) != Some("conduit") {
+        return Err("canonical Form paths must end in .conduit".into());
+    }
+    let metadata = fs::symlink_metadata(&path).map_err(|error| error.to_string())?;
+    if !metadata.file_type().is_file() {
+        return Err("canonical Form resource is not a regular file".into());
+    }
+    if metadata.len() as usize > patchbay_model::MAX_FORM_SOURCE_BYTES {
+        return Err("canonical Form resource exceeds its finite byte bound".into());
+    }
+    let source = fs::read_to_string(&path).map_err(|error| error.to_string())?;
+    FormEditor::from_source(path, source).map_err(|error| error.to_string())
+}
+
+pub fn save_form_resource(editor: &FormEditor) -> Result<(), String> {
+    let view = editor.view();
+    let parent = view
+        .path
+        .parent()
+        .ok_or("canonical Form resource has no parent")?;
+    let file_name = view
+        .path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or("canonical Form resource has no file name")?;
+    let temporary = parent.join(format!(".{file_name}.patchbay-save"));
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)
+        .map_err(|error| error.to_string())?;
+    if let Err(error) = file
+        .write_all(view.source.as_bytes())
+        .and_then(|_| file.sync_all())
+    {
+        let _ = fs::remove_file(&temporary);
+        return Err(error.to_string());
+    }
+    fs::rename(&temporary, &view.path).map_err(|error| {
+        let _ = fs::remove_file(&temporary);
+        error.to_string()
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn opens_and_atomically_saves_canonical_source() {
+        let directory =
+            std::env::temp_dir().join(format!("patchbay-native-form-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("document.conduit");
+        let hello = include_str!("../../../examples/hello.conduit");
+        let greet = include_str!("../../../examples/greet.conduit");
+        std::fs::write(&path, hello).unwrap();
+
+        let mut editor = open_form_resource(path.clone()).unwrap();
+        editor.replace_source(greet.into()).unwrap();
+        editor.recheck().unwrap();
+        save_form_resource(&editor).unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), greet);
+        assert!(open_form_resource(directory.join("document.json")).is_err());
+
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_dir(directory).unwrap();
+    }
+}

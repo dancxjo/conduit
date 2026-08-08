@@ -1,33 +1,35 @@
 //! Native window/event-loop adapter for Patchbay.
 
-use font8x8::UnicodeFonts;
-use patchbay_model::{PatchbayModel, PatchbayTopology};
+use patchbay_model::{FormEditor, GraphItemKind, PatchbayModel, PatchbayTopology};
 use std::num::NonZeroU32;
 use std::path::PathBuf;
 use std::rc::Rc;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
 
 const HISTORY_CAPACITY: usize = 4;
-const BACKGROUND: u32 = 0x0015_1820;
-const FOREGROUND: u32 = 0x00e7_eaf0;
-const ACCENT: u32 = 0x006d_d7c7;
-const LEFT_MARGIN: usize = 16;
-const TOP_MARGIN: usize = 16;
-const GLYPH_ADVANCE: usize = 8;
-const LINE_ADVANCE: usize = 11;
+const MAX_FORM_PRESENTATION_LINES: usize = 256;
+mod render;
+mod resource;
+use render::{draw_document, BACKGROUND};
+use resource::{open_form_resource, save_form_resource};
 
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Arguments {
     exit_after_window: bool,
     snapshot_path: Option<PathBuf>,
+    form_path: Option<PathBuf>,
 }
 
 struct PatchbayApplication {
     model: PatchbayModel,
     topology_lines: Vec<String>,
+    form_editor: Option<FormEditor>,
+    form_selection: usize,
+    modifiers: winit::keyboard::ModifiersState,
     window: Option<Rc<Window>>,
     exit_after_window: bool,
     rendered_once: bool,
@@ -58,9 +60,17 @@ impl PatchbayApplication {
             .map_err(|error| error.to_string())?
             .lines()
             .to_vec();
+        let form_editor = arguments
+            .form_path
+            .map(open_form_resource)
+            .transpose()
+            .map_err(|error| error.to_string())?;
         Ok(Self {
             model,
             topology_lines,
+            form_editor,
+            form_selection: 0,
+            modifiers: winit::keyboard::ModifiersState::empty(),
             window: None,
             exit_after_window: arguments.exit_after_window,
             rendered_once: false,
@@ -69,6 +79,14 @@ impl PatchbayApplication {
     }
 
     fn title(&self) -> String {
+        if let Some(editor) = &self.form_editor {
+            let view = editor.view();
+            return format!(
+                "Conduit Patchbay — {} — canonical Form revision {}",
+                view.path.display(),
+                view.revision
+            );
+        }
         format!(
             "Conduit Patchbay — host {} — boot {} — topology lines {}",
             self.model.projection().host_id().as_str(),
@@ -91,21 +109,195 @@ impl PatchbayApplication {
             .map_err(|error| error.to_string())?;
         let mut buffer = surface.buffer_mut().map_err(|error| error.to_string())?;
         buffer.fill(BACKGROUND);
+        let lines = self.presentation_lines();
         draw_document(
             &mut buffer,
             size.width as usize,
             size.height as usize,
-            &self.topology_lines,
+            &lines,
         );
         buffer.present().map_err(|error| error.to_string())?;
         println!(
             "patchbay topology-rendered lines={} width={} height={}",
-            self.topology_lines.len(),
+            lines.len(),
             size.width,
             size.height
         );
         self.rendered_once = true;
         Ok(())
+    }
+
+    fn presentation_lines(&self) -> Vec<String> {
+        let Some(editor) = &self.form_editor else {
+            return self.topology_lines.clone();
+        };
+        let view = editor.view();
+        let mut lines = vec![
+            format!("SOURCE {} revision={}", view.path.display(), view.revision),
+            "  edit=end  Backspace=delete  Ctrl-S=save  Tab=open-next-back  Up/Down=select".into(),
+        ];
+        lines.extend(
+            view.source
+                .lines()
+                .take(MAX_FORM_PRESENTATION_LINES.saturating_sub(4))
+                .map(|line| format!("  {line}")),
+        );
+        if let Some(diagnostic) = view.checked.diagnostics.first() {
+            lines.push(format!(
+                "DIAGNOSTIC {} {}:{}-{}:{} bytes={}..{} {}",
+                diagnostic.code,
+                diagnostic.span.line,
+                diagnostic.span.column,
+                diagnostic.span.end_line,
+                diagnostic.span.end_column,
+                diagnostic.span.start,
+                diagnostic.span.end,
+                diagnostic.message
+            ));
+            lines.truncate(MAX_FORM_PRESENTATION_LINES);
+            return lines;
+        }
+        lines.push(format!(
+            "CHECKED source={} forms={} OPEN BACK {}",
+            view.checked
+                .source_document_id
+                .as_ref()
+                .map(|id| id.as_str())
+                .unwrap_or("none"),
+            view.checked.forms.len(),
+            view.open_form
+        ));
+        if let Some(form) = view
+            .checked
+            .forms
+            .iter()
+            .find(|form| form.name == view.open_form)
+        {
+            for (index, item) in form.items.iter().enumerate() {
+                let marker = if index == self.form_selection {
+                    ">"
+                } else {
+                    " "
+                };
+                let kind = match item.kind {
+                    GraphItemKind::FaceInput => "face-in",
+                    GraphItemKind::FaceOutput => "face-out",
+                    GraphItemKind::StartupValue => "startup",
+                    GraphItemKind::Cell => "cell",
+                    GraphItemKind::Cord => "cord",
+                };
+                lines.push(format!(
+                    "{marker} {kind} {} [{}..{}] {}",
+                    item.identity, item.source_span.start, item.source_span.end, item.label
+                ));
+            }
+        }
+        lines.truncate(MAX_FORM_PRESENTATION_LINES);
+        lines
+    }
+
+    fn edit_source(&mut self, update: impl FnOnce(&mut String)) -> Result<(), String> {
+        let editor = self
+            .form_editor
+            .as_mut()
+            .ok_or("canonical Form editor is absent")?;
+        let mut source = editor.view().source;
+        update(&mut source);
+        editor
+            .replace_source(source)
+            .map_err(|error| error.to_string())?;
+        editor.recheck().map_err(|error| error.to_string())?;
+        self.form_selection = 0;
+        if let Some(window) = &self.window {
+            window.request_redraw();
+        }
+        Ok(())
+    }
+
+    fn handle_form_key(&mut self, key: &Key) -> Result<bool, String> {
+        if self.form_editor.is_none() {
+            return Ok(false);
+        }
+        match key {
+            Key::Named(NamedKey::Backspace) => self.edit_source(|source| {
+                source.pop();
+            })?,
+            Key::Named(NamedKey::Enter) => self.edit_source(|source| source.push('\n'))?,
+            Key::Named(NamedKey::Tab) => {
+                let editor = self
+                    .form_editor
+                    .as_mut()
+                    .expect("editor presence was checked");
+                let view = editor.view();
+                if !view.checked.forms.is_empty() {
+                    let current = view
+                        .checked
+                        .forms
+                        .iter()
+                        .position(|form| form.name == view.open_form)
+                        .unwrap_or(0);
+                    let next = &view.checked.forms[(current + 1) % view.checked.forms.len()].name;
+                    editor.open_back(next).map_err(|error| error.to_string())?;
+                    self.form_selection = 0;
+                }
+            }
+            Key::Named(NamedKey::ArrowDown) => {
+                let editor = self
+                    .form_editor
+                    .as_ref()
+                    .expect("editor presence was checked");
+                let view = editor.view();
+                let count = editor
+                    .view()
+                    .checked
+                    .forms
+                    .iter()
+                    .find(|form| form.name == view.open_form)
+                    .map(|form| form.items.len())
+                    .unwrap_or(0);
+                if count > 0 {
+                    self.form_selection = (self.form_selection + 1) % count;
+                }
+            }
+            Key::Named(NamedKey::ArrowUp) => {
+                self.form_selection = self.form_selection.saturating_sub(1)
+            }
+            Key::Character(character)
+                if self.modifiers.control_key() && character.eq_ignore_ascii_case("s") =>
+            {
+                save_form_resource(
+                    self.form_editor
+                        .as_ref()
+                        .expect("editor presence was checked"),
+                )?;
+            }
+            Key::Character(character)
+                if !self.modifiers.control_key() && !self.modifiers.super_key() =>
+            {
+                let characters = character.clone();
+                self.edit_source(|source| source.push_str(&characters))?;
+            }
+            _ => return Ok(false),
+        }
+        let editor = self
+            .form_editor
+            .as_mut()
+            .expect("editor presence was checked");
+        let view = editor.view();
+        if let Some(identity) = view
+            .checked
+            .forms
+            .iter()
+            .find(|form| form.name == view.open_form)
+            .and_then(|form| form.items.get(self.form_selection))
+            .map(|item| item.identity.clone())
+        {
+            editor.select_graph_item(&identity);
+        }
+        if let Some(window) = &self.window {
+            window.request_redraw();
+        }
+        Ok(true)
     }
 }
 
@@ -152,6 +344,13 @@ impl ApplicationHandler for PatchbayApplication {
                     event_loop.exit();
                 }
             }
+            WindowEvent::ModifiersChanged(modifiers) => self.modifiers = modifiers.state(),
+            WindowEvent::KeyboardInput { event, .. } if event.state.is_pressed() => {
+                if let Err(error) = self.handle_form_key(&event.logical_key) {
+                    self.failure = Some(format!("canonical Form edit failed: {error}"));
+                    event_loop.exit();
+                }
+            }
             _ => {}
         }
     }
@@ -165,51 +364,6 @@ impl ApplicationHandler for PatchbayApplication {
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
         if let Err(error) = emit_report("shutdown", &self.model.shutdown_snapshot()) {
             self.failure = Some(format!("Patchbay shutdown report is invalid: {error}"));
-        }
-    }
-}
-
-fn draw_document(buffer: &mut [u32], width: usize, height: usize, lines: &[String]) {
-    for (line_index, line) in lines.iter().enumerate() {
-        let y = TOP_MARGIN + line_index * LINE_ADVANCE;
-        if y + 8 >= height {
-            break;
-        }
-        let color = if line.starts_with("HOSTS")
-            || line.starts_with("LINKS")
-            || line.starts_with("OBSERVATIONS")
-        {
-            ACCENT
-        } else {
-            FOREGROUND
-        };
-        for (character_index, character) in line.chars().enumerate() {
-            let x = LEFT_MARGIN + character_index * GLYPH_ADVANCE;
-            if x + 8 >= width {
-                break;
-            }
-            draw_character(buffer, width, x, y, character, color);
-        }
-    }
-}
-
-fn draw_character(
-    buffer: &mut [u32],
-    width: usize,
-    x: usize,
-    y: usize,
-    character: char,
-    color: u32,
-) {
-    let glyph = font8x8::BASIC_FONTS
-        .get(character)
-        .or_else(|| font8x8::BASIC_FONTS.get('?'))
-        .unwrap_or([0; 8]);
-    for (row, bits) in glyph.iter().enumerate() {
-        for column in 0..8 {
-            if bits & (1 << column) != 0 {
-                buffer[(y + row) * width + x + column] = color;
-            }
         }
     }
 }
@@ -251,6 +405,10 @@ fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Argume
                     .ok_or("--observatory-snapshot requires a path")?;
                 parsed.snapshot_path = Some(path.into());
             }
+            "--form" if parsed.form_path.is_none() => {
+                let path = arguments.next().ok_or("--form requires a path")?;
+                parsed.form_path = Some(path.into());
+            }
             _ => {
                 return Err(format!(
                     "unsupported or repeated Patchbay argument: {argument}"
@@ -263,7 +421,7 @@ fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Argume
 
 #[cfg(test)]
 mod tests {
-    use super::{draw_document, parse_arguments, Arguments, BACKGROUND};
+    use super::{parse_arguments, render::draw_document, Arguments, BACKGROUND};
     use std::path::PathBuf;
 
     #[test]
@@ -271,6 +429,12 @@ mod tests {
         assert_eq!(
             parse_arguments(Vec::new().into_iter()).unwrap(),
             Arguments::default()
+        );
+        assert_eq!(
+            parse_arguments(vec!["--form".into(), "greet.conduit".into()].into_iter())
+                .unwrap()
+                .form_path,
+            Some(PathBuf::from("greet.conduit"))
         );
         assert!(
             parse_arguments(vec!["--smoke-exit-after-window".into()].into_iter())
@@ -287,6 +451,7 @@ mod tests {
         );
         assert!(parse_arguments(vec!["--unknown".into()].into_iter()).is_err());
         assert!(parse_arguments(vec!["--observatory-snapshot".into()].into_iter()).is_err());
+        assert!(parse_arguments(vec!["--form".into()].into_iter()).is_err());
     }
 
     #[test]
