@@ -1,0 +1,13 @@
+# Canonical Program 5 source shape. This is intentionally not an executable
+# corpus member until the external net/websocket operation is accepted.
+form echo-client (
+    url: Url
+    > send: Bytes...
+    recv: Bytes... >
+    live: $Boolean >
+) {
+    sock: net/websocket(url)
+    send > sock.send
+    sock.recv > recv
+    sock.live > live
+}

@@ -63,17 +63,10 @@ preparing a plan; admitted execution paths must not quietly grow without bound.
 
 ## A small form
 
-```text
-form 0
-
-signal-demo {
-    pulse: flow/pulse
+```conduit
+form signal-demo {
+    pulse: flow/pulse(count = 16, period-ms = 250, initial = false)
     show: presentation/show
-
-    pulse.count = 16
-    pulse.period-ms = 250
-    pulse.initial = false
-
     pulse > show
 }
 ```
@@ -81,6 +74,14 @@ signal-demo {
 This form says that a finite pulse source feeds a presentation sink. It does not
 say whether the sink is stdout, a browser DOM adapter, an LED, or another
 implementation. Placement and realization belong to the plan, not the form.
+
+Canonical Form source uses a face in `(...)`, a back in `{...}`,
+`cell: operation(arguments)` for named cells, `=` for declarative immutable
+value relationships, and `>` for runtime cords. Statement order is not
+execution order. See [the checked-in canonical examples](examples/README.md)
+and [their executable commands](docs/try-forms.md). Older `.form` files are
+explicit `form 0` compatibility fixtures whose source identities are retained;
+they are not silently interpreted as canonical source.
 
 ## What exists today
 
@@ -97,7 +98,8 @@ The repository is a Rust workspace containing:
   physical Pico W LED;
 - a read-only Observatory path over neutral runtime-report artifacts;
 - deterministic browser-shaped and Pico-shaped conformance fixtures; and
-- the first installed `conduit.std` kind, `conduit.std/time-tick@2` over
+- installed standard operation families for bounded text, time, and state
+  programs, alongside the retained `conduit.std/time-tick@2` operation over
   `value/tick@1`.
 
 Conduit is still under active development. Compile checks, simulations, hosted

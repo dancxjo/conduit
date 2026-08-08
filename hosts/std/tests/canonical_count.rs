@@ -6,21 +6,7 @@ use conduit_form::{
 use conduit_std_host::{StdHost, TimerAdapter};
 use std::time::Duration;
 
-const PROGRAM: &str = r#"form count (
-    start: Count = 0
-    bump: Tick...| > value: $Count
-) {
-    cell: state/count(start)
-    bump > cell.bump
-    cell.value > value
-}
-form count-demo {
-    clock: time/every(1s)
-    count: count(2)
-    show: presentation/count
-    clock > count > show
-}
-"#;
+const PROGRAM: &str = include_str!("../../../examples/count.conduit");
 
 #[derive(Default)]
 struct RecordingTimer {

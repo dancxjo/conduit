@@ -1,0 +1,4 @@
+form clock-demo {
+    clock: time/every(1s)
+    clock > presentation/tick
+}
