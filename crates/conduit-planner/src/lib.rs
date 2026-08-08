@@ -10,9 +10,11 @@ use conduit_form::{CheckedForm, CheckedOperation};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+mod canonical;
 mod contract;
 mod profile;
 
+pub use canonical::{default_expanded_placements, plan_expanded_canonical};
 pub use contract::{
     parse_placements, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
 };
@@ -25,11 +27,18 @@ pub fn default_placements(
     form: &CheckedForm,
     realm: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
+    default_placements_unvalidated(&form.operations, realm)
+}
+
+pub(crate) fn default_placements_unvalidated(
+    operations: &[CheckedOperation],
+    realm: &[HostAdvertisement],
+) -> Result<PlacementChoices, PlannerError> {
     let host = realm
         .first()
         .ok_or_else(|| PlannerError::UnknownHost("realm is empty".to_string()))?;
     let mut by_operation = BTreeMap::new();
-    for operation in &form.operations {
+    for operation in operations {
         let offer = host
             .capabilities
             .iter()
@@ -167,6 +176,16 @@ pub fn plan_with_options(
 ) -> Result<Plan, PlannerError> {
     form.validate_identities()
         .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
+    plan_validated_form(form, realm, placements, providers, options)
+}
+
+pub(crate) fn plan_validated_form(
+    form: &CheckedForm,
+    realm: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    providers: &[ConnectionProvider],
+    options: PlanningOptions<'_>,
+) -> Result<Plan, PlannerError> {
     let PlanningOptions {
         connection_providers,
         connection_item_capacity,

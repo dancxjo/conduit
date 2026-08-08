@@ -11,8 +11,15 @@ use conduit_core::{
     PlatformEffect, PortDescriptor, PortDirection, TerminalDisposition, ValuePayload,
     PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
-use conduit_form::{parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
-use conduit_planner::{default_placements, plan_with_connection_limits};
+use conduit_form::{
+    check_syntax_document, expand_canonical_form, parse, parse_syntax_document, ConfigurationField,
+    ConfigurationRule, KindDefinition, OperationSignature, ProfileCatalog, StartupCatalog,
+    StartupParameterSignature,
+};
+use conduit_planner::{
+    default_expanded_placements, default_placements, plan_expanded_canonical,
+    plan_with_connection_limits,
+};
 use std::collections::{BTreeMap, VecDeque};
 
 const PULSE_KIND: &str = "flow/pulse";
@@ -447,6 +454,57 @@ fn demo_fragment(
     plan.fragments.first().expect("fragment exists").clone()
 }
 
+fn canonical_demo_fragment() -> conduit_core::PlanFragment {
+    let source = "form burst (\n count: Count = 1\n signal: value/signal >\n) {\n pulse: flow/pulse(count = count, period-ms = 0, initial = false)\n pulse > signal\n}\n\nform demo {\n burst: burst(2)\n show: presentation/show\n burst.signal > show\n}\n";
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert(OperationSignature {
+            operation: PULSE_KIND.into(),
+            startup_parameters: vec![
+                StartupParameterSignature {
+                    name: "count".into(),
+                    value_type: "Count".into(),
+                    default: Some("16".into()),
+                },
+                StartupParameterSignature {
+                    name: "period-ms".into(),
+                    value_type: "Milliseconds".into(),
+                    default: Some("250".into()),
+                },
+                StartupParameterSignature {
+                    name: "initial".into(),
+                    value_type: "Boolean".into(),
+                    default: Some("false".into()),
+                },
+            ],
+        })
+        .unwrap();
+    startup
+        .insert(OperationSignature {
+            operation: SHOW_KIND.into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup)
+        .expect("canonical source checks");
+    let expanded = expand_canonical_form(&checked, "demo", &signal_profile_catalog())
+        .expect("reusable form expands");
+    let advertisement = advertisement("boot-1", 1, 8, 256);
+    let placements = default_expanded_placements(&expanded, std::slice::from_ref(&advertisement))
+        .expect("expanded placements work");
+    let plan = plan_expanded_canonical(
+        &expanded,
+        std::slice::from_ref(&advertisement),
+        &placements,
+        &[ConnectionProvider::Local],
+    )
+    .expect("expanded plan succeeds");
+    assert_eq!(plan.checked_form_id, expanded.checked_form_id);
+    assert_eq!(plan.expanded_form_id, expanded.expanded_form_id);
+    assert_eq!(plan.source_document_id, expanded.source_document_id);
+    plan.fragments.first().expect("fragment exists").clone()
+}
+
 fn inspect(runtime: &mut HostRuntime) -> Vec<conduit_core::Observation> {
     runtime
         .handle(HostCommand::Inspect)
@@ -549,6 +607,40 @@ fn drive_with_failure(
         pending.extend(follow_up.effects);
     }
     all_events
+}
+
+#[test]
+fn canonical_parameterized_form_expands_plans_and_runs_through_normal_kernel_evidence() {
+    let fragment = canonical_demo_fragment();
+    assert_eq!(fragment.placements.len(), 2);
+    assert_eq!(fragment.connections.len(), 1);
+    assert_eq!(fragment.checked_form_id.as_str().len(), 64);
+    assert_eq!(fragment.expanded_form_id.as_str().len(), 64);
+    assert_ne!(
+        fragment.checked_form_id.as_str(),
+        fragment.expanded_form_id.as_str()
+    );
+    let plan_id = fragment.plan_id.clone();
+    let mut runtime = test_runtime(advertisement("boot-1", 1, 8, 256), 128);
+    let prepared = runtime.handle(HostCommand::Prepare(fragment));
+    assert!(prepared.events.iter().any(|event| matches!(
+        event,
+        HostEvent::Prepared { plan_id: prepared_id } if prepared_id == &plan_id
+    )));
+    let presented = drive_success(&mut runtime, plan_id.clone());
+    assert_eq!(
+        presented
+            .iter()
+            .map(|signal| signal.sequence)
+            .collect::<Vec<_>>(),
+        [0, 1]
+    );
+    assert!(inspect(&mut runtime).iter().any(|item| matches!(
+        item.kind,
+        ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        }
+    ) && item.plan_id.as_ref() == Some(&plan_id)));
 }
 
 #[test]

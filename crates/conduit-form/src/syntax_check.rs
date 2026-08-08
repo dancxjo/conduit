@@ -1,11 +1,13 @@
 use crate::checked_syntax::{
-    CanonicalStartupValue, CheckedCanonicalCell, CheckedCanonicalForm, CheckedStartupBinding,
-    CheckedStartupParameter, CheckedSyntaxDocument, OperationSignature, StartupCatalog,
-    StartupParameterSignature, SyntaxCheckDiagnostic, SyntaxCheckError,
+    CanonicalStartupValue, CheckedCanonicalCell, CheckedCanonicalCord, CheckedCanonicalForm,
+    CheckedCordStage, CheckedStartupBinding, CheckedStartupParameter, CheckedSyntaxDocument,
+    OperationSignature, StartupCatalog, StartupParameterSignature, SyntaxCheckDiagnostic,
+    SyntaxCheckError,
 };
 use crate::syntax::{Argument, BackStatement, CordStage, FormSyntax, Invocation, SyntaxDocument};
+use crate::syntax_identity::{canonical_cell, canonical_cord, checked_identity};
 use crate::{hash_string, Span};
-use conduit_core::{CheckedFormId, SourceDocumentId};
+use conduit_core::SourceDocumentId;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn check_document(
@@ -83,11 +85,19 @@ fn check_form(
         .iter()
         .map(|parameter| parameter.name.clone())
         .collect::<BTreeSet<_>>();
-    let runtime_names = form
-        .face
-        .runtime_ports
-        .iter()
-        .map(|port| port.name.text.clone())
+    let mut runtime_names = BTreeSet::new();
+    for port in &form.face.runtime_ports {
+        if !runtime_names.insert(port.name.text.clone())
+            || parameter_names.contains(&port.name.text)
+        {
+            return Err(
+                SyntaxCheckError::AmbiguousFaceName(port.name.text.clone()).diagnostic(port.span)
+            );
+        }
+    }
+    let face_names = parameter_names
+        .union(&runtime_names)
+        .cloned()
         .collect::<BTreeSet<_>>();
     let mut locals = BTreeMap::new();
     let mut named_cells = BTreeSet::new();
@@ -110,6 +120,10 @@ fn check_form(
                 }
             }
             BackStatement::NamedCell(cell) => {
+                if face_names.contains(&cell.name.text) {
+                    return Err(SyntaxCheckError::AmbiguousFaceName(cell.name.text.clone())
+                        .diagnostic(cell.span));
+                }
                 if !named_cells.insert(cell.name.text.clone()) {
                     return Err(SyntaxCheckError::DuplicateCell(cell.name.text.clone())
                         .diagnostic(cell.span));
@@ -146,7 +160,7 @@ fn check_form(
                 for stage in &cord.stages {
                     match stage {
                         CordStage::Reference(reference) => {
-                            stages.push(format!("ref:{}", reference.text));
+                            stages.push(CheckedCordStage::Reference(reference.text.clone()));
                         }
                         CordStage::InlineCell(invocation) => {
                             let cell = check_invocation(
@@ -156,22 +170,18 @@ fn check_form(
                                 form_signatures,
                                 &mut resolver,
                             )?;
-                            stages.push(format!("cell:{}", canonical_cell(&cell)));
+                            stages.push(CheckedCordStage::InlineCell(cell.clone()));
                             cells.push(cell);
                         }
                     }
                 }
-                let mut canonical = String::from("cord");
-                for stage in stages {
-                    push_field(&mut canonical, &stage);
-                }
-                cords.push(canonical);
+                cords.push(CheckedCanonicalCord { stages });
             }
             BackStatement::LocalValue(_) => {}
         }
     }
     cells.sort_by_key(canonical_cell);
-    cords.sort();
+    cords.sort_by_key(canonical_cord);
     local_values.sort_by(|left, right| left.0.cmp(&right.0));
     let checked_form_id = checked_identity(
         &form.name.text,
@@ -296,6 +306,7 @@ fn check_invocation(
         name,
         operation: signature.operation.clone(),
         startup_bindings,
+        source_span: invocation.span,
     })
 }
 
@@ -398,51 +409,6 @@ impl<'a> Resolver<'a> {
     }
 }
 
-fn checked_identity(
-    name: &str,
-    parameters: &[CheckedStartupParameter],
-    runtime_ports: &[crate::RuntimePort],
-    shorthand: Option<(&str, &str)>,
-    cells: &[CheckedCanonicalCell],
-    cords: &[String],
-) -> CheckedFormId {
-    let mut canonical = String::from("canonical-form");
-    push_field(&mut canonical, name);
-    for parameter in parameters {
-        canonical.push_str("param");
-        push_field(&mut canonical, &parameter.name);
-        push_field(&mut canonical, &parameter.value_type);
-        let default = parameter
-            .default
-            .as_ref()
-            .map(canonical_value)
-            .unwrap_or_else(|| "required".into());
-        push_field(&mut canonical, &default);
-    }
-    let mut ports = runtime_ports.to_vec();
-    ports.sort_by(|left, right| left.name.text.cmp(&right.name.text));
-    for port in ports {
-        canonical.push_str("port");
-        push_field(&mut canonical, &port.name.text);
-        push_field(&mut canonical, &port.value_type.text);
-        push_field(&mut canonical, &format!("{:?}", port.direction));
-    }
-    if let Some((input, output)) = shorthand {
-        canonical.push_str("shorthand");
-        push_field(&mut canonical, input);
-        push_field(&mut canonical, output);
-    }
-    for cell in cells {
-        canonical.push_str("cell");
-        push_field(&mut canonical, &canonical_cell(cell));
-    }
-    for cord in cords {
-        canonical.push_str("cord");
-        push_field(&mut canonical, cord);
-    }
-    CheckedFormId::from(hash_string(&canonical))
-}
-
 fn is_atomic_literal(expression: &str) -> bool {
     let quoted = (expression.starts_with('"') && expression.ends_with('"'))
         || (expression.starts_with('\'') && expression.ends_with('\''));
@@ -461,29 +427,4 @@ fn contains_identifier(expression: &str, name: &str) -> bool {
     expression
         .split(|character: char| !(character.is_alphanumeric() || matches!(character, '_' | '-')))
         .any(|candidate| candidate == name)
-}
-
-fn canonical_cell(cell: &CheckedCanonicalCell) -> String {
-    let mut value = String::new();
-    push_field(&mut value, cell.name.as_deref().unwrap_or("<anonymous>"));
-    push_field(&mut value, &cell.operation);
-    for binding in &cell.startup_bindings {
-        push_field(&mut value, &binding.name);
-        push_field(&mut value, &binding.value_type);
-        push_field(&mut value, &canonical_value(&binding.value));
-    }
-    value
-}
-
-fn push_field(target: &mut String, value: &str) {
-    target.push_str(&value.len().to_string());
-    target.push(':');
-    target.push_str(value);
-}
-
-fn canonical_value(value: &CanonicalStartupValue) -> String {
-    match value {
-        CanonicalStartupValue::Literal(value) => format!("literal:{value}"),
-        CanonicalStartupValue::FormParameter(name) => format!("parameter:{name}"),
-    }
 }

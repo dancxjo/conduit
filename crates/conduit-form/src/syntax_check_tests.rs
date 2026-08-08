@@ -256,6 +256,15 @@ fn local_bindings_cannot_shadow_face_values_or_runtime_ports() {
 }
 
 #[test]
+fn public_face_names_cannot_be_duplicated_or_shadowed_by_cells() {
+    let duplicate = diagnostic("form a (\n > value: Text\n > value: Text\n) {\n}\n");
+    let shadow = diagnostic("form a (\n > clock: Duration\n) {\n clock: time/every(1s)\n}\n");
+    assert_eq!(duplicate.code, "CND-FRM-050");
+    assert_eq!(shadow.code, "CND-FRM-050");
+    assert!(shadow.message.contains("ambiguously shadowed"));
+}
+
+#[test]
 fn duplicate_cell_and_unsupported_operation_diagnostics_are_stable() {
     let duplicate = diagnostic("form a {\n clock: time/every(1s)\n clock: time/every(2s)\n}\n");
     let unsupported = diagnostic("form a {\n cell: unknown/op\n}\n");
