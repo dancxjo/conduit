@@ -1,6 +1,6 @@
 use crate::{
-    BootId, CapabilityId, HostId, OperationId, ResourceBindingRoleId, ResourceClassId,
-    ResourceHandleId, ResourcePoolId,
+    BootId, CapabilityId, EvidenceId, HostId, OfferGeneration, OperationId, ResourceBindingRoleId,
+    ResourceClassId, ResourceHandleId, ResourcePoolId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +17,30 @@ pub struct ResourceOffer {
     pub pool_id: ResourcePoolId,
     pub class_id: ResourceClassId,
     pub capacity_units: u32,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ResourceHealth {
+    Ready,
+    Unavailable,
+}
+
+/// Mutable current evidence about one stable, boot-scoped resource pool.
+///
+/// Unreserved capacity, current utilization, and concrete scheduler lane
+/// assignment are distinct. This observation deliberately contains no lane or
+/// physical processor identity.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ResourceObservation {
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
+    pub pool_id: ResourcePoolId,
+    pub class_id: ResourceClassId,
+    pub health: ResourceHealth,
+    pub unreserved_units: u32,
+    pub utilized_units: u32,
+    pub evidence_id: EvidenceId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

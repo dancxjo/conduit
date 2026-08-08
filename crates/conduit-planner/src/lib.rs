@@ -14,6 +14,7 @@ mod canonical;
 mod contract;
 mod diagnostic;
 mod functional_compatibility;
+mod observations;
 mod policy;
 mod profile;
 mod protected_resources;
@@ -30,6 +31,7 @@ pub use contract::{
     parse_placements, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
 };
 pub use diagnostic::structured_planner_diagnostic;
+pub use observations::select_realization_with_observations;
 pub use policy::{select_realization_with_policy, RealizationPolicy, RealizationPreference};
 pub use profile::{
     plan_with_advertised_profile, BROWSER_PLANNER_PROFILE, FULL_PLANNER_LIMITS,

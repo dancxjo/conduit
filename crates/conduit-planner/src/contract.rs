@@ -45,6 +45,8 @@ pub enum PlannerError {
     InvalidHardRealizationRequirement(String),
     HardRealizationRequirementUnsatisfied(String),
     InvalidRealizationPolicy(String),
+    InvalidResourceObservation(String),
+    CurrentResourceObservationUnavailable(String),
     InvalidHostOperationRequirement(String),
     InvalidResourceContract(String),
     UnavailableResource(String),
@@ -102,6 +104,12 @@ impl std::fmt::Display for PlannerError {
             }
             Self::InvalidRealizationPolicy(value) => {
                 write!(f, "invalid realization policy: {value}")
+            }
+            Self::InvalidResourceObservation(value) => {
+                write!(f, "invalid resource observation: {value}")
+            }
+            Self::CurrentResourceObservationUnavailable(value) => {
+                write!(f, "current resource observation unavailable: {value}")
             }
             Self::InvalidHostOperationRequirement(value) => {
                 write!(f, "invalid host-operation requirement: {value}")

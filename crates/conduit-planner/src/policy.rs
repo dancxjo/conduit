@@ -34,6 +34,17 @@ pub fn select_realization_with_policy(
     requirements: &HardRealizationRequirements,
     policy: &RealizationPolicy,
 ) -> Result<PlacementChoice, PlannerError> {
+    select_realization_matching(operation, realm, requirements, policy, |_, _| true, None)
+}
+
+pub(crate) fn select_realization_matching(
+    operation: &CheckedOperation,
+    realm: &[HostAdvertisement],
+    requirements: &HardRealizationRequirements,
+    policy: &RealizationPolicy,
+    mut currently_admissible: impl FnMut(&HostAdvertisement, &CapabilityOffer) -> bool,
+    current_refusal: Option<PlannerError>,
+) -> Result<PlacementChoice, PlannerError> {
     validate_requirement_identities(requirements)?;
     validate_policy(policy)?;
 
@@ -62,6 +73,15 @@ pub fn select_realization_with_policy(
                 operation.operation_id.as_str()
             ),
         ));
+    }
+    admitted.retain(|candidate| currently_admissible(candidate.host, candidate.offer));
+    if admitted.is_empty() {
+        return Err(current_refusal.unwrap_or_else(|| {
+            PlannerError::CurrentResourceObservationUnavailable(format!(
+                "operation '{}' has no currently admissible realization",
+                operation.operation_id.as_str()
+            ))
+        }));
     }
     admitted.sort_by(|left, right| compare_candidates(left, right, policy));
     let selected = admitted[0];
