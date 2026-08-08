@@ -80,3 +80,71 @@ fn visual_and_linear_views_preserve_one_typed_identity_set() {
     assert!(visual.contains("UNPLANNED ROUTE refused=ambient Wi-Fi"));
     assert!(linear.contains("ambient Wi-Fi, was refused"));
 }
+
+#[test]
+fn projection_uses_typed_providers_and_exact_validated_event_evidence() {
+    let demo = DistributedRouteDemo::build().expect("route demo");
+    let facts = demo.presentation();
+    assert_eq!(
+        facts.new_plan.prior.candidates[0].provider,
+        ConnectionProvider::UsbCdc
+    );
+    assert_eq!(
+        facts.same_plan.plan.candidates[1].provider,
+        ConnectionProvider::WebSocket
+    );
+
+    let [link, unsatisfied, requested, succeeded, installed, selected] = demo.control_events()
+    else {
+        panic!("route demo must retain its six validated control events");
+    };
+    let ControlLoopEvent::LinkBecameUnavailable {
+        observation_evidence_id,
+        ..
+    } = link
+    else {
+        panic!("first event must be link loss");
+    };
+    assert_eq!(
+        &facts.new_plan.unavailable_evidence_id,
+        observation_evidence_id
+    );
+    let ControlLoopEvent::DeploymentBecameUnsatisfied { evidence_id, .. } = unsatisfied else {
+        panic!("second event must be unsatisfied deployment");
+    };
+    assert_eq!(&facts.new_plan.unsatisfied_evidence_id, evidence_id);
+    let ControlLoopEvent::PlanningRequested {
+        request_evidence_id,
+        ..
+    } = requested
+    else {
+        panic!("third event must be planning request");
+    };
+    assert_eq!(
+        &facts.new_plan.planning_request_evidence_id,
+        request_evidence_id
+    );
+    let ControlLoopEvent::PlanningSucceeded { evidence_id, .. } = succeeded else {
+        panic!("fourth event must be planning success");
+    };
+    assert_eq!(&facts.new_plan.planning_success_evidence_id, evidence_id);
+    let ControlLoopEvent::PlanSuperseded { evidence_id, .. } = installed else {
+        panic!("fifth event must install the replacement Plan");
+    };
+    assert_eq!(&facts.new_plan.installed_evidence_id, evidence_id);
+    let ControlLoopEvent::RouteSelectionChanged {
+        observation_evidence_id,
+        ..
+    } = selected
+    else {
+        panic!("sixth event must be same-Plan selection");
+    };
+    assert_eq!(
+        &facts.same_plan.selection_evidence_id,
+        observation_evidence_id
+    );
+    assert_eq!(
+        &facts.same_plan.unavailable_evidence_id,
+        observation_evidence_id
+    );
+}
