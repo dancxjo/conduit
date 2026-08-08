@@ -7,3 +7,6 @@ edition = "2021"
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-observatory = { path = "../../crates/conduit-observatory" }
 conduit-std-host = { path = "../std" }
+
+[dev-dependencies]
+conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }

@@ -5,5 +5,8 @@ edition = "2021"
 
 [dependencies]
 conduit-observatory = { path = "../../crates/conduit-observatory" }
+font8x8 = "0.3"
 patchbay-model = { path = "../patchbay-model" }
+serde_json = "1"
+softbuffer = { version = "0.4", default-features = false, features = ["wayland", "wayland-dlopen"] }
 winit = { version = "0.30", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen"] }

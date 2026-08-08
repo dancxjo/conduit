@@ -12,13 +12,14 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for host in &report.hosts {
         let _ = writeln!(
             output,
-            "host id={} boot={} state={:?} profile={} generation={} capabilities={} resources={:?}",
+            "host id={} boot={} state={:?} profile={} generation={} capabilities={} planners={:?} resources={:?}",
             host.host_id.as_str(),
             host.boot_id.as_str(),
             host.state,
             host.profile.as_str(),
             host.offer_generation.0,
             host.capability_count,
+            host.planner_capabilities,
             host.resources
         );
     }
