@@ -514,6 +514,5 @@ pub fn signal_profile_catalog() -> conduit_form::ProfileCatalog {
     catalog
 }
 
-
 #[cfg(test)]
 mod tests;
