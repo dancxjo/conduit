@@ -9,6 +9,9 @@ use conduit_core::{ConnectionEnvelope, ConnectionId, KindId, PlanId, PROTOCOL_VE
 mod session;
 pub use session::*;
 
+mod routing;
+pub use routing::*;
+
 pub mod stream_framing;
 pub use stream_framing::*;
 

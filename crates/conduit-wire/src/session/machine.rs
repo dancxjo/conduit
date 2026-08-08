@@ -78,6 +78,76 @@ impl SessionMachine {
         self.next_sequence
     }
 
+    pub fn checkpoint(&self) -> SessionCheckpoint {
+        SessionCheckpoint {
+            next_sequence: self.next_sequence,
+            transfer: match self.transfer {
+                None => SessionTransferCheckpoint::None,
+                Some(TransferState::Offered(sequence)) => {
+                    SessionTransferCheckpoint::Offered(sequence)
+                }
+                Some(TransferState::Accepted(sequence)) => {
+                    SessionTransferCheckpoint::Accepted(sequence)
+                }
+            },
+            input_closed: self.input_closed,
+        }
+    }
+
+    pub fn checkpoint_offer(&self) -> SessionCheckpointOffer<'_> {
+        SessionCheckpointOffer {
+            identity: self.binding.identity(),
+            checkpoint: self.checkpoint(),
+        }
+    }
+
+    /// Reconcile one finite peer checkpoint before admitting traffic on a new
+    /// exact attachment for the same logical session.
+    pub fn resume_with_attachment(
+        &mut self,
+        binding: SessionBinding,
+        peer: SessionCheckpointOffer<'_>,
+    ) -> Result<SessionCheckpointAcceptance, WireError> {
+        binding.validate()?;
+        if binding.identity() != self.binding.identity()
+            || peer.identity != self.binding.identity()
+            || self.local_failure.is_some()
+            || self.peer_failure.is_some()
+            || self.local_terminal.is_some()
+            || self.peer_terminal.is_some()
+        {
+            return Err(WireError::InvalidSession);
+        }
+        let local = self.checkpoint();
+        let action = reconcile_checkpoints(self.role, local, peer.checkpoint)?;
+        match action {
+            SessionResumeAction::Continue => {}
+            SessionResumeAction::ReplayOffered(sequence) => {
+                self.next_sequence = sequence;
+                self.transfer = Some(TransferState::Offered(sequence));
+            }
+            SessionResumeAction::AwaitReplay(sequence) => {
+                self.next_sequence = sequence;
+                self.transfer = None;
+            }
+            SessionResumeAction::AdvanceDelivered(sequence) => {
+                self.next_sequence = sequence.checked_add(1).ok_or(WireError::InvalidState)?;
+                self.transfer = None;
+            }
+        }
+        self.binding = binding;
+        self.local_hello = false;
+        self.peer_hello = false;
+        self.local_ready = false;
+        self.peer_ready = false;
+        Ok(SessionCheckpointAcceptance {
+            local,
+            peer: peer.checkpoint,
+            action,
+            same_plan_continues: true,
+        })
+    }
+
     pub fn admit_outbound(&mut self, frame: SessionFrame<'_>) -> Result<(), WireError> {
         self.admit(FrameDirection::Outbound, frame)
     }
