@@ -47,7 +47,7 @@ pub fn external_websocket_client_offer(
 ) -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![startup("url", "Url")],
-        shorthand: Some((port_id("send"), port_id("recv"))),
+        shorthand: None,
         capability_id,
         kind_id: kind_id(EXTERNAL_WEBSOCKET_CLIENT_KIND),
         kind_contract_revision: KindContractRevision::from(EXTERNAL_WEBSOCKET_CLIENT_REVISION),
