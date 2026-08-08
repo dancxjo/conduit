@@ -31,6 +31,9 @@ pub use canonical::{
 };
 pub use characteristics::{
     plan_selected_realizations_with_characteristics, select_realization_with_characteristics,
+    select_realization_with_characteristics_and_evidence, RealizationDecisionDisposition,
+    RealizationDecisionRecord, RealizationRejection, RealizationSelection,
+    MAXIMUM_REALIZATION_DECISION_RECORDS,
 };
 pub use contract::{
     parse_placements, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
