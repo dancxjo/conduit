@@ -9,7 +9,11 @@ use conduit_form::{
     ConfigurationRule, KindDefinition, OperationSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
-use conduit_planner::{default_expanded_placements, plan_expanded_canonical, PlannerError};
+use conduit_planner::{
+    default_expanded_placements, plan_expanded_canonical, PlacementChoice, PlacementChoices,
+    PlannerError,
+};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
@@ -273,6 +277,86 @@ fn same_name_with_a_different_face_is_incompatible() {
     assert_eq!(
         default_expanded_placements(&expanded, &[changed_face]).unwrap_err(),
         PlannerError::UnknownCapability("text/join".into())
+    );
+}
+
+#[test]
+fn two_cells_of_one_operation_can_select_different_equal_face_hosts() {
+    let (startup, profile) = catalogs();
+    let syntax =
+        parse_syntax_document("form split {\n    left: text/source\n    right: text/source\n}\n");
+    let checked = check_syntax_document(&syntax, &startup).expect("two source cells check");
+    let expanded =
+        expand_canonical_form(&checked, "split", &profile).expect("two source cells expand");
+    assert_eq!(expanded.operations.len(), 2);
+    assert!(expanded
+        .operations
+        .iter()
+        .all(|cell| cell.kind_id.as_str() == "text/source"));
+
+    let left = host();
+    let mut right = host();
+    right.host_id = HostId::from("peer-host");
+    right.boot_id = BootId::from("peer-boot");
+    for offer in &mut right.capabilities {
+        offer.capability_id = CapabilityId::from(format!("peer-{}", offer.capability_id.as_str()));
+        offer.implementation_id =
+            ImplementationId::from(format!("peer/{}", offer.kind_id.as_str().replace('/', "-")));
+    }
+
+    let placements = PlacementChoices {
+        by_operation: BTreeMap::from([
+            (
+                expanded.operations[0].operation_id.clone(),
+                PlacementChoice {
+                    host_id: left.host_id.clone(),
+                    capability_id: CapabilityId::from("text-source"),
+                },
+            ),
+            (
+                expanded.operations[1].operation_id.clone(),
+                PlacementChoice {
+                    host_id: right.host_id.clone(),
+                    capability_id: CapabilityId::from("peer-text-source"),
+                },
+            ),
+        ]),
+    };
+    let plan = plan_expanded_canonical(
+        &expanded,
+        &[left.clone(), right.clone()],
+        &placements,
+        &[ConnectionProvider::Local],
+    )
+    .expect("one unchanged semantic form may place equal-face cells on peer hosts");
+
+    assert_eq!(plan.fragments.len(), 2);
+    assert_eq!(
+        plan.fragments[0].source_document_id,
+        expanded.source_document_id
+    );
+    assert_eq!(
+        plan.fragments[1].source_document_id,
+        expanded.source_document_id
+    );
+    let selected = plan
+        .fragments
+        .iter()
+        .map(|fragment| {
+            let cell = &fragment.placements[0];
+            (
+                cell.operation_id.as_str(),
+                cell.host_id.as_str(),
+                cell.implementation_id.as_str(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        selected,
+        [
+            ("split/left", "std-host", "std/text-source"),
+            ("split/right", "peer-host", "peer/text-source"),
+        ]
     );
 }
 
