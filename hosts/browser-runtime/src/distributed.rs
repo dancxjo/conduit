@@ -6,8 +6,7 @@ use super::{
     PORTS,
 };
 use conduit_core::{
-    bind_active_play, bind_evidence, bind_presentation, CapabilityId, ConnectionProvider,
-    OperationId, Plan, PlanFragment,
+    bind_active_play, bind_evidence, bind_presentation, BootId, HostId, PlanFragment,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
@@ -18,24 +17,19 @@ use conduit_kernel::{
     HostOperationOutcome, HostedEvidenceLog, HostedValueStore, KernelEventKind, Operation,
     OperationAction, OperationInput, PortId, RemoteEndpointId, RequestId, ValueStorage,
 };
-use conduit_planner::{
-    plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
-};
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
 };
 use conduit_signal::{
-    decode_signal_bytes, distributed_browser_sink_advertisement,
-    distributed_std_source_advertisement, distributed_websocket_link_binding,
-    signal_profile_catalog, triple, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SHOW_KIND, SIGNAL_ENCODED_LEN,
+    decode_signal_bytes, distributed_browser_sink_advertisement, exact_distributed_signal_plan,
+    exact_distributed_signal_plan_for, triple, DISTRIBUTED_MAXIMUM_FRAME_BYTES, SHOW_KIND,
+    SIGNAL_ENCODED_LEN,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
     SessionMessage, SessionRole, SessionTerminalDisposition,
 };
 use std::cell::RefCell;
-use std::collections::BTreeMap;
 
 const OUTPUT_NONE: i32 = 0;
 const OUTPUT_SESSION: i32 = 1;
@@ -171,66 +165,24 @@ enum PlanKind {
     Triple,
 }
 
-fn exact_plan(kind: PlanKind) -> Result<Plan, i32> {
-    if matches!(kind, PlanKind::Triple) {
-        return triple::exact_plan()
-            .map(|exact| exact.plan)
-            .map_err(|_| ERROR_PREPARE);
-    }
-    let source = distributed_std_source_advertisement();
-    let sink = distributed_browser_sink_advertisement();
-    let syntax =
-        conduit_form::parse_syntax_document(include_str!("../../../examples/signal-demo.conduit"));
-    let checked =
-        conduit_form::check_syntax_document(&syntax, &conduit_signal::signal_startup_catalog())
-            .map_err(|_| ERROR_PREPARE)?;
-    let form =
-        conduit_form::expand_canonical_form(&checked, "signal-demo", &signal_profile_catalog())
-            .map_err(|_| ERROR_PREPARE)?;
-    let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
-            (
-                OperationId::from("signal-demo/pulse"),
-                PlacementChoice {
-                    host_id: source.host_id.clone(),
-                    capability_id: CapabilityId::from("pulse-1"),
-                },
-            ),
-            (
-                OperationId::from("signal-demo/show"),
-                PlacementChoice {
-                    host_id: sink.host_id.clone(),
-                    capability_id: CapabilityId::from("dom-show-1"),
-                },
-            ),
-        ]),
-    };
-    let link = distributed_websocket_link_binding();
-    plan_expanded_canonical_with_options(
-        &form,
-        &[source, sink],
-        &placements,
-        &[ConnectionProvider::WebSocket],
-        PlanningOptions {
-            connection_providers: &BTreeMap::new(),
-            route_candidates: &BTreeMap::new(),
-            connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-            connection_byte_capacity: SIGNAL_ENCODED_LEN,
-            authority_grants: &[],
-            protected_resource_grants: &[],
-            link_bindings: &[link],
-        },
-    )
-    .map_err(|_| ERROR_PREPARE)
-}
-
 impl DistributedSink {
-    fn prepare(evidence_override: Option<u16>, kind: PlanKind) -> Result<Self, i32> {
+    fn prepare(
+        evidence_override: Option<u16>,
+        kind: PlanKind,
+        source_identity: Option<(HostId, BootId)>,
+    ) -> Result<Self, i32> {
         let advertisement = match kind {
             PlanKind::StdBrowser => distributed_browser_sink_advertisement(),
             PlanKind::Triple => triple::browser_advertisement(),
         };
-        let plan = exact_plan(kind)?;
+        let plan = match (kind, source_identity) {
+            (PlanKind::Triple, _) => triple::exact_plan().map(|exact| exact.plan),
+            (PlanKind::StdBrowser, Some((host_id, boot_id))) => {
+                exact_distributed_signal_plan_for(host_id, boot_id).map(|exact| exact.plan)
+            }
+            (PlanKind::StdBrowser, None) => exact_distributed_signal_plan().map(|exact| exact.plan),
+        }
+        .map_err(|_| ERROR_PREPARE)?;
         let fragment = plan
             .fragments
             .into_iter()

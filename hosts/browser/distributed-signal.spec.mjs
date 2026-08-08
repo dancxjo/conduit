@@ -16,6 +16,7 @@ function processExit(child) {
 function lineCollector(stream) {
   const lines = [];
   const waiters = [];
+  const matchWaiters = [];
   const reader = createInterface({ input: stream });
   reader.on("line", (line) => {
     lines.push(line);
@@ -23,16 +24,33 @@ function lineCollector(stream) {
       const waiter = waiters.shift();
       waiter.resolve(lines[waiter.index]);
     }
+    for (let index = matchWaiters.length - 1; index >= 0; index -= 1) {
+      const waiter = matchWaiters[index];
+      if (waiter.pattern.test(line)) {
+        matchWaiters.splice(index, 1);
+        waiter.resolve(line);
+      }
+    }
   });
   reader.on("close", () => {
     for (const waiter of waiters.splice(0)) {
       waiter.reject(new Error(`source closed before line ${waiter.index}`));
+    }
+    for (const waiter of matchWaiters.splice(0)) {
+      waiter.reject(new Error(`source closed before matching ${waiter.pattern}`));
     }
   });
   return {
     line(index) {
       if (lines.length > index) return Promise.resolve(lines[index]);
       return new Promise((resolve, reject) => waiters.push({ index, resolve, reject }));
+    },
+    matching(pattern) {
+      const found = lines.find((line) => pattern.test(line));
+      if (found !== undefined) return Promise.resolve(found);
+      return new Promise((resolve, reject) => {
+        matchWaiters.push({ pattern, resolve, reject });
+      });
     },
     close() {
       reader.close();
@@ -206,6 +224,91 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
       "data-sequence",
       "15",
     );
+  } finally {
+    lines.close();
+    if (source.exitCode === null) source.kill("SIGTERM");
+  }
+});
+
+test("native Patchbay source and browser peer execute one exact distributed Play", async ({
+  page,
+}) => {
+  const windowed = process.env.CONDUIT_PATCHBAY_NATIVE_WINDOW === "1";
+  const source = spawn(
+    windowed ? "target/debug/patchbay-native" : "cargo",
+    windowed
+      ? ["--distributed-play", "--smoke-exit-after-window"]
+      : ["run", "--quiet", "-p", "patchbay-native", "--", "--distributed-play-server"],
+    { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] },
+  );
+  const stderr = [];
+  source.stderr.setEncoding("utf8");
+  source.stderr.on("data", (chunk) => stderr.push(chunk));
+  const lines = lineCollector(source.stdout);
+  const exited = processExit(source);
+  try {
+    const bootstrap = windowed
+      ? await lines.matching(/^patchbay distributed url=/)
+      : await lines.line(0);
+    const match = bootstrap.match(
+      windowed
+        ? /^patchbay distributed url=(ws:\/\/127\.0\.0\.1:\d+\/conduit) source-host=(\S+) source-boot=(\S+) plan=(\S+)$/
+        : /^(ws:\/\/127\.0\.0\.1:\d+\/conduit) source_host=(\S+) source_boot=(\S+) plan=(\S+)$/,
+    );
+    expect(match).not.toBeNull();
+    const [, url, sourceHostId, sourceBootId, planId] = match;
+    expect(sourceHostId).toMatch(/^patchbay-native\//);
+    expect(sourceBootId).toMatch(/^patchbay-boot\//);
+    await page.goto("/hosts/browser/distributed-signal.test.html");
+    const result = await page.evaluate(async ({ url, sourceHostId, sourceBootId }) => {
+      const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
+      const { BrowserWebSocketCarrier } = await import(
+        "/hosts/browser/websocket-carrier.mjs"
+      );
+      const {
+        instantiateDistributedBrowserRuntime,
+        runDistributedBrowserRuntime,
+      } = await import("/hosts/browser/distributed-signal-runtime.mjs");
+      const wasmBytes = await fetch(
+        "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+      ).then((response) => response.arrayBuffer());
+      const carrier = await new BrowserWebSocketCarrier({
+        url,
+        maximumMessageBytes: 2048,
+        maximumBufferedBytes: 8192,
+      }).open();
+      const domHost = new BrowserDomHost({
+        hostId: "s4/browser-sink",
+        bootId: "s4/browser-sink-boot",
+        root: document.querySelector("#browser-sink"),
+        maximumReceiptItems: 16,
+        maximumReceiptBytes: 144,
+      });
+      const runtime = await instantiateDistributedBrowserRuntime(wasmBytes, {
+        sourceIdentity: { hostId: sourceHostId, bootId: sourceBootId },
+      });
+      const run = await runDistributedBrowserRuntime(runtime, carrier, domHost);
+      return { run, receipts: domHost.receipts(), closed: await carrier.closed() };
+    }, { url, sourceHostId, sourceBootId });
+    await exited;
+    const summary = await lines.matching(/^summary /);
+    if (windowed) {
+      expect(await lines.matching(/^patchbay distributed-rendered status=completed$/))
+        .toBe("patchbay distributed-rendered status=completed");
+    }
+    expect(stderr).toEqual([]);
+    expect(summary).toContain(`summary plan=${planId}`);
+    expect(summary).toContain("source_terminal=completed browser_terminal=completed");
+    expect(result.run.status).toBe(1);
+    expect(result.run.receiptCount).toBe(16);
+    expect(result.closed).toEqual({ ok: true, code: 1000, reason: "conduit-terminal" });
+    expect(result.receipts).toHaveLength(16);
+    expect(result.receipts.every(({ planId: receiptPlan }) => receiptPlan === planId)).toBe(true);
+    expect(result.receipts.every(({ sourceHostId: host }) => host === sourceHostId)).toBe(true);
+    expect(result.receipts.every(({ sourceBootId: boot }) => boot === sourceBootId)).toBe(true);
+    expect(new Set(result.receipts.map(({ sourceActivePlayId }) => sourceActivePlayId)).size)
+      .toBe(1);
+    expect(new Set(result.receipts.map(({ activePlayId }) => activePlayId)).size).toBe(1);
   } finally {
     lines.close();
     if (source.exitCode === null) source.kill("SIGTERM");

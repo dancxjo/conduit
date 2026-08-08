@@ -12,12 +12,14 @@ use winit::window::{Window, WindowId};
 const HISTORY_CAPACITY: usize = 4;
 mod arguments;
 mod control;
+mod distributed_play;
 mod file_task;
 mod presentation;
 mod render;
 mod resource;
 use arguments::{parse_arguments, Arguments};
 use control::NativeControl;
+use distributed_play::{run_server as run_distributed_server, NativeDistributedPlay};
 use file_task::{probe_native_file_task, DestinationPolicy, NativeFileTask};
 use render::{draw_document, BACKGROUND};
 use resource::{open_form_resource, save_form_resource};
@@ -31,6 +33,7 @@ struct PatchbayApplication {
     control: NativeControl,
     file_task: NativeFileTask,
     route_demo: Option<DistributedRouteDemo>,
+    distributed_play: Option<NativeDistributedPlay>,
     window: Option<Rc<Window>>,
     exit_after_window: bool,
     rendered_once: bool,
@@ -67,11 +70,21 @@ impl PatchbayApplication {
             .transpose()
             .map_err(|error| error.to_string())?;
         let file_task = probe_native_file_task();
-        let route_demo = arguments
-            .distributed_route_demo
-            .then(DistributedRouteDemo::build)
+        let source_host_id = model.projection().host_id().clone();
+        let source_boot_id = model.projection().boot_id().clone();
+        let route_demo = (arguments.distributed_route_demo || arguments.distributed_play)
+            .then(|| {
+                DistributedRouteDemo::build_for_source(
+                    source_host_id.clone(),
+                    source_boot_id.clone(),
+                )
+            })
             .transpose()
             .map_err(|error| format!("distributed route demo: {error:?}"))?;
+        let distributed_play = arguments
+            .distributed_play
+            .then(|| NativeDistributedPlay::start(source_host_id, source_boot_id))
+            .transpose()?;
         let mut application = Self {
             model,
             topology_lines,
@@ -81,6 +94,7 @@ impl PatchbayApplication {
             control: NativeControl::new(),
             file_task,
             route_demo,
+            distributed_play,
             window: None,
             exit_after_window: arguments.exit_after_window,
             rendered_once: false,
@@ -148,6 +162,13 @@ impl PatchbayApplication {
             size.width,
             size.height
         );
+        if self
+            .distributed_play
+            .as_ref()
+            .is_some_and(NativeDistributedPlay::is_complete)
+        {
+            println!("patchbay distributed-rendered status=completed");
+        }
         self.rendered_once = true;
         Ok(())
     }
@@ -381,8 +402,30 @@ impl ApplicationHandler for PatchbayApplication {
                 return;
             }
         }
+        if let Some(distributed) = &mut self.distributed_play {
+            match distributed.poll() {
+                Ok(true) => {
+                    if let Some(window) = &self.window {
+                        window.request_redraw();
+                    }
+                    self.rendered_once = false;
+                }
+                Ok(false) => {}
+                Err(error) => {
+                    self.failure = Some(format!("Distributed Play failed: {error}"));
+                    event_loop.exit();
+                    return;
+                }
+            }
+        }
         event_loop.set_control_flow(
-            if self.control.is_running() || self.file_task.is_running() {
+            if self.control.is_running()
+                || self.file_task.is_running()
+                || self
+                    .distributed_play
+                    .as_ref()
+                    .is_some_and(NativeDistributedPlay::is_running)
+            {
                 ControlFlow::Poll
             } else {
                 ControlFlow::Wait
@@ -392,6 +435,10 @@ impl ApplicationHandler for PatchbayApplication {
             && self.rendered_once
             && !self.control.is_running()
             && !self.file_task.is_running()
+            && !self
+                .distributed_play
+                .as_ref()
+                .is_some_and(NativeDistributedPlay::is_running)
         {
             event_loop.exit();
         }
@@ -418,6 +465,10 @@ fn emit_report(
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let arguments = parse_arguments(std::env::args().skip(1))?;
+    if arguments.distributed_play_server {
+        run_distributed_server()?;
+        return Ok(());
+    }
     let event_loop = EventLoop::new()?;
     event_loop.set_control_flow(ControlFlow::Wait);
     let mut application = PatchbayApplication::new(arguments)?;

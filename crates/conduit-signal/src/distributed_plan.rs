@@ -1,0 +1,80 @@
+//! Shared exact planning for the std-to-browser Signal execution pair.
+
+use alloc::collections::BTreeMap;
+use conduit_core::{
+    BootId, CapabilityId, ConnectionProvider, HostAdvertisement, HostId, OperationId, Plan,
+};
+use conduit_planner::{
+    plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
+};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DistributedSignalPlan {
+    pub source_advertisement: HostAdvertisement,
+    pub sink_advertisement: HostAdvertisement,
+    pub plan: Plan,
+}
+
+pub fn exact_distributed_signal_plan() -> Result<DistributedSignalPlan, alloc::string::String> {
+    let source = crate::distributed_std_source_advertisement();
+    exact_distributed_signal_plan_for(source.host_id, source.boot_id)
+}
+
+pub fn exact_distributed_signal_plan_for(
+    source_host_id: HostId,
+    source_boot_id: BootId,
+) -> Result<DistributedSignalPlan, alloc::string::String> {
+    let source_advertisement =
+        crate::distributed_source_advertisement_for(source_host_id.clone(), source_boot_id.clone());
+    let sink_advertisement = crate::distributed_browser_sink_advertisement();
+    let syntax =
+        conduit_form::parse_syntax_document(include_str!("../../../examples/signal-demo.conduit"));
+    let checked = conduit_form::check_syntax_document(&syntax, &crate::signal_startup_catalog())
+        .map_err(|error| alloc::format!("{}: {}", error.code, error.message))?;
+    let form = conduit_form::expand_canonical_form(
+        &checked,
+        "signal-demo",
+        &crate::signal_profile_catalog(),
+    )
+    .map_err(|error| error.to_string())?;
+    let placements = PlacementChoices {
+        by_operation: BTreeMap::from([
+            (
+                OperationId::from("signal-demo/pulse"),
+                PlacementChoice {
+                    host_id: source_advertisement.host_id.clone(),
+                    capability_id: CapabilityId::from("pulse-1"),
+                },
+            ),
+            (
+                OperationId::from("signal-demo/show"),
+                PlacementChoice {
+                    host_id: sink_advertisement.host_id.clone(),
+                    capability_id: CapabilityId::from("dom-show-1"),
+                },
+            ),
+        ]),
+    };
+    let link = crate::distributed_websocket_link_binding_for(source_host_id, source_boot_id);
+    let plan = plan_expanded_canonical_with_options(
+        &form,
+        &[source_advertisement.clone(), sink_advertisement.clone()],
+        &placements,
+        &[ConnectionProvider::WebSocket],
+        PlanningOptions {
+            connection_providers: &BTreeMap::new(),
+            route_candidates: &BTreeMap::new(),
+            connection_item_capacity: crate::DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+            connection_byte_capacity: crate::SIGNAL_ENCODED_LEN,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            link_bindings: &[link],
+        },
+    )
+    .map_err(|error| error.to_string())?;
+    Ok(DistributedSignalPlan {
+        source_advertisement,
+        sink_advertisement,
+        plan,
+    })
+}

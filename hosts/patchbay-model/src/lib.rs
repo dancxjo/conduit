@@ -94,7 +94,7 @@ impl PatchbayModel {
                 boot_id,
                 offer_generation: OfferGeneration(1),
             },
-            StdHostComposition::minimal(),
+            StdHostComposition::minimal().with_signal(),
         );
         let projection = HostProjection::from_advertisement(host.advertisement());
         Self { host, projection }
@@ -213,7 +213,7 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(model.projection().capability_ids(), advertised);
-        assert!(advertised.is_empty());
+        assert!(advertised.iter().any(|id| id.as_str() == "pulse-1"));
         assert_eq!(model.projection().planner_profile_count(), 1);
     }
 
