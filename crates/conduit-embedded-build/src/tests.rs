@@ -370,6 +370,7 @@ fn sealed_current_fragment() -> PlanFragment {
             temporal: conduit_core::PortTemporal::Value,
             provider: ConnectionProvider::Local,
             link_binding: None,
+            route_candidates: vec![],
             item_capacity: 1,
             byte_capacity: 9,
         }],

@@ -152,6 +152,7 @@ fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
         ],
         PlanningOptions {
             connection_providers: &connection_providers,
+            route_candidates: &BTreeMap::new(),
             connection_item_capacity: 4,
             connection_byte_capacity: 64,
             authority_grants: core::slice::from_ref(&browser_authority_grant),

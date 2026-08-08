@@ -1,9 +1,9 @@
 use conduit_core::{
-    mandatory_evidence_storage_requirement, seal_plan, AuthorityBinding, AuthorityGrant,
+    mandatory_evidence_storage_requirement, seal_plan, AuthorityBinding, AuthorityGrant, BoundLink,
     CancellationPolicy, CapabilityId, ConnectionId, ConnectionProvider, ExpectedEvidence,
     ExpectedTerminal, FragmentId, HostAdvertisement, HostId, LinkAvailability, LinkBinding,
-    OperationId, PlacementId, Plan, PlanFragment, PlanId, PlannedConnection, PlannedOperation,
-    ResourceBinding, ResourcePoolId, StartupDependency, TerminalPolicy,
+    LinkBindingId, OperationId, PlacementId, Plan, PlanFragment, PlanId, PlannedConnection,
+    PlannedOperation, ResourceBinding, ResourcePoolId, StartupDependency, TerminalPolicy,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedForm, CheckedOperation};
@@ -69,6 +69,7 @@ pub fn plan_with_authority_grants(
         providers,
         PlanningOptions {
             connection_providers: &BTreeMap::new(),
+            route_candidates: &BTreeMap::new(),
             connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
             connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
             authority_grants,
@@ -94,6 +95,7 @@ pub fn plan_with_link_bindings(
         providers,
         PlanningOptions {
             connection_providers: &BTreeMap::new(),
+            route_candidates: &BTreeMap::new(),
             connection_item_capacity,
             connection_byte_capacity,
             authority_grants: &[],
@@ -138,6 +140,7 @@ pub fn plan_with_connection_limits_and_provider_overrides(
         providers,
         PlanningOptions {
             connection_providers,
+            route_candidates: &BTreeMap::new(),
             connection_item_capacity,
             connection_byte_capacity,
             authority_grants: &[],
@@ -168,6 +171,7 @@ pub(crate) fn plan_validated_form(
 ) -> Result<Plan, PlannerError> {
     let PlanningOptions {
         connection_providers,
+        route_candidates,
         connection_item_capacity,
         connection_byte_capacity,
         authority_grants,
@@ -381,20 +385,24 @@ pub(crate) fn plan_validated_form(
             .iter()
             .find(|item| &item.placement_id == sink_placement)
             .expect("sink placement must exist");
-        let (provider, link_binding) = select_provider(
-            source_plan,
-            sink_plan,
+        let (provider, link_binding, sealed_candidates) = select_provider(ProviderSelection {
+            source: source_plan,
+            sink: sink_plan,
             providers,
-            connection_providers
+            requested: connection_providers
                 .get(&(
                     connection.source_operation_id.clone(),
                     connection.sink_operation_id.clone(),
                 ))
                 .copied(),
+            requested_candidates: route_candidates.get(&(
+                connection.source_operation_id.clone(),
+                connection.sink_operation_id.clone(),
+            )),
             link_bindings,
             connection_item_capacity,
             connection_byte_capacity,
-        )?;
+        })?;
         let source_capability =
             find_capability(realm, &source_plan.host_id, &source_plan.capability_id)?;
         let sink_capability = find_capability(realm, &sink_plan.host_id, &sink_plan.capability_id)?;
@@ -437,6 +445,7 @@ pub(crate) fn plan_validated_form(
             temporal: connection.temporal,
             provider,
             link_binding,
+            route_candidates: sealed_candidates,
             item_capacity: connection_item_capacity,
             byte_capacity: connection_byte_capacity,
         });
@@ -692,15 +701,30 @@ fn find_capability<'a>(
         .ok_or_else(|| PlannerError::UnknownCapability(capability_id.as_str().to_string()))
 }
 
-fn select_provider(
-    source: &PlannedOperation,
-    sink: &PlannedOperation,
-    providers: &[ConnectionProvider],
+struct ProviderSelection<'a> {
+    source: &'a PlannedOperation,
+    sink: &'a PlannedOperation,
+    providers: &'a [ConnectionProvider],
     requested: Option<ConnectionProvider>,
-    link_bindings: &[LinkBinding],
+    requested_candidates: Option<&'a Vec<LinkBindingId>>,
+    link_bindings: &'a [LinkBinding],
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
-) -> Result<(ConnectionProvider, Option<LinkBinding>), PlannerError> {
+}
+
+fn select_provider(
+    selection: ProviderSelection<'_>,
+) -> Result<(ConnectionProvider, Option<LinkBinding>, Vec<BoundLink>), PlannerError> {
+    let ProviderSelection {
+        source,
+        sink,
+        providers,
+        requested,
+        requested_candidates,
+        link_bindings,
+        connection_item_capacity,
+        connection_byte_capacity,
+    } = selection;
     if source.host_id == sink.host_id {
         if requested.is_some_and(|provider| provider != ConnectionProvider::Local)
             || !providers.contains(&ConnectionProvider::Local)
@@ -711,7 +735,12 @@ fn select_provider(
                 sink.operation_id.as_str()
             )));
         }
-        return Ok((ConnectionProvider::Local, None));
+        if requested_candidates.is_some_and(|candidates| !candidates.is_empty()) {
+            return Err(PlannerError::InvalidLinkBinding(
+                "local connections cannot seal remote route candidates".to_string(),
+            ));
+        }
+        return Ok((ConnectionProvider::Local, None, Vec::new()));
     }
 
     if requested == Some(ConnectionProvider::Local) {
@@ -756,6 +785,38 @@ fn select_provider(
             sink.operation_id.as_str()
         )));
     }
+    if let Some(requested_candidates) = requested_candidates {
+        let unique_candidates = requested_candidates.iter().collect::<BTreeSet<_>>();
+        if requested_candidates.is_empty() || unique_candidates.len() != requested_candidates.len()
+        {
+            return Err(PlannerError::InvalidLinkBinding(
+                "route candidate policy must be non-empty and contain no duplicates".to_string(),
+            ));
+        }
+        let mut selected = Vec::with_capacity(requested_candidates.len());
+        for binding_id in requested_candidates {
+            let matches = ready
+                .iter()
+                .filter(|binding| &binding.binding_id == binding_id)
+                .collect::<Vec<_>>();
+            if matches.len() != 1 {
+                return Err(PlannerError::LinkBindingMissing(format!(
+                    "requested route '{}' is not one exact ready bounded link",
+                    binding_id.as_str()
+                )));
+            }
+            selected.push((*matches[0]).clone());
+        }
+        let first = selected[0].clone();
+        return Ok((
+            first.provider,
+            Some(first),
+            selected
+                .iter()
+                .map(|binding| binding.bound_link())
+                .collect(),
+        ));
+    }
     if ready.len() != 1 {
         return Err(PlannerError::LinkBindingAmbiguous(format!(
             "multiple observed links satisfy '{}' -> '{}'",
@@ -764,7 +825,11 @@ fn select_provider(
         )));
     }
     let binding = ready[0].clone();
-    Ok((binding.provider, Some(binding)))
+    Ok((
+        binding.provider,
+        Some(binding.clone()),
+        vec![binding.bound_link()],
+    ))
 }
 
 fn validate_link_bindings(bindings: &[LinkBinding]) -> Result<(), PlannerError> {

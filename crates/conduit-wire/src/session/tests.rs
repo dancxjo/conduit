@@ -1,4 +1,5 @@
 use super::*;
+use alloc::vec;
 use conduit_core::{
     BootId, HostId, LinkAuthorityReference, LinkAvailability, LinkBinding, LinkCredentialReference,
     LinkEndpointId, PlacementId,
@@ -82,6 +83,7 @@ fn exact_planned_connection_constructs_the_session_binding() {
             authority: LinkAuthorityReference::ProcessOwned,
             limits: expected.limits,
         }),
+        route_candidates: vec![],
         item_capacity: 1,
         byte_capacity: MAXIMUM_PAYLOAD_BYTES,
     };
@@ -388,6 +390,7 @@ fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
             authority: LinkAuthorityReference::ProcessOwned,
             limits: expected.limits,
         }),
+        route_candidates: vec![],
         item_capacity: 1,
         byte_capacity: MAXIMUM_PAYLOAD_BYTES,
     };
@@ -452,6 +455,7 @@ fn local_and_in_memory_providers_remain_rejected() {
                 authority: LinkAuthorityReference::ProcessOwned,
                 limits: base.limits,
             }),
+            route_candidates: vec![],
             item_capacity: 1,
             byte_capacity: MAXIMUM_PAYLOAD_BYTES,
         };
@@ -498,6 +502,7 @@ fn fixture_datagram_provider_remains_rejected() {
             authority: LinkAuthorityReference::ProcessOwned,
             limits: invalid.limits,
         }),
+        route_candidates: vec![],
         item_capacity: 1,
         byte_capacity: MAXIMUM_PAYLOAD_BYTES,
     };
@@ -535,6 +540,7 @@ fn provider_link_mismatch_remains_rejected() {
             authority: LinkAuthorityReference::ProcessOwned,
             limits: expected.limits,
         }),
+        route_candidates: vec![],
         item_capacity: 1,
         byte_capacity: MAXIMUM_PAYLOAD_BYTES,
     };

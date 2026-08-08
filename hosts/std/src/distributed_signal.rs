@@ -105,6 +105,7 @@ pub fn exact_distributed_signal_plan() -> Result<DistributedSignalPlan, String> 
         &[ConnectionProvider::WebSocket],
         PlanningOptions {
             connection_providers: &BTreeMap::new(),
+            route_candidates: &BTreeMap::new(),
             connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             connection_byte_capacity: SIGNAL_ENCODED_LEN,
             authority_grants: &[],

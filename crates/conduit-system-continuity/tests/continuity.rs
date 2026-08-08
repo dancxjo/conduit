@@ -236,6 +236,14 @@ fn replacement(fixture: &Fixture) -> (conduit_core::HostAdvertisement, Plan, Obs
                     link.sink.boot_id = new_boot.clone();
                 }
             }
+            for candidate in &mut connection.route_candidates {
+                if &candidate.source.boot_id == old_boot {
+                    candidate.source.boot_id = new_boot.clone();
+                }
+                if &candidate.sink.boot_id == old_boot {
+                    candidate.sink.boot_id = new_boot.clone();
+                }
+            }
         }
     }
     let plan = seal_plan(

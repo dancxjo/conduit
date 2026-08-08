@@ -1,5 +1,5 @@
 use conduit_core::{
-    verify_plan, BootId, ConnectionProvider, HostAdvertisement, HostId, OperationId,
+    verify_plan, BootId, ConnectionProvider, HostAdvertisement, HostId, LinkBindingId, OperationId,
     PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, ProtectedResourceAccess,
     ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId,
     ResourceHandleId,
@@ -10,6 +10,9 @@ use conduit_planner::{
 };
 use conduit_runtime::lowering::lower_plan_fragment;
 use std::collections::BTreeMap;
+
+static EMPTY_ROUTE_CANDIDATES: BTreeMap<(OperationId, OperationId), Vec<LinkBindingId>> =
+    BTreeMap::new();
 
 fn portable_inputs() -> (conduit_form::CheckedForm, Vec<HostAdvertisement>) {
     let form = conduit_form::parse(
@@ -40,6 +43,7 @@ fn options<'a>(
 ) -> PlanningOptions<'a> {
     PlanningOptions {
         connection_providers: overrides,
+        route_candidates: &EMPTY_ROUTE_CANDIDATES,
         connection_item_capacity: 1,
         connection_byte_capacity: 9,
         authority_grants: &[],

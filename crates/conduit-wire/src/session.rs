@@ -42,6 +42,7 @@ impl SessionBinding {
             .ok_or(WireError::InvalidSession)?;
         if !connection.provider.supports_remote_session()
             || link.provider != connection.provider
+            || !connection.permits_bound_link(&link.bound_link())
             || connection.item_capacity > link.limits.maximum_in_flight_items
             || connection.byte_capacity > link.limits.maximum_payload_bytes
             || connection.byte_capacity > link.limits.maximum_buffered_bytes

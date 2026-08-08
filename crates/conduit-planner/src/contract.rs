@@ -1,6 +1,6 @@
 use conduit_core::{
-    AuthorityGrant, CapabilityId, ConnectionProvider, HostId, LinkBinding, OperationId,
-    ProtectedResourceGrant,
+    AuthorityGrant, CapabilityId, ConnectionProvider, HostId, LinkBinding, LinkBindingId,
+    OperationId, ProtectedResourceGrant,
 };
 use std::collections::BTreeMap;
 
@@ -18,6 +18,8 @@ pub struct PlacementChoices {
 #[derive(Debug, Clone, Copy)]
 pub struct PlanningOptions<'a> {
     pub connection_providers: &'a BTreeMap<(OperationId, OperationId), ConnectionProvider>,
+    /// Exact observed binding identities to seal, in deterministic preference order.
+    pub route_candidates: &'a BTreeMap<(OperationId, OperationId), Vec<LinkBindingId>>,
     pub connection_item_capacity: u16,
     pub connection_byte_capacity: u32,
     pub authority_grants: &'a [AuthorityGrant],

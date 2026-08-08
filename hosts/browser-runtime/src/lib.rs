@@ -336,6 +336,7 @@ impl BrowserSession {
             &[ConnectionProvider::Local],
             PlanningOptions {
                 connection_providers: &provider_overrides,
+                route_candidates: &BTreeMap::new(),
                 connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
                 connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
                 authority_grants: &[],
