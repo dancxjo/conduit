@@ -170,7 +170,11 @@ fn fixture() -> Fixture {
         grant_id: AuthorityGrantId::from("grant/std-may-reboot-pico-once"),
         controller: members[0].clone(),
         subject: members[2].clone(),
+        capability_id: CapabilityId::from("capability/pico-reboot"),
+        link_binding_id: exact.pico_link.binding_id.clone(),
         maximum_transitions: 1,
+        proof_window_ticks: 2,
+        evidence_sequence_base: 40,
     };
     let snapshot = snapshot(
         exact.plan.clone(),
