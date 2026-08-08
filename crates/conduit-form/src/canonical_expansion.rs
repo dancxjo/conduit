@@ -231,6 +231,49 @@ fn expand_instance_inner(
                     )?;
                     stage_for_instance(&name, &instance, None)?
                 }
+                CheckedCordStage::Literal { value, source_span } => {
+                    let CanonicalStartupValue::Literal(literal) = value else {
+                        return Err(CanonicalExpansionDiagnostic::new(
+                            "CND-FRM-041",
+                            "runtime literal stage did not retain an immutable literal".into(),
+                        ));
+                    };
+                    let key = format!("text/literal:{}:{literal}", literal.len());
+                    let count = anonymous_counts.entry(key.clone()).or_default();
+                    let name = format!("literal-{}-{count}", &hash_string(&key)[..12]);
+                    *count += 1;
+                    let cell = CheckedCanonicalCell {
+                        name: None,
+                        operation: "text/literal".to_string(),
+                        startup_parameters: vec![crate::StartupParameterSignature {
+                            name: "value".to_string(),
+                            value_type: "Text".to_string(),
+                            default: None,
+                        }],
+                        startup_bindings: vec![crate::CheckedStartupBinding {
+                            name: "value".to_string(),
+                            value_type: "Text".to_string(),
+                            value: value.clone(),
+                        }],
+                        source_span: *source_span,
+                    };
+                    let instance = instantiate_cell(
+                        &cell,
+                        &name,
+                        form,
+                        forms,
+                        catalog,
+                        environment,
+                        path,
+                        stack,
+                        depth,
+                        &mut operations,
+                        &mut connections,
+                        &mut provenance,
+                        &mut operation_ids,
+                    )?;
+                    stage_for_instance(&name, &instance, None)?
+                }
             });
         }
         for pair in stages.windows(2) {

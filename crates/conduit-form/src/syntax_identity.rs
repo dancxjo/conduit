@@ -73,6 +73,10 @@ pub(crate) fn canonical_cord(cord: &CheckedCanonicalCord) -> String {
                 push_field(&mut value, "inline-cell");
                 push_field(&mut value, &canonical_cell(cell));
             }
+            CheckedCordStage::Literal { value: literal, .. } => {
+                push_field(&mut value, "literal");
+                push_field(&mut value, &canonical_value(literal));
+            }
         }
     }
     value

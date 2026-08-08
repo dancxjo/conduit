@@ -277,6 +277,20 @@ impl StdHost {
         )?)
     }
 
+    pub fn plan_expanded_local(
+        &self,
+        form: &conduit_form::ExpandedCanonicalForm,
+    ) -> Result<Plan, Box<dyn std::error::Error>> {
+        let realm = vec![self.advertisement().clone()];
+        let placements = conduit_planner::default_expanded_placements(form, &realm)?;
+        Ok(conduit_planner::plan_expanded_canonical(
+            form,
+            &realm,
+            &placements,
+            &[ConnectionProvider::Local],
+        )?)
+    }
+
     pub fn run_fragment_to<W: Write, T: TimerAdapter>(
         &mut self,
         fragment: PlanFragment,
@@ -458,6 +472,8 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
             },
         },
         installed_std::tick_offer(),
+        conduit_std_catalog::text_literal_offer(),
+        conduit_std_catalog::text_upper_offer(),
         installed_std::text_offer(),
     ];
     #[cfg(test)]

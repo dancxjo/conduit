@@ -342,6 +342,10 @@ impl<'a> Parser<'a> {
                 stages.push(CordStage::InlineCell(
                     self.parse_invocation(part, part_start)?,
                 ));
+            } else if part.starts_with('"') && part.ends_with('"') {
+                stages.push(CordStage::Literal(
+                    self.expression_at(part, part, part_start)?,
+                ));
             } else if is_reference(part) {
                 stages.push(CordStage::Reference(self.spanned(part, part_start)));
             } else {

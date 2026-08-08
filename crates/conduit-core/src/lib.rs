@@ -9,8 +9,10 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod configuration;
 mod face;
 
+pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use face::{CheckedFace, FaceStartupParameter};
 
 pub const PROTOCOL_VERSION: u16 = 1;
@@ -229,18 +231,6 @@ pub struct PortDescriptor {
     pub port_id: PortId,
     pub value_kind: KindId,
     pub direction: PortDirection,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ConfigurationValue {
-    Bool(bool),
-    U64(u64),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ConfigurationEntry {
-    pub key: String,
-    pub value: ConfigurationValue,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -839,6 +829,10 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                 ConfigurationValue::U64(value) => {
                     canonical.push(1);
                     push_u64(&mut canonical, value);
+                }
+                ConfigurationValue::Text(ref value) => {
+                    canonical.push(2);
+                    push_string(&mut canonical, value);
                 }
             }
         }

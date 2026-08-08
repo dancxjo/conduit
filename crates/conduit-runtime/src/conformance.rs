@@ -114,6 +114,7 @@ fn parse_pulse_configuration(
             .and_then(|entry| match entry.value {
                 ConfigurationValue::U64(value) => Some(value),
                 ConfigurationValue::Bool(_) => None,
+                ConfigurationValue::Text(_) => None,
             })
             .ok_or_else(|| format!("missing integer '{key}'"))
     };
@@ -123,6 +124,7 @@ fn parse_pulse_configuration(
         .and_then(|entry| match entry.value {
             ConfigurationValue::Bool(value) => Some(value),
             ConfigurationValue::U64(_) => None,
+            ConfigurationValue::Text(_) => None,
         })
         .ok_or_else(|| "missing boolean 'initial'".to_string())?;
     Ok(TestPulseConfiguration {

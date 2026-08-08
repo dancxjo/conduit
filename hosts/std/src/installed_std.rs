@@ -4,17 +4,17 @@ mod operation;
 mod test_support;
 #[cfg(test)]
 mod test_text_source;
+mod text_operations;
 
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
-use self::operation::{
-    InstalledFactory, InstalledOperation, TEXT_PRESENTATION_FACTORY, TICK_FACTORY,
-};
+use self::operation::{InstalledFactory, InstalledOperation, TICK_FACTORY};
 #[cfg(test)]
 use self::operation::{TEST_OBSERVER_FACTORY, TEST_OBSERVER_IMPLEMENTATION};
 #[cfg(test)]
 use self::test_text_source::TEST_TEXT_SOURCE_FACTORY;
+use self::text_operations::{TEXT_LITERAL_FACTORY, TEXT_PRESENTATION_FACTORY, TEXT_UPPER_FACTORY};
 use super::{StdKernelExecutionReport, StdRunReport, TimerAdapter};
 #[cfg(test)]
 use conduit_core::present_host_operation_requirement;
@@ -70,6 +70,8 @@ type InstalledScheduler = FixedScheduler<
 
 const FACTORIES: &[&InstalledFactory] = &[
     &TICK_FACTORY,
+    &TEXT_LITERAL_FACTORY,
+    &TEXT_UPPER_FACTORY,
     &TEXT_PRESENTATION_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
@@ -267,6 +269,11 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
     let wait_contract_id = wait_host_operation_requirement().contract_id;
     let text_target_kind = kind_id("presentation/stdout-text");
+    let upper_contract_id = conduit_core::HostOperationContractId::from(
+        conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT,
+    );
+    let upper_target_kind = kind_id(conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_TARGET);
+    let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
     #[cfg(test)]
     let mut observed_ticks = Vec::with_capacity(request_capacity / 2);
     #[cfg(test)]
@@ -295,6 +302,22 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             if contract == &wait_contract_id {
                 let duration = decode_tick(input).map_err(|error| error.to_string())?;
                 timer.wait(Duration::from_millis(duration));
+            } else if contract == &upper_contract_id
+                && lowered_operation.target_kind.as_ref() == Some(&upper_target_kind)
+            {
+                text_operations::uppercase_utf8(input, &mut uppercase_buffer)?;
+                let value = scheduler
+                    .store_host_value(&uppercase_buffer)
+                    .map_err(|error| format!("store uppercase text output: {error:?}"))?;
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        text_operations::completed_with_output(value),
+                    )
+                    .map_err(|error| format!("complete text/upper host operation: {error:?}"))?;
+                continue;
             } else if lowered_operation.target_kind.as_ref() == Some(&text_target_kind) {
                 let text = std::str::from_utf8(input)
                     .map_err(|_| "text presentation input is not valid UTF-8".to_string())?;

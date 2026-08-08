@@ -96,6 +96,7 @@ fn invalid(placement: &PlannedOperation) -> Result<bool, String> {
         .and_then(|entry| match entry.value {
             ConfigurationValue::Bool(value) => Some(value),
             ConfigurationValue::U64(_) => None,
+            ConfigurationValue::Text(_) => None,
         })
         .ok_or_else(|| "test text source requires boolean invalid configuration".to_string())
 }

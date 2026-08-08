@@ -2,11 +2,7 @@ use super::contract::{
     encode_tick, parse_tick_configuration, TICK_ARTIFACT, TICK_CONTRACT_REVISION, TICK_ENCODED_LEN,
     TICK_EXECUTION_PROFILE, TICK_IMPLEMENTATION, TICK_KIND, TICK_VALUE_KIND,
 };
-use super::contract::{
-    MAX_TEXT_BYTES, MAX_TEXT_VALUES, TEXT_PRESENTATION_ARTIFACT,
-    TEXT_PRESENTATION_CONTRACT_REVISION, TEXT_PRESENTATION_EXECUTION_PROFILE,
-    TEXT_PRESENTATION_IMPLEMENTATION, TEXT_PRESENTATION_KIND, TEXT_PRESENTATION_VALUE_KIND,
-};
+use super::text_operations::{TextLiteralOperation, TextPresentationOperation, TextUpperOperation};
 use conduit_core::{PlannedOperation, PortDirection};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
@@ -36,12 +32,6 @@ pub(super) static TICK_FACTORY: InstalledFactory = InstalledFactory {
     prepare: prepare_tick,
 };
 
-pub(super) static TEXT_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: TEXT_PRESENTATION_IMPLEMENTATION,
-    budget: text_presentation_budget,
-    prepare: prepare_text_presentation,
-};
-
 #[cfg(test)]
 pub(super) const TEST_OBSERVER_KIND: &str = "conduit.test/tick-observer";
 #[cfg(test)]
@@ -64,6 +54,8 @@ pub(super) static TEST_OBSERVER_FACTORY: InstalledFactory = InstalledFactory {
 
 pub(super) enum InstalledOperation {
     Tick(TickOperation),
+    TextLiteral(TextLiteralOperation),
+    TextUpper(TextUpperOperation),
     TextPresentation(TextPresentationOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
@@ -77,12 +69,6 @@ pub(super) struct TickOperation {
     waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
-}
-
-pub(super) struct TextPresentationOperation {
-    pending: Option<RequestId>,
-    next: u32,
-    maximum_values: u32,
 }
 
 #[cfg(test)]
@@ -99,6 +85,7 @@ impl InstalledOperation {
     pub(super) fn allocation_capacity(&self) -> usize {
         match self {
             Self::Tick(operation) => operation.values.capacity() + operation.waits.capacity(),
+            Self::TextLiteral(_) | Self::TextUpper(_) => 0,
             Self::TextPresentation(_) => 0,
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.values.capacity(),
@@ -108,7 +95,7 @@ impl InstalledOperation {
         }
     }
 
-    fn fail(detail: u16) -> OperationAction {
+    pub(super) fn fail(detail: u16) -> OperationAction {
         OperationAction::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
@@ -122,7 +109,9 @@ impl Operation for InstalledOperation {
             Self::Tick(operation) => operation
                 .request_wait()
                 .unwrap_or(OperationAction::Complete),
-            Self::TextPresentation(_) => OperationAction::Await,
+            Self::TextLiteral(operation) => operation.start(),
+            Self::TextUpper(operation) => operation.start(),
+            Self::TextPresentation(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
@@ -150,41 +139,9 @@ impl Operation for InstalledOperation {
                     },
                 )
             }
-            (
-                Self::TextPresentation(operation),
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if operation.pending.is_none() && operation.next < operation.maximum_values => {
-                let request = RequestId(operation.next);
-                operation.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input: match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
-                        Ok(input) => input,
-                        Err(_) => return Self::fail(5),
-                    },
-                }
-            }
-            (
-                Self::TextPresentation(operation),
-                OperationInput::HostOperationCompleted { request, outcome },
-            ) if operation.pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                operation.pending = None;
-                operation.next = operation.next.saturating_add(1);
-                OperationAction::Await
-            }
-            (Self::TextPresentation(operation), OperationInput::Closed { port: PortId(0) })
-                if operation.pending.is_none() =>
-            {
-                OperationAction::Complete
-            }
+            (Self::TextLiteral(operation), input) => operation.resume(input),
+            (Self::TextUpper(operation), input) => operation.resume(input),
+            (Self::TextPresentation(operation), input) => operation.resume(input),
             #[cfg(test)]
             (
                 Self::TestObserver(operation),
@@ -222,7 +179,6 @@ impl Operation for InstalledOperation {
                 OperationAction::Complete
             }
             (Self::Tick(_), _) => Self::fail(2),
-            (Self::TextPresentation(_), _) => Self::fail(5),
             #[cfg(test)]
             (Self::TestTextSource(_), _) => Self::fail(6),
             #[cfg(test)]
@@ -239,6 +195,8 @@ impl Operation for InstalledOperation {
                     .request_wait()
                     .unwrap_or(OperationAction::Complete)
             }
+            Self::TextLiteral(operation) => operation.advance(),
+            Self::TextUpper(_) => OperationAction::Await,
             Self::TextPresentation(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestTextSource(operation) => {
@@ -254,7 +212,9 @@ impl Operation for InstalledOperation {
     fn cancel(&mut self) {
         match self {
             Self::Tick(operation) => operation.pending = None,
-            Self::TextPresentation(operation) => operation.pending = None,
+            Self::TextLiteral(_) => {}
+            Self::TextUpper(operation) => operation.cancel(),
+            Self::TextPresentation(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
             #[cfg(test)]
@@ -306,71 +266,6 @@ fn tick_budget(placement: &PlannedOperation) -> Result<OperationBudget, String> 
         evidence_items,
         maximum_value_bytes: TICK_ENCODED_LEN,
     })
-}
-
-fn text_presentation_budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
-    validate_text_presentation_placement(placement)?;
-    let maximum_values = text_maximum_values(placement)?;
-    Ok(OperationBudget {
-        value_items: 0,
-        value_bytes: 0,
-        host_requests: usize::try_from(maximum_values)
-            .map_err(|_| "text presentation request budget overflow".to_string())?,
-        evidence_items: 64,
-        maximum_value_bytes: MAX_TEXT_BYTES,
-    })
-}
-
-fn prepare_text_presentation(
-    placement: &PlannedOperation,
-    _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
-    validate_text_presentation_placement(placement)?;
-    let maximum_values = u32::try_from(text_maximum_values(placement)?)
-        .map_err(|_| "text presentation maximum does not fit its implementation".to_string())?;
-    Ok(InstalledOperation::TextPresentation(
-        TextPresentationOperation {
-            pending: None,
-            next: 0,
-            maximum_values,
-        },
-    ))
-}
-
-fn text_maximum_values(placement: &PlannedOperation) -> Result<u64, String> {
-    placement
-        .configuration
-        .iter()
-        .find(|entry| entry.key == "maximum-values")
-        .and_then(|entry| match entry.value {
-            conduit_core::ConfigurationValue::U64(value)
-                if (1..=MAX_TEXT_VALUES).contains(&value) =>
-            {
-                Some(value)
-            }
-            _ => None,
-        })
-        .ok_or_else(|| "text presentation maximum-values is invalid".to_string())
-}
-
-fn validate_text_presentation_placement(placement: &PlannedOperation) -> Result<(), String> {
-    if placement.kind_id.as_str() != TEXT_PRESENTATION_KIND
-        || placement.kind_contract_revision.as_str() != TEXT_PRESENTATION_CONTRACT_REVISION
-        || placement.execution_profile_id.as_str() != TEXT_PRESENTATION_EXECUTION_PROFILE
-        || placement.implementation_id.as_str() != TEXT_PRESENTATION_IMPLEMENTATION
-        || placement.artifact_id.as_str() != TEXT_PRESENTATION_ARTIFACT
-        || placement.inputs.len() != 1
-        || !placement.outputs.is_empty()
-        || placement.inputs[0].port_id.as_str() != "text"
-        || placement.inputs[0].value_kind.as_str() != TEXT_PRESENTATION_VALUE_KIND
-        || placement.inputs[0].direction != PortDirection::Input
-    {
-        return Err(
-            "planned text presentation executable identity does not match its installation"
-                .to_string(),
-        );
-    }
-    Ok(())
 }
 
 fn prepare_tick(

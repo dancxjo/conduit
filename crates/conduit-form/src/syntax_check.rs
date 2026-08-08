@@ -173,6 +173,23 @@ fn check_form(
                             stages.push(CheckedCordStage::InlineCell(cell.clone()));
                             cells.push(cell);
                         }
+                        CordStage::Literal(expression) => {
+                            let value = resolver
+                                .resolve_expression(&expression.text)
+                                .map_err(|error| error.diagnostic(expression.span))?;
+                            if !matches!(value, CanonicalStartupValue::Literal(_))
+                                || crate::text_value::parse_quoted_text(&expression.text).is_none()
+                            {
+                                return Err(SyntaxCheckError::UnsupportedExpression(
+                                    expression.text.clone(),
+                                )
+                                .diagnostic(expression.span));
+                            }
+                            stages.push(CheckedCordStage::Literal {
+                                value,
+                                source_span: expression.span,
+                            });
+                        }
                     }
                 }
                 cords.push(CheckedCanonicalCord { stages });

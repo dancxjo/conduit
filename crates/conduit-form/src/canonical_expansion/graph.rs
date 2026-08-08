@@ -48,6 +48,9 @@ pub(super) fn configuration(
                     ConfigurationRule::U64Range { minimum, maximum },
                     ConfigurationValue::U64(value),
                 ) => (*minimum..=*maximum).contains(value),
+                (ConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
+                    value.len() <= *maximum as usize
+                }
                 _ => false,
             };
             if !accepted {
@@ -81,6 +84,8 @@ fn parse_configuration_value(
         Ok(ConfigurationValue::Bool(literal == "true"))
     } else if let Ok(value) = literal.parse::<u64>() {
         Ok(ConfigurationValue::U64(value))
+    } else if let Some(value) = crate::text_value::parse_quoted_text(&literal) {
+        Ok(ConfigurationValue::Text(value))
     } else {
         Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-041",

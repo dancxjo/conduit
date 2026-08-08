@@ -114,6 +114,7 @@ pub struct Cord {
 pub enum CordStage {
     Reference(SpannedText),
     InlineCell(Invocation),
+    Literal(Expression),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

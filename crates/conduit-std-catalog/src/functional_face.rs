@@ -11,6 +11,7 @@ pub(crate) fn startup_face(fields: &[StandardConfigurationField]) -> Vec<FaceSta
             value_type: match field.default_value {
                 ConfigurationValue::Bool(_) => "Boolean",
                 ConfigurationValue::U64(_) => "Count",
+                ConfigurationValue::Text(_) => "Text",
             }
             .to_string(),
             has_default: true,
