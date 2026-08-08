@@ -6,13 +6,14 @@ fn editor(name: &str, source: &str) -> FormEditor {
 }
 
 fn wait_for_terminal(control: &mut NativeControl) {
-    for _ in 0..10_000 {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while std::time::Instant::now() < deadline {
         if control.poll().unwrap() {
             return;
         }
-        std::thread::yield_now();
+        std::thread::sleep(std::time::Duration::from_millis(1));
     }
-    panic!("bounded Play did not publish terminal state");
+    panic!("Play did not publish terminal state within five seconds");
 }
 
 #[test]
