@@ -114,22 +114,36 @@ pub struct NativeFileTask {
     events: VecDeque<String>,
 }
 
-pub fn probe_native_file_task() -> NativeFileTask {
-    let provider = NativeFileProvider::probe("zenity").ok();
-    NativeFileTask::new(provider)
+pub fn probe_native_file_provider() -> Option<NativeFileProvider> {
+    NativeFileProvider::probe("zenity").ok()
 }
 
 impl NativeFileTask {
+    #[cfg(test)]
     pub fn new(provider: Option<NativeFileProvider>) -> Self {
-        let config = StdHostConfig {
-            host_id: HostId::from("patchbay-native/file-host"),
-            boot_id: BootId::from("patchbay-native/file-boot-1"),
-            offer_generation: OfferGeneration(1),
-        };
         let composition = if provider.is_some() {
             StdHostComposition::minimal().with_files()
         } else {
             StdHostComposition::minimal()
+        };
+        Self::for_host(
+            provider,
+            HostId::from("patchbay-native/file-host"),
+            BootId::from("patchbay-native/file-boot-1"),
+            composition,
+        )
+    }
+
+    pub fn for_host(
+        provider: Option<NativeFileProvider>,
+        host_id: HostId,
+        boot_id: BootId,
+        composition: StdHostComposition,
+    ) -> Self {
+        let config = StdHostConfig {
+            host_id,
+            boot_id,
+            offer_generation: OfferGeneration(1),
         };
         let host = StdHost::new_with_composition(config.clone(), composition);
         Self {
@@ -340,6 +354,16 @@ impl NativeFileTask {
 
     pub fn is_running(&self) -> bool {
         self.active.is_some()
+    }
+
+    #[cfg(test)]
+    pub fn host_identity(&self) -> (&HostId, &BootId) {
+        (&self.config.host_id, &self.config.boot_id)
+    }
+
+    #[cfg(test)]
+    pub fn provider_available(&self) -> bool {
+        self.provider.is_some()
     }
 
     pub fn lines(&self) -> Vec<String> {

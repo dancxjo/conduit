@@ -79,22 +79,40 @@ pub struct PatchbayModel {
 impl PatchbayModel {
     /// Creates a fresh process-scoped host and boot identity.
     pub fn fresh() -> Self {
+        Self::fresh_with_composition(StdHostComposition::minimal().with_signal())
+    }
+
+    /// Creates a fresh process-scoped identity with the exact native host image.
+    pub fn fresh_with_composition(composition: StdHostComposition) -> Self {
         let nonce = fresh_nonce();
-        Self::with_identity(
+        Self::with_identity_and_composition(
             HostId::from(format!("patchbay-native/{nonce}")),
             BootId::from(format!("patchbay-boot/{nonce}")),
+            composition,
         )
     }
 
     /// Deterministic constructor for conformance tests and embedding.
     pub fn with_identity(host_id: HostId, boot_id: BootId) -> Self {
+        Self::with_identity_and_composition(
+            host_id,
+            boot_id,
+            StdHostComposition::minimal().with_signal(),
+        )
+    }
+
+    pub fn with_identity_and_composition(
+        host_id: HostId,
+        boot_id: BootId,
+        composition: StdHostComposition,
+    ) -> Self {
         let host = StdHost::new_with_composition(
             StdHostConfig {
                 host_id,
                 boot_id,
                 offer_generation: OfferGeneration(1),
             },
-            StdHostComposition::minimal().with_signal(),
+            composition,
         );
         let projection = HostProjection::from_advertisement(host.advertisement());
         Self { host, projection }
