@@ -6,10 +6,13 @@ use conduit_core::{
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
+mod checked_syntax;
 mod surface_lex;
 mod surface_parser;
 pub mod syntax;
+mod syntax_check;
 
+pub use checked_syntax::*;
 pub use syntax::*;
 
 pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;
@@ -499,6 +502,15 @@ pub fn parse_document(source: &str, catalog: &ProfileCatalog) -> FormDocument {
 /// catalog lookup or semantic lowering.
 pub fn parse_syntax_document(source: &str) -> SyntaxDocument {
     surface_parser::parse_surface(source)
+}
+
+/// Checks immutable startup bindings in canonical Form syntax without
+/// recursively expanding forms or producing planner/runtime input.
+pub fn check_syntax_document(
+    document: &SyntaxDocument,
+    catalog: &StartupCatalog,
+) -> Result<CheckedSyntaxDocument, SyntaxCheckDiagnostic> {
+    syntax_check::check_document(document, catalog)
 }
 
 pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedForm, FormError> {
@@ -1396,3 +1408,6 @@ mod tests;
 
 #[cfg(test)]
 mod surface_tests;
+
+#[cfg(test)]
+mod syntax_check_tests;
