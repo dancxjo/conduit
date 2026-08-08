@@ -272,4 +272,24 @@ mod tests {
         assert_ne!(kinds(std.advertisement()), kinds(&pico));
         assert_ne!(kinds(&browser), kinds(&pico));
     }
+
+    #[test]
+    fn reference_host_advertises_every_supported_std_revision_and_no_legacy_revision() {
+        let host = host(StdHostComposition::reference());
+        let advertised = host
+            .advertisement()
+            .capabilities
+            .iter()
+            .filter(|offer| {
+                offer
+                    .kind_contract_revision
+                    .as_str()
+                    .starts_with("conduit.std/")
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let supported = conduit_std_catalog::supported_nucleus_offers();
+
+        assert_eq!(advertised, supported);
+    }
 }
