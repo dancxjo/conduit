@@ -656,6 +656,12 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         Some(ProofClass::ContractCompile),
         &[],
     ),
+    Step::new(
+        "check.browser.webchat-server-build",
+        "Build bounded WebSocket chat server",
+        "cargo",
+        &["build", "-p", "conduit-std-host", "--bin", "webchat-server"],
+    ),
     Step::typed(
         "check.browser.host-proof",
         "Run browser host test proof",
