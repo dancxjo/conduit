@@ -6,6 +6,7 @@
 mod cli;
 mod commands;
 mod process;
+mod proof;
 mod suites;
 mod workspace;
 
@@ -20,6 +21,7 @@ fn main() {
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Prove(args) => commands::prove::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
+        Command::Proofs(args) => commands::proofs::run(args, opts.json),
         Command::Doctor(args) => commands::doctor::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Pico(mut args) => run_pico(&opts, &mut args, false),

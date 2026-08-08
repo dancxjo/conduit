@@ -30,6 +30,9 @@ jobs:
         with:
           cache-on-failure: true
 
+      - name: Emit machine-readable proof contract
+        run: cargo xtask --json proofs
+
       - name: Run workspace check suite
         run: cargo xtask check workspace --locked
 

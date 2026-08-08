@@ -1,4 +1,4 @@
-use crate::process::Step;
+use crate::{process::Step, proof::ProofClass};
 
 pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
     Step::typed(
@@ -15,7 +15,7 @@ pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
         ],
         None,
         Some("wasm32-unknown-unknown"),
-        Some("browser"),
+        Some(ProofClass::ContractCompile),
         &["hosts/browser/conduit_browser_runtime.wasm"],
     ),
     Step::typed(
@@ -31,7 +31,7 @@ pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
         ],
         None,
         Some("playwright"),
-        Some("browser"),
+        Some(ProofClass::LiveBrowser),
         &[],
     ),
 ];
@@ -51,7 +51,7 @@ pub const PROVE_STD_BROWSER_TOGGLE_STEPS: &[Step] = &[
         ],
         None,
         Some("wasm32-unknown-unknown"),
-        Some("browser"),
+        Some(ProofClass::ContractCompile),
         &["hosts/browser/conduit_browser_runtime.wasm"],
     ),
     Step::typed(
@@ -67,7 +67,7 @@ pub const PROVE_STD_BROWSER_TOGGLE_STEPS: &[Step] = &[
         ],
         None,
         Some("playwright"),
-        Some("browser"),
+        Some(ProofClass::LiveBrowser),
         &[],
     ),
 ];
@@ -87,7 +87,7 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         ],
         None,
         Some("wasm32-unknown-unknown"),
-        Some("browser"),
+        Some(ProofClass::ContractCompile),
         &["hosts/browser/conduit_browser_runtime.wasm"],
     ),
     Step::typed(
@@ -97,7 +97,7 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         &["run", "test:browser-host"],
         None,
         Some("playwright"),
-        Some("browser"),
+        Some(ProofClass::LiveBrowser),
         &[],
     ),
 ];

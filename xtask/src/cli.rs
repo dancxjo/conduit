@@ -38,6 +38,8 @@ pub enum Command {
     Check(CheckArgs),
     /// Execute platform and protocol proof suites.
     Prove(ProveArgs),
+    /// Print the versioned machine-readable proof command contract.
+    Proofs(ProofsArgs),
     /// Inspect repository and platform prerequisites.
     Doctor(DoctorArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
@@ -91,6 +93,13 @@ pub struct ProveArgs {
     /// honest two-sided sink-failure terminal instead of success.
     #[arg(long)]
     pub induce_sink_failure: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ProofsArgs {
+    /// Validate one JSON proof record against its exact registered command contract.
+    #[arg(long)]
+    pub validate_record: Option<std::path::PathBuf>,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -183,5 +192,10 @@ mod tests {
         let prove = Cli::try_parse_from(["xtask", "prove", "std-browser-s4"])
             .expect("prove command parses");
         assert!(matches!(prove.command, Command::Prove(_)));
+
+        let proofs = Cli::try_parse_from(["xtask", "--json", "proofs"])
+            .expect("proof catalog command parses");
+        assert!(proofs.global.json);
+        assert!(matches!(proofs.command, Command::Proofs(_)));
     }
 }

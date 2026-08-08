@@ -7,7 +7,7 @@ use std::{
 
 use serde::Serialize;
 
-use crate::cli::GlobalOpts;
+use crate::{cli::GlobalOpts, proof::ProofClass};
 
 /// A single read-only probe or orchestrated task step with stable identity and provenance.
 #[derive(Debug, Clone)]
@@ -25,7 +25,7 @@ pub struct Step {
     /// Required tool or build target.
     pub tool_or_target: Option<&'static str>,
     /// Proof class or proof purpose.
-    pub proof_class: Option<&'static str>,
+    pub proof_class: Option<ProofClass>,
     /// Expected output artifacts.
     pub expected_artifacts: &'static [&'static str],
 }
@@ -57,7 +57,7 @@ impl Step {
         args: &'static [&'static str],
         cwd: Option<&'static str>,
         tool_or_target: Option<&'static str>,
-        proof_class: Option<&'static str>,
+        proof_class: Option<ProofClass>,
         expected_artifacts: &'static [&'static str],
     ) -> Self {
         Self {
@@ -226,9 +226,9 @@ pub fn run_step(step: &Step, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
 
     if !opts.quiet && !opts.json {
         let meta = match (step.tool_or_target, step.proof_class) {
-            (Some(t), Some(p)) => format!(" [{t}/{p}]"),
-            (Some(t), None) => format!(" [{t}]"),
-            (None, Some(p)) => format!(" [{p}]"),
+            (Some(t), Some(p)) => format!(" {t}/{}", p.as_str()),
+            (Some(t), None) => format!(" {t}"),
+            (None, Some(p)) => format!(" {}", p.as_str()),
             (None, None) => String::new(),
         };
         println!("» [{}{}] {}", step.id, meta, step.description);
@@ -347,7 +347,7 @@ mod tests {
             &["check", "-p", "conduit-kernel"],
             None,
             Some("kernel"),
-            Some("workspace"),
+            Some(ProofClass::DeterministicUnit),
             &[],
         );
         let result = run_step(&step, &workspace(), &dry_opts());
