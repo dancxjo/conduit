@@ -15,9 +15,15 @@ use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+mod form_editor;
 mod topology;
 
+pub use form_editor::{
+    CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphForm,
+    GraphItem, GraphItemKind, SourceSelection,
+};
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
+pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES;
 
 const LIFECYCLE_CAPACITY: u32 = 2;
 static ID_SEQUENCE: AtomicU64 = AtomicU64::new(1);

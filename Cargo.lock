@@ -1349,8 +1349,10 @@ name = "patchbay-model"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
  "conduit-observatory",
  "conduit-signal",
+ "conduit-std-catalog",
  "conduit-std-host",
 ]
 
