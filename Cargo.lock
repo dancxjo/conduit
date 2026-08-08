@@ -233,6 +233,7 @@ name = "conduit-net"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
  "serde",
  "serde_json",
 ]
@@ -323,6 +324,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-kernel",
+ "conduit-net",
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",

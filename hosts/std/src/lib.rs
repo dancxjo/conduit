@@ -28,6 +28,7 @@ pub use copy_task::{
     CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken, ProtectedFileAvailability,
     ProtectedFileRegistry,
 };
+pub mod external_websocket;
 mod installed_std;
 #[cfg(test)]
 mod installed_std_tests;

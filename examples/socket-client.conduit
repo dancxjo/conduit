@@ -1,13 +1,17 @@
-# Canonical Program 5 source shape. This is intentionally not an executable
-# corpus member until the external net/websocket operation is accepted.
+# Canonical external WebSocket client face. The demo root supplies a concrete
+# local address; host admission still decides whether it can be realized.
 form echo-client (
     url: Url
-    > send: Bytes...
-    recv: Bytes... >
+    > send: WebSocketMessage...|
+    recv: WebSocketMessage...| >
     live: $Boolean >
 ) {
     sock: net/websocket(url)
     send > sock.send
     sock.recv > recv
     sock.live > live
+}
+
+form echo-client-demo {
+    client: echo-client("ws://127.0.0.1:4178")
 }

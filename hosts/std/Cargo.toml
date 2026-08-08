@@ -14,6 +14,7 @@ legacy-fixture-driver = [
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
+conduit-net = { path = "../../crates/conduit-net", features = ["form-catalog"] }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
