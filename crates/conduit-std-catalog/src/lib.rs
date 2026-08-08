@@ -17,6 +17,8 @@ mod functional_face;
 mod tick;
 use functional_face::startup_face;
 pub use tick::*;
+mod text_presentation;
+pub use text_presentation::*;
 
 pub const PULSE_KIND: &str = "flow/pulse";
 pub const SHOW_KIND: &str = "presentation/show";

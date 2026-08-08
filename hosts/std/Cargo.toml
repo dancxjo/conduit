@@ -14,6 +14,7 @@ conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime" }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
+conduit-std-catalog = { path = "../../crates/conduit-std-catalog", features = ["form-catalog"] }
 conduit-wire = { path = "../../crates/conduit-wire" }
 tungstenite = "0.30.0"
 serde_json = "1"
