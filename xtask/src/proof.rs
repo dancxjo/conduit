@@ -308,6 +308,14 @@ mod tests {
     }
 
     #[test]
+    fn live_browser_contract_keeps_pinned_single_worker_zero_retry_policy() {
+        let config = include_str!("../../hosts/browser/playwright.config.mjs");
+        assert!(config.contains("workers: 1"));
+        assert!(config.contains("retries: 0"));
+        assert!(config.contains("projects: [{ name: \"chromium\""));
+    }
+
+    #[test]
     fn record_cannot_transfer_claims_to_another_command_or_implementation() {
         let contract = &CURRENT_PROOF_COMMANDS[1];
         let mut record = ProofRecord {
