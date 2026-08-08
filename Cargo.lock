@@ -150,6 +150,7 @@ dependencies = [
  "conduit-pico-sim",
  "conduit-planner",
  "conduit-signal",
+ "conduit-std-catalog",
  "conduit-std-host",
  "serde",
  "serde_json",

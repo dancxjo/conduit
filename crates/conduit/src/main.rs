@@ -1,3 +1,4 @@
+mod copy_task;
 mod report_artifact;
 
 use conduit_observatory::{build_report, render_text_report};
@@ -52,7 +53,9 @@ fn main() {
     let path = match args.next() {
         Some(path) => path,
         None => {
-            eprintln!("usage: conduit <form-file> [--placements <placements-file>]");
+            eprintln!(
+                "usage: conduit <form-file> [--placements <placements-file>]\n       conduit copy <source-file> <destination-file> [--mode create|replace] [--max-bytes N] [--run] [--inspect]"
+            );
             std::process::exit(2);
         }
     };
@@ -71,6 +74,13 @@ fn main() {
                 eprintln!("error: {err}");
                 std::process::exit(1);
             }
+        }
+        return;
+    }
+    if path == "copy" {
+        if let Err(error) = copy_task::run(args.collect()) {
+            eprintln!("error: {error}");
+            std::process::exit(1);
         }
         return;
     }
