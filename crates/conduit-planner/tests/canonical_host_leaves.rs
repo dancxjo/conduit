@@ -119,6 +119,7 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
                 value_type: match field.default_value {
                     ConfigurationValue::Bool(_) => "Boolean",
                     ConfigurationValue::U64(_) => "Count",
+                    ConfigurationValue::Text(_) => "Text",
                 }
                 .into(),
                 has_default: true,

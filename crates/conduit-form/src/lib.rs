@@ -14,6 +14,7 @@ mod surface_parser;
 pub mod syntax;
 mod syntax_check;
 mod syntax_identity;
+mod text_value;
 
 pub use canonical_expansion::*;
 pub use checked_syntax::*;
@@ -303,6 +304,7 @@ pub struct ConfigurationField {
 pub enum ConfigurationRule {
     Any,
     U64Range { minimum: u64, maximum: u64 },
+    TextBytes { maximum: u32 },
 }
 
 impl ConfigurationRule {
@@ -313,6 +315,10 @@ impl ConfigurationRule {
                 (*minimum..=*maximum).contains(value)
             }
             (Self::U64Range { .. }, _) => false,
+            (Self::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
+                value.len() <= *maximum as usize
+            }
+            (Self::TextBytes { .. }, _) => false,
         }
     }
 }
@@ -612,6 +618,7 @@ fn parse_form_block(
                             value_type: match field.default_value {
                                 ConfigurationValue::Bool(_) => "Boolean",
                                 ConfigurationValue::U64(_) => "Count",
+                                ConfigurationValue::Text(_) => "Text",
                             }
                             .to_string(),
                             has_default: true,
@@ -1182,6 +1189,9 @@ fn parse_configuration_value(
             .parse()
             .map(ConfigurationValue::U64)
             .map_err(|_| FormError::InvalidConfiguration(format!("invalid integer '{source}'"))),
+        ConfigurationValue::Text(_) => text_value::parse_quoted_text(source)
+            .map(ConfigurationValue::Text)
+            .ok_or_else(|| FormError::InvalidConfiguration(format!("invalid text {source}"))),
     }
 }
 
@@ -1411,6 +1421,7 @@ fn render_value(value: &ConfigurationValue) -> String {
     match value {
         ConfigurationValue::Bool(value) => value.to_string(),
         ConfigurationValue::U64(value) => value.to_string(),
+        ConfigurationValue::Text(value) => format!("{value:?}"),
     }
 }
 

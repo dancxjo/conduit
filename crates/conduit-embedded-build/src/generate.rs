@@ -184,6 +184,11 @@ fn generate_configuration(
             let value = match &entry.value {
                 ConfigurationValue::Bool(value) => GeneratedConfigurationValue::Bool(*value),
                 ConfigurationValue::U64(value) => GeneratedConfigurationValue::U64(*value),
+                ConfigurationValue::Text(_) => {
+                    return Err(GenerationError::Unsupported(
+                        UnsupportedPlanFeature::TextConfiguration,
+                    ));
+                }
             };
             generated.push(GeneratedConfigurationEntry {
                 node,

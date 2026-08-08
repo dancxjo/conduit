@@ -162,10 +162,6 @@ fn canonical_negative_corpus_has_stable_diagnostics_and_exact_spans() {
             "expression cannot appear as a graph stage",
         ),
         (
-            "form bad {\n    \"hello\" > sink\n}\n",
-            "expression cannot appear as a graph stage",
-        ),
-        (
             "form bad {\n    value = first = second\n}\n",
             "value = first = second",
         ),
@@ -189,6 +185,24 @@ fn canonical_negative_corpus_has_stable_diagnostics_and_exact_spans() {
         assert_eq!(document.round_trip(), source);
         assert!(document.forms.is_empty());
     }
+}
+
+#[test]
+fn quoted_text_is_a_distinct_lossless_graph_stage() {
+    let source = "form hello {\n    \"Hello, world.\" > text/upper\n}\n";
+    let document = parse_syntax_document(source);
+    let forms = document.forms().expect("quoted text is valid graph syntax");
+    let BackStatement::Cord(cord) = &forms[0].back[0] else {
+        panic!("back statement is a cord");
+    };
+    let CordStage::Literal(literal) = &cord.stages[0] else {
+        panic!("first stage retains literal identity");
+    };
+    assert_eq!(
+        &source[literal.span.start..literal.span.end],
+        "\"Hello, world.\""
+    );
+    assert_eq!(document.round_trip(), source);
 }
 
 #[test]

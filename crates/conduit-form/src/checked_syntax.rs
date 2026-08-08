@@ -95,6 +95,10 @@ impl Eq for CheckedCanonicalCell {}
 pub enum CheckedCordStage {
     Reference(String),
     InlineCell(CheckedCanonicalCell),
+    Literal {
+        value: CanonicalStartupValue,
+        source_span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

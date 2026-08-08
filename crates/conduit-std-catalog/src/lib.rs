@@ -19,6 +19,8 @@ use functional_face::startup_face;
 pub use tick::*;
 mod text_presentation;
 pub use text_presentation::*;
+mod text_transform;
+pub use text_transform::*;
 
 pub const PULSE_KIND: &str = "flow/pulse";
 pub const SHOW_KIND: &str = "presentation/show";
@@ -43,6 +45,7 @@ pub const RIGHT_PORT: &str = "right";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TerminalBehavior {
+    EmitsOnce,
     CompletesAfterConfiguredCount,
     CompletesWhenInputsClose,
     MirrorsInputTerminal,
@@ -60,6 +63,7 @@ pub struct StandardConfigurationField {
 pub enum StandardConfigurationRule {
     Any,
     U64Range { minimum: u64, maximum: u64 },
+    TextBytes { maximum: u32 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -296,6 +300,9 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
                             StandardConfigurationRule::Any => ConfigurationRule::Any,
                             StandardConfigurationRule::U64Range { minimum, maximum } => {
                                 ConfigurationRule::U64Range { minimum, maximum }
+                            }
+                            StandardConfigurationRule::TextBytes { maximum } => {
+                                ConfigurationRule::TextBytes { maximum }
                             }
                         },
                     })

@@ -49,6 +49,7 @@ pub enum UnsupportedPlanFeature {
     RemoteConnection,
     RemoteRouteTarget,
     WiderKernelPortTable,
+    TextConfiguration,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

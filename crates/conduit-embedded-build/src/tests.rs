@@ -72,6 +72,30 @@ fn current_fragment_generation_rejects_a_reviewed_bound_overflow() {
 }
 
 #[test]
+fn hosted_text_configuration_is_not_promoted_to_embedded_execution() {
+    let mut fragment = sealed_current_fragment();
+    fragment.placements[0].configuration[0].value =
+        ConfigurationValue::Text("hosted only".to_owned());
+    let identity = FormIdentity {
+        source_document_id: fragment.source_document_id.clone(),
+        checked_form_id: fragment.checked_form_id.clone(),
+        expanded_form_id: fragment.expanded_form_id.clone(),
+    };
+    let fragment = seal_plan(identity, vec![fragment])
+        .fragments
+        .into_iter()
+        .next()
+        .unwrap();
+    let lowered = lower_plan_fragment(&fragment).expect("text configuration still lowers");
+    assert_eq!(
+        generate_embedded_plan(&fragment, &lowered, EmbeddedImageBounds::HOST_TOOLING),
+        Err(GenerationError::Unsupported(
+            crate::UnsupportedPlanFeature::TextConfiguration
+        ))
+    );
+}
+
+#[test]
 fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
     let form = conduit_form::parse(
         include_str!("../../../examples/signal-demo.form"),
