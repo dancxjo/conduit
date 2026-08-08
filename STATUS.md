@@ -18,6 +18,7 @@ adapter or physical proof.
 | Pico-shaped manifestation | exact Pico-local and remote-ingress advertisements with reviewed fixed-image bounds | yes, `conduit-pico-sim` | host-side unchanged-form planning/lowering/image generation, exact std source, and verifier tests | no | RP2040 images generated from exact local/remote fragments, CYW43 GPIO 0 LED driver, pinned radio assets, clean firmware-build identity, runtime boot/play receipt identity, and bounded dual CDC | exact bounded std↔Pico USB CDC and final three-host sessions | recorded local, exact std↔Pico success/failure, and final three-host success/broken-link runs |
 | Realm membership | retired prototype | deterministic table tests | no production body model | no | no | no | no |
 | Observatory | versioned neutral host/capability/link/plan/Play/pressure/evidence/retention reports with exact identity and bound validation | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store | no new transport; observed links are report facts only | no new physical/HIL claim |
+| Durable system continuity | allocator-free realization record over explicit membership, complete checked-face role requirements, exact host+boot assignments, observed links, boot-scoped authority, Plan, Play, and evidence identities | accepted std/browser/Pico replacement vector consumes a validated current-model snapshot, separates request acceptance/old-boot terminal/new-boot observation, and requires explicit replanning with new Plan/Plays and no stale grant inheritance | no execution engine; the layer consumes current reports and exact plans without owning scheduling, placement, providers, or authority issuance | no new browser adapter or UI claim | no firmware change; the accepted Pico arrangement is consumed as already-proven input | no new transport; link observation remains distinct from membership and authority | no new physical/HIL run or claim |
 | `conduit.std` | nine exact typed contracts: time tick/every, typed tick/text/count presentation, text literal/upper/join, and state/count; legacy `value/any` rows remain unsupported fixtures | UI-independent contract/codec/limit/mutation vectors plus canonical Programs 1–4 | std reference host advertises selected families and resolves exact installed implementations before bounded execution through `conduit-kernel`; minimal/subset compositions advertise only selected offers | no manifestation claim for these nine revisions | no manifestation claim for these nine revisions | no new transport; Program 6 uses the separately owned Signal family | no new physical/HIL claim |
 | Copy a file | unsafe prototype disabled | tests removed from default tree | no admitted host operation | no chooser | no | no | no |
 
@@ -58,6 +59,10 @@ The `check` workflow requires:
   parent-to-child input/output routing, retry pressure, independent closure,
   cancellation/failure translation, terminal evidence, and mutation denial;
 - deterministic wire and simulated-host conformance vectors;
+- validated durable-continuity vectors over the exact std/browser/Pico Plan,
+  reports, Plays, and terminal evidence, with independent membership,
+  availability, authority, stale-boot, face-compatibility, replan, grant, and
+  Play-identity denial;
 - carrier-neutral framed-session eligibility vectors proving `FixtureFrame` and
   `WebSocket` preserve exact provider/provider-instance/link/endpoint identity,
   while `Local`, `InMemory`, and `FixtureDatagram` remain invalid for the exact
@@ -115,6 +120,19 @@ check and pinned browser jobs. Program 5 remains explicitly deferred: the
 existing WebSocket provider carries Conduit sessions and is not an authored
 external `net/websocket` operation. Exact commands, output, negative proof, and
 the physical-proof stop line are recorded in `docs/try-forms.md`.
+
+S6 durable continuity is accepted at exact main
+`bfa2944e2b2944489b652f18261bb7b577e830f3`; workflow `31254152549` passed
+both required jobs. `conduit-system-continuity` consumes a validated
+Observatory snapshot and exact Plan, binds every checked-face role requirement
+to one explicitly assigned capability on one exact host boot, and retains
+separate membership, observed-link, boot-scoped authority, Play, and evidence
+facts. Its three-host vector stages transition acceptance, old-boot terminal
+evidence, and a distinct replacement observation separately; an equal-face
+replacement remains only a candidate until a different exact Plan and new
+Plays assign the new boot without inheriting stale grants. This adds no
+scheduler, planner, provider, authority issuer, Realm table, firmware change,
+HIL rerun, or new physical claim.
 
 S0 restores truth. S1 now includes the port-aware protocol, bounded storage,
 deterministic fixed-capacity scheduling, transactional fanout, per-port closure,
