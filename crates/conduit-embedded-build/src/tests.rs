@@ -334,6 +334,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 capability_id: CapabilityId::from("source-capability"),
                 implementation_id: ImplementationId::from("test/source-impl"),
                 artifact_id: ArtifactId::from("test/source-artifact"),
+                realization_characteristics: Vec::new(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 16,
@@ -359,6 +360,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 capability_id: CapabilityId::from("sink-capability"),
                 implementation_id: ImplementationId::from("test/sink-impl"),
                 artifact_id: ArtifactId::from("test/sink-artifact"),
+                realization_characteristics: Vec::new(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 16,

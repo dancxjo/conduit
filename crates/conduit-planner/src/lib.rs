@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 mod canonical;
+mod characteristics;
 mod contract;
 mod diagnostic;
 mod functional_compatibility;
@@ -27,6 +28,9 @@ use protected_resources::{bind_protected_resource, validate_protected_resource_g
 pub use canonical::{
     default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
     plan_expanded_canonical_with_shared_pools, SharedPoolPlanningRequirement,
+};
+pub use characteristics::{
+    plan_selected_realizations_with_characteristics, select_realization_with_characteristics,
 };
 pub use contract::{
     parse_placements, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
@@ -347,6 +351,7 @@ pub(crate) fn plan_validated_form(
             capability_id: capability.capability_id.clone(),
             implementation_id: capability.implementation.implementation_id.clone(),
             artifact_id: capability.implementation.artifact_id.clone(),
+            realization_characteristics: Vec::new(),
             limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),
             outputs: capability.outputs.clone(),

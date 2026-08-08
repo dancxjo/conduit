@@ -778,6 +778,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
                 capability_id: CapabilityId::from("echo-capability"),
                 implementation_id: implementation_id.clone(),
                 artifact_id: ArtifactId::from("test/echo-artifact-v1"),
+                realization_characteristics: Vec::new(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
