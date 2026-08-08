@@ -349,6 +349,8 @@ pub struct SessionFrame<'a> {
 
 mod machine;
 pub use machine::*;
+mod reconciliation;
+pub use reconciliation::*;
 
 pub fn encode_session_frame_into(
     frame: SessionFrame<'_>,
