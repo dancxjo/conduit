@@ -400,6 +400,7 @@ pub struct PlannedOperation {
     pub capability_id: CapabilityId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
+    pub limits: CapabilityLimits,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub host_operations: Vec<HostOperationRequirement>,
@@ -817,6 +818,9 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, operation.capability_id.as_str());
         push_string(&mut canonical, operation.implementation_id.as_str());
         push_string(&mut canonical, operation.artifact_id.as_str());
+        canonical.extend_from_slice(&operation.limits.max_active_instances.to_le_bytes());
+        canonical.extend_from_slice(&operation.limits.max_queue_items.to_le_bytes());
+        push_u32(&mut canonical, operation.limits.max_queue_bytes);
         push_ports(&mut canonical, &operation.inputs);
         push_ports(&mut canonical, &operation.outputs);
         push_u32(&mut canonical, operation.host_operations.len() as u32);

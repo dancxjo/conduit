@@ -18,6 +18,7 @@ mod observations;
 mod policy;
 mod profile;
 mod protected_resources;
+mod realization;
 mod requirements;
 
 use functional_compatibility::default_placements_unvalidated;
@@ -37,6 +38,7 @@ pub use profile::{
     plan_with_advertised_profile, BROWSER_PLANNER_PROFILE, FULL_PLANNER_LIMITS,
     FULL_PLANNER_PROFILE,
 };
+pub use realization::plan_selected_realizations;
 pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements};
 
 pub fn default_placements(
@@ -345,6 +347,7 @@ pub(crate) fn plan_validated_form(
             capability_id: capability.capability_id.clone(),
             implementation_id: capability.implementation.implementation_id.clone(),
             artifact_id: capability.implementation.artifact_id.clone(),
+            limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),
             outputs: capability.outputs.clone(),
             host_operations: capability.host_operations.clone(),

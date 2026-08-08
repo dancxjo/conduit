@@ -101,6 +101,11 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
                 capability_id: CapabilityId::from("browser/pool-consumer"),
                 implementation_id: ImplementationId::from("browser/pool-consumer"),
                 artifact_id: ArtifactId::from("browser/pool-consumer"),
+                limits: CapabilityLimits {
+                    max_active_instances: 1,
+                    max_queue_items: 1,
+                    max_queue_bytes: 1,
+                },
                 inputs: Vec::new(),
                 outputs: Vec::new(),
                 host_operations: Vec::new(),
