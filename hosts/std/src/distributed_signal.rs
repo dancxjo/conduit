@@ -14,7 +14,11 @@ use conduit_kernel::{
     HostedEvidenceLog, HostedValueStore, KernelEventKind, Operation, OperationAction,
     OperationInput, PortId, RemoteEndpointId, RequestId, ValueRef, ValueStorage,
 };
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
+#[cfg(test)]
+use conduit_planner::plan_with_link_bindings;
+use conduit_planner::{
+    plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
+};
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
     MAXIMUM_KERNEL_PORTS_PER_NODE,
@@ -67,22 +71,25 @@ pub struct DistributedSignalPlan {
 pub fn exact_distributed_signal_plan() -> Result<DistributedSignalPlan, String> {
     let source_advertisement = distributed_std_source_advertisement();
     let sink_advertisement = distributed_browser_sink_advertisement();
-    let form = conduit_form::parse(
-        include_str!("../../../examples/signal-demo.form"),
-        &signal_profile_catalog(),
-    )
-    .map_err(|error| error.to_string())?;
+    let source = include_str!("../../../examples/signal-demo.conduit");
+    let syntax = conduit_form::parse_syntax_document(source);
+    let checked =
+        conduit_form::check_syntax_document(&syntax, &conduit_signal::signal_startup_catalog())
+            .map_err(|error| format!("{}: {}", error.code, error.message))?;
+    let form =
+        conduit_form::expand_canonical_form(&checked, "signal-demo", &signal_profile_catalog())
+            .map_err(|error| error.to_string())?;
     let placements = PlacementChoices {
         by_operation: BTreeMap::from([
             (
-                OperationId::from("pulse"),
+                OperationId::from("signal-demo/pulse"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("pulse-1"),
                 },
             ),
             (
-                OperationId::from("show"),
+                OperationId::from("signal-demo/show"),
                 PlacementChoice {
                     host_id: sink_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("dom-show-1"),
@@ -91,14 +98,18 @@ pub fn exact_distributed_signal_plan() -> Result<DistributedSignalPlan, String> 
         ]),
     };
     let link = distributed_websocket_link_binding();
-    let plan = plan_with_link_bindings(
+    let plan = plan_expanded_canonical_with_options(
         &form,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,
         &[ConnectionProvider::WebSocket],
-        DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-        SIGNAL_ENCODED_LEN,
-        &[link],
+        PlanningOptions {
+            connection_providers: &BTreeMap::new(),
+            connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+            connection_byte_capacity: SIGNAL_ENCODED_LEN,
+            authority_grants: &[],
+            link_bindings: &[link],
+        },
     )
     .map_err(|error| error.to_string())?;
     Ok(DistributedSignalPlan {
@@ -653,6 +664,12 @@ mod tests {
 
     #[test]
     fn unchanged_form_prepares_exact_independent_remote_fragments() {
+        let canonical_source = include_str!("../../../examples/signal-demo.conduit");
+        for realization_fact in ["std", "browser", "websocket", "host", "carrier"] {
+            assert!(!canonical_source
+                .to_ascii_lowercase()
+                .contains(realization_fact));
+        }
         let source = DistributedSource::prepare().expect("source prepares");
         let exact = exact_distributed_signal_plan().expect("distributed plan resolves");
         let sink = exact
@@ -664,6 +681,11 @@ mod tests {
         let lowered = lower_plan_fragment(sink).expect("sink lowers");
         assert_eq!(source.fragment().placements.len(), 1);
         assert_eq!(sink.placements.len(), 1);
+        assert_ne!(source.fragment().host_id, sink.host_id);
+        assert_eq!(
+            source.fragment().connections[0].provider,
+            ConnectionProvider::WebSocket
+        );
         assert_eq!(lowered.remote_endpoints.len(), 1);
         assert_eq!(
             lowered.remote_endpoints[0].direction,

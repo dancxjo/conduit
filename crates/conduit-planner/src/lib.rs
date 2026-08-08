@@ -17,7 +17,9 @@ mod profile;
 
 use functional_compatibility::default_placements_unvalidated;
 
-pub use canonical::{default_expanded_placements, plan_expanded_canonical};
+pub use canonical::{
+    default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
+};
 pub use contract::{
     parse_placements, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
 };
