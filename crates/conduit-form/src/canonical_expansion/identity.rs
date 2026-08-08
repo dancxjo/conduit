@@ -10,11 +10,17 @@ impl ExpandedCanonicalForm {
             runtime_ports: Vec::new(),
             shorthand: None,
             local_values: Vec::new(),
+            pools: Vec::new(),
             cells: Vec::new(),
             cords: Vec::new(),
         };
-        let expected =
-            expanded_identity(&form, &self.operations, &self.connections, &self.provenance);
+        let expected = expanded_identity(
+            &form,
+            &self.operations,
+            &self.connections,
+            &self.shared_pools,
+            &self.provenance,
+        );
         if self.expanded_form_id != expected {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-049",
@@ -66,6 +72,30 @@ impl ExpandedCanonicalForm {
                 ));
             }
         }
+        for (index, pool) in self.shared_pools.iter().enumerate() {
+            if self.shared_pools[..index]
+                .iter()
+                .any(|prior| prior.pool_id == pool.pool_id)
+            {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-049",
+                    "expanded shared-pool identities are not unique".into(),
+                ));
+            }
+            let mut consumers = self
+                .operations
+                .iter()
+                .filter(|operation| operation.pool_references.contains(&pool.pool_id))
+                .map(|operation| operation.operation_id.clone())
+                .collect::<Vec<_>>();
+            consumers.sort();
+            if consumers.is_empty() || consumers != pool.consumers {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-049",
+                    "expanded shared-pool consumers differ from explicit bindings".into(),
+                ));
+            }
+        }
         let provenance_ids = self
             .provenance
             .iter()
@@ -91,6 +121,7 @@ pub(super) fn expanded_identity(
     form: &CheckedCanonicalForm,
     operations: &[CheckedOperation],
     connections: &[CheckedConnection],
+    shared_pools: &[ExpandedSharedPool],
     provenance: &[ExpandedCellProvenance],
 ) -> ExpandedFormId {
     let mut canonical = format!("canonical-expanded:{}", form.checked_form_id.as_str());
@@ -143,6 +174,10 @@ pub(super) fn expanded_identity(
                 }
             }
         }
+        for pool in &operation.pool_references {
+            push(&mut canonical, "pool-reference");
+            push(&mut canonical, pool.as_str());
+        }
     }
     for connection in connections {
         push(&mut canonical, connection.source_operation_id.as_str());
@@ -151,6 +186,37 @@ pub(super) fn expanded_identity(
         push(&mut canonical, connection.sink_port_id.as_str());
         push(&mut canonical, connection.value_kind.as_str());
         push(&mut canonical, connection.temporal.as_str());
+    }
+    for pool in shared_pools {
+        push(&mut canonical, pool.pool_id.as_str());
+        push(&mut canonical, pool.declaration_id.as_str());
+        push(&mut canonical, &pool.maximum_members.to_string());
+        for parameter in pool.member_face.startup_parameters() {
+            push(&mut canonical, &parameter.name);
+            push(&mut canonical, &parameter.value_type);
+            push(
+                &mut canonical,
+                if parameter.has_default {
+                    "default"
+                } else {
+                    "required"
+                },
+            );
+        }
+        for port in pool
+            .member_face
+            .inputs()
+            .iter()
+            .chain(pool.member_face.outputs())
+        {
+            push(&mut canonical, port.port_id.as_str());
+            push(&mut canonical, port.value_kind.as_str());
+            push(&mut canonical, port.temporal.as_str());
+            push(&mut canonical, &format!("{:?}", port.direction));
+        }
+        for consumer in &pool.consumers {
+            push(&mut canonical, consumer.as_str());
+        }
     }
     for row in provenance {
         push(&mut canonical, &row.operation_id);

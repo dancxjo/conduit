@@ -1,0 +1,16 @@
+# Dynamic chat semantics. Carrier selection belongs to the Plan/host and is
+# deliberately absent from this authored Form.
+form chat/peer (
+    recv: ChatMessage...| > send: ChatMessage...|
+) {
+}
+
+form pool-webchat {
+    pool peers: chat/peer(size = 32)
+    merge: flow/merge(peers)
+    room: chat/room(peers)
+    fan: flow/fan(peers)
+
+    merge.message > room.recv
+    room.send > fan.message
+}

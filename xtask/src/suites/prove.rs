@@ -101,6 +101,22 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         &["target/debug/webchat-server"],
     ),
     Step::typed(
+        "prove.browser-host.pool-webchat-server-build",
+        "Build bounded shared-pool chat server artifact",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "conduit-std-host",
+            "--bin",
+            "pool-webchat-server",
+        ],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/pool-webchat-server"],
+    ),
+    Step::typed(
         "prove.browser-host.playwright",
         "Run browser host test suite",
         "npm",

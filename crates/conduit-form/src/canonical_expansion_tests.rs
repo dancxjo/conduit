@@ -33,6 +33,14 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             operation: "test/sink".into(),
             startup_parameters: vec![],
         },
+        OperationSignature {
+            operation: "test/use-pool".into(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "members".into(),
+                value_type: "Pool".into(),
+                default: None,
+            }],
+        },
     ] {
         startup.insert(signature).unwrap();
     }
@@ -43,6 +51,13 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             kind_contract_revision: KindContractRevision::from("test/source@1"),
             inputs: vec![],
             outputs: vec![port("out", PortDirection::Output)],
+            configuration: vec![],
+        },
+        KindDefinition {
+            kind_id: kind_id("test/use-pool"),
+            kind_contract_revision: KindContractRevision::from("test/use-pool@1"),
+            inputs: vec![],
+            outputs: vec![],
             configuration: vec![],
         },
         KindDefinition {
@@ -104,6 +119,49 @@ fn parameterized_form_flattens_to_ordinary_primitive_graph() {
         expanded.checked_form_id.as_str(),
         expanded.expanded_form_id.as_str()
     );
+}
+
+#[test]
+fn two_explicit_consumers_share_one_exact_expanded_pool_reference() {
+    let source = "form chat/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform consumer (\n members: Pool\n) {\n use: test/use-pool(members)\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n left: consumer(peers)\n right: consumer(peers)\n}\n";
+    let expanded = expand(source, "room");
+    assert_eq!(expanded.shared_pools.len(), 1);
+    let pool = &expanded.shared_pools[0];
+    assert_eq!(pool.pool_id.as_str(), "room/peers");
+    assert_eq!(pool.maximum_members, 2);
+    assert_eq!(
+        pool.consumers
+            .iter()
+            .map(|consumer| consumer.as_str())
+            .collect::<Vec<_>>(),
+        ["room/left/use", "room/right/use"]
+    );
+    assert!(expanded.operations.iter().all(|operation| {
+        operation.pool_references == vec![conduit_core::SharedPoolId::from("room/peers")]
+    }));
+    expanded.validate_expansion().unwrap();
+
+    let mut mutated = expanded;
+    mutated.shared_pools[0].maximum_members = 3;
+    assert!(mutated.validate_expansion().is_err());
+}
+
+#[test]
+fn pool_name_is_not_ambiently_captured_by_nested_forms_or_graph_cords() {
+    let (startup, profile) = catalogs();
+    let ambient = parse_syntax_document(
+        "form chat/peer {\n}\n\nform consumer {\n use: test/use-pool(peers)\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n child: consumer\n}\n",
+    );
+    let checked = check_syntax_document(&ambient, &startup).unwrap();
+    let diagnostic = expand_canonical_form(&checked, "room", &profile).unwrap_err();
+    assert_eq!(diagnostic.code, "CND-FRM-041");
+
+    let implicit = parse_syntax_document(
+        "form chat/peer {\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n source: test/source\n source > peers\n}\n",
+    );
+    let checked = check_syntax_document(&implicit, &startup).unwrap();
+    let diagnostic = expand_canonical_form(&checked, "room", &profile).unwrap_err();
+    assert_eq!(diagnostic.code, "CND-FRM-042");
 }
 
 #[test]

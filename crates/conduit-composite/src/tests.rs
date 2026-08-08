@@ -1421,6 +1421,7 @@ fn parent_planning_cannot_address_an_internal_child_identity() {
             inputs: Vec::new(),
             outputs: Vec::new(),
             configuration: Vec::new(),
+            pool_references: Vec::new(),
         }],
         connections: Vec::new(),
         exports: Vec::new(),

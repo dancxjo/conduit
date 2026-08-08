@@ -11,6 +11,7 @@ pub(crate) fn checked_identity(
     shorthand: Option<(&str, &str)>,
     cells: &[CheckedCanonicalCell],
     cords: &[CheckedCanonicalCord],
+    pools: &[crate::CheckedPoolDeclaration],
 ) -> CheckedFormId {
     let mut canonical = String::from("canonical-form");
     push_field(&mut canonical, name);
@@ -46,6 +47,38 @@ pub(crate) fn checked_identity(
     for cord in cords {
         canonical.push_str("cord");
         push_field(&mut canonical, &canonical_cord(cord));
+    }
+    for pool in pools {
+        canonical.push_str("pool");
+        push_field(&mut canonical, &pool.name);
+        push_field(&mut canonical, &pool.maximum_members.to_string());
+        for parameter in pool.member_face.startup_parameters() {
+            push_field(&mut canonical, &parameter.name);
+            push_field(&mut canonical, &parameter.value_type);
+            push_field(
+                &mut canonical,
+                if parameter.has_default {
+                    "default"
+                } else {
+                    "required"
+                },
+            );
+        }
+        for port in pool
+            .member_face
+            .inputs()
+            .iter()
+            .chain(pool.member_face.outputs())
+        {
+            push_field(&mut canonical, port.port_id.as_str());
+            push_field(&mut canonical, port.value_kind.as_str());
+            push_field(&mut canonical, port.temporal.as_str());
+            push_field(&mut canonical, &format!("{:?}", port.direction));
+        }
+        if let Some((input, output)) = pool.member_face.shorthand() {
+            push_field(&mut canonical, input.as_str());
+            push_field(&mut canonical, output.as_str());
+        }
     }
     CheckedFormId::from(hash_string(&canonical))
 }
@@ -93,5 +126,8 @@ fn canonical_value(value: &CanonicalStartupValue) -> String {
     match value {
         CanonicalStartupValue::Literal(value) => format!("literal:{value}"),
         CanonicalStartupValue::FormParameter(name) => format!("parameter:{name}"),
+        CanonicalStartupValue::PoolReference(pool) => {
+            format!("pool-reference:{}", pool.as_str())
+        }
     }
 }

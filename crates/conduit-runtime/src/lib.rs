@@ -7,6 +7,9 @@
 pub mod lowering;
 
 #[cfg(feature = "compatibility-executor")]
+mod shared_pool_validation;
+
+#[cfg(feature = "compatibility-executor")]
 mod compatibility_executor;
 #[cfg(feature = "compatibility-executor")]
 pub use compatibility_executor::*;

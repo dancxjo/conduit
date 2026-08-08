@@ -1,5 +1,5 @@
 use crate::{RuntimePort, Span};
-use conduit_core::{CheckedFormId, ExpandedFormId, SourceDocumentId};
+use conduit_core::{CheckedFace, CheckedFormId, ExpandedFormId, SourceDocumentId};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,6 +55,7 @@ impl StartupCatalog {
 pub enum CanonicalStartupValue {
     Literal(String),
     FormParameter(String),
+    PoolReference(conduit_core::SharedPoolId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -107,6 +108,14 @@ pub struct CheckedCanonicalCord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedPoolDeclaration {
+    pub name: String,
+    pub member_form: String,
+    pub member_face: CheckedFace,
+    pub maximum_members: u16,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedCanonicalForm {
     pub checked_form_id: CheckedFormId,
     pub name: String,
@@ -114,6 +123,7 @@ pub struct CheckedCanonicalForm {
     pub runtime_ports: Vec<RuntimePort>,
     pub shorthand: Option<(String, String)>,
     pub local_values: Vec<(String, CanonicalStartupValue)>,
+    pub pools: Vec<CheckedPoolDeclaration>,
     pub cells: Vec<CheckedCanonicalCell>,
     pub cords: Vec<CheckedCanonicalCord>,
 }
@@ -141,8 +151,18 @@ pub struct ExpandedCanonicalForm {
     pub name: String,
     pub operations: Vec<crate::CheckedOperation>,
     pub connections: Vec<crate::CheckedConnection>,
+    pub shared_pools: Vec<ExpandedSharedPool>,
     pub provenance: Vec<ExpandedCellProvenance>,
     pub provenance_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpandedSharedPool {
+    pub pool_id: conduit_core::SharedPoolId,
+    pub declaration_id: conduit_core::PoolDeclarationId,
+    pub member_face: CheckedFace,
+    pub maximum_members: u16,
+    pub consumers: Vec<conduit_core::OperationId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

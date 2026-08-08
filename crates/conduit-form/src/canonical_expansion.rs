@@ -2,15 +2,18 @@ use crate::{
     hash_string, CanonicalExpansionDiagnostic, CanonicalStartupValue, CheckedCanonicalCell,
     CheckedCanonicalForm, CheckedConnection, CheckedCordStage, CheckedOperation,
     CheckedSyntaxDocument, ConfigurationRule, ConfigurationValue, ExpandedCanonicalForm,
-    ExpandedCellProvenance, ProfileCatalog, RuntimePortDirection, MAXIMUM_FORM_NESTING_DEPTH,
+    ExpandedCellProvenance, ExpandedSharedPool, ProfileCatalog, RuntimePortDirection,
+    MAXIMUM_FORM_NESTING_DEPTH,
 };
 use conduit_core::{KindId, OperationId, PortDescriptor};
 use std::collections::{BTreeMap, BTreeSet};
 
 mod graph;
 mod identity;
+mod shared_pool;
 use graph::*;
 use identity::{expanded_identity, provenance_digest};
+use shared_pool::{bind_pool_environment, expanded_pool_declarations, seal_pool_consumers};
 
 pub fn expand_canonical_form(
     document: &CheckedSyntaxDocument,
@@ -59,6 +62,7 @@ pub fn expand_canonical_form(
     }
     let mut operations = fragment.operations;
     let mut connections = fragment.connections;
+    let mut shared_pools = fragment.shared_pools;
     let mut provenance = fragment.provenance;
     operations.sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
     connections.sort_by(|left, right| {
@@ -76,7 +80,9 @@ pub fn expand_canonical_form(
             ))
     });
     provenance.sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
-    let expanded_form_id = expanded_identity(form, &operations, &connections, &provenance);
+    seal_pool_consumers(&mut shared_pools, &operations)?;
+    let expanded_form_id =
+        expanded_identity(form, &operations, &connections, &shared_pools, &provenance);
     let provenance_digest = provenance_digest(&document.source_document_id, &provenance);
     Ok(ExpandedCanonicalForm {
         source_document_id: document.source_document_id.clone(),
@@ -85,6 +91,7 @@ pub fn expand_canonical_form(
         name: form.name.clone(),
         operations,
         connections,
+        shared_pools,
         provenance,
         provenance_digest,
     })
@@ -100,6 +107,7 @@ struct Endpoint {
 struct Fragment {
     operations: Vec<CheckedOperation>,
     connections: Vec<CheckedConnection>,
+    shared_pools: Vec<ExpandedSharedPool>,
     provenance: Vec<ExpandedCellProvenance>,
     inputs: BTreeMap<String, Vec<Endpoint>>,
     outputs: BTreeMap<String, Endpoint>,
@@ -169,8 +177,11 @@ fn expand_instance_inner(
     stack: &mut Vec<String>,
     depth: usize,
 ) -> Result<Fragment, CanonicalExpansionDiagnostic> {
+    let scoped_environment = bind_pool_environment(form, environment, path)?;
+    let environment = &scoped_environment;
     let mut operations = Vec::new();
     let mut connections = Vec::new();
+    let mut shared_pools = expanded_pool_declarations(form, path);
     let mut provenance = Vec::new();
     let mut instances = BTreeMap::new();
     let mut operation_ids = BTreeSet::new();
@@ -188,6 +199,7 @@ fn expand_instance_inner(
             depth,
             &mut operations,
             &mut connections,
+            &mut shared_pools,
             &mut provenance,
             &mut operation_ids,
         )?;
@@ -226,6 +238,7 @@ fn expand_instance_inner(
                         depth,
                         &mut operations,
                         &mut connections,
+                        &mut shared_pools,
                         &mut provenance,
                         &mut operation_ids,
                     )?;
@@ -269,6 +282,7 @@ fn expand_instance_inner(
                         depth,
                         &mut operations,
                         &mut connections,
+                        &mut shared_pools,
                         &mut provenance,
                         &mut operation_ids,
                     )?;
@@ -315,6 +329,7 @@ fn expand_instance_inner(
     Ok(Fragment {
         operations,
         connections,
+        shared_pools,
         provenance,
         inputs,
         outputs,
@@ -335,6 +350,7 @@ fn instantiate_cell(
     depth: usize,
     operations: &mut Vec<CheckedOperation>,
     connections: &mut Vec<CheckedConnection>,
+    shared_pools: &mut Vec<ExpandedSharedPool>,
     provenance: &mut Vec<ExpandedCellProvenance>,
     operation_ids: &mut BTreeSet<OperationId>,
 ) -> Result<Instance, CanonicalExpansionDiagnostic> {
@@ -354,6 +370,7 @@ fn instantiate_cell(
         operation_ids.extend(fragment.operations.iter().map(|op| op.operation_id.clone()));
         operations.extend(fragment.operations);
         connections.extend(fragment.connections);
+        shared_pools.extend(fragment.shared_pools);
         provenance.extend(fragment.provenance);
         return Ok(Instance {
             inputs: fragment.inputs,
@@ -385,6 +402,7 @@ fn instantiate_cell(
         ));
     }
     let configuration = configuration(cell, environment, definition)?;
+    let pool_references = pool_references(cell, environment)?;
     operations.push(CheckedOperation {
         operation_id: operation_id.clone(),
         kind_id: definition.kind_id.clone(),
@@ -405,6 +423,7 @@ fn instantiate_cell(
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
         configuration,
+        pool_references,
     });
     provenance.push(ExpandedCellProvenance {
         operation_id: operation_id.as_str().to_string(),
@@ -476,6 +495,10 @@ fn substitute(
 ) -> Result<CanonicalStartupValue, CanonicalExpansionDiagnostic> {
     match value {
         CanonicalStartupValue::Literal(_) => Ok(value.clone()),
+        CanonicalStartupValue::PoolReference(pool) => environment
+            .get(pool.as_str())
+            .cloned()
+            .map_or_else(|| Ok(value.clone()), Ok),
         CanonicalStartupValue::FormParameter(name) => {
             environment.get(name).cloned().ok_or_else(|| {
                 CanonicalExpansionDiagnostic::new(

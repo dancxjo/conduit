@@ -11,6 +11,9 @@ use crate::{
     diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
 };
 
+mod shared_pool;
+use shared_pool::parse_pool_declaration;
+
 pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
     if source.len() > MAXIMUM_FORM_SOURCE_BYTES {
         return SyntaxDocument::new(
@@ -312,6 +315,9 @@ impl<'a> Parser<'a> {
         text: &str,
         start: usize,
     ) -> Result<BackStatement, (FormError, Span)> {
+        if let Some(declaration) = text.strip_prefix("pool ") {
+            return parse_pool_declaration(self, declaration, text, start).map(BackStatement::Pool);
+        }
         if !top_level_positions(text, '>').is_empty() {
             return self.parse_cord(text, start).map(BackStatement::Cord);
         }

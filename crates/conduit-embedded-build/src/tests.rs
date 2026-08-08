@@ -339,6 +339,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 host_operations: Vec::new(),
                 resources: Vec::new(),
                 authority: Vec::new(),
+                pool_references: Vec::new(),
             },
             PlannedOperation {
                 placement_id: sink.clone(),
@@ -358,6 +359,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 host_operations: Vec::new(),
                 resources: Vec::new(),
                 authority: Vec::new(),
+                pool_references: Vec::new(),
             },
         ],
         connections: vec![PlannedConnection {
@@ -374,6 +376,7 @@ fn sealed_current_fragment() -> PlanFragment {
             item_capacity: 1,
             byte_capacity: 9,
         }],
+        shared_pools: Vec::new(),
         startup_dependencies: vec![StartupDependency {
             prerequisite_placement_id: source.clone(),
             dependent_placement_id: sink.clone(),

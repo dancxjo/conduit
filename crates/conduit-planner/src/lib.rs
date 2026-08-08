@@ -22,6 +22,7 @@ use protected_resources::{bind_protected_resource, validate_protected_resource_g
 
 pub use canonical::{
     default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
+    plan_expanded_canonical_with_shared_pools, SharedPoolPlanningRequirement,
 };
 pub use contract::{
     parse_placements, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
@@ -343,6 +344,7 @@ pub(crate) fn plan_validated_form(
             host_operations: capability.host_operations.clone(),
             resources: resource_bindings,
             authority: authority_bindings,
+            pool_references: operation.pool_references.clone(),
         });
     }
 
@@ -533,6 +535,7 @@ pub(crate) fn plan_validated_form(
                 offer_generation: host.offer_generation,
                 placements,
                 connections,
+                shared_pools: Vec::new(),
                 startup_dependencies,
                 startup_order,
                 cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,

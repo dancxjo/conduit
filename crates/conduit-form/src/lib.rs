@@ -94,6 +94,7 @@ pub struct CheckedOperation {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<ConfigurationEntry>,
+    pub pool_references: Vec<conduit_core::SharedPoolId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -645,6 +646,7 @@ fn parse_form_block(
                     inputs: draft.definition.inputs.clone(),
                     outputs: draft.definition.outputs.clone(),
                     configuration: draft.configuration.clone(),
+                    pool_references: Vec::new(),
                 })
                 .collect::<Vec<_>>();
             let checked_form_id =
