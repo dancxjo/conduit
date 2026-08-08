@@ -143,3 +143,192 @@ fn task_does_not_copy_until_run_is_confirmed() {
 
     fs::remove_dir_all(directory).expect("test directory should be removable");
 }
+
+#[test]
+fn copy_options_are_accepted_before_between_and_after_paths() {
+    let directory = test_directory("option-order");
+    let source = directory.join("source.txt");
+    fs::write(&source, b"ordered options").unwrap();
+    let source = source.to_str().unwrap();
+
+    for (index, arguments) in [
+        vec!["--inspect", "--run", source, "DESTINATION"],
+        vec![source, "--inspect", "--run", "DESTINATION"],
+        vec![source, "DESTINATION", "--inspect", "--run"],
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let destination = directory.join(format!("inspect-{index}.txt"));
+        let destination = destination.to_str().unwrap();
+        let arguments = arguments
+            .into_iter()
+            .map(|argument| {
+                if argument == "DESTINATION" {
+                    destination
+                } else {
+                    argument
+                }
+            })
+            .collect::<Vec<_>>();
+        let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
+            .arg("copy")
+            .args(arguments)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert_eq!(fs::read(destination).unwrap(), b"ordered options");
+        assert!(
+            String::from_utf8(output.stdout)
+                .unwrap()
+                .contains("Inspect (after the task)"),
+            "ordering {index} omitted inspection"
+        );
+    }
+
+    for (index, arguments) in [
+        vec![
+            "--mode",
+            "replace",
+            "--max-bytes",
+            "64",
+            source,
+            "DESTINATION",
+            "--run",
+        ],
+        vec![
+            source,
+            "--mode",
+            "replace",
+            "DESTINATION",
+            "--max-bytes",
+            "64",
+            "--run",
+        ],
+        vec![
+            source,
+            "DESTINATION",
+            "--mode",
+            "replace",
+            "--max-bytes",
+            "64",
+            "--run",
+        ],
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let destination = directory.join(format!("values-{index}.txt"));
+        fs::write(&destination, b"old").unwrap();
+        let destination = destination.to_str().unwrap();
+        let arguments = arguments
+            .into_iter()
+            .map(|argument| {
+                if argument == "DESTINATION" {
+                    destination
+                } else {
+                    argument
+                }
+            })
+            .collect::<Vec<_>>();
+        let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
+            .arg("copy")
+            .args(arguments)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert_eq!(fs::read(destination).unwrap(), b"ordered options");
+    }
+
+    fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn malformed_copy_arguments_fail_closed_with_specific_usage_diagnostics() {
+    let cases: &[(&[&str], &str)] = &[
+        (
+            &["SOURCE", "DESTINATION", "--wat"],
+            "unknown option '--wat'",
+        ),
+        (
+            &["SOURCE", "DESTINATION", "--inspect", "--inspect"],
+            "option '--inspect' was repeated",
+        ),
+        (
+            &[
+                "--mode",
+                "create",
+                "SOURCE",
+                "--mode",
+                "replace",
+                "DESTINATION",
+            ],
+            "option '--mode' was repeated",
+        ),
+        (
+            &[
+                "SOURCE",
+                "DESTINATION",
+                "--max-bytes",
+                "8",
+                "--max-bytes",
+                "9",
+            ],
+            "option '--max-bytes' was repeated",
+        ),
+        (
+            &["SOURCE", "DESTINATION", "--run", "--run"],
+            "option '--run' was repeated",
+        ),
+        (
+            &["SOURCE", "DESTINATION", "--mode"],
+            "option '--mode' requires a value (create|replace)",
+        ),
+        (
+            &["SOURCE", "--max-bytes", "--inspect", "DESTINATION"],
+            "option '--max-bytes' requires a value (N)",
+        ),
+        (
+            &["SOURCE", "DESTINATION", "--mode", "overwrite"],
+            "invalid value 'overwrite' for --mode; expected create or replace",
+        ),
+        (
+            &["SOURCE", "DESTINATION", "--max-bytes", "many"],
+            "invalid value 'many' for --max-bytes; expected a positive integer",
+        ),
+        (
+            &["SOURCE", "DESTINATION", "--max-bytes", "0"],
+            "invalid value '0' for --max-bytes; expected 1..=16777216",
+        ),
+        (
+            &[],
+            "missing required positional operands SOURCE and DESTINATION",
+        ),
+        (
+            &["SOURCE", "--inspect"],
+            "missing required positional operand DESTINATION",
+        ),
+        (
+            &["SOURCE", "DESTINATION", "EXTRA"],
+            "unexpected positional operand 'EXTRA'; exactly SOURCE and DESTINATION are required",
+        ),
+    ];
+
+    for (arguments, expected) in cases {
+        let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
+            .arg("copy")
+            .args(*arguments)
+            .output()
+            .unwrap();
+        assert!(
+            !output.status.success(),
+            "{arguments:?} unexpectedly passed"
+        );
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.contains(expected), "{arguments:?}: {stderr}");
+        assert!(
+            stderr.contains("usage: conduit copy [OPTIONS] SOURCE DESTINATION"),
+            "{arguments:?}: {stderr}"
+        );
+    }
+}

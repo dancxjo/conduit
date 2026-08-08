@@ -13,6 +13,8 @@ use std::time::Duration;
 
 const COPY_FORM_SOURCE: &str = "form 0\n\ncopy-task {\n    copy: file/copy\n}\n";
 const DEFAULT_MAXIMUM_BYTES: u64 = 16 * 1024 * 1024;
+pub(crate) const USAGE: &str = "usage: conduit copy [OPTIONS] SOURCE DESTINATION\n\
+       options: --mode create|replace  --max-bytes N  --run  --inspect";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DestinationMode {
@@ -136,49 +138,76 @@ pub(crate) fn run(raw_arguments: Vec<String>) -> Result<(), String> {
 }
 
 fn parse_arguments(raw: Vec<String>) -> Result<Arguments, String> {
-    let usage = "usage: conduit copy <source-file> <destination-file> [--mode create|replace] [--max-bytes N] [--run] [--inspect]";
-    let source = raw
-        .first()
-        .map(PathBuf::from)
-        .ok_or_else(|| usage.to_string())?;
-    let destination = raw
-        .get(1)
-        .map(PathBuf::from)
-        .ok_or_else(|| usage.to_string())?;
+    let mut positional = Vec::with_capacity(2);
     let mut mode = DestinationMode::Create;
     let mut maximum_bytes = DEFAULT_MAXIMUM_BYTES;
     let mut run_without_prompt = false;
     let mut inspect = false;
-    let mut index = 2;
+    let mut mode_seen = false;
+    let mut maximum_bytes_seen = false;
+    let mut run_seen = false;
+    let mut inspect_seen = false;
+    let mut index = 0;
     while index < raw.len() {
         match raw[index].as_str() {
             "--mode" => {
+                reject_repeated(&mut mode_seen, "--mode")?;
                 index += 1;
-                mode = match raw.get(index).map(String::as_str) {
-                    Some("create") => DestinationMode::Create,
-                    Some("replace") => DestinationMode::Replace,
-                    _ => return Err(usage.to_string()),
+                let value = option_value(&raw, index, "--mode", "create|replace")?;
+                mode = match value {
+                    "create" => DestinationMode::Create,
+                    "replace" => DestinationMode::Replace,
+                    _ => {
+                        return Err(argument_error(format!(
+                            "invalid value '{value}' for --mode; expected create or replace"
+                        )))
+                    }
                 };
             }
             "--max-bytes" => {
+                reject_repeated(&mut maximum_bytes_seen, "--max-bytes")?;
                 index += 1;
-                maximum_bytes = raw
-                    .get(index)
-                    .ok_or_else(|| usage.to_string())?
+                let value = option_value(&raw, index, "--max-bytes", "N")?;
+                maximum_bytes = value
                     .parse::<u64>()
-                    .map_err(|_| "--max-bytes must be a positive integer".to_string())?;
+                    .map_err(|_| {
+                        argument_error(format!(
+                            "invalid value '{value}' for --max-bytes; expected a positive integer"
+                        ))
+                    })?;
                 if maximum_bytes == 0 || maximum_bytes > DEFAULT_MAXIMUM_BYTES {
-                    return Err(format!(
-                        "--max-bytes must be between 1 and {DEFAULT_MAXIMUM_BYTES}"
-                    ));
+                    return Err(argument_error(format!(
+                        "invalid value '{value}' for --max-bytes; expected 1..={DEFAULT_MAXIMUM_BYTES}"
+                    )));
                 }
             }
-            "--run" => run_without_prompt = true,
-            "--inspect" => inspect = true,
-            _ => return Err(usage.to_string()),
+            "--run" => {
+                reject_repeated(&mut run_seen, "--run")?;
+                run_without_prompt = true;
+            }
+            "--inspect" => {
+                reject_repeated(&mut inspect_seen, "--inspect")?;
+                inspect = true;
+            }
+            argument if argument.starts_with('-') => {
+                return Err(argument_error(format!("unknown option '{argument}'")))
+            }
+            argument if positional.len() == 2 => {
+                return Err(argument_error(format!(
+                    "unexpected positional operand '{argument}'; exactly SOURCE and DESTINATION are required"
+                )))
+            }
+            argument => positional.push(PathBuf::from(argument)),
         }
         index += 1;
     }
+    let mut positional = positional.into_iter();
+    let source = positional.next().ok_or_else(|| {
+        argument_error("missing required positional operands SOURCE and DESTINATION")
+    })?;
+    let destination = positional
+        .next()
+        .ok_or_else(|| argument_error("missing required positional operand DESTINATION"))?;
     Ok(Arguments {
         source,
         destination,
@@ -187,6 +216,32 @@ fn parse_arguments(raw: Vec<String>) -> Result<Arguments, String> {
         run_without_prompt,
         inspect,
     })
+}
+
+fn option_value<'a>(
+    raw: &'a [String],
+    index: usize,
+    option: &str,
+    expected: &str,
+) -> Result<&'a str, String> {
+    match raw.get(index).map(String::as_str) {
+        Some(value) if !value.starts_with('-') => Ok(value),
+        _ => Err(argument_error(format!(
+            "option '{option}' requires a value ({expected})"
+        ))),
+    }
+}
+
+fn reject_repeated(seen: &mut bool, option: &str) -> Result<(), String> {
+    if *seen {
+        return Err(argument_error(format!("option '{option}' was repeated")));
+    }
+    *seen = true;
+    Ok(())
+}
+
+fn argument_error(detail: impl AsRef<str>) -> String {
+    format!("{}\n{USAGE}", detail.as_ref())
 }
 
 fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
