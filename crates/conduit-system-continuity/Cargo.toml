@@ -1,0 +1,12 @@
+[package]
+name = "conduit-system-continuity"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-observatory = { path = "../conduit-observatory" }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+
+[dev-dependencies]
+conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }

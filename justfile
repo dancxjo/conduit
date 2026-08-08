@@ -40,6 +40,12 @@ observatory:
 observatory-thumb-check:
     cargo check -p conduit-observatory --target thumbv6m-none-eabi
 
+system-continuity:
+    cargo test -p conduit-system-continuity
+
+system-continuity-thumb-check:
+    cargo check -p conduit-system-continuity --target thumbv6m-none-eabi
+
 std-catalog:
     cargo test -p conduit-std-catalog
 
