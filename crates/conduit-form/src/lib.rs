@@ -6,12 +6,15 @@ use conduit_core::{
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
+mod canonical_expansion;
 mod checked_syntax;
 mod surface_lex;
 mod surface_parser;
 pub mod syntax;
 mod syntax_check;
+mod syntax_identity;
 
+pub use canonical_expansion::*;
 pub use checked_syntax::*;
 pub use syntax::*;
 
@@ -1411,3 +1414,6 @@ mod surface_tests;
 
 #[cfg(test)]
 mod syntax_check_tests;
+
+#[cfg(test)]
+mod canonical_expansion_tests;

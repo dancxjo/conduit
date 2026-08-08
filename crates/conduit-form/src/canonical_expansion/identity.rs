@@ -1,0 +1,163 @@
+use super::*;
+use conduit_core::ExpandedFormId;
+
+impl ExpandedCanonicalForm {
+    pub fn validate_expansion(&self) -> Result<(), CanonicalExpansionDiagnostic> {
+        let form = CheckedCanonicalForm {
+            checked_form_id: self.checked_form_id.clone(),
+            name: self.name.clone(),
+            startup_parameters: Vec::new(),
+            runtime_ports: Vec::new(),
+            shorthand: None,
+            local_values: Vec::new(),
+            cells: Vec::new(),
+            cords: Vec::new(),
+        };
+        let expected =
+            expanded_identity(&form, &self.operations, &self.connections, &self.provenance);
+        if self.expanded_form_id != expected {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-049",
+                "expanded form identity differs from its canonical primitive graph".into(),
+            ));
+        }
+        if self.provenance_digest != provenance_digest(&self.source_document_id, &self.provenance) {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-049",
+                "expanded source provenance differs from its exact source document mapping".into(),
+            ));
+        }
+        let operations = self
+            .operations
+            .iter()
+            .map(|operation| (operation.operation_id.clone(), operation))
+            .collect::<BTreeMap<_, _>>();
+        if operations.len() != self.operations.len() {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-038",
+                "expanded operation paths are not unique".into(),
+            ));
+        }
+        for connection in &self.connections {
+            let source = operations
+                .get(&connection.source_operation_id)
+                .and_then(|operation| {
+                    operation
+                        .outputs
+                        .iter()
+                        .find(|port| port.port_id == connection.source_port_id)
+                });
+            let sink = operations
+                .get(&connection.sink_operation_id)
+                .and_then(|operation| {
+                    operation
+                        .inputs
+                        .iter()
+                        .find(|port| port.port_id == connection.sink_port_id)
+                });
+            if source.map(|port| &port.value_kind) != Some(&connection.value_kind)
+                || sink.map(|port| &port.value_kind) != Some(&connection.value_kind)
+            {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-049",
+                    "expanded cord differs from its exact primitive port contracts".into(),
+                ));
+            }
+        }
+        let provenance_ids = self
+            .provenance
+            .iter()
+            .map(|row| row.operation_id.as_str())
+            .collect::<BTreeSet<_>>();
+        if provenance_ids.len() != self.provenance.len()
+            || provenance_ids.len() != self.operations.len()
+            || !self
+                .operations
+                .iter()
+                .all(|operation| provenance_ids.contains(operation.operation_id.as_str()))
+        {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-049",
+                "expanded provenance must name every primitive cell exactly once".into(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+pub(super) fn expanded_identity(
+    form: &CheckedCanonicalForm,
+    operations: &[CheckedOperation],
+    connections: &[CheckedConnection],
+    provenance: &[ExpandedCellProvenance],
+) -> ExpandedFormId {
+    let mut canonical = format!("canonical-expanded:{}", form.checked_form_id.as_str());
+    for operation in operations {
+        push(&mut canonical, operation.operation_id.as_str());
+        push(&mut canonical, operation.kind_id.as_str());
+        push(&mut canonical, operation.kind_contract_revision.as_str());
+        for port in operation.inputs.iter().chain(&operation.outputs) {
+            push(&mut canonical, port.port_id.as_str());
+            push(&mut canonical, port.value_kind.as_str());
+            push(
+                &mut canonical,
+                match port.direction {
+                    conduit_core::PortDirection::Input => "input",
+                    conduit_core::PortDirection::Output => "output",
+                },
+            );
+        }
+        for entry in &operation.configuration {
+            push(&mut canonical, &entry.key);
+            match entry.value {
+                conduit_core::ConfigurationValue::Bool(value) => {
+                    push(&mut canonical, "bool");
+                    push(&mut canonical, if value { "true" } else { "false" });
+                }
+                conduit_core::ConfigurationValue::U64(value) => {
+                    push(&mut canonical, "u64");
+                    push(&mut canonical, &value.to_string());
+                }
+            }
+        }
+    }
+    for connection in connections {
+        push(&mut canonical, connection.source_operation_id.as_str());
+        push(&mut canonical, connection.source_port_id.as_str());
+        push(&mut canonical, connection.sink_operation_id.as_str());
+        push(&mut canonical, connection.sink_port_id.as_str());
+        push(&mut canonical, connection.value_kind.as_str());
+    }
+    for row in provenance {
+        push(&mut canonical, &row.operation_id);
+        push(&mut canonical, &row.form_path.join("/"));
+        push(&mut canonical, &row.source_form);
+        push(&mut canonical, &row.source_cell);
+    }
+    ExpandedFormId::from(hash_string(&canonical))
+}
+
+pub(super) fn provenance_digest(
+    source_document_id: &conduit_core::SourceDocumentId,
+    provenance: &[ExpandedCellProvenance],
+) -> String {
+    let mut canonical = String::from("canonical-expansion-provenance");
+    push(&mut canonical, source_document_id.as_str());
+    for row in provenance {
+        push(&mut canonical, &row.operation_id);
+        push(&mut canonical, &row.form_path.join("/"));
+        push(&mut canonical, &row.source_form);
+        push(&mut canonical, &row.source_cell);
+        push(&mut canonical, &row.source_span.start.to_string());
+        push(&mut canonical, &row.source_span.end.to_string());
+        push(&mut canonical, &row.source_span.line.to_string());
+        push(&mut canonical, &row.source_span.column.to_string());
+    }
+    hash_string(&canonical)
+}
+
+fn push(target: &mut String, value: &str) {
+    target.push_str(&value.len().to_string());
+    target.push(':');
+    target.push_str(value);
+}

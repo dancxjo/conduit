@@ -1,5 +1,5 @@
 use crate::{RuntimePort, Span};
-use conduit_core::{CheckedFormId, SourceDocumentId};
+use conduit_core::{CheckedFormId, ExpandedFormId, SourceDocumentId};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -71,11 +71,33 @@ pub struct CheckedStartupParameter {
     pub default: Option<CanonicalStartupValue>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct CheckedCanonicalCell {
     pub name: Option<String>,
     pub operation: String,
     pub startup_bindings: Vec<CheckedStartupBinding>,
+    pub source_span: Span,
+}
+
+impl PartialEq for CheckedCanonicalCell {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.operation == other.operation
+            && self.startup_bindings == other.startup_bindings
+    }
+}
+
+impl Eq for CheckedCanonicalCell {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckedCordStage {
+    Reference(String),
+    InlineCell(CheckedCanonicalCell),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedCanonicalCord {
+    pub stages: Vec<CheckedCordStage>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -87,13 +109,54 @@ pub struct CheckedCanonicalForm {
     pub shorthand: Option<(String, String)>,
     pub local_values: Vec<(String, CanonicalStartupValue)>,
     pub cells: Vec<CheckedCanonicalCell>,
-    pub cords: Vec<String>,
+    pub cords: Vec<CheckedCanonicalCord>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedSyntaxDocument {
     pub source_document_id: SourceDocumentId,
     pub forms: Vec<CheckedCanonicalForm>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpandedCellProvenance {
+    pub operation_id: String,
+    pub form_path: Vec<String>,
+    pub source_form: String,
+    pub source_cell: String,
+    pub source_span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpandedCanonicalForm {
+    pub source_document_id: SourceDocumentId,
+    pub checked_form_id: CheckedFormId,
+    pub expanded_form_id: ExpandedFormId,
+    pub name: String,
+    pub operations: Vec<crate::CheckedOperation>,
+    pub connections: Vec<crate::CheckedConnection>,
+    pub provenance: Vec<ExpandedCellProvenance>,
+    pub provenance_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CanonicalExpansionDiagnostic {
+    pub code: &'static str,
+    pub message: String,
+}
+
+impl std::fmt::Display for CanonicalExpansionDiagnostic {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}: {}", self.code, self.message)
+    }
+}
+
+impl std::error::Error for CanonicalExpansionDiagnostic {}
+
+impl CanonicalExpansionDiagnostic {
+    pub(crate) fn new(code: &'static str, message: String) -> Self {
+        Self { code, message }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,6 +179,7 @@ pub(crate) enum SyntaxCheckError {
     UnsupportedOperation(String),
     DuplicateCell(String),
     UnsupportedExpression(String),
+    AmbiguousFaceName(String),
 }
 
 impl SyntaxCheckError {
@@ -160,6 +224,10 @@ impl SyntaxCheckError {
             Self::UnsupportedExpression(expression) => (
                 "CND-FRM-030",
                 format!("unsupported pure startup expression '{expression}'"),
+            ),
+            Self::AmbiguousFaceName(name) => (
+                "CND-FRM-050",
+                format!("face name '{name}' is duplicated or ambiguously shadowed"),
             ),
         };
         SyntaxCheckDiagnostic {
