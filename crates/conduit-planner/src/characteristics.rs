@@ -8,13 +8,56 @@ use crate::{
     PlacementChoice, PlacementChoices, PlannerError, RealizationPolicy, RealizationPreference,
 };
 use conduit_core::{
-    seal_plan, CapabilityOffer, ConnectionProvider, FormIdentity, HostAdvertisement, OperationId,
-    Plan, RealizationAdvertisement, RealizationCharacteristicId, RealizationCharacteristicValue,
+    seal_plan, ArtifactId, BootId, CapabilityId, CapabilityOffer, ConnectionProvider, FormIdentity,
+    HostAdvertisement, HostId, ImplementationId, OfferGeneration, OperationId, Plan,
+    RealizationAdvertisement, RealizationCharacteristicId, RealizationCharacteristicValue,
     ResourceObservation,
 };
 use conduit_form::{CheckedForm, CheckedOperation};
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
+
+pub const MAXIMUM_REALIZATION_DECISION_RECORDS: usize = 256;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RealizationRejection {
+    QueueItemBound,
+    QueueByteBound,
+    ResourceUnitCeiling,
+    HostOperationAllowlist,
+    AuthorityContractAllowlist,
+    MinimumCharacteristicCount(RealizationCharacteristicId),
+    MaximumCharacteristicCount(RealizationCharacteristicId),
+    RequiredCharacteristicFlag(RealizationCharacteristicId),
+    RequiredCharacteristicLabel(RealizationCharacteristicId),
+    CurrentResourceObservation,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RealizationDecisionDisposition {
+    Rejected(RealizationRejection),
+    Admitted,
+    Selected,
+}
+
+/// Bounded, prompt-free planning evidence for one equal-face candidate.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RealizationDecisionRecord {
+    pub operation_id: OperationId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
+    pub capability_id: CapabilityId,
+    pub implementation_id: ImplementationId,
+    pub artifact_id: ArtifactId,
+    pub disposition: RealizationDecisionDisposition,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RealizationSelection {
+    pub choice: PlacementChoice,
+    pub evidence: Vec<RealizationDecisionRecord>,
+}
 
 pub fn select_realization_with_characteristics(
     operation: &CheckedOperation,
@@ -24,12 +67,31 @@ pub fn select_realization_with_characteristics(
     observations: &[ResourceObservation],
     policy: &RealizationPolicy,
 ) -> Result<PlacementChoice, PlannerError> {
+    select_realization_with_characteristics_and_evidence(
+        operation,
+        realm,
+        advertisements,
+        requirements,
+        observations,
+        policy,
+    )
+    .map(|selection| selection.choice)
+}
+
+pub fn select_realization_with_characteristics_and_evidence(
+    operation: &CheckedOperation,
+    realm: &[HostAdvertisement],
+    advertisements: &[RealizationAdvertisement],
+    requirements: &HardRealizationRequirements,
+    observations: &[ResourceObservation],
+    policy: &RealizationPolicy,
+) -> Result<RealizationSelection, PlannerError> {
     validate_requirement_identities(requirements)?;
     validate_policy(policy)?;
     validate_resource_observations(realm, observations)?;
     validate_advertisements(realm, advertisements)?;
 
-    let mut face_candidates = realm
+    let face_candidates = realm
         .iter()
         .flat_map(|host| host.capabilities.iter().map(move |offer| (host, offer)))
         .filter(|(_, offer)| offer.checked_face() == operation.checked_face())
@@ -39,12 +101,35 @@ pub fn select_realization_with_characteristics(
             operation.kind_id.as_str().to_string(),
         ));
     }
-    face_candidates.retain(|(host, offer)| {
+    if face_candidates.len() > MAXIMUM_REALIZATION_DECISION_RECORDS {
+        return Err(PlannerError::PlannerLimitExceeded(format!(
+            "operation '{}' has {} equal-face candidates above the evidence bound of {}",
+            operation.operation_id.as_str(),
+            face_candidates.len(),
+            MAXIMUM_REALIZATION_DECISION_RECORDS
+        )));
+    }
+    let mut evidence = Vec::with_capacity(face_candidates.len());
+    let mut hard_admitted = Vec::with_capacity(face_candidates.len());
+    for (host, offer) in face_candidates {
         let facts = advertisement_for(host, offer, advertisements);
-        hard_requirement_failure(offer, requirements).is_none()
-            && characteristics_satisfy(facts, requirements)
-    });
-    if face_candidates.is_empty() {
+        let rejection = hard_requirement_failure(offer, requirements)
+            .map(base_rejection)
+            .or_else(|| characteristic_rejection(facts, requirements));
+        if rejection.is_none() {
+            hard_admitted.push((host, offer));
+        }
+        evidence.push(decision_record(
+            operation,
+            host,
+            offer,
+            rejection.map_or(
+                RealizationDecisionDisposition::Admitted,
+                RealizationDecisionDisposition::Rejected,
+            ),
+        ));
+    }
+    if hard_admitted.is_empty() {
         return Err(PlannerError::HardRealizationRequirementUnsatisfied(
             format!(
                 "operation '{}' has no hard-admissible realization",
@@ -52,8 +137,19 @@ pub fn select_realization_with_characteristics(
             ),
         ));
     }
-    face_candidates.retain(|(host, offer)| observations_admit(host, offer, observations));
-    if face_candidates.is_empty() {
+    let mut observed_admitted = Vec::with_capacity(hard_admitted.len());
+    for (host, offer) in hard_admitted {
+        if observations_admit(host, offer, observations) {
+            observed_admitted.push((host, offer));
+        } else if let Some(record) = evidence.iter_mut().find(|record| {
+            record.host_id == host.host_id && record.capability_id == offer.capability_id
+        }) {
+            record.disposition = RealizationDecisionDisposition::Rejected(
+                RealizationRejection::CurrentResourceObservation,
+            );
+        }
+    }
+    if observed_admitted.is_empty() {
         return Err(PlannerError::CurrentResourceObservationUnavailable(
             format!(
                 "operation '{}' has no realization with current observed resources",
@@ -61,7 +157,7 @@ pub fn select_realization_with_characteristics(
             ),
         ));
     }
-    face_candidates.sort_by(|(left_host, left_offer), (right_host, right_offer)| {
+    observed_admitted.sort_by(|(left_host, left_offer), (right_host, right_offer)| {
         compare(
             left_host,
             left_offer,
@@ -72,10 +168,50 @@ pub fn select_realization_with_characteristics(
             policy,
         )
     });
-    Ok(PlacementChoice {
-        host_id: face_candidates[0].0.host_id.clone(),
-        capability_id: face_candidates[0].1.capability_id.clone(),
-    })
+    let choice = PlacementChoice {
+        host_id: observed_admitted[0].0.host_id.clone(),
+        capability_id: observed_admitted[0].1.capability_id.clone(),
+    };
+    for record in &mut evidence {
+        if record.host_id == choice.host_id && record.capability_id == choice.capability_id {
+            record.disposition = RealizationDecisionDisposition::Selected;
+        }
+    }
+    evidence.sort_by(|left, right| {
+        left.host_id
+            .cmp(&right.host_id)
+            .then_with(|| left.capability_id.cmp(&right.capability_id))
+    });
+    Ok(RealizationSelection { choice, evidence })
+}
+
+fn decision_record(
+    operation: &CheckedOperation,
+    host: &HostAdvertisement,
+    offer: &CapabilityOffer,
+    disposition: RealizationDecisionDisposition,
+) -> RealizationDecisionRecord {
+    RealizationDecisionRecord {
+        operation_id: operation.operation_id.clone(),
+        host_id: host.host_id.clone(),
+        boot_id: host.boot_id.clone(),
+        offer_generation: host.offer_generation,
+        capability_id: offer.capability_id.clone(),
+        implementation_id: offer.implementation.implementation_id.clone(),
+        artifact_id: offer.implementation.artifact_id.clone(),
+        disposition,
+    }
+}
+
+fn base_rejection(dimension: &'static str) -> RealizationRejection {
+    match dimension {
+        "queue item bound" => RealizationRejection::QueueItemBound,
+        "queue byte bound" => RealizationRejection::QueueByteBound,
+        "resource-unit ceiling" => RealizationRejection::ResourceUnitCeiling,
+        "host-operation allowlist" => RealizationRejection::HostOperationAllowlist,
+        "authority-contract allowlist" => RealizationRejection::AuthorityContractAllowlist,
+        _ => unreachable!("hard requirement failures have a closed vocabulary"),
+    }
 }
 
 pub fn plan_selected_realizations_with_characteristics(
@@ -166,31 +302,42 @@ fn validate_advertisements(
     Ok(())
 }
 
-fn characteristics_satisfy(
+fn characteristic_rejection(
     advertisement: Option<&RealizationAdvertisement>,
     requirements: &HardRealizationRequirements,
-) -> bool {
-    requirements
+) -> Option<RealizationRejection> {
+    if let Some((id, _)) = requirements
         .minimum_characteristic_counts
         .iter()
-        .all(|(id, minimum)| count(advertisement, id).is_some_and(|value| value >= *minimum))
-        && requirements
-            .maximum_characteristic_counts
-            .iter()
-            .all(|(id, maximum)| count(advertisement, id).is_some_and(|value| value <= *maximum))
-        && requirements
+        .find(|(id, minimum)| count(advertisement, id).is_none_or(|value| value < **minimum))
+    {
+        return Some(RealizationRejection::MinimumCharacteristicCount(id.clone()));
+    }
+    if let Some((id, _)) = requirements
+        .maximum_characteristic_counts
+        .iter()
+        .find(|(id, maximum)| count(advertisement, id).is_none_or(|value| value > **maximum))
+    {
+        return Some(RealizationRejection::MaximumCharacteristicCount(id.clone()));
+    }
+    if let Some((id, _)) =
+        requirements
             .required_characteristic_flags
             .iter()
-            .all(|(id, required)| {
-                value(advertisement, id) == Some(&RealizationCharacteristicValue::Flag(*required))
+            .find(|(id, required)| {
+                value(advertisement, id) != Some(&RealizationCharacteristicValue::Flag(**required))
             })
-        && requirements
-            .required_characteristic_labels
-            .iter()
-            .all(|(id, required)| {
-                value(advertisement, id)
-                    == Some(&RealizationCharacteristicValue::Label(required.clone()))
-            })
+    {
+        return Some(RealizationRejection::RequiredCharacteristicFlag(id.clone()));
+    }
+    requirements
+        .required_characteristic_labels
+        .iter()
+        .find(|(id, required)| {
+            value(advertisement, id)
+                != Some(&RealizationCharacteristicValue::Label((*required).clone()))
+        })
+        .map(|(id, _)| RealizationRejection::RequiredCharacteristicLabel(id.clone()))
 }
 
 #[allow(clippy::too_many_arguments)]
