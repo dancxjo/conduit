@@ -662,6 +662,18 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         "cargo",
         &["build", "-p", "conduit-std-host", "--bin", "webchat-server"],
     ),
+    Step::new(
+        "check.browser.pool-webchat-server-build",
+        "Build bounded shared-pool chat server",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "conduit-std-host",
+            "--bin",
+            "pool-webchat-server",
+        ],
+    ),
     Step::typed(
         "check.browser.host-proof",
         "Run browser host test proof",
