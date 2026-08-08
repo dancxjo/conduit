@@ -37,6 +37,7 @@ fn plan_with_protected_test_grants(
         &[ConnectionProvider::Local],
         PlanningOptions {
             connection_providers: &provider_overrides,
+            route_candidates: &BTreeMap::new(),
             connection_item_capacity: 4,
             connection_byte_capacity: 64,
             authority_grants: &[],

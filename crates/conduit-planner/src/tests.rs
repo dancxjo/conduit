@@ -808,7 +808,14 @@ fn planning_link_binding_mutations_change_fragment_identity() {
             15 => binding.limits.maximum_frame_bytes += 1,
             _ => unreachable!(),
         }
-        assert!(!verify_plan_fragment(&mutated));
+        if field != 9 {
+            mutated.connections[0].route_candidates[0] = binding.bound_link();
+        }
+        assert_eq!(
+            verify_plan_fragment(&mutated),
+            field == 9,
+            "field {field}: only mutable availability evidence stays outside fragment identity"
+        );
     }
 }
 

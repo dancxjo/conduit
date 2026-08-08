@@ -246,6 +246,7 @@ fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
         &[ConnectionProvider::Local],
         PlanningOptions {
             connection_providers: &overrides,
+            route_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 1,
             authority_grants: &[],

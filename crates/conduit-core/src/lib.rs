@@ -13,11 +13,13 @@ mod configuration;
 mod face;
 mod port;
 mod resource;
+mod route;
 
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use face::{CheckedFace, FaceStartupParameter};
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use resource::*;
+pub use route::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
@@ -344,106 +346,6 @@ pub struct HostAdvertisement {
     pub planner_capabilities: Vec<PlannerCapabilityOffer>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ConnectionProvider {
-    Local,
-    InMemory,
-    /// Deterministic bounded frame transit used only by conformance fixtures.
-    FixtureFrame,
-    /// Deterministic bounded datagram transit used only by conformance fixtures.
-    FixtureDatagram,
-    /// Actual RFC 6455 binary-message carrier. Availability is valid only for
-    /// an initialized provider instance observed at exact boot-scoped endpoints.
-    WebSocket,
-    /// Bounded length-framed USB CDC ACM byte-stream carrier.
-    UsbCdc,
-}
-
-impl ConnectionProvider {
-    /// Returns the canonical 1-byte wire/plan code for this provider.
-    pub const fn canonical_code(self) -> u8 {
-        match self {
-            Self::Local => 0,
-            Self::InMemory => 1,
-            Self::FixtureFrame => 2,
-            Self::FixtureDatagram => 3,
-            Self::WebSocket => 4,
-            Self::UsbCdc => 5,
-        }
-    }
-
-    /// Parses a canonical 1-byte wire/plan code into a provider variant, if valid.
-    pub const fn from_canonical_code(code: u8) -> Option<Self> {
-        match code {
-            0 => Some(Self::Local),
-            1 => Some(Self::InMemory),
-            2 => Some(Self::FixtureFrame),
-            3 => Some(Self::FixtureDatagram),
-            4 => Some(Self::WebSocket),
-            5 => Some(Self::UsbCdc),
-            _ => None,
-        }
-    }
-
-    /// Indicates whether this provider's contract is compatible with the exact
-    /// framed `SessionMachine` protocol.
-    ///
-    /// This means only that the provider's contract is compatible with the
-    /// exact framed SessionMachine protocol. It does not claim that an actual
-    /// carrier implementation is installed, runnable, production-ready, or proven.
-    pub const fn supports_remote_session(self) -> bool {
-        matches!(self, Self::FixtureFrame | Self::WebSocket | Self::UsbCdc)
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LinkAvailability {
-    Ready,
-    Unavailable,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LinkCredentialReference {
-    None,
-    Opaque(CredentialReferenceId),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LinkAuthorityReference {
-    ProcessOwned,
-    Grant(AuthorityGrantId),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LinkEndpoint {
-    pub host_id: HostId,
-    pub boot_id: BootId,
-    pub endpoint_id: LinkEndpointId,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LinkLimits {
-    pub maximum_in_flight_items: u16,
-    pub maximum_payload_bytes: u32,
-    pub maximum_buffered_bytes: u32,
-    pub maximum_frame_bytes: u32,
-}
-
-/// One observed, directional remote-link fact. It identifies an initialized
-/// provider instance but contains no provider configuration or secret material.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LinkBinding {
-    pub binding_id: LinkBindingId,
-    pub source: LinkEndpoint,
-    pub sink: LinkEndpoint,
-    pub provider: ConnectionProvider,
-    pub provider_instance_id: ConnectionProviderInstanceId,
-    pub availability: LinkAvailability,
-    pub credential: LinkCredentialReference,
-    pub authority: LinkAuthorityReference,
-    pub limits: LinkLimits,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConnectionEnvelope {
     pub protocol_version: u16,
@@ -592,8 +494,25 @@ pub struct PlannedConnection {
     pub temporal: PortTemporal,
     pub provider: ConnectionProvider,
     pub link_binding: Option<LinkBinding>,
+    /// Exact ordered permissible routes. Empty retains the legacy single-link
+    /// representation; new remote plans seal at least one immutable candidate.
+    #[serde(default)]
+    pub route_candidates: Vec<BoundLink>,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+}
+
+impl PlannedConnection {
+    /// Whether an immutable link is inside this connection's sealed route set.
+    pub fn permits_bound_link(&self, link: &BoundLink) -> bool {
+        if self.route_candidates.is_empty() {
+            self.link_binding
+                .as_ref()
+                .is_some_and(|binding| binding.bound_link() == *link)
+        } else {
+            self.route_candidates.contains(link)
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -714,6 +633,7 @@ fn verify_plan_connections(plan: &Plan) -> bool {
             if occurrences.len() != 1
                 || connection.provider != ConnectionProvider::Local
                 || connection.link_binding.is_some()
+                || !connection.route_candidates.is_empty()
             {
                 return false;
             }
@@ -721,37 +641,60 @@ fn verify_plan_connections(plan: &Plan) -> bool {
             let Some(binding) = &connection.link_binding else {
                 return false;
             };
+            let candidates = if connection.route_candidates.is_empty() {
+                alloc::vec![binding.bound_link()]
+            } else {
+                connection.route_candidates.clone()
+            };
             if occurrences.len() != 2
                 || connection.provider == ConnectionProvider::Local
                 || binding.binding_id.as_str().is_empty()
                 || binding.provider != connection.provider
                 || binding.provider_instance_id.as_str().is_empty()
-                || binding.availability != LinkAvailability::Ready
-                || binding.source.host_id != source.host_id
-                || binding.source.boot_id != source.boot_id
-                || binding.source.endpoint_id.as_str().is_empty()
-                || binding.sink.host_id != sink.host_id
-                || binding.sink.boot_id != sink.boot_id
-                || binding.sink.endpoint_id.as_str().is_empty()
-                || binding.source.endpoint_id == binding.sink.endpoint_id
-                || binding.limits.maximum_in_flight_items < connection.item_capacity
-                || binding.limits.maximum_payload_bytes < connection.byte_capacity
-                || binding.limits.maximum_buffered_bytes < connection.byte_capacity
-                || binding.limits.maximum_frame_bytes < binding.limits.maximum_payload_bytes
-                || matches!(
-                    &binding.credential,
-                    LinkCredentialReference::Opaque(reference) if reference.as_str().is_empty()
-                )
-                || matches!(
-                    &binding.authority,
-                    LinkAuthorityReference::Grant(grant_id) if grant_id.as_str().is_empty()
-                )
+                || !connection.permits_bound_link(&binding.bound_link())
+                || candidates
+                    .iter()
+                    .enumerate()
+                    .any(|(index, candidate)| candidates[..index].contains(candidate))
+                || candidates
+                    .iter()
+                    .any(|candidate| invalid_bound_link(candidate, source, sink, connection))
             {
                 return false;
             }
         }
     }
     true
+}
+
+fn invalid_bound_link(
+    candidate: &BoundLink,
+    source: &PlannedOperation,
+    sink: &PlannedOperation,
+    connection: &PlannedConnection,
+) -> bool {
+    candidate.binding_id.as_str().is_empty()
+        || candidate.provider == ConnectionProvider::Local
+        || candidate.provider_instance_id.as_str().is_empty()
+        || candidate.source.host_id != source.host_id
+        || candidate.source.boot_id != source.boot_id
+        || candidate.source.endpoint_id.as_str().is_empty()
+        || candidate.sink.host_id != sink.host_id
+        || candidate.sink.boot_id != sink.boot_id
+        || candidate.sink.endpoint_id.as_str().is_empty()
+        || candidate.source.endpoint_id == candidate.sink.endpoint_id
+        || candidate.limits.maximum_in_flight_items < connection.item_capacity
+        || candidate.limits.maximum_payload_bytes < connection.byte_capacity
+        || candidate.limits.maximum_buffered_bytes < connection.byte_capacity
+        || candidate.limits.maximum_frame_bytes < candidate.limits.maximum_payload_bytes
+        || matches!(
+            &candidate.credential,
+            LinkCredentialReference::Opaque(reference) if reference.as_str().is_empty()
+        )
+        || matches!(
+            &candidate.authority,
+            LinkAuthorityReference::Grant(grant_id) if grant_id.as_str().is_empty()
+        )
 }
 
 pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
@@ -879,43 +822,20 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             PortTemporal::Flow { closes: true } => 2,
             PortTemporal::Current => 3,
         });
-        canonical.push(connection.provider.canonical_code());
-        match &connection.link_binding {
-            Some(binding) => {
-                canonical.push(1);
-                push_string(&mut canonical, binding.binding_id.as_str());
-                push_string(&mut canonical, binding.source.host_id.as_str());
-                push_string(&mut canonical, binding.source.boot_id.as_str());
-                push_string(&mut canonical, binding.source.endpoint_id.as_str());
-                push_string(&mut canonical, binding.sink.host_id.as_str());
-                push_string(&mut canonical, binding.sink.boot_id.as_str());
-                push_string(&mut canonical, binding.sink.endpoint_id.as_str());
-                canonical.push(binding.provider.canonical_code());
-                push_string(&mut canonical, binding.provider_instance_id.as_str());
-                canonical.push(match binding.availability {
-                    LinkAvailability::Ready => 0,
-                    LinkAvailability::Unavailable => 1,
-                });
-                match &binding.credential {
-                    LinkCredentialReference::None => canonical.push(0),
-                    LinkCredentialReference::Opaque(reference) => {
-                        canonical.push(1);
-                        push_string(&mut canonical, reference.as_str());
-                    }
+        if connection.route_candidates.is_empty() {
+            canonical.push(connection.provider.canonical_code());
+            match &connection.link_binding {
+                Some(binding) => {
+                    canonical.push(1);
+                    push_bound_link(&mut canonical, &binding.bound_link());
                 }
-                match &binding.authority {
-                    LinkAuthorityReference::ProcessOwned => canonical.push(0),
-                    LinkAuthorityReference::Grant(grant_id) => {
-                        canonical.push(1);
-                        push_string(&mut canonical, grant_id.as_str());
-                    }
-                }
-                canonical.extend_from_slice(&binding.limits.maximum_in_flight_items.to_le_bytes());
-                push_u32(&mut canonical, binding.limits.maximum_payload_bytes);
-                push_u32(&mut canonical, binding.limits.maximum_buffered_bytes);
-                push_u32(&mut canonical, binding.limits.maximum_frame_bytes);
+                None => canonical.push(0),
             }
-            None => canonical.push(0),
+        } else {
+            push_u32(&mut canonical, connection.route_candidates.len() as u32);
+            for candidate in &connection.route_candidates {
+                push_bound_link(&mut canonical, candidate);
+            }
         }
         canonical.extend_from_slice(&connection.item_capacity.to_le_bytes());
         push_u32(&mut canonical, connection.byte_capacity);
@@ -979,6 +899,36 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         fragment.evidence_storage_budget.byte_capacity,
     );
     FragmentId::from(hash_bytes(&canonical))
+}
+
+fn push_bound_link(canonical: &mut Vec<u8>, binding: &BoundLink) {
+    push_string(canonical, binding.binding_id.as_str());
+    push_string(canonical, binding.source.host_id.as_str());
+    push_string(canonical, binding.source.boot_id.as_str());
+    push_string(canonical, binding.source.endpoint_id.as_str());
+    push_string(canonical, binding.sink.host_id.as_str());
+    push_string(canonical, binding.sink.boot_id.as_str());
+    push_string(canonical, binding.sink.endpoint_id.as_str());
+    canonical.push(binding.provider.canonical_code());
+    push_string(canonical, binding.provider_instance_id.as_str());
+    match &binding.credential {
+        LinkCredentialReference::None => canonical.push(0),
+        LinkCredentialReference::Opaque(reference) => {
+            canonical.push(1);
+            push_string(canonical, reference.as_str());
+        }
+    }
+    match &binding.authority {
+        LinkAuthorityReference::ProcessOwned => canonical.push(0),
+        LinkAuthorityReference::Grant(grant_id) => {
+            canonical.push(1);
+            push_string(canonical, grant_id.as_str());
+        }
+    }
+    canonical.extend_from_slice(&binding.limits.maximum_in_flight_items.to_le_bytes());
+    push_u32(canonical, binding.limits.maximum_payload_bytes);
+    push_u32(canonical, binding.limits.maximum_buffered_bytes);
+    push_u32(canonical, binding.limits.maximum_frame_bytes);
 }
 
 fn compute_plan_id(form_identity: &FormIdentity, commitments: &[FragmentCommitment]) -> PlanId {

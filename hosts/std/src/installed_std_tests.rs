@@ -43,6 +43,7 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
         &[ConnectionProvider::Local],
         PlanningOptions {
             connection_providers: &provider_choices,
+            route_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 8,
             authority_grants: &[],

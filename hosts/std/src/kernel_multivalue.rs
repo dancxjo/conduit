@@ -553,6 +553,7 @@ pub fn plan_local(
         &[conduit_core::ConnectionProvider::Local],
         PlanningOptions {
             connection_providers: &provider_choices,
+            route_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 8,
             authority_grants: &[],

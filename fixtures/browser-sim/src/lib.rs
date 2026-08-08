@@ -1077,6 +1077,7 @@ mod tests {
             ],
             PlanningOptions {
                 connection_providers: &connection_providers,
+                route_candidates: &BTreeMap::new(),
                 connection_item_capacity: 4,
                 connection_byte_capacity: 64,
                 authority_grants: &[],
