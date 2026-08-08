@@ -25,8 +25,8 @@ pub mod distributed_signal;
 pub mod distributed_toggle;
 pub use composition::StdHostComposition;
 pub use copy_task::{
-    CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken, ProtectedFileAvailability,
-    ProtectedFileRegistry,
+    prepare_copy_task, CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken, PreparedCopyTask,
+    ProtectedFileAvailability, ProtectedFileRegistry,
 };
 pub mod external_websocket;
 mod installed_std;

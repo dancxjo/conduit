@@ -1,4 +1,4 @@
-use super::{parse_arguments, render::draw_document, Arguments, BACKGROUND};
+use super::{arguments::parse_arguments, render::draw_document, Arguments, BACKGROUND};
 use std::path::PathBuf;
 
 #[test]
@@ -33,6 +33,11 @@ fn arguments_are_explicit_and_fail_closed() {
         parse_arguments(vec!["--control-demo-stop".into()].into_iter())
             .unwrap()
             .control_demo_stop
+    );
+    assert!(
+        parse_arguments(vec!["--native-copy-demo".into()].into_iter())
+            .unwrap()
+            .native_copy_demo
     );
     assert!(parse_arguments(vec!["--unknown".into()].into_iter()).is_err());
     assert!(parse_arguments(vec!["--observatory-snapshot".into()].into_iter()).is_err());

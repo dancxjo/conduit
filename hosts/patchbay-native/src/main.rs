@@ -2,7 +2,6 @@
 
 use patchbay_model::{FormEditor, GraphItemKind, PatchbayModel, PatchbayTopology};
 use std::num::NonZeroU32;
-use std::path::PathBuf;
 use std::rc::Rc;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -12,21 +11,16 @@ use winit::window::{Window, WindowId};
 
 const HISTORY_CAPACITY: usize = 4;
 const MAX_FORM_PRESENTATION_LINES: usize = 256;
+mod arguments;
 mod control;
+mod file_task;
 mod render;
 mod resource;
+use arguments::{parse_arguments, Arguments};
 use control::NativeControl;
+use file_task::{probe_native_file_task, DestinationPolicy, NativeFileTask};
 use render::{draw_document, BACKGROUND};
 use resource::{open_form_resource, save_form_resource};
-
-#[derive(Debug, Default, PartialEq, Eq)]
-struct Arguments {
-    exit_after_window: bool,
-    snapshot_path: Option<PathBuf>,
-    form_path: Option<PathBuf>,
-    control_demo: bool,
-    control_demo_stop: bool,
-}
 
 struct PatchbayApplication {
     model: PatchbayModel,
@@ -35,6 +29,7 @@ struct PatchbayApplication {
     form_selection: usize,
     modifiers: winit::keyboard::ModifiersState,
     control: NativeControl,
+    file_task: NativeFileTask,
     window: Option<Rc<Window>>,
     exit_after_window: bool,
     rendered_once: bool,
@@ -70,6 +65,7 @@ impl PatchbayApplication {
             .map(open_form_resource)
             .transpose()
             .map_err(|error| error.to_string())?;
+        let file_task = probe_native_file_task();
         let mut application = Self {
             model,
             topology_lines,
@@ -77,6 +73,7 @@ impl PatchbayApplication {
             form_selection: 0,
             modifiers: winit::keyboard::ModifiersState::empty(),
             control: NativeControl::new(),
+            file_task,
             window: None,
             exit_after_window: arguments.exit_after_window,
             rendered_once: false,
@@ -92,6 +89,9 @@ impl PatchbayApplication {
             if arguments.control_demo_stop {
                 application.control.stop()?;
             }
+        }
+        if arguments.native_copy_demo {
+            application.file_task.run_choice_demo()?;
         }
         Ok(application)
     }
@@ -152,7 +152,7 @@ impl PatchbayApplication {
         let view = editor.view();
         let mut lines = vec![
             format!("SOURCE {} revision={}", view.path.display(), view.revision),
-            "  edit=end  Backspace=delete  Ctrl-S=save  Tab=open-next-back  Up/Down=select  F5=Plan F6=Run Esc=Stop".into(),
+            "  Form: edit/end Backspace/delete Ctrl-S/save Tab/open-back Up/Down/select | Play: F5/Plan F6/Run Esc/Stop | File: F7/source F8/create Shift-F8/replace F9/Plan F10/Run F11/Stop".into(),
         ];
         lines.extend(
             view.source
@@ -211,6 +211,7 @@ impl PatchbayApplication {
             }
         }
         lines.extend(self.control.lines());
+        lines.extend(self.file_task.lines());
         lines.truncate(MAX_FORM_PRESENTATION_LINES);
         lines
     }
@@ -296,6 +297,20 @@ impl PatchbayApplication {
                 )?;
             }
             Key::Named(NamedKey::Escape) => self.control.stop()?,
+            Key::Named(NamedKey::F7) => {
+                self.file_task.choose_source()?;
+            }
+            Key::Named(NamedKey::F8) => {
+                let policy = if self.modifiers.shift_key() {
+                    DestinationPolicy::Replace
+                } else {
+                    DestinationPolicy::Create
+                };
+                self.file_task.choose_destination(policy)?;
+            }
+            Key::Named(NamedKey::F9) => self.file_task.plan()?,
+            Key::Named(NamedKey::F10) => self.file_task.run()?,
+            Key::Named(NamedKey::F11) => self.file_task.stop()?,
             Key::Character(character)
                 if self.modifiers.control_key() && character.eq_ignore_ascii_case("s") =>
             {
@@ -390,6 +405,20 @@ impl ApplicationHandler for PatchbayApplication {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        match self.file_task.poll() {
+            Ok(true) => {
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
+                self.rendered_once = false;
+            }
+            Ok(false) => {}
+            Err(error) => {
+                self.failure = Some(format!("Native file task failed: {error}"));
+                event_loop.exit();
+                return;
+            }
+        }
         match self.control.poll() {
             Ok(true) => {
                 for line in self.control.lines().iter().filter(|line| {
@@ -416,12 +445,18 @@ impl ApplicationHandler for PatchbayApplication {
                 return;
             }
         }
-        event_loop.set_control_flow(if self.control.is_running() {
-            ControlFlow::Poll
-        } else {
-            ControlFlow::Wait
-        });
-        if self.exit_after_window && self.rendered_once && !self.control.is_running() {
+        event_loop.set_control_flow(
+            if self.control.is_running() || self.file_task.is_running() {
+                ControlFlow::Poll
+            } else {
+                ControlFlow::Wait
+            },
+        );
+        if self.exit_after_window
+            && self.rendered_once
+            && !self.control.is_running()
+            && !self.file_task.is_running()
+        {
             event_loop.exit();
         }
     }
@@ -455,39 +490,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err(error.into());
     }
     Ok(())
-}
-
-fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Arguments, String> {
-    let mut parsed = Arguments::default();
-    while let Some(argument) = arguments.next() {
-        match argument.as_str() {
-            "--smoke-exit-after-window" if !parsed.exit_after_window => {
-                parsed.exit_after_window = true;
-            }
-            "--observatory-snapshot" if parsed.snapshot_path.is_none() => {
-                let path = arguments
-                    .next()
-                    .ok_or("--observatory-snapshot requires a path")?;
-                parsed.snapshot_path = Some(path.into());
-            }
-            "--form" if parsed.form_path.is_none() => {
-                let path = arguments.next().ok_or("--form requires a path")?;
-                parsed.form_path = Some(path.into());
-            }
-            "--control-demo" if !parsed.control_demo && !parsed.control_demo_stop => {
-                parsed.control_demo = true;
-            }
-            "--control-demo-stop" if !parsed.control_demo && !parsed.control_demo_stop => {
-                parsed.control_demo_stop = true;
-            }
-            _ => {
-                return Err(format!(
-                    "unsupported or repeated Patchbay argument: {argument}"
-                ))
-            }
-        }
-    }
-    Ok(parsed)
 }
 
 #[cfg(test)]
