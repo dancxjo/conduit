@@ -1,6 +1,6 @@
 use crate::surface_lex::{
     delimiters_are_balanced, is_name, is_operation, is_reference, location, split_declaration,
-    split_top_level, split_top_level_once, top_level_positions,
+    split_top_level, split_top_level_once, top_level_positions, SourceLine,
 };
 use crate::syntax::{
     Argument, BackStatement, Cord, CordStage, Expression, FormFace, FormSyntax, Invocation,
@@ -45,22 +45,9 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
     }
 }
 
-#[derive(Clone, Copy)]
-struct Line<'a> {
-    text: &'a str,
-    start: usize,
-}
-
-impl<'a> Line<'a> {
-    fn trimmed(self) -> (&'a str, usize) {
-        let text = self.text.trim_start();
-        (text.trim_end(), self.start + self.text.len() - text.len())
-    }
-}
-
 struct Parser<'a> {
     source: &'a str,
-    lines: Vec<Line<'a>>,
+    lines: Vec<SourceLine<'a>>,
     index: usize,
 }
 
@@ -70,7 +57,7 @@ impl<'a> Parser<'a> {
         let mut offset = 0;
         for raw in source.split_inclusive('\n') {
             let text = raw.strip_suffix('\n').unwrap_or(raw);
-            lines.push(Line {
+            lines.push(SourceLine {
                 text,
                 start: offset,
             });
@@ -125,6 +112,14 @@ impl<'a> Parser<'a> {
         let marker = rest.as_bytes()[boundary] as char;
         let mut face = FormFace::default();
         if marker == '(' {
+            if !rest[boundary + 1..].trim().is_empty() {
+                return Err((
+                    FormError::InvalidSyntax(
+                        "face declarations must follow '(' on their own lines".into(),
+                    ),
+                    self.line_span(header_line),
+                ));
+            }
             let open = header_start + "form ".len() + boundary;
             self.index += 1;
             face = self.parse_face(open)?;
@@ -437,6 +432,7 @@ impl<'a> Parser<'a> {
         if value.is_empty()
             || !delimiters_are_balanced(value)
             || !top_level_positions(value, '>').is_empty()
+            || !top_level_positions(value, '=').is_empty()
             || !top_level_positions(value, '{').is_empty()
             || !top_level_positions(value, '}').is_empty()
         {
@@ -477,7 +473,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn line_span(&self, line: Line<'_>) -> Span {
+    fn line_span(&self, line: SourceLine<'_>) -> Span {
         let (text, start) = line.trimmed();
         self.span(start, start + text.len())
     }

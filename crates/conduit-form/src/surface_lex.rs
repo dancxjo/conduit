@@ -1,3 +1,16 @@
+#[derive(Clone, Copy)]
+pub(crate) struct SourceLine<'a> {
+    pub(crate) text: &'a str,
+    pub(crate) start: usize,
+}
+
+impl<'a> SourceLine<'a> {
+    pub(crate) fn trimmed(self) -> (&'a str, usize) {
+        let text = self.text.trim_start();
+        (text.trim_end(), self.start + self.text.len() - text.len())
+    }
+}
+
 pub(crate) fn split_declaration(text: &str) -> Option<(&str, &str)> {
     let colon = top_level_positions(text, ':').first().copied()?;
     let name = text[..colon].trim();

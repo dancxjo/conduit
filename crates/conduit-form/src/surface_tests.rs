@@ -165,6 +165,14 @@ fn canonical_negative_corpus_has_stable_diagnostics_and_exact_spans() {
             "form bad {\n    \"hello\" > sink\n}\n",
             "expression cannot appear as a graph stage",
         ),
+        (
+            "form bad {\n    value = first = second\n}\n",
+            "value = first = second",
+        ),
+        (
+            "form bad (title: Text\n) {\n}\n",
+            "face declarations must follow",
+        ),
     ];
 
     for (source, message) in cases {
