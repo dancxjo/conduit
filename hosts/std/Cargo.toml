@@ -11,6 +11,7 @@ legacy-fixture-driver = [
 ]
 
 [dependencies]
+conduit-ai = { path = "../../crates/conduit-ai", features = ["form-catalog"] }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-chat = { path = "../../crates/conduit-chat", features = ["form-catalog"] }
 conduit-form = { path = "../../crates/conduit-form" }

@@ -343,6 +343,7 @@ dependencies = [
 name = "conduit-std-host"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
  "conduit-chat",
  "conduit-core",
  "conduit-form",

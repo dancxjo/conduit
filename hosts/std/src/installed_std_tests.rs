@@ -230,6 +230,105 @@ fn invalid_utf8_fails_before_a_successful_text_presentation() {
 }
 
 #[test]
+fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_provider() {
+    let mut catalog = installed_std::test_catalog();
+    let mut startup = conduit_form::StartupCatalog::new();
+    conduit_ai::install_generate_text_catalog(&mut startup, &mut catalog)
+        .expect("generate-text catalog installs");
+    let form = parse(
+        "form 0\n\ngenerate_demo {\n source: conduit.test/text-source\n generate: ai/generate-text\n show: presentation/text\n source.invalid = false\n source.text -> generate.prompt\n generate.text -> show.text\n}\n",
+        &catalog,
+    )
+    .expect("generate-text execution form parses");
+
+    let mut advertisement = host("generate-text-host").advertisement().clone();
+    let fixture = conduit_ai::generate_text_provider_fixtures()
+        .into_iter()
+        .nth(1)
+        .expect("large local fixture exists");
+    advertisement
+        .capabilities
+        .push(fixture.advertisement.capabilities[0].clone());
+    advertisement
+        .resources
+        .extend(fixture.advertisement.resources);
+    advertisement
+        .resources
+        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+    let realm = [advertisement.clone()];
+    let placements = default_placements(&form, &realm).expect("all operations are realizable");
+    let plan = plan_with_options(
+        &form,
+        &realm,
+        &placements,
+        &[ConnectionProvider::Local],
+        PlanningOptions {
+            connection_providers: &BTreeMap::new(),
+            route_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 64,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            link_bindings: &[],
+        },
+    )
+    .expect("generate-text form plans through the ordinary planner");
+    let placement = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == conduit_ai::GENERATE_TEXT_KIND)
+        .expect("generate-text placement exists");
+    assert_eq!(
+        placement.implementation_id.as_str(),
+        conduit_ai::LARGE_LOCAL_IMPLEMENTATION
+    );
+
+    let mut output = Vec::with_capacity(2_048);
+    let mut timer = RecordingTimer { waits: Vec::new() };
+    let mut evidence_sequence = 0;
+    let report = installed_std::run_fragment(
+        &advertisement,
+        &plan.fragments[0],
+        0,
+        &mut evidence_sequence,
+        &mut output,
+        &mut timer,
+    )
+    .expect("planned generate-text runs through lowering, kernel, and provider");
+    assert!(String::from_utf8(output)
+        .expect("fixture output is utf8")
+        .contains("fixture/large-local: Hello\n"));
+    assert_eq!(
+        report.kernel.expect("kernel report").identity.lengths(),
+        (2, 0, 1)
+    );
+    assert!(timer.waits.is_empty());
+
+    let mut substituted = plan.fragments[0].clone();
+    let placement = substituted
+        .placements
+        .iter_mut()
+        .find(|placement| placement.kind_id.as_str() == conduit_ai::GENERATE_TEXT_KIND)
+        .expect("generate-text placement exists");
+    placement.implementation_id =
+        conduit_core::ImplementationId::from(conduit_ai::REMOTE_FRONTIER_IMPLEMENTATION);
+    let mut output = Vec::new();
+    let error = installed_std::run_fragment(
+        &advertisement,
+        &substituted,
+        1,
+        &mut evidence_sequence,
+        &mut output,
+        &mut timer,
+    )
+    .expect_err("an implementation absent from the Plan cannot substitute at runtime");
+    assert!(
+        error.contains("InvalidFragment"),
+        "unexpected rejection: {error}"
+    );
+}
+
+#[test]
 fn every_text_presentation_executable_identity_mutation_fails_before_output() {
     let baseline_host = host("mutated-text-host");
     let plan = text_plan(&baseline_host, false);

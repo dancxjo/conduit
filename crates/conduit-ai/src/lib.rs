@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 
 pub const GENERATE_TEXT_KIND: &str = "ai/generate-text";
 pub const GENERATE_TEXT_REVISION: &str = "conduit.ai/generate-text@1";
-pub const TEXT_VALUE_KIND: &str = "value/text";
+pub const TEXT_VALUE_KIND: &str = "value/text@1";
 pub const MAXIMUM_INPUT_BYTES: u64 = 262_144;
 pub const MAXIMUM_CONTEXT_TOKENS: u64 = 262_144;
 pub const MAXIMUM_OUTPUT_TOKENS: u64 = 16_384;
