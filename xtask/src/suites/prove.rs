@@ -19,6 +19,16 @@ pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
         &["hosts/browser/conduit_browser_runtime.wasm"],
     ),
     Step::typed(
+        "prove.std-browser-s4.patchbay-native-build",
+        "Build native Patchbay distributed source artifact",
+        "cargo",
+        &["build", "-p", "patchbay-native"],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/patchbay-native"],
+    ),
+    Step::typed(
         "prove.std-browser-s4.playwright",
         "Run Playwright distributed signal spec",
         "npx",
@@ -89,6 +99,16 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["hosts/browser/conduit_browser_runtime.wasm"],
+    ),
+    Step::typed(
+        "prove.browser-host.patchbay-native-build",
+        "Build native Patchbay distributed source artifact",
+        "cargo",
+        &["build", "-p", "patchbay-native"],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/patchbay-native"],
     ),
     Step::typed(
         "prove.browser-host.webchat-server-build",

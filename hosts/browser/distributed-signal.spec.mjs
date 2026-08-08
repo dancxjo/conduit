@@ -235,10 +235,10 @@ test("native Patchbay source and browser peer execute one exact distributed Play
 }) => {
   const windowed = process.env.CONDUIT_PATCHBAY_NATIVE_WINDOW === "1";
   const source = spawn(
-    windowed ? "target/debug/patchbay-native" : "cargo",
+    "target/debug/patchbay-native",
     windowed
       ? ["--distributed-play", "--smoke-exit-after-window"]
-      : ["run", "--quiet", "-p", "patchbay-native", "--", "--distributed-play-server"],
+      : ["--distributed-play-server"],
     { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] },
   );
   const stderr = [];
