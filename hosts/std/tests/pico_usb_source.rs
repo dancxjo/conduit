@@ -67,7 +67,10 @@ fn source_is_the_exact_planned_kernel_egress() {
         .expect("sink fragment");
     assert_eq!(source.fragment().plan_id, sink.plan_id);
     assert_eq!(source.binding().sink_fragment_id, sink.fragment_id);
-    assert_eq!(source.binding().provider, ConnectionProvider::UsbCdc);
+    assert_eq!(
+        source.binding().attachment.provider,
+        ConnectionProvider::UsbCdc
+    );
     assert_eq!(source.binding().limits.maximum_in_flight_items, 1);
     assert_eq!(
         source.binding().limits.maximum_payload_bytes,
@@ -89,12 +92,14 @@ fn observed_boot_rebinding_rejects_stale_boot_and_provider_instance() {
     );
 
     let binding = source.binding().clone();
-    let mut identity = binding.identity();
-    identity.provider_instance_id = "wrong-provider-instance";
+    let mut message = binding.hello_frame().message;
+    if let conduit_wire::SessionMessage::Hello(ref mut hello) = message {
+        hello.provider_instance_id = "wrong-provider-instance";
+    }
     assert_eq!(
         source.admit_inbound(SessionFrame {
-            identity,
-            message: binding.hello_frame().message,
+            identity: binding.identity(),
+            message,
         }),
         Err(format!("{:?}", WireError::InvalidSession))
     );

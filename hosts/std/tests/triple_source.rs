@@ -112,15 +112,17 @@ fn stale_pico_boot_and_provider_instance_fail_before_activation() {
     );
 
     let binding = source.binding(RemoteKind::Pico).clone();
-    assert_eq!(binding.provider, ConnectionProvider::UsbCdc);
-    let mut identity = binding.identity();
-    identity.provider_instance_id = "wrong-triple-provider";
+    assert_eq!(binding.attachment.provider, ConnectionProvider::UsbCdc);
+    let mut message = binding.hello_frame().message;
+    if let SessionMessage::Hello(ref mut hello) = message {
+        hello.provider_instance_id = "wrong-triple-provider";
+    }
     assert_eq!(
         source.admit_inbound(
             RemoteKind::Pico,
             SessionFrame {
-                identity,
-                message: binding.hello_frame().message,
+                identity: binding.identity(),
+                message,
             },
         ),
         Err(format!("{:?}", WireError::InvalidSession))

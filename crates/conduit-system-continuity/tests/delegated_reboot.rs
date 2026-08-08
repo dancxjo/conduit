@@ -1,8 +1,8 @@
 use conduit_core::{
     bind_active_play, ArtifactId, AuthorityGrantId, BootId, CapabilityId, ConnectionId,
     ConnectionProvider, ConnectionProviderInstanceId, FragmentId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId,
-    LinkLimits, OfferGeneration, PlanId, PROTOCOL_VERSION,
+    HostProfileId, ImplementationId, KindId, LinkBindingId, LinkEndpointId, LinkLimits,
+    OfferGeneration, PlanId, PROTOCOL_VERSION,
 };
 use conduit_observatory::{HostReport, OperationalState};
 use conduit_system_continuity::{
@@ -10,7 +10,7 @@ use conduit_system_continuity::{
     DelegatedRebootTransaction, HostInstance, RebootDecision, RebootDenial, RebootPendingState,
     RebootProgressError, RebootRequest, RebootRequestId,
 };
-use conduit_wire::SessionBinding;
+use conduit_wire::{RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
 
 fn host(host: &str, boot: &str) -> HostInstance {
     HostInstance {
@@ -57,25 +57,36 @@ fn session(controller: &HostInstance, target: &HostInstance) -> SessionBinding {
             .active_play_id,
         plan_id,
         connection_id: ConnectionId::from("connection/reboot-control"),
-        link_binding_id: LinkBindingId::from("link/controller-to-target"),
-        provider: ConnectionProvider::FixtureFrame,
-        provider_instance_id: ConnectionProviderInstanceId::from("provider/reboot-fixture"),
-        source: LinkEndpoint {
+        source: SessionEndpointIdentity {
             host_id: controller.host_id.clone(),
             boot_id: controller.boot_id.clone(),
-            endpoint_id: LinkEndpointId::from("endpoint/controller"),
         },
-        sink: LinkEndpoint {
+        sink: SessionEndpointIdentity {
             host_id: target.host_id.clone(),
             boot_id: target.boot_id.clone(),
-            endpoint_id: LinkEndpointId::from("endpoint/target"),
         },
         value_kind: KindId::from("lifecycle/reboot-request"),
-        limits: LinkLimits {
+        limits: SessionLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: 256,
             maximum_buffered_bytes: 256,
-            maximum_frame_bytes: 1024,
+        },
+        attachment: RouteAttachment {
+            link_binding_id: LinkBindingId::from("link/controller-to-target"),
+            provider: ConnectionProvider::FixtureFrame,
+            provider_instance_id: ConnectionProviderInstanceId::from("provider/reboot-fixture"),
+            source_host_id: controller.host_id.clone(),
+            source_boot_id: controller.boot_id.clone(),
+            source_endpoint_id: LinkEndpointId::from("endpoint/controller"),
+            sink_host_id: target.host_id.clone(),
+            sink_boot_id: target.boot_id.clone(),
+            sink_endpoint_id: LinkEndpointId::from("endpoint/target"),
+            limits: LinkLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: 256,
+                maximum_buffered_bytes: 256,
+                maximum_frame_bytes: 1024,
+            },
         },
     }
 }
@@ -184,7 +195,7 @@ fn support_authority_reachability_boot_and_replay_fail_independently() {
     ));
 
     let mut wrong_session = session(&controller, &target);
-    wrong_session.link_binding_id = LinkBindingId::from("link/other");
+    wrong_session.attachment.link_binding_id = LinkBindingId::from("link/other");
     let unreachable = DelegatedRebootTransaction::new(grant(&controller, &target)).submit(
         &request(&controller, &target, "request/wrong-session"),
         &advertisement(&target, true),

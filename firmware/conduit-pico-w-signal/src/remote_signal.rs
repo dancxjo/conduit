@@ -6,11 +6,12 @@
 
 use conduit_core::{
     bind_active_play, BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
-    FragmentId, HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
+    FragmentId, HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_kernel::scheduler::RemoteIngressOutcome;
 use conduit_wire::{
-    SessionBinding, SessionMachine, SessionMessage, SessionRole, SessionTerminalDisposition,
+    RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
+    SessionMessage, SessionRole, SessionTerminalDisposition,
 };
 use cyw43::Control;
 
@@ -92,25 +93,38 @@ pub async fn run_remote_signal_sink(
         source_active_play_id,
         sink_active_play_id,
         connection_id: ConnectionId::from(planned.connection_id),
-        link_binding_id: LinkBindingId::from(planned.link_binding_id),
-        provider,
-        provider_instance_id: ConnectionProviderInstanceId::from(planned.provider_instance_id),
-        source: LinkEndpoint {
-            host_id: source_host_id,
-            boot_id: source_boot_id,
-            endpoint_id: LinkEndpointId::from(planned.peer_endpoint),
+        source: SessionEndpointIdentity {
+            host_id: source_host_id.clone(),
+            boot_id: source_boot_id.clone(),
         },
-        sink: LinkEndpoint {
-            host_id: sink_host_id,
-            boot_id: sink_boot_id,
-            endpoint_id: LinkEndpointId::from(planned.local_endpoint),
+        sink: SessionEndpointIdentity {
+            host_id: sink_host_id.clone(),
+            boot_id: sink_boot_id.clone(),
         },
         value_kind: KindId::from(planned.value_kind),
-        limits: LinkLimits {
+        limits: SessionLimits {
             maximum_in_flight_items: planned.maximum_in_flight_items,
             maximum_payload_bytes: planned.maximum_payload_bytes,
             maximum_buffered_bytes: planned.maximum_buffered_bytes,
-            maximum_frame_bytes: planned.maximum_frame_bytes,
+        },
+        attachment: RouteAttachment {
+            link_binding_id: LinkBindingId::from(planned.link_binding_id),
+            provider,
+            provider_instance_id: ConnectionProviderInstanceId::from(
+                planned.provider_instance_id,
+            ),
+            source_host_id,
+            source_boot_id,
+            source_endpoint_id: LinkEndpointId::from(planned.peer_endpoint),
+            sink_host_id,
+            sink_boot_id,
+            sink_endpoint_id: LinkEndpointId::from(planned.local_endpoint),
+            limits: LinkLimits {
+                maximum_in_flight_items: planned.maximum_in_flight_items,
+                maximum_payload_bytes: planned.maximum_payload_bytes,
+                maximum_buffered_bytes: planned.maximum_buffered_bytes,
+                maximum_frame_bytes: planned.maximum_frame_bytes,
+            },
         },
     }
     .with_observed_boots(BootId::from(planned.peer_boot), BootId::from(runtime.boot_id()))

@@ -50,9 +50,12 @@ fn triple_browser_reconstructs_its_fragment_from_the_same_three_host_plan() {
     let exact = conduit_signal::triple::exact_plan().expect("triple plan resolves");
     assert_eq!(sink.fragment.host_id, exact.browser_advertisement.host_id);
     assert_eq!(sink.binding.plan_id, exact.plan.plan_id);
-    assert_eq!(sink.binding.link_binding_id, exact.browser_link.binding_id);
     assert_eq!(
-        sink.binding.provider_instance_id,
+        sink.binding.attachment.link_binding_id,
+        exact.browser_link.binding_id
+    );
+    assert_eq!(
+        sink.binding.attachment.provider_instance_id,
         exact.browser_link.provider_instance_id
     );
     assert_eq!(sink.lowered.remote_endpoints.len(), 1);
@@ -129,7 +132,7 @@ fn wrong_remote_completion_identity_fails_closed() {
     sink.hold_first_value = false;
     sink.advance().expect("presentation prepared");
     let mut completion = sink.expected_completion[..sink.expected_completion_len].to_vec();
-    let identity = binding.link_binding_id.as_str().as_bytes();
+    let identity = binding.attachment.link_binding_id.as_str().as_bytes();
     let offset = completion
         .windows(identity.len())
         .position(|window| window == identity)

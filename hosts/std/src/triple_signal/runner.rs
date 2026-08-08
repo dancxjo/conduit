@@ -183,8 +183,16 @@ impl TriplePhysicalRunner {
             self.source.fragment().fragment_id.as_str(),
             self.source.binding(RemoteKind::Browser).sink_fragment_id.as_str(),
             self.source.binding(RemoteKind::Pico).sink_fragment_id.as_str(),
-            self.source.binding(RemoteKind::Browser).link_binding_id.as_str(),
-            self.source.binding(RemoteKind::Pico).link_binding_id.as_str(),
+            self.source
+                .binding(RemoteKind::Browser)
+                .attachment
+                .link_binding_id
+                .as_str(),
+            self.source
+                .binding(RemoteKind::Pico)
+                .attachment
+                .link_binding_id
+                .as_str(),
             runtime.boot_id,
             runtime.active_play_id,
             self.pico_evidence.firmware_build_id().unwrap_or("missing"),
