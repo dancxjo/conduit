@@ -11,3 +11,4 @@ sha2 = "0.10"
 [dev-dependencies]
 conduit-runtime = { path = "../conduit-runtime" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
+serde_json = "1"

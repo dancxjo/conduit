@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 
 mod canonical_expansion;
 mod checked_syntax;
+mod diagnostic;
 mod functional_face;
 mod surface_lex;
 mod surface_parser;
@@ -19,6 +20,7 @@ mod value_type;
 
 pub use canonical_expansion::*;
 pub use checked_syntax::*;
+pub use diagnostic::*;
 pub use syntax::*;
 
 pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;

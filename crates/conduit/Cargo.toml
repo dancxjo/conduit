@@ -30,3 +30,7 @@ path = "../../tests/observatory_fixture.rs"
 [[test]]
 name = "copy_task_front"
 path = "../../tests/copy_task_front.rs"
+
+[[test]]
+name = "structured_diagnostics"
+path = "../../tests/structured_diagnostics.rs"
