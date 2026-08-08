@@ -1,10 +1,13 @@
 # `conduit.std` catalog truth boundary
 
-The current `conduit-std-catalog` crate is a pre-S5 compatibility catalog, not
-an executable standard-library claim. Its eight contracts can be checked and
-their matching offers can be planned, but their optional hosted implementations
-run through `conduit-runtime::HostRuntime`. They do not lower or execute through
-`conduit-kernel`.
+`conduit-std-catalog` contains two deliberately separate sets:
+
+- `supported_nucleus_contracts()` is the current nine-operation, exactly typed
+  executable standard nucleus. The std reference host advertises these exact
+  revisions and executes them through `conduit-kernel`.
+- `standard_contracts()` retains eight pre-S5 compatibility contracts. Those
+  revisions use `value/any`; their optional hosted fixtures run through
+  `conduit-runtime::HostRuntime` and are not supported standard operations.
 
 The authoritative row-by-row audit is the checked-in
 [`std-catalog-truth-inventory.tsv`](std-catalog-truth-inventory.tsv). Each row
@@ -40,43 +43,42 @@ the single required classification. The inventory still names the fixture-only
 implementation path explicitly so it cannot be presented as production
 support.
 
-## Resulting executable nucleus
+## Supported executable nucleus
 
-The executable nucleus among the eight audited `conduit.std/*@1` revisions is
-empty. Their matching planner fixtures and `HostRuntime` implementations are
-not production support.
+The authoritative code inventory is `supported_nucleus_contracts()`. Every
+entry has exact typed ports, startup configuration, finite limits, terminal
+behavior, and one installed std-host realization selected before activation.
 
-S5 now begins with one separate revision: `conduit.std/time-tick@2`. It emits
-only `value/tick@1` on its exact `tick` port, accepts bounded `count` and
-`period-ms` configuration, waits through the admitted timer host-operation
-contract, and completes after exactly the configured count. The std host offer
-binds `std/kernel-time-tick@2` and
-`conduit-std-host/time-tick@2`; preparation resolves that implementation from
-a static installed table before activation, lowers the exact fragment, and
-executes it through `conduit-kernel`.
+| Operation | Exact contract revision | Public contract and terminal behavior |
+|---|---|---|
+| `time/tick` | `conduit.std/time-tick@2` | optional bounded `count` and `period-ms`; closing `value/tick@1` flow; completes after `count` admitted waits |
+| `time/every` | `conduit.std/time-every@1` | required `freq: Duration`; four-value closing `value/tick@1` flow; completes after four admitted waits |
+| `presentation/tick` | `conduit.std/presentation-tick@1` | closing tick input; bounded stdout presentation; completes when input closes |
+| `text/literal` | `conduit.std/text-literal@1` | bounded UTF-8 startup text to one `value/text@1` value |
+| `text/upper` | `conduit.std/text-upper@1` | one bounded text value in/out; Unicode uppercase with overflow rejection |
+| `text/join` | `conduit.std/text-join@1` | bounded prefix plus one bounded text value in/out; combined overflow rejects |
+| `presentation/text` | `conduit.std/presentation-text@1` | bounded text input and stdout presentation |
+| `state/count` | `conduit.std/state-count@1` | bounded startup count, closing tick input, current count output; completes when input closes |
+| `presentation/count` | `conduit.std/presentation-count@1` | at most five current count observations presented to stdout |
 
-The UI-independent conformance vector uses a `cfg(test)` kind named
-`conduit.test/tick-observer`. That fixture is only a typed sink for observing
-ordered tick payloads; it is neither advertised by production builds nor a
-second supported standard kind. With a capacity-one cord, the vector proves
-three ordered ticks, three configured waits, pressure, exact request and
-terminal evidence identities, stable preallocated storage, and zero allocation
-after activation. A zero-count vector completes without a wait or value, and
-mutation plus cancellation vectors reject stale executable identity and late
-timer completion before either can become success.
+The std host's `reference()` composition advertises exactly those nine
+`conduit.std/*` revisions, plus the separately owned typed Signal family. Its
+`minimal()` composition advertises none, and text/time/state families can be
+selected independently. Runtime advertisement—not compilation or category
+membership—is planner truth.
 
-This proof does not promote `conduit.std/time-tick@1`, the other seven audited
-compatibility rows, the sealed six-node multi-value profile, browser/Pico
-manifestation, dynamic provider installation, or general graph installation.
+UI-independent conformance includes the typed tick observer vector and the
+checked-in canonical Programs 1–4. Those programs compose the text, time, and
+state families through lossless source checking, exact checked-face planning,
+static installed-operation resolution, the existing kernel, admitted timer or
+presentation effects, terminal results, and bounded evidence. The canonical
+tests also reject malformed values, bound overflow, temporal mismatch, and
+selected-realization mutation before effects.
 
-This does not mean S5 starts without evidence. The narrower profiles below have
-already earned relevant kernel behavior, but S5 must deliberately adopt or
-rearticulate an exact contract instead of transferring proof by semantic kind
-name. The strongest inputs are typed `flow/pulse` and `presentation/show` over
-`value/signal`, plus typed `time/tick`, `flow/tee`, `state/latest`, and
-`presentation/show` over `value/tick@1`. The generic `flow/map`, `flow/filter`,
-and `text/format` rows are not nucleus candidates; concrete operations such as
-`text/uppercase` avoid their numeric-selector ambiguity.
+All nine contracts and their catalog data remain `no_std` compatible. Their
+installed execution adapters are hosted separately under `hosts/std`. Their
+browser and Pico manifestation flags remain false: compatible faces or related
+Signal operations do not transfer implementation proof.
 
 ## Existing proof that must remain separate
 
@@ -95,14 +97,12 @@ useful input to rearticulation, but it does not promote a
 
 ## S5 stop line
 
-This audit adds no kinds and changes no parser, planner, runtime, kernel, or
-platform semantics. S5 should rearticulate one concrete kind per reviewed pull
-request, beginning with the sequence owned by issue #353. Each promoted item
-must bind exact typed ports, limits, lifecycle and terminal behavior to an
-installed implementation that plans, lowers, executes, and records evidence
-through `conduit-kernel`.
+Adding another supported operation requires its own reviewed typed contract,
+installed realization, planning/lowering proof, bounded kernel execution, and
+terminal evidence. A name, matching face, compatibility fixture, or narrower
+platform implementation does not transfer proof provenance.
 
-The compatibility catalog and its `HostRuntime` receipts may remain as
+The legacy compatibility catalog and its `HostRuntime` receipts may remain as
 historical fixtures until a separately owned cleanup removes or fences them.
 They must not be used in generated/status-facing output as evidence of current
 standard-library support.

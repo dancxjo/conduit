@@ -149,9 +149,9 @@ cargo run -p conduit -- \
 
 The Observatory report shows hosts, capability offers, resources, plan,
 fragments, placements, connections, the active Play, evidence, and bounded
-retention. Current std-host reports also expose the installed
-`conduit.std/time-tick@2` capability even though a polished standalone tick demo
-is still separate usability work.
+retention. Current reference std-host reports expose the exact installed
+`conduit.std` text/time/state nucleus; [`docs/try-forms.md`](docs/try-forms.md)
+runs its canonical Programs 1–4.
 
 With a Pico W attached, try the real physical USB-CDC session:
 

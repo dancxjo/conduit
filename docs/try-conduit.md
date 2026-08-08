@@ -157,19 +157,27 @@ things it lists:
 - presentation evidence; and
 - bounded evidence retention and visible gaps.
 
-A current std-host report contains three production capability offers:
+A current std reference-host report contains the separately owned Signal pair
+and nine installed `conduit.std` operation offers. The standard nucleus is:
 
 ```text
-flow/pulse
-presentation/show
 time/tick
+time/every
+presentation/tick
+text/literal
+text/upper
+text/join
+presentation/text
+state/count
+presentation/count
 ```
 
-The `time/tick` row is the first rearticulated installed `conduit.std` kind:
+The `time/tick` row was the first rearticulated installed `conduit.std` kind:
 `conduit.std/time-tick@2` over `value/tick@1`, implemented by the std host through
-`conduit-kernel`. Its presence in the capability report is a real host offer.
-A polished standalone user-facing tick example is still separate usability work;
-the current executable conformance path lives in the std-host tests.
+`conduit-kernel`. Every row above is a real current host offer; the exact
+contracts, limits, implementations, and platform stop lines are recorded in
+[`architecture/std-catalog.md`](architecture/std-catalog.md). Programs 1–4 in
+[`try-forms.md`](try-forms.md) exercise the text/time/state nucleus.
 
 ## 4. Drive a physical Pico W over USB CDC
 

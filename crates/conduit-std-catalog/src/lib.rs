@@ -28,6 +28,44 @@ pub use text_transform::*;
 mod state_count;
 pub use state_count::*;
 
+/// Exact typed contracts currently supported by the executable `conduit.std` nucleus.
+///
+/// This deliberately excludes the eight legacy contracts returned by
+/// [`standard_contracts`]. Those revisions use `value/any` and remain audited
+/// compatibility fixtures rather than supported operations.
+pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
+    vec![
+        tick_contract(),
+        time_every_contract(),
+        tick_presentation_contract(),
+        text_literal_contract(),
+        text_upper_contract(),
+        text_join_contract(),
+        text_presentation_contract(),
+        state_count_contract(),
+        count_presentation_contract(),
+    ]
+}
+
+/// Exact std-host offers corresponding to [`supported_nucleus_contracts`].
+///
+/// These values include the revision, implementation, artifact, resource,
+/// host-operation, and finite-limit facts that an immutable Plan seals after
+/// checked-face compatibility and admission filtering.
+pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
+    vec![
+        tick_capability_offer(),
+        time_every_offer(),
+        tick_presentation_offer(),
+        text_literal_offer(),
+        text_upper_offer(),
+        text_join_offer(),
+        text_presentation_offer(),
+        state_count_offer(),
+        count_presentation_offer(),
+    ]
+}
+
 pub const PULSE_KIND: &str = "flow/pulse";
 pub const SHOW_KIND: &str = "presentation/show";
 pub const MAP_KIND: &str = "flow/map";
@@ -216,6 +254,56 @@ pub fn standard_contracts() -> Vec<StandardKindContract> {
             example: "latest: state/latest".to_string(),
         },
     ]
+}
+
+#[cfg(test)]
+mod supported_nucleus_tests {
+    use super::*;
+    use alloc::collections::BTreeSet;
+
+    #[test]
+    fn supported_nucleus_is_typed_hosted_and_identity_unique() {
+        let contracts = supported_nucleus_contracts();
+        let offers = supported_nucleus_offers();
+        assert_eq!(contracts.len(), 9);
+        assert_eq!(offers.len(), contracts.len());
+
+        let identities = contracts
+            .iter()
+            .map(|contract| contract.kind_id.as_str())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(identities.len(), contracts.len());
+
+        for contract in &contracts {
+            assert!(contract.hosted_implementation_required);
+            assert!(!contract.browser_manifestation_honest);
+            assert!(!contract.pico_manifestation_honest);
+            assert!(contract
+                .inputs
+                .iter()
+                .chain(contract.outputs.iter())
+                .all(|port| port.value_kind.as_str() != GENERIC_VALUE_KIND));
+        }
+
+        for (contract, offer) in contracts.iter().zip(&offers) {
+            assert_eq!(offer.kind_id, contract.kind_id);
+            assert_eq!(offer.inputs, contract.inputs);
+            assert_eq!(offer.outputs, contract.outputs);
+            assert_eq!(offer.limits, contract.limits);
+        }
+
+        let offer_identities = offers
+            .iter()
+            .map(|offer| {
+                (
+                    offer.kind_contract_revision.as_str(),
+                    offer.implementation_id.as_str(),
+                    offer.artifact_id.as_str(),
+                )
+            })
+            .collect::<BTreeSet<_>>();
+        assert_eq!(offer_identities.len(), offers.len());
+    }
 }
 
 pub fn find_contract(kind: &KindId) -> Option<StandardKindContract> {
