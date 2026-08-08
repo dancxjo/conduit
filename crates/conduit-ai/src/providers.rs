@@ -219,7 +219,7 @@ fn provider(
         vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(REMOTE_GENERATE_TEXT_AUTHORITY),
             host_operation_contract_id: host_operation.contract_id.clone(),
-            subject_kind: kind_id("ai/remote-provider-subject"),
+            subject_kind: kind_id(GENERATE_TEXT_KIND),
         }]
     } else {
         vec![]

@@ -464,7 +464,7 @@ fn has_authority(offer: &CapabilityOffer, contract: &conduit_core::AuthorityCont
         .any(|item| &item.contract_id == contract)
 }
 
-fn seal_characteristics(
+pub(crate) fn seal_characteristics(
     mut plan: Plan,
     advertisements: &[RealizationAdvertisement],
 ) -> Result<Plan, PlannerError> {
