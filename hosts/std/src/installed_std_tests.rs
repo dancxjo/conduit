@@ -340,3 +340,28 @@ form welcome {
         .unwrap()
         .contains("WelcomeTravis\n"));
 }
+
+#[test]
+fn canonical_clock_has_zero_successful_post_activation_allocations() {
+    let source = "form clock-demo {\n    clock: time/every(1s)\n    clock > presentation/tick\n}\n";
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    conduit_std_catalog::install_time_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    let syntax = conduit_form::parse_syntax_document(source);
+    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let expanded = conduit_form::expand_canonical_form(&checked, "clock-demo", &profile).unwrap();
+    let mut host = host("allocation-clock-host");
+    let plan = host.plan_expanded_local(&expanded).unwrap();
+    let mut output = Vec::with_capacity(4_096);
+    let mut timer = RecordingTimer {
+        waits: Vec::with_capacity(4),
+    };
+    let report = host
+        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .unwrap();
+    assert_eq!(report.kernel.unwrap().post_activation_allocations, 0);
+    assert_eq!(timer.waits, vec![Duration::from_secs(1); 4]);
+    assert!(String::from_utf8(output)
+        .unwrap()
+        .contains("tick sequence=3\n"));
+}

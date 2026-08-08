@@ -305,6 +305,7 @@ pub struct ConfigurationField {
 pub enum ConfigurationRule {
     Any,
     U64Range { minimum: u64, maximum: u64 },
+    DurationMillis { minimum: u64, maximum: u64 },
     TextBytes { maximum: u32 },
 }
 
@@ -316,6 +317,10 @@ impl ConfigurationRule {
                 (*minimum..=*maximum).contains(value)
             }
             (Self::U64Range { .. }, _) => false,
+            (Self::DurationMillis { minimum, maximum }, ConfigurationValue::U64(value)) => {
+                (*minimum..=*maximum).contains(value)
+            }
+            (Self::DurationMillis { .. }, _) => false,
             (Self::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
                 value.len() <= *maximum as usize
             }

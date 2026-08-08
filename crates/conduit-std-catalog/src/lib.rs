@@ -17,6 +17,10 @@ mod functional_face;
 mod tick;
 use functional_face::startup_face;
 pub use tick::*;
+mod tick_presentation;
+pub use tick_presentation::*;
+mod time_every;
+pub use time_every::*;
 mod text_presentation;
 pub use text_presentation::*;
 mod text_transform;
@@ -47,6 +51,7 @@ pub const RIGHT_PORT: &str = "right";
 pub enum TerminalBehavior {
     EmitsOnce,
     CompletesAfterConfiguredCount,
+    CompletesAfterFixedCount { count: u64 },
     CompletesWhenInputsClose,
     MirrorsInputTerminal,
     RetainsLatestUntilReleased,
@@ -63,6 +68,7 @@ pub struct StandardConfigurationField {
 pub enum StandardConfigurationRule {
     Any,
     U64Range { minimum: u64, maximum: u64 },
+    DurationMillis { minimum: u64, maximum: u64 },
     TextBytes { maximum: u32 },
 }
 
@@ -300,6 +306,9 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
                             StandardConfigurationRule::Any => ConfigurationRule::Any,
                             StandardConfigurationRule::U64Range { minimum, maximum } => {
                                 ConfigurationRule::U64Range { minimum, maximum }
+                            }
+                            StandardConfigurationRule::DurationMillis { minimum, maximum } => {
+                                ConfigurationRule::DurationMillis { minimum, maximum }
                             }
                             StandardConfigurationRule::TextBytes { maximum } => {
                                 ConfigurationRule::TextBytes { maximum }

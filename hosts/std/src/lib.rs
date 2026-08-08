@@ -472,6 +472,8 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
             },
         },
         installed_std::tick_offer(),
+        installed_std::every_offer(),
+        conduit_std_catalog::tick_presentation_offer(),
         conduit_std_catalog::text_literal_offer(),
         conduit_std_catalog::text_upper_offer(),
         conduit_std_catalog::text_join_offer(),
