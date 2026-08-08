@@ -63,9 +63,11 @@ pub fn external_websocket_client_offer(
         capability_id,
         kind_id: kind_id(EXTERNAL_WEBSOCKET_CLIENT_KIND),
         kind_contract_revision: KindContractRevision::from(EXTERNAL_WEBSOCKET_CLIENT_REVISION),
-        execution_profile_id: ExecutionProfileId::from(EXTERNAL_WEBSOCKET_CLIENT_PROFILE),
-        implementation_id,
-        artifact_id,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(EXTERNAL_WEBSOCKET_CLIENT_PROFILE),
+            implementation_id,
+            artifact_id,
+        },
         inputs: vec![port(
             "send",
             WEBSOCKET_MESSAGE_VALUE_KIND,
@@ -117,9 +119,11 @@ pub fn external_websocket_listener_offer(
         capability_id,
         kind_id: kind_id(EXTERNAL_WEBSOCKET_LISTENER_KIND),
         kind_contract_revision: KindContractRevision::from(EXTERNAL_WEBSOCKET_LISTENER_REVISION),
-        execution_profile_id: ExecutionProfileId::from(EXTERNAL_WEBSOCKET_LISTENER_PROFILE),
-        implementation_id,
-        artifact_id,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(EXTERNAL_WEBSOCKET_LISTENER_PROFILE),
+            implementation_id,
+            artifact_id,
+        },
         inputs: vec![port(
             "send",
             PEER_MESSAGE_VALUE_KIND,

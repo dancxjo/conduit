@@ -238,9 +238,9 @@ fn validate(placement: &PlannedOperation) -> Result<(), String> {
     let offer = conduit_net::std_external_websocket_family().capability;
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
-        || placement.execution_profile_id != offer.execution_profile_id
-        || placement.implementation_id != offer.implementation_id
-        || placement.artifact_id != offer.artifact_id
+        || placement.execution_profile_id != offer.implementation.execution_profile_id
+        || placement.implementation_id != offer.implementation.implementation_id
+        || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_operations != offer.host_operations

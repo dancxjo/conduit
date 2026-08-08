@@ -25,9 +25,11 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
             capability_id: CapabilityId::from("capability-1"),
             kind_id: KindId::from("test/kind"),
             kind_contract_revision: KindContractRevision::from("test/kind@1"),
-            execution_profile_id: ExecutionProfileId::from("test/profile@1"),
-            implementation_id: ImplementationId::from("test/implementation"),
-            artifact_id: ArtifactId::from("test/artifact"),
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: ExecutionProfileId::from("test/profile@1"),
+                implementation_id: ImplementationId::from("test/implementation"),
+                artifact_id: ArtifactId::from("test/artifact"),
+            },
             inputs: vec![],
             outputs: vec![PortDescriptor {
                 port_id: PortId::from("out"),

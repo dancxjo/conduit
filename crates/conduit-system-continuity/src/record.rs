@@ -82,9 +82,9 @@ impl SystemRecord {
                 })?;
             if offer.kind_id != placement.kind_id
                 || offer.kind_contract_revision != placement.kind_contract_revision
-                || offer.execution_profile_id != placement.execution_profile_id
-                || offer.implementation_id != placement.implementation_id
-                || offer.artifact_id != placement.artifact_id
+                || offer.implementation.execution_profile_id != placement.execution_profile_id
+                || offer.implementation.implementation_id != placement.implementation_id
+                || offer.implementation.artifact_id != placement.artifact_id
                 || offer.inputs != placement.inputs
                 || offer.outputs != placement.outputs
             {

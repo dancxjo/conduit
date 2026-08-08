@@ -62,9 +62,11 @@ pub(crate) fn tick_offer() -> CapabilityOffer {
         capability_id: CapabilityId::from(TICK_CAPABILITY),
         kind_id: kind_id(TICK_KIND),
         kind_contract_revision: KindContractRevision::from(TICK_CONTRACT_REVISION),
-        execution_profile_id: ExecutionProfileId::from(TICK_EXECUTION_PROFILE),
-        implementation_id: ImplementationId::from(TICK_IMPLEMENTATION),
-        artifact_id: ArtifactId::from(TICK_ARTIFACT),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(TICK_EXECUTION_PROFILE),
+            implementation_id: ImplementationId::from(TICK_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(TICK_ARTIFACT),
+        },
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
             port_id: port_id("tick"),

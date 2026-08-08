@@ -65,9 +65,11 @@ pub fn tick_presentation_offer() -> CapabilityOffer {
         capability_id: CapabilityId::from(TICK_PRESENTATION_CAPABILITY),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(TICK_PRESENTATION_CONTRACT_REVISION),
-        execution_profile_id: ExecutionProfileId::from(TICK_PRESENTATION_EXECUTION_PROFILE),
-        implementation_id: ImplementationId::from(TICK_PRESENTATION_IMPLEMENTATION),
-        artifact_id: ArtifactId::from(TICK_PRESENTATION_ARTIFACT),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(TICK_PRESENTATION_EXECUTION_PROFILE),
+            implementation_id: ImplementationId::from(TICK_PRESENTATION_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(TICK_PRESENTATION_ARTIFACT),
+        },
         inputs: contract.inputs,
         outputs: contract.outputs,
         host_operations: vec![present_host_operation_requirement(

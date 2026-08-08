@@ -176,9 +176,9 @@ fn validate_exact_profile(
             .collect::<Vec<_>>();
         if capability.kind_id != placement.kind_id
             || capability.kind_contract_revision != placement.kind_contract_revision
-            || capability.execution_profile_id != placement.execution_profile_id
-            || capability.implementation_id != placement.implementation_id
-            || capability.artifact_id != placement.artifact_id
+            || capability.implementation.execution_profile_id != placement.execution_profile_id
+            || capability.implementation.implementation_id != placement.implementation_id
+            || capability.implementation.artifact_id != placement.artifact_id
             || capability.inputs != placement.inputs
             || capability.outputs != placement.outputs
             || capability.host_operations != placement.host_operations

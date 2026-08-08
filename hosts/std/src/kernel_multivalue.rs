@@ -619,13 +619,15 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
         capability_id: CapabilityId::from(capability),
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
-        execution_profile_id: ExecutionProfileId::from(format!(
-            "conduit.std/{capability}-kernel-hosted@1"
-        )),
-        implementation_id: conduit_core::ImplementationId::from(format!(
-            "std/kernel-{capability}@1"
-        )),
-        artifact_id: ArtifactId::from(format!("conduit-std-host/{capability}@1")),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(format!(
+                "conduit.std/{capability}-kernel-hosted@1"
+            )),
+            implementation_id: conduit_core::ImplementationId::from(format!(
+                "std/kernel-{capability}@1"
+            )),
+            artifact_id: ArtifactId::from(format!("conduit-std-host/{capability}@1")),
+        },
         inputs: definition.inputs,
         outputs: definition.outputs,
         host_operations,

@@ -48,9 +48,11 @@ fn host() -> HostAdvertisement {
                 capability_id: conduit_core::CapabilityId::from("pulse-1"),
                 kind_id: kind_id(PULSE_KIND),
                 kind_contract_revision: pulse_contract_revision(),
-                execution_profile_id: pulse_execution_profile(),
-                implementation_id: ImplementationId::from("std/pulse-v1"),
-                artifact_id: ArtifactId::from("test/pulse-artifact-v1"),
+                implementation: conduit_core::ImplementationOffer {
+                    execution_profile_id: pulse_execution_profile(),
+                    implementation_id: ImplementationId::from("std/pulse-v1"),
+                    artifact_id: ArtifactId::from("test/pulse-artifact-v1"),
+                },
                 inputs: vec![],
                 outputs: pulse_outputs(),
                 host_operations: pulse_host_operation_requirements(),
@@ -68,9 +70,11 @@ fn host() -> HostAdvertisement {
                 capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
                 kind_id: kind_id(SHOW_KIND),
                 kind_contract_revision: show_contract_revision(),
-                execution_profile_id: show_execution_profile(),
-                implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
-                artifact_id: ArtifactId::from("test/show-artifact-v1"),
+                implementation: conduit_core::ImplementationOffer {
+                    execution_profile_id: show_execution_profile(),
+                    implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
+                    artifact_id: ArtifactId::from("test/show-artifact-v1"),
+                },
                 inputs: show_inputs(),
                 outputs: vec![],
                 host_operations: show_host_operation_requirements(),
@@ -147,18 +151,20 @@ fn host_for_checked_form(form: &conduit_form::CheckedForm) -> HostAdvertisement 
                 )),
                 kind_id: operation.kind_id.clone(),
                 kind_contract_revision: operation.kind_contract_revision.clone(),
-                execution_profile_id: conduit_core::ExecutionProfileId::from(format!(
-                    "profile/{}",
-                    operation.operation_id.as_str()
-                )),
-                implementation_id: ImplementationId::from(format!(
-                    "implementation/{}",
-                    operation.operation_id.as_str()
-                )),
-                artifact_id: ArtifactId::from(format!(
-                    "artifact/{}",
-                    operation.operation_id.as_str()
-                )),
+                implementation: conduit_core::ImplementationOffer {
+                    execution_profile_id: conduit_core::ExecutionProfileId::from(format!(
+                        "profile/{}",
+                        operation.operation_id.as_str()
+                    )),
+                    implementation_id: ImplementationId::from(format!(
+                        "implementation/{}",
+                        operation.operation_id.as_str()
+                    )),
+                    artifact_id: ArtifactId::from(format!(
+                        "artifact/{}",
+                        operation.operation_id.as_str()
+                    )),
+                },
                 inputs: operation.inputs.clone(),
                 outputs: operation.outputs.clone(),
                 host_operations: vec![],
@@ -231,7 +237,7 @@ fn planning_binds_exact_contract_profile_and_every_port() {
         );
         assert_eq!(
             placement.execution_profile_id,
-            capability.execution_profile_id
+            capability.implementation.execution_profile_id
         );
         assert_eq!(placement.inputs, operation.inputs);
         assert_eq!(placement.outputs, operation.outputs);

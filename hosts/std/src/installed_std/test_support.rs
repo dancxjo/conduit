@@ -18,9 +18,11 @@ pub(crate) fn test_observer_offer() -> CapabilityOffer {
         capability_id: CapabilityId::from("test-tick-observer"),
         kind_id: kind_id(TEST_OBSERVER_KIND),
         kind_contract_revision: KindContractRevision::from(TEST_OBSERVER_REVISION),
-        execution_profile_id: ExecutionProfileId::from(TEST_OBSERVER_PROFILE),
-        implementation_id: conduit_core::ImplementationId::from(TEST_OBSERVER_IMPLEMENTATION),
-        artifact_id: ArtifactId::from(TEST_OBSERVER_ARTIFACT),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(TEST_OBSERVER_PROFILE),
+            implementation_id: conduit_core::ImplementationId::from(TEST_OBSERVER_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(TEST_OBSERVER_ARTIFACT),
+        },
         inputs: vec![PortDescriptor {
             port_id: conduit_core::port_id("in"),
             value_kind: kind_id(TICK_VALUE_KIND),

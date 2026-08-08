@@ -301,8 +301,8 @@ mod supported_nucleus_tests {
             .map(|offer| {
                 (
                     offer.kind_contract_revision.as_str(),
-                    offer.implementation_id.as_str(),
-                    offer.artifact_id.as_str(),
+                    offer.implementation.implementation_id.as_str(),
+                    offer.implementation.artifact_id.as_str(),
                 )
             })
             .collect::<BTreeSet<_>>();
@@ -430,15 +430,17 @@ pub fn standard_capability_offers(
             )),
             kind_id: contract.kind_id.clone(),
             kind_contract_revision: contract_revision(&contract.kind_id),
-            execution_profile_id: execution_profile(&contract.kind_id),
-            implementation_id: conduit_core::ImplementationId::from(alloc::format!(
-                "{implementation_prefix}/{}-v1",
-                capability_slug(contract.kind_id.as_str())
-            )),
-            artifact_id: conduit_core::ArtifactId::from(alloc::format!(
-                "conduit-std-catalog/{}",
-                capability_slug(contract.kind_id.as_str())
-            )),
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: execution_profile(&contract.kind_id),
+                implementation_id: conduit_core::ImplementationId::from(alloc::format!(
+                    "{implementation_prefix}/{}-v1",
+                    capability_slug(contract.kind_id.as_str())
+                )),
+                artifact_id: conduit_core::ArtifactId::from(alloc::format!(
+                    "conduit-std-catalog/{}",
+                    capability_slug(contract.kind_id.as_str())
+                )),
+            },
             inputs: contract.inputs.clone(),
             outputs: contract.outputs.clone(),
             host_operations: standard_host_operation_requirements(
@@ -736,9 +738,13 @@ mod tests {
             capability_id: CapabilityId::from(capability),
             kind_id: kind_id.clone(),
             kind_contract_revision: contract_revision(&kind_id),
-            execution_profile_id: execution_profile(&kind_id),
-            implementation_id: ImplementationId::from(implementation),
-            artifact_id: ArtifactId::from(alloc::format!("conduit-std-catalog/{kind}").as_str()),
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: execution_profile(&kind_id),
+                implementation_id: ImplementationId::from(implementation),
+                artifact_id: ArtifactId::from(
+                    alloc::format!("conduit-std-catalog/{kind}").as_str(),
+                ),
+            },
             inputs: contract.inputs,
             outputs: contract.outputs,
             host_operations: standard_host_operation_requirements(

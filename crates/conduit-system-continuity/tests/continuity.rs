@@ -374,7 +374,8 @@ fn compatible_face_does_not_inherit_assignment_grant_plan_or_play() {
     offer.capability_id = CapabilityId::from("replacement/equal-face-led");
     offer.kind_id = conduit_core::kind_id("replacement/show");
     offer.kind_contract_revision = KindContractRevision::from("replacement/show@9");
-    offer.implementation_id = conduit_core::ImplementationId::from("replacement/led-v9");
+    offer.implementation.implementation_id =
+        conduit_core::ImplementationId::from("replacement/led-v9");
     let assessment = accepted
         .old_boot_terminated(EvidenceId::from("evidence/local-old-terminal"))
         .observe_replacement(available_host(pico))

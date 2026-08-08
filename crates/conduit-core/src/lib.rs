@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 
 mod configuration;
 mod face;
+mod implementation;
 mod port;
 mod resource;
 mod route;
@@ -18,6 +19,7 @@ mod shared_pool;
 
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use face::{CheckedFace, FaceStartupParameter};
+pub use implementation::ImplementationOffer;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use resource::*;
 pub use route::*;
@@ -301,11 +303,10 @@ pub struct CapabilityOffer {
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,
-    pub execution_profile_id: ExecutionProfileId,
-    pub implementation_id: ImplementationId,
-    pub artifact_id: ArtifactId,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    #[serde(flatten)]
+    pub implementation: ImplementationOffer,
     pub host_operations: Vec<HostOperationRequirement>,
     pub resource_requirements: Vec<ResourceRequirement>,
     pub authority_requirements: Vec<AuthorityRequirement>,

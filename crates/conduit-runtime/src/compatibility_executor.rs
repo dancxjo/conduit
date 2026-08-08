@@ -1267,14 +1267,14 @@ impl HostRuntime {
                 });
                 return output;
             }
-            if capability.execution_profile_id != placement.execution_profile_id {
+            if capability.implementation.execution_profile_id != placement.execution_profile_id {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
                     reason: FailureReason::ExecutionProfileMismatch,
                     message: Some(format!(
                         "capability '{}' advertises execution profile '{}' but placement pins '{}'",
                         capability.capability_id.as_str(),
-                        capability.execution_profile_id.as_str(),
+                        capability.implementation.execution_profile_id.as_str(),
                         placement.execution_profile_id.as_str()
                     )),
                 });
@@ -1376,27 +1376,27 @@ impl HostRuntime {
                 });
                 return output;
             }
-            if capability.implementation_id != placement.implementation_id {
+            if capability.implementation.implementation_id != placement.implementation_id {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
                     reason: FailureReason::AdvertisedImplementationMismatch,
                     message: Some(format!(
                         "capability '{}' advertises implementation '{}' but placement pins '{}'",
                         capability.capability_id.as_str(),
-                        capability.implementation_id.as_str(),
+                        capability.implementation.implementation_id.as_str(),
                         placement.implementation_id.as_str()
                     )),
                 });
                 return output;
             }
-            if capability.artifact_id != placement.artifact_id {
+            if capability.implementation.artifact_id != placement.artifact_id {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
                     reason: FailureReason::ArtifactIdentityMismatch,
                     message: Some(format!(
                         "capability '{}' advertises artifact '{}' but placement pins '{}'",
                         capability.capability_id.as_str(),
-                        capability.artifact_id.as_str(),
+                        capability.implementation.artifact_id.as_str(),
                         placement.artifact_id.as_str()
                     )),
                 });

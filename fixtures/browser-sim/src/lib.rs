@@ -567,9 +567,11 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
                 capability_id: CapabilityId::from("pulse"),
                 kind_id: kind_id(PULSE_KIND),
                 kind_contract_revision: pulse_contract_revision(),
-                execution_profile_id: pulse_execution_profile(),
-                implementation_id: ImplementationId::from("browser/pulse-v1"),
-                artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
+                implementation: conduit_core::ImplementationOffer {
+                    execution_profile_id: pulse_execution_profile(),
+                    implementation_id: ImplementationId::from("browser/pulse-v1"),
+                    artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
+                },
                 inputs: vec![],
                 outputs: pulse_outputs(),
                 host_operations: pulse_host_operation_requirements(),
@@ -587,9 +589,11 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
                 capability_id: CapabilityId::from("dom-show"),
                 kind_id: kind_id(SHOW_KIND),
                 kind_contract_revision: show_contract_revision(),
-                execution_profile_id: show_execution_profile(),
-                implementation_id: ImplementationId::from("browser/dom-show-signal-v1"),
-                artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
+                implementation: conduit_core::ImplementationOffer {
+                    execution_profile_id: show_execution_profile(),
+                    implementation_id: ImplementationId::from("browser/dom-show-signal-v1"),
+                    artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
+                },
                 inputs: show_inputs(),
                 outputs: vec![],
                 host_operations: show_host_operation_requirements(),
@@ -791,12 +795,13 @@ mod tests {
                 .capabilities
                 .iter()
                 .any(|offer| offer.kind_id == kind_id(PULSE_KIND)
-                    && offer.implementation_id.as_str() == "browser/pulse-v1"));
+                    && offer.implementation.implementation_id.as_str() == "browser/pulse-v1"));
             assert!(snapshot
                 .capabilities
                 .iter()
                 .any(|offer| offer.kind_id == kind_id(SHOW_KIND)
-                    && offer.implementation_id.as_str() == "browser/dom-show-signal-v1"));
+                    && offer.implementation.implementation_id.as_str()
+                        == "browser/dom-show-signal-v1"));
         }
     }
 
