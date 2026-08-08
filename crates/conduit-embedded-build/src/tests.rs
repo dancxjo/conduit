@@ -1,7 +1,7 @@
 use conduit_core::{
     mandatory_evidence_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
-    CapabilityId, CheckedFormId, ConfigurationEntry, ConfigurationValue, ConnectionId,
-    ConnectionProvider, EvidenceStorageBudget, ExecutionProfileId, ExpandedFormId,
+    CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry, ConfigurationValue,
+    ConnectionId, ConnectionProvider, EvidenceStorageBudget, ExecutionProfileId, ExpandedFormId,
     ExpectedEvidence, ExpectedTerminal, FormIdentity, FragmentId, HostId, ImplementationId,
     KindContractRevision, KindId, OfferGeneration, OperationId, PlacementId, PlanFragment, PlanId,
     PlannedConnection, PlannedOperation, PortDescriptor, PortDirection, PortId, SourceDocumentId,
@@ -334,6 +334,11 @@ fn sealed_current_fragment() -> PlanFragment {
                 capability_id: CapabilityId::from("source-capability"),
                 implementation_id: ImplementationId::from("test/source-impl"),
                 artifact_id: ArtifactId::from("test/source-artifact"),
+                limits: CapabilityLimits {
+                    max_active_instances: 1,
+                    max_queue_items: 16,
+                    max_queue_bytes: 16,
+                },
                 inputs: Vec::new(),
                 outputs: vec![output],
                 host_operations: Vec::new(),
@@ -354,6 +359,11 @@ fn sealed_current_fragment() -> PlanFragment {
                 capability_id: CapabilityId::from("sink-capability"),
                 implementation_id: ImplementationId::from("test/sink-impl"),
                 artifact_id: ArtifactId::from("test/sink-artifact"),
+                limits: CapabilityLimits {
+                    max_active_instances: 1,
+                    max_queue_items: 16,
+                    max_queue_bytes: 16,
+                },
                 inputs: vec![input],
                 outputs: Vec::new(),
                 host_operations: Vec::new(),

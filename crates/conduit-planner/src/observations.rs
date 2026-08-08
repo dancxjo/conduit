@@ -29,7 +29,7 @@ pub fn select_realization_with_observations(
     )
 }
 
-fn validate_resource_observations(
+pub(crate) fn validate_resource_observations(
     realm: &[HostAdvertisement],
     observations: &[ResourceObservation],
 ) -> Result<(), PlannerError> {
@@ -78,7 +78,7 @@ fn validate_resource_observations(
     Ok(())
 }
 
-fn observations_admit(
+pub(crate) fn observations_admit(
     host: &HostAdvertisement,
     offer: &CapabilityOffer,
     observations: &[ResourceObservation],
