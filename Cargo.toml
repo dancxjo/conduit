@@ -14,6 +14,7 @@ members = [
 	"crates/conduit-system-continuity",
 	"crates/conduit-net",
 	"crates/conduit-chat",
+	"crates/conduit-ai",
 	"crates/conduit-std-catalog",
 	"crates/conduit",
 	"fixtures/browser-sim",
