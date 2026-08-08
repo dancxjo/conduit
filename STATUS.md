@@ -15,6 +15,7 @@ adapter or physical proof.
 | Portable Signal | yes | multi-value fixtures | one std kernel pulse source atomically fans each value to stdout plus two exact remote egresses | browser/WASM kernel show sink with sixteen exact DOM receipts | unchanged Signal forms generate exact local and remote Pico images that drive the CYW43 LED | sixteen ordered values over bounded WebSocket and USB CDC remote cords | sixteen matching ordered stdout, DOM, and physical LED receipts from one exact three-host run |
 | Browser manifestation | local and remote-ingress Signal profiles | yes, `conduit-browser-sim` | actual Rust/WASM planner plus exact-plan-lowered `conduit-kernel` execution for local and distributed sink fragments | thin DOM adapter with exact fixed-frame completion correlation and sixteen receipts | no | actual loopback WebSocket to the std kernel source | included in the accepted three-host physical run with matching cross-host receipts |
 | Interactive activation/toggle | typed `interaction/activate -> state/toggle -> presentation/show` contract with admitted input and exact remote planning | deterministic activation/toggle lifecycle and identity negatives | native std source services one admitted stdin activation through the kernel before realizing the corresponding remote offer | pinned Chromium proves the first Enter causes exactly one sequence-0 DOM update before later inputs, then completes sixteen exact presentations with one real pressure retry | no | actual bounded loopback WebSocket with structured link-break failure | no |
+| Explicit external WebSocket chat | opt-in `net/websocket` client/listener faces encode complete-message RFC 6455 semantics structurally; equal checked faces remain compatible across nominal names/revisions, while a generic byte-stream face does not | deterministic checked-face, canonical expansion, bounded planning/kernel execution, malformed/oversize, and disconnect vectors | bounded two-peer std listener executes exact accept/receive/send operations through the ordinary fixed scheduler and host-operation boundary | two independent planned browser/WASM kernels use native browser WebSocket plus bounded text-input/list adapters; pinned Chromium proves A/B exchange and truthful one-peer continuation | no | actual binary loopback external WebSocket messages, mechanically distinct from `ConnectionProvider::WebSocket` Conduit-session carriage | no physical/HIL claim |
 | Pico-shaped manifestation | exact Pico-local and remote-ingress advertisements with reviewed fixed-image bounds | yes, `conduit-pico-sim` | host-side unchanged-form planning/lowering/image generation, exact std source, and verifier tests | no | RP2040 images generated from exact local/remote fragments, CYW43 GPIO 0 LED driver, pinned radio assets, clean firmware-build identity, runtime boot/play receipt identity, and bounded dual CDC | exact bounded std↔Pico USB CDC and final three-host sessions | recorded local, exact std↔Pico success/failure, and final three-host success/broken-link runs |
 | Realm membership | retired prototype | deterministic table tests | no production body model | no | no | no | no |
 | Observatory | versioned neutral host/capability/link/plan/Play/pressure/evidence/retention reports with exact identity and bound validation | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store | no new transport; observed links are report facts only | no new physical/HIL claim |
@@ -88,6 +89,12 @@ The `check` workflow requires:
   activation is sent, followed by the complete sixteen-value terminal path,
   one real pressure retry, exact receipt correlation, and structured link-break
   failure;
+- one actual Chromium explicit external-WebSocket chat proof with two separate
+  browser/WASM kernels using native browser WebSocket, exact
+  source/checked/expanded/Plan/fragment/Play/placement/operation/implementation/
+  host-operation identities, finite peer/message/queue/history/value/evidence
+  bounds, visible A/B exchange, content-free identity evidence, distinct
+  disconnect, and truthful continuation by the remaining peer;
 - direct unchanged `examples/signal-demo.form` to Pico-local plan, selected
   fragment, lowered fragment, and generated fixed-image conformance with exact
   reviewed bounds and fail-closed identity/lowering/remote-connection negatives;
@@ -133,10 +140,16 @@ The canonical Form execution corpus required by #515 is accepted for Programs
 `73f1955f` with `31247769460`; the temporal checked-face/Plan prerequisite as
 `09333d60` with `31248540207`; Program 4 as `c91d5962` with `31249096578`;
 and Program 6 as `eb0f690a` with `31249570250`. Each workflow passed the full
-check and pinned browser jobs. Program 5 remains explicitly deferred: the
-existing WebSocket provider carries Conduit sessions and is not an authored
-external `net/websocket` operation. Exact commands, output, negative proof, and
-the physical-proof stop line are recorded in `docs/try-forms.md`.
+check and pinned browser jobs. Program 5 merged through PR #561 as exact main
+`b67744f67bfc3ba2324d05d9591c1dedb04c5d38`; workflow `31265931786` passed
+both required jobs. Its authored `net/websocket` operation is checked by
+structural face equality under #522 and remains distinct from
+`ConnectionProvider::WebSocket`, which carries Conduit sessions. Two actual
+browser clients exchange bounded messages through the std listener, then one
+disconnects while the other continues. This proves loopback browser/std
+execution only: it adds no public deployment, TLS/auth, federation, firmware,
+or physical/HIL claim. Exact commands, output, negative proof, and the
+physical-proof stop line are recorded in `docs/try-forms.md`.
 
 S6 durable continuity is accepted at exact main
 `bfa2944e2b2944489b652f18261bb7b577e830f3`; workflow `31254152549` passed
