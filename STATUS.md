@@ -96,7 +96,9 @@ The `check` workflow requires:
   receipts, and invalid terminal evidence;
 - WASM compilation of the browser-shaped simulation;
 - Thumb compilation of allocator-free contracts, the Pico-shaped simulation,
-  and the real generated Pico W firmware package.
+  and every selectable real Pico W firmware composition. The minimal local
+  composition executes the same exact kernel-backed Signal faces while omitting
+  the optional Conduit wire/session and BOOTSEL lifecycle-control family.
 
 WASM compilation is not browser execution by itself. Thumb compilation proves
 that the firmware builds; it is not board execution or physical acceptance. A
@@ -109,6 +111,21 @@ carrier implementation. Frame/datagram fixtures are not WebSocket or UDP
 sockets.
 
 ## Salvage stop line
+
+The #463 first host-architecture slice is accepted at exact main
+`31995940332eaf9cd8d6b77d7a453d9ab62e2e6a`; workflow `31258983687` passed
+both required jobs. The portable mandatory core is limited to boot-scoped
+identity, bounded advertisements and planning facts, the admitted kernel
+effect/completion protocol, and correlated evidence; platform facilities remain
+optional providers. Std, browser, and Pico are peer compositions with different
+exact offers. The kernel-backed `pico-local-minimal` Thumb composition retains
+only its deliberately selected Signal operation subset and evidence path while
+excluding the Conduit wire/session and lifecycle-control family. Planner
+compatibility is canonical checked-face equality followed by explicit
+resource/authority/policy admission, never platform or nominal operation
+identity. This is compile/contract evidence, not a new physical Pico claim.
+General BYOKernel scaffolding and further provider extraction remain possible
+follow-up work rather than accepted behavior.
 
 The canonical Form execution corpus required by #515 is accepted for Programs
 1–4 and 6. Program 1 merged as `8dcda744` with exact-main workflow

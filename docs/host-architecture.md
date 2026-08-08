@@ -1,6 +1,6 @@
 # Host core, families, providers, and compositions
 
-**Status:** first executable architecture slice for issues #463 and #514
+**Status:** accepted first host-architecture slice from issues #463 and #514
 
 **Current proof boundary:** [STATUS.md](../STATUS.md)
 
@@ -117,8 +117,9 @@ names `ImplementationId`, `ArtifactId`, a provider, or a platform.
 
 ## Remaining architecture work
 
-This slice does not yet establish a general downstream BYOKernel composition API
-or separate every provider boundary. Pico's reviewed Signal images are selectable,
-but they are not a general Pico host generator. Those broader questions remain
-owned by #463. This also does not create a dynamic registry, package manager,
-plugin ABI, mega-Host trait, or one Cargo feature per operation.
+This slice does not establish a general downstream BYOKernel composition API or
+separate every provider boundary. Pico's reviewed Signal images are selectable,
+but they are not a general Pico host generator. Those are follow-up architecture
+and tooling slices, not missing claims of the accepted #463 first slice. This also
+does not create a dynamic registry, package manager, plugin ABI, mega-Host trait,
+or one Cargo feature per operation.
