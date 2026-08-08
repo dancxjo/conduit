@@ -12,8 +12,10 @@ use winit::window::{Window, WindowId};
 
 const HISTORY_CAPACITY: usize = 4;
 const MAX_FORM_PRESENTATION_LINES: usize = 256;
+mod control;
 mod render;
 mod resource;
+use control::NativeControl;
 use render::{draw_document, BACKGROUND};
 use resource::{open_form_resource, save_form_resource};
 
@@ -22,6 +24,8 @@ struct Arguments {
     exit_after_window: bool,
     snapshot_path: Option<PathBuf>,
     form_path: Option<PathBuf>,
+    control_demo: bool,
+    control_demo_stop: bool,
 }
 
 struct PatchbayApplication {
@@ -30,6 +34,7 @@ struct PatchbayApplication {
     form_editor: Option<FormEditor>,
     form_selection: usize,
     modifiers: winit::keyboard::ModifiersState,
+    control: NativeControl,
     window: Option<Rc<Window>>,
     exit_after_window: bool,
     rendered_once: bool,
@@ -65,17 +70,30 @@ impl PatchbayApplication {
             .map(open_form_resource)
             .transpose()
             .map_err(|error| error.to_string())?;
-        Ok(Self {
+        let mut application = Self {
             model,
             topology_lines,
             form_editor,
             form_selection: 0,
             modifiers: winit::keyboard::ModifiersState::empty(),
+            control: NativeControl::new(),
             window: None,
             exit_after_window: arguments.exit_after_window,
             rendered_once: false,
             failure: None,
-        })
+        };
+        if arguments.control_demo || arguments.control_demo_stop {
+            let editor = application
+                .form_editor
+                .as_ref()
+                .ok_or("control demo requires --form")?;
+            application.control.request_plan(editor)?;
+            application.control.run(editor)?;
+            if arguments.control_demo_stop {
+                application.control.stop()?;
+            }
+        }
+        Ok(application)
     }
 
     fn title(&self) -> String {
@@ -134,7 +152,7 @@ impl PatchbayApplication {
         let view = editor.view();
         let mut lines = vec![
             format!("SOURCE {} revision={}", view.path.display(), view.revision),
-            "  edit=end  Backspace=delete  Ctrl-S=save  Tab=open-next-back  Up/Down=select".into(),
+            "  edit=end  Backspace=delete  Ctrl-S=save  Tab=open-next-back  Up/Down=select  F5=Plan F6=Run Esc=Stop".into(),
         ];
         lines.extend(
             view.source
@@ -192,6 +210,7 @@ impl PatchbayApplication {
                 ));
             }
         }
+        lines.extend(self.control.lines());
         lines.truncate(MAX_FORM_PRESENTATION_LINES);
         lines
     }
@@ -262,6 +281,21 @@ impl PatchbayApplication {
             Key::Named(NamedKey::ArrowUp) => {
                 self.form_selection = self.form_selection.saturating_sub(1)
             }
+            Key::Named(NamedKey::F5) => {
+                self.control.request_plan(
+                    self.form_editor
+                        .as_ref()
+                        .expect("editor presence was checked"),
+                )?;
+            }
+            Key::Named(NamedKey::F6) => {
+                self.control.run(
+                    self.form_editor
+                        .as_ref()
+                        .expect("editor presence was checked"),
+                )?;
+            }
+            Key::Named(NamedKey::Escape) => self.control.stop()?,
             Key::Character(character)
                 if self.modifiers.control_key() && character.eq_ignore_ascii_case("s") =>
             {
@@ -356,7 +390,38 @@ impl ApplicationHandler for PatchbayApplication {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        if self.exit_after_window && self.rendered_once {
+        match self.control.poll() {
+            Ok(true) => {
+                for line in self.control.lines().iter().filter(|line| {
+                    line.starts_with("PLAN ")
+                        || line.starts_with("PLAY ")
+                        || line.starts_with("PLAN-ACTION ")
+                        || line.starts_with("RUN ")
+                        || line.starts_with("STOP ")
+                        || line.starts_with("RUN-TERMINAL ")
+                        || line.trim_start().starts_with("CONTROL ")
+                        || line.trim_start().starts_with("KERNEL-EVIDENCE ")
+                }) {
+                    println!("patchbay control {line}");
+                }
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
+                self.rendered_once = false;
+            }
+            Ok(false) => {}
+            Err(error) => {
+                self.failure = Some(format!("Play control failed: {error}"));
+                event_loop.exit();
+                return;
+            }
+        }
+        event_loop.set_control_flow(if self.control.is_running() {
+            ControlFlow::Poll
+        } else {
+            ControlFlow::Wait
+        });
+        if self.exit_after_window && self.rendered_once && !self.control.is_running() {
             event_loop.exit();
         }
     }
@@ -409,6 +474,12 @@ fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Argume
                 let path = arguments.next().ok_or("--form requires a path")?;
                 parsed.form_path = Some(path.into());
             }
+            "--control-demo" if !parsed.control_demo && !parsed.control_demo_stop => {
+                parsed.control_demo = true;
+            }
+            "--control-demo-stop" if !parsed.control_demo && !parsed.control_demo_stop => {
+                parsed.control_demo_stop = true;
+            }
             _ => {
                 return Err(format!(
                     "unsupported or repeated Patchbay argument: {argument}"
@@ -420,49 +491,5 @@ fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Argume
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{parse_arguments, render::draw_document, Arguments, BACKGROUND};
-    use std::path::PathBuf;
-
-    #[test]
-    fn arguments_are_explicit_and_fail_closed() {
-        assert_eq!(
-            parse_arguments(Vec::new().into_iter()).unwrap(),
-            Arguments::default()
-        );
-        assert_eq!(
-            parse_arguments(vec!["--form".into(), "greet.conduit".into()].into_iter())
-                .unwrap()
-                .form_path,
-            Some(PathBuf::from("greet.conduit"))
-        );
-        assert!(
-            parse_arguments(vec!["--smoke-exit-after-window".into()].into_iter())
-                .unwrap()
-                .exit_after_window
-        );
-        assert_eq!(
-            parse_arguments(
-                vec!["--observatory-snapshot".into(), "report.json".into()].into_iter()
-            )
-            .unwrap()
-            .snapshot_path,
-            Some(PathBuf::from("report.json"))
-        );
-        assert!(parse_arguments(vec!["--unknown".into()].into_iter()).is_err());
-        assert!(parse_arguments(vec!["--observatory-snapshot".into()].into_iter()).is_err());
-        assert!(parse_arguments(vec!["--form".into()].into_iter()).is_err());
-    }
-
-    #[test]
-    fn topology_document_draws_pixels_inside_the_bounded_surface() {
-        let mut buffer = vec![BACKGROUND; 320 * 100];
-        draw_document(
-            &mut buffer,
-            320,
-            100,
-            &["HOSTS 1".into(), "  host=exact boot=boot-1".into()],
-        );
-        assert!(buffer.iter().any(|pixel| *pixel != BACKGROUND));
-    }
-}
+#[path = "main_tests.rs"]
+mod tests;

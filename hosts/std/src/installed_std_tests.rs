@@ -293,6 +293,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_provider() {
         &mut evidence_sequence,
         &mut output,
         &mut timer,
+        &crate::RunControl::default(),
     )
     .expect("planned generate-text runs through lowering, kernel, and provider");
     assert!(String::from_utf8(output)
@@ -320,6 +321,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_provider() {
         &mut evidence_sequence,
         &mut output,
         &mut timer,
+        &crate::RunControl::default(),
     )
     .expect_err("an implementation absent from the Plan cannot substitute at runtime");
     assert!(

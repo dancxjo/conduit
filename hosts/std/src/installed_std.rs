@@ -1,3 +1,4 @@
+mod catalog;
 pub(super) mod contract;
 mod count_operations;
 mod external_websocket;
@@ -13,30 +14,24 @@ mod text_operations;
 mod text_operations_tests;
 mod tick_presentation;
 
+use self::catalog::factory;
+pub(crate) use self::catalog::supports;
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
-use self::count_operations::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
-use self::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
-use self::generate_text::{
-    execute_fixture, GENERATE_TEXT_LARGE_FACTORY, GENERATE_TEXT_REMOTE_FACTORY,
-    GENERATE_TEXT_SMALL_FACTORY,
-};
-use self::operation::{InstalledFactory, InstalledOperation, EVERY_FACTORY, TICK_FACTORY};
+use self::generate_text::execute_fixture;
+use self::operation::InstalledOperation;
 #[cfg(test)]
-use self::operation::{TEST_OBSERVER_FACTORY, TEST_OBSERVER_IMPLEMENTATION};
-#[cfg(test)]
-use self::test_text_source::TEST_TEXT_SOURCE_FACTORY;
-use self::text_operations::{
-    TEXT_JOIN_FACTORY, TEXT_LITERAL_FACTORY, TEXT_PRESENTATION_FACTORY, TEXT_UPPER_FACTORY,
+use self::operation::{TEST_OBSERVER_IMPLEMENTATION, TICK_FACTORY};
+use super::{
+    RunControl, RunControlDisposition, RunControlReceipt, StdKernelExecutionReport, StdRunReport,
+    TimerAdapter,
 };
-use self::tick_presentation::TICK_PRESENTATION_FACTORY;
-use super::{StdKernelExecutionReport, StdRunReport, TimerAdapter};
 #[cfg(test)]
 use conduit_core::present_host_operation_requirement;
 use conduit_core::{
-    bind_active_play, bind_evidence, kind_id, wait_host_operation_requirement, HostAdvertisement,
-    ImplementationId, Observation, ObservationKind, PlanFragment, TerminalDisposition,
+    bind_active_play, bind_evidence, kind_id, wait_host_operation_requirement, CancellationReason,
+    HostAdvertisement, Observation, ObservationKind, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver, SchedulerStatus,
@@ -85,43 +80,8 @@ type InstalledScheduler = FixedScheduler<
     PENDING_REQUESTS,
 >;
 
-const FACTORIES: &[&InstalledFactory] = &[
-    &TICK_FACTORY,
-    &EVERY_FACTORY,
-    &TICK_PRESENTATION_FACTORY,
-    &TEXT_LITERAL_FACTORY,
-    &TEXT_UPPER_FACTORY,
-    &TEXT_JOIN_FACTORY,
-    &TEXT_PRESENTATION_FACTORY,
-    &STATE_COUNT_FACTORY,
-    &COUNT_PRESENTATION_FACTORY,
-    &EXTERNAL_WEBSOCKET_LISTENER_FACTORY,
-    &GENERATE_TEXT_SMALL_FACTORY,
-    &GENERATE_TEXT_LARGE_FACTORY,
-    &GENERATE_TEXT_REMOTE_FACTORY,
-    #[cfg(test)]
-    &TEST_TEXT_SOURCE_FACTORY,
-    #[cfg(test)]
-    &TEST_OBSERVER_FACTORY,
-];
-
 pub(super) use contract::every_offer;
 pub(super) use contract::tick_offer;
-
-fn factory(implementation_id: &ImplementationId) -> Option<&'static InstalledFactory> {
-    FACTORIES
-        .iter()
-        .copied()
-        .find(|factory| factory.implementation_id == implementation_id.as_str())
-}
-
-pub(super) fn supports(fragment: &PlanFragment) -> bool {
-    !fragment.placements.is_empty()
-        && fragment
-            .placements
-            .iter()
-            .all(|placement| factory(&placement.implementation_id).is_some())
-}
 
 pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     advertisement: &HostAdvertisement,
@@ -130,6 +90,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     next_evidence_sequence: &mut u64,
     _output: &mut W,
     timer: &mut T,
+    control: &RunControl,
 ) -> Result<StdRunReport, String> {
     let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
     let active_nodes = lowered.nodes.len();
@@ -336,7 +297,16 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let observer_target_kind = kind_id("conduit.test/tick-observation");
     #[cfg(test)]
     let activation_probe = crate::allocation_probe::begin();
-    loop {
+    let mut accepted_stop = None;
+    let terminal_disposition = loop {
+        if accepted_stop.is_none() {
+            if let Some(request_id) = control.requested_stop() {
+                scheduler
+                    .cancel()
+                    .map_err(|error| format!("cancel installed kernel: {error:?}"))?;
+                accepted_stop = Some(request_id);
+            }
+        }
         while let Some(request) = scheduler.next_host_request() {
             let input = scheduler
                 .host_value(request.input.value)
@@ -540,13 +510,17 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             .map_err(|error| format!("installed kernel step: {error:?}"))?
         {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Complete => break TerminalDisposition::Completed,
             SchedulerStatus::Idle => {
                 return Err("installed kernel became idle before completion".to_string());
             }
-            SchedulerStatus::Cancelled => return Err("installed kernel was cancelled".to_string()),
+            SchedulerStatus::Cancelled => {
+                break TerminalDisposition::Cancelled {
+                    reason: CancellationReason::OperatorRequested,
+                }
+            }
         }
-    }
+    };
     #[cfg(test)]
     let post_activation_allocations = activation_probe.finish();
 
@@ -616,16 +590,26 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         placement_id: None,
         connection_id: None,
         kind: ObservationKind::PlanTerminal {
-            disposition: TerminalDisposition::Completed,
+            disposition: terminal_disposition,
         },
     }];
+    let control_receipts = accepted_stop
+        .map(|request_id| RunControlReceipt {
+            request_id,
+            active_play_id: active_play.active_play_id.clone(),
+            disposition: RunControlDisposition::Accepted,
+        })
+        .into_iter()
+        .collect();
     Ok(StdRunReport {
         observations,
         receipts: Vec::new(),
+        control_receipts,
         kernel: Some(StdKernelExecutionReport {
             active_play_id: active_play.active_play_id,
             decisions: scheduler.decisions(),
             kernel_events: scheduler.evidence().len(),
+            kernel_evidence: scheduler.evidence().events().collect(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids: Vec::new(),

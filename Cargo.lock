@@ -1360,7 +1360,9 @@ dependencies = [
 name = "patchbay-native"
 version = "0.1.0"
 dependencies = [
+ "conduit-core",
  "conduit-observatory",
+ "conduit-std-host",
  "font8x8",
  "patchbay-model",
  "serde_json",

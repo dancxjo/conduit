@@ -699,10 +699,12 @@ fn run_signal_profile<
     Ok(StdRunReport {
         observations,
         receipts,
+        control_receipts: Vec::new(),
         kernel: Some(StdKernelExecutionReport {
             active_play_id: active_play.active_play_id,
             decisions: scheduler.decisions(),
             kernel_events: scheduler.evidence().len(),
+            kernel_evidence: scheduler.evidence().events().collect(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids,
