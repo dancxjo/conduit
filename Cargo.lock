@@ -229,6 +229,15 @@ name = "conduit-kernel"
 version = "0.1.0"
 
 [[package]]
+name = "conduit-net"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "conduit-observatory"
 version = "0.1.0"
 dependencies = [

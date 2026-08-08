@@ -12,6 +12,7 @@ members = [
 	"crates/conduit-realm",
 	"crates/conduit-observatory",
 	"crates/conduit-system-continuity",
+	"crates/conduit-net",
 	"crates/conduit-std-catalog",
 	"crates/conduit",
 	"fixtures/browser-sim",
