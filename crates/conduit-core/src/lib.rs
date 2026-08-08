@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 mod configuration;
+mod control_loop;
 mod face;
 mod implementation;
 mod port;
@@ -18,6 +19,7 @@ mod route;
 mod shared_pool;
 
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
+pub use control_loop::*;
 pub use face::{CheckedFace, FaceStartupParameter};
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
