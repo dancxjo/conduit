@@ -59,6 +59,7 @@ fn pulse_outputs() -> Vec<PortDescriptor> {
         port_id: port_id("signal"),
         value_kind: kind_id(SIGNAL_VALUE_KIND),
         direction: PortDirection::Output,
+        temporal: conduit_core::PortTemporal::Value,
     }]
 }
 
@@ -67,6 +68,7 @@ fn show_inputs() -> Vec<PortDescriptor> {
         port_id: port_id("signal"),
         value_kind: kind_id(SIGNAL_VALUE_KIND),
         direction: PortDirection::Input,
+        temporal: conduit_core::PortTemporal::Value,
     }]
 }
 

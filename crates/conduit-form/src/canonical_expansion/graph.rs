@@ -133,12 +133,14 @@ pub(super) fn resolve_reference(
                 output: Some(StageSource::FaceInput(
                     reference.to_string(),
                     port.value_type.text.clone(),
+                    crate::value_type::canonical_port_temporal(port.temporal),
                 )),
             },
             RuntimePortDirection::Output => Stage {
                 input: Some(vec![StageSink::FaceOutput(
                     reference.to_string(),
                     port.value_type.text.clone(),
+                    crate::value_type::canonical_port_temporal(port.temporal),
                 )]),
                 output: None,
             },
@@ -209,10 +211,12 @@ pub(super) fn connect(
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     match (source, sink) {
         (StageSource::Internal(source), StageSink::Internal(sink)) => {
-            if source.port.value_kind != sink.port.value_kind {
+            if source.port.value_kind != sink.port.value_kind
+                || source.port.temporal != sink.port.temporal
+            {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-045",
-                    "cord connects incompatible runtime value kinds".into(),
+                    "cord connects incompatible runtime value or temporal contracts".into(),
                 ));
             }
             connections.push(CheckedConnection {
@@ -221,10 +225,11 @@ pub(super) fn connect(
                 sink_operation_id: sink.operation_id,
                 sink_port_id: sink.port.port_id,
                 value_kind: source.port.value_kind,
+                temporal: source.port.temporal,
             });
         }
-        (StageSource::FaceInput(name, value_type), StageSink::Internal(sink)) => {
-            require_face_kind(&name, &value_type, &sink.port.value_kind)?;
+        (StageSource::FaceInput(name, value_type, temporal), StageSink::Internal(sink)) => {
+            require_face_contract(&name, &value_type, temporal, &sink.port)?;
             let endpoints = inputs.entry(name.clone()).or_default();
             if endpoints.iter().any(|endpoint| {
                 endpoint.operation_id == sink.operation_id
@@ -237,11 +242,11 @@ pub(super) fn connect(
             }
             endpoints.push(sink);
         }
-        (StageSource::Internal(source), StageSink::FaceOutput(name, value_type)) => {
-            require_face_kind(&name, &value_type, &source.port.value_kind)?;
+        (StageSource::Internal(source), StageSink::FaceOutput(name, value_type, temporal)) => {
+            require_face_contract(&name, &value_type, temporal, &source.port)?;
             insert_boundary(outputs, name, source)?;
         }
-        (StageSource::FaceInput(_, _), StageSink::FaceOutput(_, _)) => {
+        (StageSource::FaceInput(_, _, _), StageSink::FaceOutput(_, _, _)) => {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-046",
                 "runtime face passthrough must cross an admitted cell".into(),
@@ -265,17 +270,20 @@ fn insert_boundary(
     Ok(())
 }
 
-fn require_face_kind(
+fn require_face_contract(
     name: &str,
     value_type: &str,
-    actual: &KindId,
+    temporal: conduit_core::PortTemporal,
+    actual: &conduit_core::PortDescriptor,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
-    if crate::value_type::canonical_value_kind(value_type) != *actual {
+    if crate::value_type::canonical_value_kind(value_type) != actual.value_kind
+        || temporal != actual.temporal
+    {
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-045",
             format!(
                 "runtime face port '{name}' declares '{value_type}' but binds '{}'",
-                actual.as_str()
+                actual.value_kind.as_str()
             ),
         ));
     }

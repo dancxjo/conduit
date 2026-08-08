@@ -281,11 +281,13 @@ fn sealed_current_fragment() -> PlanFragment {
         port_id: PortId::from("out"),
         value_kind: value_kind.clone(),
         direction: PortDirection::Output,
+        temporal: conduit_core::PortTemporal::Value,
     };
     let input = PortDescriptor {
         port_id: PortId::from("in"),
         value_kind: value_kind.clone(),
         direction: PortDirection::Input,
+        temporal: conduit_core::PortTemporal::Value,
     };
     let expected_evidence = vec![
         ExpectedEvidence::PlanFragmentReceived,
@@ -365,6 +367,7 @@ fn sealed_current_fragment() -> PlanFragment {
             sink_placement_id: sink.clone(),
             sink_port_id: PortId::from("in"),
             value_kind,
+            temporal: conduit_core::PortTemporal::Value,
             provider: ConnectionProvider::Local,
             link_binding: None,
             item_capacity: 1,

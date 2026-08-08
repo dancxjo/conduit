@@ -116,13 +116,13 @@ struct Instance {
 #[derive(Debug, Clone)]
 enum StageSource {
     Internal(Endpoint),
-    FaceInput(String, String),
+    FaceInput(String, String, conduit_core::PortTemporal),
 }
 
 #[derive(Debug, Clone)]
 enum StageSink {
     Internal(Endpoint),
-    FaceOutput(String, String),
+    FaceOutput(String, String, conduit_core::PortTemporal),
 }
 
 #[derive(Debug)]

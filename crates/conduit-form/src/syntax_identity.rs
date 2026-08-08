@@ -32,6 +32,7 @@ pub(crate) fn checked_identity(
         push_field(&mut canonical, &port.name.text);
         push_field(&mut canonical, &port.value_type.text);
         push_field(&mut canonical, &format!("{:?}", port.direction));
+        push_field(&mut canonical, &format!("{:?}", port.temporal));
     }
     if let Some((input, output)) = shorthand {
         canonical.push_str("shorthand");

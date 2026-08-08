@@ -10,6 +10,7 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         port_id: port_id(name),
         value_kind: kind_id("test/value"),
         direction,
+        temporal: conduit_core::PortTemporal::Value,
     }
 }
 
@@ -223,4 +224,88 @@ fn inline_reusable_and_primitive_cells_expand_without_a_parallel_path() {
         .provenance
         .iter()
         .all(|row| row.source_cell.starts_with("inline-")));
+}
+
+#[test]
+fn face_binding_preserves_flow_closure_and_current_observation_contracts() {
+    let mut startup = StartupCatalog::new();
+    for operation in ["state/count", "test/ticks", "test/current"] {
+        startup
+            .insert(OperationSignature {
+                operation: operation.into(),
+                startup_parameters: vec![],
+            })
+            .unwrap();
+    }
+    let mut profile = ProfileCatalog::new();
+    profile
+        .insert(KindDefinition {
+            kind_id: kind_id("state/count"),
+            kind_contract_revision: KindContractRevision::from("state/count@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("bump"),
+                value_kind: kind_id("value/tick@1"),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Flow { closes: true },
+            }],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("value"),
+                value_kind: kind_id("value/count@1"),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Current,
+            }],
+            configuration: vec![],
+        })
+        .unwrap();
+    profile
+        .insert(KindDefinition {
+            kind_id: kind_id("test/ticks"),
+            kind_contract_revision: KindContractRevision::from("test/ticks@1"),
+            inputs: vec![],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("tick"),
+                value_kind: kind_id("value/tick@1"),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Flow { closes: true },
+            }],
+            configuration: vec![],
+        })
+        .unwrap();
+    profile
+        .insert(KindDefinition {
+            kind_id: kind_id("test/current"),
+            kind_contract_revision: KindContractRevision::from("test/current@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("value"),
+                value_kind: kind_id("value/count@1"),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Current,
+            }],
+            outputs: vec![],
+            configuration: vec![],
+        })
+        .unwrap();
+    let source = "form count (\n    bump: Tick...| > value: $Count\n) {\n    cell: state/count\n    bump > cell.bump\n    cell.value > value\n}\n\nform main {\n    ticks: test/ticks\n    count: count\n    show: test/current\n    ticks > count > show\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "main", &profile).unwrap();
+    let count = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "count")
+        .unwrap();
+    let state = expanded
+        .operations
+        .iter()
+        .find(|operation| operation.kind_id.as_str() == "state/count")
+        .unwrap();
+    assert_eq!(count.checked_face(), state.checked_face());
+
+    let mismatched = source.replace("Tick...|", "Tick...");
+    let checked = check_syntax_document(&parse_syntax_document(&mismatched), &startup).unwrap();
+    assert_eq!(
+        expand_canonical_form(&checked, "main", &profile)
+            .unwrap_err()
+            .code,
+        "CND-FRM-045"
+    );
 }

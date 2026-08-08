@@ -4,8 +4,8 @@ use crate::surface_lex::{
 };
 use crate::syntax::{
     Argument, BackStatement, Cord, CordStage, Expression, FormFace, FormSyntax, Invocation,
-    LocalValue, NamedCell, RuntimePort, RuntimePortDirection, ShorthandPair, SpannedText,
-    StartupParameter, SyntaxDocument,
+    LocalValue, NamedCell, RuntimePort, RuntimePortDirection, RuntimePortTemporal, ShorthandPair,
+    SpannedText, StartupParameter, SyntaxDocument,
 };
 use crate::{
     diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
@@ -43,6 +43,23 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
             vec![diagnostic(error, span)],
         ),
     }
+}
+
+fn parse_port_type(value_type: &str) -> Option<(&str, RuntimePortTemporal)> {
+    let (value_type, temporal) = if let Some(value_type) = value_type.strip_prefix('$') {
+        (value_type, RuntimePortTemporal::Current)
+    } else if let Some(value_type) = value_type.strip_suffix("...|") {
+        (value_type, RuntimePortTemporal::Flow { closes: true })
+    } else if let Some(value_type) = value_type.strip_suffix("...") {
+        (value_type, RuntimePortTemporal::Flow { closes: false })
+    } else {
+        (value_type, RuntimePortTemporal::Value)
+    };
+    (!value_type.is_empty()
+        && !value_type.starts_with('$')
+        && !value_type.ends_with("...")
+        && !value_type.ends_with("...|"))
+    .then_some((value_type, temporal))
 }
 
 struct Parser<'a> {
@@ -245,10 +262,13 @@ impl<'a> Parser<'a> {
     ) -> Result<RuntimePort, (FormError, Span)> {
         let (name, value_type) =
             split_declaration(declaration).ok_or_else(|| self.invalid_statement(line, start))?;
+        let (value_type, temporal) =
+            parse_port_type(value_type).ok_or_else(|| self.invalid_statement(line, start))?;
         Ok(RuntimePort {
             name: self.spanned_at(name, line, start),
             value_type: self.spanned_at(value_type, line, start),
             direction,
+            temporal,
             span: self.span(
                 start + line.find(declaration).unwrap(),
                 start + line.find(declaration).unwrap() + declaration.len(),

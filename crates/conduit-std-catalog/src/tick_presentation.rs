@@ -29,6 +29,7 @@ pub fn tick_presentation_contract() -> StandardKindContract {
             port_id: port_id("tick"),
             value_kind: kind_id(super::TICK_VALUE_KIND),
             direction: PortDirection::Input,
+            temporal: conduit_core::PortTemporal::Flow { closes: true },
         }],
         outputs: Vec::new(),
         configuration: vec![StandardConfigurationField {

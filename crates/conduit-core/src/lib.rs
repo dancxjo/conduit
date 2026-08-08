@@ -11,9 +11,11 @@ use sha2::{Digest, Sha256};
 
 mod configuration;
 mod face;
+mod port;
 
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use face::{CheckedFace, FaceStartupParameter};
+pub use port::{PortDescriptor, PortDirection, PortTemporal};
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
@@ -218,19 +220,6 @@ pub fn bind_presentation(
         placement_id: placement_id.clone(),
         sequence,
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PortDirection {
-    Input,
-    Output,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PortDescriptor {
-    pub port_id: PortId,
-    pub value_kind: KindId,
-    pub direction: PortDirection,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -611,6 +600,8 @@ pub struct PlannedConnection {
     pub sink_placement_id: PlacementId,
     pub sink_port_id: PortId,
     pub value_kind: KindId,
+    #[serde(default)]
+    pub temporal: PortTemporal,
     pub provider: ConnectionProvider,
     pub link_binding: Option<LinkBinding>,
     pub item_capacity: u16,
@@ -883,6 +874,12 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, connection.sink_placement_id.as_str());
         push_string(&mut canonical, connection.sink_port_id.as_str());
         push_string(&mut canonical, connection.value_kind.as_str());
+        canonical.push(match connection.temporal {
+            PortTemporal::Value => 0,
+            PortTemporal::Flow { closes: false } => 1,
+            PortTemporal::Flow { closes: true } => 2,
+            PortTemporal::Current => 3,
+        });
         canonical.push(connection.provider.canonical_code());
         match &connection.link_binding {
             Some(binding) => {
@@ -1006,6 +1003,12 @@ fn push_ports(canonical: &mut Vec<u8>, ports: &[PortDescriptor]) {
         canonical.push(match port.direction {
             PortDirection::Input => 0,
             PortDirection::Output => 1,
+        });
+        canonical.push(match port.temporal {
+            PortTemporal::Value => 0,
+            PortTemporal::Flow { closes: false } => 1,
+            PortTemporal::Flow { closes: true } => 2,
+            PortTemporal::Current => 3,
         });
     }
 }

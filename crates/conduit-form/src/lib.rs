@@ -101,6 +101,7 @@ pub struct CheckedConnection {
     pub sink_operation_id: OperationId,
     pub sink_port_id: PortId,
     pub value_kind: KindId,
+    pub temporal: conduit_core::PortTemporal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1106,6 +1107,7 @@ fn parse_export_face(
             port_id: PortId::from(external_port_id),
             value_kind: KindId::from(value_kind),
             direction,
+            temporal: conduit_core::PortTemporal::Value,
         },
         internal_operation_id: OperationId::from(operation_id.trim()),
         internal_port_id: PortId::from(port_id.trim()),
@@ -1267,11 +1269,15 @@ fn connection_from_ports(
                 "'{sink_operation}' has no input port '{sink_port}'"
             ))
         })?;
-    if source_descriptor.value_kind != sink_descriptor.value_kind {
+    if source_descriptor.value_kind != sink_descriptor.value_kind
+        || source_descriptor.temporal != sink_descriptor.temporal
+    {
         return Err(FormError::InvalidConnection(format!(
-            "value kind '{}' cannot connect to '{}'",
+            "runtime contract '{} {}' cannot connect to '{} {}'",
             source_descriptor.value_kind.as_str(),
-            sink_descriptor.value_kind.as_str()
+            source_descriptor.temporal.as_str(),
+            sink_descriptor.value_kind.as_str(),
+            sink_descriptor.temporal.as_str()
         )));
     }
     Ok(CheckedConnection {
@@ -1280,6 +1286,7 @@ fn connection_from_ports(
         sink_operation_id: OperationId::from(sink_operation),
         sink_port_id: sink_descriptor.port_id.clone(),
         value_kind: source_descriptor.value_kind.clone(),
+        temporal: source_descriptor.temporal,
     })
 }
 
@@ -1318,10 +1325,11 @@ fn canonical_form_text(
                 conduit_core::PortDirection::Output => "output",
             };
             text.push_str(&format!(
-                "port:{}:{}:{}|",
+                "port:{}:{}:{}:{}|",
                 port.port_id.as_str(),
                 port.value_kind.as_str(),
-                direction
+                direction,
+                port.temporal.as_str()
             ));
         }
         for entry in &operation.configuration {
@@ -1334,11 +1342,12 @@ fn canonical_form_text(
     }
     for connection in connections {
         text.push_str(&format!(
-            "conn:{}:{}->{}:{}|",
+            "conn:{}:{}->{}:{}:{}|",
             connection.source_operation_id.as_str(),
             connection.source_port_id.as_str(),
             connection.sink_operation_id.as_str(),
-            connection.sink_port_id.as_str()
+            connection.sink_port_id.as_str(),
+            connection.temporal.as_str()
         ));
     }
     for export in exports {
@@ -1353,9 +1362,10 @@ fn canonical_form_text(
                 PortDirection::Output => "output",
             };
             text.push_str(&format!(
-                "face:{direction}:{}:{}={}:{}:terminal-independent|",
+                "face:{direction}:{}:{}:{}={}:{}:terminal-independent|",
                 face.external_port.port_id.as_str(),
                 face.external_port.value_kind.as_str(),
+                face.external_port.temporal.as_str(),
                 face.internal_operation_id.as_str(),
                 face.internal_port_id.as_str(),
             ));
@@ -1404,6 +1414,7 @@ fn exported_contract_revision(
             push_identity_field(&mut canonical, direction);
             push_identity_field(&mut canonical, face.external_port.port_id.as_str());
             push_identity_field(&mut canonical, face.external_port.value_kind.as_str());
+            push_identity_field(&mut canonical, face.external_port.temporal.as_str());
             push_identity_field(
                 &mut canonical,
                 match face.terminal {

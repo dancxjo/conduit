@@ -69,6 +69,7 @@ fn exact_planned_connection_constructs_the_session_binding() {
         sink_placement_id: PlacementId::from("test/sink-placement"),
         sink_port_id: conduit_core::PortId::from("in"),
         value_kind: expected.value_kind.clone(),
+        temporal: conduit_core::PortTemporal::Value,
         provider: ConnectionProvider::WebSocket,
         link_binding: Some(LinkBinding {
             binding_id: expected.link_binding_id.clone(),
@@ -374,6 +375,7 @@ fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
         sink_placement_id: PlacementId::from("test/sink-placement"),
         sink_port_id: conduit_core::PortId::from("in"),
         value_kind: expected.value_kind.clone(),
+        temporal: conduit_core::PortTemporal::Value,
         provider: ConnectionProvider::FixtureFrame,
         link_binding: Some(LinkBinding {
             binding_id: expected.link_binding_id.clone(),
@@ -437,6 +439,7 @@ fn local_and_in_memory_providers_remain_rejected() {
             sink_placement_id: PlacementId::from("test/sink-placement"),
             sink_port_id: conduit_core::PortId::from("in"),
             value_kind: base.value_kind.clone(),
+            temporal: conduit_core::PortTemporal::Value,
             provider,
             link_binding: Some(LinkBinding {
                 binding_id: base.link_binding_id.clone(),
@@ -482,6 +485,7 @@ fn fixture_datagram_provider_remains_rejected() {
         sink_placement_id: PlacementId::from("test/sink-placement"),
         sink_port_id: conduit_core::PortId::from("in"),
         value_kind: invalid.value_kind.clone(),
+        temporal: conduit_core::PortTemporal::Value,
         provider,
         link_binding: Some(LinkBinding {
             binding_id: invalid.link_binding_id.clone(),
@@ -518,6 +522,7 @@ fn provider_link_mismatch_remains_rejected() {
         sink_placement_id: PlacementId::from("test/sink-placement"),
         sink_port_id: conduit_core::PortId::from("in"),
         value_kind: expected.value_kind.clone(),
+        temporal: conduit_core::PortTemporal::Value,
         provider: ConnectionProvider::WebSocket,
         link_binding: Some(LinkBinding {
             binding_id: expected.link_binding_id.clone(),

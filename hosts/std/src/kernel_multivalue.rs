@@ -642,6 +642,7 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         port_id: port_id(name),
         value_kind: kind_id(TICK_VALUE_KIND),
         direction,
+        temporal: conduit_core::PortTemporal::Value,
     }
 }
 

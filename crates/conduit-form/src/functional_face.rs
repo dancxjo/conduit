@@ -51,5 +51,6 @@ fn face_port(port: &RuntimePort) -> conduit_core::PortDescriptor {
             RuntimePortDirection::Input => conduit_core::PortDirection::Input,
             RuntimePortDirection::Output => conduit_core::PortDirection::Output,
         },
+        temporal: crate::value_type::canonical_port_temporal(port.temporal),
     }
 }

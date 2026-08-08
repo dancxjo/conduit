@@ -123,6 +123,7 @@ pub fn activate_outputs() -> Vec<PortDescriptor> {
         port_id: port_id(ACTIVATE_PORT),
         value_kind: activation_value_kind(),
         direction: PortDirection::Output,
+        temporal: conduit_core::PortTemporal::Value,
     }]
 }
 
@@ -131,6 +132,7 @@ pub fn toggle_inputs() -> Vec<PortDescriptor> {
         port_id: port_id(ACTIVATE_PORT),
         value_kind: activation_value_kind(),
         direction: PortDirection::Input,
+        temporal: conduit_core::PortTemporal::Value,
     }]
 }
 
@@ -139,6 +141,7 @@ pub fn toggle_outputs() -> Vec<PortDescriptor> {
         port_id: port_id(crate::SIGNAL_PORT),
         value_kind: crate::signal_value_kind(),
         direction: PortDirection::Output,
+        temporal: conduit_core::PortTemporal::Value,
     }]
 }
 

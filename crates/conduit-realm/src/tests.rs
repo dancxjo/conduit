@@ -33,6 +33,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
                 port_id: PortId::from("out"),
                 value_kind: KindId::from("test/value"),
                 direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Value,
             }],
             host_operations: vec![],
             resource_requirements: vec![],
