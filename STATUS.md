@@ -16,6 +16,7 @@ adapter or physical proof.
 | Browser manifestation | local and remote-ingress Signal profiles | yes, `conduit-browser-sim` | actual Rust/WASM planner plus exact-plan-lowered `conduit-kernel` execution for local and distributed sink fragments | thin DOM adapter with exact fixed-frame completion correlation and sixteen receipts | no | actual loopback WebSocket to the std kernel source | included in the accepted three-host physical run with matching cross-host receipts |
 | Interactive activation/toggle | typed `interaction/activate -> state/toggle -> presentation/show` contract with admitted input and exact remote planning | deterministic activation/toggle lifecycle and identity negatives | native std source services one admitted stdin activation through the kernel before realizing the corresponding remote offer | pinned Chromium proves the first Enter causes exactly one sequence-0 DOM update before later inputs, then completes sixteen exact presentations with one real pressure retry | no | actual bounded loopback WebSocket with structured link-break failure | no |
 | Explicit external WebSocket chat | opt-in `net/websocket` client/listener faces encode complete-message RFC 6455 semantics structurally; equal checked faces remain compatible across nominal names/revisions, while a generic byte-stream face does not | deterministic checked-face, canonical expansion, bounded planning/kernel execution, malformed/oversize, and disconnect vectors | bounded two-peer std listener executes exact accept/receive/send operations through the ordinary fixed scheduler and host-operation boundary | two independent planned browser/WASM kernels use native browser WebSocket plus bounded text-input/list adapters; pinned Chromium proves A/B exchange and truthful one-peer continuation | no | actual binary loopback external WebSocket messages, mechanically distinct from `ConnectionProvider::WebSocket` Conduit-session carriage | no physical/HIL claim |
+| Bounded shared pools and explicit dynamic flow | checked Forms carry exact scoped pool references and hard member bounds; Plans seal equal-face member contracts, host/boot/capability/resource envelopes, per-member queue/evidence limits, admission authority, and explicit consumers | allocator-free keyed membership, stale occupation epochs, deterministic membership snapshots, per-branch fan pressure/outcomes, and source-tagged bounded merge vectors | the existing kernel owns fixed pool/fan/merge state; the std proof host plans and lowers one 32-peer chat pool without adding a scheduler or ambient registry | two Chromium pages dynamically join, exchange addressed broadcasts, one leaves, and the remaining peer continues; the authored Form names only pool, room, fan, merge, and peer semantics | no | the proof host selects a bounded binary loopback WebSocket carrier below authored semantics; no socket/address/provider fact enters source identity | no physical/HIL claim |
 | Pico-shaped manifestation | exact Pico-local and remote-ingress advertisements with reviewed fixed-image bounds | yes, `conduit-pico-sim` | host-side unchanged-form planning/lowering/image generation, exact std source, and verifier tests | no | RP2040 images generated from exact local/remote fragments, CYW43 GPIO 0 LED driver, pinned radio assets, clean firmware-build identity, runtime boot/play receipt identity, and bounded dual CDC | exact bounded std↔Pico USB CDC and final three-host sessions | recorded local, exact std↔Pico success/failure, and final three-host success/broken-link runs |
 | Realm membership | retired prototype | deterministic table tests | no production body model | no | no | no | no |
 | Observatory | versioned neutral host/capability/link/plan/Play/pressure/evidence/retention reports with exact identity and bound validation | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store | no new transport; observed links are report facts only | no new physical/HIL claim |
@@ -373,3 +374,26 @@ plan input. Oversized bounded-profile requests fail before planning without a
 delegation path. Pico and other non-planner advertisements remain complete plan
 targets. This accepts #468 without claiming a general or allocator-free Pico
 planner, a coordinator service, new transport, or new physical evidence.
+
+PR #563 merged as exact main
+`b5134ecb174860c8a8bc19aff2829310fdfb2868`; push workflow `31268310389`
+passed both `check` and `browser-host`. Canonical Forms now admit exact scoped
+`pool name: member(size = N)` declarations and explicit pool-valued startup
+bindings without lexical/global capture. Planning uses exact checked-face
+equality rather than nominal kind or revision, then seals the selected
+host/boot/capability/resource envelope, finite member queue/evidence bounds,
+admission grant, and exact consumer placements into Plan identity. Runtime
+preparation revalidates those current facts before activation.
+
+`conduit-kernel` owns the allocation-free keyed member slots, occupation epochs,
+lifecycle/failure evidence, immutable key-ordered fan snapshots, bounded
+per-branch pressure/outcomes, and ordered merge events retaining source-member
+identity. No scalar cord implicitly broadcasts and no pooled output implicitly
+merges. The pinned one-worker, zero-retry Chromium proof runs two pages against
+one planned 32-peer pool: both join and exchange addressed broadcasts, one
+leaves, and the remaining peer continues. The authored
+`examples/pool-webchat.conduit` contains no WebSocket, socket, network, address,
+or provider fact; the host selects a bounded loopback carrier below source
+semantics. This accepts #517 without claiming ambient discovery, unbounded
+actors, durable membership, reconnection policy, firmware, or physical/HIL
+proof.
