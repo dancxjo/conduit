@@ -1,5 +1,7 @@
 pub(super) mod contract;
 mod count_operations;
+mod external_websocket;
+mod external_websocket_host;
 mod operation;
 #[cfg(test)]
 mod test_support;
@@ -14,6 +16,7 @@ mod tick_presentation;
 use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
 use self::count_operations::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
+use self::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
 use self::operation::{InstalledFactory, InstalledOperation, EVERY_FACTORY, TICK_FACTORY};
 #[cfg(test)]
 use self::operation::{TEST_OBSERVER_FACTORY, TEST_OBSERVER_IMPLEMENTATION};
@@ -34,7 +37,7 @@ use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    CordEndpoint, CordId, EvidenceSink, FixedHostOperationBindings, FixedRoutes,
+    BoundedValueRef, CordEndpoint, CordId, EvidenceSink, FixedHostOperationBindings, FixedRoutes,
     HostOperationDisposition, HostOperationOutcome, HostedEvidenceLog, HostedValueStore, NodeId,
     PortId, ValueStorage,
 };
@@ -59,7 +62,8 @@ pub(super) use test_support::{test_catalog, test_observer_offer};
 pub(super) fn test_text_source_offer() -> conduit_core::CapabilityOffer {
     test_text_source::offer()
 }
-const HOST_BINDING_SLOTS: usize = MAX_NODES;
+const HOST_OPERATIONS_PER_NODE: u16 = 3;
+const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_OPERATIONS_PER_NODE as usize;
 const PENDING_REQUESTS: usize = MAX_NODES;
 
 type InstalledScheduler = FixedScheduler<
@@ -86,6 +90,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEXT_PRESENTATION_FACTORY,
     &STATE_COUNT_FACTORY,
     &COUNT_PRESENTATION_FACTORY,
+    &EXTERNAL_WEBSOCKET_LISTENER_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]
@@ -241,7 +246,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     routes
         .seal()
         .map_err(|error| format!("seal std routes: {error:?}"))?;
-    let mut host_bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(1);
+    let mut host_bindings =
+        FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(HOST_OPERATIONS_PER_NODE);
     for operation in &lowered.host_operations {
         host_bindings
             .install(operation.node, operation.binding)
@@ -258,6 +264,18 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .ok_or_else(|| "installed evidence byte budget overflow".to_string())?;
     let evidence = HostedEvidenceLog::new(evidence_items, evidence_bytes)
         .map_err(|error| format!("installed evidence store: {error:?}"))?;
+    let mut external_listener = external_websocket_host::prepare(fragment)?;
+    if let Some(listener) = &external_listener {
+        writeln!(
+            _output,
+            "external-websocket-ready address={}",
+            listener
+                .local_addr()
+                .map_err(|error| format!("read external WebSocket address: {error:?}"))?
+        )
+        .map_err(|error| error.to_string())?;
+        _output.flush().map_err(|error| error.to_string())?;
+    }
     let mut scheduler = InstalledScheduler::new_with_active_counts_and_host_operations(
         active_nodes,
         active_cords,
@@ -294,6 +312,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     );
     let join_target_kind = kind_id(conduit_std_catalog::TEXT_JOIN_HOST_OPERATION_TARGET);
     let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
+    let mut external_output =
+        Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
     #[cfg(test)]
     let mut observed_ticks = Vec::with_capacity(request_capacity / 2);
     #[cfg(test)]
@@ -319,7 +339,82 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
-            if contract == &wait_contract_id {
+            if contract
+                .as_str()
+                .starts_with("conduit.host/external-websocket-listener-")
+            {
+                let completion = external_websocket_host::execute(
+                    contract.as_str(),
+                    input,
+                    &mut external_listener,
+                    &mut external_output,
+                )?;
+                let (disposition, output) = match completion {
+                    external_websocket_host::ExternalHostCompletion::Output => {
+                        let value =
+                            scheduler
+                                .store_host_value(&external_output)
+                                .map_err(|error| {
+                                    format!("store external WebSocket output: {error:?}")
+                                })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound external WebSocket output: {error:?}")
+                                })?,
+                            ),
+                        )
+                    }
+                    external_websocket_host::ExternalHostCompletion::NoOutput => {
+                        (HostOperationDisposition::Completed, None)
+                    }
+                    external_websocket_host::ExternalHostCompletion::ReturnedInput => {
+                        (HostOperationDisposition::Completed, Some(request.input))
+                    }
+                    external_websocket_host::ExternalHostCompletion::Disconnected => {
+                        let output = if external_output.is_empty() {
+                            None
+                        } else {
+                            let value =
+                                scheduler
+                                    .store_host_value(&external_output)
+                                    .map_err(|error| {
+                                        format!("store external WebSocket disconnect: {error:?}")
+                                    })?;
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound external WebSocket disconnect: {error:?}")
+                                })?,
+                            )
+                        };
+                        (HostOperationDisposition::Cancelled, output)
+                    }
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete external WebSocket host operation: {error:?}")
+                    })?;
+                continue;
+            } else if contract == &wait_contract_id {
                 let duration = decode_tick(input).map_err(|error| error.to_string())?;
                 timer.wait(Duration::from_millis(duration));
             } else if contract == &upper_contract_id

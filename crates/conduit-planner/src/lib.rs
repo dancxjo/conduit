@@ -488,6 +488,7 @@ pub(crate) fn plan_validated_form(
                 .collect();
             let startup_dependencies = connections
                 .iter()
+                .filter(|connection| connection.source_placement_id != connection.sink_placement_id)
                 .map(|connection| StartupDependency {
                     prerequisite_placement_id: connection.sink_placement_id.clone(),
                     dependent_placement_id: connection.source_placement_id.clone(),
@@ -564,7 +565,8 @@ fn startup_order(
             .iter()
             .find(|candidate| {
                 connections.iter().all(|connection| {
-                    &connection.source_placement_id != *candidate
+                    connection.source_placement_id == connection.sink_placement_id
+                        || &connection.source_placement_id != *candidate
                         || !remaining.contains(&connection.sink_placement_id)
                 })
             })

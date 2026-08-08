@@ -17,8 +17,12 @@ pub const EXTERNAL_WEBSOCKET_CLIENT_PROFILE: &str = "conduit.net/websocket-clien
 pub const EXTERNAL_WEBSOCKET_LISTENER_PROFILE: &str = "conduit.net/websocket-listener-hosted@1";
 pub const EXTERNAL_WEBSOCKET_CLIENT_HOST_OPERATION: &str =
     "conduit.host/external-websocket-client@1";
-pub const EXTERNAL_WEBSOCKET_LISTENER_HOST_OPERATION: &str =
-    "conduit.host/external-websocket-listener@1";
+pub const EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION: &str =
+    "conduit.host/external-websocket-listener-accept@1";
+pub const EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION: &str =
+    "conduit.host/external-websocket-listener-receive@1";
+pub const EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION: &str =
+    "conduit.host/external-websocket-listener-send@1";
 pub const EXTERNAL_WEBSOCKET_CLIENT_RESOURCE: &str =
     "conduit.resource/network/external-websocket-client@1";
 pub const EXTERNAL_WEBSOCKET_LISTENER_RESOURCE: &str =
@@ -35,9 +39,11 @@ pub const PEER_MESSAGE_VALUE_KIND: &str = "NetPeerMessage";
 
 pub const MAXIMUM_EXTERNAL_WEBSOCKET_PEERS: u16 = 2;
 pub const MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES: u32 = 256;
+pub const MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES: u32 =
+    MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES + 2;
 pub const MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_ITEMS: u16 = 8;
 pub const MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_BYTES: u32 =
-    MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES * MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_ITEMS as u32;
+    MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES * MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_ITEMS as u32;
 pub const MAXIMUM_EXTERNAL_WEBSOCKET_HISTORY_ITEMS: u16 = 16;
 
 pub fn external_websocket_client_offer(
@@ -125,11 +131,19 @@ pub fn external_websocket_listener_offer(
                 PortTemporal::Current,
             ),
         ],
-        host_operations: vec![host_operation(
-            EXTERNAL_WEBSOCKET_LISTENER_HOST_OPERATION,
-            MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
-            MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
-        )],
+        host_operations: vec![
+            host_operation(EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION, 64, 8),
+            host_operation(
+                EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION,
+                MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
+                MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
+            ),
+            host_operation(
+                EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION,
+                MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
+                MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
+            ),
+        ],
         resource_requirements: vec![resource_requirement(
             EXTERNAL_WEBSOCKET_LISTENER_RESOURCE,
             1,

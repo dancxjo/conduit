@@ -9,6 +9,10 @@ use tungstenite::protocol::{Message, WebSocket, WebSocketConfig};
 pub struct ExternalPeerId(u16);
 
 impl ExternalPeerId {
+    pub fn from_index(index: u16) -> Self {
+        Self(index)
+    }
+
     pub fn index(self) -> usize {
         usize::from(self.0)
     }
@@ -40,12 +44,24 @@ impl ExternalWebSocketListener {
         maximum_peers: u16,
         maximum_message_bytes: u32,
     ) -> Result<Self, ExternalWebSocketError> {
+        Self::bind(
+            SocketAddr::from(([127, 0, 0, 1], 0)),
+            maximum_peers,
+            maximum_message_bytes,
+        )
+    }
+
+    pub fn bind(
+        address: SocketAddr,
+        maximum_peers: u16,
+        maximum_message_bytes: u32,
+    ) -> Result<Self, ExternalWebSocketError> {
         let maximum_message_bytes = usize::try_from(maximum_message_bytes)
             .map_err(|_| ExternalWebSocketError::InvalidLimit)?;
-        if maximum_peers == 0 || maximum_message_bytes == 0 {
+        if !address.ip().is_loopback() || maximum_peers == 0 || maximum_message_bytes == 0 {
             return Err(ExternalWebSocketError::InvalidLimit);
         }
-        let listener = TcpListener::bind(("127.0.0.1", 0))
+        let listener = TcpListener::bind(address)
             .map_err(|error| ExternalWebSocketError::Bind(error.kind()))?;
         let mut peers = Vec::with_capacity(usize::from(maximum_peers));
         peers.resize_with(usize::from(maximum_peers), || None);
@@ -139,6 +155,14 @@ impl ExternalWebSocketListener {
             return Err(ExternalWebSocketError::UnknownPeer);
         };
         socket.close(None).map_err(map_socket_error)
+    }
+
+    pub fn next_connected_after(&self, peer: ExternalPeerId) -> Option<ExternalPeerId> {
+        (1..=self.peers.len())
+            .map(|offset| (peer.index() + offset) % self.peers.len())
+            .find(|index| self.peers[*index].is_some())
+            .and_then(|index| u16::try_from(index).ok())
+            .map(ExternalPeerId::from_index)
     }
 
     fn peer_mut(

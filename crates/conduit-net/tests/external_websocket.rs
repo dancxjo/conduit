@@ -3,8 +3,9 @@ use conduit_net::{
     browser_external_websocket_family, external_websocket_client_offer,
     external_websocket_listener_offer, std_external_websocket_family,
     EXTERNAL_WEBSOCKET_CLIENT_HOST_OPERATION, EXTERNAL_WEBSOCKET_CLIENT_KIND,
-    EXTERNAL_WEBSOCKET_LISTENER_HOST_OPERATION, EXTERNAL_WEBSOCKET_LISTENER_KIND,
-    MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES, MAXIMUM_EXTERNAL_WEBSOCKET_PEERS,
+    EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION, EXTERNAL_WEBSOCKET_LISTENER_KIND,
+    EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION,
+    EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION, MAXIMUM_EXTERNAL_WEBSOCKET_PEERS,
     MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_BYTES, MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_ITEMS,
 };
 
@@ -48,11 +49,10 @@ fn external_websocket_faces_are_exact_finite_and_host_specific() {
             offer.limits.max_queue_bytes,
             MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_BYTES
         );
-        assert_eq!(offer.host_operations[0].maximum_in_flight, 1);
-        assert_eq!(
-            offer.host_operations[0].maximum_input_bytes,
-            MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES
-        );
+        assert!(offer
+            .host_operations
+            .iter()
+            .all(|operation| operation.maximum_in_flight == 1));
     }
     assert_eq!(
         client.host_operations[0].contract_id.as_str(),
@@ -60,7 +60,15 @@ fn external_websocket_faces_are_exact_finite_and_host_specific() {
     );
     assert_eq!(
         listener.host_operations[0].contract_id.as_str(),
-        EXTERNAL_WEBSOCKET_LISTENER_HOST_OPERATION
+        EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION
+    );
+    assert_eq!(
+        listener.host_operations[1].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION
+    );
+    assert_eq!(
+        listener.host_operations[2].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION
     );
 
     let browser = browser_external_websocket_family();

@@ -16,10 +16,15 @@ form chat/server (
     live: $Boolean >
 ) {
     listen: net/websocket/listen(bind)
+    listen.recv > listen.send
     listen.live > live
 }
 
 form webchat-transport-demo {
     client: chat/client("ws://127.0.0.1:4178")
+    server: chat/server("127.0.0.1:4178")
+}
+
+form webchat-server-demo {
     server: chat/server("127.0.0.1:4178")
 }

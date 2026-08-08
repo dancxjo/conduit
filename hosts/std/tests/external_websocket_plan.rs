@@ -8,6 +8,11 @@ use conduit_form::{
 };
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use std::collections::BTreeMap;
+use std::io::{self, Write};
+use std::net::{TcpListener, TcpStream};
+use std::sync::mpsc;
+use std::thread;
+use tungstenite::protocol::Message;
 
 const SOURCE: &str = include_str!("../../../examples/webchat.conduit");
 
@@ -98,4 +103,120 @@ fn canonical_transport_forms_plan_to_exact_opt_in_browser_and_std_families() {
     assert_eq!(listener.inputs, realm[1].capabilities[0].inputs);
     assert_eq!(listener.outputs, realm[1].capabilities[0].outputs);
     assert_ne!(client.operation_id, listener.operation_id);
+}
+
+struct ReadyWriter {
+    bytes: Vec<u8>,
+    ready: Option<mpsc::Sender<()>>,
+}
+
+impl Write for ReadyWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.bytes.extend_from_slice(bytes);
+        if self.ready.is_some()
+            && self
+                .bytes
+                .windows("external-websocket-ready".len())
+                .any(|window| window == b"external-websocket-ready")
+        {
+            self.ready.take().unwrap().send(()).unwrap();
+        }
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+#[test]
+fn planned_listener_executes_through_kernel_host_operations_for_two_clients() {
+    let port = TcpListener::bind(("127.0.0.1", 0))
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port();
+    let source = SOURCE.replace("127.0.0.1:4178", &format!("127.0.0.1:{port}"));
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile).unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "webchat-server-demo", &profile).unwrap();
+    let mut host = StdHost::new_with_composition(
+        StdHostConfig {
+            host_id: HostId::from("std-chat-kernel"),
+            boot_id: BootId::from("std-chat-kernel-boot"),
+            offer_generation: OfferGeneration(1),
+        },
+        StdHostComposition::minimal().with_external_websocket(),
+    );
+    let plan = host.plan_expanded_local(&expanded).unwrap();
+    let plan_id = plan.plan_id.clone();
+    let fragment = plan.fragments[0].clone();
+    let (ready_tx, ready_rx) = mpsc::channel();
+    let server = thread::spawn(move || {
+        let mut output = ReadyWriter {
+            bytes: Vec::with_capacity(4096),
+            ready: Some(ready_tx),
+        };
+        let mut timer = conduit_std_host::ThreadTimer;
+        let report = host
+            .run_fragment_to(fragment, &mut output, &mut timer)
+            .unwrap();
+        (report, output.bytes)
+    });
+    ready_rx.recv().unwrap();
+    let url = format!("ws://127.0.0.1:{port}");
+    let connect = |url: String| {
+        thread::spawn(move || {
+            let stream = TcpStream::connect(url.trim_start_matches("ws://")).unwrap();
+            tungstenite::client(url, stream).unwrap().0
+        })
+    };
+    let client_a = connect(url.clone());
+    let mut client_a = client_a.join().unwrap();
+    let client_b = connect(url);
+    let mut client_b = client_b.join().unwrap();
+
+    client_a
+        .send(Message::Binary(b"hello from A".to_vec().into()))
+        .unwrap();
+    assert_eq!(
+        client_a.read().unwrap().into_data().as_ref(),
+        b"hello from A"
+    );
+    assert_eq!(
+        client_b.read().unwrap().into_data().as_ref(),
+        b"hello from A"
+    );
+    client_b
+        .send(Message::Binary(b"hello from B".to_vec().into()))
+        .unwrap();
+    assert_eq!(
+        client_a.read().unwrap().into_data().as_ref(),
+        b"hello from B"
+    );
+    assert_eq!(
+        client_b.read().unwrap().into_data().as_ref(),
+        b"hello from B"
+    );
+
+    client_a.close(None).unwrap();
+    client_b
+        .send(Message::Binary(b"still connected".to_vec().into()))
+        .unwrap();
+    assert_eq!(
+        client_b.read().unwrap().into_data().as_ref(),
+        b"still connected"
+    );
+    client_b.close(None).unwrap();
+
+    let (report, output) = server.join().unwrap();
+    let kernel = report.kernel.unwrap();
+    assert_eq!(kernel.identity.plan_id, plan_id);
+    assert!(!kernel.active_play_id.as_str().is_empty());
+    assert!(kernel.kernel_events > 0);
+    let output = String::from_utf8(output).unwrap();
+    assert!(output.contains("external-websocket-ready"));
+    assert!(!output.contains("hello from"));
 }

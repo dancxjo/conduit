@@ -73,6 +73,7 @@ pub(super) enum InstalledOperation {
     TextPresentation(TextPresentationOperation),
     StateCount(StateCountOperation),
     CountPresentation(CountPresentationOperation),
+    ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
     #[cfg(test)]
@@ -106,6 +107,7 @@ impl InstalledOperation {
             Self::TextPresentation(_) => 0,
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::CountPresentation(_) => 0,
+            Self::ExternalWebSocketListener(_) => 0,
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.values.capacity(),
             #[cfg(test)]
@@ -135,6 +137,7 @@ impl Operation for InstalledOperation {
             Self::TextPresentation(operation) => operation.start(),
             Self::StateCount(operation) => operation.start(),
             Self::CountPresentation(operation) => operation.start(),
+            Self::ExternalWebSocketListener(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
@@ -169,6 +172,7 @@ impl Operation for InstalledOperation {
             (Self::TickPresentation(operation), input) => operation.resume(input),
             (Self::StateCount(operation), input) => operation.resume(input),
             (Self::CountPresentation(operation), input) => operation.resume(input),
+            (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             #[cfg(test)]
             (
                 Self::TestObserver(operation),
@@ -229,6 +233,7 @@ impl Operation for InstalledOperation {
             Self::TextPresentation(_) => OperationAction::Await,
             Self::StateCount(operation) => operation.advance(),
             Self::CountPresentation(_) => OperationAction::Await,
+            Self::ExternalWebSocketListener(operation) => operation.advance(),
             #[cfg(test)]
             Self::TestTextSource(operation) => {
                 operation.next += 1;
@@ -250,6 +255,7 @@ impl Operation for InstalledOperation {
             Self::TextPresentation(operation) => operation.cancel(),
             Self::StateCount(_) => {}
             Self::CountPresentation(operation) => operation.cancel(),
+            Self::ExternalWebSocketListener(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
             #[cfg(test)]
