@@ -70,6 +70,7 @@ pub(crate) fn tick_offer() -> CapabilityOffer {
             port_id: port_id("tick"),
             value_kind: kind_id(TICK_VALUE_KIND),
             direction: PortDirection::Output,
+            temporal: conduit_core::PortTemporal::Flow { closes: true },
         }],
         host_operations: vec![wait_host_operation_requirement()],
         resource_requirements: vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],

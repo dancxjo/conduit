@@ -28,6 +28,7 @@ fn catalog_with_source_contract(
                 port_id: port_id(source_port),
                 value_kind: value_kind.clone(),
                 direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Value,
             }],
             configuration: vec![ConfigurationField {
                 key: "count".to_string(),
@@ -47,6 +48,7 @@ fn catalog_with_source_contract(
                 port_id: port_id("in"),
                 value_kind,
                 direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
             }],
             outputs: Vec::new(),
             configuration: Vec::new(),
@@ -66,6 +68,7 @@ fn multi_value_catalog() -> ProfileCatalog {
                 port_id: port_id("bytes"),
                 value_kind: kind_id("test/bytes"),
                 direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Value,
             }],
             configuration: Vec::new(),
         })
@@ -78,6 +81,7 @@ fn multi_value_catalog() -> ProfileCatalog {
                 port_id: port_id("bytes"),
                 value_kind: kind_id("test/bytes"),
                 direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
             }],
             outputs: Vec::new(),
             configuration: Vec::new(),

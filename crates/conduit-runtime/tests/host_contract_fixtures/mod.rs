@@ -30,6 +30,7 @@ pub fn source_outputs() -> Vec<PortDescriptor> {
         port_id: port_id("value"),
         value_kind: kind_id(VALUE_KIND),
         direction: PortDirection::Output,
+        temporal: conduit_core::PortTemporal::Value,
     }]
 }
 
@@ -38,6 +39,7 @@ pub fn sink_inputs() -> Vec<PortDescriptor> {
         port_id: port_id("value"),
         value_kind: kind_id(VALUE_KIND),
         direction: PortDirection::Input,
+        temporal: conduit_core::PortTemporal::Value,
     }]
 }
 

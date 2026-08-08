@@ -55,8 +55,10 @@ impl ExpandedCanonicalForm {
                         .iter()
                         .find(|port| port.port_id == connection.sink_port_id)
                 });
-            if source.map(|port| &port.value_kind) != Some(&connection.value_kind)
-                || sink.map(|port| &port.value_kind) != Some(&connection.value_kind)
+            if source.map(|port| (&port.value_kind, port.temporal))
+                != Some((&connection.value_kind, connection.temporal))
+                || sink.map(|port| (&port.value_kind, port.temporal))
+                    != Some((&connection.value_kind, connection.temporal))
             {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-049",
@@ -115,6 +117,7 @@ pub(super) fn expanded_identity(
         for port in operation.inputs.iter().chain(&operation.outputs) {
             push(&mut canonical, port.port_id.as_str());
             push(&mut canonical, port.value_kind.as_str());
+            push(&mut canonical, port.temporal.as_str());
             push(
                 &mut canonical,
                 match port.direction {
@@ -147,6 +150,7 @@ pub(super) fn expanded_identity(
         push(&mut canonical, connection.sink_operation_id.as_str());
         push(&mut canonical, connection.sink_port_id.as_str());
         push(&mut canonical, connection.value_kind.as_str());
+        push(&mut canonical, connection.temporal.as_str());
     }
     for row in provenance {
         push(&mut canonical, &row.operation_id);

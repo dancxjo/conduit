@@ -25,6 +25,7 @@ pub(crate) fn test_observer_offer() -> CapabilityOffer {
             port_id: conduit_core::port_id("in"),
             value_kind: kind_id(TICK_VALUE_KIND),
             direction: PortDirection::Input,
+            temporal: conduit_core::PortTemporal::Flow { closes: true },
         }],
         outputs: Vec::new(),
         host_operations: vec![present_host_operation_requirement(

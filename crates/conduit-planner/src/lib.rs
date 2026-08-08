@@ -392,19 +392,21 @@ pub(crate) fn plan_validated_form(
         }
         planned_connections.push(PlannedConnection {
             connection_id: ConnectionId::from(hash_string(&format!(
-                "connection:{}:{}:{}:{}:{}:{}",
+                "connection:{}:{}:{}:{}:{}:{}:{}",
                 form.checked_form_id.as_str(),
                 connection.source_operation_id.as_str(),
                 connection.source_port_id.as_str(),
                 connection.sink_operation_id.as_str(),
                 connection.sink_port_id.as_str(),
-                connection.value_kind.as_str()
+                connection.value_kind.as_str(),
+                connection.temporal.as_str(),
             ))),
             source_placement_id: source_plan.placement_id.clone(),
             source_port_id: connection.source_port_id.clone(),
             sink_placement_id: sink_plan.placement_id.clone(),
             sink_port_id: connection.sink_port_id.clone(),
             value_kind: connection.value_kind.clone(),
+            temporal: connection.temporal,
             provider,
             link_binding,
             item_capacity: connection_item_capacity,

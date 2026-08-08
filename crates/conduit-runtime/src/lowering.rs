@@ -33,7 +33,7 @@ pub enum LoweringError {
     },
     UnknownConnectionEndpoint(ConnectionId),
     UnknownConnectionPort(ConnectionId),
-    ConnectionValueKindMismatch(ConnectionId),
+    ConnectionContractMismatch(ConnectionId),
     InvalidConnectionBudget(ConnectionId),
     InvalidRemoteConnection(ConnectionId),
     MultipleConnectionsToInput {
@@ -57,6 +57,7 @@ pub struct LoweredPort {
     pub port_id: PlanPortId,
     pub value_kind: KindId,
     pub direction: PortDirection,
+    pub temporal: conduit_core::PortTemporal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -94,6 +95,7 @@ pub struct LoweredRemoteEndpoint {
     pub local: LinkEndpoint,
     pub peer: LinkEndpoint,
     pub value_kind: KindId,
+    pub temporal: conduit_core::PortTemporal,
     pub binding: LinkBinding,
 }
 
@@ -632,13 +634,15 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
             })
             .transpose()?;
         if source_node.zip(source_port).is_some_and(|(node, port)| {
-            nodes[usize::from(node.0)].outputs[usize::from(port.0)].value_kind
-                != connection.value_kind
+            let descriptor = &nodes[usize::from(node.0)].outputs[usize::from(port.0)];
+            descriptor.value_kind != connection.value_kind
+                || descriptor.temporal != connection.temporal
         }) || sink_node.zip(sink_port).is_some_and(|(node, port)| {
-            nodes[usize::from(node.0)].inputs[usize::from(port.0)].value_kind
-                != connection.value_kind
+            let descriptor = &nodes[usize::from(node.0)].inputs[usize::from(port.0)];
+            descriptor.value_kind != connection.value_kind
+                || descriptor.temporal != connection.temporal
         }) {
-            return Err(LoweringError::ConnectionValueKindMismatch(
+            return Err(LoweringError::ConnectionContractMismatch(
                 connection.connection_id.clone(),
             ));
         }
@@ -704,6 +708,7 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
                     local: binding.source.clone(),
                     peer: binding.sink.clone(),
                     value_kind: connection.value_kind.clone(),
+                    temporal: connection.temporal,
                     binding: binding.clone(),
                 });
                 CordSpec::remote_egress(
@@ -741,6 +746,7 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
                     local: binding.sink.clone(),
                     peer: binding.source.clone(),
                     value_kind: connection.value_kind.clone(),
+                    temporal: connection.temporal,
                     binding: binding.clone(),
                 });
                 CordSpec::remote_ingress(
@@ -910,6 +916,7 @@ fn lower_ports(
                 port_id: descriptor.port_id.clone(),
                 value_kind: descriptor.value_kind.clone(),
                 direction: descriptor.direction,
+                temporal: descriptor.temporal,
             })
         })
         .collect()

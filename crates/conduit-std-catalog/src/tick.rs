@@ -96,6 +96,7 @@ pub fn tick_outputs() -> Vec<PortDescriptor> {
         port_id: port_id(super::TICK_PORT),
         value_kind: kind_id(TICK_VALUE_KIND),
         direction: PortDirection::Output,
+        temporal: conduit_core::PortTemporal::Flow { closes: true },
     }]
 }
 

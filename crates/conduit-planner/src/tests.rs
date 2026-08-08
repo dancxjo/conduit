@@ -95,6 +95,7 @@ fn nested_identity_catalog() -> ProfileCatalog {
                 port_id: PortId::from("out"),
                 value_kind: KindId::from("test/value"),
                 direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Value,
             }],
             configuration: vec![ConfigurationField {
                 key: "count".into(),
@@ -114,6 +115,7 @@ fn nested_identity_catalog() -> ProfileCatalog {
                 port_id: PortId::from("in"),
                 value_kind: KindId::from("test/value"),
                 direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
             }],
             outputs: vec![],
             configuration: vec![],
@@ -958,6 +960,18 @@ fn planning_accepts_face_preserving_revision_and_rejects_face_change() {
         "mutated/flow-pulse@1"
     );
 
+    let mut mismatched_temporal = original_host.clone();
+    mismatched_temporal.capabilities[0].outputs[0].temporal = conduit_core::PortTemporal::Current;
+    assert!(matches!(
+        plan(
+            &form,
+            std::slice::from_ref(&mismatched_temporal),
+            &placements,
+            &[ConnectionProvider::Local]
+        ),
+        Err(PlannerError::IncompatibleCheckedFace(_))
+    ));
+
     let mut mismatched_ports = original_host;
     mismatched_ports.capabilities[0]
         .outputs
@@ -965,6 +979,7 @@ fn planning_accepts_face_preserving_revision_and_rejects_face_change() {
             port_id: conduit_core::PortId::from("unexpected"),
             value_kind: kind_id("value/unexpected"),
             direction: conduit_core::PortDirection::Output,
+            temporal: conduit_core::PortTemporal::Value,
         });
     assert!(matches!(
         plan(

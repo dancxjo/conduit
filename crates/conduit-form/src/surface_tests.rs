@@ -1,4 +1,7 @@
-use crate::{parse_syntax_document, Argument, BackStatement, CordStage, RuntimePortDirection};
+use crate::{
+    parse_syntax_document, Argument, BackStatement, CordStage, RuntimePortDirection,
+    RuntimePortTemporal,
+};
 
 #[test]
 fn canonical_clock_form_round_trips_with_named_and_inline_cells() {
@@ -70,7 +73,7 @@ fn canonical_face_keeps_startup_values_runtime_ports_and_shorthand_distinct() {
 
 #[test]
 fn canonical_duplex_face_has_auxiliary_ports_without_a_shorthand_path() {
-    let source = "form socket (\n    url: Url\n    > send: Bytes...\n    recv: Bytes... >\n    live: $Boolean >\n) {\n    ...\n}\n";
+    let source = "form socket (\n    url: Url\n    > send: Bytes...\n    recv: Bytes...| >\n    live: $Boolean >\n) {\n    ...\n}\n";
     let document = parse_syntax_document(source);
     let form = &document.forms().expect("duplex face parses")[0];
 
@@ -79,15 +82,27 @@ fn canonical_duplex_face_has_auxiliary_ports_without_a_shorthand_path() {
     assert_eq!(form.face.runtime_ports.len(), 3);
     assert_eq!(form.face.runtime_ports[0].name.text, "send");
     assert_eq!(
+        form.face.runtime_ports[0].temporal,
+        RuntimePortTemporal::Flow { closes: false }
+    );
+    assert_eq!(
         form.face.runtime_ports[0].direction,
         RuntimePortDirection::Input
     );
     assert_eq!(form.face.runtime_ports[1].name.text, "recv");
     assert_eq!(
+        form.face.runtime_ports[1].temporal,
+        RuntimePortTemporal::Flow { closes: true }
+    );
+    assert_eq!(
         form.face.runtime_ports[1].direction,
         RuntimePortDirection::Output
     );
-    assert_eq!(form.face.runtime_ports[2].value_type.text, "$Boolean");
+    assert_eq!(form.face.runtime_ports[2].value_type.text, "Boolean");
+    assert_eq!(
+        form.face.runtime_ports[2].temporal,
+        RuntimePortTemporal::Current
+    );
     assert!(form.face.shorthand.is_none());
 }
 
@@ -184,6 +199,20 @@ fn canonical_negative_corpus_has_stable_diagnostics_and_exact_spans() {
         assert!(!&source[diagnostic.span.start..diagnostic.span.end].is_empty());
         assert_eq!(document.round_trip(), source);
         assert!(document.forms.is_empty());
+    }
+}
+
+#[test]
+fn temporal_markers_cannot_be_combined_or_left_without_a_value_type() {
+    for source in [
+        "form bad (\n    > port: $Tick...\n) {\n}\n",
+        "form bad (\n    > port: $Tick...|\n) {\n}\n",
+        "form bad (\n    > port: $\n) {\n}\n",
+        "form bad (\n    > port: ...\n) {\n}\n",
+    ] {
+        let document = parse_syntax_document(source);
+        assert_eq!(document.diagnostics[0].code, "CND-FRM-019", "{source}");
+        assert_eq!(document.round_trip(), source);
     }
 }
 

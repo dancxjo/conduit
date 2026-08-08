@@ -270,6 +270,7 @@ fn text_port(name: &str, direction: PortDirection) -> PortDescriptor {
         port_id: port_id(name),
         value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
         direction,
+        temporal: conduit_core::PortTemporal::Value,
     }
 }
 

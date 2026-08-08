@@ -403,7 +403,21 @@ fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
+    mutated
+        .placements
+        .iter_mut()
+        .find(|placement| !placement.outputs.is_empty())
+        .expect("source placement exists")
+        .outputs[0]
+        .temporal = conduit_core::PortTemporal::Current;
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
     mutated.connections[0].value_kind = kind_id("mutated/value");
+    assert_post_identity_mutation_is_rejected(&advertised, mutated);
+
+    let mut mutated = original.clone();
+    mutated.connections[0].temporal = conduit_core::PortTemporal::Current;
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();

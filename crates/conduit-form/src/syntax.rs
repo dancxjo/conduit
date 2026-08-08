@@ -68,11 +68,19 @@ pub enum RuntimePortDirection {
     Output,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimePortTemporal {
+    Value,
+    Flow { closes: bool },
+    Current,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RuntimePort {
     pub name: SpannedText,
     pub value_type: SpannedText,
     pub direction: RuntimePortDirection,
+    pub temporal: RuntimePortTemporal,
     pub span: Span,
 }
 

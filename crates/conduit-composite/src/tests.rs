@@ -36,6 +36,7 @@ fn descriptor(name: &str, value_kind: &str, direction: PortDirection) -> PortDes
         port_id: conduit_core::port_id(name),
         value_kind: kind_id(value_kind),
         direction,
+        temporal: conduit_core::PortTemporal::Value,
     }
 }
 

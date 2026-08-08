@@ -85,6 +85,7 @@ fn outputs() -> Vec<PortDescriptor> {
         port_id: port_id("text"),
         value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
         direction: PortDirection::Output,
+        temporal: conduit_core::PortTemporal::Value,
     }]
 }
 

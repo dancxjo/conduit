@@ -234,6 +234,7 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         port_id: port_id(name),
         value_kind: kind_id(value_kind),
         direction,
+        temporal: conduit_core::PortTemporal::Value,
     }
 }
 

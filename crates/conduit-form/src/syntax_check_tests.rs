@@ -321,7 +321,11 @@ fn checked_face_equality_binds_startup_ports_and_shorthand() {
     let required = check("form a (\n count: Count\n input: Tick > output: Tick\n) {\n}\n");
     let renamed = check("form a (\n limit: Count = 1\n input: Tick > output: Tick\n) {\n}\n");
     let auxiliary = check("form a (\n count: Count = 1\n > input: Tick\n output: Tick >\n) {\n}\n");
-    for changed in [required, renamed, auxiliary] {
+    let flow = check("form a (\n count: Count = 1\n input: Tick... > output: Tick...\n) {\n}\n");
+    let closing_flow =
+        check("form a (\n count: Count = 1\n input: Tick...| > output: Tick...|\n) {\n}\n");
+    let current = check("form a (\n count: Count = 1\n input: $Tick > output: $Tick\n) {\n}\n");
+    for changed in [required, renamed, auxiliary, flow, closing_flow, current] {
         assert_ne!(
             baseline.forms[0].checked_face(),
             changed.forms[0].checked_face()
