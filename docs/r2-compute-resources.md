@@ -45,3 +45,56 @@ service and topology selection, hosted/bare-metal contract parity, Plan identity
 sealing, and the exclusion of physical lane identifiers from serialized Plans.
 They do not claim operating-system scheduling quality, bare-metal interrupt
 behavior, firmware execution, or physical/HIL evidence.
+
+## Non-AI generality check
+
+The realization machinery above contains no AI-specific core concept. The same
+checked-face, offer, observation, hard-requirement, policy, reservation, and Plan
+identities encode the following two examples without changing the planner.
+
+### Video transcoding: CPU or GPU
+
+An authored operation requests a checked `media/transcode-video` face with exact
+bounded input/output ports and semantic codec/output limits. Two hosts can offer
+that equal face with different nominal revisions and exact realizations:
+
+| General R2 fact | CPU realization | GPU realization |
+| --- | --- | --- |
+| `ImplementationOffer` | portable software encoder | accelerated encoder |
+| `artifact_id` | architecture-specific CPU binary | architecture-specific GPU binary |
+| `ResourceRequirement` | bounded shared/reserved compute lanes plus memory | bounded compute lanes, accelerator execution, and accelerator memory |
+| stable characteristics | codec/profile ceiling, local handling, measured throughput class | codec/profile ceiling, local handling, different measured throughput class |
+| current observations | unreserved CPU lanes and memory | unreserved accelerator slots and memory |
+
+A hard codec/profile or memory requirement removes an incapable realization
+before ranking. With both admitted, explicit policy can prefer locality, fewer
+resource units, a measured throughput class, or a stronger compute-service
+guarantee. The Plan seals the selected host, implementation, artifact, resource
+bindings, semantic limits, and characteristics. It never changes the authored
+face into `CUDA`, `VA-API`, or a device name, and it never seals a transient GPU
+queue/core identifier.
+
+### Storage write: local disk or network storage
+
+An authored operation requests a checked `storage/write-object` face with a
+finite byte bound and explicit terminal behavior. A local-filesystem provider
+and a network-object provider can advertise that equal face:
+
+| General R2 fact | Local realization | Network realization |
+| --- | --- | --- |
+| `ImplementationOffer` | local filesystem writer | remote object writer |
+| finite resources | storage bytes, execution slot | storage bytes, execution slot, network egress |
+| authority requirements | exact local protected-resource role | exact remote subject/credential role and egress authority |
+| stable characteristics | local handling, replace/create support | remote handling, metering/durability class where proven |
+| current observations | local capacity/health | remote slot/egress readiness |
+
+A hard no-egress rule or authority allowlist rejects the network realization;
+it cannot win through favorable durability or capacity policy. When both are
+admissible, explicit policy can select one deterministically. The Plan seals the
+exact resource and authority bindings, but credential bytes, endpoint secrets,
+open file descriptors, sockets, and provider request IDs remain outside it.
+
+In both examples, changed observations can produce a newly admitted replacement
+Plan while the old Plan remains immutable. Neither example introduces a media
+planner, storage planner, opaque host score, opportunistic runtime substitution,
+or a second execution kernel.
