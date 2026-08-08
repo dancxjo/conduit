@@ -2,6 +2,9 @@
 
 extern crate alloc;
 
+mod shared_pool;
+pub use shared_pool::*;
+
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{

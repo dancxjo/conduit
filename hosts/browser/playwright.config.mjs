@@ -11,6 +11,7 @@ export default defineConfig({
     "distributed-toggle.spec.mjs",
     "conduit-site.spec.mjs",
     "webchat.spec.mjs",
+    "pool-webchat.spec.mjs",
     "triple-signal.spec.mjs",
   ],
   fullyParallel: false,

@@ -36,6 +36,7 @@ pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
 pub mod pico_usb_source;
+pub mod pool_webchat;
 pub mod triple_signal;
 pub mod usb_cdc;
 pub mod websocket;
