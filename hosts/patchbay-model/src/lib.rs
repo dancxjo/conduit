@@ -18,6 +18,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 mod control;
 mod form_editor;
 mod route_demo;
+mod route_presentation;
 mod topology;
 
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
@@ -26,6 +27,10 @@ pub use form_editor::{
     GraphItem, GraphItemKind, SourceSelection,
 };
 pub use route_demo::{DistributedRouteDemo, RouteDemoError};
+pub use route_presentation::{
+    DistributedRoutePresentation, NewPlanRecoveryPresentation, RefusedRoutePresentation,
+    RouteCandidatePresentation, RoutePlanPresentation, SamePlanFallbackPresentation,
+};
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
 pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES;
 

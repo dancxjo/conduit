@@ -10,7 +10,7 @@ impl PatchbayApplication {
         let Some(editor) = &self.form_editor else {
             let mut lines = self.topology_lines.clone();
             if let Some(demo) = &self.route_demo {
-                lines.extend_from_slice(demo.lines());
+                append_route_demo(&mut lines, demo);
             }
             if let Some(distributed) = &self.distributed_play {
                 lines.extend_from_slice(distributed.lines());
@@ -82,7 +82,7 @@ impl PatchbayApplication {
         lines.extend(self.control.lines());
         lines.extend(self.file_task.lines());
         if let Some(demo) = &self.route_demo {
-            lines.extend_from_slice(demo.lines());
+            append_route_demo(&mut lines, demo);
         }
         if let Some(distributed) = &self.distributed_play {
             lines.extend_from_slice(distributed.lines());
@@ -90,4 +90,12 @@ impl PatchbayApplication {
         lines.truncate(MAX_FORM_PRESENTATION_LINES);
         lines
     }
+}
+
+fn append_route_demo(lines: &mut Vec<String>, demo: &patchbay_model::DistributedRouteDemo) {
+    lines.extend(demo.visual_lines());
+    lines.push("LINEAR NARRATION".into());
+    lines.extend(demo.linear_lines());
+    lines.push("ROUTE DETAIL — exact identities and evidence".into());
+    lines.extend_from_slice(demo.lines());
 }
