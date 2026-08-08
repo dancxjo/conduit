@@ -12,6 +12,9 @@ impl PatchbayApplication {
             if let Some(demo) = &self.route_demo {
                 lines.extend_from_slice(demo.lines());
             }
+            if let Some(distributed) = &self.distributed_play {
+                lines.extend_from_slice(distributed.lines());
+            }
             lines.truncate(MAX_FORM_PRESENTATION_LINES);
             return lines;
         };
@@ -80,6 +83,9 @@ impl PatchbayApplication {
         lines.extend(self.file_task.lines());
         if let Some(demo) = &self.route_demo {
             lines.extend_from_slice(demo.lines());
+        }
+        if let Some(distributed) = &self.distributed_play {
+            lines.extend_from_slice(distributed.lines());
         }
         lines.truncate(MAX_FORM_PRESENTATION_LINES);
         lines

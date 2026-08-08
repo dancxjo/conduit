@@ -44,6 +44,16 @@ pub struct DistributedRouteDemo {
 
 impl DistributedRouteDemo {
     pub fn build() -> Result<Self, RouteDemoError> {
+        Self::build_for_source(
+            HostId::from("patchbay-native/std-realization"),
+            BootId::from("patchbay-native/std-boot-1"),
+        )
+    }
+
+    pub fn build_for_source(
+        source_host_id: HostId,
+        source_boot_id: BootId,
+    ) -> Result<Self, RouteDemoError> {
         if SOURCE.contains("host")
             || SOURCE.contains("WebSocket")
             || SOURCE.contains("UsbCdc")
@@ -51,9 +61,17 @@ impl DistributedRouteDemo {
         {
             return Err(RouteDemoError::InvalidSemanticForm);
         }
-        let one = planned(&[USB_ROUTE])?;
-        let fallback = planned(&[USB_ROUTE, conduit_signal::DISTRIBUTED_LINK_BINDING_ID])?;
-        let replacement = planned(&[conduit_signal::DISTRIBUTED_LINK_BINDING_ID])?;
+        let one = planned(&[USB_ROUTE], &source_host_id, &source_boot_id)?;
+        let fallback = planned(
+            &[USB_ROUTE, conduit_signal::DISTRIBUTED_LINK_BINDING_ID],
+            &source_host_id,
+            &source_boot_id,
+        )?;
+        let replacement = planned(
+            &[conduit_signal::DISTRIBUTED_LINK_BINDING_ID],
+            &source_host_id,
+            &source_boot_id,
+        )?;
         let one_connection = remote_connection(&one)?;
         let fallback_connection = remote_connection(&fallback)?;
 
@@ -113,8 +131,8 @@ impl DistributedRouteDemo {
             },
             ControlLoopEvent::PlanningRequested {
                 prior_plan_id: one.plan_id.clone(),
-                requester_host_id: native_advertisement().host_id,
-                requester_boot_id: native_advertisement().boot_id,
+                requester_host_id: source_host_id,
+                requester_boot_id: source_boot_id,
                 authority: PlanningRequestAuthority::HostLocal,
                 request_evidence_id: EvidenceId::from("route-demo/plan-a/replan-request"),
             },
@@ -215,8 +233,12 @@ impl DistributedRouteDemo {
     }
 }
 
-fn planned(candidate_ids: &[&str]) -> Result<conduit_core::Plan, RouteDemoError> {
-    let source = native_advertisement();
+fn planned(
+    candidate_ids: &[&str],
+    source_host_id: &HostId,
+    source_boot_id: &BootId,
+) -> Result<conduit_core::Plan, RouteDemoError> {
+    let source = native_advertisement(source_host_id.clone(), source_boot_id.clone());
     let sink = distributed_browser_sink_advertisement();
     let syntax = conduit_form::parse_syntax_document(SOURCE);
     let checked =
@@ -282,11 +304,11 @@ fn planned(candidate_ids: &[&str]) -> Result<conduit_core::Plan, RouteDemoError>
     .map_err(|error| RouteDemoError::Planning(error.to_string()))
 }
 
-fn native_advertisement() -> HostAdvertisement {
+fn native_advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
     StdHost::new_with_composition(
         StdHostConfig {
-            host_id: HostId::from("patchbay-native/std-realization"),
-            boot_id: BootId::from("patchbay-native/std-boot-1"),
+            host_id,
+            boot_id,
             offer_generation: OfferGeneration(1),
         },
         StdHostComposition::minimal().with_signal(),
@@ -362,9 +384,20 @@ mod tests {
 
     #[test]
     fn candidate_order_changes_exact_plan_identity() {
-        let usb_first = planned(&[USB_ROUTE, conduit_signal::DISTRIBUTED_LINK_BINDING_ID]).unwrap();
-        let websocket_first =
-            planned(&[conduit_signal::DISTRIBUTED_LINK_BINDING_ID, USB_ROUTE]).unwrap();
+        let host = HostId::from("patchbay-native/std-realization");
+        let boot = BootId::from("patchbay-native/std-boot-1");
+        let usb_first = planned(
+            &[USB_ROUTE, conduit_signal::DISTRIBUTED_LINK_BINDING_ID],
+            &host,
+            &boot,
+        )
+        .unwrap();
+        let websocket_first = planned(
+            &[conduit_signal::DISTRIBUTED_LINK_BINDING_ID, USB_ROUTE],
+            &host,
+            &boot,
+        )
+        .unwrap();
         assert_ne!(usb_first.plan_id, websocket_first.plan_id);
     }
 }

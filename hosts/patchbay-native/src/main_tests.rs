@@ -46,6 +46,16 @@ fn arguments_are_explicit_and_fail_closed() {
             .unwrap()
             .distributed_route_demo
     );
+    assert!(
+        parse_arguments(vec!["--distributed-play".into()].into_iter())
+            .unwrap()
+            .distributed_play
+    );
+    assert!(
+        parse_arguments(vec!["--distributed-play-server".into()].into_iter())
+            .unwrap()
+            .distributed_play_server
+    );
     assert!(parse_arguments(vec!["--unknown".into()].into_iter()).is_err());
     assert!(parse_arguments(vec!["--observatory-snapshot".into()].into_iter()).is_err());
     assert!(parse_arguments(vec!["--form".into()].into_iter()).is_err());

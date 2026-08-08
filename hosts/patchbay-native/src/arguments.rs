@@ -9,6 +9,8 @@ pub struct Arguments {
     pub control_demo_stop: bool,
     pub native_copy_demo: bool,
     pub distributed_route_demo: bool,
+    pub distributed_play: bool,
+    pub distributed_play_server: bool,
 }
 
 pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Arguments, String> {
@@ -40,6 +42,12 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
             }
             "--distributed-route-demo" if !parsed.distributed_route_demo => {
                 parsed.distributed_route_demo = true;
+            }
+            "--distributed-play" if !parsed.distributed_play => {
+                parsed.distributed_play = true;
+            }
+            "--distributed-play-server" if !parsed.distributed_play_server => {
+                parsed.distributed_play_server = true;
             }
             _ => {
                 return Err(format!(

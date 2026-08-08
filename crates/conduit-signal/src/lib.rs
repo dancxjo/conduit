@@ -12,6 +12,18 @@ mod canonical;
 #[cfg(feature = "host-profile")]
 pub use canonical::signal_startup_catalog;
 #[cfg(feature = "host-profile")]
+mod distributed_identity;
+#[cfg(feature = "host-profile")]
+pub use distributed_identity::{
+    distributed_source_advertisement_for, distributed_websocket_link_binding_for,
+};
+#[cfg(feature = "host-profile")]
+mod distributed_plan;
+#[cfg(feature = "host-profile")]
+pub use distributed_plan::{
+    exact_distributed_signal_plan, exact_distributed_signal_plan_for, DistributedSignalPlan,
+};
+#[cfg(feature = "host-profile")]
 mod std_pico_usb;
 #[cfg(feature = "host-profile")]
 pub use std_pico_usb::*;

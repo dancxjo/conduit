@@ -1,10 +1,9 @@
 //! Exact std source half of the live S4 std-to-browser Signal proof.
 
 use crate::websocket::{NativeWebSocketCarrier, NativeWebSocketListener};
-use conduit_core::{
-    bind_active_play, CapabilityId, ConnectionProvider, HostAdvertisement, OperationId, Plan,
-    PlanFragment,
-};
+use conduit_core::{bind_active_play, PlanFragment};
+#[cfg(test)]
+use conduit_core::{CapabilityId, ConnectionProvider, OperationId};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
@@ -15,24 +14,26 @@ use conduit_kernel::{
     OperationInput, PortId, RemoteEndpointId, RequestId, ValueRef, ValueStorage,
 };
 #[cfg(test)]
-use conduit_planner::plan_with_link_bindings;
-use conduit_planner::{
-    plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
-};
+use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
     MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
+#[cfg(test)]
 use conduit_signal::{
     distributed_browser_sink_advertisement, distributed_std_source_advertisement,
-    distributed_websocket_link_binding, encode_signal, parse_pulse_configuration,
-    signal_profile_catalog, Signal, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN,
+    distributed_websocket_link_binding, signal_profile_catalog,
+};
+use conduit_signal::{
+    encode_signal, exact_distributed_signal_plan, exact_distributed_signal_plan_for,
+    parse_pulse_configuration, DistributedSignalPlan, Signal, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
+    SIGNAL_ENCODED_LEN,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
     SessionMessage, SessionRole, SessionTerminalDisposition,
 };
+#[cfg(test)]
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::thread;
@@ -60,66 +61,6 @@ type SourceScheduler = FixedScheduler<
     1,
     1,
 >;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DistributedSignalPlan {
-    pub source_advertisement: HostAdvertisement,
-    pub sink_advertisement: HostAdvertisement,
-    pub plan: Plan,
-}
-
-pub fn exact_distributed_signal_plan() -> Result<DistributedSignalPlan, String> {
-    let source_advertisement = distributed_std_source_advertisement();
-    let sink_advertisement = distributed_browser_sink_advertisement();
-    let source = include_str!("../../../examples/signal-demo.conduit");
-    let syntax = conduit_form::parse_syntax_document(source);
-    let checked =
-        conduit_form::check_syntax_document(&syntax, &conduit_signal::signal_startup_catalog())
-            .map_err(|error| format!("{}: {}", error.code, error.message))?;
-    let form =
-        conduit_form::expand_canonical_form(&checked, "signal-demo", &signal_profile_catalog())
-            .map_err(|error| error.to_string())?;
-    let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
-            (
-                OperationId::from("signal-demo/pulse"),
-                PlacementChoice {
-                    host_id: source_advertisement.host_id.clone(),
-                    capability_id: CapabilityId::from("pulse-1"),
-                },
-            ),
-            (
-                OperationId::from("signal-demo/show"),
-                PlacementChoice {
-                    host_id: sink_advertisement.host_id.clone(),
-                    capability_id: CapabilityId::from("dom-show-1"),
-                },
-            ),
-        ]),
-    };
-    let link = distributed_websocket_link_binding();
-    let plan = plan_expanded_canonical_with_options(
-        &form,
-        &[source_advertisement.clone(), sink_advertisement.clone()],
-        &placements,
-        &[ConnectionProvider::WebSocket],
-        PlanningOptions {
-            connection_providers: &BTreeMap::new(),
-            route_candidates: &BTreeMap::new(),
-            connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-            connection_byte_capacity: SIGNAL_ENCODED_LEN,
-            authority_grants: &[],
-            protected_resource_grants: &[],
-            link_bindings: &[link],
-        },
-    )
-    .map_err(|error| error.to_string())?;
-    Ok(DistributedSignalPlan {
-        source_advertisement,
-        sink_advertisement,
-        plan,
-    })
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct CapacitySeal {
@@ -216,6 +157,18 @@ pub struct DistributedSource {
 impl DistributedSource {
     pub fn prepare() -> Result<Self, String> {
         let exact = exact_distributed_signal_plan()?;
+        Self::prepare_exact(exact)
+    }
+
+    pub fn prepare_for_source(
+        host_id: conduit_core::HostId,
+        boot_id: conduit_core::BootId,
+    ) -> Result<Self, String> {
+        let exact = exact_distributed_signal_plan_for(host_id, boot_id)?;
+        Self::prepare_exact(exact)
+    }
+
+    fn prepare_exact(exact: DistributedSignalPlan) -> Result<Self, String> {
         let fragment = exact
             .plan
             .fragments
