@@ -40,6 +40,12 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &["test", "-p", "conduit", "--test", "observatory_fixture"],
     ),
     Step::new(
+        "check.system-continuity",
+        "Durable system continuity conformance",
+        "cargo",
+        &["test", "-p", "conduit-system-continuity"],
+    ),
+    Step::new(
         "check.no-std.kernel",
         "Kernel no-default-features check",
         "cargo",
@@ -73,6 +79,22 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         "std-host no-default-features check",
         "cargo",
         &["check", "-p", "conduit-std-host", "--no-default-features"],
+    ),
+    Step::typed(
+        "check.thumb.system-continuity",
+        "Durable system continuity Thumb target check",
+        "cargo",
+        &[
+            "check",
+            "-p",
+            "conduit-system-continuity",
+            "--target",
+            "thumbv6m-none-eabi",
+        ],
+        None,
+        Some("thumbv6m-none-eabi"),
+        Some("thumb"),
+        &[],
     ),
     Step::typed(
         "check.wasm.browser-runtime",

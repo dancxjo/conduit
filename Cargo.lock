@@ -321,6 +321,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-system-continuity"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-observatory",
+ "conduit-signal",
+ "serde",
+]
+
+[[package]]
 name = "conduit-wire"
 version = "0.1.0"
 dependencies = [
