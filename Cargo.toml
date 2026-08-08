@@ -20,6 +20,8 @@ members = [
 	"fixtures/browser-sim",
 	"fixtures/pico-sim",
 	"hosts/browser-runtime",
+	"hosts/patchbay-model",
+	"hosts/patchbay-native",
 	"hosts/std",
 	"xtask",
 ]

@@ -1,0 +1,9 @@
+[package]
+name = "patchbay-model"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../crates/conduit-core" }
+conduit-observatory = { path = "../../crates/conduit-observatory" }
+conduit-std-host = { path = "../std" }

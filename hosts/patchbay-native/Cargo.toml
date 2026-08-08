@@ -1,0 +1,9 @@
+[package]
+name = "patchbay-native"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-observatory = { path = "../../crates/conduit-observatory" }
+patchbay-model = { path = "../patchbay-model" }
+winit = { version = "0.30", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen"] }
