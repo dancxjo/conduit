@@ -10,11 +10,12 @@ semantic configuration, explicit boundaries, and finite work limits. It does not
 hard-code which operating system, browser, microcontroller, process, transport,
 device, or service must realize that work.
 
-Running **hosts** report the implementations, resources, authority, and links
-they can currently provide. The planner binds those concrete facts to the form
-and produces an immutable **plan**. Each host receives its exact plan fragment,
-and the Conduit kernel executes it with bounded, deterministic scheduling and
-explicit pressure, failure, cancellation, and evidence semantics.
+Running **hosts** advertise the exact operations they can currently realize,
+together with exact realization identities, resources, authority, and links.
+The planner binds those concrete facts to the form and produces an immutable
+**plan**. Each host receives its exact plan fragment, and the Conduit kernel
+executes it with bounded, deterministic scheduling and explicit pressure,
+failure, cancellation, and evidence semantics.
 
 The goal is for one authored form to be realizable:
 
@@ -31,14 +32,14 @@ parts of planning and execution.
 ## The model
 
 ```text
-KIND   semantic contract
+OP     semantic operation such as text/upper
 FORM   authored composition of semantic work
 CELL   one named occurrence in a form
 CORD   typed flow between cells
 FACE   explicit visible boundary of a form
 
-IMPL   platform-specific realization of a kind
-HOST   running environment that offers implementations
+IMPL   platform-specific realization of an operation
+HOST   running environment that offers exact operations
 PLAN   exact immutable realization of a form
 PLAY   one active execution of a plan
 ```
@@ -56,7 +57,7 @@ Several separations are fundamental:
   remain visible runtime facts.
 
 Before activation, a host must know and admit the finite execution shape it is
-responsible for: operations, ports, cords, queue items, bytes, host operations,
+responsible for: cells, ports, cords, queue items, bytes, host operations,
 resources, and mandatory evidence. Hosted implementations may allocate while
 preparing a plan; admitted execution paths must not quietly grow without bound.
 

@@ -51,20 +51,20 @@ The project succeeds by refusing to collapse concepts that are convenient to con
 ### Meaning and realization
 
 ```text
-KIND   semantic contract
+OP     semantic operation such as text/upper
 FORM   authored composition of semantic work
 CELL   one named occurrence in a form
 CORD   typed flow between cells
 FACE   explicit visible boundary of a form
 
-IMPL   platform-specific realization of a kind
-HOST   running software environment that offers implementations
+IMPL   platform-specific realization of an operation
+HOST   running software environment that offers exact operations
 GEAR   a capability currently shown by a part or host
 PLAN   exact immutable realization of a form
 PLAY   one active execution of a plan
 ```
 
-A kind is not an implementation. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability is not selected. A selected capability is not reserved. A reservation is not an active play.
+An operation is not an implementation. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised operation offer is not selected. A selected offer is not reserved. A reservation is not an active play. Established Rust names such as `KindId` remain internal compatibility-sensitive vocabulary; [the host architecture note](host-architecture.md#public-vocabulary-and-current-internal-names) records the mapping.
 
 ### Identity stages
 
@@ -116,7 +116,7 @@ Fan-out is an explicit planned property. One emission is admitted atomically to 
 
 Before a play starts, the host knows and admits the finite shape needed for execution:
 
-- operation instances;
+- cell instances;
 - values and bytes;
 - cords and routes;
 - queue items and buffered bytes;
@@ -153,7 +153,7 @@ A form is semantic source, not deployment configuration.
 
 A form may contain:
 
-- cells and their kinds;
+- cells and their semantic operations;
 - typed cords;
 - semantic configuration;
 - explicit finite work bounds;

@@ -82,6 +82,35 @@ Resources and reachability remain separate from offers. Compiling or initializin
 a provider does not authorize it, and selecting a family does not bypass resource,
 authority, policy, or link admission.
 
+## Public vocabulary and current internal names
+
+The source and user-facing model uses these terms consistently:
+
+```text
+text/upper           operation
+upper: text/upper    cell named upper
+text                 catalog category
+```
+
+Some established Rust identifiers predate that vocabulary. Their current
+conceptual mapping is deliberate:
+
+| Current internal name | Public meaning |
+|---|---|
+| `KindId` | semantic operation discovery/provenance identity |
+| `KindContractRevision` | revision provenance for an operation contract; not a compatibility gate |
+| `OperationId` | exact identity of one authored/expanded cell occurrence |
+| `CheckedOperation` | one checked cell and its required canonical face |
+| `CapabilityOffer` | one boot-scoped exact host operation offer |
+| `PlannedOperation` | one cell bound to an exact host offer and realization |
+| `ImplementationId` / `ArtifactId` | selected realization provenance sealed by the Plan |
+
+These internal names remain compatibility-sensitive APIs. Renaming them would be
+a broad mechanical migration with little semantic benefit, so #511 explicitly
+defers it. New user-facing documentation and diagnostics should say operation
+for the semantic callable and cell for its occurrence; ordinary source never
+names `ImplementationId`, `ArtifactId`, a provider, or a platform.
+
 ## Remaining architecture work
 
 This slice does not yet establish a general downstream BYOKernel composition API,
