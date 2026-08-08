@@ -5,9 +5,9 @@ use conduit_core::{
     CheckedFormId, ConnectionId, ConnectionProvider, ConnectionTerminalDisposition, EvidenceId,
     ExecutionProfileId, ExpandedFormId, FragmentId, HostAdvertisement, HostId,
     HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision, KindId,
-    LinkBinding, Observation, OfferGeneration, PlacementId, Plan, PlanId, PortDescriptor,
-    PresentationId, ResourceBinding, ResourceOffer, ResourceRequirement, SourceDocumentId,
-    TerminalDisposition,
+    LinkBinding, Observation, OfferGeneration, PlacementId, Plan, PlanId, PlannerCapabilityOffer,
+    PortDescriptor, PresentationId, ResourceBinding, ResourceOffer, ResourceRequirement,
+    SourceDocumentId, TerminalDisposition,
 };
 use serde::{Deserialize, Serialize};
 
@@ -148,6 +148,7 @@ pub struct HostRow {
     pub offer_generation: OfferGeneration,
     pub state: OperationalState,
     pub capability_count: usize,
+    pub planner_capabilities: Vec<PlannerCapabilityOffer>,
     pub resources: Vec<ResourceOffer>,
 }
 

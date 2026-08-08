@@ -27,6 +27,7 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
             offer_generation: report.advertisement.offer_generation,
             state: report.state,
             capability_count: report.advertisement.capabilities.len(),
+            planner_capabilities: report.advertisement.planner_capabilities.clone(),
             resources: report.advertisement.resources.clone(),
         })
         .collect::<Vec<_>>();
