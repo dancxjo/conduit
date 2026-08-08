@@ -97,16 +97,23 @@ pub(crate) fn observations_admit(
     for requirement in &offer.resource_requirements {
         let Some(pool) = host.resources.iter().find(|pool| {
             pool.class_id == requirement.class_id
-                && remaining
-                    .get(&pool.pool_id)
-                    .is_some_and(|available| *available >= requirement.units)
+                && remaining.get(&pool.pool_id).is_some_and(|available| {
+                    if requirement.compute.is_some() {
+                        conduit_core::compute_reservation(requirement, pool, *available).is_some()
+                    } else {
+                        *available >= requirement.units
+                    }
+                })
         }) else {
             return false;
         };
         let available = remaining
             .get_mut(&pool.pool_id)
             .expect("selected observed pool has remaining capacity");
-        *available -= requirement.units;
+        // Observation admission reserves the requirement minimum. Preferred
+        // lanes are distributed only after the whole form's minima are known.
+        let selected = requirement.units;
+        *available -= selected;
     }
     true
 }
