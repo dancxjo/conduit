@@ -6,6 +6,12 @@ use conduit_core::{
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
+mod surface_lex;
+mod surface_parser;
+pub mod syntax;
+
+pub use syntax::*;
+
 pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_FORM_TOKENS: usize = 131_072;
 pub const MAXIMUM_FORM_NESTING_DEPTH: usize = 16;
@@ -374,6 +380,7 @@ pub enum FormError {
     InvalidExport(String),
     InvalidIdentity(String),
     InvalidStatement(String),
+    InvalidSyntax(String),
 }
 
 impl std::fmt::Display for FormError {
@@ -410,6 +417,7 @@ impl std::fmt::Display for FormError {
             Self::InvalidExport(message) => write!(f, "invalid export: {message}"),
             Self::InvalidIdentity(message) => write!(f, "invalid form identity: {message}"),
             Self::InvalidStatement(message) => write!(f, "invalid statement: {message}"),
+            Self::InvalidSyntax(message) => write!(f, "invalid canonical form syntax: {message}"),
         }
     }
 }
@@ -485,6 +493,12 @@ pub fn parse_document(source: &str, catalog: &ProfileCatalog) -> FormDocument {
             diagnostics: vec![diagnostic(error, span)],
         },
     }
+}
+
+/// Parses the canonical `form NAME (...) { ... }` surface without performing
+/// catalog lookup or semantic lowering.
+pub fn parse_syntax_document(source: &str) -> SyntaxDocument {
+    surface_parser::parse_surface(source)
 }
 
 pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedForm, FormError> {
@@ -917,6 +931,7 @@ fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
         FormError::NestingLimitExceeded => "CND-FRM-016",
         FormError::InvalidNestedForm(_) => "CND-FRM-017",
         FormError::InvalidIdentity(_) => "CND-FRM-018",
+        FormError::InvalidSyntax(_) => "CND-FRM-019",
     };
     FormDiagnostic {
         code,
@@ -1378,3 +1393,6 @@ fn hex(nibble: u8) -> char {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod surface_tests;
