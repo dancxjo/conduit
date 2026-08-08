@@ -11,6 +11,8 @@ use conduit_core::{
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
+use crate::shared_pool_validation::validate_local_shared_pools;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImplementationFailure {
     pub reason: FailureReason,
@@ -1169,6 +1171,18 @@ impl HostRuntime {
             output.events.push(HostEvent::CommandRejected {
                 plan_id: Some(fragment.plan_id),
                 reason: FailureReason::InvalidLifecycleCommand,
+            });
+            return output;
+        }
+        if let Err((reason, message)) = validate_local_shared_pools(
+            &fragment.shared_pools,
+            &self.advertisement,
+            &self.authority_grants,
+        ) {
+            output.events.push(HostEvent::PreparationRejected {
+                plan_id: fragment.plan_id,
+                reason,
+                message: Some(message),
             });
             return output;
         }

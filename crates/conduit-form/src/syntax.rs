@@ -94,8 +94,17 @@ pub struct ShorthandPair {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BackStatement {
     NamedCell(NamedCell),
+    Pool(PoolDeclaration),
     LocalValue(LocalValue),
     Cord(Cord),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PoolDeclaration {
+    pub name: SpannedText,
+    pub member_form: SpannedText,
+    pub maximum_members: u16,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

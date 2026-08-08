@@ -7,8 +7,13 @@ use crate::checked_syntax::{
 use crate::syntax::{Argument, BackStatement, CordStage, FormSyntax, Invocation, SyntaxDocument};
 use crate::syntax_identity::{canonical_cell, canonical_cord, checked_identity};
 use crate::{hash_string, Span};
-use conduit_core::SourceDocumentId;
+use conduit_core::{
+    CheckedFace, FaceStartupParameter, PortDescriptor, PortDirection, SourceDocumentId,
+};
 use std::collections::{BTreeMap, BTreeSet};
+
+mod shared_pool;
+use shared_pool::{check_pool_declarations, checked_pool};
 
 pub(crate) fn check_document(
     document: &SyntaxDocument,
@@ -22,9 +27,14 @@ pub(crate) fn check_document(
         });
     }
     let form_signatures = form_signatures(&document.forms)?;
+    let form_faces = document
+        .forms
+        .iter()
+        .map(|form| (form.name.text.clone(), syntax_face(form)))
+        .collect::<BTreeMap<_, _>>();
     let mut forms = Vec::with_capacity(document.forms.len());
     for form in &document.forms {
-        forms.push(check_form(form, catalog, &form_signatures)?);
+        forms.push(check_form(form, catalog, &form_signatures, &form_faces)?);
     }
     forms.sort_by(|left, right| left.name.cmp(&right.name));
     Ok(CheckedSyntaxDocument {
@@ -75,6 +85,7 @@ fn check_form(
     form: &FormSyntax,
     catalog: &StartupCatalog,
     form_signatures: &BTreeMap<String, OperationSignature>,
+    form_faces: &BTreeMap<String, CheckedFace>,
 ) -> Result<CheckedCanonicalForm, SyntaxCheckDiagnostic> {
     let signature = form_signatures
         .get(&form.name.text)
@@ -101,11 +112,13 @@ fn check_form(
         .collect::<BTreeSet<_>>();
     let mut locals = BTreeMap::new();
     let mut named_cells = BTreeSet::new();
+    let pool_names = check_pool_declarations(form, &face_names, form_faces)?;
     for statement in &form.back {
         match statement {
             BackStatement::LocalValue(local) => {
                 if parameter_names.contains(&local.name.text)
                     || runtime_names.contains(&local.name.text)
+                    || pool_names.contains(&local.name.text)
                 {
                     return Err(
                         SyntaxCheckError::DuplicateImmutable(local.name.text.clone())
@@ -120,7 +133,7 @@ fn check_form(
                 }
             }
             BackStatement::NamedCell(cell) => {
-                if face_names.contains(&cell.name.text) {
+                if face_names.contains(&cell.name.text) || pool_names.contains(&cell.name.text) {
                     return Err(SyntaxCheckError::AmbiguousFaceName(cell.name.text.clone())
                         .diagnostic(cell.span));
                 }
@@ -129,11 +142,17 @@ fn check_form(
                         .diagnostic(cell.span));
                 }
             }
+            BackStatement::Pool(pool) => {
+                if named_cells.contains(&pool.name.text) {
+                    return Err(SyntaxCheckError::DuplicateCell(pool.name.text.clone())
+                        .diagnostic(pool.span));
+                }
+            }
             BackStatement::Cord(_) => {}
         }
     }
 
-    let mut resolver = Resolver::new(locals, parameter_names, runtime_names);
+    let mut resolver = Resolver::new(locals, parameter_names, runtime_names, pool_names);
     let local_names = resolver.locals.keys().cloned().collect::<Vec<_>>();
     let mut local_values = Vec::with_capacity(local_names.len());
     for name in local_names {
@@ -146,6 +165,7 @@ fn check_form(
 
     let mut cells = Vec::new();
     let mut cords = Vec::new();
+    let mut pools = Vec::new();
     for statement in &form.back {
         match statement {
             BackStatement::NamedCell(cell) => cells.push(check_invocation(
@@ -194,11 +214,13 @@ fn check_form(
                 }
                 cords.push(CheckedCanonicalCord { stages });
             }
+            BackStatement::Pool(pool) => pools.push(checked_pool(pool, form_faces)),
             BackStatement::LocalValue(_) => {}
         }
     }
     cells.sort_by_key(canonical_cell);
     cords.sort_by_key(canonical_cord);
+    pools.sort_by(|left, right| left.name.cmp(&right.name));
     local_values.sort_by(|left, right| left.0.cmp(&right.0));
     let checked_form_id = checked_identity(
         &form.name.text,
@@ -212,6 +234,7 @@ fn check_form(
         }),
         &cells,
         &cords,
+        &pools,
     );
     Ok(CheckedCanonicalForm {
         checked_form_id,
@@ -224,9 +247,51 @@ fn check_form(
             .as_ref()
             .map(|pair| (pair.input_port.text.clone(), pair.output_port.text.clone())),
         local_values,
+        pools,
         cells,
         cords,
     })
+}
+
+fn syntax_face(form: &FormSyntax) -> CheckedFace {
+    let startup_parameters = form
+        .face
+        .startup_parameters
+        .iter()
+        .map(|parameter| FaceStartupParameter {
+            name: parameter.name.text.clone(),
+            value_type: parameter.value_type.text.clone(),
+            has_default: parameter.default.is_some(),
+        })
+        .collect();
+    let mut inputs = Vec::new();
+    let mut outputs = Vec::new();
+    for port in &form.face.runtime_ports {
+        let descriptor = PortDescriptor {
+            port_id: conduit_core::port_id(&port.name.text),
+            value_kind: crate::value_type::canonical_value_kind(&port.value_type.text),
+            direction: match port.direction {
+                crate::RuntimePortDirection::Input => PortDirection::Input,
+                crate::RuntimePortDirection::Output => PortDirection::Output,
+            },
+            temporal: crate::value_type::canonical_port_temporal(port.temporal),
+        };
+        match descriptor.direction {
+            PortDirection::Input => inputs.push(descriptor),
+            PortDirection::Output => outputs.push(descriptor),
+        }
+    }
+    CheckedFace::new(
+        startup_parameters,
+        inputs,
+        outputs,
+        form.face.shorthand.as_ref().map(|pair| {
+            (
+                conduit_core::port_id(&pair.input_port.text),
+                conduit_core::port_id(&pair.output_port.text),
+            )
+        }),
+    )
 }
 
 fn checked_parameters(
@@ -368,6 +433,7 @@ struct Resolver<'a> {
     locals: BTreeMap<String, &'a crate::LocalValue>,
     parameters: BTreeSet<String>,
     runtime_ports: BTreeSet<String>,
+    pools: BTreeSet<String>,
     resolved: BTreeMap<String, CanonicalStartupValue>,
     visiting: BTreeSet<String>,
 }
@@ -377,11 +443,13 @@ impl<'a> Resolver<'a> {
         locals: BTreeMap<String, &'a crate::LocalValue>,
         parameters: BTreeSet<String>,
         runtime_ports: BTreeSet<String>,
+        pools: BTreeSet<String>,
     ) -> Self {
         Self {
             locals,
             parameters,
             runtime_ports,
+            pools,
             resolved: BTreeMap::new(),
             visiting: BTreeSet::new(),
         }
@@ -411,6 +479,10 @@ impl<'a> Resolver<'a> {
             Err(SyntaxCheckError::RuntimeAsStartup(expression.to_string()))
         } else if self.parameters.contains(expression) {
             Ok(CanonicalStartupValue::FormParameter(expression.to_string()))
+        } else if self.pools.contains(expression) {
+            Ok(CanonicalStartupValue::PoolReference(
+                conduit_core::SharedPoolId::from(expression),
+            ))
         } else if is_atomic_literal(expression) {
             Ok(CanonicalStartupValue::Literal(expression.to_string()))
         } else if let Some(runtime) = self

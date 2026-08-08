@@ -34,6 +34,9 @@ pub const TIMER_RESOURCE_CLASS: &str = "conduit.resource/timer-slot@1";
 pub const PRESENTATION_RESOURCE_CLASS: &str = "conduit.resource/presentation-slot@1";
 pub const INPUT_RESOURCE_CLASS: &str = "conduit.resource/input-slot@1";
 pub const PRESENT_AUTHORITY_CONTRACT: &str = "conduit.authority/present@1";
+pub const SHARED_POOL_ADMIT_AUTHORITY_CONTRACT: &str = "conduit.authority/shared-pool-admit@1";
+pub const SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/shared-pool-admit@1";
+pub const SHARED_POOL_AUTHORITY_SUBJECT_KIND: &str = "conduit/shared-pool";
 
 macro_rules! identity_type {
     ($name:ident) => {
@@ -401,6 +404,8 @@ pub struct PlannedOperation {
     pub host_operations: Vec<HostOperationRequirement>,
     pub resources: Vec<ResourceBinding>,
     pub authority: Vec<AuthorityBinding>,
+    #[serde(default)]
+    pub pool_references: Vec<SharedPoolId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -603,7 +608,40 @@ pub fn verify_plan(plan: &Plan) -> bool {
                     .iter()
                     .all(|fragment| fragment.shared_pools == first.shared_pools)
         })
+        && verify_plan_shared_pools(plan)
         && verify_plan_connections(plan)
+}
+
+fn verify_plan_shared_pools(plan: &Plan) -> bool {
+    let Some(first) = plan.fragments.first() else {
+        return true;
+    };
+    let placements = plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .collect::<Vec<_>>();
+    for pool in &first.shared_pools {
+        if pool.consumers.iter().any(|consumer| {
+            placements
+                .iter()
+                .filter(|item| &item.placement_id == consumer)
+                .count()
+                != 1
+        }) {
+            return false;
+        }
+    }
+    placements.iter().all(|placement| {
+        placement.pool_references.iter().all(|reference| {
+            first.shared_pools.iter().any(|pool| {
+                &pool.pool_id == reference && pool.consumers.contains(&placement.placement_id)
+            })
+        }) && first.shared_pools.iter().all(|pool| {
+            pool.consumers.contains(&placement.placement_id)
+                == placement.pool_references.contains(&pool.pool_id)
+        })
+    })
 }
 
 fn verify_plan_connections(plan: &Plan) -> bool {
@@ -821,6 +859,10 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             push_string(&mut canonical, binding.boot_id.as_str());
             push_string(&mut canonical, binding.capability_id.as_str());
         }
+        push_u32(&mut canonical, operation.pool_references.len() as u32);
+        for pool in &operation.pool_references {
+            push_string(&mut canonical, pool.as_str());
+        }
     }
     push_u32(&mut canonical, fragment.connections.len() as u32);
     for connection in &fragment.connections {
@@ -869,6 +911,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             push_string(&mut canonical, realization.host_id.as_str());
             push_string(&mut canonical, realization.boot_id.as_str());
             push_string(&mut canonical, realization.capability_id.as_str());
+            canonical.extend_from_slice(&realization.member_capacity.to_le_bytes());
             push_u32(&mut canonical, realization.resources.len() as u32);
             for resource in &realization.resources {
                 push_string(&mut canonical, resource.pool_id.as_str());
@@ -1093,6 +1136,7 @@ pub enum FailureReason {
     HostOperationOutputExceeded,
     ResourceContractMismatch,
     ResourceCapacityExceeded,
+    SharedPoolContractMismatch,
     AuthorityContractMismatch,
     AuthorityDenied,
     LinkBindingMismatch,

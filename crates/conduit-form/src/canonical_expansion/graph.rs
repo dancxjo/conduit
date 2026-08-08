@@ -9,19 +9,26 @@ pub(super) fn configuration(
     environment: &BTreeMap<String, CanonicalStartupValue>,
     definition: &crate::KindDefinition,
 ) -> Result<Vec<conduit_core::ConfigurationEntry>, CanonicalExpansionDiagnostic> {
-    if let Some(binding) = cell.startup_bindings.iter().find(|binding| {
-        !definition
+    for binding in &cell.startup_bindings {
+        if definition
             .configuration
             .iter()
             .any(|field| field.key == binding.name)
-    }) {
-        return Err(CanonicalExpansionDiagnostic::new(
-            "CND-FRM-041",
-            format!(
-                "startup parameter '{}' has no exact primitive planning field",
-                binding.name
-            ),
-        ));
+        {
+            continue;
+        }
+        if !matches!(
+            substitute(&binding.value, environment)?,
+            CanonicalStartupValue::PoolReference(_)
+        ) {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-041",
+                format!(
+                    "startup parameter '{}' has no exact primitive planning field",
+                    binding.name
+                ),
+            ));
+        }
     }
     definition
         .configuration
@@ -74,6 +81,26 @@ pub(super) fn configuration(
             })
         })
         .collect()
+}
+
+pub(super) fn pool_references(
+    cell: &CheckedCanonicalCell,
+    environment: &BTreeMap<String, CanonicalStartupValue>,
+) -> Result<Vec<conduit_core::SharedPoolId>, CanonicalExpansionDiagnostic> {
+    let mut pools = cell
+        .startup_bindings
+        .iter()
+        .map(|binding| substitute(&binding.value, environment))
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .filter_map(|value| match value {
+            CanonicalStartupValue::PoolReference(pool) => Some(pool),
+            CanonicalStartupValue::Literal(_) | CanonicalStartupValue::FormParameter(_) => None,
+        })
+        .collect::<Vec<_>>();
+    pools.sort();
+    pools.dedup();
+    Ok(pools)
 }
 
 fn parse_configuration_value(

@@ -6,7 +6,7 @@ use conduit_core::{
     BootId, ConnectionId, ConnectionProvider, EvidenceId, EvidenceIdentity, ExpectedEvidence,
     FragmentId, HostId, HostOperationContractId, KindId, LinkBinding, LinkEndpoint, PlacementId,
     PlanFragment, PlanId, PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId,
-    PresentationIdentity, ResourceBinding as PlanResourceBinding,
+    PresentationIdentity, ResourceBinding as PlanResourceBinding, SharedPoolId,
 };
 use conduit_kernel::{
     scheduler::{CordCapacity, CordSpec, NodeSpec},
@@ -15,6 +15,10 @@ use conduit_kernel::{
     ResourceId, RouteRange, RouteTarget,
 };
 use std::collections::{BTreeMap, BTreeSet};
+
+mod shared_pool;
+use shared_pool::lower_shared_pools;
+pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
 
 /// The first takeover checkpoint deliberately admits only the scheduler's
 /// fixed per-node port width. Wider plans must be rejected before activation.
@@ -48,6 +52,8 @@ pub enum LoweringError {
     ResourceBindingInvalid(PlacementId),
     EvidenceBudgetInvalid,
     EvidenceReferenceMissing,
+    SharedPoolInvalid(SharedPoolId),
+    SharedPoolConsumerMissing(SharedPoolId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -516,6 +522,7 @@ pub struct LoweredPlanFragment {
     pub host_operations: Vec<LoweredHostOperation>,
     pub resources: Vec<LoweredResource>,
     pub evidence: Vec<LoweredEvidence>,
+    pub shared_pools: Vec<LoweredSharedPool>,
     pub cord_value_slots: u16,
     pub cord_value_bytes: u32,
     pub evidence_items: u16,
@@ -840,6 +847,8 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         });
     }
 
+    let shared_pools = lower_shared_pools(fragment, &placement_nodes)?;
+
     Ok(LoweredPlanFragment {
         identity: KernelIdentityMap {
             plan_id: fragment.plan_id.clone(),
@@ -880,6 +889,7 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         host_operations,
         resources,
         evidence,
+        shared_pools,
         cord_value_slots: value_slots,
         cord_value_bytes: value_bytes,
         evidence_items: fragment.evidence_storage_budget.item_capacity,

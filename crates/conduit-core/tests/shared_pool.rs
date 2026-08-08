@@ -3,9 +3,9 @@ use conduit_core::{
     BootId, CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
     EvidenceStorageBudget, ExecutionProfileId, ExpandedFormId, ExpectedEvidence, ExpectedTerminal,
     FaceStartupParameter, FormIdentity, FragmentId, HostId, ImplementationId, KindContractRevision,
-    PlacementId, PlanFragment, PlanId, PlannedSharedPool, PoolDeclarationId, PoolMemberLimits,
-    PoolRealizationEnvelope, PortDescriptor, PortDirection, PortTemporal, SharedPoolId,
-    SourceDocumentId, TerminalPolicy,
+    OperationId, PlacementId, PlanFragment, PlanId, PlannedOperation, PlannedSharedPool,
+    PoolDeclarationId, PoolMemberLimits, PoolRealizationEnvelope, PortDescriptor, PortDirection,
+    PortTemporal, SharedPoolId, SourceDocumentId, TerminalPolicy,
 };
 
 fn member_offer(kind: &str, revision: &str) -> CapabilityOffer {
@@ -61,6 +61,7 @@ fn pool() -> PlannedSharedPool {
             host_id: HostId::from("browser-host"),
             boot_id: BootId::from("browser-boot"),
             capability_id: CapabilityId::from("browser/peer"),
+            member_capacity: 2,
             resources: vec![],
         }],
         admission_authority: AuthorityGrantId::from("grant/admit-room-peer"),
@@ -82,7 +83,30 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         host_id: HostId::from("browser-host"),
         boot_id: BootId::from("browser-boot"),
         offer_generation: conduit_core::OfferGeneration(1),
-        placements: vec![],
+        placements: pool
+            .consumers
+            .iter()
+            .map(|placement_id| PlannedOperation {
+                placement_id: placement_id.clone(),
+                operation_id: OperationId::from(placement_id.as_str()),
+                kind_id: kind_id("test/pool-consumer"),
+                kind_contract_revision: KindContractRevision::from("test/pool-consumer@1"),
+                execution_profile_id: ExecutionProfileId::from("test/pool-consumer-hosted@1"),
+                configuration: Vec::new(),
+                host_id: HostId::from("browser-host"),
+                boot_id: BootId::from("browser-boot"),
+                offer_generation: conduit_core::OfferGeneration(1),
+                capability_id: CapabilityId::from("browser/pool-consumer"),
+                implementation_id: ImplementationId::from("browser/pool-consumer"),
+                artifact_id: ArtifactId::from("browser/pool-consumer"),
+                inputs: Vec::new(),
+                outputs: Vec::new(),
+                host_operations: Vec::new(),
+                resources: Vec::new(),
+                authority: Vec::new(),
+                pool_references: vec![pool.pool_id.clone()],
+            })
+            .collect(),
         connections: vec![],
         shared_pools: vec![pool],
         startup_dependencies: vec![],
@@ -138,12 +162,12 @@ fn plan_identity_seals_pool_bound_face_envelope_authority_and_consumers() {
     assert!(conduit_core::verify_plan(&baseline));
 
     let mut changed_pool = pool();
-    changed_pool.maximum_members = 3;
+    changed_pool.maximum_members = 1;
     let changed = seal_plan(identity, vec![fragment(changed_pool)]);
     assert!(conduit_core::verify_plan(&changed));
     assert_ne!(baseline.plan_id, changed.plan_id);
 
     let mut mutated = baseline;
-    mutated.fragments[0].shared_pools[0].maximum_members = 3;
+    mutated.fragments[0].shared_pools[0].maximum_members = 1;
     assert!(!conduit_core::verify_plan(&mutated));
 }

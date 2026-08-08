@@ -62,6 +62,7 @@ pub enum PlannerError {
     CyclicStartupDependencies(String),
     EvidenceBudgetOverflow(String),
     InvalidPlacementSyntax(String),
+    InvalidSharedPool(String),
 }
 
 impl std::fmt::Display for PlannerError {
@@ -136,6 +137,7 @@ impl std::fmt::Display for PlannerError {
                 write!(f, "mandatory evidence budget overflow: {value}")
             }
             Self::InvalidPlacementSyntax(value) => write!(f, "invalid placement syntax: {value}"),
+            Self::InvalidSharedPool(value) => write!(f, "invalid shared pool: {value}"),
         }
     }
 }

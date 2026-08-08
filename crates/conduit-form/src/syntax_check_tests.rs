@@ -345,3 +345,49 @@ fn checked_face_canonicalizes_runtime_port_declaration_order() {
         reordered.forms[0].checked_face()
     );
 }
+
+#[test]
+fn pool_declaration_seals_member_face_and_bound_without_nominal_identity() {
+    let first = check(
+        "form chat/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n}\n",
+    );
+    let renamed = check(
+        "form renamed/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform room {\n pool peers: renamed/peer(size = 2)\n}\n",
+    );
+    let first_room = first.forms.iter().find(|form| form.name == "room").unwrap();
+    let renamed_room = renamed
+        .forms
+        .iter()
+        .find(|form| form.name == "room")
+        .unwrap();
+    assert_eq!(
+        first_room.pools[0].member_face,
+        renamed_room.pools[0].member_face
+    );
+    assert_eq!(first_room.checked_form_id, renamed_room.checked_form_id);
+
+    let larger = check(
+        "form chat/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform room {\n pool peers: chat/peer(size = 3)\n}\n",
+    );
+    let larger_room = larger
+        .forms
+        .iter()
+        .find(|form| form.name == "room")
+        .unwrap();
+    assert_ne!(first_room.checked_form_id, larger_room.checked_form_id);
+}
+
+#[test]
+fn pool_member_must_be_declared_and_size_is_a_positive_finite_bound() {
+    let unknown = diagnostic("form room {\n pool peers: missing/peer(size = 2)\n}\n");
+    assert_eq!(unknown.code, "CND-FRM-028");
+
+    let zero = crate::parse_syntax_document(
+        "form chat/peer {\n}\n\nform room {\n pool peers: chat/peer(size = 0)\n}\n",
+    );
+    assert!(zero.forms().is_err());
+    let overflow = crate::parse_syntax_document(
+        "form chat/peer {\n}\n\nform room {\n pool peers: chat/peer(size = 65536)\n}\n",
+    );
+    assert!(overflow.forms().is_err());
+}

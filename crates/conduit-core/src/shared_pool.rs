@@ -24,6 +24,12 @@ impl From<&str> for SharedPoolId {
     }
 }
 
+impl From<String> for SharedPoolId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct PoolDeclarationId(String);
 
@@ -70,6 +76,7 @@ pub struct PoolRealizationEnvelope {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub capability_id: CapabilityId,
+    pub member_capacity: u16,
     pub resources: Vec<ResourceBinding>,
 }
 
@@ -120,6 +127,7 @@ impl PlannedSharedPool {
             if realization.host_id.as_str().is_empty()
                 || realization.boot_id.as_str().is_empty()
                 || realization.capability_id.as_str().is_empty()
+                || realization.member_capacity == 0
                 || self.realization_envelope[..index].iter().any(|prior| {
                     prior.host_id == realization.host_id
                         && prior.boot_id == realization.boot_id
@@ -128,6 +136,16 @@ impl PlannedSharedPool {
             {
                 return Err(PlannedSharedPoolError::DuplicateRealization);
             }
+        }
+        if self
+            .realization_envelope
+            .iter()
+            .try_fold(0u16, |total, realization| {
+                total.checked_add(realization.member_capacity)
+            })
+            .is_none_or(|total| total < self.maximum_members)
+        {
+            return Err(PlannedSharedPoolError::EmptyRealizationEnvelope);
         }
         if self.consumers.is_empty() {
             return Err(PlannedSharedPoolError::MissingConsumer);
