@@ -365,3 +365,77 @@ fn canonical_clock_has_zero_successful_post_activation_allocations() {
         .unwrap()
         .contains("tick sequence=3\n"));
 }
+
+#[test]
+fn canonical_state_count_executes_current_values_with_bounded_evidence() {
+    let source = r#"form count (
+    start: Count = 0
+    bump: Tick...| > value: $Count
+) {
+    cell: state/count(start)
+    bump > cell.bump
+    cell.value > value
+}
+form count-demo {
+    clock: time/every(1s)
+    count: count(2)
+    show: presentation/count
+    clock > count > show
+}
+"#;
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    conduit_std_catalog::install_time_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_std_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    let syntax = conduit_form::parse_syntax_document(source);
+    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let expanded = conduit_form::expand_canonical_form(&checked, "count-demo", &profile).unwrap();
+    let mut host = host("allocation-count-host");
+    let plan = host.plan_expanded_local(&expanded).unwrap();
+    assert_eq!(plan.fragments[0].placements.len(), 3);
+    assert_eq!(plan.fragments[0].connections.len(), 2);
+    let state = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::STATE_COUNT_KIND)
+        .unwrap();
+    assert_eq!(
+        state.inputs[0].temporal,
+        conduit_core::PortTemporal::Flow { closes: true }
+    );
+    assert_eq!(
+        state.outputs[0].temporal,
+        conduit_core::PortTemporal::Current
+    );
+
+    let mut output = Vec::with_capacity(4_096);
+    let mut timer = RecordingTimer {
+        waits: Vec::with_capacity(4),
+    };
+    let report = host
+        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .unwrap();
+    assert_eq!(timer.waits, vec![Duration::from_secs(1); 4]);
+    let output = String::from_utf8(output).unwrap();
+    let counts = output
+        .lines()
+        .filter_map(|line| line.strip_prefix("count value="))
+        .map(|value| value.parse::<u64>().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(counts, vec![2, 3, 4, 5, 6]);
+    assert!(matches!(
+        report
+            .observations
+            .last()
+            .map(|observation| &observation.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+    let kernel = report.kernel.unwrap();
+    assert_eq!(kernel.post_activation_allocations, 0);
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+}

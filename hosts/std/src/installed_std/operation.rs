@@ -4,6 +4,7 @@ use super::contract::{
     TICK_KIND, TICK_VALUE_KIND, TIME_EVERY_ARTIFACT, TIME_EVERY_CONTRACT_REVISION,
     TIME_EVERY_EXECUTION_PROFILE, TIME_EVERY_IMPLEMENTATION, TIME_EVERY_KIND,
 };
+use super::count_operations::{CountPresentationOperation, StateCountOperation};
 use super::text_operations::{
     TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
 };
@@ -70,6 +71,8 @@ pub(super) enum InstalledOperation {
     TextUpper(TextTransformOperation),
     TextJoin(TextTransformOperation),
     TextPresentation(TextPresentationOperation),
+    StateCount(StateCountOperation),
+    CountPresentation(CountPresentationOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
     #[cfg(test)]
@@ -101,6 +104,8 @@ impl InstalledOperation {
             Self::TickPresentation(_) => 0,
             Self::TextLiteral(_) | Self::TextUpper(_) | Self::TextJoin(_) => 0,
             Self::TextPresentation(_) => 0,
+            Self::StateCount(operation) => operation.allocation_capacity(),
+            Self::CountPresentation(_) => 0,
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.values.capacity(),
             #[cfg(test)]
@@ -128,6 +133,8 @@ impl Operation for InstalledOperation {
             Self::TextUpper(operation) => operation.start(),
             Self::TextJoin(operation) => operation.start(),
             Self::TextPresentation(operation) => operation.start(),
+            Self::StateCount(operation) => operation.start(),
+            Self::CountPresentation(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
@@ -160,6 +167,8 @@ impl Operation for InstalledOperation {
             (Self::TextJoin(operation), input) => operation.resume(input),
             (Self::TextPresentation(operation), input) => operation.resume(input),
             (Self::TickPresentation(operation), input) => operation.resume(input),
+            (Self::StateCount(operation), input) => operation.resume(input),
+            (Self::CountPresentation(operation), input) => operation.resume(input),
             #[cfg(test)]
             (
                 Self::TestObserver(operation),
@@ -218,6 +227,8 @@ impl Operation for InstalledOperation {
             Self::TextUpper(_) => OperationAction::Await,
             Self::TextJoin(_) => OperationAction::Await,
             Self::TextPresentation(_) => OperationAction::Await,
+            Self::StateCount(operation) => operation.advance(),
+            Self::CountPresentation(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestTextSource(operation) => {
                 operation.next += 1;
@@ -237,6 +248,8 @@ impl Operation for InstalledOperation {
             Self::TextUpper(operation) => operation.cancel(),
             Self::TextJoin(operation) => operation.cancel(),
             Self::TextPresentation(operation) => operation.cancel(),
+            Self::StateCount(_) => {}
+            Self::CountPresentation(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
             #[cfg(test)]

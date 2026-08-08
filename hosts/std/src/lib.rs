@@ -478,6 +478,8 @@ fn build_advertisement(config: StdHostConfig) -> HostAdvertisement {
         conduit_std_catalog::text_upper_offer(),
         conduit_std_catalog::text_join_offer(),
         installed_std::text_offer(),
+        conduit_std_catalog::state_count_offer(),
+        conduit_std_catalog::count_presentation_offer(),
     ];
     #[cfg(test)]
     {
