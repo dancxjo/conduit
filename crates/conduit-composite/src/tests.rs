@@ -199,9 +199,11 @@ fn hosted_offer(
         capability_id: CapabilityId::from(capability),
         kind_id: kind_id(kind),
         kind_contract_revision: KindContractRevision::from(revision),
-        execution_profile_id: ExecutionProfileId::from(format!("{kind}/hosted@1")),
-        implementation_id: ImplementationId::from(format!("test/{capability}-v1")),
-        artifact_id: ArtifactId::from(format!("test/{capability}-artifact-v1")),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(format!("{kind}/hosted@1")),
+            implementation_id: ImplementationId::from(format!("test/{capability}-v1")),
+            artifact_id: ArtifactId::from(format!("test/{capability}-artifact-v1")),
+        },
         inputs,
         outputs,
         host_operations: Vec::new(),
@@ -297,9 +299,9 @@ fn multi_child_runtime() -> HostRuntime {
             .install(EchoImplementation {
                 kind_id: offer.kind_id.clone(),
                 revision: offer.kind_contract_revision.clone(),
-                profile: offer.execution_profile_id.clone(),
-                implementation_id: offer.implementation_id.clone(),
-                artifact_id: offer.artifact_id.clone(),
+                profile: offer.implementation.execution_profile_id.clone(),
+                implementation_id: offer.implementation.implementation_id.clone(),
+                artifact_id: offer.implementation.artifact_id.clone(),
             })
             .expect("echo implementation installs");
     }
@@ -495,21 +497,23 @@ fn child_advertisement(host: &str, boot: &str, source: bool) -> HostAdvertisemen
             } else {
                 show_contract_revision()
             },
-            execution_profile_id: if source {
-                pulse_execution_profile()
-            } else {
-                show_execution_profile()
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: if source {
+                    pulse_execution_profile()
+                } else {
+                    show_execution_profile()
+                },
+                implementation_id: ImplementationId::from(if source {
+                    "test/pulse-v1"
+                } else {
+                    "test/show-v1"
+                }),
+                artifact_id: ArtifactId::from(if source {
+                    "conduit-signal/pulse-artifact-v1"
+                } else {
+                    "conduit-signal/show-artifact-v1"
+                }),
             },
-            implementation_id: ImplementationId::from(if source {
-                "test/pulse-v1"
-            } else {
-                "test/show-v1"
-            }),
-            artifact_id: ArtifactId::from(if source {
-                "conduit-signal/pulse-artifact-v1"
-            } else {
-                "conduit-signal/show-artifact-v1"
-            }),
             inputs: if source { vec![] } else { show_inputs() },
             outputs: if source { pulse_outputs() } else { vec![] },
             host_operations: if source {
@@ -1002,9 +1006,13 @@ fn input_only_and_output_only_exports_plan_as_ordinary_operations() {
             capability_id: CapabilityId::from(capability),
             kind_id: boundary.kind_id,
             kind_contract_revision: boundary.kind_contract_revision,
-            execution_profile_id: ExecutionProfileId::from(format!("test/{capability}-hosted@1")),
-            implementation_id: ImplementationId::from(format!("test/{capability}-v1")),
-            artifact_id: ArtifactId::from(format!("test/{capability}-artifact-v1")),
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: ExecutionProfileId::from(format!(
+                    "test/{capability}-hosted@1"
+                )),
+                implementation_id: ImplementationId::from(format!("test/{capability}-v1")),
+                artifact_id: ArtifactId::from(format!("test/{capability}-artifact-v1")),
+            },
             inputs: boundary.inputs,
             outputs: boundary.outputs,
             host_operations: Vec::new(),
@@ -1502,9 +1510,11 @@ fn external_limits_are_conservatively_derived() {
         capability_id: CapabilityId::from("unrelated-narrow-capability"),
         kind_id: kind_id("unrelated/kind"),
         kind_contract_revision: KindContractRevision::from("unrelated/kind@1"),
-        execution_profile_id: ExecutionProfileId::from("unrelated/profile@1"),
-        implementation_id: ImplementationId::from("unrelated/implementation"),
-        artifact_id: ArtifactId::from("unrelated/artifact"),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("unrelated/profile@1"),
+            implementation_id: ImplementationId::from("unrelated/implementation"),
+            artifact_id: ArtifactId::from("unrelated/artifact"),
+        },
         inputs: vec![],
         outputs: vec![],
         host_operations: vec![],
@@ -1750,9 +1760,11 @@ fn definition_data_can_expose_a_different_composite_capability() {
             capability_id: CapabilityId::from("alternate-capability"),
             kind_id: kind_id("demonstration/alternate"),
             kind_contract_revision: KindContractRevision::from("demonstration/alternate@1"),
-            execution_profile_id: ExecutionProfileId::from("composite/alternate-hosted@1"),
-            implementation_id: ImplementationId::from("composite/alternate-v1"),
-            artifact_id: ArtifactId::from("composite/alternate-artifact-v1"),
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: ExecutionProfileId::from("composite/alternate-hosted@1"),
+                implementation_id: ImplementationId::from("composite/alternate-v1"),
+                artifact_id: ArtifactId::from("composite/alternate-artifact-v1"),
+            },
             inputs: vec![alternate_input.clone()],
             outputs: pulse_outputs(),
             host_operations: vec![],

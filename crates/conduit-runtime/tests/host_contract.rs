@@ -126,8 +126,9 @@ fn planned_evidence_storage_survives_observation_overflow() {
 #[test]
 fn preparation_rejects_uninstalled_and_mismatched_implementations_structurally() {
     let mut missing_advertisement = advertisement();
-    missing_advertisement.capabilities[1].implementation_id =
-        ImplementationId::from("missing/sink-v1");
+    missing_advertisement.capabilities[1]
+        .implementation
+        .implementation_id = ImplementationId::from("missing/sink-v1");
     let missing_fragment = fragment(&missing_advertisement);
     let mut runtime = HostRuntime::new(missing_advertisement, registry(), 64);
     assert_eq!(
@@ -723,9 +724,11 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
             capability_id: CapabilityId::from("echo-capability"),
             kind_id: echo_kind_id.clone(),
             kind_contract_revision: KindContractRevision::from("test/echo@1"),
-            execution_profile_id: ExecutionProfileId::from("test/echo-hosted@1"),
-            implementation_id: implementation_id.clone(),
-            artifact_id: ArtifactId::from("test/echo-artifact-v1"),
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: ExecutionProfileId::from("test/echo-hosted@1"),
+                implementation_id: implementation_id.clone(),
+                artifact_id: ArtifactId::from("test/echo-artifact-v1"),
+            },
             inputs: vec![],
             outputs: vec![],
             host_operations: vec![],

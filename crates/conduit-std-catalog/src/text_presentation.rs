@@ -71,9 +71,11 @@ pub fn text_presentation_offer() -> CapabilityOffer {
         capability_id: CapabilityId::from(TEXT_PRESENTATION_CAPABILITY),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(TEXT_PRESENTATION_CONTRACT_REVISION),
-        execution_profile_id: ExecutionProfileId::from(TEXT_PRESENTATION_EXECUTION_PROFILE),
-        implementation_id: ImplementationId::from(TEXT_PRESENTATION_IMPLEMENTATION),
-        artifact_id: ArtifactId::from(TEXT_PRESENTATION_ARTIFACT),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(TEXT_PRESENTATION_EXECUTION_PROFILE),
+            implementation_id: ImplementationId::from(TEXT_PRESENTATION_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(TEXT_PRESENTATION_ARTIFACT),
+        },
         inputs: contract.inputs,
         outputs: contract.outputs,
         host_operations: vec![present_host_operation_requirement(
@@ -123,7 +125,7 @@ mod tests {
         );
         assert_eq!(offer.inputs, contract.inputs);
         assert_eq!(
-            offer.implementation_id.as_str(),
+            offer.implementation.implementation_id.as_str(),
             TEXT_PRESENTATION_IMPLEMENTATION
         );
         assert_eq!(offer.host_operations[0].maximum_input_bytes, MAX_TEXT_BYTES);

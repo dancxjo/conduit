@@ -189,7 +189,10 @@ fn rearticulated_tick_is_distinct_from_the_audited_compatibility_row() {
         offer.kind_contract_revision.as_str(),
         TICK_CONTRACT_REVISION
     );
-    assert_eq!(offer.implementation_id.as_str(), TICK_IMPLEMENTATION);
+    assert_eq!(
+        offer.implementation.implementation_id.as_str(),
+        TICK_IMPLEMENTATION
+    );
     assert_eq!(offer.outputs, tick.outputs);
     assert_ne!(
         offer.kind_contract_revision.as_str(),

@@ -171,8 +171,8 @@ impl ObservedReplacement {
                     .map(|offer| CompatibleReplacement {
                         role_id: assignment.role_id.clone(),
                         capability_id: offer.capability_id.clone(),
-                        implementation_id: offer.implementation_id.clone(),
-                        artifact_id: offer.artifact_id.clone(),
+                        implementation_id: offer.implementation.implementation_id.clone(),
+                        artifact_id: offer.implementation.artifact_id.clone(),
                     })
             })
             .collect();

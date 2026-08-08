@@ -94,9 +94,11 @@ pub fn network_join_offer(
         capability_id,
         kind_id: kind_id(NETWORK_JOIN_OPERATION),
         kind_contract_revision: KindContractRevision::from(NETWORK_JOIN_CONTRACT_REVISION),
-        execution_profile_id: ExecutionProfileId::from("conduit.network/join-provider@1"),
-        implementation_id,
-        artifact_id,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("conduit.network/join-provider@1"),
+            implementation_id,
+            artifact_id,
+        },
         inputs: vec![PortDescriptor {
             port_id: PortId::from("request"),
             value_kind: kind_id(NETWORK_JOIN_REQUEST_KIND),

@@ -122,9 +122,11 @@ mod tests {
             capability_id: CapabilityId::from("member-capability"),
             kind_id: kind_id("chat/peer"),
             kind_contract_revision: KindContractRevision::from("chat/peer@1"),
-            execution_profile_id: ExecutionProfileId::from("test/member@1"),
-            implementation_id: ImplementationId::from("test/member@1"),
-            artifact_id: ArtifactId::from("test/member-artifact@1"),
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: ExecutionProfileId::from("test/member@1"),
+                implementation_id: ImplementationId::from("test/member@1"),
+                artifact_id: ArtifactId::from("test/member-artifact@1"),
+            },
             inputs: vec![PortDescriptor {
                 port_id: port_id("recv"),
                 value_kind: kind_id("ChatMessage"),

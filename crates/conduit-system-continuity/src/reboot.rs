@@ -46,9 +46,11 @@ pub fn delegated_reboot_offer(
         capability_id,
         kind_id: kind_id(REBOOT_OPERATION),
         kind_contract_revision: KindContractRevision::from(REBOOT_CONTRACT_REVISION),
-        execution_profile_id: ExecutionProfileId::from("lifecycle/reboot-bounded@1"),
-        implementation_id,
-        artifact_id,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("lifecycle/reboot-bounded@1"),
+            implementation_id,
+            artifact_id,
+        },
         inputs: vec![PortDescriptor {
             port_id: PortId::from("request"),
             value_kind: kind_id("lifecycle/reboot-request"),

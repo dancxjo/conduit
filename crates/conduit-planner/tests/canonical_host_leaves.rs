@@ -134,9 +134,11 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
         capability_id: CapabilityId::from(slug.as_str()),
         kind_id: definition.kind_id.clone(),
         kind_contract_revision: definition.kind_contract_revision.clone(),
-        execution_profile_id: ExecutionProfileId::from("test/profile"),
-        implementation_id: ImplementationId::from(format!("std/{slug}")),
-        artifact_id: ArtifactId::from(format!("test/{slug}")),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("test/profile"),
+            implementation_id: ImplementationId::from(format!("std/{slug}")),
+            artifact_id: ArtifactId::from(format!("test/{slug}")),
+        },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
         host_operations: vec![],
@@ -300,7 +302,7 @@ fn two_cells_of_one_operation_can_select_different_equal_face_hosts() {
     right.boot_id = BootId::from("peer-boot");
     for offer in &mut right.capabilities {
         offer.capability_id = CapabilityId::from(format!("peer-{}", offer.capability_id.as_str()));
-        offer.implementation_id =
+        offer.implementation.implementation_id =
             ImplementationId::from(format!("peer/{}", offer.kind_id.as_str().replace('/', "-")));
     }
 

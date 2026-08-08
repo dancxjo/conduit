@@ -181,9 +181,11 @@ impl CompositeDefinition {
                 capability_id: boundary.capability_id,
                 kind_id: boundary.kind_id,
                 kind_contract_revision: boundary.kind_contract_revision,
-                execution_profile_id,
-                implementation_id,
-                artifact_id,
+                implementation: conduit_core::ImplementationOffer {
+                    execution_profile_id,
+                    implementation_id,
+                    artifact_id,
+                },
                 inputs: boundary.inputs,
                 outputs: boundary.outputs,
                 host_operations: Vec::new(),
@@ -1084,12 +1086,19 @@ impl CompositeHost {
             || fragment.placements[0].kind_contract_revision
                 != self.advertisement.capabilities[0].kind_contract_revision
             || fragment.placements[0].execution_profile_id
-                != self.advertisement.capabilities[0].execution_profile_id
+                != self.advertisement.capabilities[0]
+                    .implementation
+                    .execution_profile_id
             || fragment.placements[0].capability_id
                 != self.advertisement.capabilities[0].capability_id
             || fragment.placements[0].implementation_id
-                != self.advertisement.capabilities[0].implementation_id
-            || fragment.placements[0].artifact_id != self.advertisement.capabilities[0].artifact_id
+                != self.advertisement.capabilities[0]
+                    .implementation
+                    .implementation_id
+            || fragment.placements[0].artifact_id
+                != self.advertisement.capabilities[0]
+                    .implementation
+                    .artifact_id
             || fragment.placements[0].inputs != self.advertisement.capabilities[0].inputs
             || fragment.placements[0].outputs != self.advertisement.capabilities[0].outputs
             || self

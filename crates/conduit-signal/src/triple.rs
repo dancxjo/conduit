@@ -69,17 +69,19 @@ fn capability(capability_id: &str, implementation_id: &str, is_pulse: bool) -> C
         } else {
             show_contract_revision()
         },
-        execution_profile_id: if is_pulse {
-            pulse_execution_profile()
-        } else {
-            show_execution_profile()
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: if is_pulse {
+                pulse_execution_profile()
+            } else {
+                show_execution_profile()
+            },
+            implementation_id: ImplementationId::from(implementation_id),
+            artifact_id: ArtifactId::from(if is_pulse {
+                "conduit-signal/pulse-artifact-v1"
+            } else {
+                "conduit-signal/show-artifact-v1"
+            }),
         },
-        implementation_id: ImplementationId::from(implementation_id),
-        artifact_id: ArtifactId::from(if is_pulse {
-            "conduit-signal/pulse-artifact-v1"
-        } else {
-            "conduit-signal/show-artifact-v1"
-        }),
         inputs: if is_pulse { vec![] } else { show_inputs() },
         outputs: if is_pulse { pulse_outputs() } else { vec![] },
         host_operations: if is_pulse {

@@ -19,9 +19,11 @@ fn member_offer(kind: &str, revision: &str) -> CapabilityOffer {
         capability_id: CapabilityId::from("browser/peer"),
         kind_id: kind_id(kind),
         kind_contract_revision: KindContractRevision::from(revision),
-        execution_profile_id: ExecutionProfileId::from("browser/peer-hosted@1"),
-        implementation_id: ImplementationId::from("browser/peer-implementation"),
-        artifact_id: ArtifactId::from("browser/peer-artifact"),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("browser/peer-hosted@1"),
+            implementation_id: ImplementationId::from("browser/peer-implementation"),
+            artifact_id: ArtifactId::from("browser/peer-artifact"),
+        },
         inputs: vec![PortDescriptor {
             port_id: conduit_core::port_id("recv"),
             value_kind: kind_id("ChatMessage"),

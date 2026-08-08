@@ -51,9 +51,11 @@ pub fn copy_file_offer() -> CapabilityOffer {
         capability_id: CapabilityId::from(COPY_FILE_CAPABILITY),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(COPY_FILE_CONTRACT_REVISION),
-        execution_profile_id: ExecutionProfileId::from(COPY_FILE_EXECUTION_PROFILE),
-        implementation_id: ImplementationId::from(COPY_FILE_IMPLEMENTATION),
-        artifact_id: ArtifactId::from(COPY_FILE_ARTIFACT),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(COPY_FILE_EXECUTION_PROFILE),
+            implementation_id: ImplementationId::from(COPY_FILE_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(COPY_FILE_ARTIFACT),
+        },
         inputs: contract.inputs,
         outputs: contract.outputs,
         host_operations: vec![HostOperationRequirement {
