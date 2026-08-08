@@ -35,6 +35,11 @@ mod installed_std_tests;
 pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
+mod run_control;
+pub use run_control::{
+    RejectedRunControlRequest, RunControl, RunControlDisposition, RunControlReceipt,
+    RunControlRequestId,
+};
 pub mod pico_usb_source;
 pub mod pool_webchat;
 pub mod triple_signal;
@@ -135,6 +140,7 @@ pub struct StdRunReport {
     pub observations: Vec<Observation>,
     pub receipts: Vec<SignalReceipt>,
     pub kernel: Option<StdKernelExecutionReport>,
+    pub control_receipts: Vec<RunControlReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -142,6 +148,7 @@ pub struct StdKernelExecutionReport {
     pub active_play_id: conduit_core::ActivePlayId,
     pub decisions: u32,
     pub kernel_events: u16,
+    pub kernel_evidence: Vec<conduit_kernel::KernelEvent>,
     pub value_allocation_capacity_before: (usize, usize),
     pub value_allocation_capacity_after: (usize, usize),
     pub presentation_ids: Vec<conduit_core::PresentationId>,
@@ -304,6 +311,16 @@ impl StdHost {
         output: &mut W,
         timer: &mut T,
     ) -> Result<StdRunReport, String> {
+        self.run_fragment_controlled_to(fragment, output, timer, &RunControl::default())
+    }
+
+    pub fn run_fragment_controlled_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        output: &mut W,
+        timer: &mut T,
+        control: &RunControl,
+    ) -> Result<StdRunReport, String> {
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
         let installed_standard = installed_std::supports(&fragment);
@@ -328,8 +345,12 @@ impl StdHost {
                     &mut self.next_kernel_evidence_sequence,
                     output,
                     timer,
+                    control,
                 )
             } else {
+                if control.requested_stop().is_some() {
+                    return Err("kernel-signal profile cannot accept generic Run control".into());
+                }
                 kernel_signal::run_signal_fragment(
                     &advertisement,
                     &fragment,

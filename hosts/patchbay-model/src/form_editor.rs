@@ -205,6 +205,18 @@ impl FormEditor {
             selection: self.selection.clone(),
         }
     }
+
+    pub fn expand_form(
+        &self,
+        name: &str,
+    ) -> Result<conduit_form::ExpandedCanonicalForm, FormEditorError> {
+        let syntax = parse_syntax_document(&self.source);
+        let (startup, profile) = standard_catalogs()?;
+        let checked = check_syntax_document(&syntax, &startup)
+            .map_err(|diagnostic| FormEditorError::Catalog(diagnostic.message))?;
+        conduit_form::expand_canonical_form(&checked, name, &profile)
+            .map_err(|diagnostic| FormEditorError::Catalog(diagnostic.to_string()))
+    }
 }
 
 fn check_revision(revision: u64, source: &str) -> Result<CheckedRevision, FormEditorError> {
@@ -217,14 +229,23 @@ fn check_revision(revision: u64, source: &str) -> Result<CheckedRevision, FormEd
             diagnostic.span,
         ));
     }
-    let mut startup = StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
+    let (startup, _profile) = standard_catalogs()?;
     match check_syntax_document(&syntax, &startup) {
         Ok(checked) => graph_revision(revision, &syntax.forms, checked),
         Err(diagnostic) => Ok(check_error_revision(revision, diagnostic)),
     }
+}
+
+fn standard_catalogs() -> Result<(StartupCatalog, conduit_form::ProfileCatalog), FormEditorError> {
+    let mut startup = StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
+    conduit_std_catalog::install_time_pipeline_catalogs(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
+    conduit_std_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
+    Ok((startup, profile))
 }
 
 fn graph_revision(

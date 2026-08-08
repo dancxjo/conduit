@@ -15,9 +15,11 @@ use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+mod control;
 mod form_editor;
 mod topology;
 
+pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphForm,
     GraphItem, GraphItemKind, SourceSelection,
