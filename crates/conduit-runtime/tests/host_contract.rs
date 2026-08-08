@@ -782,6 +782,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
                 authority: Vec::new(),
             }],
             connections: Vec::new(),
+            shared_pools: Vec::new(),
             startup_dependencies: Vec::new(),
             startup_order: vec![placement_id.clone()],
             cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,

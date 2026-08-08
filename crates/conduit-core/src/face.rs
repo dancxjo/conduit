@@ -34,6 +34,24 @@ impl CheckedFace {
             shorthand,
         }
     }
+
+    pub fn startup_parameters(&self) -> &[FaceStartupParameter] {
+        &self.startup_parameters
+    }
+
+    pub fn inputs(&self) -> &[PortDescriptor] {
+        &self.inputs
+    }
+
+    pub fn outputs(&self) -> &[PortDescriptor] {
+        &self.outputs
+    }
+
+    pub fn shorthand(&self) -> Option<(&PortId, &PortId)> {
+        self.shorthand
+            .as_ref()
+            .map(|(input, output)| (input, output))
+    }
 }
 
 impl CapabilityOffer {

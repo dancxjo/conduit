@@ -533,6 +533,7 @@ pub(crate) fn plan_validated_form(
                 offer_generation: host.offer_generation,
                 placements,
                 connections,
+                shared_pools: Vec::new(),
                 startup_dependencies,
                 startup_order,
                 cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,

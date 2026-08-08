@@ -14,12 +14,14 @@ mod face;
 mod port;
 mod resource;
 mod route;
+mod shared_pool;
 
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use face::{CheckedFace, FaceStartupParameter};
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use resource::*;
 pub use route::*;
+pub use shared_pool::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
@@ -527,6 +529,8 @@ pub struct PlanFragment {
     pub offer_generation: OfferGeneration,
     pub placements: Vec<PlannedOperation>,
     pub connections: Vec<PlannedConnection>,
+    #[serde(default)]
+    pub shared_pools: Vec<PlannedSharedPool>,
     pub startup_dependencies: Vec<StartupDependency>,
     pub startup_order: Vec<PlacementId>,
     pub cancellation_policy: CancellationPolicy,
@@ -589,6 +593,16 @@ pub fn verify_plan(plan: &Plan) -> bool {
             .fragments
             .first()
             .is_none_or(|first| first.plan_fragments.len() == plan.fragments.len())
+        && plan.fragments.first().is_none_or(|first| {
+            first
+                .shared_pools
+                .iter()
+                .all(|pool| pool.validate().is_ok())
+                && plan
+                    .fragments
+                    .iter()
+                    .all(|fragment| fragment.shared_pools == first.shared_pools)
+        })
         && verify_plan_connections(plan)
 }
 
@@ -840,6 +854,34 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         canonical.extend_from_slice(&connection.item_capacity.to_le_bytes());
         push_u32(&mut canonical, connection.byte_capacity);
     }
+    push_u32(&mut canonical, fragment.shared_pools.len() as u32);
+    for pool in &fragment.shared_pools {
+        push_string(&mut canonical, pool.pool_id.as_str());
+        push_string(&mut canonical, pool.declaration_id.as_str());
+        push_checked_face(&mut canonical, &pool.member_face);
+        canonical.extend_from_slice(&pool.maximum_members.to_le_bytes());
+        canonical.extend_from_slice(&pool.member_limits.queue_item_capacity.to_le_bytes());
+        push_u32(&mut canonical, pool.member_limits.queue_byte_capacity);
+        canonical.extend_from_slice(&pool.member_limits.evidence_item_capacity.to_le_bytes());
+        push_u32(&mut canonical, pool.member_limits.evidence_byte_capacity);
+        push_u32(&mut canonical, pool.realization_envelope.len() as u32);
+        for realization in &pool.realization_envelope {
+            push_string(&mut canonical, realization.host_id.as_str());
+            push_string(&mut canonical, realization.boot_id.as_str());
+            push_string(&mut canonical, realization.capability_id.as_str());
+            push_u32(&mut canonical, realization.resources.len() as u32);
+            for resource in &realization.resources {
+                push_string(&mut canonical, resource.pool_id.as_str());
+                push_string(&mut canonical, resource.class_id.as_str());
+                push_u32(&mut canonical, resource.units);
+            }
+        }
+        push_string(&mut canonical, pool.admission_authority.as_str());
+        push_u32(&mut canonical, pool.consumers.len() as u32);
+        for consumer in &pool.consumers {
+            push_string(&mut canonical, consumer.as_str());
+        }
+    }
     push_u32(&mut canonical, fragment.startup_dependencies.len() as u32);
     for dependency in &fragment.startup_dependencies {
         push_string(
@@ -899,6 +941,25 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         fragment.evidence_storage_budget.byte_capacity,
     );
     FragmentId::from(hash_bytes(&canonical))
+}
+
+fn push_checked_face(canonical: &mut Vec<u8>, face: &CheckedFace) {
+    push_u32(canonical, face.startup_parameters().len() as u32);
+    for parameter in face.startup_parameters() {
+        push_string(canonical, &parameter.name);
+        push_string(canonical, &parameter.value_type);
+        canonical.push(u8::from(parameter.has_default));
+    }
+    push_ports(canonical, face.inputs());
+    push_ports(canonical, face.outputs());
+    match face.shorthand() {
+        Some((input, output)) => {
+            canonical.push(1);
+            push_string(canonical, input.as_str());
+            push_string(canonical, output.as_str());
+        }
+        None => canonical.push(0),
+    }
 }
 
 fn push_bound_link(canonical: &mut Vec<u8>, binding: &BoundLink) {
