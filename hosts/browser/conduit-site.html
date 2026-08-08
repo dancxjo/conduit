@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en" data-manifestation="waiting">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conduit — programs that become real</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f4f0e8;
+      --muted: #aaa9a2;
+      --line: rgba(244, 240, 232, .14);
+      --paper: #111310;
+      --panel: rgba(29, 32, 27, .78);
+      --live: #b9f56b;
+      --warm: #ffb96a;
+      --error: #ff806f;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 82% 7%, rgba(185, 245, 107, .12), transparent 30rem),
+        radial-gradient(circle at 12% 45%, rgba(255, 185, 106, .08), transparent 32rem),
+        var(--paper);
+      min-height: 100vh;
+    }
+    a { color: inherit; }
+    .shell { width: min(1160px, calc(100% - 2rem)); margin: auto; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.35rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .wordmark { display: flex; align-items: center; gap: .7rem; font-weight: 760; letter-spacing: -.03em; }
+    .mark { width: 1.35rem; height: 1.35rem; border: 2px solid var(--live); border-radius: 50%; box-shadow: inset 0 0 0 .28rem var(--paper); background: var(--live); }
+    nav { display: flex; gap: 1.2rem; color: var(--muted); font-size: .9rem; }
+    nav a { text-decoration: none; }
+    main { padding: 5.2rem 0 3rem; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(18rem, .8fr); gap: clamp(2rem, 7vw, 6rem); align-items: center; }
+    .eyebrow { color: var(--live); font: 650 .76rem/1.2 ui-monospace, monospace; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { max-width: 13ch; margin: 1rem 0 1.35rem; font-size: clamp(3.2rem, 8vw, 6.8rem); line-height: .92; letter-spacing: -.075em; }
+    .lede { max-width: 39rem; color: #cbc9c1; font-size: clamp(1.05rem, 2vw, 1.28rem); line-height: 1.65; }
+    .manifestation {
+      position: relative;
+      min-height: 27rem;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 2rem;
+      background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.01));
+    }
+    .manifestation::before, .manifestation::after { content: ""; position: absolute; border-radius: 50%; transition: 500ms ease; }
+    .manifestation::before { width: 18rem; height: 18rem; border: 1px solid rgba(185,245,107,.28); }
+    .manifestation::after { width: 11rem; height: 11rem; background: rgba(185,245,107,.09); filter: blur(1px); }
+    .pulse { z-index: 1; width: 6.5rem; aspect-ratio: 1; border-radius: 50%; border: 1px solid var(--line); background: #242820; box-shadow: 0 0 0 1.4rem rgba(255,255,255,.025); transition: 450ms ease; }
+    [data-manifestation="true"] .pulse { background: var(--live); box-shadow: 0 0 4rem rgba(185,245,107,.55), 0 0 0 1.4rem rgba(185,245,107,.08); transform: scale(1.06); }
+    [data-manifestation="false"] .pulse { background: var(--warm); box-shadow: 0 0 3rem rgba(255,185,106,.35), 0 0 0 1.4rem rgba(255,185,106,.07); transform: scale(.88); }
+    .live-copy { position: absolute; inset: auto 1.4rem 1.3rem; z-index: 2; display: flex; justify-content: space-between; align-items: end; gap: 1rem; }
+    .live-copy strong { display: block; font-size: 1.05rem; }
+    #manifestation-detail { color: var(--muted); font: .76rem/1.5 ui-monospace, monospace; }
+    .state-pill { padding: .42rem .7rem; border: 1px solid var(--line); border-radius: 2rem; color: var(--muted); font: .72rem/1 ui-monospace, monospace; white-space: nowrap; }
+    [data-manifestation="true"] .state-pill { color: #17200c; border-color: var(--live); background: var(--live); }
+    .flow { margin: 7rem 0 5rem; }
+    .flow h2, .evidence h2 { font-size: clamp(2rem, 4vw, 3.7rem); letter-spacing: -.055em; margin: 0 0 2rem; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); border-block: 1px solid var(--line); }
+    .step { padding: 1.6rem 1.2rem 1.8rem 0; }
+    .step + .step { padding-left: 1.2rem; border-left: 1px solid var(--line); }
+    .step small { color: var(--live); font: .7rem ui-monospace, monospace; }
+    .step h3 { margin: .75rem 0 .5rem; font-size: 1.15rem; }
+    .step p { margin: 0; color: var(--muted); line-height: 1.55; font-size: .9rem; }
+    .platforms { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.6rem; }
+    .platforms span { border: 1px solid var(--line); border-radius: 2rem; padding: .48rem .72rem; color: #c9c8c0; font: .72rem ui-monospace, monospace; }
+    .evidence { display: grid; grid-template-columns: .72fr 1.28fr; gap: 3rem; align-items: start; margin-bottom: 5rem; }
+    .evidence-copy p { color: var(--muted); line-height: 1.65; }
+    .terminal { border: 1px solid var(--line); border-radius: 1.2rem; overflow: hidden; background: #0b0d0a; box-shadow: 0 1.6rem 5rem rgba(0,0,0,.28); }
+    .terminal-head { display: flex; justify-content: space-between; padding: .8rem 1rem; border-bottom: 1px solid var(--line); color: var(--muted); font: .72rem ui-monospace, monospace; }
+    .terminal-grid { display: grid; grid-template-columns: auto 1fr; gap: .7rem 1rem; padding: 1rem; margin: 0; font: .74rem/1.45 ui-monospace, monospace; }
+    .terminal-grid dt { color: var(--muted); }
+    .terminal-grid dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #browser-sink { max-height: 8rem; overflow: auto; border-top: 1px solid var(--line); padding: .65rem 1rem; }
+    #browser-sink:empty::before { content: "No admitted presentation yet."; color: var(--muted); font: .72rem ui-monospace, monospace; }
+    #browser-sink output { display: block; color: #96988f; font: .68rem/1.45 ui-monospace, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .error { color: var(--error) !important; }
+    footer { display: flex; justify-content: space-between; gap: 1rem; padding: 1.4rem 0 2.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
+    @media (max-width: 760px) {
+      nav { display: none; }
+      main { padding-top: 3rem; }
+      .hero, .evidence { grid-template-columns: 1fr; }
+      .manifestation { min-height: 21rem; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .step:nth-child(3) { border-left: 0; }
+      .step:nth-child(n+3) { border-top: 1px solid var(--line); }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="wordmark"><span class="mark" aria-hidden="true"></span>Conduit</div>
+      <nav aria-label="Page sections"><a href="#meaning">How it works</a><a href="#evidence">Evidence</a></nav>
+    </header>
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div>
+          <div class="eyebrow">Programs that become real</div>
+          <h1 id="hero-title">Meaning, made manifest.</h1>
+          <p class="lede">Conduit describes what a program means, then plans its exact realization across ordinary computers, browsers, and tiny physical hosts—with bounded execution and evidence you can inspect.</p>
+        </div>
+        <div class="manifestation" aria-live="polite" aria-atomic="true">
+          <div class="pulse" aria-hidden="true"></div>
+          <div class="live-copy">
+            <div><strong id="manifestation-title">Conduit is waiting</strong><span id="manifestation-detail">Start with <code>just site</code>, then press Enter.</span></div>
+            <span id="manifestation-state" class="state-pill">waiting</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="flow" id="meaning" aria-labelledby="flow-title">
+        <h2 id="flow-title">One meaning. Exact realization.</h2>
+        <div class="steps">
+          <article class="step"><small>01 / FORM</small><h3>Describe meaning</h3><p>Authored programs name typed cells and relationships, never sockets, devices, or browser APIs.</p></article>
+          <article class="step"><small>02 / PLAN</small><h3>Make it exact</h3><p>Capabilities, hosts, resources, identities, routes, and finite bounds are admitted before activation.</p></article>
+          <article class="step"><small>03 / HOST</small><h3>Cross reality</h3><p>One kernel coordinates implementations while effects cross narrow host-operation boundaries.</p></article>
+          <article class="step"><small>04 / EVIDENCE</small><h3>Keep the truth</h3><p>Success, pressure, failure, identity, and presentation remain distinct machine-readable facts.</p></article>
+        </div>
+        <div class="platforms" aria-label="Current platforms"><span>Rust / std</span><span>Browser / WASM</span><span>Pico W</span><span>WebSocket</span><span>USB CDC</span><span>Portable planning</span></div>
+      </section>
+
+      <section class="evidence" id="evidence" aria-labelledby="evidence-title">
+        <div class="evidence-copy"><div class="eyebrow">Live proof, not theater</div><h2 id="evidence-title">This light belongs to Conduit.</h2><p>The manifestation above changes only after the browser host successfully completes an admitted <code>presentation/show&lt;Signal&gt;</code> effect from the real browser/WASM runtime. The latest exact identity chain appears here.</p></div>
+        <div class="terminal" aria-label="Latest Conduit manifestation evidence">
+          <div class="terminal-head"><span>latest manifestation</span><span id="receipt-count">0 / 16 receipts</span></div>
+          <dl class="terminal-grid">
+            <dt>status</dt><dd id="proof-status">waiting for a local WebSocket endpoint</dd>
+            <dt>plan</dt><dd id="proof-plan">—</dd>
+            <dt>fragment</dt><dd id="proof-fragment">—</dd>
+            <dt>play</dt><dd id="proof-play">—</dd>
+            <dt>presentation</dt><dd id="proof-presentation">—</dd>
+            <dt>evidence</dt><dd id="proof-evidence">—</dd>
+            <dt>sequence</dt><dd id="proof-sequence">—</dd>
+          </dl>
+          <div id="browser-sink" aria-label="Bounded browser receipt log"></div>
+        </div>
+      </section>
+    </main>
+    <footer><span>Conduit is an experiment in durable, portable program meaning.</span><span>Local-first demo · no external runtime dependencies</span></footer>
+  </div>
+  <script type="module">
+    import { BrowserDomHost } from "./signal-dom-host.mjs";
+    import { BrowserWebSocketCarrier } from "./websocket-carrier.mjs";
+    import { instantiateDistributedToggleRuntime, runDistributedToggleRuntime } from "./distributed-toggle-runtime.mjs";
+
+    const root = document.documentElement;
+    const params = new URLSearchParams(location.search);
+    const url = params.get("ws");
+    const text = (selector, value) => { document.querySelector(selector).textContent = value; };
+
+    function showReceipt(receipt) {
+      root.dataset.manifestation = String(receipt.level);
+      text("#manifestation-title", receipt.level ? "Conduit is live" : "Conduit is manifest");
+      text("#manifestation-detail", `Signal ${receipt.sequence} completed by the browser host.`);
+      text("#manifestation-state", receipt.level ? "live / true" : "live / false");
+      text("#proof-status", "presentation completed successfully");
+      text("#proof-plan", receipt.planId);
+      text("#proof-fragment", receipt.fragmentId);
+      text("#proof-play", receipt.activePlayId);
+      text("#proof-presentation", receipt.presentationId);
+      text("#proof-evidence", receipt.evidenceId);
+      text("#proof-sequence", receipt.sequence);
+      text("#receipt-count", `${document.querySelectorAll("#browser-sink output").length} / 16 receipts`);
+    }
+
+    if (url) {
+      root.dataset.manifestation = "connecting";
+      text("#proof-status", "connecting exact browser session");
+      text("#manifestation-title", "Conduit is connecting");
+      try {
+        const wasmBytes = await fetch("/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm")
+          .then((response) => {
+            if (!response.ok) throw new Error("browser WASM artifact missing");
+            return response.arrayBuffer();
+          });
+        const carrier = await new BrowserWebSocketCarrier({
+          url,
+          maximumMessageBytes: 2048,
+          maximumBufferedBytes: 8192,
+        }).open();
+        const domHost = new BrowserDomHost({
+          hostId: "s4/toggle-browser-sink",
+          bootId: "s4/toggle-browser-sink-boot",
+          root: document.querySelector("#browser-sink"),
+          maximumReceiptItems: 16,
+          maximumReceiptBytes: 144,
+        });
+        const runtime = await instantiateDistributedToggleRuntime(wasmBytes);
+        const observableDomHost = Object.freeze({
+          completePresentation(effect) {
+            const result = domHost.completePresentation(effect);
+            if (result.ok) showReceipt(result.receipt);
+            return result;
+          },
+        });
+        text("#proof-status", "ready — press Enter in the terminal");
+        text("#manifestation-title", "Conduit is ready");
+        const result = await runDistributedToggleRuntime(runtime, carrier, observableDomHost);
+        const closed = await carrier.closed();
+        text("#proof-status", `completed · receipts=${result.receiptCount} · capacity_stable=${result.capacityStable}`);
+        globalThis.__conduitSiteProof = Object.freeze({ ...result, receipts: domHost.receipts(), closed });
+      } catch (error) {
+        root.dataset.manifestation = "error";
+        text("#manifestation-title", "Conduit could not manifest");
+        text("#manifestation-state", "error");
+        const detail = error instanceof Error ? error.message : String(error);
+        text("#manifestation-detail", detail);
+        const status = document.querySelector("#proof-status");
+        status.textContent = detail;
+        status.classList.add("error");
+        globalThis.__conduitSiteError = detail;
+      }
+    }
+  </script>
+</body>
+</html>
