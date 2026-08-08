@@ -6,3 +6,7 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../conduit-core" }
 sha2 = "0.10"
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1"

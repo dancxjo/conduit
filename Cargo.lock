@@ -219,6 +219,8 @@ name = "conduit-form"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "serde",
+ "serde_json",
  "sha2",
 ]
 
@@ -261,6 +263,7 @@ dependencies = [
  "conduit-form",
  "conduit-runtime",
  "conduit-signal",
+ "serde_json",
  "sha2",
 ]
 

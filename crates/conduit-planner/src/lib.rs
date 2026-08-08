@@ -12,6 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 mod canonical;
 mod contract;
+mod diagnostic;
 mod functional_compatibility;
 mod profile;
 mod protected_resources;
@@ -25,6 +26,7 @@ pub use canonical::{
 pub use contract::{
     parse_placements, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
 };
+pub use diagnostic::structured_planner_diagnostic;
 pub use profile::{
     plan_with_advertised_profile, BROWSER_PLANNER_PROFILE, FULL_PLANNER_LIMITS,
     FULL_PLANNER_PROFILE,

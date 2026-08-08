@@ -1,4 +1,5 @@
 mod copy_task;
+mod diagnostics;
 mod report_artifact;
 
 use conduit_observatory::{build_report, render_text_report};
@@ -54,7 +55,7 @@ fn main() {
         Some(path) => path,
         None => {
             eprintln!(
-                "usage: conduit <form-file> [--placements <placements-file>]\n       conduit copy <source-file> <destination-file> [--mode create|replace] [--max-bytes N] [--run] [--inspect]"
+                "usage: conduit <form-file> [--placements <placements-file>]\n       conduit diagnose-form <form-file> [--json]\n       conduit copy <source-file> <destination-file> [--mode create|replace] [--max-bytes N] [--run] [--inspect]"
             );
             std::process::exit(2);
         }
@@ -81,6 +82,29 @@ fn main() {
         if let Err(error) = copy_task::run(args.collect()) {
             eprintln!("error: {error}");
             std::process::exit(1);
+        }
+        return;
+    }
+    if path == "diagnose-form" {
+        let Some(form_path) = args.next() else {
+            eprintln!("usage: conduit diagnose-form <form-file> [--json]");
+            std::process::exit(2);
+        };
+        let json = match args.next().as_deref() {
+            None => false,
+            Some("--json") if args.next().is_none() => true,
+            _ => {
+                eprintln!("usage: conduit diagnose-form <form-file> [--json]");
+                std::process::exit(2);
+            }
+        };
+        match diagnostics::run(Path::new(&form_path), json) {
+            Ok(true) => {}
+            Ok(false) => std::process::exit(1),
+            Err(error) => {
+                eprintln!("error: {error}");
+                std::process::exit(1);
+            }
         }
         return;
     }
