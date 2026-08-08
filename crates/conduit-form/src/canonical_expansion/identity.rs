@@ -6,7 +6,7 @@ impl ExpandedCanonicalForm {
         let form = CheckedCanonicalForm {
             checked_form_id: self.checked_form_id.clone(),
             name: self.name.clone(),
-            startup_parameters: Vec::new(),
+            startup_parameters: vec![],
             runtime_ports: Vec::new(),
             shorthand: None,
             local_values: Vec::new(),
@@ -96,6 +96,22 @@ pub(super) fn expanded_identity(
         push(&mut canonical, operation.operation_id.as_str());
         push(&mut canonical, operation.kind_id.as_str());
         push(&mut canonical, operation.kind_contract_revision.as_str());
+        for parameter in &operation.startup_parameters {
+            push(&mut canonical, &parameter.name);
+            push(&mut canonical, &parameter.value_type);
+            push(
+                &mut canonical,
+                if parameter.has_default {
+                    "default"
+                } else {
+                    "required"
+                },
+            );
+        }
+        if let Some((input, output)) = &operation.shorthand {
+            push(&mut canonical, input.as_str());
+            push(&mut canonical, output.as_str());
+        }
         for port in operation.inputs.iter().chain(&operation.outputs) {
             push(&mut canonical, port.port_id.as_str());
             push(&mut canonical, port.value_kind.as_str());

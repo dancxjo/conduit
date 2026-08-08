@@ -52,6 +52,12 @@ pub struct ExactTripleSignalPlan {
 
 fn capability(capability_id: &str, implementation_id: &str, is_pulse: bool) -> CapabilityOffer {
     CapabilityOffer {
+        startup_parameters: if is_pulse {
+            crate::pulse_face_startup_parameters()
+        } else {
+            vec![]
+        },
+        shorthand: None,
         capability_id: CapabilityId::from(capability_id),
         kind_id: if is_pulse {
             crate::pulse_kind()

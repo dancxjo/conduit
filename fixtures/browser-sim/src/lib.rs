@@ -562,6 +562,8 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
+                startup_parameters: conduit_signal::pulse_face_startup_parameters(),
+                shorthand: None,
                 capability_id: CapabilityId::from("pulse"),
                 kind_id: kind_id(PULSE_KIND),
                 kind_contract_revision: pulse_contract_revision(),
@@ -580,6 +582,8 @@ fn browser_advertisement(config: BrowserSimConfig) -> HostAdvertisement {
                 },
             },
             CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
                 capability_id: CapabilityId::from("dom-show"),
                 kind_id: kind_id(SHOW_KIND),
                 kind_contract_revision: show_contract_revision(),

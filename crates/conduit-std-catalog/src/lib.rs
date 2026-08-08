@@ -13,7 +13,9 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
+mod functional_face;
 mod tick;
+use functional_face::startup_face;
 pub use tick::*;
 
 pub const PULSE_KIND: &str = "flow/pulse";
@@ -308,6 +310,8 @@ pub fn standard_capability_offers(
     standard_contracts()
         .into_iter()
         .map(|contract| conduit_core::CapabilityOffer {
+            startup_parameters: startup_face(&contract.configuration),
+            shorthand: None,
             capability_id: conduit_core::CapabilityId::from(capability_slug(
                 contract.kind_id.as_str(),
             )),
@@ -404,8 +408,8 @@ mod tests {
         contract_revision, execution_profile, find_contract, standard_contracts,
         standard_host_advertisement, standard_host_operation_requirements,
         standard_profile_catalog, standard_registry, standard_resource_offers,
-        standard_resource_requirements, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND, LATEST_KIND,
-        MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND,
+        standard_resource_requirements, startup_face, FILTER_KIND, FORMAT_KIND, GENERIC_VALUE_KIND,
+        LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND,
     };
     use conduit_core::{
         kind_id, ArtifactId, CapabilityId, CapabilityOffer, ConnectionProvider, HostAdvertisement,
@@ -612,7 +616,10 @@ mod tests {
     fn offer(capability: &str, kind: &str, implementation: &str) -> CapabilityOffer {
         let kind_id = kind_id(kind);
         let contract = find_contract(&kind_id).expect("standard contract exists");
+        let startup_parameters = startup_face(&contract.configuration);
         CapabilityOffer {
+            startup_parameters,
+            shorthand: None,
             capability_id: CapabilityId::from(capability),
             kind_id: kind_id.clone(),
             kind_contract_revision: contract_revision(&kind_id),

@@ -346,6 +346,19 @@ fn instantiate_cell(
         operation_id: operation_id.clone(),
         kind_id: definition.kind_id.clone(),
         kind_contract_revision: definition.kind_contract_revision.clone(),
+        startup_parameters: cell
+            .startup_parameters
+            .iter()
+            .map(|parameter| conduit_core::FaceStartupParameter {
+                name: parameter.name.clone(),
+                value_type: parameter.value_type.clone(),
+                has_default: parameter.default.is_some(),
+            })
+            .collect(),
+        shorthand: match (definition.inputs.as_slice(), definition.outputs.as_slice()) {
+            ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
+            _ => None,
+        },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
         configuration,

@@ -12,7 +12,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 mod canonical;
 mod contract;
+mod functional_compatibility;
 mod profile;
+
+use functional_compatibility::default_placements_unvalidated;
 
 pub use canonical::{default_expanded_placements, plan_expanded_canonical};
 pub use contract::{
@@ -28,38 +31,6 @@ pub fn default_placements(
     realm: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
     default_placements_unvalidated(&form.operations, realm)
-}
-
-pub(crate) fn default_placements_unvalidated(
-    operations: &[CheckedOperation],
-    realm: &[HostAdvertisement],
-) -> Result<PlacementChoices, PlannerError> {
-    let host = realm
-        .first()
-        .ok_or_else(|| PlannerError::UnknownHost("realm is empty".to_string()))?;
-    let mut by_operation = BTreeMap::new();
-    for operation in operations {
-        let offer = host
-            .capabilities
-            .iter()
-            .find(|offer| {
-                offer.kind_id == operation.kind_id
-                    && offer.kind_contract_revision == operation.kind_contract_revision
-                    && offer.inputs == operation.inputs
-                    && offer.outputs == operation.outputs
-            })
-            .ok_or_else(|| {
-                PlannerError::UnknownCapability(operation.kind_id.as_str().to_string())
-            })?;
-        by_operation.insert(
-            operation.operation_id.clone(),
-            PlacementChoice {
-                host_id: host.host_id.clone(),
-                capability_id: offer.capability_id.clone(),
-            },
-        );
-    }
-    Ok(PlacementChoices { by_operation })
 }
 
 pub fn plan(
@@ -332,8 +303,8 @@ pub(crate) fn plan_validated_form(
         planned_operations.push(PlannedOperation {
             placement_id,
             operation_id: operation.operation_id.clone(),
-            kind_id: operation.kind_id.clone(),
-            kind_contract_revision: operation.kind_contract_revision.clone(),
+            kind_id: capability.kind_id.clone(),
+            kind_contract_revision: capability.kind_contract_revision.clone(),
             execution_profile_id: capability.execution_profile_id.clone(),
             configuration: operation.configuration.clone(),
             host_id: host.host_id.clone(),
@@ -342,8 +313,8 @@ pub(crate) fn plan_validated_form(
             capability_id: capability.capability_id.clone(),
             implementation_id: capability.implementation_id.clone(),
             artifact_id: capability.artifact_id.clone(),
-            inputs: operation.inputs.clone(),
-            outputs: operation.outputs.clone(),
+            inputs: capability.inputs.clone(),
+            outputs: capability.outputs.clone(),
             host_operations: capability.host_operations.clone(),
             resources: resource_bindings,
             authority: authority_bindings,
@@ -569,27 +540,9 @@ fn validate_operation_capability(
     operation: &CheckedOperation,
     capability: &conduit_core::CapabilityOffer,
 ) -> Result<(), PlannerError> {
-    if capability.kind_id != operation.kind_id {
-        return Err(PlannerError::WrongSemanticKind(format!(
-            "operation '{}' requires '{}', capability '{}' offers '{}'",
-            operation.operation_id.as_str(),
-            operation.kind_id.as_str(),
-            capability.capability_id.as_str(),
-            capability.kind_id.as_str()
-        )));
-    }
-    if capability.kind_contract_revision != operation.kind_contract_revision {
-        return Err(PlannerError::WrongKindContractRevision(format!(
-            "operation '{}' requires '{}', capability '{}' offers '{}'",
-            operation.operation_id.as_str(),
-            operation.kind_contract_revision.as_str(),
-            capability.capability_id.as_str(),
-            capability.kind_contract_revision.as_str()
-        )));
-    }
-    if capability.inputs != operation.inputs || capability.outputs != operation.outputs {
-        return Err(PlannerError::IncompatiblePortContract(format!(
-            "operation '{}' ports differ from capability '{}'",
+    if capability.checked_face() != operation.checked_face() {
+        return Err(PlannerError::IncompatibleCheckedFace(format!(
+            "operation '{}' face differs from capability '{}' face",
             operation.operation_id.as_str(),
             capability.capability_id.as_str()
         )));

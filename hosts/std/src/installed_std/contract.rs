@@ -22,6 +22,8 @@ pub(super) struct TickConfiguration {
 
 pub(crate) fn tick_offer() -> CapabilityOffer {
     CapabilityOffer {
+        startup_parameters: tick_face_startup_parameters(),
+        shorthand: None,
         capability_id: CapabilityId::from(TICK_CAPABILITY),
         kind_id: kind_id(TICK_KIND),
         kind_contract_revision: KindContractRevision::from(TICK_CONTRACT_REVISION),
@@ -43,6 +45,21 @@ pub(crate) fn tick_offer() -> CapabilityOffer {
             max_queue_bytes: 64,
         },
     }
+}
+
+fn tick_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+    vec![
+        conduit_core::FaceStartupParameter {
+            name: "count".to_string(),
+            value_type: "Count".to_string(),
+            has_default: true,
+        },
+        conduit_core::FaceStartupParameter {
+            name: "period-ms".to_string(),
+            value_type: "Count".to_string(),
+            has_default: true,
+        },
+    ]
 }
 
 pub(super) fn parse_tick_configuration(

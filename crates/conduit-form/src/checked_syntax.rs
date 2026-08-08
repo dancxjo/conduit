@@ -75,6 +75,7 @@ pub struct CheckedStartupParameter {
 pub struct CheckedCanonicalCell {
     pub name: Option<String>,
     pub operation: String,
+    pub startup_parameters: Vec<StartupParameterSignature>,
     pub startup_bindings: Vec<CheckedStartupBinding>,
     pub source_span: Span,
 }
@@ -83,6 +84,7 @@ impl PartialEq for CheckedCanonicalCell {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
             && self.operation == other.operation
+            && self.startup_parameters == other.startup_parameters
             && self.startup_bindings == other.startup_bindings
     }
 }

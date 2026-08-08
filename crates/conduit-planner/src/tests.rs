@@ -41,6 +41,8 @@ fn host() -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
+                startup_parameters: conduit_signal::pulse_face_startup_parameters(),
+                shorthand: None,
                 capability_id: conduit_core::CapabilityId::from("pulse-1"),
                 kind_id: kind_id(PULSE_KIND),
                 kind_contract_revision: pulse_contract_revision(),
@@ -59,6 +61,8 @@ fn host() -> HostAdvertisement {
                 },
             },
             CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
                 capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
                 kind_id: kind_id(SHOW_KIND),
                 kind_contract_revision: show_contract_revision(),
@@ -131,6 +135,8 @@ fn host_for_checked_form(form: &conduit_form::CheckedForm) -> HostAdvertisement 
             .operations
             .iter()
             .map(|operation| CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
                 capability_id: conduit_core::CapabilityId::from(format!(
                     "capability/{}",
                     operation.operation_id.as_str()
@@ -929,7 +935,7 @@ fn planning_binds_nested_expansion_changes_beyond_the_checked_boundary() {
 }
 
 #[test]
-fn planning_rejects_contract_revision_and_nonfirst_port_mismatch() {
+fn planning_accepts_face_preserving_revision_and_rejects_face_change() {
     let form = form();
     let original_host = host();
     let placements = default_placements(&form, std::slice::from_ref(&original_host))
@@ -938,15 +944,19 @@ fn planning_rejects_contract_revision_and_nonfirst_port_mismatch() {
     let mut mismatched_revision = original_host.clone();
     mismatched_revision.capabilities[0].kind_contract_revision =
         conduit_core::KindContractRevision::from("mutated/flow-pulse@1");
-    assert!(matches!(
-        plan(
-            &form,
-            std::slice::from_ref(&mismatched_revision),
-            &placements,
-            &[ConnectionProvider::Local]
-        ),
-        Err(PlannerError::WrongKindContractRevision(_))
-    ));
+    let revised = plan(
+        &form,
+        std::slice::from_ref(&mismatched_revision),
+        &placements,
+        &[ConnectionProvider::Local],
+    )
+    .expect("face-preserving revision is compatible");
+    assert_eq!(
+        revised.fragments[0].placements[0]
+            .kind_contract_revision
+            .as_str(),
+        "mutated/flow-pulse@1"
+    );
 
     let mut mismatched_ports = original_host;
     mismatched_ports.capabilities[0]
@@ -963,7 +973,7 @@ fn planning_rejects_contract_revision_and_nonfirst_port_mismatch() {
             &placements,
             &[ConnectionProvider::Local]
         ),
-        Err(PlannerError::IncompatiblePortContract(_))
+        Err(PlannerError::IncompatibleCheckedFace(_))
     ));
 }
 

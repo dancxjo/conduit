@@ -299,3 +299,45 @@ fn delimiter_like_literal_text_is_bound_unambiguously_into_identity() {
         second.forms[0].checked_form_id
     );
 }
+
+#[test]
+fn checked_face_equality_ignores_callable_name_and_back() {
+    let checked = check(
+        "form first (\n count: Count = 1\n input: Tick > output: Tick\n) {\n}\n\nform second (\n count: Count = 2\n input: Tick > output: Tick\n) {\n clock: time/every(1s)\n}\n",
+    );
+    assert_eq!(
+        checked.forms[0].checked_face(),
+        checked.forms[1].checked_face()
+    );
+    assert_ne!(
+        checked.forms[0].checked_form_id,
+        checked.forms[1].checked_form_id
+    );
+}
+
+#[test]
+fn checked_face_equality_binds_startup_ports_and_shorthand() {
+    let baseline = check("form a (\n count: Count = 1\n input: Tick > output: Tick\n) {\n}\n");
+    let required = check("form a (\n count: Count\n input: Tick > output: Tick\n) {\n}\n");
+    let renamed = check("form a (\n limit: Count = 1\n input: Tick > output: Tick\n) {\n}\n");
+    let auxiliary = check("form a (\n count: Count = 1\n > input: Tick\n output: Tick >\n) {\n}\n");
+    for changed in [required, renamed, auxiliary] {
+        assert_ne!(
+            baseline.forms[0].checked_face(),
+            changed.forms[0].checked_face()
+        );
+    }
+}
+
+#[test]
+fn checked_face_canonicalizes_runtime_port_declaration_order() {
+    let first =
+        check("form a (\n > alpha: Tick\n > beta: Text\n omega: Text >\n zeta: Tick >\n) {\n}\n");
+    let reordered = check(
+        "form renamed (\n zeta: Tick >\n omega: Text >\n > beta: Text\n > alpha: Tick\n) {\n}\n",
+    );
+    assert_eq!(
+        first.forms[0].checked_face(),
+        reordered.forms[0].checked_face()
+    );
+}

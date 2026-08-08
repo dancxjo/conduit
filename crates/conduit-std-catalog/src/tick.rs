@@ -110,6 +110,8 @@ pub fn tick_resource_requirements() -> Vec<ResourceRequirement> {
 pub fn tick_capability_offer() -> CapabilityOffer {
     let contract = tick_contract();
     CapabilityOffer {
+        startup_parameters: tick_face_startup_parameters(),
+        shorthand: None,
         capability_id: CapabilityId::from(TICK_CAPABILITY),
         kind_id: contract.kind_id,
         kind_contract_revision: tick_contract_revision(),
@@ -123,6 +125,21 @@ pub fn tick_capability_offer() -> CapabilityOffer {
         authority_requirements: Vec::new(),
         limits: contract.limits,
     }
+}
+
+pub fn tick_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+    vec![
+        conduit_core::FaceStartupParameter {
+            name: "count".to_string(),
+            value_type: "Count".to_string(),
+            has_default: true,
+        },
+        conduit_core::FaceStartupParameter {
+            name: "period-ms".to_string(),
+            value_type: "Count".to_string(),
+            has_default: true,
+        },
+    ]
 }
 
 #[cfg(feature = "form-catalog")]

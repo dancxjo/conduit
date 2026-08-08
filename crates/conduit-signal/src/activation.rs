@@ -30,6 +30,22 @@ use crate::{
 pub const ACTIVATION_VALUE_KIND: &str = "value/activation";
 pub const ACTIVATE_KIND: &str = "interaction/activate";
 pub const TOGGLE_KIND: &str = "state/toggle";
+
+fn activate_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+    vec![conduit_core::FaceStartupParameter {
+        name: "count".to_string(),
+        value_type: "Count".to_string(),
+        has_default: true,
+    }]
+}
+
+fn toggle_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+    vec![conduit_core::FaceStartupParameter {
+        name: "initial".to_string(),
+        value_type: "Boolean".to_string(),
+        has_default: true,
+    }]
+}
 pub const ACTIVATE_PORT: &str = "activate";
 pub const ACTIVATION_ENCODED_LEN: u32 = 8;
 pub const ACTIVATE_CONTRACT_REVISION: &str = "conduit.signal/interaction-activate@1";
@@ -220,6 +236,8 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
+                startup_parameters: activate_face_startup_parameters(),
+                shorthand: None,
                 capability_id: CapabilityId::from("activate-1"),
                 kind_id: activate_kind(),
                 kind_contract_revision: activate_contract_revision(),
@@ -238,6 +256,8 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                 },
             },
             CapabilityOffer {
+                startup_parameters: toggle_face_startup_parameters(),
+                shorthand: None,
                 capability_id: CapabilityId::from("toggle-1"),
                 kind_id: toggle_kind(),
                 kind_contract_revision: toggle_contract_revision(),
@@ -273,6 +293,8 @@ pub fn distributed_toggle_browser_sink_advertisement() -> HostAdvertisement {
         )],
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
+            startup_parameters: vec![],
+            shorthand: None,
             capability_id: CapabilityId::from("toggle-dom-show-1"),
             kind_id: show_kind(),
             kind_contract_revision: show_contract_revision(),
