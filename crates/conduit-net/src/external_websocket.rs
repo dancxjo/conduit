@@ -15,8 +15,14 @@ pub const EXTERNAL_WEBSOCKET_CLIENT_REVISION: &str = "conduit.net/websocket-clie
 pub const EXTERNAL_WEBSOCKET_LISTENER_REVISION: &str = "conduit.net/websocket-listener@1";
 pub const EXTERNAL_WEBSOCKET_CLIENT_PROFILE: &str = "conduit.net/websocket-client-hosted@1";
 pub const EXTERNAL_WEBSOCKET_LISTENER_PROFILE: &str = "conduit.net/websocket-listener-hosted@1";
-pub const EXTERNAL_WEBSOCKET_CLIENT_HOST_OPERATION: &str =
-    "conduit.host/external-websocket-client@1";
+pub const EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION: &str =
+    "conduit.host/external-websocket-client-open@1";
+pub const EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION: &str =
+    "conduit.host/external-websocket-client-send@1";
+pub const EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION: &str =
+    "conduit.host/external-websocket-client-receive@1";
+pub const EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION: &str =
+    "conduit.host/external-websocket-client-close@1";
 pub const EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION: &str =
     "conduit.host/external-websocket-listener-accept@1";
 pub const EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION: &str =
@@ -80,11 +86,20 @@ pub fn external_websocket_client_offer(
                 PortTemporal::Current,
             ),
         ],
-        host_operations: vec![host_operation(
-            EXTERNAL_WEBSOCKET_CLIENT_HOST_OPERATION,
-            MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
-            MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
-        )],
+        host_operations: vec![
+            host_operation(EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION, 1, 0),
+            host_operation(EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION, 256, 1),
+            host_operation(
+                EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION,
+                MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
+                MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
+            ),
+            host_operation(
+                EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION,
+                MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
+                MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
+            ),
+        ],
         resource_requirements: vec![resource_requirement(EXTERNAL_WEBSOCKET_CLIENT_RESOURCE, 1)],
         authority_requirements: vec![],
         limits: limits(1),

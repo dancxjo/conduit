@@ -2,7 +2,10 @@ use conduit_core::{ArtifactId, CapabilityId, ConnectionProvider, ImplementationI
 use conduit_net::{
     browser_external_websocket_family, external_websocket_client_offer,
     external_websocket_listener_offer, std_external_websocket_family,
-    EXTERNAL_WEBSOCKET_CLIENT_HOST_OPERATION, EXTERNAL_WEBSOCKET_CLIENT_KIND,
+    EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION, EXTERNAL_WEBSOCKET_CLIENT_KIND,
+    EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION,
+    EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION,
+    EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION,
     EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION, EXTERNAL_WEBSOCKET_LISTENER_KIND,
     EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION,
     EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION, MAXIMUM_EXTERNAL_WEBSOCKET_PEERS,
@@ -56,7 +59,19 @@ fn external_websocket_faces_are_exact_finite_and_host_specific() {
     }
     assert_eq!(
         client.host_operations[0].contract_id.as_str(),
-        EXTERNAL_WEBSOCKET_CLIENT_HOST_OPERATION
+        EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION
+    );
+    assert_eq!(
+        client.host_operations[1].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION
+    );
+    assert_eq!(
+        client.host_operations[2].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION
+    );
+    assert_eq!(
+        client.host_operations[3].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION
     );
     assert_eq!(
         listener.host_operations[0].contract_id.as_str(),
@@ -85,6 +100,25 @@ fn external_websocket_faces_are_exact_finite_and_host_specific() {
         std.resource.class_id,
         std.capability.resource_requirements[0].class_id
     );
+}
+
+#[test]
+fn external_websocket_compatibility_is_the_checked_face_not_the_nominal_kind() {
+    let client = client();
+    let mut renamed = client.clone();
+    renamed.kind_id = conduit_core::kind_id("example/renamed-websocket-client");
+    renamed.kind_contract_revision =
+        conduit_core::KindContractRevision::from("example/renamed-websocket-client@9");
+    assert_eq!(renamed.checked_face(), client.checked_face());
+
+    let mut generic_duplex_bytes = client.clone();
+    generic_duplex_bytes.inputs[0].value_kind = conduit_core::kind_id("Bytes");
+    generic_duplex_bytes.outputs[0].value_kind = conduit_core::kind_id("Bytes");
+    assert_eq!(
+        generic_duplex_bytes.kind_id.as_str(),
+        EXTERNAL_WEBSOCKET_CLIENT_KIND
+    );
+    assert_ne!(generic_duplex_bytes.checked_face(), client.checked_face());
 }
 
 #[test]

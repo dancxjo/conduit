@@ -40,6 +40,7 @@ fn canonical_transport_forms_plan_to_exact_opt_in_browser_and_std_families() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "webchat-transport-demo", &profile).unwrap();
 
@@ -140,6 +141,7 @@ fn planned_listener_executes_through_kernel_host_operations_for_two_clients() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "webchat-server-demo", &profile).unwrap();
     let mut host = StdHost::new_with_composition(

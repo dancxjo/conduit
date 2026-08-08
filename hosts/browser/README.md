@@ -27,3 +27,21 @@ byte-bound, cancellation, platform-failure, and mismatched-runtime-identity reje
 numeric routes, operation slots, values, evidence, identities, and capture capacities before its
 first scheduler step and checks that those capacities do not grow. This is a bounded-capacity proof,
 not a claim that browser allocation can be measured reliably from JavaScript.
+
+## Explicit external-WebSocket webchat
+
+`webchat.test.html` instantiates one independent WASM kernel per page. Rust
+checks and expands `examples/webchat.conduit`, plans the exact browser fragment,
+and surfaces correlated native socket and DOM host operations. JavaScript owns
+the browser `WebSocket`, input event, and list mutation only; it does not own
+chat history bounds, operation lifecycle, Plan identity, or terminal truth.
+
+The focused Chromium proof opens two pages against `webchat-server`, sends
+`hello from A` and `hello from B` through real controls, disconnects A, and
+shows the remaining peer continues. History is limited to sixteen items,
+messages to 256 bytes, and input events to eight. Disconnect, malformed input,
+oversize input, and successful host completion stay distinct.
+
+`net/websocket` is the authored external protocol operation.
+`ConnectionProvider::WebSocket` remains the unrelated carrier for Conduit
+sessions; the webchat does not use that carrier or its session runtime.

@@ -28,3 +28,18 @@ form webchat-transport-demo {
 form webchat-server-demo {
     server: chat/server("127.0.0.1:4178")
 }
+
+form chat/browser-client (
+    url: Url
+) {
+    input: web/text-input("Message")
+    socket: net/websocket(url)
+    history: web/list(16)
+
+    input.message > socket.send
+    socket.recv > history.message
+}
+
+form webchat-browser-demo {
+    client: chat/browser-client("ws://127.0.0.1:4178")
+}

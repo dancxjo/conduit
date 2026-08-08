@@ -160,9 +160,11 @@ dependencies = [
 name = "conduit-browser-runtime"
 version = "0.1.0"
 dependencies = [
+ "conduit-chat",
  "conduit-core",
  "conduit-form",
  "conduit-kernel",
+ "conduit-net",
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",
@@ -181,6 +183,15 @@ dependencies = [
  "conduit-signal",
  "conduit-std-host",
  "conduit-wire",
+]
+
+[[package]]
+name = "conduit-chat"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-net",
 ]
 
 [[package]]
@@ -321,6 +332,7 @@ dependencies = [
 name = "conduit-std-host"
 version = "0.1.0"
 dependencies = [
+ "conduit-chat",
  "conduit-core",
  "conduit-form",
  "conduit-kernel",

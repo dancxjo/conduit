@@ -7,8 +7,9 @@ Canonical source uses the `.conduit` suffix and the face/back/cell surface:
 - `clock.conduit` — Program 3 invocation and time source;
 - `count.conduit` — Program 4 startup, closing flow, and current value;
 - `signal-demo.conduit` — Program 6 unchanged multi-host semantic form;
-- `socket-client.conduit` — Program 5 duplex source shape, explicitly deferred
-  until an external `net/websocket` operation is accepted.
+- `socket-client.conduit` — reusable external `net/websocket` duplex face;
+- `webchat.conduit` — Program 5's bounded browser client and std listener,
+  expressed as canonical face/back/cell Forms.
 
 The `.form` files and `hello.panel` use the older explicit `form 0`
 compatibility parser. They remain byte-for-byte fixtures for accepted kernel,

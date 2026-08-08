@@ -12,6 +12,7 @@ legacy-fixture-driver = [
 
 [dependencies]
 conduit-core = { path = "../../crates/conduit-core" }
+conduit-chat = { path = "../../crates/conduit-chat", features = ["form-catalog"] }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
 conduit-net = { path = "../../crates/conduit-net", features = ["form-catalog"] }
