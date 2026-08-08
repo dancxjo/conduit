@@ -18,6 +18,12 @@ pub const ACCELERATOR_MEMORY_GIB_RESOURCE: &str = "conduit.resource/accelerator-
 pub const NETWORK_EGRESS_RESOURCE: &str = "conduit.resource/network-egress/slot@1";
 pub const INFERENCE_SLOT_RESOURCE: &str = "conduit.resource/inference/slot@1";
 pub const GENERATE_TEXT_HOST_OPERATION: &str = "conduit.host/generate-text@1";
+pub const SMALL_LOCAL_IMPLEMENTATION: &str = "ai.fixture/small-local-cpu@1";
+pub const SMALL_LOCAL_ARTIFACT: &str = "ai.fixture/small-local-cpu/x86_64-portable@1";
+pub const LARGE_LOCAL_IMPLEMENTATION: &str = "ai.fixture/large-local-accelerated@1";
+pub const LARGE_LOCAL_ARTIFACT: &str = "ai.fixture/large-local-accelerated/x86_64-accelerator@1";
+pub const REMOTE_FRONTIER_IMPLEMENTATION: &str = "ai.fixture/remote-frontier@1";
+pub const REMOTE_FRONTIER_ARTIFACT: &str = "ai.fixture/remote-frontier/host-operation@1";
 pub const REMOTE_GENERATE_TEXT_AUTHORITY: &str = "conduit.authority/remote-generate-text@1";
 pub const MAXIMUM_CONTEXT_CHARACTERISTIC: &str = "conduit.realization/maximum-context-tokens@1";
 pub const MAXIMUM_OUTPUT_CHARACTERISTIC: &str = "conduit.realization/maximum-output-tokens@1";
@@ -124,8 +130,8 @@ fn small_local() -> GenerateTextProviderFixture {
         "ai-small-local",
         "ai-small-local-boot",
         "ai/small-local",
-        "ai.fixture/small-local-cpu@1",
-        "ai.fixture/small-local-cpu/x86_64-portable@1",
+        SMALL_LOCAL_IMPLEMENTATION,
+        SMALL_LOCAL_ARTIFACT,
         &[
             (CPU_EXECUTION_RESOURCE, 3),
             (HOST_MEMORY_GIB_RESOURCE, 6),
@@ -145,8 +151,8 @@ fn large_local() -> GenerateTextProviderFixture {
         "ai-large-local",
         "ai-large-local-boot",
         "ai/large-local",
-        "ai.fixture/large-local-accelerated@1",
-        "ai.fixture/large-local-accelerated/x86_64-accelerator@1",
+        LARGE_LOCAL_IMPLEMENTATION,
+        LARGE_LOCAL_ARTIFACT,
         &[
             (CPU_EXECUTION_RESOURCE, 2),
             (HOST_MEMORY_GIB_RESOURCE, 12),
@@ -168,8 +174,8 @@ fn remote_frontier() -> GenerateTextProviderFixture {
         "ai-remote-provider",
         "ai-remote-provider-boot",
         "ai/remote-frontier",
-        "ai.fixture/remote-frontier@1",
-        "ai.fixture/remote-frontier/host-operation@1",
+        REMOTE_FRONTIER_IMPLEMENTATION,
+        REMOTE_FRONTIER_ARTIFACT,
         &[
             (CPU_EXECUTION_RESOURCE, 1),
             (HOST_MEMORY_GIB_RESOURCE, 1),

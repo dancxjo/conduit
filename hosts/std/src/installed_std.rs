@@ -2,6 +2,7 @@ pub(super) mod contract;
 mod count_operations;
 mod external_websocket;
 mod external_websocket_host;
+mod generate_text;
 mod operation;
 #[cfg(test)]
 mod test_support;
@@ -17,6 +18,10 @@ use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
 use self::count_operations::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
 use self::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
+use self::generate_text::{
+    execute_fixture, GENERATE_TEXT_LARGE_FACTORY, GENERATE_TEXT_REMOTE_FACTORY,
+    GENERATE_TEXT_SMALL_FACTORY,
+};
 use self::operation::{InstalledFactory, InstalledOperation, EVERY_FACTORY, TICK_FACTORY};
 #[cfg(test)]
 use self::operation::{TEST_OBSERVER_FACTORY, TEST_OBSERVER_IMPLEMENTATION};
@@ -91,6 +96,9 @@ const FACTORIES: &[&InstalledFactory] = &[
     &STATE_COUNT_FACTORY,
     &COUNT_PRESENTATION_FACTORY,
     &EXTERNAL_WEBSOCKET_LISTENER_FACTORY,
+    &GENERATE_TEXT_SMALL_FACTORY,
+    &GENERATE_TEXT_LARGE_FACTORY,
+    &GENERATE_TEXT_REMOTE_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]
@@ -314,6 +322,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
+    let mut generate_text_output =
+        Vec::with_capacity(conduit_ai::MAXIMUM_OUTPUT_TOKENS as usize * 4);
     #[cfg(test)]
     let mut observed_ticks = Vec::with_capacity(request_capacity / 2);
     #[cfg(test)]
@@ -339,7 +349,39 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
-            if contract
+            if contract.as_str() == conduit_ai::GENERATE_TEXT_HOST_OPERATION {
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or_else(|| "generate-text request has no exact placement".to_string())?;
+                execute_fixture(placement, input, &mut generate_text_output)?;
+                let value = scheduler
+                    .store_host_value(&generate_text_output)
+                    .map_err(|error| format!("store generate-text fixture output: {error:?}"))?;
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound generate-text fixture output: {error:?}")
+                                })?,
+                            ),
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete generate-text fixture operation: {error:?}")
+                    })?;
+                continue;
+            } else if contract
                 .as_str()
                 .starts_with("conduit.host/external-websocket-listener-")
             {
