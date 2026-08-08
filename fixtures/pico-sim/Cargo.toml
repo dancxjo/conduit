@@ -7,7 +7,7 @@ edition = "2021"
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form", optional = true }
 conduit-planner = { path = "../../crates/conduit-planner", optional = true }
-conduit-runtime = { path = "../../crates/conduit-runtime", optional = true }
+conduit-runtime = { path = "../../crates/conduit-runtime", optional = true, default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", default-features = false }
 conduit-wire = { path = "../../crates/conduit-wire" }
 
@@ -15,10 +15,12 @@ conduit-wire = { path = "../../crates/conduit-wire" }
 conduit-std-host = { path = "../../hosts/std", features = ["legacy-fixture-driver"] }
 
 [features]
-default = ["std"]
-std = [
+default = ["compatibility-fixture"]
+compatibility-fixture = [
     "conduit-signal/host-profile",
     "dep:conduit-form",
     "dep:conduit-planner",
     "dep:conduit-runtime",
+    "conduit-runtime/compatibility-executor",
+    "conduit-signal/legacy-fixture-driver",
 ]

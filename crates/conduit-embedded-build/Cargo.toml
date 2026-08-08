@@ -7,7 +7,7 @@ description = "Host-only current-plan to fixed Conduit kernel table generator"
 [dependencies]
 conduit-core = { path = "../conduit-core" }
 conduit-kernel = { path = "../conduit-kernel" }
-conduit-runtime = { path = "../conduit-runtime" }
+conduit-runtime = { path = "../conduit-runtime", default-features = false }
 
 [dev-dependencies]
 conduit-form = { path = "../conduit-form" }

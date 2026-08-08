@@ -500,16 +500,18 @@ pub fn distributed_websocket_link_binding() -> LinkBinding {
     }
 }
 
-#[cfg(feature = "host-profile")]
+#[cfg(feature = "legacy-fixture-driver")]
 mod host_profile;
-#[cfg(feature = "host-profile")]
+#[cfg(feature = "legacy-fixture-driver")]
 pub use host_profile::{
     install_signal_profile, signal_registry, PulseImplementation, ShowImplementation,
 };
 
 #[cfg(feature = "host-profile")]
+mod profile_catalog;
+#[cfg(feature = "host-profile")]
 pub fn signal_profile_catalog() -> conduit_form::ProfileCatalog {
-    let mut catalog = host_profile::signal_profile_catalog();
+    let mut catalog = profile_catalog::signal_profile_catalog();
     activation::extend_profile_catalog(&mut catalog);
     catalog
 }

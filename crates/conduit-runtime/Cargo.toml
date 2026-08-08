@@ -3,6 +3,10 @@ name = "conduit-runtime"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+compatibility-executor = []
+
 [dependencies]
 conduit-core = { path = "../conduit-core" }
 conduit-kernel = { path = "../conduit-kernel" }
@@ -10,3 +14,10 @@ conduit-kernel = { path = "../conduit-kernel" }
 [dev-dependencies]
 conduit-form = { path = "../conduit-form" }
 conduit-planner = { path = "../conduit-planner" }
+
+[[test]]
+name = "host_contract"
+required-features = ["compatibility-executor"]
+
+[[test]]
+name = "browser_readiness"

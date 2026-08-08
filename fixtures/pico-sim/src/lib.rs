@@ -1,21 +1,21 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "compatibility-fixture"), no_std)]
 
 extern crate alloc;
 
 use alloc::format;
 use alloc::string::String;
-#[cfg(feature = "std")]
+#[cfg(feature = "compatibility-fixture")]
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::ConnectionEnvelope;
 
-#[cfg(feature = "std")]
+#[cfg(feature = "compatibility-fixture")]
 use conduit_core::{
     kind_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, PlacementId,
     PROTOCOL_VERSION,
 };
-#[cfg(feature = "std")]
+#[cfg(feature = "compatibility-fixture")]
 use conduit_signal::{
     decode_signal, pulse_contract_revision, pulse_execution_profile,
     pulse_host_operation_requirements, pulse_outputs, pulse_resource_requirements,
@@ -23,7 +23,7 @@ use conduit_signal::{
     show_resource_requirements, signal_resource_offers, PULSE_KIND, SHOW_KIND,
 };
 
-#[cfg(feature = "std")]
+#[cfg(feature = "compatibility-fixture")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PicoSimConfig {
     pub host_id: HostId,
@@ -31,7 +31,7 @@ pub struct PicoSimConfig {
     pub offer_generation: OfferGeneration,
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "compatibility-fixture")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LedReceipt {
     pub host_id: HostId,
@@ -81,7 +81,7 @@ impl BoundedDatagramRelayFixture {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "compatibility-fixture")]
 pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -136,7 +136,7 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "compatibility-fixture")]
 pub fn led_receipt(
     host_id: HostId,
     placement_id: PlacementId,
@@ -152,7 +152,7 @@ pub fn led_receipt(
     })
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "compatibility-fixture")]
 mod std_fixture {
     use super::{led_receipt, pico_advertisement, LedReceipt, PicoSimConfig};
     use alloc::vec::Vec;
@@ -394,10 +394,10 @@ mod std_fixture {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "compatibility-fixture")]
 pub use std_fixture::PicoSim;
 
-#[cfg(all(test, feature = "std"))]
+#[cfg(all(test, feature = "compatibility-fixture"))]
 mod tests {
     use super::{pico_advertisement, BoundedDatagramRelayFixture, PicoSim, PicoSimConfig};
     use conduit_core::{
