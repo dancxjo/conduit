@@ -1,0 +1,17 @@
+[package]
+name = "conduit-ai"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-form = { path = "../conduit-form", optional = true }
+serde = { version = "1", default-features = false, features = ["derive"] }
+
+[features]
+default = []
+form-catalog = ["dep:conduit-form"]
+
+[dev-dependencies]
+conduit-form = { path = "../conduit-form" }
+serde_json = "1"

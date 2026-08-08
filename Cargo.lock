@@ -157,6 +157,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-ai"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "conduit-browser-runtime"
 version = "0.1.0"
 dependencies = [
