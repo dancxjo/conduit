@@ -46,7 +46,7 @@ impl CheckedCanonicalForm {
 fn face_port(port: &RuntimePort) -> conduit_core::PortDescriptor {
     conduit_core::PortDescriptor {
         port_id: conduit_core::port_id(&port.name.text),
-        value_kind: conduit_core::kind_id(&port.value_type.text),
+        value_kind: crate::value_type::canonical_value_kind(&port.value_type.text),
         direction: match port.direction {
             RuntimePortDirection::Input => conduit_core::PortDirection::Input,
             RuntimePortDirection::Output => conduit_core::PortDirection::Output,
