@@ -55,7 +55,8 @@ fn main() {
         Some(path) => path,
         None => {
             eprintln!(
-                "usage: conduit <form-file> [--placements <placements-file>]\n       conduit diagnose-form <form-file> [--json]\n       conduit copy <source-file> <destination-file> [--mode create|replace] [--max-bytes N] [--run] [--inspect]"
+                "usage: conduit <form-file> [--placements <placements-file>]\n       conduit diagnose-form <form-file> [--json]\n       {}",
+                copy_task::USAGE
             );
             std::process::exit(2);
         }
