@@ -704,6 +704,8 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
+            startup_parameters: vec![],
+            shorthand: None,
             capability_id: CapabilityId::from("echo-capability"),
             kind_id: echo_kind_id.clone(),
             kind_contract_revision: KindContractRevision::from("test/echo@1"),

@@ -176,6 +176,8 @@ impl CompositeDefinition {
             offer_generation,
             profile,
             external_capability: CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
                 capability_id: boundary.capability_id,
                 kind_id: boundary.kind_id,
                 kind_contract_revision: boundary.kind_contract_revision,

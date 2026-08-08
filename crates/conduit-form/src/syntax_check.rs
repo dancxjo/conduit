@@ -305,6 +305,7 @@ fn check_invocation(
     Ok(CheckedCanonicalCell {
         name,
         operation: signature.operation.clone(),
+        startup_parameters: signature.startup_parameters.clone(),
         startup_bindings,
         source_span: invocation.span,
     })

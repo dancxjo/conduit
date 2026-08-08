@@ -1032,6 +1032,8 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
         }],
         capabilities: vec![
             CapabilityOffer {
+                startup_parameters: conduit_signal::pulse_face_startup_parameters(),
+                shorthand: None,
                 capability_id: CapabilityId::from("pulse-1"),
                 kind_id: kind_id(PULSE_KIND),
                 kind_contract_revision: pulse_contract_revision(),
@@ -1050,6 +1052,8 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
                 },
             },
             CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
                 capability_id: CapabilityId::from("dom-show-1"),
                 kind_id: kind_id(SHOW_KIND),
                 kind_contract_revision: show_contract_revision(),

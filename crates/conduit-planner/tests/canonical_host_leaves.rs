@@ -37,7 +37,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             startup_parameters: vec![StartupParameterSignature {
                 name: "prefix".into(),
                 value_type: "Count".into(),
-                default: None,
+                default: Some("1".into()),
             }],
         })
         .unwrap();
@@ -111,6 +111,20 @@ form welcome {
 fn offer(definition: &KindDefinition) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     CapabilityOffer {
+        startup_parameters: definition
+            .configuration
+            .iter()
+            .map(|field| conduit_core::FaceStartupParameter {
+                name: field.key.clone(),
+                value_type: match field.default_value {
+                    ConfigurationValue::Bool(_) => "Boolean",
+                    ConfigurationValue::U64(_) => "Count",
+                }
+                .into(),
+                has_default: true,
+            })
+            .collect(),
+        shorthand: None,
         capability_id: CapabilityId::from(slug.as_str()),
         kind_id: definition.kind_id.clone(),
         kind_contract_revision: definition.kind_contract_revision.clone(),
@@ -209,7 +223,7 @@ fn nested_form_terminates_only_in_exact_planned_host_operation_leaves() {
 }
 
 #[test]
-fn coincident_port_shape_and_wrong_revision_cannot_realize_a_nominal_leaf() {
+fn equal_face_with_different_name_and_revision_is_compatible() {
     let expanded = expanded();
     let mut wrong_kind = host();
     let join = wrong_kind
@@ -218,10 +232,19 @@ fn coincident_port_shape_and_wrong_revision_cannot_realize_a_nominal_leaf() {
         .find(|capability| capability.kind_id.as_str() == "text/join")
         .unwrap();
     join.kind_id = kind_id("text/coincident-shape");
-    assert_eq!(
-        default_expanded_placements(&expanded, &[wrong_kind]).unwrap_err(),
-        PlannerError::UnknownCapability("text/join".into())
-    );
+    let placements = default_expanded_placements(&expanded, std::slice::from_ref(&wrong_kind))
+        .expect("different nominal operation with the same face is compatible");
+    let plan = plan_expanded_canonical(
+        &expanded,
+        std::slice::from_ref(&wrong_kind),
+        &placements,
+        &[ConnectionProvider::Local],
+    )
+    .unwrap();
+    assert!(plan.fragments[0].placements.iter().any(|placement| {
+        placement.kind_id.as_str() == "text/coincident-shape"
+            && placement.implementation_id.as_str() == "std/text-join"
+    }));
 
     let mut wrong_revision = host();
     wrong_revision
@@ -230,8 +253,23 @@ fn coincident_port_shape_and_wrong_revision_cannot_realize_a_nominal_leaf() {
         .find(|capability| capability.kind_id.as_str() == "text/join")
         .unwrap()
         .kind_contract_revision = KindContractRevision::from("text/join@2");
+    default_expanded_placements(&expanded, &[wrong_revision])
+        .expect("face-preserving revision is compatible");
+}
+
+#[test]
+fn same_name_with_a_different_face_is_incompatible() {
+    let expanded = expanded();
+    let mut changed_face = host();
+    changed_face
+        .capabilities
+        .iter_mut()
+        .find(|capability| capability.kind_id.as_str() == "text/join")
+        .unwrap()
+        .inputs[0]
+        .value_kind = kind_id("test/other-text");
     assert_eq!(
-        default_expanded_placements(&expanded, &[wrong_revision]).unwrap_err(),
+        default_expanded_placements(&expanded, &[changed_face]).unwrap_err(),
         PlannerError::UnknownCapability("text/join".into())
     );
 }

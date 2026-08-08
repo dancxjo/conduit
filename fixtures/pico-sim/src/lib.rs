@@ -93,6 +93,8 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
+                startup_parameters: conduit_signal::pulse_face_startup_parameters(),
+                shorthand: None,
                 capability_id: CapabilityId::from("pico-pulse"),
                 kind_id: kind_id(PULSE_KIND),
                 kind_contract_revision: pulse_contract_revision(),
@@ -111,6 +113,8 @@ pub fn pico_advertisement(config: PicoSimConfig) -> HostAdvertisement {
                 },
             },
             CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
                 capability_id: CapabilityId::from("onboard-led"),
                 kind_id: kind_id(SHOW_KIND),
                 kind_contract_revision: show_contract_revision(),

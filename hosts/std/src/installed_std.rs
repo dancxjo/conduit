@@ -407,6 +407,8 @@ const TEST_OBSERVER_ARTIFACT: &str = "conduit-std-host/test-tick-observer@1";
 #[cfg(test)]
 pub(super) fn test_observer_offer() -> CapabilityOffer {
     CapabilityOffer {
+        startup_parameters: vec![],
+        shorthand: None,
         capability_id: CapabilityId::from("test-tick-observer"),
         kind_id: kind_id(TEST_OBSERVER_KIND),
         kind_contract_revision: KindContractRevision::from(TEST_OBSERVER_REVISION),

@@ -597,7 +597,22 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
         )],
         _ => vec![],
     };
+    let startup_parameters = definition
+        .configuration
+        .iter()
+        .map(|field| conduit_core::FaceStartupParameter {
+            name: field.key.clone(),
+            value_type: match field.default_value {
+                ConfigurationValue::Bool(_) => "Boolean",
+                ConfigurationValue::U64(_) => "Count",
+            }
+            .to_string(),
+            has_default: true,
+        })
+        .collect();
     CapabilityOffer {
+        startup_parameters,
+        shorthand: None,
         capability_id: CapabilityId::from(capability),
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,

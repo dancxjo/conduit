@@ -49,6 +49,8 @@ pub fn std_pico_usb_source_advertisement() -> HostAdvertisement {
             .collect(),
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
+            startup_parameters: crate::pulse_face_startup_parameters(),
+            shorthand: None,
             capability_id: CapabilityId::from("std-pico-pulse-1"),
             kind_id: crate::pulse_kind(),
             kind_contract_revision: pulse_contract_revision(),
@@ -84,6 +86,8 @@ pub fn std_pico_usb_sink_advertisement() -> HostAdvertisement {
             .collect(),
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
+            startup_parameters: vec![],
+            shorthand: None,
             capability_id: CapabilityId::from("pico-cyw43-show-1"),
             kind_id: crate::show_kind(),
             kind_contract_revision: show_contract_revision(),

@@ -78,6 +78,8 @@ pub fn advertisement() -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
                 capability_id: CapabilityId::from("pulse"),
                 kind_id: kind_id(SOURCE_KIND),
                 kind_contract_revision: KindContractRevision::from(SOURCE_CONTRACT),
@@ -96,6 +98,8 @@ pub fn advertisement() -> HostAdvertisement {
                 },
             },
             CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
                 capability_id: CapabilityId::from("show"),
                 kind_id: kind_id(SINK_KIND),
                 kind_contract_revision: KindContractRevision::from(SINK_CONTRACT),

@@ -193,6 +193,8 @@ fn hosted_offer(
     outputs: Vec<PortDescriptor>,
 ) -> CapabilityOffer {
     CapabilityOffer {
+        startup_parameters: vec![],
+        shorthand: None,
         capability_id: CapabilityId::from(capability),
         kind_id: kind_id(kind),
         kind_contract_revision: KindContractRevision::from(revision),
@@ -479,6 +481,12 @@ fn child_advertisement(host: &str, boot: &str, source: bool) -> HostAdvertisemen
         ),
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
+            startup_parameters: if source {
+                conduit_signal::pulse_face_startup_parameters()
+            } else {
+                vec![]
+            },
+            shorthand: None,
             capability_id: CapabilityId::from(if source { "pulse" } else { "show" }),
             kind_id: kind_id(if source { PULSE_KIND } else { SHOW_KIND }),
             kind_contract_revision: if source {
@@ -988,6 +996,8 @@ fn input_only_and_output_only_exports_plan_as_ordinary_operations() {
         ("output-only", output_boundary),
     ] {
         advertisement.capabilities.push(CapabilityOffer {
+            startup_parameters: vec![],
+            shorthand: None,
             capability_id: CapabilityId::from(capability),
             kind_id: boundary.kind_id,
             kind_contract_revision: boundary.kind_contract_revision,
@@ -1400,6 +1410,8 @@ fn parent_planning_cannot_address_an_internal_child_identity() {
         expanded_form_id: conduit_core::ExpandedFormId::from("parent-child-leak-expanded"),
         name: "parent-child-leak".into(),
         operations: vec![CheckedOperation {
+            startup_parameters: vec![],
+            shorthand: None,
             operation_id: OperationId::from("run"),
             kind_id: KindId::from(COMPOSITE_DEMONSTRATION_KIND),
             kind_contract_revision: KindContractRevision::from(format!(
@@ -1483,6 +1495,8 @@ fn external_limits_are_conservatively_derived() {
     let definition = composite_definition(4, 64);
     let mut source_ad = child_advertisement("child-source", "source-boot", true);
     source_ad.capabilities.push(CapabilityOffer {
+        startup_parameters: vec![],
+        shorthand: None,
         capability_id: CapabilityId::from("unrelated-narrow-capability"),
         kind_id: kind_id("unrelated/kind"),
         kind_contract_revision: KindContractRevision::from("unrelated/kind@1"),
@@ -1729,6 +1743,8 @@ fn definition_data_can_expose_a_different_composite_capability() {
         offer_generation: OfferGeneration(3),
         profile: HostProfileId::from("composite/test-alternate"),
         external_capability: CapabilityOffer {
+            startup_parameters: vec![],
+            shorthand: None,
             capability_id: CapabilityId::from("alternate-capability"),
             kind_id: kind_id("demonstration/alternate"),
             kind_contract_revision: KindContractRevision::from("demonstration/alternate@1"),

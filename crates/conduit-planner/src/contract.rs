@@ -37,6 +37,7 @@ pub enum PlannerError {
     WrongSemanticKind(String),
     WrongKindContractRevision(String),
     IncompatiblePortContract(String),
+    IncompatibleCheckedFace(String),
     InvalidHostOperationRequirement(String),
     InvalidResourceContract(String),
     UnavailableResource(String),
@@ -78,6 +79,9 @@ impl std::fmt::Display for PlannerError {
             }
             Self::IncompatiblePortContract(value) => {
                 write!(f, "incompatible port contract: {value}")
+            }
+            Self::IncompatibleCheckedFace(value) => {
+                write!(f, "incompatible checked face: {value}")
             }
             Self::InvalidHostOperationRequirement(value) => {
                 write!(f, "invalid host-operation requirement: {value}")

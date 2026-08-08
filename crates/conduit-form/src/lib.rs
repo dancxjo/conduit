@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 
 mod canonical_expansion;
 mod checked_syntax;
+mod functional_face;
 mod surface_lex;
 mod surface_parser;
 pub mod syntax;
@@ -84,6 +85,8 @@ pub struct CheckedOperation {
     pub operation_id: OperationId,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,
+    pub startup_parameters: Vec<conduit_core::FaceStartupParameter>,
+    pub shorthand: Option<(PortId, PortId)>,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<ConfigurationEntry>,
@@ -600,6 +603,29 @@ fn parse_form_block(
                     operation_id: OperationId::from(operation_name.as_str()),
                     kind_id: draft.definition.kind_id.clone(),
                     kind_contract_revision: draft.definition.kind_contract_revision.clone(),
+                    startup_parameters: draft
+                        .definition
+                        .configuration
+                        .iter()
+                        .map(|field| conduit_core::FaceStartupParameter {
+                            name: field.key.clone(),
+                            value_type: match field.default_value {
+                                ConfigurationValue::Bool(_) => "Boolean",
+                                ConfigurationValue::U64(_) => "Count",
+                            }
+                            .to_string(),
+                            has_default: true,
+                        })
+                        .collect(),
+                    shorthand: match (
+                        draft.definition.inputs.as_slice(),
+                        draft.definition.outputs.as_slice(),
+                    ) {
+                        ([input], [output]) => {
+                            Some((input.port_id.clone(), output.port_id.clone()))
+                        }
+                        _ => None,
+                    },
                     inputs: draft.definition.inputs.clone(),
                     outputs: draft.definition.outputs.clone(),
                     configuration: draft.configuration.clone(),

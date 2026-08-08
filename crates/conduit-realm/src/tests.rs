@@ -20,6 +20,8 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
+            startup_parameters: vec![],
+            shorthand: None,
             capability_id: CapabilityId::from("capability-1"),
             kind_id: KindId::from("test/kind"),
             kind_contract_revision: KindContractRevision::from("test/kind@1"),

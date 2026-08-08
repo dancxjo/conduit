@@ -23,7 +23,29 @@ use conduit_planner::{
 use std::collections::{BTreeMap, VecDeque};
 
 const PULSE_KIND: &str = "flow/pulse";
+const BURST_PULSE_KIND: &str = "semantic/burst-pulse";
+const BURST_PULSE_CONTRACT: &str = "semantic/burst-pulse@7";
 const SHOW_KIND: &str = "presentation/show";
+
+fn pulse_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+    vec![
+        conduit_core::FaceStartupParameter {
+            name: "count".into(),
+            value_type: "Count".into(),
+            has_default: true,
+        },
+        conduit_core::FaceStartupParameter {
+            name: "period-ms".into(),
+            value_type: "Count".into(),
+            has_default: true,
+        },
+        conduit_core::FaceStartupParameter {
+            name: "initial".into(),
+            value_type: "Boolean".into(),
+            has_default: true,
+        },
+    ]
+}
 const SIGNAL_VALUE_KIND: &str = "value/signal";
 const SIGNAL_PRESENTATION_KIND: &str = "test/presentation";
 const SIGNAL_ENCODED_LEN: u32 = 9;
@@ -168,6 +190,8 @@ fn advertisement(
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
+                startup_parameters: pulse_startup_parameters(),
+                shorthand: None,
                 capability_id: CapabilityId::from("pulse-1"),
                 kind_id: kind_id(PULSE_KIND),
                 kind_contract_revision: KindContractRevision::from(PULSE_CONTRACT),
@@ -186,6 +210,8 @@ fn advertisement(
                 },
             },
             CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
                 capability_id: CapabilityId::from("stdout-show-1"),
                 kind_id: kind_id(SHOW_KIND),
                 kind_contract_revision: KindContractRevision::from(SHOW_CONTRACT),
@@ -455,11 +481,11 @@ fn demo_fragment(
 }
 
 fn canonical_demo_fragment() -> conduit_core::PlanFragment {
-    let source = "form burst (\n count: Count = 1\n signal: value/signal >\n) {\n pulse: flow/pulse(count = count, period-ms = 0, initial = false)\n pulse > signal\n}\n\nform demo {\n burst: burst(2)\n show: presentation/show\n burst.signal > show\n}\n";
+    let source = "form burst (\n count: Count = 1\n signal: value/signal >\n) {\n pulse: semantic/burst-pulse(count = count, period-ms = 0, initial = false)\n pulse > signal\n}\n\nform demo {\n burst: burst(2)\n show: presentation/show\n burst.signal > show\n}\n";
     let mut startup = StartupCatalog::new();
     startup
         .insert(OperationSignature {
-            operation: PULSE_KIND.into(),
+            operation: BURST_PULSE_KIND.into(),
             startup_parameters: vec![
                 StartupParameterSignature {
                     name: "count".into(),
@@ -468,7 +494,7 @@ fn canonical_demo_fragment() -> conduit_core::PlanFragment {
                 },
                 StartupParameterSignature {
                     name: "period-ms".into(),
-                    value_type: "Milliseconds".into(),
+                    value_type: "Count".into(),
                     default: Some("250".into()),
                 },
                 StartupParameterSignature {
@@ -487,8 +513,38 @@ fn canonical_demo_fragment() -> conduit_core::PlanFragment {
         .unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup)
         .expect("canonical source checks");
-    let expanded = expand_canonical_form(&checked, "demo", &signal_profile_catalog())
-        .expect("reusable form expands");
+    let mut catalog = signal_profile_catalog();
+    catalog
+        .insert(KindDefinition {
+            kind_id: kind_id(BURST_PULSE_KIND),
+            kind_contract_revision: KindContractRevision::from(BURST_PULSE_CONTRACT),
+            inputs: Vec::new(),
+            outputs: pulse_outputs(),
+            configuration: vec![
+                ConfigurationField {
+                    key: "count".to_string(),
+                    default_value: ConfigurationValue::U64(16),
+                    validation: ConfigurationRule::Any,
+                },
+                ConfigurationField {
+                    key: "period-ms".to_string(),
+                    default_value: ConfigurationValue::U64(250),
+                    validation: ConfigurationRule::Any,
+                },
+                ConfigurationField {
+                    key: "initial".to_string(),
+                    default_value: ConfigurationValue::Bool(false),
+                    validation: ConfigurationRule::Any,
+                },
+            ],
+        })
+        .expect("alias pulse kind installs");
+    let expanded =
+        expand_canonical_form(&checked, "demo", &catalog).expect("reusable form expands");
+    assert!(expanded
+        .operations
+        .iter()
+        .any(|operation| operation.kind_id.as_str() == BURST_PULSE_KIND));
     let advertisement = advertisement("boot-1", 1, 8, 256);
     let placements = default_expanded_placements(&expanded, std::slice::from_ref(&advertisement))
         .expect("expanded placements work");
@@ -502,6 +558,14 @@ fn canonical_demo_fragment() -> conduit_core::PlanFragment {
     assert_eq!(plan.checked_form_id, expanded.checked_form_id);
     assert_eq!(plan.expanded_form_id, expanded.expanded_form_id);
     assert_eq!(plan.source_document_id, expanded.source_document_id);
+    let pulse = plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .find(|placement| placement.kind_id.as_str() == PULSE_KIND)
+        .expect("functional match seals the offered pulse realization");
+    assert_eq!(pulse.kind_contract_revision.as_str(), PULSE_CONTRACT);
+    assert_eq!(pulse.implementation_id.as_str(), "std/pulse-v1");
     plan.fragments.first().expect("fragment exists").clone()
 }
 

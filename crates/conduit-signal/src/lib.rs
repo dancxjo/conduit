@@ -38,6 +38,27 @@ pub const SIGNAL_VALUE_KIND: &str = "value/signal";
 pub const PULSE_KIND: &str = "flow/pulse";
 pub const SHOW_KIND: &str = "presentation/show";
 pub const SIGNAL_PORT: &str = "signal";
+
+#[cfg(feature = "host-profile")]
+pub fn pulse_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+    vec![
+        conduit_core::FaceStartupParameter {
+            name: "count".to_string(),
+            value_type: "Count".to_string(),
+            has_default: true,
+        },
+        conduit_core::FaceStartupParameter {
+            name: "period-ms".to_string(),
+            value_type: "Count".to_string(),
+            has_default: true,
+        },
+        conduit_core::FaceStartupParameter {
+            name: "initial".to_string(),
+            value_type: "Boolean".to_string(),
+            has_default: true,
+        },
+    ]
+}
 pub const SIGNAL_ENCODED_LEN: u32 = 9;
 pub const SIGNAL_PRESENTATION_KIND: &str = "presentation/signal";
 pub const MAX_SIGNAL_COUNT: u64 = 4_096;
@@ -329,6 +350,8 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
+                startup_parameters: pulse_face_startup_parameters(),
+                shorthand: None,
                 capability_id: CapabilityId::from("pico-pulse-1"),
                 kind_id: pulse_kind(),
                 kind_contract_revision: pulse_contract_revision(),
@@ -347,6 +370,8 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
                 },
             },
             CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
                 capability_id: CapabilityId::from("pico-led-show-1"),
                 kind_id: show_kind(),
                 kind_contract_revision: show_contract_revision(),
@@ -382,6 +407,8 @@ pub fn distributed_std_source_advertisement() -> HostAdvertisement {
         resources: vec![resource_offer("s4/std-timer", TIMER_RESOURCE_CLASS, 1)],
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
+            startup_parameters: pulse_face_startup_parameters(),
+            shorthand: None,
             capability_id: CapabilityId::from("pulse-1"),
             kind_id: pulse_kind(),
             kind_contract_revision: pulse_contract_revision(),
@@ -417,6 +444,8 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
         )],
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
+            startup_parameters: vec![],
+            shorthand: None,
             capability_id: CapabilityId::from("dom-show-1"),
             kind_id: show_kind(),
             kind_contract_revision: show_contract_revision(),

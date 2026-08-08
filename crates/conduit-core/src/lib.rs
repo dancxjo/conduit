@@ -9,6 +9,10 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod face;
+
+pub use face::{CheckedFace, FaceStartupParameter};
+
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
 pub const DEFAULT_CONNECTION_BYTE_CAPACITY: u32 = 64;
@@ -318,6 +322,10 @@ pub struct AuthorityBinding {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CapabilityOffer {
+    #[serde(default)]
+    pub startup_parameters: Vec<FaceStartupParameter>,
+    #[serde(default)]
+    pub shorthand: Option<(PortId, PortId)>,
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,
