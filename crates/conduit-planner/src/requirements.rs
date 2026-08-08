@@ -1,0 +1,161 @@
+use crate::{plan, PlacementChoices, PlannerError};
+use conduit_core::{
+    AuthorityContractId, ConnectionProvider, HostAdvertisement, HostOperationContractId,
+    OperationId, Plan, ResourceClassId,
+};
+use conduit_form::CheckedForm;
+use std::collections::{BTreeMap, BTreeSet};
+
+/// Hard admissibility constraints for one semantic operation realization.
+///
+/// These constraints are boolean gates. They do not rank candidates and do
+/// not contain host-supplied desirability scores.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct HardRealizationRequirements {
+    pub minimum_queue_items: u16,
+    pub minimum_queue_bytes: u32,
+    /// Maximum units the realization may require from each named class.
+    /// A zero ceiling forbids use of that resource class.
+    pub maximum_resource_units: BTreeMap<ResourceClassId, u32>,
+    /// `None` permits any declared operation; `Some` is an exact allowlist.
+    pub permitted_host_operations: Option<BTreeSet<HostOperationContractId>>,
+    /// `None` permits any declared authority; `Some` is an exact allowlist.
+    pub permitted_authority_contracts: Option<BTreeSet<AuthorityContractId>>,
+}
+
+pub fn plan_with_hard_requirements(
+    form: &CheckedForm,
+    realm: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    providers: &[ConnectionProvider],
+    requirements: &BTreeMap<OperationId, HardRealizationRequirements>,
+) -> Result<Plan, PlannerError> {
+    validate_hard_requirements(form, realm, placements, requirements)?;
+    plan(form, realm, placements, providers)
+}
+
+pub(crate) fn validate_hard_requirements(
+    form: &CheckedForm,
+    realm: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    requirements: &BTreeMap<OperationId, HardRealizationRequirements>,
+) -> Result<(), PlannerError> {
+    for operation_id in requirements.keys() {
+        if !form
+            .operations
+            .iter()
+            .any(|operation| &operation.operation_id == operation_id)
+        {
+            return Err(PlannerError::UnknownOperation(
+                operation_id.as_str().to_string(),
+            ));
+        }
+    }
+
+    for operation in &form.operations {
+        let Some(requirement) = requirements.get(&operation.operation_id) else {
+            continue;
+        };
+        validate_requirement_identities(requirement)?;
+        let choice = placements
+            .by_operation
+            .get(&operation.operation_id)
+            .ok_or_else(|| {
+                PlannerError::MissingPlacement(operation.operation_id.as_str().to_string())
+            })?;
+        let host = realm
+            .iter()
+            .find(|host| host.host_id == choice.host_id)
+            .ok_or_else(|| PlannerError::UnknownHost(choice.host_id.as_str().to_string()))?;
+        let offer = host
+            .capabilities
+            .iter()
+            .find(|offer| offer.capability_id == choice.capability_id)
+            .ok_or_else(|| {
+                PlannerError::UnknownCapability(choice.capability_id.as_str().to_string())
+            })?;
+
+        if offer.checked_face() != operation.checked_face() {
+            return Err(PlannerError::IncompatibleCheckedFace(format!(
+                "operation '{}' face differs from capability '{}' face",
+                operation.operation_id.as_str(),
+                offer.capability_id.as_str()
+            )));
+        }
+        if offer.limits.max_queue_items < requirement.minimum_queue_items {
+            return unsatisfied(operation_id(operation), "queue item bound");
+        }
+        if offer.limits.max_queue_bytes < requirement.minimum_queue_bytes {
+            return unsatisfied(operation_id(operation), "queue byte bound");
+        }
+        for resource in &offer.resource_requirements {
+            if requirement
+                .maximum_resource_units
+                .get(&resource.class_id)
+                .is_some_and(|maximum| resource.units > *maximum)
+            {
+                return unsatisfied(operation_id(operation), "resource-unit ceiling");
+            }
+        }
+        if requirement
+            .permitted_host_operations
+            .as_ref()
+            .is_some_and(|permitted| {
+                offer
+                    .host_operations
+                    .iter()
+                    .any(|required| !permitted.contains(&required.contract_id))
+            })
+        {
+            return unsatisfied(operation_id(operation), "host-operation allowlist");
+        }
+        if requirement
+            .permitted_authority_contracts
+            .as_ref()
+            .is_some_and(|permitted| {
+                offer
+                    .authority_requirements
+                    .iter()
+                    .any(|required| !permitted.contains(&required.contract_id))
+            })
+        {
+            return unsatisfied(operation_id(operation), "authority-contract allowlist");
+        }
+    }
+    Ok(())
+}
+
+fn validate_requirement_identities(
+    requirement: &HardRealizationRequirements,
+) -> Result<(), PlannerError> {
+    let empty_resource = requirement
+        .maximum_resource_units
+        .keys()
+        .any(|identity| identity.as_str().is_empty());
+    let empty_host_operation = requirement
+        .permitted_host_operations
+        .iter()
+        .flatten()
+        .any(|identity| identity.as_str().is_empty());
+    let empty_authority = requirement
+        .permitted_authority_contracts
+        .iter()
+        .flatten()
+        .any(|identity| identity.as_str().is_empty());
+    if empty_resource || empty_host_operation || empty_authority {
+        return Err(PlannerError::InvalidHardRealizationRequirement(
+            "requirement identities must be non-empty".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn operation_id(operation: &conduit_form::CheckedOperation) -> &OperationId {
+    &operation.operation_id
+}
+
+fn unsatisfied<T>(operation_id: &OperationId, dimension: &str) -> Result<T, PlannerError> {
+    Err(PlannerError::HardRealizationRequirementUnsatisfied(
+        format!("operation '{}' failed {dimension}", operation_id.as_str()),
+    ))
+}
