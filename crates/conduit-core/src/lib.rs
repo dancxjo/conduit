@@ -19,7 +19,10 @@ mod shared_pool;
 
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use face::{CheckedFace, FaceStartupParameter};
-pub use implementation::ImplementationOffer;
+pub use implementation::{
+    ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
+    RealizationCharacteristicValue,
+};
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use resource::*;
 pub use route::*;
@@ -80,6 +83,7 @@ identity_type!(KindContractRevision);
 identity_type!(ExecutionProfileId);
 identity_type!(ImplementationId);
 identity_type!(ArtifactId);
+identity_type!(RealizationCharacteristicId);
 identity_type!(SourceDocumentId);
 identity_type!(CheckedFormId);
 identity_type!(ExpandedFormId);
@@ -400,6 +404,8 @@ pub struct PlannedOperation {
     pub capability_id: CapabilityId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
+    #[serde(default)]
+    pub realization_characteristics: Vec<RealizationCharacteristic>,
     pub limits: CapabilityLimits,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
@@ -818,6 +824,27 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, operation.capability_id.as_str());
         push_string(&mut canonical, operation.implementation_id.as_str());
         push_string(&mut canonical, operation.artifact_id.as_str());
+        push_u32(
+            &mut canonical,
+            operation.realization_characteristics.len() as u32,
+        );
+        for characteristic in &operation.realization_characteristics {
+            push_string(&mut canonical, characteristic.characteristic_id.as_str());
+            match &characteristic.value {
+                RealizationCharacteristicValue::Count(value) => {
+                    canonical.push(0);
+                    push_u64(&mut canonical, *value);
+                }
+                RealizationCharacteristicValue::Flag(value) => {
+                    canonical.push(1);
+                    canonical.push(u8::from(*value));
+                }
+                RealizationCharacteristicValue::Label(value) => {
+                    canonical.push(2);
+                    push_string(&mut canonical, value);
+                }
+            }
+        }
         canonical.extend_from_slice(&operation.limits.max_active_instances.to_le_bytes());
         canonical.extend_from_slice(&operation.limits.max_queue_items.to_le_bytes());
         push_u32(&mut canonical, operation.limits.max_queue_bytes);

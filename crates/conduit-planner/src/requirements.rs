@@ -1,7 +1,7 @@
 use crate::{plan, PlacementChoices, PlannerError};
 use conduit_core::{
     AuthorityContractId, ConnectionProvider, HostAdvertisement, HostOperationContractId,
-    OperationId, Plan, ResourceClassId,
+    OperationId, Plan, RealizationCharacteristicId, ResourceClassId,
 };
 use conduit_form::CheckedForm;
 use std::collections::{BTreeMap, BTreeSet};
@@ -21,6 +21,10 @@ pub struct HardRealizationRequirements {
     pub permitted_host_operations: Option<BTreeSet<HostOperationContractId>>,
     /// `None` permits any declared authority; `Some` is an exact allowlist.
     pub permitted_authority_contracts: Option<BTreeSet<AuthorityContractId>>,
+    pub minimum_characteristic_counts: BTreeMap<RealizationCharacteristicId, u64>,
+    pub maximum_characteristic_counts: BTreeMap<RealizationCharacteristicId, u64>,
+    pub required_characteristic_flags: BTreeMap<RealizationCharacteristicId, bool>,
+    pub required_characteristic_labels: BTreeMap<RealizationCharacteristicId, String>,
 }
 
 pub fn plan_with_hard_requirements(
@@ -40,6 +44,11 @@ pub(crate) fn validate_hard_requirements(
     placements: &PlacementChoices,
     requirements: &BTreeMap<OperationId, HardRealizationRequirements>,
 ) -> Result<(), PlannerError> {
+    if requirements.values().any(has_characteristic_requirements) {
+        return Err(PlannerError::InvalidHardRealizationRequirement(
+            "characteristic requirements require exact realization advertisements".to_string(),
+        ));
+    }
     for operation_id in requirements.keys() {
         if !form
             .operations
@@ -89,6 +98,13 @@ pub(crate) fn validate_hard_requirements(
     Ok(())
 }
 
+pub(crate) fn has_characteristic_requirements(requirement: &HardRealizationRequirements) -> bool {
+    !requirement.minimum_characteristic_counts.is_empty()
+        || !requirement.maximum_characteristic_counts.is_empty()
+        || !requirement.required_characteristic_flags.is_empty()
+        || !requirement.required_characteristic_labels.is_empty()
+}
+
 pub(crate) fn validate_requirement_identities(
     requirement: &HardRealizationRequirements,
 ) -> Result<(), PlannerError> {
@@ -106,7 +122,14 @@ pub(crate) fn validate_requirement_identities(
         .iter()
         .flatten()
         .any(|identity| identity.as_str().is_empty());
-    if empty_resource || empty_host_operation || empty_authority {
+    let empty_characteristic = requirement
+        .minimum_characteristic_counts
+        .keys()
+        .chain(requirement.maximum_characteristic_counts.keys())
+        .chain(requirement.required_characteristic_flags.keys())
+        .chain(requirement.required_characteristic_labels.keys())
+        .any(|identity| identity.as_str().is_empty());
+    if empty_resource || empty_host_operation || empty_authority || empty_characteristic {
         return Err(PlannerError::InvalidHardRealizationRequirement(
             "requirement identities must be non-empty".to_string(),
         ));

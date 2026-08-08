@@ -9,6 +9,7 @@ conduit-form = { path = "../conduit-form" }
 sha2 = "0.10"
 
 [dev-dependencies]
+conduit-ai = { path = "../conduit-ai", features = ["form-catalog"] }
 conduit-runtime = { path = "../conduit-runtime", default-features = false }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
 serde_json = "1"

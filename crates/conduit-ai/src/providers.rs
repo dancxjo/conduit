@@ -6,7 +6,8 @@ use conduit_core::{
     AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
     HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
-    OfferGeneration,
+    OfferGeneration, RealizationAdvertisement, RealizationCharacteristic,
+    RealizationCharacteristicId, RealizationCharacteristicValue,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +19,11 @@ pub const NETWORK_EGRESS_RESOURCE: &str = "conduit.resource/network-egress/slot@
 pub const INFERENCE_SLOT_RESOURCE: &str = "conduit.resource/inference/slot@1";
 pub const GENERATE_TEXT_HOST_OPERATION: &str = "conduit.host/generate-text@1";
 pub const REMOTE_GENERATE_TEXT_AUTHORITY: &str = "conduit.authority/remote-generate-text@1";
+pub const MAXIMUM_CONTEXT_CHARACTERISTIC: &str = "conduit.realization/maximum-context-tokens@1";
+pub const MAXIMUM_OUTPUT_CHARACTERISTIC: &str = "conduit.realization/maximum-output-tokens@1";
+pub const DATA_EGRESS_CHARACTERISTIC: &str = "conduit.realization/data-egress@1";
+pub const METERED_COST_CHARACTERISTIC: &str = "conduit.realization/metered-cost@1";
+pub const BENCHMARK_EVIDENCE_CHARACTERISTIC: &str = "conduit.realization/benchmark-evidence@1";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProviderProofClass {
@@ -54,6 +60,63 @@ pub struct GenerateTextProviderFixture {
 
 pub fn generate_text_provider_fixtures() -> [GenerateTextProviderFixture; 3] {
     [small_local(), large_local(), remote_frontier()]
+}
+
+pub fn generate_text_realization_advertisements(
+    fixtures: &[GenerateTextProviderFixture],
+) -> alloc::vec::Vec<RealizationAdvertisement> {
+    fixtures
+        .iter()
+        .map(|fixture| {
+            let offer = &fixture.advertisement.capabilities[0];
+            RealizationAdvertisement {
+                host_id: fixture.advertisement.host_id.clone(),
+                boot_id: fixture.advertisement.boot_id.clone(),
+                offer_generation: fixture.advertisement.offer_generation,
+                capability_id: offer.capability_id.clone(),
+                characteristics: vec![
+                    count_characteristic(
+                        MAXIMUM_CONTEXT_CHARACTERISTIC,
+                        fixture.facts.maximum_context_tokens,
+                    ),
+                    count_characteristic(
+                        MAXIMUM_OUTPUT_CHARACTERISTIC,
+                        fixture.facts.maximum_output_tokens,
+                    ),
+                    flag_characteristic(
+                        DATA_EGRESS_CHARACTERISTIC,
+                        fixture.facts.data_handling == DataHandling::RemoteEgress,
+                    ),
+                    flag_characteristic(
+                        METERED_COST_CHARACTERISTIC,
+                        fixture.facts.metering == Metering::MeteredFixture,
+                    ),
+                    RealizationCharacteristic {
+                        characteristic_id: RealizationCharacteristicId::from(
+                            BENCHMARK_EVIDENCE_CHARACTERISTIC,
+                        ),
+                        value: RealizationCharacteristicValue::Label(
+                            fixture.facts.benchmark_evidence.clone(),
+                        ),
+                    },
+                ],
+            }
+        })
+        .collect()
+}
+
+fn count_characteristic(id: &str, value: u64) -> RealizationCharacteristic {
+    RealizationCharacteristic {
+        characteristic_id: RealizationCharacteristicId::from(id),
+        value: RealizationCharacteristicValue::Count(value),
+    }
+}
+
+fn flag_characteristic(id: &str, value: bool) -> RealizationCharacteristic {
+    RealizationCharacteristic {
+        characteristic_id: RealizationCharacteristicId::from(id),
+        value: RealizationCharacteristicValue::Flag(value),
+    }
 }
 
 fn small_local() -> GenerateTextProviderFixture {
@@ -155,15 +218,17 @@ fn provider(
     } else {
         vec![]
     };
-    let resource_offers = resources
+    let mut resource_offers = resources
         .iter()
         .enumerate()
         .map(|(index, (class, units))| resource_offer(&format_pool(host, index), class, *units))
-        .collect();
-    let resource_requirements = resources
+        .collect::<alloc::vec::Vec<_>>();
+    resource_offers.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+    let mut resource_requirements = resources
         .iter()
         .map(|(class, units)| resource_requirement(class, *units))
-        .collect();
+        .collect::<alloc::vec::Vec<_>>();
+    resource_requirements.sort();
     GenerateTextProviderFixture {
         advertisement: HostAdvertisement {
             protocol_version: 1,

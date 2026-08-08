@@ -1,10 +1,11 @@
 use crate::requirements::{
-    hard_requirement_failure, validate_requirement_identities, HardRealizationRequirements,
+    hard_requirement_failure, has_characteristic_requirements, validate_requirement_identities,
+    HardRealizationRequirements,
 };
 use crate::{PlacementChoice, PlannerError};
 use conduit_core::{
     AuthorityContractId, CapabilityOffer, HostAdvertisement, HostOperationContractId,
-    ResourceClassId,
+    RealizationCharacteristicId, ResourceClassId,
 };
 use conduit_form::CheckedOperation;
 use std::cmp::Ordering;
@@ -20,6 +21,12 @@ pub enum RealizationPreference {
     MaximizeQueueBytes,
     PreferWithoutHostOperation(HostOperationContractId),
     PreferWithoutAuthority(AuthorityContractId),
+    MinimizeCharacteristicCount(RealizationCharacteristicId),
+    MaximizeCharacteristicCount(RealizationCharacteristicId),
+    PreferCharacteristicFlag {
+        characteristic_id: RealizationCharacteristicId,
+        value: bool,
+    },
 }
 
 /// Ordered comparison dimensions. Earlier entries take precedence.
@@ -47,6 +54,23 @@ pub(crate) fn select_realization_matching(
 ) -> Result<PlacementChoice, PlannerError> {
     validate_requirement_identities(requirements)?;
     validate_policy(policy)?;
+    if has_characteristic_requirements(requirements) {
+        return Err(PlannerError::InvalidHardRealizationRequirement(
+            "characteristic requirements require exact realization advertisements".to_string(),
+        ));
+    }
+    if policy.preferences.iter().any(|preference| {
+        matches!(
+            preference,
+            RealizationPreference::MinimizeCharacteristicCount(_)
+                | RealizationPreference::MaximizeCharacteristicCount(_)
+                | RealizationPreference::PreferCharacteristicFlag { .. }
+        )
+    }) {
+        return Err(PlannerError::InvalidRealizationPolicy(
+            "characteristic policy requires exact realization advertisements".to_string(),
+        ));
+    }
 
     let mut face_candidates = Vec::new();
     for host in realm {
@@ -124,6 +148,9 @@ fn compare_candidates(
             RealizationPreference::PreferWithoutAuthority(contract_id) => {
                 has_authority(left.offer, contract_id).cmp(&has_authority(right.offer, contract_id))
             }
+            RealizationPreference::MinimizeCharacteristicCount(_)
+            | RealizationPreference::MaximizeCharacteristicCount(_)
+            | RealizationPreference::PreferCharacteristicFlag { .. } => Ordering::Equal,
         };
         if ordering != Ordering::Equal {
             return ordering;
@@ -158,7 +185,7 @@ fn has_authority(offer: &CapabilityOffer, contract_id: &AuthorityContractId) -> 
         .any(|requirement| &requirement.contract_id == contract_id)
 }
 
-fn validate_policy(policy: &RealizationPolicy) -> Result<(), PlannerError> {
+pub(crate) fn validate_policy(policy: &RealizationPolicy) -> Result<(), PlannerError> {
     let has_empty_identity = policy
         .preferences
         .iter()
@@ -168,6 +195,13 @@ fn validate_policy(policy: &RealizationPolicy) -> Result<(), PlannerError> {
                 identity.as_str().is_empty()
             }
             RealizationPreference::PreferWithoutAuthority(identity) => identity.as_str().is_empty(),
+            RealizationPreference::MinimizeCharacteristicCount(identity)
+            | RealizationPreference::MaximizeCharacteristicCount(identity) => {
+                identity.as_str().is_empty()
+            }
+            RealizationPreference::PreferCharacteristicFlag {
+                characteristic_id, ..
+            } => characteristic_id.as_str().is_empty(),
             RealizationPreference::MaximizeQueueItems
             | RealizationPreference::MaximizeQueueBytes => false,
         });

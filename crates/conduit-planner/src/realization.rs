@@ -60,7 +60,7 @@ pub fn plan_selected_realizations(
     )
 }
 
-fn reject_unknown_operation_inputs(
+pub(crate) fn reject_unknown_operation_inputs(
     form: &CheckedForm,
     requirements: &BTreeMap<OperationId, HardRealizationRequirements>,
     policies: &BTreeMap<OperationId, RealizationPolicy>,
@@ -79,7 +79,7 @@ fn reject_unknown_operation_inputs(
     Ok(())
 }
 
-fn consume_selected_capacity(
+pub(crate) fn consume_selected_capacity(
     realm: &[HostAdvertisement],
     choice: &crate::PlacementChoice,
     remaining: &mut [ResourceObservation],
