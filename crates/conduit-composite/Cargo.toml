@@ -3,11 +3,15 @@ name = "conduit-composite"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["compatibility-fixture"]
+compatibility-fixture = ["conduit-runtime/compatibility-executor"]
+
 [dependencies]
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form" }
-conduit-runtime = { path = "../conduit-runtime" }
+conduit-runtime = { path = "../conduit-runtime", default-features = false }
 
 [dev-dependencies]
 conduit-planner = { path = "../conduit-planner" }
-conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
+conduit-signal = { path = "../conduit-signal", features = ["legacy-fixture-driver"] }

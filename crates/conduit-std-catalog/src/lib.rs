@@ -506,10 +506,10 @@ fn capability_slug(kind: &str) -> String {
     kind.replace('/', "-")
 }
 
-#[cfg(feature = "host-profile")]
+#[cfg(feature = "compatibility-fixture")]
 mod host_profile;
 
-#[cfg(feature = "host-profile")]
+#[cfg(feature = "compatibility-fixture")]
 pub use host_profile::{install_standard_profile, standard_registry};
 
 #[cfg(test)]

@@ -5,18 +5,15 @@
 
 use super::{
     decode_signal, encode_signal, parse_pulse_configuration, pulse_contract_revision,
-    pulse_execution_profile, pulse_host_operation_requirements, pulse_kind, pulse_outputs,
+    pulse_execution_profile, pulse_host_operation_requirements, pulse_kind,
     pulse_resource_requirements, show_contract_revision, show_execution_profile,
-    show_host_operation_requirements, show_inputs, show_kind, show_resource_requirements,
-    signal_value_kind, PulseConfiguration, Signal, MAX_SIGNAL_COUNT, SIGNAL_ENCODED_LEN,
-    SIGNAL_PORT, SIGNAL_PRESENTATION_KIND,
+    show_host_operation_requirements, show_kind, show_resource_requirements, signal_value_kind,
+    PulseConfiguration, Signal, SIGNAL_ENCODED_LEN, SIGNAL_PORT, SIGNAL_PRESENTATION_KIND,
 };
 use alloc::boxed::Box;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, ConfigurationValue, FailureReason, ImplementationId, KindId,
-    PlannedOperation,
+    kind_id, port_id, ArtifactId, FailureReason, ImplementationId, KindId, PlannedOperation,
 };
-use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
 use conduit_runtime::{
     ImplementationFailure, ImplementationRegistry, OperationAction, OperationCompletion,
     OperationImplementation, OperationOutput, OperationState,
@@ -279,49 +276,4 @@ pub fn signal_registry(
         show_implementation_id,
     )?;
     Ok(registry)
-}
-
-pub fn signal_profile_catalog() -> ProfileCatalog {
-    let mut catalog = ProfileCatalog::new();
-    catalog
-        .insert(KindDefinition {
-            kind_id: pulse_kind(),
-            kind_contract_revision: pulse_contract_revision(),
-            inputs: Vec::new(),
-            outputs: pulse_outputs(),
-            configuration: vec![
-                ConfigurationField {
-                    key: "count".to_string(),
-                    default_value: ConfigurationValue::U64(16),
-                    validation: ConfigurationRule::U64Range {
-                        minimum: 0,
-                        maximum: MAX_SIGNAL_COUNT,
-                    },
-                },
-                ConfigurationField {
-                    key: "period-ms".to_string(),
-                    default_value: ConfigurationValue::U64(250),
-                    validation: ConfigurationRule::U64Range {
-                        minimum: 0,
-                        maximum: u64::MAX,
-                    },
-                },
-                ConfigurationField {
-                    key: "initial".to_string(),
-                    default_value: ConfigurationValue::Bool(false),
-                    validation: ConfigurationRule::Any,
-                },
-            ],
-        })
-        .expect("signal profile kinds are unique");
-    catalog
-        .insert(KindDefinition {
-            kind_id: show_kind(),
-            kind_contract_revision: show_contract_revision(),
-            inputs: show_inputs(),
-            outputs: Vec::new(),
-            configuration: Vec::new(),
-        })
-        .expect("signal profile kinds are unique");
-    catalog
 }

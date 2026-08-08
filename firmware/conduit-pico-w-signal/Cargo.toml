@@ -37,7 +37,7 @@ conduit-core = { path = "../../crates/conduit-core" }
 conduit-embedded-build = { path = "../../crates/conduit-embedded-build" }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-planner = { path = "../../crates/conduit-planner" }
-conduit-runtime = { path = "../../crates/conduit-runtime" }
+conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 
 [[bin]]

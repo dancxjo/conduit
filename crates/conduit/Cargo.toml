@@ -9,7 +9,7 @@ conduit-form = { path = "../conduit-form" }
 conduit-observatory = { path = "../conduit-observatory" }
 conduit-planner = { path = "../conduit-planner" }
 conduit-std-host = { path = "../../hosts/std" }
-conduit-std-catalog = { path = "../conduit-std-catalog", features = ["form-catalog"] }
+conduit-std-catalog = { path = "../conduit-std-catalog", default-features = false, features = ["form-catalog"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

@@ -7,8 +7,8 @@ edition = "2021"
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-planner = { path = "../../crates/conduit-planner" }
-conduit-runtime = { path = "../../crates/conduit-runtime" }
-conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
+conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false, features = ["compatibility-executor"] }
+conduit-signal = { path = "../../crates/conduit-signal", features = ["legacy-fixture-driver"] }
 conduit-wire = { path = "../../crates/conduit-wire" }
 
 [dev-dependencies]

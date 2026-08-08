@@ -2329,5 +2329,4 @@ trait CollectTargets: Iterator<Item = RouteTarget> + Sized {
 impl<I: Iterator<Item = RouteTarget>> CollectTargets for I {}
 
 #[cfg(test)]
-#[cfg(test)]
 mod tests;

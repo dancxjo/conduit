@@ -5,16 +5,19 @@ edition = "2021"
 
 [features]
 default = []
-legacy-fixture-driver = []
+legacy-fixture-driver = [
+    "conduit-runtime/compatibility-executor",
+    "conduit-signal/legacy-fixture-driver",
+]
 
 [dependencies]
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
 conduit-planner = { path = "../../crates/conduit-planner" }
-conduit-runtime = { path = "../../crates/conduit-runtime" }
+conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
-conduit-std-catalog = { path = "../../crates/conduit-std-catalog", features = ["form-catalog"] }
+conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
 conduit-wire = { path = "../../crates/conduit-wire" }
 tungstenite = "0.30.0"
 serde_json = "1"
