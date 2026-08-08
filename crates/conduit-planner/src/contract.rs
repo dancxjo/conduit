@@ -1,5 +1,6 @@
 use conduit_core::{
     AuthorityGrant, CapabilityId, ConnectionProvider, HostId, LinkBinding, OperationId,
+    ProtectedResourceGrant,
 };
 use std::collections::BTreeMap;
 
@@ -20,6 +21,7 @@ pub struct PlanningOptions<'a> {
     pub connection_item_capacity: u16,
     pub connection_byte_capacity: u32,
     pub authority_grants: &'a [AuthorityGrant],
+    pub protected_resource_grants: &'a [ProtectedResourceGrant],
     pub link_bindings: &'a [LinkBinding],
 }
 
@@ -42,6 +44,9 @@ pub enum PlannerError {
     InvalidResourceContract(String),
     UnavailableResource(String),
     ResourceCapacityExceeded(String),
+    InvalidProtectedResourceGrant(String),
+    ProtectedResourceGrantMissing(String),
+    ProtectedResourceGrantAmbiguous(String),
     InvalidAuthorityContract(String),
     AuthorityGrantMissing(String),
     AuthorityGrantAmbiguous(String),
@@ -92,6 +97,15 @@ impl std::fmt::Display for PlannerError {
             Self::UnavailableResource(value) => write!(f, "unavailable resource: {value}"),
             Self::ResourceCapacityExceeded(value) => {
                 write!(f, "resource capacity exceeded: {value}")
+            }
+            Self::InvalidProtectedResourceGrant(value) => {
+                write!(f, "invalid protected-resource grant: {value}")
+            }
+            Self::ProtectedResourceGrantMissing(value) => {
+                write!(f, "protected-resource grant missing: {value}")
+            }
+            Self::ProtectedResourceGrantAmbiguous(value) => {
+                write!(f, "protected-resource grant ambiguous: {value}")
             }
             Self::InvalidAuthorityContract(value) => {
                 write!(f, "invalid authority contract: {value}")

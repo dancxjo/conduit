@@ -14,8 +14,10 @@ mod canonical;
 mod contract;
 mod functional_compatibility;
 mod profile;
+mod protected_resources;
 
 use functional_compatibility::default_placements_unvalidated;
+use protected_resources::{bind_protected_resource, validate_protected_resource_grants};
 
 pub use canonical::{
     default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
@@ -68,6 +70,7 @@ pub fn plan_with_authority_grants(
             connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
             connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
             authority_grants,
+            protected_resource_grants: &[],
             link_bindings: &[],
         },
     )
@@ -92,6 +95,7 @@ pub fn plan_with_link_bindings(
             connection_item_capacity,
             connection_byte_capacity,
             authority_grants: &[],
+            protected_resource_grants: &[],
             link_bindings,
         },
     )
@@ -135,6 +139,7 @@ pub fn plan_with_connection_limits_and_provider_overrides(
             connection_item_capacity,
             connection_byte_capacity,
             authority_grants: &[],
+            protected_resource_grants: &[],
             link_bindings: &[],
         },
     )
@@ -164,6 +169,7 @@ pub(crate) fn plan_validated_form(
         connection_item_capacity,
         connection_byte_capacity,
         authority_grants,
+        protected_resource_grants,
         link_bindings,
     } = options;
     let realm_index = realm
@@ -175,10 +181,12 @@ pub(crate) fn plan_validated_form(
         validate_host_resources(host)?;
     }
     validate_authority_grants(authority_grants)?;
+    validate_protected_resource_grants(protected_resource_grants)?;
     validate_link_bindings(link_bindings)?;
 
     let mut placement_count = BTreeMap::<(HostId, CapabilityId), u16>::new();
     let mut resource_usage = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
+    let mut consumed_protected_handles = BTreeSet::new();
     let mut planned_operations = Vec::<PlannedOperation>::new();
     let mut placement_lookup = BTreeMap::<OperationId, PlacementId>::new();
 
@@ -247,10 +255,19 @@ pub(crate) fn plan_validated_form(
                     resource.capacity_units
                 )));
             }
+            let protected = bind_protected_resource(
+                requirement,
+                protected_resource_grants,
+                operation,
+                host,
+                capability,
+                &mut consumed_protected_handles,
+            )?;
             resource_bindings.push(ResourceBinding {
                 pool_id: resource.pool_id.clone(),
                 class_id: resource.class_id.clone(),
                 units: requirement.units,
+                protected,
             });
         }
         resource_bindings.sort();
@@ -321,6 +338,13 @@ pub(crate) fn plan_validated_form(
             resources: resource_bindings,
             authority: authority_bindings,
         });
+    }
+
+    if consumed_protected_handles.len() != protected_resource_grants.len() {
+        return Err(PlannerError::InvalidProtectedResourceGrant(
+            "every supplied protected-resource grant must be consumed by one exact planned role"
+                .to_string(),
+        ));
     }
 
     for operation in placements.by_operation.keys() {
@@ -568,17 +592,20 @@ fn validate_operation_capability(
             capability.capability_id.as_str()
         )));
     }
-    if capability
+    if capability.resource_requirements.iter().any(|requirement| {
+        requirement.class_id.as_str().is_empty()
+            || requirement.units == 0
+            || requirement
+                .protected_role
+                .as_ref()
+                .is_some_and(|role| role.as_str().is_empty())
+    }) || capability
         .resource_requirements
-        .iter()
-        .any(|requirement| requirement.class_id.as_str().is_empty() || requirement.units == 0)
-        || capability
-            .resource_requirements
-            .windows(2)
-            .any(|pair| pair[0] >= pair[1])
+        .windows(2)
+        .any(|pair| pair[0] >= pair[1])
     {
         return Err(PlannerError::InvalidResourceContract(format!(
-            "capability '{}' requirements must have non-empty classes, positive units, and unique canonical ordering",
+            "capability '{}' requirements must have non-empty classes and protected roles, positive units, and unique canonical ordering",
             capability.capability_id.as_str()
         )));
     }

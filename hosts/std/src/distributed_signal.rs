@@ -108,6 +108,7 @@ pub fn exact_distributed_signal_plan() -> Result<DistributedSignalPlan, String> 
             connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             connection_byte_capacity: SIGNAL_ENCODED_LEN,
             authority_grants: &[],
+            protected_resource_grants: &[],
             link_bindings: &[link],
         },
     )

@@ -339,6 +339,7 @@ impl BrowserSession {
                 connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
                 connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
                 authority_grants: &[],
+                protected_resource_grants: &[],
                 link_bindings: &[],
             },
         )
@@ -1027,6 +1028,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
                 maximum_operations: 64,
                 maximum_connections: 128,
                 maximum_authority_grants: 64,
+                maximum_protected_resource_grants: 64,
                 maximum_link_bindings: 128,
             },
         }],

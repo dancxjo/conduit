@@ -22,6 +22,8 @@ use conduit_signal::{
 };
 use std::collections::BTreeMap;
 
+mod protected_resource_tests;
+
 fn form() -> conduit_form::CheckedForm {
     parse(
             "form 0\n\nsignal-demo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",

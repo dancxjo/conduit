@@ -155,6 +155,7 @@ fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
             connection_item_capacity: 4,
             connection_byte_capacity: 64,
             authority_grants: core::slice::from_ref(&browser_authority_grant),
+            protected_resource_grants: &[],
             link_bindings: &link_bindings,
         },
     )

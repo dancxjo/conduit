@@ -34,6 +34,7 @@ pub fn plan_expanded_canonical(
             connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
             connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
             authority_grants: &[],
+            protected_resource_grants: &[],
             link_bindings: &[],
         },
     )

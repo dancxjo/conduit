@@ -216,6 +216,7 @@ fn exact_plan(kind: PlanKind) -> Result<Plan, i32> {
             connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             connection_byte_capacity: SIGNAL_ENCODED_LEN,
             authority_grants: &[],
+            protected_resource_grants: &[],
             link_bindings: &[link],
         },
     )
