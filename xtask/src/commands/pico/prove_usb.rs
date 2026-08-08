@@ -177,7 +177,7 @@ pub fn run_prove_std_pico_usb(
             binding.plan_id.as_str(),
             binding.source_fragment_id.as_str(),
             binding.sink_fragment_id.as_str(),
-            binding.link_binding_id.as_str(),
+            binding.attachment.link_binding_id.as_str(),
         );
 
         // Handshake Step 1 (Source): Outbound Hello

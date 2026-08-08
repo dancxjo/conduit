@@ -733,11 +733,11 @@ fn write_remote_identity_frame(
         binding.source.host_id.as_str(),
         binding.source.boot_id.as_str(),
         binding.source_active_play_id.as_str(),
-        binding.source.endpoint_id.as_str(),
-        binding.sink.endpoint_id.as_str(),
+        binding.attachment.source_endpoint_id.as_str(),
+        binding.attachment.sink_endpoint_id.as_str(),
         binding.connection_id.as_str(),
-        binding.link_binding_id.as_str(),
-        binding.provider_instance_id.as_str(),
+        binding.attachment.link_binding_id.as_str(),
+        binding.attachment.provider_instance_id.as_str(),
     ] {
         writer.text(identity)?;
     }

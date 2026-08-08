@@ -6,8 +6,9 @@ use conduit_core::{
     FragmentId, HostId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PROTOCOL_VERSION,
 };
 use conduit_wire::{
-    decode_envelope, decode_session_frame, encode_session_frame_into, SessionBinding,
-    SessionMachine, SessionMessage, SessionRole, WireError,
+    decode_envelope, decode_session_frame, encode_session_frame_into, RouteAttachment,
+    SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine, SessionMessage,
+    SessionRole, WireError,
 };
 
 const CORPUS_MAXIMUM_PAYLOAD_BYTES: u32 = 64;
@@ -105,17 +106,36 @@ fn binding(envelope: &ConnectionEnvelope) -> SessionBinding {
         source_active_play_id,
         sink_active_play_id,
         connection_id: envelope.connection_id.clone(),
-        link_binding_id: LinkBindingId::from("corpus/link"),
-        provider: ConnectionProvider::WebSocket,
-        provider_instance_id: ConnectionProviderInstanceId::from("corpus/provider"),
-        source,
-        sink,
+        source: SessionEndpointIdentity {
+            host_id: source.host_id.clone(),
+            boot_id: source.boot_id.clone(),
+        },
+        sink: SessionEndpointIdentity {
+            host_id: sink.host_id.clone(),
+            boot_id: sink.boot_id.clone(),
+        },
         value_kind: envelope.value_kind.clone(),
-        limits: LinkLimits {
+        limits: SessionLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: CORPUS_MAXIMUM_PAYLOAD_BYTES,
             maximum_buffered_bytes: CORPUS_MAXIMUM_PAYLOAD_BYTES,
-            maximum_frame_bytes: SESSION_MAXIMUM_FRAME_BYTES,
+        },
+        attachment: RouteAttachment {
+            link_binding_id: LinkBindingId::from("corpus/link"),
+            provider: ConnectionProvider::WebSocket,
+            provider_instance_id: ConnectionProviderInstanceId::from("corpus/provider"),
+            source_host_id: source.host_id,
+            source_boot_id: source.boot_id,
+            source_endpoint_id: LinkEndpointId::from("corpus/source-endpoint"),
+            sink_host_id: sink.host_id,
+            sink_boot_id: sink.boot_id,
+            sink_endpoint_id: LinkEndpointId::from("corpus/sink-endpoint"),
+            limits: LinkLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: CORPUS_MAXIMUM_PAYLOAD_BYTES,
+                maximum_buffered_bytes: CORPUS_MAXIMUM_PAYLOAD_BYTES,
+                maximum_frame_bytes: SESSION_MAXIMUM_FRAME_BYTES,
+            },
         },
     }
 }
@@ -233,14 +253,14 @@ fn identity_and_sequence_mutation_corpus_drives_session_denial() {
     }
 
     let wrong_kind = envelope(corpus!("wrong_kind.bin"), "wrong_kind.bin");
-    let mut hello = match baseline.hello_frame().message {
-        SessionMessage::Hello(hello) => hello,
-        _ => unreachable!(),
-    };
-    hello.value_kind = wrong_kind.value_kind.as_str();
+    let mut identity = baseline.identity();
+    identity.value_kind = wrong_kind.value_kind.as_str();
     let mut machine = SessionMachine::new(baseline.clone(), SessionRole::Source).unwrap();
     assert_eq!(
-        machine.admit_inbound(baseline.frame(SessionMessage::Hello(hello))),
+        machine.admit_inbound(conduit_wire::SessionFrame {
+            identity,
+            message: baseline.hello_frame().message,
+        }),
         Err(WireError::InvalidSession)
     );
 
@@ -276,6 +296,18 @@ fn malformed_corpus_drives_live_session_codec_denial() {
     let golden = envelope(corpus!("golden.bin"), "golden.bin");
     let baseline = binding(&golden);
     let encoded = encode_offered(&baseline, 0, &golden.payload);
+    assert_eq!(encoded[4], 2, "carrier-neutral session identity is wire v2");
+
+    let mut legacy_v1 = encoded.clone();
+    legacy_v1[4] = 1;
+    assert_eq!(
+        decode_session_frame(
+            &legacy_v1,
+            CORPUS_MAXIMUM_PAYLOAD_BYTES,
+            SESSION_MAXIMUM_FRAME_BYTES,
+        ),
+        Err(WireError::UnsupportedWireFormat)
+    );
 
     let mut wrong_magic = encoded.clone();
     wrong_magic[..4].copy_from_slice(&corpus!("wrong_magic.bin")[..4]);

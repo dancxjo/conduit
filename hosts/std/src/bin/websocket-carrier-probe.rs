@@ -7,8 +7,8 @@ use conduit_core::{
 };
 use conduit_std_host::websocket::NativeWebSocketListener;
 use conduit_wire::{
-    decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
-    SessionMessage, SessionRole,
+    decode_session_frame, encode_session_frame_into, RouteAttachment, SessionBinding,
+    SessionEndpointIdentity, SessionLimits, SessionMachine, SessionMessage, SessionRole,
 };
 
 const MAXIMUM_FRAME_BYTES: u32 = 1_024;
@@ -119,17 +119,36 @@ fn binding() -> SessionBinding {
         source_active_play_id,
         sink_active_play_id,
         connection_id: ConnectionId::from("probe/connection"),
-        link_binding_id: LinkBindingId::from("probe/link"),
-        provider: ConnectionProvider::WebSocket,
-        provider_instance_id: ConnectionProviderInstanceId::from("probe/websocket/instance"),
-        source,
-        sink,
+        source: SessionEndpointIdentity {
+            host_id: source.host_id.clone(),
+            boot_id: source.boot_id.clone(),
+        },
+        sink: SessionEndpointIdentity {
+            host_id: sink.host_id.clone(),
+            boot_id: sink.boot_id.clone(),
+        },
         value_kind: KindId::from("probe/value"),
-        limits: LinkLimits {
+        limits: SessionLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: MAXIMUM_PAYLOAD_BYTES,
             maximum_buffered_bytes: MAXIMUM_PAYLOAD_BYTES,
-            maximum_frame_bytes: MAXIMUM_FRAME_BYTES,
+        },
+        attachment: RouteAttachment {
+            link_binding_id: LinkBindingId::from("probe/link"),
+            provider: ConnectionProvider::WebSocket,
+            provider_instance_id: ConnectionProviderInstanceId::from("probe/websocket/instance"),
+            source_host_id: source.host_id,
+            source_boot_id: source.boot_id,
+            source_endpoint_id: LinkEndpointId::from("probe/source-endpoint"),
+            sink_host_id: sink.host_id,
+            sink_boot_id: sink.boot_id,
+            sink_endpoint_id: LinkEndpointId::from("probe/sink-endpoint"),
+            limits: LinkLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: MAXIMUM_PAYLOAD_BYTES,
+                maximum_buffered_bytes: MAXIMUM_PAYLOAD_BYTES,
+                maximum_frame_bytes: MAXIMUM_FRAME_BYTES,
+            },
         },
     }
 }

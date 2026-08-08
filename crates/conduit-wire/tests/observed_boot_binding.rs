@@ -2,7 +2,10 @@ use conduit_core::{
     bind_active_play, BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
     FragmentId, HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
 };
-use conduit_wire::{SessionBinding, SessionMachine, SessionRole, WireError};
+use conduit_wire::{
+    RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
+    SessionRole, WireError,
+};
 
 fn planned_binding() -> SessionBinding {
     let plan_id = PlanId::from("plan/exact");
@@ -26,17 +29,36 @@ fn planned_binding() -> SessionBinding {
         sink_active_play_id: bind_active_play(&plan_id, &sink.host_id, &sink.boot_id, 0)
             .active_play_id,
         connection_id: ConnectionId::from("connection/exact"),
-        link_binding_id: LinkBindingId::from("link/exact"),
-        provider: ConnectionProvider::UsbCdc,
-        provider_instance_id: ConnectionProviderInstanceId::from("provider/exact"),
-        source,
-        sink,
+        source: SessionEndpointIdentity {
+            host_id: source.host_id.clone(),
+            boot_id: source.boot_id.clone(),
+        },
+        sink: SessionEndpointIdentity {
+            host_id: sink.host_id.clone(),
+            boot_id: sink.boot_id.clone(),
+        },
         value_kind: KindId::from("value/signal"),
-        limits: LinkLimits {
+        limits: SessionLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: 9,
             maximum_buffered_bytes: 9,
-            maximum_frame_bytes: 2_048,
+        },
+        attachment: RouteAttachment {
+            link_binding_id: LinkBindingId::from("link/exact"),
+            provider: ConnectionProvider::UsbCdc,
+            provider_instance_id: ConnectionProviderInstanceId::from("provider/exact"),
+            source_host_id: source.host_id,
+            source_boot_id: source.boot_id,
+            source_endpoint_id: LinkEndpointId::from("endpoint/source"),
+            sink_host_id: sink.host_id,
+            sink_boot_id: sink.boot_id,
+            sink_endpoint_id: LinkEndpointId::from("endpoint/sink"),
+            limits: LinkLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: 9,
+                maximum_buffered_bytes: 9,
+                maximum_frame_bytes: 2_048,
+            },
         },
     }
 }
@@ -55,13 +77,26 @@ fn observed_boots_change_only_boot_scoped_session_facts() {
     assert_eq!(observed.source_fragment_id, planned.source_fragment_id);
     assert_eq!(observed.sink_fragment_id, planned.sink_fragment_id);
     assert_eq!(observed.connection_id, planned.connection_id);
-    assert_eq!(observed.link_binding_id, planned.link_binding_id);
-    assert_eq!(observed.provider, planned.provider);
-    assert_eq!(observed.provider_instance_id, planned.provider_instance_id);
+    assert_eq!(
+        observed.attachment.link_binding_id,
+        planned.attachment.link_binding_id
+    );
+    assert_eq!(observed.attachment.provider, planned.attachment.provider);
+    assert_eq!(
+        observed.attachment.provider_instance_id,
+        planned.attachment.provider_instance_id
+    );
+    assert_eq!(
+        observed.attachment.source_endpoint_id,
+        planned.attachment.source_endpoint_id
+    );
+    assert_eq!(
+        observed.attachment.sink_endpoint_id,
+        planned.attachment.sink_endpoint_id
+    );
+    assert_eq!(observed.attachment.limits, planned.attachment.limits);
     assert_eq!(observed.source.host_id, planned.source.host_id);
-    assert_eq!(observed.source.endpoint_id, planned.source.endpoint_id);
     assert_eq!(observed.sink.host_id, planned.sink.host_id);
-    assert_eq!(observed.sink.endpoint_id, planned.sink.endpoint_id);
     assert_eq!(observed.value_kind, planned.value_kind);
     assert_eq!(observed.limits, planned.limits);
     assert_ne!(observed.source.boot_id, planned.source.boot_id);

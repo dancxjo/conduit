@@ -74,7 +74,7 @@ impl TriplePhysicalRunner {
             report,
             "summary plan={} pico_link={} pico_boot={} values={} terminal=failed failure_code={code}",
             self.source.fragment().plan_id.as_str(),
-            binding.link_binding_id.as_str(),
+            binding.attachment.link_binding_id.as_str(),
             runtime.boot_id,
             final_sequence,
         )

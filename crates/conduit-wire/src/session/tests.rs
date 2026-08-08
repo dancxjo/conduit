@@ -2,7 +2,7 @@ use super::*;
 use alloc::vec;
 use conduit_core::{
     BootId, HostId, LinkAuthorityReference, LinkAvailability, LinkBinding, LinkCredentialReference,
-    LinkEndpointId, PlacementId,
+    LinkEndpoint, LinkEndpointId, PlacementId,
 };
 
 const MAXIMUM_PAYLOAD_BYTES: u32 = 16;
@@ -32,17 +32,36 @@ fn binding() -> SessionBinding {
         source_active_play_id,
         sink_active_play_id,
         connection_id: ConnectionId::from("test/connection"),
-        link_binding_id: LinkBindingId::from("test/link"),
-        provider: ConnectionProvider::WebSocket,
-        provider_instance_id: ConnectionProviderInstanceId::from("test/provider-instance"),
-        source,
-        sink,
+        source: SessionEndpointIdentity {
+            host_id: source.host_id.clone(),
+            boot_id: source.boot_id.clone(),
+        },
+        sink: SessionEndpointIdentity {
+            host_id: sink.host_id.clone(),
+            boot_id: sink.boot_id.clone(),
+        },
         value_kind: KindId::from("test/value"),
-        limits: LinkLimits {
+        limits: SessionLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: MAXIMUM_PAYLOAD_BYTES,
             maximum_buffered_bytes: MAXIMUM_PAYLOAD_BYTES,
-            maximum_frame_bytes: MAXIMUM_FRAME_BYTES,
+        },
+        attachment: RouteAttachment {
+            link_binding_id: LinkBindingId::from("test/link"),
+            provider: ConnectionProvider::WebSocket,
+            provider_instance_id: ConnectionProviderInstanceId::from("test/provider-instance"),
+            source_host_id: source.host_id,
+            source_boot_id: source.boot_id,
+            source_endpoint_id: LinkEndpointId::from("test/source-endpoint"),
+            sink_host_id: sink.host_id,
+            sink_boot_id: sink.boot_id,
+            sink_endpoint_id: LinkEndpointId::from("test/sink-endpoint"),
+            limits: LinkLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: MAXIMUM_PAYLOAD_BYTES,
+                maximum_buffered_bytes: MAXIMUM_PAYLOAD_BYTES,
+                maximum_frame_bytes: MAXIMUM_FRAME_BYTES,
+            },
         },
     }
 }
@@ -73,15 +92,23 @@ fn exact_planned_connection_constructs_the_session_binding() {
         temporal: conduit_core::PortTemporal::Value,
         provider: ConnectionProvider::WebSocket,
         link_binding: Some(LinkBinding {
-            binding_id: expected.link_binding_id.clone(),
-            source: expected.source.clone(),
-            sink: expected.sink.clone(),
-            provider: expected.provider,
-            provider_instance_id: expected.provider_instance_id.clone(),
+            binding_id: expected.attachment.link_binding_id.clone(),
+            source: LinkEndpoint {
+                host_id: expected.source.host_id.clone(),
+                boot_id: expected.source.boot_id.clone(),
+                endpoint_id: expected.attachment.source_endpoint_id.clone(),
+            },
+            sink: LinkEndpoint {
+                host_id: expected.sink.host_id.clone(),
+                boot_id: expected.sink.boot_id.clone(),
+                endpoint_id: expected.attachment.sink_endpoint_id.clone(),
+            },
+            provider: expected.attachment.provider,
+            provider_instance_id: expected.attachment.provider_instance_id.clone(),
             availability: LinkAvailability::Ready,
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
-            limits: expected.limits,
+            limits: expected.attachment.limits,
         }),
         route_candidates: vec![],
         item_capacity: 1,
@@ -276,7 +303,7 @@ fn wrong_identity_hello_and_limits_fail_closed() {
     );
 
     let mut invalid = binding;
-    invalid.limits.maximum_frame_bytes = 32;
+    invalid.attachment.limits.maximum_frame_bytes = 32;
     assert!(matches!(
         SessionMachine::new(invalid, SessionRole::Source),
         Err(WireError::InvalidLimits)
@@ -284,9 +311,9 @@ fn wrong_identity_hello_and_limits_fail_closed() {
 }
 
 #[test]
-fn every_routing_and_value_identity_mutation_fails_closed() {
+fn every_logical_identity_mutation_fails_closed() {
     let binding = binding();
-    for field in 0..8 {
+    for field in 0..14 {
         let mut frame = binding.hello_frame();
         match field {
             0 => frame.identity.plan_id = "wrong/plan",
@@ -295,8 +322,14 @@ fn every_routing_and_value_identity_mutation_fails_closed() {
             3 => frame.identity.connection_id = "wrong/connection",
             4 => frame.identity.source_active_play_id = "wrong/source-play",
             5 => frame.identity.sink_active_play_id = "wrong/sink-play",
-            6 => frame.identity.link_binding_id = "wrong/link",
-            7 => frame.identity.provider_instance_id = "wrong/provider-instance",
+            6 => frame.identity.source_host_id = "wrong/source-host",
+            7 => frame.identity.source_boot_id = "wrong/source-boot",
+            8 => frame.identity.sink_host_id = "wrong/sink-host",
+            9 => frame.identity.sink_boot_id = "wrong/sink-boot",
+            10 => frame.identity.value_kind = "wrong/value-kind",
+            11 => frame.identity.limits.maximum_in_flight_items += 1,
+            12 => frame.identity.limits.maximum_payload_bytes += 1,
+            13 => frame.identity.limits.maximum_buffered_bytes += 1,
             _ => unreachable!(),
         }
         let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
@@ -306,12 +339,37 @@ fn every_routing_and_value_identity_mutation_fails_closed() {
         SessionMessage::Hello(hello) => hello,
         _ => unreachable!(),
     };
-    hello.value_kind = "wrong/value-kind";
+    hello.link_binding_id = "wrong/link";
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
     assert_eq!(
         machine.admit_inbound(binding.frame(SessionMessage::Hello(hello))),
         Err(WireError::InvalidSession)
     );
+}
+
+#[test]
+fn every_route_attachment_wire_fact_is_checked_separately() {
+    let binding = binding();
+    for field in 0..6 {
+        let mut hello = match binding.hello_frame().message {
+            SessionMessage::Hello(hello) => hello,
+            _ => unreachable!(),
+        };
+        match field {
+            0 => hello.link_binding_id = "wrong/link",
+            1 => hello.provider = ConnectionProvider::UsbCdc,
+            2 => hello.provider_instance_id = "wrong/provider-instance",
+            3 => hello.source_endpoint_id = "wrong/source-endpoint",
+            4 => hello.sink_endpoint_id = "wrong/sink-endpoint",
+            5 => hello.limits.maximum_frame_bytes += 1,
+            _ => unreachable!(),
+        }
+        let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
+        assert_eq!(
+            machine.admit_inbound(binding.frame(SessionMessage::Hello(hello))),
+            Err(WireError::InvalidSession)
+        );
+    }
 }
 
 #[test]
@@ -367,8 +425,8 @@ fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
     // protocol. This proves session carrier neutrality without claiming that FixtureFrame
     // is an installed, runnable, or production-ready physical transport.
     let mut expected = binding();
-    expected.provider = ConnectionProvider::FixtureFrame;
-    assert!(expected.provider.supports_remote_session());
+    expected.attachment.provider = ConnectionProvider::FixtureFrame;
+    assert!(expected.attachment.provider.supports_remote_session());
 
     let connection = PlannedConnection {
         connection_id: expected.connection_id.clone(),
@@ -380,15 +438,23 @@ fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
         temporal: conduit_core::PortTemporal::Value,
         provider: ConnectionProvider::FixtureFrame,
         link_binding: Some(LinkBinding {
-            binding_id: expected.link_binding_id.clone(),
-            source: expected.source.clone(),
-            sink: expected.sink.clone(),
+            binding_id: expected.attachment.link_binding_id.clone(),
+            source: LinkEndpoint {
+                host_id: expected.source.host_id.clone(),
+                boot_id: expected.source.boot_id.clone(),
+                endpoint_id: expected.attachment.source_endpoint_id.clone(),
+            },
+            sink: LinkEndpoint {
+                host_id: expected.sink.host_id.clone(),
+                boot_id: expected.sink.boot_id.clone(),
+                endpoint_id: expected.attachment.sink_endpoint_id.clone(),
+            },
             provider: ConnectionProvider::FixtureFrame,
-            provider_instance_id: expected.provider_instance_id.clone(),
+            provider_instance_id: expected.attachment.provider_instance_id.clone(),
             availability: LinkAvailability::Ready,
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
-            limits: expected.limits,
+            limits: expected.attachment.limits,
         }),
         route_candidates: vec![],
         item_capacity: 1,
@@ -432,7 +498,7 @@ fn local_and_in_memory_providers_remain_rejected() {
     for provider in [ConnectionProvider::Local, ConnectionProvider::InMemory] {
         assert!(!provider.supports_remote_session());
         let mut invalid = base.clone();
-        invalid.provider = provider;
+        invalid.attachment.provider = provider;
         assert_eq!(invalid.validate(), Err(WireError::InvalidProvider));
 
         let connection = PlannedConnection {
@@ -445,15 +511,23 @@ fn local_and_in_memory_providers_remain_rejected() {
             temporal: conduit_core::PortTemporal::Value,
             provider,
             link_binding: Some(LinkBinding {
-                binding_id: base.link_binding_id.clone(),
-                source: base.source.clone(),
-                sink: base.sink.clone(),
+                binding_id: base.attachment.link_binding_id.clone(),
+                source: LinkEndpoint {
+                    host_id: base.source.host_id.clone(),
+                    boot_id: base.source.boot_id.clone(),
+                    endpoint_id: base.attachment.source_endpoint_id.clone(),
+                },
+                sink: LinkEndpoint {
+                    host_id: base.sink.host_id.clone(),
+                    boot_id: base.sink.boot_id.clone(),
+                    endpoint_id: base.attachment.sink_endpoint_id.clone(),
+                },
                 provider,
-                provider_instance_id: base.provider_instance_id.clone(),
+                provider_instance_id: base.attachment.provider_instance_id.clone(),
                 availability: LinkAvailability::Ready,
                 credential: LinkCredentialReference::None,
                 authority: LinkAuthorityReference::ProcessOwned,
-                limits: base.limits,
+                limits: base.attachment.limits,
             }),
             route_candidates: vec![],
             item_capacity: 1,
@@ -479,7 +553,7 @@ fn fixture_datagram_provider_remains_rejected() {
     assert!(!provider.supports_remote_session());
 
     let mut invalid = binding();
-    invalid.provider = provider;
+    invalid.attachment.provider = provider;
     assert_eq!(invalid.validate(), Err(WireError::InvalidProvider));
 
     let connection = PlannedConnection {
@@ -492,15 +566,23 @@ fn fixture_datagram_provider_remains_rejected() {
         temporal: conduit_core::PortTemporal::Value,
         provider,
         link_binding: Some(LinkBinding {
-            binding_id: invalid.link_binding_id.clone(),
-            source: invalid.source.clone(),
-            sink: invalid.sink.clone(),
+            binding_id: invalid.attachment.link_binding_id.clone(),
+            source: LinkEndpoint {
+                host_id: invalid.source.host_id.clone(),
+                boot_id: invalid.source.boot_id.clone(),
+                endpoint_id: invalid.attachment.source_endpoint_id.clone(),
+            },
+            sink: LinkEndpoint {
+                host_id: invalid.sink.host_id.clone(),
+                boot_id: invalid.sink.boot_id.clone(),
+                endpoint_id: invalid.attachment.sink_endpoint_id.clone(),
+            },
             provider,
-            provider_instance_id: invalid.provider_instance_id.clone(),
+            provider_instance_id: invalid.attachment.provider_instance_id.clone(),
             availability: LinkAvailability::Ready,
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
-            limits: invalid.limits,
+            limits: invalid.attachment.limits,
         }),
         route_candidates: vec![],
         item_capacity: 1,
@@ -530,15 +612,23 @@ fn provider_link_mismatch_remains_rejected() {
         temporal: conduit_core::PortTemporal::Value,
         provider: ConnectionProvider::WebSocket,
         link_binding: Some(LinkBinding {
-            binding_id: expected.link_binding_id.clone(),
-            source: expected.source.clone(),
-            sink: expected.sink.clone(),
+            binding_id: expected.attachment.link_binding_id.clone(),
+            source: LinkEndpoint {
+                host_id: expected.source.host_id.clone(),
+                boot_id: expected.source.boot_id.clone(),
+                endpoint_id: expected.attachment.source_endpoint_id.clone(),
+            },
+            sink: LinkEndpoint {
+                host_id: expected.sink.host_id.clone(),
+                boot_id: expected.sink.boot_id.clone(),
+                endpoint_id: expected.attachment.sink_endpoint_id.clone(),
+            },
             provider: ConnectionProvider::FixtureFrame, // Mismatched link provider
-            provider_instance_id: expected.provider_instance_id.clone(),
+            provider_instance_id: expected.attachment.provider_instance_id.clone(),
             availability: LinkAvailability::Ready,
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
-            limits: expected.limits,
+            limits: expected.attachment.limits,
         }),
         route_candidates: vec![],
         item_capacity: 1,
@@ -571,18 +661,20 @@ fn mutated_provider_in_peer_hello_remains_rejected() {
 }
 
 #[test]
-fn mutated_provider_instance_identity_in_session_identity_remains_rejected() {
+fn mutated_provider_instance_in_route_attachment_remains_rejected() {
     let binding = binding();
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
     let mut frame = binding.hello_frame();
-    frame.identity.provider_instance_id = "test/different-provider-instance";
+    if let SessionMessage::Hello(ref mut hello) = frame.message {
+        hello.provider_instance_id = "test/different-provider-instance";
+    }
     assert_eq!(machine.admit_inbound(frame), Err(WireError::InvalidSession));
 }
 
 #[test]
 fn usb_cdc_provider_round_trip_and_session_eligibility() {
     let mut b = binding();
-    b.provider = ConnectionProvider::UsbCdc;
+    b.attachment.provider = ConnectionProvider::UsbCdc;
 
     assert!(ConnectionProvider::UsbCdc.supports_remote_session());
     assert_eq!(ConnectionProvider::UsbCdc.canonical_code(), 5);

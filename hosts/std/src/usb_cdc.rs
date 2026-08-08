@@ -670,7 +670,10 @@ mod tests {
         BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId, FragmentId, HostId,
         KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
     };
-    use conduit_wire::{SessionBinding, SessionMachine, SessionMessage, SessionRole};
+    use conduit_wire::{
+        RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
+        SessionMessage, SessionRole,
+    };
     use std::io::Cursor;
 
     fn test_binding() -> SessionBinding {
@@ -699,17 +702,36 @@ mod tests {
             source_active_play_id,
             sink_active_play_id,
             connection_id: ConnectionId::from("conn-1"),
-            link_binding_id: LinkBindingId::from("link-1"),
-            provider: ConnectionProvider::UsbCdc,
-            provider_instance_id: ConnectionProviderInstanceId::from("prov-1"),
-            source,
-            sink,
+            source: SessionEndpointIdentity {
+                host_id: source.host_id.clone(),
+                boot_id: source.boot_id.clone(),
+            },
+            sink: SessionEndpointIdentity {
+                host_id: sink.host_id.clone(),
+                boot_id: sink.boot_id.clone(),
+            },
             value_kind: KindId::from("kind-1"),
-            limits: LinkLimits {
+            limits: SessionLimits {
                 maximum_in_flight_items: 1,
                 maximum_payload_bytes: 512,
                 maximum_buffered_bytes: 512,
-                maximum_frame_bytes: 1024,
+            },
+            attachment: RouteAttachment {
+                link_binding_id: LinkBindingId::from("link-1"),
+                provider: ConnectionProvider::UsbCdc,
+                provider_instance_id: ConnectionProviderInstanceId::from("prov-1"),
+                source_host_id: source.host_id,
+                source_boot_id: source.boot_id,
+                source_endpoint_id: LinkEndpointId::from("end-1"),
+                sink_host_id: sink.host_id,
+                sink_boot_id: sink.boot_id,
+                sink_endpoint_id: LinkEndpointId::from("end-2"),
+                limits: LinkLimits {
+                    maximum_in_flight_items: 1,
+                    maximum_payload_bytes: 512,
+                    maximum_buffered_bytes: 512,
+                    maximum_frame_bytes: 1024,
+                },
             },
         }
     }

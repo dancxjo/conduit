@@ -286,7 +286,7 @@ impl DelegatedRebootTransaction {
             return Some(RebootDenial::Unauthorized);
         }
         if session.validate().is_err()
-            || request.link_binding_id != session.link_binding_id
+            || request.link_binding_id != session.attachment.link_binding_id
             || request.link_binding_id != self.grant.link_binding_id
             || session.source.host_id != request.controller.host_id
             || session.source.boot_id != request.controller.boot_id
