@@ -1362,6 +1362,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-observatory",
+ "conduit-std-catalog",
  "conduit-std-host",
  "font8x8",
  "patchbay-model",

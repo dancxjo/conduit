@@ -1,13 +1,11 @@
 use conduit_core::{
-    CapabilityId, ConnectionProvider, OperationId, ProtectedResourceAccess,
-    ProtectedResourceCommitPolicy, ResourceBindingRoleId, ResourceHandleId,
+    CapabilityId, OperationId, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
+    ResourceBindingRoleId, ResourceHandleId,
 };
-use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use conduit_std_host::{
-    CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken, ProtectedFileAvailability,
-    ProtectedFileRegistry, StdHost,
+    prepare_copy_task, CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken,
+    ProtectedFileAvailability, ProtectedFileRegistry, StdHost,
 };
-use std::collections::BTreeMap;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use std::sync::mpsc::{self, TryRecvError};
@@ -193,12 +191,6 @@ fn parse_arguments(raw: Vec<String>) -> Result<Arguments, String> {
 
 fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
     let host = StdHost::new();
-    let mut catalog = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_copy_file_catalog(&mut catalog)?;
-    let form =
-        conduit_form::parse(COPY_FORM_SOURCE, &catalog).map_err(|error| error.to_string())?;
-    let placements = default_placements(&form, std::slice::from_ref(host.advertisement()))
-        .map_err(|error| error.to_string())?;
     let mut registry = ProtectedFileRegistry::default();
     let operation_id = OperationId::from("copy");
     let capability_id = CapabilityId::from(conduit_std_catalog::COPY_FILE_CAPABILITY);
@@ -238,33 +230,12 @@ fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
         policy,
         ProtectedFileAvailability::Available,
     )?;
-    let overrides = BTreeMap::new();
-    let plan = plan_with_options(
-        &form,
-        std::slice::from_ref(host.advertisement()),
-        &placements,
-        &[ConnectionProvider::Local],
-        PlanningOptions {
-            connection_providers: &overrides,
-            route_candidates: &BTreeMap::new(),
-            connection_item_capacity: 1,
-            connection_byte_capacity: 1,
-            authority_grants: &[],
-            protected_resource_grants: &[source, destination],
-            link_bindings: &[],
-        },
-    )
-    .map_err(|error| error.to_string())?;
-    let fragment = plan
-        .fragments
-        .first()
-        .cloned()
-        .ok_or_else(|| "copy Plan has no local fragment".to_string())?;
+    let prepared = prepare_copy_task(&host, &[source, destination])?;
     Ok(PreparedTask {
         host,
-        form,
-        plan,
-        fragment,
+        form: prepared.form,
+        plan: prepared.plan,
+        fragment: prepared.fragment,
         registry,
         stop: CopyStopToken::default(),
     })

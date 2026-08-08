@@ -12,6 +12,7 @@ type RunResult = Result<(conduit_std_host::StdRunReport, Vec<u8>), String>;
 
 pub struct NativeControl {
     host_config: StdHostConfig,
+    composition: StdHostComposition,
     host: StdHost,
     plan: Option<Plan>,
     plan_document: Option<PlanDocument>,
@@ -29,10 +30,15 @@ impl NativeControl {
             boot_id: BootId::from("patchbay-native/std-boot-1"),
             offer_generation: OfferGeneration(1),
         };
-        let host =
-            StdHost::new_with_composition(host_config.clone(), StdHostComposition::reference());
+        let composition = StdHostComposition::minimal()
+            .with_signal()
+            .with_time()
+            .with_text()
+            .with_state();
+        let host = StdHost::new_with_composition(host_config.clone(), composition);
         Self {
             host_config,
+            composition,
             host,
             plan: None,
             plan_document: None,
@@ -130,9 +136,10 @@ impl NativeControl {
         let control = RunControl::default();
         let worker_control = control.clone();
         let config = self.host_config.clone();
+        let composition = self.composition;
         let (sender, receiver) = mpsc::sync_channel(1);
         std::thread::spawn(move || {
-            let mut host = StdHost::new_with_composition(config, StdHostComposition::reference());
+            let mut host = StdHost::new_with_composition(config, composition);
             let mut output = Vec::with_capacity(4096);
             let result = host
                 .run_fragment_controlled_to(
