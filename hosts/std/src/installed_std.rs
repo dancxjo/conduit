@@ -1,4 +1,5 @@
 pub(super) mod contract;
+mod count_operations;
 mod operation;
 #[cfg(test)]
 mod test_support;
@@ -12,6 +13,7 @@ mod tick_presentation;
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
+use self::count_operations::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
 use self::operation::{InstalledFactory, InstalledOperation, EVERY_FACTORY, TICK_FACTORY};
 #[cfg(test)]
 use self::operation::{TEST_OBSERVER_FACTORY, TEST_OBSERVER_IMPLEMENTATION};
@@ -82,6 +84,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEXT_UPPER_FACTORY,
     &TEXT_JOIN_FACTORY,
     &TEXT_PRESENTATION_FACTORY,
+    &STATE_COUNT_FACTORY,
+    &COUNT_PRESENTATION_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]
@@ -280,6 +284,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let wait_contract_id = wait_host_operation_requirement().contract_id;
     let text_target_kind = kind_id("presentation/stdout-text");
     let tick_target_kind = kind_id(conduit_std_catalog::TICK_PRESENTATION_TARGET);
+    let count_target_kind = kind_id(conduit_std_catalog::COUNT_PRESENTATION_TARGET);
     let upper_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT,
     );
@@ -361,6 +366,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             } else if lowered_operation.target_kind.as_ref() == Some(&tick_target_kind) {
                 let tick = decode_tick(input).map_err(|error| error.to_string())?;
                 writeln!(_output, "tick sequence={tick}").map_err(|error| error.to_string())?;
+            } else if lowered_operation.target_kind.as_ref() == Some(&count_target_kind) {
+                let count = count_operations::decode_count(input)?;
+                writeln!(_output, "count value={count}").map_err(|error| error.to_string())?;
             } else {
                 #[cfg(test)]
                 {

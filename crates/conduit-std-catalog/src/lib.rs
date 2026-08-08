@@ -25,6 +25,8 @@ mod text_presentation;
 pub use text_presentation::*;
 mod text_transform;
 pub use text_transform::*;
+mod state_count;
+pub use state_count::*;
 
 pub const PULSE_KIND: &str = "flow/pulse";
 pub const SHOW_KIND: &str = "presentation/show";
