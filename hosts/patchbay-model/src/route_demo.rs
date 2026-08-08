@@ -46,6 +46,7 @@ impl From<RouteError> for RouteDemoError {
 pub struct DistributedRouteDemo {
     lines: Vec<String>,
     presentation: DistributedRoutePresentation,
+    control_events: Vec<ControlLoopEvent>,
 }
 
 impl DistributedRouteDemo {
@@ -232,6 +233,50 @@ impl DistributedRouteDemo {
             "  REFUSED route=ambient/unplanned-wifi reason=UnsealedObservation plan-unchanged=true"
                 .into(),
         )?;
+        let [link_event, unsatisfied_event, request_event, success_event, installed_event] =
+            &events;
+        let ControlLoopEvent::LinkBecameUnavailable {
+            observation_evidence_id: unavailable_evidence_id,
+            ..
+        } = link_event
+        else {
+            return Err(RouteDemoError::InvalidEvidence);
+        };
+        let ControlLoopEvent::DeploymentBecameUnsatisfied {
+            evidence_id: unsatisfied_evidence_id,
+            ..
+        } = unsatisfied_event
+        else {
+            return Err(RouteDemoError::InvalidEvidence);
+        };
+        let ControlLoopEvent::PlanningRequested {
+            request_evidence_id: planning_request_evidence_id,
+            ..
+        } = request_event
+        else {
+            return Err(RouteDemoError::InvalidEvidence);
+        };
+        let ControlLoopEvent::PlanningSucceeded {
+            evidence_id: planning_success_evidence_id,
+            ..
+        } = success_event
+        else {
+            return Err(RouteDemoError::InvalidEvidence);
+        };
+        let ControlLoopEvent::PlanSuperseded {
+            evidence_id: installed_evidence_id,
+            ..
+        } = installed_event
+        else {
+            return Err(RouteDemoError::InvalidEvidence);
+        };
+        let ControlLoopEvent::RouteSelectionChanged {
+            observation_evidence_id: selection_evidence_id,
+            ..
+        } = &selection
+        else {
+            return Err(RouteDemoError::InvalidEvidence);
+        };
         let presentation = DistributedRoutePresentation {
             source_document_id: one.source_document_id.clone(),
             checked_form_id: one.checked_form_id.clone(),
@@ -239,27 +284,30 @@ impl DistributedRouteDemo {
                 prior: plan_presentation(&one, one_connection),
                 replacement_plan_id: replacement.plan_id.clone(),
                 unavailable_binding_id: lost.binding_id,
-                unavailable_evidence_id: lost.evidence_id,
-                unsatisfied_evidence_id: EvidenceId::from("route-demo/plan-a/unsatisfied"),
-                planning_request_evidence_id: EvidenceId::from("route-demo/plan-a/replan-request"),
-                planning_success_evidence_id: EvidenceId::from("route-demo/plan-c/planned"),
-                installed_evidence_id: EvidenceId::from("route-demo/plan-c/installed"),
+                unavailable_evidence_id: unavailable_evidence_id.clone(),
+                unsatisfied_evidence_id: unsatisfied_evidence_id.clone(),
+                planning_request_evidence_id: planning_request_evidence_id.clone(),
+                planning_success_evidence_id: planning_success_evidence_id.clone(),
+                installed_evidence_id: installed_evidence_id.clone(),
             },
             same_plan: SamePlanFallbackPresentation {
                 plan: plan_presentation(&fallback, fallback_connection),
                 unavailable_binding_id: fallback_lost.binding_id,
-                unavailable_evidence_id: fallback_lost.evidence_id,
+                unavailable_evidence_id: selection_evidence_id.clone(),
                 selected_binding_id,
-                selection_evidence_id: EvidenceId::from("route-demo/plan-b/usb-unavailable"),
+                selection_evidence_id: selection_evidence_id.clone(),
             },
             refused: RefusedRoutePresentation {
                 binding_id: invented.binding_id,
                 observation_evidence_id: invented.evidence_id,
             },
         };
+        let mut control_events = events.to_vec();
+        control_events.push(selection);
         Ok(Self {
             lines,
             presentation,
+            control_events,
         })
     }
 
@@ -269,6 +317,10 @@ impl DistributedRouteDemo {
 
     pub fn presentation(&self) -> &DistributedRoutePresentation {
         &self.presentation
+    }
+
+    pub fn control_events(&self) -> &[ControlLoopEvent] {
+        &self.control_events
     }
 
     pub fn visual_lines(&self) -> Vec<String> {
@@ -294,7 +346,7 @@ fn plan_presentation(
             .map(|(order, candidate)| RouteCandidatePresentation {
                 order,
                 binding_id: candidate.binding_id.clone(),
-                provider: format!("{:?}", candidate.provider),
+                provider: candidate.provider,
                 provider_instance_id: candidate.provider_instance_id.clone(),
             })
             .collect(),

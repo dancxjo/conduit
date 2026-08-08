@@ -1,14 +1,15 @@
 //! Toolkit-independent views of one evidence-backed distributed route demonstration.
 
 use conduit_core::{
-    ConnectionId, ConnectionProviderInstanceId, EvidenceId, LinkBindingId, PlanId, SourceDocumentId,
+    ConnectionId, ConnectionProvider, ConnectionProviderInstanceId, EvidenceId, LinkBindingId,
+    PlanId, SourceDocumentId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RouteCandidatePresentation {
     pub order: usize,
     pub binding_id: LinkBindingId,
-    pub provider: String,
+    pub provider: ConnectionProvider,
     pub provider_instance_id: ConnectionProviderInstanceId,
 }
 
@@ -210,7 +211,7 @@ fn candidate_lines(
             format!(
                 "    {marker} order={} {} binding={} provider-instance={}",
                 candidate.order,
-                display_provider(&candidate.provider),
+                display_provider(candidate.provider),
                 candidate.binding_id.as_str(),
                 candidate.provider_instance_id.as_str()
             )
@@ -224,7 +225,7 @@ fn candidate_names(plan: &RoutePlanPresentation) -> String {
         .map(|candidate| {
             format!(
                 "{} (binding {}, provider instance {})",
-                display_provider(&candidate.provider),
+                display_provider(candidate.provider),
                 candidate.binding_id.as_str(),
                 candidate.provider_instance_id.as_str()
             )
@@ -233,11 +234,14 @@ fn candidate_names(plan: &RoutePlanPresentation) -> String {
         .join(", then ")
 }
 
-fn display_provider(provider: &str) -> &str {
+fn display_provider(provider: ConnectionProvider) -> &'static str {
     match provider {
-        "UsbCdc" => "USB CDC",
-        "WebSocket" => "WebSocket",
-        other => other,
+        ConnectionProvider::Local => "local connection",
+        ConnectionProvider::InMemory => "in-memory connection",
+        ConnectionProvider::FixtureFrame => "fixture frame",
+        ConnectionProvider::FixtureDatagram => "fixture datagram",
+        ConnectionProvider::WebSocket => "WebSocket",
+        ConnectionProvider::UsbCdc => "USB CDC",
     }
 }
 
