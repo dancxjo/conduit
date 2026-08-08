@@ -280,3 +280,13 @@ fn shorthand_pair_participates_in_checked_identity() {
         auxiliary.forms[0].checked_form_id
     );
 }
+
+#[test]
+fn delimiter_like_literal_text_is_bound_unambiguously_into_identity() {
+    let first = check("form a {\n clock: time/every(\"a:b|c\")\n}\n");
+    let second = check("form a {\n clock: time/every(\"a:b|d\")\n}\n");
+    assert_ne!(
+        first.forms[0].checked_form_id,
+        second.forms[0].checked_form_id
+    );
+}

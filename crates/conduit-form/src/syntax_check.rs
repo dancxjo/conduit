@@ -161,7 +161,11 @@ fn check_form(
                         }
                     }
                 }
-                cords.push(stages.join(">"));
+                let mut canonical = String::from("cord");
+                for stage in stages {
+                    push_field(&mut canonical, &stage);
+                }
+                cords.push(canonical);
             }
             BackStatement::LocalValue(_) => {}
         }
@@ -402,36 +406,39 @@ fn checked_identity(
     cells: &[CheckedCanonicalCell],
     cords: &[String],
 ) -> CheckedFormId {
-    let mut canonical = format!("canonical-form:{name}|");
+    let mut canonical = String::from("canonical-form");
+    push_field(&mut canonical, name);
     for parameter in parameters {
-        canonical.push_str(&format!(
-            "param:{}:{}:{}|",
-            parameter.name,
-            parameter.value_type,
-            parameter
-                .default
-                .as_ref()
-                .map(canonical_value)
-                .as_deref()
-                .unwrap_or("<required>")
-        ));
+        canonical.push_str("param");
+        push_field(&mut canonical, &parameter.name);
+        push_field(&mut canonical, &parameter.value_type);
+        let default = parameter
+            .default
+            .as_ref()
+            .map(canonical_value)
+            .unwrap_or_else(|| "required".into());
+        push_field(&mut canonical, &default);
     }
     let mut ports = runtime_ports.to_vec();
     ports.sort_by(|left, right| left.name.text.cmp(&right.name.text));
     for port in ports {
-        canonical.push_str(&format!(
-            "port:{}:{}:{:?}|",
-            port.name.text, port.value_type.text, port.direction
-        ));
+        canonical.push_str("port");
+        push_field(&mut canonical, &port.name.text);
+        push_field(&mut canonical, &port.value_type.text);
+        push_field(&mut canonical, &format!("{:?}", port.direction));
     }
     if let Some((input, output)) = shorthand {
-        canonical.push_str(&format!("shorthand:{input}>{output}|"));
+        canonical.push_str("shorthand");
+        push_field(&mut canonical, input);
+        push_field(&mut canonical, output);
     }
     for cell in cells {
-        canonical.push_str(&format!("cell:{}|", canonical_cell(cell)));
+        canonical.push_str("cell");
+        push_field(&mut canonical, &canonical_cell(cell));
     }
     for cord in cords {
-        canonical.push_str(&format!("cord:{cord}|"));
+        canonical.push_str("cord");
+        push_field(&mut canonical, cord);
     }
     CheckedFormId::from(hash_string(&canonical))
 }
@@ -457,20 +464,21 @@ fn contains_identifier(expression: &str, name: &str) -> bool {
 }
 
 fn canonical_cell(cell: &CheckedCanonicalCell) -> String {
-    let mut value = format!(
-        "{}:{}",
-        cell.name.as_deref().unwrap_or("<anonymous>"),
-        cell.operation
-    );
+    let mut value = String::new();
+    push_field(&mut value, cell.name.as_deref().unwrap_or("<anonymous>"));
+    push_field(&mut value, &cell.operation);
     for binding in &cell.startup_bindings {
-        value.push_str(&format!(
-            ":{}:{}={}",
-            binding.name,
-            binding.value_type,
-            canonical_value(&binding.value)
-        ));
+        push_field(&mut value, &binding.name);
+        push_field(&mut value, &binding.value_type);
+        push_field(&mut value, &canonical_value(&binding.value));
     }
     value
+}
+
+fn push_field(target: &mut String, value: &str) {
+    target.push_str(&value.len().to_string());
+    target.push(':');
+    target.push_str(value);
 }
 
 fn canonical_value(value: &CanonicalStartupValue) -> String {
