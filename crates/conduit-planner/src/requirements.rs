@@ -82,50 +82,14 @@ pub(crate) fn validate_hard_requirements(
                 offer.capability_id.as_str()
             )));
         }
-        if offer.limits.max_queue_items < requirement.minimum_queue_items {
-            return unsatisfied(operation_id(operation), "queue item bound");
-        }
-        if offer.limits.max_queue_bytes < requirement.minimum_queue_bytes {
-            return unsatisfied(operation_id(operation), "queue byte bound");
-        }
-        for resource in &offer.resource_requirements {
-            if requirement
-                .maximum_resource_units
-                .get(&resource.class_id)
-                .is_some_and(|maximum| resource.units > *maximum)
-            {
-                return unsatisfied(operation_id(operation), "resource-unit ceiling");
-            }
-        }
-        if requirement
-            .permitted_host_operations
-            .as_ref()
-            .is_some_and(|permitted| {
-                offer
-                    .host_operations
-                    .iter()
-                    .any(|required| !permitted.contains(&required.contract_id))
-            })
-        {
-            return unsatisfied(operation_id(operation), "host-operation allowlist");
-        }
-        if requirement
-            .permitted_authority_contracts
-            .as_ref()
-            .is_some_and(|permitted| {
-                offer
-                    .authority_requirements
-                    .iter()
-                    .any(|required| !permitted.contains(&required.contract_id))
-            })
-        {
-            return unsatisfied(operation_id(operation), "authority-contract allowlist");
+        if let Some(dimension) = hard_requirement_failure(offer, requirement) {
+            return unsatisfied(operation_id(operation), dimension);
         }
     }
     Ok(())
 }
 
-fn validate_requirement_identities(
+pub(crate) fn validate_requirement_identities(
     requirement: &HardRealizationRequirements,
 ) -> Result<(), PlannerError> {
     let empty_resource = requirement
@@ -148,6 +112,51 @@ fn validate_requirement_identities(
         ));
     }
     Ok(())
+}
+
+pub(crate) fn hard_requirement_failure(
+    offer: &conduit_core::CapabilityOffer,
+    requirement: &HardRealizationRequirements,
+) -> Option<&'static str> {
+    if offer.limits.max_queue_items < requirement.minimum_queue_items {
+        return Some("queue item bound");
+    }
+    if offer.limits.max_queue_bytes < requirement.minimum_queue_bytes {
+        return Some("queue byte bound");
+    }
+    if offer.resource_requirements.iter().any(|resource| {
+        requirement
+            .maximum_resource_units
+            .get(&resource.class_id)
+            .is_some_and(|maximum| resource.units > *maximum)
+    }) {
+        return Some("resource-unit ceiling");
+    }
+    if requirement
+        .permitted_host_operations
+        .as_ref()
+        .is_some_and(|permitted| {
+            offer
+                .host_operations
+                .iter()
+                .any(|required| !permitted.contains(&required.contract_id))
+        })
+    {
+        return Some("host-operation allowlist");
+    }
+    if requirement
+        .permitted_authority_contracts
+        .as_ref()
+        .is_some_and(|permitted| {
+            offer
+                .authority_requirements
+                .iter()
+                .any(|required| !permitted.contains(&required.contract_id))
+        })
+    {
+        return Some("authority-contract allowlist");
+    }
+    None
 }
 
 fn operation_id(operation: &conduit_form::CheckedOperation) -> &OperationId {
