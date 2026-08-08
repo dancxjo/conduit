@@ -4,8 +4,8 @@ use crate::requirements::{
 };
 use crate::{PlacementChoice, PlannerError};
 use conduit_core::{
-    AuthorityContractId, CapabilityOffer, HostAdvertisement, HostOperationContractId,
-    RealizationCharacteristicId, ResourceClassId,
+    AuthorityContractId, CapabilityOffer, ComputePerformanceClassId, HostAdvertisement,
+    HostOperationContractId, RealizationCharacteristicId, ResourceClassId,
 };
 use conduit_form::CheckedOperation;
 use std::cmp::Ordering;
@@ -17,6 +17,11 @@ use std::cmp::Ordering;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RealizationPreference {
     MinimizeResourceUnits(ResourceClassId),
+    MaximizeComputeServiceGuarantee(ResourceClassId),
+    PreferComputePerformanceClass {
+        resource_class_id: ResourceClassId,
+        performance_class_id: ComputePerformanceClassId,
+    },
     MaximizeQueueItems,
     MaximizeQueueBytes,
     PreferWithoutHostOperation(HostOperationContractId),
@@ -131,6 +136,18 @@ fn compare_candidates(
             RealizationPreference::MinimizeResourceUnits(class_id) => {
                 resource_units(left.offer, class_id).cmp(&resource_units(right.offer, class_id))
             }
+            RealizationPreference::MaximizeComputeServiceGuarantee(class_id) => {
+                compute_service(right.host, class_id).cmp(&compute_service(left.host, class_id))
+            }
+            RealizationPreference::PreferComputePerformanceClass {
+                resource_class_id,
+                performance_class_id,
+            } => compute_performance_distance(left.host, resource_class_id, performance_class_id)
+                .cmp(&compute_performance_distance(
+                    right.host,
+                    resource_class_id,
+                    performance_class_id,
+                )),
             RealizationPreference::MaximizeQueueItems => right
                 .offer
                 .limits
@@ -185,12 +202,46 @@ fn has_authority(offer: &CapabilityOffer, contract_id: &AuthorityContractId) -> 
         .any(|requirement| &requirement.contract_id == contract_id)
 }
 
+fn compute_service(
+    host: &HostAdvertisement,
+    class_id: &ResourceClassId,
+) -> Option<conduit_core::ComputeServiceGuarantee> {
+    host.resources
+        .iter()
+        .find(|offer| &offer.class_id == class_id)
+        .and_then(|offer| offer.compute.as_ref())
+        .map(|compute| compute.service_guarantee)
+}
+
+fn compute_performance_distance(
+    host: &HostAdvertisement,
+    class_id: &ResourceClassId,
+    performance_class_id: &ComputePerformanceClassId,
+) -> u8 {
+    u8::from(!host.resources.iter().any(|offer| {
+        &offer.class_id == class_id
+            && offer.compute.as_ref().is_some_and(|compute| {
+                compute
+                    .topology_groups
+                    .iter()
+                    .any(|group| group.performance_class.as_ref() == Some(performance_class_id))
+            })
+    }))
+}
+
 pub(crate) fn validate_policy(policy: &RealizationPolicy) -> Result<(), PlannerError> {
     let has_empty_identity = policy
         .preferences
         .iter()
         .any(|preference| match preference {
             RealizationPreference::MinimizeResourceUnits(identity) => identity.as_str().is_empty(),
+            RealizationPreference::MaximizeComputeServiceGuarantee(identity) => {
+                identity.as_str().is_empty()
+            }
+            RealizationPreference::PreferComputePerformanceClass {
+                resource_class_id,
+                performance_class_id,
+            } => resource_class_id.as_str().is_empty() || performance_class_id.as_str().is_empty(),
             RealizationPreference::PreferWithoutHostOperation(identity) => {
                 identity.as_str().is_empty()
             }

@@ -104,13 +104,29 @@ pub(crate) fn consume_selected_capacity(
                     && observation.boot_id == host.boot_id
                     && observation.offer_generation == host.offer_generation
                     && observation.class_id == requirement.class_id
-                    && observation.unreserved_units >= requirement.units
+                    && host.resources.iter().any(|pool| {
+                        pool.pool_id == observation.pool_id
+                            && pool.class_id == requirement.class_id
+                            && if requirement.compute.is_some() {
+                                conduit_core::compute_reservation(
+                                    requirement,
+                                    pool,
+                                    observation.unreserved_units,
+                                )
+                                .is_some()
+                            } else {
+                                observation.unreserved_units >= requirement.units
+                            }
+                    })
             })
             .ok_or_else(|| {
                 PlannerError::CurrentResourceObservationUnavailable(
                     "selected realization lost observed capacity".to_string(),
                 )
             })?;
+        // Candidate selection reserves only the admitted minimum. The Plan
+        // builder distributes capacity toward preferences after all selected
+        // operations' minima are known.
         observation.unreserved_units -= requirement.units;
     }
     Ok(())

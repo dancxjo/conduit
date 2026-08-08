@@ -4,9 +4,7 @@ use crate::realization::{consume_selected_capacity, reject_unknown_operation_inp
 use crate::requirements::{
     hard_requirement_failure, validate_requirement_identities, HardRealizationRequirements,
 };
-use crate::{
-    PlacementChoice, PlacementChoices, PlannerError, RealizationPolicy, RealizationPreference,
-};
+use crate::{PlacementChoice, PlacementChoices, PlannerError, RealizationPolicy};
 use conduit_core::{
     seal_plan, ArtifactId, BootId, CapabilityId, CapabilityOffer, ConnectionProvider, FormIdentity,
     HostAdvertisement, HostId, ImplementationId, OfferGeneration, OperationId, Plan,
@@ -14,7 +12,6 @@ use conduit_core::{
     ResourceObservation,
 };
 use conduit_form::{CheckedForm, CheckedOperation};
-use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const MAXIMUM_REALIZATION_DECISION_RECORDS: usize = 256;
@@ -158,7 +155,7 @@ pub fn select_realization_with_characteristics_and_evidence(
         ));
     }
     observed_admitted.sort_by(|(left_host, left_offer), (right_host, right_offer)| {
-        compare(
+        crate::characteristic_policy::compare(
             left_host,
             left_offer,
             advertisement_for(left_host, left_offer, advertisements),
@@ -340,61 +337,6 @@ fn characteristic_rejection(
         .map(|(id, _)| RealizationRejection::RequiredCharacteristicLabel(id.clone()))
 }
 
-#[allow(clippy::too_many_arguments)]
-fn compare(
-    left_host: &HostAdvertisement,
-    left_offer: &CapabilityOffer,
-    left: Option<&RealizationAdvertisement>,
-    right_host: &HostAdvertisement,
-    right_offer: &CapabilityOffer,
-    right: Option<&RealizationAdvertisement>,
-    policy: &RealizationPolicy,
-) -> Ordering {
-    for preference in &policy.preferences {
-        let ordering = match preference {
-            RealizationPreference::MinimizeResourceUnits(class) => {
-                resource_units(left_offer, class).cmp(&resource_units(right_offer, class))
-            }
-            RealizationPreference::MaximizeQueueItems => right_offer
-                .limits
-                .max_queue_items
-                .cmp(&left_offer.limits.max_queue_items),
-            RealizationPreference::MaximizeQueueBytes => right_offer
-                .limits
-                .max_queue_bytes
-                .cmp(&left_offer.limits.max_queue_bytes),
-            RealizationPreference::PreferWithoutHostOperation(contract) => {
-                has_host_operation(left_offer, contract)
-                    .cmp(&has_host_operation(right_offer, contract))
-            }
-            RealizationPreference::PreferWithoutAuthority(contract) => {
-                has_authority(left_offer, contract).cmp(&has_authority(right_offer, contract))
-            }
-            RealizationPreference::MinimizeCharacteristicCount(id) => {
-                count(left, id).cmp(&count(right, id))
-            }
-            RealizationPreference::MaximizeCharacteristicCount(id) => {
-                count(right, id).cmp(&count(left, id))
-            }
-            RealizationPreference::PreferCharacteristicFlag {
-                characteristic_id,
-                value: preferred,
-            } => flag_distance(left, characteristic_id, *preferred).cmp(&flag_distance(
-                right,
-                characteristic_id,
-                *preferred,
-            )),
-        };
-        if ordering != Ordering::Equal {
-            return ordering;
-        }
-    }
-    left_host
-        .host_id
-        .cmp(&right_host.host_id)
-        .then_with(|| left_offer.capability_id.cmp(&right_offer.capability_id))
-}
-
 fn advertisement_for<'a>(
     host: &HostAdvertisement,
     offer: &CapabilityOffer,
@@ -427,41 +369,6 @@ fn count(
         Some(RealizationCharacteristicValue::Count(value)) => Some(*value),
         _ => None,
     }
-}
-
-fn flag_distance(
-    advertisement: Option<&RealizationAdvertisement>,
-    id: &RealizationCharacteristicId,
-    preferred: bool,
-) -> u8 {
-    match value(advertisement, id) {
-        Some(RealizationCharacteristicValue::Flag(value)) if *value == preferred => 0,
-        _ => 1,
-    }
-}
-
-fn resource_units(offer: &CapabilityOffer, class: &conduit_core::ResourceClassId) -> u64 {
-    offer
-        .resource_requirements
-        .iter()
-        .filter(|item| &item.class_id == class)
-        .map(|item| u64::from(item.units))
-        .sum()
-}
-fn has_host_operation(
-    offer: &CapabilityOffer,
-    contract: &conduit_core::HostOperationContractId,
-) -> bool {
-    offer
-        .host_operations
-        .iter()
-        .any(|item| &item.contract_id == contract)
-}
-fn has_authority(offer: &CapabilityOffer, contract: &conduit_core::AuthorityContractId) -> bool {
-    offer
-        .authority_requirements
-        .iter()
-        .any(|item| &item.contract_id == contract)
 }
 
 pub(crate) fn seal_characteristics(

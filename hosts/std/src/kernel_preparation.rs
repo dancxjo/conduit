@@ -4,8 +4,8 @@
 //! runtime merely to validate a plan and hold its resource pools.
 
 use conduit_core::{
-    HostAdvertisement, PlanFragment, PlanId, ResourceBinding, ResourceClassId, ResourcePoolId,
-    ResourceRequirement, PROTOCOL_VERSION,
+    resource_binding_satisfies, HostAdvertisement, PlanFragment, PlanId, ResourceBinding,
+    ResourceClassId, ResourcePoolId, PROTOCOL_VERSION,
 };
 use conduit_runtime::lowering::lower_plan_fragment;
 
@@ -162,18 +162,29 @@ fn validate_exact_profile(
                     placement.placement_id.as_str()
                 )
             })?;
-        let bound_requirements = placement
-            .resources
-            .iter()
-            .map(|binding| ResourceRequirement {
-                class_id: binding.class_id.clone(),
-                units: binding.units,
-                protected_role: binding
-                    .protected
-                    .as_ref()
-                    .map(|protected| protected.role_id.clone()),
-            })
-            .collect::<Vec<_>>();
+        if let Some(binding) = placement.resources.iter().find(|binding| {
+            !advertisement
+                .resources
+                .iter()
+                .any(|offer| offer.pool_id == binding.pool_id)
+        }) {
+            return Err(format!(
+                "resource pool '{}' is not offered by the current host",
+                binding.pool_id.as_str()
+            ));
+        }
+        let resources_match = capability.resource_requirements.len() == placement.resources.len()
+            && capability.resource_requirements.iter().all(|requirement| {
+                placement.resources.iter().any(|binding| {
+                    advertisement
+                        .resources
+                        .iter()
+                        .find(|offer| offer.pool_id == binding.pool_id)
+                        .is_some_and(|offer| {
+                            resource_binding_satisfies(binding, requirement, offer)
+                        })
+                })
+            });
         if capability.kind_id != placement.kind_id
             || capability.kind_contract_revision != placement.kind_contract_revision
             || capability.implementation.execution_profile_id != placement.execution_profile_id
@@ -182,7 +193,7 @@ fn validate_exact_profile(
             || capability.inputs != placement.inputs
             || capability.outputs != placement.outputs
             || capability.host_operations != placement.host_operations
-            || capability.resource_requirements != bound_requirements
+            || !resources_match
             || !capability.authority_requirements.is_empty()
             || !placement.authority.is_empty()
         {

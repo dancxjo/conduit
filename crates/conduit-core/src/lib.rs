@@ -113,6 +113,11 @@ identity_type!(ResourceClassId);
 identity_type!(ResourcePoolId);
 // Semantic identity of one protected resource role within an operation.
 identity_type!(ResourceBindingRoleId);
+identity_type!(ArchitectureProviderId);
+identity_type!(ComputeTopologyGroupId);
+identity_type!(ComputeDomainId);
+identity_type!(ComputePerformanceClassId);
+identity_type!(ProviderExecutionLaneId);
 // Opaque provider-owned reference; resource locator material never enters a plan.
 identity_type!(ResourceHandleId);
 // Immutable identity of one authority contract and one issued grant.
@@ -869,6 +874,23 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             push_string(&mut canonical, binding.pool_id.as_str());
             push_string(&mut canonical, binding.class_id.as_str());
             push_u32(&mut canonical, binding.units);
+            match &binding.compute {
+                Some(compute) => {
+                    canonical.push(1);
+                    push_u32(&mut canonical, compute.selected_lanes);
+                    canonical.push(compute.service_guarantee as u8);
+                    push_string(&mut canonical, compute.architecture_provider_id.as_str());
+                    canonical.push(compute.architecture_provider_kind as u8);
+                    match &compute.topology_group_id {
+                        Some(group) => {
+                            canonical.push(1);
+                            push_string(&mut canonical, group.as_str());
+                        }
+                        None => canonical.push(0),
+                    }
+                }
+                None => canonical.push(0),
+            }
             match &binding.protected {
                 Some(protected) => {
                     canonical.push(1);

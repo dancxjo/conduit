@@ -2,9 +2,11 @@ use crate::{generate_text_contract, GENERATE_TEXT_KIND, MAXIMUM_INPUT_BYTES};
 use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
-    kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
+    compute_resource_offer, compute_resource_requirement, kind_id, resource_offer,
+    resource_requirement, ArchitectureProviderId, ArchitectureProviderKind, ArtifactId,
+    AuthorityContractId, AuthorityRequirement, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId,
+    FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
     HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
     OfferGeneration, RealizationAdvertisement, RealizationCharacteristic,
     RealizationCharacteristicId, RealizationCharacteristicValue,
@@ -227,12 +229,43 @@ fn provider(
     let mut resource_offers = resources
         .iter()
         .enumerate()
-        .map(|(index, (class, units))| resource_offer(&format_pool(host, index), class, *units))
+        .map(|(index, (class, units))| {
+            if *class == CPU_EXECUTION_RESOURCE {
+                compute_resource_offer(
+                    &format_pool(host, index),
+                    class,
+                    *units,
+                    ComputePoolContract {
+                        service_guarantee: ComputeServiceGuarantee::Shared,
+                        architecture_provider_id: ArchitectureProviderId::from(alloc::format!(
+                            "fixture/{host}/hosted-os-cpu"
+                        )),
+                        architecture_provider_kind: ArchitectureProviderKind::HostedOs,
+                        topology_groups: vec![],
+                    },
+                )
+            } else {
+                resource_offer(&format_pool(host, index), class, *units)
+            }
+        })
         .collect::<alloc::vec::Vec<_>>();
     resource_offers.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     let mut resource_requirements = resources
         .iter()
-        .map(|(class, units)| resource_requirement(class, *units))
+        .map(|(class, units)| {
+            if *class == CPU_EXECUTION_RESOURCE {
+                compute_resource_requirement(
+                    class,
+                    1,
+                    *units,
+                    units.saturating_mul(2),
+                    ComputeServiceGuarantee::Shared,
+                    None,
+                )
+            } else {
+                resource_requirement(class, *units)
+            }
+        })
         .collect::<alloc::vec::Vec<_>>();
     resource_requirements.sort();
     GenerateTextProviderFixture {

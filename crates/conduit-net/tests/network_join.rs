@@ -15,6 +15,7 @@ fn resource() -> ResourceBinding {
         class_id: ResourceClassId::from(WIFI_STATION_RESOURCE_CLASS),
         units: 1,
         protected: None,
+        compute: None,
     }
 }
 

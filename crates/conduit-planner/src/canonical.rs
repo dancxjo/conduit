@@ -198,6 +198,7 @@ pub fn plan_expanded_canonical_with_shared_pools(
                     class_id: offer.class_id.clone(),
                     units: resource.units,
                     protected: None,
+                    compute: None,
                 });
             }
             if member_capacity == 0 {

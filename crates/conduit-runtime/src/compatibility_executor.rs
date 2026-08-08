@@ -1304,26 +1304,24 @@ impl HostRuntime {
                 });
                 return output;
             }
-            let mut bound_requirements = placement
-                .resources
-                .iter()
-                .map(|binding| conduit_core::ResourceRequirement {
-                    class_id: binding.class_id.clone(),
-                    units: binding.units,
-                    protected_role: binding
-                        .protected
-                        .as_ref()
-                        .map(|protected| protected.role_id.clone()),
-                })
-                .collect::<Vec<_>>();
-            bound_requirements.sort();
-            if capability.resource_requirements != bound_requirements
-                || placement.resources.iter().any(|binding| {
-                    !self.advertisement.resources.iter().any(|resource| {
-                        resource.pool_id == binding.pool_id && resource.class_id == binding.class_id
+            let resources_match = capability.resource_requirements.len()
+                == placement.resources.len()
+                && capability.resource_requirements.iter().all(|requirement| {
+                    placement.resources.iter().any(|binding| {
+                        self.advertisement
+                            .resources
+                            .iter()
+                            .find(|offer| offer.pool_id == binding.pool_id)
+                            .is_some_and(|offer| {
+                                conduit_core::resource_binding_satisfies(
+                                    binding,
+                                    requirement,
+                                    offer,
+                                )
+                            })
                     })
-                })
-            {
+                });
+            if !resources_match {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
                     reason: FailureReason::ResourceContractMismatch,
@@ -1465,7 +1463,7 @@ impl HostRuntime {
                 });
                 return output;
             }
-            if implementation.resource_requirements() != bound_requirements {
+            if implementation.resource_requirements() != capability.resource_requirements {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id: fragment.plan_id,
                     reason: FailureReason::ResourceContractMismatch,

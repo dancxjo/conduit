@@ -11,7 +11,9 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 mod canonical;
+mod characteristic_policy;
 mod characteristics;
+mod compute_admission;
 mod contract;
 mod diagnostic;
 mod functional_compatibility;
@@ -210,6 +212,8 @@ pub(crate) fn plan_validated_form(
 
     let mut placement_count = BTreeMap::<(HostId, CapabilityId), u16>::new();
     let mut resource_usage = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
+    let mut remaining_compute_minimum =
+        compute_admission::admit_minima(form, &realm_index, placements)?;
     let mut consumed_protected_handles = BTreeSet::new();
     let mut planned_operations = Vec::<PlannedOperation>::new();
     let mut placement_lookup = BTreeMap::<OperationId, PlacementId>::new();
@@ -268,7 +272,36 @@ pub(crate) fn plan_validated_form(
             let used = resource_usage
                 .entry((host.host_id.clone(), resource.pool_id.clone()))
                 .or_insert(0);
-            *used = used.checked_add(requirement.units).ok_or_else(|| {
+            let key = (host.host_id.clone(), resource.pool_id.clone());
+            let reserved_for_later = if requirement.compute.is_some() {
+                let remaining = remaining_compute_minimum
+                    .get_mut(&key)
+                    .expect("compute minimum was pre-admitted");
+                *remaining -= requirement.units;
+                *remaining
+            } else {
+                0
+            };
+            let available = resource
+                .capacity_units
+                .saturating_sub(*used)
+                .saturating_sub(reserved_for_later);
+            let compute = match &requirement.compute {
+                Some(_) => Some(
+                    conduit_core::compute_reservation(requirement, resource, available)
+                        .ok_or_else(|| {
+                            PlannerError::UnavailableResource(format!(
+                                "pool '{}' cannot satisfy the compute range, service, or topology contract",
+                                resource.pool_id.as_str()
+                            ))
+                        })?,
+                ),
+                None => None,
+            };
+            let selected_units = compute
+                .as_ref()
+                .map_or(requirement.units, |reservation| reservation.selected_lanes);
+            *used = used.checked_add(selected_units).ok_or_else(|| {
                 PlannerError::ResourceCapacityExceeded(resource.pool_id.as_str().to_string())
             })?;
             if *used > resource.capacity_units {
@@ -290,8 +323,9 @@ pub(crate) fn plan_validated_form(
             resource_bindings.push(ResourceBinding {
                 pool_id: resource.pool_id.clone(),
                 class_id: resource.class_id.clone(),
-                units: requirement.units,
+                units: selected_units,
                 protected,
+                compute,
             });
         }
         resource_bindings.sort();
@@ -631,6 +665,10 @@ fn validate_operation_capability(
         requirement.class_id.as_str().is_empty()
             || requirement.units == 0
             || requirement
+                .compute
+                .as_ref()
+                .is_some_and(|compute| !compute.is_valid_for_units(requirement.units))
+            || requirement
                 .protected_role
                 .as_ref()
                 .is_some_and(|role| role.as_str().is_empty())
@@ -696,6 +734,10 @@ fn validate_host_resources(host: &HostAdvertisement) -> Result<(), PlannerError>
         resource.pool_id.as_str().is_empty()
             || resource.class_id.as_str().is_empty()
             || resource.capacity_units == 0
+            || resource
+                .compute
+                .as_ref()
+                .is_some_and(|compute| !compute.is_valid_for_capacity(resource.capacity_units))
     }) || host
         .resources
         .windows(2)
