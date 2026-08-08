@@ -6,8 +6,10 @@ use conduit_ai::{
 use conduit_core::{EvidenceId, RealizationCharacteristicId, ResourceHealth, ResourceObservation};
 use conduit_planner::{
     plan_selected_realizations_with_characteristics,
+    replan_selected_realizations_with_characteristics,
     select_realization_with_characteristics_and_evidence, HardRealizationRequirements,
-    RealizationDecisionDisposition, RealizationPolicy, RealizationPreference, RealizationRejection,
+    PlanningOptions, RealizationDecisionDisposition, RealizationPolicy, RealizationPreference,
+    RealizationRejection, RealizationReplanOutcome,
 };
 use std::collections::BTreeMap;
 
@@ -242,5 +244,135 @@ fn explicit_policy_can_prefer_remote_among_hard_admissible_candidates() {
             .filter(|record| record.disposition == RealizationDecisionDisposition::Admitted)
             .count(),
         2
+    );
+}
+
+#[test]
+fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
+    let form = form();
+    let fixtures = generate_text_provider_fixtures();
+    let realm = fixtures
+        .iter()
+        .map(|fixture| fixture.advertisement.clone())
+        .collect::<Vec<_>>();
+    let advertisements = generate_text_realization_advertisements(&fixtures);
+    let operation_id = form.operations[0].operation_id.clone();
+    let requirements = BTreeMap::from([(
+        operation_id.clone(),
+        HardRealizationRequirements {
+            minimum_characteristic_counts: BTreeMap::from([(
+                RealizationCharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
+                24_000,
+            )]),
+            ..HardRealizationRequirements::default()
+        },
+    )]);
+    let policies = BTreeMap::from([(
+        operation_id,
+        RealizationPolicy {
+            preferences: vec![RealizationPreference::PreferCharacteristicFlag {
+                characteristic_id: RealizationCharacteristicId::from(METERED_COST_CHARACTERISTIC),
+                value: false,
+            }],
+        },
+    )]);
+    let initial_observations = observations(&realm);
+    let plan_a = plan_selected_realizations_with_characteristics(
+        &form,
+        &realm,
+        &[],
+        &requirements,
+        &advertisements,
+        &initial_observations,
+        &policies,
+    )
+    .expect("initial observations select large local");
+    assert_eq!(
+        plan_a.fragments[0].placements[0].implementation_id.as_str(),
+        conduit_ai::LARGE_LOCAL_IMPLEMENTATION
+    );
+    let immutable_plan_a = plan_a.clone();
+
+    let mut refreshed = initial_observations.clone();
+    let unavailable = refreshed
+        .iter_mut()
+        .find(|observation| {
+            observation.host_id.as_str() == "ai-large-local"
+                && observation.class_id.as_str() == conduit_ai::ACCELERATOR_SLOT_RESOURCE
+        })
+        .expect("large-local accelerator observation exists");
+    unavailable.health = ResourceHealth::Unavailable;
+    unavailable.unreserved_units = 0;
+    let remote = &fixtures[2].advertisement;
+    let authority = conduit_core::authority_grant(
+        "remote-generate-text-replan-grant",
+        &remote.capabilities[0].authority_requirements[0],
+        remote.host_id.clone(),
+        remote.boot_id.clone(),
+        remote.capabilities[0].capability_id.clone(),
+    );
+    let connection_choices = BTreeMap::new();
+    let route_candidates = BTreeMap::new();
+    let outcome = replan_selected_realizations_with_characteristics(
+        &plan_a,
+        &form,
+        &realm,
+        &[],
+        &requirements,
+        &advertisements,
+        &refreshed,
+        &policies,
+        PlanningOptions {
+            connection_providers: &connection_choices,
+            route_candidates: &route_candidates,
+            connection_item_capacity: 1,
+            connection_byte_capacity: 1,
+            authority_grants: &[authority],
+            protected_resource_grants: &[],
+            link_bindings: &[],
+        },
+    )
+    .expect("refreshed observations admit a separately planned remote realization");
+    let RealizationReplanOutcome::Replacement {
+        previous_plan_id,
+        plan: plan_b,
+    } = outcome
+    else {
+        panic!("changed availability must produce a replacement Plan");
+    };
+    assert_eq!(plan_a, immutable_plan_a);
+    assert_eq!(previous_plan_id, plan_a.plan_id);
+    assert_ne!(plan_b.plan_id, plan_a.plan_id);
+    assert_eq!(
+        plan_b.fragments[0].placements[0].implementation_id.as_str(),
+        conduit_ai::REMOTE_FRONTIER_IMPLEMENTATION
+    );
+    assert_eq!(plan_b.fragments[0].placements[0].authority.len(), 1);
+
+    let unchanged = replan_selected_realizations_with_characteristics(
+        &plan_a,
+        &form,
+        &realm,
+        &[],
+        &requirements,
+        &advertisements,
+        &initial_observations,
+        &policies,
+        PlanningOptions {
+            connection_providers: &connection_choices,
+            route_candidates: &route_candidates,
+            connection_item_capacity: 1,
+            connection_byte_capacity: 1,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            link_bindings: &[],
+        },
+    )
+    .expect("unchanged observations preserve Plan identity");
+    assert_eq!(
+        unchanged,
+        RealizationReplanOutcome::Unchanged {
+            plan_id: plan_a.plan_id.clone()
+        }
     );
 }

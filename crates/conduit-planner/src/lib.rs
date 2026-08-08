@@ -20,6 +20,7 @@ mod policy;
 mod profile;
 mod protected_resources;
 mod realization;
+mod replanning;
 mod requirements;
 
 use functional_compatibility::default_placements_unvalidated;
@@ -46,6 +47,7 @@ pub use profile::{
     FULL_PLANNER_PROFILE,
 };
 pub use realization::plan_selected_realizations;
+pub use replanning::{replan_selected_realizations_with_characteristics, RealizationReplanOutcome};
 pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements};
 
 pub fn default_placements(
