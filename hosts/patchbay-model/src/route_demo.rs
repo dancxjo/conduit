@@ -16,6 +16,11 @@ use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use conduit_wire::{RouteDisposition, RouteError, RouteMachine};
 use std::collections::BTreeMap;
 
+use crate::route_presentation::{
+    DistributedRoutePresentation, NewPlanRecoveryPresentation, RefusedRoutePresentation,
+    RouteCandidatePresentation, RoutePlanPresentation, SamePlanFallbackPresentation,
+};
+
 const SOURCE: &str = include_str!("../../../examples/signal-demo.conduit");
 const USB_ROUTE: &str = "s4/distributed-signal-usb-link";
 
@@ -40,6 +45,7 @@ impl From<RouteError> for RouteDemoError {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DistributedRouteDemo {
     lines: Vec<String>,
+    presentation: DistributedRoutePresentation,
 }
 
 impl DistributedRouteDemo {
@@ -190,6 +196,7 @@ impl DistributedRouteDemo {
         let RouteDisposition::Selected { link, .. } = changed.disposition else {
             return Err(RouteDemoError::InvalidEvidence);
         };
+        let selected_binding_id = link.binding_id.clone();
         let selection = ControlLoopEvent::RouteSelectionChanged {
             plan_id: fallback.plan_id.clone(),
             connection_id: fallback_connection.connection_id.clone(),
@@ -207,7 +214,7 @@ impl DistributedRouteDemo {
             format!(
                 "  OUTCOME replan=false same-plan={} selected={} play=continues",
                 fallback.plan_id.as_str(),
-                link.binding_id.as_str()
+                selected_binding_id.as_str()
             ),
         )?;
 
@@ -225,11 +232,72 @@ impl DistributedRouteDemo {
             "  REFUSED route=ambient/unplanned-wifi reason=UnsealedObservation plan-unchanged=true"
                 .into(),
         )?;
-        Ok(Self { lines })
+        let presentation = DistributedRoutePresentation {
+            source_document_id: one.source_document_id.clone(),
+            checked_form_id: one.checked_form_id.clone(),
+            new_plan: NewPlanRecoveryPresentation {
+                prior: plan_presentation(&one, one_connection),
+                replacement_plan_id: replacement.plan_id.clone(),
+                unavailable_binding_id: lost.binding_id,
+                unavailable_evidence_id: lost.evidence_id,
+                unsatisfied_evidence_id: EvidenceId::from("route-demo/plan-a/unsatisfied"),
+                planning_request_evidence_id: EvidenceId::from("route-demo/plan-a/replan-request"),
+                planning_success_evidence_id: EvidenceId::from("route-demo/plan-c/planned"),
+                installed_evidence_id: EvidenceId::from("route-demo/plan-c/installed"),
+            },
+            same_plan: SamePlanFallbackPresentation {
+                plan: plan_presentation(&fallback, fallback_connection),
+                unavailable_binding_id: fallback_lost.binding_id,
+                unavailable_evidence_id: fallback_lost.evidence_id,
+                selected_binding_id,
+                selection_evidence_id: EvidenceId::from("route-demo/plan-b/usb-unavailable"),
+            },
+            refused: RefusedRoutePresentation {
+                binding_id: invented.binding_id,
+                observation_evidence_id: invented.evidence_id,
+            },
+        };
+        Ok(Self {
+            lines,
+            presentation,
+        })
     }
 
     pub fn lines(&self) -> &[String] {
         &self.lines
+    }
+
+    pub fn presentation(&self) -> &DistributedRoutePresentation {
+        &self.presentation
+    }
+
+    pub fn visual_lines(&self) -> Vec<String> {
+        self.presentation.visual_lines()
+    }
+
+    pub fn linear_lines(&self) -> Vec<String> {
+        self.presentation.linear_lines()
+    }
+}
+
+fn plan_presentation(
+    plan: &conduit_core::Plan,
+    connection: &conduit_core::PlannedConnection,
+) -> RoutePlanPresentation {
+    RoutePlanPresentation {
+        plan_id: plan.plan_id.clone(),
+        connection_id: connection.connection_id.clone(),
+        candidates: connection
+            .route_candidates
+            .iter()
+            .enumerate()
+            .map(|(order, candidate)| RouteCandidatePresentation {
+                order,
+                binding_id: candidate.binding_id.clone(),
+                provider: format!("{:?}", candidate.provider),
+                provider_instance_id: candidate.provider_instance_id.clone(),
+            })
+            .collect(),
     }
 }
 
@@ -346,10 +414,13 @@ fn render_plan(
         push(
             lines,
             format!(
-                "    CANDIDATE order={} binding={} provider={:?} availability=runtime-observation",
+                "    CANDIDATE order={} binding={} provider={:?} provider-instance={} source-endpoint={} sink-endpoint={} availability=runtime-observation",
                 index,
                 candidate.binding_id.as_str(),
-                candidate.provider
+                candidate.provider,
+                candidate.provider_instance_id.as_str(),
+                candidate.source.endpoint_id.as_str(),
+                candidate.sink.endpoint_id.as_str()
             ),
         )?;
     }
@@ -365,39 +436,5 @@ fn push(lines: &mut Vec<String>, line: String) -> Result<(), RouteDemoError> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn document_distinguishes_replan_from_same_plan_fallback() {
-        let demo = DistributedRouteDemo::build().expect("route demo");
-        let text = demo.lines().join("\n");
-        assert!(text.contains("semantic-host-facts=none semantic-carrier-facts=none"));
-        assert!(text.contains("PLAN-A replan-required"));
-        assert!(text.contains("OUTCOME replan=true prior-plan="));
-        assert!(text.contains("PLAN-B predeclared-fallback"));
-        assert!(text.contains("OUTCOME replan=false same-plan="));
-        assert!(text.contains("REFUSED route=ambient/unplanned-wifi"));
-        assert!(text.contains("patchbay-native/std-realization"));
-        assert!(text.contains(conduit_signal::DISTRIBUTED_BROWSER_HOST_ID));
-    }
-
-    #[test]
-    fn candidate_order_changes_exact_plan_identity() {
-        let host = HostId::from("patchbay-native/std-realization");
-        let boot = BootId::from("patchbay-native/std-boot-1");
-        let usb_first = planned(
-            &[USB_ROUTE, conduit_signal::DISTRIBUTED_LINK_BINDING_ID],
-            &host,
-            &boot,
-        )
-        .unwrap();
-        let websocket_first = planned(
-            &[conduit_signal::DISTRIBUTED_LINK_BINDING_ID, USB_ROUTE],
-            &host,
-            &boot,
-        )
-        .unwrap();
-        assert_ne!(usb_first.plan_id, websocket_first.plan_id);
-    }
-}
+#[path = "route_demo_tests.rs"]
+mod tests;

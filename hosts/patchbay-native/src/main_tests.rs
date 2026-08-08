@@ -87,11 +87,31 @@ fn native_document_exposes_both_route_recovery_cases() {
         ..Arguments::default()
     })
     .expect("distributed route document");
-    let text = application.presentation_lines().join("\n");
+    let lines = application.presentation_lines();
+    let text = lines.join("\n");
+    assert!(text.contains("NEW-PLAN RECOVERY"));
+    assert!(text.contains("Plan B  id="));
+    assert!(text.contains("SAME-PLAN FALLBACK"));
+    assert!(text.contains("Plan C unchanged"));
+    assert!(text.contains("LINEAR NARRATION"));
+    assert!(text.contains("Plan identity did not change"));
+    assert!(text.contains("UNPLANNED ROUTE refused=ambient Wi-Fi"));
     assert!(text.contains("PLAN-A replan-required"));
     assert!(text.contains("OUTCOME replan=true"));
     assert!(text.contains("PLAN-B predeclared-fallback"));
     assert!(text.contains("OUTCOME replan=false"));
+    let visual = lines
+        .iter()
+        .position(|line| line == "ROUTE RECOVERY — same facts, two outcomes")
+        .unwrap();
+    let detail = lines
+        .iter()
+        .position(|line| line == "ROUTE DETAIL — exact identities and evidence")
+        .unwrap();
+    assert!(
+        visual < detail,
+        "compact hierarchy must precede exact detail"
+    );
 }
 
 #[test]

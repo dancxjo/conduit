@@ -24,6 +24,12 @@ pub fn draw_document(buffer: &mut [u32], width: usize, height: usize, lines: &[S
             || line.starts_with("DISTRIBUTED")
             || line.starts_with("FORM ")
             || line.starts_with("PLAN-")
+            || line.starts_with("ROUTE RECOVERY")
+            || line.starts_with("NEW-PLAN")
+            || line.starts_with("SAME-PLAN")
+            || line.starts_with("UNPLANNED ROUTE")
+            || line.starts_with("LINEAR NARRATION")
+            || line.starts_with("ROUTE DETAIL")
         {
             ACCENT
         } else {
