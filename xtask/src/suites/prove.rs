@@ -91,6 +91,16 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         &["hosts/browser/conduit_browser_runtime.wasm"],
     ),
     Step::typed(
+        "prove.browser-host.webchat-server-build",
+        "Build bounded WebSocket chat server artifact",
+        "cargo",
+        &["build", "-p", "conduit-std-host", "--bin", "webchat-server"],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/webchat-server"],
+    ),
+    Step::typed(
         "prove.browser-host.playwright",
         "Run browser host test suite",
         "npm",

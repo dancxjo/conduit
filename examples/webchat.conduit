@@ -1,0 +1,45 @@
+# Explicit external-WebSocket transport faces for the bounded local webchat.
+form chat/client (
+    url: Url
+    > send: WebSocketMessage...|
+    recv: WebSocketMessage...| >
+    live: $Boolean >
+) {
+    socket: net/websocket(url)
+    send > socket.send
+    socket.recv > recv
+    socket.live > live
+}
+
+form chat/server (
+    bind: NetAddress
+    live: $Boolean >
+) {
+    listen: net/websocket/listen(bind)
+    listen.recv > listen.send
+    listen.live > live
+}
+
+form webchat-transport-demo {
+    client: chat/client("ws://127.0.0.1:4178")
+    server: chat/server("127.0.0.1:4178")
+}
+
+form webchat-server-demo {
+    server: chat/server("127.0.0.1:4178")
+}
+
+form chat/browser-client (
+    url: Url
+) {
+    input: web/text-input("Message")
+    socket: net/websocket(url)
+    history: web/list(16)
+
+    input.message > socket.send
+    socket.recv > history.message
+}
+
+form webchat-browser-demo {
+    client: chat/browser-client("ws://127.0.0.1:4178")
+}

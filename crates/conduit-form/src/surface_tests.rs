@@ -83,7 +83,7 @@ fn canonical_duplex_face_has_auxiliary_ports_without_a_shorthand_path() {
     assert_eq!(form.face.runtime_ports[0].name.text, "send");
     assert_eq!(
         form.face.runtime_ports[0].temporal,
-        RuntimePortTemporal::Flow { closes: false }
+        RuntimePortTemporal::Flow { closes: true }
     );
     assert_eq!(
         form.face.runtime_ports[0].direction,
@@ -92,7 +92,7 @@ fn canonical_duplex_face_has_auxiliary_ports_without_a_shorthand_path() {
     assert_eq!(form.face.runtime_ports[1].name.text, "recv");
     assert_eq!(
         form.face.runtime_ports[1].temporal,
-        RuntimePortTemporal::Flow { closes: false }
+        RuntimePortTemporal::Flow { closes: true }
     );
     assert_eq!(
         form.face.runtime_ports[1].direction,

@@ -14,6 +14,9 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
+mod external_websocket;
+pub use external_websocket::*;
+
 pub const WIFI_STATION_RESOURCE_CLASS: &str = "conduit.resource/network/wifi-station@1";
 pub const NETWORK_JOIN_OPERATION: &str = "network/join";
 pub const NETWORK_JOIN_CONTRACT_REVISION: &str = "conduit.network/join@1";

@@ -25,6 +25,7 @@ pub struct StdHostComposition {
     pub text: bool,
     pub state: bool,
     pub files: bool,
+    pub external_websocket: bool,
 }
 
 impl StdHostComposition {
@@ -36,6 +37,7 @@ impl StdHostComposition {
             text: true,
             state: true,
             files: true,
+            external_websocket: false,
         }
     }
 
@@ -48,6 +50,7 @@ impl StdHostComposition {
             text: false,
             state: false,
             files: false,
+            external_websocket: false,
         }
     }
 
@@ -73,6 +76,11 @@ impl StdHostComposition {
 
     pub const fn with_files(mut self) -> Self {
         self.files = true;
+        self
+    }
+
+    pub const fn with_external_websocket(mut self) -> Self {
+        self.external_websocket = true;
         self
     }
 }
@@ -115,6 +123,9 @@ pub(super) fn build_advertisement(
     if composition.files {
         capabilities.push(conduit_std_catalog::copy_file_offer());
     }
+    if composition.external_websocket {
+        capabilities.push(conduit_net::std_external_websocket_family().capability);
+    }
     #[cfg(test)]
     {
         capabilities.push(installed_std::test_observer_offer());
@@ -134,6 +145,10 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::PROTECTED_FILE_RESOURCE_CLASS,
             2,
         ));
+        resources.sort();
+    }
+    if composition.external_websocket {
+        resources.push(conduit_net::std_external_websocket_family().resource);
         resources.sort();
     }
 
@@ -236,6 +251,27 @@ mod tests {
         assert_eq!(
             host.advertisement().resources[0].pool_id.as_str(),
             "std/presentation"
+        );
+    }
+
+    #[test]
+    fn external_websocket_listener_is_an_explicit_capability_and_resource_family() {
+        let omitted = host(StdHostComposition::minimal());
+        assert!(!offered(
+            &omitted,
+            conduit_net::EXTERNAL_WEBSOCKET_LISTENER_KIND
+        ));
+        assert!(omitted.advertisement().resources.is_empty());
+
+        let selected = host(StdHostComposition::minimal().with_external_websocket());
+        assert!(offered(
+            &selected,
+            conduit_net::EXTERNAL_WEBSOCKET_LISTENER_KIND
+        ));
+        assert_eq!(selected.advertisement().resources.len(), 1);
+        assert_eq!(
+            selected.advertisement().resources[0].class_id.as_str(),
+            conduit_net::EXTERNAL_WEBSOCKET_LISTENER_RESOURCE
         );
     }
 

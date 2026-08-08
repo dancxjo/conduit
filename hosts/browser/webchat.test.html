@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit explicit WebSocket webchat</title>
+<main>
+  <h1>Conduit Webchat</h1>
+  <p id="status" role="status">starting</p>
+  <ol id="history" aria-label="chat history"></ol>
+  <label>Message <input id="message" maxlength="256"></label>
+  <button id="send" type="button" disabled>Send</button>
+</main>
+<script type="module">
+import { createWebchatRuntime } from "./webchat-runtime.mjs";
+
+const url = new URLSearchParams(location.search).get("ws");
+if (!url) throw new Error("webchat requires ?ws=ws://127.0.0.1:port");
+const wasmBytes = await fetch(
+  "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+).then((response) => {
+  if (!response.ok) throw new Error("browser WASM artifact missing");
+  return response.arrayBuffer();
+});
+globalThis.__webchat = await createWebchatRuntime({
+  wasmBytes,
+  url,
+  list: document.querySelector("#history"),
+  input: document.querySelector("#message"),
+  button: document.querySelector("#send"),
+  status: document.querySelector("#status"),
+});
+</script>

@@ -135,18 +135,31 @@ retained or in-flight value. Its link-break case remains a distinct failure.
 
 ## Program 5 boundary
 
-Program 5 is explicitly deferred under #515's permitted stop line. The current
-`ConnectionProvider::WebSocket` is a carrier for Conduit sessions; it is not an
-authored `net/websocket` operation that intentionally speaks an external
-WebSocket protocol.
+Program 5 is the bounded local webchat in `examples/webchat.conduit`. Its source
+intentionally names the semantic `net/websocket` and `net/websocket/listen`
+operations. The checked client face uses `WebSocketMessage`, not a generic byte
+stream, so #522 compatibility remains exact face equality without relying on
+the operation name to carry protocol meaning.
 
-`examples/socket-client.conduit` preserves the intended canonical duplex source
-shape without claiming it checks or executes. An honest Program 5 still needs a
-reviewed semantic duplex checked face, exact
-URL/authority/resource admission, std and/or browser host implementation, and a
-local deterministic echo server wired through that operation. Reusing the
-Conduit session carrier as the authored socket would be a false proof, so no
-such substitution is made here.
+The browser plan selects native WebSocket open/receive/send/close host
+operations and bounded `web/text-input` and `web/list` operations. The std plan
+selects the separately installed bounded listener. Both execute through fixed
+kernels; JavaScript and tungstenite remain platform adapters. Two Chromium
+pages prove A then B delivery, one-page disconnect, and continued delivery to
+the remaining page. Form, checked, expanded, Plan, fragment, Play, placement,
+and host-operation identities are retained without recording message content.
+
+This is mechanically distinct from `ConnectionProvider::WebSocket`, which
+transports Conduit sessions between hosts. No carrier link binding or session
+frame appears in the authored external-WebSocket plan.
+
+Focused proof:
+
+```bash
+cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
+cargo build -p conduit-std-host --bin webchat-server
+npx playwright test --config hosts/browser/playwright.config.mjs hosts/browser/webchat.spec.mjs --project=chromium
+```
 
 ## Aggregate validation
 

@@ -383,6 +383,24 @@ fn planning_rejects_cyclic_startup_dependencies() {
 }
 
 #[test]
+fn a_self_cord_is_runtime_routing_not_a_startup_cycle() {
+    let form = form();
+    let host = host();
+    let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let plan = plan(
+        &form,
+        std::slice::from_ref(&host),
+        &placements,
+        &[ConnectionProvider::Local],
+    )
+    .unwrap();
+    let fragment = &plan.fragments[0];
+    let mut self_cord = fragment.connections[0].clone();
+    self_cord.sink_placement_id = self_cord.source_placement_id.clone();
+    assert!(startup_order(&fragment.placements, &[self_cord]).is_some());
+}
+
+#[test]
 fn planning_rejects_invalid_host_operation_requirements() {
     let form = form();
     let mut host = host();
