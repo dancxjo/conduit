@@ -18,7 +18,9 @@ use conduit_kernel::{
     HostOperationOutcome, HostedEvidenceLog, HostedValueStore, KernelEventKind, Operation,
     OperationAction, OperationInput, PortId, RemoteEndpointId, RequestId, ValueStorage,
 };
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
+use conduit_planner::{
+    plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
+};
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
 };
@@ -177,22 +179,25 @@ fn exact_plan(kind: PlanKind) -> Result<Plan, i32> {
     }
     let source = distributed_std_source_advertisement();
     let sink = distributed_browser_sink_advertisement();
-    let form = conduit_form::parse(
-        include_str!("../../../examples/signal-demo.form"),
-        &signal_profile_catalog(),
-    )
-    .map_err(|_| ERROR_PREPARE)?;
+    let syntax =
+        conduit_form::parse_syntax_document(include_str!("../../../examples/signal-demo.conduit"));
+    let checked =
+        conduit_form::check_syntax_document(&syntax, &conduit_signal::signal_startup_catalog())
+            .map_err(|_| ERROR_PREPARE)?;
+    let form =
+        conduit_form::expand_canonical_form(&checked, "signal-demo", &signal_profile_catalog())
+            .map_err(|_| ERROR_PREPARE)?;
     let placements = PlacementChoices {
         by_operation: BTreeMap::from([
             (
-                OperationId::from("pulse"),
+                OperationId::from("signal-demo/pulse"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("pulse-1"),
                 },
             ),
             (
-                OperationId::from("show"),
+                OperationId::from("signal-demo/show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("dom-show-1"),
@@ -200,14 +205,19 @@ fn exact_plan(kind: PlanKind) -> Result<Plan, i32> {
             ),
         ]),
     };
-    plan_with_link_bindings(
+    let link = distributed_websocket_link_binding();
+    plan_expanded_canonical_with_options(
         &form,
         &[source, sink],
         &placements,
         &[ConnectionProvider::WebSocket],
-        DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-        SIGNAL_ENCODED_LEN,
-        &[distributed_websocket_link_binding()],
+        PlanningOptions {
+            connection_providers: &BTreeMap::new(),
+            connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+            connection_byte_capacity: SIGNAL_ENCODED_LEN,
+            authority_grants: &[],
+            link_bindings: &[link],
+        },
     )
     .map_err(|_| ERROR_PREPARE)
 }

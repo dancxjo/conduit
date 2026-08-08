@@ -24,6 +24,28 @@ pub fn plan_expanded_canonical(
     placements: &PlacementChoices,
     providers: &[ConnectionProvider],
 ) -> Result<Plan, PlannerError> {
+    plan_expanded_canonical_with_options(
+        form,
+        realm,
+        placements,
+        providers,
+        PlanningOptions {
+            connection_providers: &BTreeMap::new(),
+            connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
+            connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
+            authority_grants: &[],
+            link_bindings: &[],
+        },
+    )
+}
+
+pub fn plan_expanded_canonical_with_options(
+    form: &ExpandedCanonicalForm,
+    realm: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    providers: &[ConnectionProvider],
+    options: PlanningOptions<'_>,
+) -> Result<Plan, PlannerError> {
     form.validate_expansion()
         .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
     let planning_form = CheckedForm {
@@ -36,17 +58,5 @@ pub fn plan_expanded_canonical(
         exports: Vec::new(),
         nested_forms: Vec::new(),
     };
-    plan_validated_form(
-        &planning_form,
-        realm,
-        placements,
-        providers,
-        PlanningOptions {
-            connection_providers: &BTreeMap::new(),
-            connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
-            connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
-            authority_grants: &[],
-            link_bindings: &[],
-        },
-    )
+    plan_validated_form(&planning_form, realm, placements, providers, options)
 }

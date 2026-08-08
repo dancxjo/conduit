@@ -8,6 +8,10 @@ mod activation;
 #[cfg(feature = "host-profile")]
 pub use activation::*;
 #[cfg(feature = "host-profile")]
+mod canonical;
+#[cfg(feature = "host-profile")]
+pub use canonical::signal_startup_catalog;
+#[cfg(feature = "host-profile")]
 mod std_pico_usb;
 #[cfg(feature = "host-profile")]
 pub use std_pico_usb::*;
