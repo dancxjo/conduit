@@ -5,24 +5,7 @@ use conduit_form::{
 };
 use conduit_std_host::{StdHost, ThreadTimer};
 
-const GREET_PROGRAM: &str = r#"form greet (
-    greeting: Text = "Hello"
-    name: Text > text: Text
-) {
-    join: text/join(greeting)
-    name > join > text
-}
-
-form welcome {
-    hello: greet("Welcome")
-    "Travis" > hello > presentation/text
-}
-
-form default-welcome {
-    hello: greet
-    "Travis" > hello > presentation/text
-}
-"#;
+const GREET_PROGRAM: &str = include_str!("../../../examples/greet.conduit");
 
 fn checked_and_profile() -> (CheckedSyntaxDocument, ProfileCatalog) {
     let mut startup = StartupCatalog::new();

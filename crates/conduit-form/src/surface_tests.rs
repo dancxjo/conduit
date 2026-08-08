@@ -73,7 +73,7 @@ fn canonical_face_keeps_startup_values_runtime_ports_and_shorthand_distinct() {
 
 #[test]
 fn canonical_duplex_face_has_auxiliary_ports_without_a_shorthand_path() {
-    let source = "form socket (\n    url: Url\n    > send: Bytes...\n    recv: Bytes...| >\n    live: $Boolean >\n) {\n    ...\n}\n";
+    let source = include_str!("../../../examples/socket-client.conduit");
     let document = parse_syntax_document(source);
     let form = &document.forms().expect("duplex face parses")[0];
 
@@ -92,7 +92,7 @@ fn canonical_duplex_face_has_auxiliary_ports_without_a_shorthand_path() {
     assert_eq!(form.face.runtime_ports[1].name.text, "recv");
     assert_eq!(
         form.face.runtime_ports[1].temporal,
-        RuntimePortTemporal::Flow { closes: true }
+        RuntimePortTemporal::Flow { closes: false }
     );
     assert_eq!(
         form.face.runtime_ports[1].direction,

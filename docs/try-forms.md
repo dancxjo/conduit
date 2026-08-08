@@ -7,6 +7,12 @@ operation completion, a terminal result, and bounded evidence.
 
 Run commands from the repository root.
 
+The exact canonical sources are checked in under `examples/*.conduit`. The
+acceptance tests below load those files directly, so the documented programs
+cannot drift into test-only string literals. Retained `examples/*.form` files
+belong to the older explicit `form 0` compatibility parser and preserve existing
+accepted source/plan/firmware identities; see `examples/README.md`.
+
 ## Program 1: text pipeline
 
 ```bash
@@ -14,7 +20,8 @@ cargo test -p conduit-std-host --test canonical_text_pipeline \
   canonical_program_one_runs_through_the_planner_kernel_and_terminal_evidence
 ```
 
-The source literal `"Hello, world."` reaches the real `text/upper` and
+The source in `examples/hello.conduit` sends the literal `"Hello, world."` to
+the real `text/upper` and
 `presentation/text` offers. Expected presented text:
 
 ```text
@@ -34,7 +41,8 @@ cargo test -p conduit-std-host --test canonical_text_pipeline
 cargo test -p conduit-std-host --test canonical_greet
 ```
 
-The `greet` back expands recursively behind its checked face. Its primitive
+The `greet` back in `examples/greet.conduit` expands recursively behind its
+checked face. Its primitive
 `text/literal`, `text/join`, and `presentation/text` leaves plan onto current
 host offers and execute through the ordinary kernel. The explicit positional
 case presents:
@@ -52,8 +60,10 @@ mutated selected realization before output.
 cargo test -p conduit-std-host --test canonical_clock
 ```
 
-Positional, named, and lexical-local duration spellings check and expand to the
-same semantic identity. Four admitted one-second waits produce:
+The positional specimen is `examples/clock.conduit`; named and lexical-local
+duration spellings remain explicit semantic-equivalence vectors in the same
+test. All three check and expand to the same semantic identity. Four admitted
+one-second waits produce:
 
 ```text
 tick sequence=0
@@ -71,8 +81,8 @@ records the four exact requested durations.
 cargo test -p conduit-std-host --test canonical_count
 ```
 
-The reusable face distinguishes its startup value, finite normally closing
-tick flow, and current observation:
+The reusable face in `examples/count.conduit` distinguishes its startup value,
+finite normally closing tick flow, and current observation:
 
 ```conduit
 form count (
@@ -130,7 +140,9 @@ Program 5 is explicitly deferred under #515's permitted stop line. The current
 authored `net/websocket` operation that intentionally speaks an external
 WebSocket protocol.
 
-An honest Program 5 still needs a reviewed semantic duplex checked face, exact
+`examples/socket-client.conduit` preserves the intended canonical duplex source
+shape without claiming it checks or executes. An honest Program 5 still needs a
+reviewed semantic duplex checked face, exact
 URL/authority/resource admission, std and/or browser host implementation, and a
 local deterministic echo server wired through that operation. Reusing the
 Conduit session carrier as the authored socket would be a false proof, so no

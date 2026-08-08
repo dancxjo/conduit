@@ -1,0 +1,17 @@
+form greet (
+    greeting: Text = "Hello"
+    name: Text > text: Text
+) {
+    join: text/join(greeting)
+    name > join > text
+}
+
+form welcome {
+    hello: greet("Welcome")
+    "Travis" > hello > presentation/text
+}
+
+form default-welcome {
+    hello: greet
+    "Travis" > hello > presentation/text
+}

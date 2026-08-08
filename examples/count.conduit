@@ -1,0 +1,15 @@
+form count (
+    start: Count = 0
+    bump: Tick...| > value: $Count
+) {
+    cell: state/count(start)
+    bump > cell.bump
+    cell.value > value
+}
+
+form count-demo {
+    clock: time/every(1s)
+    count: count(2)
+    show: presentation/count
+    clock > count > show
+}
