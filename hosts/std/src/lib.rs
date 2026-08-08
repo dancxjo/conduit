@@ -15,14 +15,19 @@ use conduit_signal::signal_registry;
 use conduit_signal::{signal_profile_catalog, PULSE_KIND, SHOW_KIND};
 use std::fs;
 use std::io::Write;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
+mod boot_identity;
 mod composition;
+mod copy_task;
 pub mod distributed_signal;
 pub mod distributed_toggle;
 pub use composition::StdHostComposition;
+pub use copy_task::{
+    CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken, ProtectedFileAvailability,
+    ProtectedFileRegistry,
+};
 mod installed_std;
 #[cfg(test)]
 mod installed_std_tests;
@@ -116,8 +121,6 @@ mod allocation_probe {
     }
 }
 
-static BOOT_COUNTER: AtomicU64 = AtomicU64::new(1);
-
 #[derive(Debug, Clone)]
 pub struct StdHostConfig {
     pub host_id: HostId,
@@ -174,7 +177,7 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
         .map_err(|error| error.to_string())?;
     let advertisement = kernel_multivalue::advertisement(
         HostId::from("std-host-1"),
-        conduit_core::BootId::from(fresh_boot_id()),
+        conduit_core::BootId::from(boot_identity::fresh_boot_id()),
         OfferGeneration(1),
     );
     let plan =
@@ -236,7 +239,7 @@ impl StdHost {
     pub fn new() -> Self {
         Self::new_with_config(StdHostConfig {
             host_id: HostId::from("std-host-1"),
-            boot_id: conduit_core::BootId::from(fresh_boot_id()),
+            boot_id: conduit_core::BootId::from(boot_identity::fresh_boot_id()),
             offer_generation: OfferGeneration(1),
         })
     }
@@ -484,15 +487,6 @@ fn write_operator_report<W: Write>(
         .map_err(|error| error.to_string())?;
     }
     Ok(())
-}
-
-fn fresh_boot_id() -> String {
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    let counter = BOOT_COUNTER.fetch_add(1, Ordering::Relaxed);
-    format!("boot-{now:x}-{counter:x}")
 }
 
 #[cfg(test)]

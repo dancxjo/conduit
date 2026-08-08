@@ -1,0 +1,345 @@
+use super::provider::ExecutionFaults;
+use super::{
+    CopyRequestId, CopyResult, CopyStopToken, ProtectedFileAvailability, ProtectedFileRegistry,
+};
+use crate::{StdHost, StdHostConfig};
+use conduit_core::{
+    BootId, CapabilityId, ConnectionProvider, HostId, OfferGeneration, OperationId,
+    ProtectedResourceAccess, ProtectedResourceCommitPolicy, ResourceBindingRoleId,
+    ResourceHandleId,
+};
+use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
+
+struct TestDirectory(PathBuf);
+
+impl TestDirectory {
+    fn new() -> Self {
+        let sequence = NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed);
+        let path =
+            std::env::temp_dir().join(format!("conduit-copy-{}-{sequence}", std::process::id()));
+        std::fs::create_dir(&path).expect("create isolated copy test directory");
+        Self(path)
+    }
+
+    fn path(&self, name: &str) -> PathBuf {
+        self.0.join(name)
+    }
+}
+
+impl Drop for TestDirectory {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+struct PlannedCopy {
+    host: StdHost,
+    fragment: conduit_core::PlanFragment,
+    registry: ProtectedFileRegistry,
+    source_handle: ResourceHandleId,
+    destination_handle: ResourceHandleId,
+}
+
+fn planned_copy(
+    source: &Path,
+    destination: &Path,
+    maximum_bytes: u64,
+    destination_access: ProtectedResourceAccess,
+    destination_policy: ProtectedResourceCommitPolicy,
+    source_availability: ProtectedFileAvailability,
+) -> PlannedCopy {
+    let host = StdHost::new_with_config(StdHostConfig {
+        host_id: HostId::from("copy-host"),
+        boot_id: BootId::from("copy-boot"),
+        offer_generation: OfferGeneration(1),
+    });
+    let mut catalog = conduit_form::ProfileCatalog::new();
+    conduit_std_catalog::install_copy_file_catalog(&mut catalog).expect("install copy catalog");
+    let form = conduit_form::parse("form 0\n\ncopy-task {\n    copy: file/copy\n}\n", &catalog)
+        .expect("copy Form checks without resource paths");
+    let placements = default_placements(&form, std::slice::from_ref(host.advertisement()))
+        .expect("copy placement resolves by equal checked face");
+    let source_handle = ResourceHandleId::from("handle/source");
+    let destination_handle = ResourceHandleId::from("handle/destination");
+    let mut registry = ProtectedFileRegistry::default();
+    let source_grant = registry
+        .register(
+            source_handle.clone(),
+            source,
+            OperationId::from("copy"),
+            ResourceBindingRoleId::from(conduit_std_catalog::COPY_SOURCE_ROLE),
+            host.advertisement().host_id.clone(),
+            host.advertisement().boot_id.clone(),
+            CapabilityId::from(conduit_std_catalog::COPY_FILE_CAPABILITY),
+            ProtectedResourceAccess::ReadExisting,
+            maximum_bytes,
+            ProtectedResourceCommitPolicy::NotApplicable,
+            source_availability,
+        )
+        .expect("register source choice");
+    let destination_grant = registry
+        .register(
+            destination_handle.clone(),
+            destination,
+            OperationId::from("copy"),
+            ResourceBindingRoleId::from(conduit_std_catalog::COPY_DESTINATION_ROLE),
+            host.advertisement().host_id.clone(),
+            host.advertisement().boot_id.clone(),
+            CapabilityId::from(conduit_std_catalog::COPY_FILE_CAPABILITY),
+            destination_access,
+            maximum_bytes,
+            destination_policy,
+            ProtectedFileAvailability::Available,
+        )
+        .expect("register destination choice");
+    let overrides = BTreeMap::new();
+    let plan = plan_with_options(
+        &form,
+        std::slice::from_ref(host.advertisement()),
+        &placements,
+        &[ConnectionProvider::Local],
+        PlanningOptions {
+            connection_providers: &overrides,
+            connection_item_capacity: 1,
+            connection_byte_capacity: 1,
+            authority_grants: &[],
+            protected_resource_grants: &[source_grant, destination_grant],
+            link_bindings: &[],
+        },
+    )
+    .expect("protected choices seal into copy Plan");
+    assert!(!format!("{form:?}").contains(source.to_string_lossy().as_ref()));
+    assert!(!format!("{plan:?}").contains(source.to_string_lossy().as_ref()));
+    PlannedCopy {
+        host,
+        fragment: plan.fragments.into_iter().next().expect("local fragment"),
+        registry,
+        source_handle,
+        destination_handle,
+    }
+}
+
+#[test]
+fn create_and_replace_copy_through_bounded_kernel_steps_with_exact_receipt() {
+    let directory = TestDirectory::new();
+    let source = directory.path("source.bin");
+    let destination = directory.path("destination.bin");
+    let bytes = vec![0x5a; conduit_std_catalog::COPY_CHUNK_BYTES as usize + 17];
+    std::fs::write(&source, &bytes).expect("write source fixture");
+    let mut copy = planned_copy(
+        &source,
+        &destination,
+        bytes.len() as u64,
+        ProtectedResourceAccess::Create,
+        ProtectedResourceCommitPolicy::CreateOnly,
+        ProtectedFileAvailability::Available,
+    );
+    let plan_id = copy.fragment.plan_id.clone();
+    let receipt = copy
+        .host
+        .run_copy_fragment(
+            CopyRequestId::new("request/create").unwrap(),
+            copy.fragment,
+            &copy.registry,
+            &CopyStopToken::default(),
+        )
+        .expect("copy run is structurally valid");
+    assert_eq!(
+        receipt.result,
+        CopyResult::Success {
+            bytes_copied: bytes.len() as u64
+        }
+    );
+    assert_eq!(receipt.plan_id, plan_id);
+    assert_eq!(receipt.source_binding_id, copy.source_handle);
+    assert_eq!(receipt.destination_binding_id, copy.destination_handle);
+    assert!(receipt.kernel_events > 0);
+    assert_eq!(std::fs::read(&destination).unwrap(), bytes);
+
+    let replacement = vec![0x33; 19];
+    std::fs::write(&source, &replacement).unwrap();
+    let mut replace = planned_copy(
+        &source,
+        &destination,
+        replacement.len() as u64,
+        ProtectedResourceAccess::Replace,
+        ProtectedResourceCommitPolicy::ReplaceExisting,
+        ProtectedFileAvailability::Available,
+    );
+    let receipt = replace
+        .host
+        .run_copy_fragment(
+            CopyRequestId::new("request/replace").unwrap(),
+            replace.fragment,
+            &replace.registry,
+            &CopyStopToken::default(),
+        )
+        .unwrap();
+    assert!(matches!(receipt.result, CopyResult::Success { .. }));
+    assert_eq!(std::fs::read(&destination).unwrap(), replacement);
+}
+
+#[test]
+fn stale_denied_oversized_and_destination_exists_remain_distinct() {
+    let directory = TestDirectory::new();
+    let source = directory.path("source.bin");
+    let destination = directory.path("destination.bin");
+    std::fs::write(&source, vec![1_u8; 32]).unwrap();
+
+    let mut stale = planned_copy(
+        &source,
+        &destination,
+        32,
+        ProtectedResourceAccess::Create,
+        ProtectedResourceCommitPolicy::CreateOnly,
+        ProtectedFileAvailability::Available,
+    );
+    stale.registry.revoke(&stale.source_handle);
+    assert_eq!(
+        run(&mut stale, ExecutionFaults::default()),
+        CopyResult::StaleHandle
+    );
+
+    let mut denied = planned_copy(
+        &source,
+        &destination,
+        32,
+        ProtectedResourceAccess::Create,
+        ProtectedResourceCommitPolicy::CreateOnly,
+        ProtectedFileAvailability::Denied,
+    );
+    assert_eq!(
+        run(&mut denied, ExecutionFaults::default()),
+        CopyResult::Denied
+    );
+
+    let mut oversized = planned_copy(
+        &source,
+        &destination,
+        16,
+        ProtectedResourceAccess::Create,
+        ProtectedResourceCommitPolicy::CreateOnly,
+        ProtectedFileAvailability::Available,
+    );
+    assert!(matches!(
+        run(&mut oversized, ExecutionFaults::default()),
+        CopyResult::Oversized { .. }
+    ));
+
+    std::fs::write(&destination, b"keep").unwrap();
+    let mut exists = planned_copy(
+        &source,
+        &destination,
+        32,
+        ProtectedResourceAccess::Create,
+        ProtectedResourceCommitPolicy::CreateOnly,
+        ProtectedFileAvailability::Available,
+    );
+    assert_eq!(
+        run(&mut exists, ExecutionFaults::default()),
+        CopyResult::DestinationExists
+    );
+    assert_eq!(std::fs::read(&destination).unwrap(), b"keep");
+}
+
+#[test]
+fn partial_cancellation_and_cleanup_failure_are_distinct_and_never_commit() {
+    let directory = TestDirectory::new();
+    let source = directory.path("source.bin");
+    let bytes = vec![9_u8; conduit_std_catalog::COPY_CHUNK_BYTES as usize * 2];
+    std::fs::write(&source, &bytes).unwrap();
+
+    for (name, faults, expected) in [
+        (
+            "partial.bin",
+            ExecutionFaults {
+                fail_after_bytes: Some(u64::from(conduit_std_catalog::COPY_CHUNK_BYTES)),
+                ..ExecutionFaults::default()
+            },
+            CopyResult::Partial {
+                bytes_copied: u64::from(conduit_std_catalog::COPY_CHUNK_BYTES),
+            },
+        ),
+        (
+            "cancelled.bin",
+            ExecutionFaults {
+                stop_after_bytes: Some(u64::from(conduit_std_catalog::COPY_CHUNK_BYTES)),
+                ..ExecutionFaults::default()
+            },
+            CopyResult::Cancelled {
+                bytes_copied: u64::from(conduit_std_catalog::COPY_CHUNK_BYTES),
+            },
+        ),
+        (
+            "cleanup.bin",
+            ExecutionFaults {
+                stop_after_bytes: Some(u64::from(conduit_std_catalog::COPY_CHUNK_BYTES)),
+                cleanup_failure: true,
+                ..ExecutionFaults::default()
+            },
+            CopyResult::CleanupFailed {
+                bytes_copied: u64::from(conduit_std_catalog::COPY_CHUNK_BYTES),
+            },
+        ),
+    ] {
+        let destination = directory.path(name);
+        let mut copy = planned_copy(
+            &source,
+            &destination,
+            bytes.len() as u64,
+            ProtectedResourceAccess::Create,
+            ProtectedResourceCommitPolicy::CreateOnly,
+            ProtectedFileAvailability::Available,
+        );
+        assert_eq!(run(&mut copy, faults), expected);
+        assert!(!destination.exists());
+    }
+}
+
+#[test]
+fn public_stop_token_cancels_the_kernel_before_any_chunk_is_copied() {
+    let directory = TestDirectory::new();
+    let source = directory.path("source.bin");
+    let destination = directory.path("destination.bin");
+    std::fs::write(&source, vec![7_u8; 32]).unwrap();
+    let mut copy = planned_copy(
+        &source,
+        &destination,
+        32,
+        ProtectedResourceAccess::Create,
+        ProtectedResourceCommitPolicy::CreateOnly,
+        ProtectedFileAvailability::Available,
+    );
+    let stop = CopyStopToken::default();
+    stop.request_stop();
+    let receipt = copy
+        .host
+        .run_copy_fragment(
+            CopyRequestId::new("request/stop").unwrap(),
+            copy.fragment,
+            &copy.registry,
+            &stop,
+        )
+        .unwrap();
+    assert_eq!(receipt.result, CopyResult::Cancelled { bytes_copied: 0 });
+    assert!(receipt.kernel_events > 0);
+    assert!(!destination.exists());
+}
+
+fn run(copy: &mut PlannedCopy, faults: ExecutionFaults) -> CopyResult {
+    copy.host
+        .run_copy_fragment_with_faults(
+            CopyRequestId::new("request/negative").unwrap(),
+            copy.fragment.clone(),
+            &copy.registry,
+            &CopyStopToken::default(),
+            faults,
+        )
+        .expect("negative result remains a receipt, not structural failure")
+        .result
+}
