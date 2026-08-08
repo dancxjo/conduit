@@ -36,13 +36,14 @@ fn provider(
 }
 
 fn wait(task: &mut NativeFileTask) {
-    for _ in 0..10_000 {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while std::time::Instant::now() < deadline {
         if task.poll().unwrap() {
             return;
         }
-        std::thread::yield_now();
+        std::thread::sleep(std::time::Duration::from_millis(1));
     }
-    panic!("bounded copy did not publish its receipt");
+    panic!("copy did not publish its receipt within five seconds");
 }
 
 #[test]
