@@ -28,6 +28,7 @@ fn main() {
         Command::PicoLocal(mut args) => run_pico(&opts, &mut args, true),
         Command::Demo(args) => match args.command {
             DemoCommand::Toggle => commands::toggle::run(),
+            DemoCommand::Site => commands::toggle::run_site(),
         },
     };
 

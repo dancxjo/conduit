@@ -63,6 +63,10 @@ prove-std-browser-s4:
 toggle:
     cargo xtask demo toggle
 
+# Conduit project homepage driven by the real distributed toggle program.
+site:
+    cargo xtask demo site
+
 # One live loopback std-kernel to browser-WASM-kernel toggle proof.
 prove-std-browser-toggle:
     cargo xtask prove std-browser-toggle
