@@ -92,8 +92,9 @@ impl JoinKernel {
         let nodes = generated_nodes();
         let cords = generated_cords();
         crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelRoutes);
-        let routes = generated_routes();
-        let host_bindings = generated_host_bindings();
+        let routes = generated_routes().map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
+        let host_bindings =
+            generated_host_bindings().map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
         crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelScheduler);
         let scheduler = JoinScheduler::new_with_host_operations(
             nodes,
