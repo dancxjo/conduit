@@ -1,7 +1,10 @@
 use conduit_core::{ActivePlayId, ClueId, PlanId};
 use serde::{Deserialize, Serialize};
 
-use crate::{BodyLifecycleError, BodyState, WakeId, WakeLifecycle, WakePlan};
+use crate::{
+    hold::validate_planning_basis_signs, BodyLifecycleError, BodyState, HoldPolicy, WakeId,
+    WakeLifecycle, WakePlan,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyLifecycleEvent {
@@ -27,6 +30,23 @@ pub enum WakeLifecycleEvent {
     },
     PlanReady {
         plan_id: PlanId,
+        clue_id: ClueId,
+    },
+    PlanHeld {
+        prior_plan_id: Option<PlanId>,
+        plan_id: PlanId,
+        basis_sign_ids: alloc::vec::Vec<ClueId>,
+        policy: HoldPolicy,
+        clue_id: ClueId,
+    },
+    HeldPlanReleased {
+        plan_id: PlanId,
+        active_play_id: ActivePlayId,
+        clue_id: ClueId,
+    },
+    HeldPlanInvalidated {
+        plan_id: PlanId,
+        current_basis_sign_ids: alloc::vec::Vec<ClueId>,
         clue_id: ClueId,
     },
     PlayStarted {
@@ -60,6 +80,9 @@ impl WakeLifecycleEvent {
         match self {
             Self::Woke { clue_id }
             | Self::PlanReady { clue_id, .. }
+            | Self::PlanHeld { clue_id, .. }
+            | Self::HeldPlanReleased { clue_id, .. }
+            | Self::HeldPlanInvalidated { clue_id, .. }
             | Self::PlayStarted { clue_id, .. }
             | Self::BecameUnsatisfied { clue_id, .. }
             | Self::Replanned { clue_id, .. }
@@ -132,6 +155,25 @@ pub(crate) fn validate_wake_events(
                 WakeLifecycle::AwaitingPlay
             }
             (
+                WakeLifecycle::AwaitingPlan,
+                WakeLifecycleEvent::PlanHeld {
+                    prior_plan_id: None,
+                    plan_id,
+                    basis_sign_ids,
+                    policy,
+                    ..
+                },
+            ) if plans.first().is_some_and(|plan| {
+                &plan.plan_id == plan_id
+                    && plan.hold.as_ref().is_some_and(|hold| {
+                        hold.basis.sign_ids() == basis_sign_ids && &hold.policy == policy
+                    })
+            }) =>
+            {
+                plan_index = 1;
+                WakeLifecycle::Held
+            }
+            (
                 WakeLifecycle::AwaitingPlay,
                 WakeLifecycleEvent::PlayStarted {
                     plan_id,
@@ -143,6 +185,37 @@ pub(crate) fn validate_wake_events(
             }) =>
             {
                 WakeLifecycle::Playing
+            }
+            (
+                WakeLifecycle::Held,
+                WakeLifecycleEvent::HeldPlanReleased {
+                    plan_id,
+                    active_play_id,
+                    ..
+                },
+            ) if plans.get(plan_index - 1).is_some_and(|plan| {
+                &plan.plan_id == plan_id && plan.active_play_id.as_ref() == Some(active_play_id)
+            }) =>
+            {
+                WakeLifecycle::Playing
+            }
+            (
+                WakeLifecycle::Held,
+                WakeLifecycleEvent::HeldPlanInvalidated {
+                    plan_id,
+                    current_basis_sign_ids,
+                    ..
+                },
+            ) if validate_planning_basis_signs(current_basis_sign_ids).is_ok()
+                && plans.get(plan_index - 1).is_some_and(|plan| {
+                    &plan.plan_id == plan_id
+                        && plan
+                            .hold
+                            .as_ref()
+                            .is_some_and(|hold| hold.basis.sign_ids() != current_basis_sign_ids)
+                }) =>
+            {
+                WakeLifecycle::AwaitingReplacement
             }
             (WakeLifecycle::Playing, WakeLifecycleEvent::SamePlanObserved { plan_id, .. })
                 if plans
@@ -174,6 +247,45 @@ pub(crate) fn validate_wake_events(
             {
                 plan_index += 1;
                 WakeLifecycle::AwaitingPlay
+            }
+            (
+                WakeLifecycle::AwaitingReplacement,
+                WakeLifecycleEvent::Replanned {
+                    prior_plan_id,
+                    replacement_plan_id,
+                    ..
+                },
+            ) if plans
+                .get(plan_index - 1)
+                .is_some_and(|plan| &plan.plan_id == prior_plan_id)
+                && plans
+                    .get(plan_index)
+                    .is_some_and(|plan| &plan.plan_id == replacement_plan_id) =>
+            {
+                plan_index += 1;
+                WakeLifecycle::AwaitingPlay
+            }
+            (
+                WakeLifecycle::Unsatisfied | WakeLifecycle::AwaitingReplacement,
+                WakeLifecycleEvent::PlanHeld {
+                    prior_plan_id: Some(prior_plan_id),
+                    plan_id,
+                    basis_sign_ids,
+                    policy,
+                    ..
+                },
+            ) if plans
+                .get(plan_index - 1)
+                .is_some_and(|plan| &plan.plan_id == prior_plan_id)
+                && plans.get(plan_index).is_some_and(|plan| {
+                    &plan.plan_id == plan_id
+                        && plan.hold.as_ref().is_some_and(|hold| {
+                            hold.basis.sign_ids() == basis_sign_ids && &hold.policy == policy
+                        })
+                }) =>
+            {
+                plan_index += 1;
+                WakeLifecycle::Held
             }
             (state, WakeLifecycleEvent::Lulled { .. })
                 if !matches!(state, WakeLifecycle::Lulled | WakeLifecycle::Failed) =>
