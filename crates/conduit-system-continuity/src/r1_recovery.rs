@@ -27,6 +27,17 @@ pub struct R1LedResultClue {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct R1LedResultObservation {
+    pub pico_host_id: HostId,
+    pub pico_boot_id: BootId,
+    pub plan_id: PlanId,
+    pub active_play_id: ActivePlayId,
+    pub observed_session: SessionBinding,
+    pub clue_id: ClueId,
+    pub level: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct R1RecoveryStartClues {
     pub birth: ClueId,
     pub wake: ClueId,
@@ -288,24 +299,27 @@ impl R1NewPlanRecovery {
 
     pub fn record_led_result(
         &mut self,
-        pico_host_id: HostId,
-        pico_boot_id: BootId,
-        plan_id: PlanId,
-        active_play_id: ActivePlayId,
-        clue_id: ClueId,
-        level: bool,
+        observation: R1LedResultObservation,
     ) -> Result<(), R1RecoveryError> {
         let (current_plan, current_play) = self
             .plan_b
             .as_ref()
             .zip(self.play_b.as_ref())
             .ok_or(R1RecoveryError::StaleResult)?;
-        if plan_id != current_plan.plan_id || active_play_id != current_play.active_play_id {
+        if observation.plan_id != current_plan.plan_id
+            || observation.active_play_id != current_play.active_play_id
+        {
             return Err(R1RecoveryError::StaleResult);
         }
-        let gear = find_gear(current_plan, &self.obligation_gear_id)
-            .ok_or(R1RecoveryError::WrongRealizationSubject)?;
-        if pico_host_id != gear.host_id || pico_boot_id != gear.boot_id {
+        let planned_session = session_binding(current_plan, &self.obligation_gear_id)?;
+        let expected_session = planned_session.with_observed_boots(
+            observation.observed_session.source.boot_id.clone(),
+            observation.observed_session.sink.boot_id.clone(),
+        )?;
+        if observation.observed_session != expected_session
+            || observation.pico_host_id != observation.observed_session.sink.host_id
+            || observation.pico_boot_id != observation.observed_session.sink.boot_id
+        {
             return Err(R1RecoveryError::StaleResult);
         }
         if self.led_results.len() >= MAX_R1_LED_RESULT_CLUES {
@@ -314,12 +328,12 @@ impl R1NewPlanRecovery {
         self.led_results.push(R1LedResultClue {
             body_id: self.body.body_id.clone(),
             wake_id: self.wake.wake_id.clone(),
-            plan_id,
-            active_play_id,
-            pico_host_id,
-            pico_boot_id,
-            clue_id,
-            level,
+            plan_id: observation.plan_id,
+            active_play_id: observation.active_play_id,
+            pico_host_id: observation.pico_host_id,
+            pico_boot_id: observation.pico_boot_id,
+            clue_id: observation.clue_id,
+            level: observation.level,
         });
         Ok(())
     }

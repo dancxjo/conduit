@@ -258,14 +258,15 @@ pub(super) fn verify_new_plan_recovery(
         .active_play_id
         .clone();
     recovery
-        .record_led_result(
-            conduit_core::HostId::from(conduit_net::R1_PICO_HOST_ID),
-            BootId::from(runtime.boot_id.as_str()),
-            plan_b_id,
-            play_b_id,
-            conduit_core::ClueId::from("r1/physical/plan-b-led-result"),
-            true,
-        )
+        .record_led_result(conduit_system_continuity::R1LedResultObservation {
+            pico_host_id: conduit_core::HostId::from(conduit_net::R1_PICO_HOST_ID),
+            pico_boot_id: BootId::from(runtime.boot_id.as_str()),
+            plan_id: plan_b_id,
+            active_play_id: play_b_id,
+            observed_session: source_b.binding().clone(),
+            clue_id: conduit_core::ClueId::from("r1/physical/plan-b-led-result"),
+            level: true,
+        })
         .map_err(|error| format!("failed recording physical Plan B LED result: {error:?}"))?;
     let lifecycle = super::r1_lifecycle::lull_and_wake(
         recovery.body(),
