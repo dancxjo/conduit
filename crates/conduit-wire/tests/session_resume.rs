@@ -8,6 +8,53 @@ use conduit_wire::{
     SessionRole, SessionTransferCheckpoint, WireError,
 };
 
+mod allocation_probe {
+    use std::alloc::{GlobalAlloc, Layout, System};
+    use std::cell::Cell;
+
+    pub struct TrackingAllocator;
+
+    thread_local! {
+        static TRACKING: Cell<bool> = const { Cell::new(false) };
+        static ALLOCATIONS: Cell<usize> = const { Cell::new(0) };
+    }
+
+    unsafe impl GlobalAlloc for TrackingAllocator {
+        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+            let pointer = unsafe { System.alloc(layout) };
+            if !pointer.is_null() {
+                record();
+            }
+            pointer
+        }
+
+        unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+            unsafe { System.dealloc(pointer, layout) };
+        }
+    }
+
+    fn record() {
+        let _ = TRACKING.try_with(|tracking| {
+            if tracking.get() {
+                let _ = ALLOCATIONS.try_with(|allocations| {
+                    allocations.set(allocations.get().saturating_add(1));
+                });
+            }
+        });
+    }
+
+    #[global_allocator]
+    static ALLOCATOR: TrackingAllocator = TrackingAllocator;
+
+    pub fn allocations_during(action: impl FnOnce()) -> usize {
+        ALLOCATIONS.with(|allocations| allocations.set(0));
+        TRACKING.with(|tracking| tracking.set(true));
+        action();
+        TRACKING.with(|tracking| tracking.set(false));
+        ALLOCATIONS.with(Cell::get)
+    }
+}
+
 fn binding() -> SessionBinding {
     let plan_id = PlanId::from("resume/plan");
     let source_host = HostId::from("resume/source-host");
@@ -178,6 +225,24 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
         SessionResumeAction::AdvanceDelivered(0)
     );
     assert_eq!(accepted_source.next_sequence(), 1);
+}
+
+#[test]
+fn attachment_resume_validates_without_allocating() {
+    let original = binding();
+    let replacement = replacement_binding();
+    let mut machine = SessionMachine::new(original.clone(), SessionRole::Sink).unwrap();
+    trigger(&mut machine);
+    let peer = SessionCheckpointOffer {
+        identity: original.identity(),
+        checkpoint: machine.checkpoint(),
+    };
+
+    let allocations = allocation_probe::allocations_during(|| {
+        machine.resume_with_attachment(replacement, peer).unwrap();
+    });
+
+    assert_eq!(allocations, 0);
 }
 
 #[test]

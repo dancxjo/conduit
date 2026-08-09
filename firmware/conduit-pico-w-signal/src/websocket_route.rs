@@ -110,6 +110,11 @@ pub async fn run(
             remain_bootsel(link).await
         }
         Either::Second(Err(_)) => {
+            if plan_c {
+                crate::panic_recovery::set_phase(
+                    crate::panic_recovery::PanicPhase::PlanCLineFailure,
+                );
+            }
             socket.abort();
             if plan_c {
                 *continuation = Some(state);
