@@ -58,4 +58,7 @@ jobs:
       - name: Install browser test dependencies
         run: npm ci --ignore-scripts --prefer-offline
       - name: Run browser host proof suite
+        env:
+          HOME: /root
+          RUSTUP_HOME: /github/home/.rustup
         run: cargo xtask prove browser-host --locked
