@@ -2347,10 +2347,12 @@ name = "xtask"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "conduit-body",
  "conduit-core",
  "conduit-net",
  "conduit-signal",
  "conduit-std-host",
+ "conduit-system-continuity",
  "conduit-wire",
  "serde",
  "serde_json",

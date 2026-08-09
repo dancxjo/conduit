@@ -9,11 +9,12 @@ use conduit_core::{
     PlayUnsatisfiedReason,
 };
 use conduit_wire::{RouteDisposition, RouteError, RouteMachine, SessionBinding, WireError};
+use serde::{Deserialize, Serialize};
 
 pub const MAX_R1_RECOVERY_EVENTS: usize = 8;
 pub const MAX_R1_LED_RESULT_CLUES: usize = 4;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct R1LedResultClue {
     pub body_id: BodyId,
     pub wake_id: WakeId,

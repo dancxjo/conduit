@@ -63,5 +63,6 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             )
             .map_err(|error| StepError::prereq("prove.pico-websocket-route", error.to_string()))
         }
+        ProveTarget::R1NewPlanRecovery => crate::commands::r1_recovery::run(opts),
     }
 }
