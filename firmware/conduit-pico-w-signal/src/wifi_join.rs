@@ -130,6 +130,7 @@ impl JoinKernel {
         clue: &mut UsbCdc,
         runtime: &RuntimeTranscriptIdentity,
     ) -> Result<(), UsbLinkError> {
+        crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelExecution);
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
                 if request.node == self.clue_node && request.operation == self.clue_operation {
@@ -184,6 +185,7 @@ impl JoinKernel {
                     credential_len = decoded.credential.len();
                     credential[..credential_len].copy_from_slice(decoded.credential);
                 }
+                crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::NetworkJoin);
                 let join_result = with_timeout(
                     JOIN_TIMEOUT,
                     control.join(
@@ -199,9 +201,15 @@ impl JoinKernel {
                     Ok(Err(_)) => return Err(UsbLinkError::NetworkJoinFailed),
                     Err(_) => return Err(UsbLinkError::NetworkConfigurationTimeout),
                 }
+                crate::panic_recovery::set_phase(
+                    crate::panic_recovery::PanicPhase::NetworkConfiguration,
+                );
                 with_timeout(JOIN_TIMEOUT, stack.wait_config_up())
                     .await
                     .map_err(|_| UsbLinkError::NetworkConfigurationTimeout)?;
+                crate::panic_recovery::set_phase(
+                    crate::panic_recovery::PanicPhase::KernelCompletion,
+                );
                 let identity = attachment_identity(runtime);
                 let mut attachment = [0_u8; conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES as usize];
                 let attachment_len = conduit_net::encode_network_attachment(
@@ -418,12 +426,14 @@ async fn run_session(
         _ => return Err(UsbLinkError::InvalidNetworkJoin),
     };
     machine.admit_inbound(offered).map_err(UsbLinkError::Codec)?;
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelIngress);
     if !matches!(kernel.admit(sequence, payload)?, RemoteIngressOutcome::Accepted { .. }) {
         return Err(UsbLinkError::InvalidNetworkJoin);
     }
     let accepted = binding.frame(SessionMessage::Accepted { sequence });
     machine.admit_outbound(accepted).map_err(UsbLinkError::Codec)?;
     link.send_frame(&accepted).await?;
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelExecution);
     kernel.execute(control, stack, clue, runtime).await?;
     let delivered = binding.frame(SessionMessage::Delivered { sequence });
     machine.admit_outbound(delivered).map_err(UsbLinkError::Codec)?;

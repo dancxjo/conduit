@@ -22,6 +22,11 @@ pub enum PanicPhase {
     KernelRoutes = 7,
     KernelScheduler = 8,
     SessionExecution = 9,
+    KernelIngress = 10,
+    KernelExecution = 11,
+    NetworkJoin = 12,
+    NetworkConfiguration = 13,
+    KernelCompletion = 14,
     Unclassified = 255,
 }
 
@@ -41,6 +46,11 @@ impl PanicRecord {
             PanicPhase::KernelRoutes => "network-kernel-routes-panic",
             PanicPhase::KernelScheduler => "network-kernel-scheduler-panic",
             PanicPhase::SessionExecution => "network-session-execution-panic",
+            PanicPhase::KernelIngress => "network-kernel-ingress-panic",
+            PanicPhase::KernelExecution => "network-kernel-execution-panic",
+            PanicPhase::NetworkJoin => "network-join-panic",
+            PanicPhase::NetworkConfiguration => "network-configuration-panic",
+            PanicPhase::KernelCompletion => "network-kernel-completion-panic",
             PanicPhase::Unclassified => "firmware-panic",
         }
     }
@@ -77,6 +87,11 @@ pub fn take(watchdog_peripheral: Peri<'static, WATCHDOG>) -> Option<PanicRecord>
             7 => PanicPhase::KernelRoutes,
             8 => PanicPhase::KernelScheduler,
             9 => PanicPhase::SessionExecution,
+            10 => PanicPhase::KernelIngress,
+            11 => PanicPhase::KernelExecution,
+            12 => PanicPhase::NetworkJoin,
+            13 => PanicPhase::NetworkConfiguration,
+            14 => PanicPhase::KernelCompletion,
             _ => PanicPhase::Unclassified,
         },
     })
