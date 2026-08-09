@@ -16,7 +16,7 @@ use crate::usb::MAX_PACKET_SIZE;
 
 // The longest current identity-bearing receipt is about 1.6 KiB. This fixed
 // bound leaves room for longer exact runtime IDs without allocating.
-const RECEIPT_BUFFER_BYTES: usize = 2048;
+pub(crate) const RECEIPT_BUFFER_BYTES: usize = 2048;
 const RUNTIME_ID_BYTES: usize = 128;
 
 pub struct UsbCdc {
@@ -104,6 +104,7 @@ pub struct BootIdentity {
     pub boot_clue_id: &'static str,
 }
 
+#[cfg(not(feature = "wifi-bootstrap"))]
 #[derive(Clone, Copy)]
 pub struct PresentationReceiptIdentity {
     pub firmware_build_id: &'static str,
@@ -119,6 +120,7 @@ pub struct PresentationReceiptIdentity {
     pub clue_id: &'static str,
 }
 
+#[cfg(not(feature = "wifi-bootstrap"))]
 #[derive(Clone, Copy)]
 pub struct TerminalIdentity {
     pub firmware_build_id: &'static str,
@@ -187,6 +189,7 @@ impl UsbCdc {
     }
 
     /// Write a machine-readable receipt for one Signal presentation.
+    #[cfg(not(feature = "wifi-bootstrap"))]
     pub async fn write_receipt(
         &mut self,
         sequence: u64,
@@ -240,6 +243,7 @@ impl UsbCdc {
     }
 
     /// Write a terminal completion record.
+    #[cfg(not(feature = "wifi-bootstrap"))]
     pub async fn write_terminal(
         &mut self,
         success: bool,
@@ -288,6 +292,7 @@ impl UsbCdc {
     }
 
     /// Write a kernel error record.
+    #[cfg(not(feature = "wifi-bootstrap"))]
     #[allow(dead_code)]
     pub async fn write_error(
         &mut self,
@@ -340,6 +345,7 @@ impl UsbCdc {
     /// Write terminal failure clue for a transport/session/kernel failure
     /// that is not representable as a scheduler error value.
     #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
+    #[cfg(not(feature = "wifi-bootstrap"))]
     pub async fn write_failure(
         &mut self,
         code: &str,
@@ -388,7 +394,10 @@ impl UsbCdc {
         self.write_all_mandatory(line.as_bytes()).await
     }
 
-    async fn write_all_mandatory(&mut self, data: &[u8]) -> Result<(), UsbClueError> {
+    pub(crate) async fn write_all_mandatory(
+        &mut self,
+        data: &[u8],
+    ) -> Result<(), UsbClueError> {
         let mut offset = 0;
         while offset < data.len() {
             let chunk_len = (data.len() - offset).min(MAX_PACKET_SIZE as usize);

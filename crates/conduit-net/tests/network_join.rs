@@ -3,10 +3,11 @@ use conduit_core::{
     HostOperationContractId, ResourceBinding, ResourceClassId, ResourcePoolId,
 };
 use conduit_net::{
-    execute_fixture_join, network_capable_advertisement, network_join_offer,
-    network_omitting_advertisement, NetworkAttachmentId, NetworkJoinError, NetworkJoinRequest,
-    NETWORK_CONFIG_AUTHORITY, NETWORK_CONFIG_SUBJECT, NETWORK_JOIN_HOST_OPERATION,
-    WIFI_STATION_RESOURCE_CLASS,
+    decode_network_attachment, decode_network_join_request, encode_network_attachment,
+    encode_network_join_request, execute_fixture_join, network_capable_advertisement,
+    network_join_offer, network_omitting_advertisement, NetworkAttachmentId, NetworkAttachmentInfo,
+    NetworkJoinError, NetworkJoinRequest, MAXIMUM_JOIN_OUTPUT_BYTES, NETWORK_CONFIG_AUTHORITY,
+    NETWORK_CONFIG_SUBJECT, NETWORK_JOIN_HOST_OPERATION, WIFI_STATION_RESOURCE_CLASS,
 };
 
 fn resource() -> ResourceBinding {
@@ -36,6 +37,29 @@ fn request<'a>(credential: &'a [u8]) -> NetworkJoinRequest<'a> {
         ssid: b"fixture-lan",
         credential,
     }
+}
+
+#[test]
+fn boot_scoped_attachment_info_round_trips_through_one_bounded_value() {
+    let attachment = NetworkAttachmentInfo {
+        attachment_id: "r1/pico-network-attachment-1",
+        host_id: "r1/pico-w",
+        boot_id:
+            "conduit-pico-w-signal/runtime-boot:0000000000000000:00000000000000000000000000000000",
+        interface_pool_id: "r1/pico-wifi-station-0",
+        generation: 1,
+    };
+    let mut encoded = [0_u8; MAXIMUM_JOIN_OUTPUT_BYTES as usize];
+    let encoded_len = encode_network_attachment(attachment, &mut encoded).unwrap();
+    assert_eq!(
+        decode_network_attachment(&encoded[..encoded_len]).unwrap(),
+        attachment
+    );
+    assert!(encoded_len <= MAXIMUM_JOIN_OUTPUT_BYTES as usize);
+    assert_eq!(
+        decode_network_attachment(&encoded[..encoded_len - 1]),
+        Err(NetworkJoinError::InvalidAttachment)
+    );
 }
 
 #[test]
@@ -186,4 +210,75 @@ fn credential_and_attachment_bounds_fail_closed() {
         ),
         Err(NetworkJoinError::CredentialTooLarge)
     );
+}
+
+#[test]
+fn volatile_join_info_round_trips_only_through_an_admitted_buffer() {
+    let secret = b"do-not-render-or-retain";
+    let mut encoded = [0_u8; conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize];
+    let encoded_len = encode_network_join_request(request(secret), &mut encoded).unwrap();
+    let decoded = decode_network_join_request(&encoded[..encoded_len]).unwrap();
+    assert_eq!(decoded.ssid, b"fixture-lan");
+    assert_eq!(decoded.credential, secret);
+    assert_eq!(encoded_len, 7 + b"fixture-lan".len() + secret.len());
+}
+
+#[test]
+fn malformed_trailing_invalid_utf8_and_small_output_fail_distinctly() {
+    let mut encoded = [0_u8; conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize];
+    let encoded_len = encode_network_join_request(request(b"secret"), &mut encoded).unwrap();
+    encoded[encoded_len] = 0;
+    assert!(matches!(
+        decode_network_join_request(&encoded[..=encoded_len]),
+        Err(NetworkJoinError::MalformedRequest)
+    ));
+
+    let invalid_ssid = NetworkJoinRequest {
+        ssid: &[0xff],
+        credential: b"secret",
+    };
+    assert_eq!(
+        encode_network_join_request(invalid_ssid, &mut encoded),
+        Err(NetworkJoinError::MalformedRequest)
+    );
+    assert_eq!(
+        encode_network_join_request(request(b"secret"), &mut [0_u8; 4]),
+        Err(NetworkJoinError::OutputTooSmall)
+    );
+}
+
+#[test]
+#[cfg(feature = "form-catalog")]
+fn canonical_bootstrap_form_carries_no_credentials_or_platform_facts() {
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    conduit_net::install_network_bootstrap_catalogs(&mut startup, &mut profile).unwrap();
+    let source = include_str!("../../../examples/r1-network-bootstrap.conduit");
+    let document = conduit_form::parse_syntax_document(source);
+    let checked = conduit_form::check_syntax_document(&document, &startup).unwrap();
+    assert_eq!(checked.forms.len(), 1);
+    let form =
+        conduit_form::expand_canonical_form(&checked, "r1-network-bootstrap", &profile).unwrap();
+    assert_eq!(form.gears.len(), 3);
+    assert_eq!(form.connections.len(), 2);
+    assert!(
+        form.connections
+            .iter()
+            .any(|connection| connection.value_kind.as_str()
+                == conduit_net::NETWORK_JOIN_REQUEST_KIND)
+    );
+    assert!(form
+        .connections
+        .iter()
+        .any(|connection| connection.value_kind.as_str() == conduit_net::NETWORK_ATTACHMENT_KIND));
+    for forbidden in [
+        "ssid",
+        "password",
+        "UsbCdc",
+        "wifi-station",
+        "HostId",
+        "BootId",
+    ] {
+        assert!(!source.contains(forbidden));
+    }
 }
