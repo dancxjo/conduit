@@ -300,24 +300,27 @@ fn read_recovery_clue(
     runtime: &RuntimeTranscriptIdentity,
 ) -> Box<dyn std::error::Error> {
     std::thread::scope(|scope| -> Box<dyn std::error::Error> {
-        let clue_read = scope.spawn(|| clue.read_line(Duration::from_secs(3)));
-        if let Err(error) = carrier.send_raw_stream_frame(
-            conduit_net::R1_USB_NETWORK_FAILURE_CLUE_READY,
-            Duration::from_secs(2),
-        ) {
-            return Box::new(error);
-        }
-        let mut raw = [0_u8; 1024];
-        let status = match carrier.receive_raw_stream_frame(&mut raw, Duration::from_secs(3)) {
-            Ok(status) => status,
-            Err(error) => return Box::new(error),
+        let disposition = scope.spawn(|| -> Result<Vec<u8>, String> {
+            carrier
+                .send_raw_stream_frame(
+                    conduit_net::R1_USB_NETWORK_FAILURE_CLUE_READY,
+                    Duration::from_secs(2),
+                )
+                .map_err(|error| error.to_string())?;
+            let mut raw = [0_u8; 1024];
+            Ok(carrier
+                .receive_raw_stream_frame(&mut raw, Duration::from_secs(3))
+                .map_err(|error| error.to_string())?
+                .to_vec())
+        });
+        let line = match clue.read_line(Duration::from_secs(3)) {
+            Ok(line) => line,
+            Err(error) => return format!("no bounded Pico recovery Clue arrived: {error}").into(),
         };
-        let line = match clue_read.join() {
-            Ok(Ok(line)) => line,
-            Ok(Err(error)) => {
-                return format!("no bounded Pico recovery Clue arrived: {error}").into()
-            }
-            Err(_) => return "Pico recovery Clue reader panicked".into(),
+        let status = match disposition.join() {
+            Ok(Ok(status)) => status,
+            Ok(Err(error)) => return error.into(),
+            Err(_) => return "Pico recovery disposition reader panicked".into(),
         };
         if status == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_FORMAT_FAILED {
             return "Pico recovery Clue exceeded its admitted format bound".into();
@@ -325,7 +328,7 @@ fn read_recovery_clue(
         if status == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_DISCONNECTED {
             return "Pico recovery Clue face disconnected during delivery".into();
         }
-        if status != conduit_net::R1_USB_NETWORK_FAILURE_CLUE_WRITTEN {
+        if status.as_slice() != conduit_net::R1_USB_NETWORK_FAILURE_CLUE_WRITTEN {
             return "Pico returned an unexpected recovery Clue disposition".into();
         }
         match verify_attachment_clue(&line, identity, runtime) {
