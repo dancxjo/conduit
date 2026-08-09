@@ -68,6 +68,20 @@ pub struct GraphForm {
     pub checked_form_id: conduit_core::CheckedFormId,
     pub source_span: Span,
     pub items: Vec<GraphItem>,
+    pub cords: Vec<GraphCord>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GraphCord {
+    pub identity: String,
+    pub stages: Vec<GraphCordStage>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GraphCordStage {
+    Reference(String),
+    InlineCell { operation: String },
+    Literal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -261,6 +275,7 @@ fn graph_revision(
             .find(|candidate| candidate.name.text == form.name)
             .expect("checked forms retain parsed names");
         let mut items = Vec::new();
+        let mut cords = Vec::new();
         for parameter in &syntax.face.startup_parameters {
             push_item(
                 &mut items,
@@ -323,6 +338,30 @@ fn graph_revision(
                     if let Some(item) = items.last_mut() {
                         item.label = label;
                     }
+                    if let Some(checked_cord) = form.cords.get(cord_index) {
+                        cords.push(GraphCord {
+                            identity: items
+                                .last()
+                                .expect("cord item was admitted")
+                                .identity
+                                .clone(),
+                            stages: checked_cord
+                                .stages
+                                .iter()
+                                .map(|stage| match stage {
+                                    CheckedCordStage::Reference(name) => {
+                                        GraphCordStage::Reference(name.clone())
+                                    }
+                                    CheckedCordStage::InlineCell(cell) => {
+                                        GraphCordStage::InlineCell {
+                                            operation: cell.operation.clone(),
+                                        }
+                                    }
+                                    CheckedCordStage::Literal { .. } => GraphCordStage::Literal,
+                                })
+                                .collect(),
+                        });
+                    }
                     cord_index += 1;
                 }
                 BackStatement::Pool(_) | BackStatement::LocalValue(_) => {}
@@ -333,6 +372,7 @@ fn graph_revision(
             checked_form_id: form.checked_form_id.clone(),
             source_span: syntax.span,
             items,
+            cords,
         });
     }
     Ok(CheckedRevision {

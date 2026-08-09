@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Conduit Patchbay</title>
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <header><p class="eyebrow">CONDUIT PATCHBAY</p><h1>One truth, rendered for the browser</h1><p id="status" role="status" aria-live="polite">Loading bounded snapshot…</p></header>
+  <nav aria-label="Patchbay facets"><a href="#form">Form</a><a href="#plan">Plan</a><a href="#play">Play</a><a href="#routes">Routes</a><a href="#linear">Linear</a></nav>
+  <main>
+    <section id="form"><h2>Form</h2><dl id="form-facts"></dl><div role="toolbar" aria-label="Renderer-local canvas controls"><button id="zoom-in" type="button">Zoom in</button><button id="zoom-out" type="button">Zoom out</button><button id="pan-right" type="button">Pan right</button><button id="arrange" type="button" aria-pressed="false">Reverse arrangement</button><button id="theme" type="button" aria-pressed="false">Light theme</button></div><div class="split"><div><h3>Back graph</h3><svg id="graph" role="img" aria-labelledby="graph-title"><title id="graph-title">Canonical Form graph</title></svg></div><div><h3>Structural view</h3><ul id="subjects" aria-label="Form graph subjects"></ul></div></div></section>
+    <section id="inspector" aria-live="polite"><h2>Inspector</h2><dl></dl></section>
+    <section id="diagnostics"><h2>Checked edit diagnostic</h2><ol></ol></section>
+    <section id="plan"><h2>Exact Plan</h2><dl></dl><h3>Realization</h3><ul id="realizations"></ul></section>
+    <section id="play"><h2>Active Play and evidence</h2><dl></dl><ol id="evidence"></ol></section>
+    <section id="routes"><h2>Route recovery</h2><div id="route-cards"></div></section>
+    <section id="topology"><h2>Observed hosts</h2><ul></ul></section>
+    <section id="linear"><h2>Deterministic linear view</h2><ol></ol></section>
+  </main>
+  <noscript>This renderer requires JavaScript to decode the typed snapshot. The server provides no semantic fallback.</noscript>
+  <script type="module" src="/assets/app.js"></script>
+</body>
+</html>

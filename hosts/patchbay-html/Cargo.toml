@@ -1,0 +1,16 @@
+[package]
+name = "patchbay-html"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../crates/conduit-core" }
+conduit-form = { path = "../../crates/conduit-form" }
+conduit-observatory = { path = "../../crates/conduit-observatory" }
+conduit-std-host = { path = "../std" }
+patchbay-model = { path = "../patchbay-model" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
