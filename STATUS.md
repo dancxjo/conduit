@@ -483,3 +483,17 @@ core-only optional pre-Play HOLD contract from #646 is accepted separately at
 exact main `52850f9d6d0778c7dfe15c376ec92c31682d645c`; push workflow
 `31334882531` passed both required jobs. It adds no UI, planner, authority
 issuer, active-Play pause, transport, firmware, or physical/HIL claim.
+
+The first ConduitOS boot slice from #588 is accepted at exact main
+`35a7522703164cdc1758a3bfebfd5ac3f0649a0e`; push workflow `31340517738`
+passed `check`, `browser-host`, and `conduitos-boot`. The architecture-neutral
+common backbone compiles for the pinned Limine IA-32, x86_64, aarch64,
+riscv64, and loongarch64 target matrix while x86_64 is the sole executable
+backend. Exact Limine 12.5.2 bootstrap produces the same six-file hybrid ISO
+digest across two builds, boots twice in the one-CPU 64 MiB headless q35 QEMU
+profile, emits one bounded accepted boot Sign per run with fresh HostId and
+BootId, and exits deterministically. This earns `freestanding-emulator` boot
+proof only. It starts no Plan or Play, gives no machine to `conduit-kernel`,
+activates no non-x86_64 backend, and claims no firmware, physical/HIL,
+interrupt, timer, serial-offer, framebuffer, SMP, preemption, network, or
+ConduitOS inspection proof.
