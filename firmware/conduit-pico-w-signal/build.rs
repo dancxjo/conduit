@@ -20,8 +20,11 @@ use conduit_signal::{
 
 mod identity_sidecar;
 use identity_sidecar::render_identity_sidecar;
+#[path = "build/r1_control_images.rs"]
+mod r1_control_images;
 
 const SIGNAL_DEMO_FORM: &str = include_str!("../../examples/signal-demo.form");
+const R1_CONTROL_FORM: &str = include_str!("../../examples/r1-three-peer-control.form");
 const TRIPLE_SIGNAL_FORM: &str = include_str!("../../examples/triple-signal.form");
 const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
@@ -36,6 +39,7 @@ fn main() {
     if firmware_mode() == "wifi-bootstrap" {
         generate_pico_network_image(&out);
         generate_r1_recovery_signal_images(&out);
+        r1_control_images::generate(&out);
     } else {
         generate_pico_signal_image(&out);
     }
@@ -53,6 +57,7 @@ fn main() {
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=../../examples/signal-demo.form");
+    println!("cargo:rerun-if-changed=../../examples/r1-three-peer-control.form");
     println!("cargo:rerun-if-changed=../../examples/triple-signal.form");
     println!("cargo:rerun-if-changed=../../examples/r1-network-bootstrap.conduit");
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_ENV}");
