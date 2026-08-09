@@ -96,6 +96,8 @@ identity_type!(PresentationId);
 identity_type!(FragmentId);
 identity_type!(PlacementId);
 identity_type!(ConnectionId);
+// Identity of one finite connectivity realization offered for Conduit traffic.
+identity_type!(LineId);
 // Identity of one observed, directional, boot-scoped remote link.
 identity_type!(LinkBindingId);
 // Base-owned identity of one exact initialized link endpoint.
@@ -336,7 +338,7 @@ pub struct PlannerLimits {
     pub maximum_authority_grants: u16,
     #[serde(default)]
     pub maximum_protected_resource_grants: u16,
-    pub maximum_link_bindings: u16,
+    pub maximum_line_offers: u16,
 }
 
 /// An optional host capability to perform deterministic Conduit planning.
@@ -512,26 +514,21 @@ pub struct PlannedConnection {
     pub value_kind: KindId,
     #[serde(default)]
     pub temporal: PortTemporal,
-    pub base: ConnectionBase,
-    pub link_binding: Option<LinkBinding>,
-    /// Exact ordered permissible routes. Empty retains the legacy single-link
-    /// representation; new remote plans seal at least one immutable candidate.
+    /// Initially selected exact Line. Local Cords have no Line.
     #[serde(default)]
-    pub route_candidates: Vec<BoundLink>,
+    pub selected_line: Option<AdmittedLine>,
+    /// Exact ordered permissible Lines. Runtime may select only from this
+    /// immutable set; availability remains outside the Plan as Signs.
+    #[serde(default)]
+    pub admitted_lines: Vec<AdmittedLine>,
     pub item_capacity: u16,
     pub byte_capacity: u32,
 }
 
 impl PlannedConnection {
-    /// Whether an immutable link is inside this connection's sealed route set.
-    pub fn permits_bound_link(&self, link: &BoundLink) -> bool {
-        if self.route_candidates.is_empty() {
-            self.link_binding
-                .as_ref()
-                .is_some_and(|binding| binding.bound_link() == *link)
-        } else {
-            self.route_candidates.contains(link)
-        }
+    /// Whether an exact Line is inside this Cord's sealed realization set.
+    pub fn permits_line(&self, line: &AdmittedLine) -> bool {
+        self.admitted_lines.contains(line)
     }
 }
 
@@ -696,34 +693,32 @@ fn verify_plan_connections(plan: &Plan) -> bool {
         let sink = sink[0];
         if source.host_id == sink.host_id {
             if occurrences.len() != 1
-                || connection.base != ConnectionBase::Local
-                || connection.link_binding.is_some()
-                || !connection.route_candidates.is_empty()
+                || connection.selected_line.is_some()
+                || !connection.admitted_lines.is_empty()
             {
                 return false;
             }
         } else {
-            let Some(binding) = &connection.link_binding else {
+            let Some(selected) = &connection.selected_line else {
                 return false;
             };
-            let candidates = if connection.route_candidates.is_empty() {
-                alloc::vec![binding.bound_link()]
-            } else {
-                connection.route_candidates.clone()
-            };
             if occurrences.len() != 2
-                || connection.base == ConnectionBase::Local
-                || binding.binding_id.as_str().is_empty()
-                || binding.base != connection.base
-                || binding.base_instance_id.as_str().is_empty()
-                || !connection.permits_bound_link(&binding.bound_link())
-                || candidates
+                || connection.admitted_lines.is_empty()
+                || !connection.permits_line(selected)
+                || connection
+                    .admitted_lines
                     .iter()
                     .enumerate()
-                    .any(|(index, candidate)| candidates[..index].contains(candidate))
-                || candidates
+                    .any(|(index, candidate)| {
+                        connection.admitted_lines[..index].iter().any(|prior| {
+                            prior.line_id == candidate.line_id
+                                || prior.binding.binding_id == candidate.binding.binding_id
+                        })
+                    })
+                || connection
+                    .admitted_lines
                     .iter()
-                    .any(|candidate| invalid_bound_link(candidate, source, sink, connection))
+                    .any(|candidate| invalid_admitted_line(candidate, source, sink, connection))
             {
                 return false;
             }
@@ -732,32 +727,39 @@ fn verify_plan_connections(plan: &Plan) -> bool {
     true
 }
 
-fn invalid_bound_link(
-    candidate: &BoundLink,
+fn invalid_admitted_line(
+    candidate: &AdmittedLine,
     source: &PlannedGear,
     sink: &PlannedGear,
     connection: &PlannedConnection,
 ) -> bool {
-    candidate.binding_id.as_str().is_empty()
-        || candidate.base == ConnectionBase::Local
-        || candidate.base_instance_id.as_str().is_empty()
-        || candidate.source.host_id != source.host_id
-        || candidate.source.boot_id != source.boot_id
-        || candidate.source.endpoint_id.as_str().is_empty()
-        || candidate.sink.host_id != sink.host_id
-        || candidate.sink.boot_id != sink.boot_id
-        || candidate.sink.endpoint_id.as_str().is_empty()
-        || candidate.source.endpoint_id == candidate.sink.endpoint_id
-        || candidate.limits.maximum_in_flight_items < connection.item_capacity
-        || candidate.limits.maximum_payload_bytes < connection.byte_capacity
-        || candidate.limits.maximum_buffered_bytes < connection.byte_capacity
-        || candidate.limits.maximum_frame_bytes < candidate.limits.maximum_payload_bytes
+    let binding = &candidate.binding;
+    candidate.line_id.as_str().is_empty()
+        || binding.binding_id.as_str().is_empty()
+        || candidate.line_id.as_str() == binding.binding_id.as_str()
+        || candidate.line_id.as_str() == binding.base_instance_id.as_str()
+        || candidate.line_id.as_str() == binding.source.endpoint_id.as_str()
+        || candidate.line_id.as_str() == binding.sink.endpoint_id.as_str()
+        || binding.binding_id.as_str() == binding.base_instance_id.as_str()
+        || binding.base == ConnectionBase::Local
+        || binding.base_instance_id.as_str().is_empty()
+        || binding.source.host_id != source.host_id
+        || binding.source.boot_id != source.boot_id
+        || binding.source.endpoint_id.as_str().is_empty()
+        || binding.sink.host_id != sink.host_id
+        || binding.sink.boot_id != sink.boot_id
+        || binding.sink.endpoint_id.as_str().is_empty()
+        || binding.source.endpoint_id == binding.sink.endpoint_id
+        || binding.limits.maximum_in_flight_items < connection.item_capacity
+        || binding.limits.maximum_payload_bytes < connection.byte_capacity
+        || binding.limits.maximum_buffered_bytes < connection.byte_capacity
+        || binding.limits.maximum_frame_bytes < binding.limits.maximum_payload_bytes
         || matches!(
-            &candidate.credential,
+            &binding.credential,
             LinkCredentialReference::Opaque(reference) if reference.as_str().is_empty()
         )
         || matches!(
-            &candidate.authority,
+            &binding.authority,
             LinkAuthorityReference::Grant(grant_id) if grant_id.as_str().is_empty()
         )
 }
@@ -932,20 +934,16 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             PortTemporal::Flow { closes: true } => 2,
             PortTemporal::Current => 3,
         });
-        if connection.route_candidates.is_empty() {
-            canonical.push(connection.base.canonical_code());
-            match &connection.link_binding {
-                Some(binding) => {
-                    canonical.push(1);
-                    push_bound_link(&mut canonical, &binding.bound_link());
-                }
-                None => canonical.push(0),
+        match &connection.selected_line {
+            Some(line) => {
+                canonical.push(1);
+                push_admitted_line(&mut canonical, line);
             }
-        } else {
-            push_u32(&mut canonical, connection.route_candidates.len() as u32);
-            for candidate in &connection.route_candidates {
-                push_bound_link(&mut canonical, candidate);
-            }
+            None => canonical.push(0),
+        }
+        push_u32(&mut canonical, connection.admitted_lines.len() as u32);
+        for candidate in &connection.admitted_lines {
+            push_admitted_line(&mut canonical, candidate);
         }
         canonical.extend_from_slice(&connection.item_capacity.to_le_bytes());
         push_u32(&mut canonical, connection.byte_capacity);
@@ -1084,6 +1082,18 @@ fn push_bound_link(canonical: &mut Vec<u8>, binding: &BoundLink) {
     push_u32(canonical, binding.limits.maximum_payload_bytes);
     push_u32(canonical, binding.limits.maximum_buffered_bytes);
     push_u32(canonical, binding.limits.maximum_frame_bytes);
+}
+
+fn push_admitted_line(canonical: &mut Vec<u8>, line: &AdmittedLine) {
+    push_string(canonical, line.line_id.as_str());
+    push_bound_link(canonical, &line.binding);
+    canonical.push(line.contract.scope as u8);
+    canonical.push(line.contract.traffic_shape as u8);
+    canonical.push(line.contract.duplex as u8);
+    canonical.push(line.contract.ordering as u8);
+    canonical.push(line.contract.reliability as u8);
+    canonical.push(line.contract.continuation as u8);
+    canonical.push(line.contract.security as u8);
 }
 
 fn compute_plan_id(form_identity: &FormIdentity, commitments: &[FragmentCommitment]) -> PlanId {
@@ -1560,11 +1570,13 @@ pub fn authority_grant(
     }
 }
 
-/// Build a ready link observation for a base whose endpoint access is
+/// Build a ready Line offer for a base whose endpoint access is
 /// wholly owned by the current process. This is suitable for deterministic
-/// in-process fixtures; actual carriers should supply explicit credential and
-/// grant references instead.
-pub fn process_owned_link_binding(
+/// in-process fixtures; platform Line adapters should supply explicit credential
+/// and grant references instead.
+#[allow(clippy::too_many_arguments)]
+pub fn process_owned_line_offer(
+    line_id: &str,
     binding_id: &str,
     base: ConnectionBase,
     base_instance_id: &str,
@@ -1572,8 +1584,9 @@ pub fn process_owned_link_binding(
     sink: &HostAdvertisement,
     maximum_in_flight_items: u16,
     maximum_buffered_bytes: u32,
-) -> LinkBinding {
-    process_owned_link_binding_with_limits(
+) -> LineOffer {
+    process_owned_line_offer_with_limits(
+        line_id,
         binding_id,
         base,
         base_instance_id,
@@ -1588,15 +1601,16 @@ pub fn process_owned_link_binding(
     )
 }
 
-pub fn process_owned_link_binding_with_limits(
+pub fn process_owned_line_offer_with_limits(
+    line_id: &str,
     binding_id: &str,
     base: ConnectionBase,
     base_instance_id: &str,
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
     limits: LinkLimits,
-) -> LinkBinding {
-    LinkBinding {
+) -> LineOffer {
+    let binding = LinkBinding {
         binding_id: LinkBindingId::from(binding_id),
         source: LinkEndpoint {
             host_id: source.host_id.clone(),
@@ -1610,10 +1624,28 @@ pub fn process_owned_link_binding_with_limits(
         },
         base,
         base_instance_id: ConnectionBaseInstanceId::from(base_instance_id),
-        availability: LinkAvailability::Ready,
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
         limits,
+    };
+    LineOffer {
+        line_id: LineId::from(line_id),
+        availability: LineAvailabilitySign {
+            line_id: LineId::from(line_id),
+            binding_id: binding.binding_id.clone(),
+            availability: LineAvailability::Ready,
+            sign_id: ClueId::from(format!("{line_id}/availability/ready")),
+        },
+        binding,
+        contract: LineContract {
+            scope: LineScope::Process,
+            traffic_shape: LineTrafficShape::Message,
+            duplex: LineDuplex::FullDuplex,
+            ordering: LineOrdering::Ordered,
+            reliability: LineReliability::Reliable,
+            continuation: LineContinuation::None,
+            security: LineSecurity::ProcessBoundary,
+        },
     }
 }
 

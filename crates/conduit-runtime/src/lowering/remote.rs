@@ -1,6 +1,6 @@
 //! Exact lowering of the finite Line candidates sealed into a remote Cord.
 
-use conduit_core::{BoundLink, ConnectionBase, PlanFragment, PlannedConnection};
+use conduit_core::{AdmittedLine, ConnectionBase, PlanFragment, PlannedConnection};
 use conduit_kernel::{CordId, RemoteEndpointId};
 
 use super::{LoweredRemoteEndpoint, LoweringError, RemoteCordDirection};
@@ -13,22 +13,15 @@ pub(super) fn lower_remote_endpoints(
     remote_endpoints: &mut Vec<LoweredRemoteEndpoint>,
 ) -> Result<RemoteEndpointId, LoweringError> {
     let selected = connection
-        .link_binding
+        .selected_line
         .as_ref()
         .ok_or_else(|| invalid(connection))?;
-    if connection.base == ConnectionBase::Local || selected.base != connection.base {
+    if selected.binding.base == ConnectionBase::Local {
         return Err(invalid(connection));
     }
 
-    let selected_bound = selected.bound_link();
-    let singleton;
-    let candidates = if connection.route_candidates.is_empty() {
-        singleton = [selected_bound.clone()];
-        singleton.as_slice()
-    } else {
-        connection.route_candidates.as_slice()
-    };
-    if candidates.first() != Some(&selected_bound) {
+    let candidates = connection.admitted_lines.as_slice();
+    if candidates.first() != Some(selected) {
         return Err(invalid(connection));
     }
 
@@ -39,15 +32,15 @@ pub(super) fn lower_remote_endpoints(
         let (source_fragment_id, sink_fragment_id, local, peer) = match direction {
             RemoteCordDirection::Egress => (
                 fragment.fragment_id.clone(),
-                super::fragment_id_for_host(fragment, &candidate.sink.host_id)?,
-                candidate.source.clone(),
-                candidate.sink.clone(),
+                super::fragment_id_for_host(fragment, &candidate.binding.sink.host_id)?,
+                candidate.binding.source.clone(),
+                candidate.binding.sink.clone(),
             ),
             RemoteCordDirection::Ingress => (
-                super::fragment_id_for_host(fragment, &candidate.source.host_id)?,
+                super::fragment_id_for_host(fragment, &candidate.binding.source.host_id)?,
                 fragment.fragment_id.clone(),
-                candidate.sink.clone(),
-                candidate.source.clone(),
+                candidate.binding.sink.clone(),
+                candidate.binding.source.clone(),
             ),
         };
         remote_endpoints.push(LoweredRemoteEndpoint {
@@ -61,7 +54,7 @@ pub(super) fn lower_remote_endpoints(
             peer,
             value_kind: connection.value_kind.clone(),
             temporal: connection.temporal,
-            binding: candidate.clone(),
+            line: candidate.clone(),
         });
     }
     Ok(first)
@@ -70,14 +63,14 @@ pub(super) fn lower_remote_endpoints(
 fn validate_local_endpoint(
     fragment: &PlanFragment,
     connection: &PlannedConnection,
-    candidate: &BoundLink,
+    candidate: &AdmittedLine,
     direction: RemoteCordDirection,
 ) -> Result<(), LoweringError> {
     let local = match direction {
-        RemoteCordDirection::Egress => &candidate.source,
-        RemoteCordDirection::Ingress => &candidate.sink,
+        RemoteCordDirection::Egress => &candidate.binding.source,
+        RemoteCordDirection::Ingress => &candidate.binding.sink,
     };
-    if candidate.base == ConnectionBase::Local
+    if candidate.binding.base == ConnectionBase::Local
         || local.host_id != fragment.host_id
         || local.boot_id != fragment.boot_id
     {

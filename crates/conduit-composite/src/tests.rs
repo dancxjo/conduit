@@ -3,7 +3,7 @@ use super::{
     DeliveryMode,
 };
 use conduit_core::{
-    kind_id, process_owned_link_binding, ArtifactId, BootId, CapabilityId, CapabilityLimits,
+    kind_id, process_owned_line_offer, ArtifactId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, CheckedFormId, ConnectionBase, ConnectionEnvelope, ConnectionOutcome,
     ExecutionProfileId, FailureReason, GearId, HostAdvertisement, HostCommand, HostEvent, HostId,
     HostProfileId, ImplementationId, KindContractRevision, KindId, ObservationKind,
@@ -13,7 +13,7 @@ use conduit_core::{
 use conduit_form::{
     parse, CheckedForm, CheckedGear, CompositeFaceTerminal, KindDefinition, ProfileCatalog,
 };
-use conduit_planner::{plan, plan_with_link_bindings, PlacementChoice, PlacementChoices};
+use conduit_planner::{plan, plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_runtime::{
     bases::in_memory::InMemoryConnectionBase, HostRuntime, ImplementationFailure,
     ImplementationRegistry, OperationAction, OperationCompletion, OperationImplementation,
@@ -419,7 +419,8 @@ fn multi_parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragmen
         ]),
     };
     let links = [
-        process_owned_link_binding(
+        process_owned_line_offer(
+            "line/source-composite",
             "link/source-composite",
             ConnectionBase::InMemory,
             "fixture/in-memory/source-composite",
@@ -428,7 +429,8 @@ fn multi_parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragmen
             2,
             32,
         ),
-        process_owned_link_binding(
+        process_owned_line_offer(
+            "line/composite-sink",
             "link/composite-sink",
             ConnectionBase::InMemory,
             "fixture/in-memory/composite-sink",
@@ -438,7 +440,7 @@ fn multi_parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragmen
             32,
         ),
     ];
-    plan_with_link_bindings(
+    plan_with_line_offers(
         &form,
         &[source, composite.advertisement().clone(), sink],
         &placements,
@@ -558,7 +560,8 @@ fn internal_plan(item_capacity: u16, byte_capacity: u32) -> conduit_core::Plan {
             ),
         ]),
     };
-    let links = [process_owned_link_binding(
+    let links = [process_owned_line_offer(
+        "line/composite-children",
         "link/composite-children",
         ConnectionBase::InMemory,
         "fixture/in-memory/composite-children",
@@ -567,7 +570,7 @@ fn internal_plan(item_capacity: u16, byte_capacity: u32) -> conduit_core::Plan {
         8,
         128,
     )];
-    plan_with_link_bindings(
+    plan_with_line_offers(
         &form,
         &[source, sink],
         &placements,
@@ -613,7 +616,8 @@ fn three_child_internal_plan() -> conduit_core::Plan {
             ),
         ]),
     };
-    let links = [process_owned_link_binding(
+    let links = [process_owned_line_offer(
+        "line/composite-child-hosts",
         "link/composite-children",
         ConnectionBase::InMemory,
         "fixture/in-memory/composite-children",
@@ -622,7 +626,7 @@ fn three_child_internal_plan() -> conduit_core::Plan {
         8,
         128,
     )];
-    plan_with_link_bindings(
+    plan_with_line_offers(
         &form,
         &[source, sink, auxiliary],
         &placements,
@@ -649,7 +653,8 @@ fn child_runtimes_with_advertisements(
     source_ad: HostAdvertisement,
     sink_ad: HostAdvertisement,
 ) -> Vec<HostRuntime> {
-    let link = process_owned_link_binding(
+    let link = process_owned_line_offer(
+        "line/composite-host",
         "link/composite-children",
         ConnectionBase::InMemory,
         "fixture/in-memory/composite-children",
@@ -762,7 +767,8 @@ fn authored_parent_consumes_derived_export_through_an_ordinary_planned_cord() {
             ),
         ]),
     };
-    let links = [process_owned_link_binding(
+    let links = [process_owned_line_offer(
+        "line/nested-composite",
         "link/parent-child",
         ConnectionBase::InMemory,
         "fixture/in-memory/parent-child",
@@ -771,7 +777,7 @@ fn authored_parent_consumes_derived_export_through_an_ordinary_planned_cord() {
         8,
         128,
     )];
-    let plan = plan_with_link_bindings(
+    let plan = plan_with_line_offers(
         &parent,
         &[composite.advertisement().clone(), sink],
         &placements,

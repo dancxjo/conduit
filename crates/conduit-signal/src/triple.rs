@@ -4,12 +4,12 @@ use alloc::collections::BTreeMap;
 use alloc::vec;
 
 use conduit_core::{
-    process_owned_link_binding_with_limits, ArtifactId, CapabilityId, CapabilityLimits,
+    process_owned_line_offer_with_limits, ArtifactId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ConnectionBase, GearId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LinkBinding, LinkEndpointId, LinkLimits, OfferGeneration, Plan,
+    ImplementationId, LineOffer, LinkEndpointId, LinkLimits, OfferGeneration, Plan,
     PROTOCOL_VERSION,
 };
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
+use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 
 use crate::{
     pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
@@ -27,10 +27,12 @@ pub const PICO_HOST_ID: &str = "s4/triple-pico";
 pub const PICO_IMAGE_BOOT_ID: &str = "s4/triple-pico-image-boot";
 
 pub const BROWSER_LINK_ID: &str = "s4/triple-std-browser-link";
+pub const BROWSER_LINE_ID: &str = "s4/line/triple-std-browser";
 pub const BROWSER_BASE_INSTANCE_ID: &str = "s4/triple-websocket-loopback";
 pub const BROWSER_SOURCE_ENDPOINT_ID: &str = "s4/triple-browser-egress";
 pub const BROWSER_SINK_ENDPOINT_ID: &str = "s4/triple-browser-ingress";
 pub const PICO_LINK_ID: &str = "s4/triple-std-pico-link";
+pub const PICO_LINE_ID: &str = "s4/line/triple-std-pico";
 pub const PICO_BASE_INSTANCE_ID: &str = "s4/triple-pico-usb-cdc-0";
 pub const PICO_SOURCE_ENDPOINT_ID: &str = "s4/triple-pico-egress";
 pub const PICO_SINK_ENDPOINT_ID: &str = "s4/triple-pico-ingress";
@@ -45,8 +47,8 @@ pub struct ExactTripleSignalPlan {
     pub source_advertisement: HostAdvertisement,
     pub browser_advertisement: HostAdvertisement,
     pub pico_advertisement: HostAdvertisement,
-    pub browser_link: LinkBinding,
-    pub pico_link: LinkBinding,
+    pub browser_line: LineOffer,
+    pub pico_line: LineOffer,
     pub plan: Plan,
 }
 
@@ -167,7 +169,9 @@ pub fn pico_advertisement() -> HostAdvertisement {
     }
 }
 
-fn link(
+#[allow(clippy::too_many_arguments)]
+fn line_offer(
+    line_id: &str,
     id: &str,
     base: ConnectionBase,
     base_instance: &str,
@@ -175,8 +179,9 @@ fn link(
     sink_endpoint: &str,
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
-) -> LinkBinding {
-    let mut binding = process_owned_link_binding_with_limits(
+) -> LineOffer {
+    let mut line = process_owned_line_offer_with_limits(
+        line_id,
         id,
         base,
         base_instance,
@@ -189,16 +194,17 @@ fn link(
             maximum_frame_bytes: DISTRIBUTED_MAXIMUM_FRAME_BYTES,
         },
     );
-    binding.source.endpoint_id = LinkEndpointId::from(source_endpoint);
-    binding.sink.endpoint_id = LinkEndpointId::from(sink_endpoint);
-    binding
+    line.binding.source.endpoint_id = LinkEndpointId::from(source_endpoint);
+    line.binding.sink.endpoint_id = LinkEndpointId::from(sink_endpoint);
+    line
 }
 
 pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
     let source_advertisement = source_advertisement();
     let browser_advertisement = browser_advertisement();
     let pico_advertisement = pico_advertisement();
-    let browser_link = link(
+    let browser_line = line_offer(
+        BROWSER_LINE_ID,
         BROWSER_LINK_ID,
         ConnectionBase::WebSocket,
         BROWSER_BASE_INSTANCE_ID,
@@ -207,7 +213,8 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
         &source_advertisement,
         &browser_advertisement,
     );
-    let pico_link = link(
+    let pico_line = line_offer(
+        PICO_LINE_ID,
         PICO_LINK_ID,
         ConnectionBase::UsbCdc,
         PICO_BASE_INSTANCE_ID,
@@ -253,7 +260,7 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
             ),
         ]),
     };
-    let plan = plan_with_link_bindings(
+    let plan = plan_with_line_offers(
         &form,
         &[
             source_advertisement.clone(),
@@ -268,15 +275,15 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
         ],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
-        &[browser_link.clone(), pico_link.clone()],
+        &[browser_line.clone(), pico_line.clone()],
     )
     .map_err(|error| error.to_string())?;
     Ok(ExactTripleSignalPlan {
         source_advertisement,
         browser_advertisement,
         pico_advertisement,
-        browser_link,
-        pico_link,
+        browser_line,
+        pico_line,
         plan,
     })
 }
@@ -296,12 +303,18 @@ mod tests {
             .find(|fragment| fragment.host_id == exact.source_advertisement.host_id)
             .expect("source fragment");
         assert_eq!(source.connections.len(), 3);
-        for link in [&exact.browser_link, &exact.pico_link] {
-            assert_eq!(link.limits.maximum_in_flight_items, 1);
-            assert_eq!(link.limits.maximum_payload_bytes, SIGNAL_ENCODED_LEN);
-            assert_eq!(link.limits.maximum_buffered_bytes, SIGNAL_ENCODED_LEN);
+        for link in [&exact.browser_line, &exact.pico_line] {
+            assert_eq!(link.binding.limits.maximum_in_flight_items, 1);
             assert_eq!(
-                link.limits.maximum_frame_bytes,
+                link.binding.limits.maximum_payload_bytes,
+                SIGNAL_ENCODED_LEN
+            );
+            assert_eq!(
+                link.binding.limits.maximum_buffered_bytes,
+                SIGNAL_ENCODED_LEN
+            );
+            assert_eq!(
+                link.binding.limits.maximum_frame_bytes,
                 DISTRIBUTED_MAXIMUM_FRAME_BYTES
             );
         }
@@ -324,8 +337,8 @@ mod tests {
                 .is_err()
         );
 
-        let mut stale = exact.browser_link.clone();
-        stale.sink.boot_id = conduit_core::BootId::from("stale-browser-boot");
+        let mut stale = exact.browser_line.clone();
+        stale.binding.sink.boot_id = conduit_core::BootId::from("stale-browser-boot");
         let placements = PlacementChoices {
             by_gear: BTreeMap::from([
                 (
@@ -358,7 +371,7 @@ mod tests {
                 ),
             ]),
         };
-        assert!(plan_with_link_bindings(
+        assert!(plan_with_line_offers(
             &form,
             &[
                 exact.source_advertisement,
@@ -373,7 +386,7 @@ mod tests {
             ],
             1,
             SIGNAL_ENCODED_LEN,
-            &[stale, exact.pico_link],
+            &[stale, exact.pico_line],
         )
         .is_err());
     }

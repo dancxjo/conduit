@@ -144,7 +144,7 @@ fn generate_remote_endpoints(
             ));
         }
         if !matches!(
-            endpoint.binding.base,
+            endpoint.line.binding.base,
             ConnectionBase::UsbCdc | ConnectionBase::WebSocket
         ) {
             return Err(GenerationError::Unsupported(
@@ -164,14 +164,15 @@ fn generate_remote_endpoints(
             peer_host: endpoint.peer.host_id.as_str().to_owned(),
             peer_boot: endpoint.peer.boot_id.as_str().to_owned(),
             peer_endpoint: endpoint.peer.endpoint_id.as_str().to_owned(),
-            base: endpoint.binding.base,
-            base_instance_id: endpoint.binding.base_instance_id.as_str().to_owned(),
-            link_binding_id: endpoint.binding.binding_id.as_str().to_owned(),
+            line_id: endpoint.line.line_id.as_str().to_owned(),
+            base: endpoint.line.binding.base,
+            base_instance_id: endpoint.line.binding.base_instance_id.as_str().to_owned(),
+            link_binding_id: endpoint.line.binding.binding_id.as_str().to_owned(),
             value_kind: endpoint.value_kind.as_str().to_owned(),
-            maximum_in_flight_items: endpoint.binding.limits.maximum_in_flight_items,
-            maximum_payload_bytes: endpoint.binding.limits.maximum_payload_bytes,
-            maximum_buffered_bytes: endpoint.binding.limits.maximum_buffered_bytes,
-            maximum_frame_bytes: endpoint.binding.limits.maximum_frame_bytes,
+            maximum_in_flight_items: endpoint.line.binding.limits.maximum_in_flight_items,
+            maximum_payload_bytes: endpoint.line.binding.limits.maximum_payload_bytes,
+            maximum_buffered_bytes: endpoint.line.binding.limits.maximum_buffered_bytes,
+            maximum_frame_bytes: endpoint.line.binding.limits.maximum_frame_bytes,
         });
     }
     Ok(result)

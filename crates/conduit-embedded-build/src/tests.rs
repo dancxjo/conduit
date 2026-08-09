@@ -382,9 +382,8 @@ fn sealed_current_fragment() -> PlanFragment {
             sink_port_id: PortId::from("in"),
             value_kind,
             temporal: conduit_core::PortTemporal::Value,
-            base: ConnectionBase::Local,
-            link_binding: None,
-            route_candidates: vec![],
+            selected_line: None,
+            admitted_lines: vec![],
             item_capacity: 1,
             byte_capacity: 9,
         }],
@@ -417,9 +416,10 @@ fn sealed_current_fragment() -> PlanFragment {
 #[test]
 fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
     use conduit_core::{
-        seal_plan, ConnectionBaseInstanceId, FormIdentity, LinkAuthorityReference,
-        LinkAvailability, LinkBinding, LinkCredentialReference, LinkEndpoint, LinkEndpointId,
-        LinkLimits,
+        seal_plan, AdmittedLine, ConnectionBaseInstanceId, FormIdentity, LineContinuation,
+        LineContract, LineDuplex, LineId, LineOrdering, LineReliability, LineScope, LineSecurity,
+        LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkCredentialReference,
+        LinkEndpoint, LinkEndpointId, LinkLimits,
     };
     use conduit_runtime::lowering::RemoteCordDirection;
 
@@ -441,8 +441,7 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
     pico_fragment.placements[0].host_id = pico_host_id.clone();
     pico_fragment.placements[0].boot_id = pico_boot_id.clone();
     pico_fragment.connections[0].sink_placement_id = PlacementId::from("sink");
-    pico_fragment.connections[0].base = ConnectionBase::UsbCdc;
-    pico_fragment.connections[0].link_binding = Some(LinkBinding {
+    let binding = LinkBinding {
         binding_id: conduit_core::LinkBindingId::from("link/usb-cdc"),
         source: LinkEndpoint {
             host_id: source_fragment.host_id.clone(),
@@ -456,7 +455,6 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
         },
         base: ConnectionBase::UsbCdc,
         base_instance_id: ConnectionBaseInstanceId::from("pico-usb-cdc-0"),
-        availability: LinkAvailability::Ready,
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
         limits: LinkLimits {
@@ -465,7 +463,22 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
             maximum_buffered_bytes: 9,
             maximum_frame_bytes: 512,
         },
-    });
+    };
+    let admitted = AdmittedLine {
+        line_id: LineId::from("line/usb-cdc"),
+        binding: binding.bound_link(),
+        contract: LineContract {
+            scope: LineScope::Machine,
+            traffic_shape: LineTrafficShape::Message,
+            duplex: LineDuplex::FullDuplex,
+            ordering: LineOrdering::Ordered,
+            reliability: LineReliability::Reliable,
+            continuation: LineContinuation::None,
+            security: LineSecurity::PhysicalPossession,
+        },
+    };
+    pico_fragment.connections[0].selected_line = Some(admitted.clone());
+    pico_fragment.connections[0].admitted_lines = vec![admitted.clone()];
 
     let sink = PlacementId::from("sink");
     let connection = ConnectionId::from("source-to-sink");
@@ -492,8 +505,8 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
     std_fragment
         .placements
         .retain(|p| p.placement_id.as_str() == "source");
-    std_fragment.connections[0].base = ConnectionBase::UsbCdc;
-    std_fragment.connections[0].link_binding = pico_fragment.connections[0].link_binding.clone();
+    std_fragment.connections[0].selected_line = Some(admitted.clone());
+    std_fragment.connections[0].admitted_lines = vec![admitted];
     std_fragment.startup_dependencies.clear();
     std_fragment.startup_order = vec![PlacementId::from("source")];
     let source_placement = PlacementId::from("source");

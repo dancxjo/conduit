@@ -1,12 +1,12 @@
 use conduit_core::{
-    kind_id, process_owned_link_binding, ArtifactId, BootId, CapabilityId, CapabilityLimits,
+    kind_id, process_owned_line_offer, ArtifactId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ConnectionBase, ConnectionEnvelope, ConnectionId, ConnectionOutcome,
     HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
     Observation, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId, PlatformEffect,
     TerminalDisposition, PROTOCOL_VERSION,
 };
 use conduit_form::CheckedForm;
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
+use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_runtime::{HostRuntime, RuntimeOutput};
 use conduit_signal::{
     decode_signal, pulse_contract_revision, pulse_execution_profile,
@@ -113,8 +113,8 @@ impl BrowserSim {
         self.runtime.handle(command)
     }
 
-    fn replace_link_bindings(&mut self, bindings: Vec<conduit_core::LinkBinding>) {
-        self.runtime.replace_link_bindings(bindings);
+    fn replace_line_offers(&mut self, lines: Vec<conduit_core::LineOffer>) {
+        self.runtime.replace_line_offers(lines);
     }
 
     fn complete_dom_presentation(
@@ -205,17 +205,17 @@ impl BrowserSimPage {
             .collect()
     }
 
-    pub fn replace_link_bindings(&mut self, bindings: &[conduit_core::LinkBinding]) {
+    pub fn replace_line_offers(&mut self, lines: &[conduit_core::LineOffer]) {
         for host in self.hosts.values_mut() {
             let host_id = &host.advertisement().host_id;
-            let relevant = bindings
+            let relevant = lines
                 .iter()
-                .filter(|binding| {
-                    &binding.source.host_id == host_id || &binding.sink.host_id == host_id
+                .filter(|line| {
+                    &line.binding.source.host_id == host_id || &line.binding.sink.host_id == host_id
                 })
                 .cloned()
                 .collect();
-            host.replace_link_bindings(relevant);
+            host.replace_line_offers(relevant);
         }
     }
 
@@ -252,7 +252,8 @@ impl BrowserSimPage {
             .iter()
             .find(|advertisement| &advertisement.host_id == sink_host)
             .ok_or("sink browser advertisement missing")?;
-        let links = [process_owned_link_binding(
+        let lines = [process_owned_line_offer(
+            "line/browser-pair",
             "link/browser-pair",
             ConnectionBase::InMemory,
             "fixture/in-memory/browser-pair",
@@ -261,14 +262,14 @@ impl BrowserSimPage {
             4,
             64,
         )];
-        Ok(plan_with_link_bindings(
+        Ok(plan_with_line_offers(
             form,
             &advertisements,
             &placements,
             &[ConnectionBase::InMemory],
             4,
             64,
-            &links,
+            &lines,
         )?)
     }
 
@@ -303,7 +304,8 @@ impl BrowserSimPage {
             .iter()
             .find(|advertisement| &advertisement.host_id == browser_host)
             .ok_or("browser advertisement missing")?;
-        let links = [process_owned_link_binding(
+        let lines = [process_owned_line_offer(
+            "line/std-browser",
             "link/std-browser",
             ConnectionBase::FixtureFrame,
             "fixture/frame/std-browser",
@@ -312,32 +314,56 @@ impl BrowserSimPage {
             4,
             64,
         )];
-        Ok(plan_with_link_bindings(
+        Ok(plan_with_line_offers(
             form,
             &hosts,
             &placements,
             &[ConnectionBase::FixtureFrame],
             4,
             64,
-            &links,
+            &lines,
         )?)
     }
 
     pub fn run_plan(&mut self, plan: Plan) -> Result<BrowserRunReport, String> {
-        let link_bindings = plan
+        let line_offers = plan
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .filter_map(|connection| connection.link_binding.clone())
-            .fold(BTreeMap::new(), |mut bindings, binding| {
-                bindings
-                    .entry(binding.binding_id.clone())
-                    .or_insert(binding);
-                bindings
+            .flat_map(|connection| connection.admitted_lines.iter().cloned())
+            .fold(BTreeMap::new(), |mut lines, line| {
+                lines.entry(line.line_id.clone()).or_insert(line);
+                lines
             })
             .into_values()
             .collect::<Vec<_>>();
-        self.replace_link_bindings(&link_bindings);
+        let line_offers = line_offers
+            .into_iter()
+            .map(|line| conduit_core::LineOffer {
+                availability: conduit_core::LineAvailabilitySign {
+                    line_id: line.line_id.clone(),
+                    binding_id: line.binding.binding_id.clone(),
+                    availability: conduit_core::LineAvailability::Ready,
+                    sign_id: conduit_core::ClueId::from(format!(
+                        "fixture/line/{}/ready",
+                        line.line_id.as_str()
+                    )),
+                },
+                line_id: line.line_id,
+                binding: conduit_core::LinkBinding {
+                    binding_id: line.binding.binding_id,
+                    source: line.binding.source,
+                    sink: line.binding.sink,
+                    base: line.binding.base,
+                    base_instance_id: line.binding.base_instance_id,
+                    credential: line.binding.credential,
+                    authority: line.binding.authority,
+                    limits: line.binding.limits,
+                },
+                contract: line.contract,
+            })
+            .collect::<Vec<_>>();
+        self.replace_line_offers(&line_offers);
         self.inbound_routes = inbound_routes(&plan.fragments);
         self.delivery_ack_routes = delivery_ack_routes(&plan.fragments);
         for fragment in &plan.fragments {
@@ -622,7 +648,7 @@ fn inbound_routes(fragments: &[PlanFragment]) -> BTreeMap<(PlanId, ConnectionId)
                     .placements
                     .iter()
                     .any(|placement| placement.placement_id == connection.source_placement_id);
-                (is_remote_base(connection.base) && has_sink && !has_source).then(|| {
+                (connection.selected_line.is_some() && has_sink && !has_source).then(|| {
                     (
                         (fragment.plan_id.clone(), connection.connection_id.clone()),
                         fragment.host_id.clone(),
@@ -648,7 +674,7 @@ fn delivery_ack_routes(
                     .placements
                     .iter()
                     .any(|placement| placement.placement_id == connection.sink_placement_id);
-                (is_remote_base(connection.base) && has_source && !has_sink).then(|| {
+                (connection.selected_line.is_some() && has_source && !has_sink).then(|| {
                     (
                         (
                             fragment.plan_id.clone(),
@@ -660,13 +686,6 @@ fn delivery_ack_routes(
             })
         })
         .collect()
-}
-
-fn is_remote_base(base: ConnectionBase) -> bool {
-    matches!(
-        base,
-        ConnectionBase::InMemory | ConnectionBase::FixtureFrame
-    )
 }
 
 fn sink_fragments_first(fragments: &[PlanFragment]) -> Vec<&PlanFragment> {
@@ -724,9 +743,9 @@ fn ensure_triggerd(output: &RuntimeOutput) -> Result<(), String> {
 mod tests {
     use super::{BoundedFrameRelayFixture, BrowserSimConfig, BrowserSimPage};
     use conduit_core::{
-        kind_id, process_owned_link_binding, BootId, ConnectionBase, ConnectionId,
-        ConnectionOutcome, HostCommand, HostEvent, HostId, OfferGeneration, PlacementId,
-        PlatformEffect, TerminalDisposition,
+        kind_id, process_owned_line_offer, BootId, ConnectionBase, ConnectionId, ConnectionOutcome,
+        HostCommand, HostEvent, HostId, OfferGeneration, PlacementId, PlatformEffect,
+        TerminalDisposition,
     };
     use conduit_form::parse;
     use conduit_pico_sim::{BoundedDatagramRelayFixture, PicoSim, PicoSimConfig};
@@ -767,18 +786,39 @@ mod tests {
         .expect("triple signal form parses")
     }
 
-    fn planned_links(plan: &conduit_core::Plan) -> Vec<conduit_core::LinkBinding> {
+    fn planned_lines(plan: &conduit_core::Plan) -> Vec<conduit_core::LineOffer> {
         plan.fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .filter_map(|connection| connection.link_binding.clone())
-            .fold(BTreeMap::new(), |mut bindings, binding| {
-                bindings
-                    .entry(binding.binding_id.clone())
-                    .or_insert(binding);
-                bindings
+            .flat_map(|connection| connection.admitted_lines.iter().cloned())
+            .fold(BTreeMap::new(), |mut lines, line| {
+                lines.entry(line.line_id.clone()).or_insert(line);
+                lines
             })
             .into_values()
+            .map(|line| conduit_core::LineOffer {
+                availability: conduit_core::LineAvailabilitySign {
+                    line_id: line.line_id.clone(),
+                    binding_id: line.binding.binding_id.clone(),
+                    availability: conduit_core::LineAvailability::Ready,
+                    sign_id: conduit_core::ClueId::from(format!(
+                        "fixture/{}/ready",
+                        line.line_id.as_str()
+                    )),
+                },
+                line_id: line.line_id,
+                binding: conduit_core::LinkBinding {
+                    binding_id: line.binding.binding_id,
+                    source: line.binding.source,
+                    sink: line.binding.sink,
+                    base: line.binding.base,
+                    base_instance_id: line.binding.base_instance_id,
+                    credential: line.binding.credential,
+                    authority: line.binding.authority,
+                    limits: line.binding.limits,
+                },
+                contract: line.contract,
+            })
             .collect()
     }
 
@@ -818,7 +858,7 @@ mod tests {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .find(|connection| connection.base == ConnectionBase::InMemory)
+            .find(|connection| connection.selected_line.is_some())
             .expect("browser-memory connection is planned");
         assert_eq!(connection.item_capacity, 4);
         assert_eq!(connection.byte_capacity, 64);
@@ -874,14 +914,20 @@ mod tests {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .find(|connection| connection.base == ConnectionBase::FixtureFrame)
+            .find(|connection| {
+                connection
+                    .selected_line
+                    .as_ref()
+                    .map(|line| line.binding.base)
+                    == Some(ConnectionBase::FixtureFrame)
+            })
             .expect("frame fixture connection is planned");
         assert_eq!(connection.item_capacity, 4);
         assert_eq!(connection.byte_capacity, 64);
 
-        let links = planned_links(&plan);
-        std_host.replace_link_bindings(links.clone());
-        page.replace_link_bindings(&links);
+        let lines = planned_lines(&plan);
+        std_host.replace_line_offers(lines.clone());
+        page.replace_line_offers(&lines);
 
         page.inbound_routes = super::inbound_routes(&plan.fragments);
         page.delivery_ack_routes = super::delivery_ack_routes(&plan.fragments);
@@ -1051,8 +1097,9 @@ mod tests {
                 .expect("browser advertisement exists"),
             pico.advertisement().clone(),
         ];
-        let link_bindings = [
-            process_owned_link_binding(
+        let line_offers = [
+            process_owned_line_offer(
+                "line/std-browser",
                 "link/std-browser",
                 ConnectionBase::FixtureFrame,
                 "fixture/frame/std-browser",
@@ -1061,7 +1108,8 @@ mod tests {
                 4,
                 64,
             ),
-            process_owned_link_binding(
+            process_owned_line_offer(
+                "line/std-pico",
                 "link/std-pico",
                 ConnectionBase::FixtureDatagram,
                 "fixture/datagram/std-pico",
@@ -1082,12 +1130,12 @@ mod tests {
             ],
             PlanningOptions {
                 connection_bases: &connection_bases,
-                route_candidates: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
                 connection_item_capacity: 4,
                 connection_byte_capacity: 64,
                 authority_grants: &[],
                 protected_resource_grants: &[],
-                link_bindings: &link_bindings,
+                line_offers: &line_offers,
             },
         )
         .expect("triple-simulation plan resolves");
@@ -1095,7 +1143,16 @@ mod tests {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .map(|connection| (connection.connection_id.clone(), connection.base))
+            .map(|connection| {
+                (
+                    connection.connection_id.clone(),
+                    connection
+                        .selected_line
+                        .as_ref()
+                        .map(|line| line.binding.base)
+                        .unwrap_or(ConnectionBase::Local),
+                )
+            })
             .collect::<BTreeMap<_, _>>();
         assert_eq!(
             connection_base_by_id
@@ -1122,7 +1179,7 @@ mod tests {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .filter(|connection| connection.base != ConnectionBase::Local)
+            .filter(|connection| connection.selected_line.is_some())
             .map(|connection| {
                 (
                     connection.sink_placement_id.clone(),
@@ -1131,10 +1188,10 @@ mod tests {
             })
             .collect::<BTreeMap<_, _>>();
 
-        let links = planned_links(&plan);
-        std_host.replace_link_bindings(links.clone());
-        page.replace_link_bindings(&links);
-        pico.replace_link_bindings(links);
+        let lines = planned_lines(&plan);
+        std_host.replace_line_offers(lines.clone());
+        page.replace_line_offers(&lines);
+        pico.replace_line_offers(lines);
 
         page.inbound_routes = super::inbound_routes(&plan.fragments);
         page.delivery_ack_routes = super::delivery_ack_routes(&plan.fragments);

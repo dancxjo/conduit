@@ -53,7 +53,7 @@ pub fn exact_distributed_signal_plan_for(
             ),
         ]),
     };
-    let link = crate::distributed_websocket_link_binding_for(source_host_id, source_boot_id);
+    let link = crate::distributed_websocket_line_offer_for(source_host_id, source_boot_id);
     let plan = plan_expanded_canonical_with_options(
         &form,
         &[source_advertisement.clone(), sink_advertisement.clone()],
@@ -61,12 +61,12 @@ pub fn exact_distributed_signal_plan_for(
         &[ConnectionBase::WebSocket],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: crate::DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             connection_byte_capacity: crate::SIGNAL_ENCODED_LEN,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &[link],
+            line_offers: &[link],
         },
     )
     .map_err(|error| error.to_string())?;

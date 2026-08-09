@@ -1,12 +1,12 @@
 use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
 use conduit_core::{
-    process_owned_link_binding, BootId, CapabilityId, ConnectionBase, GearId, HostCommand,
-    HostEvent, HostId, OfferGeneration,
+    process_owned_line_offer, BootId, CapabilityId, ConnectionBase, GearId, HostCommand, HostEvent,
+    HostId, OfferGeneration,
 };
 use conduit_form::parse;
 use conduit_observatory::{
     build_report, render_text_report, CapabilityAvailability, CapabilityStatusReport,
-    CapabilitySupport, HostReport, LinkReport, ObservatorySnapshot, OfferFreshness,
+    CapabilitySupport, HostReport, LineReport, ObservatorySnapshot, OfferFreshness,
     OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
 };
 use conduit_pico_sim::{pico_advertisement, PicoSim, PicoSimConfig};
@@ -132,8 +132,9 @@ fn observatory_fixture_report() -> Result<String, String> {
             ConnectionBase::FixtureDatagram,
         ),
     ]);
-    let link_bindings = [
-        process_owned_link_binding(
+    let line_offers = [
+        process_owned_line_offer(
+            "line/std-browser",
             "link/std-browser",
             ConnectionBase::FixtureFrame,
             "fixture/frame/std-browser",
@@ -142,7 +143,8 @@ fn observatory_fixture_report() -> Result<String, String> {
             4,
             64,
         ),
-        process_owned_link_binding(
+        process_owned_line_offer(
+            "line/std-pico",
             "link/std-pico",
             ConnectionBase::FixtureDatagram,
             "fixture/datagram/std-pico",
@@ -163,12 +165,12 @@ fn observatory_fixture_report() -> Result<String, String> {
         ],
         PlanningOptions {
             connection_bases: &connection_bases,
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: 4,
             connection_byte_capacity: 64,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &link_bindings,
+            line_offers: &line_offers,
         },
     )
     .map_err(|err| err.to_string())?;
@@ -195,10 +197,10 @@ fn observatory_fixture_report() -> Result<String, String> {
                 state: OperationalState::Available,
             })
             .collect(),
-        links: link_bindings
+        lines: line_offers
             .into_iter()
-            .map(|binding| LinkReport {
-                binding,
+            .map(|offer| LineReport {
+                offer,
                 state: OperationalState::Available,
             })
             .collect(),
@@ -290,7 +292,7 @@ fn observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work() {
         ),
         "{stdout}"
     );
-    assert!(stdout.contains("links 2"), "{stdout}");
+    assert!(stdout.contains("lines 2"), "{stdout}");
     assert!(stdout.contains("plans 1"), "{stdout}");
     assert!(stdout.contains("placements 4"), "{stdout}");
     assert!(stdout.contains("connections 3"), "{stdout}");

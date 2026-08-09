@@ -4,11 +4,11 @@ use alloc::collections::BTreeMap;
 use alloc::vec;
 
 use conduit_core::{
-    process_owned_link_binding_with_limits, ArtifactId, CapabilityId, CapabilityLimits,
+    process_owned_line_offer_with_limits, ArtifactId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ConnectionBase, GearId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LinkBinding, LinkLimits, OfferGeneration, Plan, PROTOCOL_VERSION,
+    ImplementationId, LineOffer, LinkLimits, OfferGeneration, Plan, PROTOCOL_VERSION,
 };
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
+use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 
 use crate::{
     pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
@@ -23,6 +23,7 @@ pub const STD_PICO_USB_SOURCE_BOOT_ID: &str = "s4/std-pico-source-boot";
 pub const STD_PICO_USB_SINK_HOST_ID: &str = "s4/pico-usb-sink";
 pub const STD_PICO_USB_SINK_BOOT_ID: &str = "s4/pico-usb-sink-image-boot";
 pub const STD_PICO_USB_LINK_BINDING_ID: &str = "s4/std-pico-usb-cdc-link";
+pub const STD_PICO_USB_LINE_ID: &str = "s4/line/std-pico-usb-cdc";
 pub const STD_PICO_USB_BASE_INSTANCE_ID: &str = "s4/pico-usb-cdc-0";
 pub const STD_PICO_USB_SOURCE_ENDPOINT_ID: &str = "s4/std-pico-usb-egress";
 pub const STD_PICO_USB_SINK_ENDPOINT_ID: &str = "s4/pico-usb-ingress";
@@ -31,7 +32,7 @@ pub const STD_PICO_USB_SINK_ENDPOINT_ID: &str = "s4/pico-usb-ingress";
 pub struct ExactStdPicoUsbPlan {
     pub source_advertisement: HostAdvertisement,
     pub sink_advertisement: HostAdvertisement,
-    pub link_binding: LinkBinding,
+    pub line_offer: LineOffer,
     pub plan: Plan,
 }
 
@@ -111,10 +112,11 @@ pub fn std_pico_usb_sink_advertisement() -> HostAdvertisement {
     }
 }
 
-pub fn std_pico_usb_link_binding() -> LinkBinding {
+pub fn std_pico_usb_line_offer() -> LineOffer {
     let source = std_pico_usb_source_advertisement();
     let sink = std_pico_usb_sink_advertisement();
-    let mut binding = process_owned_link_binding_with_limits(
+    let mut line = process_owned_line_offer_with_limits(
+        STD_PICO_USB_LINE_ID,
         STD_PICO_USB_LINK_BINDING_ID,
         ConnectionBase::UsbCdc,
         STD_PICO_USB_BASE_INSTANCE_ID,
@@ -127,10 +129,11 @@ pub fn std_pico_usb_link_binding() -> LinkBinding {
             maximum_frame_bytes: DISTRIBUTED_MAXIMUM_FRAME_BYTES,
         },
     );
-    binding.source.endpoint_id =
+    line.binding.source.endpoint_id =
         conduit_core::LinkEndpointId::from(STD_PICO_USB_SOURCE_ENDPOINT_ID);
-    binding.sink.endpoint_id = conduit_core::LinkEndpointId::from(STD_PICO_USB_SINK_ENDPOINT_ID);
-    binding
+    line.binding.sink.endpoint_id =
+        conduit_core::LinkEndpointId::from(STD_PICO_USB_SINK_ENDPOINT_ID);
+    line
 }
 
 pub fn exact_std_pico_usb_plan() -> Result<ExactStdPicoUsbPlan, alloc::string::String> {
@@ -159,21 +162,21 @@ pub fn exact_std_pico_usb_plan() -> Result<ExactStdPicoUsbPlan, alloc::string::S
             ),
         ]),
     };
-    let link_binding = std_pico_usb_link_binding();
-    let plan = plan_with_link_bindings(
+    let line_offer = std_pico_usb_line_offer();
+    let plan = plan_with_line_offers(
         &form,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,
         &[ConnectionBase::UsbCdc],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
-        core::slice::from_ref(&link_binding),
+        core::slice::from_ref(&line_offer),
     )
     .map_err(|error| error.to_string())?;
     Ok(ExactStdPicoUsbPlan {
         source_advertisement,
         sink_advertisement,
-        link_binding,
+        line_offer,
         plan,
     })
 }

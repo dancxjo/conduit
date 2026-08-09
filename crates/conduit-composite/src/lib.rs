@@ -1,10 +1,10 @@
 use conduit_core::{
     bind_active_play, bind_clue, kind_id, verify_plan, ActivePlayId, ArtifactId, BootId,
-    CapabilityLimits, CapabilityOffer, ConnectionBase, ConnectionEnvelope, ConnectionId,
-    ConnectionOutcome, ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand,
-    HostEvent, HostId, HostProfileId, ImplementationId, Observation, ObservationKind,
-    OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect, PortDescriptor, PortId,
-    TerminalDisposition, PROTOCOL_VERSION,
+    CapabilityLimits, CapabilityOffer, ConnectionEnvelope, ConnectionId, ConnectionOutcome,
+    ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId,
+    HostProfileId, ImplementationId, Observation, ObservationKind, OfferGeneration, Plan,
+    PlanFragment, PlanId, PlatformEffect, PortDescriptor, PortId, TerminalDisposition,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{CheckedForm, CompositeFaceTerminal};
 use conduit_runtime::{
@@ -492,7 +492,11 @@ impl CompositeHost {
             BTreeMap::<ConnectionId, Vec<(HostId, conduit_core::PlannedConnection)>>::new();
         for fragment in &definition.internal_plan.fragments {
             for connection in &fragment.connections {
-                if connection.base == ConnectionBase::InMemory {
+                if connection
+                    .selected_line
+                    .as_ref()
+                    .is_some_and(|line| line.binding.base == conduit_core::ConnectionBase::InMemory)
+                {
                     connection_rows
                         .entry(connection.connection_id.clone())
                         .or_default()
@@ -1151,7 +1155,7 @@ impl CompositeHost {
                     .iter()
                     .find(|face| face.external_port.port_id == face_port_id),
             };
-            if connection.base == ConnectionBase::Local
+            if connection.selected_line.is_none()
                 || face.is_none_or(|face| face.external_port.value_kind != connection.value_kind)
                 || external_connections.contains_key(&connection.connection_id)
             {

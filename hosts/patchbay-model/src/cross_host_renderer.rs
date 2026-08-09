@@ -2,13 +2,12 @@
 
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase,
-    ConnectionBaseInstanceId, ExecutionProfileId, GearId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, ImplementationOffer, KindContractRevision, LinkAuthorityReference,
-    LinkAvailability, LinkBinding, LinkBindingId, LinkCredentialReference, LinkEndpoint,
-    LinkEndpointId, LinkLimits, OfferGeneration, Plan, PortDirection, PROTOCOL_VERSION,
+    ExecutionProfileId, GearId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    ImplementationOffer, KindContractRevision, LineOffer, LinkLimits, OfferGeneration, Plan,
+    PortDirection, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
+use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
     renderer_inputs, renderer_kind_definition, MAX_RENDERER_VALUE_BYTES, RENDERER_CONTRACT_REVISION,
 };
@@ -26,7 +25,7 @@ pub const CROSS_HOST_MAXIMUM_FRAME_BYTES: u32 = MAX_RENDERER_VALUE_BYTES + 8_192
 pub struct CrossHostRendererPlan {
     pub source_advertisement: HostAdvertisement,
     pub renderer_advertisement: HostAdvertisement,
-    pub link: LinkBinding,
+    pub line: LineOffer,
     pub plan: Plan,
 }
 
@@ -56,26 +55,26 @@ pub fn cross_host_renderer_plan(
             ),
         ]),
     };
-    let link = websocket_link(
+    let line = websocket_line(
         source_host_id,
         source_boot_id,
         renderer_identity.host_id,
         renderer_identity.boot_id,
     );
-    let plan = plan_with_link_bindings(
+    let plan = plan_with_line_offers(
         &form,
         &[source_advertisement.clone(), renderer_advertisement.clone()],
         &placements,
         &[ConnectionBase::WebSocket],
         1,
         MAX_RENDERER_VALUE_BYTES,
-        core::slice::from_ref(&link),
+        core::slice::from_ref(&line),
     )
     .map_err(|error| error.to_string())?;
     Ok(CrossHostRendererPlan {
         source_advertisement,
         renderer_advertisement,
-        link,
+        line,
         plan,
     })
 }
@@ -143,34 +142,30 @@ fn source_host(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
     }
 }
 
-fn websocket_link(
+fn websocket_line(
     source_host_id: HostId,
     source_boot_id: BootId,
     sink_host_id: HostId,
     sink_boot_id: BootId,
-) -> LinkBinding {
-    LinkBinding {
-        binding_id: LinkBindingId::from("patchbay-renderer/websocket-line"),
-        source: LinkEndpoint {
-            host_id: source_host_id,
-            boot_id: source_boot_id,
-            endpoint_id: LinkEndpointId::from("patchbay-renderer/source-egress"),
-        },
-        sink: LinkEndpoint {
-            host_id: sink_host_id,
-            boot_id: sink_boot_id,
-            endpoint_id: LinkEndpointId::from("patchbay-renderer/html-ingress"),
-        },
-        base: ConnectionBase::WebSocket,
-        base_instance_id: ConnectionBaseInstanceId::from("patchbay-renderer/websocket-instance"),
-        availability: LinkAvailability::Ready,
-        credential: LinkCredentialReference::None,
-        authority: LinkAuthorityReference::ProcessOwned,
-        limits: LinkLimits {
+) -> LineOffer {
+    let source = source_host(source_host_id, source_boot_id);
+    let sink = HostAdvertisement {
+        host_id: sink_host_id,
+        boot_id: sink_boot_id,
+        ..source.clone()
+    };
+    conduit_core::process_owned_line_offer_with_limits(
+        "patchbay-renderer/line/websocket",
+        "patchbay-renderer/binding/websocket",
+        ConnectionBase::WebSocket,
+        "patchbay-renderer/websocket-instance",
+        &source,
+        &sink,
+        LinkLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: MAX_RENDERER_VALUE_BYTES,
             maximum_buffered_bytes: MAX_RENDERER_VALUE_BYTES,
             maximum_frame_bytes: CROSS_HOST_MAXIMUM_FRAME_BYTES,
         },
-    }
+    )
 }

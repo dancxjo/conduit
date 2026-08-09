@@ -1,5 +1,5 @@
 use conduit_core::{
-    BootId, ClueId, ControlLoopEvent, GearId, HostId, LinkAvailability, LinkObservation,
+    BootId, ClueId, ControlLoopEvent, GearId, HostId, LineAvailability, LineAvailabilitySign,
     PlanningRefusalReason,
 };
 use conduit_system_continuity::{
@@ -36,13 +36,14 @@ fn start() -> (R1NewPlanRecovery, conduit_core::Plan, conduit_core::Plan) {
 
 fn lose_websocket(recovery: &mut R1NewPlanRecovery) {
     recovery
-        .observe_route_unavailable(
-            LinkObservation {
+        .observe_line_unavailable(
+            LineAvailabilitySign {
+                line_id: conduit_core::LineId::from(conduit_net::R1_WEBSOCKET_LINE_ID),
                 binding_id: conduit_core::LinkBindingId::from(
                     conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
                 ),
-                availability: LinkAvailability::Unavailable,
-                clue_id: ClueId::from("r1/websocket-unavailable"),
+                availability: LineAvailability::Unavailable,
+                sign_id: ClueId::from("r1/websocket-unavailable"),
             },
             ClueId::from("r1/play-a-unsatisfied"),
         )
@@ -98,7 +99,7 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
     assert_eq!(recovery.events().len(), 6);
     assert!(matches!(
         recovery.events()[0],
-        ControlLoopEvent::LinkBecameUnavailable { .. }
+        ControlLoopEvent::LineBecameUnavailable { .. }
     ));
     assert!(matches!(
         recovery.events()[1],

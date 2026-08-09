@@ -1,14 +1,13 @@
 use conduit_core::{
-    active_play_digest, bind_active_play, ActivePlayId, BootId, ConnectionBase,
-    ConnectionBaseInstanceId, ConnectionId, FragmentId, HostId, KindId, LinkAvailability,
-    LinkBinding, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PlannedConnection,
-    PROTOCOL_VERSION,
+    active_play_digest, bind_active_play, ActivePlayId, AdmittedLine, BootId, ConnectionBase,
+    ConnectionBaseInstanceId, ConnectionId, FragmentId, HostId, KindId, LineId, LinkBindingId,
+    LinkEndpointId, LinkLimits, PlanId, PlannedConnection, PROTOCOL_VERSION,
 };
 
 use crate::{WireError, MAX_ID_BYTES};
 
 const SESSION_MAGIC: [u8; 4] = *b"CNDS";
-const SESSION_WIRE_VERSION: u8 = 2;
+const SESSION_WIRE_VERSION: u8 = 3;
 const COMMON_FIXED_BYTES: usize = 4 + 1 + 1 + 2 + 2 * 11 + 2 + 4 + 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,7 +23,7 @@ pub struct SessionBinding {
     pub sink: SessionEndpointIdentity,
     pub value_kind: KindId,
     pub limits: SessionLimits,
-    pub attachment: RouteAttachment,
+    pub attachment: LineAttachment,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,7 +40,8 @@ pub struct SessionLimits {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RouteAttachment {
+pub struct LineAttachment {
+    pub line_id: LineId,
     pub link_binding_id: LinkBindingId,
     pub base: ConnectionBase,
     pub base_instance_id: ConnectionBaseInstanceId,
@@ -62,31 +62,30 @@ impl SessionBinding {
         sink_fragment_id: FragmentId,
         connection: &PlannedConnection,
     ) -> Result<Self, WireError> {
-        let link = connection
-            .link_binding
+        let line = connection
+            .selected_line
             .as_ref()
             .ok_or(WireError::InvalidSession)?;
-        Self::from_planned_connection_with_link(
+        Self::from_planned_connection_with_line(
             plan_id,
             source_fragment_id,
             sink_fragment_id,
             connection,
-            link,
+            line,
         )
     }
 
     /// Bind the same logical session to one exact currently-ready sealed route.
-    pub fn from_planned_connection_with_link(
+    pub fn from_planned_connection_with_line(
         plan_id: PlanId,
         source_fragment_id: FragmentId,
         sink_fragment_id: FragmentId,
         connection: &PlannedConnection,
-        link: &LinkBinding,
+        line: &AdmittedLine,
     ) -> Result<Self, WireError> {
+        let link = &line.binding;
         if !link.base.supports_remote_session()
-            || link.availability != LinkAvailability::Ready
-            || (connection.route_candidates.is_empty() && link.base != connection.base)
-            || !connection.permits_bound_link(&link.bound_link())
+            || !connection.permits_line(line)
             || connection.item_capacity > link.limits.maximum_in_flight_items
             || connection.byte_capacity > link.limits.maximum_payload_bytes
             || connection.byte_capacity > link.limits.maximum_buffered_bytes
@@ -120,7 +119,8 @@ impl SessionBinding {
                 maximum_payload_bytes: connection.byte_capacity,
                 maximum_buffered_bytes: connection.byte_capacity,
             },
-            attachment: RouteAttachment {
+            attachment: LineAttachment {
+                line_id: line.line_id.clone(),
                 link_binding_id: link.binding_id.clone(),
                 base: link.base,
                 base_instance_id: link.base_instance_id.clone(),
@@ -183,6 +183,7 @@ impl SessionBinding {
             self.sink.host_id.as_str(),
             self.sink.boot_id.as_str(),
             self.value_kind.as_str(),
+            self.attachment.line_id.as_str(),
             self.attachment.link_binding_id.as_str(),
             self.attachment.base_instance_id.as_str(),
             self.attachment.source_host_id.as_str(),
@@ -262,6 +263,7 @@ impl SessionBinding {
         SessionFrame {
             identity: self.identity(),
             message: SessionMessage::Hello(SessionHello {
+                line_id: self.attachment.line_id.as_str(),
                 link_binding_id: self.attachment.link_binding_id.as_str(),
                 base: self.attachment.base,
                 base_instance_id: self.attachment.base_instance_id.as_str(),
@@ -320,6 +322,7 @@ pub struct SessionIdentity<'a> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SessionHello<'a> {
+    pub line_id: &'a str,
     pub link_binding_id: &'a str,
     pub base: ConnectionBase,
     pub base_instance_id: &'a str,
@@ -416,6 +419,7 @@ pub fn encode_session_frame_into(
     writer.u32(frame.identity.limits.maximum_buffered_bytes)?;
     match frame.message {
         SessionMessage::Hello(hello) => {
+            writer.text(hello.line_id)?;
             writer.text(hello.link_binding_id)?;
             writer.u8(base_code(hello.base)?)?;
             writer.text(hello.base_instance_id)?;
@@ -494,6 +498,7 @@ pub fn decode_session_frame(
     };
     let message = match kind {
         1 => SessionMessage::Hello(SessionHello {
+            line_id: cursor.text()?,
             link_binding_id: cursor.text()?,
             base: decode_base(cursor.u8()?)?,
             base_instance_id: cursor.text()?,
@@ -552,7 +557,8 @@ fn identity_matches(binding: &SessionBinding, identity: SessionIdentity<'_>) -> 
 }
 
 fn hello_matches(binding: &SessionBinding, hello: SessionHello<'_>) -> bool {
-    hello.link_binding_id == binding.attachment.link_binding_id.as_str()
+    hello.line_id == binding.attachment.line_id.as_str()
+        && hello.link_binding_id == binding.attachment.link_binding_id.as_str()
         && hello.base == binding.attachment.base
         && hello.base_instance_id == binding.attachment.base_instance_id.as_str()
         && hello.source_endpoint_id == binding.attachment.source_endpoint_id.as_str()
@@ -609,10 +615,11 @@ fn decode_terminal(code: u8) -> Result<SessionTerminalDisposition, WireError> {
 
 fn hello_encoded_len(binding: &SessionBinding) -> Result<usize, WireError> {
     common_encoded_len(binding)?
-        .checked_add(1 + 2 * 4 + 2 + 4 * 3)
+        .checked_add(1 + 2 * 5 + 2 + 4 * 3)
         .and_then(|value| {
             value.checked_add(
-                binding.attachment.link_binding_id.as_str().len()
+                binding.attachment.line_id.as_str().len()
+                    + binding.attachment.link_binding_id.as_str().len()
                     + binding.attachment.base_instance_id.as_str().len()
                     + binding.attachment.source_endpoint_id.as_str().len()
                     + binding.attachment.sink_endpoint_id.as_str().len(),

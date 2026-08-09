@@ -3,7 +3,7 @@ use conduit_core::{
     HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_wire::{
-    RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
+    LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
     SessionRole, WireError,
 };
 
@@ -43,7 +43,8 @@ fn planned_binding() -> SessionBinding {
             maximum_payload_bytes: 9,
             maximum_buffered_bytes: 9,
         },
-        attachment: RouteAttachment {
+        attachment: LineAttachment {
+            line_id: "line/session".into(),
             link_binding_id: LinkBindingId::from("link/exact"),
             base: ConnectionBase::UsbCdc,
             base_instance_id: ConnectionBaseInstanceId::from("base/exact"),

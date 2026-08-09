@@ -1,7 +1,7 @@
 # Observation, planning, realization, and execution control loop
 
 This is the checked architecture contract for [R1 #466], replacement planning
-[#495], and same-Plan route selection [#496]. It uses current Conduit vocabulary
+[#495], and same-Plan Line selection [#496]. It uses current Conduit vocabulary
 and the functional-compatibility rule from #522.
 
 ```text
@@ -35,9 +35,9 @@ convenience.
 
 | Stage | Inputs | Durable or semantic output | State that remains outside Plan identity |
 | --- | --- | --- | --- |
-| Observation | current host boot/generation reports, capability/resource facts, authority facts, link health | clue identities and exact facts supplied to planning | readiness, utilization, pressure, current selected route, carrier state |
+| Observation | current host boot/generation reports, capability/resource facts, authority facts, Line availability Signs | clue identities and exact facts supplied to planning | readiness, utilization, pressure, current selected Line |
 | Planning | checked semantic intent, equal-face candidate realizations, hard requirements, current observations, explicit policy, exact grants | a new immutable Plan with exact host/implementation/artifact/resources/authority/routes/bounds | planner identity, scratch state, rejected candidates, mutable readiness |
-| Realization | one exact Plan and current host/boot/base state | installed exact fragments/bindings and fresh Play identities, or an explicit refusal/unsatisfied record | adapter handles, sockets, base queues, current route selection |
+| Realization | one exact Plan and current host/boot/Line state | installed exact fragments/Lines and fresh Play identities, or an explicit refusal/unsatisfied record | adapter handles, sockets, base queues, current Line selection |
 | Execution | installed fragment, active Play, admitted inputs/effects | terminal or continuing Play clue | transient pressure, in-flight work, base-local identifiers |
 | Clue/observation | exact runtime/base facts | bounded machine-readable records that may become fresh planning input | inferred causality or authority not stated by the producer |
 
@@ -54,17 +54,17 @@ new `PlanId`; calling that mutation, retry, or failover is incorrect.
 
 ## Two different recovery branches
 
-### Same-Plan route selection
+### Same-Plan Line selection
 
 The active Plan may seal several exact ordered `BoundLink` candidates for one
-connection. `RouteMachine` may select another Ready member of that set. The
-result is `ControlLoopEvent::RouteSelectionChanged` with the unchanged
+connection. `LineMachine` may select another Ready member of that set. The
+result is `ControlLoopEvent::LineSelectionChanged` with the unchanged
 `plan_id`, exact connection, previous/selected binding identities, and the
 observation clue. It does not emit planning-success, Plan-supersession, or
 realization-generation clue.
 
 The selected route must already be in the connection's sealed candidates. A
-newly discovered compatible carrier is not eligible until a new Plan admits it.
+newly discovered compatible Line is not eligible until a new Plan admits it.
 Changing the active attachment may require finite session reconciliation, but
 it does not alter semantic or Plan identity.
 
@@ -81,7 +81,7 @@ and issue fresh Plays.
 The minimum successful sequence is therefore:
 
 ```text
-LinkBecameUnavailable (when a link caused the change)
+LineBecameUnavailable (when a Line caused the change)
 PlayBecameUnsatisfied
 PlanningRequested
 PlanningSucceeded(prior PlanId, replacement PlanId)
@@ -97,14 +97,14 @@ it is not retroactively a planning refusal.
 
 `conduit-core::ControlLoopEvent` defines the minimum shared vocabulary:
 
-- `LinkBecameUnavailable`;
+- `LineBecameUnavailable`;
 - `PlayBecameUnsatisfied` with a typed reason;
 - `PlanningRequested`;
 - `PlanningRefused` with a typed reason;
 - `PlanningSucceeded` with distinct prior and replacement Plan IDs;
 - `PlanSuperseded` with those exact identities;
 - `PlanRealized`;
-- `RouteSelectionChanged` within one unchanged Plan.
+- `LineSelectionChanged` within one unchanged Plan.
 
 Every record carries exact clue identity. Route records validate against the
 active Plan and connection's sealed candidates. Replacement records reject Plan
@@ -113,7 +113,7 @@ bounded pressure remains ordinary execution state while the current realization
 is still valid.
 
 This vocabulary records facts only. It does not authorize a planner, choose
-policy, install fragments, switch carriers, or issue lifecycle authority.
+policy, install fragments, switch Lines, or issue lifecycle authority.
 
 ## Required design answers
 
@@ -181,7 +181,7 @@ shown as a new Plan generation.
 A selected-route change records one unchanged `PlanId`, exact connection ID,
 previous and selected admitted binding IDs, and the observation clue ID.
 The selected base attachment and runtime session state remain outside Plan
-identity. If the desired binding is absent from the sealed set, route selection
+identity. If the desired Line is absent from the sealed set, Line selection
 fails and software may separately report unsatisfaction/request replanning.
 
 ## Holographic-host and proof boundaries

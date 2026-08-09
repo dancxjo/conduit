@@ -43,12 +43,12 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
         &[ConnectionBase::Local],
         PlanningOptions {
             connection_bases: &base_choices,
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 8,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &[],
+            line_offers: &[],
         },
     )
     .expect("typed tick plans with capacity-one pressure");
@@ -264,12 +264,12 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
         &[ConnectionBase::Local],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 64,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &[],
+            line_offers: &[],
         },
     )
     .expect("generate-text form plans through the ordinary planner");

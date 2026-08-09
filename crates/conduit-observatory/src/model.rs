@@ -1,11 +1,11 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{
-    ActivePlayId, AuthorityBinding, AuthorityRequirement, BootId, CapabilityId, CapabilityLimits,
-    CheckedFormId, ClueId, ConnectionBase, ConnectionId, ConnectionTerminalDisposition,
+    ActivePlayId, AdmittedLine, AuthorityBinding, AuthorityRequirement, BootId, CapabilityId,
+    CapabilityLimits, CheckedFormId, ClueId, ConnectionId, ConnectionTerminalDisposition,
     ExecutionProfileId, ExpandedFormId, FragmentId, HostAdvertisement, HostId,
     HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision, KindId,
-    LinkBinding, Observation, OfferGeneration, PlacementId, Plan, PlanId, PlannerCapabilityOffer,
+    LineOffer, Observation, OfferGeneration, PlacementId, Plan, PlanId, PlannerCapabilityOffer,
     PortDescriptor, PresentationId, ResourceBinding, ResourceOffer, ResourceRequirement,
     SourceDocumentId, TerminalDisposition,
 };
@@ -73,8 +73,8 @@ pub struct HostReport {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct LinkReport {
-    pub binding: LinkBinding,
+pub struct LineReport {
+    pub offer: LineOffer,
     pub state: OperationalState,
 }
 
@@ -133,7 +133,7 @@ pub struct RetentionReport {
 pub struct ObservatorySnapshot {
     pub schema: String,
     pub hosts: Vec<HostReport>,
-    pub links: Vec<LinkReport>,
+    pub lines: Vec<LineReport>,
     pub plans: Vec<Plan>,
     pub plays: Vec<PlayReport>,
     pub observations: Vec<Observation>,
@@ -173,8 +173,8 @@ pub struct CapabilityRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LinkRow {
-    pub binding: LinkBinding,
+pub struct LineRow {
+    pub offer: LineOffer,
     pub state: OperationalState,
 }
 
@@ -220,8 +220,8 @@ pub struct ConnectionRow {
     pub source_placement_id: PlacementId,
     pub sink_placement_id: PlacementId,
     pub value_kind: KindId,
-    pub base: ConnectionBase,
-    pub link_binding: Option<LinkBinding>,
+    pub selected_line: Option<AdmittedLine>,
+    pub admitted_lines: Vec<AdmittedLine>,
     pub item_capacity: u16,
     pub byte_capacity: u32,
 }
@@ -252,7 +252,7 @@ pub struct RetentionRow {
 pub struct ObservatoryReport {
     pub hosts: Vec<HostRow>,
     pub capabilities: Vec<CapabilityRow>,
-    pub links: Vec<LinkRow>,
+    pub lines: Vec<LineRow>,
     pub plans: Vec<PlanRow>,
     pub fragments: Vec<FragmentRow>,
     pub placements: Vec<PlacementRow>,

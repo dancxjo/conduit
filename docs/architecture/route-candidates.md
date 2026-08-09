@@ -1,23 +1,17 @@
-# Sealed route candidates
+# Plan-sealed Lines
 
-Issue #499 replaces a remote connection's single nominal route with an exact,
-finite, ordered set of functionally compatible routes. Planning policy chooses
-that set from observed boot-scoped links. Bases only report link facts; they
-do not choose, reorder, or expand the set.
+Issues #499 and #618 establish an exact, finite, ordered set of Lines for every
+remote Cord. A Line is the Host-offered connectivity realization; a Cord keeps
+the semantic relationship and typed Port identities independent of it.
 
-`BoundLink` contains the immutable endpoint, base-instance, authority,
-credential-reference, and limit facts committed into Plan identity. Candidate
-order is meaningful and identity-bound. Every candidate independently satisfies
-the connection's admitted item and byte bounds.
+`LineOffer` keeps `LineId`, the lower `LinkBinding`, the explicit
+`LineContract`, and a current `LineAvailabilitySign` distinct. `AdmittedLine`
+contains only immutable facts sealed into Plan identity. Its contract states
+scope, traffic shape, duplex, ordering, reliability, continuation, security,
+and the binding's finite payload, frame, buffering, and in-flight limits.
 
-`LinkObservation` contains mutable availability clue. Readiness and the
-currently selected candidate do not alter Plan identity. A runtime may attach
-only a candidate already present in the sealed set; #499 does not add route
-selection, failover, retry, resumption, or a second session state machine.
-
-The existing `base` and `link_binding` fields remain as a temporary
-single-route/current-observation facade for the existing USB and WebSocket
-session adapters. An empty candidate list is accepted only for legacy decoded
-plans and means that exact single binding. New remote plans always seal at least
-one `BoundLink`. Follow-up issues #500 and #501 own runtime selection and
-transport integration.
+Candidate order is Plan identity. Each admitted Line must independently cover
+the Cord bounds. Availability Signs remain outside the Plan and cannot add,
+remove, reorder, or mutate admitted Lines. Local Cords have no selected or
+admitted Line; remote Cords have one selected Line and at least one admitted
+Line. There is no legacy single-binding facade.

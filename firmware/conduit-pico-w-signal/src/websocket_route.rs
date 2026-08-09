@@ -3,7 +3,7 @@
 use embassy_futures::select::{select, Either};
 use embassy_net::{tcp::TcpSocket, Stack};
 use embassy_time::Duration;
-use conduit_core::LinkBinding;
+use conduit_core::LineOffer;
 
 use crate::network_receipts::WebSocketRouteIdentity;
 use crate::continuable_signal::ContinuableSignalSink;
@@ -24,7 +24,7 @@ pub async fn run(
     control: &mut cyw43::Control<'_>,
     plan_a_runtime: &RuntimeTranscriptIdentity,
     plan_c_runtime: &RuntimeTranscriptIdentity,
-    route_basis: &[LinkBinding; 2],
+    route_basis: &[LineOffer; 2],
     plan_a_state: &mut Option<ContinuableSignalSink>,
     plan_c_state: &mut Option<ContinuableSignalSink>,
     continuation: &mut Option<ContinuableSignalSink>,

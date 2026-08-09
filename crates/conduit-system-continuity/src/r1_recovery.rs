@@ -5,10 +5,10 @@ use alloc::vec::Vec;
 use conduit_body::{Body, BodyId, BodyLifecycleError, Wake, WakeId};
 use conduit_core::{
     bind_active_play, ActivePlayId, ActivePlayIdentity, BootId, ClueId, ControlLoopEvent, GearId,
-    HostId, LinkAvailability, LinkObservation, Plan, PlanId, PlanningRequestAuthority,
+    HostId, LineAvailability, LineAvailabilitySign, Plan, PlanId, PlanningRequestAuthority,
     PlayUnsatisfiedReason,
 };
-use conduit_wire::{RouteDisposition, RouteError, RouteMachine, SessionBinding, WireError};
+use conduit_wire::{LineDisposition, LineError, LineMachine, SessionBinding, WireError};
 use serde::{Deserialize, Serialize};
 
 pub const MAX_R1_RECOVERY_EVENTS: usize = 8;
@@ -70,7 +70,7 @@ pub struct R1NewPlanRecovery {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum R1RecoveryError {
     Lifecycle(BodyLifecycleError),
-    Route(RouteError),
+    Line(LineError),
     Wire(WireError),
     InvalidPlan,
     InvalidObservation,
@@ -86,9 +86,9 @@ impl From<BodyLifecycleError> for R1RecoveryError {
     }
 }
 
-impl From<RouteError> for R1RecoveryError {
-    fn from(value: RouteError) -> Self {
-        Self::Route(value)
+impl From<LineError> for R1RecoveryError {
+    fn from(value: LineError) -> Self {
+        Self::Line(value)
     }
 }
 
@@ -137,12 +137,12 @@ impl R1NewPlanRecovery {
         })
     }
 
-    pub fn observe_route_unavailable(
+    pub fn observe_line_unavailable(
         &mut self,
-        observation: LinkObservation,
+        observation: LineAvailabilitySign,
         unsatisfied_clue_id: ClueId,
     ) -> Result<(), R1RecoveryError> {
-        if observation.availability != LinkAvailability::Unavailable || self.plan_b.is_some() {
+        if observation.availability != LineAvailability::Unavailable || self.plan_b.is_some() {
             return Err(R1RecoveryError::InvalidObservation);
         }
         let connection = self
@@ -151,27 +151,28 @@ impl R1NewPlanRecovery {
             .iter()
             .flat_map(|fragment| &fragment.connections)
             .find(|connection| {
-                connection
-                    .route_candidates
-                    .iter()
-                    .any(|route| route.binding_id == observation.binding_id)
+                connection.admitted_lines.iter().any(|line| {
+                    line.line_id == observation.line_id
+                        && line.binding.binding_id == observation.binding_id
+                })
             })
             .ok_or(R1RecoveryError::InvalidObservation)?;
-        let mut routes = RouteMachine::new(connection)?;
-        let update = routes.observe(&observation)?;
+        let mut lines = LineMachine::new(connection)?;
+        let update = lines.observe(&observation)?;
         if !matches!(
             update.disposition,
-            RouteDisposition::Unsatisfied {
+            LineDisposition::Unsatisfied {
                 replan_may_be_requested: true
             }
         ) {
             return Err(R1RecoveryError::NotUnsatisfied);
         }
-        let unavailable = ControlLoopEvent::LinkBecameUnavailable {
+        let unavailable = ControlLoopEvent::LineBecameUnavailable {
             plan_id: self.plan_a.plan_id.clone(),
             connection_id: connection.connection_id.clone(),
+            line_id: observation.line_id,
             binding_id: observation.binding_id,
-            observation_clue_id: observation.clue_id,
+            observation_clue_id: observation.sign_id,
         };
         unavailable
             .validate_route_event(&self.plan_a.plan_id, connection)

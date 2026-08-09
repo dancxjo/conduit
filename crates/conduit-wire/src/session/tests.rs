@@ -1,8 +1,9 @@
 use super::*;
 use alloc::vec;
 use conduit_core::{
-    BootId, HostId, LinkAuthorityReference, LinkAvailability, LinkBinding, LinkCredentialReference,
-    LinkEndpoint, LinkEndpointId, PlacementId,
+    AdmittedLine, BootId, BoundLink, HostId, LineContinuation, LineContract, LineDuplex, LineId,
+    LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
+    LinkAuthorityReference, LinkCredentialReference, LinkEndpoint, LinkEndpointId, PlacementId,
 };
 
 const MAXIMUM_PAYLOAD_BYTES: u32 = 16;
@@ -46,7 +47,8 @@ fn binding() -> SessionBinding {
             maximum_payload_bytes: MAXIMUM_PAYLOAD_BYTES,
             maximum_buffered_bytes: MAXIMUM_PAYLOAD_BYTES,
         },
-        attachment: RouteAttachment {
+        attachment: LineAttachment {
+            line_id: LineId::from("test/line"),
             link_binding_id: LinkBindingId::from("test/link"),
             base: ConnectionBase::WebSocket,
             base_instance_id: ConnectionBaseInstanceId::from("test/base-instance"),
@@ -66,6 +68,52 @@ fn binding() -> SessionBinding {
     }
 }
 
+fn planned_connection(expected: &SessionBinding, base: ConnectionBase) -> PlannedConnection {
+    let line = AdmittedLine {
+        line_id: expected.attachment.line_id.clone(),
+        binding: BoundLink {
+            binding_id: expected.attachment.link_binding_id.clone(),
+            source: LinkEndpoint {
+                host_id: expected.source.host_id.clone(),
+                boot_id: expected.source.boot_id.clone(),
+                endpoint_id: expected.attachment.source_endpoint_id.clone(),
+            },
+            sink: LinkEndpoint {
+                host_id: expected.sink.host_id.clone(),
+                boot_id: expected.sink.boot_id.clone(),
+                endpoint_id: expected.attachment.sink_endpoint_id.clone(),
+            },
+            base,
+            base_instance_id: expected.attachment.base_instance_id.clone(),
+            credential: LinkCredentialReference::None,
+            authority: LinkAuthorityReference::ProcessOwned,
+            limits: expected.attachment.limits,
+        },
+        contract: LineContract {
+            scope: LineScope::Machine,
+            traffic_shape: LineTrafficShape::Message,
+            duplex: LineDuplex::FullDuplex,
+            ordering: LineOrdering::Ordered,
+            reliability: LineReliability::Reliable,
+            continuation: LineContinuation::None,
+            security: LineSecurity::PlaintextNetwork,
+        },
+    };
+    PlannedConnection {
+        connection_id: expected.connection_id.clone(),
+        source_placement_id: PlacementId::from("test/source-placement"),
+        source_port_id: conduit_core::PortId::from("out"),
+        sink_placement_id: PlacementId::from("test/sink-placement"),
+        sink_port_id: conduit_core::PortId::from("in"),
+        value_kind: expected.value_kind.clone(),
+        temporal: conduit_core::PortTemporal::Value,
+        selected_line: Some(line.clone()),
+        admitted_lines: vec![line],
+        item_capacity: 1,
+        byte_capacity: MAXIMUM_PAYLOAD_BYTES,
+    }
+}
+
 fn trigger(machine: &mut SessionMachine) {
     let binding = machine.binding().clone();
     machine.admit_outbound(binding.hello_frame()).unwrap();
@@ -82,38 +130,7 @@ fn trigger(machine: &mut SessionMachine) {
 #[test]
 fn exact_planned_connection_constructs_the_session_binding() {
     let expected = binding();
-    let connection = PlannedConnection {
-        connection_id: expected.connection_id.clone(),
-        source_placement_id: PlacementId::from("test/source-placement"),
-        source_port_id: conduit_core::PortId::from("out"),
-        sink_placement_id: PlacementId::from("test/sink-placement"),
-        sink_port_id: conduit_core::PortId::from("in"),
-        value_kind: expected.value_kind.clone(),
-        temporal: conduit_core::PortTemporal::Value,
-        base: ConnectionBase::WebSocket,
-        link_binding: Some(LinkBinding {
-            binding_id: expected.attachment.link_binding_id.clone(),
-            source: LinkEndpoint {
-                host_id: expected.source.host_id.clone(),
-                boot_id: expected.source.boot_id.clone(),
-                endpoint_id: expected.attachment.source_endpoint_id.clone(),
-            },
-            sink: LinkEndpoint {
-                host_id: expected.sink.host_id.clone(),
-                boot_id: expected.sink.boot_id.clone(),
-                endpoint_id: expected.attachment.sink_endpoint_id.clone(),
-            },
-            base: expected.attachment.base,
-            base_instance_id: expected.attachment.base_instance_id.clone(),
-            availability: LinkAvailability::Ready,
-            credential: LinkCredentialReference::None,
-            authority: LinkAuthorityReference::ProcessOwned,
-            limits: expected.attachment.limits,
-        }),
-        route_candidates: vec![],
-        item_capacity: 1,
-        byte_capacity: MAXIMUM_PAYLOAD_BYTES,
-    };
+    let connection = planned_connection(&expected, ConnectionBase::WebSocket);
     let actual = SessionBinding::from_planned_connection(
         expected.plan_id.clone(),
         expected.source_fragment_id.clone(),
@@ -124,7 +141,7 @@ fn exact_planned_connection_constructs_the_session_binding() {
     assert_eq!(actual, expected);
 
     let mut missing = connection.clone();
-    missing.link_binding = None;
+    missing.selected_line = None;
     assert_eq!(
         SessionBinding::from_planned_connection(
             expected.plan_id,
@@ -428,38 +445,7 @@ fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
     expected.attachment.base = ConnectionBase::FixtureFrame;
     assert!(expected.attachment.base.supports_remote_session());
 
-    let connection = PlannedConnection {
-        connection_id: expected.connection_id.clone(),
-        source_placement_id: PlacementId::from("test/source-placement"),
-        source_port_id: conduit_core::PortId::from("out"),
-        sink_placement_id: PlacementId::from("test/sink-placement"),
-        sink_port_id: conduit_core::PortId::from("in"),
-        value_kind: expected.value_kind.clone(),
-        temporal: conduit_core::PortTemporal::Value,
-        base: ConnectionBase::FixtureFrame,
-        link_binding: Some(LinkBinding {
-            binding_id: expected.attachment.link_binding_id.clone(),
-            source: LinkEndpoint {
-                host_id: expected.source.host_id.clone(),
-                boot_id: expected.source.boot_id.clone(),
-                endpoint_id: expected.attachment.source_endpoint_id.clone(),
-            },
-            sink: LinkEndpoint {
-                host_id: expected.sink.host_id.clone(),
-                boot_id: expected.sink.boot_id.clone(),
-                endpoint_id: expected.attachment.sink_endpoint_id.clone(),
-            },
-            base: ConnectionBase::FixtureFrame,
-            base_instance_id: expected.attachment.base_instance_id.clone(),
-            availability: LinkAvailability::Ready,
-            credential: LinkCredentialReference::None,
-            authority: LinkAuthorityReference::ProcessOwned,
-            limits: expected.attachment.limits,
-        }),
-        route_candidates: vec![],
-        item_capacity: 1,
-        byte_capacity: MAXIMUM_PAYLOAD_BYTES,
-    };
+    let connection = planned_connection(&expected, ConnectionBase::FixtureFrame);
 
     let actual = SessionBinding::from_planned_connection(
         expected.plan_id.clone(),
@@ -501,38 +487,7 @@ fn local_and_in_memory_bases_remain_rejected() {
         invalid.attachment.base = connection_base;
         assert_eq!(invalid.validate(), Err(WireError::InvalidBase));
 
-        let connection = PlannedConnection {
-            connection_id: binding.connection_id.clone(),
-            source_placement_id: PlacementId::from("test/source-placement"),
-            source_port_id: conduit_core::PortId::from("out"),
-            sink_placement_id: PlacementId::from("test/sink-placement"),
-            sink_port_id: conduit_core::PortId::from("in"),
-            value_kind: binding.value_kind.clone(),
-            temporal: conduit_core::PortTemporal::Value,
-            base: connection_base,
-            link_binding: Some(LinkBinding {
-                binding_id: binding.attachment.link_binding_id.clone(),
-                source: LinkEndpoint {
-                    host_id: binding.source.host_id.clone(),
-                    boot_id: binding.source.boot_id.clone(),
-                    endpoint_id: binding.attachment.source_endpoint_id.clone(),
-                },
-                sink: LinkEndpoint {
-                    host_id: binding.sink.host_id.clone(),
-                    boot_id: binding.sink.boot_id.clone(),
-                    endpoint_id: binding.attachment.sink_endpoint_id.clone(),
-                },
-                base: connection_base,
-                base_instance_id: binding.attachment.base_instance_id.clone(),
-                availability: LinkAvailability::Ready,
-                credential: LinkCredentialReference::None,
-                authority: LinkAuthorityReference::ProcessOwned,
-                limits: binding.attachment.limits,
-            }),
-            route_candidates: vec![],
-            item_capacity: 1,
-            byte_capacity: MAXIMUM_PAYLOAD_BYTES,
-        };
+        let connection = planned_connection(&binding, connection_base);
         assert_eq!(
             SessionBinding::from_planned_connection(
                 binding.plan_id.clone(),
@@ -556,38 +511,7 @@ fn fixture_datagram_base_remains_rejected() {
     invalid.attachment.base = base;
     assert_eq!(invalid.validate(), Err(WireError::InvalidBase));
 
-    let connection = PlannedConnection {
-        connection_id: invalid.connection_id.clone(),
-        source_placement_id: PlacementId::from("test/source-placement"),
-        source_port_id: conduit_core::PortId::from("out"),
-        sink_placement_id: PlacementId::from("test/sink-placement"),
-        sink_port_id: conduit_core::PortId::from("in"),
-        value_kind: invalid.value_kind.clone(),
-        temporal: conduit_core::PortTemporal::Value,
-        base,
-        link_binding: Some(LinkBinding {
-            binding_id: invalid.attachment.link_binding_id.clone(),
-            source: LinkEndpoint {
-                host_id: invalid.source.host_id.clone(),
-                boot_id: invalid.source.boot_id.clone(),
-                endpoint_id: invalid.attachment.source_endpoint_id.clone(),
-            },
-            sink: LinkEndpoint {
-                host_id: invalid.sink.host_id.clone(),
-                boot_id: invalid.sink.boot_id.clone(),
-                endpoint_id: invalid.attachment.sink_endpoint_id.clone(),
-            },
-            base,
-            base_instance_id: invalid.attachment.base_instance_id.clone(),
-            availability: LinkAvailability::Ready,
-            credential: LinkCredentialReference::None,
-            authority: LinkAuthorityReference::ProcessOwned,
-            limits: invalid.attachment.limits,
-        }),
-        route_candidates: vec![],
-        item_capacity: 1,
-        byte_capacity: MAXIMUM_PAYLOAD_BYTES,
-    };
+    let connection = planned_connection(&invalid, base);
     assert_eq!(
         SessionBinding::from_planned_connection(
             invalid.plan_id,
@@ -600,40 +524,10 @@ fn fixture_datagram_base_remains_rejected() {
 }
 
 #[test]
-fn base_link_mismatch_remains_rejected() {
+fn unsealed_selected_line_remains_rejected() {
     let expected = binding();
-    let connection = PlannedConnection {
-        connection_id: expected.connection_id.clone(),
-        source_placement_id: PlacementId::from("test/source-placement"),
-        source_port_id: conduit_core::PortId::from("out"),
-        sink_placement_id: PlacementId::from("test/sink-placement"),
-        sink_port_id: conduit_core::PortId::from("in"),
-        value_kind: expected.value_kind.clone(),
-        temporal: conduit_core::PortTemporal::Value,
-        base: ConnectionBase::WebSocket,
-        link_binding: Some(LinkBinding {
-            binding_id: expected.attachment.link_binding_id.clone(),
-            source: LinkEndpoint {
-                host_id: expected.source.host_id.clone(),
-                boot_id: expected.source.boot_id.clone(),
-                endpoint_id: expected.attachment.source_endpoint_id.clone(),
-            },
-            sink: LinkEndpoint {
-                host_id: expected.sink.host_id.clone(),
-                boot_id: expected.sink.boot_id.clone(),
-                endpoint_id: expected.attachment.sink_endpoint_id.clone(),
-            },
-            base: ConnectionBase::FixtureFrame, // Mismatched link base
-            base_instance_id: expected.attachment.base_instance_id.clone(),
-            availability: LinkAvailability::Ready,
-            credential: LinkCredentialReference::None,
-            authority: LinkAuthorityReference::ProcessOwned,
-            limits: expected.attachment.limits,
-        }),
-        route_candidates: vec![],
-        item_capacity: 1,
-        byte_capacity: MAXIMUM_PAYLOAD_BYTES,
-    };
+    let mut connection = planned_connection(&expected, ConnectionBase::WebSocket);
+    connection.selected_line.as_mut().unwrap().line_id = LineId::from("test/unsealed-line");
     assert_eq!(
         SessionBinding::from_planned_connection(
             expected.plan_id,

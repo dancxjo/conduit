@@ -1,13 +1,13 @@
 use conduit_core::{
-    ConnectionTerminalDisposition, ExpectedTerminal, HostAdvertisement, LinkAvailability,
-    Observation, ObservationKind, Plan, TerminalDisposition,
+    ConnectionTerminalDisposition, ExpectedTerminal, HostAdvertisement, Observation,
+    ObservationKind, Plan, TerminalDisposition,
 };
 use conduit_observatory::{
     validate_snapshot, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
-    HostReport, LinkReport, ObservatorySnapshot, OfferFreshness, OperationalState, PlanLifecycle,
+    HostReport, ObservatorySnapshot, OfferFreshness, OperationalState, PlanLifecycle,
     PlayConnectionReport, PlayPlacementReport, PlayReport, RetentionReport, SNAPSHOT_SCHEMA,
 };
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -42,12 +42,12 @@ pub fn snapshot_from_execution(
             state: OperationalState::Available,
         })
         .collect::<Vec<_>>();
-    let links = links_from_plans(&plans);
+    let lines = Vec::new();
     let plays = plays_from_observations(&plans, &observations);
     ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.to_string(),
         hosts,
-        links,
+        lines,
         plans,
         plays,
         retention: RetentionReport {
@@ -57,28 +57,6 @@ pub fn snapshot_from_execution(
         },
         observations,
     }
-}
-
-fn links_from_plans(plans: &[Plan]) -> Vec<LinkReport> {
-    plans
-        .iter()
-        .flat_map(|plan| &plan.fragments)
-        .flat_map(|fragment| &fragment.connections)
-        .filter_map(|connection| connection.link_binding.as_ref())
-        .fold(BTreeMap::new(), |mut links, binding| {
-            links
-                .entry(binding.binding_id.clone())
-                .or_insert_with(|| LinkReport {
-                    state: match binding.availability {
-                        LinkAvailability::Ready => OperationalState::Available,
-                        LinkAvailability::Unavailable => OperationalState::Unknown,
-                    },
-                    binding: binding.clone(),
-                });
-            links
-        })
-        .into_values()
-        .collect()
 }
 
 fn plays_from_observations(plans: &[Plan], observations: &[Observation]) -> Vec<PlayReport> {

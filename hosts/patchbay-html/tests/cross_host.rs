@@ -38,19 +38,26 @@ fn one_exact_presentation_crosses_the_planned_line_into_the_html_renderer() {
     );
 
     let connection = source.connections.first().unwrap();
-    assert_eq!(connection.base, ConnectionBase::WebSocket);
-    let line = connection.link_binding.as_ref().unwrap();
-    assert_eq!(line.binding_id.as_str(), "patchbay-renderer/websocket-line");
+    let line = connection.selected_line.as_ref().unwrap();
+    assert_eq!(line.binding.base, ConnectionBase::WebSocket);
+    assert_eq!(line.line_id.as_str(), "patchbay-renderer/line/websocket");
     assert_eq!(
-        line.base_instance_id.as_str(),
+        line.binding.binding_id.as_str(),
+        "patchbay-renderer/binding/websocket"
+    );
+    assert_eq!(
+        line.binding.base_instance_id.as_str(),
         "patchbay-renderer/websocket-instance"
     );
-    assert_eq!(line.source.host_id, source.host_id);
-    assert_eq!(line.source.boot_id, source.boot_id);
-    assert_eq!(line.sink.host_id, renderer.host_id);
-    assert_eq!(line.sink.boot_id, renderer.boot_id);
-    assert_eq!(line.limits.maximum_in_flight_items, 1);
-    assert_eq!(line.limits.maximum_payload_bytes, connection.byte_capacity);
+    assert_eq!(line.binding.source.host_id, source.host_id);
+    assert_eq!(line.binding.source.boot_id, source.boot_id);
+    assert_eq!(line.binding.sink.host_id, renderer.host_id);
+    assert_eq!(line.binding.sink.boot_id, renderer.boot_id);
+    assert_eq!(line.binding.limits.maximum_in_flight_items, 1);
+    assert_eq!(
+        line.binding.limits.maximum_payload_bytes,
+        connection.byte_capacity
+    );
 
     let manifestation = &snapshot.renderer.manifestation;
     assert_eq!(manifestation.lifecycle, ManifestationLifecycle::Prepared);

@@ -4,7 +4,7 @@ use super::*;
 fn document_distinguishes_replan_from_same_plan_fallback() {
     let demo = DistributedRouteDemo::build().expect("route demo");
     let text = demo.lines().join("\n");
-    assert!(text.contains("semantic-host-facts=none semantic-carrier-facts=none"));
+    assert!(text.contains("semantic-host-facts=none semantic-line-facts=none"));
     assert!(text.contains("PLAN-A replan-required"));
     assert!(text.contains("OUTCOME replan=true prior-plan="));
     assert!(text.contains("PLAN-B predeclared-fallback"));
@@ -19,13 +19,13 @@ fn candidate_order_changes_exact_plan_identity() {
     let host = HostId::from("patchbay-native/std-realization");
     let boot = BootId::from("patchbay-native/std-boot-1");
     let usb_first = planned(
-        &[USB_ROUTE, conduit_signal::DISTRIBUTED_LINK_BINDING_ID],
+        &[USB_LINE, conduit_signal::DISTRIBUTED_LINE_ID],
         &host,
         &boot,
     )
     .unwrap();
     let websocket_first = planned(
-        &[conduit_signal::DISTRIBUTED_LINK_BINDING_ID, USB_ROUTE],
+        &[conduit_signal::DISTRIBUTED_LINE_ID, USB_LINE],
         &host,
         &boot,
     )
@@ -98,7 +98,7 @@ fn projection_uses_typed_bases_and_exact_validated_event_clue() {
     else {
         panic!("route demo must retain its six validated control events");
     };
-    let ControlLoopEvent::LinkBecameUnavailable {
+    let ControlLoopEvent::LineBecameUnavailable {
         observation_clue_id,
         ..
     } = link
@@ -125,7 +125,7 @@ fn projection_uses_typed_bases_and_exact_validated_event_clue() {
         panic!("fifth event must install the replacement Plan");
     };
     assert_eq!(&facts.new_plan.installed_clue_id, clue_id);
-    let ControlLoopEvent::RouteSelectionChanged {
+    let ControlLoopEvent::LineSelectionChanged {
         observation_clue_id,
         ..
     } = selected

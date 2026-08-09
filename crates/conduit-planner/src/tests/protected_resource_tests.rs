@@ -37,12 +37,12 @@ fn plan_with_protected_test_grants(
         &[ConnectionBase::Local],
         PlanningOptions {
             connection_bases: &base_overrides,
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: 4,
             connection_byte_capacity: 64,
             authority_grants: &[],
             protected_resource_grants: grants,
-            link_bindings: &[],
+            line_offers: &[],
         },
     )
 }

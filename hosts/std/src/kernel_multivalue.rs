@@ -553,12 +553,12 @@ pub fn plan_local(
         &[conduit_core::ConnectionBase::Local],
         PlanningOptions {
             connection_bases: &base_choices,
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 8,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &[],
+            line_offers: &[],
         },
     )
 }

@@ -236,6 +236,7 @@ pub struct GeneratedStaticRemoteEndpoint {
     pub peer_host: String,
     pub peer_boot: String,
     pub peer_endpoint: String,
+    pub line_id: String,
     pub base: ConnectionBase,
     pub base_instance_id: String,
     pub link_binding_id: String,

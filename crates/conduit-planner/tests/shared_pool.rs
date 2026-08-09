@@ -123,7 +123,7 @@ fn host(form: &conduit_form::ExpandedCanonicalForm) -> HostAdvertisement {
                 maximum_connections: 8,
                 maximum_authority_grants: 8,
                 maximum_protected_resource_grants: 0,
-                maximum_link_bindings: 0,
+                maximum_line_offers: 0,
             },
         }],
     }
@@ -170,12 +170,12 @@ fn canonical_pool_plans_equal_face_members_and_exact_consumers_envelope_and_auth
         &[conduit_core::ConnectionBase::Local],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: 4,
             connection_byte_capacity: 1_024,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &[],
+            line_offers: &[],
         },
         &requirements(),
     )
@@ -214,12 +214,12 @@ fn pool_planning_fails_when_face_capacity_or_authority_scope_is_not_exact() {
     let placements = default_expanded_placements(&form, std::slice::from_ref(&host)).unwrap();
     let options = PlanningOptions {
         connection_bases: &BTreeMap::new(),
-        route_candidates: &BTreeMap::new(),
+        line_candidates: &BTreeMap::new(),
         connection_item_capacity: 4,
         connection_byte_capacity: 1_024,
         authority_grants: &[],
         protected_resource_grants: &[],
-        link_bindings: &[],
+        line_offers: &[],
     };
     assert!(plan_expanded_canonical_with_shared_pools(
         &form,

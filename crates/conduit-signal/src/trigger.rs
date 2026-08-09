@@ -13,10 +13,12 @@ use conduit_core::{
     resource_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ConfigurationEntry, ConfigurationValue, ConnectionBase, ConnectionBaseInstanceId,
     ExecutionProfileId, HostAdvertisement, HostId, HostOperationRequirement, HostProfileId,
-    ImplementationId, KindContractRevision, KindId, LinkAuthorityReference, LinkAvailability,
-    LinkBinding, LinkBindingId, LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits,
-    OfferGeneration, PortDescriptor, PortDirection, ResourceRequirement, ValuePayload,
-    INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    ImplementationId, KindContractRevision, KindId, LineAvailability, LineAvailabilitySign,
+    LineContinuation, LineContract, LineDuplex, LineId, LineOffer, LineOrdering, LineReliability,
+    LineScope, LineSecurity, LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkBindingId,
+    LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, OfferGeneration,
+    PortDescriptor, PortDirection, ResourceRequirement, ValuePayload, INPUT_RESOURCE_CLASS,
+    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use serde::{Deserialize, Serialize};
 
@@ -324,8 +326,8 @@ pub fn distributed_toggle_browser_sink_advertisement() -> HostAdvertisement {
     }
 }
 
-pub fn distributed_toggle_websocket_link_binding() -> LinkBinding {
-    LinkBinding {
+pub fn distributed_toggle_websocket_line_offer() -> LineOffer {
+    let binding = LinkBinding {
         binding_id: LinkBindingId::from(DISTRIBUTED_TOGGLE_LINK_BINDING_ID),
         source: LinkEndpoint {
             host_id: HostId::from(DISTRIBUTED_TOGGLE_STD_HOST_ID),
@@ -339,7 +341,6 @@ pub fn distributed_toggle_websocket_link_binding() -> LinkBinding {
         },
         base: ConnectionBase::WebSocket,
         base_instance_id: ConnectionBaseInstanceId::from(DISTRIBUTED_TOGGLE_BASE_INSTANCE_ID),
-        availability: LinkAvailability::Ready,
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
         limits: LinkLimits {
@@ -347,6 +348,25 @@ pub fn distributed_toggle_websocket_link_binding() -> LinkBinding {
             maximum_payload_bytes: SIGNAL_ENCODED_LEN,
             maximum_buffered_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
             maximum_frame_bytes: DISTRIBUTED_MAXIMUM_FRAME_BYTES,
+        },
+    };
+    LineOffer {
+        line_id: LineId::from("s4/line/toggle-websocket"),
+        availability: LineAvailabilitySign {
+            line_id: LineId::from("s4/line/toggle-websocket"),
+            binding_id: binding.binding_id.clone(),
+            availability: LineAvailability::Ready,
+            sign_id: conduit_core::ClueId::from("s4/line/toggle-websocket/ready"),
+        },
+        binding,
+        contract: LineContract {
+            scope: LineScope::Machine,
+            traffic_shape: LineTrafficShape::Message,
+            duplex: LineDuplex::FullDuplex,
+            ordering: LineOrdering::Ordered,
+            reliability: LineReliability::Reliable,
+            continuation: LineContinuation::None,
+            security: LineSecurity::PlaintextNetwork,
         },
     }
 }

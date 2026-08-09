@@ -309,7 +309,7 @@ fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
         remote.capabilities[0].capability_id.clone(),
     );
     let connection_choices = BTreeMap::new();
-    let route_candidates = BTreeMap::new();
+    let line_candidates = BTreeMap::new();
     let outcome = replan_selected_realizations_with_characteristics(
         &plan_a,
         &form,
@@ -321,12 +321,12 @@ fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
         &policies,
         PlanningOptions {
             connection_bases: &connection_choices,
-            route_candidates: &route_candidates,
+            line_candidates: &line_candidates,
             connection_item_capacity: 1,
             connection_byte_capacity: 1,
             authority_grants: &[authority],
             protected_resource_grants: &[],
-            link_bindings: &[],
+            line_offers: &[],
         },
     )
     .expect("refreshed observations admit a separately planned remote realization");
@@ -357,12 +357,12 @@ fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
         &policies,
         PlanningOptions {
             connection_bases: &connection_choices,
-            route_candidates: &route_candidates,
+            line_candidates: &line_candidates,
             connection_item_capacity: 1,
             connection_byte_capacity: 1,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &[],
+            line_offers: &[],
         },
     )
     .expect("unchanged observations preserve Plan identity");

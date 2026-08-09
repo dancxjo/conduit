@@ -1,8 +1,8 @@
 use conduit_core::{
     bind_active_play, ArtifactId, AuthorityGrantId, BootId, CapabilityId, ConnectionBase,
     ConnectionBaseInstanceId, ConnectionId, FragmentId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, OfferGeneration, PlanId,
-    PROTOCOL_VERSION,
+    ImplementationId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, OfferGeneration,
+    PlanId, PROTOCOL_VERSION,
 };
 use conduit_observatory::{HostReport, OperationalState};
 use conduit_system_continuity::{
@@ -10,7 +10,7 @@ use conduit_system_continuity::{
     DelegatedRebootTransaction, HostInstance, RebootDecision, RebootDenial, RebootPendingState,
     RebootProgressError, RebootRequest, RebootRequestId,
 };
-use conduit_wire::{RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
+use conduit_wire::{LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
 
 fn host(host: &str, boot: &str) -> HostInstance {
     HostInstance {
@@ -71,7 +71,8 @@ fn session(controller: &HostInstance, target: &HostInstance) -> SessionBinding {
             maximum_payload_bytes: 256,
             maximum_buffered_bytes: 256,
         },
-        attachment: RouteAttachment {
+        attachment: LineAttachment {
+            line_id: LineId::from("line/controller-to-target"),
             link_binding_id: LinkBindingId::from("link/controller-to-target"),
             base: ConnectionBase::FixtureFrame,
             base_instance_id: ConnectionBaseInstanceId::from("base/reboot-fixture"),
@@ -97,7 +98,7 @@ fn grant(controller: &HostInstance, target: &HostInstance) -> DelegatedRebootGra
         controller: controller.clone(),
         subject: target.clone(),
         capability_id: CapabilityId::from("capability/reboot"),
-        link_binding_id: LinkBindingId::from("link/controller-to-target"),
+        selected_line_id: LineId::from("line/controller-to-target"),
         maximum_transitions: 1,
         proof_window_ticks: 2,
         clue_sequence_base: 40,
@@ -110,7 +111,7 @@ fn request(controller: &HostInstance, target: &HostInstance, id: &str) -> Reboot
         controller: controller.clone(),
         target: target.clone(),
         required_face: delegated_reboot_face(),
-        link_binding_id: LinkBindingId::from("link/controller-to-target"),
+        selected_line_id: LineId::from("line/controller-to-target"),
     }
 }
 
@@ -195,7 +196,7 @@ fn support_authority_reachability_boot_and_replay_fail_independently() {
     ));
 
     let mut wrong_session = session(&controller, &target);
-    wrong_session.attachment.link_binding_id = LinkBindingId::from("link/other");
+    wrong_session.attachment.line_id = LineId::from("line/other");
     let unreachable = DelegatedRebootTransaction::new(grant(&controller, &target)).submit(
         &request(&controller, &target, "request/wrong-session"),
         &advertisement(&target, true),

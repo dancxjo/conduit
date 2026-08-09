@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     AuthorityGrantId, BootId, ClueId, ConnectionBaseInstanceId, CredentialReferenceId, HostId,
-    LinkBindingId, LinkEndpointId,
+    LineId, LinkBindingId, LinkEndpointId,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -13,9 +13,9 @@ pub enum ConnectionBase {
     FixtureFrame,
     /// Deterministic bounded datagram transit used only by conformance fixtures.
     FixtureDatagram,
-    /// Actual RFC 6455 binary-message carrier.
+    /// Actual RFC 6455 binary-message Base.
     WebSocket,
-    /// Bounded length-framed USB CDC ACM byte-stream carrier.
+    /// Bounded length-framed USB CDC ACM byte-stream Base.
     UsbCdc,
 }
 
@@ -43,16 +43,78 @@ impl ConnectionBase {
         }
     }
 
-    /// Contract compatibility does not claim an installed or runnable carrier.
+    /// Contract compatibility does not claim an offered or runnable Line.
     pub const fn supports_remote_session(self) -> bool {
         matches!(self, Self::FixtureFrame | Self::WebSocket | Self::UsbCdc)
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LinkAvailability {
+pub enum LineAvailability {
     Ready,
     Unavailable,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LineScope {
+    Process,
+    Machine,
+    PointToPoint,
+    LocalNetwork,
+    RoutedNetwork,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LineTrafficShape {
+    ByteStream,
+    Message,
+    Datagram,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LineDuplex {
+    Simplex,
+    HalfDuplex,
+    FullDuplex,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LineOrdering {
+    Ordered,
+    Unordered,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LineReliability {
+    Reliable,
+    BestEffort,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LineContinuation {
+    None,
+    BoundedSessionReconciliation,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LineSecurity {
+    ProcessBoundary,
+    PhysicalPossession,
+    PlaintextNetwork,
+    AuthenticatedEncrypted,
+}
+
+/// Explicit finite behavior offered by a Line. No guarantee is inferred from
+/// the Base name.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LineContract {
+    pub scope: LineScope,
+    pub traffic_shape: LineTrafficShape,
+    pub duplex: LineDuplex,
+    pub ordering: LineOrdering,
+    pub reliability: LineReliability,
+    pub continuation: LineContinuation,
+    pub security: LineSecurity,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -82,7 +144,8 @@ pub struct LinkLimits {
     pub maximum_frame_bytes: u32,
 }
 
-/// One observed, directional, boot-scoped initialized base instance.
+/// One directional, boot-scoped binding to an initialized Base instance. This
+/// lower-level identity is not Line identity and contains no availability.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LinkBinding {
     pub binding_id: LinkBindingId,
@@ -90,7 +153,6 @@ pub struct LinkBinding {
     pub sink: LinkEndpoint,
     pub base: ConnectionBase,
     pub base_instance_id: ConnectionBaseInstanceId,
-    pub availability: LinkAvailability,
     pub credential: LinkCredentialReference,
     pub authority: LinkAuthorityReference,
     pub limits: LinkLimits,
@@ -124,24 +186,70 @@ impl From<&LinkBinding> for BoundLink {
     }
 }
 
-/// Mutable clue about a link, deliberately outside route identity.
+/// One finite Line offered by its source Host for Conduit traffic.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LinkObservation {
+pub struct LineOffer {
+    pub line_id: LineId,
+    pub binding: LinkBinding,
+    pub contract: LineContract,
+    pub availability: LineAvailabilitySign,
+}
+
+/// Exact immutable Line facts admitted into a Plan. Availability is excluded:
+/// it remains a current Sign and cannot mutate this identity.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AdmittedLine {
+    pub line_id: LineId,
+    pub binding: BoundLink,
+    pub contract: LineContract,
+}
+
+impl From<&LineOffer> for AdmittedLine {
+    fn from(offer: &LineOffer) -> Self {
+        Self {
+            line_id: offer.line_id.clone(),
+            binding: offer.binding.bound_link(),
+            contract: offer.contract,
+        }
+    }
+}
+
+/// Mutable availability Sign, deliberately outside admitted Plan identity.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LineAvailabilitySign {
+    pub line_id: LineId,
     pub binding_id: LinkBindingId,
-    pub availability: LinkAvailability,
-    pub clue_id: ClueId,
+    pub availability: LineAvailability,
+    pub sign_id: ClueId,
 }
 
 impl LinkBinding {
     pub fn bound_link(&self) -> BoundLink {
         BoundLink::from(self)
     }
+}
 
-    pub fn observation(&self, clue_id: ClueId) -> LinkObservation {
-        LinkObservation {
-            binding_id: self.binding_id.clone(),
-            availability: self.availability,
-            clue_id,
+impl LineOffer {
+    pub fn admitted_line(&self) -> AdmittedLine {
+        AdmittedLine::from(self)
+    }
+
+    pub fn validate_sign_identity(&self) -> bool {
+        self.availability.line_id == self.line_id
+            && self.availability.binding_id == self.binding.binding_id
+            && !self.availability.sign_id.as_str().is_empty()
+    }
+
+    pub fn availability_sign(
+        &self,
+        availability: LineAvailability,
+        sign_id: ClueId,
+    ) -> LineAvailabilitySign {
+        LineAvailabilitySign {
+            line_id: self.line_id.clone(),
+            binding_id: self.binding.binding_id.clone(),
+            availability,
+            sign_id,
         }
     }
 }

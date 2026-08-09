@@ -1,11 +1,11 @@
 use super::{
     default_placements, parse_placements, plan, plan_with_authority_grants,
-    plan_with_connection_limits, plan_with_link_bindings, startup_order, PlacementChoice,
+    plan_with_connection_limits, plan_with_line_offers, startup_order, PlacementChoice,
     PlacementChoices, PlannerError,
 };
 use conduit_core::{
     authority_grant, kind_id, mandatory_clue_storage_requirement, present_authority_requirement,
-    process_owned_link_binding, verify_plan, verify_plan_fragment, ArtifactId, CancellationPolicy,
+    process_owned_line_offer, verify_plan, verify_plan_fragment, ArtifactId, CancellationPolicy,
     CapabilityLimits, CapabilityOffer, ConfigurationValue, ConnectionBase, ExpandedFormId,
     HostAdvertisement, HostId, HostProfileId, ImplementationId, KindContractRevision, KindId,
     OfferGeneration, PortDescriptor, PortDirection, PortId, SourceDocumentId, StartupDependency,
@@ -340,8 +340,8 @@ fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
             == "pico-w/kernel-cyw43-show-signal-v1"));
 
     let connection = &fragment.connections[0];
-    assert_eq!(connection.base, ConnectionBase::Local);
-    assert!(connection.link_binding.is_none());
+    assert!(connection.selected_line.is_none());
+    assert!(connection.admitted_lines.is_empty());
     assert_eq!(
         connection.item_capacity,
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS
@@ -632,7 +632,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
         ]),
     };
     assert!(matches!(
-        plan_with_link_bindings(
+        plan_with_line_offers(
             &form,
             &hosts,
             &placements,
@@ -641,10 +641,11 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
             64,
             &[],
         ),
-        Err(PlannerError::LinkBindingMissing(_))
+        Err(PlannerError::LineOfferMissing(_))
     ));
 
-    let exact = process_owned_link_binding(
+    let exact = process_owned_line_offer(
+        "line/source-remote",
         "link/source-remote",
         ConnectionBase::FixtureFrame,
         "fixture/frame/source-remote",
@@ -654,30 +655,34 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
         64,
     );
     let mut stale = exact.clone();
-    stale.sink.boot_id = conduit_core::BootId::from("stale-boot");
+    stale.binding.sink.boot_id = conduit_core::BootId::from("stale-boot");
     assert!(matches!(
-        plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[stale]),
-        Err(PlannerError::LinkBindingMissing(_))
+        plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[stale]),
+        Err(PlannerError::LineOfferMissing(_))
     ));
 
     let mut unavailable = exact.clone();
-    unavailable.availability = conduit_core::LinkAvailability::Unavailable;
+    unavailable.availability.availability = conduit_core::LineAvailability::Unavailable;
     assert!(matches!(
-        plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[unavailable],),
-        Err(PlannerError::LinkBindingUnavailable(_))
+        plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[unavailable],),
+        Err(PlannerError::LineOfferUnavailable(_))
     ));
 
     let mut underbounded = exact.clone();
-    underbounded.limits.maximum_buffered_bytes = 63;
+    underbounded.binding.limits.maximum_buffered_bytes = 63;
     assert!(matches!(
-        plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[underbounded],),
-        Err(PlannerError::LinkBindingUnavailable(_))
+        plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[underbounded],),
+        Err(PlannerError::LineOfferUnavailable(_))
     ));
 
     let mut alternate = exact.clone();
-    alternate.binding_id = conduit_core::LinkBindingId::from("link/source-remote-alternate");
+    alternate.line_id = conduit_core::LineId::from("line/source-remote-alternate");
+    alternate.availability.line_id = alternate.line_id.clone();
+    alternate.binding.binding_id =
+        conduit_core::LinkBindingId::from("link/source-remote-alternate");
+    alternate.availability.binding_id = alternate.binding.binding_id.clone();
     assert!(matches!(
-        plan_with_link_bindings(
+        plan_with_line_offers(
             &form,
             &hosts,
             &placements,
@@ -686,22 +691,22 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
             64,
             &[exact.clone(), alternate],
         ),
-        Err(PlannerError::LinkBindingAmbiguous(_))
+        Err(PlannerError::LineOfferAmbiguous(_))
     ));
 
     let mut invalid = exact.clone();
-    invalid.base_instance_id = conduit_core::ConnectionBaseInstanceId::from("");
+    invalid.binding.base_instance_id = conduit_core::ConnectionBaseInstanceId::from("");
     assert!(matches!(
-        plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[invalid]),
-        Err(PlannerError::InvalidLinkBinding(_))
+        plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[invalid]),
+        Err(PlannerError::InvalidLineOffer(_))
     ));
 
     let mut invalid_credential = exact.clone();
-    invalid_credential.credential = conduit_core::LinkCredentialReference::Opaque(
+    invalid_credential.binding.credential = conduit_core::LinkCredentialReference::Opaque(
         conduit_core::CredentialReferenceId::from(""),
     );
     assert!(matches!(
-        plan_with_link_bindings(
+        plan_with_line_offers(
             &form,
             &hosts,
             &placements,
@@ -710,25 +715,25 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
             64,
             &[invalid_credential],
         ),
-        Err(PlannerError::InvalidLinkBinding(_))
+        Err(PlannerError::InvalidLineOffer(_))
     ));
 
     let mut invalid_authority = exact.clone();
-    invalid_authority.authority =
+    invalid_authority.binding.authority =
         conduit_core::LinkAuthorityReference::Grant(conduit_core::AuthorityGrantId::from(""));
     assert!(matches!(
-        plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[invalid_authority],),
-        Err(PlannerError::InvalidLinkBinding(_))
+        plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[invalid_authority],),
+        Err(PlannerError::InvalidLineOffer(_))
     ));
 
     let mut secured = exact;
-    secured.credential = conduit_core::LinkCredentialReference::Opaque(
+    secured.binding.credential = conduit_core::LinkCredentialReference::Opaque(
         conduit_core::CredentialReferenceId::from("credential/source-remote"),
     );
-    secured.authority = conduit_core::LinkAuthorityReference::Grant(
+    secured.binding.authority = conduit_core::LinkAuthorityReference::Grant(
         conduit_core::AuthorityGrantId::from("grant/source-remote"),
     );
-    let plan = plan_with_link_bindings(
+    let plan = plan_with_line_offers(
         &form,
         &hosts,
         &placements,
@@ -743,8 +748,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
         .connections
         .first()
         .expect("remote connection exists");
-    assert_eq!(connection.base, secured.base);
-    assert_eq!(connection.link_binding.as_ref(), Some(&secured));
+    assert_eq!(connection.selected_line.as_ref(), Some(&(&secured).into()));
 }
 
 #[test]
@@ -773,7 +777,8 @@ fn planning_link_binding_mutations_change_fragment_identity() {
             ),
         ]),
     };
-    let link = process_owned_link_binding(
+    let link = process_owned_line_offer(
+        "line/mutation",
         "link/mutation",
         ConnectionBase::FixtureFrame,
         "fixture/frame/mutation",
@@ -782,17 +787,18 @@ fn planning_link_binding_mutations_change_fragment_identity() {
         4,
         64,
     );
-    let original = plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[link])
+    let original = plan_with_line_offers(&form, &hosts, &placements, &[], 4, 64, &[link])
         .expect("remote plan resolves")
         .fragments[0]
         .clone();
 
-    for field in 0..16 {
+    for field in 0..15 {
         let mut mutated = original.clone();
-        let binding = mutated.connections[0]
-            .link_binding
+        let binding = &mut mutated.connections[0]
+            .selected_line
             .as_mut()
-            .expect("remote binding exists");
+            .expect("remote line exists")
+            .binding;
         match field {
             0 => binding.binding_id = conduit_core::LinkBindingId::from("mutated/link"),
             1 => binding.source.host_id = HostId::from("mutated-source"),
@@ -812,30 +818,27 @@ fn planning_link_binding_mutations_change_fragment_identity() {
                 binding.base_instance_id =
                     conduit_core::ConnectionBaseInstanceId::from("mutated/base")
             }
-            9 => binding.availability = conduit_core::LinkAvailability::Unavailable,
-            10 => {
+            9 => {
                 binding.credential = conduit_core::LinkCredentialReference::Opaque(
                     conduit_core::CredentialReferenceId::from("mutated/credential"),
                 )
             }
-            11 => {
+            10 => {
                 binding.authority = conduit_core::LinkAuthorityReference::Grant(
                     conduit_core::AuthorityGrantId::from("mutated/grant"),
                 )
             }
-            12 => binding.limits.maximum_in_flight_items += 1,
-            13 => binding.limits.maximum_payload_bytes += 1,
-            14 => binding.limits.maximum_buffered_bytes += 1,
-            15 => binding.limits.maximum_frame_bytes += 1,
+            11 => binding.limits.maximum_in_flight_items += 1,
+            12 => binding.limits.maximum_payload_bytes += 1,
+            13 => binding.limits.maximum_buffered_bytes += 1,
+            14 => binding.limits.maximum_frame_bytes += 1,
             _ => unreachable!(),
         }
-        if field != 9 {
-            mutated.connections[0].route_candidates[0] = binding.bound_link();
-        }
-        assert_eq!(
-            verify_plan_fragment(&mutated),
-            field == 9,
-            "field {field}: only mutable availability clue stays outside fragment identity"
+        mutated.connections[0].admitted_lines[0] =
+            mutated.connections[0].selected_line.clone().unwrap();
+        assert!(
+            !verify_plan_fragment(&mutated),
+            "field {field}: every admitted binding fact is sealed"
         );
     }
 }

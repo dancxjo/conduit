@@ -96,7 +96,7 @@ impl BrowserChatSession {
         let placements =
             conduit_planner::default_expanded_placements(&expanded, &hosts).map_err(|_| -205)?;
         let connection_bases = BTreeMap::new();
-        let route_candidates = BTreeMap::new();
+        let line_candidates = BTreeMap::new();
         let plan = plan_expanded_canonical_with_options(
             &expanded,
             &hosts,
@@ -104,12 +104,12 @@ impl BrowserChatSession {
             &[ConnectionBase::Local],
             PlanningOptions {
                 connection_bases: &connection_bases,
-                route_candidates: &route_candidates,
+                line_candidates: &line_candidates,
                 connection_item_capacity: 4,
                 connection_byte_capacity: 1_024,
                 authority_grants: &[],
                 protected_resource_grants: &[],
-                link_bindings: &[],
+                line_offers: &[],
             },
         )
         .map_err(|_| -206)?;

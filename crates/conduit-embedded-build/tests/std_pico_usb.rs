@@ -28,7 +28,7 @@ fn exact_planned_usb_sink_is_the_generated_remote_ingress() {
         .expect("Pico sink generates");
     assert!(generated.startup_dependencies.is_empty());
     let endpoint = &generated.remote_endpoints[0];
-    let planned = &exact.link_binding;
+    let planned = &exact.line_offer.binding;
     assert_eq!(generated.plan_id, sink.plan_id.as_str());
     assert_eq!(generated.fragment_id, sink.fragment_id.as_str());
     assert_eq!(

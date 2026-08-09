@@ -292,6 +292,7 @@ pub struct RemoteEndpointIdentity {
     pub peer_endpoint: &'static str,
     pub base_code: u8,
     pub base_instance_id: &'static str,
+    pub line_id: &'static str,
     pub link_binding_id: &'static str,
     pub value_kind: &'static str,
     pub session_item_capacity: u16,
@@ -325,6 +326,7 @@ pub fn generated_remote_endpoint() -> Option<RemoteEndpointIdentity> {
         base_code: *generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_CODES.first()?,
         base_instance_id: generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS
             .first()?,
+        line_id: generated_signal::GENERATED_REMOTE_ENDPOINT_LINE_IDS.first()?,
         link_binding_id: generated_signal::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS.first()?,
         value_kind: generated_signal::GENERATED_REMOTE_ENDPOINT_VALUE_KINDS.first()?,
         session_item_capacity: cord_spec.item_capacity,

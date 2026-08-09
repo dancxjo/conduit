@@ -671,7 +671,7 @@ mod tests {
         LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
     };
     use conduit_wire::{
-        RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
+        LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
         SessionMessage, SessionRole,
     };
     use std::io::Cursor;
@@ -716,7 +716,8 @@ mod tests {
                 maximum_payload_bytes: 512,
                 maximum_buffered_bytes: 512,
             },
-            attachment: RouteAttachment {
+            attachment: LineAttachment {
+                line_id: "line/usb-cdc-test".into(),
                 link_binding_id: LinkBindingId::from("link-1"),
                 base: ConnectionBase::UsbCdc,
                 base_instance_id: ConnectionBaseInstanceId::from("prov-1"),

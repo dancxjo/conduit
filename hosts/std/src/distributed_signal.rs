@@ -14,7 +14,7 @@ use conduit_kernel::{
     RemoteEndpointId, RequestId, ValueRef, ValueStorage,
 };
 #[cfg(test)]
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
+use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
     MAXIMUM_KERNEL_PORTS_PER_NODE,
@@ -22,7 +22,7 @@ use conduit_runtime::lowering::{
 #[cfg(test)]
 use conduit_signal::{
     distributed_browser_sink_advertisement, distributed_std_source_advertisement,
-    distributed_websocket_link_binding, signal_profile_catalog,
+    distributed_websocket_line_offer, signal_profile_catalog,
 };
 use conduit_signal::{
     encode_signal, exact_distributed_signal_plan, exact_distributed_signal_plan_for,
@@ -638,7 +638,12 @@ mod tests {
         assert_eq!(sink.placements.len(), 1);
         assert_ne!(source.fragment().host_id, sink.host_id);
         assert_eq!(
-            source.fragment().connections[0].base,
+            source.fragment().connections[0]
+                .selected_line
+                .as_ref()
+                .unwrap()
+                .binding
+                .base,
             ConnectionBase::WebSocket
         );
         assert_eq!(lowered.remote_endpoints.len(), 1);
@@ -686,7 +691,7 @@ mod tests {
                 ),
             ]),
         };
-        assert!(plan_with_link_bindings(
+        assert!(plan_with_line_offers(
             &form,
             &[source.clone(), sink.clone()],
             &placements,
@@ -696,9 +701,9 @@ mod tests {
             &[],
         )
         .is_err());
-        let mut stale_source = distributed_websocket_link_binding();
-        stale_source.source.boot_id = conduit_core::BootId::from("stale-source");
-        assert!(plan_with_link_bindings(
+        let mut stale_source = distributed_websocket_line_offer();
+        stale_source.binding.source.boot_id = conduit_core::BootId::from("stale-source");
+        assert!(plan_with_line_offers(
             &form,
             &[source.clone(), sink.clone()],
             &placements,
@@ -708,9 +713,9 @@ mod tests {
             &[stale_source],
         )
         .is_err());
-        let mut stale_sink = distributed_websocket_link_binding();
-        stale_sink.sink.boot_id = conduit_core::BootId::from("stale-browser");
-        assert!(plan_with_link_bindings(
+        let mut stale_sink = distributed_websocket_line_offer();
+        stale_sink.binding.sink.boot_id = conduit_core::BootId::from("stale-browser");
+        assert!(plan_with_line_offers(
             &form,
             &[source, sink],
             &placements,

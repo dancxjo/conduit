@@ -8,12 +8,12 @@ use conduit_core::ConnectionBase;
 #[cfg(not(feature = "wifi-bootstrap"))]
 use conduit_core::{
     bind_active_play, BootId, ConnectionBaseInstanceId, ConnectionId, FragmentId, HostId, KindId,
-    LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
+    LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_kernel::scheduler::RemoteIngressOutcome;
 use conduit_wire::{SessionBinding, SessionMachine, SessionMessage, SessionTerminalDisposition};
 #[cfg(not(feature = "wifi-bootstrap"))]
-use conduit_wire::{RouteAttachment, SessionEndpointIdentity, SessionLimits, SessionRole};
+use conduit_wire::{LineAttachment, SessionEndpointIdentity, SessionLimits, SessionRole};
 use cyw43::Control;
 
 #[cfg(not(feature = "wifi-bootstrap"))]
@@ -172,7 +172,8 @@ async fn run_remote_signal_sink_for(
             maximum_payload_bytes: planned.session_byte_capacity,
             maximum_buffered_bytes: planned.session_byte_capacity,
         },
-        attachment: RouteAttachment {
+        attachment: LineAttachment {
+            line_id: LineId::from(planned.line_id),
             link_binding_id: LinkBindingId::from(planned.link_binding_id),
             base,
             base_instance_id: ConnectionBaseInstanceId::from(

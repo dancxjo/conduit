@@ -220,7 +220,10 @@ fn unchanged_renderer_form_plans_one_exact_cross_host_websocket_line() {
     );
     assert_eq!(sink.placements[0].kind_id.as_str(), "presentation/renderer");
     let connection = source.connections.first().unwrap();
-    assert_eq!(connection.base, ConnectionBase::WebSocket);
+    assert_eq!(
+        connection.selected_line.as_ref().unwrap().binding.base,
+        ConnectionBase::WebSocket
+    );
     assert_eq!(connection.item_capacity, 1);
     assert_eq!(
         connection.byte_capacity,
@@ -236,7 +239,7 @@ fn unchanged_renderer_form_plans_one_exact_cross_host_websocket_line() {
     assert_eq!(binding.source.host_id, source.host_id);
     assert_eq!(binding.sink.host_id, sink.host_id);
     assert_eq!(binding.attachment.base, ConnectionBase::WebSocket);
-    assert_eq!(binding.attachment.link_binding_id, exact.link.binding_id);
+    assert_eq!(binding.attachment.line_id, exact.line.line_id);
 }
 
 #[test]

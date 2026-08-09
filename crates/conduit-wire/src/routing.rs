@@ -1,28 +1,27 @@
 use alloc::vec::Vec;
 
 use conduit_core::{
-    BoundLink, ClueId, LinkAvailability, LinkBinding, LinkBindingId, LinkObservation,
-    PlannedConnection,
+    AdmittedLine, ClueId, LineAvailability, LineAvailabilitySign, LineId, PlannedConnection,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct RouteCandidateState {
-    link: BoundLink,
-    availability: LinkAvailability,
-    clue_id: Option<ClueId>,
+struct LineCandidateState {
+    line: AdmittedLine,
+    availability: LineAvailability,
+    sign_id: Option<ClueId>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RouteError {
+pub enum LineError {
     NoSealedCandidates,
     DuplicateCandidate,
     UnsealedObservation,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RouteDisposition<'a> {
+pub enum LineDisposition<'a> {
     Selected {
-        link: &'a BoundLink,
+        line: &'a AdmittedLine,
         same_plan_continues: bool,
     },
     Unsatisfied {
@@ -31,56 +30,46 @@ pub enum RouteDisposition<'a> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct RouteUpdate<'a> {
-    pub observation: &'a LinkObservation,
-    pub previous_selection: Option<&'a LinkBindingId>,
-    pub disposition: RouteDisposition<'a>,
+pub struct LineUpdate<'a> {
+    pub sign: &'a LineAvailabilitySign,
+    pub previous_selection: Option<&'a LineId>,
+    pub disposition: LineDisposition<'a>,
 }
 
-/// Deterministic selection over one immutable, ordered, Plan-sealed route set.
+/// Deterministic selection over one immutable, ordered, Plan-sealed Line set.
 ///
-/// Observations may change availability, but cannot add candidates, reorder
+/// Signs may change availability, but cannot add candidates, reorder
 /// policy, mutate the Plan, or invoke a planner. The first Ready candidate wins.
-pub struct RouteMachine {
-    candidates: Vec<RouteCandidateState>,
+pub struct LineMachine {
+    candidates: Vec<LineCandidateState>,
     selected: Option<usize>,
 }
 
-impl RouteMachine {
-    pub fn new(connection: &PlannedConnection) -> Result<Self, RouteError> {
-        let links = if connection.route_candidates.is_empty() {
-            connection
-                .link_binding
-                .as_ref()
-                .map(|link| alloc::vec![link.bound_link()])
-                .unwrap_or_default()
-        } else {
-            connection.route_candidates.clone()
-        };
-        if links.is_empty() {
-            return Err(RouteError::NoSealedCandidates);
+impl LineMachine {
+    pub fn new(connection: &PlannedConnection) -> Result<Self, LineError> {
+        let lines = connection.admitted_lines.clone();
+        if lines.is_empty() {
+            return Err(LineError::NoSealedCandidates);
         }
-        for (index, link) in links.iter().enumerate() {
-            if links[..index]
+        for (index, line) in lines.iter().enumerate() {
+            if lines[..index]
                 .iter()
-                .any(|prior| prior.binding_id == link.binding_id)
+                .any(|prior| prior.line_id == line.line_id)
             {
-                return Err(RouteError::DuplicateCandidate);
+                return Err(LineError::DuplicateCandidate);
             }
         }
-        let legacy_ready = connection.link_binding.as_ref();
-        let candidates = links
+        let selected = connection.selected_line.as_ref();
+        let candidates = lines
             .into_iter()
-            .map(|link| {
-                let availability = legacy_ready
-                    .filter(|observed| observed.bound_link() == link)
-                    .map_or(LinkAvailability::Unavailable, |observed| {
-                        observed.availability
-                    });
-                RouteCandidateState {
-                    link,
+            .map(|line| {
+                let availability = selected
+                    .filter(|selected| **selected == line)
+                    .map_or(LineAvailability::Unavailable, |_| LineAvailability::Ready);
+                LineCandidateState {
+                    line,
                     availability,
-                    clue_id: None,
+                    sign_id: None,
                 }
             })
             .collect();
@@ -92,34 +81,22 @@ impl RouteMachine {
         Ok(machine)
     }
 
-    pub fn selected(&self) -> Option<&BoundLink> {
-        self.selected.map(|index| &self.candidates[index].link)
+    pub fn selected(&self) -> Option<&AdmittedLine> {
+        self.selected.map(|index| &self.candidates[index].line)
     }
 
-    /// Combine the selected Plan-sealed identity with its current mutable
-    /// observation for exact attachment admission.
-    pub fn selected_binding(&self) -> Option<LinkBinding> {
-        let candidate = &self.candidates[self.selected?];
-        Some(LinkBinding {
-            binding_id: candidate.link.binding_id.clone(),
-            source: candidate.link.source.clone(),
-            sink: candidate.link.sink.clone(),
-            base: candidate.link.base,
-            base_instance_id: candidate.link.base_instance_id.clone(),
-            availability: candidate.availability,
-            credential: candidate.link.credential.clone(),
-            authority: candidate.link.authority.clone(),
-            limits: candidate.link.limits,
-        })
+    /// Return the exact selected Plan-sealed Line for session attachment.
+    pub fn selected_line(&self) -> Option<AdmittedLine> {
+        self.selected().cloned()
     }
 
-    pub fn disposition(&self) -> RouteDisposition<'_> {
+    pub fn disposition(&self) -> LineDisposition<'_> {
         match self.selected() {
-            Some(link) => RouteDisposition::Selected {
-                link,
+            Some(line) => LineDisposition::Selected {
+                line,
                 same_plan_continues: true,
             },
-            None => RouteDisposition::Unsatisfied {
+            None => LineDisposition::Unsatisfied {
                 replan_may_be_requested: true,
             },
         }
@@ -127,20 +104,23 @@ impl RouteMachine {
 
     pub fn observe<'a>(
         &'a mut self,
-        observation: &'a LinkObservation,
-    ) -> Result<RouteUpdate<'a>, RouteError> {
+        sign: &'a LineAvailabilitySign,
+    ) -> Result<LineUpdate<'a>, LineError> {
         let previous_index = self.selected;
         let candidate = self
             .candidates
             .iter_mut()
-            .find(|candidate| candidate.link.binding_id == observation.binding_id)
-            .ok_or(RouteError::UnsealedObservation)?;
-        candidate.availability = observation.availability;
-        candidate.clue_id = Some(observation.clue_id.clone());
+            .find(|candidate| {
+                candidate.line.line_id == sign.line_id
+                    && candidate.line.binding.binding_id == sign.binding_id
+            })
+            .ok_or(LineError::UnsealedObservation)?;
+        candidate.availability = sign.availability;
+        candidate.sign_id = Some(sign.sign_id.clone());
         self.select_first_ready();
-        Ok(RouteUpdate {
-            observation,
-            previous_selection: previous_index.map(|index| &self.candidates[index].link.binding_id),
+        Ok(LineUpdate {
+            sign,
+            previous_selection: previous_index.map(|index| &self.candidates[index].line.line_id),
             disposition: self.disposition(),
         })
     }
@@ -149,7 +129,7 @@ impl RouteMachine {
         self.selected = self
             .candidates
             .iter()
-            .position(|candidate| candidate.availability == LinkAvailability::Ready);
+            .position(|candidate| candidate.availability == LineAvailability::Ready);
     }
 }
 
@@ -157,39 +137,52 @@ impl RouteMachine {
 mod tests {
     use super::*;
     use conduit_core::{
-        BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, HostId, KindId,
-        LinkAuthorityReference, LinkBinding, LinkCredentialReference, LinkEndpoint, LinkEndpointId,
-        LinkLimits, PlacementId, PortId, PortTemporal,
+        AdmittedLine, BootId, BoundLink, ConnectionBase, ConnectionBaseInstanceId, ConnectionId,
+        HostId, KindId, LineContinuation, LineContract, LineDuplex, LineOrdering, LineReliability,
+        LineScope, LineSecurity, LineTrafficShape, LinkAuthorityReference, LinkBindingId,
+        LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, PlacementId, PortId,
+        PortTemporal,
     };
 
-    fn link(id: &'static str, base: ConnectionBase) -> LinkBinding {
-        LinkBinding {
-            binding_id: LinkBindingId::from(id),
-            source: LinkEndpoint {
-                host_id: HostId::from("source"),
-                boot_id: BootId::from("source-boot"),
-                endpoint_id: LinkEndpointId::from(alloc::format!("{id}/source")),
+    fn line(id: &'static str, base: ConnectionBase) -> AdmittedLine {
+        AdmittedLine {
+            line_id: LineId::from(alloc::format!("line/{id}")),
+            binding: BoundLink {
+                binding_id: LinkBindingId::from(alloc::format!("binding/{id}")),
+                source: LinkEndpoint {
+                    host_id: HostId::from("source"),
+                    boot_id: BootId::from("source-boot"),
+                    endpoint_id: LinkEndpointId::from(alloc::format!("{id}/source")),
+                },
+                sink: LinkEndpoint {
+                    host_id: HostId::from("sink"),
+                    boot_id: BootId::from("sink-boot"),
+                    endpoint_id: LinkEndpointId::from(alloc::format!("{id}/sink")),
+                },
+                base,
+                base_instance_id: ConnectionBaseInstanceId::from(alloc::format!("{id}/base")),
+                credential: LinkCredentialReference::None,
+                authority: LinkAuthorityReference::ProcessOwned,
+                limits: LinkLimits {
+                    maximum_in_flight_items: 1,
+                    maximum_payload_bytes: 64,
+                    maximum_buffered_bytes: 64,
+                    maximum_frame_bytes: 1024,
+                },
             },
-            sink: LinkEndpoint {
-                host_id: HostId::from("sink"),
-                boot_id: BootId::from("sink-boot"),
-                endpoint_id: LinkEndpointId::from(alloc::format!("{id}/sink")),
-            },
-            base,
-            base_instance_id: ConnectionBaseInstanceId::from(alloc::format!("{id}/base")),
-            availability: LinkAvailability::Ready,
-            credential: LinkCredentialReference::None,
-            authority: LinkAuthorityReference::ProcessOwned,
-            limits: LinkLimits {
-                maximum_in_flight_items: 1,
-                maximum_payload_bytes: 64,
-                maximum_buffered_bytes: 64,
-                maximum_frame_bytes: 1024,
+            contract: LineContract {
+                scope: LineScope::Machine,
+                traffic_shape: LineTrafficShape::Message,
+                duplex: LineDuplex::FullDuplex,
+                ordering: LineOrdering::Ordered,
+                reliability: LineReliability::Reliable,
+                continuation: LineContinuation::None,
+                security: LineSecurity::PlaintextNetwork,
             },
         }
     }
 
-    fn connection(links: &[LinkBinding]) -> PlannedConnection {
+    fn connection(lines: &[AdmittedLine]) -> PlannedConnection {
         PlannedConnection {
             connection_id: ConnectionId::from("connection"),
             source_placement_id: PlacementId::from("source-placement"),
@@ -198,77 +191,74 @@ mod tests {
             sink_port_id: PortId::from("in"),
             value_kind: KindId::from("value/test@1"),
             temporal: PortTemporal::Value,
-            base: links[0].base,
-            link_binding: Some(links[0].clone()),
-            route_candidates: links.iter().map(LinkBinding::bound_link).collect(),
+            selected_line: Some(lines[0].clone()),
+            admitted_lines: lines.to_vec(),
             item_capacity: 1,
             byte_capacity: 64,
         }
     }
 
     fn observation(
-        binding_id: &'static str,
-        availability: LinkAvailability,
+        id: &'static str,
+        availability: LineAvailability,
         clue: &'static str,
-    ) -> LinkObservation {
-        LinkObservation {
-            binding_id: LinkBindingId::from(binding_id),
+    ) -> LineAvailabilitySign {
+        LineAvailabilitySign {
+            line_id: LineId::from(alloc::format!("line/{id}")),
+            binding_id: LinkBindingId::from(alloc::format!("binding/{id}")),
             availability,
-            clue_id: ClueId::from(clue),
+            sign_id: ClueId::from(clue),
         }
     }
 
     #[test]
     fn ordered_selection_switches_only_within_the_sealed_set() {
-        let usb = link("usb", ConnectionBase::UsbCdc);
-        let ws = link("ws", ConnectionBase::WebSocket);
-        let mut machine = RouteMachine::new(&connection(&[usb, ws])).unwrap();
+        let usb = line("usb", ConnectionBase::UsbCdc);
+        let ws = line("ws", ConnectionBase::WebSocket);
+        let mut machine = LineMachine::new(&connection(&[usb, ws])).unwrap();
 
-        assert_eq!(machine.selected().unwrap().binding_id.as_str(), "usb");
-        let ws_ready = observation("ws", LinkAvailability::Ready, "ws-ready");
+        assert_eq!(machine.selected().unwrap().line_id.as_str(), "line/usb");
+        let ws_ready = observation("ws", LineAvailability::Ready, "ws-ready");
         machine.observe(&ws_ready).unwrap();
-        let changed = observation("usb", LinkAvailability::Unavailable, "usb-lost");
+        let changed = observation("usb", LineAvailability::Unavailable, "usb-lost");
         let update = machine.observe(&changed).unwrap();
-        assert_eq!(update.previous_selection.unwrap().as_str(), "usb");
+        assert_eq!(update.previous_selection.unwrap().as_str(), "line/usb");
         assert!(matches!(
             update.disposition,
-            RouteDisposition::Selected {
-                link,
+            LineDisposition::Selected {
+                line,
                 same_plan_continues: true
-            } if link.binding_id.as_str() == "ws"
+            } if line.line_id.as_str() == "line/ws"
         ));
-        assert_eq!(
-            machine.selected_binding().unwrap().bound_link(),
-            machine.selected().unwrap().clone()
-        );
+        assert_eq!(machine.selected_line().as_ref(), machine.selected());
 
-        let invented = observation("invented", LinkAvailability::Ready, "ambient");
+        let invented = observation("invented", LineAvailability::Ready, "ambient");
         assert_eq!(
             machine.observe(&invented),
-            Err(RouteError::UnsealedObservation)
+            Err(LineError::UnsealedObservation)
         );
-        assert_eq!(machine.selected().unwrap().binding_id.as_str(), "ws");
+        assert_eq!(machine.selected().unwrap().line_id.as_str(), "line/ws");
     }
 
     #[test]
     fn exhausted_single_and_multi_route_plans_are_explicitly_unsatisfied() {
-        let usb = link("usb", ConnectionBase::UsbCdc);
-        let mut one = RouteMachine::new(&connection(core::slice::from_ref(&usb))).unwrap();
-        let lost = observation("usb", LinkAvailability::Unavailable, "usb-lost");
+        let usb = line("usb", ConnectionBase::UsbCdc);
+        let mut one = LineMachine::new(&connection(core::slice::from_ref(&usb))).unwrap();
+        let lost = observation("usb", LineAvailability::Unavailable, "usb-lost");
         assert!(matches!(
             one.observe(&lost).unwrap().disposition,
-            RouteDisposition::Unsatisfied {
+            LineDisposition::Unsatisfied {
                 replan_may_be_requested: true
             }
         ));
 
-        let ws = link("ws", ConnectionBase::WebSocket);
-        let mut two = RouteMachine::new(&connection(&[usb, ws])).unwrap();
+        let ws = line("ws", ConnectionBase::WebSocket);
+        let mut two = LineMachine::new(&connection(&[usb, ws])).unwrap();
         two.observe(&lost).unwrap();
-        let ws_lost = observation("ws", LinkAvailability::Unavailable, "ws-lost");
+        let ws_lost = observation("ws", LineAvailability::Unavailable, "ws-lost");
         assert!(matches!(
             two.observe(&ws_lost).unwrap().disposition,
-            RouteDisposition::Unsatisfied {
+            LineDisposition::Unsatisfied {
                 replan_may_be_requested: true
             }
         ));

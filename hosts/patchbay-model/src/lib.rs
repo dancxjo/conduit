@@ -226,7 +226,7 @@ impl PatchbayModel {
                 state,
                 capabilities,
             }],
-            links: Vec::new(),
+            lines: Vec::new(),
             plans: Vec::new(),
             plays: Vec::new(),
             retention: RetentionReport {

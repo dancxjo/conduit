@@ -149,12 +149,12 @@ impl PatchbayPresentation {
         if routes.len() > MAX_RENDERER_ROUTES {
             return Err(RendererProjectionError::TooManyRoutes);
         }
-        let route_candidates = routes.iter().fold(0usize, |count, route| {
+        let line_candidates = routes.iter().fold(0usize, |count, route| {
             count
                 .saturating_add(route.new_plan.prior.candidates.len())
                 .saturating_add(route.same_plan.plan.candidates.len())
         });
-        if route_candidates > MAX_RENDERER_ROUTE_CANDIDATES {
+        if line_candidates > MAX_RENDERER_ROUTE_CANDIDATES {
             return Err(RendererProjectionError::TooManyRouteCandidates);
         }
         if topology
@@ -289,7 +289,7 @@ fn topology_item_count(report: &ObservatoryReport) -> usize {
         .hosts
         .len()
         .saturating_add(report.capabilities.len())
-        .saturating_add(report.links.len())
+        .saturating_add(report.lines.len())
         .saturating_add(report.plans.len())
         .saturating_add(report.fragments.len())
         .saturating_add(report.placements.len())
@@ -353,7 +353,7 @@ fn plan_item_count(plan: &conduit_core::Plan) -> usize {
                     .fold(0usize, |items, connection| {
                         items
                             .saturating_add(1)
-                            .saturating_add(connection.route_candidates.len())
+                            .saturating_add(connection.admitted_lines.len())
                     });
             count
                 .saturating_add(placement_details)

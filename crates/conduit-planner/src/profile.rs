@@ -14,7 +14,7 @@ pub const FULL_PLANNER_LIMITS: PlannerLimits = PlannerLimits {
     maximum_connections: u16::MAX,
     maximum_authority_grants: u16::MAX,
     maximum_protected_resource_grants: u16::MAX,
-    maximum_link_bindings: u16::MAX,
+    maximum_line_offers: u16::MAX,
 };
 
 /// Executes the shared deterministic planner under one capability advertised by
@@ -82,8 +82,8 @@ fn admit_request(
     )?;
     admit_count(
         "link bindings",
-        options.link_bindings.len(),
-        offer.limits.maximum_link_bindings,
+        options.line_offers.len(),
+        offer.limits.maximum_line_offers,
     )
 }
 
