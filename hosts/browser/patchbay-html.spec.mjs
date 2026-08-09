@@ -34,8 +34,9 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#realizations")).toContainText("Base conduit.host/present@1 · target presentation/base/dom-svg@1");
     await expect(page.locator("#realizations")).toContainText("project · host patchbay-presentation/host · boot patchbay-presentation/boot");
     await expect(page.locator("#realizations")).toContainText("presentation -> presentation · Info presentation/presentation@1");
-    await expect(page.locator("#realizations")).toContainText("Line WebSocket");
-    await expect(page.locator("#realizations")).toContainText("link patchbay-renderer/websocket-line");
+    await expect(page.locator("#realizations")).toContainText("Line patchbay-renderer/line/websocket");
+    await expect(page.locator("#realizations")).toContainText("base WebSocket");
+    await expect(page.locator("#realizations")).toContainText("binding patchbay-renderer/binding/websocket");
     await expect(page.locator("#realizations")).toContainText("base-instance patchbay-renderer/websocket-instance");
     await expect(page.locator("#clue")).toContainText("Renderer patchbay-html/cross-host-prepared · Prepared");
     await expect(page.locator("#clue")).toContainText("Renderer patchbay-html/document-ready · Available");
