@@ -6,6 +6,8 @@ mod prove_usb;
 #[cfg(unix)]
 mod prove_websocket;
 mod prove_wifi;
+mod r1_signal;
+mod r1_signal_transcript;
 mod serial;
 #[cfg(unix)]
 mod session_completion;
@@ -26,6 +28,7 @@ pub use firmware::run_build;
 pub use flash::run_flash;
 pub use prove_usb::run_prove_std_pico_usb;
 pub use prove_wifi::run_prove_pico_wifi_bootstrap;
+pub use prove_wifi::WifiProofMode;
 pub use serial::run_verify;
 
 /// Arguments shared across all Pico subcommands and the top-level `pico-local` alias.

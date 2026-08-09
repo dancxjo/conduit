@@ -226,6 +226,20 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         named_artifacts: &[],
         allowed_claims: &["typed R1 lifecycle and planning recover from an injected WebSocket Line-unavailable Clue without physical acceptance"],
     },
+    ProofCommandContract {
+        id: "r1.new-plan-recovery-physical",
+        command: "cargo xtask prove r1-new-plan-recovery-hil --interactive --ssid-env <name> --credential-env <name>",
+        proof_class: ProofClass::PhysicalCrossHost,
+        required_tools_or_targets: &[
+            "Pico W",
+            "USB CDC link port",
+            "USB CDC Sign port",
+            "ordinary Wi-Fi LAN",
+            "physical Wi-Fi/network fault",
+        ],
+        named_artifacts: &["firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
+        allowed_claims: &["one physical Pico boot executes WebSocket-only Plan A, becomes unavailable after a real network fault, and executes distinct USB-only Plan B"],
+    },
 ];
 
 #[derive(Debug, Serialize)]

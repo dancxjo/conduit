@@ -299,6 +299,22 @@ pub const WORKSPACE_STEPS: &[Step] = &[
             "--dry-run",
         ],
     ),
+    Step::new(
+        "check.r1-new-plan-recovery-hil.dry-run",
+        "Dry-run verify of the physical R1 WebSocket-to-USB new-Plan proof",
+        "cargo",
+        &[
+            "xtask",
+            "prove",
+            "r1-new-plan-recovery-hil",
+            "--interactive",
+            "--ssid-env",
+            "CONDUIT_TEST_WIFI_SSID",
+            "--credential-env",
+            "CONDUIT_TEST_WIFI_CREDENTIAL",
+            "--dry-run",
+        ],
+    ),
 ];
 
 pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[

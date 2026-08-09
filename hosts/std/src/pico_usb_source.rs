@@ -3,7 +3,7 @@
 use std::thread;
 use std::time::Duration;
 
-use conduit_core::{bind_active_play, BootId, PlanFragment};
+use conduit_core::{bind_active_play, BootId, HostId, Plan, PlanFragment};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
@@ -135,11 +135,14 @@ pub struct PicoUsbSource {
 impl PicoUsbSource {
     pub fn prepare() -> Result<Self, String> {
         let exact = exact_std_pico_usb_plan()?;
-        let fragment = exact
-            .plan
+        Self::prepare_plan(exact.plan, &HostId::from(STD_PICO_USB_SOURCE_HOST_ID))
+    }
+
+    pub fn prepare_plan(plan: Plan, source_host_id: &HostId) -> Result<Self, String> {
+        let fragment = plan
             .fragments
             .iter()
-            .find(|fragment| fragment.host_id.as_str() == STD_PICO_USB_SOURCE_HOST_ID)
+            .find(|fragment| &fragment.host_id == source_host_id)
             .cloned()
             .ok_or_else(|| "exact std-to-Pico source fragment missing".to_owned())?;
         let lowered = lower_plan_fragment(&fragment).map_err(|error| format!("{error:?}"))?;
@@ -165,7 +168,7 @@ impl PicoUsbSource {
         )
         .map_err(|error| format!("{error:?}"))?;
         if binding.limits.maximum_in_flight_items != DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS {
-            return Err("planned UsbCdc item bound changed".to_owned());
+            return Err("planned remote Signal item bound changed".to_owned());
         }
 
         let configuration = parse_pulse_configuration(&fragment.placements[0].configuration)
@@ -291,6 +294,10 @@ impl PicoUsbSource {
             seal,
             pressure_retries: 0,
         })
+    }
+
+    pub fn source_host_id(&self) -> &HostId {
+        &self.fragment.host_id
     }
 
     pub fn binding(&self) -> &SessionBinding {

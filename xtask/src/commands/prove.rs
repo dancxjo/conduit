@@ -40,7 +40,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                 args.clue_port.as_deref(),
                 args.ssid_env.as_deref(),
                 args.credential_env.as_deref(),
-                false,
+                crate::commands::pico::WifiProofMode::Bootstrap,
                 &pico_args,
                 opts,
             )
@@ -57,11 +57,30 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                 args.clue_port.as_deref(),
                 args.ssid_env.as_deref(),
                 args.credential_env.as_deref(),
-                true,
+                crate::commands::pico::WifiProofMode::WebSocketRoute,
                 &pico_args,
                 opts,
             )
             .map_err(|error| StepError::prereq("prove.pico-websocket-route", error.to_string()))
+        }
+        ProveTarget::R1NewPlanRecoveryHil => {
+            let pico_args = crate::commands::pico::PicoArgs {
+                dry_run: opts.dry_run,
+                wifi_bootstrap: true,
+                ..Default::default()
+            };
+            crate::commands::pico::run_prove_pico_wifi_bootstrap(
+                args.link_port.as_deref(),
+                args.clue_port.as_deref(),
+                args.ssid_env.as_deref(),
+                args.credential_env.as_deref(),
+                crate::commands::pico::WifiProofMode::R1NewPlanRecovery {
+                    interactive: args.interactive,
+                },
+                &pico_args,
+                opts,
+            )
+            .map_err(|error| StepError::prereq("prove.r1-new-plan-recovery-hil", error.to_string()))
         }
         ProveTarget::R1NewPlanRecovery => crate::commands::r1_recovery::run(opts),
     }

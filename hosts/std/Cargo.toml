@@ -29,3 +29,4 @@ serde_json = "1"
 libc = "0.2"
 
 [dev-dependencies]
+conduit-system-continuity = { path = "../../crates/conduit-system-continuity", features = ["r1-recovery"] }

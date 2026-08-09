@@ -120,6 +120,7 @@ pub enum ProveTarget {
     PicoWifiBootstrap,
     PicoWebsocketRoute,
     R1NewPlanRecovery,
+    R1NewPlanRecoveryHil,
 }
 
 #[derive(Args, Debug)]
