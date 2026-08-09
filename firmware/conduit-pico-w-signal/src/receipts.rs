@@ -89,6 +89,18 @@ impl RuntimeTranscriptIdentity {
     pub fn active_play_id(&self) -> &str {
         &self.active_play_id
     }
+
+    /// Bind a distinct immutable Plan/Play to the same physical boot.
+    #[cfg(feature = "wifi-bootstrap")]
+    pub fn for_plan(&self, plan_id: &str, host_id: &str) -> Self {
+        let boot_id = self.boot_id.clone();
+        let digest = conduit_core::active_play_digest(plan_id, host_id, &boot_id, 0);
+        let mut active_play_id = HString::new();
+        for byte in digest {
+            let _ = write!(active_play_id, "{byte:02x}");
+        }
+        Self { boot_id, active_play_id }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -104,7 +116,6 @@ pub struct BootIdentity {
     pub boot_clue_id: &'static str,
 }
 
-#[cfg(not(feature = "wifi-bootstrap"))]
 #[derive(Clone, Copy)]
 pub struct PresentationReceiptIdentity {
     pub firmware_build_id: &'static str,
@@ -120,7 +131,6 @@ pub struct PresentationReceiptIdentity {
     pub clue_id: &'static str,
 }
 
-#[cfg(not(feature = "wifi-bootstrap"))]
 #[derive(Clone, Copy)]
 pub struct TerminalIdentity {
     pub firmware_build_id: &'static str,
@@ -189,7 +199,6 @@ impl UsbCdc {
     }
 
     /// Write a machine-readable receipt for one Signal presentation.
-    #[cfg(not(feature = "wifi-bootstrap"))]
     pub async fn write_receipt(
         &mut self,
         sequence: u64,
@@ -243,7 +252,6 @@ impl UsbCdc {
     }
 
     /// Write a terminal completion record.
-    #[cfg(not(feature = "wifi-bootstrap"))]
     pub async fn write_terminal(
         &mut self,
         success: bool,
@@ -292,7 +300,6 @@ impl UsbCdc {
     }
 
     /// Write a kernel error record.
-    #[cfg(not(feature = "wifi-bootstrap"))]
     #[allow(dead_code)]
     pub async fn write_error(
         &mut self,

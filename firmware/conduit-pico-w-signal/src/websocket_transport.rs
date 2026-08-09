@@ -141,11 +141,6 @@ impl WebSocketTransport {
         socket.flush().await.map_err(|_| WebSocketTransportError::Tcp)
     }
 
-    pub async fn wait_for_disconnect(&mut self, socket: &mut TcpSocket<'_>) {
-        let mut byte = [0_u8; 1];
-        while matches!(socket.read(&mut byte).await, Ok(1)) {}
-    }
-
     async fn read_more(
         &mut self,
         socket: &mut TcpSocket<'_>,

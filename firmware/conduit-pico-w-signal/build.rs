@@ -87,11 +87,16 @@ fn generate_r1_recovery_signal_images(out: &Path) {
         let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())
             .expect("R1 Pico Signal fragment must fit reviewed fixed-image bounds");
         let identity = GeneratedFirmwareIdentity::new(&form, &generated);
-        fs::write(
-            out.join(format!("{stem}_image.rs")),
-            render_firmware_module(&generated, &identity),
-        )
+        let rendered = render_firmware_module(&generated, &identity);
+        fs::write(out.join(format!("{stem}_image.rs")), &rendered)
         .expect("generated R1 Pico Signal image should be writable");
+        if matches!(
+            routes,
+            conduit_system_continuity::R1SignalRouteSet::WebSocketOnly
+        ) {
+            fs::write(out.join("pico_signal_image.rs"), &rendered)
+                .expect("active R1 WebSocket Signal image should be writable");
+        }
         fs::write(
             out.join(format!("{stem}_identity.json")),
             render_identity_sidecar(&generated, &identity),

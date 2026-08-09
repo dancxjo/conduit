@@ -41,6 +41,7 @@ pub const HOST_ID: &str = generated_signal::HOST_ID;
 pub const BOOT_ID: &str = generated_signal::BOOT_ID;
 pub const ACTIVE_PLAY_ID: &str = generated_signal::ACTIVE_PLAY_ID;
 pub const FIRMWARE_BUILD_ID: &str = generated_signal::FIRMWARE_BUILD_ID;
+#[cfg(not(feature = "wifi-bootstrap"))]
 pub const BOOT_CLUE_ID: &str = generated_signal::BOOT_CLUE_ID;
 pub const TERMINAL_CLUE_ID: &str = generated_signal::TERMINAL_CLUE_ID;
 
