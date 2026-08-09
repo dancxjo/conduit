@@ -15,6 +15,9 @@ const RECORD_MAGIC_MASK: u32 = 0xffff_ff00;
 pub enum PanicPhase {
     RadioDriverStartup = 1,
     RadioInitialization = 2,
+    NetworkStackStartup = 3,
+    SessionAdmission = 4,
+    SessionExecution = 5,
     Unclassified = 255,
 }
 
@@ -27,6 +30,9 @@ impl PanicRecord {
         match self.phase {
             PanicPhase::RadioDriverStartup => "radio-driver-startup-panic",
             PanicPhase::RadioInitialization => "radio-initialization-panic",
+            PanicPhase::NetworkStackStartup => "network-stack-startup-panic",
+            PanicPhase::SessionAdmission => "network-session-admission-panic",
+            PanicPhase::SessionExecution => "network-session-execution-panic",
             PanicPhase::Unclassified => "firmware-panic",
         }
     }
@@ -56,6 +62,9 @@ pub fn take(watchdog_peripheral: Peri<'static, WATCHDOG>) -> Option<PanicRecord>
         phase: match record & !RECORD_MAGIC_MASK {
             1 => PanicPhase::RadioDriverStartup,
             2 => PanicPhase::RadioInitialization,
+            3 => PanicPhase::NetworkStackStartup,
+            4 => PanicPhase::SessionAdmission,
+            5 => PanicPhase::SessionExecution,
             _ => PanicPhase::Unclassified,
         },
     })

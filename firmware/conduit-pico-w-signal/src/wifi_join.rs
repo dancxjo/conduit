@@ -306,6 +306,7 @@ pub async fn run(
             }
         }
     };
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::NetworkStackStartup);
     let (stack, runner) = embassy_net::new(
         device,
         Config::dhcpv4(Default::default()),
@@ -313,6 +314,7 @@ pub async fn run(
         0x502,
     );
     spawner.spawn(network_task(runner).unwrap());
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionAdmission);
     if let Err(error) = run_session(&mut link, clue, &mut control, stack, runtime).await {
         let _ = clue
             .write_network_failure(error.code(), attachment_identity(runtime))
@@ -385,6 +387,7 @@ async fn run_session(
         }
         if raw == conduit_net::R1_USB_NETWORK_SESSION_QUERY {
             link.send_raw_stream_frame(conduit_net::R1_USB_NETWORK_SESSION_READY).await?;
+            crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionExecution);
             break;
         }
         return Err(UsbLinkError::InvalidNetworkJoin);

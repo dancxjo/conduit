@@ -147,7 +147,9 @@ pub async fn init_cyw43_network(
             .await;
     })
     .await;
-    crate::panic_recovery::clear();
-    initialization.map_err(|_| NetworkRadioInitError::InitializationTimeout)?;
+    if initialization.is_err() {
+        crate::panic_recovery::clear();
+        return Err(NetworkRadioInitError::InitializationTimeout);
+    }
     Ok((net_device, control))
 }
