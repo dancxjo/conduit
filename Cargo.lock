@@ -518,8 +518,12 @@ dependencies = [
 name = "conduit-system-continuity"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
+ "conduit-form",
+ "conduit-net",
  "conduit-observatory",
+ "conduit-planner",
  "conduit-signal",
  "conduit-wire",
  "serde",
