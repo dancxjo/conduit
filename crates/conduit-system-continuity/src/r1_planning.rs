@@ -28,6 +28,7 @@ pub const R1_LED_CAPABILITY_ID: &str = "r1/pico-cyw43-led";
 pub enum R1SignalRouteSet {
     UsbOnly,
     WebSocketOnly,
+    WebSocketThenUsb,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -148,6 +149,9 @@ pub fn exact_r1_signal_plan(
     let selected_links: Vec<LinkBinding> = match route_set {
         R1SignalRouteSet::UsbOnly => vec![observed_links[0].clone()],
         R1SignalRouteSet::WebSocketOnly => vec![observed_links[1].clone()],
+        R1SignalRouteSet::WebSocketThenUsb => {
+            vec![observed_links[1].clone(), observed_links[0].clone()]
+        }
     };
     let allowed_bases: Vec<ConnectionBase> = selected_links.iter().map(|link| link.base).collect();
     let candidate_order = BTreeMap::from([(
@@ -197,11 +201,12 @@ mod tests {
     }
 
     #[test]
-    fn policy_seals_distinct_usb_only_and_websocket_only_plans_from_one_observed_topology() {
+    fn policy_seals_single_and_dual_line_plans_from_one_observed_topology() {
         let boot = BootId::from("r1/pico-runtime-boot");
         let usb = exact_r1_signal_plan(boot.clone(), R1SignalRouteSet::UsbOnly).unwrap();
         let websocket =
             exact_r1_signal_plan(boot.clone(), R1SignalRouteSet::WebSocketOnly).unwrap();
+        let dual = exact_r1_signal_plan(boot, R1SignalRouteSet::WebSocketThenUsb).unwrap();
         assert_eq!(remote_connection(&usb.plan).route_candidates.len(), 1);
         assert_eq!(
             remote_connection(&usb.plan).route_candidates[0].base,
@@ -213,17 +218,28 @@ mod tests {
             ConnectionBase::WebSocket
         );
         assert_ne!(usb.plan.plan_id, websocket.plan.plan_id);
+        assert_eq!(remote_connection(&dual.plan).route_candidates.len(), 2);
+        assert_eq!(
+            remote_connection(&dual.plan).route_candidates[0].base,
+            ConnectionBase::WebSocket
+        );
+        assert_eq!(
+            remote_connection(&dual.plan).route_candidates[1].base,
+            ConnectionBase::UsbCdc
+        );
+        assert_ne!(dual.plan.plan_id, usb.plan.plan_id);
+        assert_ne!(dual.plan.plan_id, websocket.plan.plan_id);
         assert_eq!(
             usb.pico_advertisement.host_id,
-            websocket.pico_advertisement.host_id
+            dual.pico_advertisement.host_id
         );
         assert_eq!(
             usb.pico_advertisement.boot_id,
-            websocket.pico_advertisement.boot_id
+            dual.pico_advertisement.boot_id
         );
         assert_eq!(
             usb.pico_advertisement.capabilities,
-            websocket.pico_advertisement.capabilities
+            dual.pico_advertisement.capabilities
         );
     }
 

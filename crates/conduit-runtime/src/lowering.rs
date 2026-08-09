@@ -3,10 +3,10 @@
 
 use conduit_core::{
     mandatory_clue_storage_requirement, verify_plan_fragment, ActivePlayId, ActivePlayIdentity,
-    BootId, ClueId, ClueIdentity, ConnectionBase, ConnectionId, ExpectedClue, FragmentId, HostId,
-    HostOperationContractId, KindId, LinkBinding, LinkEndpoint, PlacementId, PlanFragment, PlanId,
-    PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId, PresentationIdentity,
-    ResourceBinding as PlanResourceBinding, SharedPoolId,
+    BootId, BoundLink, ClueId, ClueIdentity, ConnectionBase, ConnectionId, ExpectedClue,
+    FragmentId, HostId, HostOperationContractId, KindId, LinkEndpoint, PlacementId, PlanFragment,
+    PlanId, PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId,
+    PresentationIdentity, ResourceBinding as PlanResourceBinding, SharedPoolId,
 };
 use conduit_kernel::{
     scheduler::{CordCapacity, CordSpec, NodeSpec},
@@ -16,7 +16,9 @@ use conduit_kernel::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
+mod remote;
 mod shared_pool;
+use remote::lower_remote_endpoints;
 use shared_pool::lower_shared_pools;
 pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
 
@@ -102,7 +104,7 @@ pub struct LoweredRemoteEndpoint {
     pub peer: LinkEndpoint,
     pub value_kind: KindId,
     pub temporal: conduit_core::PortTemporal,
-    pub binding: LinkBinding,
+    pub binding: BoundLink,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -688,32 +690,13 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
                 )
             }
             (Some((source_node, source_port)), None) => {
-                let binding = connection.link_binding.as_ref().ok_or_else(|| {
-                    LoweringError::InvalidRemoteConnection(connection.connection_id.clone())
-                })?;
-                if connection.base == ConnectionBase::Local
-                    || binding.base != connection.base
-                    || binding.source.host_id != fragment.host_id
-                    || binding.source.boot_id != fragment.boot_id
-                {
-                    return Err(LoweringError::InvalidRemoteConnection(
-                        connection.connection_id.clone(),
-                    ));
-                }
-                let endpoint = RemoteEndpointId(as_u16(remote_endpoints.len())?);
-                remote_endpoints.push(LoweredRemoteEndpoint {
-                    endpoint,
+                let endpoint = lower_remote_endpoints(
+                    fragment,
+                    connection,
                     cord,
-                    connection_id: connection.connection_id.clone(),
-                    source_fragment_id: fragment.fragment_id.clone(),
-                    sink_fragment_id: fragment_id_for_host(fragment, &binding.sink.host_id)?,
-                    direction: RemoteCordDirection::Egress,
-                    local: binding.source.clone(),
-                    peer: binding.sink.clone(),
-                    value_kind: connection.value_kind.clone(),
-                    temporal: connection.temporal,
-                    binding: binding.clone(),
-                });
+                    RemoteCordDirection::Egress,
+                    &mut remote_endpoints,
+                )?;
                 CordSpec::remote_egress(
                     cord,
                     (source_node, source_port),
@@ -726,32 +709,13 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
                 )
             }
             (None, Some((sink_node, sink_port))) => {
-                let binding = connection.link_binding.as_ref().ok_or_else(|| {
-                    LoweringError::InvalidRemoteConnection(connection.connection_id.clone())
-                })?;
-                if connection.base == ConnectionBase::Local
-                    || binding.base != connection.base
-                    || binding.sink.host_id != fragment.host_id
-                    || binding.sink.boot_id != fragment.boot_id
-                {
-                    return Err(LoweringError::InvalidRemoteConnection(
-                        connection.connection_id.clone(),
-                    ));
-                }
-                let endpoint = RemoteEndpointId(as_u16(remote_endpoints.len())?);
-                remote_endpoints.push(LoweredRemoteEndpoint {
-                    endpoint,
+                let endpoint = lower_remote_endpoints(
+                    fragment,
+                    connection,
                     cord,
-                    connection_id: connection.connection_id.clone(),
-                    source_fragment_id: fragment_id_for_host(fragment, &binding.source.host_id)?,
-                    sink_fragment_id: fragment.fragment_id.clone(),
-                    direction: RemoteCordDirection::Ingress,
-                    local: binding.sink.clone(),
-                    peer: binding.source.clone(),
-                    value_kind: connection.value_kind.clone(),
-                    temporal: connection.temporal,
-                    binding: binding.clone(),
-                });
+                    RemoteCordDirection::Ingress,
+                    &mut remote_endpoints,
+                )?;
                 CordSpec::remote_ingress(
                     cord,
                     endpoint,
