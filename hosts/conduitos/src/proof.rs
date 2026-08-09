@@ -2,20 +2,27 @@
 
 use core::fmt::{self, Write};
 
-use crate::{boot::BootRecord, identity::BootIdentities};
+use crate::{
+    boot::BootRecord,
+    composition::MachineProof,
+    identity::BootIdentities,
+    offer::{HostOffer, SERIAL_MAXIMUM_BYTES},
+};
 
 pub const BOOT_SIGN_SCHEMA: &str = "conduit.conduitos.boot-sign/v1";
 pub const MAX_BOOT_SIGN_BYTES: usize = 1024;
+pub const MACHINE_SIGN_SCHEMA: &str = "conduit.conduitos.kernel-sign/v1";
+pub const MAX_STRUCTURED_SIGN_BYTES: usize = 2048;
 
 pub struct FixedText {
-    bytes: [u8; MAX_BOOT_SIGN_BYTES],
+    bytes: [u8; MAX_STRUCTURED_SIGN_BYTES],
     len: usize,
 }
 
 impl FixedText {
     pub const fn new() -> Self {
         Self {
-            bytes: [0; MAX_BOOT_SIGN_BYTES],
+            bytes: [0; MAX_STRUCTURED_SIGN_BYTES],
             len: 0,
         }
     }
@@ -80,6 +87,64 @@ pub fn refused(reason: &str) -> Result<FixedText, fmt::Error> {
     Ok(output)
 }
 
+pub fn machine_accepted(
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    report: &MachineProof,
+    build_id: &str,
+) -> Result<FixedText, fmt::Error> {
+    let mut output = FixedText::new();
+    write!(
+        output,
+        "CONDUIT_KERNEL_SIGN {{\"schema\":\"{MACHINE_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"build_id\":\"{}\",\"kernel\":\"conduit-kernel\",\"scheduler_profile\":\"{}\",\"host_id\":\"",
+        crate::arch::ARCHITECTURE,
+        build_id,
+        offer.profile,
+    )?;
+    write_hex(&mut output, &identities.host)?;
+    output.write_str("\",\"boot_id\":\"")?;
+    write_hex(&mut output, &identities.boot)?;
+    output.write_str("\",\"base_ids\":[")?;
+    for (index, base) in offer.bases.iter().enumerate() {
+        if index != 0 {
+            output.write_char(',')?;
+        }
+        output.write_char('"')?;
+        write_hex(&mut output, &base.id)?;
+        output.write_char('"')?;
+    }
+    writeln!(
+        output,
+        "],\"base_count\":{},\"memory_arena_bytes\":{},\"execution_lanes\":1,\"timer_slots\":1,\"serial_slots\":1,\"serial_maximum_bytes\":{},\"interrupt_fact_slots\":{},\"sign_item_slots\":{},\"logical_operations\":{},\"kernel_decisions\":{},\"kernel_signs\":{},\"timer_irq_wakes\":{},\"idle_entries\":{},\"serial_presentations\":{},\"clock_monotonic\":{},\"pending_host_operations\":{},\"sse2\":{},\"rdrand\":{},\"invariant_tsc\":{}}}",
+        offer.bases.len(),
+        offer.runtime_arena_bytes,
+        SERIAL_MAXIMUM_BYTES,
+        offer.interrupt_fact_capacity,
+        offer.sign_item_capacity,
+        report.logical_operations,
+        report.decisions,
+        report.kernel_signs,
+        report.timer_irq_wakes,
+        report.idle_entries,
+        report.serial_presentations,
+        report.clock_monotonic,
+        report.pending_host_operations,
+        offer.cpu_features.sse2,
+        offer.cpu_features.rdrand,
+        offer.cpu_features.invariant_tsc,
+    )?;
+    Ok(output)
+}
+
+pub fn machine_refused(reason: &str) -> Result<FixedText, fmt::Error> {
+    let mut output = FixedText::new();
+    writeln!(
+        output,
+        "CONDUIT_KERNEL_SIGN {{\"schema\":\"{MACHINE_SIGN_SCHEMA}\",\"status\":\"refused\",\"reason\":\"{reason}\"}}"
+    )?;
+    Ok(output)
+}
+
 fn write_hex(output: &mut FixedText, bytes: &[u8]) -> fmt::Result {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     for byte in bytes {
@@ -125,5 +190,45 @@ mod tests {
         assert!(text.contains("\"status\":\"accepted\""));
         assert!(text.contains(&"aa".repeat(32)));
         assert!(text.len() <= MAX_BOOT_SIGN_BYTES);
+    }
+
+    #[test]
+    fn machine_sign_binds_finite_bases_and_kernel_ownership() {
+        let identities = BootIdentities {
+            host: [0xaa; 32],
+            boot: [0xbb; 32],
+        };
+        let offer = HostOffer::new(
+            &identities,
+            "build",
+            crate::offer::CpuFeatures {
+                sse2: true,
+                rdrand: false,
+                invariant_tsc: true,
+            },
+            262_144,
+        );
+        let output = machine_accepted(
+            &identities,
+            &offer,
+            &MachineProof {
+                logical_operations: 2,
+                decisions: 6,
+                kernel_signs: 12,
+                timer_irq_wakes: 1,
+                idle_entries: 1,
+                serial_presentations: 1,
+                clock_monotonic: true,
+                pending_host_operations: 0,
+            },
+            "build",
+        )
+        .unwrap();
+        let text = core::str::from_utf8(output.as_bytes()).unwrap();
+        assert!(text.starts_with("CONDUIT_KERNEL_SIGN "));
+        assert!(text.contains("\"kernel\":\"conduit-kernel\""));
+        assert!(text.contains("\"base_count\":7"));
+        assert!(text.contains("\"memory_arena_bytes\":262144"));
+        assert!(text.len() <= MAX_STRUCTURED_SIGN_BYTES);
     }
 }

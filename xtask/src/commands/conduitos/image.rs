@@ -16,6 +16,7 @@ use super::{
 };
 
 const EXPECTED_IMAGE_FILE_COUNT: usize = 6;
+const CONDUITOS_GPT_DISK_GUID: &str = "434f4e44-5549-544f-5300-000000000001";
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<ImageRecord, ConduitosError> {
     let paths = Paths::new(arch)?;
@@ -163,6 +164,8 @@ fn create_iso(paths: &Paths) -> Result<(), ConduitosError> {
             "-efi-boot-part",
             "--efi-boot-image",
             "--protective-msdos-label",
+            "--gpt_disk_guid",
+            CONDUITOS_GPT_DISK_GUID,
             "--modification-date=2026080900000000",
             "--set_all_file_dates",
             "2026080900000000",

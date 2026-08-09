@@ -45,7 +45,7 @@ impl Paths {
             limine: root
                 .join("target/conduitos/vendor")
                 .join(format!("limine-binary-{LIMINE_VERSION}")),
-            proof: target.join("boot-proof.json"),
+            proof: target.join("kernel-proof.json"),
             root,
             target,
         })
