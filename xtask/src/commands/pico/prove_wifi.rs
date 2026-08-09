@@ -274,6 +274,10 @@ fn wait_for_network_session_readiness(carrier: &mut NativePathCdcCarrier) -> Pic
     let mut raw = [0_u8; 1024];
     let reply = carrier.receive_raw_stream_frame(&mut raw, Duration::from_secs(30))?;
     if reply == conduit_net::R1_USB_NETWORK_SESSION_FAILED {
+        carrier.send_raw_stream_frame(
+            conduit_net::R1_USB_NETWORK_FAILURE_CLUE_READY,
+            Duration::from_secs(2),
+        )?;
         return Err("Pico reported that this boot cannot admit the network Session".into());
     }
     if reply != conduit_net::R1_USB_NETWORK_SESSION_READY {

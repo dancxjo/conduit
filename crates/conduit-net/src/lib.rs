@@ -36,6 +36,10 @@ pub const R1_USB_NETWORK_SESSION_READY: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_REA
 /// The queried R1 network Session cannot become ready on this boot. The
 /// machine-readable failure remains on the admitted Clue face.
 pub const R1_USB_NETWORK_SESSION_FAILED: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_FAILED@1";
+
+/// Host acknowledgement that the admitted Clue face is ready to receive the
+/// recovery record associated with `R1_USB_NETWORK_SESSION_FAILED`.
+pub const R1_USB_NETWORK_FAILURE_CLUE_READY: &[u8] = b"CONDUIT_R1_NETWORK_FAILURE_CLUE_READY@1";
 pub const NETWORK_JOIN_OPERATION: &str = "network/join";
 pub const NETWORK_CREDENTIALS_OPERATION: &str = "network/credentials";
 pub const NETWORK_ATTACHMENT_CLUE_OPERATION: &str = "network/attachment-clue";

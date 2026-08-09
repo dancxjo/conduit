@@ -25,6 +25,13 @@ pub async fn serve(
                         .await
                         .is_ok()
                     {
+                        let ready = link.receive_raw_stream_frame(&mut frame).await;
+                        if !matches!(
+                            ready,
+                            Ok(raw) if raw == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_READY
+                        ) {
+                            break;
+                        }
                         crate::panic_recovery::set_phase(
                             crate::panic_recovery::PanicPhase::RecoveryClue,
                         );
