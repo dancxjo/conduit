@@ -37,6 +37,8 @@ compile_error!("select exactly one Pico firmware mode");
 mod kernel;
 #[cfg(feature = "session-control")]
 mod bootsel;
+#[cfg(feature = "wifi-bootstrap")]
+mod panic_recovery;
 mod radio;
 mod receipts;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
@@ -67,6 +69,7 @@ use embassy_executor::Spawner;
 use embassy_futures::join::join;
 #[cfg(feature = "pico-local")]
 use embassy_futures::select::{select, Either};
+#[cfg(not(feature = "wifi-bootstrap"))]
 use panic_halt as _;
 
 #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
@@ -108,6 +111,8 @@ const _CYW43_LICENSE: &[u8] = include_bytes!(
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
+    #[cfg(feature = "wifi-bootstrap")]
+    let panic_record = panic_recovery::take(p.WATCHDOG);
 
     // Physical-proof and remote modes expose dual CDC: CDC 0 owns session and
     // lifecycle control, while CDC 1 owns clue. The minimal composition
@@ -222,6 +227,7 @@ async fn main(spawner: Spawner) {
             &spawner,
             session_carrier,
             &mut cdc,
+            panic_record,
             p.PIO0,
             p.DMA_CH0,
             p.PIN_23,

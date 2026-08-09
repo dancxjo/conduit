@@ -263,6 +263,7 @@ pub async fn run(
     spawner: &Spawner,
     carrier: PicoUsbCdcCarrier,
     clue: &mut UsbCdc,
+    panic_record: Option<crate::panic_recovery::PanicRecord>,
     pio0: Peri<'static, PIO0>,
     dma: Peri<'static, DMA_CH0>,
     pin23: Peri<'static, PIN_23>,
@@ -275,6 +276,16 @@ pub async fn run(
     runtime: &RuntimeTranscriptIdentity,
 ) -> ! {
     let mut link = UsbLinkSession::new(carrier).unwrap();
+    if let Some(record) = panic_record {
+        if establish_usb(&mut link, clue, runtime).await.is_ok() {
+            let _ = clue
+                .write_network_failure(record.code(), attachment_identity(runtime))
+                .await;
+        }
+        loop {
+            crate::bootsel::wait_for_request(&mut link).await.ok();
+        }
+    }
     let usb_startup = establish_usb(&mut link, clue, runtime);
     let radio_startup = crate::radio::init_cyw43_network(
         spawner, pio0, dma, pin23, pin24, pin25, pin29, fw, nvram, clm,

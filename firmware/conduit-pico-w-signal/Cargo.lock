@@ -219,6 +219,7 @@ dependencies = [
  "heapless 0.8.0",
  "panic-halt",
  "portable-atomic",
+ "rp-pac",
  "static_cell",
 ]
 

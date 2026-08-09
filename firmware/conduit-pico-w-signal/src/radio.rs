@@ -32,10 +32,11 @@ bind_interrupts!(struct RadioIrqs {
 static STATE: StaticCell<cyw43::State> = StaticCell::new();
 
 #[cfg(feature = "wifi-bootstrap")]
-const NETWORK_INITIALIZATION_TIMEOUT: Duration = Duration::from_secs(20);
+const RADIO_PHASE_TIMEOUT: Duration = Duration::from_secs(20);
 
 #[cfg(feature = "wifi-bootstrap")]
 pub enum NetworkRadioInitError {
+    DriverStartupTimeout,
     InitializationTimeout,
 }
 
@@ -43,6 +44,7 @@ pub enum NetworkRadioInitError {
 impl NetworkRadioInitError {
     pub const fn code(&self) -> &'static str {
         match self {
+            Self::DriverStartupTimeout => "radio-driver-startup-timeout",
             Self::InitializationTimeout => "radio-initialization-timeout",
         }
     }
@@ -123,15 +125,29 @@ pub async fn init_cyw43_network(
         dma,
     );
     let state = STATE.init(cyw43::State::new());
-    let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, fw, nvram).await;
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioDriverStartup);
+    let driver_startup = with_timeout(
+        RADIO_PHASE_TIMEOUT,
+        cyw43::new(state, pwr, spi, fw, nvram),
+    )
+    .await;
+    let (net_device, mut control, runner) = match driver_startup {
+        Ok(driver) => driver,
+        Err(_) => {
+            crate::panic_recovery::clear();
+            return Err(NetworkRadioInitError::DriverStartupTimeout);
+        }
+    };
     spawner.spawn(cyw43_task(runner).unwrap());
-    with_timeout(NETWORK_INITIALIZATION_TIMEOUT, async {
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioInitialization);
+    let initialization = with_timeout(RADIO_PHASE_TIMEOUT, async {
         control.init(clm).await;
         control
             .set_power_management(cyw43::PowerManagementMode::None)
             .await;
     })
-    .await
-    .map_err(|_| NetworkRadioInitError::InitializationTimeout)?;
+    .await;
+    crate::panic_recovery::clear();
+    initialization.map_err(|_| NetworkRadioInitError::InitializationTimeout)?;
     Ok((net_device, control))
 }
