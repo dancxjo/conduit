@@ -172,7 +172,14 @@ fn run_unix(
         return Err("runtime Pico Play identity disagrees with the exact rebound Plan".into());
     }
 
-    handshake(&mut source, &mut carrier, &binding)?;
+    if let Err(handshake_error) = handshake(&mut source, &mut carrier, &binding) {
+        return Err(session_failure_with_clue(
+            &mut clue,
+            handshake_error,
+            identity,
+            &runtime,
+        ));
+    }
     let (sequence, payload, payload_len) = source
         .next_offer()?
         .ok_or("credential source produced no runtime Info")?;
@@ -245,6 +252,31 @@ fn run_unix(
     }
     println!("==> Physical network attachment Clue and post-attachment USB continuity verified");
     Ok(())
+}
+
+#[cfg(unix)]
+fn session_failure_with_clue(
+    clue: &mut NativePathCdcLineReader,
+    handshake_error: Box<dyn std::error::Error>,
+    identity: &FirmwareIdentity,
+    runtime: &RuntimeTranscriptIdentity,
+) -> Box<dyn std::error::Error> {
+    match clue.read_line(Duration::from_secs(3)) {
+        Ok(line) => match verify_attachment_clue(&line, identity, runtime) {
+            Ok(()) => format!(
+                "USB bootstrap handshake failed ({handshake_error}); Pico emitted an unexpected attachment success Clue"
+            )
+            .into(),
+            Err(clue_error) => format!(
+                "USB bootstrap handshake failed ({handshake_error}); Pico failure Clue: {clue_error}"
+            )
+            .into(),
+        },
+        Err(clue_error) => format!(
+            "USB bootstrap handshake failed ({handshake_error}); no bounded Pico failure Clue arrived: {clue_error}"
+        )
+        .into(),
+    }
 }
 
 #[cfg(unix)]
