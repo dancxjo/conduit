@@ -224,7 +224,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         proof_class: ProofClass::DeterministicSimulation,
         required_tools_or_targets: &["cargo"],
         named_artifacts: &[],
-        allowed_claims: &["typed R1 lifecycle and planning recover from an injected USB Line-unavailable Clue without physical acceptance"],
+        allowed_claims: &["typed R1 lifecycle and planning recover from an injected WebSocket Line-unavailable Clue without physical acceptance"],
     },
 ];
 

@@ -36,7 +36,7 @@ pub fn run(opts: &GlobalOpts) -> Result<(), StepError> {
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "==> R1 deterministic recovery would inject an exact USB Line-unavailable Clue"
+                "==> R1 deterministic recovery would inject an exact WebSocket Line-unavailable Clue"
             );
             println!("    proof class: deterministic-simulation; physical acceptance: false");
         }
@@ -72,8 +72,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), StepError> {
 
 fn verify() -> Result<SoftwareRecoveryOutcome, String> {
     let pico_boot = BootId::from(SIMULATED_PICO_BOOT_ID);
-    let plan_a = exact_r1_signal_plan(pico_boot.clone(), R1SignalRouteSet::UsbOnly)?.plan;
-    let plan_b = exact_r1_signal_plan(pico_boot.clone(), R1SignalRouteSet::WebSocketOnly)?.plan;
+    let plan_a = exact_r1_signal_plan(pico_boot.clone(), R1SignalRouteSet::WebSocketOnly)?.plan;
+    let plan_b = exact_r1_signal_plan(pico_boot.clone(), R1SignalRouteSet::UsbOnly)?.plan;
     let mut recovery = R1NewPlanRecovery::begin(
         plan_a,
         GearId::from("show"),
@@ -103,13 +103,15 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
     recovery
         .observe_route_unavailable(
             LinkObservation {
-                binding_id: conduit_core::LinkBindingId::from(conduit_net::R1_USB_LINK_BINDING_ID),
+                binding_id: conduit_core::LinkBindingId::from(
+                    conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
+                ),
                 availability: LinkAvailability::Unavailable,
-                clue_id: ClueId::from("r1/injected-usb-line-unavailable"),
+                clue_id: ClueId::from("r1/injected-websocket-line-unavailable"),
             },
             ClueId::from("r1/play-a-unsatisfied"),
         )
-        .map_err(|error| format!("failed injecting USB Line loss: {error:?}"))?;
+        .map_err(|error| format!("failed injecting WebSocket Line loss: {error:?}"))?;
     recovery
         .install_replacement(
             plan_b,
@@ -149,14 +151,14 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
         || wake_id != recovery.wake().wake_id
         || plan_a_id == plan_b_id
         || play_a_id == play_b_id
-        || plan_a_line != ConnectionBase::UsbCdc
-        || plan_b_line != ConnectionBase::WebSocket
+        || plan_a_line != ConnectionBase::WebSocket
+        || plan_b_line != ConnectionBase::UsbCdc
     {
         return Err("recovery identity or Line invariant mismatched".into());
     }
     Ok(SoftwareRecoveryOutcome {
         proof_class: ProofClass::DeterministicSimulation,
-        fault_injection: "typed-usb-line-unavailable-clue",
+        fault_injection: "typed-websocket-line-unavailable-clue",
         body_id,
         wake_id,
         plan_a_id,
