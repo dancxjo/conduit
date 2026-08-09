@@ -53,6 +53,8 @@ mod network_operations;
 mod network_receipts;
 #[cfg(feature = "wifi-bootstrap")]
 mod wifi_join;
+#[cfg(feature = "wifi-bootstrap")]
+mod wifi_session;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
 mod startup_arena;
 mod usb;

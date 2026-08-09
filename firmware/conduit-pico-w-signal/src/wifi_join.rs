@@ -1,9 +1,5 @@
 //! Ordinary generated network/join execution over the existing UsbCdc session.
 
-use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
-    HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
-};
 use conduit_kernel::scheduler::{
     FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
@@ -12,8 +8,7 @@ use conduit_kernel::{
     HostOperationOutcome,
 };
 use conduit_wire::{
-    RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
-    SessionMessage, SessionRole,
+    SessionMachine, SessionMessage, SessionRole,
 };
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
@@ -34,6 +29,7 @@ use crate::network_operations::NetworkOperation;
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::usb::PicoUsbCdcCarrier;
 use crate::usb_link::{UsbLinkError, UsbLinkSession};
+use crate::wifi_session::session_binding;
 
 const JOIN_TIMEOUT: Duration = Duration::from_secs(30);
 const ATTACHMENT_ID: &str = "r1/pico-network-attachment-1";
@@ -283,10 +279,21 @@ pub async fn run(
     let radio_startup = crate::radio::init_cyw43_network(
         spawner, pio0, dma, pin23, pin24, pin25, pin29, fw, nvram, clm,
     );
-    let (usb_result, (device, mut control)) = join(usb_startup, radio_startup).await;
+    let (usb_result, radio_result) = join(usb_startup, radio_startup).await;
     if usb_result.is_err() {
         core::future::pending::<()>().await;
     }
+    let (device, mut control) = match radio_result {
+        Ok(radio) => radio,
+        Err(error) => {
+            let _ = clue
+                .write_network_failure(error.code(), attachment_identity(runtime))
+                .await;
+            loop {
+                crate::bootsel::wait_for_request(&mut link).await.ok();
+            }
+        }
+    };
     let (stack, runner) = embassy_net::new(
         device,
         Config::dhcpv4(Default::default()),
@@ -442,54 +449,4 @@ fn attachment_identity<'a>(runtime: &'a RuntimeTranscriptIdentity) -> NetworkAtt
         generation: 1,
         clue_id: crate::network_image::ATTACHMENT_CLUE_ID,
     }
-}
-
-fn session_binding(runtime: &RuntimeTranscriptIdentity) -> Result<SessionBinding, UsbLinkError> {
-    let endpoint = generated_remote_endpoint().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-    let base = ConnectionBase::from_canonical_code(endpoint.base_code)
-        .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-    if base != ConnectionBase::UsbCdc {
-        return Err(UsbLinkError::InvalidGeneratedEndpoint);
-    }
-    let plan_id = PlanId::from(crate::network_image::PLAN_ID);
-    let source_host = HostId::from(endpoint.peer_host);
-    let source_boot = BootId::from(endpoint.peer_boot);
-    let sink_host = HostId::from(endpoint.local_host);
-    let sink_boot = BootId::from(endpoint.local_boot);
-    SessionBinding {
-        protocol_version: 1,
-        source_active_play_id: bind_active_play(&plan_id, &source_host, &source_boot, 0).active_play_id,
-        sink_active_play_id: bind_active_play(&plan_id, &sink_host, &sink_boot, 0).active_play_id,
-        plan_id,
-        source_fragment_id: FragmentId::from(endpoint.source_fragment_id),
-        sink_fragment_id: FragmentId::from(endpoint.sink_fragment_id),
-        connection_id: ConnectionId::from(endpoint.connection_id),
-        source: SessionEndpointIdentity { host_id: source_host.clone(), boot_id: source_boot.clone() },
-        sink: SessionEndpointIdentity { host_id: sink_host.clone(), boot_id: sink_boot.clone() },
-        value_kind: KindId::from(endpoint.value_kind),
-        limits: SessionLimits {
-            maximum_in_flight_items: endpoint.maximum_in_flight_items,
-            maximum_payload_bytes: endpoint.maximum_payload_bytes,
-            maximum_buffered_bytes: endpoint.maximum_buffered_bytes,
-        },
-        attachment: RouteAttachment {
-            link_binding_id: LinkBindingId::from(endpoint.link_binding_id),
-            base,
-            base_instance_id: ConnectionBaseInstanceId::from(endpoint.base_instance_id),
-            source_host_id: source_host,
-            source_boot_id: source_boot,
-            source_endpoint_id: LinkEndpointId::from(endpoint.peer_endpoint),
-            sink_host_id: sink_host,
-            sink_boot_id: sink_boot,
-            sink_endpoint_id: LinkEndpointId::from(endpoint.local_endpoint),
-            limits: LinkLimits {
-                maximum_in_flight_items: endpoint.maximum_in_flight_items,
-                maximum_payload_bytes: endpoint.maximum_payload_bytes,
-                maximum_buffered_bytes: endpoint.maximum_buffered_bytes,
-                maximum_frame_bytes: endpoint.maximum_frame_bytes,
-            },
-        },
-    }
-    .with_observed_boots(BootId::from(endpoint.peer_boot), BootId::from(runtime.boot_id()))
-    .map_err(UsbLinkError::Codec)
 }

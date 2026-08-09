@@ -16,6 +16,8 @@ use embassy_rp::{
     usb,
     Peri,
 };
+#[cfg(feature = "wifi-bootstrap")]
+use embassy_time::{with_timeout, Duration};
 use static_cell::StaticCell;
 
 bind_interrupts!(pub struct UsbIrq {
@@ -28,6 +30,23 @@ bind_interrupts!(struct RadioIrqs {
 });
 
 static STATE: StaticCell<cyw43::State> = StaticCell::new();
+
+#[cfg(feature = "wifi-bootstrap")]
+const NETWORK_INITIALIZATION_TIMEOUT: Duration = Duration::from_secs(20);
+
+#[cfg(feature = "wifi-bootstrap")]
+pub enum NetworkRadioInitError {
+    InitializationTimeout,
+}
+
+#[cfg(feature = "wifi-bootstrap")]
+impl NetworkRadioInitError {
+    pub const fn code(&self) -> &'static str {
+        match self {
+            Self::InitializationTimeout => "radio-initialization-timeout",
+        }
+    }
+}
 
 #[embassy_executor::task]
 async fn cyw43_task(
@@ -88,7 +107,7 @@ pub async fn init_cyw43_network(
     fw: &'static aligned::Aligned<aligned::A4, [u8]>,
     nvram: &'static aligned::Aligned<aligned::A4, [u8]>,
     clm: &'static [u8],
-) -> (cyw43::NetDriver<'static>, Control<'static>) {
+) -> Result<(cyw43::NetDriver<'static>, Control<'static>), NetworkRadioInitError> {
     let pwr = Output::new(pin23, Level::Low);
     let cs = Output::new(pin25, Level::High);
     let mut pio = Pio::new(pio0, RadioIrqs);
@@ -106,9 +125,13 @@ pub async fn init_cyw43_network(
     let state = STATE.init(cyw43::State::new());
     let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, fw, nvram).await;
     spawner.spawn(cyw43_task(runner).unwrap());
-    control.init(clm).await;
-    control
-        .set_power_management(cyw43::PowerManagementMode::None)
-        .await;
-    (net_device, control)
+    with_timeout(NETWORK_INITIALIZATION_TIMEOUT, async {
+        control.init(clm).await;
+        control
+            .set_power_management(cyw43::PowerManagementMode::None)
+            .await;
+    })
+    .await
+    .map_err(|_| NetworkRadioInitError::InitializationTimeout)?;
+    Ok((net_device, control))
 }
