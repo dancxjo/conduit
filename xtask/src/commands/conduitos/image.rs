@@ -1,0 +1,224 @@
+use std::{
+    fs,
+    io::{Seek, SeekFrom, Write},
+    path::Path,
+};
+
+use crate::cli::GlobalOpts;
+
+use super::{
+    build,
+    profile::{
+        command, command_with_env, Paths, LIMINE_ARCHIVE_SHA256, LIMINE_ARCHIVE_URL, LIMINE_VERSION,
+    },
+    report::{sha256_file, ImageRecord},
+    ConduitosArch, ConduitosError,
+};
+
+const EXPECTED_IMAGE_FILE_COUNT: usize = 6;
+
+pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<ImageRecord, ConduitosError> {
+    let paths = Paths::new(arch)?;
+    let _build = build::execute(arch, opts)?;
+    if opts.dry_run {
+        println!("fetch and verify pinned Limine {LIMINE_VERSION}");
+        println!("assemble {}", paths.iso.display());
+        return Ok(ImageRecord {
+            schema: "conduit.conduitos.image/v1",
+            architecture: arch.as_str(),
+            limine_version: LIMINE_VERSION,
+            limine_archive_sha256: LIMINE_ARCHIVE_SHA256,
+            iso_sha256: "dry-run".into(),
+            file_count: EXPECTED_IMAGE_FILE_COUNT,
+        });
+    }
+    prepare_limine(&paths)?;
+    stage_image(&paths)?;
+    create_iso(&paths)?;
+    let file_count = count_files(&paths.iso_root)?;
+    if file_count != EXPECTED_IMAGE_FILE_COUNT {
+        return Err(ConduitosError::refusal(
+            "unexpected-image-content",
+            format!("staged {file_count} files; expected exactly {EXPECTED_IMAGE_FILE_COUNT}"),
+        ));
+    }
+    let record = ImageRecord {
+        schema: "conduit.conduitos.image/v1",
+        architecture: arch.as_str(),
+        limine_version: LIMINE_VERSION,
+        limine_archive_sha256: LIMINE_ARCHIVE_SHA256,
+        iso_sha256: sha256_file(&paths.iso)?,
+        file_count,
+    };
+    let bytes = serde_json::to_vec_pretty(&record)
+        .map_err(|error| ConduitosError::refusal("image-record-failed", error.to_string()))?;
+    fs::write(paths.target.join("image.json"), bytes)
+        .map_err(|error| ConduitosError::refusal("image-record-failed", error.to_string()))?;
+    if !opts.quiet && !opts.json {
+        println!("ConduitOS image: {}", paths.iso.display());
+    }
+    Ok(record)
+}
+
+fn prepare_limine(paths: &Paths) -> Result<(), ConduitosError> {
+    let vendor = paths
+        .limine_archive
+        .parent()
+        .ok_or_else(|| ConduitosError::refusal("limine-path-invalid", "missing vendor parent"))?;
+    fs::create_dir_all(vendor)
+        .map_err(|error| ConduitosError::refusal("limine-path-invalid", error.to_string()))?;
+    if !paths.limine_archive.exists() {
+        let archive = paths.limine_archive.to_str().ok_or_else(|| {
+            ConduitosError::refusal("limine-path-invalid", "non-UTF-8 archive path")
+        })?;
+        command(
+            "curl",
+            &[
+                "--fail",
+                "--location",
+                "--output",
+                archive,
+                LIMINE_ARCHIVE_URL,
+            ],
+            &paths.root,
+            "missing-limine-artifacts",
+        )?;
+    }
+    let digest = sha256_file(&paths.limine_archive)?;
+    if digest != LIMINE_ARCHIVE_SHA256 {
+        return Err(ConduitosError::refusal(
+            "unsupported-limine-revision",
+            format!("archive digest {digest} does not match pinned {LIMINE_ARCHIVE_SHA256}"),
+        ));
+    }
+    if !paths.limine.join("limine").exists() {
+        if paths.limine.exists() {
+            fs::remove_dir_all(&paths.limine).map_err(|error| {
+                ConduitosError::refusal("limine-path-invalid", error.to_string())
+            })?;
+        }
+        let archive = paths.limine_archive.to_str().unwrap();
+        let vendor_text = vendor.to_str().unwrap();
+        command(
+            "tar",
+            &["-xzf", archive, "-C", vendor_text],
+            &paths.root,
+            "missing-limine-artifacts",
+        )?;
+        let extracted = vendor.join("limine-binary");
+        fs::rename(extracted, &paths.limine).map_err(|error| {
+            ConduitosError::refusal("missing-limine-artifacts", error.to_string())
+        })?;
+        command("make", &[], &paths.limine, "missing-limine-toolchain")?;
+    }
+    Ok(())
+}
+
+fn stage_image(paths: &Paths) -> Result<(), ConduitosError> {
+    if paths.iso_root.exists() {
+        fs::remove_dir_all(&paths.iso_root)
+            .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
+    }
+    let boot = paths.iso_root.join("boot");
+    let limine_boot = boot.join("limine");
+    let efi_boot = paths.iso_root.join("EFI/BOOT");
+    fs::create_dir_all(&limine_boot)
+        .and_then(|_| fs::create_dir_all(&efi_boot))
+        .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
+    copy(&paths.kernel, &boot.join("conduitos"))?;
+    copy(
+        &paths.root.join("hosts/conduitos/limine.conf"),
+        &paths.iso_root.join("limine.conf"),
+    )?;
+    for name in [
+        "limine-bios.sys",
+        "limine-bios-cd.bin",
+        "limine-uefi-cd.bin",
+    ] {
+        copy(&paths.limine.join(name), &limine_boot.join(name))?;
+    }
+    copy(
+        &paths.limine.join("BOOTX64.EFI"),
+        &efi_boot.join("BOOTX64.EFI"),
+    )?;
+    Ok(())
+}
+
+fn create_iso(paths: &Paths) -> Result<(), ConduitosError> {
+    let iso_root = paths.iso_root.to_str().unwrap();
+    let iso = paths.iso.to_str().unwrap();
+    command_with_env(
+        "xorriso",
+        &[
+            "-as",
+            "mkisofs",
+            "-b",
+            "boot/limine/limine-bios-cd.bin",
+            "-no-emul-boot",
+            "-boot-load-size",
+            "4",
+            "-boot-info-table",
+            "--efi-boot",
+            "boot/limine/limine-uefi-cd.bin",
+            "-efi-boot-part",
+            "--efi-boot-image",
+            "--protective-msdos-label",
+            "--modification-date=2026080900000000",
+            "--set_all_file_dates",
+            "2026080900000000",
+            iso_root,
+            "-o",
+            iso,
+        ],
+        &paths.root,
+        "missing-image-toolchain",
+        &[("SOURCE_DATE_EPOCH", "1786233600")],
+    )?;
+    command(
+        paths.limine.join("limine").to_str().unwrap(),
+        &["bios-install", iso],
+        &paths.root,
+        "limine-install-failed",
+    )?;
+    seal_mbr_identity(&paths.iso)?;
+    Ok(())
+}
+
+fn seal_mbr_identity(iso: &Path) -> Result<(), ConduitosError> {
+    const MBR_DISK_SIGNATURE_OFFSET: u64 = 440;
+    const CONDUITOS_MBR_SIGNATURE: [u8; 4] = [0x43, 0x4e, 0x44, 0x54];
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .open(iso)
+        .map_err(|error| ConduitosError::refusal("image-sealing-failed", error.to_string()))?;
+    file.seek(SeekFrom::Start(MBR_DISK_SIGNATURE_OFFSET))
+        .and_then(|_| file.write_all(&CONDUITOS_MBR_SIGNATURE))
+        .map_err(|error| ConduitosError::refusal("image-sealing-failed", error.to_string()))
+}
+
+fn copy(source: &Path, destination: &Path) -> Result<(), ConduitosError> {
+    fs::copy(source, destination).map(|_| ()).map_err(|error| {
+        ConduitosError::refusal(
+            "image-staging-failed",
+            format!("{} -> {}: {error}", source.display(), destination.display()),
+        )
+    })
+}
+
+fn count_files(root: &Path) -> Result<usize, ConduitosError> {
+    fn visit(path: &Path, count: &mut usize) -> std::io::Result<()> {
+        for entry in fs::read_dir(path)? {
+            let entry = entry?;
+            if entry.file_type()?.is_dir() {
+                visit(&entry.path(), count)?;
+            } else {
+                *count += 1;
+            }
+        }
+        Ok(())
+    }
+    let mut count = 0;
+    visit(root, &mut count)
+        .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
+    Ok(count)
+}

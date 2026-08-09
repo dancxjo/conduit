@@ -26,6 +26,8 @@ fn main() {
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Pico(mut args) => run_pico(&opts, &mut args, false),
         Command::PicoLocal(mut args) => run_pico(&opts, &mut args, true),
+        Command::Conduitos(args) => commands::conduitos::run(args, &opts)
+            .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Demo(args) => match args.command {
             DemoCommand::Toggle => commands::toggle::run(),
             DemoCommand::Site => commands::toggle::run_site(),

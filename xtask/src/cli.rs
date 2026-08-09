@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
+use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::pico::PicoArgs;
 
 /// Repository orchestration task runner for Conduit.
@@ -46,6 +47,8 @@ pub enum Command {
     Pico(PicoArgs),
     /// Run the complete Pico W local workflow.
     PicoLocal(PicoArgs),
+    /// Build and prove the freestanding ConduitOS reference Host.
+    Conduitos(ConduitosArgs),
     /// Run interactive demonstrations.
     Demo(DemoArgs),
 }
@@ -231,5 +234,9 @@ mod tests {
             .expect("proof catalog command parses");
         assert!(proofs.global.json);
         assert!(matches!(proofs.command, Command::Proofs(_)));
+
+        let conduitos = Cli::try_parse_from(["xtask", "conduitos", "prove", "--arch", "x86-64"])
+            .expect("ConduitOS command parses");
+        assert!(matches!(conduitos.command, Command::Conduitos(_)));
     }
 }

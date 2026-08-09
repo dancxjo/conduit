@@ -11,6 +11,7 @@ pub enum ProofClass {
     DeterministicUnit,
     DeterministicSimulation,
     HostedIntegration,
+    FreestandingEmulator,
     LiveBrowser,
     LiveTransport,
     FirmwareBuild,
@@ -24,6 +25,7 @@ pub const PROOF_CLASS_VOCABULARY: &[ProofClass] = &[
     ProofClass::DeterministicUnit,
     ProofClass::DeterministicSimulation,
     ProofClass::HostedIntegration,
+    ProofClass::FreestandingEmulator,
     ProofClass::LiveBrowser,
     ProofClass::LiveTransport,
     ProofClass::FirmwareBuild,
@@ -39,6 +41,7 @@ impl ProofClass {
             Self::DeterministicUnit => "deterministic-unit",
             Self::DeterministicSimulation => "deterministic-simulation",
             Self::HostedIntegration => "hosted-integration",
+            Self::FreestandingEmulator => "freestanding-emulator",
             Self::LiveBrowser => "live-browser",
             Self::LiveTransport => "live-transport",
             Self::FirmwareBuild => "firmware-build",
@@ -154,6 +157,29 @@ impl ProofRecord {
 }
 
 pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
+    ProofCommandContract {
+        id: "conduitos.limine-boot",
+        command: "cargo xtask conduitos prove --arch x86-64",
+        proof_class: ProofClass::FreestandingEmulator,
+        required_tools_or_targets: &[
+            "i686-unknown-uefi",
+            "x86_64-unknown-none",
+            "aarch64-unknown-none",
+            "riscv64gc-unknown-none-elf",
+            "loongarch64-unknown-none",
+            "readelf",
+            "xorriso",
+            "QEMU x86_64",
+        ],
+        named_artifacts: &[
+            "target/conduitos/x86_64/conduitos",
+            "target/conduitos/x86_64/conduitos.iso",
+            "target/conduitos/x86_64/boot-proof.json",
+        ],
+        allowed_claims: &[
+            "a reproducible pinned-Limine image boots in QEMU, emits one bounded boot Sign with fresh HostId and BootId, and exits deterministically",
+        ],
+    },
     ProofCommandContract {
         id: "simulation.current-fixtures",
         command: "cargo xtask check sim",
@@ -352,10 +378,11 @@ mod tests {
     fn current_catalog_serializes_with_one_versioned_vocabulary() {
         let value = serde_json::to_value(current_catalog()).unwrap();
         assert_eq!(value["schema_version"], PROOF_SCHEMA_VERSION);
-        assert_eq!(value["vocabulary"].as_array().unwrap().len(), 10);
-        assert_eq!(value["commands"][2]["proof_class"], "live-browser");
-        assert_eq!(value["commands"][4]["proof_class"], "firmware-build");
-        assert_eq!(value["commands"][6]["proof_class"], "physical-cross-host");
+        assert_eq!(value["vocabulary"].as_array().unwrap().len(), 11);
+        assert_eq!(value["commands"][0]["proof_class"], "freestanding-emulator");
+        assert_eq!(value["commands"][3]["proof_class"], "live-browser");
+        assert_eq!(value["commands"][5]["proof_class"], "firmware-build");
+        assert_eq!(value["commands"][7]["proof_class"], "physical-cross-host");
     }
 
     #[test]
@@ -420,7 +447,11 @@ mod tests {
                 .iter()
                 .map(ToString::to_string)
                 .collect(),
-            named_artifacts: vec![],
+            named_artifacts: contract
+                .named_artifacts
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
             host_or_board_identity: None,
             success: false,
             timestamp: "supporting-only".into(),
