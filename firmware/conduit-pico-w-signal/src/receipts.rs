@@ -90,6 +90,22 @@ impl RuntimeTranscriptIdentity {
         &self.active_play_id
     }
 
+    /// Seed the network stack from this physical boot's already-recorded
+    /// entropy so DHCP transaction identities are not reused across boots.
+    #[cfg(feature = "wifi-bootstrap")]
+    pub fn network_seed(&self) -> u64 {
+        let digest = conduit_core::active_play_digest(
+            crate::network_image::PLAN_ID,
+            crate::network_image::HOST_ID,
+            &self.boot_id,
+            1,
+        );
+        u64::from_le_bytes([
+            digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6],
+            digest[7],
+        ])
+    }
+
     /// Bind a distinct immutable Plan/Play to the same physical boot.
     #[cfg(feature = "wifi-bootstrap")]
     pub fn for_plan(&self, plan_id: &str, host_id: &str) -> Self {
