@@ -11,11 +11,11 @@ use conduit_kernel::{
 use conduit_signal::{decode_signal_bytes, Signal, SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN_USIZE};
 use cyw43::Control;
 
-use crate::kernel::presentation_receipt_identity;
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
+use crate::signal_execution_identity::SignalExecutionIdentity;
 use crate::signal_image::{
     generated_cords, generated_host_bindings, generated_nodes, generated_remote_endpoint,
-    generated_routes, presentation_identity, remote_signal_layout, CORDS, HOST_BINDING_SLOTS,
+    generated_routes, remote_signal_layout, CORDS, HOST_BINDING_SLOTS,
     NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS,
     RUNTIME_CLUE_BYTES, RUNTIME_CLUE_EVENTS,
 };
@@ -98,10 +98,11 @@ pub struct RemoteSignalKernel {
     present_operation: conduit_kernel::HostOperationId,
     presented: usize,
     closed: bool,
+    identity: SignalExecutionIdentity,
 }
 
 impl RemoteSignalKernel {
-    pub fn new() -> UsbLinkResult<Self> {
+    pub fn new(identity: SignalExecutionIdentity) -> UsbLinkResult<Self> {
         let layout = remote_signal_layout().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         let remote = generated_remote_endpoint().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         let values = FixedValueStore::<QUEUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>::new(
@@ -135,6 +136,7 @@ impl RemoteSignalKernel {
             present_operation: layout.present_operation,
             presented: 0,
             closed: false,
+            identity,
         })
     }
 
@@ -166,14 +168,16 @@ impl RemoteSignalKernel {
                 {
                     return Err(UsbLinkError::InvalidSignal);
                 }
-                let identity = presentation_identity(self.presented)
+                let identity = self
+                    .identity
+                    .presentation(self.presented)
                     .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
                 control.gpio_set(0, signal.level).await;
                 clue
                     .write_receipt(
                         signal.sequence,
                         signal.level,
-                        presentation_receipt_identity(identity),
+                        identity,
                         runtime,
                     )
                     .await?;

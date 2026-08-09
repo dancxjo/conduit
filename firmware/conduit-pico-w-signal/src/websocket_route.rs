@@ -12,13 +12,16 @@ use crate::usb_link::UsbLinkSession;
 const ATTACHMENT_ID: &str = "r1/pico-network-attachment-1";
 const TCP_BUFFER_BYTES: usize = conduit_net::R1_MAXIMUM_FRAME_BYTES as usize + 256;
 
+#[derive(Debug)]
+pub struct WebSocketUnavailable;
+
 pub async fn run(
     stack: Stack<'static>,
     link: &mut UsbLinkSession,
     clue: &mut UsbCdc,
     control: &mut cyw43::Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
-) -> ! {
+) -> Result<(), WebSocketUnavailable> {
     let Some(config) = stack.config_v4() else {
         remain_bootsel(link).await
     };
@@ -82,9 +85,13 @@ pub async fn run(
     )
     .await {
         Either::First(_) => unreachable!(),
-        Either::Second(_) => {
+        Either::Second(Ok(())) => {
             socket.abort();
             remain_bootsel(link).await
+        }
+        Either::Second(Err(_)) => {
+            socket.abort();
+            Err(WebSocketUnavailable)
         }
     }
 }

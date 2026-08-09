@@ -25,11 +25,15 @@ use embassy_time::{Duration, Timer};
 
 #[cfg(not(feature = "wifi-bootstrap"))]
 use crate::receipts::BootIdentity;
-use crate::receipts::{PresentationReceiptIdentity, TerminalIdentity};
+#[cfg(not(feature = "wifi-bootstrap"))]
+use crate::receipts::TerminalIdentity;
+#[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
+use crate::receipts::PresentationReceiptIdentity;
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 #[cfg(not(feature = "wifi-bootstrap"))]
 use crate::signal_image::BOOT_CLUE_ID;
+#[cfg(not(feature = "wifi-bootstrap"))]
 use crate::signal_image::{
     ACTIVE_PLAY_ID, BOOT_ID, CHECKED_FORM_ID, EXPANDED_FORM_ID, FIRMWARE_BUILD_ID, FRAGMENT_ID,
     HOST_ID, PLAN_ID, SOURCE_DOCUMENT_ID, TERMINAL_CLUE_ID,
@@ -226,6 +230,7 @@ pub fn boot_identity() -> BootIdentity {
     }
 }
 
+#[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 pub fn presentation_receipt_identity(
     identity: crate::signal_image::PresentationIdentity,
 ) -> PresentationReceiptIdentity {
@@ -244,6 +249,7 @@ pub fn presentation_receipt_identity(
     }
 }
 
+#[cfg(not(feature = "wifi-bootstrap"))]
 pub fn terminal_identity() -> TerminalIdentity {
     TerminalIdentity {
         firmware_build_id: FIRMWARE_BUILD_ID,

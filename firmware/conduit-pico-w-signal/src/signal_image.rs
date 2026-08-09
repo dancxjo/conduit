@@ -49,17 +49,29 @@ pub const TERMINAL_CLUE_ID: &str = generated_signal::TERMINAL_CLUE_ID;
 const WAIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/wait@1";
 const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
 
+#[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 #[derive(Clone, Copy)]
 pub struct PresentationIdentity {
     pub presentation_id: &'static str,
     pub clue_id: &'static str,
 }
 
+#[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 pub fn presentation_identity(sequence: usize) -> Option<PresentationIdentity> {
     Some(PresentationIdentity {
         presentation_id: generated_signal::PRESENTATION_IDS.get(sequence)?,
         clue_id: generated_signal::PRESENTATION_CLUE_IDS.get(sequence)?,
     })
+}
+
+#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
+pub fn presentation_ids() -> &'static [&'static str] {
+    &generated_signal::PRESENTATION_IDS
+}
+
+#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
+pub fn presentation_clue_ids() -> &'static [&'static str] {
+    &generated_signal::PRESENTATION_CLUE_IDS
 }
 
 pub fn generated_nodes() -> [conduit_kernel::scheduler::NodeSpec<PORTS>; NODES] {

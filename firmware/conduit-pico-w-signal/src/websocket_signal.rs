@@ -26,7 +26,8 @@ pub async fn run(
     let binding = binding(runtime).map_err(|_| WebSocketTransportError::Frame)?;
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink)
         .map_err(|_| WebSocketTransportError::Frame)?;
-    let mut kernel = RemoteSignalKernel::new().map_err(|_| WebSocketTransportError::Frame)?;
+    let identity = crate::signal_execution_identity::SignalExecutionIdentity::plan_a();
+    let mut kernel = RemoteSignalKernel::new(identity).map_err(|_| WebSocketTransportError::Frame)?;
     let mut bytes = [0_u8; conduit_net::R1_MAXIMUM_FRAME_BYTES as usize];
 
     let hello = receive(socket, transport, &mut bytes).await?;
@@ -110,7 +111,7 @@ pub async fn run(
         }
         if machine.is_terminal() {
             clue
-                .write_terminal(true, crate::kernel::terminal_identity(), runtime)
+                .write_terminal(true, identity.terminal(), runtime)
                 .await
                 .map_err(|_| WebSocketTransportError::Disconnected)?;
             return Ok(());
