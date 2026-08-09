@@ -40,6 +40,7 @@ pub use run_control::{
     RejectedRunControlRequest, RunControl, RunControlDisposition, RunControlReceipt,
     RunControlRequestId,
 };
+pub mod pico_control_source;
 pub mod pico_usb_source;
 pub mod pico_wifi_bootstrap;
 pub mod pool_webchat;
