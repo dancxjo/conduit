@@ -177,7 +177,7 @@ A **Seed** is authored workspace/source material: Forms, Body definitions, asset
 
 ### Body
 
-A **Body** is the durable intended world constituted from Seed material. It owns durable obligations.
+A **Body** is the durable intended world born from Seed material. It owns durable obligations.
 
 A Body is not a Host, process, device, deployment, or current execution. It can persist while the machines and realizations beneath it change.
 
