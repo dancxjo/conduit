@@ -32,6 +32,8 @@ use crate::usb_link::{UsbLinkError, UsbLinkSession};
 use crate::wifi_session::session_binding;
 
 const JOIN_TIMEOUT: Duration = Duration::from_secs(30);
+const CYW43_WPA_PASSPHRASE_MINIMUM_BYTES: usize = 8;
+const CYW43_WPA_PASSPHRASE_MAXIMUM_BYTES: usize = 63;
 const ATTACHMENT_ID: &str = "r1/pico-network-attachment-1";
 static NETWORK_RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
 
@@ -184,6 +186,13 @@ impl JoinKernel {
                     .map_err(|_| UsbLinkError::InvalidNetworkJoin)?;
                     credential_len = decoded.credential.len();
                     credential[..credential_len].copy_from_slice(decoded.credential);
+                }
+                if !(CYW43_WPA_PASSPHRASE_MINIMUM_BYTES
+                    ..=CYW43_WPA_PASSPHRASE_MAXIMUM_BYTES)
+                    .contains(&credential_len)
+                {
+                    credential.fill(0);
+                    return Err(UsbLinkError::NetworkJoinFailed);
                 }
                 crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::NetworkJoin);
                 let join_result = with_timeout(
