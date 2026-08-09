@@ -108,4 +108,34 @@ impl UsbCdc {
         .map_err(|_| UsbClueError::FormatOverflow)?;
         self.write_all_mandatory(line.as_bytes()).await
     }
+
+    pub async fn write_network_recovery_failure(
+        &mut self,
+        code: &str,
+        identity: NetworkAttachmentIdentity<'_>,
+    ) -> Result<(), UsbClueError> {
+        let mut line: HString<1024> = HString::new();
+        core::fmt::write(
+            &mut line,
+            format_args!(
+                concat!(
+                    "{{",
+                    "\"schema\":\"conduit.network/recovery-failure-clue@1\",",
+                    "\"firmware_build_id\":\"{}\",",
+                    "\"runtime_boot_id\":\"{}\",",
+                    "\"runtime_active_play_id\":\"{}\",",
+                    "\"clue_id\":\"{}\",",
+                    "\"error_code\":\"{}\"",
+                    "}}\n"
+                ),
+                identity.firmware_build_id,
+                identity.boot_id,
+                identity.active_play_id,
+                identity.clue_id,
+                code,
+            ),
+        )
+        .map_err(|_| UsbClueError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
+    }
 }

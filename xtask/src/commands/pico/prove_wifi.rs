@@ -441,6 +441,25 @@ fn verify_attachment_clue(
     let record: serde_json::Value = serde_json::from_str(line)
         .map_err(|error| format!("malformed bounded network Clue JSON: {error}"))?;
     let schema = record["schema"].as_str();
+    if schema == Some("conduit.network/recovery-failure-clue@1") {
+        for (field, expected) in [
+            ("firmware_build_id", identity.firmware_build_id.as_str()),
+            ("runtime_boot_id", runtime.boot_id.as_str()),
+            ("runtime_active_play_id", runtime.active_play_id.as_str()),
+            (
+                "clue_id",
+                identity.generated_image.terminal_clue_id.as_str(),
+            ),
+        ] {
+            if record[field].as_str() != Some(expected) {
+                return Err(format!("network recovery Clue field `{field}` mismatched").into());
+            }
+        }
+        let code = record["error_code"]
+            .as_str()
+            .unwrap_or("missing-error-code");
+        return Err(format!("Pico network recovery reported bounded Clue `{code}`").into());
+    }
     if !matches!(
         schema,
         Some("conduit.network/attachment-clue@1" | "conduit.network/join-failure-clue@1")

@@ -39,7 +39,7 @@ pub async fn serve(
                             crate::panic_recovery::PanicPhase::RecoveryClueWrite,
                         );
                         let status = match clue
-                            .write_network_failure(
+                            .write_network_recovery_failure(
                                 record.code(),
                                 crate::wifi_join::attachment_identity(runtime),
                             )
