@@ -118,6 +118,7 @@ pub enum ProveTarget {
     BrowserHost,
     StdPicoUsb,
     PicoWifiBootstrap,
+    PicoWebsocketRoute,
 }
 
 #[derive(Args, Debug)]

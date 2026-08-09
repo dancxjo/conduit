@@ -41,6 +41,12 @@ mod bootsel;
 mod panic_recovery;
 #[cfg(feature = "wifi-bootstrap")]
 mod wifi_recovery;
+#[cfg(feature = "wifi-bootstrap")]
+mod websocket_route;
+#[cfg(feature = "wifi-bootstrap")]
+mod websocket_session;
+#[cfg(feature = "wifi-bootstrap")]
+mod websocket_transport;
 mod radio;
 mod receipts;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]

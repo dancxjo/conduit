@@ -2,6 +2,7 @@ use std::io::ErrorKind;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
+use tungstenite::client::client_with_config;
 use tungstenite::error::Error as TungsteniteError;
 use tungstenite::handshake::HandshakeError;
 use tungstenite::protocol::frame::coding::CloseCode;
@@ -72,16 +73,7 @@ impl NativeWebSocketListener {
         stream
             .set_write_timeout(Some(Duration::from_secs(5)))
             .map_err(|error| NativeWebSocketError::Transport(error.kind()))?;
-        let maximum_write_buffer = self
-            .maximum_message_bytes
-            .checked_add(32)
-            .ok_or(NativeWebSocketError::InvalidLimit)?;
-        let config = WebSocketConfig::default()
-            .read_buffer_size(self.maximum_message_bytes)
-            .write_buffer_size(0)
-            .max_write_buffer_size(maximum_write_buffer)
-            .max_message_size(Some(self.maximum_message_bytes))
-            .max_frame_size(Some(self.maximum_message_bytes));
+        let config = bounded_config(self.maximum_message_bytes)?;
         let socket =
             tungstenite::accept_with_config(stream, Some(config)).map_err(|error| match error {
                 HandshakeError::Interrupted(_) | HandshakeError::Failure(_) => {
@@ -101,6 +93,40 @@ pub struct NativeWebSocketCarrier {
 }
 
 impl NativeWebSocketCarrier {
+    pub fn connect(
+        address: SocketAddr,
+        url: &str,
+        maximum_message_bytes: u32,
+    ) -> Result<Self, NativeWebSocketError> {
+        let maximum_message_bytes = usize::try_from(maximum_message_bytes)
+            .map_err(|_| NativeWebSocketError::InvalidLimit)?;
+        if maximum_message_bytes == 0 || address.ip().is_unspecified() {
+            return Err(NativeWebSocketError::InvalidLimit);
+        }
+        let stream = TcpStream::connect_timeout(&address, Duration::from_secs(5))
+            .map_err(|error| NativeWebSocketError::Transport(error.kind()))?;
+        stream
+            .set_nodelay(true)
+            .map_err(|error| NativeWebSocketError::Transport(error.kind()))?;
+        stream
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .map_err(|error| NativeWebSocketError::Transport(error.kind()))?;
+        stream
+            .set_write_timeout(Some(Duration::from_secs(5)))
+            .map_err(|error| NativeWebSocketError::Transport(error.kind()))?;
+        let config = bounded_config(maximum_message_bytes)?;
+        let (socket, _) =
+            client_with_config(url, stream, Some(config)).map_err(|error| match error {
+                HandshakeError::Interrupted(_) | HandshakeError::Failure(_) => {
+                    NativeWebSocketError::Handshake
+                }
+            })?;
+        Ok(Self {
+            socket,
+            maximum_message_bytes,
+        })
+    }
+
     pub fn maximum_message_bytes(&self) -> usize {
         self.maximum_message_bytes
     }
@@ -148,6 +174,18 @@ impl NativeWebSocketCarrier {
     }
 }
 
+fn bounded_config(maximum_message_bytes: usize) -> Result<WebSocketConfig, NativeWebSocketError> {
+    let maximum_write_buffer = maximum_message_bytes
+        .checked_add(32)
+        .ok_or(NativeWebSocketError::InvalidLimit)?;
+    Ok(WebSocketConfig::default()
+        .read_buffer_size(maximum_message_bytes)
+        .write_buffer_size(0)
+        .max_write_buffer_size(maximum_write_buffer)
+        .max_message_size(Some(maximum_message_bytes))
+        .max_frame_size(Some(maximum_message_bytes)))
+}
+
 fn map_socket_error(error: TungsteniteError) -> NativeWebSocketError {
     match error {
         TungsteniteError::ConnectionClosed | TungsteniteError::AlreadyClosed => {
@@ -161,10 +199,29 @@ fn map_socket_error(error: TungsteniteError) -> NativeWebSocketError {
 
 #[cfg(test)]
 mod tests {
-    use super::{NativeWebSocketError, NativeWebSocketListener};
-    use std::net::TcpStream;
+    use super::{NativeWebSocketCarrier, NativeWebSocketError, NativeWebSocketListener};
+    use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
     use std::thread;
     use tungstenite::protocol::Message;
+
+    #[test]
+    fn unavailable_and_unspecified_client_endpoints_fail_distinctly() {
+        let unspecified = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 8765));
+        assert_eq!(
+            NativeWebSocketCarrier::connect(unspecified, "ws://0.0.0.0:8765/conduit", 16)
+                .map(|_| ()),
+            Err(NativeWebSocketError::InvalidLimit)
+        );
+
+        let unavailable =
+            TcpListener::bind(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0)).expect("reserve address");
+        let address = unavailable.local_addr().expect("reserved address");
+        drop(unavailable);
+        assert!(matches!(
+            NativeWebSocketCarrier::connect(address, &format!("ws://{address}/conduit"), 16),
+            Err(NativeWebSocketError::Transport(_))
+        ));
+    }
 
     #[test]
     fn actual_loopback_rfc6455_is_binary_only_and_message_bounded() {

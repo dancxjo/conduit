@@ -1,4 +1,5 @@
 use heapless::String as HString;
+use conduit_core::LinkBinding;
 
 use crate::receipts::{UsbCdc, UsbClueError, RECEIPT_BUFFER_BYTES};
 
@@ -19,7 +20,106 @@ pub struct NetworkAttachmentIdentity<'a> {
     pub clue_id: &'static str,
 }
 
+#[derive(Clone, Copy)]
+pub struct WebSocketRouteIdentity<'a> {
+    pub firmware_build_id: &'static str,
+    pub attachment_id: &'static str,
+    pub interface_pool_id: &'static str,
+    pub usb_link: &'a LinkBinding,
+    pub websocket_link: &'a LinkBinding,
+    pub address: [u8; 4],
+    pub port: u16,
+    pub clue_id: &'static str,
+}
+
 impl UsbCdc {
+    pub async fn write_websocket_endpoint(
+        &mut self,
+        identity: WebSocketRouteIdentity<'_>,
+    ) -> Result<(), UsbClueError> {
+        let mut line: HString<1024> = HString::new();
+        core::fmt::write(
+            &mut line,
+            format_args!(
+                concat!(
+                    "{{",
+                    "\"schema\":\"conduit.network/websocket-endpoint-clue@1\",",
+                    "\"firmware_build_id\":\"{}\",",
+                    "\"host_id\":\"{}\",",
+                    "\"runtime_boot_id\":\"{}\",",
+                    "\"attachment_id\":\"{}\",",
+                    "\"interface_pool_id\":\"{}\",",
+                    "\"base_instance_id\":\"{}\",",
+                    "\"sink_endpoint_id\":\"{}\",",
+                    "\"ipv4\":[{},{},{},{}],",
+                    "\"port\":{},",
+                    "\"maximum_frame_bytes\":{}",
+                    "}}\n"
+                ),
+                identity.firmware_build_id,
+                identity.websocket_link.sink.host_id.as_str(),
+                identity.websocket_link.sink.boot_id.as_str(),
+                identity.attachment_id,
+                identity.interface_pool_id,
+                identity.websocket_link.base_instance_id.as_str(),
+                identity.websocket_link.sink.endpoint_id.as_str(),
+                identity.address[0],
+                identity.address[1],
+                identity.address[2],
+                identity.address[3],
+                identity.port,
+                conduit_net::R1_MAXIMUM_FRAME_BYTES,
+            ),
+        )
+        .map_err(|_| UsbClueError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
+    }
+
+    pub async fn write_websocket_link(
+        &mut self,
+        identity: WebSocketRouteIdentity<'_>,
+        websocket_active_play_id: &str,
+    ) -> Result<(), UsbClueError> {
+        let mut line: HString<1024> = HString::new();
+        core::fmt::write(
+            &mut line,
+            format_args!(
+                concat!(
+                    "{{",
+                    "\"schema\":\"conduit.network/websocket-link-clue@1\",",
+                    "\"firmware_build_id\":\"{}\",",
+                    "\"host_id\":\"{}\",",
+                    "\"runtime_boot_id\":\"{}\",",
+                    "\"websocket_active_play_id\":\"{}\",",
+                    "\"attachment_id\":\"{}\",",
+                    "\"usb_link_binding_id\":\"{}\",",
+                    "\"websocket_link_binding_id\":\"{}\",",
+                    "\"base_instance_id\":\"{}\",",
+                    "\"source_endpoint_id\":\"{}\",",
+                    "\"sink_endpoint_id\":\"{}\",",
+                    "\"maximum_frame_bytes\":{},",
+                    "\"handshake\":true,",
+                    "\"clue_id\":\"{}\"",
+                    "}}\n"
+                ),
+                identity.firmware_build_id,
+                identity.websocket_link.sink.host_id.as_str(),
+                identity.websocket_link.sink.boot_id.as_str(),
+                websocket_active_play_id,
+                identity.attachment_id,
+                identity.usb_link.binding_id.as_str(),
+                identity.websocket_link.binding_id.as_str(),
+                identity.websocket_link.base_instance_id.as_str(),
+                identity.websocket_link.source.endpoint_id.as_str(),
+                identity.websocket_link.sink.endpoint_id.as_str(),
+                conduit_net::R1_MAXIMUM_FRAME_BYTES,
+                identity.clue_id,
+            ),
+        )
+        .map_err(|_| UsbClueError::FormatOverflow)?;
+        self.write_all_mandatory(line.as_bytes()).await
+    }
+
     pub async fn write_network_attachment(
         &mut self,
         identity: NetworkAttachmentIdentity<'_>,

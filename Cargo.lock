@@ -405,6 +405,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
+ "conduit-wire",
  "serde",
  "serde_json",
 ]
