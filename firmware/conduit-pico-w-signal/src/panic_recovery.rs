@@ -31,6 +31,14 @@ pub enum PanicPhase {
     RecoveryClueWrite = 16,
     RecoveryAdmission = 17,
     PostActivationAllocation = 18,
+    PlanCLineFailure = 19,
+    PlanCLineFailureAllocation = 20,
+    PlanCCheckpoint = 21,
+    PlanCCheckpointAllocation = 22,
+    PlanCResume = 23,
+    PlanCResumeAllocation = 24,
+    PlanCSession = 25,
+    PlanCSessionAllocation = 26,
     Unclassified = 255,
 }
 
@@ -59,6 +67,16 @@ impl PanicRecord {
             PanicPhase::RecoveryClueWrite => "network-recovery-clue-write-panic",
             PanicPhase::RecoveryAdmission => "r1-recovery-admission-panic",
             PanicPhase::PostActivationAllocation => "r1-post-activation-allocation-panic",
+            PanicPhase::PlanCLineFailure => "r1-plan-c-line-failure-panic",
+            PanicPhase::PlanCLineFailureAllocation => {
+                "r1-plan-c-line-failure-allocation-panic"
+            }
+            PanicPhase::PlanCCheckpoint => "r1-plan-c-checkpoint-panic",
+            PanicPhase::PlanCCheckpointAllocation => "r1-plan-c-checkpoint-allocation-panic",
+            PanicPhase::PlanCResume => "r1-plan-c-resume-panic",
+            PanicPhase::PlanCResumeAllocation => "r1-plan-c-resume-allocation-panic",
+            PanicPhase::PlanCSession => "r1-plan-c-session-panic",
+            PanicPhase::PlanCSessionAllocation => "r1-plan-c-session-allocation-panic",
             PanicPhase::Unclassified => "firmware-panic",
         }
     }
@@ -69,6 +87,18 @@ pub fn set_phase(phase: PanicPhase) {
     watchdog
         .scratch0()
         .write(|value| *value = RECORD_MAGIC | phase as u32);
+}
+
+pub fn record_post_activation_allocation() {
+    let current = rp_pac::WATCHDOG.scratch0().read() & !RECORD_MAGIC_MASK;
+    let phase = match current {
+        19 => PanicPhase::PlanCLineFailureAllocation,
+        21 => PanicPhase::PlanCCheckpointAllocation,
+        23 => PanicPhase::PlanCResumeAllocation,
+        25 => PanicPhase::PlanCSessionAllocation,
+        _ => PanicPhase::PostActivationAllocation,
+    };
+    set_phase(phase);
 }
 
 pub fn clear() {
@@ -104,6 +134,14 @@ pub fn take(watchdog_peripheral: Peri<'static, WATCHDOG>) -> Option<PanicRecord>
             16 => PanicPhase::RecoveryClueWrite,
             17 => PanicPhase::RecoveryAdmission,
             18 => PanicPhase::PostActivationAllocation,
+            19 => PanicPhase::PlanCLineFailure,
+            20 => PanicPhase::PlanCLineFailureAllocation,
+            21 => PanicPhase::PlanCCheckpoint,
+            22 => PanicPhase::PlanCCheckpointAllocation,
+            23 => PanicPhase::PlanCResume,
+            24 => PanicPhase::PlanCResumeAllocation,
+            25 => PanicPhase::PlanCSession,
+            26 => PanicPhase::PlanCSessionAllocation,
             _ => PanicPhase::Unclassified,
         },
     })

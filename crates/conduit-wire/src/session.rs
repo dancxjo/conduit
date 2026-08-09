@@ -1,7 +1,8 @@
 use conduit_core::{
-    bind_active_play, ActivePlayId, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId,
-    FragmentId, HostId, KindId, LinkAvailability, LinkBinding, LinkBindingId, LinkEndpointId,
-    LinkLimits, PlanId, PlannedConnection, PROTOCOL_VERSION,
+    active_play_digest, bind_active_play, ActivePlayId, BootId, ConnectionBase,
+    ConnectionBaseInstanceId, ConnectionId, FragmentId, HostId, KindId, LinkAvailability,
+    LinkBinding, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PlannedConnection,
+    PROTOCOL_VERSION,
 };
 
 use crate::{WireError, MAX_ID_BYTES};
@@ -203,13 +204,17 @@ impl SessionBinding {
         {
             return Err(WireError::InvalidSession);
         }
-        if self.source_active_play_id
-            != bind_active_play(&self.plan_id, &self.source.host_id, &self.source.boot_id, 0)
-                .active_play_id
-            || self.sink_active_play_id
-                != bind_active_play(&self.plan_id, &self.sink.host_id, &self.sink.boot_id, 0)
-                    .active_play_id
-        {
+        if !active_play_id_matches(
+            &self.source_active_play_id,
+            &self.plan_id,
+            &self.source.host_id,
+            &self.source.boot_id,
+        ) || !active_play_id_matches(
+            &self.sink_active_play_id,
+            &self.plan_id,
+            &self.sink.host_id,
+            &self.sink.boot_id,
+        ) {
             return Err(WireError::InvalidSession);
         }
         if self.limits.maximum_in_flight_items == 0
@@ -272,6 +277,27 @@ impl SessionBinding {
             identity: self.identity(),
             message,
         }
+    }
+}
+
+fn active_play_id_matches(
+    found: &ActivePlayId,
+    plan_id: &PlanId,
+    host_id: &HostId,
+    boot_id: &BootId,
+) -> bool {
+    let digest = active_play_digest(plan_id.as_str(), host_id.as_str(), boot_id.as_str(), 0);
+    let found = found.as_str().as_bytes();
+    found.len() == digest.len() * 2
+        && found.chunks_exact(2).zip(digest).all(|(encoded, byte)| {
+            encoded[0] == hex_digit(byte >> 4) && encoded[1] == hex_digit(byte & 0x0f)
+        })
+}
+
+const fn hex_digit(value: u8) -> u8 {
+    match value {
+        0..=9 => b'0' + value,
+        _ => b'a' + (value - 10),
     }
 }
 

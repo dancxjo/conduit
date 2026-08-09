@@ -17,6 +17,7 @@ pub async fn resume_plan_c_signal_sink(
     runtime: &RuntimeTranscriptIdentity,
     state: &mut ContinuableSignalSink,
 ) -> Result<(), UsbLinkError> {
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::PlanCCheckpoint);
     let mut peer_bytes = [0_u8; 2048];
     let peer_raw = link.receive_raw_stream_frame(&mut peer_bytes).await?;
     let peer = decode_session_checkpoint(peer_raw, 2048)?;
@@ -29,10 +30,12 @@ pub async fn resume_plan_c_signal_sink(
     )?;
     link.send_raw_stream_frame(&local_bytes[..local_len]).await?;
 
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::PlanCResume);
     let acceptance = state.resume_usb(runtime, peer)?;
     if !acceptance.same_plan_continues {
         return Err(UsbLinkError::Codec(conduit_wire::WireError::InvalidSession));
     }
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::PlanCSession);
     let binding = &state.binding;
     let mut frame_buf = [0_u8; 2048];
 
