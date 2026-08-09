@@ -27,10 +27,8 @@ impl Drop for TestDirectory {
     }
 }
 
-fn provider(
-    choices: impl IntoIterator<Item = Result<Option<PathBuf>, String>>,
-) -> NativeFileProvider {
-    NativeFileProvider {
+fn base(choices: impl IntoIterator<Item = Result<Option<PathBuf>, String>>) -> NativeFileBase {
+    NativeFileBase {
         backend: DialogBackend::Scripted(choices.into_iter().collect()),
     }
 }
@@ -47,7 +45,7 @@ fn wait(task: &mut NativeFileTask) {
 }
 
 #[test]
-fn omitted_provider_is_valid_and_advertises_no_file_capability() {
+fn omitted_base_is_valid_and_advertises_no_file_capability() {
     let mut task = NativeFileTask::new(None);
     let lines = task.lines().join("\n");
     assert!(lines.contains("usable=false capability-advertised=false"));
@@ -60,8 +58,8 @@ fn choices_become_opaque_grants_and_copy_runs_through_the_ordinary_kernel() {
     let directory = TestDirectory::new();
     let source = directory.path("private-source.txt");
     let destination = directory.path("private-destination.txt");
-    std::fs::write(&source, b"native provider copy").unwrap();
-    let mut task = NativeFileTask::new(Some(provider([
+    std::fs::write(&source, b"native base copy").unwrap();
+    let mut task = NativeFileTask::new(Some(base([
         Ok(Some(source.clone())),
         Ok(Some(destination.clone())),
     ])));
@@ -74,10 +72,7 @@ fn choices_become_opaque_grants_and_copy_runs_through_the_ordinary_kernel() {
     assert!(!semantic.contains(destination.to_string_lossy().as_ref()));
     task.run().unwrap();
     wait(&mut task);
-    assert_eq!(
-        std::fs::read(&destination).unwrap(),
-        b"native provider copy"
-    );
+    assert_eq!(std::fs::read(&destination).unwrap(), b"native base copy");
     let lines = task.lines().join("\n");
     assert!(lines.contains("capability-advertised=true"));
     assert!(lines.contains("FILE-PLAN checked="));
@@ -97,7 +92,7 @@ fn cancelled_dialog_and_destination_conflict_cannot_manufacture_success() {
     let destination = directory.path("destination.txt");
     std::fs::write(&source, b"new").unwrap();
     std::fs::write(&destination, b"old").unwrap();
-    let mut cancelled = NativeFileTask::new(Some(provider([Ok(None)])));
+    let mut cancelled = NativeFileTask::new(Some(base([Ok(None)])));
     assert_eq!(
         cancelled.choose_source().unwrap(),
         ChoiceDisposition::Cancelled
@@ -108,7 +103,7 @@ fn cancelled_dialog_and_destination_conflict_cannot_manufacture_success() {
         .contains("role=source disposition=Cancelled"));
     assert!(cancelled.plan().unwrap_err().contains("not been chosen"));
 
-    let mut conflict = NativeFileTask::new(Some(provider([
+    let mut conflict = NativeFileTask::new(Some(base([
         Ok(Some(source)),
         Ok(Some(destination.clone())),
     ])));

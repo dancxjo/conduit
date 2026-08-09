@@ -1,5 +1,5 @@
 use conduit_core::{
-    CapabilityId, OperationId, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
+    CapabilityId, GearId, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
     ResourceBindingRoleId, ResourceHandleId,
 };
 use conduit_std_host::{
@@ -247,12 +247,12 @@ fn argument_error(detail: impl AsRef<str>) -> String {
 fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
     let host = StdHost::new();
     let mut registry = ProtectedFileRegistry::default();
-    let operation_id = OperationId::from("copy");
+    let gear_id = GearId::from("copy");
     let capability_id = CapabilityId::from(conduit_std_catalog::COPY_FILE_CAPABILITY);
     let source = registry.register(
         ResourceHandleId::from("copy/source-choice"),
         &arguments.source,
-        operation_id.clone(),
+        gear_id.clone(),
         ResourceBindingRoleId::from(conduit_std_catalog::COPY_SOURCE_ROLE),
         host.advertisement().host_id.clone(),
         host.advertisement().boot_id.clone(),
@@ -275,7 +275,7 @@ fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
     let destination = registry.register(
         ResourceHandleId::from("copy/destination-choice"),
         &arguments.destination,
-        operation_id,
+        gear_id,
         ResourceBindingRoleId::from(conduit_std_catalog::COPY_DESTINATION_ROLE),
         host.advertisement().host_id.clone(),
         host.advertisement().boot_id.clone(),
@@ -392,8 +392,8 @@ fn render_inspect(
         for placement in &fragment.placements {
             writeln!(
                 output,
-                "  operation: {} (face: {} inputs, {} outputs)",
-                placement.operation_id.as_str(),
+                "  gear: {} (face: {} inputs, {} outputs)",
+                placement.gear_id.as_str(),
                 placement.inputs.len(),
                 placement.outputs.len()
             )

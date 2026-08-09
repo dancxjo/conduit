@@ -27,7 +27,7 @@ cargo run -p conduit -- examples/triple-signal.form --placements examples/triple
 The local triple fixture intentionally places all three `presentation/show` sinks on
 the std host. It proves the authored final form has no platform facts and that
 the host protocol can produce independent bounded receipts for all three sinks.
-It is not the final browser/Pico realm proof.
+It is not the final browser/Pico planning scope proof.
 
 The browser simulation can run the pair form across two independent instances
 in one page-model fixture:
@@ -61,7 +61,7 @@ cargo test -p conduit-browser-sim std_host_sends_signal_to_browser_through_bound
 ```
 
 That fixture plans the pair form across std and simulated advertisements with
-the `FixtureFrame` provider, serializes every connection envelope through
+the `FixtureFrame` base, serializes every connection envelope through
 `conduit-wire`, enforces frame bounds, and compares the browser DOM-state
 receipts against the same sixteen ordered signal values.
 
@@ -85,7 +85,7 @@ cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_dat
 ```
 
 That fixture plans the pair form across std and simulated advertisements with
-the `FixtureDatagram` provider, serializes every connection envelope through
+the `FixtureDatagram` base, serializes every connection envelope through
 `conduit-wire`, enforces datagram bounds, and compares retained onboard-LED
 receipts against the same sixteen ordered signal values.
 
@@ -99,7 +99,7 @@ cargo test -p conduit-browser-sim triple_signal_form_fans_out_to_std_and_simulat
 That proof keeps the authored form free of platform and transport facts while
 the plan places `local` on std stdout and the other sinks on simulated
 manifestations. Bounded frame/datagram fixtures carry the envelopes. The
-comparison is conformance evidence, not browser, firmware, socket, or HIL proof.
+comparison is conformance clue, not browser, firmware, socket, or HIL proof.
 
 ## Receipts
 
@@ -121,5 +121,5 @@ proof compares all three streams from the unchanged form.
 The repository contains deterministic browser-shaped and Pico-shaped
 simulations plus frame/datagram relay fixtures and one actual Chromium DOM
 presentation adapter. It does not contain a browser-side planner/runtime, live
-WebSocket or UDP provider, Pico firmware, physical LED acceptance, or
+WebSocket or UDP base, Pico firmware, physical LED acceptance, or
 three-host manifestation proof.

@@ -1,4 +1,4 @@
-use conduit_core::{kind_id, OperationId, ResourceClassId, TIMER_RESOURCE_CLASS};
+use conduit_core::{kind_id, GearId, ResourceClassId, TIMER_RESOURCE_CLASS};
 use conduit_form::parse;
 use conduit_planner::{
     default_placements, plan_with_hard_requirements, HardRealizationRequirements, PlannerError,
@@ -29,10 +29,10 @@ fn planning_inputs() -> (
 #[test]
 fn hard_bounds_reject_before_plan_construction_and_pass_when_satisfied() {
     let (form, host, placements) = planning_inputs();
-    let operation_id = form.operations[0].operation_id.clone();
+    let gear_id = form.gears[0].gear_id.clone();
     let selected = &host.capabilities[0];
     let requirements = BTreeMap::from([(
-        operation_id.clone(),
+        gear_id.clone(),
         HardRealizationRequirements {
             minimum_queue_items: selected.limits.max_queue_items + 1,
             ..HardRealizationRequirements::default()
@@ -50,7 +50,7 @@ fn hard_bounds_reject_before_plan_construction_and_pass_when_satisfied() {
     ));
 
     let satisfied = BTreeMap::from([(
-        operation_id,
+        gear_id,
         HardRealizationRequirements {
             minimum_queue_items: selected.limits.max_queue_items,
             minimum_queue_bytes: selected.limits.max_queue_bytes,
@@ -70,9 +70,9 @@ fn hard_bounds_reject_before_plan_construction_and_pass_when_satisfied() {
 #[test]
 fn resource_and_effect_allowlists_are_hard_gates_not_rankings() {
     let (form, host, placements) = planning_inputs();
-    let operation_id = form.operations[0].operation_id.clone();
+    let gear_id = form.gears[0].gear_id.clone();
     let forbidden_timer = BTreeMap::from([(
-        operation_id.clone(),
+        gear_id.clone(),
         HardRealizationRequirements {
             maximum_resource_units: BTreeMap::from([(
                 ResourceClassId::from(TIMER_RESOURCE_CLASS),
@@ -93,7 +93,7 @@ fn resource_and_effect_allowlists_are_hard_gates_not_rankings() {
     ));
 
     let no_host_effects = BTreeMap::from([(
-        operation_id,
+        gear_id,
         HardRealizationRequirements {
             permitted_host_operations: Some(BTreeSet::new()),
             ..HardRealizationRequirements::default()
@@ -116,7 +116,7 @@ fn checked_face_compatibility_is_evaluated_before_hard_requirements() {
     let (form, mut host, placements) = planning_inputs();
     host.capabilities[0].outputs[0].value_kind = kind_id("test/different-value");
     let requirements = BTreeMap::from([(
-        form.operations[0].operation_id.clone(),
+        form.gears[0].gear_id.clone(),
         HardRealizationRequirements {
             minimum_queue_items: u16::MAX,
             ..HardRealizationRequirements::default()
@@ -132,7 +132,7 @@ fn checked_face_compatibility_is_evaluated_before_hard_requirements() {
 fn requirements_for_an_unknown_operation_fail_closed() {
     let (form, host, placements) = planning_inputs();
     let requirements = BTreeMap::from([(
-        OperationId::from("absent"),
+        GearId::from("absent"),
         HardRealizationRequirements::default(),
     )]);
     assert!(matches!(
@@ -143,6 +143,6 @@ fn requirements_for_an_unknown_operation_fail_closed() {
             &[],
             &requirements,
         ),
-        Err(PlannerError::UnknownOperation(operation)) if operation == "absent"
+        Err(PlannerError::UnknownGear(gear)) if gear == "absent"
     ));
 }

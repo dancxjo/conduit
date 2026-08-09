@@ -12,7 +12,7 @@ use super::{
 };
 use alloc::boxed::Box;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, FailureReason, ImplementationId, KindId, PlannedOperation,
+    kind_id, port_id, ArtifactId, FailureReason, ImplementationId, KindId, PlannedGear,
 };
 use conduit_runtime::{
     ImplementationFailure, ImplementationRegistry, OperationAction, OperationCompletion,
@@ -66,13 +66,10 @@ impl OperationImplementation for PulseImplementation {
 
     fn prepare(
         &self,
-        placement: &PlannedOperation,
+        placement: &PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
         let configuration = parse_pulse_configuration(&placement.configuration).map_err(|err| {
-            ImplementationFailure::new(
-                FailureReason::InvalidOperationConfiguration,
-                err.to_string(),
-            )
+            ImplementationFailure::new(FailureReason::InvalidGearConfiguration, err.to_string())
         })?;
         Ok(Box::new(PulseState {
             configuration,
@@ -185,7 +182,7 @@ impl OperationImplementation for ShowImplementation {
 
     fn prepare(
         &self,
-        _placement: &PlannedOperation,
+        _placement: &PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
         Ok(Box::new(ShowState {
             expected_sequence: 0,

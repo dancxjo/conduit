@@ -161,9 +161,9 @@ mod std_fixture {
     use super::{led_receipt, pico_advertisement, LedReceipt, PicoSimConfig};
     use alloc::vec::Vec;
     use conduit_core::{
-        process_owned_link_binding, CapabilityId, ConnectionProvider, HostAdvertisement,
-        HostCommand, HostEvent, HostId, ImplementationId, Observation, PlacementId, Plan,
-        PlanFragment, PlatformEffect,
+        process_owned_link_binding, CapabilityId, ConnectionBase, HostAdvertisement, HostCommand,
+        HostEvent, HostId, ImplementationId, Observation, PlacementId, Plan, PlanFragment,
+        PlatformEffect,
     };
     use conduit_form::CheckedForm;
     use conduit_planner::{plan, plan_with_link_bindings, PlacementChoice, PlacementChoices};
@@ -208,16 +208,16 @@ mod std_fixture {
 
         pub fn plan_local(&self, form: &CheckedForm) -> Result<Plan, Box<dyn std::error::Error>> {
             let placements = PlacementChoices {
-                by_operation: BTreeMap::from([
+                by_gear: BTreeMap::from([
                     (
-                        conduit_core::OperationId::from("pulse"),
+                        conduit_core::GearId::from("pulse"),
                         PlacementChoice {
                             host_id: self.advertisement().host_id.clone(),
                             capability_id: CapabilityId::from("pico-pulse"),
                         },
                     ),
                     (
-                        conduit_core::OperationId::from("show"),
+                        conduit_core::GearId::from("show"),
                         PlacementChoice {
                             host_id: self.advertisement().host_id.clone(),
                             capability_id: CapabilityId::from("onboard-led"),
@@ -229,7 +229,7 @@ mod std_fixture {
                 form,
                 &[self.advertisement().clone()],
                 &placements,
-                &[ConnectionProvider::Local],
+                &[ConnectionBase::Local],
             )?)
         }
 
@@ -239,16 +239,16 @@ mod std_fixture {
             std_advertisement: &HostAdvertisement,
         ) -> Result<Plan, Box<dyn std::error::Error>> {
             let placements = PlacementChoices {
-                by_operation: BTreeMap::from([
+                by_gear: BTreeMap::from([
                     (
-                        conduit_core::OperationId::from("pulse"),
+                        conduit_core::GearId::from("pulse"),
                         PlacementChoice {
                             host_id: std_advertisement.host_id.clone(),
                             capability_id: CapabilityId::from("pulse-1"),
                         },
                     ),
                     (
-                        conduit_core::OperationId::from("show"),
+                        conduit_core::GearId::from("show"),
                         PlacementChoice {
                             host_id: self.advertisement().host_id.clone(),
                             capability_id: CapabilityId::from("onboard-led"),
@@ -258,7 +258,7 @@ mod std_fixture {
             };
             let links = [process_owned_link_binding(
                 "link/std-pico",
-                ConnectionProvider::FixtureDatagram,
+                ConnectionBase::FixtureDatagram,
                 "fixture/datagram/std-pico",
                 std_advertisement,
                 self.advertisement(),
@@ -269,7 +269,7 @@ mod std_fixture {
                 form,
                 &[std_advertisement.clone(), self.advertisement().clone()],
                 &placements,
-                &[ConnectionProvider::FixtureDatagram],
+                &[ConnectionBase::FixtureDatagram],
                 4,
                 64,
                 &links,
@@ -305,12 +305,12 @@ mod std_fixture {
         pub fn run_fragment(&mut self, fragment: PlanFragment) -> Result<Vec<Observation>, String> {
             let prepare = self.runtime.handle(HostCommand::Prepare(fragment.clone()));
             ensure_prepared(&prepare)?;
-            let activated = self
+            let triggerd = self
                 .runtime
-                .handle(HostCommand::Activate(fragment.plan_id.clone()));
-            ensure_activated(&activated)?;
+                .handle(HostCommand::StartPlay(fragment.plan_id.clone()));
+            ensure_triggerd(&triggerd)?;
 
-            let mut pending = activated.effects;
+            let mut pending = triggerd.effects;
             while let Some(effect) = pending.pop() {
                 let follow_up = match effect {
                     PlatformEffect::Wait {
@@ -367,12 +367,12 @@ mod std_fixture {
             .map_or(Ok(()), Err)
     }
 
-    fn ensure_activated(output: &RuntimeOutput) -> Result<(), String> {
+    fn ensure_triggerd(output: &RuntimeOutput) -> Result<(), String> {
         output
             .events
             .iter()
             .find_map(|event| match event {
-                HostEvent::ActivationRejected {
+                HostEvent::PlayStartRejected {
                     reason, message, ..
                 } => Some(message.clone().unwrap_or_else(|| format!("{reason:?}"))),
                 _ => None,
@@ -405,8 +405,8 @@ pub use std_fixture::PicoSim;
 mod tests {
     use super::{pico_advertisement, BoundedDatagramRelayFixture, PicoSim, PicoSimConfig};
     use conduit_core::{
-        BootId, ConnectionId, ConnectionOutcome, ConnectionProvider, HostCommand, HostEvent,
-        HostId, OfferGeneration, PlatformEffect, TerminalDisposition,
+        BootId, ConnectionBase, ConnectionId, ConnectionOutcome, HostCommand, HostEvent, HostId,
+        OfferGeneration, PlatformEffect, TerminalDisposition,
     };
     use conduit_form::parse;
     use conduit_runtime::RuntimeOutput;
@@ -455,7 +455,7 @@ mod tests {
         let connection = fragment
             .connections
             .iter()
-            .find(|connection| connection.provider == ConnectionProvider::Local)
+            .find(|connection| connection.base == ConnectionBase::Local)
             .expect("pico local connection is planned");
         assert_eq!(connection.item_capacity, 4);
         assert_eq!(connection.byte_capacity, 64);
@@ -499,7 +499,7 @@ mod tests {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .find(|connection| connection.provider == ConnectionProvider::FixtureDatagram)
+            .find(|connection| connection.base == ConnectionBase::FixtureDatagram)
             .expect("datagram fixture connection is planned");
         assert_eq!(connection.item_capacity, 4);
         assert_eq!(connection.byte_capacity, 64);
@@ -524,11 +524,11 @@ mod tests {
         let mut pending = VecDeque::new();
         for fragment in sink_fragments_first(&plan.fragments) {
             let output = if fragment.host_id == std_host.advertisement().host_id {
-                std_host.handle(HostCommand::Activate(fragment.plan_id.clone()))
+                std_host.handle(HostCommand::StartPlay(fragment.plan_id.clone()))
             } else {
-                pico.handle(HostCommand::Activate(fragment.plan_id.clone()))
+                pico.handle(HostCommand::StartPlay(fragment.plan_id.clone()))
             };
-            ensure_activated(&output).expect("fragment activates");
+            ensure_triggerd(&output).expect("fragment triggers");
             pending.extend(
                 output
                     .effects
@@ -706,7 +706,7 @@ mod tests {
             fragment
                 .connections
                 .iter()
-                .any(|connection| connection.provider == ConnectionProvider::FixtureDatagram)
+                .any(|connection| connection.base == ConnectionBase::FixtureDatagram)
                 && fragment
                     .placements
                     .iter()
@@ -729,12 +729,12 @@ mod tests {
             .map_or(Ok(()), Err)
     }
 
-    fn ensure_activated(output: &RuntimeOutput) -> Result<(), String> {
+    fn ensure_triggerd(output: &RuntimeOutput) -> Result<(), String> {
         output
             .events
             .iter()
             .find_map(|event| match event {
-                HostEvent::ActivationRejected {
+                HostEvent::PlayStartRejected {
                     reason, message, ..
                 } => Some(message.clone().unwrap_or_else(|| format!("{reason:?}"))),
                 _ => None,

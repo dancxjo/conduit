@@ -1,6 +1,6 @@
 use crate::{
     hash_string, CanonicalExpansionDiagnostic, CanonicalStartupValue, CheckedCanonicalForm,
-    CheckedOperation, ExpandedSharedPool,
+    CheckedGear, ExpandedSharedPool,
 };
 use std::collections::BTreeMap;
 
@@ -57,14 +57,14 @@ pub(super) fn expanded_pool_declarations(
 
 pub(super) fn seal_pool_consumers(
     shared_pools: &mut [ExpandedSharedPool],
-    operations: &[CheckedOperation],
+    gears: &[CheckedGear],
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     shared_pools.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     for pool in shared_pools.iter_mut() {
-        pool.consumers = operations
+        pool.consumers = gears
             .iter()
-            .filter(|operation| operation.pool_references.contains(&pool.pool_id))
-            .map(|operation| operation.operation_id.clone())
+            .filter(|gear| gear.pool_references.contains(&pool.pool_id))
+            .map(|gear| gear.gear_id.clone())
             .collect();
         pool.consumers.sort();
         if pool.consumers.is_empty() {
@@ -77,9 +77,9 @@ pub(super) fn seal_pool_consumers(
             ));
         }
     }
-    if let Some(reference) = operations
+    if let Some(reference) = gears
         .iter()
-        .flat_map(|operation| &operation.pool_references)
+        .flat_map(|gear| &gear.pool_references)
         .find(|reference| !shared_pools.iter().any(|pool| &pool.pool_id == *reference))
     {
         return Err(CanonicalExpansionDiagnostic::new(

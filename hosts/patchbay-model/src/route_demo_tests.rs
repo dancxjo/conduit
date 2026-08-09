@@ -45,16 +45,16 @@ fn visual_and_linear_views_preserve_one_typed_identity_set() {
         facts.new_plan.prior.plan_id.as_str(),
         facts.new_plan.prior.connection_id.as_str(),
         facts.new_plan.replacement_plan_id.as_str(),
-        facts.new_plan.unavailable_evidence_id.as_str(),
-        facts.new_plan.unsatisfied_evidence_id.as_str(),
-        facts.new_plan.planning_request_evidence_id.as_str(),
-        facts.new_plan.planning_success_evidence_id.as_str(),
-        facts.new_plan.installed_evidence_id.as_str(),
+        facts.new_plan.unavailable_clue_id.as_str(),
+        facts.new_plan.unsatisfied_clue_id.as_str(),
+        facts.new_plan.planning_request_clue_id.as_str(),
+        facts.new_plan.planning_success_clue_id.as_str(),
+        facts.new_plan.installed_clue_id.as_str(),
         facts.same_plan.plan.plan_id.as_str(),
         facts.same_plan.plan.connection_id.as_str(),
-        facts.same_plan.unavailable_evidence_id.as_str(),
-        facts.same_plan.selection_evidence_id.as_str(),
-        facts.refused.observation_evidence_id.as_str(),
+        facts.same_plan.unavailable_clue_id.as_str(),
+        facts.same_plan.selection_clue_id.as_str(),
+        facts.refused.observation_clue_id.as_str(),
     ];
     for identity in exact_identities {
         assert!(visual.contains(identity), "visual omitted {identity}");
@@ -69,7 +69,7 @@ fn visual_and_linear_views_preserve_one_typed_identity_set() {
     {
         for identity in [
             candidate.binding_id.as_str(),
-            candidate.provider_instance_id.as_str(),
+            candidate.base_instance_id.as_str(),
         ] {
             assert!(visual.contains(identity), "visual omitted {identity}");
             assert!(linear.contains(identity), "linear omitted {identity}");
@@ -82,16 +82,16 @@ fn visual_and_linear_views_preserve_one_typed_identity_set() {
 }
 
 #[test]
-fn projection_uses_typed_providers_and_exact_validated_event_evidence() {
+fn projection_uses_typed_bases_and_exact_validated_event_clue() {
     let demo = DistributedRouteDemo::build().expect("route demo");
     let facts = demo.presentation();
     assert_eq!(
-        facts.new_plan.prior.candidates[0].provider,
-        ConnectionProvider::UsbCdc
+        facts.new_plan.prior.candidates[0].base,
+        ConnectionBase::UsbCdc
     );
     assert_eq!(
-        facts.same_plan.plan.candidates[1].provider,
-        ConnectionProvider::WebSocket
+        facts.same_plan.plan.candidates[1].base,
+        ConnectionBase::WebSocket
     );
 
     let [link, unsatisfied, requested, succeeded, installed, selected] = demo.control_events()
@@ -99,52 +99,39 @@ fn projection_uses_typed_providers_and_exact_validated_event_evidence() {
         panic!("route demo must retain its six validated control events");
     };
     let ControlLoopEvent::LinkBecameUnavailable {
-        observation_evidence_id,
+        observation_clue_id,
         ..
     } = link
     else {
         panic!("first event must be link loss");
     };
-    assert_eq!(
-        &facts.new_plan.unavailable_evidence_id,
-        observation_evidence_id
-    );
-    let ControlLoopEvent::DeploymentBecameUnsatisfied { evidence_id, .. } = unsatisfied else {
-        panic!("second event must be unsatisfied deployment");
+    assert_eq!(&facts.new_plan.unavailable_clue_id, observation_clue_id);
+    let ControlLoopEvent::PlayBecameUnsatisfied { clue_id, .. } = unsatisfied else {
+        panic!("second event must be an unsatisfied Play");
     };
-    assert_eq!(&facts.new_plan.unsatisfied_evidence_id, evidence_id);
+    assert_eq!(&facts.new_plan.unsatisfied_clue_id, clue_id);
     let ControlLoopEvent::PlanningRequested {
-        request_evidence_id,
-        ..
+        request_clue_id, ..
     } = requested
     else {
         panic!("third event must be planning request");
     };
-    assert_eq!(
-        &facts.new_plan.planning_request_evidence_id,
-        request_evidence_id
-    );
-    let ControlLoopEvent::PlanningSucceeded { evidence_id, .. } = succeeded else {
+    assert_eq!(&facts.new_plan.planning_request_clue_id, request_clue_id);
+    let ControlLoopEvent::PlanningSucceeded { clue_id, .. } = succeeded else {
         panic!("fourth event must be planning success");
     };
-    assert_eq!(&facts.new_plan.planning_success_evidence_id, evidence_id);
-    let ControlLoopEvent::PlanSuperseded { evidence_id, .. } = installed else {
+    assert_eq!(&facts.new_plan.planning_success_clue_id, clue_id);
+    let ControlLoopEvent::PlanSuperseded { clue_id, .. } = installed else {
         panic!("fifth event must install the replacement Plan");
     };
-    assert_eq!(&facts.new_plan.installed_evidence_id, evidence_id);
+    assert_eq!(&facts.new_plan.installed_clue_id, clue_id);
     let ControlLoopEvent::RouteSelectionChanged {
-        observation_evidence_id,
+        observation_clue_id,
         ..
     } = selected
     else {
         panic!("sixth event must be same-Plan selection");
     };
-    assert_eq!(
-        &facts.same_plan.selection_evidence_id,
-        observation_evidence_id
-    );
-    assert_eq!(
-        &facts.same_plan.unavailable_evidence_id,
-        observation_evidence_id
-    );
+    assert_eq!(&facts.same_plan.selection_clue_id, observation_clue_id);
+    assert_eq!(&facts.same_plan.unavailable_clue_id, observation_clue_id);
 }

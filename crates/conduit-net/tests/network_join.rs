@@ -39,7 +39,7 @@ fn request<'a>(credential: &'a [u8]) -> NetworkJoinRequest<'a> {
 }
 
 #[test]
-fn provider_executes_with_exact_resource_authority_and_boot_scoped_attachment() {
+fn base_executes_with_exact_resource_authority_and_boot_scoped_attachment() {
     let advertisement = network_capable_advertisement("host/network", "boot/network-1");
     let attachment = execute_fixture_join(
         request(b"volatile-secret"),

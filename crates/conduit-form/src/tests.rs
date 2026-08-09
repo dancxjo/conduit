@@ -251,8 +251,8 @@ fn parses_catalog_supplied_kinds_and_ports() {
             &catalog(),
         )
         .expect("form parses");
-    assert_eq!(form.operations[0].kind_id.as_str(), "test/sink");
-    assert_eq!(form.operations[1].kind_id.as_str(), "test/source");
+    assert_eq!(form.gears[0].kind_id.as_str(), "test/sink");
+    assert_eq!(form.gears[1].kind_id.as_str(), "test/source");
     assert_eq!(form.connections[0].source_port_id.as_str(), "out");
     assert_eq!(form.connections[0].sink_port_id.as_str(), "in");
 }
@@ -324,14 +324,8 @@ fn checked_export_is_the_only_source_of_a_parent_kind_boundary() {
     assert_eq!(boundary.inputs[0].port_id.as_str(), "in");
     assert_eq!(boundary.outputs.len(), 1);
     assert_eq!(boundary.outputs[0].port_id.as_str(), "out");
-    assert_eq!(
-        boundary.input_faces[0].internal_operation_id.as_str(),
-        "sink"
-    );
-    assert_eq!(
-        boundary.output_faces[0].internal_operation_id.as_str(),
-        "source"
-    );
+    assert_eq!(boundary.input_faces[0].internal_gear_id.as_str(), "sink");
+    assert_eq!(boundary.output_faces[0].internal_gear_id.as_str(), "source");
     assert!(child
         .export_boundary(&CapabilityId::from("invented"))
         .is_err());
@@ -346,7 +340,7 @@ fn checked_export_is_the_only_source_of_a_parent_kind_boundary() {
     )
     .expect("ordinary parent cord checks");
     assert_eq!(
-        parent.operations[0].kind_contract_revision,
+        parent.gears[0].kind_contract_revision,
         installed.kind_contract_revision
     );
     assert_eq!(parent.connections[0].source_port_id.as_str(), "out");
@@ -450,10 +444,10 @@ fn multiple_typed_and_zero_sided_faces_check_as_ordinary_kinds() {
         .expect("parent checks all exported faces through ordinary ports");
     assert_eq!(parent.connections.len(), 4);
     assert!(parent
-        .operations
+        .gears
         .iter()
-        .find(|operation| operation.operation_id.as_str() == "child")
-        .is_some_and(|operation| operation.inputs.len() == 2 && operation.outputs.len() == 2));
+        .find(|gear| gear.gear_id.as_str() == "child")
+        .is_some_and(|gear| gear.inputs.len() == 2 && gear.outputs.len() == 2));
 }
 
 #[test]
@@ -487,7 +481,7 @@ fn inline_nested_form_uses_the_same_checked_boundary_as_a_standalone_form() {
     let nested = &parent.nested_forms[0];
     let capability_id = CapabilityId::from("run");
 
-    assert_eq!(nested.operation_id.as_str(), "child");
+    assert_eq!(nested.gear_id.as_str(), "child");
     assert_eq!(nested.export_capability_id, capability_id);
     assert_eq!(nested.form.checked_form_id, standalone.checked_form_id);
     assert_eq!(nested.form.expanded_form_id, standalone.expanded_form_id);
@@ -505,9 +499,9 @@ fn inline_nested_form_uses_the_same_checked_boundary_as_a_standalone_form() {
             .expect("standalone boundary checks")
     );
     assert_eq!(parent.connections.len(), 1);
-    assert_eq!(parent.connections[0].source_operation_id.as_str(), "child");
+    assert_eq!(parent.connections[0].source_gear_id.as_str(), "child");
     assert_eq!(parent.connections[0].source_port_id.as_str(), "out");
-    assert_eq!(parent.connections[0].sink_operation_id.as_str(), "final");
+    assert_eq!(parent.connections[0].sink_gear_id.as_str(), "final");
 }
 
 #[test]
@@ -534,8 +528,8 @@ fn parent_expanded_identity_binds_hidden_child_semantics_not_checked_boundary() 
         changed.nested_forms[0].form.checked_form_id
     );
     assert_eq!(
-        baseline.operations[0].kind_contract_revision,
-        changed.operations[0].kind_contract_revision
+        baseline.gears[0].kind_contract_revision,
+        changed.gears[0].kind_contract_revision
     );
     assert_eq!(baseline.checked_form_id, changed.checked_form_id);
     assert_ne!(baseline.expanded_form_id, changed.expanded_form_id);
@@ -593,8 +587,8 @@ fn nested_expansion_paths_are_canonical_and_substitution_fails_closed() {
         baseline.expanded_form_id,
         implementations_swapped.expanded_form_id
     );
-    assert_eq!(baseline.nested_forms[0].operation_id.as_str(), "left");
-    assert_eq!(baseline.nested_forms[1].operation_id.as_str(), "right");
+    assert_eq!(baseline.nested_forms[0].gear_id.as_str(), "left");
+    assert_eq!(baseline.nested_forms[1].gear_id.as_str(), "right");
 
     let mut omitted = baseline.clone();
     omitted.nested_forms.remove(0);

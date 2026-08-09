@@ -48,8 +48,8 @@ fn binding() -> SessionBinding {
         },
         attachment: RouteAttachment {
             link_binding_id: LinkBindingId::from("test/link"),
-            provider: ConnectionProvider::WebSocket,
-            provider_instance_id: ConnectionProviderInstanceId::from("test/provider-instance"),
+            base: ConnectionBase::WebSocket,
+            base_instance_id: ConnectionBaseInstanceId::from("test/base-instance"),
             source_host_id: source.host_id,
             source_boot_id: source.boot_id,
             source_endpoint_id: LinkEndpointId::from("test/source-endpoint"),
@@ -66,7 +66,7 @@ fn binding() -> SessionBinding {
     }
 }
 
-fn activate(machine: &mut SessionMachine) {
+fn trigger(machine: &mut SessionMachine) {
     let binding = machine.binding().clone();
     machine.admit_outbound(binding.hello_frame()).unwrap();
     machine.admit_inbound(binding.hello_frame()).unwrap();
@@ -90,7 +90,7 @@ fn exact_planned_connection_constructs_the_session_binding() {
         sink_port_id: conduit_core::PortId::from("in"),
         value_kind: expected.value_kind.clone(),
         temporal: conduit_core::PortTemporal::Value,
-        provider: ConnectionProvider::WebSocket,
+        base: ConnectionBase::WebSocket,
         link_binding: Some(LinkBinding {
             binding_id: expected.attachment.link_binding_id.clone(),
             source: LinkEndpoint {
@@ -103,8 +103,8 @@ fn exact_planned_connection_constructs_the_session_binding() {
                 boot_id: expected.sink.boot_id.clone(),
                 endpoint_id: expected.attachment.sink_endpoint_id.clone(),
             },
-            provider: expected.attachment.provider,
-            provider_instance_id: expected.attachment.provider_instance_id.clone(),
+            base: expected.attachment.base,
+            base_instance_id: expected.attachment.base_instance_id.clone(),
             availability: LinkAvailability::Ready,
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
@@ -187,7 +187,7 @@ fn borrowed_codec_round_trips_exact_hello_and_rejects_frame_mutations() {
 fn lifecycle_is_exact_bounded_and_terminal() {
     let binding = binding();
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Source).unwrap();
-    activate(&mut machine);
+    trigger(&mut machine);
 
     let offered = binding.frame(SessionMessage::Offered {
         sequence: 0,
@@ -233,7 +233,7 @@ fn lifecycle_is_exact_bounded_and_terminal() {
 fn receiver_pressure_allows_only_the_same_offer_to_retry() {
     let binding = binding();
     let mut source = SessionMachine::new(binding.clone(), SessionRole::Source).unwrap();
-    activate(&mut source);
+    trigger(&mut source);
     let offered = binding.frame(SessionMessage::Offered {
         sequence: 0,
         payload: b"signal-0",
@@ -261,7 +261,7 @@ fn receiver_pressure_allows_only_the_same_offer_to_retry() {
 fn cancellation_requires_matching_peer_fact_and_terminal_disposition() {
     let binding = binding();
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
-    activate(&mut machine);
+    trigger(&mut machine);
     let cancelled = binding.frame(SessionMessage::Cancelled { code: 7 });
     machine.admit_outbound(cancelled).unwrap();
     assert_eq!(
@@ -357,8 +357,8 @@ fn every_route_attachment_wire_fact_is_checked_separately() {
         };
         match field {
             0 => hello.link_binding_id = "wrong/link",
-            1 => hello.provider = ConnectionProvider::UsbCdc,
-            2 => hello.provider_instance_id = "wrong/provider-instance",
+            1 => hello.base = ConnectionBase::UsbCdc,
+            2 => hello.base_instance_id = "wrong/base-instance",
             3 => hello.source_endpoint_id = "wrong/source-endpoint",
             4 => hello.sink_endpoint_id = "wrong/sink-endpoint",
             5 => hello.limits.maximum_frame_bytes += 1,
@@ -425,8 +425,8 @@ fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
     // protocol. This proves session carrier neutrality without claiming that FixtureFrame
     // is an installed, runnable, or production-ready physical transport.
     let mut expected = binding();
-    expected.attachment.provider = ConnectionProvider::FixtureFrame;
-    assert!(expected.attachment.provider.supports_remote_session());
+    expected.attachment.base = ConnectionBase::FixtureFrame;
+    assert!(expected.attachment.base.supports_remote_session());
 
     let connection = PlannedConnection {
         connection_id: expected.connection_id.clone(),
@@ -436,7 +436,7 @@ fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
         sink_port_id: conduit_core::PortId::from("in"),
         value_kind: expected.value_kind.clone(),
         temporal: conduit_core::PortTemporal::Value,
-        provider: ConnectionProvider::FixtureFrame,
+        base: ConnectionBase::FixtureFrame,
         link_binding: Some(LinkBinding {
             binding_id: expected.attachment.link_binding_id.clone(),
             source: LinkEndpoint {
@@ -449,8 +449,8 @@ fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
                 boot_id: expected.sink.boot_id.clone(),
                 endpoint_id: expected.attachment.sink_endpoint_id.clone(),
             },
-            provider: ConnectionProvider::FixtureFrame,
-            provider_instance_id: expected.attachment.provider_instance_id.clone(),
+            base: ConnectionBase::FixtureFrame,
+            base_instance_id: expected.attachment.base_instance_id.clone(),
             availability: LinkAvailability::Ready,
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
@@ -488,46 +488,46 @@ fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
     assert_eq!(decoded, actual.hello_frame());
 
     let mut machine = SessionMachine::new(actual.clone(), SessionRole::Source).unwrap();
-    activate(&mut machine);
+    trigger(&mut machine);
     assert!(machine.is_active());
 }
 
 #[test]
-fn local_and_in_memory_providers_remain_rejected() {
-    let base = binding();
-    for provider in [ConnectionProvider::Local, ConnectionProvider::InMemory] {
-        assert!(!provider.supports_remote_session());
-        let mut invalid = base.clone();
-        invalid.attachment.provider = provider;
-        assert_eq!(invalid.validate(), Err(WireError::InvalidProvider));
+fn local_and_in_memory_bases_remain_rejected() {
+    let binding = binding();
+    for connection_base in [ConnectionBase::Local, ConnectionBase::InMemory] {
+        assert!(!connection_base.supports_remote_session());
+        let mut invalid = binding.clone();
+        invalid.attachment.base = connection_base;
+        assert_eq!(invalid.validate(), Err(WireError::InvalidBase));
 
         let connection = PlannedConnection {
-            connection_id: base.connection_id.clone(),
+            connection_id: binding.connection_id.clone(),
             source_placement_id: PlacementId::from("test/source-placement"),
             source_port_id: conduit_core::PortId::from("out"),
             sink_placement_id: PlacementId::from("test/sink-placement"),
             sink_port_id: conduit_core::PortId::from("in"),
-            value_kind: base.value_kind.clone(),
+            value_kind: binding.value_kind.clone(),
             temporal: conduit_core::PortTemporal::Value,
-            provider,
+            base: connection_base,
             link_binding: Some(LinkBinding {
-                binding_id: base.attachment.link_binding_id.clone(),
+                binding_id: binding.attachment.link_binding_id.clone(),
                 source: LinkEndpoint {
-                    host_id: base.source.host_id.clone(),
-                    boot_id: base.source.boot_id.clone(),
-                    endpoint_id: base.attachment.source_endpoint_id.clone(),
+                    host_id: binding.source.host_id.clone(),
+                    boot_id: binding.source.boot_id.clone(),
+                    endpoint_id: binding.attachment.source_endpoint_id.clone(),
                 },
                 sink: LinkEndpoint {
-                    host_id: base.sink.host_id.clone(),
-                    boot_id: base.sink.boot_id.clone(),
-                    endpoint_id: base.attachment.sink_endpoint_id.clone(),
+                    host_id: binding.sink.host_id.clone(),
+                    boot_id: binding.sink.boot_id.clone(),
+                    endpoint_id: binding.attachment.sink_endpoint_id.clone(),
                 },
-                provider,
-                provider_instance_id: base.attachment.provider_instance_id.clone(),
+                base: connection_base,
+                base_instance_id: binding.attachment.base_instance_id.clone(),
                 availability: LinkAvailability::Ready,
                 credential: LinkCredentialReference::None,
                 authority: LinkAuthorityReference::ProcessOwned,
-                limits: base.attachment.limits,
+                limits: binding.attachment.limits,
             }),
             route_candidates: vec![],
             item_capacity: 1,
@@ -535,9 +535,9 @@ fn local_and_in_memory_providers_remain_rejected() {
         };
         assert_eq!(
             SessionBinding::from_planned_connection(
-                base.plan_id.clone(),
-                base.source_fragment_id.clone(),
-                base.sink_fragment_id.clone(),
+                binding.plan_id.clone(),
+                binding.source_fragment_id.clone(),
+                binding.sink_fragment_id.clone(),
                 &connection,
             ),
             Err(WireError::InvalidSession)
@@ -546,15 +546,15 @@ fn local_and_in_memory_providers_remain_rejected() {
 }
 
 #[test]
-fn fixture_datagram_provider_remains_rejected() {
+fn fixture_datagram_base_remains_rejected() {
     // Explicit negative proving datagram fixtures are not promoted into frame wire sessions
-    // and that eligibility is an explicit allowlist rather than merely provider != Local.
-    let provider = ConnectionProvider::FixtureDatagram;
-    assert!(!provider.supports_remote_session());
+    // and that eligibility is an explicit allowlist rather than merely base != Local.
+    let base = ConnectionBase::FixtureDatagram;
+    assert!(!base.supports_remote_session());
 
     let mut invalid = binding();
-    invalid.attachment.provider = provider;
-    assert_eq!(invalid.validate(), Err(WireError::InvalidProvider));
+    invalid.attachment.base = base;
+    assert_eq!(invalid.validate(), Err(WireError::InvalidBase));
 
     let connection = PlannedConnection {
         connection_id: invalid.connection_id.clone(),
@@ -564,7 +564,7 @@ fn fixture_datagram_provider_remains_rejected() {
         sink_port_id: conduit_core::PortId::from("in"),
         value_kind: invalid.value_kind.clone(),
         temporal: conduit_core::PortTemporal::Value,
-        provider,
+        base,
         link_binding: Some(LinkBinding {
             binding_id: invalid.attachment.link_binding_id.clone(),
             source: LinkEndpoint {
@@ -577,8 +577,8 @@ fn fixture_datagram_provider_remains_rejected() {
                 boot_id: invalid.sink.boot_id.clone(),
                 endpoint_id: invalid.attachment.sink_endpoint_id.clone(),
             },
-            provider,
-            provider_instance_id: invalid.attachment.provider_instance_id.clone(),
+            base,
+            base_instance_id: invalid.attachment.base_instance_id.clone(),
             availability: LinkAvailability::Ready,
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
@@ -600,7 +600,7 @@ fn fixture_datagram_provider_remains_rejected() {
 }
 
 #[test]
-fn provider_link_mismatch_remains_rejected() {
+fn base_link_mismatch_remains_rejected() {
     let expected = binding();
     let connection = PlannedConnection {
         connection_id: expected.connection_id.clone(),
@@ -610,7 +610,7 @@ fn provider_link_mismatch_remains_rejected() {
         sink_port_id: conduit_core::PortId::from("in"),
         value_kind: expected.value_kind.clone(),
         temporal: conduit_core::PortTemporal::Value,
-        provider: ConnectionProvider::WebSocket,
+        base: ConnectionBase::WebSocket,
         link_binding: Some(LinkBinding {
             binding_id: expected.attachment.link_binding_id.clone(),
             source: LinkEndpoint {
@@ -623,8 +623,8 @@ fn provider_link_mismatch_remains_rejected() {
                 boot_id: expected.sink.boot_id.clone(),
                 endpoint_id: expected.attachment.sink_endpoint_id.clone(),
             },
-            provider: ConnectionProvider::FixtureFrame, // Mismatched link provider
-            provider_instance_id: expected.attachment.provider_instance_id.clone(),
+            base: ConnectionBase::FixtureFrame, // Mismatched link base
+            base_instance_id: expected.attachment.base_instance_id.clone(),
             availability: LinkAvailability::Ready,
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
@@ -646,14 +646,14 @@ fn provider_link_mismatch_remains_rejected() {
 }
 
 #[test]
-fn mutated_provider_in_peer_hello_remains_rejected() {
+fn mutated_base_in_peer_hello_remains_rejected() {
     let binding = binding();
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
     let mut hello = match binding.hello_frame().message {
         SessionMessage::Hello(hello) => hello,
         _ => unreachable!(),
     };
-    hello.provider = ConnectionProvider::FixtureFrame; // Peer Hello specifies different provider
+    hello.base = ConnectionBase::FixtureFrame; // Peer Hello specifies different base
     assert_eq!(
         machine.admit_inbound(binding.frame(SessionMessage::Hello(hello))),
         Err(WireError::InvalidSession)
@@ -661,26 +661,26 @@ fn mutated_provider_in_peer_hello_remains_rejected() {
 }
 
 #[test]
-fn mutated_provider_instance_in_route_attachment_remains_rejected() {
+fn mutated_base_instance_in_route_attachment_remains_rejected() {
     let binding = binding();
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
     let mut frame = binding.hello_frame();
     if let SessionMessage::Hello(ref mut hello) = frame.message {
-        hello.provider_instance_id = "test/different-provider-instance";
+        hello.base_instance_id = "test/different-base-instance";
     }
     assert_eq!(machine.admit_inbound(frame), Err(WireError::InvalidSession));
 }
 
 #[test]
-fn usb_cdc_provider_round_trip_and_session_eligibility() {
+fn usb_cdc_base_round_trip_and_session_eligibility() {
     let mut b = binding();
-    b.attachment.provider = ConnectionProvider::UsbCdc;
+    b.attachment.base = ConnectionBase::UsbCdc;
 
-    assert!(ConnectionProvider::UsbCdc.supports_remote_session());
-    assert_eq!(ConnectionProvider::UsbCdc.canonical_code(), 5);
+    assert!(ConnectionBase::UsbCdc.supports_remote_session());
+    assert_eq!(ConnectionBase::UsbCdc.canonical_code(), 5);
     assert_eq!(
-        ConnectionProvider::from_canonical_code(5),
-        Some(ConnectionProvider::UsbCdc)
+        ConnectionBase::from_canonical_code(5),
+        Some(ConnectionBase::UsbCdc)
     );
 
     let hello_frame = b.hello_frame();
@@ -703,7 +703,7 @@ fn usb_cdc_provider_round_trip_and_session_eligibility() {
         SessionMessage::Hello(hello) => hello,
         _ => panic!("expected Hello message"),
     };
-    assert_eq!(hello_msg.provider, ConnectionProvider::UsbCdc);
+    assert_eq!(hello_msg.base, ConnectionBase::UsbCdc);
 
     let mut machine = SessionMachine::new(b.clone(), SessionRole::Source).unwrap();
     machine.admit_outbound(hello_frame).unwrap();

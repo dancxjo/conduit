@@ -1,11 +1,10 @@
 use crate::{
-    hash_string, CanonicalExpansionDiagnostic, CanonicalStartupValue, CheckedCanonicalCell,
-    CheckedCanonicalForm, CheckedConnection, CheckedCordStage, CheckedOperation,
-    CheckedSyntaxDocument, ConfigurationRule, ConfigurationValue, ExpandedCanonicalForm,
-    ExpandedCellProvenance, ExpandedSharedPool, ProfileCatalog, RuntimePortDirection,
-    MAXIMUM_FORM_NESTING_DEPTH,
+    hash_string, CanonicalExpansionDiagnostic, CanonicalStartupValue, CheckedCanonicalForm,
+    CheckedCanonicalGear, CheckedConnection, CheckedCordStage, CheckedGear, CheckedSyntaxDocument,
+    ConfigurationRule, ConfigurationValue, ExpandedCanonicalForm, ExpandedGearProvenance,
+    ExpandedSharedPool, ProfileCatalog, RuntimePortDirection, MAXIMUM_FORM_NESTING_DEPTH,
 };
-use conduit_core::{KindId, OperationId, PortDescriptor};
+use conduit_core::{GearId, KindId, PortDescriptor};
 use std::collections::{BTreeMap, BTreeSet};
 
 mod graph;
@@ -60,36 +59,36 @@ pub fn expand_canonical_form(
             format!("root form '{form_name}' has unbound runtime face ports"),
         ));
     }
-    let mut operations = fragment.operations;
+    let mut gears = fragment.gears;
     let mut connections = fragment.connections;
     let mut shared_pools = fragment.shared_pools;
     let mut provenance = fragment.provenance;
-    operations.sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
+    gears.sort_by(|left, right| left.gear_id.cmp(&right.gear_id));
     connections.sort_by(|left, right| {
         (
-            &left.source_operation_id,
+            &left.source_gear_id,
             &left.source_port_id,
-            &left.sink_operation_id,
+            &left.sink_gear_id,
             &left.sink_port_id,
         )
             .cmp(&(
-                &right.source_operation_id,
+                &right.source_gear_id,
                 &right.source_port_id,
-                &right.sink_operation_id,
+                &right.sink_gear_id,
                 &right.sink_port_id,
             ))
     });
-    provenance.sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
-    seal_pool_consumers(&mut shared_pools, &operations)?;
+    provenance.sort_by(|left, right| left.gear_id.cmp(&right.gear_id));
+    seal_pool_consumers(&mut shared_pools, &gears)?;
     let expanded_form_id =
-        expanded_identity(form, &operations, &connections, &shared_pools, &provenance);
+        expanded_identity(form, &gears, &connections, &shared_pools, &provenance);
     let provenance_digest = provenance_digest(&document.source_document_id, &provenance);
     Ok(ExpandedCanonicalForm {
         source_document_id: document.source_document_id.clone(),
         checked_form_id: form.checked_form_id.clone(),
         expanded_form_id,
         name: form.name.clone(),
-        operations,
+        gears,
         connections,
         shared_pools,
         provenance,
@@ -99,16 +98,16 @@ pub fn expand_canonical_form(
 
 #[derive(Debug, Clone)]
 struct Endpoint {
-    operation_id: OperationId,
+    gear_id: GearId,
     port: PortDescriptor,
 }
 
 #[derive(Debug)]
 struct Fragment {
-    operations: Vec<CheckedOperation>,
+    gears: Vec<CheckedGear>,
     connections: Vec<CheckedConnection>,
     shared_pools: Vec<ExpandedSharedPool>,
-    provenance: Vec<ExpandedCellProvenance>,
+    provenance: Vec<ExpandedGearProvenance>,
     inputs: BTreeMap<String, Vec<Endpoint>>,
     outputs: BTreeMap<String, Endpoint>,
     shorthand: Option<(String, String)>,
@@ -179,16 +178,16 @@ fn expand_instance_inner(
 ) -> Result<Fragment, CanonicalExpansionDiagnostic> {
     let scoped_environment = bind_pool_environment(form, environment, path)?;
     let environment = &scoped_environment;
-    let mut operations = Vec::new();
+    let mut gears = Vec::new();
     let mut connections = Vec::new();
     let mut shared_pools = expanded_pool_declarations(form, path);
     let mut provenance = Vec::new();
     let mut instances = BTreeMap::new();
-    let mut operation_ids = BTreeSet::new();
-    for cell in form.cells.iter().filter(|cell| cell.name.is_some()) {
-        let name = cell.name.as_deref().expect("named cells were filtered");
-        let instance = instantiate_cell(
-            cell,
+    let mut gear_ids = BTreeSet::new();
+    for gear in form.gears.iter().filter(|gear| gear.name.is_some()) {
+        let name = gear.name.as_deref().expect("named gears were filtered");
+        let instance = instantiate_gear(
+            gear,
             name,
             form,
             forms,
@@ -197,11 +196,11 @@ fn expand_instance_inner(
             path,
             stack,
             depth,
-            &mut operations,
+            &mut gears,
             &mut connections,
             &mut shared_pools,
             &mut provenance,
-            &mut operation_ids,
+            &mut gear_ids,
         )?;
         instances.insert(name.to_string(), instance);
     }
@@ -221,13 +220,13 @@ fn expand_instance_inner(
                 CheckedCordStage::Reference(reference) => {
                     resolve_reference(reference, &instances, &face_ports)?
                 }
-                CheckedCordStage::InlineCell(cell) => {
-                    let key = inline_key(cell);
+                CheckedCordStage::InlineGear(gear) => {
+                    let key = inline_key(gear);
                     let count = anonymous_counts.entry(key.clone()).or_default();
                     let name = format!("inline-{}-{count}", &hash_string(&key)[..12]);
                     *count += 1;
-                    let instance = instantiate_cell(
-                        cell,
+                    let instance = instantiate_gear(
+                        gear,
                         &name,
                         form,
                         forms,
@@ -236,11 +235,11 @@ fn expand_instance_inner(
                         path,
                         stack,
                         depth,
-                        &mut operations,
+                        &mut gears,
                         &mut connections,
                         &mut shared_pools,
                         &mut provenance,
-                        &mut operation_ids,
+                        &mut gear_ids,
                     )?;
                     stage_for_instance(&name, &instance, None)?
                 }
@@ -255,9 +254,9 @@ fn expand_instance_inner(
                     let count = anonymous_counts.entry(key.clone()).or_default();
                     let name = format!("literal-{}-{count}", &hash_string(&key)[..12]);
                     *count += 1;
-                    let cell = CheckedCanonicalCell {
+                    let gear = CheckedCanonicalGear {
                         name: None,
-                        operation: "text/literal".to_string(),
+                        kind: "text/literal".to_string(),
                         startup_parameters: vec![crate::StartupParameterSignature {
                             name: "value".to_string(),
                             value_type: "Text".to_string(),
@@ -270,8 +269,8 @@ fn expand_instance_inner(
                         }],
                         source_span: *source_span,
                     };
-                    let instance = instantiate_cell(
-                        &cell,
+                    let instance = instantiate_gear(
+                        &gear,
                         &name,
                         form,
                         forms,
@@ -280,11 +279,11 @@ fn expand_instance_inner(
                         path,
                         stack,
                         depth,
-                        &mut operations,
+                        &mut gears,
                         &mut connections,
                         &mut shared_pools,
                         &mut provenance,
-                        &mut operation_ids,
+                        &mut gear_ids,
                     )?;
                     stage_for_instance(&name, &instance, None)?
                 }
@@ -327,7 +326,7 @@ fn expand_instance_inner(
         }
     }
     Ok(Fragment {
-        operations,
+        gears,
         connections,
         shared_pools,
         provenance,
@@ -338,8 +337,8 @@ fn expand_instance_inner(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn instantiate_cell(
-    cell: &CheckedCanonicalCell,
+fn instantiate_gear(
+    gear: &CheckedCanonicalGear,
     instance_name: &str,
     source_form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
@@ -348,16 +347,16 @@ fn instantiate_cell(
     path: &[String],
     stack: &mut Vec<String>,
     depth: usize,
-    operations: &mut Vec<CheckedOperation>,
+    gears: &mut Vec<CheckedGear>,
     connections: &mut Vec<CheckedConnection>,
     shared_pools: &mut Vec<ExpandedSharedPool>,
-    provenance: &mut Vec<ExpandedCellProvenance>,
-    operation_ids: &mut BTreeSet<OperationId>,
+    provenance: &mut Vec<ExpandedGearProvenance>,
+    gear_ids: &mut BTreeSet<GearId>,
 ) -> Result<Instance, CanonicalExpansionDiagnostic> {
     let mut child_path = path.to_vec();
     child_path.push(instance_name.to_string());
-    if let Some(child) = forms.get(cell.operation.as_str()).copied() {
-        let child_environment = bind_child_environment(cell, environment)?;
+    if let Some(child) = forms.get(gear.kind.as_str()).copied() {
+        let child_environment = bind_child_environment(gear, environment)?;
         let fragment = expand_instance(
             child,
             forms,
@@ -367,8 +366,8 @@ fn instantiate_cell(
             stack,
             depth + 1,
         )?;
-        operation_ids.extend(fragment.operations.iter().map(|op| op.operation_id.clone()));
-        operations.extend(fragment.operations);
+        gear_ids.extend(fragment.gears.iter().map(|op| op.gear_id.clone()));
+        gears.extend(fragment.gears);
         connections.extend(fragment.connections);
         shared_pools.extend(fragment.shared_pools);
         provenance.extend(fragment.provenance);
@@ -381,33 +380,27 @@ fn instantiate_cell(
         });
     }
 
-    let kind_id = KindId::from(cell.operation.as_str());
+    let kind_id = KindId::from(gear.kind.as_str());
     let definition = catalog.get(&kind_id).ok_or_else(|| {
         CanonicalExpansionDiagnostic::new(
             "CND-FRM-037",
-            format!(
-                "primitive operation '{}' has no planning contract",
-                cell.operation
-            ),
+            format!("primitive gear '{}' has no planning contract", gear.kind),
         )
     })?;
-    let operation_id = OperationId::from(child_path.join("/"));
-    if !operation_ids.insert(operation_id.clone()) {
+    let gear_id = GearId::from(child_path.join("/"));
+    if !gear_ids.insert(gear_id.clone()) {
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-038",
-            format!(
-                "expanded operation path '{}' is not unique",
-                operation_id.as_str()
-            ),
+            format!("expanded gear path '{}' is not unique", gear_id.as_str()),
         ));
     }
-    let configuration = configuration(cell, environment, definition)?;
-    let pool_references = pool_references(cell, environment)?;
-    operations.push(CheckedOperation {
-        operation_id: operation_id.clone(),
+    let configuration = configuration(gear, environment, definition)?;
+    let pool_references = pool_references(gear, environment)?;
+    gears.push(CheckedGear {
+        gear_id: gear_id.clone(),
         kind_id: definition.kind_id.clone(),
         kind_contract_revision: definition.kind_contract_revision.clone(),
-        startup_parameters: cell
+        startup_parameters: gear
             .startup_parameters
             .iter()
             .map(|parameter| conduit_core::FaceStartupParameter {
@@ -425,12 +418,12 @@ fn instantiate_cell(
         configuration,
         pool_references,
     });
-    provenance.push(ExpandedCellProvenance {
-        operation_id: operation_id.as_str().to_string(),
+    provenance.push(ExpandedGearProvenance {
+        gear_id: gear_id.as_str().to_string(),
         form_path: path.to_vec(),
         source_form: source_form.name.clone(),
-        source_cell: instance_name.to_string(),
-        source_span: cell.source_span,
+        source_gear: instance_name.to_string(),
+        source_span: gear.source_span,
     });
     Ok(Instance {
         inputs: definition
@@ -440,7 +433,7 @@ fn instantiate_cell(
                 (
                     port.port_id.as_str().to_string(),
                     vec![Endpoint {
-                        operation_id: operation_id.clone(),
+                        gear_id: gear_id.clone(),
                         port: port.clone(),
                     }],
                 )
@@ -453,7 +446,7 @@ fn instantiate_cell(
                 (
                     port.port_id.as_str().to_string(),
                     Endpoint {
-                        operation_id: operation_id.clone(),
+                        gear_id: gear_id.clone(),
                         port: port.clone(),
                     },
                 )
@@ -477,10 +470,10 @@ fn instantiate_cell(
 }
 
 fn bind_child_environment(
-    cell: &CheckedCanonicalCell,
+    gear: &CheckedCanonicalGear,
     parent: &BTreeMap<String, CanonicalStartupValue>,
 ) -> Result<BTreeMap<String, CanonicalStartupValue>, CanonicalExpansionDiagnostic> {
-    cell.startup_bindings
+    gear.startup_bindings
         .iter()
         .map(|binding| {
             let value = substitute(&binding.value, parent)?;

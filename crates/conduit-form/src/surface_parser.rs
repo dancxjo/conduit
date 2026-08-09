@@ -4,7 +4,7 @@ use crate::surface_lex::{
 };
 use crate::syntax::{
     Argument, BackStatement, Cord, CordStage, Expression, FormFace, FormSyntax, Invocation,
-    LocalValue, NamedCell, RuntimePort, RuntimePortDirection, RuntimePortTemporal, ShorthandPair,
+    LocalValue, NamedGear, RuntimePort, RuntimePortDirection, RuntimePortTemporal, ShorthandPair,
     SpannedText, StartupParameter, SyntaxDocument,
 };
 use crate::{
@@ -300,7 +300,7 @@ impl<'a> Parser<'a> {
                 || !top_level_positions(text, '}').is_empty()
             {
                 return Err((
-                    FormError::InvalidSyntax("a cell invocation cannot have a form back".into()),
+                    FormError::InvalidSyntax("a gear invocation cannot have a form back".into()),
                     self.line_span(line),
                 ));
             }
@@ -326,12 +326,12 @@ impl<'a> Parser<'a> {
             let invoked = text[colon + 1..].trim();
             if name.is_empty() || invoked.is_empty() {
                 return Err((
-                    FormError::InvalidSyntax("missing cell operation after ':'".into()),
+                    FormError::InvalidSyntax("missing Gear Kind after ':'".into()),
                     self.span(start, start + text.len()),
                 ));
             }
             let invocation = self.parse_invocation(invoked, start + text.find(invoked).unwrap())?;
-            return Ok(BackStatement::NamedCell(NamedCell {
+            return Ok(BackStatement::NamedGear(NamedGear {
                 name: self.spanned_at(name, text, start),
                 invocation,
                 span: self.span(start, start + text.len()),
@@ -365,7 +365,7 @@ impl<'a> Parser<'a> {
             let part_start = start + relative;
             search = relative + part.len();
             if part.contains('/') || part.contains('(') {
-                stages.push(CordStage::InlineCell(
+                stages.push(CordStage::InlineGear(
                     self.parse_invocation(part, part_start)?,
                 ));
             } else if part.starts_with('"') && part.ends_with('"') {
@@ -388,7 +388,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_invocation(&self, text: &str, start: usize) -> Result<Invocation, (FormError, Span)> {
-        let (operation, arguments, end) = if let Some(open) = text.find('(') {
+        let (gear, arguments, end) = if let Some(open) = text.find('(') {
             if !text.ends_with(')') {
                 return Err(self.invalid_statement(text, start));
             }
@@ -396,10 +396,10 @@ impl<'a> Parser<'a> {
         } else {
             (text, "", text.len())
         };
-        let operation = operation.trim();
-        if operation.is_empty() || !is_operation(operation) {
+        let gear = gear.trim();
+        if gear.is_empty() || !is_operation(gear) {
             return Err((
-                FormError::InvalidSyntax("invalid operation reference".into()),
+                FormError::InvalidSyntax("invalid gear reference".into()),
                 self.span(start, start + text.len()),
             ));
         }
@@ -446,7 +446,7 @@ impl<'a> Parser<'a> {
             }
         }
         Ok(Invocation {
-            operation: self.spanned(operation, start + text.find(operation).unwrap()),
+            kind: self.spanned(gear, start + text.find(gear).unwrap()),
             arguments: parsed,
             span: self.span(start, start + end),
         })

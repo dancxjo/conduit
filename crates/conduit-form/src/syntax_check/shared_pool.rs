@@ -15,12 +15,12 @@ pub(super) fn check_pool_declarations(
         };
         if face_names.contains(&pool.name.text) || !pool_names.insert(pool.name.text.clone()) {
             return Err(
-                SyntaxCheckError::DuplicateCell(pool.name.text.clone()).diagnostic(pool.span)
+                SyntaxCheckError::DuplicateGear(pool.name.text.clone()).diagnostic(pool.span)
             );
         }
         if !form_faces.contains_key(&pool.member_form.text) {
             return Err(
-                SyntaxCheckError::UnsupportedOperation(pool.member_form.text.clone())
+                SyntaxCheckError::UnsupportedKind(pool.member_form.text.clone())
                     .diagnostic(pool.member_form.span),
             );
         }

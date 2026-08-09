@@ -25,14 +25,14 @@ fn canonical_form_plans_runs_and_keeps_exact_plan_and_play_visible() {
     wait_for_terminal(&mut control);
     let lines = control.lines().join("\n");
     assert!(lines.contains("PLAN request=patchbay/plan/0 plan="));
-    assert!(lines.contains("CELL operation="));
+    assert!(lines.contains("GEAR operation="));
     assert!(lines.contains("PLAY active="));
     assert!(lines.contains("terminal=Completed"));
     assert!(lines.contains("RUN request=patchbay/run/1 disposition=Accepted"));
 }
 
 #[test]
-fn stale_plan_is_rejected_before_worker_activation() {
+fn stale_plan_is_rejected_before_worker_play_start() {
     let mut editor = editor("hello", include_str!("../../../examples/hello.conduit"));
     let mut control = NativeControl::new();
     control.request_plan(&editor).unwrap();
@@ -75,9 +75,9 @@ fn stop_request_reaches_ordinary_play_and_renders_cancelled_terminal() {
 #[test]
 fn host_failure_is_rendered_separately_from_rejection_and_cancellation() {
     let mut control = NativeControl::new();
-    control.failure = Some("provider terminal failure".into());
+    control.failure = Some("base terminal failure".into());
     let lines = control.lines().join("\n");
-    assert!(lines.contains("PLAY terminal=Failed error=provider terminal failure"));
+    assert!(lines.contains("PLAY terminal=Failed error=base terminal failure"));
     assert!(!lines.contains("Cancelled"));
     assert!(!lines.contains("disposition=Rejected"));
 }

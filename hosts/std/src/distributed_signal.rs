@@ -3,15 +3,15 @@
 use crate::websocket::{NativeWebSocketCarrier, NativeWebSocketListener};
 use conduit_core::{bind_active_play, PlanFragment};
 #[cfg(test)]
-use conduit_core::{CapabilityId, ConnectionProvider, OperationId};
+use conduit_core::{CapabilityId, ConnectionBase, GearId};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, EvidenceQuery, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationDisposition, HostOperationId, HostOperationOutcome,
-    HostedEvidenceLog, HostedValueStore, KernelEventKind, Operation, OperationAction,
-    OperationInput, PortId, RemoteEndpointId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, ClueQuery, CordId, Failure, FailureCode, FixedHostOperationBindings,
+    FixedRoutes, HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
+    HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
+    RemoteEndpointId, RequestId, ValueRef, ValueStorage,
 };
 #[cfg(test)]
 use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
@@ -46,12 +46,12 @@ const MAXIMUM_WAITS: usize = 15;
 const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES + MAXIMUM_WAITS) as u16;
 const MAXIMUM_STORED_BYTES: u32 =
     MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN + MAXIMUM_WAITS as u32 * 8;
-const EVIDENCE_ITEMS: u16 = 256;
+const CLUE_ITEMS: u16 = 256;
 
 type SourceScheduler = FixedScheduler<
     OperationDriver<PulseOperation, PORTS>,
     HostedValueStore,
-    HostedEvidenceLog,
+    HostedClueLog,
     1,
     1,
     PORTS,
@@ -65,7 +65,7 @@ type SourceScheduler = FixedScheduler<
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct CapacitySeal {
     values: (usize, usize),
-    evidence: usize,
+    clue: usize,
     driver: usize,
     identity: (usize, usize, usize),
 }
@@ -261,11 +261,11 @@ impl DistributedSource {
             pending: None,
         })
         .map_err(|error| format!("{error:?}"))?;
-        let evidence_bytes = u32::from(EVIDENCE_ITEMS)
+        let clue_bytes = u32::from(CLUE_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-            .ok_or_else(|| "source evidence budget overflow".to_string())?;
-        let evidence = HostedEvidenceLog::new(EVIDENCE_ITEMS, evidence_bytes)
-            .map_err(|error| format!("{error:?}"))?;
+            .ok_or_else(|| "source clue budget overflow".to_string())?;
+        let clue =
+            HostedClueLog::new(CLUE_ITEMS, clue_bytes).map_err(|error| format!("{error:?}"))?;
         let scheduler = SourceScheduler::new_with_host_operations(
             lowered
                 .node_specs
@@ -283,7 +283,7 @@ impl DistributedSource {
             host_bindings,
             [driver],
             values,
-            evidence,
+            clue,
         )
         .map_err(|error| format!("{error:?}"))?;
         let active_play =
@@ -308,7 +308,7 @@ impl DistributedSource {
             .map_err(|error| format!("{error:?}"))?;
         let seal = CapacitySeal {
             values: scheduler.values().allocation_capacities(),
-            evidence: scheduler.evidence().allocation_capacity(),
+            clue: scheduler.clues().allocation_capacity(),
             driver: scheduler.drivers()[0].operation().allocation_capacity(),
             identity: identity.allocation_capacities(),
         };
@@ -327,7 +327,7 @@ impl DistributedSource {
     fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
-            evidence: self.scheduler.evidence().allocation_capacity(),
+            clue: self.scheduler.clues().allocation_capacity(),
             driver: self.scheduler.drivers()[0]
                 .operation()
                 .allocation_capacity(),
@@ -481,7 +481,7 @@ impl DistributedSource {
         }
         self.send(&mut carrier, SessionMessage::Ready, &mut outbound)?;
         if !self.session.is_active() {
-            return Err("std source activated before both exact readiness facts".to_string());
+            return Err("std source triggerd before both exact readiness facts".to_string());
         }
 
         while let Some((sequence, payload)) = self.next_offer()? {
@@ -572,11 +572,11 @@ impl DistributedSource {
                 != (0, 0)
             || !self
                 .scheduler
-                .evidence()
+                .clues()
                 .contains_kind(KernelEventKind::RemoteValueDelivered)
             || !self
                 .scheduler
-                .evidence()
+                .clues()
                 .contains_kind(KernelEventKind::OperationCompleted)
             || self.capacity_seal() != self.seal
             || self.pressure_retries != 1
@@ -638,8 +638,8 @@ mod tests {
         assert_eq!(sink.placements.len(), 1);
         assert_ne!(source.fragment().host_id, sink.host_id);
         assert_eq!(
-            source.fragment().connections[0].provider,
-            ConnectionProvider::WebSocket
+            source.fragment().connections[0].base,
+            ConnectionBase::WebSocket
         );
         assert_eq!(lowered.remote_endpoints.len(), 1);
         assert_eq!(
@@ -669,16 +669,16 @@ mod tests {
         )
         .unwrap();
         let placements = PlacementChoices {
-            by_operation: BTreeMap::from([
+            by_gear: BTreeMap::from([
                 (
-                    OperationId::from("pulse"),
+                    GearId::from("pulse"),
                     PlacementChoice {
                         host_id: source.host_id.clone(),
                         capability_id: CapabilityId::from("pulse-1"),
                     },
                 ),
                 (
-                    OperationId::from("show"),
+                    GearId::from("show"),
                     PlacementChoice {
                         host_id: sink.host_id.clone(),
                         capability_id: CapabilityId::from("dom-show-1"),
@@ -690,7 +690,7 @@ mod tests {
             &form,
             &[source.clone(), sink.clone()],
             &placements,
-            &[ConnectionProvider::WebSocket],
+            &[ConnectionBase::WebSocket],
             1,
             SIGNAL_ENCODED_LEN,
             &[],
@@ -702,7 +702,7 @@ mod tests {
             &form,
             &[source.clone(), sink.clone()],
             &placements,
-            &[ConnectionProvider::WebSocket],
+            &[ConnectionBase::WebSocket],
             1,
             SIGNAL_ENCODED_LEN,
             &[stale_source],
@@ -714,7 +714,7 @@ mod tests {
             &form,
             &[source, sink],
             &placements,
-            &[ConnectionProvider::WebSocket],
+            &[ConnectionBase::WebSocket],
             1,
             SIGNAL_ENCODED_LEN,
             &[stale_sink],

@@ -15,7 +15,7 @@ pub(super) const MAXIMUM_RECEIPTS: usize = 16;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct CapacitySeal {
     pub(super) values: (usize, usize),
-    pub(super) evidence: usize,
+    pub(super) clue: usize,
     pub(super) identity: (usize, usize, usize),
     pub(super) projections: usize,
 }

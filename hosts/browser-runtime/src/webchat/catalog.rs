@@ -18,7 +18,7 @@ pub(super) fn advertisement() -> HostAdvertisement {
             profile_id: PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
             limits: PlannerLimits {
                 maximum_host_advertisements: 16,
-                maximum_operations: 64,
+                maximum_gears: 64,
                 maximum_connections: 128,
                 maximum_authority_grants: 64,
                 maximum_protected_resource_grants: 64,

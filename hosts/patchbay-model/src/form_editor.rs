@@ -50,7 +50,7 @@ pub enum GraphItemKind {
     FaceInput,
     FaceOutput,
     StartupValue,
-    Cell,
+    Gear,
     Cord,
 }
 
@@ -80,7 +80,7 @@ pub struct GraphCord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GraphCordStage {
     Reference(String),
-    InlineCell { operation: String },
+    InlineGear { kind: String },
     Literal,
 }
 
@@ -303,23 +303,23 @@ fn graph_revision(
         let mut cord_index = 0;
         for statement in &syntax.back {
             match statement {
-                BackStatement::NamedCell(cell) => {
+                BackStatement::NamedGear(gear) => {
                     push_item(
                         &mut items,
                         &form.name,
-                        "cell",
-                        &cell.name.text,
-                        GraphItemKind::Cell,
-                        cell.span,
+                        "gear",
+                        &gear.name.text,
+                        GraphItemKind::Gear,
+                        gear.span,
                     )?;
                     let operation = form
-                        .cells
+                        .gears
                         .iter()
-                        .find(|checked_cell| checked_cell.name.as_deref() == Some(&cell.name.text))
-                        .map(|checked_cell| checked_cell.operation.as_str())
+                        .find(|checked_gear| checked_gear.name.as_deref() == Some(&gear.name.text))
+                        .map(|checked_gear| checked_gear.kind.as_str())
                         .unwrap_or("unknown");
-                    items.last_mut().expect("cell item was admitted").label =
-                        format!("{}: {operation}", cell.name.text);
+                    items.last_mut().expect("gear item was admitted").label =
+                        format!("{}: {operation}", gear.name.text);
                 }
                 BackStatement::Cord(cord) => {
                     let label = form
@@ -352,9 +352,9 @@ fn graph_revision(
                                     CheckedCordStage::Reference(name) => {
                                         GraphCordStage::Reference(name.clone())
                                     }
-                                    CheckedCordStage::InlineCell(cell) => {
-                                        GraphCordStage::InlineCell {
-                                            operation: cell.operation.clone(),
+                                    CheckedCordStage::InlineGear(gear) => {
+                                        GraphCordStage::InlineGear {
+                                            kind: gear.kind.clone(),
                                         }
                                     }
                                     CheckedCordStage::Literal { .. } => GraphCordStage::Literal,
@@ -388,7 +388,7 @@ fn cord_label(cord: &conduit_form::CheckedCanonicalCord) -> String {
         .iter()
         .map(|stage| match stage {
             CheckedCordStage::Reference(name) => name.clone(),
-            CheckedCordStage::InlineCell(cell) => cell.operation.clone(),
+            CheckedCordStage::InlineGear(gear) => gear.kind.clone(),
             CheckedCordStage::Literal { value, .. } => format!("{value:?}"),
         })
         .collect::<Vec<_>>()

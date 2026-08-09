@@ -527,7 +527,7 @@ mod tests {
         LATEST_KIND, MAP_KIND, PULSE_KIND, SHOW_KIND, TEE_KIND, TICK_KIND,
     };
     use conduit_core::{
-        kind_id, ArtifactId, CapabilityId, CapabilityOffer, ConnectionProvider, HostAdvertisement,
+        kind_id, ArtifactId, CapabilityId, CapabilityOffer, ConnectionBase, HostAdvertisement,
         HostCommand, HostEvent, HostId, HostProfileId, ImplementationId, ObservationKind,
         OfferGeneration, PlatformEffect, PROTOCOL_VERSION,
     };
@@ -579,7 +579,7 @@ mod tests {
             &catalog,
         )
         .expect("existing pulse/show form parses through standard catalog");
-        assert_eq!(form.operations.len(), 2);
+        assert_eq!(form.gears.len(), 2);
         assert_eq!(form.connections.len(), 1);
 
         let flow_form = parse(
@@ -587,7 +587,7 @@ mod tests {
             &catalog,
         )
         .expect("new standard flow form parses");
-        assert_eq!(flow_form.operations.len(), 6);
+        assert_eq!(flow_form.gears.len(), 6);
         assert_eq!(flow_form.connections.len(), 5);
     }
 
@@ -601,7 +601,7 @@ mod tests {
         .expect("standard conformance form parses");
         let host = conformance_host_advertisement();
         let placements = PlacementChoices {
-            by_operation: BTreeMap::from([
+            by_gear: BTreeMap::from([
                 ("source", "flow-map"),
                 ("filter", "flow-filter"),
                 ("split", "flow-tee"),
@@ -612,7 +612,7 @@ mod tests {
             .into_iter()
             .map(|(operation, capability)| {
                 (
-                    conduit_core::OperationId::from(operation),
+                    conduit_core::GearId::from(operation),
                     PlacementChoice {
                         host_id: host.host_id.clone(),
                         capability_id: CapabilityId::from(capability),
@@ -625,7 +625,7 @@ mod tests {
             &form,
             core::slice::from_ref(&host),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         )
         .expect("standard conformance form plans");
         assert_eq!(plan.fragments.len(), 1);
@@ -766,11 +766,11 @@ mod tests {
         mappings: [(&str, &str); N],
     ) -> PlacementChoices {
         PlacementChoices {
-            by_operation: mappings
+            by_gear: mappings
                 .into_iter()
                 .map(|(operation, capability)| {
                     (
-                        conduit_core::OperationId::from(operation),
+                        conduit_core::GearId::from(operation),
                         PlacementChoice {
                             host_id: host.host_id.clone(),
                             capability_id: CapabilityId::from(capability),
@@ -797,7 +797,7 @@ mod tests {
             &form,
             core::slice::from_ref(&host),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         )
         .expect("hosted standard form plans");
         let fragment = plan.fragments.first().expect("fragment exists").clone();
@@ -843,7 +843,7 @@ mod tests {
     }
 
     fn drive_runtime(runtime: &mut HostRuntime, plan_id: conduit_core::PlanId) {
-        let mut pending = runtime.handle(HostCommand::Activate(plan_id)).effects;
+        let mut pending = runtime.handle(HostCommand::StartPlay(plan_id)).effects;
         while let Some(effect) = pending.pop() {
             let output = match effect {
                 PlatformEffect::Wait {

@@ -6,7 +6,7 @@ use crate::{
     plan_with_options, PlacementChoices, PlannerError, PlanningOptions, RealizationPolicy,
 };
 use conduit_core::{
-    ConnectionProvider, HostAdvertisement, OperationId, Plan, PlanId, RealizationAdvertisement,
+    ConnectionBase, GearId, HostAdvertisement, Plan, PlanId, RealizationAdvertisement,
     ResourceObservation,
 };
 use conduit_form::CheckedForm;
@@ -31,12 +31,12 @@ pub enum RealizationReplanOutcome {
 pub fn replan_selected_realizations_with_characteristics(
     previous: &Plan,
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
-    providers: &[ConnectionProvider],
-    requirements: &BTreeMap<OperationId, HardRealizationRequirements>,
+    hosts: &[HostAdvertisement],
+    bases: &[ConnectionBase],
+    requirements: &BTreeMap<GearId, HardRealizationRequirements>,
     advertisements: &[RealizationAdvertisement],
     observations: &[ResourceObservation],
-    policies: &BTreeMap<OperationId, RealizationPolicy>,
+    policies: &BTreeMap<GearId, RealizationPolicy>,
     planning_options: PlanningOptions<'_>,
 ) -> Result<RealizationReplanOutcome, PlannerError> {
     if previous.source_document_id != form.source_document_id
@@ -48,26 +48,26 @@ pub fn replan_selected_realizations_with_characteristics(
         ));
     }
     reject_unknown_operation_inputs(form, requirements, policies)?;
-    validate_resource_observations(realm, observations)?;
+    validate_resource_observations(hosts, observations)?;
     let mut remaining = observations.to_vec();
-    let mut by_operation = BTreeMap::new();
-    for operation in &form.operations {
+    let mut by_gear = BTreeMap::new();
+    for gear in &form.gears {
         let choice = select_realization_with_characteristics(
-            operation,
-            realm,
+            gear,
+            hosts,
             advertisements,
             requirements
-                .get(&operation.operation_id)
+                .get(&gear.gear_id)
                 .unwrap_or(&HardRealizationRequirements::default()),
             &remaining,
             policies
-                .get(&operation.operation_id)
+                .get(&gear.gear_id)
                 .unwrap_or(&RealizationPolicy::default()),
         )?;
-        consume_selected_capacity(realm, &choice, &mut remaining)?;
-        by_operation.insert(operation.operation_id.clone(), choice);
+        consume_selected_capacity(hosts, &choice, &mut remaining)?;
+        by_gear.insert(gear.gear_id.clone(), choice);
     }
-    let placements = PlacementChoices { by_operation };
+    let placements = PlacementChoices { by_gear };
     let mut plain_requirements = requirements.clone();
     for requirement in plain_requirements.values_mut() {
         requirement.minimum_characteristic_counts.clear();
@@ -75,9 +75,9 @@ pub fn replan_selected_realizations_with_characteristics(
         requirement.required_characteristic_flags.clear();
         requirement.required_characteristic_labels.clear();
     }
-    validate_hard_requirements(form, realm, &placements, &plain_requirements)?;
+    validate_hard_requirements(form, hosts, &placements, &plain_requirements)?;
     let replacement = seal_characteristics(
-        plan_with_options(form, realm, &placements, providers, planning_options)?,
+        plan_with_options(form, hosts, &placements, bases, planning_options)?,
         advertisements,
     )?;
     if replacement.plan_id == previous.plan_id {

@@ -35,7 +35,7 @@ pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
 pub const DEFAULT_CONNECTION_BYTE_CAPACITY: u32 = 64;
 pub const WAIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/wait@1";
 pub const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
-pub const AWAIT_ACTIVATION_HOST_OPERATION_CONTRACT: &str = "conduit.host/await-activation@1";
+pub const AWAIT_TRIGGER_HOST_OPERATION_CONTRACT: &str = "conduit.host/await-trigger@1";
 pub const MAX_PRESENTATION_COMPLETION_BYTES: u32 = 256;
 pub const TIMER_RESOURCE_CLASS: &str = "conduit.resource/timer-slot@1";
 pub const PRESENTATION_RESOURCE_CLASS: &str = "conduit.resource/presentation-slot@1";
@@ -91,21 +91,21 @@ identity_type!(CheckedFormId);
 identity_type!(ExpandedFormId);
 identity_type!(PlanId);
 identity_type!(ActivePlayId);
-identity_type!(EvidenceId);
+identity_type!(ClueId);
 identity_type!(PresentationId);
 identity_type!(FragmentId);
 identity_type!(PlacementId);
 identity_type!(ConnectionId);
 // Identity of one observed, directional, boot-scoped remote link.
 identity_type!(LinkBindingId);
-// Provider-owned identity of one exact initialized link endpoint.
+// Base-owned identity of one exact initialized link endpoint.
 identity_type!(LinkEndpointId);
-// Identity of one initialized provider instance behind a link observation.
-identity_type!(ConnectionProviderInstanceId);
+// Identity of one initialized base instance behind a link observation.
+identity_type!(ConnectionBaseInstanceId);
 // Opaque reference only; credential material never enters a plan.
 identity_type!(CredentialReferenceId);
 identity_type!(PortId);
-identity_type!(OperationId);
+identity_type!(GearId);
 identity_type!(HostProfileId);
 // Immutable identity of one host-operation boundary contract.
 identity_type!(HostOperationContractId);
@@ -113,14 +113,14 @@ identity_type!(HostOperationContractId);
 identity_type!(ResourceClassId);
 // Boot-scoped identity of one concrete host resource pool.
 identity_type!(ResourcePoolId);
-// Semantic identity of one protected resource role within an operation.
+// Semantic identity of one protected resource role within an gear.
 identity_type!(ResourceBindingRoleId);
-identity_type!(ArchitectureProviderId);
+identity_type!(ArchitectureBaseId);
 identity_type!(ComputeTopologyGroupId);
 identity_type!(ComputeDomainId);
 identity_type!(ComputePerformanceClassId);
-identity_type!(ProviderExecutionLaneId);
-// Opaque provider-owned reference; resource locator material never enters a plan.
+identity_type!(BaseExecutionLaneId);
+// Opaque base-owned reference; resource locator material never enters a plan.
 identity_type!(ResourceHandleId);
 // Immutable identity of one authority contract and one issued grant.
 identity_type!(AuthorityContractId);
@@ -142,12 +142,12 @@ pub struct ActivePlayIdentity {
     pub plan_id: PlanId,
     pub host_id: HostId,
     pub boot_id: BootId,
-    pub activation_sequence: u64,
+    pub play_sequence: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct EvidenceIdentity {
-    pub evidence_id: EvidenceId,
+pub struct ClueIdentity {
+    pub clue_id: ClueId,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub active_play_id: Option<ActivePlayId>,
@@ -166,20 +166,20 @@ pub fn bind_active_play(
     plan_id: &PlanId,
     host_id: &HostId,
     boot_id: &BootId,
-    activation_sequence: u64,
+    play_sequence: u64,
 ) -> ActivePlayIdentity {
     let digest = active_play_digest(
         plan_id.as_str(),
         host_id.as_str(),
         boot_id.as_str(),
-        activation_sequence,
+        play_sequence,
     );
     ActivePlayIdentity {
         active_play_id: ActivePlayId::from(hex_digest(&digest)),
         plan_id: plan_id.clone(),
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
-        activation_sequence,
+        play_sequence,
     }
 }
 
@@ -190,14 +190,14 @@ pub fn active_play_digest(
     plan_id: &str,
     host_id: &str,
     boot_id: &str,
-    activation_sequence: u64,
+    play_sequence: u64,
 ) -> [u8; 32] {
     let mut hash = Sha256::new();
     hash_identity_string(&mut hash, "active-play");
     hash_identity_string(&mut hash, plan_id);
     hash_identity_string(&mut hash, host_id);
     hash_identity_string(&mut hash, boot_id);
-    hash.update(activation_sequence.to_le_bytes());
+    hash.update(play_sequence.to_le_bytes());
     hash.finalize().into()
 }
 
@@ -206,14 +206,14 @@ fn hash_identity_string(hash: &mut Sha256, value: &str) {
     hash.update(value.as_bytes());
 }
 
-pub fn bind_evidence(
+pub fn bind_clue(
     host_id: &HostId,
     boot_id: &BootId,
     active_play_id: Option<&ActivePlayId>,
     sequence: u64,
-) -> EvidenceIdentity {
+) -> ClueIdentity {
     let mut canonical = Vec::new();
-    push_string(&mut canonical, "evidence");
+    push_string(&mut canonical, "clue");
     push_string(&mut canonical, host_id.as_str());
     push_string(&mut canonical, boot_id.as_str());
     push_string(
@@ -221,8 +221,8 @@ pub fn bind_evidence(
         active_play_id.map_or("no-active-play", ActivePlayId::as_str),
     );
     push_u64(&mut canonical, sequence);
-    EvidenceIdentity {
-        evidence_id: EvidenceId::from(hash_bytes(&canonical)),
+    ClueIdentity {
+        clue_id: ClueId::from(hash_bytes(&canonical)),
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
         active_play_id: active_play_id.cloned(),
@@ -331,7 +331,7 @@ pub struct CapabilityOffer {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlannerLimits {
     pub maximum_host_advertisements: u16,
-    pub maximum_operations: u16,
+    pub maximum_gears: u16,
     pub maximum_connections: u16,
     pub maximum_authority_grants: u16,
     #[serde(default)]
@@ -398,9 +398,9 @@ pub enum ConnectionOutcome {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PlannedOperation {
+pub struct PlannedGear {
     pub placement_id: PlacementId,
-    pub operation_id: OperationId,
+    pub gear_id: GearId,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,
     pub execution_profile_id: ExecutionProfileId,
@@ -431,7 +431,7 @@ pub enum ExpectedTerminal {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ExpectedEvidence {
+pub enum ExpectedClue {
     PlanFragmentReceived,
     PlacementPrepared(PlacementId),
     PlacementTerminal(PlacementId),
@@ -458,33 +458,31 @@ pub enum TerminalPolicy {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct EvidenceStorageBudget {
+pub struct ClueStorageBudget {
     pub item_capacity: u16,
     pub byte_capacity: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MandatoryEvidenceReport {
+pub struct MandatoryClueReport {
     pub plan_id: PlanId,
-    pub expected: Vec<ExpectedEvidence>,
-    pub recorded: Vec<ExpectedEvidence>,
-    pub storage_budget: EvidenceStorageBudget,
+    pub expected: Vec<ExpectedClue>,
+    pub recorded: Vec<ExpectedClue>,
+    pub storage_budget: ClueStorageBudget,
     pub allocated_item_slots: u32,
     pub used_bytes: u32,
     pub overflowed: bool,
 }
 
-pub fn mandatory_evidence_storage_requirement(
-    evidence: &[ExpectedEvidence],
-) -> Option<EvidenceStorageBudget> {
-    let item_capacity = u16::try_from(evidence.len()).ok()?;
+pub fn mandatory_clue_storage_requirement(clue: &[ExpectedClue]) -> Option<ClueStorageBudget> {
+    let item_capacity = u16::try_from(clue.len()).ok()?;
     let mut byte_capacity = 0u32;
-    for item in evidence {
+    for item in clue {
         let identity = match item {
-            ExpectedEvidence::PlanFragmentReceived | ExpectedEvidence::PlanTerminal => None,
-            ExpectedEvidence::PlacementPrepared(placement_id)
-            | ExpectedEvidence::PlacementTerminal(placement_id) => Some(placement_id.as_str()),
-            ExpectedEvidence::ConnectionTerminal(connection_id) => Some(connection_id.as_str()),
+            ExpectedClue::PlanFragmentReceived | ExpectedClue::PlanTerminal => None,
+            ExpectedClue::PlacementPrepared(placement_id)
+            | ExpectedClue::PlacementTerminal(placement_id) => Some(placement_id.as_str()),
+            ExpectedClue::ConnectionTerminal(connection_id) => Some(connection_id.as_str()),
         };
         let identity_bytes = match identity {
             Some(value) => u32::try_from(value.len()).ok()?,
@@ -492,7 +490,7 @@ pub fn mandatory_evidence_storage_requirement(
         };
         byte_capacity = byte_capacity.checked_add(1)?.checked_add(identity_bytes)?;
     }
-    Some(EvidenceStorageBudget {
+    Some(ClueStorageBudget {
         item_capacity,
         byte_capacity,
     })
@@ -514,7 +512,7 @@ pub struct PlannedConnection {
     pub value_kind: KindId,
     #[serde(default)]
     pub temporal: PortTemporal,
-    pub provider: ConnectionProvider,
+    pub base: ConnectionBase,
     pub link_binding: Option<LinkBinding>,
     /// Exact ordered permissible routes. Empty retains the legacy single-link
     /// representation; new remote plans seal at least one immutable candidate.
@@ -547,7 +545,7 @@ pub struct PlanFragment {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
-    pub placements: Vec<PlannedOperation>,
+    pub placements: Vec<PlannedGear>,
     pub connections: Vec<PlannedConnection>,
     #[serde(default)]
     pub shared_pools: Vec<PlannedSharedPool>,
@@ -556,8 +554,8 @@ pub struct PlanFragment {
     pub cancellation_policy: CancellationPolicy,
     pub terminal_policy: TerminalPolicy,
     pub expected_terminals: Vec<ExpectedTerminal>,
-    pub expected_evidence: Vec<ExpectedEvidence>,
-    pub evidence_storage_budget: EvidenceStorageBudget,
+    pub expected_clue: Vec<ExpectedClue>,
+    pub clue_storage_budget: ClueStorageBudget,
     pub plan_fragments: Vec<FragmentCommitment>,
 }
 
@@ -698,7 +696,7 @@ fn verify_plan_connections(plan: &Plan) -> bool {
         let sink = sink[0];
         if source.host_id == sink.host_id {
             if occurrences.len() != 1
-                || connection.provider != ConnectionProvider::Local
+                || connection.base != ConnectionBase::Local
                 || connection.link_binding.is_some()
                 || !connection.route_candidates.is_empty()
             {
@@ -714,10 +712,10 @@ fn verify_plan_connections(plan: &Plan) -> bool {
                 connection.route_candidates.clone()
             };
             if occurrences.len() != 2
-                || connection.provider == ConnectionProvider::Local
+                || connection.base == ConnectionBase::Local
                 || binding.binding_id.as_str().is_empty()
-                || binding.provider != connection.provider
-                || binding.provider_instance_id.as_str().is_empty()
+                || binding.base != connection.base
+                || binding.base_instance_id.as_str().is_empty()
                 || !connection.permits_bound_link(&binding.bound_link())
                 || candidates
                     .iter()
@@ -736,13 +734,13 @@ fn verify_plan_connections(plan: &Plan) -> bool {
 
 fn invalid_bound_link(
     candidate: &BoundLink,
-    source: &PlannedOperation,
-    sink: &PlannedOperation,
+    source: &PlannedGear,
+    sink: &PlannedGear,
     connection: &PlannedConnection,
 ) -> bool {
     candidate.binding_id.as_str().is_empty()
-        || candidate.provider == ConnectionProvider::Local
-        || candidate.provider_instance_id.as_str().is_empty()
+        || candidate.base == ConnectionBase::Local
+        || candidate.base_instance_id.as_str().is_empty()
         || candidate.source.host_id != source.host_id
         || candidate.source.boot_id != source.boot_id
         || candidate.source.endpoint_id.as_str().is_empty()
@@ -801,14 +799,14 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     push_string(&mut canonical, fragment.boot_id.as_str());
     push_u64(&mut canonical, fragment.offer_generation.0);
     push_u32(&mut canonical, fragment.placements.len() as u32);
-    for operation in &fragment.placements {
-        push_string(&mut canonical, operation.placement_id.as_str());
-        push_string(&mut canonical, operation.operation_id.as_str());
-        push_string(&mut canonical, operation.kind_id.as_str());
-        push_string(&mut canonical, operation.kind_contract_revision.as_str());
-        push_string(&mut canonical, operation.execution_profile_id.as_str());
-        push_u32(&mut canonical, operation.configuration.len() as u32);
-        for entry in &operation.configuration {
+    for gear in &fragment.placements {
+        push_string(&mut canonical, gear.placement_id.as_str());
+        push_string(&mut canonical, gear.gear_id.as_str());
+        push_string(&mut canonical, gear.kind_id.as_str());
+        push_string(&mut canonical, gear.kind_contract_revision.as_str());
+        push_string(&mut canonical, gear.execution_profile_id.as_str());
+        push_u32(&mut canonical, gear.configuration.len() as u32);
+        for entry in &gear.configuration {
             push_string(&mut canonical, &entry.key);
             match entry.value {
                 ConfigurationValue::Bool(value) => {
@@ -825,17 +823,17 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                 }
             }
         }
-        push_string(&mut canonical, operation.host_id.as_str());
-        push_string(&mut canonical, operation.boot_id.as_str());
-        push_u64(&mut canonical, operation.offer_generation.0);
-        push_string(&mut canonical, operation.capability_id.as_str());
-        push_string(&mut canonical, operation.implementation_id.as_str());
-        push_string(&mut canonical, operation.artifact_id.as_str());
+        push_string(&mut canonical, gear.host_id.as_str());
+        push_string(&mut canonical, gear.boot_id.as_str());
+        push_u64(&mut canonical, gear.offer_generation.0);
+        push_string(&mut canonical, gear.capability_id.as_str());
+        push_string(&mut canonical, gear.implementation_id.as_str());
+        push_string(&mut canonical, gear.artifact_id.as_str());
         push_u32(
             &mut canonical,
-            operation.realization_characteristics.len() as u32,
+            gear.realization_characteristics.len() as u32,
         );
-        for characteristic in &operation.realization_characteristics {
+        for characteristic in &gear.realization_characteristics {
             push_string(&mut canonical, characteristic.characteristic_id.as_str());
             match &characteristic.value {
                 RealizationCharacteristicValue::Count(value) => {
@@ -852,13 +850,13 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                 }
             }
         }
-        canonical.extend_from_slice(&operation.limits.max_active_instances.to_le_bytes());
-        canonical.extend_from_slice(&operation.limits.max_queue_items.to_le_bytes());
-        push_u32(&mut canonical, operation.limits.max_queue_bytes);
-        push_ports(&mut canonical, &operation.inputs);
-        push_ports(&mut canonical, &operation.outputs);
-        push_u32(&mut canonical, operation.host_operations.len() as u32);
-        for requirement in &operation.host_operations {
+        canonical.extend_from_slice(&gear.limits.max_active_instances.to_le_bytes());
+        canonical.extend_from_slice(&gear.limits.max_queue_items.to_le_bytes());
+        push_u32(&mut canonical, gear.limits.max_queue_bytes);
+        push_ports(&mut canonical, &gear.inputs);
+        push_ports(&mut canonical, &gear.outputs);
+        push_u32(&mut canonical, gear.host_operations.len() as u32);
+        for requirement in &gear.host_operations {
             push_string(&mut canonical, requirement.contract_id.as_str());
             match &requirement.target_kind {
                 Some(target_kind) => {
@@ -871,8 +869,8 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             push_u32(&mut canonical, requirement.maximum_input_bytes);
             push_u32(&mut canonical, requirement.maximum_output_bytes);
         }
-        push_u32(&mut canonical, operation.resources.len() as u32);
-        for binding in &operation.resources {
+        push_u32(&mut canonical, gear.resources.len() as u32);
+        for binding in &gear.resources {
             push_string(&mut canonical, binding.pool_id.as_str());
             push_string(&mut canonical, binding.class_id.as_str());
             push_u32(&mut canonical, binding.units);
@@ -881,8 +879,8 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                     canonical.push(1);
                     push_u32(&mut canonical, compute.selected_lanes);
                     canonical.push(compute.service_guarantee as u8);
-                    push_string(&mut canonical, compute.architecture_provider_id.as_str());
-                    canonical.push(compute.architecture_provider_kind as u8);
+                    push_string(&mut canonical, compute.architecture_base_id.as_str());
+                    canonical.push(compute.architecture_base_kind as u8);
                     match &compute.topology_group_id {
                         Some(group) => {
                             canonical.push(1);
@@ -905,8 +903,8 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                 None => canonical.push(0),
             }
         }
-        push_u32(&mut canonical, operation.authority.len() as u32);
-        for binding in &operation.authority {
+        push_u32(&mut canonical, gear.authority.len() as u32);
+        for binding in &gear.authority {
             push_string(&mut canonical, binding.grant_id.as_str());
             push_string(&mut canonical, binding.contract_id.as_str());
             push_string(&mut canonical, binding.host_operation_contract_id.as_str());
@@ -915,8 +913,8 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             push_string(&mut canonical, binding.boot_id.as_str());
             push_string(&mut canonical, binding.capability_id.as_str());
         }
-        push_u32(&mut canonical, operation.pool_references.len() as u32);
-        for pool in &operation.pool_references {
+        push_u32(&mut canonical, gear.pool_references.len() as u32);
+        for pool in &gear.pool_references {
             push_string(&mut canonical, pool.as_str());
         }
     }
@@ -935,7 +933,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             PortTemporal::Current => 3,
         });
         if connection.route_candidates.is_empty() {
-            canonical.push(connection.provider.canonical_code());
+            canonical.push(connection.base.canonical_code());
             match &connection.link_binding {
                 Some(binding) => {
                     canonical.push(1);
@@ -960,8 +958,8 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         canonical.extend_from_slice(&pool.maximum_members.to_le_bytes());
         canonical.extend_from_slice(&pool.member_limits.queue_item_capacity.to_le_bytes());
         push_u32(&mut canonical, pool.member_limits.queue_byte_capacity);
-        canonical.extend_from_slice(&pool.member_limits.evidence_item_capacity.to_le_bytes());
-        push_u32(&mut canonical, pool.member_limits.evidence_byte_capacity);
+        canonical.extend_from_slice(&pool.member_limits.clue_item_capacity.to_le_bytes());
+        push_u32(&mut canonical, pool.member_limits.clue_byte_capacity);
         push_u32(&mut canonical, pool.realization_envelope.len() as u32);
         for realization in &pool.realization_envelope {
             push_string(&mut canonical, realization.host_id.as_str());
@@ -1015,30 +1013,27 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             ExpectedTerminal::PlanCompleted => canonical.push(2),
         }
     }
-    push_u32(&mut canonical, fragment.expected_evidence.len() as u32);
-    for evidence in &fragment.expected_evidence {
-        match evidence {
-            ExpectedEvidence::PlanFragmentReceived => canonical.push(0),
-            ExpectedEvidence::PlacementPrepared(placement_id) => {
+    push_u32(&mut canonical, fragment.expected_clue.len() as u32);
+    for clue in &fragment.expected_clue {
+        match clue {
+            ExpectedClue::PlanFragmentReceived => canonical.push(0),
+            ExpectedClue::PlacementPrepared(placement_id) => {
                 canonical.push(1);
                 push_string(&mut canonical, placement_id.as_str());
             }
-            ExpectedEvidence::PlacementTerminal(placement_id) => {
+            ExpectedClue::PlacementTerminal(placement_id) => {
                 canonical.push(2);
                 push_string(&mut canonical, placement_id.as_str());
             }
-            ExpectedEvidence::ConnectionTerminal(connection_id) => {
+            ExpectedClue::ConnectionTerminal(connection_id) => {
                 canonical.push(3);
                 push_string(&mut canonical, connection_id.as_str());
             }
-            ExpectedEvidence::PlanTerminal => canonical.push(4),
+            ExpectedClue::PlanTerminal => canonical.push(4),
         }
     }
-    canonical.extend_from_slice(&fragment.evidence_storage_budget.item_capacity.to_le_bytes());
-    push_u32(
-        &mut canonical,
-        fragment.evidence_storage_budget.byte_capacity,
-    );
+    canonical.extend_from_slice(&fragment.clue_storage_budget.item_capacity.to_le_bytes());
+    push_u32(&mut canonical, fragment.clue_storage_budget.byte_capacity);
     FragmentId::from(hash_bytes(&canonical))
 }
 
@@ -1069,8 +1064,8 @@ fn push_bound_link(canonical: &mut Vec<u8>, binding: &BoundLink) {
     push_string(canonical, binding.sink.host_id.as_str());
     push_string(canonical, binding.sink.boot_id.as_str());
     push_string(canonical, binding.sink.endpoint_id.as_str());
-    canonical.push(binding.provider.canonical_code());
-    push_string(canonical, binding.provider_instance_id.as_str());
+    canonical.push(binding.base.canonical_code());
+    push_string(canonical, binding.base_instance_id.as_str());
     match &binding.credential {
         LinkCredentialReference::None => canonical.push(0),
         LinkCredentialReference::Opaque(reference) => {
@@ -1181,11 +1176,11 @@ pub enum FailureReason {
     RequiredBranchFailed,
     InvalidLifecycleCommand,
     LatePlatformCompletion,
-    EvidenceGap,
+    ClueGap,
     InvalidStartupDependencies,
     UnsupportedCancellationPolicy,
     UnsupportedTerminalPolicy,
-    EvidenceBudgetExceeded,
+    ClueBudgetExceeded,
     HostOperationContractMismatch,
     HostOperationNotPlanned,
     HostOperationInputExceeded,
@@ -1210,7 +1205,7 @@ pub enum FailureReason {
     AdvertisedImplementationMismatch,
     ArtifactIdentityMismatch,
     PlanIdentityMismatch,
-    InvalidOperationConfiguration,
+    InvalidGearConfiguration,
     UnsupportedValueKind,
 }
 
@@ -1238,7 +1233,7 @@ pub struct ConnectionTerminalDisposition {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Observation {
-    pub evidence_id: EvidenceId,
+    pub clue_id: ClueId,
     pub active_play_id: Option<ActivePlayId>,
     pub presentation_id: Option<PresentationId>,
     pub host_id: HostId,
@@ -1255,7 +1250,7 @@ pub enum ObservationKind {
     AdvertisementPublished,
     PlanFragmentReceived,
     PlacementPrepared,
-    PlanActivated,
+    PlanPlayStarted,
     ValueProduced {
         value: ValuePayload,
     },
@@ -1282,7 +1277,7 @@ pub enum ObservationKind {
     },
     Cancelled,
     Released,
-    EvidenceGap {
+    ClueGap {
         dropped: u64,
     },
 }
@@ -1294,7 +1289,7 @@ pub enum ObservationKind {
 pub enum HostCommand {
     PublishAdvertisement(HostAdvertisement),
     Prepare(PlanFragment),
-    Activate(PlanId),
+    StartPlay(PlanId),
     CompleteWait {
         plan_id: PlanId,
         placement_id: PlacementId,
@@ -1334,11 +1329,11 @@ pub enum HostEvent {
         reason: FailureReason,
         message: Option<String>,
     },
-    Activated {
+    PlayStarted {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
     },
-    ActivationRejected {
+    PlayStartRejected {
         plan_id: PlanId,
         reason: FailureReason,
         message: Option<String>,
@@ -1421,8 +1416,8 @@ pub enum HostEvent {
     Observations {
         items: Vec<Observation>,
     },
-    MandatoryEvidenceReports {
-        items: Vec<MandatoryEvidenceReport>,
+    MandatoryClueReports {
+        items: Vec<MandatoryClueReport>,
     },
 }
 
@@ -1525,13 +1520,13 @@ pub fn present_host_operation_requirement(
     }
 }
 
-/// Host-operation requirement for exactly one human/physical activation input.
+/// Host-operation requirement for exactly one human/physical trigger input.
 /// The platform adapter must block on the admitted input resource (e.g. stdin)
-/// until the operator provides the activation, then complete the request.
+/// until the operator provides the trigger, then complete the request.
 /// A 1-byte sequence counter is admitted as a correlation token (no timer semantics).
-pub fn await_activation_host_operation_requirement() -> HostOperationRequirement {
+pub fn await_trigger_host_operation_requirement() -> HostOperationRequirement {
     HostOperationRequirement {
-        contract_id: HostOperationContractId::from(AWAIT_ACTIVATION_HOST_OPERATION_CONTRACT),
+        contract_id: HostOperationContractId::from(AWAIT_TRIGGER_HOST_OPERATION_CONTRACT),
         target_kind: None,
         maximum_in_flight: 1,
         maximum_input_bytes: 1,
@@ -1565,14 +1560,14 @@ pub fn authority_grant(
     }
 }
 
-/// Build a ready link observation for a provider whose endpoint access is
+/// Build a ready link observation for a base whose endpoint access is
 /// wholly owned by the current process. This is suitable for deterministic
 /// in-process fixtures; actual carriers should supply explicit credential and
 /// grant references instead.
 pub fn process_owned_link_binding(
     binding_id: &str,
-    provider: ConnectionProvider,
-    provider_instance_id: &str,
+    base: ConnectionBase,
+    base_instance_id: &str,
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
     maximum_in_flight_items: u16,
@@ -1580,8 +1575,8 @@ pub fn process_owned_link_binding(
 ) -> LinkBinding {
     process_owned_link_binding_with_limits(
         binding_id,
-        provider,
-        provider_instance_id,
+        base,
+        base_instance_id,
         source,
         sink,
         LinkLimits {
@@ -1595,8 +1590,8 @@ pub fn process_owned_link_binding(
 
 pub fn process_owned_link_binding_with_limits(
     binding_id: &str,
-    provider: ConnectionProvider,
-    provider_instance_id: &str,
+    base: ConnectionBase,
+    base_instance_id: &str,
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
     limits: LinkLimits,
@@ -1613,8 +1608,8 @@ pub fn process_owned_link_binding_with_limits(
             boot_id: sink.boot_id.clone(),
             endpoint_id: LinkEndpointId::from(format!("{binding_id}/sink")),
         },
-        provider,
-        provider_instance_id: ConnectionProviderInstanceId::from(provider_instance_id),
+        base,
+        base_instance_id: ConnectionBaseInstanceId::from(base_instance_id),
         availability: LinkAvailability::Ready,
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,

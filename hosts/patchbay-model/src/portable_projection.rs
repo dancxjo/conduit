@@ -1,7 +1,7 @@
 //! Adapt the living Patchbay projection into Conduit's portable Presentation value.
 
 use conduit_body::{Body, BodyLifecycleError, BodyState, Wake, WakeLifecycle};
-use conduit_core::EvidenceId;
+use conduit_core::ClueId;
 use conduit_presentation::{
     Presentation, PresentationBasis, PresentationError, PresentationProperty,
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
@@ -116,11 +116,11 @@ impl PatchbayPresentation {
         let checked_form_id = identities
             .document_checked_form_id
             .ok_or(PortableProjectionError::MissingCheckedForm)?;
-        let mut evidence_ids = identities.evidence_ids;
-        evidence_ids.extend(body.evidence_ids.iter().cloned());
-        evidence_ids.extend(wake.evidence_ids.iter().cloned());
-        evidence_ids.sort();
-        evidence_ids.dedup();
+        let mut clue_ids = identities.clue_ids;
+        clue_ids.extend(body.clue_ids.iter().cloned());
+        clue_ids.extend(wake.clue_ids.iter().cloned());
+        clue_ids.sort();
+        clue_ids.dedup();
 
         let mut content = ContentBuilder::new();
         let document = content.subject(
@@ -153,7 +153,7 @@ impl PatchbayPresentation {
                 expanded_form_id: identities.expanded_form_id,
                 plan_id: identities.plan_id,
                 active_play_id: identities.active_play_id,
-                evidence_ids,
+                clue_ids,
             },
             content.subjects,
             content.relationships,
@@ -247,7 +247,7 @@ fn append_document(
         for item in &form.items {
             let role = match item.kind {
                 GraphItemKind::FaceInput | GraphItemKind::FaceOutput => PresentationRole::Port,
-                GraphItemKind::StartupValue | GraphItemKind::Cell => PresentationRole::Cell,
+                GraphItemKind::StartupValue | GraphItemKind::Gear => PresentationRole::Gear,
                 GraphItemKind::Cord => PresentationRole::Cord,
             };
             let subject = content.subject(role, &item.identity, &item.label);
@@ -307,8 +307,8 @@ fn append_plan_and_play(
         for line in &play.lines {
             content.line(&subject, line);
         }
-        for evidence in &play.evidence {
-            append_evidence(document, &evidence.evidence_id, content);
+        for clue in &play.clues {
+            append_clue(document, &clue.clue_id, content);
         }
     }
 }
@@ -333,8 +333,8 @@ fn append_topology(
         );
         content.describes(&subject, document);
     }
-    for evidence in &topology.evidence {
-        append_evidence(document, &evidence.evidence_id, content);
+    for clue in &topology.clues {
+        append_clue(document, &clue.clue_id, content);
     }
 }
 
@@ -401,13 +401,13 @@ fn append_route_candidates(
         );
         content.property(
             &subject,
-            "provider",
-            PresentationPropertyValue::ConnectionProvider(candidate.provider),
+            "base",
+            PresentationPropertyValue::ConnectionBase(candidate.base),
         );
         content.property(
             &subject,
-            "provider-instance-id",
-            PresentationPropertyValue::Identity(candidate.provider_instance_id.as_str().into()),
+            "base-instance-id",
+            PresentationPropertyValue::Identity(candidate.base_instance_id.as_str().into()),
         );
         content.property(
             &subject,
@@ -417,11 +417,11 @@ fn append_route_candidates(
     }
 }
 
-fn append_evidence(document: &str, evidence: &EvidenceId, content: &mut ContentBuilder) {
+fn append_clue(document: &str, clue: &ClueId, content: &mut ContentBuilder) {
     let subject = content.subject(
-        PresentationRole::Evidence,
-        evidence.as_str(),
-        format!("Evidence {}", evidence.as_str()),
+        PresentationRole::Clue,
+        clue.as_str(),
+        format!("Clue {}", clue.as_str()),
     );
     content.describes(&subject, document);
 }

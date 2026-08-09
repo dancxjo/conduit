@@ -19,7 +19,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#status")).toContainText("Presentation revision 1");
     await expect(page.getByRole("heading",{name:"Form"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
-    await expect(page.getByRole("heading",{name:"Active Play and evidence"})).toBeVisible();
+    await expect(page.getByRole("heading",{name:"Active Play and Clues"})).toBeVisible();
     await expect(page.locator("#route-cards h3").first()).toContainText("Route");
     await expect(page.locator("#diagnostics li")).toHaveCount(1);
     await expect(page.locator("#diagnostics li")).toContainText("CND-FRM-004");

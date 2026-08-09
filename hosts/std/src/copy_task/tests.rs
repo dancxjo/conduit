@@ -1,12 +1,11 @@
-use super::provider::ExecutionFaults;
+use super::base::ExecutionFaults;
 use super::{
     CopyRequestId, CopyResult, CopyStopToken, ProtectedFileAvailability, ProtectedFileRegistry,
 };
 use crate::{StdHost, StdHostConfig};
 use conduit_core::{
-    BootId, CapabilityId, ConnectionProvider, HostId, OfferGeneration, OperationId,
-    ProtectedResourceAccess, ProtectedResourceCommitPolicy, ResourceBindingRoleId,
-    ResourceHandleId,
+    BootId, CapabilityId, ConnectionBase, GearId, HostId, OfferGeneration, ProtectedResourceAccess,
+    ProtectedResourceCommitPolicy, ResourceBindingRoleId, ResourceHandleId,
 };
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
@@ -71,7 +70,7 @@ fn planned_copy(
         .register(
             source_handle.clone(),
             source,
-            OperationId::from("copy"),
+            GearId::from("copy"),
             ResourceBindingRoleId::from(conduit_std_catalog::COPY_SOURCE_ROLE),
             host.advertisement().host_id.clone(),
             host.advertisement().boot_id.clone(),
@@ -86,7 +85,7 @@ fn planned_copy(
         .register(
             destination_handle.clone(),
             destination,
-            OperationId::from("copy"),
+            GearId::from("copy"),
             ResourceBindingRoleId::from(conduit_std_catalog::COPY_DESTINATION_ROLE),
             host.advertisement().host_id.clone(),
             host.advertisement().boot_id.clone(),
@@ -102,9 +101,9 @@ fn planned_copy(
         &form,
         std::slice::from_ref(host.advertisement()),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         PlanningOptions {
-            connection_providers: &overrides,
+            connection_bases: &overrides,
             route_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 1,

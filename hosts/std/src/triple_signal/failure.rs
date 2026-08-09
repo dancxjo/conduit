@@ -12,7 +12,7 @@ impl TriplePhysicalRunner {
     pub(super) fn fail_pico_branch<W: Write>(
         &mut self,
         carrier: &mut NativePathCdcCarrier,
-        evidence: &mut NativePathCdcLineReader,
+        clue: &mut NativePathCdcLineReader,
         runtime: &PicoRuntimeIdentity,
         code: u16,
         report: &mut W,
@@ -65,11 +65,11 @@ impl TriplePhysicalRunner {
             ));
         }
 
-        let terminal_evidence = evidence
+        let terminal_clue = clue
             .read_line(Duration::from_secs(3))
-            .map_err(|error| format!("Pico failed terminal evidence: {error:?}"))?;
-        self.pico_evidence
-            .verify_terminal(&terminal_evidence, runtime, false)?;
+            .map_err(|error| format!("Pico failed terminal clue: {error:?}"))?;
+        self.pico_clue
+            .verify_terminal(&terminal_clue, runtime, false)?;
         writeln!(
             report,
             "summary plan={} pico_link={} pico_boot={} values={} terminal=failed failure_code={code}",

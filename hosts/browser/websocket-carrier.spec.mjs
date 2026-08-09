@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 function nextLine(lines) {
   return new Promise((resolve, reject) => {
     lines.once("line", resolve);
-    lines.once("close", () => reject(new Error("provider exited before publishing URL")));
+    lines.once("close", () => reject(new Error("base exited before publishing URL")));
   });
 }
 
@@ -14,7 +14,7 @@ function processExit(child) {
     child.once("error", reject);
     child.once("exit", (code, signal) => {
       if (code === 0) resolve();
-      else reject(new Error(`provider exit code=${code} signal=${signal}`));
+      else reject(new Error(`base exit code=${code} signal=${signal}`));
     });
   });
 }
@@ -22,16 +22,16 @@ function processExit(child) {
 test("actual Chromium and native RFC 6455 carriers exchange bounded binary protocol frames", async ({
   page,
 }) => {
-  const provider = spawn(
+  const base = spawn(
     "cargo",
     ["run", "--quiet", "-p", "conduit-std-host", "--bin", "websocket-carrier-probe"],
     { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] },
   );
   const stderr = [];
-  provider.stderr.setEncoding("utf8");
-  provider.stderr.on("data", (chunk) => stderr.push(chunk));
-  const lines = createInterface({ input: provider.stdout });
-  const exited = processExit(provider);
+  base.stderr.setEncoding("utf8");
+  base.stderr.on("data", (chunk) => stderr.push(chunk));
+  const lines = createInterface({ input: base.stdout });
+  const exited = processExit(base);
   try {
     const url = await nextLine(lines);
     expect(url).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/conduit$/);
@@ -92,6 +92,6 @@ test("actual Chromium and native RFC 6455 carriers exchange bounded binary proto
     expect(result.closed).toEqual({ ok: true, code: 1000, reason: "conduit-terminal" });
   } finally {
     lines.close();
-    if (provider.exitCode === null) provider.kill("SIGTERM");
+    if (base.exitCode === null) base.kill("SIGTERM");
   }
 });

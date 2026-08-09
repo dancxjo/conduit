@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use conduit_core::{
-    bind_active_play, bind_evidence, bind_presentation, BootId, ConnectionProvider, HostId,
+    bind_active_play, bind_clue, bind_presentation, BootId, ConnectionBase, HostId,
     PlacementId, PlanId,
 };
 use conduit_embedded_build::{
@@ -24,7 +24,7 @@ const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
 const MAX_STORED_SIGNAL_VALUES: usize = 16;
 const WAIT_VALUE_BYTES: u32 = 8;
-const RUNTIME_EVIDENCE_EVENTS: usize = 256;
+const RUNTIME_CLUE_EVENTS: usize = 256;
 
 fn main() {
     let target = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
@@ -73,7 +73,7 @@ fn generate_pico_signal_image(out: &Path) {
             &form,
             std::slice::from_ref(&advertisement),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
             DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             SIGNAL_ENCODED_LEN,
         )
@@ -119,11 +119,11 @@ fn render_firmware_module(
         concat!(
             "pub const MAX_STORED_SIGNAL_VALUES: usize = {};\n",
             "pub const WAIT_VALUE_BYTES: u32 = {};\n",
-            "pub const RUNTIME_EVIDENCE_EVENTS: usize = {};\n",
+            "pub const RUNTIME_CLUE_EVENTS: usize = {};\n",
         ),
         MAX_STORED_SIGNAL_VALUES,
         WAIT_VALUE_BYTES,
-        RUNTIME_EVIDENCE_EVENTS,
+        RUNTIME_CLUE_EVENTS,
     ));
     module
 }
@@ -135,10 +135,10 @@ struct GeneratedSignalIdentity {
     checked_form_id: String,
     expanded_form_id: String,
     active_play_id: String,
-    boot_evidence_id: String,
+    boot_clue_id: String,
     presentation_ids: Vec<String>,
-    presentation_evidence_ids: Vec<String>,
-    terminal_evidence_id: String,
+    presentation_clue_ids: Vec<String>,
+    terminal_clue_id: String,
 }
 
 impl GeneratedSignalIdentity {
@@ -157,30 +157,30 @@ impl GeneratedSignalIdentity {
                     .to_owned()
             })
             .collect();
-        let presentation_evidence_ids = (0..MAX_STORED_SIGNAL_VALUES as u64)
+        let presentation_clue_ids = (0..MAX_STORED_SIGNAL_VALUES as u64)
             .map(|sequence| {
-                bind_evidence(
+                bind_clue(
                     &host_id,
                     &boot_id,
                     Some(&active_play.active_play_id),
                     sequence,
                 )
-                .evidence_id
+                .clue_id
                 .as_str()
                 .to_owned()
             })
             .collect();
-        let terminal_evidence_id = bind_evidence(
+        let terminal_clue_id = bind_clue(
             &host_id,
             &boot_id,
             Some(&active_play.active_play_id),
             MAX_STORED_SIGNAL_VALUES as u64,
         )
-        .evidence_id
+        .clue_id
         .as_str()
         .to_owned();
-        let boot_evidence_id = bind_evidence(&host_id, &boot_id, None, 0)
-            .evidence_id
+        let boot_clue_id = bind_clue(&host_id, &boot_id, None, 0)
+            .clue_id
             .as_str()
             .to_owned();
         let firmware_build_id = firmware_build_id(form, generated, &active_play.active_play_id);
@@ -192,10 +192,10 @@ impl GeneratedSignalIdentity {
             checked_form_id: form.checked_form_id.as_str().to_owned(),
             expanded_form_id: form.expanded_form_id.as_str().to_owned(),
             active_play_id: active_play.active_play_id.as_str().to_owned(),
-            boot_evidence_id,
+            boot_clue_id,
             presentation_ids,
-            presentation_evidence_ids,
-            terminal_evidence_id,
+            presentation_clue_ids,
+            terminal_clue_id,
         }
     }
 }
@@ -272,17 +272,17 @@ fn render_identity_constants(module: &mut String, identity: &GeneratedSignalIden
     render_string_constant(module, "CHECKED_FORM_ID", &identity.checked_form_id);
     render_string_constant(module, "EXPANDED_FORM_ID", &identity.expanded_form_id);
     render_string_constant(module, "ACTIVE_PLAY_ID", &identity.active_play_id);
-    render_string_constant(module, "BOOT_EVIDENCE_ID", &identity.boot_evidence_id);
+    render_string_constant(module, "BOOT_CLUE_ID", &identity.boot_clue_id);
     render_string_constant(
         module,
-        "TERMINAL_EVIDENCE_ID",
-        &identity.terminal_evidence_id,
+        "TERMINAL_CLUE_ID",
+        &identity.terminal_clue_id,
     );
     render_string_array(module, "PRESENTATION_IDS", &identity.presentation_ids);
     render_string_array(
         module,
-        "PRESENTATION_EVIDENCE_IDS",
-        &identity.presentation_evidence_ids,
+        "PRESENTATION_CLUE_IDS",
+        &identity.presentation_clue_ids,
     );
 }
 
@@ -308,14 +308,14 @@ fn pico_signal_bounds() -> EmbeddedImageBounds {
         maximum_route_targets: 1,
         maximum_host_operations: 2,
         maximum_resources: 2,
-        maximum_evidence_expectations: 8,
+        maximum_clue_expectations: 8,
         maximum_configuration_entries: 3,
         maximum_ports_per_node: conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE,
         maximum_remote_endpoints: 1,
         maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         maximum_cord_value_bytes: SIGNAL_ENCODED_LEN,
-        maximum_evidence_items: 16,
-        maximum_evidence_bytes: 1024,
+        maximum_clue_items: 16,
+        maximum_clue_bytes: 1024,
     }
 }
 
@@ -324,7 +324,7 @@ fn render_identity_sidecar(
     identity: &GeneratedSignalIdentity,
 ) -> String {
     let presentation_ids = json_string_array(&identity.presentation_ids);
-    let presentation_evidence_ids = json_string_array(&identity.presentation_evidence_ids);
+    let presentation_clue_ids = json_string_array(&identity.presentation_clue_ids);
     format!(
         concat!(
             "{{\n",
@@ -339,18 +339,18 @@ fn render_identity_sidecar(
             "  \"host_id\": \"{}\",\n",
             "  \"boot_id\": \"{}\",\n",
             "  \"active_play_id\": \"{}\",\n",
-            "  \"boot_evidence_id\": \"{}\",\n",
+            "  \"boot_clue_id\": \"{}\",\n",
             "  \"presentation_ids\": {},\n",
-            "  \"presentation_evidence_ids\": {},\n",
-            "  \"terminal_evidence_id\": \"{}\",\n",
+            "  \"presentation_clue_ids\": {},\n",
+            "  \"terminal_clue_id\": \"{}\",\n",
             "  \"offer_generation\": {},\n",
             "  \"nodes\": {},\n",
             "  \"cords\": {},\n",
             "  \"host_operations\": {},\n",
             "  \"cord_value_slots\": {},\n",
             "  \"cord_value_bytes\": {},\n",
-            "  \"evidence_items\": {},\n",
-            "  \"evidence_bytes\": {}\n",
+            "  \"clue_items\": {},\n",
+            "  \"clue_bytes\": {}\n",
             "}}\n"
         ),
         identity.firmware_mode,
@@ -363,18 +363,18 @@ fn render_identity_sidecar(
         json_escape(&generated.host_id),
         json_escape(&generated.boot_id),
         json_escape(&identity.active_play_id),
-        json_escape(&identity.boot_evidence_id),
+        json_escape(&identity.boot_clue_id),
         presentation_ids,
-        presentation_evidence_ids,
-        json_escape(&identity.terminal_evidence_id),
+        presentation_clue_ids,
+        json_escape(&identity.terminal_clue_id),
         generated.offer_generation,
         generated.nodes.len(),
         generated.cords.len(),
         generated.host_operations.len(),
         generated.cord_value_slots,
         generated.cord_value_bytes,
-        generated.evidence_items,
-        generated.evidence_bytes,
+        generated.clue_items,
+        generated.clue_bytes,
     )
 }
 

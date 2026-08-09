@@ -11,8 +11,8 @@ fn native_renderer_consumes_the_same_portable_value_as_html_transport() {
     assert!(rendered.contains(presentation.identity.as_str()));
     assert!(rendered.contains(presentation.basis.body_id.as_str()));
     assert!(rendered.contains(presentation.basis.wake_id.as_str()));
-    assert!(rendered.contains("provider=USB CDC"));
-    assert!(rendered.contains("provider=WebSocket"));
+    assert!(rendered.contains("base=USB CDC"));
+    assert!(rendered.contains("base=WebSocket"));
 }
 use std::path::PathBuf;
 
@@ -31,7 +31,7 @@ fn application_adapters_share_the_fresh_advertised_host_identity() {
         advertised.capabilities.iter().any(|offer| {
             offer.capability_id.as_str() == conduit_std_catalog::COPY_FILE_CAPABILITY
         }),
-        application.file_task.provider_available()
+        application.file_task.base_available()
     );
 }
 
@@ -108,8 +108,8 @@ fn native_document_exposes_both_route_recovery_cases() {
     assert!(text.contains("Replacement Plan"));
     assert!(text.contains("Plan identity did not change"));
     assert!(text.contains("ambient route"));
-    assert!(text.contains("provider=USB CDC"));
-    assert!(text.contains("provider=WebSocket"));
+    assert!(text.contains("base=USB CDC"));
+    assert!(text.contains("base=WebSocket"));
 }
 
 #[test]

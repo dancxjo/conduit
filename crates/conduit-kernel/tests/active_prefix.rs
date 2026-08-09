@@ -3,9 +3,9 @@ use conduit_kernel::scheduler::{
     StepOperation, StepOutcome,
 };
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedEvidenceLog, FixedHostOperationBindings, FixedRoutes,
-    FixedValueStore, HostOperationBinding, HostOperationId, KernelEvent, NodeId, PortId,
-    ProtocolError, RouteRange, RouteTarget, ValueRef, ValueStorage,
+    CordEndpoint, CordId, FixedClueLog, FixedHostOperationBindings, FixedRoutes, FixedValueStore,
+    HostOperationBinding, HostOperationId, KernelEvent, NodeId, PortId, ProtocolError, RouteRange,
+    RouteTarget, ValueRef, ValueStorage,
 };
 
 const MAX_NODES: usize = 4;
@@ -14,12 +14,12 @@ const PORTS: usize = 2;
 const QUEUE_SLOTS: usize = 4;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = MAX_CORDS;
-const EVIDENCE_EVENTS: usize = 128;
+const CLUE_EVENTS: usize = 128;
 
 type TestScheduler = FixedScheduler<
     Driver,
     FixedValueStore<4, 1>,
-    FixedEvidenceLog<EVIDENCE_EVENTS>,
+    FixedClueLog<CLUE_EVENTS>,
     MAX_NODES,
     MAX_CORDS,
     PORTS,
@@ -147,10 +147,10 @@ fn inactive_cord() -> CordSpec {
     }
 }
 
-fn evidence() -> FixedEvidenceLog<EVIDENCE_EVENTS> {
-    let bytes = u32::try_from(EVIDENCE_EVENTS * core::mem::size_of::<KernelEvent>())
-        .expect("test evidence budget fits");
-    FixedEvidenceLog::new(bytes).expect("test evidence budget is exact")
+fn clue() -> FixedClueLog<CLUE_EVENTS> {
+    let bytes = u32::try_from(CLUE_EVENTS * core::mem::size_of::<KernelEvent>())
+        .expect("test clue budget fits");
+    FixedClueLog::new(bytes).expect("test clue budget is exact")
 }
 
 fn values() -> (FixedValueStore<4, 1>, [Option<ValueRef>; 2]) {
@@ -207,13 +207,13 @@ fn one_scheduler_capacity_runs_two_different_active_shapes() {
             Driver::new(Role::Inactive),
         ],
         store,
-        evidence(),
+        clue(),
     )
     .expect("pair installs in larger fixed capacity");
     pair.run(32)
         .expect("pair completes under capacity-one pressure");
     assert_eq!(pair.step(), Ok(SchedulerStatus::Complete));
-    assert!(pair.evidence().events().all(|event| event.node.0 < 2));
+    assert!(pair.clues().events().all(|event| event.node.0 < 2));
     assert!(matches!(pair.drivers()[1].role, Role::Sink { seen: 2 }));
 
     let (store, source_values) = values();
@@ -238,13 +238,13 @@ fn one_scheduler_capacity_runs_two_different_active_shapes() {
             Driver::new(Role::Inactive),
         ],
         store,
-        evidence(),
+        clue(),
     )
     .expect("chain installs in the same fixed capacity type");
     chain
         .run(48)
         .expect("chain completes under capacity-one pressure");
-    assert!(chain.evidence().events().all(|event| event.node.0 < 3));
+    assert!(chain.clues().events().all(|event| event.node.0 < 3));
     assert!(matches!(chain.drivers()[2].role, Role::Sink { seen: 2 }));
 }
 
@@ -272,7 +272,7 @@ fn inactive_capacity_is_rejected_and_never_cancelled() {
             Driver::new(Role::Inactive),
         ],
         store,
-        evidence(),
+        clue(),
     );
     assert!(matches!(result, Err(SchedulerError::InvalidActiveCapacity)));
 
@@ -298,7 +298,7 @@ fn inactive_capacity_is_rejected_and_never_cancelled() {
             Driver::new(Role::Inactive),
         ],
         store,
-        evidence(),
+        clue(),
     )
     .expect("pair installs");
     assert_eq!(
@@ -336,7 +336,7 @@ fn sealed_tables_cannot_reference_inactive_nodes_or_cords() {
             Driver::new(Role::Inactive),
         ],
         store,
-        evidence(),
+        clue(),
     );
     assert!(matches!(
         invalid_route,
@@ -390,7 +390,7 @@ fn sealed_tables_cannot_reference_inactive_nodes_or_cords() {
             Driver::new(Role::Inactive),
         ],
         store,
-        evidence(),
+        clue(),
     );
     assert!(matches!(
         invalid_binding,

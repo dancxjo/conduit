@@ -3,7 +3,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
     compute_resource_offer, compute_resource_requirement, kind_id, resource_offer,
-    resource_requirement, ArchitectureProviderId, ArchitectureProviderKind, ArtifactId,
+    resource_requirement, ArchitectureBaseId, ArchitectureBaseKind, ArtifactId,
     AuthorityContractId, AuthorityRequirement, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId,
     FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
@@ -31,10 +31,10 @@ pub const MAXIMUM_CONTEXT_CHARACTERISTIC: &str = "conduit.realization/maximum-co
 pub const MAXIMUM_OUTPUT_CHARACTERISTIC: &str = "conduit.realization/maximum-output-tokens@1";
 pub const DATA_EGRESS_CHARACTERISTIC: &str = "conduit.realization/data-egress@1";
 pub const METERED_COST_CHARACTERISTIC: &str = "conduit.realization/metered-cost@1";
-pub const BENCHMARK_EVIDENCE_CHARACTERISTIC: &str = "conduit.realization/benchmark-evidence@1";
+pub const BENCHMARK_CLUE_CHARACTERISTIC: &str = "conduit.realization/benchmark-clue@1";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ProviderProofClass {
+pub enum BaseProofClass {
     DeterministicConformanceFixture,
 }
 
@@ -51,27 +51,27 @@ pub enum Metering {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GenerateTextProviderFacts {
-    pub proof_class: ProviderProofClass,
+pub struct GenerateTextBaseFacts {
+    pub proof_class: BaseProofClass,
     pub maximum_context_tokens: u64,
     pub maximum_output_tokens: u64,
     pub data_handling: DataHandling,
     pub metering: Metering,
-    pub benchmark_evidence: String,
+    pub benchmark_clue: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GenerateTextProviderFixture {
+pub struct GenerateTextBaseFixture {
     pub advertisement: HostAdvertisement,
-    pub facts: GenerateTextProviderFacts,
+    pub facts: GenerateTextBaseFacts,
 }
 
-pub fn generate_text_provider_fixtures() -> [GenerateTextProviderFixture; 3] {
+pub fn generate_text_base_fixtures() -> [GenerateTextBaseFixture; 3] {
     [small_local(), large_local(), remote_frontier()]
 }
 
 pub fn generate_text_realization_advertisements(
-    fixtures: &[GenerateTextProviderFixture],
+    fixtures: &[GenerateTextBaseFixture],
 ) -> alloc::vec::Vec<RealizationAdvertisement> {
     fixtures
         .iter()
@@ -101,10 +101,10 @@ pub fn generate_text_realization_advertisements(
                     ),
                     RealizationCharacteristic {
                         characteristic_id: RealizationCharacteristicId::from(
-                            BENCHMARK_EVIDENCE_CHARACTERISTIC,
+                            BENCHMARK_CLUE_CHARACTERISTIC,
                         ),
                         value: RealizationCharacteristicValue::Label(
-                            fixture.facts.benchmark_evidence.clone(),
+                            fixture.facts.benchmark_clue.clone(),
                         ),
                     },
                 ],
@@ -127,8 +127,8 @@ fn flag_characteristic(id: &str, value: bool) -> RealizationCharacteristic {
     }
 }
 
-fn small_local() -> GenerateTextProviderFixture {
-    provider(
+fn small_local() -> GenerateTextBaseFixture {
+    base(
         "ai-small-local",
         "ai-small-local-boot",
         "ai/small-local",
@@ -148,8 +148,8 @@ fn small_local() -> GenerateTextProviderFixture {
     )
 }
 
-fn large_local() -> GenerateTextProviderFixture {
-    provider(
+fn large_local() -> GenerateTextBaseFixture {
+    base(
         "ai-large-local",
         "ai-large-local-boot",
         "ai/large-local",
@@ -171,10 +171,10 @@ fn large_local() -> GenerateTextProviderFixture {
     )
 }
 
-fn remote_frontier() -> GenerateTextProviderFixture {
-    provider(
-        "ai-remote-provider",
-        "ai-remote-provider-boot",
+fn remote_frontier() -> GenerateTextBaseFixture {
+    base(
+        "ai-remote-base",
+        "ai-remote-base-boot",
         "ai/remote-frontier",
         REMOTE_FRONTIER_IMPLEMENTATION,
         REMOTE_FRONTIER_ARTIFACT,
@@ -194,7 +194,7 @@ fn remote_frontier() -> GenerateTextProviderFixture {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn provider(
+fn base(
     host: &str,
     boot: &str,
     capability: &str,
@@ -205,9 +205,9 @@ fn provider(
     maximum_output_tokens: u64,
     data_handling: DataHandling,
     metering: Metering,
-    benchmark_evidence: &str,
+    benchmark_clue: &str,
     remote: bool,
-) -> GenerateTextProviderFixture {
+) -> GenerateTextBaseFixture {
     let contract = generate_text_contract();
     let host_operation = HostOperationRequirement {
         contract_id: HostOperationContractId::from(GENERATE_TEXT_HOST_OPERATION),
@@ -237,10 +237,10 @@ fn provider(
                     *units,
                     ComputePoolContract {
                         service_guarantee: ComputeServiceGuarantee::Shared,
-                        architecture_provider_id: ArchitectureProviderId::from(alloc::format!(
+                        architecture_base_id: ArchitectureBaseId::from(alloc::format!(
                             "fixture/{host}/hosted-os-cpu"
                         )),
-                        architecture_provider_kind: ArchitectureProviderKind::HostedOs,
+                        architecture_base_kind: ArchitectureBaseKind::HostedOs,
                         topology_groups: vec![],
                     },
                 )
@@ -268,7 +268,7 @@ fn provider(
         })
         .collect::<alloc::vec::Vec<_>>();
     resource_requirements.sort();
-    GenerateTextProviderFixture {
+    GenerateTextBaseFixture {
         advertisement: HostAdvertisement {
             protocol_version: 1,
             host_id: HostId::from(host),
@@ -302,13 +302,13 @@ fn provider(
             }],
             planner_capabilities: vec![],
         },
-        facts: GenerateTextProviderFacts {
-            proof_class: ProviderProofClass::DeterministicConformanceFixture,
+        facts: GenerateTextBaseFacts {
+            proof_class: BaseProofClass::DeterministicConformanceFixture,
             maximum_context_tokens,
             maximum_output_tokens,
             data_handling,
             metering,
-            benchmark_evidence: benchmark_evidence.to_string(),
+            benchmark_clue: benchmark_clue.to_string(),
         },
     }
 }
@@ -339,13 +339,13 @@ mod tests {
 
     #[test]
     fn three_materially_different_fixtures_offer_one_equal_checked_face() {
-        let fixtures = generate_text_provider_fixtures();
+        let fixtures = generate_text_base_fixtures();
         let face = fixtures[0].advertisement.capabilities[0].checked_face();
         for fixture in &fixtures {
             assert_eq!(fixture.advertisement.capabilities[0].checked_face(), face);
             assert_eq!(
                 fixture.facts.proof_class,
-                ProviderProofClass::DeterministicConformanceFixture
+                BaseProofClass::DeterministicConformanceFixture
             );
         }
         assert_ne!(fixtures[0].facts, fixtures[1].facts);
@@ -367,7 +367,7 @@ mod tests {
 
     #[test]
     fn implementation_artifact_and_resource_vectors_are_exact_and_distinct() {
-        let fixtures = generate_text_provider_fixtures();
+        let fixtures = generate_text_base_fixtures();
         for pair in fixtures.windows(2) {
             let left = &pair[0].advertisement.capabilities[0];
             let right = &pair[1].advertisement.capabilities[0];

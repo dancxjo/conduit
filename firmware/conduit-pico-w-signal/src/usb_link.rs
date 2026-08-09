@@ -11,7 +11,7 @@ use embassy_rp::usb;
 use embassy_usb::class::cdc_acm::CdcAcmClass;
 
 use super::usb::PicoUsbCdcCarrier;
-use crate::receipts::UsbEvidenceError;
+use crate::receipts::UsbClueError;
 
 #[allow(dead_code)]
 pub type UsbLinkResult<T> = Result<T, UsbLinkError>;
@@ -22,13 +22,13 @@ pub enum UsbLinkError {
     UsbDisconnected,
     Framing(StreamFrameError),
     Codec(WireError),
-    Evidence(UsbEvidenceError),
+    Clue(UsbClueError),
     BufferOverflow,
     InvalidGeneratedEndpoint,
     InvalidSignal,
     Storage(conduit_kernel::StorageError),
     Kernel(conduit_kernel::scheduler::SchedulerError),
-    EvidenceStorage(conduit_kernel::EvidenceError),
+    ClueStorage(conduit_kernel::ClueError),
     KernelIdle,
     KernelCompletedEarly,
     KernelCancelled,
@@ -42,13 +42,13 @@ impl UsbLinkError {
             Self::UsbDisconnected => "usb-disconnected",
             Self::Framing(_) => "malformed-stream-frame",
             Self::Codec(_) => "invalid-session-frame",
-            Self::Evidence(_) => "evidence-channel-failure",
+            Self::Clue(_) => "clue-channel-failure",
             Self::BufferOverflow => "bounded-buffer-overflow",
             Self::InvalidGeneratedEndpoint => "invalid-generated-endpoint",
             Self::InvalidSignal => "invalid-signal",
             Self::Storage(_) => "kernel-storage-failure",
             Self::Kernel(_) => "kernel-scheduler-failure",
-            Self::EvidenceStorage(_) => "kernel-evidence-failure",
+            Self::ClueStorage(_) => "kernel-clue-failure",
             Self::KernelIdle => "kernel-idle-before-effect",
             Self::KernelCompletedEarly => "kernel-completed-before-effect",
             Self::KernelCancelled => "kernel-cancelled",
@@ -69,9 +69,9 @@ impl From<WireError> for UsbLinkError {
     }
 }
 
-impl From<UsbEvidenceError> for UsbLinkError {
-    fn from(err: UsbEvidenceError) -> Self {
-        Self::Evidence(err)
+impl From<UsbClueError> for UsbLinkError {
+    fn from(err: UsbClueError) -> Self {
+        Self::Clue(err)
     }
 }
 

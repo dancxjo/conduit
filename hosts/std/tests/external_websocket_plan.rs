@@ -1,5 +1,5 @@
 use conduit_core::{
-    BootId, ConnectionProvider, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PlannerCapabilityOffer, PlannerProfileId, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -52,20 +52,20 @@ fn canonical_transport_forms_plan_to_exact_opt_in_browser_and_std_families() {
         },
         StdHostComposition::minimal().with_external_websocket(),
     );
-    let realm = [browser(), std.advertisement().clone()];
+    let hosts = [browser(), std.advertisement().clone()];
     let placements = conduit_planner::PlacementChoices {
-        by_operation: expanded
-            .operations
+        by_gear: expanded
+            .gears
             .iter()
             .map(|operation| {
                 let (host_id, capability_id) =
                     if operation.kind_id.as_str() == conduit_net::EXTERNAL_WEBSOCKET_CLIENT_KIND {
-                        (&realm[0].host_id, &realm[0].capabilities[0].capability_id)
+                        (&hosts[0].host_id, &hosts[0].capabilities[0].capability_id)
                     } else {
-                        (&realm[1].host_id, &realm[1].capabilities[0].capability_id)
+                        (&hosts[1].host_id, &hosts[1].capabilities[0].capability_id)
                     };
                 (
-                    operation.operation_id.clone(),
+                    operation.gear_id.clone(),
                     conduit_planner::PlacementChoice {
                         host_id: host_id.clone(),
                         capability_id: capability_id.clone(),
@@ -76,9 +76,9 @@ fn canonical_transport_forms_plan_to_exact_opt_in_browser_and_std_families() {
     };
     let plan = conduit_planner::plan_expanded_canonical(
         &expanded,
-        &realm,
+        &hosts,
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .unwrap();
 
@@ -99,11 +99,11 @@ fn canonical_transport_forms_plan_to_exact_opt_in_browser_and_std_families() {
         .unwrap();
     assert_eq!(client.host_id.as_str(), "browser-chat");
     assert_eq!(listener.host_id.as_str(), "std-chat");
-    assert_eq!(client.inputs, realm[0].capabilities[0].inputs);
-    assert_eq!(client.outputs, realm[0].capabilities[0].outputs);
-    assert_eq!(listener.inputs, realm[1].capabilities[0].inputs);
-    assert_eq!(listener.outputs, realm[1].capabilities[0].outputs);
-    assert_ne!(client.operation_id, listener.operation_id);
+    assert_eq!(client.inputs, hosts[0].capabilities[0].inputs);
+    assert_eq!(client.outputs, hosts[0].capabilities[0].outputs);
+    assert_eq!(listener.inputs, hosts[1].capabilities[0].inputs);
+    assert_eq!(listener.outputs, hosts[1].capabilities[0].outputs);
+    assert_ne!(client.gear_id, listener.gear_id);
 }
 
 struct ReadyWriter {

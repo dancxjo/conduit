@@ -4,9 +4,9 @@
 extern crate alloc;
 
 #[cfg(feature = "host-profile")]
-mod activation;
+mod trigger;
 #[cfg(feature = "host-profile")]
-pub use activation::*;
+pub use trigger::*;
 #[cfg(feature = "host-profile")]
 mod canonical;
 #[cfg(feature = "host-profile")]
@@ -40,8 +40,8 @@ use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionProvider,
-    ConnectionProviderInstanceId, ExecutionProfileId, HostAdvertisement, HostId,
+    CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionBase,
+    ConnectionBaseInstanceId, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision, KindId,
     LinkAuthorityReference, LinkAvailability, LinkBinding, LinkBindingId, LinkCredentialReference,
     LinkEndpoint, LinkEndpointId, LinkLimits, OfferGeneration, PortDescriptor, PortDirection,
@@ -89,7 +89,7 @@ pub const DISTRIBUTED_STD_BOOT_ID: &str = "s4/std-source-boot";
 pub const DISTRIBUTED_BROWSER_HOST_ID: &str = "s4/browser-sink";
 pub const DISTRIBUTED_BROWSER_BOOT_ID: &str = "s4/browser-sink-boot";
 pub const DISTRIBUTED_LINK_BINDING_ID: &str = "s4/std-browser-link";
-pub const DISTRIBUTED_PROVIDER_INSTANCE_ID: &str = "s4/websocket-loopback-instance";
+pub const DISTRIBUTED_BASE_INSTANCE_ID: &str = "s4/websocket-loopback-instance";
 pub const DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS: u16 = 1;
 pub const DISTRIBUTED_MAXIMUM_BUFFERED_BYTES: u32 = SIGNAL_ENCODED_LEN;
 pub const DISTRIBUTED_MAXIMUM_FRAME_BYTES: u32 = 2_048;
@@ -506,8 +506,8 @@ pub fn distributed_websocket_link_binding() -> LinkBinding {
             boot_id: BootId::from(DISTRIBUTED_BROWSER_BOOT_ID),
             endpoint_id: LinkEndpointId::from("s4/browser-websocket-ingress"),
         },
-        provider: ConnectionProvider::WebSocket,
-        provider_instance_id: ConnectionProviderInstanceId::from(DISTRIBUTED_PROVIDER_INSTANCE_ID),
+        base: ConnectionBase::WebSocket,
+        base_instance_id: ConnectionBaseInstanceId::from(DISTRIBUTED_BASE_INSTANCE_ID),
         availability: LinkAvailability::Ready,
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
@@ -532,7 +532,7 @@ mod profile_catalog;
 #[cfg(feature = "host-profile")]
 pub fn signal_profile_catalog() -> conduit_form::ProfileCatalog {
     let mut catalog = profile_catalog::signal_profile_catalog();
-    activation::extend_profile_catalog(&mut catalog);
+    trigger::extend_profile_catalog(&mut catalog);
     catalog
 }
 

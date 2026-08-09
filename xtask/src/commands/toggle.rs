@@ -2,7 +2,7 @@
 //!
 //! Builds the browser WASM runtime, spawns the distributed-toggle-server,
 //! starts the static file server, and pipes stdin through so the operator
-//! can press Enter to drive activations.
+//! can press Enter to drive triggers.
 
 use crate::workspace::workspace_root;
 use std::io::{BufRead, Read, Write};
@@ -199,7 +199,7 @@ fn run_page(label: &str, page: &str) -> Result<(), Box<dyn std::error::Error>> {
     let encoded_url = encode_query_component(&url);
     eprintln!("[{label}] WebSocket URL: {url}");
     eprintln!("[{label}] open http://127.0.0.1:{static_port}{page}?ws={encoded_url} in a browser",);
-    eprintln!("[{label}] then press Enter in this terminal to drive activations");
+    eprintln!("[{label}] then press Enter in this terminal to drive triggers");
     eprintln!();
 
     // Forward the remaining stdout (prompts and summary).

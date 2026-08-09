@@ -1,11 +1,11 @@
 use crate::checked_syntax::{
-    CanonicalStartupValue, CheckedCanonicalCell, CheckedCanonicalCord, CheckedCanonicalForm,
+    CanonicalStartupValue, CheckedCanonicalCord, CheckedCanonicalForm, CheckedCanonicalGear,
     CheckedCordStage, CheckedStartupBinding, CheckedStartupParameter, CheckedSyntaxDocument,
-    OperationSignature, StartupCatalog, StartupParameterSignature, SyntaxCheckDiagnostic,
+    KindSignature, StartupCatalog, StartupParameterSignature, SyntaxCheckDiagnostic,
     SyntaxCheckError,
 };
 use crate::syntax::{Argument, BackStatement, CordStage, FormSyntax, Invocation, SyntaxDocument};
-use crate::syntax_identity::{canonical_cell, canonical_cord, checked_identity};
+use crate::syntax_identity::{canonical_cord, canonical_gear, checked_identity};
 use crate::{hash_string, Span};
 use conduit_core::{
     CheckedFace, FaceStartupParameter, PortDescriptor, PortDirection, SourceDocumentId,
@@ -48,7 +48,7 @@ pub(crate) fn check_document(
 
 fn form_signatures(
     forms: &[FormSyntax],
-) -> Result<BTreeMap<String, OperationSignature>, SyntaxCheckDiagnostic> {
+) -> Result<BTreeMap<String, KindSignature>, SyntaxCheckDiagnostic> {
     let mut signatures = BTreeMap::new();
     for form in forms {
         if signatures.contains_key(&form.name.text) {
@@ -72,8 +72,8 @@ fn form_signatures(
         }
         signatures.insert(
             form.name.text.clone(),
-            OperationSignature {
-                operation: form.name.text.clone(),
+            KindSignature {
+                kind: form.name.text.clone(),
                 startup_parameters,
             },
         );
@@ -84,7 +84,7 @@ fn form_signatures(
 fn check_form(
     form: &FormSyntax,
     catalog: &StartupCatalog,
-    form_signatures: &BTreeMap<String, OperationSignature>,
+    form_signatures: &BTreeMap<String, KindSignature>,
     form_faces: &BTreeMap<String, CheckedFace>,
 ) -> Result<CheckedCanonicalForm, SyntaxCheckDiagnostic> {
     let signature = form_signatures
@@ -111,7 +111,7 @@ fn check_form(
         .cloned()
         .collect::<BTreeSet<_>>();
     let mut locals = BTreeMap::new();
-    let mut named_cells = BTreeSet::new();
+    let mut named_gears = BTreeSet::new();
     let pool_names = check_pool_declarations(form, &face_names, form_faces)?;
     for statement in &form.back {
         match statement {
@@ -132,19 +132,19 @@ fn check_form(
                     );
                 }
             }
-            BackStatement::NamedCell(cell) => {
-                if face_names.contains(&cell.name.text) || pool_names.contains(&cell.name.text) {
-                    return Err(SyntaxCheckError::AmbiguousFaceName(cell.name.text.clone())
-                        .diagnostic(cell.span));
+            BackStatement::NamedGear(gear) => {
+                if face_names.contains(&gear.name.text) || pool_names.contains(&gear.name.text) {
+                    return Err(SyntaxCheckError::AmbiguousFaceName(gear.name.text.clone())
+                        .diagnostic(gear.span));
                 }
-                if !named_cells.insert(cell.name.text.clone()) {
-                    return Err(SyntaxCheckError::DuplicateCell(cell.name.text.clone())
-                        .diagnostic(cell.span));
+                if !named_gears.insert(gear.name.text.clone()) {
+                    return Err(SyntaxCheckError::DuplicateGear(gear.name.text.clone())
+                        .diagnostic(gear.span));
                 }
             }
             BackStatement::Pool(pool) => {
-                if named_cells.contains(&pool.name.text) {
-                    return Err(SyntaxCheckError::DuplicateCell(pool.name.text.clone())
+                if named_gears.contains(&pool.name.text) {
+                    return Err(SyntaxCheckError::DuplicateGear(pool.name.text.clone())
                         .diagnostic(pool.span));
                 }
             }
@@ -163,14 +163,14 @@ fn check_form(
         local_values.push((name, value));
     }
 
-    let mut cells = Vec::new();
+    let mut gears = Vec::new();
     let mut cords = Vec::new();
     let mut pools = Vec::new();
     for statement in &form.back {
         match statement {
-            BackStatement::NamedCell(cell) => cells.push(check_invocation(
-                Some(cell.name.text.clone()),
-                &cell.invocation,
+            BackStatement::NamedGear(gear) => gears.push(check_invocation(
+                Some(gear.name.text.clone()),
+                &gear.invocation,
                 catalog,
                 form_signatures,
                 &mut resolver,
@@ -182,16 +182,16 @@ fn check_form(
                         CordStage::Reference(reference) => {
                             stages.push(CheckedCordStage::Reference(reference.text.clone()));
                         }
-                        CordStage::InlineCell(invocation) => {
-                            let cell = check_invocation(
+                        CordStage::InlineGear(invocation) => {
+                            let gear = check_invocation(
                                 None,
                                 invocation,
                                 catalog,
                                 form_signatures,
                                 &mut resolver,
                             )?;
-                            stages.push(CheckedCordStage::InlineCell(cell.clone()));
-                            cells.push(cell);
+                            stages.push(CheckedCordStage::InlineGear(gear.clone()));
+                            gears.push(gear);
                         }
                         CordStage::Literal(expression) => {
                             let value = resolver
@@ -218,7 +218,7 @@ fn check_form(
             BackStatement::LocalValue(_) => {}
         }
     }
-    cells.sort_by_key(canonical_cell);
+    gears.sort_by_key(canonical_gear);
     cords.sort_by_key(canonical_cord);
     pools.sort_by(|left, right| left.name.cmp(&right.name));
     local_values.sort_by(|left, right| left.0.cmp(&right.0));
@@ -232,7 +232,7 @@ fn check_form(
                 pair.output_port.text.as_str(),
             )
         }),
-        &cells,
+        &gears,
         &cords,
         &pools,
     );
@@ -248,7 +248,7 @@ fn check_form(
             .map(|pair| (pair.input_port.text.clone(), pair.output_port.text.clone())),
         local_values,
         pools,
-        cells,
+        gears,
         cords,
     })
 }
@@ -295,7 +295,7 @@ fn syntax_face(form: &FormSyntax) -> CheckedFace {
 }
 
 fn checked_parameters(
-    signature: &OperationSignature,
+    signature: &KindSignature,
     span: Span,
 ) -> Result<Vec<CheckedStartupParameter>, SyntaxCheckDiagnostic> {
     let mut values = vec![None; signature.startup_parameters.len()];
@@ -322,15 +322,15 @@ fn check_invocation(
     name: Option<String>,
     invocation: &Invocation,
     catalog: &StartupCatalog,
-    form_signatures: &BTreeMap<String, OperationSignature>,
+    form_signatures: &BTreeMap<String, KindSignature>,
     resolver: &mut Resolver<'_>,
-) -> Result<CheckedCanonicalCell, SyntaxCheckDiagnostic> {
+) -> Result<CheckedCanonicalGear, SyntaxCheckDiagnostic> {
     let signature = form_signatures
-        .get(&invocation.operation.text)
-        .or_else(|| catalog.get(&invocation.operation.text))
+        .get(&invocation.kind.text)
+        .or_else(|| catalog.get(&invocation.kind.text))
         .ok_or_else(|| {
-            SyntaxCheckError::UnsupportedOperation(invocation.operation.text.clone())
-                .diagnostic(invocation.operation.span)
+            SyntaxCheckError::UnsupportedKind(invocation.kind.text.clone())
+                .diagnostic(invocation.kind.span)
         })?;
     let mut values = vec![None; signature.startup_parameters.len()];
     let mut positional_count = 0usize;
@@ -338,10 +338,8 @@ fn check_invocation(
         match argument {
             Argument::Positional(expression) => {
                 if positional_count >= signature.startup_parameters.len() {
-                    return Err(
-                        SyntaxCheckError::TooManyPositional(signature.operation.clone())
-                            .diagnostic(expression.span),
-                    );
+                    return Err(SyntaxCheckError::TooManyPositional(signature.kind.clone())
+                        .diagnostic(expression.span));
                 }
                 values[positional_count] = Some(
                     resolver
@@ -384,9 +382,9 @@ fn check_invocation(
             value,
         });
     }
-    Ok(CheckedCanonicalCell {
+    Ok(CheckedCanonicalGear {
         name,
-        operation: signature.operation.clone(),
+        kind: signature.kind.clone(),
         startup_parameters: signature.startup_parameters.clone(),
         startup_bindings,
         source_span: invocation.span,
@@ -396,7 +394,7 @@ fn check_invocation(
 fn resolve_bound_value(
     index: usize,
     values: &mut [Option<CanonicalStartupValue>],
-    signature: &OperationSignature,
+    signature: &KindSignature,
     visiting: &mut BTreeSet<usize>,
 ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
     if let Some(value) = &values[index] {

@@ -1,12 +1,12 @@
 pub use conduit_core::{
-    authority_grant, kind_id, mandatory_evidence_storage_requirement, port_id,
+    authority_grant, kind_id, mandatory_clue_storage_requirement, port_id,
     present_authority_requirement, present_host_operation_requirement, resource_offer,
     resource_requirement, seal_plan, wait_host_operation_requirement, ArtifactId, AuthorityGrant,
-    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionProvider,
-    ExecutionProfileId, FailureReason, FormIdentity, FragmentId, HostAdvertisement, HostCommand,
-    HostEvent, HostId, HostProfileId, ImplementationId, KindContractRevision, OfferGeneration,
-    PlanFragment, PlannedOperation, PortDescriptor, PortDirection, ValuePayload,
-    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase, ExecutionProfileId,
+    FailureReason, FormIdentity, FragmentId, HostAdvertisement, HostCommand, HostEvent, HostId,
+    HostProfileId, ImplementationId, KindContractRevision, OfferGeneration, PlanFragment,
+    PlannedGear, PortDescriptor, PortDirection, ValuePayload, PRESENTATION_RESOURCE_CLASS,
+    PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 pub use conduit_form::{parse, KindDefinition, ProfileCatalog};
 pub use conduit_planner::{default_placements, plan, plan_with_authority_grants};
@@ -142,7 +142,7 @@ pub fn fragment(advertisement: &HostAdvertisement) -> PlanFragment {
         &form,
         std::slice::from_ref(advertisement),
         &placements,
-        &[conduit_core::ConnectionProvider::Local],
+        &[conduit_core::ConnectionBase::Local],
     )
     .expect("contract plan resolves")
     .fragments
@@ -183,7 +183,7 @@ pub fn authority_fragment(
         &form,
         std::slice::from_ref(advertisement),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         grants,
     )
     .expect("authority-bound contract plan resolves")
@@ -247,11 +247,11 @@ impl OperationImplementation for SourceImplementation {
 
     fn prepare(
         &self,
-        placement: &PlannedOperation,
+        placement: &PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
         if !placement.configuration.is_empty() {
             return Err(ImplementationFailure::new(
-                FailureReason::InvalidOperationConfiguration,
+                FailureReason::InvalidGearConfiguration,
                 "contract source accepts no configuration",
             ));
         }
@@ -393,7 +393,7 @@ impl OperationImplementation for SinkImplementation {
 
     fn prepare(
         &self,
-        _placement: &PlannedOperation,
+        _placement: &PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
         Ok(Box::new(SinkState {
             presentation_kind: self.requested_presentation_kind.clone(),
@@ -448,18 +448,16 @@ pub fn rejection_reason(output: &conduit_runtime::RuntimeOutput) -> Option<Failu
     })
 }
 
-pub fn mandatory_evidence_reports(
-    runtime: &mut HostRuntime,
-) -> Vec<conduit_core::MandatoryEvidenceReport> {
+pub fn mandatory_clue_reports(runtime: &mut HostRuntime) -> Vec<conduit_core::MandatoryClueReport> {
     runtime
         .handle(HostCommand::Inspect)
         .events
         .into_iter()
         .find_map(|event| match event {
-            HostEvent::MandatoryEvidenceReports { items } => Some(items),
+            HostEvent::MandatoryClueReports { items } => Some(items),
             _ => None,
         })
-        .expect("inspection returns mandatory evidence reports")
+        .expect("inspection returns mandatory clue reports")
 }
 
 pub fn reseal_fragment(mut fragment: PlanFragment) -> PlanFragment {

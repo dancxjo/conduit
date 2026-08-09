@@ -23,10 +23,10 @@ Reviewed commit: 82fec9f1b65ff537148244698cd16744416ce8dc
 
 | Path | Lines | Classification | Production / Test / Blank Mix | Primary Responsibilities | Priority |
 | --- | --- | --- | --- | --- | --- |
-| [`crates/conduit-runtime/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/src/lib.rs) | 4,642 | priority | 3,522 prod (76%), 1,120 test (24%), 157 blank (3%) | Core runtime host engine, operation traits, mandatory evidence logging, composite boundary handling, inline conformance tests | High |
+| [`crates/conduit-runtime/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/src/lib.rs) | 4,642 | priority | 3,522 prod (76%), 1,120 test (24%), 157 blank (3%) | Core runtime host engine, operation traits, mandatory clue logging, composite boundary handling, inline conformance tests | High |
 | [`crates/conduit-kernel/src/scheduler.rs`](file:///home/dancxjo/src/conduit/crates/conduit-kernel/src/scheduler.rs) | 4,308 | priority | 2,216 prod (51%), 2,092 test (49%), 176 blank (4%) | Fixed-capacity kernel scheduler, node/cord specs, step execution loop, inline scheduler tests | High |
 | [`crates/conduit-composite/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-composite/src/lib.rs) | 3,746 | priority | 1,930 prod (52%), 1,816 test (48%), 126 blank (3%) | Multi-host composite definition, boundary face mapping, composite execution, inline tests | Priority candidate #3 |
-| [`crates/conduit-runtime/tests/host_contract.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/tests/host_contract.rs) | 2,262 | priority | 0 prod (0%), 2,262 test (100%), 184 blank (8%) | Integration contract test suite for host runtime lifecycle and evidence verification | Medium |
+| [`crates/conduit-runtime/tests/host_contract.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/tests/host_contract.rs) | 2,262 | priority | 0 prod (0%), 2,262 test (100%), 184 blank (8%) | Integration contract test suite for host runtime lifecycle and clue verification | Medium |
 | [`crates/conduit-form/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-form/src/lib.rs) | 2,042 | priority | 1,378 prod (67%), 664 test (33%), 125 blank (6%) | Form CST parsing, checked form AST validation, profile catalog, inline tests | Priority candidate #5 |
 | [`crates/conduit-planner/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-planner/src/lib.rs) | 1,982 | priority | 1,000 prod (50%), 982 test (50%), 94 blank (5%) | Form-to-plan expansion, host placement solver, cord routing, inline tests | Priority candidate #4 |
 | [`crates/conduit-wire/src/session.rs`](file:///home/dancxjo/src/conduit/crates/conduit-wire/src/session.rs) | 1,549 | priority | 977 prod (63%), 572 test (37%), 102 blank (7%) | Wire session state machine, frame encoder/decoder codec, inline tests | Medium |
@@ -35,7 +35,6 @@ Reviewed commit: 82fec9f1b65ff537148244698cd16744416ce8dc
 | [`crates/conduit-std-catalog/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-std-catalog/src/lib.rs) | 1,220 | priority | 841 prod (69%), 379 test (31%), 87 blank (7%) | Standard contract definitions, profile catalog generation, inline `host_profile` module, inline tests | Priority candidate #1 |
 | [`crates/conduit-observatory/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-observatory/src/lib.rs) | 981 | large | 692 prod (71%), 289 test (29%), 40 blank (4%) | Observatory telemetry report construction, text report renderer, inline tests | Medium |
 | [`crates/conduit-runtime/src/lowering.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/src/lowering.rs) | 974 | large | 974 prod (100%), 0 test (0%), 52 blank (5%) | Plan fragment lowering pass, kernel identity maps | Do NOT split yet |
-| [`crates/conduit-realm/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-realm/src/lib.rs) | 771 | large | 461 prod (60%), 310 test (40%), 53 blank (7%) | Realm domain types, admission control, link state machine, inline tests | Medium |
 | [`crates/conduit-embedded-build/src/render.rs`](file:///home/dancxjo/src/conduit/crates/conduit-embedded-build/src/render.rs) | 539 | review | 539 prod (100%), 0 test (0%), 26 blank (5%) | C/Rust code template renderer for embedded builds | Do NOT split yet |
 | [`xtask/src/commands/pico/serial.rs`](file:///home/dancxjo/src/conduit/xtask/src/commands/pico/serial.rs) | 539 | review | 337 prod (63%), 202 test (37%), 40 blank (7%) | Pico serial communication doctor/flasher xtask command, inline tests | Low |
 | [`crates/conduit-wire/tests/wire_corpus.rs`](file:///home/dancxjo/src/conduit/crates/conduit-wire/tests/wire_corpus.rs) | 475 | review | 0 prod (0%), 475 test (100%), 52 blank (11%) | Wire frame encoding vector integration tests | Do NOT split yet |
@@ -75,10 +74,10 @@ Do not combine with:
 ### `crates/conduit-kernel/src/lib.rs`
 
 Current responsibilities:
-- Core kernel identifier types (`NodeId`, `PortId`, `CordId`, `RemoteEndpointId`, `ResourceId`, `EvidenceExpectationId`).
-- Fixed-capacity kernel containers (`FixedHostOperationBindings`, `FixedRoutes`, `FixedValueStore`, `FixedEvidenceLog`).
+- Core kernel identifier types (`NodeId`, `PortId`, `CordId`, `RemoteEndpointId`, `ResourceId`, `ClueExpectationId`).
+- Fixed-capacity kernel containers (`FixedHostOperationBindings`, `FixedRoutes`, `FixedValueStore`, `FixedClueLog`).
 - Operation execution traits and outcomes (`Operation`, `HostOperationOutcome`, `Failure`).
-- Inline production module `mod hosted` (lines 598–788, 191 lines) for heap-allocated adapters (`HostedValueStore`, `HostedEvidenceLog`).
+- Inline production module `mod hosted` (lines 598–788, 191 lines) for heap-allocated adapters (`HostedValueStore`, `HostedClueLog`).
 - Inline unit tests (`mod tests` spanning 310 lines).
 
 Recommended first seam:
@@ -106,7 +105,7 @@ Do not combine with:
 Current responsibilities:
 - Definition of core operation execution traits (`OperationState`, `OperationImplementation`) and registry (`ImplementationRegistry`).
 - Definition of boundary types (`CompositePortBinding`, `CompositeBoundaryEffect`, `RuntimeOutput`).
-- Implementation of primary `HostRuntime` lifecycle (plan preparation, activation, step pumping, cancellation, release, mandatory evidence collection, composite boundary management).
+- Implementation of primary `HostRuntime` lifecycle (plan preparation, Play start, step pumping, cancellation, release, mandatory clue collection, composite boundary management).
 - Inline conformance test suite (`mod conformance` spanning 1,120 lines).
 
 Recommended first seam:
@@ -268,7 +267,7 @@ Do not combine with:
 ### `crates/conduit-core/src/lib.rs`
 
 Current responsibilities:
-- Core canon identity types (`FormIdentity`, `ActivePlayIdentity`, `EvidenceIdentity`, `PresentationIdentity`).
+- Core canon identity types (`FormIdentity`, `ActivePlayIdentity`, `ClueIdentity`, `PresentationIdentity`).
 - Plan fragment definitions, fragment commitment, and sealing logic (`Plan`, `PlanFragment`, `FragmentCommitment`, `seal_plan`, `verify_plan`).
 - Capability offers, host advertisements, authority grants, and link bindings.
 - Observation and host lifecycle events (`Observation`, `ObservationKind`, `HostCommand`, `HostEvent`, `PlatformEffect`).
@@ -324,7 +323,7 @@ Do not combine with:
 ### `crates/conduit-observatory/src/lib.rs`
 
 Current responsibilities:
-- Telemetry data structures (`HostRow`, `CapabilityRow`, `LinkRow`, `PlanRow`, `PlacementRow`, `ConnectionRow`, `EvidenceRow`, `ObservatoryReport`).
+- Telemetry data structures (`HostRow`, `CapabilityRow`, `LinkRow`, `PlanRow`, `PlacementRow`, `ConnectionRow`, `ClueRow`, `ObservatoryReport`).
 - Report generation logic (`build_report`).
 - Text report renderer (`render_text_report`).
 - Inline unit tests (`mod tests` spanning 289 lines).
@@ -352,7 +351,7 @@ Do not combine with:
 ### `crates/conduit-runtime/src/lowering.rs`
 
 Current responsibilities:
-- Lowered plan data structures (`LoweredNode`, `LoweredCord`, `LoweredRoute`, `LoweredHostOperation`, `LoweredResource`, `LoweredEvidence`).
+- Lowered plan data structures (`LoweredNode`, `LoweredCord`, `LoweredRoute`, `LoweredHostOperation`, `LoweredResource`, `LoweredClue`).
 - Identity maps (`KernelIdentityMap`, `KernelExecutionIdentityMap`).
 - Lowering pass algorithm (`lower_plan_fragment`).
 
@@ -364,31 +363,6 @@ Reason:
 
 ---
 
-### `crates/conduit-realm/src/lib.rs`
-
-Current responsibilities:
-- Realm domain types (`RealmId`, `LinkId`, `RealmLink`, `RealmMember`, `RealmView`).
-- Admission control and realm membership state machine (`Realm`).
-- Inline unit tests (`mod tests` spanning 310 lines).
-
-Recommended first seam:
-- Extract `mod tests` (lines 462–771) into `crates/conduit-realm/src/tests.rs`.
-
-Why this seam is safe:
-- Pure test extraction. Shrinks `lib.rs` from 771 lines to 461 lines with zero production code impact.
-
-Likely destination:
-- `crates/conduit-realm/src/tests.rs`
-
-Public API impact:
-- none
-
-Semantic risk:
-- low
-
-Do not combine with:
-- `conduit-core` link binding or admission policy edits.
-
 ## 4. Recommended extraction order
 
 1. **Extract `mod host_profile` from `conduit-std-catalog`**: Move inline production `mod host_profile` from [`crates/conduit-std-catalog/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-std-catalog/src/lib.rs) into `crates/conduit-std-catalog/src/host_profile.rs`.
@@ -396,13 +370,12 @@ Do not combine with:
 3. **Extract unit tests from `conduit-composite`**: Move `mod tests` from [`crates/conduit-composite/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-composite/src/lib.rs) into `crates/conduit-composite/src/tests.rs`.
 4. **Extract unit tests from `conduit-planner`**: Move `mod tests` from [`crates/conduit-planner/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-planner/src/lib.rs) into `crates/conduit-planner/src/tests.rs`.
 5. **Extract unit tests from `conduit-form`**: Move `mod tests` from [`crates/conduit-form/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-form/src/lib.rs) into `crates/conduit-form/src/tests.rs`.
-6. **Extract unit tests from `conduit-realm`**: Move `mod tests` from [`crates/conduit-realm/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-realm/src/lib.rs) into `crates/conduit-realm/src/tests.rs`.
-7. **Extract unit tests from `conduit-wire` session**: Move `mod tests` from [`crates/conduit-wire/src/session.rs`](file:///home/dancxjo/src/conduit/crates/conduit-wire/src/session.rs) into `crates/conduit-wire/src/session/tests.rs`.
-8. **Extract unit tests from `conduit-observatory`**: Move `mod tests` from [`crates/conduit-observatory/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-observatory/src/lib.rs) into `crates/conduit-observatory/src/tests.rs`.
-9. **Extract conformance suite from `conduit-runtime`**: Move `mod conformance` from [`crates/conduit-runtime/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/src/lib.rs) into `crates/conduit-runtime/src/conformance.rs`.
-10. **Extract unit tests from `conduit-kernel` scheduler**: Move `mod tests` from [`crates/conduit-kernel/src/scheduler.rs`](file:///home/dancxjo/src/conduit/crates/conduit-kernel/src/scheduler.rs) into `crates/conduit-kernel/src/scheduler/tests.rs`.
-11. **Extract integration test fixtures from `conduit-runtime` host contract**: Move test fixture builders from [`crates/conduit-runtime/tests/host_contract.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/tests/host_contract.rs) into `crates/conduit-runtime/tests/common/mod.rs`.
-12. **Extract unit tests from `conduit-kernel` lib**: Move `mod tests` from [`crates/conduit-kernel/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-kernel/src/lib.rs) into `crates/conduit-kernel/src/tests.rs`.
+6. **Extract unit tests from `conduit-wire` session**: Move `mod tests` from [`crates/conduit-wire/src/session.rs`](file:///home/dancxjo/src/conduit/crates/conduit-wire/src/session.rs) into `crates/conduit-wire/src/session/tests.rs`.
+7. **Extract unit tests from `conduit-observatory`**: Move `mod tests` from [`crates/conduit-observatory/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-observatory/src/lib.rs) into `crates/conduit-observatory/src/tests.rs`.
+8. **Extract conformance suite from `conduit-runtime`**: Move `mod conformance` from [`crates/conduit-runtime/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/src/lib.rs) into `crates/conduit-runtime/src/conformance.rs`.
+9. **Extract unit tests from `conduit-kernel` scheduler**: Move `mod tests` from [`crates/conduit-kernel/src/scheduler.rs`](file:///home/dancxjo/src/conduit/crates/conduit-kernel/src/scheduler.rs) into `crates/conduit-kernel/src/scheduler/tests.rs`.
+10. **Extract integration test fixtures from `conduit-runtime` host contract**: Move test fixture builders from [`crates/conduit-runtime/tests/host_contract.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/tests/host_contract.rs) into `crates/conduit-runtime/tests/common/mod.rs`.
+11. **Extract unit tests from `conduit-kernel` lib**: Move `mod tests` from [`crates/conduit-kernel/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-kernel/src/lib.rs) into `crates/conduit-kernel/src/tests.rs`.
 
 ## 5. Explicit non-candidates
 

@@ -1,6 +1,6 @@
-use crate::{CheckedCanonicalForm, CheckedOperation, RuntimePort, RuntimePortDirection};
+use crate::{CheckedCanonicalForm, CheckedGear, RuntimePort, RuntimePortDirection};
 
-impl CheckedOperation {
+impl CheckedGear {
     pub fn checked_face(&self) -> conduit_core::CheckedFace {
         conduit_core::CheckedFace::new(
             self.startup_parameters.clone(),

@@ -123,13 +123,13 @@ pub fn install_browser_chat_catalogs(
 ) -> Result<(), alloc::string::String> {
     use conduit_core::ConfigurationValue;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, OperationSignature,
+        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
         StartupParameterSignature,
     };
 
     for offer in browser_chat_family().capabilities {
-        startup.insert(OperationSignature {
-            operation: offer.kind_id.as_str().to_string(),
+        startup.insert(KindSignature {
+            kind: offer.kind_id.as_str().to_string(),
             startup_parameters: offer
                 .startup_parameters
                 .iter()

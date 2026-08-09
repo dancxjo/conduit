@@ -2,10 +2,10 @@
 //!
 //! Evaluates incoming SessionFrames, manages SessionMachine lifecycle,
 //! ingests Signal items, drives CYW43 LED presentation, emits receipts over
-//! CDC 1 (evidence interface), and returns session truth on CDC 0.
+//! CDC 1 (clue interface), and returns session truth on CDC 0.
 
 use conduit_core::{
-    bind_active_play, BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
+    bind_active_play, BootId, ConnectionId, ConnectionBase, ConnectionBaseInstanceId,
     FragmentId, HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_kernel::scheduler::RemoteIngressOutcome;
@@ -25,13 +25,13 @@ use crate::usb_link::{UsbLinkError, UsbLinkSession};
 /// delay the session service loop.
 pub async fn establish_usb_channels(
     link_session: &mut UsbLinkSession,
-    evidence_cdc: &mut UsbCdc,
+    clue_cdc: &mut UsbCdc,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), UsbLinkError> {
     let mut frame_buf = [0u8; 2048];
 
     // Prove CDC 0 in both directions before touching CDC 1. The link must not be
-    // held behind evidence-channel startup or DTR state.
+    // held behind clue-channel startup or DTR state.
     link_session.wait_connection().await;
     loop {
         let raw_bytes = link_session
@@ -48,10 +48,10 @@ pub async fn establish_usb_channels(
         }
     }
 
-    // The boot identity is mandatory evidence, but CDC 1 readiness must not
+    // The boot identity is mandatory clue, but CDC 1 readiness must not
     // prevent the independent CDC 0 physical checkpoint above from completing.
-    evidence_cdc.wait_dtr().await;
-    evidence_cdc
+    clue_cdc.wait_dtr().await;
+    clue_cdc
         .write_boot_identity(boot_identity(), runtime)
         .await?;
 
@@ -60,14 +60,14 @@ pub async fn establish_usb_channels(
 
 pub async fn run_remote_signal_sink(
     link_session: &mut UsbLinkSession,
-    evidence_cdc: &mut UsbCdc,
+    clue_cdc: &mut UsbCdc,
     control: &mut Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), UsbLinkError> {
     let planned = generated_remote_endpoint().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-    let provider = ConnectionProvider::from_canonical_code(planned.provider_code)
+    let base = ConnectionBase::from_canonical_code(planned.base_code)
         .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-    if provider != ConnectionProvider::UsbCdc
+    if base != ConnectionBase::UsbCdc
         || planned.local_host != HOST_ID
         || planned.local_boot != crate::signal_image::BOOT_ID
         || planned.sink_fragment_id != FRAGMENT_ID
@@ -109,9 +109,9 @@ pub async fn run_remote_signal_sink(
         },
         attachment: RouteAttachment {
             link_binding_id: LinkBindingId::from(planned.link_binding_id),
-            provider,
-            provider_instance_id: ConnectionProviderInstanceId::from(
-                planned.provider_instance_id,
+            base,
+            base_instance_id: ConnectionBaseInstanceId::from(
+                planned.base_instance_id,
             ),
             source_host_id,
             source_boot_id,
@@ -216,7 +216,7 @@ pub async fn run_remote_signal_sink(
             // Delivered is emitted only after the kernel-owned host operation has
             // completed the physical LED effect and its mandatory receipt.
             if let Err(error) = kernel
-                .present_accepted(sequence, control, evidence_cdc, runtime)
+                .present_accepted(sequence, control, clue_cdc, runtime)
                 .await
             {
                 return fail_active_session(
@@ -284,7 +284,7 @@ pub async fn run_remote_signal_sink(
     if failure_disposition.is_some() {
         return Err(UsbLinkError::KernelCancelled);
     }
-    evidence_cdc
+    clue_cdc
         .write_terminal(true, terminal_identity(), runtime)
         .await?;
 

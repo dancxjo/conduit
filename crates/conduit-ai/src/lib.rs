@@ -2,8 +2,8 @@
 
 extern crate alloc;
 
-mod providers;
-pub use providers::*;
+mod bases;
+pub use bases::*;
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -35,7 +35,7 @@ pub enum GenerateTextFailure {
     ContextBoundExceeded,
     OutputBoundExceeded,
     RealizationUnavailable,
-    ProviderFailure,
+    BaseFailure,
     Cancelled,
 }
 
@@ -73,7 +73,7 @@ pub fn generate_text_contract() -> GenerateTextContract {
             GenerateTextFailure::ContextBoundExceeded,
             GenerateTextFailure::OutputBoundExceeded,
             GenerateTextFailure::RealizationUnavailable,
-            GenerateTextFailure::ProviderFailure,
+            GenerateTextFailure::BaseFailure,
             GenerateTextFailure::Cancelled,
         ],
         limits: CapabilityLimits {
@@ -99,10 +99,10 @@ pub fn install_generate_text_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{KindDefinition, OperationSignature};
+    use conduit_form::{KindDefinition, KindSignature};
 
-    startup.insert(OperationSignature {
-        operation: GENERATE_TEXT_KIND.to_string(),
+    startup.insert(KindSignature {
+        kind: GENERATE_TEXT_KIND.to_string(),
         startup_parameters: vec![
             parameter("maximum-input-bytes", "Count", "4096"),
             parameter("maximum-context-tokens", "Count", "4096"),
@@ -186,9 +186,9 @@ mod tests {
             conduit_form::check_syntax_document(&syntax, &startup).expect("portable syntax checks");
         let form = conduit_form::expand_canonical_form(&checked, "answer", &profile)
             .expect("portable form expands");
-        assert_eq!(form.operations[0].kind_id.as_str(), GENERATE_TEXT_KIND);
+        assert_eq!(form.gears[0].kind_id.as_str(), GENERATE_TEXT_KIND);
         assert!(!source.contains("host"));
-        assert!(!source.contains("provider"));
+        assert!(!source.contains("base"));
         assert!(!source.contains("model"));
     }
 }

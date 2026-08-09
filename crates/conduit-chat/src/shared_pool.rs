@@ -89,11 +89,11 @@ pub fn install_pool_chat_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, OperationSignature, StartupParameterSignature};
+    use conduit_form::{KindDefinition, KindSignature, StartupParameterSignature};
 
     for offer in pool_chat_capabilities().into_iter().skip(1) {
-        startup.insert(OperationSignature {
-            operation: offer.kind_id.as_str().to_string(),
+        startup.insert(KindSignature {
+            kind: offer.kind_id.as_str().to_string(),
             startup_parameters: vec![StartupParameterSignature {
                 name: "members".to_string(),
                 value_type: "Pool".to_string(),

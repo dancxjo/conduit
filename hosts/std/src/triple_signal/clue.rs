@@ -1,4 +1,4 @@
-use conduit_core::{bind_active_play, bind_evidence, bind_presentation};
+use conduit_core::{bind_active_play, bind_clue, bind_presentation};
 use conduit_signal::triple;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -7,7 +7,7 @@ pub struct PicoRuntimeIdentity {
     pub active_play_id: String,
 }
 
-pub struct PicoEvidence {
+pub struct PicoClue {
     plan_id: String,
     fragment_id: String,
     host_id: String,
@@ -20,7 +20,7 @@ pub struct PicoEvidence {
     expanded_form_id: Option<String>,
 }
 
-impl PicoEvidence {
+impl PicoClue {
     pub fn exact_triple() -> Result<Self, String> {
         let exact = triple::exact_plan()?;
         let fragment = exact
@@ -32,7 +32,7 @@ impl PicoEvidence {
         let placement = fragment
             .placements
             .iter()
-            .find(|placement| placement.operation_id.as_str() == "light")
+            .find(|placement| placement.gear_id.as_str() == "light")
             .ok_or_else(|| "triple Pico light placement missing".to_owned())?;
         let image_active_play =
             bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
@@ -53,17 +53,13 @@ impl PicoEvidence {
     pub fn verify_boot(&mut self, line: &str) -> Result<PicoRuntimeIdentity, String> {
         let record = parse(line, "conduit-pico-w-signal/boot@1")?;
         self.verify_plan_fields(&record, false)?;
-        let expected_boot_evidence = bind_evidence(
+        let expected_boot_clue = bind_clue(
             &conduit_core::HostId::from(self.host_id.as_str()),
             &conduit_core::BootId::from(self.image_boot_id.as_str()),
             None,
             0,
         );
-        field(
-            &record,
-            "evidence_id",
-            expected_boot_evidence.evidence_id.as_str(),
-        )?;
+        field(&record, "clue_id", expected_boot_clue.clue_id.as_str())?;
         self.capture_build_fields(&record)?;
         let boot_id = string(&record, "runtime_boot_id")?.to_owned();
         let active_play_id = string(&record, "runtime_active_play_id")?.to_owned();
@@ -105,7 +101,7 @@ impl PicoEvidence {
             &self.placement_id,
             sequence,
         );
-        let evidence = bind_evidence(
+        let clue = bind_clue(
             &conduit_core::HostId::from(self.host_id.as_str()),
             &conduit_core::BootId::from(self.image_boot_id.as_str()),
             Some(&conduit_core::ActivePlayId::from(
@@ -118,7 +114,7 @@ impl PicoEvidence {
             "presentation_id",
             presentation.presentation_id.as_str(),
         )?;
-        field(&record, "evidence_id", evidence.evidence_id.as_str())
+        field(&record, "clue_id", clue.clue_id.as_str())
     }
 
     pub fn verify_terminal(
@@ -134,7 +130,7 @@ impl PicoEvidence {
         if record["success"].as_bool() != Some(success) {
             return Err(format!("Pico terminal disposition mismatch: {line}"));
         }
-        let evidence = bind_evidence(
+        let clue = bind_clue(
             &conduit_core::HostId::from(self.host_id.as_str()),
             &conduit_core::BootId::from(self.image_boot_id.as_str()),
             Some(&conduit_core::ActivePlayId::from(
@@ -142,7 +138,7 @@ impl PicoEvidence {
             )),
             16,
         );
-        field(&record, "evidence_id", evidence.evidence_id.as_str())
+        field(&record, "clue_id", clue.clue_id.as_str())
     }
 
     pub fn firmware_build_id(&self) -> Option<&str> {
@@ -186,7 +182,7 @@ impl PicoEvidence {
             field(
                 record,
                 name,
-                expected.ok_or_else(|| "Pico boot evidence was not verified first".to_owned())?,
+                expected.ok_or_else(|| "Pico boot clue was not verified first".to_owned())?,
             )?;
         }
         Ok(())
@@ -195,7 +191,7 @@ impl PicoEvidence {
 
 fn parse(line: &str, schema: &str) -> Result<serde_json::Value, String> {
     let record: serde_json::Value = serde_json::from_str(line)
-        .map_err(|error| format!("malformed Pico evidence JSON: {error}; {line}"))?;
+        .map_err(|error| format!("malformed Pico clue JSON: {error}; {line}"))?;
     field(&record, "schema", schema)?;
     Ok(record)
 }
@@ -211,7 +207,7 @@ fn field(record: &serde_json::Value, name: &str, expected: &str) -> Result<(), S
         Ok(())
     } else {
         Err(format!(
-            "Pico evidence `{name}` mismatch: expected {expected}, got {actual}"
+            "Pico clue `{name}` mismatch: expected {expected}, got {actual}"
         ))
     }
 }
@@ -220,5 +216,5 @@ fn string<'a>(record: &'a serde_json::Value, name: &str) -> Result<&'a str, Stri
     record[name]
         .as_str()
         .filter(|value| !value.is_empty())
-        .ok_or_else(|| format!("Pico evidence missing string `{name}`"))
+        .ok_or_else(|| format!("Pico clue missing string `{name}`"))
 }

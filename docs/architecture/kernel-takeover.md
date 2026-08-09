@@ -7,22 +7,22 @@ exact plans through `conduit-kernel`.
 ## Accepted first checkpoint: exact lowering
 
 `conduit_runtime::lowering::lower_plan_fragment` accepts one verified local
-`PlanFragment` and, before activation, derives:
+`PlanFragment` and, before Play start, derives:
 
 - numeric node IDs and fixed-width input-cord tables;
 - separate numeric input/output port ordinals with a directional reverse map;
 - item/byte-bounded cord specifications and direct fan-out route ranges;
 - per-node numeric host-operation admission bindings;
 - per-node numeric resource references retaining their exact pool bindings;
-- numeric mandatory-evidence targets;
-- exact aggregate cord queue-slot, cord byte, mandatory-evidence-item, and
-  mandatory-evidence-byte budgets; and
+- numeric mandatory-clue targets;
+- exact aggregate cord queue-slot, cord byte, mandatory-clue-item, and
+  mandatory-clue-byte budgets; and
 - a reverse identity map for plan, fragment, placement, port, connection,
   host-operation contract, and resource binding identities.
 
-Lowering allocates and performs string/map lookup only before activation. Its
+Lowering allocates and performs string/map lookup only before Play start. Its
 result contains the tables the kernel can install without graph scans,
-provider selection, or heap growth while stepping.
+base selection, or heap growth while stepping.
 
 This checkpoint deliberately rejects:
 
@@ -31,7 +31,7 @@ This checkpoint deliberately rejects:
 - more than sixteen inputs or outputs per node;
 - more than one cord targeting an input port;
 - host-operation concurrency other than one;
-- malformed endpoints, ports, resources, and evidence references; and
+- malformed endpoints, ports, resources, and clue references; and
 - numeric or aggregate capacity overflow.
 
 Those are integration limits, not claims that the corresponding forms are
@@ -44,20 +44,20 @@ three-sink local fan-out now:
 
 - installs the lowered node, cord, route, and host-operation rows into one
   fixed-capacity hosted kernel scheduler;
-- preallocates every signal and timer value before activation;
+- preallocates every signal and timer value before Play start;
 - drives the public kernel `Operation` protocol for both placements;
 - correlates requests by `(node, request)` so independent operation counters do
   not collide or permit stale completion;
 - completes waits through the std timer adapter and presentations through the
   stdout adapter;
-- binds a distinct active play and exact presentation/evidence identities; and
-- proves with an allocator probe that successful sealed activation performs
-  zero heap allocations and cannot re-enter graph, kind, provider, or registry
+- binds a distinct active play and exact presentation/clue identities; and
+- proves with an allocator probe that successful sealed Play start performs
+  zero heap allocations and cannot re-enter graph, kind, base, or registry
   lookup.
 
 The complete typed `tick -> tee -> filter/latest -> show` conformance form uses
 the same std/kernel boundary with exact pressure, closure, cancellation,
-resource, evidence, and identity proofs. The ordinary `conduit` CLI uses these
+resource, clue, and identity proofs. The ordinary `conduit` CLI uses these
 installed profiles. Unsupported std forms fail closed; production `StdHost`
 does not contain `HostRuntime`, expose its command surface, or fall back to its
 operation/connection pump.

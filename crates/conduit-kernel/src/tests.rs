@@ -1,9 +1,8 @@
 use super::{
-    BoundedValueRef, CordId, EvidenceError, EvidenceSink, FixedEvidenceLog,
-    FixedHostOperationBindings, FixedRoutes, FixedValueStore, HostOperationBinding,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, KernelEvent, KernelEventKind,
-    NodeId, Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
-    StorageError, ValueStorage,
+    BoundedValueRef, ClueError, ClueSink, CordId, FixedClueLog, FixedHostOperationBindings,
+    FixedRoutes, FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
+    HostOperationOutcome, KernelEvent, KernelEventKind, NodeId, Operation, OperationAction,
+    OperationInput, PortId, RequestId, RouteRange, RouteTarget, StorageError, ValueStorage,
 };
 
 #[test]
@@ -239,9 +238,9 @@ fn admitted_sink_host_operation_may_have_no_output_payload() {
 }
 
 #[test]
-fn fixed_evidence_has_independent_item_and_byte_budgets() {
+fn fixed_clue_has_independent_item_and_byte_budgets() {
     let charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
-    let mut log = FixedEvidenceLog::<3>::new(charge * 2).unwrap();
+    let mut log = FixedClueLog::<3>::new(charge * 2).unwrap();
     log.record(
         NodeId(0),
         Some(PortId(1)),
@@ -258,7 +257,7 @@ fn fixed_evidence_has_independent_item_and_byte_budgets() {
     .unwrap();
     assert_eq!(
         log.record(NodeId(2), None, None, KernelEventKind::OperationCompleted),
-        Err(EvidenceError::ByteCapacityExceeded)
+        Err(ClueError::ByteCapacityExceeded)
     );
     let mut events = log.events();
     assert_eq!(events.next().unwrap().sequence, 0);
@@ -269,7 +268,7 @@ fn fixed_evidence_has_independent_item_and_byte_budgets() {
 #[cfg(feature = "alloc")]
 #[test]
 fn hosted_and_fixed_value_profiles_produce_the_same_storage_vector() {
-    use super::{HostedEvidenceLog, HostedValueStore};
+    use super::{HostedClueLog, HostedValueStore};
 
     fn vector(storage: &mut impl ValueStorage) -> (u16, u32, [u8; 3]) {
         let value = storage.store(b"abc").unwrap();
@@ -284,7 +283,7 @@ fn hosted_and_fixed_value_profiles_produce_the_same_storage_vector() {
     let mut hosted = HostedValueStore::new(4, 8, 16).unwrap();
     assert_eq!(vector(&mut fixed), vector(&mut hosted));
 
-    fn evidence_vector(sink: &mut impl EvidenceSink) -> (u16, u32, KernelEvent) {
+    fn clue_vector(sink: &mut impl ClueSink) -> (u16, u32, KernelEvent) {
         let event = sink
             .record(
                 NodeId(1),
@@ -296,10 +295,7 @@ fn hosted_and_fixed_value_profiles_produce_the_same_storage_vector() {
         (sink.len(), sink.used_bytes(), event)
     }
     let charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
-    let mut fixed_evidence = FixedEvidenceLog::<2>::new(charge * 2).unwrap();
-    let mut hosted_evidence = HostedEvidenceLog::new(2, charge * 2).unwrap();
-    assert_eq!(
-        evidence_vector(&mut fixed_evidence),
-        evidence_vector(&mut hosted_evidence)
-    );
+    let mut fixed_clue = FixedClueLog::<2>::new(charge * 2).unwrap();
+    let mut hosted_clue = HostedClueLog::new(2, charge * 2).unwrap();
+    assert_eq!(clue_vector(&mut fixed_clue), clue_vector(&mut hosted_clue));
 }

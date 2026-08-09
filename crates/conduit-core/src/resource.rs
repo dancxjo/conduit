@@ -1,8 +1,7 @@
 use crate::{
-    ArchitectureProviderId, BootId, CapabilityId, ComputeDomainId, ComputePerformanceClassId,
-    ComputeTopologyGroupId, EvidenceId, HostId, OfferGeneration, OperationId,
-    ProviderExecutionLaneId, ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
-    ResourcePoolId,
+    ArchitectureBaseId, BaseExecutionLaneId, BootId, CapabilityId, ClueId, ComputeDomainId,
+    ComputePerformanceClassId, ComputeTopologyGroupId, GearId, HostId, OfferGeneration,
+    ResourceBindingRoleId, ResourceClassId, ResourceHandleId, ResourcePoolId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -33,7 +32,7 @@ pub enum ComputeServiceGuarantee {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum ArchitectureProviderKind {
+pub enum ArchitectureBaseKind {
     HostedOs,
     BareMetal,
 }
@@ -50,8 +49,8 @@ pub struct ComputeTopologyGroup {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ComputePoolContract {
     pub service_guarantee: ComputeServiceGuarantee,
-    pub architecture_provider_id: ArchitectureProviderId,
-    pub architecture_provider_kind: ArchitectureProviderKind,
+    pub architecture_base_id: ArchitectureBaseId,
+    pub architecture_base_kind: ArchitectureBaseKind,
     /// Optional truthful topology groups. Empty means topology is unknown or
     /// not contractually exposed, not that the machine has no topology.
     pub topology_groups: alloc::vec::Vec<ComputeTopologyGroup>,
@@ -79,7 +78,7 @@ pub enum ResourceHealth {
     Unavailable,
 }
 
-/// Mutable current evidence about one stable, boot-scoped resource pool.
+/// Mutable current clue about one stable, boot-scoped resource pool.
 ///
 /// Unreserved capacity, current utilization, and concrete scheduler lane
 /// assignment are distinct. This observation deliberately contains no lane or
@@ -94,7 +93,7 @@ pub struct ResourceObservation {
     pub health: ResourceHealth,
     pub unreserved_units: u32,
     pub utilized_units: u32,
-    pub evidence_id: EvidenceId,
+    pub clue_id: ClueId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -112,22 +111,22 @@ pub struct ResourceBinding {
 pub struct ComputeReservation {
     pub selected_lanes: u32,
     pub service_guarantee: ComputeServiceGuarantee,
-    pub architecture_provider_id: ArchitectureProviderId,
-    pub architecture_provider_kind: ArchitectureProviderKind,
+    pub architecture_base_id: ArchitectureBaseId,
+    pub architecture_base_kind: ArchitectureBaseKind,
     pub topology_group_id: Option<ComputeTopologyGroupId>,
 }
 
-/// Transient provider/runtime fact, deliberately absent from Plan identity.
+/// Transient base/runtime fact, deliberately absent from Plan identity.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ComputeLaneAssignment {
-    pub architecture_provider_id: ArchitectureProviderId,
-    pub provider_lane_id: ProviderExecutionLaneId,
+    pub architecture_base_id: ArchitectureBaseId,
+    pub base_lane_id: BaseExecutionLaneId,
     pub active_play_id: crate::ActivePlayId,
     pub placement_id: crate::PlacementId,
 }
 
 /// Architecture-neutral operation vocabulary for a bare-metal execution-lane
-/// provider. Hosted compositions may realize the same entitlement through OS
+/// base. Hosted compositions may realize the same entitlement through OS
 /// worker scheduling instead.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ArchitectureLaneOperation {
@@ -150,7 +149,7 @@ impl ComputeRequirement {
 
 impl ComputePoolContract {
     pub fn is_valid_for_capacity(&self, capacity_units: u32) -> bool {
-        !self.architecture_provider_id.as_str().is_empty()
+        !self.architecture_base_id.as_str().is_empty()
             && self.topology_groups.iter().all(|group| {
                 !group.group_id.as_str().is_empty()
                     && group.lane_capacity > 0
@@ -210,8 +209,8 @@ pub fn compute_reservation(
     (selected_lanes >= required.minimum_lanes).then(|| ComputeReservation {
         selected_lanes,
         service_guarantee: contract.service_guarantee,
-        architecture_provider_id: contract.architecture_provider_id.clone(),
-        architecture_provider_kind: contract.architecture_provider_kind,
+        architecture_base_id: contract.architecture_base_id.clone(),
+        architecture_base_kind: contract.architecture_base_kind,
         topology_group_id: topology.map(|group| group.group_id.clone()),
     })
 }
@@ -243,8 +242,8 @@ pub fn resource_binding_satisfies(
                 && binding.units <= offer.capacity_units
                 && reservation.service_guarantee == contract.service_guarantee
                 && reservation.service_guarantee >= required.minimum_service_guarantee
-                && reservation.architecture_provider_id == contract.architecture_provider_id
-                && reservation.architecture_provider_kind == contract.architecture_provider_kind
+                && reservation.architecture_base_id == contract.architecture_base_id
+                && reservation.architecture_base_kind == contract.architecture_base_kind
                 && match (&required.topology, &reservation.topology_group_id) {
                     (None, None) => true,
                     (Some(topology), Some(group_id)) => {
@@ -283,7 +282,7 @@ pub enum ProtectedResourceCommitPolicy {
 pub struct ProtectedResourceGrant {
     pub role_id: ResourceBindingRoleId,
     pub handle_id: ResourceHandleId,
-    pub operation_id: OperationId,
+    pub gear_id: GearId,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub capability_id: CapabilityId,

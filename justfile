@@ -34,12 +34,6 @@ body:
 body-thumb-check:
     cargo check -p conduit-body --target thumbv6m-none-eabi
 
-realm:
-    cargo test -p conduit-realm
-
-realm-thumb-check:
-    cargo check -p conduit-realm --target thumbv6m-none-eabi
-
 observatory:
     cargo test -p conduit-observatory
 
@@ -65,7 +59,7 @@ check:
 prove-std-browser-s4:
     cargo xtask prove std-browser-s4
 
-# Interactive S4 toggle demo: Enter presses drive activations through a real WebSocket to the browser.
+# Interactive S4 toggle demo: Enter presses drive Play starts through a real WebSocket to the browser.
 toggle:
     cargo xtask demo toggle
 
@@ -96,8 +90,8 @@ check-form-s3:
 check-browser-s4:
     cargo xtask check browser-host
 
-check-realm-readiness:
-    cargo xtask check realm
+check-body-readiness:
+    cargo test -p conduit-body
 
 check-observatory-readiness:
     cargo xtask check observatory

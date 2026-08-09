@@ -1,29 +1,21 @@
-use conduit_core::{ActivePlayId, EvidenceId, PlanId};
+use conduit_core::{ActivePlayId, ClueId, PlanId};
 use serde::{Deserialize, Serialize};
 
 use crate::{BodyLifecycleError, BodyState, WakeId, WakeLifecycle, WakePlan};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyLifecycleEvent {
-    Born {
-        evidence_id: EvidenceId,
-    },
-    Woke {
-        wake_id: WakeId,
-        evidence_id: EvidenceId,
-    },
-    LullRetained {
-        wake_id: WakeId,
-        evidence_id: EvidenceId,
-    },
+    Born { clue_id: ClueId },
+    Woke { wake_id: WakeId, clue_id: ClueId },
+    LullRetained { wake_id: WakeId, clue_id: ClueId },
 }
 
 impl BodyLifecycleEvent {
-    pub fn evidence_id(&self) -> &EvidenceId {
+    pub fn clue_id(&self) -> &ClueId {
         match self {
-            Self::Born { evidence_id }
-            | Self::Woke { evidence_id, .. }
-            | Self::LullRetained { evidence_id, .. } => evidence_id,
+            Self::Born { clue_id }
+            | Self::Woke { clue_id, .. }
+            | Self::LullRetained { clue_id, .. } => clue_id,
         }
     }
 }
@@ -31,63 +23,63 @@ impl BodyLifecycleEvent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WakeLifecycleEvent {
     Woke {
-        evidence_id: EvidenceId,
+        clue_id: ClueId,
     },
     PlanReady {
         plan_id: PlanId,
-        evidence_id: EvidenceId,
+        clue_id: ClueId,
     },
     PlayStarted {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        evidence_id: EvidenceId,
+        clue_id: ClueId,
     },
     BecameUnsatisfied {
         plan_id: PlanId,
-        evidence_id: EvidenceId,
+        clue_id: ClueId,
     },
     Replanned {
         prior_plan_id: PlanId,
         replacement_plan_id: PlanId,
-        evidence_id: EvidenceId,
+        clue_id: ClueId,
     },
     SamePlanObserved {
         plan_id: PlanId,
-        evidence_id: EvidenceId,
+        clue_id: ClueId,
     },
     Lulled {
-        evidence_id: EvidenceId,
+        clue_id: ClueId,
     },
     Failed {
-        evidence_id: EvidenceId,
+        clue_id: ClueId,
     },
 }
 
 impl WakeLifecycleEvent {
-    pub fn evidence_id(&self) -> &EvidenceId {
+    pub fn clue_id(&self) -> &ClueId {
         match self {
-            Self::Woke { evidence_id }
-            | Self::PlanReady { evidence_id, .. }
-            | Self::PlayStarted { evidence_id, .. }
-            | Self::BecameUnsatisfied { evidence_id, .. }
-            | Self::Replanned { evidence_id, .. }
-            | Self::SamePlanObserved { evidence_id, .. }
-            | Self::Lulled { evidence_id }
-            | Self::Failed { evidence_id } => evidence_id,
+            Self::Woke { clue_id }
+            | Self::PlanReady { clue_id, .. }
+            | Self::PlayStarted { clue_id, .. }
+            | Self::BecameUnsatisfied { clue_id, .. }
+            | Self::Replanned { clue_id, .. }
+            | Self::SamePlanObserved { clue_id, .. }
+            | Self::Lulled { clue_id }
+            | Self::Failed { clue_id } => clue_id,
         }
     }
 }
 
 pub(crate) fn validate_body_events(
     events: &[BodyLifecycleEvent],
-    evidence: &[EvidenceId],
+    clue: &[ClueId],
     state: &BodyState,
 ) -> Result<(), BodyLifecycleError> {
-    if events.len() != evidence.len()
+    if events.len() != clue.len()
         || events
             .iter()
-            .zip(evidence)
-            .any(|(event, id)| event.evidence_id() != id)
+            .zip(clue)
+            .any(|(event, id)| event.clue_id() != id)
         || !matches!(events.first(), Some(BodyLifecycleEvent::Born { .. }))
     {
         return Err(BodyLifecycleError::InvalidTransition);
@@ -116,15 +108,15 @@ pub(crate) fn validate_body_events(
 
 pub(crate) fn validate_wake_events(
     events: &[WakeLifecycleEvent],
-    evidence: &[EvidenceId],
+    clue: &[ClueId],
     lifecycle: WakeLifecycle,
     plans: &[WakePlan],
 ) -> Result<(), BodyLifecycleError> {
-    if events.len() != evidence.len()
+    if events.len() != clue.len()
         || events
             .iter()
-            .zip(evidence)
-            .any(|(event, id)| event.evidence_id() != id)
+            .zip(clue)
+            .any(|(event, id)| event.clue_id() != id)
         || !matches!(events.first(), Some(WakeLifecycleEvent::Woke { .. }))
     {
         return Err(BodyLifecycleError::InvalidTransition);

@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use conduit_core::{
-    BoundLink, EvidenceId, LinkAvailability, LinkBinding, LinkBindingId, LinkObservation,
+    BoundLink, ClueId, LinkAvailability, LinkBinding, LinkBindingId, LinkObservation,
     PlannedConnection,
 };
 
@@ -9,7 +9,7 @@ use conduit_core::{
 struct RouteCandidateState {
     link: BoundLink,
     availability: LinkAvailability,
-    evidence_id: Option<EvidenceId>,
+    clue_id: Option<ClueId>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -80,7 +80,7 @@ impl RouteMachine {
                 RouteCandidateState {
                     link,
                     availability,
-                    evidence_id: None,
+                    clue_id: None,
                 }
             })
             .collect();
@@ -104,8 +104,8 @@ impl RouteMachine {
             binding_id: candidate.link.binding_id.clone(),
             source: candidate.link.source.clone(),
             sink: candidate.link.sink.clone(),
-            provider: candidate.link.provider,
-            provider_instance_id: candidate.link.provider_instance_id.clone(),
+            base: candidate.link.base,
+            base_instance_id: candidate.link.base_instance_id.clone(),
             availability: candidate.availability,
             credential: candidate.link.credential.clone(),
             authority: candidate.link.authority.clone(),
@@ -136,7 +136,7 @@ impl RouteMachine {
             .find(|candidate| candidate.link.binding_id == observation.binding_id)
             .ok_or(RouteError::UnsealedObservation)?;
         candidate.availability = observation.availability;
-        candidate.evidence_id = Some(observation.evidence_id.clone());
+        candidate.clue_id = Some(observation.clue_id.clone());
         self.select_first_ready();
         Ok(RouteUpdate {
             observation,
@@ -157,12 +157,12 @@ impl RouteMachine {
 mod tests {
     use super::*;
     use conduit_core::{
-        BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId, HostId, KindId,
+        BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, HostId, KindId,
         LinkAuthorityReference, LinkBinding, LinkCredentialReference, LinkEndpoint, LinkEndpointId,
         LinkLimits, PlacementId, PortId, PortTemporal,
     };
 
-    fn link(id: &'static str, provider: ConnectionProvider) -> LinkBinding {
+    fn link(id: &'static str, base: ConnectionBase) -> LinkBinding {
         LinkBinding {
             binding_id: LinkBindingId::from(id),
             source: LinkEndpoint {
@@ -175,10 +175,8 @@ mod tests {
                 boot_id: BootId::from("sink-boot"),
                 endpoint_id: LinkEndpointId::from(alloc::format!("{id}/sink")),
             },
-            provider,
-            provider_instance_id: ConnectionProviderInstanceId::from(alloc::format!(
-                "{id}/provider"
-            )),
+            base,
+            base_instance_id: ConnectionBaseInstanceId::from(alloc::format!("{id}/base")),
             availability: LinkAvailability::Ready,
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
@@ -200,7 +198,7 @@ mod tests {
             sink_port_id: PortId::from("in"),
             value_kind: KindId::from("value/test@1"),
             temporal: PortTemporal::Value,
-            provider: links[0].provider,
+            base: links[0].base,
             link_binding: Some(links[0].clone()),
             route_candidates: links.iter().map(LinkBinding::bound_link).collect(),
             item_capacity: 1,
@@ -211,19 +209,19 @@ mod tests {
     fn observation(
         binding_id: &'static str,
         availability: LinkAvailability,
-        evidence: &'static str,
+        clue: &'static str,
     ) -> LinkObservation {
         LinkObservation {
             binding_id: LinkBindingId::from(binding_id),
             availability,
-            evidence_id: EvidenceId::from(evidence),
+            clue_id: ClueId::from(clue),
         }
     }
 
     #[test]
     fn ordered_selection_switches_only_within_the_sealed_set() {
-        let usb = link("usb", ConnectionProvider::UsbCdc);
-        let ws = link("ws", ConnectionProvider::WebSocket);
+        let usb = link("usb", ConnectionBase::UsbCdc);
+        let ws = link("ws", ConnectionBase::WebSocket);
         let mut machine = RouteMachine::new(&connection(&[usb, ws])).unwrap();
 
         assert_eq!(machine.selected().unwrap().binding_id.as_str(), "usb");
@@ -254,7 +252,7 @@ mod tests {
 
     #[test]
     fn exhausted_single_and_multi_route_plans_are_explicitly_unsatisfied() {
-        let usb = link("usb", ConnectionProvider::UsbCdc);
+        let usb = link("usb", ConnectionBase::UsbCdc);
         let mut one = RouteMachine::new(&connection(core::slice::from_ref(&usb))).unwrap();
         let lost = observation("usb", LinkAvailability::Unavailable, "usb-lost");
         assert!(matches!(
@@ -264,7 +262,7 @@ mod tests {
             }
         ));
 
-        let ws = link("ws", ConnectionProvider::WebSocket);
+        let ws = link("ws", ConnectionBase::WebSocket);
         let mut two = RouteMachine::new(&connection(&[usb, ws])).unwrap();
         two.observe(&lost).unwrap();
         let ws_lost = observation("ws", LinkAvailability::Unavailable, "ws-lost");

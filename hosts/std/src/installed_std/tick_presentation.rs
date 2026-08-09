@@ -1,5 +1,5 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{ConfigurationValue, PlannedOperation, PortDirection};
+use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId,
@@ -62,7 +62,7 @@ impl TickPresentationOperation {
     }
 }
 
-fn maximum_values(placement: &PlannedOperation) -> Result<u64, String> {
+fn maximum_values(placement: &PlannedGear) -> Result<u64, String> {
     if placement.configuration.len() != 1 {
         return Err(
             "presentation/tick requires exactly one planned configuration field".to_string(),
@@ -79,7 +79,7 @@ fn maximum_values(placement: &PlannedOperation) -> Result<u64, String> {
         .ok_or_else(|| "presentation/tick maximum-values is missing or invalid".to_string())
 }
 
-fn validate(placement: &PlannedOperation) -> Result<(), String> {
+fn validate(placement: &PlannedGear) -> Result<(), String> {
     if placement.kind_id.as_str() != conduit_std_catalog::TICK_PRESENTATION_KIND
         || placement.kind_contract_revision.as_str()
             != conduit_std_catalog::TICK_PRESENTATION_CONTRACT_REVISION
@@ -101,20 +101,20 @@ fn validate(placement: &PlannedOperation) -> Result<(), String> {
     maximum_values(placement).map(|_| ())
 }
 
-fn budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     let maximum = maximum_values(placement)?;
     Ok(OperationBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: maximum as usize,
-        evidence_items: 64,
+        clue_items: 64,
         maximum_value_bytes: conduit_std_catalog::TICK_ENCODED_LEN,
     })
 }
 
 fn prepare(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;

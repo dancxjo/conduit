@@ -18,7 +18,7 @@ use crate::cli::GlobalOpts;
 
 pub fn run_prove_std_pico_usb(
     link_port_opt: Option<&str>,
-    evidence_port_opt: Option<&str>,
+    clue_port_opt: Option<&str>,
     interactive: bool,
     induce_sink_failure: bool,
     pico_args: &PicoArgs,
@@ -33,8 +33,8 @@ pub fn run_prove_std_pico_usb(
             link_port_opt.unwrap_or("<auto-discover CDC 0>")
         );
         println!(
-            "  evidence port: {}",
-            evidence_port_opt.unwrap_or("<auto-discover CDC 1>")
+            "  clue port: {}",
+            clue_port_opt.unwrap_or("<auto-discover CDC 1>")
         );
         println!("  interactive console: {}", interactive);
         println!("  induced sink failure: {}", induce_sink_failure);
@@ -42,25 +42,24 @@ pub fn run_prove_std_pico_usb(
     }
 
     // 1. Resolve dual CDC ports if board is already running, or build+flash if not
-    let (link_port_path, evidence_port_path) =
-        match resolve_dual_ports(link_port_opt, evidence_port_opt) {
-            Ok(ports) => {
-                println!("==> Detected active Pico W dual CDC ports");
-                ports
-            }
-            Err(_) => {
-                println!("==> Active Pico W CDC ports not found. Flashing firmware candidate...");
-                super::flash::run_flash(pico_args)?;
-                println!("==> Waiting for USB CDC serial ports to enumerate...");
-                std::thread::sleep(Duration::from_secs(3));
-                resolve_dual_ports(link_port_opt, evidence_port_opt)?
-            }
-        };
+    let (link_port_path, clue_port_path) = match resolve_dual_ports(link_port_opt, clue_port_opt) {
+        Ok(ports) => {
+            println!("==> Detected active Pico W dual CDC ports");
+            ports
+        }
+        Err(_) => {
+            println!("==> Active Pico W CDC ports not found. Flashing firmware candidate...");
+            super::flash::run_flash(pico_args)?;
+            println!("==> Waiting for USB CDC serial ports to enumerate...");
+            std::thread::sleep(Duration::from_secs(3));
+            resolve_dual_ports(link_port_opt, clue_port_opt)?
+        }
+    };
 
     println!(
-        "==> prove std-pico-usb: link port {}, evidence port {}",
+        "==> prove std-pico-usb: link port {}, clue port {}",
         link_port_path.display(),
-        evidence_port_path.display()
+        clue_port_path.display()
     );
 
     // Read expected compiled firmware identity manifest
@@ -81,12 +80,12 @@ pub fn run_prove_std_pico_usb(
     #[cfg(unix)]
     {
         let mut attempts = 0;
-        let (mut evidence_reader, mut carrier, runtime) = loop {
+        let (mut clue_reader, mut carrier, runtime) = loop {
             attempts += 1;
             match (|| -> Result<_, String> {
                 // 1. Open CDC 1 and require the kernel to report DTR high.
-                let evidence_reader = NativePathCdcLineReader::open(&evidence_port_path)
-                    .map_err(|e| format!("Failed to open CDC1 evidence port: {e}"))?;
+                let clue_reader = NativePathCdcLineReader::open(&clue_port_path)
+                    .map_err(|e| format!("Failed to open CDC1 clue port: {e}"))?;
                 println!("==> CDC1 opened; DTR verified high");
 
                 // 2. Open CDC 0 link port and verify DTR there independently.
@@ -114,7 +113,7 @@ pub fn run_prove_std_pico_usb(
                 }
 
                 // 5. Read Pico W boot identity from CDC 1
-                let mut reader = evidence_reader;
+                let mut reader = clue_reader;
                 let boot_line = reader
                     .read_line(Duration::from_secs(3))
                     .map_err(|e| format!("Timed out reading boot identity from CDC 1: {e}"))?;
@@ -263,7 +262,7 @@ pub fn run_prove_std_pico_usb(
             println!("\n===============================================================");
             println!(" Conduit USB-CDC Pico W Interactive Control (#350)");
             println!(" Link Port:     {}", link_port_path.display());
-            println!(" Evidence Port: {}", evidence_port_path.display());
+            println!(" Clue Port: {}", clue_port_path.display());
             println!("===============================================================");
             println!(
                 " [Press ANY KEY]  -> Instant Button Pulse (Key Down -> LED ON -> Key Up -> LED OFF)"
@@ -293,7 +292,7 @@ pub fn run_prove_std_pico_usb(
                     &mut source,
                     ItemProofContext {
                         carrier: &mut carrier,
-                        evidence_reader: &mut evidence_reader,
+                        clue_reader: &mut clue_reader,
                         binding: &binding,
                         identity: &identity,
                         runtime: &runtime,
@@ -307,7 +306,7 @@ pub fn run_prove_std_pico_usb(
             super::session_completion::complete(
                 &mut source,
                 &mut carrier,
-                &mut evidence_reader,
+                &mut clue_reader,
                 &binding,
                 final_sequence,
                 &identity,
@@ -344,9 +343,9 @@ pub fn run_prove_std_pico_usb(
                     sequence,
                     &invalid_payload,
                 )?;
-                let terminal = evidence_reader
+                let terminal = clue_reader
                     .read_line(Duration::from_secs(2))
-                    .map_err(|error| format!("missing Pico terminal failure evidence: {error}"))?;
+                    .map_err(|error| format!("missing Pico terminal failure clue: {error}"))?;
                 transcript::verify_terminal_failure(&terminal, &identity, &runtime)?;
                 println!(
                     "==> Induced Pico sink failure reached reciprocal Failed and terminal agreement"
@@ -357,7 +356,7 @@ pub fn run_prove_std_pico_usb(
                 &mut source,
                 ItemProofContext {
                     carrier: &mut carrier,
-                    evidence_reader: &mut evidence_reader,
+                    clue_reader: &mut clue_reader,
                     binding: &binding,
                     identity: &identity,
                     runtime: &runtime,
@@ -378,7 +377,7 @@ pub fn run_prove_std_pico_usb(
         super::session_completion::complete(
             &mut source,
             &mut carrier,
-            &mut evidence_reader,
+            &mut clue_reader,
             &binding,
             final_sequence,
             &identity,
@@ -393,7 +392,7 @@ pub fn run_prove_std_pico_usb(
 #[cfg(unix)]
 struct ItemProofContext<'a> {
     carrier: &'a mut NativePathCdcCarrier,
-    evidence_reader: &'a mut NativePathCdcLineReader,
+    clue_reader: &'a mut NativePathCdcLineReader,
     binding: &'a SessionBinding,
     identity: &'a super::firmware::FirmwareIdentity,
     runtime: &'a RuntimeTranscriptIdentity,
@@ -474,7 +473,7 @@ fn send_and_verify_item(
 
     // 3. Read receipt line from CDC 1
     let line = context
-        .evidence_reader
+        .clue_reader
         .read_line(Duration::from_secs(2))
         .map_err(|e| {
             format!("timed out reading receipt for sequence {sequence} from CDC 1: {e}")

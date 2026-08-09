@@ -95,12 +95,12 @@ Open the exact URL printed by the command in a normal browser. It looks like:
 http://127.0.0.1:4174/hosts/browser/distributed-toggle.test.html?ws=...
 ```
 
-Then press **Enter in the terminal**. Each admitted activation runs through the
+Then press **Enter in the terminal**. Each admitted Play start runs through the
 std kernel, toggles state, crosses the exact `SessionMachine` over WebSocket,
 enters the Rust/WASM browser kernel, and completes through the thin DOM adapter.
 The page appends an `<output>` receipt for each presentation.
 
-There are sixteen planned activations. The visible Signal levels alternate:
+There are sixteen planned Play starts. The visible Signal levels alternate:
 
 ```text
 sequence=0 level=true
@@ -152,10 +152,10 @@ things it lists:
 - capability offers and resource pools;
 - the exact plan and fragment;
 - selected placements and implementations;
-- connection provider and queue bounds;
+- connection base and queue bounds;
 - the active Play and terminal state;
-- presentation evidence; and
-- bounded evidence retention and visible gaps.
+- presentation clue; and
+- bounded clue retention and visible gaps.
 
 A current std reference-host report contains the separately owned Signal pair
 and nine installed `conduit.std` operation offers. The standard nucleus is:
@@ -210,7 +210,7 @@ cargo xtask prove std-pico-usb --interactive
 The proof uses the real dual-CDC firmware:
 
 - CDC 0 carries bounded Conduit session frames;
-- CDC 1 carries physical evidence receipts.
+- CDC 1 carries physical clue receipts.
 
 Before admitting the graph session, the operator tooling verifies the physical
 CDC path, the running Pico boot identity, the exact generated image/plan
@@ -280,7 +280,7 @@ CONDUIT_THREE_HOST_FAILURE=1 \
   hosts/browser/triple-signal.spec.mjs
 ```
 
-See issue #350 and `STATUS.md` for the exact accepted evidence boundary rather
+See issue #350 and `STATUS.md` for the exact accepted clue boundary rather
 than treating these commands alone as proof of a historical run.
 
 ## 6. What the platform can do now
@@ -304,7 +304,7 @@ reason to blur the difference between installed code and user-facing programs.
 
 ## Proof classes matter
 
-These commands intentionally represent different levels of evidence:
+These commands intentionally represent different levels of clue:
 
 - `just demo-std` and `just demo-triple-local`: executable native programs;
 - `just toggle`: interactive hosted browser demonstration;

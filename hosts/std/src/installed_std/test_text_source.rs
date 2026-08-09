@@ -2,8 +2,8 @@ use super::contract::{MAX_TEXT_BYTES, TEXT_PRESENTATION_VALUE_KIND};
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, KindContractRevision,
-    PlannedOperation, PortDescriptor, PortDirection,
+    ConfigurationValue, ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear,
+    PortDescriptor, PortDirection,
 };
 use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
 use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
@@ -91,7 +91,7 @@ fn outputs() -> Vec<PortDescriptor> {
     }]
 }
 
-fn invalid(placement: &PlannedOperation) -> Result<bool, String> {
+fn invalid(placement: &PlannedGear) -> Result<bool, String> {
     placement
         .configuration
         .iter()
@@ -104,7 +104,7 @@ fn invalid(placement: &PlannedOperation) -> Result<bool, String> {
         .ok_or_else(|| "test text source requires boolean invalid configuration".to_string())
 }
 
-fn validate(placement: &PlannedOperation) -> Result<(), String> {
+fn validate(placement: &PlannedGear) -> Result<(), String> {
     if placement.kind_id.as_str() != TEST_TEXT_SOURCE_KIND
         || placement.kind_contract_revision.as_str() != TEST_TEXT_SOURCE_REVISION
         || placement.execution_profile_id.as_str() != TEST_TEXT_SOURCE_PROFILE
@@ -118,20 +118,20 @@ fn validate(placement: &PlannedOperation) -> Result<(), String> {
     invalid(placement).map(|_| ())
 }
 
-fn budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     let (value_items, value_bytes) = if invalid(placement)? { (1, 1) } else { (1, 5) };
     Ok(OperationBudget {
         value_items,
         value_bytes,
         host_requests: 0,
-        evidence_items: 32,
+        clue_items: 32,
         maximum_value_bytes: MAX_TEXT_BYTES,
     })
 }
 
 fn prepare(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;

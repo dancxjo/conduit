@@ -140,7 +140,7 @@ fn play_lifecycle(observations: &[&Observation]) -> (PlanLifecycle, Option<Termi
                 terminal = Some(disposition);
             }
             ObservationKind::PlanCompleted => lifecycle = PlanLifecycle::Completed,
-            ObservationKind::PlanActivated => lifecycle = PlanLifecycle::Active,
+            ObservationKind::PlanPlayStarted => lifecycle = PlanLifecycle::Active,
             ObservationKind::PlanFragmentReceived => lifecycle = PlanLifecycle::Prepared,
             ObservationKind::Released => lifecycle = PlanLifecycle::Released,
             _ => {}

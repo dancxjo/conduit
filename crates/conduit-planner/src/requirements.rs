@@ -1,12 +1,12 @@
 use crate::{plan, PlacementChoices, PlannerError};
 use conduit_core::{
-    AuthorityContractId, ConnectionProvider, HostAdvertisement, HostOperationContractId,
-    OperationId, Plan, RealizationCharacteristicId, ResourceClassId,
+    AuthorityContractId, ConnectionBase, GearId, HostAdvertisement, HostOperationContractId, Plan,
+    RealizationCharacteristicId, ResourceClassId,
 };
 use conduit_form::CheckedForm;
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Hard admissibility constraints for one semantic operation realization.
+/// Hard admissibility constraints for one semantic gear realization.
 ///
 /// These constraints are boolean gates. They do not rank candidates and do
 /// not contain host-supplied desirability scores.
@@ -17,7 +17,7 @@ pub struct HardRealizationRequirements {
     /// Maximum units the realization may require from each named class.
     /// A zero ceiling forbids use of that resource class.
     pub maximum_resource_units: BTreeMap<ResourceClassId, u32>,
-    /// `None` permits any declared operation; `Some` is an exact allowlist.
+    /// `None` permits any declared gear; `Some` is an exact allowlist.
     pub permitted_host_operations: Option<BTreeSet<HostOperationContractId>>,
     /// `None` permits any declared authority; `Some` is an exact allowlist.
     pub permitted_authority_contracts: Option<BTreeSet<AuthorityContractId>>,
@@ -29,50 +29,42 @@ pub struct HardRealizationRequirements {
 
 pub fn plan_with_hard_requirements(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
-    requirements: &BTreeMap<OperationId, HardRealizationRequirements>,
+    bases: &[ConnectionBase],
+    requirements: &BTreeMap<GearId, HardRealizationRequirements>,
 ) -> Result<Plan, PlannerError> {
-    validate_hard_requirements(form, realm, placements, requirements)?;
-    plan(form, realm, placements, providers)
+    validate_hard_requirements(form, hosts, placements, requirements)?;
+    plan(form, hosts, placements, bases)
 }
 
 pub(crate) fn validate_hard_requirements(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    requirements: &BTreeMap<OperationId, HardRealizationRequirements>,
+    requirements: &BTreeMap<GearId, HardRealizationRequirements>,
 ) -> Result<(), PlannerError> {
     if requirements.values().any(has_characteristic_requirements) {
         return Err(PlannerError::InvalidHardRealizationRequirement(
             "characteristic requirements require exact realization advertisements".to_string(),
         ));
     }
-    for operation_id in requirements.keys() {
-        if !form
-            .operations
-            .iter()
-            .any(|operation| &operation.operation_id == operation_id)
-        {
-            return Err(PlannerError::UnknownOperation(
-                operation_id.as_str().to_string(),
-            ));
+    for gear_id in requirements.keys() {
+        if !form.gears.iter().any(|gear| &gear.gear_id == gear_id) {
+            return Err(PlannerError::UnknownGear(gear_id.as_str().to_string()));
         }
     }
 
-    for operation in &form.operations {
-        let Some(requirement) = requirements.get(&operation.operation_id) else {
+    for gear in &form.gears {
+        let Some(requirement) = requirements.get(&gear.gear_id) else {
             continue;
         };
         validate_requirement_identities(requirement)?;
         let choice = placements
-            .by_operation
-            .get(&operation.operation_id)
-            .ok_or_else(|| {
-                PlannerError::MissingPlacement(operation.operation_id.as_str().to_string())
-            })?;
-        let host = realm
+            .by_gear
+            .get(&gear.gear_id)
+            .ok_or_else(|| PlannerError::MissingPlacement(gear.gear_id.as_str().to_string()))?;
+        let host = hosts
             .iter()
             .find(|host| host.host_id == choice.host_id)
             .ok_or_else(|| PlannerError::UnknownHost(choice.host_id.as_str().to_string()))?;
@@ -84,15 +76,15 @@ pub(crate) fn validate_hard_requirements(
                 PlannerError::UnknownCapability(choice.capability_id.as_str().to_string())
             })?;
 
-        if offer.checked_face() != operation.checked_face() {
+        if offer.checked_face() != gear.checked_face() {
             return Err(PlannerError::IncompatibleCheckedFace(format!(
-                "operation '{}' face differs from capability '{}' face",
-                operation.operation_id.as_str(),
+                "gear '{}' face differs from capability '{}' face",
+                gear.gear_id.as_str(),
                 offer.capability_id.as_str()
             )));
         }
         if let Some(dimension) = hard_requirement_failure(offer, requirement) {
-            return unsatisfied(operation_id(operation), dimension);
+            return unsatisfied(gear_id(gear), dimension);
         }
     }
     Ok(())
@@ -182,12 +174,12 @@ pub(crate) fn hard_requirement_failure(
     None
 }
 
-fn operation_id(operation: &conduit_form::CheckedOperation) -> &OperationId {
-    &operation.operation_id
+fn gear_id(gear: &conduit_form::CheckedGear) -> &GearId {
+    &gear.gear_id
 }
 
-fn unsatisfied<T>(operation_id: &OperationId, dimension: &str) -> Result<T, PlannerError> {
+fn unsatisfied<T>(gear_id: &GearId, dimension: &str) -> Result<T, PlannerError> {
     Err(PlannerError::HardRealizationRequirementUnsatisfied(
-        format!("operation '{}' failed {dimension}", operation_id.as_str()),
+        format!("gear '{}' failed {dimension}", gear_id.as_str()),
     ))
 }

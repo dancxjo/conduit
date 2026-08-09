@@ -7,7 +7,7 @@ use conduit_core::{
     AuthorityContractId, CapabilityOffer, ComputePerformanceClassId, HostAdvertisement,
     HostOperationContractId, RealizationCharacteristicId, ResourceClassId,
 };
-use conduit_form::CheckedOperation;
+use conduit_form::CheckedGear;
 use std::cmp::Ordering;
 
 /// One explicit lexicographic comparison dimension.
@@ -41,17 +41,17 @@ pub struct RealizationPolicy {
 }
 
 pub fn select_realization_with_policy(
-    operation: &CheckedOperation,
-    realm: &[HostAdvertisement],
+    gear: &CheckedGear,
+    hosts: &[HostAdvertisement],
     requirements: &HardRealizationRequirements,
     policy: &RealizationPolicy,
 ) -> Result<PlacementChoice, PlannerError> {
-    select_realization_matching(operation, realm, requirements, policy, |_, _| true, None)
+    select_realization_matching(gear, hosts, requirements, policy, |_, _| true, None)
 }
 
 pub(crate) fn select_realization_matching(
-    operation: &CheckedOperation,
-    realm: &[HostAdvertisement],
+    gear: &CheckedGear,
+    hosts: &[HostAdvertisement],
     requirements: &HardRealizationRequirements,
     policy: &RealizationPolicy,
     mut currently_admissible: impl FnMut(&HostAdvertisement, &CapabilityOffer) -> bool,
@@ -78,16 +78,16 @@ pub(crate) fn select_realization_matching(
     }
 
     let mut face_candidates = Vec::new();
-    for host in realm {
+    for host in hosts {
         for offer in &host.capabilities {
-            if offer.checked_face() == operation.checked_face() {
+            if offer.checked_face() == gear.checked_face() {
                 face_candidates.push(Candidate { host, offer });
             }
         }
     }
     if face_candidates.is_empty() {
         return Err(PlannerError::UnknownCapability(
-            operation.kind_id.as_str().to_string(),
+            gear.kind_id.as_str().to_string(),
         ));
     }
 
@@ -98,8 +98,8 @@ pub(crate) fn select_realization_matching(
     if admitted.is_empty() {
         return Err(PlannerError::HardRealizationRequirementUnsatisfied(
             format!(
-                "operation '{}' has no hard-admissible realization",
-                operation.operation_id.as_str()
+                "gear '{}' has no hard-admissible realization",
+                gear.gear_id.as_str()
             ),
         ));
     }
@@ -107,8 +107,8 @@ pub(crate) fn select_realization_matching(
     if admitted.is_empty() {
         return Err(current_refusal.unwrap_or_else(|| {
             PlannerError::CurrentResourceObservationUnavailable(format!(
-                "operation '{}' has no currently admissible realization",
-                operation.operation_id.as_str()
+                "gear '{}' has no currently admissible realization",
+                gear.gear_id.as_str()
             ))
         }));
     }

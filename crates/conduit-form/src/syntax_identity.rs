@@ -1,5 +1,5 @@
 use crate::{
-    hash_string, CanonicalStartupValue, CheckedCanonicalCell, CheckedCanonicalCord,
+    hash_string, CanonicalStartupValue, CheckedCanonicalCord, CheckedCanonicalGear,
     CheckedCordStage, CheckedStartupParameter,
 };
 use conduit_core::CheckedFormId;
@@ -9,7 +9,7 @@ pub(crate) fn checked_identity(
     parameters: &[CheckedStartupParameter],
     runtime_ports: &[crate::RuntimePort],
     shorthand: Option<(&str, &str)>,
-    cells: &[CheckedCanonicalCell],
+    gears: &[CheckedCanonicalGear],
     cords: &[CheckedCanonicalCord],
     pools: &[crate::CheckedPoolDeclaration],
 ) -> CheckedFormId {
@@ -40,9 +40,9 @@ pub(crate) fn checked_identity(
         push_field(&mut canonical, input);
         push_field(&mut canonical, output);
     }
-    for cell in cells {
-        canonical.push_str("cell");
-        push_field(&mut canonical, &canonical_cell(cell));
+    for gear in gears {
+        canonical.push_str("gear");
+        push_field(&mut canonical, &canonical_gear(gear));
     }
     for cord in cords {
         canonical.push_str("cord");
@@ -83,11 +83,11 @@ pub(crate) fn checked_identity(
     CheckedFormId::from(hash_string(&canonical))
 }
 
-pub(crate) fn canonical_cell(cell: &CheckedCanonicalCell) -> String {
+pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
     let mut value = String::new();
-    push_field(&mut value, cell.name.as_deref().unwrap_or("<anonymous>"));
-    push_field(&mut value, &cell.operation);
-    for binding in &cell.startup_bindings {
+    push_field(&mut value, gear.name.as_deref().unwrap_or("<anonymous>"));
+    push_field(&mut value, &gear.kind);
+    for binding in &gear.startup_bindings {
         push_field(&mut value, &binding.name);
         push_field(&mut value, &binding.value_type);
         push_field(&mut value, &canonical_value(&binding.value));
@@ -103,9 +103,9 @@ pub(crate) fn canonical_cord(cord: &CheckedCanonicalCord) -> String {
                 push_field(&mut value, "reference");
                 push_field(&mut value, reference);
             }
-            CheckedCordStage::InlineCell(cell) => {
-                push_field(&mut value, "inline-cell");
-                push_field(&mut value, &canonical_cell(cell));
+            CheckedCordStage::InlineGear(gear) => {
+                push_field(&mut value, "inline-gear");
+                push_field(&mut value, &canonical_gear(gear));
             }
             CheckedCordStage::Literal { value: literal, .. } => {
                 push_field(&mut value, "literal");

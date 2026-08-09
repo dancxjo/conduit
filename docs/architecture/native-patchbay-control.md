@@ -15,10 +15,10 @@ worker to implement Stop.
 `Escape` submits one bounded, exact-identity Stop request. The std-host adapter admits at most one
 request and invokes the existing scheduler cancellation operation. Its terminal report preserves
 `OperatorRequested`, binds the accepted request to the resulting active Play identity, and exposes
-the bounded kernel evidence containing `CancellationRequested` and `RunCancelled`. Duplicate Stop
+the bounded kernel clue containing `CancellationRequested` and `RunCancelled`. Duplicate Stop
 requests are rejected under their own identity.
 
 The presentation keeps Form, Plan, and Play as separate rows. Plan route candidates are immutable
 facts; Observatory link availability remains a separate live projection. Queue/byte pressure is
 labelled unavailable when the current std-host report does not expose a snapshot, rather than being
-invented. Terminal completion, cancellation, host failure, and evidence gaps remain distinct.
+invented. Terminal completion, cancellation, host failure, and clue gaps remain distinct.

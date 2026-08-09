@@ -53,7 +53,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
         let binding = &link.binding;
         let _ = writeln!(
             output,
-            "link id={} source_host={} source_boot={} source_endpoint={} sink_host={} sink_boot={} sink_endpoint={} provider={:?} provider_instance={} state={:?} availability={:?} in_flight_limit={} payload_limit={} buffered_limit={} frame_limit={} authority={:?}",
+            "link id={} source_host={} source_boot={} source_endpoint={} sink_host={} sink_boot={} sink_endpoint={} base={:?} base_instance={} state={:?} availability={:?} in_flight_limit={} payload_limit={} buffered_limit={} frame_limit={} authority={:?}",
             binding.binding_id.as_str(),
             binding.source.host_id.as_str(),
             binding.source.boot_id.as_str(),
@@ -61,8 +61,8 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             binding.sink.host_id.as_str(),
             binding.sink.boot_id.as_str(),
             binding.sink.endpoint_id.as_str(),
-            binding.provider,
-            binding.provider_instance_id.as_str(),
+            binding.base,
+            binding.base_instance_id.as_str(),
             link.state,
             binding.availability,
             binding.limits.maximum_in_flight_items,
@@ -120,13 +120,13 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for connection in &report.connections {
         let _ = writeln!(
             output,
-            "connection plan={} connection={} source={} sink={} value_kind={} provider={:?} link_binding={:?} queue_items={} queue_bytes={}",
+            "connection plan={} connection={} source={} sink={} value_kind={} base={:?} link_binding={:?} queue_items={} queue_bytes={}",
             connection.plan_id.as_str(),
             connection.connection_id.as_str(),
             connection.source_placement_id.as_str(),
             connection.sink_placement_id.as_str(),
             connection.value_kind.as_str(),
-            connection.provider,
+            connection.base,
             connection.link_binding,
             connection.item_capacity,
             connection.byte_capacity
@@ -183,20 +183,20 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             );
         }
     }
-    let _ = writeln!(output, "evidence {}", report.evidence.len());
-    for evidence in &report.evidence {
+    let _ = writeln!(output, "clue {}", report.clues.len());
+    for clue in &report.clues {
         let _ = writeln!(
             output,
-            "evidence id={} active_play={} presentation={} host={} boot={} plan={} placement={} connection={} kind={:?}",
-            evidence.evidence_id.as_str(),
-            evidence.active_play_id.as_ref().map(ActivePlayId::as_str).unwrap_or("none"),
-            evidence.presentation_id.as_ref().map(PresentationId::as_str).unwrap_or("none"),
-            evidence.host_id.as_str(),
-            evidence.boot_id.as_str(),
-            evidence.plan_id.as_ref().map(PlanId::as_str).unwrap_or("none"),
-            evidence.placement_id.as_ref().map(PlacementId::as_str).unwrap_or("none"),
-            evidence.connection_id.as_ref().map(ConnectionId::as_str).unwrap_or("none"),
-            evidence.kind
+            "clue id={} active_play={} presentation={} host={} boot={} plan={} placement={} connection={} kind={:?}",
+            clue.clue_id.as_str(),
+            clue.active_play_id.as_ref().map(ActivePlayId::as_str).unwrap_or("none"),
+            clue.presentation_id.as_ref().map(PresentationId::as_str).unwrap_or("none"),
+            clue.host_id.as_str(),
+            clue.boot_id.as_str(),
+            clue.plan_id.as_ref().map(PlanId::as_str).unwrap_or("none"),
+            clue.placement_id.as_ref().map(PlacementId::as_str).unwrap_or("none"),
+            clue.connection_id.as_ref().map(ConnectionId::as_str).unwrap_or("none"),
+            clue.kind
         );
     }
     let _ = writeln!(

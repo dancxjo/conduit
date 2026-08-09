@@ -1,13 +1,13 @@
 form 0
 
 remote-toggle {
-    activate: interaction/activate
+    trigger: interaction/trigger
     toggle: state/toggle
     show: presentation/show
 
-    activate.count = 16
+    trigger.count = 16
     toggle.initial = false
 
-    activate > toggle
+    trigger > toggle
     toggle > show
 }

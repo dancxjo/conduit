@@ -16,11 +16,11 @@ fn native_pool_chat_has_explicit_fan_merge_and_no_authored_carrier() {
     assert_eq!(expanded.shared_pools[0].maximum_members, 32);
     assert_eq!(expanded.shared_pools[0].consumers.len(), 3);
     assert!(expanded
-        .operations
+        .gears
         .iter()
         .any(|operation| operation.kind_id.as_str() == conduit_chat::FLOW_FAN_KIND));
     assert!(expanded
-        .operations
+        .gears
         .iter()
         .any(|operation| operation.kind_id.as_str() == conduit_chat::FLOW_MERGE_KIND));
     for forbidden in ["WebSocket", "websocket", "net/", "socket", "address"] {

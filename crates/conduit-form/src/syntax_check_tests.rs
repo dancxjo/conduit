@@ -1,13 +1,13 @@
 use crate::{
-    check_syntax_document, parse_syntax_document, CanonicalStartupValue, OperationSignature,
+    check_syntax_document, parse_syntax_document, CanonicalStartupValue, KindSignature,
     StartupCatalog, StartupParameterSignature,
 };
 
 fn catalog() -> StartupCatalog {
     let mut catalog = StartupCatalog::new();
     catalog
-        .insert(OperationSignature {
-            operation: "time/every".into(),
+        .insert(KindSignature {
+            kind: "time/every".into(),
             startup_parameters: vec![StartupParameterSignature {
                 name: "freq".into(),
                 value_type: "Duration".into(),
@@ -16,8 +16,8 @@ fn catalog() -> StartupCatalog {
         })
         .unwrap();
     catalog
-        .insert(OperationSignature {
-            operation: "time/default".into(),
+        .insert(KindSignature {
+            kind: "time/default".into(),
             startup_parameters: vec![StartupParameterSignature {
                 name: "freq".into(),
                 value_type: "Duration".into(),
@@ -26,8 +26,8 @@ fn catalog() -> StartupCatalog {
         })
         .unwrap();
     catalog
-        .insert(OperationSignature {
-            operation: "pair/make".into(),
+        .insert(KindSignature {
+            kind: "pair/make".into(),
             startup_parameters: vec![
                 StartupParameterSignature {
                     name: "left".into(),
@@ -56,8 +56,8 @@ fn positional_named_and_local_reference_bindings_are_semantically_equivalent() {
     let named = check("form a {\n clock: time/every(freq = 1s)\n}\n");
     let local = check("form a {\n freq = 1s\n clock: time/every(freq)\n}\n");
 
-    assert_eq!(positional.forms[0].cells, named.forms[0].cells);
-    assert_eq!(named.forms[0].cells, local.forms[0].cells);
+    assert_eq!(positional.forms[0].gears, named.forms[0].gears);
+    assert_eq!(named.forms[0].gears, local.forms[0].gears);
     assert_eq!(
         positional.forms[0].checked_form_id,
         named.forms[0].checked_form_id
@@ -70,7 +70,7 @@ fn positional_named_and_local_reference_bindings_are_semantically_equivalent() {
 }
 
 #[test]
-fn local_values_and_cells_resolve_independently_of_statement_order() {
+fn local_values_and_gears_resolve_independently_of_statement_order() {
     let first = check("form a {\n freq = 1s\n clock: time/every(freq)\n clock > sink\n}\n");
     let reordered = check("form a {\n clock > sink\n clock: time/every(freq)\n freq = 1s\n}\n");
 
@@ -79,18 +79,18 @@ fn local_values_and_cells_resolve_independently_of_statement_order() {
         first.forms[0].checked_form_id,
         reordered.forms[0].checked_form_id
     );
-    assert_eq!(first.forms[0].cells, reordered.forms[0].cells);
+    assert_eq!(first.forms[0].gears, reordered.forms[0].gears);
 }
 
 #[test]
 fn defaults_are_used_only_when_omitted_and_explicit_values_override_them() {
     let omitted = check("form a {\n clock: time/default\n}\n");
     let explicit = check("form a {\n clock: time/default(2s)\n}\n");
-    let binding = &omitted.forms[0].cells[0].startup_bindings[0];
+    let binding = &omitted.forms[0].gears[0].startup_bindings[0];
 
     assert_eq!(binding.value, CanonicalStartupValue::Literal("1s".into()));
     assert_eq!(
-        explicit.forms[0].cells[0].startup_bindings[0].value,
+        explicit.forms[0].gears[0].startup_bindings[0].value,
         CanonicalStartupValue::Literal("2s".into())
     );
     assert_ne!(
@@ -103,7 +103,7 @@ fn defaults_are_used_only_when_omitted_and_explicit_values_override_them() {
 fn multiple_positional_and_named_bindings_follow_one_declared_signature() {
     let positional = check("form a {\n pair: pair/make(\"a\", \"b\")\n}\n");
     let named = check("form a {\n pair: pair/make(left = \"a\", right = \"b\")\n}\n");
-    assert_eq!(positional.forms[0].cells, named.forms[0].cells);
+    assert_eq!(positional.forms[0].gears, named.forms[0].gears);
     assert_eq!(
         positional.forms[0].checked_form_id,
         named.forms[0].checked_form_id
@@ -114,8 +114,8 @@ fn multiple_positional_and_named_bindings_follow_one_declared_signature() {
 fn dependent_defaults_use_explicit_caller_binding_without_mutating_signature() {
     let mut catalog = catalog();
     catalog
-        .insert(OperationSignature {
-            operation: "pair/default".into(),
+        .insert(KindSignature {
+            kind: "pair/default".into(),
             startup_parameters: vec![
                 StartupParameterSignature {
                     name: "left".into(),
@@ -133,7 +133,7 @@ fn dependent_defaults_use_explicit_caller_binding_without_mutating_signature() {
     let parsed = parse_syntax_document("form a {\n pair: pair/default(left = \"caller\")\n}\n");
     let checked = check_syntax_document(&parsed, &catalog).unwrap();
     assert_eq!(
-        checked.forms[0].cells[0].startup_bindings[1].value,
+        checked.forms[0].gears[0].startup_bindings[1].value,
         CanonicalStartupValue::Literal("\"caller\"".into())
     );
 }
@@ -145,7 +145,7 @@ fn forward_reference_chains_resolve_to_one_canonical_value() {
     );
 
     assert_eq!(
-        checked.forms[0].cells[0].startup_bindings[0].value,
+        checked.forms[0].gears[0].startup_bindings[0].value,
         CanonicalStartupValue::Literal("1s".into())
     );
 }
@@ -160,9 +160,9 @@ fn reusable_form_arguments_use_declared_face_startup_signature_without_expansion
         .find(|form| form.name == "page")
         .unwrap();
 
-    assert_eq!(page.cells[0].operation, "badge");
+    assert_eq!(page.gears[0].kind, "badge");
     assert_eq!(
-        page.cells[0].startup_bindings[0].value,
+        page.gears[0].startup_bindings[0].value,
         CanonicalStartupValue::Literal("\"Conduit\"".into())
     );
 }
@@ -200,7 +200,7 @@ fn duplicate_immutable_bindings_fail_without_last_write_wins() {
 fn duplicate_named_arguments_are_conflicting_not_last_write_wins() {
     let error = diagnostic("form a {\n clock: time/every(freq = 1s, freq = 2s)\n}\n");
     assert_eq!(error.code, "CND-FRM-021");
-    assert!(error.message.contains("conflicting cell argument"));
+    assert!(error.message.contains("conflicting gear argument"));
 }
 
 #[test]
@@ -256,7 +256,7 @@ fn local_bindings_cannot_shadow_face_values_or_runtime_ports() {
 }
 
 #[test]
-fn public_face_names_cannot_be_duplicated_or_shadowed_by_cells() {
+fn public_face_names_cannot_be_duplicated_or_shadowed_by_gears() {
     let duplicate = diagnostic("form a (\n > value: Text\n > value: Text\n) {\n}\n");
     let shadow = diagnostic("form a (\n > clock: Duration\n) {\n clock: time/every(1s)\n}\n");
     assert_eq!(duplicate.code, "CND-FRM-050");
@@ -265,9 +265,9 @@ fn public_face_names_cannot_be_duplicated_or_shadowed_by_cells() {
 }
 
 #[test]
-fn duplicate_cell_and_unsupported_operation_diagnostics_are_stable() {
+fn duplicate_gear_and_unsupported_kind_diagnostics_are_stable() {
     let duplicate = diagnostic("form a {\n clock: time/every(1s)\n clock: time/every(2s)\n}\n");
-    let unsupported = diagnostic("form a {\n cell: unknown/op\n}\n");
+    let unsupported = diagnostic("form a {\n gear: unknown/op\n}\n");
     assert_eq!(duplicate.code, "CND-FRM-029");
     assert_eq!(unsupported.code, "CND-FRM-028");
 }

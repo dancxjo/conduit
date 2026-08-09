@@ -4,18 +4,18 @@ use super::{
 };
 use conduit_core::{
     kind_id, process_owned_link_binding, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, CheckedFormId, ConnectionEnvelope, ConnectionOutcome, ConnectionProvider,
-    ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId,
+    CapabilityOffer, CheckedFormId, ConnectionBase, ConnectionEnvelope, ConnectionOutcome,
+    ExecutionProfileId, FailureReason, GearId, HostAdvertisement, HostCommand, HostEvent, HostId,
     HostProfileId, ImplementationId, KindContractRevision, KindId, ObservationKind,
-    OfferGeneration, OperationId, PlannedOperation, PlatformEffect, PortDescriptor, PortDirection,
+    OfferGeneration, PlannedGear, PlatformEffect, PortDescriptor, PortDirection,
     TerminalDisposition, PROTOCOL_VERSION,
 };
 use conduit_form::{
-    parse, CheckedForm, CheckedOperation, CompositeFaceTerminal, KindDefinition, ProfileCatalog,
+    parse, CheckedForm, CheckedGear, CompositeFaceTerminal, KindDefinition, ProfileCatalog,
 };
 use conduit_planner::{plan, plan_with_link_bindings, PlacementChoice, PlacementChoices};
 use conduit_runtime::{
-    providers::in_memory::InMemoryConnectionProvider, HostRuntime, ImplementationFailure,
+    bases::in_memory::InMemoryConnectionBase, HostRuntime, ImplementationFailure,
     ImplementationRegistry, OperationAction, OperationCompletion, OperationImplementation,
     OperationOutput, OperationState,
 };
@@ -139,11 +139,11 @@ impl OperationImplementation for EchoImplementation {
 
     fn prepare(
         &self,
-        placement: &PlannedOperation,
+        placement: &PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
         if placement.inputs.len() != 1 || placement.outputs.len() != 1 {
             return Err(ImplementationFailure::new(
-                FailureReason::InvalidOperationConfiguration,
+                FailureReason::InvalidGearConfiguration,
                 "echo requires one exact input and output",
             ));
         }
@@ -248,16 +248,16 @@ fn multi_child_advertisement() -> HostAdvertisement {
 fn multi_internal_plan() -> conduit_core::Plan {
     let child = multi_child_advertisement();
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("number"),
+                GearId::from("number"),
                 PlacementChoice {
                     host_id: child.host_id.clone(),
                     capability_id: CapabilityId::from("number-echo"),
                 },
             ),
             (
-                OperationId::from("bytes"),
+                GearId::from("bytes"),
                 PlacementChoice {
                     host_id: child.host_id.clone(),
                     capability_id: CapabilityId::from("bytes-echo"),
@@ -269,7 +269,7 @@ fn multi_internal_plan() -> conduit_core::Plan {
         &multi_internal_form(),
         &[child],
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .expect("multi internal plan succeeds")
 }
@@ -380,37 +380,37 @@ fn multi_parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragmen
     let source = parent_endpoint_advertisement("parent-source", true);
     let sink = parent_endpoint_advertisement("parent-sink", false);
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("number-source"),
+                GearId::from("number-source"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("number-source"),
                 },
             ),
             (
-                OperationId::from("bytes-source"),
+                GearId::from("bytes-source"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("bytes-source"),
                 },
             ),
             (
-                OperationId::from("child"),
+                GearId::from("child"),
                 PlacementChoice {
                     host_id: composite.advertisement().host_id.clone(),
                     capability_id: CapabilityId::from("run"),
                 },
             ),
             (
-                OperationId::from("number-sink"),
+                GearId::from("number-sink"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("number-sink"),
                 },
             ),
             (
-                OperationId::from("bytes-sink"),
+                GearId::from("bytes-sink"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("bytes-sink"),
@@ -421,7 +421,7 @@ fn multi_parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragmen
     let links = [
         process_owned_link_binding(
             "link/source-composite",
-            ConnectionProvider::InMemory,
+            ConnectionBase::InMemory,
             "fixture/in-memory/source-composite",
             &source,
             composite.advertisement(),
@@ -430,7 +430,7 @@ fn multi_parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragmen
         ),
         process_owned_link_binding(
             "link/composite-sink",
-            ConnectionProvider::InMemory,
+            ConnectionBase::InMemory,
             "fixture/in-memory/composite-sink",
             composite.advertisement(),
             &sink,
@@ -442,7 +442,7 @@ fn multi_parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragmen
         &form,
         &[source, composite.advertisement().clone(), sink],
         &placements,
-        &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+        &[ConnectionBase::Local, ConnectionBase::InMemory],
         2,
         32,
         &links,
@@ -541,16 +541,16 @@ fn internal_plan(item_capacity: u16, byte_capacity: u32) -> conduit_core::Plan {
     let source = child_advertisement("child-source", "source-boot", true);
     let sink = child_advertisement("child-sink", "sink-boot", false);
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("pulse"),
+                GearId::from("pulse"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("pulse"),
                 },
             ),
             (
-                OperationId::from("show"),
+                GearId::from("show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("show"),
@@ -560,7 +560,7 @@ fn internal_plan(item_capacity: u16, byte_capacity: u32) -> conduit_core::Plan {
     };
     let links = [process_owned_link_binding(
         "link/composite-children",
-        ConnectionProvider::InMemory,
+        ConnectionBase::InMemory,
         "fixture/in-memory/composite-children",
         &source,
         &sink,
@@ -571,7 +571,7 @@ fn internal_plan(item_capacity: u16, byte_capacity: u32) -> conduit_core::Plan {
         &form,
         &[source, sink],
         &placements,
-        &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+        &[ConnectionBase::Local, ConnectionBase::InMemory],
         item_capacity,
         byte_capacity,
         &links,
@@ -589,23 +589,23 @@ fn three_child_internal_plan() -> conduit_core::Plan {
     let sink = child_advertisement("child-sink", "sink-boot", false);
     let auxiliary = child_advertisement("child-auxiliary", "auxiliary-boot", true);
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("pulse"),
+                GearId::from("pulse"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("pulse"),
                 },
             ),
             (
-                OperationId::from("show"),
+                GearId::from("show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("show"),
                 },
             ),
             (
-                OperationId::from("auxiliary"),
+                GearId::from("auxiliary"),
                 PlacementChoice {
                     host_id: auxiliary.host_id.clone(),
                     capability_id: CapabilityId::from("pulse"),
@@ -615,7 +615,7 @@ fn three_child_internal_plan() -> conduit_core::Plan {
     };
     let links = [process_owned_link_binding(
         "link/composite-children",
-        ConnectionProvider::InMemory,
+        ConnectionBase::InMemory,
         "fixture/in-memory/composite-children",
         &source,
         &sink,
@@ -626,7 +626,7 @@ fn three_child_internal_plan() -> conduit_core::Plan {
         &form,
         &[source, sink, auxiliary],
         &placements,
-        &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+        &[ConnectionBase::Local, ConnectionBase::InMemory],
         conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
         conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
         &links,
@@ -651,7 +651,7 @@ fn child_runtimes_with_advertisements(
 ) -> Vec<HostRuntime> {
     let link = process_owned_link_binding(
         "link/composite-children",
-        ConnectionProvider::InMemory,
+        ConnectionBase::InMemory,
         "fixture/in-memory/composite-children",
         &source_ad,
         &sink_ad,
@@ -710,8 +710,8 @@ fn parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragment {
     .expect("authored parent form parses");
     let ordinary = child_advertisement("ordinary-host", "ordinary-boot", true);
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([(
-            OperationId::from("run"),
+        by_gear: BTreeMap::from([(
+            GearId::from("run"),
             PlacementChoice {
                 host_id: composite.advertisement().host_id.clone(),
                 capability_id: CapabilityId::from("run-signal"),
@@ -722,7 +722,7 @@ fn parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragment {
         &form,
         &[composite.advertisement().clone(), ordinary],
         &placements,
-        &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+        &[ConnectionBase::Local, ConnectionBase::InMemory],
     )
     .expect("parent planner treats composite as one host")
     .fragments
@@ -745,16 +745,16 @@ fn authored_parent_consumes_derived_export_through_an_ordinary_planned_cord() {
         )
         .expect("parent consumes the derived output as an ordinary port");
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("child"),
+                GearId::from("child"),
                 PlacementChoice {
                     host_id: composite.advertisement().host_id.clone(),
                     capability_id: CapabilityId::from("run-signal"),
                 },
             ),
             (
-                OperationId::from("sink"),
+                GearId::from("sink"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("show"),
@@ -764,7 +764,7 @@ fn authored_parent_consumes_derived_export_through_an_ordinary_planned_cord() {
     };
     let links = [process_owned_link_binding(
         "link/parent-child",
-        ConnectionProvider::InMemory,
+        ConnectionBase::InMemory,
         "fixture/in-memory/parent-child",
         composite.advertisement(),
         &sink,
@@ -775,7 +775,7 @@ fn authored_parent_consumes_derived_export_through_an_ordinary_planned_cord() {
         &parent,
         &[composite.advertisement().clone(), sink],
         &placements,
-        &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+        &[ConnectionBase::Local, ConnectionBase::InMemory],
         4,
         64,
         &links,
@@ -789,7 +789,7 @@ fn authored_parent_consumes_derived_export_through_an_ordinary_planned_cord() {
         .expect("parent plan has the ordinary cord");
 
     assert_eq!(
-        parent.operations[0].kind_contract_revision,
+        parent.gears[0].kind_contract_revision,
         boundary.kind_contract_revision
     );
     assert_eq!(connection.source_port_id.as_str(), "signal");
@@ -830,11 +830,11 @@ fn two_input_two_output_multi_kind_faces_execute_with_exact_pressure_and_closure
         prepared.events.first(),
         Some(HostEvent::Prepared { .. })
     ));
-    let activated = composite.handle(HostCommand::Activate(plan_id.clone()));
-    assert!(activated
+    let triggerd = composite.handle(HostCommand::StartPlay(plan_id.clone()));
+    assert!(triggerd
         .events
         .iter()
-        .any(|event| matches!(event, HostEvent::Activated { .. })));
+        .any(|event| matches!(event, HostEvent::PlayStarted { .. })));
 
     let malformed = composite.handle(HostCommand::AcceptConnectionEnvelope(ConnectionEnvelope {
         protocol_version: PROTOCOL_VERSION,
@@ -1026,30 +1026,30 @@ fn input_only_and_output_only_exports_plan_as_ordinary_operations() {
         });
     }
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("source"),
+                GearId::from("source"),
                 PlacementChoice {
                     host_id: advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("number-source"),
                 },
             ),
             (
-                OperationId::from("input-only"),
+                GearId::from("input-only"),
                 PlacementChoice {
                     host_id: advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("input-only"),
                 },
             ),
             (
-                OperationId::from("output-only"),
+                GearId::from("output-only"),
                 PlacementChoice {
                     host_id: advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("output-only"),
                 },
             ),
             (
-                OperationId::from("sink"),
+                GearId::from("sink"),
                 PlacementChoice {
                     host_id: advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("number-sink"),
@@ -1061,7 +1061,7 @@ fn input_only_and_output_only_exports_plan_as_ordinary_operations() {
         &parent,
         &[advertisement],
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .expect("input-only and output-only parent plans normally");
     assert_eq!(planned.fragments.len(), 1);
@@ -1122,7 +1122,7 @@ fn named_face_delivery_failure_and_cancellation_are_parent_terminal_without_topo
         .connection_id
         .clone();
     failed_composite.handle(HostCommand::Prepare(failed_fragment));
-    failed_composite.handle(HostCommand::Activate(failed_plan_id.clone()));
+    failed_composite.handle(HostCommand::StartPlay(failed_plan_id.clone()));
     let emitted =
         failed_composite.handle(HostCommand::AcceptConnectionEnvelope(ConnectionEnvelope {
             protocol_version: PROTOCOL_VERSION,
@@ -1164,8 +1164,8 @@ fn named_face_delivery_failure_and_cancellation_are_parent_terminal_without_topo
         4
     );
     assert!(!format!("{failed:?}").contains("multi-child"));
-    let evidence = failed_composite.handle(HostCommand::Inspect);
-    assert!(evidence.events.iter().any(|event| match event {
+    let clue = failed_composite.handle(HostCommand::Inspect);
+    assert!(clue.events.iter().any(|event| match event {
         HostEvent::Observations { items } => items.iter().any(|observation| matches!(
             observation.kind,
             ObservationKind::PlanTerminal {
@@ -1181,7 +1181,7 @@ fn named_face_delivery_failure_and_cancellation_are_parent_terminal_without_topo
     let cancelled_fragment = multi_parent_fragment(&cancelled_composite);
     let cancelled_plan_id = cancelled_fragment.plan_id.clone();
     cancelled_composite.handle(HostCommand::Prepare(cancelled_fragment));
-    cancelled_composite.handle(HostCommand::Activate(cancelled_plan_id.clone()));
+    cancelled_composite.handle(HostCommand::StartPlay(cancelled_plan_id.clone()));
     let cancelled = cancelled_composite.handle(HostCommand::Cancel(cancelled_plan_id));
     assert!(cancelled.events.iter().any(|event| matches!(
         event,
@@ -1202,10 +1202,10 @@ fn named_face_delivery_failure_and_cancellation_are_parent_terminal_without_topo
 }
 
 #[test]
-fn provider_enforces_identity_order_and_bounds() {
+fn base_enforces_identity_order_and_bounds() {
     let plan = internal_plan(1, 9);
     let connection = &plan.fragments[0].connections[0];
-    let mut provider = InMemoryConnectionProvider::new(plan.plan_id.clone(), connection);
+    let mut base = InMemoryConnectionBase::new(plan.plan_id.clone(), connection);
     let envelope = ConnectionEnvelope {
         protocol_version: PROTOCOL_VERSION,
         plan_id: plan.plan_id.clone(),
@@ -1214,33 +1214,27 @@ fn provider_enforces_identity_order_and_bounds() {
         value_kind: connection.value_kind.clone(),
         payload: vec![0; 9],
     };
-    assert_eq!(provider.status(), ConnectionOutcome::Ready);
-    assert_eq!(
-        provider.accept(envelope.clone()),
-        ConnectionOutcome::Accepted
-    );
-    assert_eq!(provider.queued_items(), 1);
-    assert_eq!(provider.queued_bytes(), 9);
-    assert_eq!(provider.status(), ConnectionOutcome::Full);
+    assert_eq!(base.status(), ConnectionOutcome::Ready);
+    assert_eq!(base.accept(envelope.clone()), ConnectionOutcome::Accepted);
+    assert_eq!(base.queued_items(), 1);
+    assert_eq!(base.queued_bytes(), 9);
+    assert_eq!(base.status(), ConnectionOutcome::Full);
     let mut next = envelope.clone();
     next.sequence = 1;
-    assert_eq!(provider.accept(next), ConnectionOutcome::Full);
+    assert_eq!(base.accept(next), ConnectionOutcome::Full);
     let mut stale = envelope.clone();
     stale.plan_id = conduit_core::PlanId::from("stale");
     stale.sequence = 1;
-    assert_eq!(provider.accept(stale), ConnectionOutcome::Malformed);
+    assert_eq!(base.accept(stale), ConnectionOutcome::Malformed);
     assert!(matches!(
-        provider.deliver(),
+        base.deliver(),
         Some((ConnectionOutcome::Delivered, _))
     ));
-    assert_eq!(provider.queued_bytes(), 0);
-    assert_eq!(
-        provider.accept(envelope.clone()),
-        ConnectionOutcome::Malformed
-    );
+    assert_eq!(base.queued_bytes(), 0);
+    assert_eq!(base.accept(envelope.clone()), ConnectionOutcome::Malformed);
     let mut out_of_order = envelope.clone();
     out_of_order.sequence = 2;
-    assert_eq!(provider.accept(out_of_order), ConnectionOutcome::Malformed);
+    assert_eq!(base.accept(out_of_order), ConnectionOutcome::Malformed);
     let oversized = ConnectionEnvelope {
         protocol_version: PROTOCOL_VERSION,
         plan_id: plan.plan_id.clone(),
@@ -1249,11 +1243,11 @@ fn provider_enforces_identity_order_and_bounds() {
         value_kind: connection.value_kind.clone(),
         payload: vec![0; 10],
     };
-    assert_eq!(provider.accept(oversized), ConnectionOutcome::Malformed);
-    assert_eq!(provider.queued_items(), 0);
-    assert_eq!(provider.disconnect(), ConnectionOutcome::Disconnected);
-    assert_eq!(provider.status(), ConnectionOutcome::Terminal);
-    assert_eq!(provider.accept(envelope), ConnectionOutcome::Terminal);
+    assert_eq!(base.accept(oversized), ConnectionOutcome::Malformed);
+    assert_eq!(base.queued_items(), 0);
+    assert_eq!(base.disconnect(), ConnectionOutcome::Disconnected);
+    assert_eq!(base.status(), ConnectionOutcome::Terminal);
+    assert_eq!(base.accept(envelope), ConnectionOutcome::Terminal);
 }
 
 #[test]
@@ -1325,7 +1319,7 @@ fn definition_runs_three_plan_used_children_without_new_role_fields() {
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.placements)
-        .find(|placement| placement.operation_id.as_str() == "pulse")
+        .find(|placement| placement.gear_id.as_str() == "pulse")
         .expect("pulse placement exists");
     definition.boundary.output_faces[0].internal_child = output_placement.host_id.clone();
     definition.boundary.output_faces[0].internal_placement_id =
@@ -1335,7 +1329,7 @@ fn definition_runs_three_plan_used_children_without_new_role_fields() {
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.placements)
-        .find(|placement| placement.operation_id.as_str() == "show")
+        .find(|placement| placement.gear_id.as_str() == "show")
         .expect("show placement exists");
     definition.boundary.input_faces[0].internal_child = input_placement.host_id.clone();
     definition.boundary.input_faces[0].internal_placement_id = input_placement.placement_id.clone();
@@ -1355,7 +1349,7 @@ fn definition_runs_three_plan_used_children_without_new_role_fields() {
         .expect("three-child composite is valid");
     let fragment = parent_fragment(&composite);
     composite.handle(HostCommand::Prepare(fragment.clone()));
-    let output = composite.handle(HostCommand::Activate(fragment.plan_id));
+    let output = composite.handle(HostCommand::StartPlay(fragment.plan_id));
     assert!(output.events.iter().any(|event| matches!(
         event,
         HostEvent::PlanTerminated {
@@ -1380,7 +1374,7 @@ fn two_child_hosts_compose_and_parent_sees_one_host() {
             .first(),
         Some(HostEvent::Prepared { .. })
     ));
-    let output = composite.handle(HostCommand::Activate(plan_id));
+    let output = composite.handle(HostCommand::StartPlay(plan_id));
     assert!(output.events.iter().any(|event| matches!(
         event,
         HostEvent::PlanTerminated {
@@ -1418,10 +1412,10 @@ fn parent_planning_cannot_address_an_internal_child_identity() {
         checked_form_id: CheckedFormId::from("parent-child-leak-form"),
         expanded_form_id: conduit_core::ExpandedFormId::from("parent-child-leak-expanded"),
         name: "parent-child-leak".into(),
-        operations: vec![CheckedOperation {
+        gears: vec![CheckedGear {
             startup_parameters: vec![],
             shorthand: None,
-            operation_id: OperationId::from("run"),
+            gear_id: GearId::from("run"),
             kind_id: KindId::from(COMPOSITE_DEMONSTRATION_KIND),
             kind_contract_revision: KindContractRevision::from(format!(
                 "{COMPOSITE_DEMONSTRATION_KIND}@1"
@@ -1436,8 +1430,8 @@ fn parent_planning_cannot_address_an_internal_child_identity() {
         nested_forms: Vec::new(),
     };
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([(
-            OperationId::from("run"),
+        by_gear: BTreeMap::from([(
+            GearId::from("run"),
             PlacementChoice {
                 host_id: HostId::from("child-source"),
                 capability_id: CapabilityId::from("pulse"),
@@ -1448,7 +1442,7 @@ fn parent_planning_cannot_address_an_internal_child_identity() {
         &form,
         std::slice::from_ref(composite.advertisement()),
         &placements,
-        &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+        &[ConnectionBase::Local, ConnectionBase::InMemory],
     )
     .is_err());
 }
@@ -1465,7 +1459,7 @@ fn child_failure_is_translated_without_topology_leakage() {
     ));
     assert!(!format!("{output:?}").contains("child-source"));
     assert!(!format!("{output:?}").contains("child-sink"));
-    let output = composite.handle(HostCommand::Activate(fragment.plan_id));
+    let output = composite.handle(HostCommand::StartPlay(fragment.plan_id));
     let failures = output
         .events
         .iter()
@@ -1548,14 +1542,14 @@ fn controlled_delivery_fills_then_drains_in_real_composite_flow() {
     let fragment = parent_fragment(&composite);
     let plan_id = fragment.plan_id.clone();
     composite.handle(HostCommand::Prepare(fragment));
-    let activated = composite.handle(HostCommand::Activate(plan_id.clone()));
-    assert!(!activated
+    let triggerd = composite.handle(HostCommand::StartPlay(plan_id.clone()));
+    assert!(!triggerd
         .events
         .iter()
         .any(|event| matches!(event, HostEvent::PlanTerminated { .. })));
-    assert_eq!(composite.provider_status(), ConnectionOutcome::Full);
-    assert_eq!(composite.provider_queued_items(), 2);
-    assert_eq!(composite.provider_queued_bytes(), 18);
+    assert_eq!(composite.base_status(), ConnectionOutcome::Full);
+    assert_eq!(composite.base_queued_items(), 2);
+    assert_eq!(composite.base_queued_bytes(), 18);
     let before_delivery = composite.internal_observations();
     assert_eq!(
         before_delivery[&HostId::from("child-sink")]
@@ -1576,8 +1570,8 @@ fn controlled_delivery_fills_then_drains_in_real_composite_flow() {
         .events
         .iter()
         .any(|event| matches!(event, HostEvent::PlanTerminated { .. })));
-    assert_eq!(composite.provider_queued_items(), 2);
-    assert_eq!(composite.provider_queued_bytes(), 18);
+    assert_eq!(composite.base_queued_items(), 2);
+    assert_eq!(composite.base_queued_bytes(), 18);
 
     let mut terminal = false;
     for _ in 0..3 {
@@ -1596,8 +1590,8 @@ fn controlled_delivery_fills_then_drains_in_real_composite_flow() {
         }
     }
     assert!(terminal);
-    assert_eq!(composite.provider_queued_items(), 0);
-    assert_eq!(composite.provider_queued_bytes(), 0);
+    assert_eq!(composite.base_queued_items(), 0);
+    assert_eq!(composite.base_queued_bytes(), 0);
     let after_delivery = composite.internal_observations();
     assert_eq!(
         after_delivery[&HostId::from("child-sink")]
@@ -1620,7 +1614,7 @@ fn configured_failure_translation_is_the_only_parent_failure_contract() {
     composite.fail_next_presentation();
     let fragment = parent_fragment(&composite);
     composite.handle(HostCommand::Prepare(fragment.clone()));
-    let output = composite.handle(HostCommand::Activate(fragment.plan_id));
+    let output = composite.handle(HostCommand::StartPlay(fragment.plan_id));
     assert!(output.events.iter().any(|event| matches!(
         event,
         HostEvent::PlanTerminated {
@@ -1642,7 +1636,7 @@ fn malformed_sink_delivery_becomes_source_failure_without_topology_leakage() {
     let fragment = parent_fragment(&composite);
     let plan_id = fragment.plan_id.clone();
     composite.handle(HostCommand::Prepare(fragment));
-    composite.handle(HostCommand::Activate(plan_id.clone()));
+    composite.handle(HostCommand::StartPlay(plan_id.clone()));
 
     let failed = composite.deliver_next_malformed(&plan_id);
     assert!(
@@ -1675,21 +1669,21 @@ fn malformed_sink_delivery_becomes_source_failure_without_topology_leakage() {
 }
 
 #[test]
-fn disconnect_with_empty_provider_fails_composite_and_rejects_future_delivery() {
+fn disconnect_with_empty_base_fails_composite_and_rejects_future_delivery() {
     let mut composite = composite(2, 18);
     composite.set_delivery_mode(DeliveryMode::Controlled);
     let fragment = parent_fragment(&composite);
     let plan_id = fragment.plan_id.clone();
     composite.handle(HostCommand::Prepare(fragment));
-    let disconnected = composite.disconnect_provider(&plan_id);
-    assert_eq!(composite.provider_status(), ConnectionOutcome::Terminal);
+    let disconnected = composite.disconnect_base(&plan_id);
+    assert_eq!(composite.base_status(), ConnectionOutcome::Terminal);
     assert!(disconnected
         .events
         .iter()
         .all(|event| !matches!(event, HostEvent::PlanTerminated { .. })));
-    let activated = composite.handle(HostCommand::Activate(plan_id));
+    let triggerd = composite.handle(HostCommand::StartPlay(plan_id));
     assert!(
-        activated.events.iter().any(|event| matches!(
+        triggerd.events.iter().any(|event| matches!(
             event,
             HostEvent::PlanTerminated {
                 disposition: TerminalDisposition::Failed {
@@ -1698,7 +1692,7 @@ fn disconnect_with_empty_provider_fails_composite_and_rejects_future_delivery() 
                 ..
             }
         )),
-        "{activated:?}"
+        "{triggerd:?}"
     );
 }
 
@@ -1709,13 +1703,13 @@ fn controlled_delivery_releases_bytes_only_on_delivery_or_disconnect() {
     let fragment = parent_fragment(&composite);
     let plan_id = fragment.plan_id.clone();
     composite.handle(HostCommand::Prepare(fragment));
-    composite.handle(HostCommand::Activate(plan_id.clone()));
-    assert_eq!(composite.provider_queued_bytes(), 27);
+    composite.handle(HostCommand::StartPlay(plan_id.clone()));
+    assert_eq!(composite.base_queued_bytes(), 27);
     composite.deliver_next(&plan_id);
-    assert_eq!(composite.provider_queued_bytes(), 18);
-    let failed = composite.disconnect_provider(&plan_id);
-    assert_eq!(composite.provider_queued_bytes(), 0);
-    assert_eq!(composite.provider_status(), ConnectionOutcome::Terminal);
+    assert_eq!(composite.base_queued_bytes(), 18);
+    let failed = composite.disconnect_base(&plan_id);
+    assert_eq!(composite.base_queued_bytes(), 0);
+    assert_eq!(composite.base_status(), ConnectionOutcome::Terminal);
     assert!(failed.events.iter().any(|event| matches!(
         event,
         HostEvent::PlanTerminated {

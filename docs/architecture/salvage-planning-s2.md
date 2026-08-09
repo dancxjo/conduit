@@ -16,11 +16,11 @@ A `CapabilityOffer` now advertises:
 
 `CapabilityLimits.value_kind` no longer exists. Kinds own their ports in the
 form catalog. Checking copies the exact contract revision and all ports into
-the checked operation, and its identity includes the revision, port identity,
+the checked Gear, and its identity includes the Kind revision, port identity,
 value kind, and direction. Planning accepts a capability only when its kind,
 contract revision, and complete input/output vectors equal the checked
-operation. It then binds the capability's exact execution profile into the
-planned operation.
+Gear. It then binds the capability's exact execution profile into the
+planned Gear.
 
 Every installed `OperationImplementation` declares the contract revision and
 execution profile it realizes. Preparation compares the sealed placement with
@@ -46,7 +46,7 @@ The planner now carries three different identity types end to end:
 The current small parser has no nesting, so expansion is deliberately the
 identity transform over the checked graph while retaining a distinct,
 domain-separated identity. S3 must recompute `ExpandedFormId` from the actual
-expanded cells and ports when nesting is restored.
+expanded gears and ports when nesting is restored.
 
 Every fragment and top-level plan binds all three values. Fragment and plan
 canonicalization hash all three, verification requires every fragment to agree
@@ -54,7 +54,7 @@ with the top-level plan, and hosted/Observatory reports render them separately.
 A comment-only source edit therefore changes only `SourceDocumentId`; a
 semantic edit changes checked and expanded identity as well.
 
-## Startup, cancellation, terminal, and evidence contracts
+## Startup, cancellation, terminal, and clue contracts
 
 Every fragment now binds an explicit startup dependency graph and a
 deterministic local startup order. Each cord makes its sink a prerequisite of
@@ -63,7 +63,7 @@ emit. The planner rejects cyclic dependency graphs. A remote cord can name a
 placement on another host in the dependency graph; a host checks the ordering
 constraint when both endpoints are local. Remote link readiness is now pinned
 and revalidated as described below; a coordinated cross-host prepared handshake
-remains later activation integration rather than a claim of this hosted model.
+remains later Play start integration rather than a claim of this hosted model.
 
 The first executable policy profile is deliberately narrow:
 
@@ -71,30 +71,30 @@ The first executable policy profile is deliberately narrow:
 - terminal completion requires every planned placement and connection.
 
 Preparation rejects any other resealed policy. It also reconstructs the exact
-terminal and mandatory-evidence descriptors from placements and connections,
+terminal and mandatory-clue descriptors from placements and connections,
 so deleting, reordering, or inventing descriptors cannot relax the contract.
 
-`EvidenceStorageBudget` binds independent item and byte capacities. The
+`ClueStorageBudget` binds independent item and byte capacities. The
 first-profile byte rule charges one discriminant byte per mandatory descriptor
 plus the UTF-8 byte length of its placement or connection identity when one is
 present. Planning fails if the requirement cannot be represented by the public
 budget types. Preparation fails closed if either capacity is below the exact
 mandatory requirement.
 
-The hosted reboot runtime now allocates the plan's evidence item slots during
+The hosted reboot runtime now allocates the plan's clue item slots during
 preparation. Each recorded event is a bounded numeric index into the fragment's
-sealed expected-evidence table, so execution does not clone identity strings or
+sealed expected-clue table, so execution does not clone identity strings or
 grow a hidden per-event allocation. Inspection reconstructs a
-`MandatoryEvidenceReport` with expected and recorded descriptors, the bound
+`MandatoryClueReport` with expected and recorded descriptors, the bound
 budget, serialized bytes used, the allocation shape, and an explicit overflow
 flag. This mandatory log is independent of the lossy general observation ring:
-terminal evidence remains complete even when that ring reports an
-`EvidenceGap`. Lowering the same commitments into the S1 kernel's
-`EvidenceSink` remains open integration work.
+terminal clue remains complete even when that ring reports an
+`ClueGap`. Lowering the same commitments into the S1 kernel's
+`ClueSink` remains open integration work.
 
 ## Exact host-operation requirements
 
-Each capability and planned operation now carries an ordered set of exact
+Each capability and planned Gear now carries an ordered set of exact
 `HostOperationRequirement` values. A requirement binds the immutable operation
 contract, an optional target kind, the maximum concurrent requests, and
 independent input/output byte bounds. The first executable profile uses
@@ -128,7 +128,7 @@ The first S2 resource profile uses three separate contracts:
 - planning resolves each requirement to one exact `ResourceBinding` pool.
 
 The first profile deliberately permits only one pool per required class on a
-host. Ambiguity fails planning instead of hiding a provider choice. The initial
+host. Ambiguity fails planning instead of hiding a base choice. The initial
 classes are timer slots and presentation slots, each used by the corresponding
 wait or presentation execution profile. These are countable host-managed slots,
 not claims about unmeasured RAM, browser APIs, firmware peripherals, or physical
@@ -185,12 +185,12 @@ not yet lowered into an S1 fixed-storage authority table.
 ## Observed remote link bindings
 
 A remote cord now carries one exact `LinkBinding`; a global
-`ConnectionProvider` list can no longer manufacture connectivity. Link
+`ConnectionBase` list can no longer manufacture connectivity. Link
 observations enter planning independently and bind:
 
 - a directional binding identity;
-- source and sink host, boot, and provider-owned endpoint identities;
-- one initialized provider instance and its execution class;
+- source and sink host, boot, and base-owned endpoint identities;
+- one initialized base instance and its execution class;
 - explicit ready or unavailable state;
 - an opaque credential reference or an explicit no-credential fact;
 - an authority-grant reference or an explicit process-owned fact; and
@@ -198,12 +198,12 @@ observations enter planning independently and bind:
 
 Planning rejects malformed or duplicate observation identities, stale boot
 scope, unavailable or underbounded observations, and ambiguous ready links. An
-optional authored provider preference may filter observations, but the selected
-provider is always derived from the one exact observation. Local cords retain
+optional authored base preference may filter observations, but the selected
+base is always derived from the one exact observation. Local cords retain
 the `Local` execution tag and must not carry a link binding; every remote cord
 must carry one. Top-level plan verification resolves both placement endpoints,
 requires the same complete connection fact in both host fragments, and checks
-that host/boot endpoint scope, provider, readiness, and limits agree.
+that host/boot endpoint scope, base, readiness, and limits agree.
 
 Hosted preparation checks the local endpoint against the fragment host and
 boot, then requires exactly one current observation with the same binding
@@ -231,8 +231,8 @@ The focused vectors prove:
 - resealed contract, profile, and port lies fail preparation against the
   current advertisement and installed implementation; and
 - post-seal and resealed startup, cancellation, terminal, and independent
-  evidence-item/evidence-byte mutations fail identity or preparation; and
-- the hosted mandatory-evidence allocation stays fixed from preparation through
+  clue-item/clue-byte mutations fail identity or preparation; and
+- the hosted mandatory-clue allocation stays fixed from preparation through
   completion and remains complete while the general observation ring
   overflows; and
 - planning, fragment identity, preparation, action admission, and completion
@@ -246,7 +246,7 @@ The focused vectors prove:
   missing, stale, duplicate, or ambiguous authority; every binding field is
   identity-covered; preparation requires the exact current grant; and
   ungranted subjects fail before effects; and
-- a remote provider enum alone cannot plan a cord; planning rejects missing,
+- a remote base enum alone cannot plan a cord; planning rejects missing,
   stale, unavailable, underbounded, malformed, duplicate, and ambiguous link
   observations; every binding field is identity-covered; preparation requires
   the exact current boot-scoped observation; and Observatory renders the same
@@ -258,9 +258,9 @@ This satisfies the six acceptance items in #363: all enumerated plan facts are
 sealed, remote cords bind exact current link observations, bound-fact mutation
 changes identity or fails verification, preparation recomputes the executable
 commitments, and deterministic negatives cover every field group. The
-`ConnectionProvider` enum remains only a runtime dispatch class derived from a
-`LinkBinding`; it is no longer evidence of remote availability. Planned
-evidence, host-operation, resource, authority, and link commitments are not yet
+`ConnectionBase` enum remains only a runtime dispatch class derived from a
+`LinkBinding`; it is no longer clue of remote availability. Planned
+clue, host-operation, resource, authority, and link commitments are not yet
 lowered into the S1 kernel stores, which remains explicit integration work
 rather than an unproven S2 plan claim.
 

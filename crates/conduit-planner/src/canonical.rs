@@ -3,7 +3,7 @@ use crate::{
     PlanningOptions,
 };
 use conduit_core::{
-    seal_plan, AuthorityGrant, ConnectionProvider, FormIdentity, HostAdvertisement, Plan,
+    seal_plan, AuthorityGrant, ConnectionBase, FormIdentity, HostAdvertisement, Plan,
     PlannedSharedPool, PoolMemberLimits, PoolRealizationEnvelope, ResourceBinding, SharedPoolId,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
     SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
@@ -20,26 +20,26 @@ pub struct SharedPoolPlanningRequirement {
 
 pub fn default_expanded_placements(
     form: &ExpandedCanonicalForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
     form.validate_expansion()
         .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
-    default_placements_unvalidated(&form.operations, realm)
+    default_placements_unvalidated(&form.gears, hosts)
 }
 
 pub fn plan_expanded_canonical(
     form: &ExpandedCanonicalForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
+    bases: &[ConnectionBase],
 ) -> Result<Plan, PlannerError> {
     plan_expanded_canonical_with_options(
         form,
-        realm,
+        hosts,
         placements,
-        providers,
+        bases,
         PlanningOptions {
-            connection_providers: &BTreeMap::new(),
+            connection_bases: &BTreeMap::new(),
             route_candidates: &BTreeMap::new(),
             connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
             connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
@@ -52,9 +52,9 @@ pub fn plan_expanded_canonical(
 
 pub fn plan_expanded_canonical_with_options(
     form: &ExpandedCanonicalForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
+    bases: &[ConnectionBase],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
     form.validate_expansion()
@@ -64,31 +64,30 @@ pub fn plan_expanded_canonical_with_options(
         checked_form_id: form.checked_form_id.clone(),
         expanded_form_id: form.expanded_form_id.clone(),
         name: form.name.clone(),
-        operations: form.operations.clone(),
+        gears: form.gears.clone(),
         connections: form.connections.clone(),
         exports: Vec::new(),
         nested_forms: Vec::new(),
     };
-    plan_validated_form(&planning_form, realm, placements, providers, options)
+    plan_validated_form(&planning_form, hosts, placements, bases, options)
 }
 
 pub fn plan_expanded_canonical_with_shared_pools(
     form: &ExpandedCanonicalForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
+    bases: &[ConnectionBase],
     options: PlanningOptions<'_>,
     requirements: &BTreeMap<SharedPoolId, SharedPoolPlanningRequirement>,
 ) -> Result<Plan, PlannerError> {
-    let mut plan =
-        plan_expanded_canonical_with_options(form, realm, placements, providers, options)?;
+    let mut plan = plan_expanded_canonical_with_options(form, hosts, placements, bases, options)?;
     if form.shared_pools.len() != requirements.len() {
         return Err(PlannerError::InvalidSharedPool(
             "every expanded shared pool requires one exact planning requirement".into(),
         ));
     }
 
-    let mut remaining_resources = realm
+    let mut remaining_resources = hosts
         .iter()
         .flat_map(|host| {
             host.resources.iter().map(|resource| {
@@ -130,14 +129,14 @@ pub fn plan_expanded_canonical_with_shared_pools(
                 pool.pool_id.as_str()
             ))
         })?;
-        validate_pool_authority(&requirement.admission_authority, realm)?;
+        validate_pool_authority(&requirement.admission_authority, hosts)?;
         if !requirement.member_limits.is_finite_and_nonzero() {
             return Err(PlannerError::InvalidSharedPool(format!(
                 "shared pool '{}' has invalid per-member bounds",
                 pool.pool_id.as_str()
             )));
         }
-        let mut candidates = realm
+        let mut candidates = hosts
             .iter()
             .filter(|host| {
                 plan.fragments.iter().any(|fragment| {
@@ -238,21 +237,16 @@ pub fn plan_expanded_canonical_with_shared_pools(
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.placements)
-            .map(|placement| {
-                (
-                    placement.operation_id.clone(),
-                    placement.placement_id.clone(),
-                )
-            })
+            .map(|placement| (placement.gear_id.clone(), placement.placement_id.clone()))
             .collect::<BTreeMap<_, _>>();
         let consumers = pool
             .consumers
             .iter()
-            .map(|operation| {
-                placement_lookup.get(operation).cloned().ok_or_else(|| {
+            .map(|gear| {
+                placement_lookup.get(gear).cloned().ok_or_else(|| {
                     PlannerError::InvalidSharedPool(format!(
                         "shared pool consumer '{}' has no exact placement",
-                        operation.as_str()
+                        gear.as_str()
                     ))
                 })
             })
@@ -290,13 +284,13 @@ pub fn plan_expanded_canonical_with_shared_pools(
 
 fn validate_pool_authority(
     grant: &AuthorityGrant,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
 ) -> Result<(), PlannerError> {
     let exact_scope = grant.contract_id.as_str() == SHARED_POOL_ADMIT_AUTHORITY_CONTRACT
         && grant.host_operation_contract_id.as_str() == SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT
         && grant.subject_kind.as_str() == SHARED_POOL_AUTHORITY_SUBJECT_KIND
         && !grant.grant_id.as_str().is_empty()
-        && realm.iter().any(|host| {
+        && hosts.iter().any(|host| {
             host.host_id == grant.host_id
                 && host.boot_id == grant.boot_id
                 && host

@@ -177,31 +177,31 @@ pub fn install_text_pipeline_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, OperationSignature,
+        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
         StartupParameterSignature,
     };
-    startup.insert(OperationSignature {
-        operation: TEXT_LITERAL_KIND.to_string(),
+    startup.insert(KindSignature {
+        kind: TEXT_LITERAL_KIND.to_string(),
         startup_parameters: vec![StartupParameterSignature {
             name: "value".to_string(),
             value_type: "Text".to_string(),
             default: None,
         }],
     })?;
-    startup.insert(OperationSignature {
-        operation: TEXT_UPPER_KIND.to_string(),
+    startup.insert(KindSignature {
+        kind: TEXT_UPPER_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;
-    startup.insert(OperationSignature {
-        operation: TEXT_JOIN_KIND.to_string(),
+    startup.insert(KindSignature {
+        kind: TEXT_JOIN_KIND.to_string(),
         startup_parameters: vec![StartupParameterSignature {
             name: "prefix".to_string(),
             value_type: "Text".to_string(),
             default: None,
         }],
     })?;
-    startup.insert(OperationSignature {
-        operation: super::TEXT_PRESENTATION_KIND.to_string(),
+    startup.insert(KindSignature {
+        kind: super::TEXT_PRESENTATION_KIND.to_string(),
         startup_parameters: vec![StartupParameterSignature {
             name: "maximum-values".to_string(),
             value_type: "Count".to_string(),

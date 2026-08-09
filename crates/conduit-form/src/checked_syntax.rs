@@ -10,14 +10,14 @@ pub struct StartupParameterSignature {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OperationSignature {
-    pub operation: String,
+pub struct KindSignature {
+    pub kind: String,
     pub startup_parameters: Vec<StartupParameterSignature>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StartupCatalog {
-    operations: BTreeMap<String, OperationSignature>,
+    kinds: BTreeMap<String, KindSignature>,
 }
 
 impl StartupCatalog {
@@ -25,29 +25,28 @@ impl StartupCatalog {
         Self::default()
     }
 
-    pub fn insert(&mut self, signature: OperationSignature) -> Result<(), String> {
-        if self.operations.contains_key(&signature.operation) {
+    pub fn insert(&mut self, signature: KindSignature) -> Result<(), String> {
+        if self.kinds.contains_key(&signature.kind) {
             return Err(format!(
-                "duplicate startup signature for operation '{}'",
-                signature.operation
+                "duplicate startup signature for kind '{}'",
+                signature.kind
             ));
         }
         let mut names = BTreeMap::new();
         for parameter in &signature.startup_parameters {
             if names.insert(parameter.name.as_str(), ()).is_some() {
                 return Err(format!(
-                    "duplicate startup parameter '{}' for operation '{}'",
-                    parameter.name, signature.operation
+                    "duplicate startup parameter '{}' for kind '{}'",
+                    parameter.name, signature.kind
                 ));
             }
         }
-        self.operations
-            .insert(signature.operation.clone(), signature);
+        self.kinds.insert(signature.kind.clone(), signature);
         Ok(())
     }
 
-    pub(crate) fn get(&self, operation: &str) -> Option<&OperationSignature> {
-        self.operations.get(operation)
+    pub(crate) fn get(&self, kind: &str) -> Option<&KindSignature> {
+        self.kinds.get(kind)
     }
 }
 
@@ -73,29 +72,29 @@ pub struct CheckedStartupParameter {
 }
 
 #[derive(Debug, Clone)]
-pub struct CheckedCanonicalCell {
+pub struct CheckedCanonicalGear {
     pub name: Option<String>,
-    pub operation: String,
+    pub kind: String,
     pub startup_parameters: Vec<StartupParameterSignature>,
     pub startup_bindings: Vec<CheckedStartupBinding>,
     pub source_span: Span,
 }
 
-impl PartialEq for CheckedCanonicalCell {
+impl PartialEq for CheckedCanonicalGear {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
-            && self.operation == other.operation
+            && self.kind == other.kind
             && self.startup_parameters == other.startup_parameters
             && self.startup_bindings == other.startup_bindings
     }
 }
 
-impl Eq for CheckedCanonicalCell {}
+impl Eq for CheckedCanonicalGear {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckedCordStage {
     Reference(String),
-    InlineCell(CheckedCanonicalCell),
+    InlineGear(CheckedCanonicalGear),
     Literal {
         value: CanonicalStartupValue,
         source_span: Span,
@@ -124,7 +123,7 @@ pub struct CheckedCanonicalForm {
     pub shorthand: Option<(String, String)>,
     pub local_values: Vec<(String, CanonicalStartupValue)>,
     pub pools: Vec<CheckedPoolDeclaration>,
-    pub cells: Vec<CheckedCanonicalCell>,
+    pub gears: Vec<CheckedCanonicalGear>,
     pub cords: Vec<CheckedCanonicalCord>,
 }
 
@@ -135,11 +134,11 @@ pub struct CheckedSyntaxDocument {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExpandedCellProvenance {
-    pub operation_id: String,
+pub struct ExpandedGearProvenance {
+    pub gear_id: String,
     pub form_path: Vec<String>,
     pub source_form: String,
-    pub source_cell: String,
+    pub source_gear: String,
     pub source_span: Span,
 }
 
@@ -149,10 +148,10 @@ pub struct ExpandedCanonicalForm {
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
     pub name: String,
-    pub operations: Vec<crate::CheckedOperation>,
+    pub gears: Vec<crate::CheckedGear>,
     pub connections: Vec<crate::CheckedConnection>,
     pub shared_pools: Vec<ExpandedSharedPool>,
-    pub provenance: Vec<ExpandedCellProvenance>,
+    pub provenance: Vec<ExpandedGearProvenance>,
     pub provenance_digest: String,
 }
 
@@ -162,7 +161,7 @@ pub struct ExpandedSharedPool {
     pub declaration_id: conduit_core::PoolDeclarationId,
     pub member_face: CheckedFace,
     pub maximum_members: u16,
-    pub consumers: Vec<conduit_core::OperationId>,
+    pub consumers: Vec<conduit_core::GearId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -202,8 +201,8 @@ pub(crate) enum SyntaxCheckError {
     PositionalNamedDuplicate(String),
     DependencyCycle(String),
     RuntimeAsStartup(String),
-    UnsupportedOperation(String),
-    DuplicateCell(String),
+    UnsupportedKind(String),
+    DuplicateGear(String),
     UnsupportedExpression(String),
     AmbiguousFaceName(String),
 }
@@ -217,7 +216,7 @@ impl SyntaxCheckError {
             ),
             Self::ConflictingArgument(name) => (
                 "CND-FRM-021",
-                format!("conflicting cell argument for startup parameter '{name}'"),
+                format!("conflicting gear argument for startup parameter '{name}'"),
             ),
             Self::UnknownParameter(name) => {
                 ("CND-FRM-022", format!("unknown startup parameter '{name}'"))
@@ -226,9 +225,9 @@ impl SyntaxCheckError {
                 "CND-FRM-023",
                 format!("missing required startup parameter '{name}'"),
             ),
-            Self::TooManyPositional(operation) => (
+            Self::TooManyPositional(gear) => (
                 "CND-FRM-024",
-                format!("too many positional arguments for '{operation}'"),
+                format!("too many positional arguments for '{gear}'"),
             ),
             Self::PositionalNamedDuplicate(name) => (
                 "CND-FRM-025",
@@ -242,11 +241,11 @@ impl SyntaxCheckError {
                 "CND-FRM-027",
                 format!("runtime port '{name}' cannot supply a startup value"),
             ),
-            Self::UnsupportedOperation(operation) => (
+            Self::UnsupportedKind(gear) => (
                 "CND-FRM-028",
-                format!("no startup signature is available for '{operation}'"),
+                format!("no startup signature is available for '{gear}'"),
             ),
-            Self::DuplicateCell(name) => ("CND-FRM-029", format!("duplicate named cell '{name}'")),
+            Self::DuplicateGear(name) => ("CND-FRM-029", format!("duplicate named gear '{name}'")),
             Self::UnsupportedExpression(expression) => (
                 "CND-FRM-030",
                 format!("unsupported pure startup expression '{expression}'"),

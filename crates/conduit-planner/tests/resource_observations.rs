@@ -1,7 +1,7 @@
 mod common;
 
-use common::{competing_hosts, pulse_operation};
-use conduit_core::{EvidenceId, ResourceHealth, ResourceObservation};
+use common::{competing_hosts, pulse_gear};
+use conduit_core::{ClueId, ResourceHealth, ResourceObservation};
 use conduit_planner::{
     select_realization_with_observations, HardRealizationRequirements, PlannerError,
     RealizationPolicy, RealizationPreference,
@@ -12,7 +12,7 @@ fn observation(
     health: ResourceHealth,
     unreserved_units: u32,
     utilized_units: u32,
-    evidence: &str,
+    clue: &str,
 ) -> ResourceObservation {
     let required_class = &host.capabilities[0].resource_requirements[0].class_id;
     let pool = host
@@ -29,18 +29,18 @@ fn observation(
         health,
         unreserved_units,
         utilized_units,
-        evidence_id: EvidenceId::from(evidence),
+        clue_id: ClueId::from(clue),
     }
 }
 
 #[test]
 fn changing_observations_change_selection_without_mutating_stable_offers() {
-    let operation = pulse_operation();
-    let realm = competing_hosts();
-    let stable_realm = realm.clone();
+    let gear = pulse_gear();
+    let hosts = competing_hosts();
+    let stable_hosts = hosts.clone();
     let policy = RealizationPolicy {
         preferences: vec![RealizationPreference::MinimizeResourceUnits(
-            realm[0].capabilities[0].resource_requirements[0]
+            hosts[0].capabilities[0].resource_requirements[0]
                 .class_id
                 .clone(),
         )],
@@ -49,17 +49,17 @@ fn changing_observations_change_selection_without_mutating_stable_offers() {
 
     let efficient_unavailable = vec![
         observation(
-            &realm[0],
+            &hosts[0],
             ResourceHealth::Unavailable,
             0,
             0,
             "efficient-down",
         ),
-        observation(&realm[1], ResourceHealth::Ready, 3, 1, "capable-ready"),
+        observation(&hosts[1], ResourceHealth::Ready, 3, 1, "capable-ready"),
     ];
     let selected = select_realization_with_observations(
-        &operation,
-        &realm,
+        &gear,
+        &hosts,
         &requirements,
         &efficient_unavailable,
         &policy,
@@ -68,12 +68,12 @@ fn changing_observations_change_selection_without_mutating_stable_offers() {
     assert_eq!(selected.host_id.as_str(), "host-b-capable");
 
     let efficient_ready = vec![
-        observation(&realm[0], ResourceHealth::Ready, 1, 3, "efficient-ready"),
-        observation(&realm[1], ResourceHealth::Ready, 3, 1, "capable-ready"),
+        observation(&hosts[0], ResourceHealth::Ready, 1, 3, "efficient-ready"),
+        observation(&hosts[1], ResourceHealth::Ready, 3, 1, "capable-ready"),
     ];
     let selected = select_realization_with_observations(
-        &operation,
-        &realm,
+        &gear,
+        &hosts,
         &requirements,
         &efficient_ready,
         &policy,
@@ -81,28 +81,28 @@ fn changing_observations_change_selection_without_mutating_stable_offers() {
     .expect("policy can select the newly ready efficient host");
     assert_eq!(selected.host_id.as_str(), "host-a-efficient");
     assert_eq!(
-        realm, stable_realm,
+        hosts, stable_hosts,
         "observations never mutate stable offers"
     );
 }
 
 #[test]
 fn utilization_is_distinct_from_unreserved_planning_capacity() {
-    let operation = pulse_operation();
-    let realm = competing_hosts();
+    let gear = pulse_gear();
+    let hosts = competing_hosts();
     let observations = [
         observation(
-            &realm[0],
+            &hosts[0],
             ResourceHealth::Ready,
             1,
             3,
             "busy-but-admissible",
         ),
-        observation(&realm[1], ResourceHealth::Unavailable, 0, 0, "capable-down"),
+        observation(&hosts[1], ResourceHealth::Unavailable, 0, 0, "capable-down"),
     ];
     let selected = select_realization_with_observations(
-        &operation,
-        &realm,
+        &gear,
+        &hosts,
         &HardRealizationRequirements::default(),
         &observations,
         &RealizationPolicy::default(),
@@ -113,14 +113,14 @@ fn utilization_is_distinct_from_unreserved_planning_capacity() {
 
 #[test]
 fn stale_or_incoherent_observations_fail_closed() {
-    let operation = pulse_operation();
-    let realm = competing_hosts();
-    let mut stale = observation(&realm[0], ResourceHealth::Ready, 1, 0, "stale");
+    let gear = pulse_gear();
+    let hosts = competing_hosts();
+    let mut stale = observation(&hosts[0], ResourceHealth::Ready, 1, 0, "stale");
     stale.boot_id = conduit_core::BootId::from("old-boot");
     assert!(matches!(
         select_realization_with_observations(
-            &operation,
-            &realm,
+            &gear,
+            &hosts,
             &HardRealizationRequirements::default(),
             &[stale],
             &RealizationPolicy::default(),
@@ -128,11 +128,11 @@ fn stale_or_incoherent_observations_fail_closed() {
         Err(PlannerError::InvalidResourceObservation(_))
     ));
 
-    let incoherent = observation(&realm[0], ResourceHealth::Unavailable, 1, 0, "incoherent");
+    let incoherent = observation(&hosts[0], ResourceHealth::Unavailable, 1, 0, "incoherent");
     assert!(matches!(
         select_realization_with_observations(
-            &operation,
-            &realm,
+            &gear,
+            &hosts,
             &HardRealizationRequirements::default(),
             &[incoherent],
             &RealizationPolicy::default(),

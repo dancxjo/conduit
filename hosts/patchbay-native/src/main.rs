@@ -22,7 +22,7 @@ use arguments::{parse_arguments, Arguments};
 use conduit_std_host::StdHostComposition;
 use control::NativeControl;
 use distributed_play::{run_server as run_distributed_server, NativeDistributedPlay};
-use file_task::{probe_native_file_provider, DestinationPolicy, NativeFileTask};
+use file_task::{probe_native_file_base, DestinationPolicy, NativeFileTask};
 use render::{draw_document, BACKGROUND};
 use resource::{open_form_resource, save_form_resource};
 
@@ -45,13 +45,13 @@ struct PatchbayApplication {
 
 impl PatchbayApplication {
     fn new(arguments: Arguments) -> Result<Self, String> {
-        let native_file_provider = probe_native_file_provider();
+        let native_file_base = probe_native_file_base();
         let mut composition = StdHostComposition::minimal()
             .with_signal()
             .with_time()
             .with_text()
             .with_state();
-        if native_file_provider.is_some() {
+        if native_file_base.is_some() {
             composition = composition.with_files();
         }
         let model = PatchbayModel::fresh_with_composition(composition);
@@ -86,7 +86,7 @@ impl PatchbayApplication {
         let control =
             NativeControl::for_host(source_host_id.clone(), source_boot_id.clone(), composition);
         let file_task = NativeFileTask::for_host(
-            native_file_provider,
+            native_file_base,
             source_host_id.clone(),
             source_boot_id.clone(),
             composition,
@@ -410,7 +410,7 @@ impl ApplicationHandler for PatchbayApplication {
                         || line.starts_with("STOP ")
                         || line.starts_with("RUN-TERMINAL ")
                         || line.trim_start().starts_with("CONTROL ")
-                        || line.trim_start().starts_with("KERNEL-EVIDENCE ")
+                        || line.trim_start().starts_with("KERNEL-CLUE ")
                 }) {
                     println!("patchbay control {line}");
                 }

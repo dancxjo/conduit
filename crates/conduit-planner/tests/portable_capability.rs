@@ -1,5 +1,5 @@
 use conduit_core::{
-    verify_plan, BootId, ConnectionProvider, HostAdvertisement, HostId, LinkBindingId, OperationId,
+    verify_plan, BootId, ConnectionBase, GearId, HostAdvertisement, HostId, LinkBindingId,
     PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, ProtectedResourceAccess,
     ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId,
     ResourceHandleId,
@@ -11,8 +11,7 @@ use conduit_planner::{
 use conduit_runtime::lowering::lower_plan_fragment;
 use std::collections::BTreeMap;
 
-static EMPTY_ROUTE_CANDIDATES: BTreeMap<(OperationId, OperationId), Vec<LinkBindingId>> =
-    BTreeMap::new();
+static EMPTY_ROUTE_CANDIDATES: BTreeMap<(GearId, GearId), Vec<LinkBindingId>> = BTreeMap::new();
 
 fn portable_inputs() -> (conduit_form::CheckedForm, Vec<HostAdvertisement>) {
     let form = conduit_form::parse(
@@ -38,11 +37,9 @@ fn planner_host(host: &str, boot: &str, profile: &str, limits: PlannerLimits) ->
     host_advertisement
 }
 
-fn options<'a>(
-    overrides: &'a BTreeMap<(OperationId, OperationId), ConnectionProvider>,
-) -> PlanningOptions<'a> {
+fn options<'a>(overrides: &'a BTreeMap<(GearId, GearId), ConnectionBase>) -> PlanningOptions<'a> {
     PlanningOptions {
-        connection_providers: overrides,
+        connection_bases: overrides,
         route_candidates: &EMPTY_ROUTE_CANDIDATES,
         connection_item_capacity: 1,
         connection_byte_capacity: 9,
@@ -54,8 +51,8 @@ fn options<'a>(
 
 #[test]
 fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
-    let (form, realm) = portable_inputs();
-    let placements = default_placements(&form, &realm).expect("target placement");
+    let (form, hosts) = portable_inputs();
+    let placements = default_placements(&form, &hosts).expect("target placement");
     let overrides = BTreeMap::new();
     let full = planner_host(
         "std-planner-a",
@@ -69,7 +66,7 @@ fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
         BROWSER_PLANNER_PROFILE,
         PlannerLimits {
             maximum_host_advertisements: 2,
-            maximum_operations: 2,
+            maximum_gears: 2,
             maximum_connections: 1,
             maximum_authority_grants: 0,
             maximum_protected_resource_grants: 0,
@@ -81,9 +78,9 @@ fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
         &full,
         &PlannerProfileId::from(FULL_PLANNER_PROFILE),
         &form,
-        &realm,
+        &hosts,
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         options(&overrides),
     )
     .expect("full profile plans");
@@ -91,9 +88,9 @@ fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
         &browser,
         &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
         &form,
-        &realm,
+        &hosts,
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         options(&overrides),
     )
     .expect("browser profile plans locally");
@@ -101,16 +98,16 @@ fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
     assert_eq!(full_plan, browser_plan);
     assert!(verify_plan(&browser_plan));
     assert!(browser_plan.fragments.iter().all(|fragment| {
-        fragment.host_id == realm[0].host_id
-            && fragment.boot_id == realm[0].boot_id
+        fragment.host_id == hosts[0].host_id
+            && fragment.boot_id == hosts[0].boot_id
             && lower_plan_fragment(fragment).is_ok()
     }));
 }
 
 #[test]
 fn bounded_profile_refuses_before_planning_without_delegation() {
-    let (form, realm) = portable_inputs();
-    let placements = default_placements(&form, &realm).expect("target placement");
+    let (form, hosts) = portable_inputs();
+    let placements = default_placements(&form, &hosts).expect("target placement");
     let overrides = BTreeMap::new();
     let bounded = planner_host(
         "bounded-planner",
@@ -118,7 +115,7 @@ fn bounded_profile_refuses_before_planning_without_delegation() {
         BROWSER_PLANNER_PROFILE,
         PlannerLimits {
             maximum_host_advertisements: 1,
-            maximum_operations: 1,
+            maximum_gears: 1,
             maximum_connections: 1,
             maximum_authority_grants: 0,
             maximum_protected_resource_grants: 0,
@@ -130,34 +127,34 @@ fn bounded_profile_refuses_before_planning_without_delegation() {
         &bounded,
         &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
         &form,
-        &realm,
+        &hosts,
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         options(&overrides),
     )
-    .expect_err("two-operation form exceeds bounded offer");
+    .expect_err("two-gear form exceeds bounded offer");
 
     assert_eq!(
         error,
         PlannerError::PlannerLimitExceeded(
-            "profile input has 2 operations, above advertised maximum 1".to_string()
+            "profile input has 2 gears, above advertised maximum 1".to_string()
         )
     );
 }
 
 #[test]
 fn host_must_truthfully_advertise_the_requested_profile() {
-    let (form, realm) = portable_inputs();
-    let placements = default_placements(&form, &realm).expect("target placement");
+    let (form, hosts) = portable_inputs();
+    let placements = default_placements(&form, &hosts).expect("target placement");
     let overrides = BTreeMap::new();
 
     let error = plan_with_advertised_profile(
-        &realm[0],
+        &hosts[0],
         &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
         &form,
-        &realm,
+        &hosts,
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         options(&overrides),
     )
     .expect_err("non-planner target cannot execute planner capability");
@@ -170,8 +167,8 @@ fn host_must_truthfully_advertise_the_requested_profile() {
 
 #[test]
 fn portable_profile_admits_protected_grants_before_planning() {
-    let (form, realm) = portable_inputs();
-    let placements = default_placements(&form, &realm).expect("target placement");
+    let (form, hosts) = portable_inputs();
+    let placements = default_placements(&form, &hosts).expect("target placement");
     let overrides = BTreeMap::new();
     let bounded = planner_host(
         "bounded-planner",
@@ -179,7 +176,7 @@ fn portable_profile_admits_protected_grants_before_planning() {
         BROWSER_PLANNER_PROFILE,
         PlannerLimits {
             maximum_host_advertisements: 1,
-            maximum_operations: 2,
+            maximum_gears: 2,
             maximum_connections: 1,
             maximum_authority_grants: 0,
             maximum_protected_resource_grants: 0,
@@ -189,10 +186,10 @@ fn portable_profile_admits_protected_grants_before_planning() {
     let grant = ProtectedResourceGrant {
         role_id: ResourceBindingRoleId::from("source"),
         handle_id: ResourceHandleId::from("opaque/source"),
-        operation_id: OperationId::from("pulse"),
-        host_id: realm[0].host_id.clone(),
-        boot_id: realm[0].boot_id.clone(),
-        capability_id: realm[0].capabilities[0].capability_id.clone(),
+        gear_id: GearId::from("pulse"),
+        host_id: hosts[0].host_id.clone(),
+        boot_id: hosts[0].boot_id.clone(),
+        capability_id: hosts[0].capabilities[0].capability_id.clone(),
         class_id: ResourceClassId::from("conduit.resource/test@1"),
         access: ProtectedResourceAccess::ReadExisting,
         maximum_bytes: 1,
@@ -206,9 +203,9 @@ fn portable_profile_admits_protected_grants_before_planning() {
             &bounded,
             &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
             &form,
-            &realm,
+            &hosts,
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
             request,
         ),
         Err(PlannerError::PlannerLimitExceeded(

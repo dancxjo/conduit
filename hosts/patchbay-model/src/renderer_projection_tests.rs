@@ -44,7 +44,7 @@ fn living_projection() -> (PatchbayPresentation, conduit_core::Plan) {
 }
 
 #[test]
-fn one_projection_preserves_exact_document_plan_play_route_and_evidence_facts() {
+fn one_projection_preserves_exact_document_plan_play_route_and_clue_facts() {
     let (presentation, plan) = living_projection();
     let identities = presentation.identities();
     assert_eq!(
@@ -68,13 +68,13 @@ fn one_projection_preserves_exact_document_plan_play_route_and_evidence_facts() 
         identities.active_play_id.as_ref(),
         presentation.play.as_ref().map(|play| &play.active_play_id)
     );
-    for observation in &presentation.play.as_ref().unwrap().evidence {
-        assert!(identities.evidence_ids.contains(&observation.evidence_id));
+    for observation in &presentation.play.as_ref().unwrap().clues {
+        assert!(identities.clue_ids.contains(&observation.clue_id));
     }
     let route = &presentation.routes[0];
     assert_eq!(
-        route.new_plan.prior.candidates[0].provider,
-        conduit_core::ConnectionProvider::UsbCdc
+        route.new_plan.prior.candidates[0].base,
+        conduit_core::ConnectionBase::UsbCdc
     );
     assert!(presentation.selection().is_some());
 }
@@ -159,8 +159,8 @@ fn projection_rejects_each_unbounded_collection() {
     );
 
     let mut play = presentation.play.clone().unwrap();
-    let observation = play.evidence[0].clone();
-    play.evidence = vec![observation; MAX_RENDERER_EVIDENCE + 1];
+    let observation = play.clues[0].clone();
+    play.clues = vec![observation; MAX_RENDERER_CLUES + 1];
     assert_eq!(
         PatchbayPresentation::new(
             8,
@@ -170,7 +170,7 @@ fn projection_rejects_each_unbounded_collection() {
             None,
             Vec::new(),
         ),
-        Err(RendererProjectionError::TooMuchEvidence)
+        Err(RendererProjectionError::TooManyClues)
     );
 
     let mut topology = presentation.topology.clone().unwrap();

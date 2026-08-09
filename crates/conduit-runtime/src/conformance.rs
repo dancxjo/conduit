@@ -5,7 +5,7 @@ use super::{
 use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, ArtifactId, BootId, CancellationReason, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionProvider,
+    CapabilityLimits, CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionBase,
     ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId,
     HostProfileId, ImplementationId, KindContractRevision, ObservationKind, OfferGeneration,
     PlatformEffect, PortDescriptor, PortDirection, TerminalDisposition, ValuePayload,
@@ -13,7 +13,7 @@ use conduit_core::{
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, OperationSignature, ProfileCatalog, StartupCatalog,
+    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use conduit_planner::{
@@ -300,13 +300,13 @@ impl OperationImplementation for TestPulseImplementation {
 
     fn prepare(
         &self,
-        placement: &conduit_core::PlannedOperation,
+        placement: &conduit_core::PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
         Ok(Box::new(TestPulseState {
             configuration: parse_pulse_configuration(&placement.configuration).map_err(
                 |error| {
                     ImplementationFailure::new(
-                        FailureReason::InvalidOperationConfiguration,
+                        FailureReason::InvalidGearConfiguration,
                         error.to_string(),
                     )
                 },
@@ -413,7 +413,7 @@ impl OperationImplementation for TestShowImplementation {
 
     fn prepare(
         &self,
-        _placement: &conduit_core::PlannedOperation,
+        _placement: &conduit_core::PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
         Ok(Box::new(TestShowState { expected: 0 }))
     }
@@ -480,7 +480,7 @@ fn demo_fragment(
         &form,
         std::slice::from_ref(&advertisement),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         queue_items,
         queue_bytes,
     )
@@ -492,8 +492,8 @@ fn canonical_demo_fragment() -> conduit_core::PlanFragment {
     let source = "form burst (\n count: Count = 1\n signal: value/signal >\n) {\n pulse: semantic/burst-pulse(count = count, period-ms = 0, initial = false)\n pulse > signal\n}\n\nform demo {\n burst: burst(2)\n show: presentation/show\n burst.signal > show\n}\n";
     let mut startup = StartupCatalog::new();
     startup
-        .insert(OperationSignature {
-            operation: BURST_PULSE_KIND.into(),
+        .insert(KindSignature {
+            kind: BURST_PULSE_KIND.into(),
             startup_parameters: vec![
                 StartupParameterSignature {
                     name: "count".into(),
@@ -514,8 +514,8 @@ fn canonical_demo_fragment() -> conduit_core::PlanFragment {
         })
         .unwrap();
     startup
-        .insert(OperationSignature {
-            operation: SHOW_KIND.into(),
+        .insert(KindSignature {
+            kind: SHOW_KIND.into(),
             startup_parameters: vec![],
         })
         .unwrap();
@@ -550,7 +550,7 @@ fn canonical_demo_fragment() -> conduit_core::PlanFragment {
     let expanded =
         expand_canonical_form(&checked, "demo", &catalog).expect("reusable form expands");
     assert!(expanded
-        .operations
+        .gears
         .iter()
         .any(|operation| operation.kind_id.as_str() == BURST_PULSE_KIND));
     let advertisement = advertisement("boot-1", 1, 8, 256);
@@ -560,7 +560,7 @@ fn canonical_demo_fragment() -> conduit_core::PlanFragment {
         &expanded,
         std::slice::from_ref(&advertisement),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .expect("expanded plan succeeds");
     assert_eq!(plan.checked_form_id, expanded.checked_form_id);
@@ -590,7 +590,7 @@ fn inspect(runtime: &mut HostRuntime) -> Vec<conduit_core::Observation> {
 }
 
 fn drive_success(runtime: &mut HostRuntime, plan_id: conduit_core::PlanId) -> Vec<Signal> {
-    let output = runtime.handle(HostCommand::Activate(plan_id));
+    let output = runtime.handle(HostCommand::StartPlay(plan_id));
     let mut presented = Vec::new();
     let mut pending_effects = output.effects;
     while let Some(effect) = pending_effects.pop() {
@@ -638,7 +638,7 @@ fn drive_with_failure(
     failed_sequence: u64,
 ) -> Vec<HostEvent> {
     let mut all_events = Vec::new();
-    let initial = runtime.handle(HostCommand::Activate(plan_id));
+    let initial = runtime.handle(HostCommand::StartPlay(plan_id));
     all_events.extend(initial.events);
     let mut pending = VecDeque::from(initial.effects);
     while let Some(effect) = pending.pop_front() {
@@ -682,7 +682,7 @@ fn drive_with_failure(
 }
 
 #[test]
-fn canonical_parameterized_form_expands_plans_and_runs_through_normal_kernel_evidence() {
+fn canonical_parameterized_form_expands_plans_and_runs_through_normal_kernel_clue() {
     let fragment = canonical_demo_fragment();
     assert_eq!(fragment.placements.len(), 2);
     assert_eq!(fragment.connections.len(), 1);
@@ -753,7 +753,7 @@ fn full_queue_applies_backpressure() {
     let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 1, 64);
     let mut runtime = test_runtime(advertisement("boot-1", 1, 1, 64), 128);
     runtime.handle(HostCommand::Prepare(fragment.clone()));
-    let output = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
+    let output = runtime.handle(HostCommand::StartPlay(fragment.plan_id.clone()));
     assert!(output
         .events
         .iter()
@@ -765,7 +765,7 @@ fn byte_capacity_applies_backpressure() {
     let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 9);
     let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
     runtime.handle(HostCommand::Prepare(fragment.clone()));
-    let output = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
+    let output = runtime.handle(HostCommand::StartPlay(fragment.plan_id.clone()));
     assert!(output
         .events
         .iter()
@@ -775,12 +775,12 @@ fn byte_capacity_applies_backpressure() {
 #[test]
 fn multiple_sources_remain_independent() {
     let fragment = demo_fragment("form 0\n\ndouble-demo {\n    pulse-a: flow/pulse\n    show-a: presentation/show\n    pulse-b: flow/pulse\n    show-b: presentation/show\n\n    pulse-a.count = 3\n    pulse-a.period-ms = 0\n    pulse-a.initial = false\n    pulse-b.count = 5\n    pulse-b.period-ms = 0\n    pulse-b.initial = true\n\n    pulse-a > show-a\n    pulse-b > show-b\n}\n", 4, 64);
-    let placement_by_operation = fragment
+    let placement_by_gear = fragment
         .placements
         .iter()
         .map(|placement| {
             (
-                placement.operation_id.as_str().to_string(),
+                placement.gear_id.as_str().to_string(),
                 placement.placement_id.clone(),
             )
         })
@@ -801,10 +801,10 @@ fn multiple_sources_remain_independent() {
     let presented = drive_success(&mut runtime, plan_id.clone());
     assert_eq!(presented.len(), 8);
     let observations = inspect(&mut runtime);
-    let pulse_a = placement_by_operation["pulse-a"].clone();
-    let pulse_b = placement_by_operation["pulse-b"].clone();
-    let show_a = placement_by_operation["show-a"].clone();
-    let show_b = placement_by_operation["show-b"].clone();
+    let pulse_a = placement_by_gear["pulse-a"].clone();
+    let pulse_b = placement_by_gear["pulse-b"].clone();
+    let show_a = placement_by_gear["show-a"].clone();
+    let show_b = placement_by_gear["show-b"].clone();
     let conn_a = connection_by_source[&pulse_a].clone();
     let conn_b = connection_by_source[&pulse_b].clone();
     let produced_a = observations
@@ -884,7 +884,7 @@ fn multiple_sources_remain_independent() {
 }
 
 #[test]
-fn cancellation_before_activation_is_terminal() {
+fn cancellation_before_play_start_is_terminal() {
     let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
     let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
     runtime.handle(HostCommand::Prepare(fragment.clone()));
@@ -912,7 +912,7 @@ fn late_presentation_completion_after_cancel_is_rejected() {
         .clone();
     let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
     runtime.handle(HostCommand::Prepare(fragment.clone()));
-    let output = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
+    let output = runtime.handle(HostCommand::StartPlay(fragment.plan_id.clone()));
     let (active_play_id, presentation_id, value) = output
         .effects
         .into_iter()
@@ -977,7 +977,7 @@ fn observation_overflow_records_gap() {
     let observations = inspect(&mut runtime);
     assert!(observations
         .iter()
-        .any(|item| matches!(item.kind, ObservationKind::EvidenceGap { .. })));
+        .any(|item| matches!(item.kind, ObservationKind::ClueGap { .. })));
 }
 
 #[test]
@@ -986,7 +986,7 @@ fn fanout_failure_before_first_manifestation_disposes_every_branch() {
     let failed_sink = fragment
         .placements
         .iter()
-        .find(|placement| placement.operation_id.as_str() == "show-b")
+        .find(|placement| placement.gear_id.as_str() == "show-b")
         .expect("failed sink exists")
         .placement_id
         .clone();
@@ -1062,7 +1062,7 @@ fn fanout_failure_after_sequence_seven_retains_last_manifestation() {
     let failed_sink = fragment
         .placements
         .iter()
-        .find(|placement| placement.operation_id.as_str() == "show-b")
+        .find(|placement| placement.gear_id.as_str() == "show-b")
         .expect("failed sink exists")
         .placement_id
         .clone();
@@ -1107,8 +1107,8 @@ fn cancellation_while_waiting_rejects_late_timer_and_is_idempotently_rejected() 
         .clone();
     let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 256);
     runtime.handle(HostCommand::Prepare(fragment.clone()));
-    let activated = runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
-    assert!(activated
+    let triggerd = runtime.handle(HostCommand::StartPlay(fragment.plan_id.clone()));
+    assert!(triggerd
         .effects
         .iter()
         .any(|effect| matches!(effect, PlatformEffect::Wait { .. })));
@@ -1146,7 +1146,7 @@ fn fanout_cancellation_releases_all_queued_items() {
     let fragment = demo_fragment("form 0\n\nfanout {\n pulse: flow/pulse\n show-a: presentation/show\n show-b: presentation/show\n pulse.count = 8\n pulse.period-ms = 0\n pulse.initial = false\n pulse > show-a\n pulse > show-b\n}\n", 4, 64);
     let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 256);
     runtime.handle(HostCommand::Prepare(fragment.clone()));
-    runtime.handle(HostCommand::Activate(fragment.plan_id.clone()));
+    runtime.handle(HostCommand::StartPlay(fragment.plan_id.clone()));
     let cancelled = runtime.handle(HostCommand::Cancel(fragment.plan_id));
     let dispositions = cancelled
         .events
@@ -1199,7 +1199,7 @@ fn fanout_accounts_for_each_branches_byte_capacity_independently() {
 }
 
 #[test]
-fn release_after_failure_and_cancellation_preserves_terminal_evidence() {
+fn release_after_failure_and_cancellation_preserves_terminal_clue() {
     for fail in [false, true] {
         let fragment = demo_fragment("form 0\n\ndemo {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 2\n pulse.period-ms = 0\n pulse.initial = false\n pulse > show\n}\n", 4, 64);
         let plan_id = fragment.plan_id.clone();
@@ -1233,7 +1233,7 @@ fn release_after_failure_and_cancellation_preserves_terminal_evidence() {
             item.plan_id.as_ref() == Some(&plan_id)
                 && matches!(item.kind, ObservationKind::Released)
         }));
-        let after_release = runtime.handle(HostCommand::Activate(plan_id.clone()));
+        let after_release = runtime.handle(HostCommand::StartPlay(plan_id.clone()));
         assert!(after_release.events.iter().any(|event| matches!(
             event,
             HostEvent::CommandRejected {

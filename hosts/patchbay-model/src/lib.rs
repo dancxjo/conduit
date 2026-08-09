@@ -4,7 +4,7 @@
 //! capability registry or accepts UI-authored advertisements.
 
 use conduit_core::{
-    BootId, CapabilityId, EvidenceId, HostAdvertisement, HostId, Observation, ObservationKind,
+    BootId, CapabilityId, ClueId, HostAdvertisement, HostId, Observation, ObservationKind,
     OfferGeneration,
 };
 use conduit_observatory::{
@@ -33,7 +33,7 @@ pub use portable_demo::portable_demonstration;
 pub use portable_projection::PortableProjectionError;
 pub use renderer_projection::{
     AttemptedEditPresentation, PatchbayPresentation, RendererIdentityProjection,
-    RendererProjectionError, MAX_RENDERER_DIAGNOSTICS, MAX_RENDERER_EVIDENCE,
+    RendererProjectionError, MAX_RENDERER_CLUES, MAX_RENDERER_DIAGNOSTICS,
     MAX_RENDERER_GRAPH_ITEMS, MAX_RENDERER_INSPECTION_LINES, MAX_RENDERER_PLAN_ITEMS,
     MAX_RENDERER_ROUTES, MAX_RENDERER_ROUTE_CANDIDATES, MAX_RENDERER_TOPOLOGY_ITEMS,
 };
@@ -162,7 +162,7 @@ impl PatchbayModel {
 
     fn observation(&self, sequence: u64, kind: ObservationKind) -> Observation {
         Observation {
-            evidence_id: EvidenceId::from(format!(
+            clue_id: ClueId::from(format!(
                 "patchbay-lifecycle/{}/{}",
                 self.projection.boot_id().as_str(),
                 sequence

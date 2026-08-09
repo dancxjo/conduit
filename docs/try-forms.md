@@ -3,7 +3,7 @@
 The checked-in corpus executes canonical Form source through production
 boundaries. These are deterministic acceptance commands, not parser-only
 examples: each successful program reaches planning, `conduit-kernel`, host
-operation completion, a terminal result, and bounded evidence.
+operation completion, a terminal result, and bounded clue.
 
 Run commands from the repository root.
 
@@ -17,7 +17,7 @@ accepted source/plan/firmware identities; see `examples/README.md`.
 
 ```bash
 cargo test -p conduit-std-host --test canonical_text_pipeline \
-  canonical_program_one_runs_through_the_planner_kernel_and_terminal_evidence
+  canonical_program_one_runs_through_the_planner_kernel_and_terminal_clue
 ```
 
 The source in `examples/hello.conduit` sends the literal `"Hello, world."` to
@@ -89,9 +89,9 @@ form count (
     start: Count = 0
     bump: Tick...| > value: $Count
 ) {
-    cell: state/count(start)
-    bump > cell.bump
-    cell.value > value
+    gear: state/count(start)
+    bump > gear.bump
+    gear.value > value
 }
 ```
 
@@ -106,7 +106,7 @@ count value=5
 count value=6
 ```
 
-All five values are admitted before activation; `$Count` does not create an
+All five values are admitted before Play start; `$Count` does not create an
 unbounded history. The negative corpus rejects open/closing temporal mismatch,
 non-admissible overflow, and selected-implementation mutation before effects.
 
@@ -130,7 +130,7 @@ Expected software-suite result:
 
 The two skipped cases require an attached physical Pico and are not part of the
 Program 6 claim. The std/browser proof delivers 16 exact receipts, exercises
-capacity-one pressure, reaches terminal evidence on both kernels, and leaves no
+capacity-one pressure, reaches terminal clue on both kernels, and leaves no
 retained or in-flight value. Its link-break case remains a distinct failure.
 
 ## Program 5 boundary
@@ -149,7 +149,7 @@ pages prove A then B delivery, one-page disconnect, and continued delivery to
 the remaining page. Form, checked, expanded, Plan, fragment, Play, placement,
 and host-operation identities are retained without recording message content.
 
-This is mechanically distinct from `ConnectionProvider::WebSocket`, which
+This is mechanically distinct from `ConnectionBase::WebSocket`, which
 transports Conduit sessions between hosts. No carrier link binding or session
 frame appears in the authored external-WebSocket plan.
 

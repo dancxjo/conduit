@@ -1,7 +1,7 @@
-//! Optional native file-choice provider and ordinary protected copy task adapter.
+//! Optional native file-choice base and ordinary protected copy task adapter.
 
 use conduit_core::{
-    BootId, CapabilityId, HostId, OfferGeneration, OperationId, ProtectedResourceAccess,
+    BootId, CapabilityId, GearId, HostId, OfferGeneration, ProtectedResourceAccess,
     ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceHandleId,
 };
 use conduit_std_host::{
@@ -35,22 +35,22 @@ enum DialogBackend {
     Scripted(VecDeque<Result<Option<PathBuf>, String>>),
 }
 
-pub struct NativeFileProvider {
+pub struct NativeFileBase {
     backend: DialogBackend,
 }
 
-impl NativeFileProvider {
+impl NativeFileBase {
     pub fn probe(program: impl AsRef<Path>) -> Result<Self, String> {
         let program = program.as_ref();
         if std::env::var_os("WAYLAND_DISPLAY").is_none() && std::env::var_os("DISPLAY").is_none() {
-            return Err("native file provider has no display connection".into());
+            return Err("native file base has no display connection".into());
         }
         let output = Command::new(program)
             .arg("--version")
             .output()
-            .map_err(|error| format!("native file provider unavailable: {error}"))?;
+            .map_err(|error| format!("native file base unavailable: {error}"))?;
         if !output.status.success() {
-            return Err("native file provider failed its usability probe".into());
+            return Err("native file base failed its usability probe".into());
         }
         Ok(Self {
             backend: DialogBackend::Command(program.to_path_buf()),
@@ -78,22 +78,22 @@ impl NativeFileProvider {
                 }
                 if !output.status.success() {
                     return Err(format!(
-                        "native file provider failed with status {:?}",
+                        "native file base failed with status {:?}",
                         output.status.code()
                     ));
                 }
                 let selected = String::from_utf8(output.stdout)
-                    .map_err(|_| "native file provider returned a non-UTF-8 locator")?;
+                    .map_err(|_| "native file base returned a non-UTF-8 locator")?;
                 let selected = selected.trim_end_matches(['\r', '\n']);
                 if selected.is_empty() || selected.len() > 4096 {
-                    return Err("native file provider returned an invalid bounded locator".into());
+                    return Err("native file base returned an invalid bounded locator".into());
                 }
                 Ok(Some(PathBuf::from(selected)))
             }
             #[cfg(test)]
             DialogBackend::Scripted(choices) => choices
                 .pop_front()
-                .ok_or_else(|| "scripted native provider exhausted".to_string())?,
+                .ok_or_else(|| "scripted native base exhausted".to_string())?,
         }
     }
 }
@@ -101,7 +101,7 @@ impl NativeFileProvider {
 type CopyWorkerResult = Result<CopyRunReceipt, String>;
 
 pub struct NativeFileTask {
-    provider: Option<NativeFileProvider>,
+    base: Option<NativeFileBase>,
     config: StdHostConfig,
     host: StdHost,
     registry: ProtectedFileRegistry,
@@ -114,20 +114,20 @@ pub struct NativeFileTask {
     events: VecDeque<String>,
 }
 
-pub fn probe_native_file_provider() -> Option<NativeFileProvider> {
-    NativeFileProvider::probe("zenity").ok()
+pub fn probe_native_file_base() -> Option<NativeFileBase> {
+    NativeFileBase::probe("zenity").ok()
 }
 
 impl NativeFileTask {
     #[cfg(test)]
-    pub fn new(provider: Option<NativeFileProvider>) -> Self {
-        let composition = if provider.is_some() {
+    pub fn new(base: Option<NativeFileBase>) -> Self {
+        let composition = if base.is_some() {
             StdHostComposition::minimal().with_files()
         } else {
             StdHostComposition::minimal()
         };
         Self::for_host(
-            provider,
+            base,
             HostId::from("patchbay-native/file-host"),
             BootId::from("patchbay-native/file-boot-1"),
             composition,
@@ -135,7 +135,7 @@ impl NativeFileTask {
     }
 
     pub fn for_host(
-        provider: Option<NativeFileProvider>,
+        base: Option<NativeFileBase>,
         host_id: HostId,
         boot_id: BootId,
         composition: StdHostComposition,
@@ -147,7 +147,7 @@ impl NativeFileTask {
         };
         let host = StdHost::new_with_composition(config.clone(), composition);
         Self {
-            provider,
+            base,
             config,
             host,
             registry: ProtectedFileRegistry::default(),
@@ -162,7 +162,7 @@ impl NativeFileTask {
     }
 
     pub fn choose_source(&mut self) -> Result<ChoiceDisposition, String> {
-        let path = match self.provider_mut()?.choose(false)? {
+        let path = match self.base_mut()?.choose(false)? {
             Some(path) => path,
             None => {
                 self.record("FILE-CHOICE role=source disposition=Cancelled".into());
@@ -174,7 +174,7 @@ impl NativeFileTask {
         let grant = self.registry.register(
             handle.clone(),
             path,
-            OperationId::from("copy"),
+            GearId::from("copy"),
             ResourceBindingRoleId::from(conduit_std_catalog::COPY_SOURCE_ROLE),
             self.config.host_id.clone(),
             self.config.boot_id.clone(),
@@ -205,7 +205,7 @@ impl NativeFileTask {
         &mut self,
         policy: DestinationPolicy,
     ) -> Result<ChoiceDisposition, String> {
-        let path = match self.provider_mut()?.choose(true)? {
+        let path = match self.base_mut()?.choose(true)? {
             Some(path) => path,
             None => {
                 self.record("FILE-CHOICE role=destination disposition=Cancelled".into());
@@ -227,7 +227,7 @@ impl NativeFileTask {
         let grant = self.registry.register(
             handle.clone(),
             path,
-            OperationId::from("copy"),
+            GearId::from("copy"),
             ResourceBindingRoleId::from(conduit_std_catalog::COPY_DESTINATION_ROLE),
             self.config.host_id.clone(),
             self.config.boot_id.clone(),
@@ -362,8 +362,8 @@ impl NativeFileTask {
     }
 
     #[cfg(test)]
-    pub fn provider_available(&self) -> bool {
-        self.provider.is_some()
+    pub fn base_available(&self) -> bool {
+        self.base.is_some()
     }
 
     pub fn lines(&self) -> Vec<String> {
@@ -372,17 +372,17 @@ impl NativeFileTask {
                 offer.capability_id.as_str() == conduit_std_catalog::COPY_FILE_CAPABILITY
             });
         let mut lines = vec![format!(
-            "NATIVE-FILE-PROVIDER usable={} capability-advertised={advertised}",
-            self.provider.is_some()
+            "NATIVE-FILE-BASE usable={} capability-advertised={advertised}",
+            self.base.is_some()
         )];
         lines.extend(self.events.iter().cloned());
         lines
     }
 
-    fn provider_mut(&mut self) -> Result<&mut NativeFileProvider, String> {
-        self.provider
+    fn base_mut(&mut self) -> Result<&mut NativeFileBase, String> {
+        self.base
             .as_mut()
-            .ok_or_else(|| "native file provider is unavailable; no grant was created".into())
+            .ok_or_else(|| "native file base is unavailable; no grant was created".into())
     }
 
     fn invalidate_plan(&mut self) {
