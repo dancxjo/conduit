@@ -1255,8 +1255,8 @@ fn exact_remote_fragments_lower_to_directional_kernel_cords() {
         ingress.direction,
         conduit_runtime::lowering::RemoteCordDirection::Ingress
     );
-    assert_eq!(egress.binding, link);
-    assert_eq!(ingress.binding, link);
+    assert_eq!(egress.binding, link.bound_link());
+    assert_eq!(ingress.binding, link.bound_link());
     assert_eq!(egress.local, link.source);
     assert_eq!(egress.peer, link.sink);
     assert_eq!(ingress.local, link.sink);

@@ -4,17 +4,28 @@ use conduit_runtime::lowering::lower_plan_fragment;
 use conduit_system_continuity::{exact_r1_signal_plan, R1SignalRouteSet};
 
 #[test]
-fn current_r1_single_route_plans_generate_exact_usb_and_websocket_ingress() {
-    for (routes, expected_base, expected_binding) in [
+fn current_r1_plans_generate_exact_single_and_dual_line_ingress() {
+    for (routes, expected) in [
         (
             R1SignalRouteSet::WebSocketOnly,
-            ConnectionBase::WebSocket,
-            conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
+            vec![(
+                ConnectionBase::WebSocket,
+                conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
+            )],
         ),
         (
             R1SignalRouteSet::UsbOnly,
-            ConnectionBase::UsbCdc,
-            conduit_net::R1_USB_LINK_BINDING_ID,
+            vec![(ConnectionBase::UsbCdc, conduit_net::R1_USB_LINK_BINDING_ID)],
+        ),
+        (
+            R1SignalRouteSet::WebSocketThenUsb,
+            vec![
+                (
+                    ConnectionBase::WebSocket,
+                    conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
+                ),
+                (ConnectionBase::UsbCdc, conduit_net::R1_USB_LINK_BINDING_ID),
+            ],
         ),
     ] {
         let exact = exact_r1_signal_plan(BootId::from(conduit_net::R1_PICO_BOOT_ID), routes)
@@ -30,11 +41,11 @@ fn current_r1_single_route_plans_generate_exact_usb_and_websocket_ingress() {
             generate_embedded_plan(fragment, &lowered, EmbeddedImageBounds::HOST_TOOLING)
                 .expect("current single-route R1 fragment generates");
 
-        assert_eq!(generated.remote_endpoints.len(), 1);
-        assert_eq!(generated.remote_endpoints[0].base, expected_base);
-        assert_eq!(
-            generated.remote_endpoints[0].link_binding_id,
-            expected_binding
-        );
+        let generated_endpoints: Vec<_> = generated
+            .remote_endpoints
+            .iter()
+            .map(|endpoint| (endpoint.base, endpoint.link_binding_id.as_str()))
+            .collect();
+        assert_eq!(generated_endpoints, expected);
     }
 }

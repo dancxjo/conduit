@@ -71,6 +71,10 @@ fn generate_r1_recovery_signal_images(out: &Path) {
             "r1_plan_b_signal",
             conduit_system_continuity::R1SignalRouteSet::UsbOnly,
         ),
+        (
+            "r1_plan_c_signal",
+            conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
+        ),
     ] {
         let exact = conduit_system_continuity::exact_r1_signal_plan(
             BootId::from(conduit_net::R1_PICO_BOOT_ID),
@@ -477,7 +481,7 @@ fn pico_signal_bounds() -> EmbeddedImageBounds {
         maximum_clue_expectations: 8,
         maximum_configuration_entries: 3,
         maximum_ports_per_node: conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE,
-        maximum_remote_endpoints: 1,
+        maximum_remote_endpoints: 2,
         maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         maximum_cord_value_bytes: SIGNAL_ENCODED_LEN,
         maximum_clue_items: 16,
