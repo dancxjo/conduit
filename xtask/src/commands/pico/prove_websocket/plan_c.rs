@@ -25,7 +25,8 @@ pub(crate) fn verify_plan_c_continuation(
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
     interactive: bool,
-) -> PicoResult<()> {
+    prior_lifecycle: Option<super::super::r1_lifecycle::R1LullOutcome>,
+) -> PicoResult<super::super::r1_lifecycle::R1LullOutcome> {
     if !interactive {
         return Err("physical R1 Plan C network-loss proof requires --interactive".into());
     }
@@ -49,16 +50,19 @@ pub(crate) fn verify_plan_c_continuation(
     source.observe_sink_boot(BootId::from(runtime.boot_id.as_str()))?;
     let initial_binding = source.binding().clone();
 
-    let body = conduit_body::Body::born(
-        plan.source_document_id.clone(),
-        plan.checked_form_id.clone(),
-        0,
-        ClueId::from("r1/physical/plan-c-body-born"),
-    )
-    .map_err(lifecycle_error)?;
-    let (body, wake) = body
-        .wake(0, ClueId::from("r1/physical/plan-c-woke"))
+    let (body, wake) = if let Some(prior) = prior_lifecycle {
+        (prior.body, prior.wake)
+    } else {
+        let body = conduit_body::Body::born(
+            plan.source_document_id.clone(),
+            plan.checked_form_id.clone(),
+            0,
+            ClueId::from("r1/physical/plan-c-body-born"),
+        )
         .map_err(lifecycle_error)?;
+        body.wake(0, ClueId::from("r1/physical/plan-c-woke"))
+            .map_err(lifecycle_error)?
+    };
     let wake = wake
         .plan_ready(&plan, ClueId::from("r1/physical/plan-c-ready"))
         .map_err(lifecycle_error)?;
@@ -180,7 +184,7 @@ pub(crate) fn verify_plan_c_continuation(
         &body,
         &wake,
         source.is_terminal(),
-        1,
+        wake.wake_sequence + 1,
         super::super::r1_lifecycle::R1LullClues {
             wake_lulled: ClueId::from("r1/physical/plan-c-wake-lulled"),
             body_retained: ClueId::from("r1/physical/plan-c-body-retained"),
@@ -210,12 +214,12 @@ pub(crate) fn verify_plan_c_continuation(
         reconciliation: "replay-offered",
         same_plan_continues: true,
         delivered_values: delivered,
-        lifecycle: &lifecycle,
+        lifecycle: &lifecycle.sign,
         branch_c_physical_acceptance: true,
     };
     println!("{}", serde_json::to_string(&outcome)?);
     println!("==> Physical Plan C same-Plan/same-Play continuation completed");
-    Ok(())
+    Ok(lifecycle)
 }
 
 fn lifecycle_error(error: conduit_body::BodyLifecycleError) -> Box<dyn std::error::Error> {

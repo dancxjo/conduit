@@ -9,6 +9,8 @@ mod prove_usb;
 mod prove_websocket;
 mod prove_wifi;
 mod r1_control_session;
+#[cfg(unix)]
+mod r1_full;
 mod r1_lifecycle;
 mod r1_live_control;
 mod r1_signal;

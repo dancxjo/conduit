@@ -99,7 +99,7 @@ pub(super) fn verify_new_plan_recovery(
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
     interactive: bool,
-) -> PicoResult<()> {
+) -> PicoResult<super::r1_lifecycle::R1LullOutcome> {
     if !interactive {
         return Err("physical R1 network-loss proof requires --interactive".into());
     }
@@ -305,12 +305,12 @@ pub(super) fn verify_new_plan_recovery(
         plan_b_base_instance_id: conduit_net::R1_USB_BASE_INSTANCE_ID,
         control_events: recovery.events(),
         led_results: recovery.led_results(),
-        lifecycle: &lifecycle,
+        lifecycle: &lifecycle.sign,
         branch_a_physical_acceptance: true,
     };
     println!("{}", serde_json::to_string(&outcome)?);
     println!("==> Physical WebSocket-to-USB new-Plan recovery execution completed");
-    Ok(())
+    Ok(lifecycle)
 }
 
 #[derive(Serialize)]
