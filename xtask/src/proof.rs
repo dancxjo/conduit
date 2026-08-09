@@ -254,6 +254,21 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         named_artifacts: &["firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
         allowed_claims: &["one physical Pico boot retains Plan C and Play C while its selected Line changes from unavailable WebSocket to already-admitted USB CDC after bounded reconciliation"],
     },
+    ProofCommandContract {
+        id: "r1.complete-physical",
+        command: "cargo xtask prove r1-hil --interactive --ssid-env <name> --credential-env <name>",
+        proof_class: ProofClass::PhysicalCrossHost,
+        required_tools_or_targets: &[
+            "Pico W",
+            "USB CDC link port",
+            "USB CDC Sign port",
+            "ordinary Wi-Fi LAN",
+            "two physical Wi-Fi/network faults",
+            "pinned Chromium",
+        ],
+        named_artifacts: &["firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
+        allowed_claims: &["one born Body and one physical Pico boot execute live three-peer control, new-Plan recovery, same-Plan continuation, Lull, and a later Wake"],
+    },
 ];
 
 #[derive(Debug, Serialize)]

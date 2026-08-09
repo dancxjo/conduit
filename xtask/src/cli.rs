@@ -122,6 +122,7 @@ pub enum ProveTarget {
     R1NewPlanRecovery,
     R1NewPlanRecoveryHil,
     R1PlanCContinuationHil,
+    R1Hil,
 }
 
 #[derive(Args, Debug)]

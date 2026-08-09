@@ -331,6 +331,22 @@ pub const WORKSPACE_STEPS: &[Step] = &[
             "--dry-run",
         ],
     ),
+    Step::new(
+        "check.r1-hil.dry-run",
+        "Dry-run verify of the combined one-Body physical R1 proof",
+        "cargo",
+        &[
+            "xtask",
+            "prove",
+            "r1-hil",
+            "--interactive",
+            "--ssid-env",
+            "CONDUIT_TEST_WIFI_SSID",
+            "--credential-env",
+            "CONDUIT_TEST_WIFI_CREDENTIAL",
+            "--dry-run",
+        ],
+    ),
 ];
 
 pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[

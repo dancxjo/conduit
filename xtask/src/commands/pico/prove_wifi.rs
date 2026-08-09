@@ -22,12 +22,15 @@ pub enum WifiProofMode {
     WebSocketRoute,
     R1NewPlanRecovery { interactive: bool },
     R1PlanCContinuation { interactive: bool },
+    R1Full { interactive: bool },
 }
 
 impl WifiProofMode {
     fn firmware_mode(self) -> &'static str {
         match self {
-            Self::R1NewPlanRecovery { .. } | Self::R1PlanCContinuation { .. } => "r1-control",
+            Self::R1NewPlanRecovery { .. }
+            | Self::R1PlanCContinuation { .. }
+            | Self::R1Full { .. } => "r1-control",
             Self::Bootstrap | Self::WebSocketRoute => "wifi-bootstrap",
         }
     }
@@ -48,6 +51,7 @@ pub fn run_prove_pico_wifi_bootstrap(
             WifiProofMode::WebSocketRoute => "pico-websocket-route",
             WifiProofMode::R1NewPlanRecovery { .. } => "r1-new-plan-recovery-hil",
             WifiProofMode::R1PlanCContinuation { .. } => "r1-plan-c-continuation-hil",
+            WifiProofMode::R1Full { .. } => "r1-hil",
         };
         println!("==> prove {proof} (dry-run)");
         println!("  firmware mode: {}", mode.firmware_mode());
@@ -68,6 +72,11 @@ pub fn run_prove_pico_wifi_bootstrap(
             credential_env.unwrap_or("<required --credential-env variable name>")
         );
         println!("  secret values are never printed or serialized into the Plan");
+        if matches!(mode, WifiProofMode::R1Full { .. }) {
+            println!("  stage 1: live three-peer Plan A to automatic USB Plan B recovery and Lull");
+            println!("  operator action: restore real Wi-Fi/network availability");
+            println!("  stage 2: same Body later Wake runs Plan C continuation and Lull");
+        }
         return Ok(());
     }
 
@@ -279,7 +288,7 @@ fn run_unix(
             super::prove_websocket::verify(&mut carrier, &mut clue, identity, &runtime)?;
         }
         WifiProofMode::R1NewPlanRecovery { interactive } => {
-            super::prove_websocket::verify_new_plan_recovery(
+            let _ = super::prove_websocket::verify_new_plan_recovery(
                 &mut carrier,
                 &mut clue,
                 identity,
@@ -288,13 +297,17 @@ fn run_unix(
             )?;
         }
         WifiProofMode::R1PlanCContinuation { interactive } => {
-            super::prove_websocket::verify_plan_c_continuation(
+            let _ = super::prove_websocket::verify_plan_c_continuation(
                 &mut carrier,
                 &mut clue,
                 identity,
                 &runtime,
                 interactive,
+                None,
             )?;
+        }
+        WifiProofMode::R1Full { interactive } => {
+            super::r1_full::run(&mut carrier, &mut clue, identity, &runtime, interactive)?;
         }
     }
     Ok(())
