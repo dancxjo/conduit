@@ -95,19 +95,26 @@ fn verify_identity(
         &BootId::from(runtime.boot_id.as_str()),
         0,
     );
-    let suffix = format!(
-        ":{}:{}",
-        firmware.generated_image.plan_id, firmware.generated_image.fragment_id
-    );
-    let prefix = firmware
-        .firmware_build_id
-        .strip_suffix(&suffix)
-        .ok_or("network firmware build identity has an unexpected suffix")?;
-    let expected_firmware_build = format!(
-        "{prefix}:{}:{}",
-        plan.plan_id.as_str(),
-        fragment.fragment_id.as_str()
-    );
+    let expected_firmware_build = if firmware.firmware_mode == "r1-control" {
+        firmware
+            .verified_r1_control_image(&plan.plan_id)?
+            .firmware_build_id
+            .clone()
+    } else {
+        let suffix = format!(
+            ":{}:{}",
+            firmware.generated_image.plan_id, firmware.generated_image.fragment_id
+        );
+        let prefix = firmware
+            .firmware_build_id
+            .strip_suffix(&suffix)
+            .ok_or("network firmware build identity has an unexpected suffix")?;
+        format!(
+            "{prefix}:{}:{}",
+            plan.plan_id.as_str(),
+            fragment.fragment_id.as_str()
+        )
+    };
     for (field, expected) in [
         ("firmware_build_id", expected_firmware_build.as_str()),
         ("source_document_id", plan.source_document_id.as_str()),

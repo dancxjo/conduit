@@ -24,6 +24,17 @@ pub enum WifiProofMode {
     R1PlanCContinuation { interactive: bool },
 }
 
+impl WifiProofMode {
+    fn firmware_mode(self) -> &'static str {
+        match self {
+            Self::R1NewPlanRecovery { .. } => "r1-control",
+            Self::Bootstrap | Self::WebSocketRoute | Self::R1PlanCContinuation { .. } => {
+                "wifi-bootstrap"
+            }
+        }
+    }
+}
+
 pub fn run_prove_pico_wifi_bootstrap(
     link_port_opt: Option<&str>,
     clue_port_opt: Option<&str>,
@@ -41,7 +52,7 @@ pub fn run_prove_pico_wifi_bootstrap(
             WifiProofMode::R1PlanCContinuation { .. } => "r1-plan-c-continuation-hil",
         };
         println!("==> prove {proof} (dry-run)");
-        println!("  firmware mode: wifi-bootstrap");
+        println!("  firmware mode: {}", mode.firmware_mode());
         println!(
             "  link port: {}",
             link_port_opt.unwrap_or("<auto-discover CDC 0>")
@@ -85,15 +96,25 @@ pub fn run_prove_pico_wifi_bootstrap(
     );
 
     let identity = read_identity_manifest(&repo_root())?;
-    if identity.firmware_mode != "wifi-bootstrap" {
+    let expected_firmware_mode = mode.firmware_mode();
+    if identity.firmware_mode != expected_firmware_mode {
         return Err(format!(
-            "physical Wi-Fi proof requires a wifi-bootstrap image, but the current artifact is {}; rebuild and flash with `cargo xtask pico build --wifi-bootstrap` and `cargo xtask pico flash --wifi-bootstrap`",
-            identity.firmware_mode
+            "physical Wi-Fi proof requires a {expected_firmware_mode} image, but the current artifact is {}; rebuild and flash with matching Pico mode flags",
+            identity.firmware_mode,
         )
         .into());
     }
     let generated = &identity.generated_image;
-    if identity.schema != "conduit-pico-w-signal/identity@1"
+    let expected_schema = if expected_firmware_mode == "r1-control" {
+        identity.verified_r1_control_images()?;
+        "conduit-pico-w-signal/identity@2"
+    } else {
+        if identity.r1_control_images.is_some() {
+            return Err("ordinary Wi-Fi bootstrap identity contains control images".into());
+        }
+        "conduit-pico-w-signal/identity@1"
+    };
+    if identity.schema != expected_schema
         || generated.schema != "conduit.pico-network.generated-image@1"
         || generated.firmware_mode != identity.firmware_mode
         || generated.firmware_build_id != identity.firmware_build_id

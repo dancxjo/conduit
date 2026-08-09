@@ -8,6 +8,7 @@ mod prove_usb;
 #[cfg(unix)]
 mod prove_websocket;
 mod prove_wifi;
+mod r1_control_session;
 mod r1_signal;
 mod r1_signal_transcript;
 mod serial;

@@ -38,6 +38,17 @@ pub struct R1ControlImageFamily {
 }
 
 impl FirmwareIdentity {
+    pub fn verified_r1_control_image(
+        &self,
+        plan_id: &conduit_core::PlanId,
+    ) -> PicoResult<&GeneratedImageIdentity> {
+        let family = self.verified_r1_control_images()?;
+        [&family.plan_a, &family.plan_b, &family.plan_c]
+            .into_iter()
+            .find(|image| image.plan_id == plan_id.as_str())
+            .ok_or_else(|| "R1 control Plan is absent from the firmware image family".into())
+    }
+
     pub fn verified_r1_control_images(&self) -> PicoResult<&R1ControlImageFamily> {
         let family = self
             .r1_control_images
