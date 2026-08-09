@@ -16,20 +16,27 @@ use super::wifi_secrets::SecretEnvValue;
 use super::{PicoArgs, PicoResult};
 use crate::cli::GlobalOpts;
 
+#[derive(Clone, Copy)]
+pub enum WifiProofMode {
+    Bootstrap,
+    WebSocketRoute,
+    R1NewPlanRecovery { interactive: bool },
+}
+
 pub fn run_prove_pico_wifi_bootstrap(
     link_port_opt: Option<&str>,
     clue_port_opt: Option<&str>,
     ssid_env: Option<&str>,
     credential_env: Option<&str>,
-    websocket_route: bool,
+    mode: WifiProofMode,
     pico_args: &PicoArgs,
     opts: &GlobalOpts,
 ) -> PicoResult<()> {
     if opts.dry_run || pico_args.dry_run {
-        let proof = if websocket_route {
-            "pico-websocket-route"
-        } else {
-            "pico-wifi-bootstrap"
+        let proof = match mode {
+            WifiProofMode::Bootstrap => "pico-wifi-bootstrap",
+            WifiProofMode::WebSocketRoute => "pico-websocket-route",
+            WifiProofMode::R1NewPlanRecovery { .. } => "r1-new-plan-recovery-hil",
         };
         println!("==> prove {proof} (dry-run)");
         println!("  firmware mode: wifi-bootstrap");
@@ -112,7 +119,7 @@ pub fn run_prove_pico_wifi_bootstrap(
             ssid,
             credential,
             &identity,
-            websocket_route,
+            mode,
         )?;
     }
 
@@ -126,7 +133,7 @@ fn run_unix(
     ssid: SecretEnvValue,
     credential: SecretEnvValue,
     identity: &FirmwareIdentity,
-    websocket_route: bool,
+    mode: WifiProofMode,
 ) -> PicoResult<()> {
     let mut clue = NativePathCdcLineReader::open(clue_port)
         .map_err(|error| format!("failed to open CDC1 clue port: {error}"))?;
@@ -240,13 +247,25 @@ fn run_unix(
         return Err("USB bootstrap session did not reach reciprocal terminal agreement".into());
     }
 
-    if websocket_route {
-        super::prove_websocket::verify(&mut carrier, &mut clue, identity, &runtime)?;
-    } else {
-        super::usb_continuity::verify(&mut carrier, identity)?;
-        println!(
-            "==> Physical network attachment Clue and post-attachment USB continuity verified"
-        );
+    match mode {
+        WifiProofMode::Bootstrap => {
+            super::usb_continuity::verify(&mut carrier, identity)?;
+            println!(
+                "==> Physical network attachment Clue and post-attachment USB continuity verified"
+            );
+        }
+        WifiProofMode::WebSocketRoute => {
+            super::prove_websocket::verify(&mut carrier, &mut clue, identity, &runtime)?;
+        }
+        WifiProofMode::R1NewPlanRecovery { interactive } => {
+            super::prove_websocket::verify_new_plan_recovery(
+                &mut carrier,
+                &mut clue,
+                identity,
+                &runtime,
+                interactive,
+            )?;
+        }
     }
     Ok(())
 }
