@@ -4,16 +4,16 @@
 
 Conduit is an experimental programming system for building programs as graphs and realizing those graphs across very different machines.
 
-You choose reusable **Operations** and configure them as **Gears** in a **Form**. **Cords** connect those Gears. **Signals** flow through the cords. The same meaning can live inside one process, cross into a browser, reach a microcontroller, or span several machines without baking those machines into the authored program.
+You choose reusable **Kinds** and configure them as **Gears** in a **Form**. **Cords** connect those Gears. **Signals** flow through the Cords. The same meaning can live inside one process, cross into a browser, reach a microcontroller, or span several machines without baking those machines into the authored program.
 
 ```text
-Operation catalog
-      │
-      │ configured as
-      ▼
-   [Gear] ──cord──> [Gear] ──cord──> [Gear]
-      │
-      └──────────── Form = meaning
+Kind catalog
+    │
+    │ configured as
+    ▼
+ [Gear] ──Cord──> [Gear] ──Cord──> [Gear]
+    │
+    └──────────── Form = meaning
 ```
 
 Conduit then asks a different question:
@@ -35,19 +35,19 @@ form signal-demo {
 }
 ```
 
-`flow/pulse` and `presentation/show` name reusable semantic Operations. `pulse` and `show` are configured occurrences of those Operations in this Form: **Gears**.
+`flow/pulse` and `presentation/show` identify reusable semantic **Kinds**. `pulse` and `show` are configured occurrences of those Kinds in this Form: **Gears**.
 
 ```text
 ┌────────────┐             ┌────────────┐
 │ Gear pulse │ ──────────> │ Gear show  │
-└────────────┘    cord     └────────────┘
+└────────────┘    Cord     └────────────┘
       │                          │
       ▼                          ▼
  flow/pulse              presentation/show
-  Operation                  Operation
+    Kind                       Kind
 ```
 
-The Form does **not** say that `show` means stdout. It does not say both Gears must run in the same process. It does not say whether a cross-machine cord is realized by WebSocket, USB CDC, shared memory, or some future carrier.
+The Form does **not** say that `show` means stdout. It does not say both Gears must run in the same process. It does not say whether a cross-machine Cord is realized by WebSocket, USB CDC, shared memory, or some future carrier.
 
 Those are realization questions.
 
@@ -55,13 +55,13 @@ The Form says what the program means.
 
 ---
 
-## Operations, Gears, Cords, and Signals
+## Kinds, Gears, Cords, and Signals
 
 These four ideas describe most of the semantic graph.
 
-### Operations
+### Kinds
 
-An **Operation** is a reusable semantic behavior or transformation contract.
+A **Kind** is reusable semantic behavior: a contract for what a Gear of that Kind means.
 
 Examples might include:
 
@@ -75,25 +75,25 @@ presentation
 GPIO state
 ```
 
-An Operation is not necessarily a Rust function, executable artifact, task, thread, process, or machine-specific implementation. It says what behavior is available to be used.
+A Kind is not necessarily a Rust function, executable artifact, task, thread, process, or machine-specific implementation. It is the reusable semantic species from which Gears are configured.
 
 ### Gears
 
-A **Gear** is one configured use of an Operation inside a Form.
+A **Gear** is one configured use of a Kind inside a Form.
 
-If the same Operation is used twice with different names or configuration, those are two Gears:
+If the same Kind is used twice with different names or configuration, those are two Gears:
 
 ```text
-Operation: text/uppercase@1
+Kind: text/uppercase@1
 
-      ┌── Gear: title-case-input
+      ┌── Gear: normalize-title
       │
       └── Gear: normalize-command
 ```
 
 Gear identity belongs to the meaning of the Form. The planner may later place a Gear on different Hosts, select different implementations for it, or fuse/lower it differently without turning it into a different semantic Gear.
 
-The word is intentionally local. Conduit is not pretending the whole system is a literal gearbox. **Cords remain cords.** They connect semantic work; they are not shafts or belts.
+The word is intentionally local. Conduit is not pretending the whole system is a literal gearbox. **Cords remain Cords.** They connect semantic work; they are not shafts or belts.
 
 ### Cords
 
@@ -115,7 +115,7 @@ A Signal may carry text, numbers, events, state changes, samples, records, frame
 
 At the semantic level:
 
-> Operations define behavior. Gears put that behavior to work. Cords connect Gears. Signals flow.
+> Kinds define behavior. Gears put that behavior to work. Cords connect Gears. Signals flow.
 
 ---
 
@@ -123,12 +123,12 @@ At the semantic level:
 
 A **Form** is meaning expressed as a graph of configured Gears and Cords.
 
-Conduit also separates an Operation's visible contract from graph-level ways of implementing it. We call those its **Front** and **Back**.
+Conduit can also separate a Kind's visible contract from graph-level ways of implementing it. We call those its **Front** and **Back**.
 
 ```text
                  FRONT
           ┌────────────────┐
-input ──> │   Operation    │ ──> output
+input ──> │      Kind      │ ──> output
           └────────────────┘
                   │
                   │ may be implemented by
@@ -147,7 +147,7 @@ The **Front** is the stable semantic contract presented to the surrounding graph
 
 A **Back** is a Form that implements that contract in Conduit terms.
 
-Because a Back is itself a Form, its Gears can use Operations that themselves have alternative Backs. Composition is recursive.
+Because a Back is itself a Form, its Gears can use Kinds that themselves admit alternative Backs. Composition is recursive.
 
 This is different from machine realization. A Back answers:
 
@@ -262,7 +262,7 @@ Examples can include USB CDC machinery, WebSocket machinery, timers, framebuffer
 
 ```text
 FORM
-  Gear
+  Gear : Kind
     ↓
 PLAN
   exact implementation
@@ -275,7 +275,7 @@ BASE
 machine / platform
 ```
 
-A Base is not an Operation or Gear. Hardware existence does not automatically become a Host offer, and a Host offer does not automatically imply authority to use it.
+A Base is not a Kind or Gear. Hardware existence does not automatically become a Host offer, and a Host offer does not automatically imply authority to use it.
 
 ---
 
@@ -314,24 +314,24 @@ That distinction is central to Conduit:
 ## The vocabulary at a glance
 
 ```text
-SEED       authored workspace/source material
-BODY       durable intended world and obligations
-WAKE       one active maintenance interval for a Body
-LULL       end that interval without deleting the Body
+SEED    authored workspace/source material
+BODY    durable intended world and obligations
+WAKE    one active maintenance interval for a Body
+LULL    end that interval without deleting the Body
 
-FORM       meaning expressed as a semantic graph
-OPERATION  reusable semantic behavior/contract
-GEAR       configured occurrence of an Operation in a Form
-CORD       typed semantic connection between Gears
-SIGNAL     typed value/state/event flowing through a Cord
-FRONT      visible semantic contract
-BACK       Form implementing a Front
+FORM    meaning expressed as a semantic graph
+KIND    reusable semantic behavior/contract
+GEAR    configured occurrence of a Kind in a Form
+CORD    typed semantic connection between Gears
+SIGNAL  typed value/state/event flowing through a Cord
+FRONT   visible semantic contract
+BACK    Form implementing a Front
 
-CLUE       bounded truth about what is true or what happened
-HOST       truthful finite realization offers for an exact running environment
-BASE       platform/machine mechanism beneath a Host offer
-PLAN       exact immutable realization for an admitted basis of Clues
-PLAY       active execution of one exact Plan
+CLUE    bounded truth about what is true or what happened
+HOST    truthful finite realization offers for an exact running environment
+BASE    platform/machine mechanism beneath a Host offer
+PLAN    exact immutable realization for an admitted basis of Clues
+PLAY    active execution of one exact Plan
 ```
 
 A useful compression is:
@@ -361,7 +361,7 @@ Portability comes from **planning around those differences**, not denying them.
 
 Conduit is designed with constrained systems in mind.
 
-Before a Play begins, its exact realization admits finite execution needs: Gears, ports, Cords, queue items, bytes, resources, Host operations, Bases, and required Clue storage.
+Before a Play begins, its exact realization admits finite execution needs: Gears, ports, Cords, queue items, bytes, resources, Host-side mechanisms, Bases, and required Clue storage.
 
 A hosted implementation may perform richer preparation while planning. Once admitted execution begins, however, the runtime should not quietly acquire unbounded needs.
 
@@ -375,7 +375,7 @@ This is what allows the same fundamental model to make sense on ordinary compute
 
 Conduit is under active development, but it is not only an architecture sketch. The repository already contains substantial native, browser/WASM, and physical Pico work, including a bounded execution kernel, checked Forms, exact planning machinery, live WebSocket and USB CDC paths, and physical proof tooling.
 
-The architecture and vocabulary are moving quickly. **[STATUS.md](STATUS.md)** is the authority for exactly what the current code and checks have proven. In particular, compilation, simulation, browser execution, live transport, firmware execution, and observed physical effects are deliberately different proof classes.
+The architecture and vocabulary are moving quickly. **[STATUS.md](STATUS.md)** is the authority for exactly what the current code and checks have proven. Compilation, simulation, browser execution, live transport, firmware execution, and observed physical effects are deliberately different proof classes.
 
 ---
 
@@ -404,14 +404,14 @@ This is an actual browser-hosted Conduit realization, not a browser simulation.
 
 ## Inspect a realization
 
-Runtime/Observatory tooling is evolving with the ontology. See **[Try Conduit](docs/try-conduit.md)** and **[STATUS.md](STATUS.md)** for the current commands and the exact fields they expose.
+Runtime/Observatory tooling is evolving with the ontology. See **[Try Conduit](docs/try-conduit.md)** and **[STATUS.md](STATUS.md)** for the current commands and exact fields they expose.
 
 The intended inspection boundary keeps semantic identity and realization identity separate:
 
 ```text
 MEANING
   Form
-  Gear → Operation
+  Gear → Kind
   Cords
 
 REALIZATION
@@ -449,17 +449,22 @@ just doctor
 
 # Form syntax
 
-Canonical Form source uses the graph itself, not statement order, to determine connectivity. Current examples use constructs such as:
+Canonical Form source uses the graph itself, not statement order, to determine connectivity. A declaration such as:
 
-```text
-(...)     front
-{...}     back
-name: operation(arguments)
-=         declarative immutable value relationship
->         runtime cord
+```conduit
+pulse: flow/pulse(count = 16)
 ```
 
-The left-hand `name` is the configured occurrence, the **Gear**. The referenced `operation(arguments)` identifies and configures the reusable **Operation** it uses.
+creates the Gear named `pulse` from the Kind `flow/pulse` with the supplied configuration.
+
+Current examples also use:
+
+```text
+(...)     Front
+{...}     Back
+=         declarative immutable value relationship
+>         runtime Cord
+```
 
 See:
 
@@ -498,9 +503,9 @@ If you are new to the project, a good path is:
 
 Statement order does not secretly become execution order. Meaning lives in Forms, Gears, relationships, and Cords.
 
-### Operations are not Gears
+### Kinds are not Gears
 
-An Operation is reusable semantic behavior. A Gear is one configured use of it. Do not collapse catalog identity, graph identity, implementation identity, or runtime scheduling identity into one object.
+A Kind is reusable semantic behavior. A Gear is one configured use of it. Do not collapse Kind identity, Gear identity, implementation identity, or runtime scheduling identity into one object.
 
 ### Meaning is not placement
 
@@ -512,4 +517,65 @@ Fronts remain semantic contracts while Backs can express alternative graph-level
 
 ### Graph implementation is not Host implementation
 
-Backs realize Fronts using Conduit meaning. Hosts offer concrete ways to realize the leaf Gears
+Backs realize Fronts using Conduit meaning. Hosts offer concrete ways to realize the Gears that remain after graph-level decomposition.
+
+### A carrier is not a Cord
+
+WebSocket, USB CDC, shared memory, and future transports are possible realizations of connectivity. They should not become the meaning of the connection itself.
+
+### Availability is not authority
+
+A Host possessing a capability does not automatically imply that a Body or Play may use it.
+
+### Planning is not execution
+
+Selecting an exact realization does not mean that realization is currently active.
+
+### Clues are not plans
+
+A changed fact about the world may invalidate or pressure a realization, but it does not mutate an immutable Plan into a different Plan.
+
+### Simulation is not physical proof
+
+Tests, fixtures, native simulation, browser execution, firmware execution, live transport, and observed physical effects are different claims. Conduit tries to say exactly which one has been established.
+
+---
+
+# Contributing
+
+Conduit is experimental and changing quickly.
+
+Narrow changes are easier to reason about than giant ones. Keep architectural claims tied to executable proof, and do not promote compilation or simulation into proof of a platform or physical effect.
+
+The primary local gate is:
+
+```bash
+just check
+```
+
+Additional platform-specific checks are documented in the `justfile`, [STATUS.md](STATUS.md), and the relevant roadmap issues.
+
+---
+
+## The short version
+
+```text
+Kind catalog
+    │
+    ▼
+ [Gear] ──Cord──> [Gear] ──Cord──> [Gear]
+                Signals
+
+        Form = meaning
+              │
+              ▼
+Seed → Body → Wake
+              │
+              ▼
+             Plan
+              │
+              ▼
+             Play
+```
+
+**Kinds describe reusable semantic behavior. Gears are configured uses of those Kinds. Cords connect the Gears. Forms capture the meaning. Bodies make durable obligations from authored Seeds. Clues say what is true. Hosts offer finite possibilities through machine Bases. Plans choose an exact realization. Plays run it.**
