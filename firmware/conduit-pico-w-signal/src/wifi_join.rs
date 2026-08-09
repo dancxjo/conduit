@@ -329,7 +329,7 @@ pub async fn run(
         device,
         Config::dhcpv4(Default::default()),
         NETWORK_RESOURCES.init(StackResources::new()),
-        0x502,
+        runtime.network_seed(),
     );
     spawner.spawn(network_task(runner).unwrap());
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionBinding);
