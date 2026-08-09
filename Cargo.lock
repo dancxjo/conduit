@@ -1362,10 +1362,15 @@ name = "patchbay-html"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
  "conduit-presentation",
+ "conduit-runtime",
+ "conduit-std-host",
+ "conduit-wire",
  "patchbay-model",
  "serde",
  "serde_json",
+ "tungstenite",
 ]
 
 [[package]]

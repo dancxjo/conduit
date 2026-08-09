@@ -16,6 +16,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 mod control;
+mod cross_host_renderer;
 mod form_editor;
 mod portable_demo;
 mod portable_projection;
@@ -27,6 +28,11 @@ mod route_presentation;
 mod topology;
 
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
+pub use cross_host_renderer::{
+    cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
+    CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,
+    PRESENTATION_PROJECT_KIND,
+};
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,

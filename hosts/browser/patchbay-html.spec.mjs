@@ -32,7 +32,12 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#realizations")).toContainText("Port manifestation · Output · Info presentation/manifestation@1 · Value");
     await expect(page.locator("#realizations")).toContainText("Resource patchbay-html/host/presentation");
     await expect(page.locator("#realizations")).toContainText("Base conduit.host/present@1 · target presentation/base/dom-svg@1");
-    await expect(page.locator("#clue")).toContainText("Renderer patchbay-html/manifestation-prepared · Prepared");
+    await expect(page.locator("#realizations")).toContainText("project · host patchbay-presentation/host · boot patchbay-presentation/boot");
+    await expect(page.locator("#realizations")).toContainText("presentation -> presentation · Info presentation/presentation@1");
+    await expect(page.locator("#realizations")).toContainText("Line WebSocket");
+    await expect(page.locator("#realizations")).toContainText("link patchbay-renderer/websocket-line");
+    await expect(page.locator("#realizations")).toContainText("base-instance patchbay-renderer/websocket-instance");
+    await expect(page.locator("#clue")).toContainText("Renderer patchbay-html/cross-host-prepared · Prepared");
     await expect(page.locator("#clue")).toContainText("Renderer patchbay-html/document-ready · Available");
     await expect(page.locator("#topology li").first()).toContainText("boot");
     await expect(page.locator("#route-cards li").filter({hasText:"USB CDC"}).first()).toBeVisible();

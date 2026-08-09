@@ -43,6 +43,7 @@ pub enum RendererExecutionError {
     InvalidRendererForm,
     Planning,
     MissingPlacement,
+    AmbiguousPlacement,
     Manifestation(ManifestationError),
     Inspection(RendererSelfInspectionError),
 }
@@ -71,23 +72,42 @@ impl RendererExecution {
             .map_err(|_| RendererExecutionError::Planning)?;
         let plan = plan(&form, &[advertisement], &placements, &[])
             .map_err(|_| RendererExecutionError::Planning)?;
-        let fragment = plan
-            .fragments
-            .first()
+        Self::prepare_planned(presentation, plan, identity.target_subject, clue_id)
+    }
+
+    pub fn prepare_planned(
+        presentation: Presentation,
+        plan: Plan,
+        target_subject: String,
+        clue_id: ClueId,
+    ) -> Result<Self, RendererExecutionError> {
+        presentation.validate().map_err(|_| {
+            RendererExecutionError::Manifestation(ManifestationError::InvalidPresentation)
+        })?;
+        let mut placements = plan.fragments.iter().flat_map(|fragment| {
+            fragment
+                .placements
+                .iter()
+                .filter(|placement| {
+                    placement.kind_id.as_str() == conduit_presentation::RENDERER_KIND
+                })
+                .map(move |placement| (fragment, placement))
+        });
+        let (fragment, placement) = placements
+            .next()
             .ok_or(RendererExecutionError::MissingPlacement)?;
-        let placement_id = fragment
-            .placements
-            .first()
-            .map(|placement| placement.placement_id.clone())
-            .ok_or(RendererExecutionError::MissingPlacement)?;
+        if placements.next().is_some() {
+            return Err(RendererExecutionError::AmbiguousPlacement);
+        }
+        let placement_id = placement.placement_id.clone();
         let active_play_id =
-            bind_active_play(&plan.plan_id, &identity.host_id, &identity.boot_id, 0).active_play_id;
+            bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0).active_play_id;
         let manifestation = Manifestation::prepared(
             &presentation,
             &plan,
             active_play_id.clone(),
             placement_id.clone(),
-            identity.target_subject,
+            target_subject,
             clue_id,
         )
         .map_err(RendererExecutionError::Manifestation)?;
@@ -168,7 +188,7 @@ fn renderer_form() -> Result<conduit_form::CheckedForm, RendererExecutionError> 
     .map_err(|_| RendererExecutionError::InvalidRendererForm)
 }
 
-fn renderer_host(
+pub(crate) fn renderer_host(
     adapter: RendererAdapterKind,
     identity: &RendererAdapterIdentity,
 ) -> HostAdvertisement {
