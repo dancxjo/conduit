@@ -294,9 +294,21 @@ pub async fn run(
     let mut link = UsbLinkSession::new(carrier).unwrap();
     if let Some(record) = panic_record {
         if establish_usb(&mut link, clue, runtime).await.is_ok() {
-            let _ = clue
-                .write_network_failure(record.code(), attachment_identity(runtime))
-                .await;
+            let mut frame = [0_u8; 1024];
+            loop {
+                match link.receive_raw_stream_frame(&mut frame).await {
+                    Ok(raw) if raw == conduit_net::R1_USB_NETWORK_SESSION_QUERY => {
+                        let _ = clue
+                            .write_network_failure(record.code(), attachment_identity(runtime))
+                            .await;
+                        break;
+                    }
+                    Ok(raw) => {
+                        let _ = crate::bootsel::handle_request(&mut link, raw).await;
+                    }
+                    Err(_) => break,
+                }
+            }
         }
         loop {
             crate::bootsel::wait_for_request(&mut link).await.ok();
