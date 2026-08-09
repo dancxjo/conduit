@@ -153,9 +153,9 @@ async fn run_remote_signal_sink_for(
         },
         value_kind: KindId::from(planned.value_kind),
         limits: SessionLimits {
-            maximum_in_flight_items: planned.maximum_in_flight_items,
-            maximum_payload_bytes: planned.maximum_payload_bytes,
-            maximum_buffered_bytes: planned.maximum_buffered_bytes,
+            maximum_in_flight_items: planned.session_item_capacity,
+            maximum_payload_bytes: planned.session_byte_capacity,
+            maximum_buffered_bytes: planned.session_byte_capacity,
         },
         attachment: RouteAttachment {
             link_binding_id: LinkBindingId::from(planned.link_binding_id),
