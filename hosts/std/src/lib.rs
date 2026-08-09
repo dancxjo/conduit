@@ -45,6 +45,7 @@ pub mod pico_usb_source;
 pub mod pico_wifi_bootstrap;
 pub mod pool_webchat;
 pub mod r1_control;
+pub mod r1_control_input;
 pub mod triple_signal;
 pub mod usb_cdc;
 pub mod websocket;
