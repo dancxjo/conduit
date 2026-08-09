@@ -41,18 +41,18 @@ pub struct GeneratedImageIdentity {
     pub host_id: String,
     pub boot_id: String,
     pub active_play_id: String,
-    pub boot_evidence_id: String,
+    pub boot_clue_id: String,
     pub presentation_ids: Vec<String>,
-    pub presentation_evidence_ids: Vec<String>,
-    pub terminal_evidence_id: String,
+    pub presentation_clue_ids: Vec<String>,
+    pub terminal_clue_id: String,
     pub offer_generation: u64,
     pub nodes: usize,
     pub cords: usize,
     pub host_operations: usize,
     pub cord_value_slots: u16,
     pub cord_value_bytes: u32,
-    pub evidence_items: u16,
-    pub evidence_bytes: u32,
+    pub clue_items: u16,
+    pub clue_bytes: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -1,5 +1,5 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{ConfigurationValue, PlannedOperation, PortDirection};
+use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
     OperationAction, OperationInput, PortId, RequestId,
@@ -88,7 +88,7 @@ impl GenerateTextOperation {
 }
 
 pub(super) fn execute_fixture(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     input: &[u8],
     output: &mut Vec<u8>,
 ) -> Result<(), String> {
@@ -113,7 +113,7 @@ pub(super) fn execute_fixture(
     Ok(())
 }
 
-fn validate(placement: &PlannedOperation) -> Result<(), String> {
+fn validate(placement: &PlannedGear) -> Result<(), String> {
     let artifact_matches = matches!(
         (
             placement.implementation_id.as_str(),
@@ -153,7 +153,7 @@ fn validate(placement: &PlannedOperation) -> Result<(), String> {
     Ok(())
 }
 
-fn configuration_count(placement: &PlannedOperation, key: &str) -> Result<u64, String> {
+fn configuration_count(placement: &PlannedGear, key: &str) -> Result<u64, String> {
     placement
         .configuration
         .iter()
@@ -164,7 +164,7 @@ fn configuration_count(placement: &PlannedOperation, key: &str) -> Result<u64, S
         .ok_or_else(|| format!("generate-text configuration '{key}' is missing"))
 }
 
-fn budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     let maximum_input_bytes = u32::try_from(configuration_count(placement, "maximum-input-bytes")?)
         .map_err(|_| "generate-text input bound does not fit the kernel".to_string())?;
@@ -176,13 +176,13 @@ fn budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
         value_items: 1,
         value_bytes: maximum_output_bytes,
         host_requests: 1,
-        evidence_items: 32,
+        clue_items: 32,
         maximum_value_bytes: maximum_input_bytes.max(maximum_output_bytes),
     })
 }
 
 fn prepare(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;

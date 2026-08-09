@@ -32,7 +32,7 @@ pub enum WireError {
     InvalidIdentifierEncoding,
     TrailingGarbage,
     InvalidMessageKind,
-    InvalidProvider,
+    InvalidBase,
     InvalidSession,
     InvalidLimits,
     InvalidState,

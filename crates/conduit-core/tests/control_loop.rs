@@ -1,8 +1,8 @@
 use conduit_core::{
-    selected_bound_link, BoundLink, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
-    ControlLoopEvent, ControlLoopEventError, CredentialReferenceId, EvidenceId, HostId,
-    LinkAuthorityReference, LinkBindingId, LinkCredentialReference, LinkEndpoint, LinkEndpointId,
-    LinkLimits, PlanId, PlannedConnection, PortId,
+    selected_bound_link, BoundLink, ClueId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId,
+    ControlLoopEvent, ControlLoopEventError, CredentialReferenceId, HostId, LinkAuthorityReference,
+    LinkBindingId, LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
+    PlannedConnection, PortId,
 };
 
 fn route(binding_id: &str) -> BoundLink {
@@ -18,8 +18,8 @@ fn route(binding_id: &str) -> BoundLink {
             boot_id: conduit_core::BootId::from("sink-boot"),
             endpoint_id: LinkEndpointId::from(format!("{binding_id}-sink")),
         },
-        provider: ConnectionProvider::WebSocket,
-        provider_instance_id: ConnectionProviderInstanceId::from(format!("{binding_id}-provider")),
+        base: ConnectionBase::WebSocket,
+        base_instance_id: ConnectionBaseInstanceId::from(format!("{binding_id}-base")),
         credential: LinkCredentialReference::Opaque(CredentialReferenceId::from("credential-ref")),
         authority: LinkAuthorityReference::ProcessOwned,
         limits: LinkLimits {
@@ -40,7 +40,7 @@ fn connection() -> PlannedConnection {
         sink_port_id: PortId::from("in"),
         value_kind: conduit_core::KindId::from("value/test"),
         temporal: conduit_core::PortTemporal::Value,
-        provider: ConnectionProvider::WebSocket,
+        base: ConnectionBase::WebSocket,
         link_binding: None,
         route_candidates: vec![route("route-a"), route("route-b")],
         item_capacity: 1,
@@ -58,22 +58,22 @@ fn replacement_planning_and_same_plan_route_selection_are_distinct_records() {
             requester_host_id: HostId::from("planner-host"),
             requester_boot_id: conduit_core::BootId::from("planner-boot"),
             authority: conduit_core::PlanningRequestAuthority::HostLocal,
-            request_evidence_id: EvidenceId::from("planning-request"),
+            request_clue_id: ClueId::from("planning-request"),
         },
         ControlLoopEvent::PlanningSucceeded {
             prior_plan_id: prior.clone(),
             replacement_plan_id: replacement.clone(),
-            request_evidence_id: EvidenceId::from("planning-request"),
-            evidence_id: EvidenceId::from("planning-succeeded"),
+            request_clue_id: ClueId::from("planning-request"),
+            clue_id: ClueId::from("planning-succeeded"),
         },
         ControlLoopEvent::PlanSuperseded {
             prior_plan_id: prior,
             replacement_plan_id: replacement.clone(),
-            evidence_id: EvidenceId::from("plan-superseded"),
+            clue_id: ClueId::from("plan-superseded"),
         },
-        ControlLoopEvent::DeploymentInstalled {
+        ControlLoopEvent::PlanRealized {
             plan_id: replacement,
-            evidence_id: EvidenceId::from("deployment-installed"),
+            clue_id: ClueId::from("plan-realized"),
         },
     ];
     assert!(events.iter().all(|event| event.validate().is_ok()));
@@ -89,8 +89,8 @@ fn replacement_must_have_a_new_plan_identity() {
     let event = ControlLoopEvent::PlanningSucceeded {
         prior_plan_id: PlanId::from("same-plan"),
         replacement_plan_id: PlanId::from("same-plan"),
-        request_evidence_id: EvidenceId::from("request"),
-        evidence_id: EvidenceId::from("invalid-success"),
+        request_clue_id: ClueId::from("request"),
+        clue_id: ClueId::from("invalid-success"),
     };
     assert_eq!(
         event.validate(),
@@ -107,7 +107,7 @@ fn route_selection_may_change_only_inside_the_same_sealed_plan() {
         connection_id: connection.connection_id.clone(),
         previous_binding_id: Some(LinkBindingId::from("route-a")),
         selected_binding_id: LinkBindingId::from("route-b"),
-        observation_evidence_id: EvidenceId::from("route-b-ready"),
+        observation_clue_id: ClueId::from("route-b-ready"),
     };
     assert_eq!(selected.validate_route_event(&plan_id, &connection), Ok(()));
     assert_eq!(
@@ -129,7 +129,7 @@ fn route_selection_may_change_only_inside_the_same_sealed_plan() {
         connection_id: connection.connection_id.clone(),
         previous_binding_id: Some(LinkBindingId::from("route-a")),
         selected_binding_id: LinkBindingId::from("route-c"),
-        observation_evidence_id: EvidenceId::from("route-c-ready"),
+        observation_clue_id: ClueId::from("route-c-ready"),
     };
     assert_eq!(
         outside.validate_route_event(&PlanId::from("plan-a"), &connection),
@@ -138,13 +138,13 @@ fn route_selection_may_change_only_inside_the_same_sealed_plan() {
 }
 
 #[test]
-fn a_non_change_and_empty_evidence_fail_closed() {
+fn a_non_change_and_empty_clue_fail_closed() {
     let unchanged = ControlLoopEvent::RouteSelectionChanged {
         plan_id: PlanId::from("plan-a"),
         connection_id: ConnectionId::from("connection"),
         previous_binding_id: Some(LinkBindingId::from("route-a")),
         selected_binding_id: LinkBindingId::from("route-a"),
-        observation_evidence_id: EvidenceId::from("observation"),
+        observation_clue_id: ClueId::from("observation"),
     };
     assert_eq!(
         unchanged.validate(),
@@ -152,9 +152,9 @@ fn a_non_change_and_empty_evidence_fail_closed() {
     );
     let empty = ControlLoopEvent::PlanningRefused {
         prior_plan_id: PlanId::from("plan-a"),
-        request_evidence_id: EvidenceId::from("request"),
+        request_clue_id: ClueId::from("request"),
         reason: conduit_core::PlanningRefusalReason::NoCompatibleRealization,
-        evidence_id: EvidenceId::from(""),
+        clue_id: ClueId::from(""),
     };
     assert_eq!(empty.validate(), Err(ControlLoopEventError::EmptyIdentity));
 }
@@ -162,14 +162,14 @@ fn a_non_change_and_empty_evidence_fail_closed() {
 #[test]
 fn architecture_contract_keeps_replan_and_route_change_language_distinct() {
     let document =
-        include_str!("../../../docs/architecture/topology-planning-deployment-control-loop.md");
+        include_str!("../../../docs/architecture/topology-planning-play-control-loop.md");
     for required in [
         "A Plan is immutable",
         "PlanningRequested",
         "PlanningRefused",
         "PlanningSucceeded",
         "PlanSuperseded",
-        "DeploymentInstalled",
+        "PlanRealized",
         "RouteSelectionChanged",
         "#466",
         "#495",

@@ -1,15 +1,15 @@
 use super::*;
 
-pub(super) fn inline_key(cell: &CheckedCanonicalCell) -> String {
-    format!("{}:{:?}", cell.operation, cell.startup_bindings)
+pub(super) fn inline_key(gear: &CheckedCanonicalGear) -> String {
+    format!("{}:{:?}", gear.kind, gear.startup_bindings)
 }
 
 pub(super) fn configuration(
-    cell: &CheckedCanonicalCell,
+    gear: &CheckedCanonicalGear,
     environment: &BTreeMap<String, CanonicalStartupValue>,
     definition: &crate::KindDefinition,
 ) -> Result<Vec<conduit_core::ConfigurationEntry>, CanonicalExpansionDiagnostic> {
-    for binding in &cell.startup_bindings {
+    for binding in &gear.startup_bindings {
         if definition
             .configuration
             .iter()
@@ -34,7 +34,7 @@ pub(super) fn configuration(
         .configuration
         .iter()
         .map(|field| {
-            let value = cell
+            let value = gear
                 .startup_bindings
                 .iter()
                 .find(|binding| binding.name == field.key)
@@ -84,10 +84,10 @@ pub(super) fn configuration(
 }
 
 pub(super) fn pool_references(
-    cell: &CheckedCanonicalCell,
+    gear: &CheckedCanonicalGear,
     environment: &BTreeMap<String, CanonicalStartupValue>,
 ) -> Result<Vec<conduit_core::SharedPoolId>, CanonicalExpansionDiagnostic> {
-    let mut pools = cell
+    let mut pools = gear
         .startup_bindings
         .iter()
         .map(|binding| substitute(&binding.value, environment))
@@ -179,7 +179,7 @@ pub(super) fn resolve_reference(
     let instance = instances.get(instance_name).ok_or_else(|| {
         CanonicalExpansionDiagnostic::new(
             "CND-FRM-042",
-            format!("cord references unknown cell or face port '{reference}'"),
+            format!("cord references unknown gear or face port '{reference}'"),
         )
     })?;
     stage_for_instance(instance_name, instance, explicit_port)
@@ -203,7 +203,7 @@ pub(super) fn stage_for_instance(
         if input.is_none() && output.is_none() {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-043",
-                format!("cell '{instance_name}' has no runtime port '{port}'"),
+                format!("gear '{instance_name}' has no runtime port '{port}'"),
             ));
         }
         return Ok(Stage { input, output });
@@ -212,7 +212,7 @@ pub(super) fn stage_for_instance(
         CanonicalExpansionDiagnostic::new(
             "CND-FRM-044",
             format!(
-                "cell '{instance_name}' has no shorthand face path; name an exact runtime port"
+                "gear '{instance_name}' has no shorthand face path; name an exact runtime port"
             ),
         )
     })?;
@@ -247,9 +247,9 @@ pub(super) fn connect(
                 ));
             }
             connections.push(CheckedConnection {
-                source_operation_id: source.operation_id,
+                source_gear_id: source.gear_id,
                 source_port_id: source.port.port_id,
-                sink_operation_id: sink.operation_id,
+                sink_gear_id: sink.gear_id,
                 sink_port_id: sink.port.port_id,
                 value_kind: source.port.value_kind,
                 temporal: source.port.temporal,
@@ -259,8 +259,7 @@ pub(super) fn connect(
             require_face_contract(&name, &value_type, temporal, &sink.port)?;
             let endpoints = inputs.entry(name.clone()).or_default();
             if endpoints.iter().any(|endpoint| {
-                endpoint.operation_id == sink.operation_id
-                    && endpoint.port.port_id == sink.port.port_id
+                endpoint.gear_id == sink.gear_id && endpoint.port.port_id == sink.port.port_id
             }) {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-047",
@@ -276,7 +275,7 @@ pub(super) fn connect(
         (StageSource::FaceInput(_, _, _), StageSink::FaceOutput(_, _, _)) => {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-046",
-                "runtime face passthrough must cross an admitted cell".into(),
+                "runtime face passthrough must cross an admitted gear".into(),
             ));
         }
     }

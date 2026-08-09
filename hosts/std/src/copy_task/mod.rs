@@ -1,8 +1,8 @@
+mod base;
 mod executor;
 mod model;
 mod operation;
 mod planning;
-mod provider;
 mod registry;
 
 pub use model::{CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken};

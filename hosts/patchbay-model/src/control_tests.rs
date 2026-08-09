@@ -23,7 +23,7 @@ fn plan_document_keeps_form_plan_and_exact_assignments_distinct() {
     let rendered = document.lines.join("\n");
     assert_ne!(plan.plan_id.as_str(), plan.source_document_id.as_str());
     assert!(rendered.contains(&format!("plan={}", plan.plan_id.as_str())));
-    assert!(rendered.contains("CELL operation="));
+    assert!(rendered.contains("GEAR operation="));
     assert!(rendered.contains("capability="));
     assert!(rendered.contains("implementation="));
     admit_run(
@@ -38,29 +38,29 @@ fn plan_document_keeps_form_plan_and_exact_assignments_distinct() {
 fn stale_source_boot_realization_and_authority_are_distinct_rejections() {
     let (editor, host, plan) = planned_hello();
     let source = editor.view().checked.source_document_id.unwrap();
-    let realm = vec![host.advertisement().clone()];
+    let hosts = vec![host.advertisement().clone()];
 
     assert_eq!(
         admit_run(
             &plan,
             &conduit_core::SourceDocumentId::from("changed"),
-            &realm
+            &hosts
         ),
         Err(ControlError::StalePlan)
     );
-    let mut stale_boot = realm.clone();
+    let mut stale_boot = hosts.clone();
     stale_boot[0].boot_id = conduit_core::BootId::from("rebooted");
     assert_eq!(
         admit_run(&plan, &source, &stale_boot),
         Err(ControlError::StaleBoot)
     );
-    let mut unavailable = realm.clone();
+    let mut unavailable = hosts.clone();
     unavailable[0].capabilities.clear();
     assert_eq!(
         admit_run(&plan, &source, &unavailable),
         Err(ControlError::UnavailableRealization)
     );
-    let mut denied = realm;
+    let mut denied = hosts;
     let capability = plan.fragments[0].placements[0].capability_id.clone();
     denied[0]
         .capabilities
@@ -80,7 +80,7 @@ fn stale_source_boot_realization_and_authority_are_distinct_rejections() {
 }
 
 #[test]
-fn completed_play_projection_keeps_exact_play_plan_and_evidence() {
+fn completed_play_projection_keeps_exact_play_plan_and_clue() {
     let (_editor, mut host, plan) = planned_hello();
     let mut output = Vec::with_capacity(4096);
     let report = host
@@ -91,7 +91,7 @@ fn completed_play_projection_keeps_exact_play_plan_and_evidence() {
     assert_eq!(document.terminal, TerminalDisposition::Completed);
     assert!(rendered.contains(plan.plan_id.as_str()));
     assert!(rendered.contains(report.kernel.as_ref().unwrap().active_play_id.as_str()));
-    assert!(rendered.contains("EVIDENCE id="));
+    assert!(rendered.contains("CLUE id="));
     assert!(rendered.contains("PRESSURE exposed=false"));
 }
 

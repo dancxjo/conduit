@@ -1,6 +1,6 @@
 use super::{installed_std, StdHost, StdHostConfig, TimerAdapter};
 use conduit_core::{
-    BootId, ConnectionProvider, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
+    BootId, ConnectionBase, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
 };
 use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
@@ -33,16 +33,16 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
         &installed_std::test_catalog(),
     )
     .expect("typed tick fixture parses");
-    let realm = [host.advertisement().clone()];
-    let placements = default_placements(&form, &realm).expect("typed tick placements resolve");
-    let provider_choices = BTreeMap::new();
+    let hosts = [host.advertisement().clone()];
+    let placements = default_placements(&form, &hosts).expect("typed tick placements resolve");
+    let base_choices = BTreeMap::new();
     let plan = plan_with_options(
         &form,
-        &realm,
+        &hosts,
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         PlanningOptions {
-            connection_providers: &provider_choices,
+            connection_bases: &base_choices,
             route_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 8,
@@ -95,7 +95,7 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
         kernel.value_allocation_capacity_before,
         kernel.value_allocation_capacity_after
     );
-    assert_eq!(kernel.post_activation_allocations, 0);
+    assert_eq!(kernel.post_play_start_allocations, 0);
 }
 
 #[test]
@@ -209,7 +209,7 @@ fn typed_text_plans_presents_and_completes_through_the_installed_kernel() {
         kernel.value_allocation_capacity_before,
         kernel.value_allocation_capacity_after
     );
-    assert_eq!(kernel.post_activation_allocations, 0);
+    assert_eq!(kernel.post_play_start_allocations, 0);
 }
 
 #[test]
@@ -230,7 +230,7 @@ fn invalid_utf8_fails_before_a_successful_text_presentation() {
 }
 
 #[test]
-fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_provider() {
+fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
     let mut catalog = installed_std::test_catalog();
     let mut startup = conduit_form::StartupCatalog::new();
     conduit_ai::install_generate_text_catalog(&mut startup, &mut catalog)
@@ -242,7 +242,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_provider() {
     .expect("generate-text execution form parses");
 
     let mut advertisement = host("generate-text-host").advertisement().clone();
-    let fixture = conduit_ai::generate_text_provider_fixtures()
+    let fixture = conduit_ai::generate_text_base_fixtures()
         .into_iter()
         .nth(1)
         .expect("large local fixture exists");
@@ -255,15 +255,15 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_provider() {
     advertisement
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-    let realm = [advertisement.clone()];
-    let placements = default_placements(&form, &realm).expect("all operations are realizable");
+    let hosts = [advertisement.clone()];
+    let placements = default_placements(&form, &hosts).expect("all operations are realizable");
     let plan = plan_with_options(
         &form,
-        &realm,
+        &hosts,
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         PlanningOptions {
-            connection_providers: &BTreeMap::new(),
+            connection_bases: &BTreeMap::new(),
             route_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 64,
@@ -285,17 +285,17 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_provider() {
 
     let mut output = Vec::with_capacity(2_048);
     let mut timer = RecordingTimer { waits: Vec::new() };
-    let mut evidence_sequence = 0;
+    let mut clue_sequence = 0;
     let report = installed_std::run_fragment(
         &advertisement,
         &plan.fragments[0],
         0,
-        &mut evidence_sequence,
+        &mut clue_sequence,
         &mut output,
         &mut timer,
         &crate::RunControl::default(),
     )
-    .expect("planned generate-text runs through lowering, kernel, and provider");
+    .expect("planned generate-text runs through lowering, kernel, and base");
     assert!(String::from_utf8(output)
         .expect("fixture output is utf8")
         .contains("fixture/large-local: Hello\n"));
@@ -318,7 +318,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_provider() {
         &advertisement,
         &substituted,
         1,
-        &mut evidence_sequence,
+        &mut clue_sequence,
         &mut output,
         &mut timer,
         &crate::RunControl::default(),
@@ -342,7 +342,7 @@ fn every_text_presentation_executable_identity_mutation_fails_before_output() {
             placement.kind_id.as_str() == installed_std::contract::TEXT_PRESENTATION_KIND
         })
         .expect("text presentation placement exists");
-    let mutations: [fn(&mut conduit_core::PlannedOperation); 14] = [
+    let mutations: [fn(&mut conduit_core::PlannedGear); 14] = [
         |placement| placement.kind_id = conduit_core::KindId::from("wrong/text"),
         |placement| {
             placement.kind_contract_revision =
@@ -385,7 +385,7 @@ fn every_text_presentation_executable_identity_mutation_fails_before_output() {
 }
 
 #[test]
-fn canonical_text_pipeline_has_zero_successful_post_activation_allocations() {
+fn canonical_text_pipeline_has_zero_successful_post_play_start_allocations() {
     let source = r#"form hello {
     upper: text/upper
     show: presentation/text
@@ -405,14 +405,14 @@ fn canonical_text_pipeline_has_zero_successful_post_activation_allocations() {
     let report = host
         .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
         .unwrap();
-    assert_eq!(report.kernel.unwrap().post_activation_allocations, 0);
+    assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
     assert!(String::from_utf8(output)
         .unwrap()
         .contains("HELLO, WORLD.\n"));
 }
 
 #[test]
-fn canonical_greet_has_zero_successful_post_activation_allocations() {
+fn canonical_greet_has_zero_successful_post_play_start_allocations() {
     let source = r#"form greet (
     greeting: Text = "Hello"
     name: Text > text: Text
@@ -438,14 +438,14 @@ form welcome {
     let report = host
         .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
         .unwrap();
-    assert_eq!(report.kernel.unwrap().post_activation_allocations, 0);
+    assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
     assert!(String::from_utf8(output)
         .unwrap()
         .contains("WelcomeTravis\n"));
 }
 
 #[test]
-fn canonical_clock_has_zero_successful_post_activation_allocations() {
+fn canonical_clock_has_zero_successful_post_play_start_allocations() {
     let source = "form clock-demo {\n    clock: time/every(1s)\n    clock > presentation/tick\n}\n";
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
@@ -462,7 +462,7 @@ fn canonical_clock_has_zero_successful_post_activation_allocations() {
     let report = host
         .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
         .unwrap();
-    assert_eq!(report.kernel.unwrap().post_activation_allocations, 0);
+    assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
     assert_eq!(timer.waits, vec![Duration::from_secs(1); 4]);
     assert!(String::from_utf8(output)
         .unwrap()
@@ -470,14 +470,14 @@ fn canonical_clock_has_zero_successful_post_activation_allocations() {
 }
 
 #[test]
-fn canonical_state_count_executes_current_values_with_bounded_evidence() {
+fn canonical_state_count_executes_current_values_with_bounded_clue() {
     let source = r#"form count (
     start: Count = 0
     bump: Tick...| > value: $Count
 ) {
-    cell: state/count(start)
-    bump > cell.bump
-    cell.value > value
+    gear: state/count(start)
+    bump > gear.bump
+    gear.value > value
 }
 form count-demo {
     clock: time/every(1s)
@@ -536,7 +536,7 @@ form count-demo {
         })
     ));
     let kernel = report.kernel.unwrap();
-    assert_eq!(kernel.post_activation_allocations, 0);
+    assert_eq!(kernel.post_play_start_allocations, 0);
     assert_eq!(
         kernel.value_allocation_capacity_before,
         kernel.value_allocation_capacity_after

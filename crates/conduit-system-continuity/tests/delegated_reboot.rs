@@ -1,8 +1,8 @@
 use conduit_core::{
-    bind_active_play, ArtifactId, AuthorityGrantId, BootId, CapabilityId, ConnectionId,
-    ConnectionProvider, ConnectionProviderInstanceId, FragmentId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, KindId, LinkBindingId, LinkEndpointId, LinkLimits,
-    OfferGeneration, PlanId, PROTOCOL_VERSION,
+    bind_active_play, ArtifactId, AuthorityGrantId, BootId, CapabilityId, ConnectionBase,
+    ConnectionBaseInstanceId, ConnectionId, FragmentId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, OfferGeneration, PlanId,
+    PROTOCOL_VERSION,
 };
 use conduit_observatory::{HostReport, OperationalState};
 use conduit_system_continuity::{
@@ -73,8 +73,8 @@ fn session(controller: &HostInstance, target: &HostInstance) -> SessionBinding {
         },
         attachment: RouteAttachment {
             link_binding_id: LinkBindingId::from("link/controller-to-target"),
-            provider: ConnectionProvider::FixtureFrame,
-            provider_instance_id: ConnectionProviderInstanceId::from("provider/reboot-fixture"),
+            base: ConnectionBase::FixtureFrame,
+            base_instance_id: ConnectionBaseInstanceId::from("base/reboot-fixture"),
             source_host_id: controller.host_id.clone(),
             source_boot_id: controller.boot_id.clone(),
             source_endpoint_id: LinkEndpointId::from("endpoint/controller"),
@@ -100,7 +100,7 @@ fn grant(controller: &HostInstance, target: &HostInstance) -> DelegatedRebootGra
         link_binding_id: LinkBindingId::from("link/controller-to-target"),
         maximum_transitions: 1,
         proof_window_ticks: 2,
-        evidence_sequence_base: 40,
+        clue_sequence_base: 40,
     }
 }
 
@@ -138,7 +138,7 @@ fn authorized_reboot_separates_acceptance_carrier_loss_and_completed_proof() {
     transaction
         .old_boot_terminated(
             &request.request_id,
-            conduit_core::EvidenceId::from("evidence/old-boot-terminal"),
+            conduit_core::ClueId::from("clue/old-boot-terminal"),
         )
         .unwrap();
     assert_eq!(transaction.state(), RebootPendingState::AwaitingReplacement);
@@ -152,7 +152,7 @@ fn authorized_reboot_separates_acceptance_carrier_loss_and_completed_proof() {
                 state: OperationalState::Available,
                 capabilities: vec![],
             },
-            conduit_core::EvidenceId::from("evidence/new-boot-report"),
+            conduit_core::ClueId::from("clue/new-boot-report"),
         )
         .unwrap();
     assert_ne!(proof.acceptance.target.boot_id, proof.new_boot);
@@ -236,7 +236,7 @@ fn support_authority_reachability_boot_and_replay_fail_independently() {
         panic!("expected accepted request followed by replay denial");
     };
     assert_eq!(replayed.reason, RebootDenial::Replay);
-    assert_ne!(accepted.evidence_id, replayed.evidence_id);
+    assert_ne!(accepted.clue_id, replayed.clue_id);
     assert_eq!(replay.attempts_used(), 1);
 }
 
@@ -265,16 +265,14 @@ fn proof_window_expires_to_unknown_without_fabricating_transport_failure() {
         CarrierLossDisposition::OrdinaryTransportFailure
     );
     assert_eq!(
-        transaction.old_boot_terminated(
-            &request.request_id,
-            conduit_core::EvidenceId::from("evidence/late")
-        ),
+        transaction
+            .old_boot_terminated(&request.request_id, conduit_core::ClueId::from("clue/late")),
         Err(RebootProgressError::ProofWindowExpired)
     );
 }
 
 #[test]
-fn malformed_request_is_denied_with_machine_readable_evidence() {
+fn malformed_request_is_denied_with_machine_readable_clue() {
     let controller = host("host/controller", "boot/controller-1");
     let target = host("host/target", "boot/target-1");
     let malformed = request(&controller, &target, "");
@@ -287,7 +285,7 @@ fn malformed_request_is_denied_with_machine_readable_evidence() {
         panic!("malformed request was accepted");
     };
     assert_eq!(receipt.reason, RebootDenial::MalformedRequest);
-    assert!(!receipt.evidence_id.as_str().is_empty());
+    assert!(!receipt.clue_id.as_str().is_empty());
 }
 
 #[test]

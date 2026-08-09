@@ -8,10 +8,10 @@ use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, EvidenceQuery, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationDisposition, HostOperationId, HostOperationOutcome,
-    HostedEvidenceLog, HostedValueStore, KernelEventKind, Operation, OperationAction,
-    OperationInput, PortId, RemoteEndpointId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, ClueQuery, CordId, Failure, FailureCode, FixedHostOperationBindings,
+    FixedRoutes, HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
+    HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
+    RemoteEndpointId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -29,12 +29,12 @@ const MAXIMUM_WAITS: usize = MAXIMUM_VALUES - 1;
 const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES + MAXIMUM_WAITS) as u16;
 const MAXIMUM_STORED_BYTES: u32 =
     MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN + MAXIMUM_WAITS as u32 * 8;
-const EVIDENCE_ITEMS: u16 = 256;
+const CLUE_ITEMS: u16 = 256;
 
 type SourceScheduler = FixedScheduler<
     OperationDriver<PulseOperation, PORTS>,
     HostedValueStore,
-    HostedEvidenceLog,
+    HostedClueLog,
     1,
     1,
     PORTS,
@@ -48,7 +48,7 @@ type SourceScheduler = FixedScheduler<
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct CapacitySeal {
     values: (usize, usize),
-    evidence: usize,
+    clue: usize,
     driver: usize,
     identity: (usize, usize, usize),
 }
@@ -230,11 +230,11 @@ impl PicoUsbSource {
             pending: None,
         })
         .map_err(|error| format!("{error:?}"))?;
-        let evidence_bytes = u32::from(EVIDENCE_ITEMS)
+        let clue_bytes = u32::from(CLUE_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-            .ok_or_else(|| "source evidence byte bound overflow".to_owned())?;
-        let evidence = HostedEvidenceLog::new(EVIDENCE_ITEMS, evidence_bytes)
-            .map_err(|error| format!("{error:?}"))?;
+            .ok_or_else(|| "source clue byte bound overflow".to_owned())?;
+        let clue =
+            HostedClueLog::new(CLUE_ITEMS, clue_bytes).map_err(|error| format!("{error:?}"))?;
         let scheduler = SourceScheduler::new_with_host_operations(
             lowered
                 .node_specs
@@ -252,7 +252,7 @@ impl PicoUsbSource {
             host_bindings,
             [driver],
             values,
-            evidence,
+            clue,
         )
         .map_err(|error| format!("{error:?}"))?;
         let active_play =
@@ -277,7 +277,7 @@ impl PicoUsbSource {
             .map_err(|error| format!("{error:?}"))?;
         let seal = CapacitySeal {
             values: scheduler.values().allocation_capacities(),
-            evidence: scheduler.evidence().allocation_capacity(),
+            clue: scheduler.clues().allocation_capacity(),
             driver: scheduler.drivers()[0].operation().allocation_capacity(),
             identity: identity.allocation_capacities(),
         };
@@ -407,11 +407,11 @@ impl PicoUsbSource {
                 != (0, 0)
             || !self
                 .scheduler
-                .evidence()
+                .clues()
                 .contains_kind(KernelEventKind::RemoteValueDelivered)
             || !self
                 .scheduler
-                .evidence()
+                .clues()
                 .contains_kind(KernelEventKind::OperationCompleted)
             || self.capacity_seal() != self.seal
         {
@@ -469,7 +469,7 @@ impl PicoUsbSource {
     fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
-            evidence: self.scheduler.evidence().allocation_capacity(),
+            clue: self.scheduler.clues().allocation_capacity(),
             driver: self.scheduler.drivers()[0]
                 .operation()
                 .allocation_capacity(),

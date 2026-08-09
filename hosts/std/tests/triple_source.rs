@@ -1,4 +1,4 @@
-use conduit_core::{BootId, ConnectionProvider};
+use conduit_core::{BootId, ConnectionBase};
 use conduit_signal::SIGNAL_ENCODED_LEN;
 use conduit_std_host::triple_signal::{RemoteKind, TripleSource};
 use conduit_wire::{
@@ -6,7 +6,7 @@ use conduit_wire::{
     SessionTerminalDisposition, WireError,
 };
 
-fn activate(source: &mut TripleSource, kind: RemoteKind, sink: &mut SessionMachine) {
+fn trigger(source: &mut TripleSource, kind: RemoteKind, sink: &mut SessionMachine) {
     let binding = source.binding(kind).clone();
     let hello = binding.hello_frame();
     source.admit_outbound(kind, hello).unwrap();
@@ -31,8 +31,8 @@ fn one_kernel_atomically_fans_each_value_to_stdout_browser_and_pico() {
     .unwrap();
     let mut pico =
         SessionMachine::new(source.binding(RemoteKind::Pico).clone(), SessionRole::Sink).unwrap();
-    activate(&mut source, RemoteKind::Browser, &mut browser);
-    activate(&mut source, RemoteKind::Pico, &mut pico);
+    trigger(&mut source, RemoteKind::Browser, &mut browser);
+    trigger(&mut source, RemoteKind::Pico, &mut pico);
 
     let mut sequences = Vec::new();
     while let Some(offer) = source.next_offer().unwrap() {
@@ -100,7 +100,7 @@ fn one_kernel_atomically_fans_each_value_to_stdout_browser_and_pico() {
 }
 
 #[test]
-fn stale_pico_boot_and_provider_instance_fail_before_activation() {
+fn stale_pico_boot_and_base_instance_fail_before_play_start() {
     let mut source = TripleSource::prepare().expect("triple source prepares");
     let planned = source.binding(RemoteKind::Pico).clone();
     source
@@ -112,10 +112,10 @@ fn stale_pico_boot_and_provider_instance_fail_before_activation() {
     );
 
     let binding = source.binding(RemoteKind::Pico).clone();
-    assert_eq!(binding.attachment.provider, ConnectionProvider::UsbCdc);
+    assert_eq!(binding.attachment.base, ConnectionBase::UsbCdc);
     let mut message = binding.hello_frame().message;
     if let SessionMessage::Hello(ref mut hello) = message {
-        hello.provider_instance_id = "wrong-triple-provider";
+        hello.base_instance_id = "wrong-triple-base";
     }
     assert_eq!(
         source.admit_inbound(
@@ -141,8 +141,8 @@ fn malformed_frame_is_rejected_and_sink_failure_reaches_both_exact_sessions() {
     .unwrap();
     let mut pico =
         SessionMachine::new(source.binding(RemoteKind::Pico).clone(), SessionRole::Sink).unwrap();
-    activate(&mut source, RemoteKind::Browser, &mut browser);
-    activate(&mut source, RemoteKind::Pico, &mut pico);
+    trigger(&mut source, RemoteKind::Browser, &mut browser);
+    trigger(&mut source, RemoteKind::Pico, &mut pico);
     source.cancel().expect("one kernel cancels");
 
     for (kind, sink) in [

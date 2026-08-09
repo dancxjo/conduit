@@ -10,8 +10,8 @@ use super::{
 use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
 use conduit_core::{
     authority_grant, present_authority_requirement, process_owned_link_binding, BootId,
-    CapabilityId, ConnectionProvider, HostCommand, HostId, ObservationKind, OfferGeneration,
-    OperationId, TerminalDisposition,
+    CapabilityId, ConnectionBase, GearId, HostCommand, HostId, ObservationKind, OfferGeneration,
+    TerminalDisposition,
 };
 use conduit_form::parse;
 use conduit_pico_sim::{pico_advertisement, PicoSimConfig};
@@ -20,7 +20,7 @@ use conduit_signal::{exact_std_pico_usb_plan, signal_profile_catalog};
 use conduit_std_host::{LegacyStdFixtureHost, StdHostConfig};
 
 #[test]
-fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
+fn report_separates_identity_capability_plan_connection_and_clue_tables() {
     let mut std_host = LegacyStdFixtureHost::new_with_config(StdHostConfig {
         host_id: HostId::from("std-host-triple"),
         boot_id: BootId::from("std-boot-triple"),
@@ -76,30 +76,30 @@ fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
     )
     .expect("triple form parses");
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("pulse"),
+                GearId::from("pulse"),
                 PlacementChoice {
                     host_id: HostId::from("std-host-triple"),
                     capability_id: CapabilityId::from("pulse-1"),
                 },
             ),
             (
-                OperationId::from("local"),
+                GearId::from("local"),
                 PlacementChoice {
                     host_id: HostId::from("std-host-triple"),
                     capability_id: CapabilityId::from("stdout-show-1"),
                 },
             ),
             (
-                OperationId::from("web"),
+                GearId::from("web"),
                 PlacementChoice {
                     host_id: HostId::from("browser-sim-triple"),
                     capability_id: CapabilityId::from("dom-show"),
                 },
             ),
             (
-                OperationId::from("light"),
+                GearId::from("light"),
                 PlacementChoice {
                     host_id: HostId::from("pico-sim-triple"),
                     capability_id: CapabilityId::from("onboard-led"),
@@ -107,24 +107,24 @@ fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
             ),
         ]),
     };
-    let connection_providers = BTreeMap::from([
+    let connection_bases = BTreeMap::from([
         (
-            (OperationId::from("pulse"), OperationId::from("local")),
-            ConnectionProvider::Local,
+            (GearId::from("pulse"), GearId::from("local")),
+            ConnectionBase::Local,
         ),
         (
-            (OperationId::from("pulse"), OperationId::from("web")),
-            ConnectionProvider::FixtureFrame,
+            (GearId::from("pulse"), GearId::from("web")),
+            ConnectionBase::FixtureFrame,
         ),
         (
-            (OperationId::from("pulse"), OperationId::from("light")),
-            ConnectionProvider::FixtureDatagram,
+            (GearId::from("pulse"), GearId::from("light")),
+            ConnectionBase::FixtureDatagram,
         ),
     ]);
     let link_bindings = vec![
         process_owned_link_binding(
             "link/std-browser",
-            ConnectionProvider::FixtureFrame,
+            ConnectionBase::FixtureFrame,
             "fixture/frame/std-browser",
             &advertisements[0],
             &advertisements[1],
@@ -133,7 +133,7 @@ fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
         ),
         process_owned_link_binding(
             "link/std-pico",
-            ConnectionProvider::FixtureDatagram,
+            ConnectionBase::FixtureDatagram,
             "fixture/datagram/std-pico",
             &advertisements[0],
             &advertisements[2],
@@ -146,12 +146,12 @@ fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
         &advertisements,
         &placements,
         &[
-            ConnectionProvider::Local,
-            ConnectionProvider::FixtureFrame,
-            ConnectionProvider::FixtureDatagram,
+            ConnectionBase::Local,
+            ConnectionBase::FixtureFrame,
+            ConnectionBase::FixtureDatagram,
         ],
         PlanningOptions {
-            connection_providers: &connection_providers,
+            connection_bases: &connection_bases,
             route_candidates: &BTreeMap::new(),
             connection_item_capacity: 4,
             connection_byte_capacity: 64,
@@ -169,7 +169,7 @@ fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
         .expect("std fragment exists")
         .clone();
     let _ = std_host.handle(HostCommand::Prepare(fragment.clone()));
-    let _ = std_host.handle(HostCommand::Activate(fragment.plan_id.clone()));
+    let _ = std_host.handle(HostCommand::StartPlay(fragment.plan_id.clone()));
     let observations = std_host
         .handle(HostCommand::Inspect)
         .events
@@ -284,24 +284,23 @@ fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
     assert!(report
         .connections
         .iter()
-        .any(|connection| connection.provider == ConnectionProvider::FixtureFrame));
+        .any(|connection| connection.base == ConnectionBase::FixtureFrame));
     assert!(report
         .connections
         .iter()
-        .any(|connection| connection.provider == ConnectionProvider::FixtureDatagram));
+        .any(|connection| connection.base == ConnectionBase::FixtureDatagram));
     assert!(report.connections.iter().all(|connection| {
-        (connection.provider == ConnectionProvider::Local && connection.link_binding.is_none())
-            || (connection.provider != ConnectionProvider::Local
-                && connection.link_binding.is_some())
+        (connection.base == ConnectionBase::Local && connection.link_binding.is_none())
+            || (connection.base != ConnectionBase::Local && connection.link_binding.is_some())
     }));
     assert!(report
-        .evidence
+        .clues
         .iter()
-        .all(|row| !row.evidence_id.as_str().is_empty()));
-    assert!(report.evidence.iter().any(|row| {
+        .all(|row| !row.clue_id.as_str().is_empty()));
+    assert!(report.clues.iter().any(|row| {
         row.plan_id == Some(report.plans[0].plan_id.clone())
             && row.active_play_id.is_some()
-            && matches!(row.kind, ObservationKind::PlanActivated)
+            && matches!(row.kind, ObservationKind::PlanPlayStarted)
     }));
     assert!(report.retention.bounded);
 
@@ -315,15 +314,15 @@ fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
     assert!(rendered.contains("browser/presentation"));
     assert!(rendered.contains(conduit_core::PRESENT_AUTHORITY_CONTRACT));
     assert!(rendered.contains("grant/browser-presentation"));
-    assert!(rendered.contains("provider=FixtureFrame"));
-    assert!(rendered.contains("provider=FixtureDatagram"));
+    assert!(rendered.contains("base=FixtureFrame"));
+    assert!(rendered.contains("base=FixtureDatagram"));
     assert!(rendered.contains("link/std-browser"));
     assert!(rendered.contains("fixture/datagram/std-pico"));
     assert!(rendered.contains("authority: ProcessOwned"));
     assert!(rendered.contains("plays 1"));
     assert!(rendered.contains("pressure=in_flight=Some(0)"));
     assert!(rendered.contains("active_play="));
-    assert!(!rendered.contains("evidence id=evidence/"));
+    assert!(!rendered.contains("clue id=clue/"));
 
     let mut state_snapshot = snapshot.clone();
     state_snapshot.hosts[0].state = OperationalState::Stale;
@@ -341,8 +340,8 @@ fn report_separates_identity_capability_plan_connection_and_evidence_tables() {
     state_snapshot.plays[0].connections[0].lifecycle = PlanLifecycle::Failed;
     state_snapshot.plays[0].connections[0].failure_message = Some("sink rejected".into());
     let mut gap = state_snapshot.observations[0].clone();
-    gap.evidence_id = conduit_core::EvidenceId::from("host-gap-evidence");
-    gap.kind = ObservationKind::EvidenceGap { dropped: 3 };
+    gap.clue_id = conduit_core::ClueId::from("host-gap-clue");
+    gap.kind = ObservationKind::ClueGap { dropped: 3 };
     state_snapshot.observations.push(gap);
     state_snapshot.retention.retained_items += 1;
     state_snapshot.retention.dropped_items = 2;
@@ -429,7 +428,7 @@ fn projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof() {
     assert_eq!(report.links.len(), 1);
     assert_eq!(report.links[0].binding, exact.link_binding);
     let rendered = render_text_report(&report);
-    assert!(rendered.contains("provider=UsbCdc"));
+    assert!(rendered.contains("base=UsbCdc"));
     assert!(rendered.contains("s4/std-pico-usb-cdc-link"));
     assert!(rendered.contains("profile=rust-std-kernel"));
     assert!(rendered.contains("profile=rp2040-kernel"));

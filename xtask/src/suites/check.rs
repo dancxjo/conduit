@@ -206,22 +206,6 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
-        "check.thumb.realm",
-        "Realm thumb target check",
-        "cargo",
-        &[
-            "check",
-            "-p",
-            "conduit-realm",
-            "--target",
-            "thumbv6m-none-eabi",
-        ],
-        None,
-        Some("thumbv6m-none-eabi"),
-        Some(ProofClass::ContractCompile),
-        &[],
-    ),
-    Step::typed(
         "check.thumb.observatory",
         "Observatory thumb target check",
         "cargo",
@@ -322,13 +306,13 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
     ),
     Step::new(
         "check.kernel.streamed",
-        "test streamed_output_uses_a_virtual_clock_and_retains_terminal_evidence",
+        "test streamed_output_uses_a_virtual_clock_and_retains_terminal_clue",
         "cargo",
         &[
             "test",
             "-p",
             "conduit-std-host",
-            "streamed_output_uses_a_virtual_clock_and_retains_terminal_evidence",
+            "streamed_output_uses_a_virtual_clock_and_retains_terminal_clue",
         ],
     ),
     Step::new(
@@ -609,8 +593,8 @@ pub const PLANNING_S2_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
-        "check.planning.evidence-overflow",
-        "test planned_evidence_storage_survives_observation_overflow",
+        "check.planning.clue-overflow",
+        "test planned_clue_storage_survives_observation_overflow",
         "cargo",
         &[
             "test",
@@ -618,7 +602,7 @@ pub const PLANNING_S2_STEPS: &[Step] = &[
             "conduit-runtime",
             "--test",
             "host_contract",
-            "planned_evidence_storage_survives_observation_overflow",
+            "planned_clue_storage_survives_observation_overflow",
         ],
     ),
     Step::typed(
@@ -658,9 +642,9 @@ pub const FORM_S3_STEPS: &[Step] = &[
     Step::new("check.form.composite-input-output-only", "test input_only_and_output_only_exports_plan_as_ordinary_operations", "cargo", &["test", "-p", "conduit-composite", "input_only_and_output_only_exports_plan_as_ordinary_operations"]),
     Step::new("check.form.composite-face-mapping-mutation", "test composite_definition_rejects_every_face_mapping_mutation", "cargo", &["test", "-p", "conduit-composite", "composite_definition_rejects_every_face_mapping_mutation"]),
     Step::new("check.form.composite-terminal-failure", "test named_face_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks", "cargo", &["test", "-p", "conduit-composite", "named_face_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks"]),
-    Step::new("check.form.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_evidence_and_presentation_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_evidence_and_presentation_distinct"]),
+    Step::new("check.form.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_clue_and_presentation_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_clue_and_presentation_distinct"]),
     Step::new("check.form.fake-adapter-failure", "test fake_adapter_failure_is_structured_and_terminal", "cargo", &["test", "-p", "conduit-runtime", "--test", "host_contract", "fake_adapter_failure_is_structured_and_terminal"]),
-    Step::new("check.form.observatory-report-identity", "test report_separates_identity_capability_plan_connection_and_evidence_tables", "cargo", &["test", "-p", "conduit-observatory", "report_separates_identity_capability_plan_connection_and_evidence_tables"]),
+    Step::new("check.form.observatory-report-identity", "test report_separates_identity_capability_plan_connection_and_clue_tables", "cargo", &["test", "-p", "conduit-observatory", "report_separates_identity_capability_plan_connection_and_clue_tables"]),
 ];
 
 pub const BROWSER_CHECK_STEPS: &[Step] = &[
@@ -718,6 +702,12 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
             "pool-webchat-server",
         ],
     ),
+    Step::new(
+        "check.browser.patchbay-native-build",
+        "Build native Patchbay distributed source",
+        "cargo",
+        &["build", "-p", "patchbay-native"],
+    ),
     Step::typed(
         "check.browser.host-proof",
         "Run browser host test proof",
@@ -726,31 +716,6 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         None,
         Some("playwright"),
         Some(ProofClass::LiveBrowser),
-        &[],
-    ),
-];
-
-pub const REALM_READINESS_STEPS: &[Step] = &[
-    Step::new(
-        "check.realm.test",
-        "test conduit-realm",
-        "cargo",
-        &["test", "-p", "conduit-realm"],
-    ),
-    Step::typed(
-        "check.realm.thumb",
-        "check conduit-realm thumb target",
-        "cargo",
-        &[
-            "check",
-            "-p",
-            "conduit-realm",
-            "--target",
-            "thumbv6m-none-eabi",
-        ],
-        None,
-        Some("thumbv6m-none-eabi"),
-        Some(ProofClass::ContractCompile),
         &[],
     ),
 ];

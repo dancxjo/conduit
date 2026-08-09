@@ -43,7 +43,7 @@ const effect = (host, sequence) => ({
   operationId: 0,
   hostOperationContractId: "conduit.host/present@1",
   presentationId: `presentation/${host}/${sequence}`,
-  evidenceId: `evidence/${host}/${sequence}`,
+  clueId: `clue/${host}/${sequence}`,
   placementId: `placement/${host}/show`,
   presentationKind: "presentation/signal",
   value: {
@@ -116,8 +116,8 @@ try {
       hostAFirst.fragmentId !== hostBFirst.fragmentId &&
       hostAFirst.activePlayId !== hostBFirst.activePlayId &&
       hostAFirst.presentationId !== hostBFirst.presentationId &&
-      hostAFirst.evidenceId !== hostBFirst.evidenceId,
-    "host-scoped plan, fragment, play, presentation, and evidence identities remain independent",
+      hostAFirst.clueId !== hostBFirst.clueId,
+    "host-scoped plan, fragment, play, presentation, and clue identities remain independent",
   );
 
   const mismatchRuntime = await instantiateBrowserRuntime(wasmBytes, 0);

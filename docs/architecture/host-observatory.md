@@ -1,8 +1,8 @@
 # Host Observatory
 
 `conduit-observatory` is a read-only projection over neutral current-model
-reports. It does not open carriers, activate or cancel Plays, edit forms, grant
-authority, install providers, discover hosts, or maintain fleet membership.
+reports. It does not open carriers, start or cancel Plays, edit forms, grant
+authority, install bases, discover hosts, or maintain fleet membership.
 
 ## Authoritative input
 
@@ -15,7 +15,7 @@ One versioned `ObservatorySnapshot` contains:
 - boot-scoped active and terminal Play reports;
 - per-Play placement and connection lifecycle, terminal disposition, failure,
   and optional measured pressure;
-- runtime-issued observations with distinct Play, presentation, and evidence
+- runtime-issued observations with distinct Play, presentation, and clue
   identities;
 - a finite retention capacity, retained item count, and dropped item count.
 
@@ -25,7 +25,7 @@ from planned queue limits.
 
 `validate_snapshot` rejects unsupported schemas, invalid or duplicate plans,
 duplicate hosts/boots, links whose endpoints lack exact host reports, Plays or
-evidence naming unknown identities, presentation evidence without a Play, and
+clue naming unknown identities, presentation clue without a Play, and
 inconsistent retention accounting.
 
 ## Operator path
@@ -45,23 +45,23 @@ cargo run -p conduit -- observatory-report runtime-report.json
 ```
 
 The inspection command only validates, projects, and renders the stored
-snapshot. It does not prepare, activate, cancel, release, or otherwise control
+snapshot. It does not prepare, start, cancel, release, or otherwise control
 runtime work. A tampered host/boot or other unresolved identity fails closed.
 
 ## Structured representation
 
 The report provides complete table-shaped rows for hosts, capabilities, links,
 plans, fragments, placements, connections, Plays, Play placements, Play
-connections, evidence, and retention. Text rendering uses those same rows; no
+connections, clue, and retention. Text rendering uses those same rows; no
 graph canvas or UI state is required.
 
 Capabilities keep kind, contract, execution profile, implementation, limits,
 freshness, support, and availability separate. Plays keep plan, host, boot,
 placement, connection, pressure, failure, terminal disposition, presentation,
-and evidence identities separate. Pressure is `unknown` unless an authoritative
+and clue identities separate. Pressure is `unknown` unless an authoritative
 producer supplies measurements.
 
-Host-level `EvidenceGap` counts and snapshot-level retention loss are summed for
+Host-level `ClueGap` counts and snapshot-level retention loss are summed for
 visibility while remaining separately described in the retention explanation.
 
 ## Checkpoint commands

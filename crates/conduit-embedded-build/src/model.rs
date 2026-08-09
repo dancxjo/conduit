@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-use conduit_core::{CancellationPolicy, ConnectionProvider, TerminalPolicy};
+use conduit_core::{CancellationPolicy, ConnectionBase, TerminalPolicy};
 use conduit_runtime::lowering::{RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE};
 
 /// Reviewed finite ceilings for one generated fixed image.
@@ -13,14 +13,14 @@ pub struct EmbeddedImageBounds {
     pub maximum_route_targets: usize,
     pub maximum_host_operations: usize,
     pub maximum_resources: usize,
-    pub maximum_evidence_expectations: usize,
+    pub maximum_clue_expectations: usize,
     pub maximum_configuration_entries: usize,
     pub maximum_ports_per_node: usize,
     pub maximum_remote_endpoints: usize,
     pub maximum_cord_value_slots: u16,
     pub maximum_cord_value_bytes: u32,
-    pub maximum_evidence_items: u16,
-    pub maximum_evidence_bytes: u32,
+    pub maximum_clue_items: u16,
+    pub maximum_clue_bytes: u32,
 }
 
 impl EmbeddedImageBounds {
@@ -33,14 +33,14 @@ impl EmbeddedImageBounds {
         maximum_route_targets: u16::MAX as usize,
         maximum_host_operations: u16::MAX as usize,
         maximum_resources: u16::MAX as usize,
-        maximum_evidence_expectations: u16::MAX as usize,
+        maximum_clue_expectations: u16::MAX as usize,
         maximum_configuration_entries: u16::MAX as usize,
         maximum_ports_per_node: MAXIMUM_KERNEL_PORTS_PER_NODE,
         maximum_remote_endpoints: u16::MAX as usize,
         maximum_cord_value_slots: u16::MAX,
         maximum_cord_value_bytes: u32::MAX,
-        maximum_evidence_items: u16::MAX,
-        maximum_evidence_bytes: u32::MAX,
+        maximum_clue_items: u16::MAX,
+        maximum_clue_bytes: u32::MAX,
     };
 }
 
@@ -196,18 +196,18 @@ pub struct GeneratedStaticResource {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum GeneratedEvidenceTarget {
+pub enum GeneratedClueTarget {
     Fragment,
     Node(u16),
     Cord(u16),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GeneratedStaticEvidence {
+pub struct GeneratedStaticClue {
     pub expectation: u16,
     pub kind: &'static str,
     pub subject: Option<String>,
-    pub target: GeneratedEvidenceTarget,
+    pub target: GeneratedClueTarget,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -236,8 +236,8 @@ pub struct GeneratedStaticRemoteEndpoint {
     pub peer_host: String,
     pub peer_boot: String,
     pub peer_endpoint: String,
-    pub provider: ConnectionProvider,
-    pub provider_instance_id: String,
+    pub base: ConnectionBase,
+    pub base_instance_id: String,
     pub link_binding_id: String,
     pub value_kind: String,
     pub maximum_in_flight_items: u16,
@@ -268,12 +268,12 @@ pub struct GeneratedEmbeddedPlan {
     pub route_targets: Vec<GeneratedStaticRouteTarget>,
     pub host_operations: Vec<GeneratedHostOperation>,
     pub resources: Vec<GeneratedStaticResource>,
-    pub evidence: Vec<GeneratedStaticEvidence>,
+    pub clues: Vec<GeneratedStaticClue>,
     pub startup_dependencies: Vec<GeneratedStartupDependency>,
     pub startup_order: Vec<u16>,
     pub expected_terminals: Vec<GeneratedExpectedTerminal>,
     pub cord_value_slots: u16,
     pub cord_value_bytes: u32,
-    pub evidence_items: u16,
-    pub evidence_bytes: u32,
+    pub clue_items: u16,
+    pub clue_bytes: u32,
 }

@@ -1,5 +1,5 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{ConfigurationValue, PlannedOperation, PortDirection};
+use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, HostOperationOutcome,
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
@@ -170,20 +170,20 @@ impl TextPresentationOperation {
     }
 }
 
-fn text_literal_budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn text_literal_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_text_literal(placement)?;
     let text = text_configuration(placement, "value", MAX_TEXT_BYTES)?;
     Ok(OperationBudget {
         value_items: 1,
         value_bytes: u32::try_from(text.len()).map_err(|_| "text literal is too large")?,
         host_requests: 0,
-        evidence_items: 32,
+        clue_items: 32,
         maximum_value_bytes: MAX_TEXT_BYTES,
     })
 }
 
 fn prepare_text_literal(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_text_literal(placement)?;
@@ -197,19 +197,19 @@ fn prepare_text_literal(
     }))
 }
 
-fn text_upper_budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn text_upper_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_text_upper(placement)?;
     Ok(OperationBudget {
         value_items: MAX_TEXT_VALUES as u16,
         value_bytes: MAX_TEXT_BYTES * MAX_TEXT_VALUES as u32,
         host_requests: MAX_TEXT_VALUES as usize,
-        evidence_items: 64,
+        clue_items: 64,
         maximum_value_bytes: MAX_TEXT_BYTES,
     })
 }
 
 fn prepare_text_upper(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_text_upper(placement)?;
@@ -220,19 +220,19 @@ fn prepare_text_upper(
     }))
 }
 
-fn text_join_budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn text_join_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_text_join(placement)?;
     Ok(OperationBudget {
         value_items: MAX_TEXT_VALUES as u16,
         value_bytes: MAX_TEXT_BYTES * MAX_TEXT_VALUES as u32,
         host_requests: MAX_TEXT_VALUES as usize,
-        evidence_items: 64,
+        clue_items: 64,
         maximum_value_bytes: MAX_TEXT_BYTES,
     })
 }
 
 fn prepare_text_join(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_text_join(placement)?;
@@ -243,20 +243,20 @@ fn prepare_text_join(
     }))
 }
 
-fn text_presentation_budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn text_presentation_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_text_presentation(placement)?;
     let maximum_values = maximum_values(placement)?;
     Ok(OperationBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: maximum_values as usize,
-        evidence_items: 64,
+        clue_items: 64,
         maximum_value_bytes: MAX_TEXT_BYTES,
     })
 }
 
 fn prepare_text_presentation(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_text_presentation(placement)?;
@@ -270,7 +270,7 @@ fn prepare_text_presentation(
 }
 
 fn text_configuration<'a>(
-    placement: &'a PlannedOperation,
+    placement: &'a PlannedGear,
     key: &str,
     maximum: u32,
 ) -> Result<&'a str, String> {
@@ -287,11 +287,11 @@ fn text_configuration<'a>(
         .ok_or_else(|| format!("text configuration '{key}' is missing, invalid, or oversized"))
 }
 
-pub(super) fn join_prefix(placement: &PlannedOperation) -> Result<&str, String> {
+pub(super) fn join_prefix(placement: &PlannedGear) -> Result<&str, String> {
     text_configuration(placement, "prefix", MAX_TEXT_BYTES)
 }
 
-fn maximum_values(placement: &PlannedOperation) -> Result<u64, String> {
+fn maximum_values(placement: &PlannedGear) -> Result<u64, String> {
     placement
         .configuration
         .iter()
@@ -303,7 +303,7 @@ fn maximum_values(placement: &PlannedOperation) -> Result<u64, String> {
         .ok_or_else(|| "text presentation maximum-values is invalid".to_string())
 }
 
-fn validate_text_literal(placement: &PlannedOperation) -> Result<(), String> {
+fn validate_text_literal(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
         TEXT_LITERAL_KIND,
@@ -317,7 +317,7 @@ fn validate_text_literal(placement: &PlannedOperation) -> Result<(), String> {
     text_configuration(placement, "value", MAX_TEXT_BYTES).map(|_| ())
 }
 
-fn validate_text_upper(placement: &PlannedOperation) -> Result<(), String> {
+fn validate_text_upper(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
         TEXT_UPPER_KIND,
@@ -330,7 +330,7 @@ fn validate_text_upper(placement: &PlannedOperation) -> Result<(), String> {
     )
 }
 
-fn validate_text_join(placement: &PlannedOperation) -> Result<(), String> {
+fn validate_text_join(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
         TEXT_JOIN_KIND,
@@ -344,7 +344,7 @@ fn validate_text_join(placement: &PlannedOperation) -> Result<(), String> {
     text_configuration(placement, "prefix", MAX_TEXT_BYTES).map(|_| ())
 }
 
-fn validate_text_presentation(placement: &PlannedOperation) -> Result<(), String> {
+fn validate_text_presentation(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
         TEXT_PRESENTATION_KIND,
@@ -360,7 +360,7 @@ fn validate_text_presentation(placement: &PlannedOperation) -> Result<(), String
 
 #[allow(clippy::too_many_arguments)]
 fn validate_identity(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     kind: &str,
     revision: &str,
     profile: &str,

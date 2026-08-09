@@ -8,7 +8,7 @@ use conduit_core::{
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
-    OperationSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
+    KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_shared_pools, PlanningOptions,
@@ -32,8 +32,8 @@ fn peer_face() -> conduit_core::CheckedFace {
 fn startup_with_observe() -> StartupCatalog {
     let mut startup = StartupCatalog::new();
     startup
-        .insert(OperationSignature {
-            operation: "flow/pool-observe".into(),
+        .insert(KindSignature {
+            kind: "flow/pool-observe".into(),
             startup_parameters: vec![StartupParameterSignature {
                 name: "members".into(),
                 value_type: "Pool".into(),
@@ -93,10 +93,7 @@ fn offer_from_face(
 }
 
 fn host(form: &conduit_form::ExpandedCanonicalForm) -> HostAdvertisement {
-    let observe = form
-        .operations
-        .first()
-        .expect("expanded room has observers");
+    let observe = form.gears.first().expect("expanded room has observers");
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("browser"),
@@ -122,7 +119,7 @@ fn host(form: &conduit_form::ExpandedCanonicalForm) -> HostAdvertisement {
             profile_id: PlannerProfileId::from("test/planner"),
             limits: PlannerLimits {
                 maximum_host_advertisements: 4,
-                maximum_operations: 8,
+                maximum_gears: 8,
                 maximum_connections: 8,
                 maximum_authority_grants: 8,
                 maximum_protected_resource_grants: 0,
@@ -153,8 +150,8 @@ fn requirements() -> BTreeMap<SharedPoolId, SharedPoolPlanningRequirement> {
             member_limits: PoolMemberLimits {
                 queue_item_capacity: 4,
                 queue_byte_capacity: 1_024,
-                evidence_item_capacity: 16,
-                evidence_byte_capacity: 2_048,
+                clue_item_capacity: 16,
+                clue_byte_capacity: 2_048,
             },
             admission_authority: authority(),
         },
@@ -170,9 +167,9 @@ fn canonical_pool_plans_equal_face_members_and_exact_consumers_envelope_and_auth
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[conduit_core::ConnectionProvider::Local],
+        &[conduit_core::ConnectionBase::Local],
         PlanningOptions {
-            connection_providers: &BTreeMap::new(),
+            connection_bases: &BTreeMap::new(),
             route_candidates: &BTreeMap::new(),
             connection_item_capacity: 4,
             connection_byte_capacity: 1_024,
@@ -216,7 +213,7 @@ fn pool_planning_fails_when_face_capacity_or_authority_scope_is_not_exact() {
     host.capabilities[1].limits.max_active_instances = 1;
     let placements = default_expanded_placements(&form, std::slice::from_ref(&host)).unwrap();
     let options = PlanningOptions {
-        connection_providers: &BTreeMap::new(),
+        connection_bases: &BTreeMap::new(),
         route_candidates: &BTreeMap::new(),
         connection_item_capacity: 4,
         connection_byte_capacity: 1_024,
@@ -228,7 +225,7 @@ fn pool_planning_fails_when_face_capacity_or_authority_scope_is_not_exact() {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[conduit_core::ConnectionProvider::Local],
+        &[conduit_core::ConnectionBase::Local],
         options,
         &requirements(),
     )
@@ -245,7 +242,7 @@ fn pool_planning_fails_when_face_capacity_or_authority_scope_is_not_exact() {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[conduit_core::ConnectionProvider::Local],
+        &[conduit_core::ConnectionBase::Local],
         options,
         &wrong,
     )

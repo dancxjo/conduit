@@ -94,11 +94,11 @@ impl TripleSource {
             .collect::<Result<Vec<_>, _>>()?
             .try_into()
             .map_err(|_| "triple driver width".to_owned())?;
-        let evidence_bytes = u32::from(EVIDENCE_ITEMS)
+        let clue_bytes = u32::from(CLUE_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-            .ok_or_else(|| "triple evidence bytes overflow".to_owned())?;
-        let evidence = HostedEvidenceLog::new(EVIDENCE_ITEMS, evidence_bytes)
-            .map_err(|error| format!("{error:?}"))?;
+            .ok_or_else(|| "triple clue bytes overflow".to_owned())?;
+        let clue =
+            HostedClueLog::new(CLUE_ITEMS, clue_bytes).map_err(|error| format!("{error:?}"))?;
         let scheduler = TripleScheduler::new_with_host_operations(
             lowered
                 .node_specs
@@ -116,15 +116,15 @@ impl TripleSource {
             host_bindings,
             drivers,
             values,
-            evidence,
+            clue,
         )
         .map_err(|error| format!("{error:?}"))?;
         let active_play =
             bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         let identity = KernelExecutionIdentityMap::new(&lowered.identity, &active_play, 31, 16, 17)
             .map_err(|error| format!("{error:?}"))?;
-        let browser = remote_branch(&fragment, &lowered, ConnectionProvider::WebSocket)?;
-        let pico = remote_branch(&fragment, &lowered, ConnectionProvider::UsbCdc)?;
+        let browser = remote_branch(&fragment, &lowered, ConnectionBase::WebSocket)?;
+        let pico = remote_branch(&fragment, &lowered, ConnectionBase::UsbCdc)?;
         if browser.binding.source_active_play_id != active_play.active_play_id
             || pico.binding.source_active_play_id != active_play.active_play_id
         {
@@ -145,7 +145,7 @@ impl TripleSource {
             receipts,
             seal: CapacitySeal {
                 values: (0, 0),
-                evidence: 0,
+                clue: 0,
                 drivers: 0,
                 identity: (0, 0, 0),
                 receipts: 0,

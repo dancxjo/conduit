@@ -7,7 +7,7 @@ use conduit_core::{
 };
 
 use crate::{
-    CapabilityAvailability, CapabilityRow, CapabilityStatusReport, CapabilitySupport, EvidenceRow,
+    CapabilityAvailability, CapabilityRow, CapabilityStatusReport, CapabilitySupport, ClueRow,
     FragmentRow, HostRow, LinkRow, ObservatoryReport, ObservatorySnapshot, OfferFreshness,
     OperationalState, PlacementRow, PlanRow, RetentionRow,
 };
@@ -141,7 +141,7 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
                         source_placement_id: connection.source_placement_id.clone(),
                         sink_placement_id: connection.sink_placement_id.clone(),
                         value_kind: connection.value_kind.clone(),
-                        provider: connection.provider,
+                        base: connection.base,
                         link_binding: connection.link_binding.clone(),
                         item_capacity: connection.item_capacity,
                         byte_capacity: connection.byte_capacity,
@@ -159,11 +159,11 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
         .into_values()
         .collect::<Vec<_>>();
 
-    let evidence = snapshot
+    let clue = snapshot
         .observations
         .iter()
-        .map(|observation| EvidenceRow {
-            evidence_id: observation.evidence_id.clone(),
+        .map(|observation| ClueRow {
+            clue_id: observation.clue_id.clone(),
             active_play_id: observation.active_play_id.clone(),
             presentation_id: observation.presentation_id.clone(),
             host_id: observation.host_id.clone(),
@@ -178,11 +178,11 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
         .observations
         .iter()
         .filter_map(|observation| match observation.kind {
-            ObservationKind::EvidenceGap { dropped } => Some(dropped),
+            ObservationKind::ClueGap { dropped } => Some(dropped),
             _ => None,
         })
         .try_fold(0u64, u64::checked_add)
-        .ok_or_else(|| "host evidence gap count overflowed".to_string())?;
+        .ok_or_else(|| "host clue gap count overflowed".to_string())?;
     let visible_gap_count = host_gaps
         .checked_add(snapshot.retention.dropped_items)
         .ok_or_else(|| "combined retention gap count overflowed".to_string())?;
@@ -196,14 +196,14 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
         placements,
         connections,
         plays: snapshot.plays.clone(),
-        evidence,
+        clues: clue,
         retention: RetentionRow {
             bounded: true,
             item_capacity: snapshot.retention.item_capacity,
             retained_items: snapshot.retention.retained_items,
             visible_gap_count,
             explanation: format!(
-                "snapshot retained {} of {} evidence slots; snapshot dropped {}; hosts reported {} additional gaps",
+                "snapshot retained {} of {} clue slots; snapshot dropped {}; hosts reported {} additional gaps",
                 snapshot.retention.retained_items,
                 snapshot.retention.item_capacity,
                 snapshot.retention.dropped_items,
@@ -352,12 +352,12 @@ pub fn validate_snapshot(snapshot: &ObservatorySnapshot) -> Result<(), String> {
         }
     }
 
-    let mut evidence_ids = BTreeSet::new();
+    let mut clue_ids = BTreeSet::new();
     for observation in &snapshot.observations {
         if !host_boots.contains(&(observation.host_id.clone(), observation.boot_id.clone())) {
             return Err(format!(
                 "observation {} names an unreported host/boot",
-                observation.evidence_id.as_str()
+                observation.clue_id.as_str()
             ));
         }
         if observation
@@ -381,7 +381,7 @@ pub fn validate_snapshot(snapshot: &ObservatorySnapshot) -> Result<(), String> {
             }
         }
         if observation.presentation_id.is_some() && observation.active_play_id.is_none() {
-            return Err("presentation evidence has no active Play identity".to_string());
+            return Err("presentation clue has no active Play identity".to_string());
         }
         if let (Some(plan_id), Some(placement_id)) =
             (&observation.plan_id, &observation.placement_id)
@@ -407,8 +407,8 @@ pub fn validate_snapshot(snapshot: &ObservatorySnapshot) -> Result<(), String> {
                 return Err("observation names an unreported connection".to_string());
             }
         }
-        if !evidence_ids.insert(observation.evidence_id.clone()) {
-            return Err("duplicate evidence identity".to_string());
+        if !clue_ids.insert(observation.clue_id.clone()) {
+            return Err("duplicate clue identity".to_string());
         }
     }
     Ok(())

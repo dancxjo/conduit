@@ -43,7 +43,7 @@ pub(super) fn parse_pool_declaration(
     }
     Ok(PoolDeclaration {
         name: parser.spanned_at(name, line, start),
-        member_form: invocation.operation,
+        member_form: invocation.kind,
         maximum_members: maximum_members.expect("positive pool size was checked"),
         span: parser.span(start, start + line.len()),
     })

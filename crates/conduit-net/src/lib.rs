@@ -46,7 +46,7 @@ impl NetworkAttachmentId {
     }
 }
 
-/// Boot-scoped runtime truth produced after successful provider execution.
+/// Boot-scoped runtime truth produced after successful base execution.
 /// It deliberately contains no SSID, credential, address, socket, or carrier.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -58,7 +58,7 @@ pub struct NetworkAttachment {
     pub generation: u64,
 }
 
-/// Volatile provider input. Secret bytes intentionally implement neither
+/// Volatile base input. Secret bytes intentionally implement neither
 /// serialization nor display/debug formatting.
 pub struct NetworkJoinRequest<'a> {
     pub ssid: &'a [u8],
@@ -95,7 +95,7 @@ pub fn network_join_offer(
         kind_id: kind_id(NETWORK_JOIN_OPERATION),
         kind_contract_revision: KindContractRevision::from(NETWORK_JOIN_CONTRACT_REVISION),
         implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("conduit.network/join-provider@1"),
+            execution_profile_id: ExecutionProfileId::from("conduit.network/join-base@1"),
             implementation_id,
             artifact_id,
         },
@@ -138,7 +138,7 @@ pub fn network_capable_advertisement(host_id: &str, boot_id: &str) -> HostAdvert
         host_id: HostId::from(host_id),
         boot_id: BootId::from(boot_id),
         offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("network/fixture-provider"),
+        profile: HostProfileId::from("network/fixture-base"),
         resources: vec![wifi_station_resource("resource/wifi-station-0")],
         capabilities: vec![network_join_offer(
             CapabilityId::from("capability/network-join"),
@@ -162,7 +162,7 @@ pub fn network_omitting_advertisement(host_id: &str, boot_id: &str) -> HostAdver
     }
 }
 
-/// Deterministic fixture provider for contract conformance only. It validates
+/// Deterministic fixture base for contract conformance only. It validates
 /// the current advertised/resource/authority facts and never retains secrets.
 pub fn execute_fixture_join(
     request: NetworkJoinRequest<'_>,

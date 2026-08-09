@@ -7,18 +7,18 @@ allocator, scheduler, planner, or execution API.
 ## Contract boundaries
 
 - A host advertises architecture-neutral compute pools. Physical packages,
-  cores, hardware threads, and provider scheduler identifiers remain provider
+  cores, hardware threads, and base scheduler identifiers remain base
   facts rather than authored form facts.
 - A capability requirement states minimum, preferred, and maximum lanes, a
   minimum service guarantee (`Shared`, `Reserved`, or `Exclusive`), and optional
   topology constraints. The planner admits every minimum before assigning spare
   capacity toward preferences.
 - A sealed Plan records the selected lane count, pool, service guarantee,
-  architecture-provider identity and kind, and any selected stable topology
+  architecture-base identity and kind, and any selected stable topology
   group. Current utilization and concrete lane assignment are separate runtime
   facts.
 - A transient lane assignment belongs to an active play and placement. It may
-  contain a provider-local lane identifier, but that identifier is deliberately
+  contain a base-local lane identifier, but that identifier is deliberately
   absent from Plan identity and serialization.
 
 Optional topology groups can truthfully expose NUMA domains, cache domains, and
@@ -27,10 +27,10 @@ not contractual. It cannot satisfy a hard topology requirement.
 
 ## Hosted and bare-metal realization
 
-`HostedOs` and `BareMetal` providers realize the same lane entitlement. A hosted
-provider can use admitted OS workers. A bare-metal provider can enumerate,
-start, wake, run, park, and signal execution lanes through the generic provider
-boundary. Neither provider may invent capacity, placement, retries, or
+`HostedOs` and `BareMetal` bases realize the same lane entitlement. A hosted
+base can use admitted OS workers. A bare-metal base can enumerate,
+start, wake, run, park, and signal execution lanes through the generic base
+boundary. Neither base may invent capacity, placement, retries, or
 authority, and neither becomes the Conduit scheduler.
 
 Implementation identity, architecture-specific artifact identity, compute-pool
@@ -44,7 +44,7 @@ The deterministic planner tests prove bounded minimum-first allocation, exact
 service and topology selection, hosted/bare-metal contract parity, Plan identity
 sealing, and the exclusion of physical lane identifiers from serialized Plans.
 They do not claim operating-system scheduling quality, bare-metal interrupt
-behavior, firmware execution, or physical/HIL evidence.
+behavior, firmware execution, or physical/HIL clue.
 
 ## Non-AI generality check
 
@@ -77,8 +77,8 @@ queue/core identifier.
 ### Storage write: local disk or network storage
 
 An authored operation requests a checked `storage/write-object` face with a
-finite byte bound and explicit terminal behavior. A local-filesystem provider
-and a network-object provider can advertise that equal face:
+finite byte bound and explicit terminal behavior. A local-filesystem base
+and a network-object base can advertise that equal face:
 
 | General R2 fact | Local realization | Network realization |
 | --- | --- | --- |
@@ -92,7 +92,7 @@ A hard no-egress rule or authority allowlist rejects the network realization;
 it cannot win through favorable durability or capacity policy. When both are
 admissible, explicit policy can select one deterministically. The Plan seals the
 exact resource and authority bindings, but credential bytes, endpoint secrets,
-open file descriptors, sockets, and provider request IDs remain outside it.
+open file descriptors, sockets, and base request IDs remain outside it.
 
 In both examples, changed observations can produce a newly admitted replacement
 Plan while the old Plan remains immutable. Neither example introduces a media

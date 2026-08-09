@@ -28,9 +28,9 @@ pub const MAX_STORED_WAIT_VALUES: usize = MAX_STORED_SIGNAL_VALUES - 1;
 pub const VALUE_SLOTS: usize = MAX_STORED_SIGNAL_VALUES + MAX_STORED_WAIT_VALUES;
 #[allow(dead_code)]
 pub const WAIT_VALUE_BYTES: u32 = generated_signal::WAIT_VALUE_BYTES;
-pub const RUNTIME_EVIDENCE_EVENTS: usize = generated_signal::RUNTIME_EVIDENCE_EVENTS;
-pub const RUNTIME_EVIDENCE_BYTES: u32 =
-    (RUNTIME_EVIDENCE_EVENTS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32;
+pub const RUNTIME_CLUE_EVENTS: usize = generated_signal::RUNTIME_CLUE_EVENTS;
+pub const RUNTIME_CLUE_BYTES: u32 =
+    (RUNTIME_CLUE_EVENTS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32;
 
 pub const SOURCE_DOCUMENT_ID: &str = generated_signal::SOURCE_DOCUMENT_ID;
 pub const CHECKED_FORM_ID: &str = generated_signal::CHECKED_FORM_ID;
@@ -41,8 +41,8 @@ pub const HOST_ID: &str = generated_signal::HOST_ID;
 pub const BOOT_ID: &str = generated_signal::BOOT_ID;
 pub const ACTIVE_PLAY_ID: &str = generated_signal::ACTIVE_PLAY_ID;
 pub const FIRMWARE_BUILD_ID: &str = generated_signal::FIRMWARE_BUILD_ID;
-pub const BOOT_EVIDENCE_ID: &str = generated_signal::BOOT_EVIDENCE_ID;
-pub const TERMINAL_EVIDENCE_ID: &str = generated_signal::TERMINAL_EVIDENCE_ID;
+pub const BOOT_CLUE_ID: &str = generated_signal::BOOT_CLUE_ID;
+pub const TERMINAL_CLUE_ID: &str = generated_signal::TERMINAL_CLUE_ID;
 
 #[allow(dead_code)]
 const WAIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/wait@1";
@@ -51,13 +51,13 @@ const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
 #[derive(Clone, Copy)]
 pub struct PresentationIdentity {
     pub presentation_id: &'static str,
-    pub evidence_id: &'static str,
+    pub clue_id: &'static str,
 }
 
 pub fn presentation_identity(sequence: usize) -> Option<PresentationIdentity> {
     Some(PresentationIdentity {
         presentation_id: generated_signal::PRESENTATION_IDS.get(sequence)?,
-        evidence_id: generated_signal::PRESENTATION_EVIDENCE_IDS.get(sequence)?,
+        clue_id: generated_signal::PRESENTATION_CLUE_IDS.get(sequence)?,
     })
 }
 
@@ -277,8 +277,8 @@ pub struct RemoteEndpointIdentity {
     pub peer_host: &'static str,
     pub peer_boot: &'static str,
     pub peer_endpoint: &'static str,
-    pub provider_code: u8,
-    pub provider_instance_id: &'static str,
+    pub base_code: u8,
+    pub base_instance_id: &'static str,
     pub link_binding_id: &'static str,
     pub value_kind: &'static str,
     pub maximum_in_flight_items: u16,
@@ -305,8 +305,8 @@ pub fn generated_remote_endpoint() -> Option<RemoteEndpointIdentity> {
         peer_host: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_HOSTS.first()?,
         peer_boot: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_BOOTS.first()?,
         peer_endpoint: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_ENDPOINTS.first()?,
-        provider_code: *generated_signal::GENERATED_REMOTE_ENDPOINT_PROVIDER_CODES.first()?,
-        provider_instance_id: generated_signal::GENERATED_REMOTE_ENDPOINT_PROVIDER_INSTANCE_IDS
+        base_code: *generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_CODES.first()?,
+        base_instance_id: generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS
             .first()?,
         link_binding_id: generated_signal::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS.first()?,
         value_kind: generated_signal::GENERATED_REMOTE_ENDPOINT_VALUE_KINDS.first()?,

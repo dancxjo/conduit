@@ -1,5 +1,5 @@
 use conduit_core::{
-    process_owned_link_binding, BootId, ConnectionId, ConnectionProvider, FragmentId,
+    process_owned_link_binding, BootId, ConnectionBase, ConnectionId, FragmentId,
     HostAdvertisement, HostId, HostProfileId, KindId, LinkAvailability, LinkBindingId,
     OfferGeneration, PlanId, PlannedConnection, PortId, PortTemporal, PROTOCOL_VERSION,
 };
@@ -30,7 +30,7 @@ fn connection_with_routes(
         sink_port_id: PortId::from("in"),
         value_kind: KindId::from("value"),
         temporal: PortTemporal::Flow { closes: true },
-        provider: selected.provider,
+        base: selected.base,
         link_binding: Some(selected),
         route_candidates: routes,
         item_capacity: 1,
@@ -44,7 +44,7 @@ fn session_rejects_selected_link_outside_sealed_candidates() {
     let sink = host("sink");
     let sealed = process_owned_link_binding(
         "sealed",
-        ConnectionProvider::UsbCdc,
+        ConnectionBase::UsbCdc,
         "usb/0",
         &source,
         &sink,
@@ -53,7 +53,7 @@ fn session_rejects_selected_link_outside_sealed_candidates() {
     );
     let mut unsealed = process_owned_link_binding(
         "unsealed",
-        ConnectionProvider::UsbCdc,
+        ConnectionBase::UsbCdc,
         "usb/1",
         &source,
         &sink,
@@ -80,7 +80,7 @@ fn two_sealed_carriers_share_one_logical_identity_but_keep_exact_attachments() {
     let sink = host("sink");
     let mut usb = process_owned_link_binding(
         "usb",
-        ConnectionProvider::UsbCdc,
+        ConnectionBase::UsbCdc,
         "usb/0",
         &source,
         &sink,
@@ -89,7 +89,7 @@ fn two_sealed_carriers_share_one_logical_identity_but_keep_exact_attachments() {
     );
     let mut websocket = process_owned_link_binding(
         "websocket",
-        ConnectionProvider::WebSocket,
+        ConnectionBase::WebSocket,
         "websocket/0",
         &source,
         &sink,
@@ -115,11 +115,8 @@ fn two_sealed_carriers_share_one_logical_identity_but_keep_exact_attachments() {
 
     assert_eq!(usb_session.identity(), websocket_session.identity());
     assert_ne!(usb_session.attachment, websocket_session.attachment);
-    assert_eq!(usb_session.attachment.provider, ConnectionProvider::UsbCdc);
-    assert_eq!(
-        websocket_session.attachment.provider,
-        ConnectionProvider::WebSocket
-    );
+    assert_eq!(usb_session.attachment.base, ConnectionBase::UsbCdc);
+    assert_eq!(websocket_session.attachment.base, ConnectionBase::WebSocket);
 
     let mut unavailable = websocket;
     unavailable.availability = LinkAvailability::Unavailable;

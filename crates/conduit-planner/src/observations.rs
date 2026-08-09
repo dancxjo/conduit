@@ -3,34 +3,34 @@ use crate::{HardRealizationRequirements, PlacementChoice, PlannerError, Realizat
 use conduit_core::{
     CapabilityOffer, HostAdvertisement, ResourceHealth, ResourceObservation, ResourcePoolId,
 };
-use conduit_form::CheckedOperation;
+use conduit_form::CheckedGear;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub fn select_realization_with_observations(
-    operation: &CheckedOperation,
-    realm: &[HostAdvertisement],
+    gear: &CheckedGear,
+    hosts: &[HostAdvertisement],
     requirements: &HardRealizationRequirements,
     observations: &[ResourceObservation],
     policy: &RealizationPolicy,
 ) -> Result<PlacementChoice, PlannerError> {
-    validate_resource_observations(realm, observations)?;
+    validate_resource_observations(hosts, observations)?;
     select_realization_matching(
-        operation,
-        realm,
+        gear,
+        hosts,
         requirements,
         policy,
         |host, offer| observations_admit(host, offer, observations),
         Some(PlannerError::CurrentResourceObservationUnavailable(
             format!(
-                "operation '{}' has no realization with current observed resources",
-                operation.operation_id.as_str()
+                "gear '{}' has no realization with current observed resources",
+                gear.gear_id.as_str()
             ),
         )),
     )
 }
 
 pub(crate) fn validate_resource_observations(
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     observations: &[ResourceObservation],
 ) -> Result<(), PlannerError> {
     let mut scopes = BTreeSet::new();
@@ -39,15 +39,15 @@ pub(crate) fn validate_resource_observations(
             || observation.boot_id.as_str().is_empty()
             || observation.pool_id.as_str().is_empty()
             || observation.class_id.as_str().is_empty()
-            || observation.evidence_id.as_str().is_empty()
+            || observation.clue_id.as_str().is_empty()
         {
             return invalid("observation identities must be non-empty");
         }
-        let Some(host) = realm
+        let Some(host) = hosts
             .iter()
             .find(|host| host.host_id == observation.host_id)
         else {
-            return invalid("observation host is absent from the planning realm");
+            return invalid("observation host is absent from the planning hosts");
         };
         if host.boot_id != observation.boot_id
             || host.offer_generation != observation.offer_generation

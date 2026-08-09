@@ -6,12 +6,12 @@ use crate::requirements::{
 };
 use crate::{PlacementChoice, PlacementChoices, PlannerError, RealizationPolicy};
 use conduit_core::{
-    seal_plan, ArtifactId, BootId, CapabilityId, CapabilityOffer, ConnectionProvider, FormIdentity,
-    HostAdvertisement, HostId, ImplementationId, OfferGeneration, OperationId, Plan,
+    seal_plan, ArtifactId, BootId, CapabilityId, CapabilityOffer, ConnectionBase, FormIdentity,
+    GearId, HostAdvertisement, HostId, ImplementationId, OfferGeneration, Plan,
     RealizationAdvertisement, RealizationCharacteristicId, RealizationCharacteristicValue,
     ResourceObservation,
 };
-use conduit_form::{CheckedForm, CheckedOperation};
+use conduit_form::{CheckedForm, CheckedGear};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const MAXIMUM_REALIZATION_DECISION_RECORDS: usize = 256;
@@ -37,10 +37,10 @@ pub enum RealizationDecisionDisposition {
     Selected,
 }
 
-/// Bounded, prompt-free planning evidence for one equal-face candidate.
+/// Bounded, prompt-free planning clues for one equal-face candidate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RealizationDecisionRecord {
-    pub operation_id: OperationId,
+    pub gear_id: GearId,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -53,20 +53,20 @@ pub struct RealizationDecisionRecord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RealizationSelection {
     pub choice: PlacementChoice,
-    pub evidence: Vec<RealizationDecisionRecord>,
+    pub clues: Vec<RealizationDecisionRecord>,
 }
 
 pub fn select_realization_with_characteristics(
-    operation: &CheckedOperation,
-    realm: &[HostAdvertisement],
+    gear: &CheckedGear,
+    hosts: &[HostAdvertisement],
     advertisements: &[RealizationAdvertisement],
     requirements: &HardRealizationRequirements,
     observations: &[ResourceObservation],
     policy: &RealizationPolicy,
 ) -> Result<PlacementChoice, PlannerError> {
-    select_realization_with_characteristics_and_evidence(
-        operation,
-        realm,
+    select_realization_with_characteristics_and_clues(
+        gear,
+        hosts,
         advertisements,
         requirements,
         observations,
@@ -75,9 +75,9 @@ pub fn select_realization_with_characteristics(
     .map(|selection| selection.choice)
 }
 
-pub fn select_realization_with_characteristics_and_evidence(
-    operation: &CheckedOperation,
-    realm: &[HostAdvertisement],
+pub fn select_realization_with_characteristics_and_clues(
+    gear: &CheckedGear,
+    hosts: &[HostAdvertisement],
     advertisements: &[RealizationAdvertisement],
     requirements: &HardRealizationRequirements,
     observations: &[ResourceObservation],
@@ -85,28 +85,28 @@ pub fn select_realization_with_characteristics_and_evidence(
 ) -> Result<RealizationSelection, PlannerError> {
     validate_requirement_identities(requirements)?;
     validate_policy(policy)?;
-    validate_resource_observations(realm, observations)?;
-    validate_advertisements(realm, advertisements)?;
+    validate_resource_observations(hosts, observations)?;
+    validate_advertisements(hosts, advertisements)?;
 
-    let face_candidates = realm
+    let face_candidates = hosts
         .iter()
         .flat_map(|host| host.capabilities.iter().map(move |offer| (host, offer)))
-        .filter(|(_, offer)| offer.checked_face() == operation.checked_face())
+        .filter(|(_, offer)| offer.checked_face() == gear.checked_face())
         .collect::<Vec<_>>();
     if face_candidates.is_empty() {
         return Err(PlannerError::UnknownCapability(
-            operation.kind_id.as_str().to_string(),
+            gear.kind_id.as_str().to_string(),
         ));
     }
     if face_candidates.len() > MAXIMUM_REALIZATION_DECISION_RECORDS {
         return Err(PlannerError::PlannerLimitExceeded(format!(
-            "operation '{}' has {} equal-face candidates above the evidence bound of {}",
-            operation.operation_id.as_str(),
+            "gear '{}' has {} equal-face candidates above the clues bound of {}",
+            gear.gear_id.as_str(),
             face_candidates.len(),
             MAXIMUM_REALIZATION_DECISION_RECORDS
         )));
     }
-    let mut evidence = Vec::with_capacity(face_candidates.len());
+    let mut clues = Vec::with_capacity(face_candidates.len());
     let mut hard_admitted = Vec::with_capacity(face_candidates.len());
     for (host, offer) in face_candidates {
         let facts = advertisement_for(host, offer, advertisements);
@@ -116,8 +116,8 @@ pub fn select_realization_with_characteristics_and_evidence(
         if rejection.is_none() {
             hard_admitted.push((host, offer));
         }
-        evidence.push(decision_record(
-            operation,
+        clues.push(decision_record(
+            gear,
             host,
             offer,
             rejection.map_or(
@@ -129,8 +129,8 @@ pub fn select_realization_with_characteristics_and_evidence(
     if hard_admitted.is_empty() {
         return Err(PlannerError::HardRealizationRequirementUnsatisfied(
             format!(
-                "operation '{}' has no hard-admissible realization",
-                operation.operation_id.as_str()
+                "gear '{}' has no hard-admissible realization",
+                gear.gear_id.as_str()
             ),
         ));
     }
@@ -138,7 +138,7 @@ pub fn select_realization_with_characteristics_and_evidence(
     for (host, offer) in hard_admitted {
         if observations_admit(host, offer, observations) {
             observed_admitted.push((host, offer));
-        } else if let Some(record) = evidence.iter_mut().find(|record| {
+        } else if let Some(record) = clues.iter_mut().find(|record| {
             record.host_id == host.host_id && record.capability_id == offer.capability_id
         }) {
             record.disposition = RealizationDecisionDisposition::Rejected(
@@ -149,8 +149,8 @@ pub fn select_realization_with_characteristics_and_evidence(
     if observed_admitted.is_empty() {
         return Err(PlannerError::CurrentResourceObservationUnavailable(
             format!(
-                "operation '{}' has no realization with current observed resources",
-                operation.operation_id.as_str()
+                "gear '{}' has no realization with current observed resources",
+                gear.gear_id.as_str()
             ),
         ));
     }
@@ -169,27 +169,27 @@ pub fn select_realization_with_characteristics_and_evidence(
         host_id: observed_admitted[0].0.host_id.clone(),
         capability_id: observed_admitted[0].1.capability_id.clone(),
     };
-    for record in &mut evidence {
+    for record in &mut clues {
         if record.host_id == choice.host_id && record.capability_id == choice.capability_id {
             record.disposition = RealizationDecisionDisposition::Selected;
         }
     }
-    evidence.sort_by(|left, right| {
+    clues.sort_by(|left, right| {
         left.host_id
             .cmp(&right.host_id)
             .then_with(|| left.capability_id.cmp(&right.capability_id))
     });
-    Ok(RealizationSelection { choice, evidence })
+    Ok(RealizationSelection { choice, clues })
 }
 
 fn decision_record(
-    operation: &CheckedOperation,
+    gear: &CheckedGear,
     host: &HostAdvertisement,
     offer: &CapabilityOffer,
     disposition: RealizationDecisionDisposition,
 ) -> RealizationDecisionRecord {
     RealizationDecisionRecord {
-        operation_id: operation.operation_id.clone(),
+        gear_id: gear.gear_id.clone(),
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),
         offer_generation: host.offer_generation,
@@ -213,33 +213,33 @@ fn base_rejection(dimension: &'static str) -> RealizationRejection {
 
 pub fn plan_selected_realizations_with_characteristics(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
-    providers: &[ConnectionProvider],
-    requirements: &BTreeMap<OperationId, HardRealizationRequirements>,
+    hosts: &[HostAdvertisement],
+    bases: &[ConnectionBase],
+    requirements: &BTreeMap<GearId, HardRealizationRequirements>,
     advertisements: &[RealizationAdvertisement],
     observations: &[ResourceObservation],
-    policies: &BTreeMap<OperationId, RealizationPolicy>,
+    policies: &BTreeMap<GearId, RealizationPolicy>,
 ) -> Result<Plan, PlannerError> {
     reject_unknown_operation_inputs(form, requirements, policies)?;
-    validate_resource_observations(realm, observations)?;
-    validate_advertisements(realm, advertisements)?;
+    validate_resource_observations(hosts, observations)?;
+    validate_advertisements(hosts, advertisements)?;
     let mut remaining = observations.to_vec();
-    let mut by_operation = BTreeMap::new();
-    for operation in &form.operations {
+    let mut by_gear = BTreeMap::new();
+    for gear in &form.gears {
         let choice = select_realization_with_characteristics(
-            operation,
-            realm,
+            gear,
+            hosts,
             advertisements,
             requirements
-                .get(&operation.operation_id)
+                .get(&gear.gear_id)
                 .unwrap_or(&HardRealizationRequirements::default()),
             &remaining,
             policies
-                .get(&operation.operation_id)
+                .get(&gear.gear_id)
                 .unwrap_or(&RealizationPolicy::default()),
         )?;
-        consume_selected_capacity(realm, &choice, &mut remaining)?;
-        by_operation.insert(operation.operation_id.clone(), choice);
+        consume_selected_capacity(hosts, &choice, &mut remaining)?;
+        by_gear.insert(gear.gear_id.clone(), choice);
     }
     let mut plain_requirements = requirements.clone();
     for requirement in plain_requirements.values_mut() {
@@ -250,25 +250,25 @@ pub fn plan_selected_realizations_with_characteristics(
     }
     let plan = crate::plan_with_hard_requirements(
         form,
-        realm,
-        &PlacementChoices { by_operation },
-        providers,
+        hosts,
+        &PlacementChoices { by_gear },
+        bases,
         &plain_requirements,
     )?;
     seal_characteristics(plan, advertisements)
 }
 
 fn validate_advertisements(
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     advertisements: &[RealizationAdvertisement],
 ) -> Result<(), PlannerError> {
     let mut scopes = BTreeSet::new();
     for advertisement in advertisements {
-        let Some(host) = realm
+        let Some(host) = hosts
             .iter()
             .find(|host| host.host_id == advertisement.host_id)
         else {
-            return invalid("realization advertisement host is absent from realm");
+            return invalid("realization advertisement host is absent from hosts");
         };
         if host.boot_id != advertisement.boot_id
             || host.offer_generation != advertisement.offer_generation
@@ -376,15 +376,15 @@ pub(crate) fn seal_characteristics(
     advertisements: &[RealizationAdvertisement],
 ) -> Result<Plan, PlannerError> {
     for fragment in &mut plan.fragments {
-        for operation in &mut fragment.placements {
+        for gear in &mut fragment.placements {
             if let Some(advertisement) = advertisements.iter().find(|item| {
-                item.host_id == operation.host_id
-                    && item.boot_id == operation.boot_id
-                    && item.offer_generation == operation.offer_generation
-                    && item.capability_id == operation.capability_id
+                item.host_id == gear.host_id
+                    && item.boot_id == gear.boot_id
+                    && item.offer_generation == gear.offer_generation
+                    && item.capability_id == gear.capability_id
             }) {
-                operation.realization_characteristics = advertisement.characteristics.clone();
-                operation.realization_characteristics.sort();
+                gear.realization_characteristics = advertisement.characteristics.clone();
+                gear.realization_characteristics.sort();
             }
         }
     }

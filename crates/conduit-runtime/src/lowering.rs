@@ -1,18 +1,18 @@
-//! Exact pre-activation lowering from string-identified plan facts into the
+//! Exact pre-Play-start lowering from string-identified plan facts into the
 //! numeric tables consumed by `conduit-kernel`.
 
 use conduit_core::{
-    mandatory_evidence_storage_requirement, verify_plan_fragment, ActivePlayId, ActivePlayIdentity,
-    BootId, ConnectionId, ConnectionProvider, EvidenceId, EvidenceIdentity, ExpectedEvidence,
-    FragmentId, HostId, HostOperationContractId, KindId, LinkBinding, LinkEndpoint, PlacementId,
-    PlanFragment, PlanId, PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId,
-    PresentationIdentity, ResourceBinding as PlanResourceBinding, SharedPoolId,
+    mandatory_clue_storage_requirement, verify_plan_fragment, ActivePlayId, ActivePlayIdentity,
+    BootId, ClueId, ClueIdentity, ConnectionBase, ConnectionId, ExpectedClue, FragmentId, HostId,
+    HostOperationContractId, KindId, LinkBinding, LinkEndpoint, PlacementId, PlanFragment, PlanId,
+    PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId, PresentationIdentity,
+    ResourceBinding as PlanResourceBinding, SharedPoolId,
 };
 use conduit_kernel::{
     scheduler::{CordCapacity, CordSpec, NodeSpec},
-    CordId, EvidenceExpectationId, EvidenceExpectationTarget, HostOperationBinding,
-    HostOperationId, NodeId, PortId, RemoteEndpointId, ResourceBinding as KernelResourceBinding,
-    ResourceId, RouteRange, RouteTarget,
+    ClueExpectationId, ClueExpectationTarget, CordId, HostOperationBinding, HostOperationId,
+    NodeId, PortId, RemoteEndpointId, ResourceBinding as KernelResourceBinding, ResourceId,
+    RouteRange, RouteTarget,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -21,7 +21,7 @@ use shared_pool::lower_shared_pools;
 pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
 
 /// The first takeover checkpoint deliberately admits only the scheduler's
-/// fixed per-node port width. Wider plans must be rejected before activation.
+/// fixed per-node port width. Wider plans must be rejected before Play start.
 pub const MAXIMUM_KERNEL_PORTS_PER_NODE: usize = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -50,8 +50,8 @@ pub enum LoweringError {
     },
     UnsupportedHostOperationConcurrency(PlacementId),
     ResourceBindingInvalid(PlacementId),
-    EvidenceBudgetInvalid,
-    EvidenceReferenceMissing,
+    ClueBudgetInvalid,
+    ClueReferenceMissing,
     SharedPoolInvalid(SharedPoolId),
     SharedPoolConsumerMissing(SharedPoolId),
 }
@@ -89,7 +89,7 @@ pub enum RemoteCordDirection {
 
 /// Exact identity binding retained outside the allocation-independent kernel.
 /// The host must bind this numeric endpoint to this observed link before
-/// activation; the carrier is not allowed to choose or rewrite any fact here.
+/// trigger; the carrier is not allowed to choose or rewrite any fact here.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredRemoteEndpoint {
     pub endpoint: RemoteEndpointId,
@@ -130,10 +130,10 @@ pub struct LoweredResource {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LoweredEvidence {
-    pub expectation: EvidenceExpectationId,
-    pub expected: ExpectedEvidence,
-    pub target: EvidenceExpectationTarget,
+pub struct LoweredClue {
+    pub expectation: ClueExpectationId,
+    pub expected: ExpectedClue,
+    pub target: ClueExpectationTarget,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -289,8 +289,8 @@ pub struct KernelPresentationIdentity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KernelEvidenceIdentity {
-    pub evidence_id: EvidenceId,
+pub struct KernelClueIdentity {
+    pub clue_id: ClueId,
     pub node: Option<NodeId>,
     pub request: Option<conduit_kernel::RequestId>,
     pub presentation_id: Option<PresentationId>,
@@ -304,7 +304,7 @@ pub struct KernelExecutionIdentityMap {
     boot_id: BootId,
     requests: Vec<KernelHostRequestIdentity>,
     presentations: Vec<KernelPresentationIdentity>,
-    evidence: Vec<KernelEvidenceIdentity>,
+    clues: Vec<KernelClueIdentity>,
 }
 
 impl KernelExecutionIdentityMap {
@@ -313,7 +313,7 @@ impl KernelExecutionIdentityMap {
         active_play: &ActivePlayIdentity,
         request_capacity: usize,
         presentation_capacity: usize,
-        evidence_capacity: usize,
+        clue_capacity: usize,
     ) -> Result<Self, ExecutionIdentityError> {
         if active_play.plan_id != lowered.plan_id {
             return Err(ExecutionIdentityError::WrongPlan);
@@ -325,7 +325,7 @@ impl KernelExecutionIdentityMap {
             boot_id: active_play.boot_id.clone(),
             requests: Vec::with_capacity(request_capacity),
             presentations: Vec::with_capacity(presentation_capacity),
-            evidence: Vec::with_capacity(evidence_capacity),
+            clues: Vec::with_capacity(clue_capacity),
         })
     }
 
@@ -392,17 +392,17 @@ impl KernelExecutionIdentityMap {
         Ok(())
     }
 
-    pub fn bind_evidence(
+    pub fn bind_clue(
         &mut self,
-        evidence: &EvidenceIdentity,
+        clue: &ClueIdentity,
         node: Option<NodeId>,
         request: Option<conduit_kernel::RequestId>,
         presentation_id: Option<&PresentationId>,
     ) -> Result<(), ExecutionIdentityError> {
-        if evidence.active_play_id.as_ref() != Some(&self.active_play_id) {
+        if clue.active_play_id.as_ref() != Some(&self.active_play_id) {
             return Err(ExecutionIdentityError::WrongActivePlay);
         }
-        if evidence.host_id != self.host_id || evidence.boot_id != self.boot_id {
+        if clue.host_id != self.host_id || clue.boot_id != self.boot_id {
             return Err(ExecutionIdentityError::WrongHost);
         }
         if node.is_some() != request.is_some() {
@@ -421,18 +421,18 @@ impl KernelExecutionIdentityMap {
                 return Err(ExecutionIdentityError::UnknownPresentation);
             }
         }
-        if self.evidence.len() >= self.evidence.capacity() {
+        if self.clues.len() >= self.clues.capacity() {
             return Err(ExecutionIdentityError::CapacityExceeded);
         }
         if self
-            .evidence
+            .clues
             .iter()
-            .any(|identity| identity.evidence_id == evidence.evidence_id)
+            .any(|identity| identity.clue_id == clue.clue_id)
         {
             return Err(ExecutionIdentityError::DuplicateIdentity);
         }
-        self.evidence.push(KernelEvidenceIdentity {
-            evidence_id: evidence.evidence_id.clone(),
+        self.clues.push(KernelClueIdentity {
+            clue_id: clue.clue_id.clone(),
             node,
             request,
             presentation_id: presentation_id.cloned(),
@@ -479,17 +479,15 @@ impl KernelExecutionIdentityMap {
             .find(|identity| identity.node == node && identity.request == request)
     }
 
-    pub fn evidence(&self, evidence: &EvidenceId) -> Option<&KernelEvidenceIdentity> {
-        self.evidence
-            .iter()
-            .find(|identity| &identity.evidence_id == evidence)
+    pub fn clue_identity(&self, clue: &ClueId) -> Option<&KernelClueIdentity> {
+        self.clues.iter().find(|identity| &identity.clue_id == clue)
     }
 
-    pub fn evidence_for_presentation(
+    pub fn clue_for_presentation(
         &self,
         presentation: &PresentationId,
-    ) -> Option<&KernelEvidenceIdentity> {
-        self.evidence
+    ) -> Option<&KernelClueIdentity> {
+        self.clues
             .iter()
             .find(|identity| identity.presentation_id.as_ref() == Some(presentation))
     }
@@ -498,7 +496,7 @@ impl KernelExecutionIdentityMap {
         (
             self.requests.capacity(),
             self.presentations.capacity(),
-            self.evidence.capacity(),
+            self.clues.capacity(),
         )
     }
 
@@ -506,7 +504,7 @@ impl KernelExecutionIdentityMap {
         (
             self.requests.len(),
             self.presentations.len(),
-            self.evidence.len(),
+            self.clues.len(),
         )
     }
 }
@@ -521,12 +519,12 @@ pub struct LoweredPlanFragment {
     pub routes: Vec<LoweredRoute>,
     pub host_operations: Vec<LoweredHostOperation>,
     pub resources: Vec<LoweredResource>,
-    pub evidence: Vec<LoweredEvidence>,
+    pub clues: Vec<LoweredClue>,
     pub shared_pools: Vec<LoweredSharedPool>,
     pub cord_value_slots: u16,
     pub cord_value_bytes: u32,
-    pub evidence_items: u16,
-    pub evidence_bytes: u32,
+    pub clue_items: u16,
+    pub clue_bytes: u32,
 }
 
 pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragment, LoweringError> {
@@ -536,10 +534,10 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
     if fragment.placements.is_empty() {
         return Err(LoweringError::EmptyFragment);
     }
-    if mandatory_evidence_storage_requirement(&fragment.expected_evidence)
-        != Some(fragment.evidence_storage_budget)
+    if mandatory_clue_storage_requirement(&fragment.expected_clue)
+        != Some(fragment.clue_storage_budget)
     {
-        return Err(LoweringError::EvidenceBudgetInvalid);
+        return Err(LoweringError::ClueBudgetInvalid);
     }
     let mut placement_nodes = BTreeMap::new();
     let mut nodes = Vec::with_capacity(fragment.placements.len());
@@ -673,9 +671,7 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         }
         let spec = match (source_node.zip(source_port), sink_node.zip(sink_port)) {
             (Some((source_node, source_port)), Some((sink_node, sink_port))) => {
-                if connection.provider != ConnectionProvider::Local
-                    || connection.link_binding.is_some()
-                {
+                if connection.base != ConnectionBase::Local || connection.link_binding.is_some() {
                     return Err(LoweringError::InvalidRemoteConnection(
                         connection.connection_id.clone(),
                     ));
@@ -695,8 +691,8 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
                 let binding = connection.link_binding.as_ref().ok_or_else(|| {
                     LoweringError::InvalidRemoteConnection(connection.connection_id.clone())
                 })?;
-                if connection.provider == ConnectionProvider::Local
-                    || binding.provider != connection.provider
+                if connection.base == ConnectionBase::Local
+                    || binding.base != connection.base
                     || binding.source.host_id != fragment.host_id
                     || binding.source.boot_id != fragment.boot_id
                 {
@@ -733,8 +729,8 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
                 let binding = connection.link_binding.as_ref().ok_or_else(|| {
                     LoweringError::InvalidRemoteConnection(connection.connection_id.clone())
                 })?;
-                if connection.provider == ConnectionProvider::Local
-                    || binding.provider != connection.provider
+                if connection.base == ConnectionBase::Local
+                    || binding.base != connection.base
                     || binding.sink.host_id != fragment.host_id
                     || binding.sink.boot_id != fragment.boot_id
                 {
@@ -819,29 +815,29 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         }
     }
 
-    let mut evidence = Vec::with_capacity(fragment.expected_evidence.len());
-    for (index, expected) in fragment.expected_evidence.iter().enumerate() {
+    let mut clues = Vec::with_capacity(fragment.expected_clue.len());
+    for (index, expected) in fragment.expected_clue.iter().enumerate() {
         let target = match expected {
-            ExpectedEvidence::PlanFragmentReceived | ExpectedEvidence::PlanTerminal => {
-                EvidenceExpectationTarget::Fragment
+            ExpectedClue::PlanFragmentReceived | ExpectedClue::PlanTerminal => {
+                ClueExpectationTarget::Fragment
             }
-            ExpectedEvidence::PlacementPrepared(id) | ExpectedEvidence::PlacementTerminal(id) => {
-                EvidenceExpectationTarget::Node(
+            ExpectedClue::PlacementPrepared(id) | ExpectedClue::PlacementTerminal(id) => {
+                ClueExpectationTarget::Node(
                     *placement_nodes
                         .get(id)
-                        .ok_or(LoweringError::EvidenceReferenceMissing)?,
+                        .ok_or(LoweringError::ClueReferenceMissing)?,
                 )
             }
-            ExpectedEvidence::ConnectionTerminal(id) => EvidenceExpectationTarget::Cord(
+            ExpectedClue::ConnectionTerminal(id) => ClueExpectationTarget::Cord(
                 cords
                     .iter()
                     .find(|cord| &cord.connection_id == id)
                     .map(|cord| cord.spec.cord)
-                    .ok_or(LoweringError::EvidenceReferenceMissing)?,
+                    .ok_or(LoweringError::ClueReferenceMissing)?,
             ),
         };
-        evidence.push(LoweredEvidence {
-            expectation: EvidenceExpectationId(as_u16(index)?),
+        clues.push(LoweredClue {
+            expectation: ClueExpectationId(as_u16(index)?),
             expected: expected.clone(),
             target,
         });
@@ -888,12 +884,12 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         routes,
         host_operations,
         resources,
-        evidence,
+        clues,
         shared_pools,
         cord_value_slots: value_slots,
         cord_value_bytes: value_bytes,
-        evidence_items: fragment.evidence_storage_budget.item_capacity,
-        evidence_bytes: fragment.evidence_storage_budget.byte_capacity,
+        clue_items: fragment.clue_storage_budget.item_capacity,
+        clue_bytes: fragment.clue_storage_budget.byte_capacity,
     })
 }
 

@@ -77,7 +77,7 @@ impl PatchbayTopology {
                     .sum::<usize>(),
             )
             .saturating_add(report.links.len())
-            .saturating_add(report.evidence.len());
+            .saturating_add(report.clues.len());
         if report_bytes > MAX_RETAINED_REPORT_BYTES || presentation_lines > MAX_TOPOLOGY_LINES {
             return Err(TopologyViewError::ReportTooLarge);
         }
@@ -171,7 +171,7 @@ impl PatchbayTopology {
                         "    planner={} hosts={} operations={} connections={}",
                         planner.profile_id.as_str(),
                         planner.limits.maximum_host_advertisements,
-                        planner.limits.maximum_operations,
+                        planner.limits.maximum_gears,
                         planner.limits.maximum_connections
                     ),
                 )?;
@@ -198,14 +198,14 @@ impl PatchbayTopology {
             push_line(
                 &mut lines,
                 format!(
-                    "  link={} {}@{} -> {}@{} provider={:?} instance={} report={:?} availability={:?}",
+                    "  link={} {}@{} -> {}@{} base={:?} instance={} report={:?} availability={:?}",
                     link.binding.binding_id.as_str(),
                     link.binding.source.host_id.as_str(),
                     link.binding.source.boot_id.as_str(),
                     link.binding.sink.host_id.as_str(),
                     link.binding.sink.boot_id.as_str(),
-                    link.binding.provider,
-                    link.binding.provider_instance_id.as_str(),
+                    link.binding.base,
+                    link.binding.base_instance_id.as_str(),
                     link.state,
                     link.binding.availability
                 ),
@@ -216,21 +216,21 @@ impl PatchbayTopology {
             &mut lines,
             format!(
                 "OBSERVATIONS {} retained={} capacity={} visible_gaps={}",
-                report.evidence.len(),
+                report.clues.len(),
                 report.retention.retained_items,
                 report.retention.item_capacity,
                 report.retention.visible_gap_count
             ),
         )?;
-        for evidence in &report.evidence {
+        for clue in &report.clues {
             push_line(
                 &mut lines,
                 format!(
-                    "  evidence={} host={} boot={} kind={:?}",
-                    evidence.evidence_id.as_str(),
-                    evidence.host_id.as_str(),
-                    evidence.boot_id.as_str(),
-                    evidence.kind
+                    "  clue={} host={} boot={} kind={:?}",
+                    clue.clue_id.as_str(),
+                    clue.host_id.as_str(),
+                    clue.boot_id.as_str(),
+                    clue.kind
                 ),
             )?;
         }
@@ -255,9 +255,7 @@ fn push_line(lines: &mut Vec<String>, line: String) -> Result<(), TopologyViewEr
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{
-        BootId, EvidenceId, HostId, LinkAvailability, Observation, ObservationKind,
-    };
+    use conduit_core::{BootId, ClueId, HostId, LinkAvailability, Observation, ObservationKind};
     use conduit_observatory::{
         CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LinkReport,
         ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
@@ -305,7 +303,7 @@ mod tests {
             usb.availability = LinkAvailability::Unavailable;
         }
         let observations = vec![Observation {
-            evidence_id: EvidenceId::from("fleet/evidence-1"),
+            clue_id: ClueId::from("fleet/clue-1"),
             active_play_id: None,
             presentation_id: None,
             host_id: laptop.host_id.clone(),
@@ -362,8 +360,8 @@ mod tests {
         );
         assert!(document.contains("operation="));
         assert!(document.contains("resource="));
-        assert!(document.contains("provider=WebSocket"));
-        assert!(document.contains("provider=UsbCdc"));
+        assert!(document.contains("base=WebSocket"));
+        assert!(document.contains("base=UsbCdc"));
         assert!(document.contains("visible_gaps=3"));
     }
 

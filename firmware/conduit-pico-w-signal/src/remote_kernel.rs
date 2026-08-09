@@ -4,7 +4,7 @@ use conduit_kernel::scheduler::{
     FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, EvidenceQuery, Failure, FailureCode, FixedEvidenceLog, FixedValueStore,
+    BoundedValueRef, ClueQuery, Failure, FailureCode, FixedClueLog, FixedValueStore,
     HostOperationDisposition, HostOperationOutcome, Operation, OperationAction, OperationInput,
     PortId, RequestId, ValueStorage,
 };
@@ -17,14 +17,14 @@ use crate::signal_image::{
     generated_cords, generated_host_bindings, generated_nodes, generated_remote_endpoint,
     generated_routes, presentation_identity, remote_signal_layout, CORDS, HOST_BINDING_SLOTS,
     NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS,
-    RUNTIME_EVIDENCE_BYTES, RUNTIME_EVIDENCE_EVENTS,
+    RUNTIME_CLUE_BYTES, RUNTIME_CLUE_EVENTS,
 };
 use crate::usb_link::{UsbLinkError, UsbLinkResult};
 
 type SinkScheduler = FixedScheduler<
     OperationDriver<ShowOperation, PORTS>,
     FixedValueStore<QUEUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>,
-    FixedEvidenceLog<RUNTIME_EVIDENCE_EVENTS>,
+    FixedClueLog<RUNTIME_CLUE_EVENTS>,
     NODES,
     CORDS,
     PORTS,
@@ -108,8 +108,8 @@ impl RemoteSignalKernel {
             SIGNAL_ENCODED_LEN,
         )
         .map_err(UsbLinkError::Storage)?;
-        let evidence = FixedEvidenceLog::<RUNTIME_EVIDENCE_EVENTS>::new(RUNTIME_EVIDENCE_BYTES)
-            .map_err(UsbLinkError::EvidenceStorage)?;
+        let clue = FixedClueLog::<RUNTIME_CLUE_EVENTS>::new(RUNTIME_CLUE_BYTES)
+            .map_err(UsbLinkError::ClueStorage)?;
         let driver = OperationDriver::new(ShowOperation {
             input_port: layout.show_input_port,
             present_operation: layout.present_operation,
@@ -124,7 +124,7 @@ impl RemoteSignalKernel {
             generated_host_bindings(),
             [driver],
             values,
-            evidence,
+            clue,
         )
         .map_err(UsbLinkError::Kernel)?;
         Ok(Self {
@@ -148,7 +148,7 @@ impl RemoteSignalKernel {
         &mut self,
         expected_sequence: u64,
         control: &mut Control<'_>,
-        evidence: &mut UsbCdc,
+        clue: &mut UsbCdc,
         runtime: &RuntimeTranscriptIdentity,
     ) -> UsbLinkResult<Signal> {
         loop {
@@ -169,7 +169,7 @@ impl RemoteSignalKernel {
                 let identity = presentation_identity(self.presented)
                     .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
                 control.gpio_set(0, signal.level).await;
-                evidence
+                clue
                     .write_receipt(
                         signal.sequence,
                         signal.level,
@@ -225,11 +225,11 @@ impl RemoteSignalKernel {
                 != (0, 0)
             || !self
                 .scheduler
-                .evidence()
+                .clues()
                 .contains_kind(conduit_kernel::KernelEventKind::RemoteInputClosed)
             || !self
                 .scheduler
-                .evidence()
+                .clues()
                 .contains_kind(conduit_kernel::KernelEventKind::OperationCompleted)
         {
             return Err(UsbLinkError::KernelTerminalInvariant);

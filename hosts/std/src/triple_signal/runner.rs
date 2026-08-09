@@ -10,7 +10,7 @@ use conduit_wire::{
 use crate::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
 use crate::websocket::{NativeWebSocketCarrier, NativeWebSocketListener};
 
-use super::{PicoEvidence, RemoteKind, TripleSource};
+use super::{PicoClue, RemoteKind, TripleSource};
 
 #[path = "failure.rs"]
 mod failure;
@@ -22,7 +22,7 @@ pub fn default_pico_ports() -> Result<(PathBuf, PathBuf), String> {
     let entries = std::fs::read_dir(base)
         .map_err(|error| format!("cannot inspect {}: {error}", base.display()))?;
     let mut link = None;
-    let mut evidence = None;
+    let mut clue = None;
     for entry in entries {
         let path = entry.map_err(|error| error.to_string())?.path();
         let name = path
@@ -35,25 +35,25 @@ pub fn default_pico_ports() -> Result<(PathBuf, PathBuf), String> {
         if name.ends_with("-if00") {
             link = Some(path);
         } else if name.ends_with("-if02") {
-            evidence = Some(path);
+            clue = Some(path);
         }
     }
     Ok((
         link.ok_or_else(|| "Pico CDC0 link interface is not present".to_owned())?,
-        evidence.ok_or_else(|| "Pico CDC1 evidence interface is not present".to_owned())?,
+        clue.ok_or_else(|| "Pico CDC1 clue interface is not present".to_owned())?,
     ))
 }
 
 pub struct TriplePhysicalRunner {
     pub(super) source: TripleSource,
-    pub(super) pico_evidence: PicoEvidence,
+    pub(super) pico_clue: PicoClue,
 }
 
 impl TriplePhysicalRunner {
     pub fn prepare() -> Result<Self, String> {
         Ok(Self {
             source: TripleSource::prepare()?,
-            pico_evidence: PicoEvidence::exact_triple()?,
+            pico_clue: PicoClue::exact_triple()?,
         })
     }
 
@@ -61,10 +61,10 @@ impl TriplePhysicalRunner {
         mut self,
         listener: NativeWebSocketListener,
         link_path: &Path,
-        evidence_path: &Path,
+        clue_path: &Path,
         report: &mut W,
     ) -> Result<(), String> {
-        let mut evidence = NativePathCdcLineReader::open(evidence_path)
+        let mut clue = NativePathCdcLineReader::open(clue_path)
             .map_err(|error| format!("open Pico CDC1: {error:?}"))?;
         let mut pico = NativePathCdcCarrier::open(link_path, 1_024)
             .map_err(|error| format!("open Pico CDC0: {error:?}"))?;
@@ -78,11 +78,11 @@ impl TriplePhysicalRunner {
         if reply != b"CONDUIT_RAW_CDC0_REPLY" {
             return Err("Pico raw CDC0 probe reply mismatch".to_owned());
         }
-        let boot_line = evidence
+        let boot_line = clue
             .read_line(Duration::from_secs(3))
-            .map_err(|error| format!("Pico boot evidence: {error:?}"))?;
-        let runtime = self.pico_evidence.verify_boot(&boot_line)?;
-        let ready = evidence
+            .map_err(|error| format!("Pico boot clue: {error:?}"))?;
+        let runtime = self.pico_clue.verify_boot(&boot_line)?;
+        let ready = clue
             .read_line(Duration::from_secs(10))
             .map_err(|error| format!("Pico GPIO readiness: {error:?}"))?;
         if ready != "CONDUIT_CYW43_GPIO_READY" {
@@ -92,8 +92,8 @@ impl TriplePhysicalRunner {
             .observe_pico_boot(conduit_core::BootId::from(runtime.boot_id.as_str()))?;
 
         let mut browser = listener.accept().map_err(|error| format!("{error:?}"))?;
-        self.activate_browser(&mut browser)?;
-        self.activate_pico(&mut pico)?;
+        self.trigger_browser(&mut browser)?;
+        self.trigger_pico(&mut pico)?;
         if !self.source.is_active(RemoteKind::Browser) || !self.source.is_active(RemoteKind::Pico) {
             return Err(
                 "both exact remote sessions were not active before source execution".into(),
@@ -112,10 +112,10 @@ impl TriplePhysicalRunner {
 
                 let signal =
                     decode_signal_bytes(&offer.payload).map_err(|error| error.to_string())?;
-                let receipt_line = evidence
+                let receipt_line = clue
                     .read_line(Duration::from_secs(3))
                     .map_err(|error| format!("Pico receipt {}: {error:?}", offer.sequence))?;
-                self.pico_evidence.verify_receipt(
+                self.pico_clue.verify_receipt(
                     &receipt_line,
                     &runtime,
                     signal.sequence,
@@ -137,7 +137,7 @@ impl TriplePhysicalRunner {
                         "active_play_id": stdout.active_play_id,
                         "placement_id": stdout.placement_id.as_str(),
                         "presentation_id": stdout.presentation_id.as_str(),
-                        "evidence_id": stdout.evidence_id.as_str(),
+                        "clue_id": stdout.clue_id.as_str(),
                         "sequence": stdout.sequence,
                         "level": stdout.level,
                     })
@@ -152,11 +152,10 @@ impl TriplePhysicalRunner {
             }
             self.complete_browser(&mut browser, final_sequence)?;
             self.complete_pico(&mut pico, final_sequence)?;
-            let terminal = evidence
+            let terminal = clue
                 .read_line(Duration::from_secs(3))
-                .map_err(|error| format!("Pico terminal evidence: {error:?}"))?;
-            self.pico_evidence
-                .verify_terminal(&terminal, &runtime, true)?;
+                .map_err(|error| format!("Pico terminal clue: {error:?}"))?;
+            self.pico_clue.verify_terminal(&terminal, &runtime, true)?;
             if !self.source.is_terminal(RemoteKind::Browser)
                 || !self.source.is_terminal(RemoteKind::Pico)
             {
@@ -169,7 +168,7 @@ impl TriplePhysicalRunner {
             Ok(_) => {}
             Err(cause) => {
                 let propagation =
-                    self.fail_pico_branch(&mut pico, &mut evidence, &runtime, 350, report);
+                    self.fail_pico_branch(&mut pico, &mut clue, &runtime, 350, report);
                 return Err(match propagation {
                     Ok(()) => format!("{cause}; failure propagated to Pico terminal"),
                     Err(error) => format!("{cause}; Pico failure propagation: {error}"),
@@ -195,13 +194,13 @@ impl TriplePhysicalRunner {
                 .as_str(),
             runtime.boot_id,
             runtime.active_play_id,
-            self.pico_evidence.firmware_build_id().unwrap_or("missing"),
+            self.pico_clue.firmware_build_id().unwrap_or("missing"),
         )
         .map_err(|error| error.to_string())?;
         Ok(())
     }
 
-    fn activate_browser(&mut self, carrier: &mut NativeWebSocketCarrier) -> Result<(), String> {
+    fn trigger_browser(&mut self, carrier: &mut NativeWebSocketCarrier) -> Result<(), String> {
         let hello = receive_browser(&mut self.source, carrier)?;
         if !matches!(hello, BrowserInbound::Hello) {
             return Err("browser did not begin with Hello".into());
@@ -219,7 +218,7 @@ impl TriplePhysicalRunner {
         send_browser(carrier, ready)
     }
 
-    fn activate_pico(&mut self, carrier: &mut NativePathCdcCarrier) -> Result<(), String> {
+    fn trigger_pico(&mut self, carrier: &mut NativePathCdcCarrier) -> Result<(), String> {
         let binding = self.source.binding(RemoteKind::Pico).clone();
         let hello = binding.hello_frame();
         self.source.admit_outbound(RemoteKind::Pico, hello)?;

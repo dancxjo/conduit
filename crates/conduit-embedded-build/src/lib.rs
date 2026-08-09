@@ -3,7 +3,7 @@
 //! This crate accepts one already validated [`conduit_core::PlanFragment`] and
 //! its current [`conduit_runtime::lowering::LoweredPlanFragment`]. It performs
 //! no parsing, planning, capability selection, firmware work, transport, or
-//! activation. Unsupported facts fail closed rather than being approximated.
+//! trigger. Unsupported facts fail closed rather than being approximated.
 
 mod generate;
 mod model;

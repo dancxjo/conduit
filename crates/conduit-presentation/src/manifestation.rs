@@ -2,16 +2,14 @@
 
 use alloc::string::String;
 use conduit_body::{BodyId, SeedId, WakeId};
-use conduit_core::{
-    verify_plan, ActivePlayId, EvidenceId, PlacementId, Plan, PlanId, PlannedOperation,
-};
+use conduit_core::{verify_plan, ActivePlayId, ClueId, PlacementId, Plan, PlanId, PlannedGear};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{Presentation, PresentationContentId, RENDERER_KIND};
 
 pub const MAX_MANIFESTATION_TARGET_BYTES: usize = 256;
-pub const MAX_MANIFESTATION_EVIDENCE: usize = 3;
+pub const MAX_MANIFESTATION_CLUES: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ManifestationId(String);
@@ -44,7 +42,7 @@ pub struct Manifestation {
     pub placement_id: PlacementId,
     pub target_subject: String,
     pub lifecycle: ManifestationLifecycle,
-    pub evidence_ids: alloc::vec::Vec<EvidenceId>,
+    pub clue_ids: alloc::vec::Vec<ClueId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -71,7 +69,7 @@ impl Manifestation {
         active_play_id: ActivePlayId,
         placement_id: PlacementId,
         target_subject: String,
-        evidence_id: EvidenceId,
+        clue_id: ClueId,
     ) -> Result<Self, ManifestationError> {
         presentation
             .validate()
@@ -97,14 +95,14 @@ impl Manifestation {
             placement_id: placement.placement_id.clone(),
             target_subject,
             lifecycle: ManifestationLifecycle::Prepared,
-            evidence_ids: alloc::vec![evidence_id],
+            clue_ids: alloc::vec![clue_id],
         })
     }
 
     pub fn transition(
         &self,
         lifecycle: ManifestationLifecycle,
-        evidence_id: EvidenceId,
+        clue_id: ClueId,
     ) -> Result<Self, ManifestationError> {
         let accepted = matches!(
             (self.lifecycle, lifecycle),
@@ -126,14 +124,14 @@ impl Manifestation {
             )
         );
         if !accepted
-            || self.evidence_ids.len() >= MAX_MANIFESTATION_EVIDENCE
-            || self.evidence_ids.contains(&evidence_id)
+            || self.clue_ids.len() >= MAX_MANIFESTATION_CLUES
+            || self.clue_ids.contains(&clue_id)
         {
             return Err(ManifestationError::InvalidTransition);
         }
         let mut next = self.clone();
         next.lifecycle = lifecycle;
-        next.evidence_ids.push(evidence_id);
+        next.clue_ids.push(clue_id);
         Ok(next)
     }
 
@@ -141,7 +139,7 @@ impl Manifestation {
         &self,
         presentation: &Presentation,
         plan: &'a Plan,
-    ) -> Result<&'a PlannedOperation, ManifestationError> {
+    ) -> Result<&'a PlannedGear, ManifestationError> {
         presentation
             .validate()
             .map_err(|_| ManifestationError::InvalidPresentation)?;
@@ -164,17 +162,16 @@ impl Manifestation {
             return Err(ManifestationError::StaleIdentity);
         }
         validate_target(&self.target_subject)?;
-        if self.evidence_ids.is_empty()
-            || self.evidence_ids.len() > MAX_MANIFESTATION_EVIDENCE
-            || self.evidence_ids.iter().any(|evidence| {
-                evidence.as_str().is_empty()
-                    || evidence.as_str().len() > crate::MAX_PRESENTATION_ID_BYTES
+        if self.clue_ids.is_empty()
+            || self.clue_ids.len() > MAX_MANIFESTATION_CLUES
+            || self.clue_ids.iter().any(|clue| {
+                clue.as_str().is_empty() || clue.as_str().len() > crate::MAX_PRESENTATION_ID_BYTES
             })
             || self
-                .evidence_ids
+                .clue_ids
                 .iter()
                 .enumerate()
-                .any(|(index, evidence)| self.evidence_ids[..index].contains(evidence))
+                .any(|(index, clue)| self.clue_ids[..index].contains(clue))
         {
             return Err(ManifestationError::InvalidTransition);
         }
@@ -185,7 +182,7 @@ impl Manifestation {
 fn renderer_placement<'a>(
     plan: &'a Plan,
     placement_id: &PlacementId,
-) -> Result<&'a PlannedOperation, ManifestationError> {
+) -> Result<&'a PlannedGear, ManifestationError> {
     if !verify_plan(plan) {
         return Err(ManifestationError::InvalidPlan);
     }

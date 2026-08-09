@@ -27,14 +27,14 @@ Layout and comments change `SourceDocumentId` but do not change
 semantic identities. Hidden nested implementation changes leave the parent's
 checked identity alone when its visible exported contract is unchanged, but
 change the parent expanded identity and therefore its plan/fragment identities.
-Plan, play, evidence, and presentation identities are not conflated with this
+Plan, play, clue, and presentation identities are not conflated with this
 document.
 
 ## Deliberate exclusions
 
 This is not a transplant of the archived panel grammar. It does not restore
 modules, packages, a formatter, UI recovery nodes, or panel-era compatibility.
-The current one-cell syntax and its export rule are unchanged by the lossless
+The current one-gear syntax and its export rule are unchanged by the lossless
 document layer. Inline nesting remains later S3 work.
 
 ## Checked composite boundary checkpoint
@@ -63,11 +63,11 @@ multi-input/multi-output faces with different value kinds plus input-only and
 output-only composites.
 
 The hosted composite compatibility façade configures those checked mappings
-on each exact child fragment before activation. Parent connection envelopes
+on each exact child fragment before Play start. Parent connection envelopes
 enter only the mapped child input port; atomic named child outputs leave only
 the matching parent face. Item/byte pressure retains and retries the same
 envelope, each input/output closes independently, and cancellation or child
-failure terminalizes every visible connection before parent plan evidence.
+failure terminalizes every visible connection before parent plan clue.
 External events and observations use only parent plan/connection identities;
 child host and placement identities remain internal. This does not restore the
 legacy runtime as the production engine: `conduit-std-host` continues to run
@@ -75,7 +75,7 @@ its installed profiles through `conduit-kernel`.
 
 ## Inline nesting checkpoint
 
-An inline child uses `operation: capability { ... }`. The inner block is
+An inline child is one configured Gear whose Kind is a reusable Form. The inner block is
 checked recursively as the same `CheckedForm` used for a standalone document.
 The named capability must be an explicit checked export; that boundary becomes
 the parent operation's exact kind revision and ports. Parent connections then
@@ -90,8 +90,8 @@ parallel recovery AST.
 ## Nested expansion identity correction
 
 Each parent expanded identity now binds a canonical row for every nested
-operation: its operation path, selected export capability, and the child's
-recursively expanded identity. Rows are sorted by operation identity, so source
+Gear: its Gear path, selected export capability, and the child's
+recursively expanded identity. Rows are sorted by Gear identity, so source
 declaration order is spelling rather than semantics; swapping implementations
 between two paths still changes the expanded identity.
 
@@ -106,16 +106,16 @@ identity therefore fails closed before a plan can be issued.
 The identity chain does not stop at expansion:
 
 - `PlanId` identifies one immutable exact plan;
-- `ActivePlayId` identifies one activation, bound to plan, host, boot, and a
-  monotonic host activation sequence;
-- `EvidenceId` identifies one host-recorded observation, bound to host, boot,
-  optional active play, and a monotonic evidence sequence; and
+- `ActivePlayId` identifies one Play start, bound to plan, host, boot, and a
+  monotonic host Play start sequence;
+- `ClueId` identifies one host-recorded observation, bound to host, boot,
+  optional active play, and a monotonic clue sequence; and
 - `PresentationId` identifies one presentation request, bound to active play,
   placement, and a monotonic per-placement sequence.
 
 Presentation effects carry both play and presentation IDs through std,
 browser-shaped, Pico-shaped, and composite adapters. A completion with either
 the wrong play or presentation identity is rejected without consuming the
-pending request. Observatory uses the runtime-issued evidence ID and projects
-its play/presentation references; it no longer fabricates `evidence/{row}`
+pending request. Observatory uses the runtime-issued clue ID and projects
+its play/presentation references; it no longer fabricates `clue/{row}`
 identities.

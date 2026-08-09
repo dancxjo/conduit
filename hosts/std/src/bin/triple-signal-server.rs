@@ -6,21 +6,21 @@ use conduit_std_host::triple_signal::{default_pico_ports, TriplePhysicalRunner};
 use conduit_std_host::websocket::NativeWebSocketListener;
 
 fn main() -> Result<(), String> {
-    let (default_link, default_evidence) = default_pico_ports()?;
+    let (default_link, default_clue) = default_pico_ports()?;
     let mut link = std::env::var_os("CONDUIT_PICO_LINK_PORT")
         .map(PathBuf::from)
         .unwrap_or(default_link);
-    let mut evidence = std::env::var_os("CONDUIT_PICO_EVIDENCE_PORT")
+    let mut clue = std::env::var_os("CONDUIT_PICO_CLUE_PORT")
         .map(PathBuf::from)
-        .unwrap_or(default_evidence);
+        .unwrap_or(default_clue);
     let mut args = std::env::args().skip(1);
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--link-port" => {
                 link = PathBuf::from(args.next().ok_or("--link-port requires a path")?)
             }
-            "--evidence-port" => {
-                evidence = PathBuf::from(args.next().ok_or("--evidence-port requires a path")?)
+            "--clue-port" => {
+                clue = PathBuf::from(args.next().ok_or("--clue-port requires a path")?)
             }
             other => return Err(format!("unknown triple-signal-server argument: {other}")),
         }
@@ -33,5 +33,5 @@ fn main() -> Result<(), String> {
     std::io::stdout()
         .flush()
         .map_err(|error| error.to_string())?;
-    runner.run(listener, &link, &evidence, &mut std::io::stdout())
+    runner.run(listener, &link, &clue, &mut std::io::stdout())
 }

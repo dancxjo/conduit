@@ -1,5 +1,5 @@
 use conduit_core::{
-    bind_active_play, bind_evidence, seal_plan, AuthorityGrantId, BootId, CapabilityId, EvidenceId,
+    bind_active_play, bind_clue, seal_plan, AuthorityGrantId, BootId, CapabilityId, ClueId,
     FormIdentity, KindContractRevision, Observation, ObservationKind, Plan, PlanId,
     TerminalDisposition,
 };
@@ -31,7 +31,7 @@ fn available_host(advertisement: conduit_core::HostAdvertisement) -> HostReport 
     }
 }
 
-fn plays(plan: &Plan, activation_sequence: u64) -> Vec<PlayReport> {
+fn plays(plan: &Plan, play_sequence: u64) -> Vec<PlayReport> {
     plan.fragments
         .iter()
         .map(|fragment| PlayReport {
@@ -39,7 +39,7 @@ fn plays(plan: &Plan, activation_sequence: u64) -> Vec<PlayReport> {
                 &plan.plan_id,
                 &fragment.host_id,
                 &fragment.boot_id,
-                activation_sequence,
+                play_sequence,
             )
             .active_play_id,
             plan_id: plan.plan_id.clone(),
@@ -58,21 +58,21 @@ fn snapshot(
     plan: Plan,
     hosts: Vec<HostReport>,
     links: Vec<conduit_core::LinkBinding>,
-    activation_sequence: u64,
+    play_sequence: u64,
 ) -> ObservatorySnapshot {
-    let plays = plays(&plan, activation_sequence);
+    let plays = plays(&plan, play_sequence);
     let observations = plays
         .iter()
         .enumerate()
         .map(|(sequence, play)| {
-            let identity = bind_evidence(
+            let identity = bind_clue(
                 &play.host_id,
                 &play.boot_id,
                 Some(&play.active_play_id),
                 sequence as u64,
             );
             Observation {
-                evidence_id: identity.evidence_id,
+                clue_id: identity.clue_id,
                 active_play_id: Some(play.active_play_id.clone()),
                 presentation_id: None,
                 host_id: play.host_id.clone(),
@@ -135,8 +135,8 @@ fn requirements(
                 .find(|offer| offer.capability_id == placement.capability_id)
                 .unwrap();
             RoleRequirement {
-                role_id: RoleId::from(placement.operation_id.as_str()),
-                operation_id: placement.operation_id.clone(),
+                role_id: RoleId::from(placement.gear_id.as_str()),
+                gear_id: placement.gear_id.clone(),
                 checked_face: offer.checked_face(),
             }
         })
@@ -174,7 +174,7 @@ fn fixture() -> Fixture {
         link_binding_id: exact.pico_link.binding_id.clone(),
         maximum_transitions: 1,
         proof_window_ticks: 2,
-        evidence_sequence_base: 40,
+        clue_sequence_base: 40,
     };
     let snapshot = snapshot(
         exact.plan.clone(),
@@ -287,7 +287,7 @@ fn exact_roles_bind_to_three_explicit_members_one_plan_and_distinct_plays() {
     assert_eq!(record.assignments.len(), 4);
     assert_eq!(record.observed_links.len(), 2);
     assert_eq!(record.play_ids.len(), 3);
-    assert_eq!(record.evidence_ids.len(), 3);
+    assert_eq!(record.clue_ids.len(), 3);
     assert_eq!(record.plan_id, fixture.exact.plan.plan_id);
     assert!(record.assignments.iter().any(|assignment| {
         assignment.role_id == RoleId::from("light")
@@ -306,11 +306,11 @@ fn reboot_acceptance_termination_replacement_and_replan_remain_distinct() {
             TransitionCause::Delegated {
                 grant_id: fixture.grant.grant_id.clone(),
                 controller: fixture.grant.controller.clone(),
-                accepted_evidence_id: EvidenceId::from("evidence/reboot-accepted"),
+                accepted_clue_id: ClueId::from("clue/reboot-accepted"),
             },
         )
         .unwrap();
-    let terminated = accepted.old_boot_terminated(EvidenceId::from("evidence/old-boot-terminal"));
+    let terminated = accepted.old_boot_terminated(ClueId::from("clue/old-boot-terminal"));
     assert_eq!(
         terminated
             .clone()
@@ -365,7 +365,7 @@ fn compatible_face_does_not_inherit_assignment_grant_plan_or_play() {
             TransitionId::from("transition/local-pico-reboot"),
             fixture.grant.subject.clone(),
             TransitionCause::Local {
-                accepted_evidence_id: EvidenceId::from("evidence/local-request"),
+                accepted_clue_id: ClueId::from("clue/local-request"),
             },
         )
         .unwrap();
@@ -377,7 +377,7 @@ fn compatible_face_does_not_inherit_assignment_grant_plan_or_play() {
     offer.implementation.implementation_id =
         conduit_core::ImplementationId::from("replacement/led-v9");
     let assessment = accepted
-        .old_boot_terminated(EvidenceId::from("evidence/local-old-terminal"))
+        .old_boot_terminated(ClueId::from("clue/local-old-terminal"))
         .observe_replacement(available_host(pico))
         .unwrap()
         .assess(&old);
@@ -432,7 +432,7 @@ fn membership_availability_and_delegated_authority_fail_independently() {
             TransitionCause::Delegated {
                 grant_id: AuthorityGrantId::from("grant/not-issued"),
                 controller: fixture.grant.controller,
-                accepted_evidence_id: EvidenceId::from("evidence/not-authorized"),
+                accepted_clue_id: ClueId::from("clue/not-authorized"),
             },
         ),
         Err(ContinuityError::MissingTransitionGrant)

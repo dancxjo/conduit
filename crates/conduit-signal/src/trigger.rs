@@ -1,4 +1,4 @@
-//! Portable activation and toggle semantics.
+//! Portable trigger and toggle semantics.
 //!
 //! This module defines platform-neutral meaning, exact capability advertisements,
 //! and the profile-catalog extension used by the production kernel hosts. It does
@@ -9,9 +9,9 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    await_activation_host_operation_requirement, kind_id, port_id, resource_offer,
+    await_trigger_host_operation_requirement, kind_id, port_id, resource_offer,
     resource_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationEntry, ConfigurationValue, ConnectionProvider, ConnectionProviderInstanceId,
+    ConfigurationEntry, ConfigurationValue, ConnectionBase, ConnectionBaseInstanceId,
     ExecutionProfileId, HostAdvertisement, HostId, HostOperationRequirement, HostProfileId,
     ImplementationId, KindContractRevision, KindId, LinkAuthorityReference, LinkAvailability,
     LinkBinding, LinkBindingId, LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits,
@@ -27,11 +27,11 @@ use crate::{
     SIGNAL_ENCODED_LEN,
 };
 
-pub const ACTIVATION_VALUE_KIND: &str = "value/activation";
-pub const ACTIVATE_KIND: &str = "interaction/activate";
+pub const TRIGGER_VALUE_KIND: &str = "value/trigger";
+pub const TRIGGER_KIND: &str = "interaction/trigger";
 pub const TOGGLE_KIND: &str = "state/toggle";
 
-fn activate_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+fn trigger_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
     vec![conduit_core::FaceStartupParameter {
         name: "count".to_string(),
         value_type: "Count".to_string(),
@@ -46,26 +46,26 @@ fn toggle_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
         has_default: true,
     }]
 }
-pub const ACTIVATE_PORT: &str = "activate";
-pub const ACTIVATION_ENCODED_LEN: u32 = 8;
-pub const ACTIVATE_CONTRACT_REVISION: &str = "conduit.signal/interaction-activate@1";
+pub const TRIGGER_PORT: &str = "trigger";
+pub const TRIGGER_ENCODED_LEN: u32 = 8;
+pub const TRIGGER_CONTRACT_REVISION: &str = "conduit.signal/interaction-trigger@1";
 pub const TOGGLE_CONTRACT_REVISION: &str = "conduit.signal/state-toggle@1";
-pub const ACTIVATE_EXECUTION_PROFILE: &str = "conduit.signal/activate-hosted@1";
+pub const TRIGGER_EXECUTION_PROFILE: &str = "conduit.signal/trigger-hosted@1";
 pub const TOGGLE_EXECUTION_PROFILE: &str = "conduit.signal/toggle-hosted@1";
 pub const DISTRIBUTED_TOGGLE_STD_HOST_ID: &str = "s4/toggle-std-source";
 pub const DISTRIBUTED_TOGGLE_STD_BOOT_ID: &str = "s4/toggle-std-source-boot";
 pub const DISTRIBUTED_TOGGLE_BROWSER_HOST_ID: &str = "s4/toggle-browser-sink";
 pub const DISTRIBUTED_TOGGLE_BROWSER_BOOT_ID: &str = "s4/toggle-browser-sink-boot";
 pub const DISTRIBUTED_TOGGLE_LINK_BINDING_ID: &str = "s4/toggle-std-browser-link";
-pub const DISTRIBUTED_TOGGLE_PROVIDER_INSTANCE_ID: &str = "s4/toggle-websocket-loopback-instance";
+pub const DISTRIBUTED_TOGGLE_BASE_INSTANCE_ID: &str = "s4/toggle-websocket-loopback-instance";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Activation {
+pub struct Trigger {
     pub sequence: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ActivateConfiguration {
+pub struct TriggerConfiguration {
     pub count: u64,
 }
 
@@ -74,43 +74,43 @@ pub struct ToggleConfiguration {
     pub initial: bool,
 }
 
-pub fn activate_kind() -> KindId {
-    kind_id(ACTIVATE_KIND)
+pub fn trigger_kind() -> KindId {
+    kind_id(TRIGGER_KIND)
 }
 
 pub fn toggle_kind() -> KindId {
     kind_id(TOGGLE_KIND)
 }
 
-pub fn activation_value_kind() -> KindId {
-    kind_id(ACTIVATION_VALUE_KIND)
+pub fn trigger_value_kind() -> KindId {
+    kind_id(TRIGGER_VALUE_KIND)
 }
 
-pub fn activate_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(ACTIVATE_CONTRACT_REVISION)
+pub fn trigger_contract_revision() -> KindContractRevision {
+    KindContractRevision::from(TRIGGER_CONTRACT_REVISION)
 }
 
 pub fn toggle_contract_revision() -> KindContractRevision {
     KindContractRevision::from(TOGGLE_CONTRACT_REVISION)
 }
 
-pub fn activate_execution_profile() -> ExecutionProfileId {
-    ExecutionProfileId::from(ACTIVATE_EXECUTION_PROFILE)
+pub fn trigger_execution_profile() -> ExecutionProfileId {
+    ExecutionProfileId::from(TRIGGER_EXECUTION_PROFILE)
 }
 
 pub fn toggle_execution_profile() -> ExecutionProfileId {
     ExecutionProfileId::from(TOGGLE_EXECUTION_PROFILE)
 }
 
-pub fn activate_host_operation_requirements() -> Vec<HostOperationRequirement> {
-    vec![await_activation_host_operation_requirement()]
+pub fn trigger_host_operation_requirements() -> Vec<HostOperationRequirement> {
+    vec![await_trigger_host_operation_requirement()]
 }
 
 pub fn toggle_host_operation_requirements() -> Vec<HostOperationRequirement> {
     Vec::new()
 }
 
-pub fn activate_resource_requirements() -> Vec<ResourceRequirement> {
+pub fn trigger_resource_requirements() -> Vec<ResourceRequirement> {
     vec![resource_requirement(INPUT_RESOURCE_CLASS, 1)]
 }
 
@@ -118,10 +118,10 @@ pub fn toggle_resource_requirements() -> Vec<ResourceRequirement> {
     Vec::new()
 }
 
-pub fn activate_outputs() -> Vec<PortDescriptor> {
+pub fn trigger_outputs() -> Vec<PortDescriptor> {
     vec![PortDescriptor {
-        port_id: port_id(ACTIVATE_PORT),
-        value_kind: activation_value_kind(),
+        port_id: port_id(TRIGGER_PORT),
+        value_kind: trigger_value_kind(),
         direction: PortDirection::Output,
         temporal: conduit_core::PortTemporal::Value,
     }]
@@ -129,8 +129,8 @@ pub fn activate_outputs() -> Vec<PortDescriptor> {
 
 pub fn toggle_inputs() -> Vec<PortDescriptor> {
     vec![PortDescriptor {
-        port_id: port_id(ACTIVATE_PORT),
-        value_kind: activation_value_kind(),
+        port_id: port_id(TRIGGER_PORT),
+        value_kind: trigger_value_kind(),
         direction: PortDirection::Input,
         temporal: conduit_core::PortTemporal::Value,
     }]
@@ -145,16 +145,16 @@ pub fn toggle_outputs() -> Vec<PortDescriptor> {
     }]
 }
 
-pub fn activate_configuration_entries(config: &ActivateConfiguration) -> Vec<ConfigurationEntry> {
+pub fn trigger_configuration_entries(config: &TriggerConfiguration) -> Vec<ConfigurationEntry> {
     vec![ConfigurationEntry {
         key: "count".to_string(),
         value: ConfigurationValue::U64(config.count),
     }]
 }
 
-pub fn parse_activate_configuration(
+pub fn parse_trigger_configuration(
     entries: &[ConfigurationEntry],
-) -> Result<ActivateConfiguration, crate::SignalProfileError> {
+) -> Result<TriggerConfiguration, crate::SignalProfileError> {
     let mut count = None;
     for entry in entries {
         match (entry.key.as_str(), &entry.value) {
@@ -169,7 +169,7 @@ pub fn parse_activate_configuration(
     if count > MAX_SIGNAL_COUNT {
         return Err(crate::SignalProfileError::InvalidConfiguration("count"));
     }
-    Ok(ActivateConfiguration { count })
+    Ok(TriggerConfiguration { count })
 }
 
 pub fn toggle_configuration_entries(config: &ToggleConfiguration) -> Vec<ConfigurationEntry> {
@@ -197,29 +197,29 @@ pub fn parse_toggle_configuration(
     })
 }
 
-pub fn encode_activation(activation: &Activation) -> ValuePayload {
-    let mut encoded = Vec::with_capacity(ACTIVATION_ENCODED_LEN as usize);
-    encoded.extend_from_slice(&activation.sequence.to_le_bytes());
+pub fn encode_trigger(trigger: &Trigger) -> ValuePayload {
+    let mut encoded = Vec::with_capacity(TRIGGER_ENCODED_LEN as usize);
+    encoded.extend_from_slice(&trigger.sequence.to_le_bytes());
     ValuePayload {
-        value_kind: activation_value_kind(),
+        value_kind: trigger_value_kind(),
         encoded,
     }
 }
 
-pub fn decode_activation(payload: &ValuePayload) -> Result<Activation, crate::SignalProfileError> {
-    if payload.value_kind.as_str() != ACTIVATION_VALUE_KIND {
+pub fn decode_trigger(payload: &ValuePayload) -> Result<Trigger, crate::SignalProfileError> {
+    if payload.value_kind.as_str() != TRIGGER_VALUE_KIND {
         return Err(crate::SignalProfileError::WrongValueKind);
     }
-    decode_activation_bytes(&payload.encoded)
+    decode_trigger_bytes(&payload.encoded)
 }
 
-pub fn decode_activation_bytes(encoded: &[u8]) -> Result<Activation, crate::SignalProfileError> {
-    if encoded.len() != ACTIVATION_ENCODED_LEN as usize {
+pub fn decode_trigger_bytes(encoded: &[u8]) -> Result<Trigger, crate::SignalProfileError> {
+    if encoded.len() != TRIGGER_ENCODED_LEN as usize {
         return Err(crate::SignalProfileError::WrongEncodedLength(encoded.len()));
     }
     let mut sequence = [0u8; 8];
     sequence.copy_from_slice(encoded);
-    Ok(Activation {
+    Ok(Trigger {
         sequence: u64::from_le_bytes(sequence),
     })
 }
@@ -239,20 +239,20 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
-                startup_parameters: activate_face_startup_parameters(),
+                startup_parameters: trigger_face_startup_parameters(),
                 shorthand: None,
-                capability_id: CapabilityId::from("activate-1"),
-                kind_id: activate_kind(),
-                kind_contract_revision: activate_contract_revision(),
+                capability_id: CapabilityId::from("trigger-1"),
+                kind_id: trigger_kind(),
+                kind_contract_revision: trigger_contract_revision(),
                 implementation: conduit_core::ImplementationOffer {
-                    execution_profile_id: activate_execution_profile(),
-                    implementation_id: ImplementationId::from("std/kernel-activate-v1"),
-                    artifact_id: ArtifactId::from("conduit-signal/activate-artifact-v1"),
+                    execution_profile_id: trigger_execution_profile(),
+                    implementation_id: ImplementationId::from("std/kernel-trigger-v1"),
+                    artifact_id: ArtifactId::from("conduit-signal/trigger-artifact-v1"),
                 },
                 inputs: Vec::new(),
-                outputs: activate_outputs(),
-                host_operations: activate_host_operation_requirements(),
-                resource_requirements: activate_resource_requirements(),
+                outputs: trigger_outputs(),
+                host_operations: trigger_host_operation_requirements(),
+                resource_requirements: trigger_resource_requirements(),
                 authority_requirements: Vec::new(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
@@ -337,10 +337,8 @@ pub fn distributed_toggle_websocket_link_binding() -> LinkBinding {
             boot_id: BootId::from(DISTRIBUTED_TOGGLE_BROWSER_BOOT_ID),
             endpoint_id: LinkEndpointId::from("s4/toggle-browser-websocket-ingress"),
         },
-        provider: ConnectionProvider::WebSocket,
-        provider_instance_id: ConnectionProviderInstanceId::from(
-            DISTRIBUTED_TOGGLE_PROVIDER_INSTANCE_ID,
-        ),
+        base: ConnectionBase::WebSocket,
+        base_instance_id: ConnectionBaseInstanceId::from(DISTRIBUTED_TOGGLE_BASE_INSTANCE_ID),
         availability: LinkAvailability::Ready,
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
@@ -359,10 +357,10 @@ pub(crate) fn extend_profile_catalog(catalog: &mut conduit_form::ProfileCatalog)
 
     catalog
         .insert(KindDefinition {
-            kind_id: activate_kind(),
-            kind_contract_revision: activate_contract_revision(),
+            kind_id: trigger_kind(),
+            kind_contract_revision: trigger_contract_revision(),
             inputs: Vec::new(),
-            outputs: activate_outputs(),
+            outputs: trigger_outputs(),
             configuration: vec![ConfigurationField {
                 key: "count".to_string(),
                 default_value: ConfigurationValue::U64(16),
@@ -393,18 +391,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn round_trips_activation_payload() {
-        let activation = Activation { sequence: 42 };
-        let payload = encode_activation(&activation);
-        assert_eq!(payload.encoded.len(), ACTIVATION_ENCODED_LEN as usize);
-        assert_eq!(decode_activation(&payload).unwrap(), activation);
+    fn round_trips_trigger_payload() {
+        let trigger = Trigger { sequence: 42 };
+        let payload = encode_trigger(&trigger);
+        assert_eq!(payload.encoded.len(), TRIGGER_ENCODED_LEN as usize);
+        assert_eq!(decode_trigger(&payload).unwrap(), trigger);
     }
 
     #[test]
-    fn round_trips_activate_configuration_entries() {
-        let config = ActivateConfiguration { count: 5 };
-        let parsed = parse_activate_configuration(&activate_configuration_entries(&config))
-            .expect("activate configuration should parse");
+    fn round_trips_trigger_configuration_entries() {
+        let config = TriggerConfiguration { count: 5 };
+        let parsed = parse_trigger_configuration(&trigger_configuration_entries(&config))
+            .expect("trigger configuration should parse");
         assert_eq!(parsed, config);
     }
 

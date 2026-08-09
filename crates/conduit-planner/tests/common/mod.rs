@@ -3,13 +3,13 @@ use conduit_form::parse;
 use conduit_signal::{pico_local_advertisement, signal_profile_catalog, PULSE_KIND};
 
 #[allow(dead_code)]
-pub fn pulse_operation() -> conduit_form::CheckedOperation {
+pub fn pulse_gear() -> conduit_form::CheckedGear {
     parse(
         "form 0\n\nrealization {\n    pulse: flow/pulse\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n}\n",
         &signal_profile_catalog(),
     )
     .expect("pulse form checks")
-    .operations
+    .gears
     .remove(0)
 }
 

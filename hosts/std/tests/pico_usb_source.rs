@@ -1,4 +1,4 @@
-use conduit_core::{BootId, ConnectionProvider};
+use conduit_core::{BootId, ConnectionBase};
 use conduit_signal::{exact_std_pico_usb_plan, SIGNAL_ENCODED_LEN};
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 use conduit_wire::{
@@ -6,7 +6,7 @@ use conduit_wire::{
     WireError,
 };
 
-fn activate(source: &mut PicoUsbSource, sink: &mut SessionMachine) {
+fn trigger(source: &mut PicoUsbSource, sink: &mut SessionMachine) {
     let binding = source.binding().clone();
     let hello = binding.hello_frame();
     source.admit_outbound(hello).expect("source hello");
@@ -67,10 +67,7 @@ fn source_is_the_exact_planned_kernel_egress() {
         .expect("sink fragment");
     assert_eq!(source.fragment().plan_id, sink.plan_id);
     assert_eq!(source.binding().sink_fragment_id, sink.fragment_id);
-    assert_eq!(
-        source.binding().attachment.provider,
-        ConnectionProvider::UsbCdc
-    );
+    assert_eq!(source.binding().attachment.base, ConnectionBase::UsbCdc);
     assert_eq!(source.binding().limits.maximum_in_flight_items, 1);
     assert_eq!(
         source.binding().limits.maximum_payload_bytes,
@@ -79,7 +76,7 @@ fn source_is_the_exact_planned_kernel_egress() {
 }
 
 #[test]
-fn observed_boot_rebinding_rejects_stale_boot_and_provider_instance() {
+fn observed_boot_rebinding_rejects_stale_boot_and_base_instance() {
     let mut source = PicoUsbSource::prepare().expect("source prepares");
     let planned = source.binding().clone();
     source
@@ -94,7 +91,7 @@ fn observed_boot_rebinding_rejects_stale_boot_and_provider_instance() {
     let binding = source.binding().clone();
     let mut message = binding.hello_frame().message;
     if let conduit_wire::SessionMessage::Hello(ref mut hello) = message {
-        hello.provider_instance_id = "wrong-provider-instance";
+        hello.base_instance_id = "wrong-base-instance";
     }
     assert_eq!(
         source.admit_inbound(SessionFrame {
@@ -110,7 +107,7 @@ fn exact_source_and_sink_reach_two_sided_cancelled_terminal() {
     let mut source = PicoUsbSource::prepare().expect("source prepares");
     let mut sink =
         SessionMachine::new(source.binding().clone(), SessionRole::Sink).expect("sink session");
-    activate(&mut source, &mut sink);
+    trigger(&mut source, &mut sink);
     admit_reciprocal_failure(
         &mut source,
         &mut sink,
@@ -124,7 +121,7 @@ fn exact_source_and_sink_reach_two_sided_failed_terminal() {
     let mut source = PicoUsbSource::prepare().expect("source prepares");
     let mut sink =
         SessionMachine::new(source.binding().clone(), SessionRole::Sink).expect("sink session");
-    activate(&mut source, &mut sink);
+    trigger(&mut source, &mut sink);
     admit_reciprocal_failure(
         &mut source,
         &mut sink,

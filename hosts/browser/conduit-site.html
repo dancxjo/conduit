@@ -67,7 +67,7 @@
     .state-pill { padding: .42rem .7rem; border: 1px solid var(--line); border-radius: 2rem; color: var(--muted); font: .72rem/1 ui-monospace, monospace; white-space: nowrap; }
     [data-manifestation="true"] .state-pill { color: #17200c; border-color: var(--live); background: var(--live); }
     .flow { margin: 7rem 0 5rem; }
-    .flow h2, .evidence h2 { font-size: clamp(2rem, 4vw, 3.7rem); letter-spacing: -.055em; margin: 0 0 2rem; }
+    .flow h2, .clue h2 { font-size: clamp(2rem, 4vw, 3.7rem); letter-spacing: -.055em; margin: 0 0 2rem; }
     .steps { display: grid; grid-template-columns: repeat(4, 1fr); border-block: 1px solid var(--line); }
     .step { padding: 1.6rem 1.2rem 1.8rem 0; }
     .step + .step { padding-left: 1.2rem; border-left: 1px solid var(--line); }
@@ -76,8 +76,8 @@
     .step p { margin: 0; color: var(--muted); line-height: 1.55; font-size: .9rem; }
     .platforms { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.6rem; }
     .platforms span { border: 1px solid var(--line); border-radius: 2rem; padding: .48rem .72rem; color: #c9c8c0; font: .72rem ui-monospace, monospace; }
-    .evidence { display: grid; grid-template-columns: .72fr 1.28fr; gap: 3rem; align-items: start; margin-bottom: 5rem; }
-    .evidence-copy p { color: var(--muted); line-height: 1.65; }
+    .clue { display: grid; grid-template-columns: .72fr 1.28fr; gap: 3rem; align-items: start; margin-bottom: 5rem; }
+    .clue-copy p { color: var(--muted); line-height: 1.65; }
     .terminal { border: 1px solid var(--line); border-radius: 1.2rem; overflow: hidden; background: #0b0d0a; box-shadow: 0 1.6rem 5rem rgba(0,0,0,.28); }
     .terminal-head { display: flex; justify-content: space-between; padding: .8rem 1rem; border-bottom: 1px solid var(--line); color: var(--muted); font: .72rem ui-monospace, monospace; }
     .terminal-grid { display: grid; grid-template-columns: auto 1fr; gap: .7rem 1rem; padding: 1rem; margin: 0; font: .74rem/1.45 ui-monospace, monospace; }
@@ -91,7 +91,7 @@
     @media (max-width: 760px) {
       nav { display: none; }
       main { padding-top: 3rem; }
-      .hero, .evidence { grid-template-columns: 1fr; }
+      .hero, .clue { grid-template-columns: 1fr; }
       .manifestation { min-height: 21rem; }
       .steps { grid-template-columns: 1fr 1fr; }
       .step:nth-child(3) { border-left: 0; }
@@ -104,14 +104,14 @@
   <div class="shell">
     <header>
       <div class="wordmark"><span class="mark" aria-hidden="true"></span>Conduit</div>
-      <nav aria-label="Page sections"><a href="#meaning">How it works</a><a href="#evidence">Evidence</a></nav>
+      <nav aria-label="Page sections"><a href="#meaning">How it works</a><a href="#clue">Clue</a></nav>
     </header>
     <main>
       <section class="hero" aria-labelledby="hero-title">
         <div>
           <div class="eyebrow">Programs that become real</div>
           <h1 id="hero-title">Meaning, made manifest.</h1>
-          <p class="lede">Conduit describes what a program means, then plans its exact realization across ordinary computers, browsers, and tiny physical hosts—with bounded execution and evidence you can inspect.</p>
+          <p class="lede">Conduit describes what a program means, then plans its exact realization across ordinary computers, browsers, and tiny physical hosts—with bounded execution and Clues you can inspect.</p>
         </div>
         <div class="manifestation" aria-live="polite" aria-atomic="true">
           <div class="pulse" aria-hidden="true"></div>
@@ -125,17 +125,17 @@
       <section class="flow" id="meaning" aria-labelledby="flow-title">
         <h2 id="flow-title">One meaning. Exact realization.</h2>
         <div class="steps">
-          <article class="step"><small>01 / FORM</small><h3>Describe meaning</h3><p>Authored programs name typed cells and relationships, never sockets, devices, or browser APIs.</p></article>
-          <article class="step"><small>02 / PLAN</small><h3>Make it exact</h3><p>Capabilities, hosts, resources, identities, routes, and finite bounds are admitted before activation.</p></article>
+          <article class="step"><small>01 / FORM</small><h3>Describe meaning</h3><p>Authored programs name typed Gears and relationships, never sockets, devices, or browser APIs.</p></article>
+          <article class="step"><small>02 / PLAN</small><h3>Make it exact</h3><p>Capabilities, hosts, resources, identities, routes, and finite bounds are admitted before Play start.</p></article>
           <article class="step"><small>03 / HOST</small><h3>Cross reality</h3><p>One kernel coordinates implementations while effects cross narrow host-operation boundaries.</p></article>
-          <article class="step"><small>04 / EVIDENCE</small><h3>Keep the truth</h3><p>Success, pressure, failure, identity, and presentation remain distinct machine-readable facts.</p></article>
+          <article class="step"><small>04 / CLUE</small><h3>Keep the truth</h3><p>Success, pressure, failure, identity, and presentation remain distinct machine-readable facts.</p></article>
         </div>
         <div class="platforms" aria-label="Current platforms"><span>Rust / std</span><span>Browser / WASM</span><span>Pico W</span><span>WebSocket</span><span>USB CDC</span><span>Portable planning</span></div>
       </section>
 
-      <section class="evidence" id="evidence" aria-labelledby="evidence-title">
-        <div class="evidence-copy"><div class="eyebrow">Live proof, not theater</div><h2 id="evidence-title">This light belongs to Conduit.</h2><p>The manifestation above changes only after the browser host successfully completes an admitted <code>presentation/show&lt;Signal&gt;</code> effect from the real browser/WASM runtime. The latest exact identity chain appears here.</p></div>
-        <div class="terminal" aria-label="Latest Conduit manifestation evidence">
+      <section class="clue" id="clue" aria-labelledby="clue-title">
+        <div class="clue-copy"><div class="eyebrow">Live proof, not theater</div><h2 id="clue-title">This light belongs to Conduit.</h2><p>The manifestation above changes only after the browser host successfully completes an admitted <code>presentation/show&lt;Signal&gt;</code> effect from the real browser/WASM runtime. The latest exact identity chain appears here.</p></div>
+        <div class="terminal" aria-label="Latest Conduit manifestation clue">
           <div class="terminal-head"><span>latest manifestation</span><span id="receipt-count">0 / 16 receipts</span></div>
           <dl class="terminal-grid">
             <dt>status</dt><dd id="proof-status">waiting for a local WebSocket endpoint</dd>
@@ -143,7 +143,7 @@
             <dt>fragment</dt><dd id="proof-fragment">—</dd>
             <dt>play</dt><dd id="proof-play">—</dd>
             <dt>presentation</dt><dd id="proof-presentation">—</dd>
-            <dt>evidence</dt><dd id="proof-evidence">—</dd>
+            <dt>clue</dt><dd id="proof-clue">—</dd>
             <dt>sequence</dt><dd id="proof-sequence">—</dd>
           </dl>
           <div id="browser-sink" aria-label="Bounded browser receipt log"></div>
@@ -172,7 +172,7 @@
       text("#proof-fragment", receipt.fragmentId);
       text("#proof-play", receipt.activePlayId);
       text("#proof-presentation", receipt.presentationId);
-      text("#proof-evidence", receipt.evidenceId);
+      text("#proof-clue", receipt.clueId);
       text("#proof-sequence", receipt.sequence);
       text("#receipt-count", `${document.querySelectorAll("#browser-sink output").length} / 16 receipts`);
     }

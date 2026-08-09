@@ -1,6 +1,6 @@
+use super::base::{CopyFiles, ExecutionFaults};
 use super::model::{CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken};
 use super::operation::CopyOperation;
-use super::provider::{CopyFiles, ExecutionFaults};
 use super::registry::{ProtectedFileAvailability, ProtectedFileEntry, ProtectedFileRegistry};
 use crate::StdHost;
 use conduit_core::{
@@ -11,20 +11,20 @@ use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    CordEndpoint, CordId, EvidenceSink, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationOutcome, HostedEvidenceLog, HostedValueStore, NodeId,
+    ClueSink, CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes,
+    HostOperationDisposition, HostOperationOutcome, HostedClueLog, HostedValueStore, NodeId,
     PortId, ValueStorage,
 };
 use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
 
 const MAX_COPY_BYTES: u64 = 16 * 1024 * 1024;
-const MAX_EVIDENCE_ITEMS: u16 = 20_000;
+const MAX_CLUE_ITEMS: u16 = 20_000;
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 
 type CopyScheduler = FixedScheduler<
     OperationDriver<CopyOperation, PORTS>,
     HostedValueStore,
-    HostedEvidenceLog,
+    HostedClueLog,
     1,
     1,
     PORTS,
@@ -67,15 +67,15 @@ impl StdHost {
         let source_id = source_binding.handle_id.clone();
         let destination_id = destination_binding.handle_id.clone();
 
-        let activation_sequence = self.next_kernel_activation_sequence;
-        self.next_kernel_activation_sequence = activation_sequence
+        let play_sequence = self.next_kernel_play_sequence;
+        self.next_kernel_play_sequence = play_sequence
             .checked_add(1)
-            .ok_or_else(|| "copy activation sequence exhausted".to_string())?;
+            .ok_or_else(|| "copy Play sequence exhausted".to_string())?;
         let active_play = bind_active_play(
             &fragment.plan_id,
             &self.advertisement.host_id,
             &self.advertisement.boot_id,
-            activation_sequence,
+            play_sequence,
         );
         let make_receipt = |result, kernel_events| CopyRunReceipt {
             request_id: request_id.clone(),
@@ -144,9 +144,7 @@ impl StdHost {
     }
 }
 
-fn exact_copy_placement(
-    fragment: &PlanFragment,
-) -> Result<&conduit_core::PlannedOperation, String> {
+fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::PlannedGear, String> {
     if fragment.placements.len() != 1 || !fragment.connections.is_empty() {
         return Err("copy Plan fragment must contain one operation and zero cords".to_string());
     }
@@ -171,7 +169,7 @@ fn exact_copy_placement(
 }
 
 fn protected_binding<'a>(
-    placement: &'a conduit_core::PlannedOperation,
+    placement: &'a conduit_core::PlannedGear,
     role: &str,
 ) -> Result<&'a ProtectedResourceBinding, String> {
     let mut bindings = placement.resources.iter().filter_map(|binding| {
@@ -191,7 +189,7 @@ fn protected_binding<'a>(
 
 fn resolve_entry<'a>(
     registry: &'a ProtectedFileRegistry,
-    placement: &conduit_core::PlannedOperation,
+    placement: &conduit_core::PlannedGear,
     binding: &ProtectedResourceBinding,
 ) -> Result<&'a ProtectedFileEntry, CopyResult> {
     let entry = registry
@@ -200,7 +198,7 @@ fn resolve_entry<'a>(
     let grant = &entry.grant;
     if grant.handle_id != binding.handle_id
         || grant.role_id != binding.role_id
-        || grant.operation_id != placement.operation_id
+        || grant.gear_id != placement.gear_id
         || grant.host_id != placement.host_id
         || grant.boot_id != placement.boot_id
         || grant.capability_id != placement.capability_id
@@ -322,7 +320,7 @@ fn execute_copy(
     }
     Ok((
         result.ok_or_else(|| "copy kernel terminated without a result".to_string())?,
-        usize::from(scheduler.evidence().len()),
+        usize::from(scheduler.clues().len()),
     ))
 }
 
@@ -380,11 +378,11 @@ fn copy_scheduler(fragment: &PlanFragment) -> Result<CopyScheduler, String> {
         item_capacity: 0,
         byte_capacity: 0,
     };
-    let evidence_bytes = u32::from(MAX_EVIDENCE_ITEMS)
+    let clue_bytes = u32::from(MAX_CLUE_ITEMS)
         .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-        .ok_or_else(|| "copy evidence byte budget overflow".to_string())?;
-    let evidence = HostedEvidenceLog::new(MAX_EVIDENCE_ITEMS, evidence_bytes)
-        .map_err(|error| format!("prepare copy evidence: {error:?}"))?;
+        .ok_or_else(|| "copy clue byte budget overflow".to_string())?;
+    let clue = HostedClueLog::new(MAX_CLUE_ITEMS, clue_bytes)
+        .map_err(|error| format!("prepare copy clue: {error:?}"))?;
     CopyScheduler::new_with_active_counts_and_host_operations(
         1,
         0,
@@ -394,7 +392,7 @@ fn copy_scheduler(fragment: &PlanFragment) -> Result<CopyScheduler, String> {
         bindings,
         [driver],
         values,
-        evidence,
+        clue,
     )
     .map_err(|error| format!("prepare copy scheduler: {error:?}"))
 }

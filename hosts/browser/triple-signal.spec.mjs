@@ -138,7 +138,7 @@ test("one unchanged form produces matching stdout, DOM, and physical Pico LED re
     expect(result.receipts.every(({ linkBindingId }) =>
       linkBindingId === "s4/triple-std-browser-link")).toBe(true);
     expect(new Set(stdoutReceipts.map(({ presentation_id }) => presentation_id)).size).toBe(16);
-    expect(new Set(stdoutReceipts.map(({ evidence_id }) => evidence_id)).size).toBe(16);
+    expect(new Set(stdoutReceipts.map(({ clue_id }) => clue_id)).size).toBe(16);
     await expect(page.locator("#browser-sink output")).toHaveCount(16);
     await expect(page.locator("#browser-sink output").last()).toHaveAttribute(
       "data-sequence", "15",

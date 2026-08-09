@@ -1,12 +1,12 @@
 use conduit_ai::{
-    generate_text_provider_fixtures, generate_text_realization_advertisements,
+    generate_text_base_fixtures, generate_text_realization_advertisements,
     install_generate_text_catalog, CPU_EXECUTION_RESOURCE,
 };
 use conduit_core::{
-    seal_plan, ActivePlayId, ArchitectureProviderId, ArchitectureProviderKind, ComputeDomainId,
-    ComputeLaneAssignment, ComputePerformanceClassId, ComputeServiceGuarantee,
-    ComputeTopologyGroup, ComputeTopologyGroupId, ComputeTopologyRequirement, EvidenceId,
-    PlacementId, ProviderExecutionLaneId, ResourceClassId, ResourceHealth, ResourceObservation,
+    seal_plan, ActivePlayId, ArchitectureBaseId, ArchitectureBaseKind, BaseExecutionLaneId, ClueId,
+    ComputeDomainId, ComputeLaneAssignment, ComputePerformanceClassId, ComputeServiceGuarantee,
+    ComputeTopologyGroup, ComputeTopologyGroupId, ComputeTopologyRequirement, PlacementId,
+    ResourceClassId, ResourceHealth, ResourceObservation,
 };
 use conduit_planner::{
     plan_selected_realizations_with_characteristics, select_realization_with_policy,
@@ -21,8 +21,8 @@ fn form(source: &str) -> conduit_form::CheckedForm {
     conduit_form::parse(source, &profile).expect("compute fixture form checks")
 }
 
-fn observations(realm: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObservation> {
-    realm
+fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObservation> {
+    hosts
         .iter()
         .flat_map(|host| {
             host.resources
@@ -37,7 +37,7 @@ fn observations(realm: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObserv
                     health: ResourceHealth::Ready,
                     unreserved_units: pool.capacity_units,
                     utilized_units: 0,
-                    evidence_id: EvidenceId::from(format!("compute-observation-{index}")),
+                    clue_id: ClueId::from(format!("compute-observation-{index}")),
                 })
         })
         .collect()
@@ -47,7 +47,7 @@ fn observations(realm: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObserv
 fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
     let checked =
         form("form 0\n\nanswer {\n first: ai/generate-text\n second: ai/generate-text\n}\n");
-    let mut fixture = generate_text_provider_fixtures()[0].clone();
+    let mut fixture = generate_text_base_fixtures()[0].clone();
     fixture.advertisement.capabilities[0]
         .limits
         .max_active_instances = 2;
@@ -58,18 +58,18 @@ fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
             pool.capacity_units *= 2;
         }
     }
-    let mut realm = vec![fixture.advertisement.clone()];
+    let mut hosts = vec![fixture.advertisement.clone()];
     let advertisements = generate_text_realization_advertisements(&[fixture]);
     let plan = plan_selected_realizations_with_characteristics(
         &checked,
-        &realm,
+        &hosts,
         &[],
         &BTreeMap::new(),
         &advertisements,
-        &observations(&realm),
+        &observations(&hosts),
         &BTreeMap::new(),
     )
-    .expect("minimum-first finite allocation admits both operations");
+    .expect("minimum-first finite allocation admits both gears");
     let selected = plan.fragments[0]
         .placements
         .iter()
@@ -91,13 +91,13 @@ fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
             .is_some_and(|compute| compute.service_guarantee == ComputeServiceGuarantee::Shared)
     }));
 
-    realm[0]
+    hosts[0]
         .resources
         .iter_mut()
         .find(|pool| pool.class_id.as_str() == CPU_EXECUTION_RESOURCE)
         .expect("compute pool exists")
         .capacity_units = 4;
-    let constrained = realm[0].capabilities[0]
+    let constrained = hosts[0].capabilities[0]
         .resource_requirements
         .iter_mut()
         .find(|requirement| requirement.class_id.as_str() == CPU_EXECUTION_RESOURCE)
@@ -110,11 +110,11 @@ fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
         .minimum_lanes = 2;
     let minimum_only = plan_selected_realizations_with_characteristics(
         &checked,
-        &realm,
+        &hosts,
         &[],
         &BTreeMap::new(),
         &advertisements,
-        &observations(&realm),
+        &observations(&hosts),
         &BTreeMap::new(),
     )
     .expect("joint minima remain feasible when neither preference fits");
@@ -134,9 +134,9 @@ fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
 }
 
 #[test]
-fn topology_service_and_architecture_provider_are_exact_plan_facts() {
+fn topology_service_and_architecture_base_are_exact_plan_facts() {
     let checked = form("form 0\n\nanswer {\n generate: ai/generate-text\n}\n");
-    let mut fixture = generate_text_provider_fixtures()[0].clone();
+    let mut fixture = generate_text_base_fixtures()[0].clone();
     let capability = &mut fixture.advertisement.capabilities[0];
     let requirement = capability
         .resource_requirements
@@ -162,8 +162,8 @@ fn topology_service_and_architecture_provider_are_exact_plan_facts() {
         .expect("compute pool exists");
     let contract = pool.compute.as_mut().expect("compute contract exists");
     contract.service_guarantee = ComputeServiceGuarantee::Exclusive;
-    contract.architecture_provider_id = ArchitectureProviderId::from("rp2040-provider@1");
-    contract.architecture_provider_kind = ArchitectureProviderKind::BareMetal;
+    contract.architecture_base_id = ArchitectureBaseId::from("rp2040-base@1");
+    contract.architecture_base_kind = ArchitectureBaseKind::BareMetal;
     contract.topology_groups = vec![ComputeTopologyGroup {
         group_id: ComputeTopologyGroupId::from("cluster-0"),
         lane_capacity: 2,
@@ -171,15 +171,15 @@ fn topology_service_and_architecture_provider_are_exact_plan_facts() {
         cache_domain: Some(ComputeDomainId::from("cache-0")),
         performance_class: Some(ComputePerformanceClassId::from("performance")),
     }];
-    let realm = vec![fixture.advertisement.clone()];
+    let hosts = vec![fixture.advertisement.clone()];
     let advertisements = generate_text_realization_advertisements(&[fixture]);
     let plan = plan_selected_realizations_with_characteristics(
         &checked,
-        &realm,
+        &hosts,
         &[],
         &BTreeMap::new(),
         &advertisements,
-        &observations(&realm),
+        &observations(&hosts),
         &BTreeMap::new(),
     )
     .expect("exact topology and stronger service satisfy the requirement");
@@ -195,8 +195,8 @@ fn topology_service_and_architecture_provider_are_exact_plan_facts() {
         ComputeServiceGuarantee::Exclusive
     );
     assert_eq!(
-        reservation.architecture_provider_kind,
-        ArchitectureProviderKind::BareMetal
+        reservation.architecture_base_kind,
+        ArchitectureBaseKind::BareMetal
     );
     assert_eq!(
         reservation.topology_group_id.as_ref().map(|id| id.as_str()),
@@ -209,25 +209,25 @@ fn topology_service_and_architecture_provider_are_exact_plan_facts() {
         .iter_mut()
         .find_map(|binding| binding.compute.as_mut())
         .expect("compute reservation exists")
-        .architecture_provider_id = ArchitectureProviderId::from("different-provider@1");
+        .architecture_base_id = ArchitectureBaseId::from("different-base@1");
     let changed = seal_plan(checked.identity(), vec![changed_fragment]);
     assert_ne!(plan.plan_id, changed.plan_id);
 
     let transient = ComputeLaneAssignment {
-        architecture_provider_id: reservation.architecture_provider_id.clone(),
-        provider_lane_id: ProviderExecutionLaneId::from("physical-core-1"),
+        architecture_base_id: reservation.architecture_base_id.clone(),
+        base_lane_id: BaseExecutionLaneId::from("physical-core-1"),
         active_play_id: ActivePlayId::from("play-1"),
         placement_id: PlacementId::from("generate"),
     };
-    assert_eq!(transient.provider_lane_id.as_str(), "physical-core-1");
+    assert_eq!(transient.base_lane_id.as_str(), "physical-core-1");
     let encoded_plan = serde_json::to_string(&plan).expect("Plan serializes");
     assert!(!encoded_plan.contains("physical-core-1"));
-    assert!(!encoded_plan.contains("provider_lane_id"));
+    assert!(!encoded_plan.contains("base_lane_id"));
 }
 
 #[test]
 fn shared_service_or_missing_topology_cannot_satisfy_stronger_requirements() {
-    let fixture = generate_text_provider_fixtures()[0].clone();
+    let fixture = generate_text_base_fixtures()[0].clone();
     let offer = fixture
         .advertisement
         .resources
@@ -259,7 +259,7 @@ fn shared_service_or_missing_topology_cannot_satisfy_stronger_requirements() {
 #[test]
 fn policy_can_prefer_service_without_conflating_implementation_and_artifact() {
     let checked = form("form 0\n\nanswer {\n generate: ai/generate-text\n}\n");
-    let fixtures = generate_text_provider_fixtures();
+    let fixtures = generate_text_base_fixtures();
     let mut shared = fixtures[0].advertisement.clone();
     let mut exclusive = fixtures[1].advertisement.clone();
     exclusive.capabilities[0].implementation.implementation_id = shared.capabilities[0]
@@ -279,7 +279,7 @@ fn policy_can_prefer_service_without_conflating_implementation_and_artifact() {
     shared.capabilities[0].capability_id = conduit_core::CapabilityId::from("shared-compute");
     exclusive.capabilities[0].capability_id = conduit_core::CapabilityId::from("exclusive-compute");
     let choice = select_realization_with_policy(
-        &checked.operations[0],
+        &checked.gears[0],
         &[shared, exclusive.clone()],
         &HardRealizationRequirements::default(),
         &RealizationPolicy {

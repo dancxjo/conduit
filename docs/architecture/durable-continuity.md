@@ -30,7 +30,7 @@ Replacement is deliberately staged:
 
 ```text
 local request or externally authorized request accepted
-  -> old boot termination evidence
+  -> old boot termination clue
   -> distinct replacement boot report
   -> compatible offers may be identified
   -> old assignments and boot-scoped grants are stale
@@ -47,7 +47,7 @@ role to that boot, stale grants are absent, and Play identities are new.
 Delegated reboot is an optional exact operation offer, not host core. One
 externally issued `DelegatedTransitionGrant` names the exact controller and
 target host boots, selected equal-face capability realization, admitted session
-link, maximum attempts, proof window, and host-reserved evidence sequence range.
+link, maximum attempts, proof window, and host-reserved clue sequence range.
 The bounded transaction consumes that existing grant fact; it does not issue
 authority or create another authority store.
 
@@ -55,8 +55,8 @@ Admission independently checks current target advertisement, canonical
 checked-face compatibility, exact selected capability, controller and target
 boots, and the existing validated `SessionBinding`. Unsupported, unauthorized,
 stale, malformed, replayed, exhausted, and wrong-session requests remain
-distinct machine-readable denials. Acceptance evidence is not completion:
-old-boot terminal evidence and a distinct available replacement boot report are
+distinct machine-readable denials. Acceptance clue is not completion:
+old-boot terminal clue and a distinct available replacement boot report are
 both required. Loss of the admitted control carrier after acceptance remains a
 pending intentional transition until that correlated proof arrives or the
 finite proof window expires to `UnknownProofWindowExpired`.
@@ -73,5 +73,5 @@ This layer grants no authority and performs no platform reboot. It validates and
 records the first delegated-reboot transaction around an external exact grant.
 It does not keep a mutable fleet truth table or revive `conduit-realm`.
 Discovery, cryptographic identity, orchestration, OTA/update staging,
-installation, activation, rollback, and generalized durable-host grants remain
+installation, Play start, rollback, and generalized durable-host grants remain
 outside this proof.

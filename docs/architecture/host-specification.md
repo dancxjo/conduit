@@ -42,7 +42,7 @@ A planner selects capabilities offered by particular host instances and creates 
 
 The selected hosts prepare the plan before any source begins producing values.
 
-After preparation succeeds, the plan is activated.
+After preparation succeeds, the plan is started.
 
 Values then travel through bounded, typed connections between host-resident operations.
 
@@ -115,11 +115,11 @@ The platform is not itself the host.
 
 The software presenting the Conduit host contract is the host.
 
-### 4.4 Realm
+### 4.4 Planning scope
 
-A **realm** is the set of host instances currently visible to one planning scope.
+A **planning scope** is the set of host instances currently visible to one planning scope.
 
-A realm is not necessarily a permanent global object.
+A planning scope is not necessarily a permanent global object.
 
 It may be:
 
@@ -129,7 +129,7 @@ It may be:
 - the participating hosts of a durable body;
 - or another bounded planning domain.
 
-A realm describes visibility for planning. It does not, by itself, grant trust or execution authority.
+A planning scope describes visibility for planning. It does not, by itself, grant trust or execution authority.
 
 ### 4.5 Capability
 
@@ -142,10 +142,10 @@ A capability offer states:
 A capability offer is not:
 
 - an authority grant;
-- an active cell;
+- an active gear;
 - a plan;
 - a promise of permanent availability;
-- or evidence that the capability has already been used.
+- or clue that the capability has already been used.
 
 ### 4.6 Kind
 
@@ -207,15 +207,15 @@ A plan selects:
 - implementations;
 - host placements;
 - capability offers;
-- connection providers;
+- connection bases;
 - capacities;
 - resource limits;
 - initialization data;
-- activation order;
+- Play start order;
 - authority requirements;
-- and expected completion evidence.
+- and expected completion clue.
 
-Creating a plan MUST NOT activate it.
+Creating a plan MUST NOT start it.
 
 ### 4.10 Active plan
 
@@ -288,7 +288,7 @@ A router, merger, accumulator, store, protocol adapter, planner, renderer, or co
 
 No additional fundamental dataflow direction is required.
 
-Control operations such as prepare, activate, cancel, and inspect belong to the host protocol rather than ordinary form dataflow.
+Control operations such as prepare, start, cancel, and inspect belong to the host protocol rather than ordinary form dataflow.
 
 ## 6. Host identity
 
@@ -358,7 +358,7 @@ The core profile requires:
 - capability advertisement;
 - plan-fragment validation;
 - preparation;
-- activation;
+- Play start;
 - cancellation;
 - cleanup;
 - bounded connections;
@@ -550,7 +550,7 @@ struct CapabilityOffer {
 
 The kind contract revision owns the exact ordered input and output contracts.
 An offer is compatible only when the advertised revision and every port agree
-with the checked operation; queue limits do not stand in for type or port
+with the checked Gear; queue limits do not stand in for type or port
 compatibility.
 
 ### 10.1 Offer generation
@@ -592,7 +592,7 @@ These may include:
 - memory budget;
 - session count;
 - timing precision;
-- supported link providers;
+- supported link bases;
 - and platform-specific restrictions.
 
 ### 10.4 Manifestation
@@ -629,7 +629,7 @@ It MUST identify:
 - exact host identity;
 - exact boot identity;
 - exact offer generation;
-- assigned operations;
+- assigned Gears;
 - selected implementations;
 - capability bindings;
 - typed inputs and outputs;
@@ -654,11 +654,11 @@ A host MUST reject a fragment that is:
 - unauthorized;
 - or internally inconsistent.
 
-## 12. Preparation and activation
+## 12. Preparation and Play start
 
 ### 12.1 Separation
 
-Preparation and activation MUST be separate operations.
+Preparation and Play start MUST be separate operations.
 
 Preparation may allocate resources and establish links.
 
@@ -679,21 +679,21 @@ A host preparing a plan fragment MUST:
 9. verify authority;
 10. report prepared status or a precise rejection.
 
-### 12.3 Activation
+### 12.3 Play start
 
-A host activates a prepared fragment only after receiving a valid commit for the exact plan.
+A host starts a prepared fragment only after receiving a valid commit for the exact plan.
 
-Activation MUST be idempotent or MUST reject duplicate commits unambiguously.
+Play start MUST be idempotent or MUST reject duplicate commits unambiguously.
 
 ### 12.4 Failed preparation
 
-If any required host fails to prepare, the planner or coordinating host MUST NOT activate the plan.
+If any required host fails to prepare, the planner or coordinating host MUST NOT start the plan.
 
 Every host that prepared successfully MUST be instructed to release its prepared fragment.
 
-### 12.5 Failure after activation
+### 12.5 Failure after Play start
 
-A failure after activation MUST NOT be rewritten as successful completion.
+A failure after Play start MUST NOT be rewritten as successful completion.
 
 The host MUST report:
 
@@ -735,7 +735,7 @@ At minimum, a plan MUST define:
 - ordering behavior;
 - and terminal behavior.
 
-No host or link provider may silently insert an unbounded queue.
+No host or link base may silently insert an unbounded queue.
 
 ### 13.3 Pressure
 
@@ -770,11 +770,11 @@ struct ConnectionEnvelope {
 
 Malformed or oversized envelopes MUST be rejected before unbounded allocation or semantic execution.
 
-## 14. Observation and evidence
+## 14. Observation and Clues
 
 A host MUST provide machine-readable observations.
 
-Visual or physical manifestation alone is insufficient evidence.
+Visual or physical manifestation alone is insufficient clue.
 
 For example, a Pico W LED may visibly blink, but the host must also retain or emit records such as:
 
@@ -794,7 +794,7 @@ Required observation classes include:
 - plan-fragment receipt;
 - preparation success;
 - preparation rejection;
-- activation;
+- Play start;
 - value receipt;
 - value production;
 - semantic manifestation;
@@ -832,7 +832,7 @@ Primitive does not mean simple.
 
 ### 16.1 Definition
 
-A composite host is a host that realizes one or more capabilities through a realm of child hosts and an internal plan.
+A composite host is a host that realizes one or more capabilities through a planning scope of child hosts and an internal plan.
 
 Conceptually:
 
@@ -840,7 +840,7 @@ Conceptually:
 CompositeHost {
     host identity
     external capability offers
-    child host realm
+    child host planning scope
     internal form
     internal plan
     internal active state
@@ -858,7 +858,7 @@ Therefore:
 compose(host A, host B, form F) -> host C
 ```
 
-Host C may then participate in another realm:
+Host C may then participate in another planning scope:
 
 ```text
 compose(host C, host D, form G) -> host E
@@ -902,9 +902,9 @@ The resulting composite host might expose:
 capability: demonstration/run-signal
 ```
 
-or it might expose the pulse output, show input, completion evidence, or another declared boundary.
+or it might expose the pulse output, show input, completion clue, or another declared boundary.
 
-The parent realm sees one host offering the exposed capability.
+The parent planning scope sees one host offering the exposed capability.
 
 It need not place the internal pulse and show operations itself.
 
@@ -955,16 +955,16 @@ A later composite host may realize planning through several internal hosts.
 
 Forms, capability advertisements, plans, and diagnostics can therefore participate in the same host-composition model as other data.
 
-## 18. A realm as a composite host
+## 18. A planning scope as a composite host
 
-A realm may be wrapped and exposed as a composite host.
+A planning scope may be wrapped and exposed as a composite host.
 
 This is the primary recursive construction.
 
 Internally:
 
 ```text
-realm
+planning scope
     host A
     host B
     host C
@@ -1079,7 +1079,7 @@ A semantic kind is not its manifestation.
 
 A remote connection is not its transport.
 
-A visual effect is not sufficient execution evidence.
+A visual effect is not sufficient execution clue.
 
 A composite host is still a host.
 ```
@@ -1092,8 +1092,8 @@ A core host implementation MUST demonstrate:
 2. a bounded capability advertisement;
 3. rejection of a stale boot identity;
 4. rejection of a stale capability generation;
-5. successful preparation without premature activation;
-6. successful activation after commit;
+5. successful preparation without premature Play start;
+6. successful Play start after commit;
 7. bounded input and output connections;
 8. correct pressure behavior;
 9. deterministic completion or explicit failure;
@@ -1134,7 +1134,7 @@ These features may be added without changing the central host contract.
 
 The following questions remain open:
 
-1. Whether `realm` remains a permanent public term or only a planning view.
+1. Whether `planning scope` remains a permanent public term or only a planning view.
 2. Whether every composite host must have one parent at a time.
 3. How host identity persists across erased or replaced storage.
 4. How authority is delegated into and out of composite hosts.
@@ -1152,7 +1152,7 @@ The following questions remain open:
 
 ## 24. Summary
 
-The Conduit host is a software runtime that offers bounded semantic capabilities, accepts exact plan fragments, prepares them without starting them, activates them only after commitment, carries typed values through bounded connections, and produces machine-readable evidence.
+The Conduit host is a software runtime that offers bounded semantic capabilities, accepts exact plan fragments, prepares them without starting them, starts them only after commitment, carries typed values through bounded connections, and produces machine-readable clue.
 
 A primitive host realizes capabilities from a platform.
 

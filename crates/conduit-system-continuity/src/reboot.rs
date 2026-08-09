@@ -1,11 +1,11 @@
 use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
-    bind_evidence, kind_id, ArtifactId, AuthorityContractId, AuthorityGrantId,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFace,
-    EvidenceId, ExecutionProfileId, HostAdvertisement, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, KindContractRevision, LinkBindingId,
-    PortDescriptor, PortDirection, PortId, PortTemporal, PROTOCOL_VERSION,
+    bind_clue, kind_id, ArtifactId, AuthorityContractId, AuthorityGrantId, AuthorityRequirement,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFace, ClueId,
+    ExecutionProfileId, HostAdvertisement, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, KindContractRevision, LinkBindingId, PortDescriptor, PortDirection, PortId,
+    PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_observatory::{HostReport, OperationalState};
 use conduit_wire::SessionBinding;
@@ -123,7 +123,7 @@ pub struct RebootRejectionReceipt {
     pub request_id: RebootRequestId,
     pub target: HostInstance,
     pub reason: RebootDenial,
-    pub evidence_id: EvidenceId,
+    pub clue_id: ClueId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -133,15 +133,15 @@ pub struct RebootAcceptanceReceipt {
     pub target: HostInstance,
     pub attempts_used: u16,
     pub attempts_remaining: u16,
-    pub evidence_id: EvidenceId,
+    pub clue_id: ClueId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RebootCompletionProof {
     pub acceptance: RebootAcceptanceReceipt,
-    pub old_boot_terminal_evidence: EvidenceId,
+    pub old_boot_terminal_clue: ClueId,
     pub new_boot: BootId,
-    pub post_boot_evidence: EvidenceId,
+    pub post_boot_clue: ClueId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -183,7 +183,7 @@ pub struct DelegatedRebootTransaction {
     attempts_used: u16,
     last_request: Option<RebootRequestId>,
     acceptance: Option<RebootAcceptanceReceipt>,
-    old_boot_terminal_evidence: Option<EvidenceId>,
+    old_boot_terminal_clue: Option<ClueId>,
     remaining_proof_ticks: u16,
     state: RebootPendingState,
 }
@@ -196,7 +196,7 @@ impl DelegatedRebootTransaction {
             attempts_used: 0,
             last_request: None,
             acceptance: None,
-            old_boot_terminal_evidence: None,
+            old_boot_terminal_clue: None,
             state: RebootPendingState::Idle,
         }
     }
@@ -232,15 +232,15 @@ impl DelegatedRebootTransaction {
                 request_id: request.request_id.clone(),
                 target: request.target.clone(),
                 reason,
-                evidence_id: bind_evidence(
+                clue_id: bind_clue(
                     &request.target.host_id,
                     &request.target.boot_id,
                     None,
                     self.grant
-                        .evidence_sequence_base
+                        .clue_sequence_base
                         .saturating_add(u64::from(self.attempts_used) * 2 + 1),
                 )
-                .evidence_id,
+                .clue_id,
             });
         }
 
@@ -250,15 +250,15 @@ impl DelegatedRebootTransaction {
             target: request.target.clone(),
             attempts_used: self.attempts_used,
             attempts_remaining: self.grant.maximum_transitions - self.attempts_used,
-            evidence_id: bind_evidence(
+            clue_id: bind_clue(
                 &request.target.host_id,
                 &request.target.boot_id,
                 None,
                 self.grant
-                    .evidence_sequence_base
+                    .clue_sequence_base
                     .saturating_add(u64::from(self.attempts_used) * 2),
             )
-            .evidence_id,
+            .clue_id,
         };
         self.acceptance = Some(receipt.clone());
         self.remaining_proof_ticks = self.grant.proof_window_ticks;
@@ -327,7 +327,7 @@ impl DelegatedRebootTransaction {
     pub fn old_boot_terminated(
         &mut self,
         request_id: &RebootRequestId,
-        evidence_id: EvidenceId,
+        clue_id: ClueId,
     ) -> Result<(), RebootProgressError> {
         let acceptance = self
             .acceptance
@@ -342,7 +342,7 @@ impl DelegatedRebootTransaction {
         if self.state != RebootPendingState::Accepted {
             return Err(RebootProgressError::NotAccepted);
         }
-        self.old_boot_terminal_evidence = Some(evidence_id);
+        self.old_boot_terminal_clue = Some(clue_id);
         self.state = RebootPendingState::AwaitingReplacement;
         Ok(())
     }
@@ -364,7 +364,7 @@ impl DelegatedRebootTransaction {
         &mut self,
         request_id: &RebootRequestId,
         report: &HostReport,
-        post_boot_evidence: EvidenceId,
+        post_boot_clue: ClueId,
     ) -> Result<RebootCompletionProof, RebootProgressError> {
         if self.state == RebootPendingState::UnknownProofWindowExpired {
             return Err(RebootProgressError::ProofWindowExpired);
@@ -390,12 +390,12 @@ impl DelegatedRebootTransaction {
         }
         let proof = RebootCompletionProof {
             acceptance: acceptance.clone(),
-            old_boot_terminal_evidence: self
-                .old_boot_terminal_evidence
+            old_boot_terminal_clue: self
+                .old_boot_terminal_clue
                 .clone()
                 .ok_or(RebootProgressError::OldBootNotTerminated)?,
             new_boot: report.advertisement.boot_id.clone(),
-            post_boot_evidence,
+            post_boot_clue,
         };
         self.state = RebootPendingState::Completed;
         Ok(proof)

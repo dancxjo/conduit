@@ -1,6 +1,6 @@
 use conduit_core::{
     kind_id, process_owned_link_binding, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider,
+    CapabilityOffer, ConnectionBase, ConnectionEnvelope, ConnectionId, ConnectionOutcome,
     HostAdvertisement, HostCommand, HostEvent, HostId, HostProfileId, ImplementationId,
     Observation, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId, PlatformEffect,
     TerminalDisposition, PROTOCOL_VERSION,
@@ -226,16 +226,16 @@ impl BrowserSimPage {
         sink_host: &HostId,
     ) -> Result<Plan, Box<dyn std::error::Error>> {
         let placements = PlacementChoices {
-            by_operation: BTreeMap::from([
+            by_gear: BTreeMap::from([
                 (
-                    conduit_core::OperationId::from("pulse"),
+                    conduit_core::GearId::from("pulse"),
                     PlacementChoice {
                         host_id: source_host.clone(),
                         capability_id: CapabilityId::from("pulse"),
                     },
                 ),
                 (
-                    conduit_core::OperationId::from("show"),
+                    conduit_core::GearId::from("show"),
                     PlacementChoice {
                         host_id: sink_host.clone(),
                         capability_id: CapabilityId::from("dom-show"),
@@ -254,7 +254,7 @@ impl BrowserSimPage {
             .ok_or("sink browser advertisement missing")?;
         let links = [process_owned_link_binding(
             "link/browser-pair",
-            ConnectionProvider::InMemory,
+            ConnectionBase::InMemory,
             "fixture/in-memory/browser-pair",
             source,
             sink,
@@ -265,7 +265,7 @@ impl BrowserSimPage {
             form,
             &advertisements,
             &placements,
-            &[ConnectionProvider::InMemory],
+            &[ConnectionBase::InMemory],
             4,
             64,
             &links,
@@ -279,16 +279,16 @@ impl BrowserSimPage {
         browser_host: &HostId,
     ) -> Result<Plan, Box<dyn std::error::Error>> {
         let placements = PlacementChoices {
-            by_operation: BTreeMap::from([
+            by_gear: BTreeMap::from([
                 (
-                    conduit_core::OperationId::from("pulse"),
+                    conduit_core::GearId::from("pulse"),
                     PlacementChoice {
                         host_id: std_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from("pulse-1"),
                     },
                 ),
                 (
-                    conduit_core::OperationId::from("show"),
+                    conduit_core::GearId::from("show"),
                     PlacementChoice {
                         host_id: browser_host.clone(),
                         capability_id: CapabilityId::from("dom-show"),
@@ -296,16 +296,16 @@ impl BrowserSimPage {
                 ),
             ]),
         };
-        let mut realm = Vec::with_capacity(self.hosts.len() + 1);
-        realm.push(std_advertisement.clone());
-        realm.extend(self.advertisements());
-        let browser_advertisement = realm
+        let mut hosts = Vec::with_capacity(self.hosts.len() + 1);
+        hosts.push(std_advertisement.clone());
+        hosts.extend(self.advertisements());
+        let browser_advertisement = hosts
             .iter()
             .find(|advertisement| &advertisement.host_id == browser_host)
             .ok_or("browser advertisement missing")?;
         let links = [process_owned_link_binding(
             "link/std-browser",
-            ConnectionProvider::FixtureFrame,
+            ConnectionBase::FixtureFrame,
             "fixture/frame/std-browser",
             std_advertisement,
             browser_advertisement,
@@ -314,9 +314,9 @@ impl BrowserSimPage {
         )];
         Ok(plan_with_link_bindings(
             form,
-            &realm,
+            &hosts,
             &placements,
-            &[ConnectionProvider::FixtureFrame],
+            &[ConnectionBase::FixtureFrame],
             4,
             64,
             &links,
@@ -351,8 +351,8 @@ impl BrowserSimPage {
         for fragment in sink_fragments_first(&plan.fragments) {
             let output = self
                 .host_mut(&fragment.host_id)?
-                .handle(HostCommand::Activate(fragment.plan_id.clone()));
-            ensure_activated(&output)?;
+                .handle(HostCommand::StartPlay(fragment.plan_id.clone()));
+            ensure_triggerd(&output)?;
             pending.extend(
                 output
                     .effects
@@ -622,7 +622,7 @@ fn inbound_routes(fragments: &[PlanFragment]) -> BTreeMap<(PlanId, ConnectionId)
                     .placements
                     .iter()
                     .any(|placement| placement.placement_id == connection.source_placement_id);
-                (is_remote_provider(connection.provider) && has_sink && !has_source).then(|| {
+                (is_remote_base(connection.base) && has_sink && !has_source).then(|| {
                     (
                         (fragment.plan_id.clone(), connection.connection_id.clone()),
                         fragment.host_id.clone(),
@@ -648,7 +648,7 @@ fn delivery_ack_routes(
                     .placements
                     .iter()
                     .any(|placement| placement.placement_id == connection.sink_placement_id);
-                (is_remote_provider(connection.provider) && has_source && !has_sink).then(|| {
+                (is_remote_base(connection.base) && has_source && !has_sink).then(|| {
                     (
                         (
                             fragment.plan_id.clone(),
@@ -662,10 +662,10 @@ fn delivery_ack_routes(
         .collect()
 }
 
-fn is_remote_provider(provider: ConnectionProvider) -> bool {
+fn is_remote_base(base: ConnectionBase) -> bool {
     matches!(
-        provider,
-        ConnectionProvider::InMemory | ConnectionProvider::FixtureFrame
+        base,
+        ConnectionBase::InMemory | ConnectionBase::FixtureFrame
     )
 }
 
@@ -711,21 +711,21 @@ fn ensure_prepared(output: &RuntimeOutput) -> Result<(), String> {
         .ok_or_else(|| format!("browser simulation prepare failed: {:?}", output.events))
 }
 
-fn ensure_activated(output: &RuntimeOutput) -> Result<(), String> {
+fn ensure_triggerd(output: &RuntimeOutput) -> Result<(), String> {
     output
         .events
         .iter()
-        .any(|event| matches!(event, HostEvent::Activated { .. }))
+        .any(|event| matches!(event, HostEvent::PlayStarted { .. }))
         .then_some(())
-        .ok_or_else(|| format!("browser simulation activation failed: {:?}", output.events))
+        .ok_or_else(|| format!("browser simulation trigger failed: {:?}", output.events))
 }
 
 #[cfg(test)]
 mod tests {
     use super::{BoundedFrameRelayFixture, BrowserSimConfig, BrowserSimPage};
     use conduit_core::{
-        kind_id, process_owned_link_binding, BootId, ConnectionId, ConnectionOutcome,
-        ConnectionProvider, HostCommand, HostEvent, HostId, OfferGeneration, PlacementId,
+        kind_id, process_owned_link_binding, BootId, ConnectionBase, ConnectionId,
+        ConnectionOutcome, HostCommand, HostEvent, HostId, OfferGeneration, PlacementId,
         PlatformEffect, TerminalDisposition,
     };
     use conduit_form::parse;
@@ -818,7 +818,7 @@ mod tests {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .find(|connection| connection.provider == ConnectionProvider::InMemory)
+            .find(|connection| connection.base == ConnectionBase::InMemory)
             .expect("browser-memory connection is planned");
         assert_eq!(connection.item_capacity, 4);
         assert_eq!(connection.byte_capacity, 64);
@@ -874,7 +874,7 @@ mod tests {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .find(|connection| connection.provider == ConnectionProvider::FixtureFrame)
+            .find(|connection| connection.base == ConnectionBase::FixtureFrame)
             .expect("frame fixture connection is planned");
         assert_eq!(connection.item_capacity, 4);
         assert_eq!(connection.byte_capacity, 64);
@@ -903,8 +903,8 @@ mod tests {
         let mut pending = VecDeque::new();
         for fragment in super::sink_fragments_first(&plan.fragments) {
             if fragment.host_id == std_host.advertisement().host_id {
-                let output = std_host.handle(HostCommand::Activate(fragment.plan_id.clone()));
-                super::ensure_activated(&output).expect("std activates");
+                let output = std_host.handle(HostCommand::StartPlay(fragment.plan_id.clone()));
+                super::ensure_triggerd(&output).expect("std triggers");
                 pending.extend(
                     output
                         .effects
@@ -915,8 +915,8 @@ mod tests {
                 let output = page
                     .host_mut(&fragment.host_id)
                     .expect("browser simulation exists")
-                    .handle(HostCommand::Activate(fragment.plan_id.clone()));
-                super::ensure_activated(&output).expect("browser activates");
+                    .handle(HostCommand::StartPlay(fragment.plan_id.clone()));
+                super::ensure_triggerd(&output).expect("browser triggers");
                 pending.extend(
                     output
                         .effects
@@ -989,30 +989,30 @@ mod tests {
         let form = triple_form();
         let browser_host = HostId::from("browser-sim-triple");
         let placements = PlacementChoices {
-            by_operation: BTreeMap::from([
+            by_gear: BTreeMap::from([
                 (
-                    conduit_core::OperationId::from("pulse"),
+                    conduit_core::GearId::from("pulse"),
                     PlacementChoice {
                         host_id: std_host.advertisement().host_id.clone(),
                         capability_id: conduit_core::CapabilityId::from("pulse-1"),
                     },
                 ),
                 (
-                    conduit_core::OperationId::from("local"),
+                    conduit_core::GearId::from("local"),
                     PlacementChoice {
                         host_id: std_host.advertisement().host_id.clone(),
                         capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
                     },
                 ),
                 (
-                    conduit_core::OperationId::from("web"),
+                    conduit_core::GearId::from("web"),
                     PlacementChoice {
                         host_id: browser_host.clone(),
                         capability_id: conduit_core::CapabilityId::from("dom-show"),
                     },
                 ),
                 (
-                    conduit_core::OperationId::from("light"),
+                    conduit_core::GearId::from("light"),
                     PlacementChoice {
                         host_id: pico.advertisement().host_id.clone(),
                         capability_id: conduit_core::CapabilityId::from("onboard-led"),
@@ -1020,30 +1020,30 @@ mod tests {
                 ),
             ]),
         };
-        let connection_providers = BTreeMap::from([
+        let connection_bases = BTreeMap::from([
             (
                 (
-                    conduit_core::OperationId::from("pulse"),
-                    conduit_core::OperationId::from("local"),
+                    conduit_core::GearId::from("pulse"),
+                    conduit_core::GearId::from("local"),
                 ),
-                ConnectionProvider::Local,
+                ConnectionBase::Local,
             ),
             (
                 (
-                    conduit_core::OperationId::from("pulse"),
-                    conduit_core::OperationId::from("web"),
+                    conduit_core::GearId::from("pulse"),
+                    conduit_core::GearId::from("web"),
                 ),
-                ConnectionProvider::FixtureFrame,
+                ConnectionBase::FixtureFrame,
             ),
             (
                 (
-                    conduit_core::OperationId::from("pulse"),
-                    conduit_core::OperationId::from("light"),
+                    conduit_core::GearId::from("pulse"),
+                    conduit_core::GearId::from("light"),
                 ),
-                ConnectionProvider::FixtureDatagram,
+                ConnectionBase::FixtureDatagram,
             ),
         ]);
-        let realm = [
+        let hosts = [
             std_host.advertisement().clone(),
             page.advertisements()
                 .into_iter()
@@ -1054,34 +1054,34 @@ mod tests {
         let link_bindings = [
             process_owned_link_binding(
                 "link/std-browser",
-                ConnectionProvider::FixtureFrame,
+                ConnectionBase::FixtureFrame,
                 "fixture/frame/std-browser",
-                &realm[0],
-                &realm[1],
+                &hosts[0],
+                &hosts[1],
                 4,
                 64,
             ),
             process_owned_link_binding(
                 "link/std-pico",
-                ConnectionProvider::FixtureDatagram,
+                ConnectionBase::FixtureDatagram,
                 "fixture/datagram/std-pico",
-                &realm[0],
-                &realm[2],
+                &hosts[0],
+                &hosts[2],
                 4,
                 64,
             ),
         ];
         let plan = plan_with_options(
             &form,
-            &realm,
+            &hosts,
             &placements,
             &[
-                ConnectionProvider::Local,
-                ConnectionProvider::FixtureFrame,
-                ConnectionProvider::FixtureDatagram,
+                ConnectionBase::Local,
+                ConnectionBase::FixtureFrame,
+                ConnectionBase::FixtureDatagram,
             ],
             PlanningOptions {
-                connection_providers: &connection_providers,
+                connection_bases: &connection_bases,
                 route_candidates: &BTreeMap::new(),
                 connection_item_capacity: 4,
                 connection_byte_capacity: 64,
@@ -1091,30 +1091,30 @@ mod tests {
             },
         )
         .expect("triple-simulation plan resolves");
-        let connection_provider_by_id = plan
+        let connection_base_by_id = plan
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .map(|connection| (connection.connection_id.clone(), connection.provider))
+            .map(|connection| (connection.connection_id.clone(), connection.base))
             .collect::<BTreeMap<_, _>>();
         assert_eq!(
-            connection_provider_by_id
+            connection_base_by_id
                 .values()
-                .filter(|provider| **provider == ConnectionProvider::Local)
+                .filter(|base| **base == ConnectionBase::Local)
                 .count(),
             1
         );
         assert_eq!(
-            connection_provider_by_id
+            connection_base_by_id
                 .values()
-                .filter(|provider| **provider == ConnectionProvider::FixtureFrame)
+                .filter(|base| **base == ConnectionBase::FixtureFrame)
                 .count(),
             1
         );
         assert_eq!(
-            connection_provider_by_id
+            connection_base_by_id
                 .values()
-                .filter(|provider| **provider == ConnectionProvider::FixtureDatagram)
+                .filter(|base| **base == ConnectionBase::FixtureDatagram)
                 .count(),
             1
         );
@@ -1122,7 +1122,7 @@ mod tests {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .filter(|connection| connection.provider != ConnectionProvider::Local)
+            .filter(|connection| connection.base != ConnectionBase::Local)
             .map(|connection| {
                 (
                     connection.sink_placement_id.clone(),
@@ -1154,15 +1154,15 @@ mod tests {
         let mut pending = VecDeque::new();
         for fragment in super::sink_fragments_first(&plan.fragments) {
             let output = if fragment.host_id == std_host.advertisement().host_id {
-                std_host.handle(HostCommand::Activate(fragment.plan_id.clone()))
+                std_host.handle(HostCommand::StartPlay(fragment.plan_id.clone()))
             } else if fragment.host_id == browser_host {
                 page.host_mut(&fragment.host_id)
                     .expect("browser simulation exists")
-                    .handle(HostCommand::Activate(fragment.plan_id.clone()))
+                    .handle(HostCommand::StartPlay(fragment.plan_id.clone()))
             } else {
-                pico.handle(HostCommand::Activate(fragment.plan_id.clone()))
+                pico.handle(HostCommand::StartPlay(fragment.plan_id.clone()))
             };
-            super::ensure_activated(&output).expect("fragment activates");
+            super::ensure_triggerd(&output).expect("fragment triggers");
             pending.extend(
                 output
                     .effects
@@ -1180,7 +1180,7 @@ mod tests {
                     &mut std_host,
                     &mut page,
                     &mut pico,
-                    &connection_provider_by_id,
+                    &connection_base_by_id,
                     &mut frame_fixture,
                     &mut datagram_fixture,
                     &mut stdout_receipts,
@@ -1191,7 +1191,7 @@ mod tests {
                     &mut std_host,
                     &mut page,
                     &mut pico,
-                    &connection_provider_by_id,
+                    &connection_base_by_id,
                     &source_connection_by_sink,
                     &host_id,
                     effect,
@@ -1201,7 +1201,7 @@ mod tests {
                     &mut std_host,
                     &mut page,
                     &mut pico,
-                    &connection_provider_by_id,
+                    &connection_base_by_id,
                     &source_connection_by_sink,
                     effect,
                 ));
@@ -1262,7 +1262,7 @@ mod tests {
         std_host: &mut LegacyStdFixtureHost,
         page: &mut BrowserSimPage,
         pico: &mut PicoSim,
-        connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
+        connection_base_by_id: &BTreeMap<ConnectionId, ConnectionBase>,
         frame_fixture: &mut BoundedFrameRelayFixture,
         datagram_fixture: &mut BoundedDatagramRelayFixture,
         stdout_receipts: &mut Vec<SignalReceipt>,
@@ -1278,7 +1278,7 @@ mod tests {
                     plan_id,
                     placement_id,
                 });
-                triple_std_output_effects(std_host, page, pico, connection_provider_by_id, output)
+                triple_std_output_effects(std_host, page, pico, connection_base_by_id, output)
             }
             PlatformEffect::PresentValue {
                 plan_id,
@@ -1307,15 +1307,15 @@ mod tests {
                     success: true,
                     message: None,
                 });
-                triple_std_output_effects(std_host, page, pico, connection_provider_by_id, output)
+                triple_std_output_effects(std_host, page, pico, connection_base_by_id, output)
             }
             PlatformEffect::TransmitConnection { envelope } => {
-                match connection_provider_by_id
+                match connection_base_by_id
                     .get(&envelope.connection_id)
                     .copied()
-                    .expect("connection provider exists")
+                    .expect("connection base exists")
                 {
-                    ConnectionProvider::FixtureFrame => {
+                    ConnectionBase::FixtureFrame => {
                         let decoded = frame_fixture
                             .transmit(&envelope)
                             .expect("relay accepts frame");
@@ -1344,12 +1344,12 @@ mod tests {
                             std_host,
                             page,
                             pico,
-                            connection_provider_by_id,
+                            connection_base_by_id,
                             source_accepted,
                         ));
                         pending
                     }
-                    ConnectionProvider::FixtureDatagram => {
+                    ConnectionBase::FixtureDatagram => {
                         let decoded = datagram_fixture
                             .transmit(&envelope)
                             .expect("relay accepts datagram");
@@ -1373,16 +1373,16 @@ mod tests {
                             std_host,
                             page,
                             pico,
-                            connection_provider_by_id,
+                            connection_base_by_id,
                             source_accepted,
                         ));
                         pending
                     }
-                    ConnectionProvider::Local
-                    | ConnectionProvider::InMemory
-                    | ConnectionProvider::WebSocket
-                    | ConnectionProvider::UsbCdc => {
-                        panic!("triple remote transmit used unsupported provider")
+                    ConnectionBase::Local
+                    | ConnectionBase::InMemory
+                    | ConnectionBase::WebSocket
+                    | ConnectionBase::UsbCdc => {
+                        panic!("triple remote transmit used unsupported base")
                     }
                 }
             }
@@ -1393,7 +1393,7 @@ mod tests {
         std_host: &mut LegacyStdFixtureHost,
         page: &mut BrowserSimPage,
         pico: &mut PicoSim,
-        connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
+        connection_base_by_id: &BTreeMap<ConnectionId, ConnectionBase>,
         source_connection_by_sink: &BTreeMap<PlacementId, ConnectionId>,
         host_id: &HostId,
         effect: PlatformEffect,
@@ -1442,7 +1442,7 @@ mod tests {
                     std_host,
                     page,
                     pico,
-                    connection_provider_by_id,
+                    connection_base_by_id,
                     delivered,
                 ));
                 pending
@@ -1457,7 +1457,7 @@ mod tests {
         std_host: &mut LegacyStdFixtureHost,
         page: &mut BrowserSimPage,
         pico: &mut PicoSim,
-        connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
+        connection_base_by_id: &BTreeMap<ConnectionId, ConnectionBase>,
         source_connection_by_sink: &BTreeMap<PlacementId, ConnectionId>,
         effect: PlatformEffect,
     ) -> Vec<(HostId, PlatformEffect)> {
@@ -1503,7 +1503,7 @@ mod tests {
                     std_host,
                     page,
                     pico,
-                    connection_provider_by_id,
+                    connection_base_by_id,
                     delivered,
                 ));
                 pending
@@ -1518,7 +1518,7 @@ mod tests {
         std_host: &mut LegacyStdFixtureHost,
         page: &mut BrowserSimPage,
         pico: &mut PicoSim,
-        connection_provider_by_id: &BTreeMap<ConnectionId, ConnectionProvider>,
+        connection_base_by_id: &BTreeMap<ConnectionId, ConnectionBase>,
         output: RuntimeOutput,
     ) -> Vec<(HostId, PlatformEffect)> {
         let mut pending = output
@@ -1534,8 +1534,8 @@ mod tests {
             } = event
             {
                 if matches!(disposition.disposition, TerminalDisposition::Completed) {
-                    match connection_provider_by_id.get(&connection_id).copied() {
-                        Some(ConnectionProvider::FixtureFrame) => {
+                    match connection_base_by_id.get(&connection_id).copied() {
+                        Some(ConnectionBase::FixtureFrame) => {
                             if let Some(sink_host_id) =
                                 page.host_for_inbound_connection(&plan_id, &connection_id)
                             {
@@ -1554,7 +1554,7 @@ mod tests {
                                 );
                             }
                         }
-                        Some(ConnectionProvider::FixtureDatagram) => {
+                        Some(ConnectionBase::FixtureDatagram) => {
                             let close = pico.handle(HostCommand::CloseConnection {
                                 plan_id,
                                 connection_id,

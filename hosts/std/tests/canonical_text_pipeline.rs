@@ -19,19 +19,19 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
 }
 
 #[test]
-fn canonical_program_one_runs_through_the_planner_kernel_and_terminal_evidence() {
+fn canonical_program_one_runs_through_the_planner_kernel_and_terminal_clue() {
     let expanded = expanded();
-    assert_eq!(expanded.operations.len(), 3);
+    assert_eq!(expanded.gears.len(), 3);
     assert_eq!(expanded.connections.len(), 2);
     let mut kinds = expanded
-        .operations
+        .gears
         .iter()
         .map(|operation| operation.kind_id.as_str())
         .collect::<Vec<_>>();
     kinds.sort_unstable();
     assert_eq!(kinds, ["presentation/text", "text/literal", "text/upper"]);
     assert!(expanded
-        .operations
+        .gears
         .iter()
         .find(|operation| operation.kind_id.as_str() == "text/literal")
         .is_some_and(|operation| {
@@ -107,7 +107,7 @@ fn selected_upper_realization_and_host_operation_identity_fail_closed() {
         .iter()
         .position(|placement| placement.kind_id.as_str() == "text/upper")
         .unwrap();
-    let mutations: [fn(&mut conduit_core::PlannedOperation); 2] = [
+    let mutations: [fn(&mut conduit_core::PlannedGear); 2] = [
         |placement| placement.artifact_id = conduit_core::ArtifactId::from("wrong/text-upper@1"),
         |placement| {
             placement.host_operations[0].target_kind =

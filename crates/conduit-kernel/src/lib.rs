@@ -4,8 +4,8 @@
 //!
 //! This crate is the forward S1 kernel. It does not adapt the reboot runtime:
 //! callers lower exact plans into numeric port, host-operation, and route
-//! bindings before activation. The fixed and hosted storage profiles implement
-//! the same value/evidence contracts.
+//! bindings before Play start. The fixed and hosted storage profiles implement
+//! the same value/clue contracts.
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -29,8 +29,8 @@ pub struct PortId(pub u16);
 pub struct CordId(pub u16);
 
 /// Numeric identity for one plan-lowered carrier boundary. The kernel does not
-/// interpret provider or transport configuration; the host binds this identity
-/// to the exact observed link before activation.
+/// interpret base or transport configuration; the host binds this identity
+/// to the exact observed link before Play start.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct RemoteEndpointId(pub u16);
@@ -49,7 +49,7 @@ pub struct ResourceId(pub u16);
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]
-pub struct EvidenceExpectationId(pub u16);
+pub struct ClueExpectationId(pub u16);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ResourceBinding {
@@ -58,7 +58,7 @@ pub struct ResourceBinding {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum EvidenceExpectationTarget {
+pub enum ClueExpectationTarget {
     Fragment,
     Node(NodeId),
     Cord(CordId),
@@ -205,15 +205,15 @@ pub struct HostOperationBinding {
 
 /// Plan-lowered, numeric host-operation admission table.
 pub struct FixedHostOperationBindings<const SLOTS: usize> {
-    maximum_operations_per_node: u16,
+    maximum_gears_per_node: u16,
     bindings: [Option<HostOperationBinding>; SLOTS],
     sealed: bool,
 }
 
 impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
-    pub const fn new(maximum_operations_per_node: u16) -> Self {
+    pub const fn new(maximum_gears_per_node: u16) -> Self {
         Self {
-            maximum_operations_per_node,
+            maximum_gears_per_node,
             bindings: [None; SLOTS],
             sealed: false,
         }
@@ -239,7 +239,7 @@ impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
     }
 
     pub fn seal(&mut self) -> Result<(), ProtocolError> {
-        if self.maximum_operations_per_node == 0 {
+        if self.maximum_gears_per_node == 0 {
             return Err(ProtocolError::HostOperationTableInvalid);
         }
         self.sealed = true;
@@ -275,10 +275,10 @@ impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
     }
 
     pub(crate) fn validate_active_nodes(&self, active_nodes: usize) -> Result<(), ProtocolError> {
-        if !self.sealed || self.maximum_operations_per_node == 0 {
+        if !self.sealed || self.maximum_gears_per_node == 0 {
             return Err(ProtocolError::HostOperationTableInvalid);
         }
-        let operations_per_node = usize::from(self.maximum_operations_per_node);
+        let operations_per_node = usize::from(self.maximum_gears_per_node);
         for (slot, binding) in self.bindings.iter().enumerate() {
             if binding.is_some() && slot / operations_per_node >= active_nodes {
                 return Err(ProtocolError::HostOperationTableInvalid);
@@ -288,11 +288,11 @@ impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
     }
 
     fn slot(&self, node: NodeId, operation: HostOperationId) -> Result<usize, ProtocolError> {
-        if operation.0 >= self.maximum_operations_per_node {
+        if operation.0 >= self.maximum_gears_per_node {
             return Err(ProtocolError::HostOperationMissing);
         }
         usize::from(node.0)
-            .checked_mul(usize::from(self.maximum_operations_per_node))
+            .checked_mul(usize::from(self.maximum_gears_per_node))
             .and_then(|base| base.checked_add(usize::from(operation.0)))
             .filter(|slot| *slot < SLOTS)
             .ok_or(ProtocolError::HostOperationMissing)
@@ -312,7 +312,7 @@ pub struct RouteTarget {
 }
 
 /// Precomputed numeric routing table. Route lookup is direct after sealing:
-/// there is no graph scan, string lookup, provider choice, or allocation.
+/// there is no graph scan, string lookup, base choice, or allocation.
 pub struct FixedRoutes<const ROUTE_SLOTS: usize, const TARGETS: usize> {
     maximum_ports_per_node: u16,
     ranges: [Option<RouteRange>; ROUTE_SLOTS],
@@ -686,14 +686,14 @@ pub struct KernelEvent {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum EvidenceError {
+pub enum ClueError {
     InvalidBudget,
     ItemCapacityExceeded,
     ByteCapacityExceeded,
     SequenceOverflow,
 }
 
-pub trait EvidenceSink {
+pub trait ClueSink {
     fn item_capacity(&self) -> u16;
     fn byte_capacity(&self) -> u32;
     fn len(&self) -> u16;
@@ -707,14 +707,14 @@ pub trait EvidenceSink {
         port: Option<PortId>,
         request: Option<RequestId>,
         kind: KernelEventKind,
-    ) -> Result<KernelEvent, EvidenceError>;
+    ) -> Result<KernelEvent, ClueError>;
 }
 
-pub trait EvidenceQuery {
+pub trait ClueQuery {
     fn contains_kind(&self, kind: KernelEventKind) -> bool;
 }
 
-pub struct FixedEvidenceLog<const EVENTS: usize> {
+pub struct FixedClueLog<const EVENTS: usize> {
     entries: [Option<KernelEvent>; EVENTS],
     len: u16,
     byte_capacity: u32,
@@ -722,18 +722,18 @@ pub struct FixedEvidenceLog<const EVENTS: usize> {
     next_sequence: u32,
 }
 
-impl<const EVENTS: usize> FixedEvidenceLog<EVENTS> {
-    pub fn new(byte_capacity: u32) -> Result<Self, EvidenceError> {
+impl<const EVENTS: usize> FixedClueLog<EVENTS> {
+    pub fn new(byte_capacity: u32) -> Result<Self, ClueError> {
         let physical_bytes = EVENTS
             .checked_mul(size_of::<KernelEvent>())
             .and_then(|value| u32::try_from(value).ok())
-            .ok_or(EvidenceError::InvalidBudget)?;
+            .ok_or(ClueError::InvalidBudget)?;
         if EVENTS == 0
             || EVENTS > usize::from(u16::MAX)
             || byte_capacity == 0
             || byte_capacity > physical_bytes
         {
-            return Err(EvidenceError::InvalidBudget);
+            return Err(ClueError::InvalidBudget);
         }
         Ok(Self {
             entries: [None; EVENTS],
@@ -749,7 +749,7 @@ impl<const EVENTS: usize> FixedEvidenceLog<EVENTS> {
     }
 }
 
-impl<const EVENTS: usize> EvidenceSink for FixedEvidenceLog<EVENTS> {
+impl<const EVENTS: usize> ClueSink for FixedClueLog<EVENTS> {
     fn item_capacity(&self) -> u16 {
         u16::try_from(EVENTS).unwrap_or(u16::MAX)
     }
@@ -772,11 +772,11 @@ impl<const EVENTS: usize> EvidenceSink for FixedEvidenceLog<EVENTS> {
         port: Option<PortId>,
         request: Option<RequestId>,
         kind: KernelEventKind,
-    ) -> Result<KernelEvent, EvidenceError> {
+    ) -> Result<KernelEvent, ClueError> {
         let charge =
-            u32::try_from(size_of::<KernelEvent>()).map_err(|_| EvidenceError::InvalidBudget)?;
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| ClueError::InvalidBudget)?;
         if usize::from(self.len) >= EVENTS {
-            return Err(EvidenceError::ItemCapacityExceeded);
+            return Err(ClueError::ItemCapacityExceeded);
         }
         if self
             .used_bytes
@@ -784,12 +784,10 @@ impl<const EVENTS: usize> EvidenceSink for FixedEvidenceLog<EVENTS> {
             .filter(|used| *used <= self.byte_capacity)
             .is_none()
         {
-            return Err(EvidenceError::ByteCapacityExceeded);
+            return Err(ClueError::ByteCapacityExceeded);
         }
         let sequence = self.next_sequence;
-        let next_sequence = sequence
-            .checked_add(1)
-            .ok_or(EvidenceError::SequenceOverflow)?;
+        let next_sequence = sequence.checked_add(1).ok_or(ClueError::SequenceOverflow)?;
         let event = KernelEvent {
             sequence,
             node,
@@ -805,14 +803,14 @@ impl<const EVENTS: usize> EvidenceSink for FixedEvidenceLog<EVENTS> {
     }
 }
 
-impl<const EVENTS: usize> EvidenceQuery for FixedEvidenceLog<EVENTS> {
+impl<const EVENTS: usize> ClueQuery for FixedClueLog<EVENTS> {
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
         self.events().any(|event| event.kind == kind)
     }
 }
 
 #[cfg(feature = "alloc")]
-pub struct HostedEvidenceLog {
+pub struct HostedClueLog {
     entries: alloc::vec::Vec<Option<KernelEvent>>,
     len: u16,
     byte_capacity: u32,
@@ -821,14 +819,14 @@ pub struct HostedEvidenceLog {
 }
 
 #[cfg(feature = "alloc")]
-impl HostedEvidenceLog {
-    pub fn new(item_capacity: u16, byte_capacity: u32) -> Result<Self, EvidenceError> {
+impl HostedClueLog {
+    pub fn new(item_capacity: u16, byte_capacity: u32) -> Result<Self, ClueError> {
         let physical_bytes = usize::from(item_capacity)
             .checked_mul(size_of::<KernelEvent>())
             .and_then(|value| u32::try_from(value).ok())
-            .ok_or(EvidenceError::InvalidBudget)?;
+            .ok_or(ClueError::InvalidBudget)?;
         if item_capacity == 0 || byte_capacity == 0 || byte_capacity > physical_bytes {
-            return Err(EvidenceError::InvalidBudget);
+            return Err(ClueError::InvalidBudget);
         }
         let mut entries = alloc::vec::Vec::with_capacity(usize::from(item_capacity));
         entries.resize(usize::from(item_capacity), None);
@@ -851,7 +849,7 @@ impl HostedEvidenceLog {
 }
 
 #[cfg(feature = "alloc")]
-impl EvidenceSink for HostedEvidenceLog {
+impl ClueSink for HostedClueLog {
     fn item_capacity(&self) -> u16 {
         u16::try_from(self.entries.len()).unwrap_or(u16::MAX)
     }
@@ -874,11 +872,11 @@ impl EvidenceSink for HostedEvidenceLog {
         port: Option<PortId>,
         request: Option<RequestId>,
         kind: KernelEventKind,
-    ) -> Result<KernelEvent, EvidenceError> {
+    ) -> Result<KernelEvent, ClueError> {
         let charge =
-            u32::try_from(size_of::<KernelEvent>()).map_err(|_| EvidenceError::InvalidBudget)?;
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| ClueError::InvalidBudget)?;
         if usize::from(self.len) >= self.entries.len() {
-            return Err(EvidenceError::ItemCapacityExceeded);
+            return Err(ClueError::ItemCapacityExceeded);
         }
         if self
             .used_bytes
@@ -886,12 +884,10 @@ impl EvidenceSink for HostedEvidenceLog {
             .filter(|used| *used <= self.byte_capacity)
             .is_none()
         {
-            return Err(EvidenceError::ByteCapacityExceeded);
+            return Err(ClueError::ByteCapacityExceeded);
         }
         let sequence = self.next_sequence;
-        let next_sequence = sequence
-            .checked_add(1)
-            .ok_or(EvidenceError::SequenceOverflow)?;
+        let next_sequence = sequence.checked_add(1).ok_or(ClueError::SequenceOverflow)?;
         let event = KernelEvent {
             sequence,
             node,
@@ -908,7 +904,7 @@ impl EvidenceSink for HostedEvidenceLog {
 }
 
 #[cfg(feature = "alloc")]
-impl EvidenceQuery for HostedEvidenceLog {
+impl ClueQuery for HostedClueLog {
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
         self.events().any(|event| event.kind == kind)
     }

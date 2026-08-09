@@ -1,7 +1,7 @@
 # Functional compatibility: the face is the contract
 
 **Status:** canonical architecture direction  
-**Applies to:** Forms, catalog operations, host offers, planning, reusable composition, and future shared pools  
+**Applies to:** Forms, catalog Kinds, Host offers, planning, reusable composition, and future shared pools
 **Related:** #507, #511, #512, #514, #515
 
 ## Rule
@@ -10,9 +10,9 @@ Conduit uses **functional compatibility**, not nominal compatibility.
 
 > **Two callable Conduit things are compatible when their canonical checked faces are equal.**
 
-A catalog path, form name, historical `KindId`, operation ID, implementation name, artifact identity, or revision label does not by itself make two things compatible or incompatible.
+A catalog path, Form name, Kind ID, Gear ID, implementation name, artifact identity, or revision label does not by itself make two things compatible or incompatible.
 
-Names remain valuable for authorship, discovery, catalog organization, provenance, diagnostics, evidence, and exact realization records. They are not hidden nominal types.
+Names remain valuable for authorship, discovery, catalog organization, provenance, diagnostics, clue, and exact realization records. They are not hidden nominal types.
 
 For the first implementation, compatibility is deliberately simple:
 
@@ -25,7 +25,7 @@ This is exact equality, not a width/depth/variance subtyping lattice.
 
 ## What belongs to the face
 
-The checked face is the complete public callable boundary Conduit has admitted for the form or operation. Whatever the checked face model contains participates in compatibility.
+The checked face is the complete public callable boundary Conduit has admitted for the Form or Kind. Whatever the checked face model contains participates in compatibility.
 
 At minimum, the current language direction includes:
 
@@ -50,9 +50,9 @@ The back does not participate in compatibility. Two forms may have radically dif
 
 If an observable semantic distinction must prevent substitution, that distinction must be represented in the checked face contract. It may not be hidden behind a friendly name and then enforced nominally.
 
-## Forms and operations share the same compatibility law
+## Forms and Kinds share the same compatibility law
 
-A reusable form and a host-offered primitive operation are not separate compatibility universes.
+A reusable Form and a Host-offered primitive Kind are not separate compatibility universes.
 
 Conceptually:
 
@@ -68,8 +68,8 @@ form loud (
 If another callable thing has the same checked face as `loud`, it is compatible with `loud` at that boundary regardless of whether it is:
 
 - another reusable form;
-- a standard catalog operation;
-- a host-native implementation exposed through an operation offer;
+- a standard catalog Kind;
+- a Host-native implementation exposed through a Kind offer;
 - a browser/WASM realization;
 - a bounded embedded realization.
 
@@ -82,7 +82,7 @@ Planning separates **compatibility** from **exact realization**.
 Candidate admission begins with face compatibility:
 
 ```text
-cell's required checked face
+gear's required checked face
         ↓
 face-compatible host/form realizations
         ↓
@@ -101,9 +101,9 @@ Once a realization is selected, the Plan remains exact. It may seal:
 - authority;
 - connections and route candidates;
 - finite limits;
-- evidence requirements.
+- clue requirements.
 
-Functional compatibility therefore does **not** mean runtime improvisation. A compatible realization absent from an already-sealed Plan cannot be substituted opportunistically unless the Plan explicitly admitted that alternative or a new planning operation produces a new Plan.
+Functional compatibility therefore does **not** mean runtime improvisation. A compatible realization absent from an already-sealed Plan cannot be substituted opportunistically unless the Plan explicitly admitted that alternative or a new planning pass produces a new Plan.
 
 ## Names and revisions
 
@@ -120,7 +120,7 @@ different face + same revision   -> incompatible
 
 A revision change that changes the checked face is naturally incompatible because the face changed. A revision change that leaves the canonical checked face unchanged does not create incompatibility merely by changing the revision token.
 
-Proof and conformance evidence remain attached to the exact implementation/artifact/revision that was actually tested. Functional compatibility does not transfer historical proof claims to an untested implementation.
+Proof and conformance clue remain attached to the exact implementation/artifact/revision that was actually tested. Functional compatibility does not transfer historical proof claims to an untested implementation.
 
 ## Identity
 
@@ -133,7 +133,7 @@ expanded form identity
 selected implementation/artifact identity
 Plan identity
 Play identity
-evidence identity
+clue identity
 ```
 
 `FaceId` or an equivalent canonical checked-face digest may be useful internally. The exact representation is an implementation choice, but compatibility must derive from the checked face rather than from the source/catalog name.
@@ -150,13 +150,13 @@ Do not infer compatibility from declaration order, friendly names alone, or impl
 
 Catalog categories such as `text/`, `time/`, `flow/`, `web/`, or `llm/` remain useful organization and opt-in packaging boundaries.
 
-A host may advertise named operations for discovery and evidence, but planning eligibility is based on their checked faces plus other explicit planning requirements. Category prefixes and operation names do not form a nominal type hierarchy.
+A Host may advertise named Kinds for discovery and Clues, but planning eligibility is based on their checked faces plus other explicit planning requirements. Category prefixes and Kind names do not form a nominal type hierarchy.
 
 A host compiled with an opt-in family still advertises only the exact realizations it can currently promise. Functional compatibility does not weaken runtime truth or finite limits.
 
 ## Shared pools
 
-A shared pool's member contract is likewise a checked face. A pool may admit members that are functionally compatible with the pool's declared member face even if those members come from differently named forms or host-provided operations.
+A shared pool's member contract is likewise a checked face. A pool may admit members that are functionally compatible with the pool's declared member face even if those members come from differently named Forms or Host-provided Kinds.
 
 Pool identity, member identity, membership epochs, authority, and finite capacity remain exact runtime/Plan facts. Face compatibility does not make pools ambient or unbounded.
 
@@ -176,8 +176,8 @@ no face-compatible realization
 over nominal errors such as:
 
 ```text
-wrong operation name
-wrong kind id
+wrong Kind name
+wrong Kind ID
 wrong catalog path
 wrong revision
 ```
@@ -191,7 +191,7 @@ PRs #520 and #521 intentionally implemented the then-current nominal rule. That 
 Follow-up work must remove or invert tests asserting that:
 
 - a differently named form with the same face is incompatible;
-- an offer with the same face but a different operation identity is ineligible;
+- an offer with the same face but a different Kind identity is ineligible;
 - a revision difference alone makes a candidate incompatible;
 - structural/face coincidence must be rejected.
 
@@ -214,7 +214,7 @@ This rule does not introduce:
 - ambient dynamic plugin selection;
 - unplanned runtime substitution;
 - proof transfer between implementations;
-- weakening of resource, authority, transport, or evidence exactness.
+- weakening of resource, authority, transport, or clue exactness.
 
 ## Canonical sentence
 

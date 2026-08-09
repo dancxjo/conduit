@@ -9,7 +9,7 @@ use crate::external_websocket::{
 };
 use conduit_core::{
     kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId, CapabilityId,
-    ConnectionProvider, HostAdvertisement, HostId, HostOperationContractId, HostProfileId,
+    ConnectionBase, HostAdvertisement, HostId, HostOperationContractId, HostProfileId,
     OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PoolMemberLimits,
     SharedPoolId, PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
     SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
@@ -68,10 +68,10 @@ pub fn run(bind: &str) -> Result<(), String> {
     }
     drive_chat(&mut carrier, &mut pool, &mut members)?;
     println!(
-        "pool-webchat-complete plan={} pool={} evidence={} population={}",
+        "pool-webchat-complete plan={} pool={} clue={} population={}",
         plan_id,
         lowered_pool.pool_id.as_str(),
-        pool.evidence().count(),
+        pool.clues().count(),
         pool.active_population(),
     );
     Ok(())
@@ -95,21 +95,21 @@ fn planned_pool() -> Result<(String, conduit_runtime::lowering::LoweredSharedPoo
             member_limits: PoolMemberLimits {
                 queue_item_capacity: 32,
                 queue_byte_capacity: 8_192,
-                evidence_item_capacity: 8,
-                evidence_byte_capacity: 1_024,
+                clue_item_capacity: 8,
+                clue_byte_capacity: 1_024,
             },
             admission_authority: authority.clone(),
         },
     )]);
-    let empty_providers = BTreeMap::new();
+    let empty_bases = BTreeMap::new();
     let empty_routes = BTreeMap::new();
     let plan = plan_expanded_canonical_with_shared_pools(
         &expanded,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         PlanningOptions {
-            connection_providers: &empty_providers,
+            connection_bases: &empty_bases,
             route_candidates: &empty_routes,
             connection_item_capacity: 32,
             connection_byte_capacity: 8_192,
@@ -159,7 +159,7 @@ fn advertisement() -> HostAdvertisement {
             profile_id: PlannerProfileId::from("std/pool-webchat-planner"),
             limits: PlannerLimits {
                 maximum_host_advertisements: 1,
-                maximum_operations: 8,
+                maximum_gears: 8,
                 maximum_connections: 8,
                 maximum_authority_grants: 1,
                 maximum_protected_resource_grants: 0,
@@ -200,8 +200,8 @@ fn admit(
             AUTHORITY,
         )
         .map_err(|error| format!("pool admit: {error:?}"))?;
-    pool.activate(member)
-        .map_err(|error| format!("pool activate: {error:?}"))?;
+    pool.trigger(member)
+        .map_err(|error| format!("pool trigger: {error:?}"))?;
     Ok(member)
 }
 

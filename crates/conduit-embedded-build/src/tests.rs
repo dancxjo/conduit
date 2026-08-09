@@ -1,10 +1,10 @@
 use conduit_core::{
-    mandatory_evidence_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
-    CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry, ConfigurationValue,
-    ConnectionId, ConnectionProvider, EvidenceStorageBudget, ExecutionProfileId, ExpandedFormId,
-    ExpectedEvidence, ExpectedTerminal, FormIdentity, FragmentId, HostId, ImplementationId,
-    KindContractRevision, KindId, OfferGeneration, OperationId, PlacementId, PlanFragment, PlanId,
-    PlannedConnection, PlannedOperation, PortDescriptor, PortDirection, PortId, SourceDocumentId,
+    mandatory_clue_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
+    CapabilityId, CapabilityLimits, CheckedFormId, ClueStorageBudget, ConfigurationEntry,
+    ConfigurationValue, ConnectionBase, ConnectionId, ExecutionProfileId, ExpandedFormId,
+    ExpectedClue, ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
+    KindContractRevision, KindId, OfferGeneration, PlacementId, PlanFragment, PlanId,
+    PlannedConnection, PlannedGear, PortDescriptor, PortDirection, PortId, SourceDocumentId,
     StartupDependency, TerminalPolicy,
 };
 use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
@@ -109,7 +109,7 @@ fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
     )
@@ -130,14 +130,14 @@ fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
             maximum_route_targets: 1,
             maximum_host_operations: 2,
             maximum_resources: 2,
-            maximum_evidence_expectations: 8,
+            maximum_clue_expectations: 8,
             maximum_configuration_entries: 3,
             maximum_ports_per_node: MAXIMUM_KERNEL_PORTS_PER_NODE,
             maximum_remote_endpoints: 0,
             maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             maximum_cord_value_bytes: SIGNAL_ENCODED_LEN,
-            maximum_evidence_items: 16,
-            maximum_evidence_bytes: 1024,
+            maximum_clue_items: 16,
+            maximum_clue_bytes: 1024,
         },
     )
     .expect("Pico fragment fits the firmware image contract");
@@ -238,14 +238,14 @@ fn renderer_emits_fixed_current_kernel_tables() {
         route_targets: Vec::new(),
         host_operations: Vec::new(),
         resources: Vec::new(),
-        evidence: Vec::new(),
+        clues: Vec::new(),
         startup_dependencies: Vec::new(),
         startup_order: vec![0],
         expected_terminals: Vec::new(),
         cord_value_slots: 0,
         cord_value_bytes: 0,
-        evidence_items: 1,
-        evidence_bytes: 16,
+        clue_items: 1,
+        clue_bytes: 16,
     };
 
     let module = generated.render_rust_module();
@@ -289,17 +289,17 @@ fn sealed_current_fragment() -> PlanFragment {
         direction: PortDirection::Input,
         temporal: conduit_core::PortTemporal::Value,
     };
-    let expected_evidence = vec![
-        ExpectedEvidence::PlanFragmentReceived,
-        ExpectedEvidence::PlacementPrepared(source.clone()),
-        ExpectedEvidence::PlacementPrepared(sink.clone()),
-        ExpectedEvidence::PlacementTerminal(source.clone()),
-        ExpectedEvidence::PlacementTerminal(sink.clone()),
-        ExpectedEvidence::ConnectionTerminal(connection.clone()),
-        ExpectedEvidence::PlanTerminal,
+    let expected_clue = vec![
+        ExpectedClue::PlanFragmentReceived,
+        ExpectedClue::PlacementPrepared(source.clone()),
+        ExpectedClue::PlacementPrepared(sink.clone()),
+        ExpectedClue::PlacementTerminal(source.clone()),
+        ExpectedClue::PlacementTerminal(sink.clone()),
+        ExpectedClue::ConnectionTerminal(connection.clone()),
+        ExpectedClue::PlanTerminal,
     ];
-    let evidence_storage_budget = mandatory_evidence_storage_requirement(&expected_evidence)
-        .unwrap_or(EvidenceStorageBudget {
+    let clue_storage_budget =
+        mandatory_clue_storage_requirement(&expected_clue).unwrap_or(ClueStorageBudget {
             item_capacity: 0,
             byte_capacity: 0,
         });
@@ -318,9 +318,9 @@ fn sealed_current_fragment() -> PlanFragment {
         boot_id: boot_id.clone(),
         offer_generation: OfferGeneration(1),
         placements: vec![
-            PlannedOperation {
+            PlannedGear {
                 placement_id: source.clone(),
-                operation_id: OperationId::from("source"),
+                gear_id: GearId::from("source"),
                 kind_id: KindId::from("test/source"),
                 kind_contract_revision: KindContractRevision::from("test/source@1"),
                 execution_profile_id: ExecutionProfileId::from("test/source-fixed@1"),
@@ -347,9 +347,9 @@ fn sealed_current_fragment() -> PlanFragment {
                 authority: Vec::new(),
                 pool_references: Vec::new(),
             },
-            PlannedOperation {
+            PlannedGear {
                 placement_id: sink.clone(),
-                operation_id: OperationId::from("sink"),
+                gear_id: GearId::from("sink"),
                 kind_id: KindId::from("test/sink"),
                 kind_contract_revision: KindContractRevision::from("test/sink@1"),
                 execution_profile_id: ExecutionProfileId::from("test/sink-fixed@1"),
@@ -382,7 +382,7 @@ fn sealed_current_fragment() -> PlanFragment {
             sink_port_id: PortId::from("in"),
             value_kind,
             temporal: conduit_core::PortTemporal::Value,
-            provider: ConnectionProvider::Local,
+            base: ConnectionBase::Local,
             link_binding: None,
             route_candidates: vec![],
             item_capacity: 1,
@@ -402,8 +402,8 @@ fn sealed_current_fragment() -> PlanFragment {
             ExpectedTerminal::ConnectionCompleted(connection),
             ExpectedTerminal::PlanCompleted,
         ],
-        expected_evidence,
-        evidence_storage_budget,
+        expected_clue,
+        clue_storage_budget,
         plan_fragments: Vec::new(),
     };
 
@@ -417,7 +417,7 @@ fn sealed_current_fragment() -> PlanFragment {
 #[test]
 fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
     use conduit_core::{
-        seal_plan, ConnectionProviderInstanceId, FormIdentity, LinkAuthorityReference,
+        seal_plan, ConnectionBaseInstanceId, FormIdentity, LinkAuthorityReference,
         LinkAvailability, LinkBinding, LinkCredentialReference, LinkEndpoint, LinkEndpointId,
         LinkLimits,
     };
@@ -441,7 +441,7 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
     pico_fragment.placements[0].host_id = pico_host_id.clone();
     pico_fragment.placements[0].boot_id = pico_boot_id.clone();
     pico_fragment.connections[0].sink_placement_id = PlacementId::from("sink");
-    pico_fragment.connections[0].provider = ConnectionProvider::UsbCdc;
+    pico_fragment.connections[0].base = ConnectionBase::UsbCdc;
     pico_fragment.connections[0].link_binding = Some(LinkBinding {
         binding_id: conduit_core::LinkBindingId::from("link/usb-cdc"),
         source: LinkEndpoint {
@@ -454,8 +454,8 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
             boot_id: pico_boot_id.clone(),
             endpoint_id: LinkEndpointId::from("pico-in"),
         },
-        provider: ConnectionProvider::UsbCdc,
-        provider_instance_id: ConnectionProviderInstanceId::from("pico-usb-cdc-0"),
+        base: ConnectionBase::UsbCdc,
+        base_instance_id: ConnectionBaseInstanceId::from("pico-usb-cdc-0"),
         availability: LinkAvailability::Ready,
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
@@ -469,17 +469,17 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
 
     let sink = PlacementId::from("sink");
     let connection = ConnectionId::from("source-to-sink");
-    let expected_evidence = vec![
-        ExpectedEvidence::PlanFragmentReceived,
-        ExpectedEvidence::PlacementPrepared(sink.clone()),
-        ExpectedEvidence::PlacementTerminal(sink.clone()),
-        ExpectedEvidence::ConnectionTerminal(connection.clone()),
-        ExpectedEvidence::PlanTerminal,
+    let expected_clue = vec![
+        ExpectedClue::PlanFragmentReceived,
+        ExpectedClue::PlacementPrepared(sink.clone()),
+        ExpectedClue::PlacementTerminal(sink.clone()),
+        ExpectedClue::ConnectionTerminal(connection.clone()),
+        ExpectedClue::PlanTerminal,
     ];
-    let evidence_storage_budget =
-        mandatory_evidence_storage_requirement(&expected_evidence).expect("evidence budget");
-    pico_fragment.expected_evidence = expected_evidence;
-    pico_fragment.evidence_storage_budget = evidence_storage_budget;
+    let clue_storage_budget =
+        mandatory_clue_storage_requirement(&expected_clue).expect("clue budget");
+    pico_fragment.expected_clue = expected_clue;
+    pico_fragment.clue_storage_budget = clue_storage_budget;
     pico_fragment.expected_terminals = vec![
         ExpectedTerminal::PlacementCompleted(sink),
         ExpectedTerminal::ConnectionCompleted(connection),
@@ -492,22 +492,22 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
     std_fragment
         .placements
         .retain(|p| p.placement_id.as_str() == "source");
-    std_fragment.connections[0].provider = ConnectionProvider::UsbCdc;
+    std_fragment.connections[0].base = ConnectionBase::UsbCdc;
     std_fragment.connections[0].link_binding = pico_fragment.connections[0].link_binding.clone();
     std_fragment.startup_dependencies.clear();
     std_fragment.startup_order = vec![PlacementId::from("source")];
     let source_placement = PlacementId::from("source");
     let connection_id = ConnectionId::from("source-to-sink");
-    let std_evidence = vec![
-        ExpectedEvidence::PlanFragmentReceived,
-        ExpectedEvidence::PlacementPrepared(source_placement.clone()),
-        ExpectedEvidence::PlacementTerminal(source_placement.clone()),
-        ExpectedEvidence::ConnectionTerminal(connection_id.clone()),
-        ExpectedEvidence::PlanTerminal,
+    let std_clue = vec![
+        ExpectedClue::PlanFragmentReceived,
+        ExpectedClue::PlacementPrepared(source_placement.clone()),
+        ExpectedClue::PlacementTerminal(source_placement.clone()),
+        ExpectedClue::ConnectionTerminal(connection_id.clone()),
+        ExpectedClue::PlanTerminal,
     ];
-    let std_budget = mandatory_evidence_storage_requirement(&std_evidence).expect("std budget");
-    std_fragment.expected_evidence = std_evidence;
-    std_fragment.evidence_storage_budget = std_budget;
+    let std_budget = mandatory_clue_storage_requirement(&std_clue).expect("std budget");
+    std_fragment.expected_clue = std_clue;
+    std_fragment.clue_storage_budget = std_budget;
     std_fragment.expected_terminals = vec![
         ExpectedTerminal::PlacementCompleted(source_placement),
         ExpectedTerminal::ConnectionCompleted(connection_id),
@@ -533,10 +533,7 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
             .expect("remote pico fragment generates embedded plan");
 
     assert_eq!(generated.remote_endpoints.len(), 1);
-    assert_eq!(
-        generated.remote_endpoints[0].provider,
-        ConnectionProvider::UsbCdc
-    );
+    assert_eq!(generated.remote_endpoints[0].base, ConnectionBase::UsbCdc);
     assert_eq!(
         generated.remote_endpoints[0].link_binding_id,
         "link/usb-cdc"

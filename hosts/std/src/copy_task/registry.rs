@@ -1,7 +1,6 @@
 use conduit_core::{
-    BootId, CapabilityId, HostId, OperationId, ProtectedResourceAccess,
-    ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId,
-    ResourceHandleId,
+    BootId, CapabilityId, GearId, HostId, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
+    ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -30,7 +29,7 @@ impl ProtectedFileRegistry {
         &mut self,
         handle_id: ResourceHandleId,
         path: impl AsRef<Path>,
-        operation_id: OperationId,
+        gear_id: GearId,
         role_id: ResourceBindingRoleId,
         host_id: HostId,
         boot_id: BootId,
@@ -49,7 +48,7 @@ impl ProtectedFileRegistry {
         let grant = ProtectedResourceGrant {
             role_id,
             handle_id: handle_id.clone(),
-            operation_id,
+            gear_id,
             host_id,
             boot_id,
             capability_id,

@@ -141,16 +141,16 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     assert_eq!(artifact["plans"].as_array().unwrap().len(), 1);
     let observations = artifact["observations"].as_array().unwrap();
     assert!(!observations.is_empty());
-    let evidence_ids = observations
+    let clue_ids = observations
         .iter()
         .map(|observation| {
-            observation["evidence_id"]
+            observation["clue_id"]
                 .as_str()
-                .expect("runtime observation has an evidence identity")
+                .expect("runtime observation has an clue identity")
         })
         .collect::<std::collections::BTreeSet<_>>();
-    assert_eq!(evidence_ids.len(), observations.len());
-    assert!(evidence_ids.iter().all(|identity| identity.len() == 64));
+    assert_eq!(clue_ids.len(), observations.len());
+    assert!(clue_ids.iter().all(|identity| identity.len() == 64));
     assert!(observations.iter().any(|observation| {
         observation["active_play_id"].as_str().is_some()
             && observation["presentation_id"].as_str().is_some()
@@ -192,10 +192,10 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
         "{stdout}"
     );
     assert!(stdout.contains("retained="), "{stdout}");
-    assert!(stdout.contains("evidence slots"), "{stdout}");
+    assert!(stdout.contains("clue slots"), "{stdout}");
     assert!(
         !stdout.contains("receipt signal placement=") && !stdout.contains("signal 0 off"),
-        "read-only inspection must not activate work: {stdout}"
+        "read-only inspection must not trigger work: {stdout}"
     );
 
     artifact["retention"]["dropped_items"] = serde_json::Value::from(7);

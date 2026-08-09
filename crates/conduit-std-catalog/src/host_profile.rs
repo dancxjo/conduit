@@ -8,8 +8,8 @@ use alloc::boxed::Box;
 use alloc::format;
 use alloc::string::ToString;
 use conduit_core::{
-    kind_id, ArtifactId, ConfigurationValue, FailureReason, ImplementationId, KindId,
-    PlannedOperation, PortId, ValuePayload,
+    kind_id, ArtifactId, ConfigurationValue, FailureReason, ImplementationId, KindId, PlannedGear,
+    PortId, ValuePayload,
 };
 use conduit_runtime::{
     ImplementationFailure, ImplementationRegistry, OperationAction, OperationCompletion,
@@ -85,7 +85,7 @@ impl OperationImplementation for StandardImplementation {
 
     fn prepare(
         &self,
-        placement: &PlannedOperation,
+        placement: &PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
         match self.kind_id.as_str() {
             PULSE_KIND => Ok(Box::new(CountedSourceState::new(
@@ -141,7 +141,7 @@ struct CountedSourceState {
 
 impl CountedSourceState {
     fn new(
-        placement: &PlannedOperation,
+        placement: &PlannedGear,
         value_kind: &str,
         default_count: u64,
         default_period_ms: u64,
@@ -201,10 +201,10 @@ struct PassState {
 }
 
 impl PassState {
-    fn new(placement: &PlannedOperation) -> Result<Self, ImplementationFailure> {
+    fn new(placement: &PlannedGear) -> Result<Self, ImplementationFailure> {
         if placement.outputs.is_empty() {
             return Err(ImplementationFailure::new(
-                FailureReason::InvalidOperationConfiguration,
+                FailureReason::InvalidGearConfiguration,
                 "pass operation requires at least one output",
             ));
         }
@@ -340,7 +340,7 @@ struct ShowState {
 }
 
 impl ShowState {
-    fn new(placement: &PlannedOperation) -> Result<Self, ImplementationFailure> {
+    fn new(placement: &PlannedGear) -> Result<Self, ImplementationFailure> {
         let input_port = placement
             .inputs
             .first()
@@ -348,7 +348,7 @@ impl ShowState {
             .map(|port| port.port_id.clone())
             .ok_or_else(|| {
                 ImplementationFailure::new(
-                    FailureReason::InvalidOperationConfiguration,
+                    FailureReason::InvalidGearConfiguration,
                     "show operation requires one exact input",
                 )
             })?;
@@ -388,7 +388,7 @@ impl OperationState for ShowState {
     }
 }
 
-fn only_output(placement: &PlannedOperation) -> Result<PortId, ImplementationFailure> {
+fn only_output(placement: &PlannedGear) -> Result<PortId, ImplementationFailure> {
     placement
         .outputs
         .first()
@@ -396,7 +396,7 @@ fn only_output(placement: &PlannedOperation) -> Result<PortId, ImplementationFai
         .map(|port| port.port_id.clone())
         .ok_or_else(|| {
             ImplementationFailure::new(
-                FailureReason::InvalidOperationConfiguration,
+                FailureReason::InvalidGearConfiguration,
                 "operation requires one exact output",
             )
         })
@@ -415,7 +415,7 @@ fn emit_to(ports: &[PortId], value: ValuePayload) -> OperationAction {
 }
 
 fn u64_config(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     key: &str,
     default_value: u64,
 ) -> Result<u64, ImplementationFailure> {
@@ -426,7 +426,7 @@ fn u64_config(
         .map_or(Ok(default_value), |entry| match entry.value {
             ConfigurationValue::U64(value) => Ok(value),
             _ => Err(ImplementationFailure::new(
-                FailureReason::InvalidOperationConfiguration,
+                FailureReason::InvalidGearConfiguration,
                 format!("configuration '{key}' must be u64"),
             )),
         })

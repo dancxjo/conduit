@@ -1,4 +1,4 @@
-//! Exact pre-activation validation and resource reservation for std kernel runs.
+//! Exact pre-trigger validation and resource reservation for std kernel runs.
 //!
 //! Migrated profiles use this boundary instead of instantiating the legacy
 //! runtime merely to validate a plan and hold its resource pools.

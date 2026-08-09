@@ -2,13 +2,13 @@ mod host_contract_fixtures;
 
 use conduit_core::{
     kind_id, port_id, process_owned_link_binding, ArtifactId, BootId, CancellationPolicy,
-    CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId, ConnectionOutcome,
-    ConnectionProvider, ExecutionProfileId, ExpandedFormId, ExpectedEvidence, ExpectedTerminal,
-    FailureReason, FormIdentity, FragmentId, HostCommand, HostEvent, HostId,
+    CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId, ConnectionBase,
+    ConnectionOutcome, ExecutionProfileId, ExpandedFormId, ExpectedClue, ExpectedTerminal,
+    FailureReason, FormIdentity, FragmentId, GearId, HostCommand, HostEvent, HostId,
     HostOperationContractId, HostProfileId, ImplementationId, KindContractRevision,
-    ObservationKind, OfferGeneration, OperationId, PlacementId, PlanFragment, PlanId,
-    PlannedOperation, PlatformEffect, PortDirection, SourceDocumentId, TerminalDisposition,
-    TerminalPolicy, ValuePayload, TIMER_RESOURCE_CLASS,
+    ObservationKind, OfferGeneration, PlacementId, PlanFragment, PlanId, PlannedGear,
+    PlatformEffect, PortDirection, SourceDocumentId, TerminalDisposition, TerminalPolicy,
+    ValuePayload, TIMER_RESOURCE_CLASS,
 };
 use conduit_form::parse;
 use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
@@ -19,7 +19,7 @@ use host_contract_fixtures::*;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[test]
-fn prepare_is_effect_free_and_installed_profile_activates_generically() {
+fn prepare_is_effect_free_and_installed_profile_triggers_generically() {
     let advertisement = advertisement();
     let fragment = fragment(&advertisement);
     let mut runtime = HostRuntime::new(advertisement, registry(), 128);
@@ -30,8 +30,8 @@ fn prepare_is_effect_free_and_installed_profile_activates_generically() {
         Some(HostEvent::Prepared { .. })
     ));
 
-    let activated = runtime.handle(HostCommand::Activate(fragment.plan_id));
-    assert!(activated.effects.iter().any(|effect| matches!(
+    let triggerd = runtime.handle(HostCommand::StartPlay(fragment.plan_id));
+    assert!(triggerd.effects.iter().any(|effect| matches!(
         effect,
         PlatformEffect::PresentValue {
             presentation_kind,
@@ -41,24 +41,24 @@ fn prepare_is_effect_free_and_installed_profile_activates_generically() {
 }
 
 #[test]
-fn planned_evidence_storage_survives_observation_overflow() {
+fn planned_clue_storage_survives_observation_overflow() {
     let advertised = advertisement();
     let fragment = fragment(&advertised);
     let plan_id = fragment.plan_id.clone();
     let mut runtime = HostRuntime::new(advertised, registry(), 1);
 
     runtime.handle(HostCommand::Prepare(fragment.clone()));
-    let prepared_report = mandatory_evidence_reports(&mut runtime)
+    let prepared_report = mandatory_clue_reports(&mut runtime)
         .into_iter()
         .next()
-        .expect("prepared plan has a mandatory evidence report");
-    assert_eq!(prepared_report.recorded, fragment.expected_evidence[..3]);
+        .expect("prepared plan has a mandatory clue report");
+    assert_eq!(prepared_report.recorded, fragment.expected_clue[..3]);
     assert!(!prepared_report.overflowed);
     let allocated_item_slots = prepared_report.allocated_item_slots;
-    assert!(allocated_item_slots >= u32::from(fragment.evidence_storage_budget.item_capacity));
+    assert!(allocated_item_slots >= u32::from(fragment.clue_storage_budget.item_capacity));
 
-    let activated = runtime.handle(HostCommand::Activate(plan_id));
-    let (plan_id, active_play_id, presentation_id, placement_id, value) = activated
+    let triggerd = runtime.handle(HostCommand::StartPlay(plan_id));
+    let (plan_id, active_play_id, presentation_id, placement_id, value) = triggerd
         .effects
         .into_iter()
         .find_map(|effect| match effect {
@@ -79,12 +79,12 @@ fn planned_evidence_storage_survives_observation_overflow() {
             _ => None,
         })
         .expect("presentation effect exists");
-    assert!(activated.events.iter().any(|event| matches!(
+    assert!(triggerd.events.iter().any(|event| matches!(
         event,
-        HostEvent::Activated {
-            active_play_id: activated_id,
+        HostEvent::PlayStarted {
+            active_play_id: triggerd_id,
             ..
-        } if activated_id == &active_play_id
+        } if triggerd_id == &active_play_id
     )));
     runtime.handle(HostCommand::CompletePresentation {
         plan_id,
@@ -96,10 +96,10 @@ fn planned_evidence_storage_survives_observation_overflow() {
         message: None,
     });
 
-    let completed_report = mandatory_evidence_reports(&mut runtime)
+    let completed_report = mandatory_clue_reports(&mut runtime)
         .into_iter()
         .next()
-        .expect("completed plan retains mandatory evidence");
+        .expect("completed plan retains mandatory clue");
     assert_eq!(
         completed_report.recorded.len(),
         completed_report.expected.len()
@@ -110,17 +110,17 @@ fn planned_evidence_storage_survives_observation_overflow() {
         .all(|item| completed_report.recorded.contains(item)));
     assert_eq!(
         completed_report.storage_budget,
-        fragment.evidence_storage_budget
+        fragment.clue_storage_budget
     );
     assert_eq!(
         completed_report.used_bytes,
-        fragment.evidence_storage_budget.byte_capacity
+        fragment.clue_storage_budget.byte_capacity
     );
     assert_eq!(completed_report.allocated_item_slots, allocated_item_slots);
     assert!(!completed_report.overflowed);
     assert!(observations(&mut runtime)
         .iter()
-        .any(|observation| matches!(observation.kind, ObservationKind::EvidenceGap { .. })));
+        .any(|observation| matches!(observation.kind, ObservationKind::ClueGap { .. })));
 }
 
 #[test]
@@ -179,7 +179,7 @@ fn preparation_rejects_unsupported_kind_and_invalid_configuration_structurally()
     let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(invalid))),
-        Some(FailureReason::InvalidOperationConfiguration)
+        Some(FailureReason::InvalidGearConfiguration)
     );
 }
 
@@ -220,7 +220,7 @@ impl OperationImplementation for UnsupportedValueImplementation {
 
     fn prepare(
         &self,
-        placement: &PlannedOperation,
+        placement: &PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
         self.0.prepare(placement)
     }
@@ -450,15 +450,15 @@ fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
-    mutated.expected_evidence.pop();
+    mutated.expected_clue.pop();
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
-    mutated.evidence_storage_budget.item_capacity -= 1;
+    mutated.clue_storage_budget.item_capacity -= 1;
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
-    mutated.evidence_storage_budget.byte_capacity -= 1;
+    mutated.clue_storage_budget.byte_capacity -= 1;
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
@@ -609,19 +609,19 @@ fn preparation_rejects_resealed_policy_dependency_and_budget_lies() {
     );
 
     let mut mutated = fragment(&advertised);
-    mutated.evidence_storage_budget.item_capacity -= 1;
+    mutated.clue_storage_budget.item_capacity -= 1;
     let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
-        Some(FailureReason::EvidenceBudgetExceeded)
+        Some(FailureReason::ClueBudgetExceeded)
     );
 
     let mut mutated = fragment(&advertised);
-    mutated.evidence_storage_budget.byte_capacity -= 1;
+    mutated.clue_storage_budget.byte_capacity -= 1;
     let mut runtime = HostRuntime::new(advertised, registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
-        Some(FailureReason::EvidenceBudgetExceeded)
+        Some(FailureReason::ClueBudgetExceeded)
     );
 }
 
@@ -688,7 +688,7 @@ impl OperationImplementation for EchoImplementation {
 
     fn prepare(
         &self,
-        _placement: &PlannedOperation,
+        _placement: &PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
         Ok(Box::new(EchoState))
     }
@@ -742,14 +742,14 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
         }],
     };
     let placement_id = PlacementId::from("echo-placement");
-    let expected_evidence = vec![
-        ExpectedEvidence::PlanFragmentReceived,
-        ExpectedEvidence::PlacementPrepared(placement_id.clone()),
-        ExpectedEvidence::PlacementTerminal(placement_id.clone()),
-        ExpectedEvidence::PlanTerminal,
+    let expected_clue = vec![
+        ExpectedClue::PlanFragmentReceived,
+        ExpectedClue::PlacementPrepared(placement_id.clone()),
+        ExpectedClue::PlacementTerminal(placement_id.clone()),
+        ExpectedClue::PlanTerminal,
     ];
-    let evidence_storage_budget = mandatory_evidence_storage_requirement(&expected_evidence)
-        .expect("echo evidence fits budget types");
+    let clue_storage_budget =
+        mandatory_clue_storage_requirement(&expected_clue).expect("echo clue fits budget types");
     let mut echo_plan = seal_plan(
         FormIdentity {
             source_document_id: SourceDocumentId::from("echo-source"),
@@ -765,9 +765,9 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
             offer_generation: advertisement.offer_generation,
-            placements: vec![PlannedOperation {
+            placements: vec![PlannedGear {
                 placement_id: placement_id.clone(),
-                operation_id: OperationId::from("echo"),
+                gear_id: GearId::from("echo"),
                 kind_id: echo_kind_id.clone(),
                 kind_contract_revision: KindContractRevision::from("test/echo@1"),
                 execution_profile_id: ExecutionProfileId::from("test/echo-hosted@1"),
@@ -801,8 +801,8 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
                 ExpectedTerminal::PlacementCompleted(placement_id.clone()),
                 ExpectedTerminal::PlanCompleted,
             ],
-            expected_evidence,
-            evidence_storage_budget,
+            expected_clue,
+            clue_storage_budget,
             plan_fragments: Vec::new(),
         }],
     );
@@ -831,8 +831,8 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
             .first(),
         Some(HostEvent::Prepared { .. })
     ));
-    let activated = runtime.handle(HostCommand::Activate(plan_id));
-    assert!(activated.events.iter().any(|event| matches!(
+    let triggerd = runtime.handle(HostCommand::StartPlay(plan_id));
+    assert!(triggerd.events.iter().any(|event| matches!(
         event,
         HostEvent::PlanTerminated {
             disposition: TerminalDisposition::Completed,
@@ -848,8 +848,8 @@ fn fake_adapter_failure_is_structured_and_terminal() {
     let plan_id = fragment.plan_id.clone();
     let mut runtime = HostRuntime::new(advertisement, registry(), 128);
     runtime.handle(HostCommand::Prepare(fragment));
-    let activated = runtime.handle(HostCommand::Activate(plan_id));
-    let (plan_id, active_play_id, presentation_id, placement_id, value) = activated
+    let triggerd = runtime.handle(HostCommand::StartPlay(plan_id));
+    let (plan_id, active_play_id, presentation_id, placement_id, value) = triggerd
         .effects
         .into_iter()
         .find_map(|effect| match effect {
@@ -905,18 +905,17 @@ fn fake_adapter_failure_is_structured_and_terminal() {
             ..
         }
     )));
-    let evidence = observations(&mut runtime);
-    assert!(evidence.iter().any(|observation| {
+    let clue = observations(&mut runtime);
+    assert!(clue.iter().any(|observation| {
         observation.active_play_id.as_ref() == Some(&active_play_id)
             && observation.presentation_id.as_ref() == Some(&presentation_id)
     }));
     assert_eq!(
-        evidence
-            .iter()
-            .map(|observation| observation.evidence_id.clone())
+        clue.iter()
+            .map(|observation| observation.clue_id.clone())
             .collect::<BTreeSet<_>>()
             .len(),
-        evidence.len()
+        clue.len()
     );
     assert!(failed.events.iter().any(|event| matches!(
         event,
@@ -973,7 +972,7 @@ impl OperationImplementation for AdapterSourceImplementation {
 
     fn prepare(
         &self,
-        _placement: &PlannedOperation,
+        _placement: &PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure> {
         Ok(Box::new(AdapterSourceState { emitted: false }))
     }
@@ -1175,16 +1174,16 @@ fn remote_link_plan_fixture() -> (
     sink.boot_id = BootId::from("link-sink-boot");
     sink.capabilities.remove(0);
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("source"),
+                GearId::from("source"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("pulse"),
                 },
             ),
             (
-                OperationId::from("sink"),
+                GearId::from("sink"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("show"),
@@ -1194,7 +1193,7 @@ fn remote_link_plan_fixture() -> (
     };
     let link = process_owned_link_binding(
         "link/runtime",
-        ConnectionProvider::InMemory,
+        ConnectionBase::InMemory,
         "fixture/in-memory/runtime",
         &source,
         &sink,
@@ -1321,9 +1320,9 @@ fn runtime_rejects_an_implementation_that_requests_an_unplanned_host_operation()
         .events
         .iter()
         .any(|event| matches!(event, HostEvent::Prepared { .. })));
-    let activated = runtime.handle(HostCommand::Activate(plan_id));
-    assert!(activated.effects.is_empty());
-    assert!(activated.events.iter().any(|event| matches!(
+    let triggerd = runtime.handle(HostCommand::StartPlay(plan_id));
+    assert!(triggerd.effects.is_empty());
+    assert!(triggerd.events.iter().any(|event| matches!(
         event,
         HostEvent::PlacementTerminated {
             disposition: TerminalDisposition::Failed {
@@ -1346,9 +1345,9 @@ fn runtime_rejects_a_host_operation_input_above_its_planned_bound() {
         .events
         .iter()
         .any(|event| matches!(event, HostEvent::Prepared { .. })));
-    let activated = runtime.handle(HostCommand::Activate(plan_id));
-    assert!(activated.effects.is_empty());
-    assert!(activated.events.iter().any(|event| matches!(
+    let triggerd = runtime.handle(HostCommand::StartPlay(plan_id));
+    assert!(triggerd.effects.is_empty());
+    assert!(triggerd.events.iter().any(|event| matches!(
         event,
         HostEvent::PlacementTerminated {
             disposition: TerminalDisposition::Failed {
@@ -1382,7 +1381,7 @@ fn preparation_reserves_resource_pool_capacity_until_release() {
         Some(FailureReason::ResourceCapacityExceeded)
     );
 
-    let _ = runtime.handle(HostCommand::Activate(first_plan_id.clone()));
+    let _ = runtime.handle(HostCommand::StartPlay(first_plan_id.clone()));
     assert!(runtime
         .handle(HostCommand::Cancel(first_plan_id.clone()))
         .events
@@ -1484,7 +1483,7 @@ fn preparation_and_effect_admission_require_the_exact_current_authority_grant() 
         .iter()
         .any(|event| matches!(event, HostEvent::Prepared { .. })));
     assert!(runtime
-        .handle(HostCommand::Activate(plan_id))
+        .handle(HostCommand::StartPlay(plan_id))
         .effects
         .iter()
         .any(|effect| matches!(effect, PlatformEffect::PresentValue { .. })));
@@ -1539,9 +1538,9 @@ fn effect_admission_rejects_a_planned_host_operation_outside_the_bound_grant_sub
         .events
         .iter()
         .any(|event| matches!(event, HostEvent::Prepared { .. })));
-    let activated = runtime.handle(HostCommand::Activate(plan_id));
-    assert!(activated.effects.is_empty());
-    assert!(activated.events.iter().any(|event| matches!(
+    let triggerd = runtime.handle(HostCommand::StartPlay(plan_id));
+    assert!(triggerd.effects.is_empty());
+    assert!(triggerd.events.iter().any(|event| matches!(
         event,
         HostEvent::PlacementTerminated {
             disposition: TerminalDisposition::Failed {
@@ -1577,8 +1576,7 @@ fn preparation_requires_the_exact_current_boot_scoped_link_observation() {
     );
 
     let mut conflicting = link.clone();
-    conflicting.provider_instance_id =
-        conduit_core::ConnectionProviderInstanceId::from("conflicting/provider");
+    conflicting.base_instance_id = conduit_core::ConnectionBaseInstanceId::from("conflicting/base");
     let mut runtime = HostRuntime::new_with_external_state(
         source.clone(),
         adapter_registry(),
@@ -1625,9 +1623,9 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
     let local_fragment = fragment(&local_advertisement);
     let mut local_runtime = HostRuntime::new(local_advertisement, adapter_registry(), 128);
     local_runtime.handle(HostCommand::Prepare(local_fragment.clone()));
-    let activated = local_runtime.handle(HostCommand::Activate(local_fragment.plan_id.clone()));
+    let triggerd = local_runtime.handle(HostCommand::StartPlay(local_fragment.plan_id.clone()));
     let mut adapter = FakeBrowserStyleAdapter::default();
-    adapter.receive(activated.effects);
+    adapter.receive(triggerd.effects);
     assert!(adapter.saw_wait);
     assert!(!adapter.saw_presentation);
 
@@ -1725,16 +1723,16 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
     sink_advertisement.boot_id = BootId::from("adapter-sink-boot");
     sink_advertisement.capabilities.remove(0);
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("source"),
+                GearId::from("source"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("pulse"),
                 },
             ),
             (
-                OperationId::from("sink"),
+                GearId::from("sink"),
                 PlacementChoice {
                     host_id: sink_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("show"),
@@ -1744,7 +1742,7 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
     };
     let link_binding = process_owned_link_binding(
         "link/adapter",
-        ConnectionProvider::InMemory,
+        ConnectionBase::InMemory,
         "fixture/in-memory/adapter",
         &source_advertisement,
         &sink_advertisement,
@@ -1755,7 +1753,7 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
         &form,
         &[source_advertisement.clone(), sink_advertisement],
         &placements,
-        &[ConnectionProvider::Local, ConnectionProvider::InMemory],
+        &[ConnectionBase::Local, ConnectionBase::InMemory],
         conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
         conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
         std::slice::from_ref(&link_binding),
@@ -1774,8 +1772,8 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
         vec![link_binding],
     );
     source_runtime.handle(HostCommand::Prepare(source_fragment.clone()));
-    let activated = source_runtime.handle(HostCommand::Activate(source_fragment.plan_id.clone()));
-    let wait = activated
+    let triggerd = source_runtime.handle(HostCommand::StartPlay(source_fragment.plan_id.clone()));
+    let wait = triggerd
         .effects
         .into_iter()
         .find_map(|effect| match effect {

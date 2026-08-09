@@ -1,6 +1,6 @@
 use conduit_core::{
-    bind_active_play, BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
-    FragmentId, HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
+    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_wire::{
     RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
@@ -45,8 +45,8 @@ fn planned_binding() -> SessionBinding {
         },
         attachment: RouteAttachment {
             link_binding_id: LinkBindingId::from("link/exact"),
-            provider: ConnectionProvider::UsbCdc,
-            provider_instance_id: ConnectionProviderInstanceId::from("provider/exact"),
+            base: ConnectionBase::UsbCdc,
+            base_instance_id: ConnectionBaseInstanceId::from("base/exact"),
             source_host_id: source.host_id,
             source_boot_id: source.boot_id,
             source_endpoint_id: LinkEndpointId::from("endpoint/source"),
@@ -81,10 +81,10 @@ fn observed_boots_change_only_boot_scoped_session_facts() {
         observed.attachment.link_binding_id,
         planned.attachment.link_binding_id
     );
-    assert_eq!(observed.attachment.provider, planned.attachment.provider);
+    assert_eq!(observed.attachment.base, planned.attachment.base);
     assert_eq!(
-        observed.attachment.provider_instance_id,
-        planned.attachment.provider_instance_id
+        observed.attachment.base_instance_id,
+        planned.attachment.base_instance_id
     );
     assert_eq!(
         observed.attachment.source_endpoint_id,

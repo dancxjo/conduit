@@ -3,7 +3,7 @@ use conduit_core::{
     CapabilityOffer, HostAdvertisement, ProtectedResourceAccess, ProtectedResourceBinding,
     ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceHandleId, ResourceRequirement,
 };
-use conduit_form::CheckedOperation;
+use conduit_form::CheckedGear;
 use std::collections::BTreeSet;
 
 pub(crate) fn validate_protected_resource_grants(
@@ -12,7 +12,7 @@ pub(crate) fn validate_protected_resource_grants(
     if grants.iter().any(|grant| {
         grant.role_id.as_str().is_empty()
             || grant.handle_id.as_str().is_empty()
-            || grant.operation_id.as_str().is_empty()
+            || grant.gear_id.as_str().is_empty()
             || grant.host_id.as_str().is_empty()
             || grant.boot_id.as_str().is_empty()
             || grant.capability_id.as_str().is_empty()
@@ -53,7 +53,7 @@ pub(crate) fn validate_protected_resource_grants(
 pub(crate) fn bind_protected_resource(
     requirement: &ResourceRequirement,
     grants: &[ProtectedResourceGrant],
-    operation: &CheckedOperation,
+    gear: &CheckedGear,
     host: &HostAdvertisement,
     capability: &CapabilityOffer,
     consumed_handles: &mut BTreeSet<ResourceHandleId>,
@@ -63,7 +63,7 @@ pub(crate) fn bind_protected_resource(
     };
     let mut matches = grants.iter().filter(|grant| {
         grant.role_id == *role_id
-            && grant.operation_id == operation.operation_id
+            && grant.gear_id == gear.gear_id
             && grant.host_id == host.host_id
             && grant.boot_id == host.boot_id
             && grant.capability_id == capability.capability_id
@@ -71,8 +71,8 @@ pub(crate) fn bind_protected_resource(
     });
     let Some(grant) = matches.next() else {
         return Err(PlannerError::ProtectedResourceGrantMissing(format!(
-            "operation '{}' role '{}' requires class '{}' on host '{}' boot '{}'",
-            operation.operation_id.as_str(),
+            "gear '{}' role '{}' requires class '{}' on host '{}' boot '{}'",
+            gear.gear_id.as_str(),
             role_id.as_str(),
             requirement.class_id.as_str(),
             host.host_id.as_str(),
@@ -81,8 +81,8 @@ pub(crate) fn bind_protected_resource(
     };
     if matches.next().is_some() {
         return Err(PlannerError::ProtectedResourceGrantAmbiguous(format!(
-            "multiple grants satisfy operation '{}' role '{}'",
-            operation.operation_id.as_str(),
+            "multiple grants satisfy gear '{}' role '{}'",
+            gear.gear_id.as_str(),
             role_id.as_str()
         )));
     }

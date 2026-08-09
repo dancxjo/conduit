@@ -1,12 +1,12 @@
 use conduit_core::{
-    mandatory_evidence_storage_requirement, seal_plan, AuthorityBinding, AuthorityGrant, BoundLink,
-    CancellationPolicy, CapabilityId, ConnectionId, ConnectionProvider, ExpectedEvidence,
-    ExpectedTerminal, FragmentId, HostAdvertisement, HostId, LinkAvailability, LinkBinding,
-    LinkBindingId, OperationId, PlacementId, Plan, PlanFragment, PlanId, PlannedConnection,
-    PlannedOperation, ResourceBinding, ResourcePoolId, StartupDependency, TerminalPolicy,
-    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
+    mandatory_clue_storage_requirement, seal_plan, AuthorityBinding, AuthorityGrant, BoundLink,
+    CancellationPolicy, CapabilityId, ConnectionBase, ConnectionId, ExpectedClue, ExpectedTerminal,
+    FragmentId, GearId, HostAdvertisement, HostId, LinkAvailability, LinkBinding, LinkBindingId,
+    PlacementId, Plan, PlanFragment, PlanId, PlannedConnection, PlannedGear, ResourceBinding,
+    ResourcePoolId, StartupDependency, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
+    DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
-use conduit_form::{CheckedForm, CheckedOperation};
+use conduit_form::{CheckedForm, CheckedGear};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -34,7 +34,7 @@ pub use canonical::{
 };
 pub use characteristics::{
     plan_selected_realizations_with_characteristics, select_realization_with_characteristics,
-    select_realization_with_characteristics_and_evidence, RealizationDecisionDisposition,
+    select_realization_with_characteristics_and_clues, RealizationDecisionDisposition,
     RealizationDecisionRecord, RealizationRejection, RealizationSelection,
     MAXIMUM_REALIZATION_DECISION_RECORDS,
 };
@@ -54,22 +54,22 @@ pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements}
 
 pub fn default_placements(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
-    default_placements_unvalidated(&form.operations, realm)
+    default_placements_unvalidated(&form.gears, hosts)
 }
 
 pub fn plan(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
+    bases: &[ConnectionBase],
 ) -> Result<Plan, PlannerError> {
     plan_with_connection_limits(
         form,
-        realm,
+        hosts,
         placements,
-        providers,
+        bases,
         DEFAULT_CONNECTION_ITEM_CAPACITY,
         DEFAULT_CONNECTION_BYTE_CAPACITY,
     )
@@ -77,18 +77,18 @@ pub fn plan(
 
 pub fn plan_with_authority_grants(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
+    bases: &[ConnectionBase],
     authority_grants: &[AuthorityGrant],
 ) -> Result<Plan, PlannerError> {
     plan_with_options(
         form,
-        realm,
+        hosts,
         placements,
-        providers,
+        bases,
         PlanningOptions {
-            connection_providers: &BTreeMap::new(),
+            connection_bases: &BTreeMap::new(),
             route_candidates: &BTreeMap::new(),
             connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
             connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
@@ -101,20 +101,20 @@ pub fn plan_with_authority_grants(
 
 pub fn plan_with_link_bindings(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
+    bases: &[ConnectionBase],
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
     link_bindings: &[LinkBinding],
 ) -> Result<Plan, PlannerError> {
     plan_with_options(
         form,
-        realm,
+        hosts,
         placements,
-        providers,
+        bases,
         PlanningOptions {
-            connection_providers: &BTreeMap::new(),
+            connection_bases: &BTreeMap::new(),
             route_candidates: &BTreeMap::new(),
             connection_item_capacity,
             connection_byte_capacity,
@@ -127,39 +127,39 @@ pub fn plan_with_link_bindings(
 
 pub fn plan_with_connection_limits(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
+    bases: &[ConnectionBase],
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
 ) -> Result<Plan, PlannerError> {
-    plan_with_connection_limits_and_provider_overrides(
+    plan_with_connection_limits_and_base_overrides(
         form,
-        realm,
+        hosts,
         placements,
-        providers,
+        bases,
         &BTreeMap::new(),
         connection_item_capacity,
         connection_byte_capacity,
     )
 }
 
-pub fn plan_with_connection_limits_and_provider_overrides(
+pub fn plan_with_connection_limits_and_base_overrides(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
-    connection_providers: &BTreeMap<(OperationId, OperationId), ConnectionProvider>,
+    bases: &[ConnectionBase],
+    connection_bases: &BTreeMap<(GearId, GearId), ConnectionBase>,
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
 ) -> Result<Plan, PlannerError> {
     plan_with_options(
         form,
-        realm,
+        hosts,
         placements,
-        providers,
+        bases,
         PlanningOptions {
-            connection_providers,
+            connection_bases,
             route_candidates: &BTreeMap::new(),
             connection_item_capacity,
             connection_byte_capacity,
@@ -172,25 +172,25 @@ pub fn plan_with_connection_limits_and_provider_overrides(
 
 pub fn plan_with_options(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
+    bases: &[ConnectionBase],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
     form.validate_identities()
         .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
-    plan_validated_form(form, realm, placements, providers, options)
+    plan_validated_form(form, hosts, placements, bases, options)
 }
 
 pub(crate) fn plan_validated_form(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
+    bases: &[ConnectionBase],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
     let PlanningOptions {
-        connection_providers,
+        connection_bases,
         route_candidates,
         connection_item_capacity,
         connection_byte_capacity,
@@ -198,12 +198,12 @@ pub(crate) fn plan_validated_form(
         protected_resource_grants,
         link_bindings,
     } = options;
-    let realm_index = realm
+    let host_index = hosts
         .iter()
         .map(|host| (host.host_id.clone(), host))
         .collect::<BTreeMap<_, _>>();
 
-    for host in realm {
+    for host in hosts {
         validate_host_resources(host)?;
     }
     validate_authority_grants(authority_grants)?;
@@ -213,19 +213,17 @@ pub(crate) fn plan_validated_form(
     let mut placement_count = BTreeMap::<(HostId, CapabilityId), u16>::new();
     let mut resource_usage = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
     let mut remaining_compute_minimum =
-        compute_admission::admit_minima(form, &realm_index, placements)?;
+        compute_admission::admit_minima(form, &host_index, placements)?;
     let mut consumed_protected_handles = BTreeSet::new();
-    let mut planned_operations = Vec::<PlannedOperation>::new();
-    let mut placement_lookup = BTreeMap::<OperationId, PlacementId>::new();
+    let mut planned_gears = Vec::<PlannedGear>::new();
+    let mut placement_lookup = BTreeMap::<GearId, PlacementId>::new();
 
-    for operation in &form.operations {
+    for gear in &form.gears {
         let choice = placements
-            .by_operation
-            .get(&operation.operation_id)
-            .ok_or_else(|| {
-                PlannerError::MissingPlacement(operation.operation_id.as_str().to_string())
-            })?;
-        let host = realm_index
+            .by_gear
+            .get(&gear.gear_id)
+            .ok_or_else(|| PlannerError::MissingPlacement(gear.gear_id.as_str().to_string()))?;
+        let host = host_index
             .get(&choice.host_id)
             .ok_or_else(|| PlannerError::UnknownHost(choice.host_id.as_str().to_string()))?;
         let capability = host
@@ -235,7 +233,7 @@ pub(crate) fn plan_validated_form(
             .ok_or_else(|| {
                 PlannerError::UnknownCapability(choice.capability_id.as_str().to_string())
             })?;
-        validate_operation_capability(operation, capability)?;
+        validate_operation_capability(gear, capability)?;
 
         let count = placement_count
             .entry((host.host_id.clone(), capability.capability_id.clone()))
@@ -315,7 +313,7 @@ pub(crate) fn plan_validated_form(
             let protected = bind_protected_resource(
                 requirement,
                 protected_resource_grants,
-                operation,
+                gear,
                 host,
                 capability,
                 &mut consumed_protected_handles,
@@ -372,18 +370,18 @@ pub(crate) fn plan_validated_form(
         let placement_id = PlacementId::from(hash_string(&format!(
             "placement:{}:{}:{}:{}",
             form.checked_form_id.as_str(),
-            operation.operation_id.as_str(),
+            gear.gear_id.as_str(),
             host.host_id.as_str(),
             capability.capability_id.as_str()
         )));
-        placement_lookup.insert(operation.operation_id.clone(), placement_id.clone());
-        planned_operations.push(PlannedOperation {
+        placement_lookup.insert(gear.gear_id.clone(), placement_id.clone());
+        planned_gears.push(PlannedGear {
             placement_id,
-            operation_id: operation.operation_id.clone(),
+            gear_id: gear.gear_id.clone(),
             kind_id: capability.kind_id.clone(),
             kind_contract_revision: capability.kind_contract_revision.clone(),
             execution_profile_id: capability.implementation.execution_profile_id.clone(),
-            configuration: operation.configuration.clone(),
+            configuration: gear.configuration.clone(),
             host_id: host.host_id.clone(),
             boot_id: host.boot_id.clone(),
             offer_generation: host.offer_generation,
@@ -397,7 +395,7 @@ pub(crate) fn plan_validated_form(
             host_operations: capability.host_operations.clone(),
             resources: resource_bindings,
             authority: authority_bindings,
-            pool_references: operation.pool_references.clone(),
+            pool_references: gear.pool_references.clone(),
         });
     }
 
@@ -408,66 +406,60 @@ pub(crate) fn plan_validated_form(
         ));
     }
 
-    for operation in placements.by_operation.keys() {
-        if !form
-            .operations
-            .iter()
-            .any(|item| &item.operation_id == operation)
-        {
-            return Err(PlannerError::UnknownOperation(
-                operation.as_str().to_string(),
-            ));
+    for gear in placements.by_gear.keys() {
+        if !form.gears.iter().any(|item| &item.gear_id == gear) {
+            return Err(PlannerError::UnknownGear(gear.as_str().to_string()));
         }
     }
 
     let mut planned_connections = Vec::<PlannedConnection>::new();
     for connection in &form.connections {
         let source_placement = placement_lookup
-            .get(&connection.source_operation_id)
+            .get(&connection.source_gear_id)
             .ok_or_else(|| {
-                PlannerError::UnknownOperation(connection.source_operation_id.as_str().to_string())
+                PlannerError::UnknownGear(connection.source_gear_id.as_str().to_string())
             })?;
         let sink_placement = placement_lookup
-            .get(&connection.sink_operation_id)
+            .get(&connection.sink_gear_id)
             .ok_or_else(|| {
-                PlannerError::UnknownOperation(connection.sink_operation_id.as_str().to_string())
+                PlannerError::UnknownGear(connection.sink_gear_id.as_str().to_string())
             })?;
-        let source_plan = planned_operations
+        let source_plan = planned_gears
             .iter()
             .find(|item| &item.placement_id == source_placement)
             .expect("source placement must exist");
-        let sink_plan = planned_operations
+        let sink_plan = planned_gears
             .iter()
             .find(|item| &item.placement_id == sink_placement)
             .expect("sink placement must exist");
-        let (provider, link_binding, sealed_candidates) = select_provider(ProviderSelection {
+        let (base, link_binding, sealed_candidates) = select_base(BaseSelection {
             source: source_plan,
             sink: sink_plan,
-            providers,
-            requested: connection_providers
+            bases,
+            requested: connection_bases
                 .get(&(
-                    connection.source_operation_id.clone(),
-                    connection.sink_operation_id.clone(),
+                    connection.source_gear_id.clone(),
+                    connection.sink_gear_id.clone(),
                 ))
                 .copied(),
             requested_candidates: route_candidates.get(&(
-                connection.source_operation_id.clone(),
-                connection.sink_operation_id.clone(),
+                connection.source_gear_id.clone(),
+                connection.sink_gear_id.clone(),
             )),
             link_bindings,
             connection_item_capacity,
             connection_byte_capacity,
         })?;
         let source_capability =
-            find_capability(realm, &source_plan.host_id, &source_plan.capability_id)?;
-        let sink_capability = find_capability(realm, &sink_plan.host_id, &sink_plan.capability_id)?;
+            find_capability(hosts, &source_plan.host_id, &source_plan.capability_id)?;
+        let sink_capability = find_capability(hosts, &sink_plan.host_id, &sink_plan.capability_id)?;
         if connection_item_capacity > source_capability.limits.max_queue_items
             || connection_item_capacity > sink_capability.limits.max_queue_items
         {
             return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
                 "connection from '{}' to '{}' requires item capacity {}",
-                source_plan.operation_id.as_str(),
-                sink_plan.operation_id.as_str(),
+                source_plan.gear_id.as_str(),
+                sink_plan.gear_id.as_str(),
                 connection_item_capacity
             )));
         }
@@ -476,8 +468,8 @@ pub(crate) fn plan_validated_form(
         {
             return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
                 "connection from '{}' to '{}' requires byte capacity {}",
-                source_plan.operation_id.as_str(),
-                sink_plan.operation_id.as_str(),
+                source_plan.gear_id.as_str(),
+                sink_plan.gear_id.as_str(),
                 connection_byte_capacity
             )));
         }
@@ -485,9 +477,9 @@ pub(crate) fn plan_validated_form(
             connection_id: ConnectionId::from(hash_string(&format!(
                 "connection:{}:{}:{}:{}:{}:{}:{}",
                 form.checked_form_id.as_str(),
-                connection.source_operation_id.as_str(),
+                connection.source_gear_id.as_str(),
                 connection.source_port_id.as_str(),
-                connection.sink_operation_id.as_str(),
+                connection.sink_gear_id.as_str(),
                 connection.sink_port_id.as_str(),
                 connection.value_kind.as_str(),
                 connection.temporal.as_str(),
@@ -498,7 +490,7 @@ pub(crate) fn plan_validated_form(
             sink_port_id: connection.sink_port_id.clone(),
             value_kind: connection.value_kind.clone(),
             temporal: connection.temporal,
-            provider,
+            base,
             link_binding,
             route_candidates: sealed_candidates,
             item_capacity: connection_item_capacity,
@@ -506,13 +498,13 @@ pub(crate) fn plan_validated_form(
         });
     }
 
-    let global_startup_order = startup_order(&planned_operations, &planned_connections)
+    let global_startup_order = startup_order(&planned_gears, &planned_connections)
         .ok_or_else(|| PlannerError::CyclicStartupDependencies(form.name.clone()))?;
 
-    let fragments = realm
+    let fragments = hosts
         .iter()
         .map(|host| -> Result<Option<PlanFragment>, PlannerError> {
-            let placements = planned_operations
+            let placements = planned_gears
                 .iter()
                 .filter(|item| item.host_id == host.host_id)
                 .cloned()
@@ -561,21 +553,21 @@ pub(crate) fn plan_validated_form(
                 }))
                 .chain(core::iter::once(ExpectedTerminal::PlanCompleted))
                 .collect();
-            let expected_evidence = core::iter::once(ExpectedEvidence::PlanFragmentReceived)
+            let expected_clue = core::iter::once(ExpectedClue::PlanFragmentReceived)
                 .chain(placements.iter().map(|placement| {
-                    ExpectedEvidence::PlacementPrepared(placement.placement_id.clone())
+                    ExpectedClue::PlacementPrepared(placement.placement_id.clone())
                 }))
                 .chain(placements.iter().map(|placement| {
-                    ExpectedEvidence::PlacementTerminal(placement.placement_id.clone())
+                    ExpectedClue::PlacementTerminal(placement.placement_id.clone())
                 }))
                 .chain(connections.iter().map(|connection| {
-                    ExpectedEvidence::ConnectionTerminal(connection.connection_id.clone())
+                    ExpectedClue::ConnectionTerminal(connection.connection_id.clone())
                 }))
-                .chain(core::iter::once(ExpectedEvidence::PlanTerminal))
+                .chain(core::iter::once(ExpectedClue::PlanTerminal))
                 .collect::<Vec<_>>();
-            let evidence_storage_budget =
-                mandatory_evidence_storage_requirement(&expected_evidence).ok_or_else(|| {
-                    PlannerError::EvidenceBudgetOverflow(host.host_id.as_str().to_string())
+            let clue_storage_budget = mandatory_clue_storage_requirement(&expected_clue)
+                .ok_or_else(|| {
+                    PlannerError::ClueBudgetOverflow(host.host_id.as_str().to_string())
                 })?;
             Ok(Some(PlanFragment {
                 plan_id: PlanId::from(""),
@@ -594,8 +586,8 @@ pub(crate) fn plan_validated_form(
                 cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
                 terminal_policy: TerminalPolicy::RequireAllPlacementsAndConnections,
                 expected_terminals,
-                expected_evidence,
-                evidence_storage_budget,
+                expected_clue,
+                clue_storage_budget,
                 plan_fragments: Vec::new(),
             }))
         })
@@ -608,7 +600,7 @@ pub(crate) fn plan_validated_form(
 }
 
 fn startup_order(
-    placements: &[PlannedOperation],
+    placements: &[PlannedGear],
     connections: &[PlannedConnection],
 ) -> Option<Vec<PlacementId>> {
     let mut remaining = placements
@@ -634,13 +626,13 @@ fn startup_order(
 }
 
 fn validate_operation_capability(
-    operation: &CheckedOperation,
+    gear: &CheckedGear,
     capability: &conduit_core::CapabilityOffer,
 ) -> Result<(), PlannerError> {
-    if capability.checked_face() != operation.checked_face() {
+    if capability.checked_face() != gear.checked_face() {
         return Err(PlannerError::IncompatibleCheckedFace(format!(
-            "operation '{}' face differs from capability '{}' face",
-            operation.operation_id.as_str(),
+            "gear '{}' face differs from capability '{}' face",
+            gear.gear_id.as_str(),
             capability.capability_id.as_str()
         )));
     }
@@ -752,11 +744,11 @@ fn validate_host_resources(host: &HostAdvertisement) -> Result<(), PlannerError>
 }
 
 fn find_capability<'a>(
-    realm: &'a [HostAdvertisement],
+    hosts: &'a [HostAdvertisement],
     host_id: &HostId,
     capability_id: &CapabilityId,
 ) -> Result<&'a conduit_core::CapabilityOffer, PlannerError> {
-    realm
+    hosts
         .iter()
         .find(|host| &host.host_id == host_id)
         .and_then(|host| {
@@ -767,24 +759,24 @@ fn find_capability<'a>(
         .ok_or_else(|| PlannerError::UnknownCapability(capability_id.as_str().to_string()))
 }
 
-struct ProviderSelection<'a> {
-    source: &'a PlannedOperation,
-    sink: &'a PlannedOperation,
-    providers: &'a [ConnectionProvider],
-    requested: Option<ConnectionProvider>,
+struct BaseSelection<'a> {
+    source: &'a PlannedGear,
+    sink: &'a PlannedGear,
+    bases: &'a [ConnectionBase],
+    requested: Option<ConnectionBase>,
     requested_candidates: Option<&'a Vec<LinkBindingId>>,
     link_bindings: &'a [LinkBinding],
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
 }
 
-fn select_provider(
-    selection: ProviderSelection<'_>,
-) -> Result<(ConnectionProvider, Option<LinkBinding>, Vec<BoundLink>), PlannerError> {
-    let ProviderSelection {
+fn select_base(
+    selection: BaseSelection<'_>,
+) -> Result<(ConnectionBase, Option<LinkBinding>, Vec<BoundLink>), PlannerError> {
+    let BaseSelection {
         source,
         sink,
-        providers,
+        bases,
         requested,
         requested_candidates,
         link_bindings,
@@ -792,13 +784,13 @@ fn select_provider(
         connection_byte_capacity,
     } = selection;
     if source.host_id == sink.host_id {
-        if requested.is_some_and(|provider| provider != ConnectionProvider::Local)
-            || !providers.contains(&ConnectionProvider::Local)
+        if requested.is_some_and(|base| base != ConnectionBase::Local)
+            || !bases.contains(&ConnectionBase::Local)
         {
-            return Err(PlannerError::UnavailableConnectionProvider(format!(
-                "local provider unavailable for '{}' -> '{}'",
-                source.operation_id.as_str(),
-                sink.operation_id.as_str()
+            return Err(PlannerError::UnavailableConnectionBase(format!(
+                "local base unavailable for '{}' -> '{}'",
+                source.gear_id.as_str(),
+                sink.gear_id.as_str()
             )));
         }
         if requested_candidates.is_some_and(|candidates| !candidates.is_empty()) {
@@ -806,14 +798,14 @@ fn select_provider(
                 "local connections cannot seal remote route candidates".to_string(),
             ));
         }
-        return Ok((ConnectionProvider::Local, None, Vec::new()));
+        return Ok((ConnectionBase::Local, None, Vec::new()));
     }
 
-    if requested == Some(ConnectionProvider::Local) {
-        return Err(PlannerError::UnavailableConnectionProvider(format!(
-            "local provider cannot connect '{}' -> '{}'",
-            source.operation_id.as_str(),
-            sink.operation_id.as_str()
+    if requested == Some(ConnectionBase::Local) {
+        return Err(PlannerError::UnavailableConnectionBase(format!(
+            "local base cannot connect '{}' -> '{}'",
+            source.gear_id.as_str(),
+            sink.gear_id.as_str()
         )));
     }
     let endpoint_matches = |binding: &&LinkBinding| {
@@ -821,7 +813,7 @@ fn select_provider(
             && binding.source.boot_id == source.boot_id
             && binding.sink.host_id == sink.host_id
             && binding.sink.boot_id == sink.boot_id
-            && requested.is_none_or(|provider| binding.provider == provider)
+            && requested.is_none_or(|base| binding.base == base)
     };
     let exact = link_bindings
         .iter()
@@ -830,8 +822,8 @@ fn select_provider(
     if exact.is_empty() {
         return Err(PlannerError::LinkBindingMissing(format!(
             "no observed boot-scoped link for '{}' -> '{}'",
-            source.operation_id.as_str(),
-            sink.operation_id.as_str()
+            source.gear_id.as_str(),
+            sink.gear_id.as_str()
         )));
     }
     let ready = exact
@@ -847,8 +839,8 @@ fn select_provider(
     if ready.is_empty() {
         return Err(PlannerError::LinkBindingUnavailable(format!(
             "observed link for '{}' -> '{}' is unavailable or below item/byte limits",
-            source.operation_id.as_str(),
-            sink.operation_id.as_str()
+            source.gear_id.as_str(),
+            sink.gear_id.as_str()
         )));
     }
     if let Some(requested_candidates) = requested_candidates {
@@ -875,7 +867,7 @@ fn select_provider(
         }
         let first = selected[0].clone();
         return Ok((
-            first.provider,
+            first.base,
             Some(first),
             selected
                 .iter()
@@ -886,13 +878,13 @@ fn select_provider(
     if ready.len() != 1 {
         return Err(PlannerError::LinkBindingAmbiguous(format!(
             "multiple observed links satisfy '{}' -> '{}'",
-            source.operation_id.as_str(),
-            sink.operation_id.as_str()
+            source.gear_id.as_str(),
+            sink.gear_id.as_str()
         )));
     }
     let binding = ready[0].clone();
     Ok((
-        binding.provider,
+        binding.base,
         Some(binding.clone()),
         vec![binding.bound_link()],
     ))
@@ -909,8 +901,8 @@ fn validate_link_bindings(bindings: &[LinkBinding]) -> Result<(), PlannerError> 
             || binding.sink.endpoint_id.as_str().is_empty()
             || binding.source.endpoint_id == binding.sink.endpoint_id
             || binding.source.host_id == binding.sink.host_id
-            || binding.provider == ConnectionProvider::Local
-            || binding.provider_instance_id.as_str().is_empty()
+            || binding.base == ConnectionBase::Local
+            || binding.base_instance_id.as_str().is_empty()
             || binding.limits.maximum_in_flight_items == 0
             || binding.limits.maximum_payload_bytes == 0
             || binding.limits.maximum_buffered_bytes == 0
@@ -927,7 +919,7 @@ fn validate_link_bindings(bindings: &[LinkBinding]) -> Result<(), PlannerError> 
             )
     }) {
         return Err(PlannerError::InvalidLinkBinding(
-            "remote link bindings require non-empty distinct boot-scoped endpoints, one initialized non-local provider, and positive limits".to_string(),
+            "remote link bindings require non-empty distinct boot-scoped endpoints, one initialized non-local base, and positive limits".to_string(),
         ));
     }
     let unique_ids = bindings

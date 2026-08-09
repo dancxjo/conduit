@@ -9,7 +9,7 @@ use conduit_kernel::{
     scheduler::{
         FixedScheduler, OperationDriver, SchedulerStatus, StepIo, StepOperation, StepOutcome,
     },
-    BoundedValueRef, EvidenceSink, Failure, FailureCode, FixedEvidenceLog, FixedValueStore,
+    BoundedValueRef, ClueSink, Failure, FailureCode, FixedClueLog, FixedValueStore,
     HostOperationDisposition, HostOperationId, HostOperationOutcome, NodeId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -27,15 +27,15 @@ use crate::receipts::{BootIdentity, PresentationReceiptIdentity, TerminalIdentit
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::signal_image::{
-    ACTIVE_PLAY_ID, BOOT_EVIDENCE_ID, BOOT_ID, CHECKED_FORM_ID, EXPANDED_FORM_ID,
-    FIRMWARE_BUILD_ID, FRAGMENT_ID, HOST_ID, PLAN_ID, SOURCE_DOCUMENT_ID, TERMINAL_EVIDENCE_ID,
+    ACTIVE_PLAY_ID, BOOT_CLUE_ID, BOOT_ID, CHECKED_FORM_ID, EXPANDED_FORM_ID,
+    FIRMWARE_BUILD_ID, FRAGMENT_ID, HOST_ID, PLAN_ID, SOURCE_DOCUMENT_ID, TERMINAL_CLUE_ID,
 };
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use crate::signal_image::{
     decode_wait_ms, generated_cords, generated_host_bindings, generated_nodes, generated_routes,
     presentation_identity, signal_layout, value_store_bytes, CORDS, EMPTY_VALUE_REF,
     HOST_BINDING_SLOTS, MAX_STORED_SIGNAL_VALUES, NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS,
-    ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_EVIDENCE_BYTES, RUNTIME_EVIDENCE_EVENTS, VALUE_SLOTS,
+    ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_CLUE_BYTES, RUNTIME_CLUE_EVENTS, VALUE_SLOTS,
     WAIT_VALUE_BYTES,
 };
 
@@ -90,9 +90,9 @@ pub async fn run_signal_demo(
             .expect("wait duration fits in generated store");
     }
 
-    let evidence =
-        FixedEvidenceLog::<RUNTIME_EVIDENCE_EVENTS>::new(RUNTIME_EVIDENCE_BYTES)
-            .expect("evidence log valid");
+    let clue =
+        FixedClueLog::<RUNTIME_CLUE_EVENTS>::new(RUNTIME_CLUE_BYTES)
+            .expect("clue log valid");
     let routes = generated_routes();
     let host_bindings = generated_host_bindings();
 
@@ -125,7 +125,7 @@ pub async fn run_signal_demo(
         host_bindings,
         drivers,
         values,
-        evidence,
+        clue,
     )
     .expect("generated signal demo plan valid");
 
@@ -217,7 +217,7 @@ pub fn boot_identity() -> BootIdentity {
         fragment_id: FRAGMENT_ID,
         host_id: HOST_ID,
         boot_id: BOOT_ID,
-        boot_evidence_id: BOOT_EVIDENCE_ID,
+        boot_clue_id: BOOT_CLUE_ID,
     }
 }
 
@@ -235,7 +235,7 @@ pub fn presentation_receipt_identity(
         boot_id: BOOT_ID,
         active_play_id: ACTIVE_PLAY_ID,
         presentation_id: identity.presentation_id,
-        evidence_id: identity.evidence_id,
+        clue_id: identity.clue_id,
     }
 }
 
@@ -250,7 +250,7 @@ pub fn terminal_identity() -> TerminalIdentity {
         host_id: HOST_ID,
         boot_id: BOOT_ID,
         active_play_id: ACTIVE_PLAY_ID,
-        evidence_id: TERMINAL_EVIDENCE_ID,
+        clue_id: TERMINAL_CLUE_ID,
     }
 }
 
@@ -270,7 +270,7 @@ type SignalScheduler<S, E> = FixedScheduler<
 >;
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-fn complete_host_request<S: ValueStorage, E: EvidenceSink>(
+fn complete_host_request<S: ValueStorage, E: ClueSink>(
     scheduler: &mut SignalScheduler<S, E>,
     node: NodeId,
     request: RequestId,
@@ -289,7 +289,7 @@ fn complete_host_request<S: ValueStorage, E: EvidenceSink>(
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-fn fail_host_request<S: ValueStorage, E: EvidenceSink>(
+fn fail_host_request<S: ValueStorage, E: ClueSink>(
     scheduler: &mut SignalScheduler<S, E>,
     node: NodeId,
     request: RequestId,

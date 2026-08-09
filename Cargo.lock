@@ -461,15 +461,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-realm"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "serde",
- "sha2",
-]
-
-[[package]]
 name = "conduit-runtime"
 version = "0.1.0"
 dependencies = [

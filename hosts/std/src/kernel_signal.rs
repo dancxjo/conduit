@@ -2,15 +2,15 @@
 
 use super::{SignalReceipt, StdKernelExecutionReport, StdRunReport, TimerAdapter};
 use conduit_core::{
-    bind_active_play, bind_evidence, bind_presentation, HostAdvertisement, Observation,
+    bind_active_play, bind_clue, bind_presentation, HostAdvertisement, Observation,
     ObservationKind, PlanFragment, TerminalDisposition, ValuePayload,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, EvidenceSink, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedEvidenceLog,
+    BoundedValueRef, ClueSink, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
+    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
     HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
     ValueStorage,
 };
@@ -37,7 +37,7 @@ type SignalScheduler<
 > = FixedScheduler<
     OperationDriver<SignalOperation, PORTS>,
     HostedValueStore,
-    HostedEvidenceLog,
+    HostedClueLog,
     NODES,
     CORDS,
     PORTS,
@@ -52,7 +52,7 @@ struct PreparedSignalProjection {
     node: conduit_kernel::NodeId,
     signal: Signal,
     presentation: conduit_core::PresentationIdentity,
-    evidence: conduit_core::EvidenceIdentity,
+    clue: conduit_core::ClueIdentity,
     payload: ValuePayload,
     connection_id: Option<conduit_core::ConnectionId>,
 }
@@ -224,8 +224,8 @@ impl Operation for SignalOperation {
 pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
     advertisement: &HostAdvertisement,
     fragment: &PlanFragment,
-    activation_sequence: u64,
-    next_evidence_sequence: &mut u64,
+    play_sequence: u64,
+    next_clue_sequence: &mut u64,
     output: &mut W,
     timer: &mut T,
 ) -> Result<StdRunReport, String> {
@@ -233,16 +233,16 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
         (2, 1) => run_signal_profile::<W, T, 2, 1, 4, 1, 2, 2>(
             advertisement,
             fragment,
-            activation_sequence,
-            next_evidence_sequence,
+            play_sequence,
+            next_clue_sequence,
             output,
             timer,
         ),
         (4, 3) => run_signal_profile::<W, T, 4, 3, 12, 3, 4, 4>(
             advertisement,
             fragment,
-            activation_sequence,
-            next_evidence_sequence,
+            play_sequence,
+            next_clue_sequence,
             output,
             timer,
         ),
@@ -263,8 +263,8 @@ fn run_signal_profile<
 >(
     advertisement: &HostAdvertisement,
     fragment: &PlanFragment,
-    activation_sequence: u64,
-    next_evidence_sequence: &mut u64,
+    play_sequence: u64,
+    next_clue_sequence: &mut u64,
     output: &mut W,
     timer: &mut T,
 ) -> Result<StdRunReport, String> {
@@ -402,30 +402,30 @@ fn run_signal_profile<
         })
         .sum();
 
-    let evidence_events_per_signal = 10_u64
+    let clue_events_per_signal = 10_u64
         .checked_add(
             u64::try_from(show_nodes.len())
                 .ok()
                 .and_then(|shows| shows.checked_mul(8))
-                .ok_or_else(|| "kernel evidence item budget overflow".to_string())?,
+                .ok_or_else(|| "kernel clue item budget overflow".to_string())?,
         )
-        .ok_or_else(|| "kernel evidence item budget overflow".to_string())?;
-    let evidence_items = u16::try_from(
+        .ok_or_else(|| "kernel clue item budget overflow".to_string())?;
+    let clue_items = u16::try_from(
         configuration
             .count
-            .checked_mul(evidence_events_per_signal)
+            .checked_mul(clue_events_per_signal)
             .and_then(|value| value.checked_add(64))
-            .ok_or_else(|| "kernel evidence item budget overflow".to_string())?,
+            .ok_or_else(|| "kernel clue item budget overflow".to_string())?,
     )
-    .map_err(|_| "kernel evidence item budget overflow".to_string())?;
-    let evidence_bytes = u32::from(evidence_items)
+    .map_err(|_| "kernel clue item budget overflow".to_string())?;
+    let clue_bytes = u32::from(clue_items)
         .checked_mul(
             u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
-                .map_err(|_| "kernel evidence charge overflow".to_string())?,
+                .map_err(|_| "kernel clue charge overflow".to_string())?,
         )
-        .ok_or_else(|| "kernel evidence byte budget overflow".to_string())?;
-    let evidence = HostedEvidenceLog::new(evidence_items, evidence_bytes)
-        .map_err(|error| format!("kernel evidence store: {error:?}"))?;
+        .ok_or_else(|| "kernel clue byte budget overflow".to_string())?;
+    let clue = HostedClueLog::new(clue_items, clue_bytes)
+        .map_err(|error| format!("kernel clue store: {error:?}"))?;
     let node_specs = lowered
         .node_specs
         .try_into()
@@ -451,7 +451,7 @@ fn run_signal_profile<
         host_bindings,
         drivers,
         values,
-        evidence,
+        clue,
     )
     .map_err(|error| format!("install signal scheduler: {error:?}"))?;
 
@@ -459,7 +459,7 @@ fn run_signal_profile<
         &fragment.plan_id,
         &advertisement.host_id,
         &advertisement.boot_id,
-        activation_sequence,
+        play_sequence,
     );
     let presentation_capacity = count
         .checked_mul(show_nodes.len())
@@ -467,29 +467,29 @@ fn run_signal_profile<
     let request_capacity = presentation_capacity
         .checked_add(wait_count)
         .ok_or_else(|| "execution request identity capacity overflow".to_string())?;
-    let evidence_capacity = presentation_capacity
+    let clue_capacity = presentation_capacity
         .checked_add(1)
-        .ok_or_else(|| "execution evidence identity capacity overflow".to_string())?;
+        .ok_or_else(|| "execution clue identity capacity overflow".to_string())?;
     let mut execution_identity = KernelExecutionIdentityMap::new(
         &lowered.identity,
         &active_play,
         request_capacity,
         presentation_capacity,
-        evidence_capacity,
+        clue_capacity,
     )
     .map_err(|error| format!("prepare execution identity map: {error:?}"))?;
     let identity_capacity_before = execution_identity.allocation_capacities();
     let mut receipts = Vec::with_capacity(presentation_capacity);
-    let mut observations = Vec::with_capacity(evidence_capacity);
+    let mut observations = Vec::with_capacity(clue_capacity);
     let mut presentation_ids = Vec::with_capacity(presentation_capacity);
     let mut dispatched_requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
     let mut manifested_requests = Vec::<HostOperationRequest>::with_capacity(presentation_capacity);
-    let evidence_sequence_start = *next_evidence_sequence;
-    let evidence_count = u64::try_from(evidence_capacity)
-        .map_err(|_| "execution evidence count overflow".to_string())?;
-    let evidence_sequence_end = evidence_sequence_start
-        .checked_add(evidence_count)
-        .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
+    let clue_sequence_start = *next_clue_sequence;
+    let clue_count =
+        u64::try_from(clue_capacity).map_err(|_| "execution clue count overflow".to_string())?;
+    let clue_sequence_end = clue_sequence_start
+        .checked_add(clue_count)
+        .ok_or_else(|| "host clue sequence exhausted".to_string())?;
     let mut prepared_projections = Vec::with_capacity(presentation_capacity);
     for index in 0..count {
         let sequence =
@@ -509,15 +509,15 @@ fn run_signal_profile<
                 &show_placement.placement_id,
                 sequence,
             );
-            let evidence_offset = u64::try_from(prepared_projections.len())
-                .map_err(|_| "host evidence sequence exhausted".to_string())?;
-            let evidence = bind_evidence(
+            let clue_offset = u64::try_from(prepared_projections.len())
+                .map_err(|_| "host clue sequence exhausted".to_string())?;
+            let clue = bind_clue(
                 &advertisement.host_id,
                 &advertisement.boot_id,
                 Some(&active_play.active_play_id),
-                evidence_sequence_start
-                    .checked_add(evidence_offset)
-                    .ok_or_else(|| "host evidence sequence exhausted".to_string())?,
+                clue_sequence_start
+                    .checked_add(clue_offset)
+                    .ok_or_else(|| "host clue sequence exhausted".to_string())?,
             );
             let connection_id = fragment
                 .connections
@@ -529,20 +529,20 @@ fn run_signal_profile<
                 payload: encode_signal(&signal),
                 signal: signal.clone(),
                 presentation,
-                evidence,
+                clue,
                 connection_id,
             });
         }
     }
-    let terminal_evidence = bind_evidence(
+    let terminal_clue = bind_clue(
         &advertisement.host_id,
         &advertisement.boot_id,
         Some(&active_play.active_play_id),
-        evidence_sequence_end - 1,
+        clue_sequence_end - 1,
     );
-    // SEALED PROFILE ACTIVATION BEGIN: numeric tables and preallocated capture only.
+    // SEALED PROFILE PLAY START BEGIN: numeric tables and preallocated capture only.
     #[cfg(test)]
-    let activation_probe = crate::allocation_probe::begin();
+    let play_start_probe = crate::allocation_probe::begin();
     loop {
         while let Some(request) = scheduler.next_host_request() {
             dispatched_requests.push(request);
@@ -605,9 +605,9 @@ fn run_signal_profile<
             SchedulerStatus::Cancelled => return Err("kernel was cancelled".to_string()),
         }
     }
-    // SEALED PROFILE ACTIVATION END: hosted identity/observation projection resumes.
+    // SEALED PROFILE PLAY START END: hosted identity/observation projection resumes.
     #[cfg(test)]
-    let post_activation_allocations = activation_probe.finish();
+    let post_play_start_allocations = play_start_probe.finish();
     if dispatched_requests.len() != request_capacity
         || manifested_requests.len() != presentation_capacity
         || scheduler.values().used_items() != 0
@@ -620,11 +620,11 @@ fn run_signal_profile<
         .map(|driver| driver.operation().allocation_capacity())
         .sum();
     if driver_capacity_after != driver_capacity_before {
-        return Err("operation storage grew after activation".to_string());
+        return Err("operation storage grew after Play start".to_string());
     }
     let value_allocation_after = scheduler.values().allocation_capacities();
     if value_allocation_after != value_allocation_before {
-        return Err("kernel value storage grew after activation".to_string());
+        return Err("kernel value storage grew after Play start".to_string());
     }
     for request in &dispatched_requests {
         execution_identity
@@ -646,20 +646,20 @@ fn run_signal_profile<
             )
             .map_err(|error| format!("bind presentation identity: {error:?}"))?;
         execution_identity
-            .bind_evidence(
-                &prepared.evidence,
+            .bind_clue(
+                &prepared.clue,
                 Some(request.node),
                 Some(request.request),
                 Some(&prepared.presentation.presentation_id),
             )
-            .map_err(|error| format!("bind presentation evidence identity: {error:?}"))?;
+            .map_err(|error| format!("bind presentation clue identity: {error:?}"))?;
         receipts.push(SignalReceipt {
             placement_id: prepared.presentation.placement_id.clone(),
             sequence: prepared.signal.sequence,
             level: prepared.signal.level,
         });
         observations.push(Observation {
-            evidence_id: prepared.evidence.evidence_id,
+            clue_id: prepared.clue.clue_id,
             active_play_id: Some(active_play.active_play_id.clone()),
             presentation_id: Some(prepared.presentation.presentation_id.clone()),
             host_id: advertisement.host_id.clone(),
@@ -673,12 +673,12 @@ fn run_signal_profile<
         });
         presentation_ids.push(prepared.presentation.presentation_id);
     }
-    *next_evidence_sequence = evidence_sequence_end;
+    *next_clue_sequence = clue_sequence_end;
     execution_identity
-        .bind_evidence(&terminal_evidence, None, None, None)
-        .map_err(|error| format!("bind terminal evidence identity: {error:?}"))?;
+        .bind_clue(&terminal_clue, None, None, None)
+        .map_err(|error| format!("bind terminal clue identity: {error:?}"))?;
     observations.push(Observation {
-        evidence_id: terminal_evidence.evidence_id,
+        clue_id: terminal_clue.clue_id,
         active_play_id: Some(active_play.active_play_id.clone()),
         presentation_id: None,
         host_id: advertisement.host_id.clone(),
@@ -690,10 +690,10 @@ fn run_signal_profile<
             disposition: TerminalDisposition::Completed,
         },
     });
-    if execution_identity.lengths() != (request_capacity, presentation_capacity, evidence_capacity)
+    if execution_identity.lengths() != (request_capacity, presentation_capacity, clue_capacity)
         || execution_identity.allocation_capacities() != identity_capacity_before
     {
-        return Err("execution identity map is incomplete or grew after activation".to_string());
+        return Err("execution identity map is incomplete or grew after Play start".to_string());
     }
 
     Ok(StdRunReport {
@@ -703,14 +703,14 @@ fn run_signal_profile<
         kernel: Some(StdKernelExecutionReport {
             active_play_id: active_play.active_play_id,
             decisions: scheduler.decisions(),
-            kernel_events: scheduler.evidence().len(),
-            kernel_evidence: scheduler.evidence().events().collect(),
+            kernel_events: scheduler.clues().len(),
+            kernel_clue: scheduler.clues().events().collect(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids,
             identity: execution_identity,
             #[cfg(test)]
-            post_activation_allocations,
+            post_play_start_allocations,
         }),
     })
 }

@@ -47,7 +47,7 @@ support.
 
 The authoritative code inventory is `supported_nucleus_contracts()`. Every
 entry has exact typed ports, startup configuration, finite limits, terminal
-behavior, and one installed std-host realization selected before activation.
+behavior, and one installed std-host realization selected before Play start.
 
 | Operation | Exact contract revision | Public contract and terminal behavior |
 |---|---|---|
@@ -71,7 +71,7 @@ UI-independent conformance includes the typed tick observer vector and the
 checked-in canonical Programs 1–4. Those programs compose the text, time, and
 state families through lossless source checking, exact checked-face planning,
 static installed-operation resolution, the existing kernel, admitted timer or
-presentation effects, terminal results, and bounded evidence. The canonical
+presentation effects, terminal results, and bounded clue. The canonical
 tests also reject malformed values, bound overflow, temporal mismatch, and
 selected-realization mutation before effects.
 
@@ -99,12 +99,12 @@ useful input to rearticulation, but it does not promote a
 
 Adding another supported operation requires its own reviewed typed contract,
 installed realization, planning/lowering proof, bounded kernel execution, and
-terminal evidence. A name, matching face, compatibility fixture, or narrower
+terminal clue. A name, matching face, compatibility fixture, or narrower
 platform implementation does not transfer proof provenance.
 
 The legacy compatibility catalog and its `HostRuntime` receipts may remain as
 historical fixtures until a separately owned cleanup removes or fences them.
-They must not be used in generated/status-facing output as evidence of current
+They must not be used in generated/status-facing output as clue of current
 standard-library support.
 
 ## Audit checks

@@ -4,87 +4,75 @@ use crate::{
     plan_with_hard_requirements, HardRealizationRequirements, PlacementChoices, PlannerError,
     RealizationPolicy,
 };
-use conduit_core::{ConnectionProvider, HostAdvertisement, OperationId, Plan, ResourceObservation};
+use conduit_core::{ConnectionBase, GearId, HostAdvertisement, Plan, ResourceObservation};
 use conduit_form::CheckedForm;
 use std::collections::BTreeMap;
 
 /// Selects exact realizations for a whole checked form, sharing current finite
-/// observed capacity across operations, then constructs the ordinary Plan.
+/// observed capacity across gears, then constructs the ordinary Plan.
 pub fn plan_selected_realizations(
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
-    providers: &[ConnectionProvider],
-    requirements: &BTreeMap<OperationId, HardRealizationRequirements>,
+    hosts: &[HostAdvertisement],
+    bases: &[ConnectionBase],
+    requirements: &BTreeMap<GearId, HardRealizationRequirements>,
     observations: &[ResourceObservation],
-    policies: &BTreeMap<OperationId, RealizationPolicy>,
+    policies: &BTreeMap<GearId, RealizationPolicy>,
 ) -> Result<Plan, PlannerError> {
     reject_unknown_operation_inputs(form, requirements, policies)?;
-    validate_resource_observations(realm, observations)?;
+    validate_resource_observations(hosts, observations)?;
     let mut remaining = observations.to_vec();
     let mut placements = BTreeMap::new();
 
-    for operation in &form.operations {
-        let requirement = requirements
-            .get(&operation.operation_id)
-            .cloned()
-            .unwrap_or_default();
-        let policy = policies
-            .get(&operation.operation_id)
-            .cloned()
-            .unwrap_or_default();
+    for gear in &form.gears {
+        let requirement = requirements.get(&gear.gear_id).cloned().unwrap_or_default();
+        let policy = policies.get(&gear.gear_id).cloned().unwrap_or_default();
         let choice = select_realization_matching(
-            operation,
-            realm,
+            gear,
+            hosts,
             &requirement,
             &policy,
             |host, offer| observations_admit(host, offer, &remaining),
             Some(PlannerError::CurrentResourceObservationUnavailable(
                 format!(
-                    "operation '{}' has no realization within remaining observed capacity",
-                    operation.operation_id.as_str()
+                    "gear '{}' has no realization within remaining observed capacity",
+                    gear.gear_id.as_str()
                 ),
             )),
         )?;
-        consume_selected_capacity(realm, &choice, &mut remaining)?;
-        placements.insert(operation.operation_id.clone(), choice);
+        consume_selected_capacity(hosts, &choice, &mut remaining)?;
+        placements.insert(gear.gear_id.clone(), choice);
     }
 
     plan_with_hard_requirements(
         form,
-        realm,
+        hosts,
         &PlacementChoices {
-            by_operation: placements,
+            by_gear: placements,
         },
-        providers,
+        bases,
         requirements,
     )
 }
 
 pub(crate) fn reject_unknown_operation_inputs(
     form: &CheckedForm,
-    requirements: &BTreeMap<OperationId, HardRealizationRequirements>,
-    policies: &BTreeMap<OperationId, RealizationPolicy>,
+    requirements: &BTreeMap<GearId, HardRealizationRequirements>,
+    policies: &BTreeMap<GearId, RealizationPolicy>,
 ) -> Result<(), PlannerError> {
-    for operation_id in requirements.keys().chain(policies.keys()) {
-        if !form
-            .operations
-            .iter()
-            .any(|operation| &operation.operation_id == operation_id)
-        {
-            return Err(PlannerError::UnknownOperation(
-                operation_id.as_str().to_string(),
-            ));
+    for gear_id in requirements.keys().chain(policies.keys()) {
+        if !form.gears.iter().any(|gear| &gear.gear_id == gear_id) {
+            return Err(PlannerError::UnknownGear(gear_id.as_str().to_string()));
         }
     }
     Ok(())
 }
 
 pub(crate) fn consume_selected_capacity(
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     choice: &crate::PlacementChoice,
     remaining: &mut [ResourceObservation],
 ) -> Result<(), PlannerError> {
-    let host = realm
+    let host = hosts
         .iter()
         .find(|host| host.host_id == choice.host_id)
         .ok_or_else(|| PlannerError::UnknownHost(choice.host_id.as_str().to_string()))?;
@@ -126,7 +114,7 @@ pub(crate) fn consume_selected_capacity(
             })?;
         // Candidate selection reserves only the admitted minimum. The Plan
         // builder distributes capacity toward preferences after all selected
-        // operations' minima are known.
+        // gears' minima are known.
         observation.unreserved_units -= requirement.units;
     }
     Ok(())

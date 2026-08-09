@@ -5,7 +5,7 @@
 
 use super::source::{DistributedToggleSource, MAXIMUM_VALUES};
 use crate::websocket::{NativeWebSocketCarrier, NativeWebSocketListener};
-use conduit_kernel::{EvidenceQuery, KernelEventKind, ValueStorage};
+use conduit_kernel::{ClueQuery, KernelEventKind, ValueStorage};
 use conduit_signal::{DISTRIBUTED_MAXIMUM_FRAME_BYTES, SIGNAL_ENCODED_LEN};
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionMessage, SessionTerminalDisposition,
@@ -54,7 +54,7 @@ pub(super) fn receive<'a>(
     Ok(frame.message)
 }
 
-/// Drive the source, reading Enter from `stdin` before each activation.
+/// Drive the source, reading Enter from `stdin` before each trigger.
 pub(super) fn run_source<R: BufRead, W: Write>(
     mut src: DistributedToggleSource,
     listener: NativeWebSocketListener,
@@ -86,11 +86,11 @@ pub(super) fn run_source<R: BufRead, W: Write>(
     }
     send(&mut src, &mut carrier, SessionMessage::Ready, &mut outbound)?;
     if !src.session.is_active() {
-        return Err("std source activated before both exact readiness facts".to_string());
+        return Err("std source triggerd before both exact readiness facts".to_string());
     }
 
-    let mut activation_index = 0usize;
-    while let Some((sequence, payload)) = src.next_offer(report, stdin, &mut activation_index)? {
+    let mut trigger_index = 0usize;
+    while let Some((sequence, payload)) = src.next_offer(report, stdin, &mut trigger_index)? {
         loop {
             send(
                 &mut src,
@@ -176,11 +176,11 @@ pub(super) fn run_source<R: BufRead, W: Write>(
             != (0, 0)
         || !src
             .scheduler
-            .evidence()
+            .clues()
             .contains_kind(KernelEventKind::RemoteValueDelivered)
         || !src
             .scheduler
-            .evidence()
+            .clues()
             .contains_kind(KernelEventKind::OperationCompleted)
         || src.capacity_seal() != src.seal
     {

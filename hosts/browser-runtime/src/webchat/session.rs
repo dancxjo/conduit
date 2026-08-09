@@ -1,5 +1,5 @@
 use super::BrowserChatOperation;
-use conduit_core::{bind_active_play, ConnectionProvider};
+use conduit_core::{bind_active_play, ConnectionBase};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
@@ -9,8 +9,8 @@ use conduit_kernel::scheduler::{
 };
 use conduit_kernel::{
     BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationDisposition, HostOperationOutcome, HostedEvidenceLog,
-    HostedValueStore, NodeId, PortId, ValueStorage,
+    FixedRoutes, HostOperationDisposition, HostOperationOutcome, HostedClueLog, HostedValueStore,
+    NodeId, PortId, ValueStorage,
 };
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
 use conduit_runtime::lowering::{
@@ -32,13 +32,13 @@ const HOST_BINDINGS: usize = NODES * 4;
 const PENDING_REQUESTS: usize = 3;
 const VALUE_ITEMS: u16 = 32;
 const VALUE_BYTES: u32 = 8_192;
-const EVIDENCE_ITEMS: u16 = 1_024;
+const CLUE_ITEMS: u16 = 1_024;
 const REQUEST_IDENTITIES: usize = 64;
 
 type ChatScheduler = FixedScheduler<
     OperationDriver<BrowserChatOperation, PORTS>,
     HostedValueStore,
-    HostedEvidenceLog,
+    HostedClueLog,
     NODES,
     CORDS,
     PORTS,
@@ -92,18 +92,18 @@ impl BrowserChatSession {
         let expanded =
             expand_canonical_form(&checked, "webchat-browser-demo", &profile).map_err(|_| -204)?;
         let advertisement = super::catalog::advertisement();
-        let realm = [advertisement.clone()];
+        let hosts = [advertisement.clone()];
         let placements =
-            conduit_planner::default_expanded_placements(&expanded, &realm).map_err(|_| -205)?;
-        let connection_providers = BTreeMap::new();
+            conduit_planner::default_expanded_placements(&expanded, &hosts).map_err(|_| -205)?;
+        let connection_bases = BTreeMap::new();
         let route_candidates = BTreeMap::new();
         let plan = plan_expanded_canonical_with_options(
             &expanded,
-            &realm,
+            &hosts,
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
             PlanningOptions {
-                connection_providers: &connection_providers,
+                connection_bases: &connection_bases,
                 route_candidates: &route_candidates,
                 connection_item_capacity: 4,
                 connection_byte_capacity: 1_024,
@@ -207,12 +207,12 @@ impl BrowserChatSession {
                 .map_err(|_| -216)?;
         }
         bindings.seal().map_err(|_| -216)?;
-        let evidence_bytes = u32::from(EVIDENCE_ITEMS)
+        let clue_bytes = u32::from(CLUE_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or(-217)?;
-        let evidence = HostedEvidenceLog::new(EVIDENCE_ITEMS, evidence_bytes).map_err(|_| -217)?;
+        let clue = HostedClueLog::new(CLUE_ITEMS, clue_bytes).map_err(|_| -217)?;
         let scheduler = ChatScheduler::new_with_active_counts_and_host_operations(
-            NODES, CORDS, node_specs, cord_specs, routes, bindings, drivers, values, evidence,
+            NODES, CORDS, node_specs, cord_specs, routes, bindings, drivers, values, clue,
         )
         .map_err(|_| -218)?;
         let active_play =
@@ -241,7 +241,7 @@ impl BrowserChatSession {
                 identity_text,
                 " placement={}:operation={}:implementation={}",
                 placement.placement_id.as_str(),
-                placement.operation_id.as_str(),
+                placement.gear_id.as_str(),
                 placement.implementation_id.as_str(),
             )
             .map_err(|_| -234)?;

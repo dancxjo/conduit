@@ -4,8 +4,8 @@ use conduit_core::{CancellationPolicy, TerminalPolicy};
 use conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
 
 use crate::model::{
-    GeneratedConfigurationEntry, GeneratedConfigurationValue, GeneratedCordEndpoint,
-    GeneratedEmbeddedPlan, GeneratedEvidenceTarget, GeneratedPort, GeneratedStaticNode,
+    GeneratedClueTarget, GeneratedConfigurationEntry, GeneratedConfigurationValue,
+    GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedPort, GeneratedStaticNode,
 };
 
 impl GeneratedEmbeddedPlan {
@@ -66,7 +66,7 @@ impl GeneratedEmbeddedPlan {
         render_routes(&mut output, self);
         render_host_operations(&mut output, self);
         render_resources(&mut output, self);
-        render_evidence(&mut output, self);
+        render_clue(&mut output, self);
         render_startup(&mut output, self);
         render_expected_terminals(&mut output, self);
         output
@@ -135,7 +135,7 @@ impl GeneratedEmbeddedPlan {
         render_routes(&mut output, self);
         render_host_operations(&mut output, self);
         render_resources(&mut output, self);
-        render_evidence(&mut output, self);
+        render_clue(&mut output, self);
         render_startup(&mut output, self);
         render_expected_terminals(&mut output, self);
         output
@@ -196,8 +196,8 @@ fn render_budgets(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     for (name, kind, value) in [
         ("CORD_VALUE_SLOTS", "u16", u64::from(plan.cord_value_slots)),
         ("CORD_VALUE_BYTES", "u32", u64::from(plan.cord_value_bytes)),
-        ("EVIDENCE_ITEMS", "u16", u64::from(plan.evidence_items)),
-        ("EVIDENCE_BYTES", "u32", u64::from(plan.evidence_bytes)),
+        ("CLUE_ITEMS", "u16", u64::from(plan.clue_items)),
+        ("CLUE_BYTES", "u32", u64::from(plan.clue_bytes)),
     ] {
         writeln!(output, "pub const {name}: {kind} = {value};").expect("String writes cannot fail");
     }
@@ -367,29 +367,29 @@ fn render_resources(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     output.push_str("];\n");
 }
 
-fn render_evidence(output: &mut String, plan: &GeneratedEmbeddedPlan) {
+fn render_clue(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     writeln!(
         output,
-        "pub const GENERATED_EVIDENCE_TARGETS: [(conduit_kernel::EvidenceExpectationId, conduit_kernel::EvidenceExpectationTarget); {}] = [",
-        plan.evidence.len()
+        "pub const GENERATED_CLUE_TARGETS: [(conduit_kernel::ClueExpectationId, conduit_kernel::ClueExpectationTarget); {}] = [",
+        plan.clues.len()
     )
     .expect("String writes cannot fail");
-    for evidence in &plan.evidence {
-        let target = match evidence.target {
-            GeneratedEvidenceTarget::Fragment => {
-                "conduit_kernel::EvidenceExpectationTarget::Fragment".to_owned()
+    for clue in &plan.clues {
+        let target = match clue.target {
+            GeneratedClueTarget::Fragment => {
+                "conduit_kernel::ClueExpectationTarget::Fragment".to_owned()
             }
-            GeneratedEvidenceTarget::Node(node) => format!(
-                "conduit_kernel::EvidenceExpectationTarget::Node(conduit_kernel::NodeId({node}))"
+            GeneratedClueTarget::Node(node) => format!(
+                "conduit_kernel::ClueExpectationTarget::Node(conduit_kernel::NodeId({node}))"
             ),
-            GeneratedEvidenceTarget::Cord(cord) => format!(
-                "conduit_kernel::EvidenceExpectationTarget::Cord(conduit_kernel::CordId({cord}))"
+            GeneratedClueTarget::Cord(cord) => format!(
+                "conduit_kernel::ClueExpectationTarget::Cord(conduit_kernel::CordId({cord}))"
             ),
         };
         writeln!(
             output,
-            "    (conduit_kernel::EvidenceExpectationId({}), {}),",
-            evidence.expectation, target
+            "    (conduit_kernel::ClueExpectationId({}), {}),",
+            clue.expectation, target
         )
         .expect("String writes cannot fail");
     }
@@ -397,12 +397,12 @@ fn render_evidence(output: &mut String, plan: &GeneratedEmbeddedPlan) {
 
     writeln!(
         output,
-        "pub const GENERATED_EVIDENCE_IDENTITIES: [(&str, Option<&str>); {}] = [",
-        plan.evidence.len()
+        "pub const GENERATED_CLUE_IDENTITIES: [(&str, Option<&str>); {}] = [",
+        plan.clues.len()
     )
     .expect("String writes cannot fail");
-    for evidence in &plan.evidence {
-        render_kind_subject(output, evidence.kind, evidence.subject.as_deref());
+    for clue in &plan.clues {
+        render_kind_subject(output, clue.kind, clue.subject.as_deref());
     }
     output.push_str("];\n");
 }
@@ -633,10 +633,10 @@ fn render_remote_endpoints(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     );
     render_u8_slice(
         output,
-        "GENERATED_REMOTE_ENDPOINT_PROVIDER_CODES",
+        "GENERATED_REMOTE_ENDPOINT_BASE_CODES",
         plan.remote_endpoints
             .iter()
-            .map(|re| re.provider.canonical_code()),
+            .map(|re| re.base.canonical_code()),
     );
     render_string_slice(
         output,
@@ -647,10 +647,10 @@ fn render_remote_endpoints(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     );
     render_string_slice(
         output,
-        "GENERATED_REMOTE_ENDPOINT_PROVIDER_INSTANCE_IDS",
+        "GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS",
         plan.remote_endpoints
             .iter()
-            .map(|re| re.provider_instance_id.as_str()),
+            .map(|re| re.base_instance_id.as_str()),
     );
     render_string_slice(
         output,

@@ -11,7 +11,7 @@ pub fn distributed_source_advertisement_for(host_id: HostId, boot_id: BootId) ->
 }
 
 /// Rebinds only the source endpoint of the accepted std/browser link. The
-/// provider instance, authority, peer endpoint, and finite limits stay exact.
+/// base instance, authority, peer endpoint, and finite limits stay exact.
 pub fn distributed_websocket_link_binding_for(
     source_host_id: HostId,
     source_boot_id: BootId,
@@ -36,11 +36,8 @@ mod tests {
         assert_eq!(specialized.source.host_id.as_str(), "patchbay/native");
         assert_eq!(specialized.source.boot_id.as_str(), "patchbay/boot");
         assert_eq!(specialized.sink, baseline.sink);
-        assert_eq!(specialized.provider, baseline.provider);
-        assert_eq!(
-            specialized.provider_instance_id,
-            baseline.provider_instance_id
-        );
+        assert_eq!(specialized.base, baseline.base);
+        assert_eq!(specialized.base_instance_id, baseline.base_instance_id);
         assert_eq!(specialized.limits, baseline.limits);
     }
 }

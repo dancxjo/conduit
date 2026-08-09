@@ -57,7 +57,7 @@ fn duration_spellings_have_one_semantic_identity_and_execute_four_bounded_ticks(
     let local = expand_canonical_form(&local, "clock-demo", &profile).unwrap();
     assert_eq!(positional.expanded_form_id, named.expanded_form_id);
     assert_eq!(named.expanded_form_id, local.expanded_form_id);
-    assert_eq!(positional.operations.len(), 2);
+    assert_eq!(positional.gears.len(), 2);
 
     let mut host = StdHost::new();
     let plan = host.plan_expanded_local(&positional).unwrap();

@@ -8,8 +8,8 @@ sink fragments and active plays, Connection, exact logical host and boot pair,
 value kind, and admitted item/byte bounds. Changing any of those facts changes
 or invalidates the logical session.
 
-`RouteAttachment` preserves the exact selected link binding, provider,
-initialized provider instance, host/boot pair, link endpoint identities, and
+`RouteAttachment` preserves the exact selected link binding, base,
+initialized base instance, host/boot pair, link endpoint identities, and
 link limits. It is admitted only through a currently `Ready` `LinkBinding` whose
 immutable `BoundLink` is already in the connection's sealed candidate set. Its
 limits must cover the logical session bounds. Carrier adapters transport frames;
