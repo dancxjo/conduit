@@ -293,26 +293,7 @@ pub async fn run(
 ) -> ! {
     let mut link = UsbLinkSession::new(carrier).unwrap();
     if let Some(record) = panic_record {
-        if establish_usb(&mut link, clue, runtime).await.is_ok() {
-            let mut frame = [0_u8; 1024];
-            loop {
-                match link.receive_raw_stream_frame(&mut frame).await {
-                    Ok(raw) if raw == conduit_net::R1_USB_NETWORK_SESSION_QUERY => {
-                        let _ = clue
-                            .write_network_failure(record.code(), attachment_identity(runtime))
-                            .await;
-                        break;
-                    }
-                    Ok(raw) => {
-                        let _ = crate::bootsel::handle_request(&mut link, raw).await;
-                    }
-                    Err(_) => break,
-                }
-            }
-        }
-        loop {
-            crate::bootsel::wait_for_request(&mut link).await.ok();
-        }
+        crate::wifi_recovery::serve(&mut link, clue, record, runtime).await;
     }
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioDriverStartup);
     let usb_startup = establish_usb(&mut link, clue, runtime);
@@ -359,7 +340,7 @@ pub async fn run(
     }
 }
 
-async fn establish_usb(
+pub(crate) async fn establish_usb(
     link: &mut UsbLinkSession,
     clue: &mut UsbCdc,
     runtime: &RuntimeTranscriptIdentity,
@@ -480,7 +461,7 @@ async fn run_session(
     Ok(())
 }
 
-fn attachment_identity<'a>(runtime: &'a RuntimeTranscriptIdentity) -> NetworkAttachmentIdentity<'a> {
+pub(crate) fn attachment_identity<'a>(runtime: &'a RuntimeTranscriptIdentity) -> NetworkAttachmentIdentity<'a> {
     NetworkAttachmentIdentity {
         firmware_build_id: crate::network_image::FIRMWARE_BUILD_ID,
         source_document_id: crate::network_image::SOURCE_DOCUMENT_ID,

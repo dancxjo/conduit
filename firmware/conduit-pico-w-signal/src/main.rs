@@ -39,6 +39,8 @@ mod kernel;
 mod bootsel;
 #[cfg(feature = "wifi-bootstrap")]
 mod panic_recovery;
+#[cfg(feature = "wifi-bootstrap")]
+mod wifi_recovery;
 mod radio;
 mod receipts;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]

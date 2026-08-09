@@ -273,6 +273,9 @@ fn wait_for_network_session_readiness(carrier: &mut NativePathCdcCarrier) -> Pic
     )?;
     let mut raw = [0_u8; 1024];
     let reply = carrier.receive_raw_stream_frame(&mut raw, Duration::from_secs(30))?;
+    if reply == conduit_net::R1_USB_NETWORK_SESSION_FAILED {
+        return Err("Pico reported that this boot cannot admit the network Session".into());
+    }
     if reply != conduit_net::R1_USB_NETWORK_SESSION_READY {
         return Err("Pico returned an unexpected network Session readiness payload".into());
     }

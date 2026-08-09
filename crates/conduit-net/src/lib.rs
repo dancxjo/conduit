@@ -32,6 +32,10 @@ pub const R1_USB_NETWORK_SESSION_QUERY: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_QUE
 /// Exact reply emitted only after radio initialization and bounded network
 /// Join kernel admission have completed.
 pub const R1_USB_NETWORK_SESSION_READY: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_READY@1";
+
+/// The queried R1 network Session cannot become ready on this boot. The
+/// machine-readable failure remains on the admitted Clue face.
+pub const R1_USB_NETWORK_SESSION_FAILED: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_FAILED@1";
 pub const NETWORK_JOIN_OPERATION: &str = "network/join";
 pub const NETWORK_CREDENTIALS_OPERATION: &str = "network/credentials";
 pub const NETWORK_ATTACHMENT_CLUE_OPERATION: &str = "network/attachment-clue";
