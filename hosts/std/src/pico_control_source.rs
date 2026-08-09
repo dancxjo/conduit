@@ -29,10 +29,19 @@ impl PicoControlSource {
             .cloned()
             .ok_or_else(|| "R1 control source fragment missing".to_string())?;
         let lowered = lower_plan_fragment(&fragment).map_err(debug_error)?;
+        let Some(first_remote) = lowered.remote_endpoints.first() else {
+            return Err("R1 control source has no remote Cord".into());
+        };
         if lowered.nodes.len() != 4
             || lowered.cords.len() != 4
-            || lowered.remote_endpoints.len() != 1
-            || lowered.remote_endpoints[0].direction != RemoteCordDirection::Egress
+            || lowered.remote_endpoints.len() > 2
+            || lowered.remote_endpoints.iter().any(|endpoint| {
+                endpoint.direction != RemoteCordDirection::Egress
+                    || endpoint.cord != first_remote.cord
+                    || endpoint.connection_id != first_remote.connection_id
+                    || endpoint.source_fragment_id != first_remote.source_fragment_id
+                    || endpoint.sink_fragment_id != first_remote.sink_fragment_id
+            })
             || lowered.host_operations.len() != 3
         {
             return Err("R1 control source is not the exact three-input merge fragment".into());

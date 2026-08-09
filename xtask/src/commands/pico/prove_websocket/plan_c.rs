@@ -5,7 +5,8 @@ use std::time::Duration;
 use conduit_core::{
     bind_active_play, BootId, ClueId, ConnectionBase, LinkAvailability, LinkBinding,
 };
-use conduit_std_host::pico_usb_source::PicoUsbSource;
+use conduit_std_host::pico_control_source::PicoControlSource;
+use conduit_std_host::r1_control::{R1ControlPeer, R1InputEvent};
 use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
 use conduit_wire::{
     decode_session_checkpoint, encode_session_checkpoint_into, SessionMessage, SessionResumeAction,
@@ -13,7 +14,8 @@ use conduit_wire::{
 use serde::Serialize;
 
 use super::super::firmware::FirmwareIdentity;
-use super::super::r1_signal::{self, R1SessionIo, UsbSessionIo, WebSocketSessionIo};
+use super::super::r1_control_session;
+use super::super::r1_signal::{R1SessionIo, UsbSessionIo, WebSocketSessionIo};
 use super::super::transcript::RuntimeTranscriptIdentity;
 use super::super::PicoResult;
 
@@ -27,7 +29,7 @@ pub(crate) fn verify_plan_c_continuation(
     if !interactive {
         return Err("physical R1 Plan C network-loss proof requires --interactive".into());
     }
-    let plan = conduit_system_continuity::exact_r1_signal_plan(
+    let plan = conduit_system_continuity::exact_r1_control_plan(
         BootId::from(conduit_net::R1_PICO_BOOT_ID),
         conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
     )?
@@ -43,7 +45,7 @@ pub(crate) fn verify_plan_c_continuation(
 
     let source_host = conduit_core::HostId::from(conduit_net::R1_STD_HOST_ID);
     let source_boot = BootId::from(conduit_net::R1_STD_BOOT_ID);
-    let mut source = PicoUsbSource::prepare_plan(plan.clone(), &source_host)?;
+    let mut source = PicoControlSource::prepare_plan(plan.clone(), &source_host)?;
     source.observe_sink_boot(BootId::from(runtime.boot_id.as_str()))?;
     let initial_binding = source.binding().clone();
 
@@ -67,14 +69,16 @@ pub(crate) fn verify_plan_c_continuation(
 
     let (sequence, payload) = {
         let mut websocket_io = WebSocketSessionIo::new(&mut websocket);
-        r1_signal::handshake(&mut websocket_io, &mut source)?;
+        r1_control_session::handshake(&mut websocket_io, &mut source)?;
         let link_line = clue
             .read_line(Duration::from_secs(3))
             .map_err(|error| format!("timed out reading Plan C WebSocket link Sign: {error}"))?;
         super::verify_link_clue(&link_line, identity, runtime, source.binding())?;
-        let (sequence, payload) = source
-            .next_offer()?
-            .ok_or("Plan C source did not produce its first bounded offer")?;
+        let (sequence, payload) = source.offer_input(R1InputEvent {
+            peer: R1ControlPeer::Terminal,
+            peer_sequence: 0,
+            level: true,
+        })?;
         let binding = source.binding().clone();
         let offered = binding.frame(SessionMessage::Offered {
             sequence,
@@ -135,22 +139,34 @@ pub(crate) fn verify_plan_c_continuation(
         .map_err(lifecycle_error)?;
 
     let mut usb_io = UsbSessionIo::new(usb);
-    r1_signal::handshake(&mut usb_io, &mut source)?;
-    r1_signal::replay_offered(&mut usb_io, &mut source, sequence, &payload, &mut |found| {
-        let line = clue
-            .read_line(Duration::from_secs(3))
-            .map_err(|error| format!("missing replayed Plan C LED Sign: {error}"))?;
-        super::super::r1_signal_transcript::verify_receipt(&line, &plan, found, identity, runtime)
-    })?;
-    while r1_signal::deliver_next(&mut usb_io, &mut source, &mut |found| {
-        let line = clue
-            .read_line(Duration::from_secs(3))
-            .map_err(|error| format!("missing continued Plan C LED Sign: {error}"))?;
-        super::super::r1_signal_transcript::verify_receipt(&line, &plan, found, identity, runtime)
-    })? {}
-    let delivered = r1_signal::finish(&mut usb_io, &mut source)?;
-    if delivered != 16 {
-        return Err("continued Plan C did not deliver the exact sixteen-value Signal".into());
+    r1_control_session::handshake(&mut usb_io, &mut source)?;
+    r1_control_session::replay_offered(
+        &mut usb_io,
+        &mut source,
+        sequence,
+        &payload,
+        &mut |found| {
+            let line = clue
+                .read_line(Duration::from_secs(3))
+                .map_err(|error| format!("missing replayed Plan C LED Sign: {error}"))?;
+            super::super::r1_signal_transcript::verify_receipt(
+                &line, &plan, found, identity, runtime,
+            )
+        },
+    )?;
+    for input in super::control_inputs().into_iter().skip(1) {
+        r1_control_session::deliver_input(&mut usb_io, &mut source, input, &mut |found| {
+            let line = clue
+                .read_line(Duration::from_secs(3))
+                .map_err(|error| format!("missing continued Plan C LED Sign: {error}"))?;
+            super::super::r1_signal_transcript::verify_receipt(
+                &line, &plan, found, identity, runtime,
+            )
+        })?;
+    }
+    let delivered = r1_control_session::finish(&mut usb_io, &mut source)?;
+    if delivered != 6 {
+        return Err("continued Plan C did not deliver the exact six deliberate inputs".into());
     }
     let terminal = clue
         .read_line(Duration::from_secs(3))

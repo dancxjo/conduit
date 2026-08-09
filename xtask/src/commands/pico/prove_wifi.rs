@@ -27,10 +27,8 @@ pub enum WifiProofMode {
 impl WifiProofMode {
     fn firmware_mode(self) -> &'static str {
         match self {
-            Self::R1NewPlanRecovery { .. } => "r1-control",
-            Self::Bootstrap | Self::WebSocketRoute | Self::R1PlanCContinuation { .. } => {
-                "wifi-bootstrap"
-            }
+            Self::R1NewPlanRecovery { .. } | Self::R1PlanCContinuation { .. } => "r1-control",
+            Self::Bootstrap | Self::WebSocketRoute => "wifi-bootstrap",
         }
     }
 }
