@@ -119,6 +119,7 @@ pub enum ProveTarget {
     StdPicoUsb,
     PicoWifiBootstrap,
     PicoWebsocketRoute,
+    R1NewPlanRecovery,
 }
 
 #[derive(Args, Debug)]

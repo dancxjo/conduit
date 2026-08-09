@@ -3,4 +3,5 @@ pub mod doctor;
 pub mod pico;
 pub mod proofs;
 pub mod prove;
+pub mod r1_recovery;
 pub mod toggle;

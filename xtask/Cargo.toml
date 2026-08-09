@@ -12,8 +12,10 @@ path = "src/main.rs"
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+conduit-body = { path = "../crates/conduit-body" }
 conduit-core = { path = "../crates/conduit-core" }
 conduit-net = { path = "../crates/conduit-net" }
 conduit-signal = { path = "../crates/conduit-signal" }
 conduit-std-host = { path = "../hosts/std" }
+conduit-system-continuity = { path = "../crates/conduit-system-continuity", features = ["r1-recovery"] }
 conduit-wire = { path = "../crates/conduit-wire" }

@@ -218,6 +218,14 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         named_artifacts: &[],
         allowed_claims: &["an unfamiliar user can complete and inspect the copy task"],
     },
+    ProofCommandContract {
+        id: "r1.new-plan-recovery-simulation",
+        command: "cargo xtask prove r1-new-plan-recovery",
+        proof_class: ProofClass::DeterministicSimulation,
+        required_tools_or_targets: &["cargo"],
+        named_artifacts: &[],
+        allowed_claims: &["typed R1 lifecycle and planning recover from an injected USB Line-unavailable Clue without physical acceptance"],
+    },
 ];
 
 #[derive(Debug, Serialize)]
