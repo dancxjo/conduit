@@ -6,10 +6,9 @@ use conduit_signal::SIGNAL_ENCODED_LEN;
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 use conduit_std_host::usb_cdc::NativePathCdcCarrier;
 use conduit_std_host::websocket::NativeWebSocketCarrier;
-use conduit_wire::{
-    decode_session_frame, encode_session_frame_into, SessionFrame, SessionMessage,
-    SessionTerminalDisposition,
-};
+#[cfg(test)]
+use conduit_wire::SessionTerminalDisposition;
+use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionFrame, SessionMessage};
 
 use super::PicoResult;
 
@@ -106,7 +105,8 @@ pub fn handshake(io: &mut impl R1SessionIo, source: &mut PicoUsbSource) -> PicoR
     Ok(())
 }
 
-pub fn deliver_next(
+#[cfg(test)]
+fn deliver_next(
     io: &mut impl R1SessionIo,
     source: &mut PicoUsbSource,
     after_accepted: &mut impl FnMut(u64) -> PicoResult<()>,
@@ -148,38 +148,8 @@ pub fn deliver_next(
     Ok(true)
 }
 
-pub fn replay_offered(
-    io: &mut impl R1SessionIo,
-    source: &mut PicoUsbSource,
-    sequence: u64,
-    payload: &[u8; SIGNAL_ENCODED_LEN as usize],
-    after_accepted: &mut impl FnMut(u64) -> PicoResult<()>,
-) -> PicoResult<()> {
-    let binding = source.binding().clone();
-    let offered = binding.frame(SessionMessage::Offered { sequence, payload });
-    // Reconciliation retained this exact Offered transfer in the source
-    // machine, so retransmission must not admit it as a new offer.
-    io.send(&offered)?;
-    let mut bytes = [0_u8; SESSION_FRAME_BYTES as usize];
-    let accepted = io.receive(&mut bytes)?;
-    source.admit_inbound(accepted)?;
-    if !matches!(accepted.message, SessionMessage::Accepted { sequence: found } if found == sequence)
-    {
-        return Err("R1 sink did not accept the reconciled replay".into());
-    }
-    source.accepted(sequence)?;
-    after_accepted(sequence)?;
-    let delivered = io.receive(&mut bytes)?;
-    source.admit_inbound(delivered)?;
-    if !matches!(delivered.message, SessionMessage::Delivered { sequence: found } if found == sequence)
-    {
-        return Err("R1 sink did not deliver the reconciled replay".into());
-    }
-    source.delivered(sequence)?;
-    Ok(())
-}
-
-pub fn finish(io: &mut impl R1SessionIo, source: &mut PicoUsbSource) -> PicoResult<u64> {
+#[cfg(test)]
+fn finish(io: &mut impl R1SessionIo, source: &mut PicoUsbSource) -> PicoResult<u64> {
     let final_sequence = source.finish_kernel()?;
     let binding = source.binding().clone();
     let closed = binding.frame(SessionMessage::InputClosed { final_sequence });

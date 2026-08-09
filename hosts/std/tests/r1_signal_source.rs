@@ -1,6 +1,10 @@
 use conduit_core::{BootId, ConnectionBase, HostId, LinkAvailability, LinkBinding};
 use conduit_std_host::pico_usb_source::PicoUsbSource;
-use conduit_system_continuity::{exact_r1_signal_plan, R1SignalRouteSet};
+use conduit_std_host::{
+    pico_control_source::PicoControlSource,
+    r1_control::{R1ControlPeer, R1InputEvent},
+};
+use conduit_system_continuity::{exact_r1_control_plan, exact_r1_signal_plan, R1SignalRouteSet};
 use conduit_wire::{
     decode_session_checkpoint, encode_session_checkpoint_into, SessionMachine, SessionMessage,
     SessionResumeAction, SessionRole,
@@ -131,4 +135,90 @@ fn production_source_retains_plan_play_and_offer_across_sealed_usb_resume() {
     assert_eq!(source.binding().sink_active_play_id, sink_play_id);
     assert_eq!(source.binding().attachment.base, ConnectionBase::UsbCdc);
     assert_eq!(source.next_offer().unwrap().unwrap().0, 0);
+}
+
+#[test]
+fn control_source_retains_exact_input_across_sealed_usb_resume() {
+    let exact = exact_r1_control_plan(
+        BootId::from(conduit_net::R1_PICO_BOOT_ID),
+        R1SignalRouteSet::WebSocketThenUsb,
+    )
+    .expect("dual-Line control Plan C");
+    let connection = exact
+        .plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.connections)
+        .find(|connection| connection.route_candidates.len() == 2)
+        .expect("dual-Line control Cord")
+        .clone();
+    let candidate = &connection.route_candidates[1];
+    let usb = LinkBinding {
+        binding_id: candidate.binding_id.clone(),
+        source: candidate.source.clone(),
+        sink: candidate.sink.clone(),
+        base: candidate.base,
+        base_instance_id: candidate.base_instance_id.clone(),
+        availability: LinkAvailability::Ready,
+        credential: candidate.credential.clone(),
+        authority: candidate.authority.clone(),
+        limits: candidate.limits,
+    };
+    let mut source =
+        PicoControlSource::prepare_plan(exact.plan, &HostId::from(conduit_net::R1_STD_HOST_ID))
+            .expect("production control Plan-C source");
+    source
+        .observe_sink_boot(BootId::from("r1/runtime-pico-boot"))
+        .unwrap();
+    let websocket = source.binding().clone();
+    let mut sink = SessionMachine::new(websocket.clone(), SessionRole::Sink).unwrap();
+    let hello = websocket.hello_frame();
+    source.admit_outbound(hello).unwrap();
+    sink.admit_inbound(hello).unwrap();
+    sink.admit_outbound(hello).unwrap();
+    source.admit_inbound(hello).unwrap();
+    let ready = websocket.frame(SessionMessage::Ready);
+    source.admit_outbound(ready).unwrap();
+    sink.admit_inbound(ready).unwrap();
+    sink.admit_outbound(ready).unwrap();
+    source.admit_inbound(ready).unwrap();
+
+    let input = R1InputEvent {
+        peer: R1ControlPeer::Terminal,
+        peer_sequence: 0,
+        level: true,
+    };
+    let (sequence, payload) = source.offer_input(input).unwrap();
+    let offered = websocket.frame(SessionMessage::Offered {
+        sequence,
+        payload: &payload,
+    });
+    source.admit_outbound(offered).unwrap();
+
+    let plan_id = source.binding().plan_id.clone();
+    let source_play_id = source.binding().source_active_play_id.clone();
+    let sink_play_id = source.binding().sink_active_play_id.clone();
+    let acceptance = source
+        .resume_with_link(&usb, sink.checkpoint_offer())
+        .unwrap();
+
+    assert_eq!(acceptance.action, SessionResumeAction::ReplayOffered(0));
+    assert!(acceptance.same_plan_continues);
+    assert_eq!(source.binding().plan_id, plan_id);
+    assert_eq!(source.binding().source_active_play_id, source_play_id);
+    assert_eq!(source.binding().sink_active_play_id, sink_play_id);
+    assert_eq!(source.binding().attachment.base, ConnectionBase::UsbCdc);
+
+    let resumed = source.binding().clone();
+    let hello = resumed.hello_frame();
+    source.admit_outbound(hello).unwrap();
+    source.admit_inbound(hello).unwrap();
+    let ready = resumed.frame(SessionMessage::Ready);
+    source.admit_outbound(ready).unwrap();
+    source.admit_inbound(ready).unwrap();
+    let accepted = resumed.frame(SessionMessage::Accepted { sequence });
+    source.admit_inbound(accepted).unwrap();
+    let delivered = resumed.frame(SessionMessage::Delivered { sequence });
+    source.admit_inbound(delivered).unwrap();
+    assert_eq!(source.delivered(sequence).unwrap().input, input);
 }

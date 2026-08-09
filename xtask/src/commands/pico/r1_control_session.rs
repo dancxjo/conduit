@@ -72,6 +72,35 @@ pub fn deliver_input(
     source.delivered(sequence).map_err(Into::into)
 }
 
+pub fn replay_offered(
+    io: &mut impl R1SessionIo,
+    source: &mut PicoControlSource,
+    sequence: u64,
+    payload: &[u8],
+    after_accepted: &mut impl FnMut(u64) -> PicoResult<()>,
+) -> PicoResult<R1MergedInput> {
+    let binding = source.binding().clone();
+    let offered = binding.frame(SessionMessage::Offered { sequence, payload });
+    // Checkpoint reconciliation retained this exact Offered transfer in the
+    // source machine, so retransmission must not admit it as a new offer.
+    io.send(&offered)?;
+    let mut bytes = [0_u8; SESSION_FRAME_BYTES];
+    let accepted = io.receive(&mut bytes)?;
+    source.admit_inbound(accepted)?;
+    if !matches!(accepted.message, SessionMessage::Accepted { sequence: found } if found == sequence)
+    {
+        return Err("R1 control sink did not accept the reconciled offered input".into());
+    }
+    after_accepted(sequence)?;
+    let delivered = io.receive(&mut bytes)?;
+    source.admit_inbound(delivered)?;
+    if !matches!(delivered.message, SessionMessage::Delivered { sequence: found } if found == sequence)
+    {
+        return Err("R1 control sink did not deliver the reconciled offered input".into());
+    }
+    source.delivered(sequence).map_err(Into::into)
+}
+
 pub fn finish(io: &mut impl R1SessionIo, source: &mut PicoControlSource) -> PicoResult<u64> {
     let final_sequence = source.final_sequence()?;
     let binding = source.binding().clone();
