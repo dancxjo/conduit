@@ -110,6 +110,7 @@ pub async fn init_cyw43_network(
     nvram: &'static aligned::Aligned<aligned::A4, [u8]>,
     clm: &'static [u8],
 ) -> Result<(cyw43::NetDriver<'static>, Control<'static>), NetworkRadioInitError> {
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioDriverStartup);
     let pwr = Output::new(pin23, Level::Low);
     let cs = Output::new(pin25, Level::High);
     let mut pio = Pio::new(pio0, RadioIrqs);
@@ -125,7 +126,6 @@ pub async fn init_cyw43_network(
         dma,
     );
     let state = STATE.init(cyw43::State::new());
-    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioDriverStartup);
     let driver_startup = with_timeout(
         RADIO_PHASE_TIMEOUT,
         cyw43::new(state, pwr, spi, fw, nvram),
