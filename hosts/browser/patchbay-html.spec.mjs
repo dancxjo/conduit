@@ -44,22 +44,30 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#route-cards li").filter({hasText:"USB CDC"}).first()).toBeVisible();
     await expect(page.locator("#route-cards li").filter({hasText:"WebSocket"}).first()).toBeVisible();
 
+    expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--patchbay-theme-identity").trim())).toBe('"conduit.patchbay/phosphor@1"');
+    expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe("rgb(5, 7, 11)");
+    expect(await page.locator("h1").evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
+
     const expectedSubjects=snapshot.presentation.subjects.map(item=>item.identity).sort();
     const listSubjects=await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     const canvasSubjects=await page.locator("#graph [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     expect(listSubjects).toEqual(expectedSubjects); expect(canvasSubjects).toEqual(expectedSubjects);
 
     const first=page.locator("#subjects button").first(); await first.focus(); await first.press("Enter");
+    expect(await first.evaluate(element=>getComputedStyle(element).outlineStyle)).toBe("solid");
+    expect(await first.evaluate(element=>getComputedStyle(element).outlineColor)).toBe("rgb(244, 196, 0)");
     const identity=await first.getAttribute("data-subject");
     await expect(first).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector dd").first()).toHaveText(identity);
     expect(await page.locator("#graph [data-subject].selected").getAttribute("data-subject")).toBe(identity);
+    expect(await page.locator("#graph [data-subject].selected .node").evaluate(element=>getComputedStyle(element).stroke)).toBe("rgb(244, 196, 0)");
     await expect(page.locator("#linear li")).toHaveCount(snapshot.presentation.text.length);
 
     expect(snapshot.renderer.manifestation.lifecycle).toBe("Available");
     const identitiesBefore={content:snapshot.presentation.identity,plan:snapshot.presentation.basis.plan_id,play:snapshot.presentation.basis.active_play_id,manifestation:snapshot.renderer.manifestation.manifestation_id,subjects:listSubjects};
     await page.locator("#zoom-in").click();await page.locator("#pan-right").click();await page.locator("#arrange").click();await page.locator("#theme").click();
     await expect(page.locator("#arrange")).toHaveAttribute("aria-pressed","true");await expect(page.locator("#theme")).toHaveAttribute("aria-pressed","true");
+    await expect(page.locator("body")).toHaveClass(/high-contrast/);
     expect(await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort())).toEqual(identitiesBefore.subjects);
     await expect(page.locator("#status")).toContainText(identitiesBefore.content);await expect(page.locator("#plan")).toContainText(identitiesBefore.plan);await expect(page.locator("#plan")).toContainText(identitiesBefore.manifestation);await expect(page.locator("#play")).toContainText(identitiesBefore.play);
 

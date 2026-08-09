@@ -1,11 +1,13 @@
 use crate::{RendererSnapshot, SnapshotError};
 use conduit_core::SignId;
 use conduit_presentation::ManifestationFailure;
+use patchbay_model::{PatchbayTheme, ThemeColor, PHOSPHOR_THEME};
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
 pub const MAX_HTTP_REQUEST_BYTES: usize = 8 * 1024;
+pub const MAX_THEME_CSS_BYTES: usize = 2 * 1024;
 const INDEX: &[u8] = include_bytes!("../assets/index.html");
 const SCRIPT: &[u8] = include_bytes!("../assets/app.js");
 const STYLE: &[u8] = include_bytes!("../assets/app.css");
@@ -15,6 +17,7 @@ pub enum ServerError {
     Io(std::io::Error),
     Snapshot(SnapshotError),
     NonLoopbackBind,
+    ThemeCssTooLarge,
     RequestTooLarge,
     InvalidRequest,
 }
@@ -25,6 +28,9 @@ impl std::fmt::Display for ServerError {
             Self::Io(error) => write!(f, "Patchbay HTTP I/O error: {error}"),
             Self::Snapshot(error) => write!(f, "Patchbay snapshot error: {error}"),
             Self::NonLoopbackBind => f.write_str("Patchbay HTML binds only to IPv4 loopback"),
+            Self::ThemeCssTooLarge => {
+                f.write_str("Patchbay theme CSS exceeds its finite encoded bound")
+            }
             Self::RequestTooLarge => f.write_str("Patchbay HTTP request exceeds its finite bound"),
             Self::InvalidRequest => f.write_str("Patchbay HTTP request is not valid UTF-8"),
         }
@@ -63,6 +69,7 @@ pub struct PatchbayHtmlServer {
     listener: TcpListener,
     snapshot: RendererSnapshot,
     encoded_snapshot: Vec<u8>,
+    theme_css: Vec<u8>,
 }
 
 impl PatchbayHtmlServer {
@@ -74,10 +81,15 @@ impl PatchbayHtmlServer {
         let mut snapshot = snapshot.clone();
         snapshot.mark_available(SignId::from("patchbay-html/document-ready"))?;
         let encoded_snapshot = snapshot.encode()?;
+        let theme_css = render_theme_css(&PHOSPHOR_THEME);
+        if theme_css.len() > MAX_THEME_CSS_BYTES {
+            return Err(ServerError::ThemeCssTooLarge);
+        }
         Ok(Self {
             listener,
             snapshot,
             encoded_snapshot,
+            theme_css,
         })
     }
 
@@ -162,6 +174,11 @@ impl PatchbayHtmlServer {
             "GET / HTTP/1.1" => ("200 OK", "text/html; charset=utf-8", INDEX),
             "GET /assets/app.js HTTP/1.1" => ("200 OK", "text/javascript; charset=utf-8", SCRIPT),
             "GET /assets/app.css HTTP/1.1" => ("200 OK", "text/css; charset=utf-8", STYLE),
+            "GET /assets/theme.css HTTP/1.1" => (
+                "200 OK",
+                "text/css; charset=utf-8",
+                self.theme_css.as_slice(),
+            ),
             "GET /api/snapshot HTTP/1.1" => (
                 "200 OK",
                 "application/json; charset=utf-8",
@@ -180,6 +197,35 @@ impl PatchbayHtmlServer {
         };
         write_response(&mut stream, status, content_type, body)
     }
+}
+
+fn render_theme_css(theme: &PatchbayTheme) -> Vec<u8> {
+    format!(
+        ":root{{--patchbay-theme-identity:\"{}\";--patchbay-background:{};--patchbay-surface:{};--patchbay-structure-primary:{};--patchbay-structure-secondary:{};--patchbay-text-primary:{};--patchbay-text-secondary:{};--patchbay-emphasis:{};--patchbay-focus:{};--patchbay-warning:{};--patchbay-failure:{};--patchbay-success:{};--patchbay-muted:{};}}\n",
+        theme.identity,
+        css_color(theme.background),
+        css_color(theme.surface),
+        css_color(theme.structure_primary),
+        css_color(theme.structure_secondary),
+        css_color(theme.text_primary),
+        css_color(theme.text_secondary),
+        css_color(theme.emphasis),
+        css_color(theme.focus),
+        css_color(theme.warning),
+        css_color(theme.failure),
+        css_color(theme.success),
+        css_color(theme.muted),
+    )
+    .into_bytes()
+}
+
+fn css_color(color: ThemeColor) -> String {
+    format!(
+        "#{:02X}{:02X}{:02X}",
+        color.red(),
+        color.green(),
+        color.blue()
+    )
 }
 
 fn write_response(

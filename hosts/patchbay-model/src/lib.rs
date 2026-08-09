@@ -26,6 +26,7 @@ mod renderer_inspection;
 mod renderer_projection;
 mod route_demo;
 mod route_presentation;
+mod theme;
 mod topology;
 
 pub use build_birth::{
@@ -59,6 +60,7 @@ pub use route_presentation::{
     DistributedRoutePresentation, NewPlanRecoveryPresentation, RefusedRoutePresentation,
     RouteCandidatePresentation, RoutePlanPresentation, SamePlanFallbackPresentation,
 };
+pub use theme::{PatchbayTheme, ThemeColor, PHOSPHOR_THEME};
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
 pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES;
 
@@ -68,6 +70,8 @@ mod build_birth_tests;
 mod portable_projection_tests;
 #[cfg(test)]
 mod renderer_execution_tests;
+#[cfg(test)]
+mod theme_tests;
 
 const LIFECYCLE_CAPACITY: u32 = 2;
 static ID_SEQUENCE: AtomicU64 = AtomicU64::new(1);

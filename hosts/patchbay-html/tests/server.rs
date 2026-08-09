@@ -52,6 +52,33 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
 }
 
 #[test]
+fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
+    let response = request("/assets/theme.css", "GET");
+    assert!(response.starts_with("HTTP/1.1 200 OK"));
+    assert!(response.contains("Content-Type: text/css; charset=utf-8"));
+    let body = response.split("\r\n\r\n").nth(1).unwrap();
+    assert!(body.len() <= patchbay_html::MAX_THEME_CSS_BYTES);
+    assert!(body.contains("--patchbay-theme-identity:\"conduit.patchbay/phosphor@1\""));
+    for (token, color) in [
+        ("background", "#05070B"),
+        ("surface", "#090D16"),
+        ("structure-primary", "#0DD8F6"),
+        ("structure-secondary", "#0A1F87"),
+        ("text-primary", "#93D2F7"),
+        ("text-secondary", "#578EC9"),
+        ("emphasis", "#E9A325"),
+        ("focus", "#F4C400"),
+    ] {
+        assert!(body.contains(&format!("--patchbay-{token}:{color}")));
+    }
+
+    let application = request("/assets/app.css", "GET");
+    assert!(application.contains("var(--patchbay-background)"));
+    assert!(application.contains("var(--patchbay-focus)"));
+    assert!(!application.contains("#08111f"));
+}
+
+#[test]
 fn server_rejects_non_loopback_exposure() {
     let snapshot = demonstration_snapshot().unwrap();
     assert!(matches!(
