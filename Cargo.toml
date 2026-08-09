@@ -21,6 +21,7 @@ members = [
 	"fixtures/browser-sim",
 	"fixtures/pico-sim",
 	"hosts/browser-runtime",
+	"hosts/conduitos",
 	"hosts/patchbay-model",
 	"hosts/patchbay-html",
 	"hosts/patchbay-native",

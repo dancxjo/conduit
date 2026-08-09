@@ -540,6 +540,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduitos"
+version = "0.1.0"
+dependencies = [
+ "limine",
+ "sha2",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -987,6 +995,15 @@ dependencies = [
  "libc",
  "plain",
  "redox_syscall 0.9.1",
+]
+
+[[package]]
+name = "limine"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af6d2ee42712e7bd2c787365cd1dab06ef59a61becbf87bec7b32b970bd2594b"
+dependencies = [
+ "bitflags 2.13.1",
 ]
 
 [[package]]
@@ -2359,6 +2376,7 @@ dependencies = [
  "conduit-wire",
  "serde",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]

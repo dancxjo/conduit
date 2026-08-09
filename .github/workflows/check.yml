@@ -62,3 +62,19 @@ jobs:
           HOME: /root
           RUSTUP_HOME: /github/home/.rustup
         run: cargo xtask prove browser-host --locked
+
+  conduitos-boot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-unknown-uefi,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install deterministic image and emulator tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86
+      - name: Prove the bounded Limine boot slice
+        run: cargo xtask conduitos prove --arch x86-64 --locked
