@@ -36,7 +36,8 @@ Those are renderer-local or planned realization state.
 
 A `Manifestation` is the portable result of realizing one exact Presentation.
 It binds the Presentation identity/revision, Plan, active Play, renderer
-placement, admitted output subject, lifecycle, and current evidence identity.
+placement, admitted output subject, lifecycle, and a finite evidence identity
+chain.
 Its identity is derived from the immutable correlation fields, including the
 output subject.
 
@@ -47,8 +48,9 @@ Prepared -> Available | Failed
 Available -> Replaced | Closed | Failed
 ```
 
-Every transition requires a new evidence identity. Backward transitions,
-duplicate evidence, stale Presentation/Plan/placement correlation, invalid
+Every transition requires an evidence identity that has not appeared earlier
+in that manifestation lifecycle. Backward transitions, duplicate evidence,
+stale Presentation/Plan/placement correlation, invalid
 Plans, and non-renderer placements fail closed.
 
 The value contains no raw surface, DOM, framebuffer, or pixel payload.

@@ -240,6 +240,7 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
             EvidenceId::from("manifestation/available"),
         )
         .unwrap();
+    assert_eq!(available.evidence_ids.len(), 2);
     let realized = available.validate_against(&presentation, &plan).unwrap();
     assert_eq!(
         realized.implementation_id.as_str(),
@@ -249,6 +250,13 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
         available.transition(
             ManifestationLifecycle::Prepared,
             EvidenceId::from("manifestation/backwards")
+        ),
+        Err(ManifestationError::InvalidTransition)
+    ));
+    assert!(matches!(
+        available.transition(
+            ManifestationLifecycle::Closed,
+            EvidenceId::from("manifestation/prepared")
         ),
         Err(ManifestationError::InvalidTransition)
     ));

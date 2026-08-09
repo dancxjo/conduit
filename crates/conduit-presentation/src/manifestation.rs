@@ -10,6 +10,7 @@ use sha2::{Digest, Sha256};
 use crate::{Presentation, PresentationContentId, RENDERER_KIND};
 
 pub const MAX_MANIFESTATION_TARGET_BYTES: usize = 256;
+pub const MAX_MANIFESTATION_EVIDENCE: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ManifestationId(String);
@@ -39,7 +40,7 @@ pub struct Manifestation {
     pub placement_id: PlacementId,
     pub target_subject: String,
     pub lifecycle: ManifestationLifecycle,
-    pub evidence_id: EvidenceId,
+    pub evidence_ids: alloc::vec::Vec<EvidenceId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -89,7 +90,7 @@ impl Manifestation {
             placement_id: placement.placement_id.clone(),
             target_subject,
             lifecycle: ManifestationLifecycle::Prepared,
-            evidence_id,
+            evidence_ids: alloc::vec![evidence_id],
         })
     }
 
@@ -117,12 +118,15 @@ impl Manifestation {
                 ManifestationLifecycle::Failed
             )
         );
-        if !accepted || evidence_id == self.evidence_id {
+        if !accepted
+            || self.evidence_ids.len() >= MAX_MANIFESTATION_EVIDENCE
+            || self.evidence_ids.contains(&evidence_id)
+        {
             return Err(ManifestationError::InvalidTransition);
         }
         let mut next = self.clone();
         next.lifecycle = lifecycle;
-        next.evidence_id = evidence_id;
+        next.evidence_ids.push(evidence_id);
         Ok(next)
     }
 
@@ -150,6 +154,20 @@ impl Manifestation {
             return Err(ManifestationError::StaleIdentity);
         }
         validate_target(&self.target_subject)?;
+        if self.evidence_ids.is_empty()
+            || self.evidence_ids.len() > MAX_MANIFESTATION_EVIDENCE
+            || self.evidence_ids.iter().any(|evidence| {
+                evidence.as_str().is_empty()
+                    || evidence.as_str().len() > crate::MAX_PRESENTATION_ID_BYTES
+            })
+            || self
+                .evidence_ids
+                .iter()
+                .enumerate()
+                .any(|(index, evidence)| self.evidence_ids[..index].contains(evidence))
+        {
+            return Err(ManifestationError::InvalidTransition);
+        }
         Ok(placement)
     }
 }
