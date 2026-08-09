@@ -262,6 +262,17 @@ pub(super) fn verify_new_plan_recovery(
             true,
         )
         .map_err(|error| format!("failed recording physical Plan B LED result: {error:?}"))?;
+    let lifecycle = super::r1_lifecycle::lull_and_wake(
+        recovery.body(),
+        recovery.wake(),
+        source_b.is_terminal(),
+        2,
+        super::r1_lifecycle::R1LullClues {
+            wake_lulled: conduit_core::ClueId::from("r1/physical/replan-wake-lulled"),
+            body_retained: conduit_core::ClueId::from("r1/physical/replan-body-retained"),
+            later_wake: conduit_core::ClueId::from("r1/physical/replan-later-wake"),
+        },
+    )?;
     let outcome = PhysicalNewPlanRecoveryOutcome {
         schema: "conduit.r1/new-plan-recovery-hil@1",
         proof_class: "physical-cross-host",
@@ -294,6 +305,7 @@ pub(super) fn verify_new_plan_recovery(
         plan_b_base_instance_id: conduit_net::R1_USB_BASE_INSTANCE_ID,
         control_events: recovery.events(),
         led_results: recovery.led_results(),
+        lifecycle: &lifecycle,
         branch_a_physical_acceptance: true,
     };
     println!("{}", serde_json::to_string(&outcome)?);
@@ -330,6 +342,7 @@ struct PhysicalNewPlanRecoveryOutcome<'a> {
     plan_b_base_instance_id: &'static str,
     control_events: &'a [conduit_core::ControlLoopEvent],
     led_results: &'a [conduit_system_continuity::R1LedResultClue],
+    lifecycle: &'a super::r1_lifecycle::R1LullSign,
     branch_a_physical_acceptance: bool,
 }
 

@@ -176,6 +176,18 @@ pub(crate) fn verify_plan_c_continuation(
         .map_err(|error| format!("missing continued Plan C terminal Sign: {error}"))?;
     super::super::r1_signal_transcript::verify_terminal(&terminal, &plan, identity, runtime)?;
 
+    let lifecycle = super::super::r1_lifecycle::lull_and_wake(
+        &body,
+        &wake,
+        source.is_terminal(),
+        1,
+        super::super::r1_lifecycle::R1LullClues {
+            wake_lulled: ClueId::from("r1/physical/plan-c-wake-lulled"),
+            body_retained: ClueId::from("r1/physical/plan-c-body-retained"),
+            later_wake: ClueId::from("r1/physical/plan-c-later-wake"),
+        },
+    )?;
+
     let outcome = PhysicalPlanCContinuationOutcome {
         schema: "conduit.r1/same-plan-continuation-hil@1",
         proof_class: "physical-cross-host",
@@ -198,6 +210,7 @@ pub(crate) fn verify_plan_c_continuation(
         reconciliation: "replay-offered",
         same_plan_continues: true,
         delivered_values: delivered,
+        lifecycle: &lifecycle,
         branch_c_physical_acceptance: true,
     };
     println!("{}", serde_json::to_string(&outcome)?);
@@ -256,5 +269,6 @@ struct PhysicalPlanCContinuationOutcome<'a> {
     reconciliation: &'static str,
     same_plan_continues: bool,
     delivered_values: u64,
+    lifecycle: &'a super::super::r1_lifecycle::R1LullSign,
     branch_c_physical_acceptance: bool,
 }
