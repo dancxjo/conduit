@@ -20,10 +20,10 @@ pub(super) fn portable_presentation_lines(
             presentation.revision
         ),
         format!(
-            "REALM {} deployment={} activation={}",
-            basis.realm_id.as_str(),
-            basis.deployment_id.as_str(),
-            basis.activation_id.as_str()
+            "SEED {} body={} wake={}",
+            basis.seed_id.as_str(),
+            basis.body_id.as_str(),
+            basis.wake_id.as_str()
         ),
         format!(
             "FORM source={} checked={}",

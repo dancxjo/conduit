@@ -9,8 +9,8 @@ fn native_renderer_consumes_the_same_portable_value_as_html_transport() {
     let lines = portable_presentation_lines(&presentation).unwrap();
     let rendered = lines.join("\n");
     assert!(rendered.contains(presentation.identity.as_str()));
-    assert!(rendered.contains(presentation.basis.deployment_id.as_str()));
-    assert!(rendered.contains(presentation.basis.activation_id.as_str()));
+    assert!(rendered.contains(presentation.basis.body_id.as_str()));
+    assert!(rendered.contains(presentation.basis.wake_id.as_str()));
     assert!(rendered.contains("provider=USB CDC"));
     assert!(rendered.contains("provider=WebSocket"));
 }
@@ -103,8 +103,8 @@ fn native_document_exposes_both_route_recovery_cases() {
     let lines = application.presentation_lines();
     let text = lines.join("\n");
     assert!(text.contains("PRESENTATION "));
-    assert!(text.contains("REALM patchbay/realm deployment="));
-    assert!(text.contains("The deployment became unsatisfied"));
+    assert!(text.contains("SEED "));
+    assert!(text.contains("The Play became unsatisfied"));
     assert!(text.contains("Replacement Plan"));
     assert!(text.contains("Plan identity did not change"));
     assert!(text.contains("ambient route"));

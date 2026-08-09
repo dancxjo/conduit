@@ -28,6 +28,12 @@ pico-datagram-fixture:
 pico-sim-thumb-check:
     cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
 
+body:
+    cargo test -p conduit-body
+
+body-thumb-check:
+    cargo check -p conduit-body --target thumbv6m-none-eabi
+
 realm:
     cargo test -p conduit-realm
 

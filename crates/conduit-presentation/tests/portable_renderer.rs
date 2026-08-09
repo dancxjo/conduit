@@ -1,5 +1,6 @@
 #![cfg(feature = "form-catalog")]
 
+use conduit_body::Body;
 use conduit_core::{
     bind_active_play, kind_id, resource_offer, resource_requirement, ArtifactId, BootId,
     CapabilityId, CapabilityLimits, EvidenceId, ExecutionProfileId, HostAdvertisement, HostId,
@@ -17,7 +18,6 @@ use conduit_presentation::{
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
     PresentationText, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES,
 };
-use conduit_realm::{RealmDeployment, RealmId};
 
 const WAYLAND_RESOURCE: &str = "conduit.resource/wayland-surface@1";
 const DOM_RESOURCE: &str = "conduit.resource/browser-document@1";
@@ -79,23 +79,22 @@ fn plan_for(form: &conduit_form::CheckedForm, host: HostAdvertisement) -> condui
 }
 
 fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan) -> Presentation {
-    let deployment = RealmDeployment::install(
-        RealmId::from("patchbay/realm"),
+    let body = Body::born(
         form.source_document_id.clone(),
         form.checked_form_id.clone(),
         1,
-        EvidenceId::from("patchbay/evidence/deployed"),
+        EvidenceId::from("patchbay/evidence/bornd"),
     )
     .unwrap();
-    let (deployment, activation) = deployment
-        .activate(1, EvidenceId::from("patchbay/evidence/activated"))
+    let (body, wake) = body
+        .wake(1, EvidenceId::from("patchbay/evidence/woke"))
         .unwrap();
     Presentation::new(
         7,
         PresentationBasis {
-            realm_id: deployment.realm_id,
-            deployment_id: deployment.deployment_id,
-            activation_id: activation.activation_id,
+            seed_id: body.seed_id,
+            body_id: body.body_id,
+            wake_id: wake.wake_id,
             source_document_id: form.source_document_id.clone(),
             checked_form_id: form.checked_form_id.clone(),
             expanded_form_id: Some(form.expanded_form_id.clone()),

@@ -169,7 +169,7 @@ impl DistributedRouteDemo {
         push(
             &mut lines,
             format!(
-                "  OUTCOME replan=true prior-plan={} replacement-plan={} play=awaiting-deployment",
+                "  OUTCOME replan=true prior-plan={} replacement-plan={} play=awaiting-realization",
                 one.plan_id.as_str(),
                 replacement.plan_id.as_str()
             ),

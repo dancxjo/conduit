@@ -1,7 +1,7 @@
 use crate::transport_types::RendererSnapshot;
 use conduit_presentation::Presentation;
 
-pub const SNAPSHOT_SCHEMA: &str = "conduit.patchbay.portable-presentation/1";
+pub const SNAPSHOT_SCHEMA: &str = "conduit.patchbay.portable-presentation";
 pub const MAX_SNAPSHOT_BYTES: usize = conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES + 16_384;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
