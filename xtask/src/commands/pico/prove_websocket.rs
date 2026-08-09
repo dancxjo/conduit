@@ -219,12 +219,20 @@ pub(super) fn verify_new_plan_recovery(
     let mut usb_io = UsbSessionIo::new(usb);
     r1_control_session::handshake(&mut usb_io, &mut source_b)?;
     for input in control_inputs() {
-        r1_control_session::deliver_input(&mut usb_io, &mut source_b, input, &mut |sequence| {
-            let line = clue
-                .read_line(Duration::from_secs(3))
-                .map_err(|error| format!("missing Plan B physical LED Sign: {error}"))?;
-            super::r1_signal_transcript::verify_receipt(&line, &plan_b, sequence, identity, runtime)
-        })?;
+        let merged = r1_control_session::deliver_input(
+            &mut usb_io,
+            &mut source_b,
+            input,
+            &mut |sequence| {
+                let line = clue
+                    .read_line(Duration::from_secs(3))
+                    .map_err(|error| format!("missing Plan B physical LED Sign: {error}"))?;
+                super::r1_signal_transcript::verify_receipt(
+                    &line, &plan_b, sequence, identity, runtime,
+                )
+            },
+        )?;
+        super::r1_live_control::emit_physical_input_sign(&plan_b, &merged)?;
     }
     let delivered = r1_control_session::finish(&mut usb_io, &mut source_b)?;
     if delivered != 6 {
