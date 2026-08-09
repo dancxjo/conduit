@@ -11,6 +11,6 @@ mod transport_types;
 
 pub use cross_host::{cross_host_demonstration_snapshot, CrossHostRendererError};
 pub use demo::demonstration_snapshot;
-pub use server::{PatchbayHtmlServer, ServerError, MAX_HTTP_REQUEST_BYTES};
+pub use server::{PatchbayHtmlServer, ServerError, MAX_HTTP_REQUEST_BYTES, MAX_THEME_CSS_BYTES};
 pub use snapshot::{SnapshotError, MAX_SNAPSHOT_BYTES, SNAPSHOT_SCHEMA};
 pub use transport_types::*;
