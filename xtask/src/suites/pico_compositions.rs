@@ -93,6 +93,25 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         Some(ProofClass::ContractCompile),
         &[],
     ),
+    Step::typed(
+        "check.thumb.firmware-r1-control",
+        "Pico W R1 three-peer control composition Thumb check",
+        "cargo",
+        &[
+            "check",
+            "--manifest-path",
+            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "--no-default-features",
+            "--features",
+            "r1-control",
+            "--target",
+            "thumbv6m-none-eabi",
+        ],
+        None,
+        Some("thumbv6m-none-eabi"),
+        Some(ProofClass::ContractCompile),
+        &[],
+    ),
 ];
 
 #[cfg(test)]
@@ -110,11 +129,12 @@ mod tests {
         assert!(manifest.contains(
             "wifi-bootstrap = [\"session-control\", \"dep:conduit-net\", \"dep:embassy-net\"]"
         ));
+        assert!(manifest.contains("r1-control = [\"wifi-bootstrap\"]"));
         assert!(manifest.contains(
             "conduit-wire = { path = \"../../crates/conduit-wire\", default-features = false, optional = true }"
         ));
         assert!(firmware.contains("#[cfg(feature = \"session-control\")]\nmod usb_link;"));
         assert!(firmware.contains("#[cfg(feature = \"pico-local-minimal\")]"));
-        assert_eq!(PICO_COMPOSITION_STEPS.len(), 5);
+        assert_eq!(PICO_COMPOSITION_STEPS.len(), 6);
     }
 }

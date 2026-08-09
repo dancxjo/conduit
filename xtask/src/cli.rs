@@ -192,6 +192,14 @@ mod tests {
             panic!("expected Command::Pico");
         }
 
+        let pico_build_control = Cli::try_parse_from(["xtask", "pico", "build", "--r1-control"])
+            .expect("pico build --r1-control parses");
+        if let Command::Pico(args) = pico_build_control.command {
+            assert!(args.r1_control);
+        } else {
+            panic!("expected Command::Pico");
+        }
+
         let toggle =
             Cli::try_parse_from(["xtask", "demo", "toggle"]).expect("demo toggle command parses");
         assert!(matches!(

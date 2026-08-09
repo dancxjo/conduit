@@ -10,6 +10,7 @@ pico-local-minimal = []
 usb-remote = ["session-control"]
 triple-remote = ["session-control"]
 wifi-bootstrap = ["session-control", "dep:conduit-net", "dep:embassy-net"]
+r1-control = ["wifi-bootstrap"]
 session-control = ["dep:conduit-wire", "dep:embassy-futures"]
 
 [dependencies]

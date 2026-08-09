@@ -89,7 +89,9 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         TARGET,
         "--release",
     ];
-    if args.wifi_bootstrap {
+    if args.r1_control {
+        build_args.extend(["--no-default-features", "--features", "r1-control"]);
+    } else if args.wifi_bootstrap {
         build_args.extend(["--no-default-features", "--features", "wifi-bootstrap"]);
     } else if args.triple_remote {
         build_args.extend(["--no-default-features", "--features", "triple-remote"]);
