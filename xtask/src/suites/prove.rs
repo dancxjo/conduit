@@ -147,6 +147,22 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         &["target/debug/pool-webchat-server"],
     ),
     Step::typed(
+        "prove.browser-host.r1-three-peer-input-server-build",
+        "Build bounded R1 three-peer input server artifact",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "conduit-std-host",
+            "--bin",
+            "r1-three-peer-input-server",
+        ],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/r1-three-peer-input-server"],
+    ),
+    Step::typed(
         "prove.browser-host.playwright",
         "Run browser host test suite",
         "npm",

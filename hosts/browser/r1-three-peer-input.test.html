@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit R1 deliberate browser input</title>
+<main>
+  <h1>R1 browser input peer</h1>
+  <p id="status" role="status">connecting</p>
+  <button id="control" type="button">Hold to control LED</button>
+</main>
+<script type="module">
+import { createR1InputPeer } from "./r1-three-peer-input-runtime.mjs";
+const query = new URLSearchParams(location.search);
+const url = query.get("line");
+const peer = query.get("peer");
+if (!url || !peer) throw new Error("R1 input requires exact Line and peer parameters");
+globalThis.__r1InputPeer = await createR1InputPeer({
+  url,
+  peer,
+  target: document.querySelector("#control"),
+  status: document.querySelector("#status"),
+});
+</script>

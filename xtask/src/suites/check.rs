@@ -750,6 +750,18 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
+        "check.browser.r1-three-peer-input-server-build",
+        "Build bounded R1 three-peer input server",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "conduit-std-host",
+            "--bin",
+            "r1-three-peer-input-server",
+        ],
+    ),
+    Step::new(
         "check.browser.patchbay-native-build",
         "Build native Patchbay distributed source",
         "cargo",
