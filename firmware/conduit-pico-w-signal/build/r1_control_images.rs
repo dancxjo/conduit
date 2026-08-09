@@ -1,0 +1,61 @@
+//! Parallel generated Pico sink images for the three-peer R1 control Plan.
+
+use std::fs;
+use std::path::Path;
+
+use conduit_core::BootId;
+use conduit_embedded_build::generate_embedded_plan;
+use conduit_runtime::lowering::lower_plan_fragment;
+
+use super::{
+    pico_signal_bounds, render_firmware_module, render_identity_sidecar,
+    GeneratedFirmwareIdentity, R1_CONTROL_FORM,
+};
+
+pub(super) fn generate(out: &Path) {
+    let form = conduit_form::parse(
+        R1_CONTROL_FORM,
+        &conduit_signal::signal_profile_catalog(),
+    )
+    .expect("R1 three-peer control Form must check");
+    for (stem, routes) in [
+        (
+            "r1_control_plan_a_signal",
+            conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+        ),
+        (
+            "r1_control_plan_b_signal",
+            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+        ),
+        (
+            "r1_control_plan_c_signal",
+            conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
+        ),
+    ] {
+        let exact = conduit_system_continuity::exact_r1_control_plan(
+            BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            routes,
+        )
+        .expect("exact R1 three-peer control Plan must resolve");
+        let fragment = exact
+            .plan
+            .fragments
+            .iter()
+            .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+            .expect("R1 control Plan must contain the Pico fragment");
+        let lowered = lower_plan_fragment(fragment).expect("R1 control Pico fragment must lower");
+        let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())
+            .expect("R1 control Pico fragment must fit reviewed fixed-image bounds");
+        let identity = GeneratedFirmwareIdentity::new(&form, &generated);
+        fs::write(
+            out.join(format!("{stem}_image.rs")),
+            render_firmware_module(&generated, &identity),
+        )
+        .expect("generated R1 control Pico image should be writable");
+        fs::write(
+            out.join(format!("{stem}_identity.json")),
+            render_identity_sidecar(&generated, &identity),
+        )
+        .expect("generated R1 control Pico identity sidecar should be writable");
+    }
+}
