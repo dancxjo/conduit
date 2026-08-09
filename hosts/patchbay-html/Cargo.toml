@@ -5,7 +5,12 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../../crates/conduit-core" }
+conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
 conduit-presentation = { path = "../../crates/conduit-presentation" }
+conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
+conduit-std-host = { path = "../std" }
+conduit-wire = { path = "../../crates/conduit-wire" }
 patchbay-model = { path = "../patchbay-model" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tungstenite = "0.30.0"

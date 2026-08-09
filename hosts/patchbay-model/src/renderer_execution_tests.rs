@@ -238,3 +238,49 @@ fn unchanged_renderer_form_plans_one_exact_cross_host_websocket_line() {
     assert_eq!(binding.attachment.base, ConnectionBase::WebSocket);
     assert_eq!(binding.attachment.link_binding_id, exact.link.binding_id);
 }
+
+#[test]
+fn planned_renderer_execution_distinguishes_missing_and_ambiguous_placements() {
+    let exact = cross_host_renderer_plan(
+        HostId::from("patchbay-source"),
+        BootId::from("patchbay-source-boot"),
+        identity("patchbay-html", "patchbay-html-boot", "html/document-0"),
+    )
+    .unwrap();
+    let presentation = portable_demonstration().unwrap();
+
+    let mut missing = exact.plan.clone();
+    for fragment in &mut missing.fragments {
+        fragment
+            .placements
+            .retain(|placement| placement.kind_id.as_str() != "presentation/renderer");
+    }
+    assert_eq!(
+        RendererExecution::prepare_planned(
+            presentation.clone(),
+            missing,
+            "html/document-0".into(),
+            ClueId::from("missing"),
+        ),
+        Err(RendererExecutionError::MissingPlacement)
+    );
+
+    let mut ambiguous = exact.plan;
+    let duplicate = ambiguous
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .find(|placement| placement.kind_id.as_str() == "presentation/renderer")
+        .unwrap()
+        .clone();
+    ambiguous.fragments[0].placements.push(duplicate);
+    assert_eq!(
+        RendererExecution::prepare_planned(
+            presentation,
+            ambiguous,
+            "html/document-0".into(),
+            ClueId::from("ambiguous"),
+        ),
+        Err(RendererExecutionError::AmbiguousPlacement)
+    );
+}

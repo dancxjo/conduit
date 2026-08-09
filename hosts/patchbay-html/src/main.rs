@@ -1,7 +1,7 @@
-use patchbay_html::{demonstration_snapshot, PatchbayHtmlServer};
+use patchbay_html::{cross_host_demonstration_snapshot, PatchbayHtmlServer};
 
 fn main() -> Result<(), String> {
-    let snapshot = demonstration_snapshot()?;
+    let snapshot = cross_host_demonstration_snapshot().map_err(|error| error.to_string())?;
     let server =
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?;
     println!(
