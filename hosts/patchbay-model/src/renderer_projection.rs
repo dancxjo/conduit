@@ -1,7 +1,8 @@
 //! Finite, toolkit-independent facts shared by Patchbay renderers.
 
 use crate::{
-    DistributedRoutePresentation, FormDocumentView, PlanDocument, PlayDocument, SourceSelection,
+    DistributedRoutePresentation, EditorDiagnostic, FormDocumentView, PlanDocument, PlayDocument,
+    SourceSelection,
 };
 use conduit_core::{
     verify_plan, ActivePlayId, CheckedFormId, EvidenceId, ExpandedFormId, PlanId, SourceDocumentId,
@@ -30,6 +31,7 @@ pub enum RendererProjectionError {
     SourceTooLarge,
     OpenFormMissing,
     IdentityMismatch,
+    InvalidAttemptedEdit,
 }
 
 impl std::fmt::Display for RendererProjectionError {
@@ -64,6 +66,9 @@ impl std::fmt::Display for RendererProjectionError {
             Self::IdentityMismatch => {
                 formatter.write_str("renderer inputs do not describe one exact identity chain")
             }
+            Self::InvalidAttemptedEdit => {
+                formatter.write_str("renderer attempted edit is stale, empty, or unbounded")
+            }
         }
     }
 }
@@ -94,6 +99,14 @@ pub struct PatchbayPresentation {
     pub play: Option<PlayDocument>,
     pub topology: Option<ObservatoryReport>,
     pub routes: Vec<DistributedRoutePresentation>,
+    pub attempted_edit: Option<AttemptedEditPresentation>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AttemptedEditPresentation {
+    pub revision: u64,
+    pub source: String,
+    pub diagnostics: Vec<EditorDiagnostic>,
 }
 
 impl PatchbayPresentation {
@@ -109,7 +122,17 @@ impl PatchbayPresentation {
             .checked
             .forms
             .iter()
-            .try_fold(0usize, |count, form| count.checked_add(form.items.len()))
+            .try_fold(0usize, |count, form| {
+                count
+                    .checked_add(form.items.len())?
+                    .checked_add(form.cords.len())?
+                    .checked_add(
+                        form.cords
+                            .iter()
+                            .map(|cord| cord.stages.len())
+                            .sum::<usize>(),
+                    )
+            })
             .ok_or(RendererProjectionError::GraphTooLarge)?;
         if graph_items > MAX_RENDERER_GRAPH_ITEMS {
             return Err(RendererProjectionError::GraphTooLarge);
@@ -200,7 +223,23 @@ impl PatchbayPresentation {
             play,
             topology,
             routes,
+            attempted_edit: None,
         })
+    }
+
+    pub fn with_attempted_edit(
+        mut self,
+        attempted: AttemptedEditPresentation,
+    ) -> Result<Self, RendererProjectionError> {
+        if attempted.revision <= self.document.revision
+            || attempted.source.len() > crate::MAX_FORM_SOURCE_BYTES
+            || attempted.diagnostics.is_empty()
+            || attempted.diagnostics.len() > MAX_RENDERER_DIAGNOSTICS
+        {
+            return Err(RendererProjectionError::InvalidAttemptedEdit);
+        }
+        self.attempted_edit = Some(attempted);
+        Ok(self)
     }
 
     pub fn selection(&self) -> Option<&SourceSelection> {

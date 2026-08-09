@@ -24,14 +24,14 @@ mod topology;
 
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
 pub use form_editor::{
-    CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphForm,
-    GraphItem, GraphItemKind, SourceSelection,
+    CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
+    GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
 };
 pub use renderer_projection::{
-    PatchbayPresentation, RendererIdentityProjection, RendererProjectionError,
-    MAX_RENDERER_DIAGNOSTICS, MAX_RENDERER_EVIDENCE, MAX_RENDERER_GRAPH_ITEMS,
-    MAX_RENDERER_INSPECTION_LINES, MAX_RENDERER_PLAN_ITEMS, MAX_RENDERER_ROUTES,
-    MAX_RENDERER_ROUTE_CANDIDATES, MAX_RENDERER_TOPOLOGY_ITEMS,
+    AttemptedEditPresentation, PatchbayPresentation, RendererIdentityProjection,
+    RendererProjectionError, MAX_RENDERER_DIAGNOSTICS, MAX_RENDERER_EVIDENCE,
+    MAX_RENDERER_GRAPH_ITEMS, MAX_RENDERER_INSPECTION_LINES, MAX_RENDERER_PLAN_ITEMS,
+    MAX_RENDERER_ROUTES, MAX_RENDERER_ROUTE_CANDIDATES, MAX_RENDERER_TOPOLOGY_ITEMS,
 };
 pub use route_demo::{DistributedRouteDemo, RouteDemoError};
 pub use route_presentation::{

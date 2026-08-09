@@ -257,3 +257,32 @@ fn projection_rejects_a_drifting_document_plan_or_play_identity() {
         Err(RendererProjectionError::IdentityMismatch)
     );
 }
+
+#[test]
+fn checked_attempted_edit_diagnostic_does_not_replace_valid_graph_identity() {
+    let (presentation, _) = living_projection();
+    let before = presentation.identities();
+    let diagnostic = crate::EditorDiagnostic {
+        code: "CND-FORM-TEST",
+        message: "malformed attempted edit".into(),
+        span: presentation.document.checked.forms[0].source_span,
+    };
+    let stale = crate::AttemptedEditPresentation {
+        revision: presentation.document.revision,
+        source: "malformed".into(),
+        diagnostics: vec![diagnostic.clone()],
+    };
+    assert_eq!(
+        presentation.clone().with_attempted_edit(stale),
+        Err(RendererProjectionError::InvalidAttemptedEdit)
+    );
+    let revised = presentation
+        .with_attempted_edit(crate::AttemptedEditPresentation {
+            revision: 1,
+            source: "form malformed {".into(),
+            diagnostics: vec![diagnostic],
+        })
+        .unwrap();
+    assert_eq!(revised.identities(), before);
+    assert_eq!(revised.attempted_edit.unwrap().revision, 1);
+}
