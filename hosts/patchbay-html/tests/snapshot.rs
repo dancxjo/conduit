@@ -1,5 +1,7 @@
 use conduit_core::ConnectionBase;
-use conduit_presentation::PresentationPropertyValue;
+use conduit_presentation::{
+    ManifestationFailure, ManifestationLifecycle, PresentationPropertyValue,
+};
 use patchbay_html::{
     demonstration_snapshot, RendererSnapshot, SnapshotError, MAX_SNAPSHOT_BYTES, SNAPSHOT_SCHEMA,
 };
@@ -22,6 +24,38 @@ fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_clue() {
     assert!(!basis.clue_ids.is_empty());
     assert!(!basis.body_id.as_str().is_empty());
     assert!(!basis.wake_id.as_str().is_empty());
+    assert_eq!(
+        decoded.manifestation.lifecycle,
+        ManifestationLifecycle::Prepared
+    );
+    assert!(decoded
+        .manifestation
+        .validate_against(&decoded.presentation, &decoded.renderer_plan)
+        .is_ok());
+}
+
+#[test]
+fn html_adapter_failure_is_typed_without_mutating_the_source_presentation() {
+    let mut snapshot = demonstration_snapshot().unwrap();
+    let source_identity = snapshot.presentation.identity.clone();
+    let source_play = snapshot.presentation.basis.active_play_id.clone();
+    snapshot
+        .mark_failed(
+            ManifestationFailure::DeliveryFailed,
+            conduit_core::ClueId::from("patchbay-html/delivery-failed"),
+        )
+        .unwrap();
+    assert_eq!(
+        snapshot.manifestation.lifecycle,
+        ManifestationLifecycle::Failed
+    );
+    assert_eq!(
+        snapshot.manifestation.failure,
+        Some(ManifestationFailure::DeliveryFailed)
+    );
+    assert_eq!(snapshot.presentation.identity, source_identity);
+    assert_eq!(snapshot.presentation.basis.active_play_id, source_play);
+    assert!(snapshot.encode().is_ok());
 }
 
 #[test]
@@ -73,4 +107,10 @@ fn stale_malformed_unknown_oversized_and_drifted_snapshots_fail_closed() {
         RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
         Err(SnapshotError::Malformed(_))
     ));
+    value = serde_json::from_slice(&bytes).unwrap();
+    value["manifestation"]["presentation_revision"] = 99.into();
+    assert_eq!(
+        RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
+        Err(SnapshotError::InvalidIdentity)
+    );
 }

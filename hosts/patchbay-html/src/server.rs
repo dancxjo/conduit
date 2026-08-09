@@ -1,4 +1,5 @@
 use crate::{RendererSnapshot, SnapshotError};
+use conduit_core::ClueId;
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
@@ -45,7 +46,8 @@ impl From<SnapshotError> for ServerError {
 
 pub struct PatchbayHtmlServer {
     listener: TcpListener,
-    snapshot: Vec<u8>,
+    snapshot: RendererSnapshot,
+    encoded_snapshot: Vec<u8>,
 }
 
 impl PatchbayHtmlServer {
@@ -54,9 +56,13 @@ impl PatchbayHtmlServer {
             return Err(ServerError::NonLoopbackBind);
         }
         let listener = TcpListener::bind(address)?;
+        let mut snapshot = snapshot.clone();
+        snapshot.mark_available(ClueId::from("patchbay-html/document-ready"))?;
+        let encoded_snapshot = snapshot.encode()?;
         Ok(Self {
             listener,
-            snapshot: snapshot.encode()?,
+            snapshot,
+            encoded_snapshot,
         })
     }
 
@@ -75,11 +81,13 @@ impl PatchbayHtmlServer {
         Ok(())
     }
 
-    pub fn serve_count(self, count: usize) -> Result<(), ServerError> {
+    pub fn serve_count(mut self, count: usize) -> Result<RendererSnapshot, ServerError> {
         for _ in 0..count {
             self.handle(self.listener.accept()?.0)?;
         }
-        Ok(())
+        self.snapshot
+            .mark_closed(ClueId::from("patchbay-html/server-closed"))?;
+        Ok(self.snapshot)
     }
 
     fn handle(&self, mut stream: TcpStream) -> Result<(), ServerError> {
@@ -113,7 +121,7 @@ impl PatchbayHtmlServer {
             "GET /api/snapshot HTTP/1.1" => (
                 "200 OK",
                 "application/json; charset=utf-8",
-                self.snapshot.as_slice(),
+                self.encoded_snapshot.as_slice(),
             ),
             _ if !first.starts_with("GET ") => (
                 "405 Method Not Allowed",

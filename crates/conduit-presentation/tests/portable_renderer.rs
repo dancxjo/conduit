@@ -14,9 +14,9 @@ use conduit_form::{
 use conduit_planner::{default_placements, plan, PlannerError};
 use conduit_presentation::{
     renderer_kind_definition, renderer_offer, Manifestation, ManifestationError,
-    ManifestationLifecycle, Presentation, PresentationBasis, PresentationError,
-    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES,
+    ManifestationFailure, ManifestationLifecycle, Presentation, PresentationBasis,
+    PresentationError, PresentationRelationship, PresentationRelationshipKind, PresentationRole,
+    PresentationSubject, PresentationText, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES,
 };
 
 const WAYLAND_RESOURCE: &str = "conduit.resource/wayland-surface@1";
@@ -254,6 +254,14 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
         )
         .unwrap();
     assert_eq!(available.clue_ids.len(), 2);
+    let failed = available
+        .fail(
+            ManifestationFailure::OutputRejected,
+            ClueId::from("manifestation/failed"),
+        )
+        .unwrap();
+    assert_eq!(failed.lifecycle, ManifestationLifecycle::Failed);
+    assert_eq!(failed.failure, Some(ManifestationFailure::OutputRejected));
     let realized = available.validate_against(&presentation, &plan).unwrap();
     assert_eq!(
         realized.implementation_id.as_str(),

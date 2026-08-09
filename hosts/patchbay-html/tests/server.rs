@@ -1,3 +1,4 @@
+use conduit_presentation::ManifestationLifecycle;
 use patchbay_html::{demonstration_snapshot, PatchbayHtmlServer, ServerError};
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
@@ -15,7 +16,11 @@ fn request(path: &str, method: &str) -> String {
     .unwrap();
     let mut response = String::new();
     stream.read_to_string(&mut response).unwrap();
-    worker.join().unwrap().unwrap();
+    let closed = worker.join().unwrap().unwrap();
+    assert_eq!(
+        closed.manifestation.lifecycle,
+        ManifestationLifecycle::Closed
+    );
     response
 }
 
@@ -32,6 +37,10 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let body = response.split("\r\n\r\n").nth(1).unwrap();
     let decoded = patchbay_html::RendererSnapshot::decode(body.as_bytes(), 1).unwrap();
     assert_eq!(decoded.revision, 1);
+    assert_eq!(
+        decoded.manifestation.lifecycle,
+        ManifestationLifecycle::Available
+    );
     assert_eq!(
         request("/unknown", "GET").lines().next(),
         Some("HTTP/1.1 404 Not Found")

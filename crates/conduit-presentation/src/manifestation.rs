@@ -29,6 +29,13 @@ pub enum ManifestationLifecycle {
     Failed,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ManifestationFailure {
+    AdapterUnavailable,
+    OutputRejected,
+    DeliveryFailed,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Manifestation {
     pub manifestation_id: ManifestationId,
@@ -42,6 +49,7 @@ pub struct Manifestation {
     pub placement_id: PlacementId,
     pub target_subject: String,
     pub lifecycle: ManifestationLifecycle,
+    pub failure: Option<ManifestationFailure>,
     pub clue_ids: alloc::vec::Vec<ClueId>,
 }
 
@@ -95,6 +103,7 @@ impl Manifestation {
             placement_id: placement.placement_id.clone(),
             target_subject,
             lifecycle: ManifestationLifecycle::Prepared,
+            failure: None,
             clue_ids: alloc::vec![clue_id],
         })
     }
@@ -110,17 +119,11 @@ impl Manifestation {
                 ManifestationLifecycle::Prepared,
                 ManifestationLifecycle::Available
             ) | (
-                ManifestationLifecycle::Prepared,
-                ManifestationLifecycle::Failed
-            ) | (
                 ManifestationLifecycle::Available,
                 ManifestationLifecycle::Replaced
             ) | (
                 ManifestationLifecycle::Available,
                 ManifestationLifecycle::Closed
-            ) | (
-                ManifestationLifecycle::Available,
-                ManifestationLifecycle::Failed
             )
         );
         if !accepted
@@ -131,6 +134,26 @@ impl Manifestation {
         }
         let mut next = self.clone();
         next.lifecycle = lifecycle;
+        next.clue_ids.push(clue_id);
+        Ok(next)
+    }
+
+    pub fn fail(
+        &self,
+        failure: ManifestationFailure,
+        clue_id: ClueId,
+    ) -> Result<Self, ManifestationError> {
+        if !matches!(
+            self.lifecycle,
+            ManifestationLifecycle::Prepared | ManifestationLifecycle::Available
+        ) || self.clue_ids.len() >= MAX_MANIFESTATION_CLUES
+            || self.clue_ids.contains(&clue_id)
+        {
+            return Err(ManifestationError::InvalidTransition);
+        }
+        let mut next = self.clone();
+        next.lifecycle = ManifestationLifecycle::Failed;
+        next.failure = Some(failure);
         next.clue_ids.push(clue_id);
         Ok(next)
     }
@@ -162,7 +185,8 @@ impl Manifestation {
             return Err(ManifestationError::StaleIdentity);
         }
         validate_target(&self.target_subject)?;
-        if self.clue_ids.is_empty()
+        if (self.lifecycle == ManifestationLifecycle::Failed) != self.failure.is_some()
+            || self.clue_ids.is_empty()
             || self.clue_ids.len() > MAX_MANIFESTATION_CLUES
             || self.clue_ids.iter().any(|clue| {
                 clue.as_str().is_empty() || clue.as_str().len() > crate::MAX_PRESENTATION_ID_BYTES

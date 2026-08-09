@@ -1,8 +1,10 @@
 //! Native window/event-loop adapter for Patchbay.
 
-use conduit_presentation::Presentation;
-use patchbay_model::{DistributedRouteDemo, FormEditor, PatchbayModel, PatchbayTopology};
-use std::num::NonZeroU32;
+use conduit_core::ClueId;
+use patchbay_model::{
+    DistributedRouteDemo, FormEditor, PatchbayModel, PatchbayTopology, RendererAdapterIdentity,
+    RendererAdapterKind, RendererExecution,
+};
 use std::rc::Rc;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -17,6 +19,7 @@ mod distributed_play;
 mod file_task;
 mod presentation;
 mod render;
+mod renderer_adapter;
 mod resource;
 use arguments::{parse_arguments, Arguments};
 use conduit_std_host::StdHostComposition;
@@ -35,7 +38,7 @@ struct PatchbayApplication {
     control: NativeControl,
     file_task: NativeFileTask,
     route_demo: Option<DistributedRouteDemo>,
-    portable_presentation: Option<Presentation>,
+    renderer_execution: Option<RendererExecution>,
     distributed_play: Option<NativeDistributedPlay>,
     window: Option<Rc<Window>>,
     exit_after_window: bool,
@@ -100,9 +103,20 @@ impl PatchbayApplication {
             })
             .transpose()
             .map_err(|error| format!("distributed route demo: {error:?}"))?;
-        let portable_presentation = arguments
-            .distributed_route_demo
-            .then(patchbay_model::portable_demonstration)
+        let renderer_execution = (arguments.distributed_route_demo || arguments.distributed_play)
+            .then(|| {
+                RendererExecution::prepare(
+                    patchbay_model::portable_demonstration()?,
+                    RendererAdapterKind::NativeWayland,
+                    RendererAdapterIdentity {
+                        host_id: source_host_id.clone(),
+                        boot_id: source_boot_id.clone(),
+                        target_subject: "patchbay-native/window-0".into(),
+                    },
+                    ClueId::from("patchbay-native/manifestation-prepared"),
+                )
+                .map_err(|error| error.to_string())
+            })
             .transpose()?;
         let distributed_play = arguments
             .distributed_play
@@ -117,7 +131,7 @@ impl PatchbayApplication {
             control,
             file_task,
             route_demo,
-            portable_presentation,
+            renderer_execution,
             distributed_play,
             window: None,
             exit_after_window: arguments.exit_after_window,
@@ -156,45 +170,6 @@ impl PatchbayApplication {
             self.model.projection().boot_id().as_str(),
             self.topology_lines.len(),
         )
-    }
-
-    fn render(&mut self) -> Result<(), String> {
-        let window = self.window.as_ref().ok_or("native window is absent")?;
-        let size = window.inner_size();
-        let width = NonZeroU32::new(size.width).ok_or("native window width is zero")?;
-        let height = NonZeroU32::new(size.height).ok_or("native window height is zero")?;
-        let context =
-            softbuffer::Context::new(window.clone()).map_err(|error| error.to_string())?;
-        let mut surface = softbuffer::Surface::new(&context, window.clone())
-            .map_err(|error| error.to_string())?;
-        surface
-            .resize(width, height)
-            .map_err(|error| error.to_string())?;
-        let mut buffer = surface.buffer_mut().map_err(|error| error.to_string())?;
-        buffer.fill(BACKGROUND);
-        let lines = self.presentation_lines();
-        draw_document(
-            &mut buffer,
-            size.width as usize,
-            size.height as usize,
-            &lines,
-        );
-        buffer.present().map_err(|error| error.to_string())?;
-        println!(
-            "patchbay topology-rendered lines={} width={} height={}",
-            lines.len(),
-            size.width,
-            size.height
-        );
-        if self
-            .distributed_play
-            .as_ref()
-            .is_some_and(NativeDistributedPlay::is_complete)
-        {
-            println!("patchbay distributed-rendered status=completed");
-        }
-        self.rendered_once = true;
-        Ok(())
     }
 
     fn edit_source(&mut self, update: impl FnOnce(&mut String)) -> Result<(), String> {
@@ -469,6 +444,17 @@ impl ApplicationHandler for PatchbayApplication {
     }
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        if let Some(execution) = &mut self.renderer_execution {
+            if execution.manifestation.lifecycle
+                == conduit_presentation::ManifestationLifecycle::Available
+            {
+                if let Err(error) =
+                    execution.mark_closed(ClueId::from("patchbay-native/window-closed"))
+                {
+                    self.failure = Some(format!("cannot close native Manifestation: {error}"));
+                }
+            }
+        }
         if let Err(error) = emit_report("shutdown", &self.model.shutdown_snapshot()) {
             self.failure = Some(format!("Patchbay shutdown report is invalid: {error}"));
         }

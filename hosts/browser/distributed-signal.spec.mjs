@@ -295,6 +295,8 @@ test("native Patchbay source and browser peer execute one exact distributed Play
     if (windowed) {
       expect(await lines.matching(/^patchbay distributed-rendered status=completed$/))
         .toBe("patchbay distributed-rendered status=completed");
+      expect(await lines.matching(/^patchbay manifestation=\S+ renderer-plan=\S+ renderer-play=\S+ lifecycle=available$/))
+        .toMatch(/lifecycle=available$/);
     }
     expect(stderr).toEqual([]);
     expect(summary).toContain(`summary plan=${planId}`);
