@@ -208,7 +208,7 @@ impl JoinKernel {
                 match join_result {
                     Ok(Ok(())) => {}
                     Ok(Err(_)) => return Err(UsbLinkError::NetworkJoinFailed),
-                    Err(_) => return Err(UsbLinkError::NetworkConfigurationTimeout),
+                    Err(_) => return Err(UsbLinkError::NetworkJoinTimeout),
                 }
                 crate::panic_recovery::set_phase(
                     crate::panic_recovery::PanicPhase::NetworkConfiguration,
