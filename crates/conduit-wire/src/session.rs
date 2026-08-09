@@ -351,6 +351,8 @@ mod machine;
 pub use machine::*;
 mod reconciliation;
 pub use reconciliation::*;
+mod checkpoint_wire;
+pub use checkpoint_wire::*;
 
 pub fn encode_session_frame_into(
     frame: SessionFrame<'_>,
