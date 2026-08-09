@@ -103,8 +103,16 @@ pub struct RemoteSignalKernel {
 
 impl RemoteSignalKernel {
     pub fn new(identity: SignalExecutionIdentity) -> UsbLinkResult<Self> {
-        let layout = remote_signal_layout().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         let remote = generated_remote_endpoint().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
+        Self::new_for_endpoint(identity, remote.endpoint, remote.cord)
+    }
+
+    pub fn new_for_endpoint(
+        identity: SignalExecutionIdentity,
+        endpoint: conduit_kernel::RemoteEndpointId,
+        cord: conduit_kernel::CordId,
+    ) -> UsbLinkResult<Self> {
+        let layout = remote_signal_layout().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         let values = FixedValueStore::<QUEUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>::new(
             SIGNAL_ENCODED_LEN,
         )
@@ -130,8 +138,8 @@ impl RemoteSignalKernel {
         .map_err(UsbLinkError::Kernel)?;
         Ok(Self {
             scheduler,
-            endpoint: remote.endpoint,
-            cord: remote.cord,
+            endpoint,
+            cord,
             show_node: layout.show_node,
             present_operation: layout.present_operation,
             presented: 0,
