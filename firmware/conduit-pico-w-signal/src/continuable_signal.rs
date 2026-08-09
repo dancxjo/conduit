@@ -19,6 +19,8 @@ pub struct ContinuableSignalSink {
     pub machine: SessionMachine,
     pub kernel: RemoteSignalKernel,
     pub identity: SignalExecutionIdentity,
+    pub(crate) binding: SessionBinding,
+    usb_bindings: Option<(SessionBinding, SessionBinding)>,
 }
 
 impl ContinuableSignalSink {
@@ -36,6 +38,19 @@ impl ContinuableSignalSink {
         let identity = crate::plan_c_signal_image::execution_identity();
         let endpoint = crate::plan_c_signal_image::endpoint(ConnectionBase::WebSocket)
             .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
+        let usb_endpoint = crate::plan_c_signal_image::endpoint(ConnectionBase::UsbCdc)
+            .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
+        let usb_machine_binding = binding(usb_endpoint, identity, runtime)?;
+        let usb_receipt_binding = usb_machine_binding.clone();
+        let mut state = Self::new_for(endpoint, identity, runtime)?;
+        state.usb_bindings = Some((usb_machine_binding, usb_receipt_binding));
+        Ok(state)
+    }
+
+    pub fn new_plan_b(runtime: &RuntimeTranscriptIdentity) -> Result<Self, UsbLinkError> {
+        let identity = SignalExecutionIdentity::plan_b();
+        let endpoint = crate::plan_b_signal_image::remote_endpoint()
+            .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         Self::new_for(endpoint, identity, runtime)
     }
 
@@ -44,17 +59,20 @@ impl ContinuableSignalSink {
         identity: SignalExecutionIdentity,
         runtime: &RuntimeTranscriptIdentity,
     ) -> Result<Self, UsbLinkError> {
-        let binding = binding(endpoint, identity, runtime)?;
+        let machine_binding = binding(endpoint, identity, runtime)?;
+        let receipt_binding = machine_binding.clone();
         Ok(Self {
-            machine: SessionMachine::new(binding, SessionRole::Sink)
+            machine: SessionMachine::new(machine_binding, SessionRole::Sink)
                 .map_err(UsbLinkError::Codec)?,
             kernel: RemoteSignalKernel::new_for_endpoint(identity, endpoint.endpoint, endpoint.cord)?,
             identity,
+            binding: receipt_binding,
+            usb_bindings: None,
         })
     }
 
     pub fn binding(&self) -> &SessionBinding {
-        self.machine.binding()
+        &self.binding
     }
 
     pub fn resume_usb(
@@ -62,12 +80,17 @@ impl ContinuableSignalSink {
         runtime: &RuntimeTranscriptIdentity,
         peer: SessionCheckpointOffer<'_>,
     ) -> Result<SessionCheckpointAcceptance, UsbLinkError> {
-        let endpoint = crate::plan_c_signal_image::endpoint(ConnectionBase::UsbCdc)
+        let _ = runtime;
+        let (machine_binding, receipt_binding) = self
+            .usb_bindings
+            .take()
             .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-        let replacement = binding(endpoint, self.identity, runtime)?;
-        self.machine
-            .resume_with_attachment(replacement, peer)
-            .map_err(UsbLinkError::Codec)
+        let acceptance = self
+            .machine
+            .resume_with_attachment(machine_binding, peer)
+            .map_err(UsbLinkError::Codec)?;
+        self.binding = receipt_binding;
+        Ok(acceptance)
     }
 }
 

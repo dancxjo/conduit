@@ -4,24 +4,28 @@
 //! ingests Signal items, drives CYW43 LED presentation, emits receipts over
 //! CDC 1 (clue interface), and returns session truth on CDC 0.
 
+use conduit_core::ConnectionBase;
+#[cfg(not(feature = "wifi-bootstrap"))]
 use conduit_core::{
-    bind_active_play, BootId, ConnectionId, ConnectionBase, ConnectionBaseInstanceId,
-    FragmentId, HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
+    bind_active_play, BootId, ConnectionBaseInstanceId, ConnectionId, FragmentId, HostId, KindId,
+    LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_kernel::scheduler::RemoteIngressOutcome;
-use conduit_wire::{
-    RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
-    SessionMessage, SessionRole, SessionTerminalDisposition,
-};
+use conduit_wire::{SessionBinding, SessionMachine, SessionMessage, SessionTerminalDisposition};
+#[cfg(not(feature = "wifi-bootstrap"))]
+use conduit_wire::{RouteAttachment, SessionEndpointIdentity, SessionLimits, SessionRole};
 use cyw43::Control;
 
 #[cfg(not(feature = "wifi-bootstrap"))]
 use crate::kernel::boot_identity;
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
+#[cfg(feature = "wifi-bootstrap")]
+use crate::continuable_signal::ContinuableSignalSink;
 use crate::remote_kernel::RemoteSignalKernel;
 use crate::signal_execution_identity::SignalExecutionIdentity;
 #[cfg(not(feature = "wifi-bootstrap"))]
 use crate::signal_image::generated_remote_endpoint;
+#[cfg(not(feature = "wifi-bootstrap"))]
 use crate::signal_image::RemoteEndpointIdentity;
 use crate::usb_link::{UsbLinkError, UsbLinkSession};
 
@@ -93,20 +97,31 @@ pub async fn run_plan_b_signal_sink(
     clue_cdc: &mut UsbCdc,
     control: &mut Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
+    state: &mut ContinuableSignalSink,
 ) -> Result<(), UsbLinkError> {
-    let planned = crate::plan_b_signal_image::remote_endpoint()
-        .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-    run_remote_signal_sink_for(
+    let expected = SignalExecutionIdentity::plan_b();
+    if state.identity.plan_id != expected.plan_id
+        || state.identity.fragment_id != expected.fragment_id
+        || state.identity.host_id != expected.host_id
+        || state.binding().attachment.base != ConnectionBase::UsbCdc
+    {
+        return Err(UsbLinkError::InvalidGeneratedEndpoint);
+    }
+    let binding = &state.binding;
+    run_prepared_signal_sink(
         link_session,
         clue_cdc,
         control,
         runtime,
-        planned,
-        SignalExecutionIdentity::plan_b(),
+        binding,
+        &mut state.machine,
+        &mut state.kernel,
+        state.identity,
     )
     .await
 }
 
+#[cfg(not(feature = "wifi-bootstrap"))]
 async fn run_remote_signal_sink_for(
     link_session: &mut UsbLinkSession,
     clue_cdc: &mut UsbCdc,
@@ -184,6 +199,32 @@ async fn run_remote_signal_sink_for(
         SessionMachine::new(binding.clone(), SessionRole::Sink).map_err(UsbLinkError::Codec)?;
     let mut kernel = RemoteSignalKernel::new(identity)?;
 
+    run_prepared_signal_sink(
+        link_session,
+        clue_cdc,
+        control,
+        runtime,
+        &binding,
+        &mut machine,
+        &mut kernel,
+        identity,
+    )
+    .await
+}
+
+// Transport, platform effect, transcript, and already-admitted execution state
+// remain separate collaborators at this boundary.
+#[allow(clippy::too_many_arguments)]
+async fn run_prepared_signal_sink(
+    link_session: &mut UsbLinkSession,
+    clue_cdc: &mut UsbCdc,
+    control: &mut Control<'_>,
+    runtime: &RuntimeTranscriptIdentity,
+    binding: &SessionBinding,
+    machine: &mut SessionMachine,
+    kernel: &mut RemoteSignalKernel,
+    identity: SignalExecutionIdentity,
+) -> Result<(), UsbLinkError> {
     let mut frame_buf = [0u8; 2048];
     let mut failure_disposition: Option<SessionTerminalDisposition> = None;
 
@@ -228,9 +269,9 @@ async fn run_remote_signal_sink_for(
                 Err(error) => {
                     return fail_active_session(
                         link_session,
-                        &binding,
-                        &mut machine,
-                        &mut kernel,
+                        binding,
+                        machine,
+                        kernel,
                         error,
                     )
                     .await;
@@ -263,9 +304,9 @@ async fn run_remote_signal_sink_for(
             {
                 return fail_active_session(
                     link_session,
-                    &binding,
-                    &mut machine,
-                    &mut kernel,
+                    binding,
+                    machine,
+                    kernel,
                     error,
                 )
                 .await;
