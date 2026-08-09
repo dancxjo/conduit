@@ -40,6 +40,7 @@ async fn cyw43_task(
     clippy::too_many_arguments,
     reason = "the Pico W radio boundary names each fixed peripheral and asset explicitly"
 )]
+#[cfg(not(feature = "wifi-bootstrap"))]
 pub async fn init_cyw43(
     spawner: &Spawner,
     pio0: Peri<'static, PIO0>,
@@ -69,4 +70,45 @@ pub async fn init_cyw43(
     let (_net_device, control, runner) = cyw43::new(state, pwr, spi, fw, nvram).await;
     spawner.spawn(cyw43_task(runner).unwrap());
     (control, ())
+}
+
+#[cfg(feature = "wifi-bootstrap")]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the Pico W network boundary names each fixed peripheral and asset explicitly"
+)]
+pub async fn init_cyw43_network(
+    spawner: &Spawner,
+    pio0: Peri<'static, PIO0>,
+    dma_ch0: Peri<'static, DMA_CH0>,
+    pin23: Peri<'static, PIN_23>,
+    pin24: Peri<'static, PIN_24>,
+    pin25: Peri<'static, PIN_25>,
+    pin29: Peri<'static, PIN_29>,
+    fw: &'static aligned::Aligned<aligned::A4, [u8]>,
+    nvram: &'static aligned::Aligned<aligned::A4, [u8]>,
+    clm: &'static [u8],
+) -> (cyw43::NetDriver<'static>, Control<'static>) {
+    let pwr = Output::new(pin23, Level::Low);
+    let cs = Output::new(pin25, Level::High);
+    let mut pio = Pio::new(pio0, RadioIrqs);
+    let dma = dma::Channel::new(dma_ch0, RadioIrqs);
+    let spi = PioSpi::new(
+        &mut pio.common,
+        pio.sm0,
+        DEFAULT_CLOCK_DIVIDER,
+        pio.irq0,
+        cs,
+        pin24,
+        pin29,
+        dma,
+    );
+    let state = STATE.init(cyw43::State::new());
+    let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, fw, nvram).await;
+    spawner.spawn(cyw43_task(runner).unwrap());
+    control.init(clm).await;
+    control
+        .set_power_management(cyw43::PowerManagementMode::None)
+        .await;
+    (net_device, control)
 }

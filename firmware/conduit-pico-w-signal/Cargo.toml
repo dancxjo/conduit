@@ -9,6 +9,7 @@ pico-local = ["session-control"]
 pico-local-minimal = []
 usb-remote = ["session-control"]
 triple-remote = ["session-control"]
+wifi-bootstrap = ["session-control", "dep:conduit-net", "dep:embassy-net"]
 session-control = ["dep:conduit-wire", "dep:embassy-futures"]
 
 [dependencies]
@@ -27,9 +28,11 @@ cyw43 = "0.7"
 cyw43-pio = "0.10"
 fixed = "=1.29.0"
 heapless = "0.8"
+embassy-net = { version = "0.9", features = ["dhcpv4", "medium-ethernet", "proto-ipv4"], optional = true }
 
 conduit-core = { path = "../../crates/conduit-core", default-features = false }
 conduit-kernel = { path = "../../crates/conduit-kernel" }
+conduit-net = { path = "../../crates/conduit-net", default-features = false, optional = true }
 conduit-signal = { path = "../../crates/conduit-signal", default-features = false }
 conduit-wire = { path = "../../crates/conduit-wire", default-features = false, optional = true }
 
@@ -40,6 +43,7 @@ conduit-form = { path = "../../crates/conduit-form" }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
+conduit-net = { path = "../../crates/conduit-net", features = ["r1-planning"] }
 
 [[bin]]
 name = "conduit-pico-w-signal"

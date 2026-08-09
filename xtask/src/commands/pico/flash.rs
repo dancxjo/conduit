@@ -32,7 +32,9 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
     }
 
     let identity = read_identity_manifest(&root)?;
-    let expected_mode = if args.triple_remote {
+    let expected_mode = if args.wifi_bootstrap {
+        "wifi-bootstrap"
+    } else if args.triple_remote {
         "triple-remote"
     } else if args.usb_remote {
         "usb-remote"

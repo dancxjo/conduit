@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+#[cfg(feature = "form-catalog")]
 use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
@@ -10,75 +11,41 @@ use conduit_core::{
     ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
     HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision,
     OfferGeneration, PortDescriptor, PortDirection, PortId, PortTemporal, ResourceBinding,
-    ResourceOffer, ResourcePoolId, PROTOCOL_VERSION,
+    ResourceOffer, PROTOCOL_VERSION,
 };
-use serde::{Deserialize, Serialize};
 
 mod external_websocket;
 pub use external_websocket::*;
+mod network_info;
+pub use network_info::*;
+#[cfg(feature = "r1-planning")]
+mod r1_wifi_bootstrap;
+#[cfg(feature = "r1-planning")]
+pub use r1_wifi_bootstrap::*;
 
 pub const WIFI_STATION_RESOURCE_CLASS: &str = "conduit.resource/network/wifi-station@1";
+pub const R1_WIFI_STATION_POOL_ID: &str = "r1/pico-wifi-station-0";
 pub const NETWORK_JOIN_OPERATION: &str = "network/join";
+pub const NETWORK_CREDENTIALS_OPERATION: &str = "network/credentials";
+pub const NETWORK_ATTACHMENT_CLUE_OPERATION: &str = "network/attachment-clue";
 pub const NETWORK_JOIN_CONTRACT_REVISION: &str = "conduit.network/join@1";
+pub const NETWORK_CREDENTIALS_CONTRACT_REVISION: &str = "conduit.network/credentials@1";
+pub const NETWORK_ATTACHMENT_CLUE_CONTRACT_REVISION: &str = "conduit.network/attachment-clue@1";
 pub const NETWORK_JOIN_HOST_OPERATION: &str = "conduit.host/network-join@1";
+pub const NETWORK_CREDENTIALS_HOST_OPERATION: &str = "conduit.host/network-credentials@1";
+pub const NETWORK_ATTACHMENT_CLUE_HOST_OPERATION: &str = "conduit.host/network-attachment-clue@1";
 pub const NETWORK_CONFIG_AUTHORITY: &str = "conduit.authority/network-config@1";
 pub const NETWORK_CONFIG_SUBJECT: &str = "authority/network-configurator";
+pub const NETWORK_CREDENTIALS_AUTHORITY: &str = "conduit.authority/network-credentials@1";
+pub const NETWORK_CREDENTIALS_SUBJECT: &str = "authority/network-credential-reader";
 pub const NETWORK_JOIN_REQUEST_KIND: &str = "network/join-request";
 pub const NETWORK_ATTACHMENT_KIND: &str = "network/attachment";
 pub const MAXIMUM_SSID_BYTES: usize = 32;
 pub const MAXIMUM_CREDENTIAL_BYTES: usize = 128;
 pub const MAXIMUM_ATTACHMENT_ID_BYTES: usize = 96;
-pub const MAXIMUM_JOIN_INPUT_BYTES: u32 = 160;
-pub const MAXIMUM_JOIN_OUTPUT_BYTES: u32 = 128;
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct NetworkAttachmentId(String);
-
-impl From<&str> for NetworkAttachmentId {
-    fn from(value: &str) -> Self {
-        Self(value.to_string())
-    }
-}
-
-impl NetworkAttachmentId {
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-/// Boot-scoped runtime truth produced after successful base execution.
-/// It deliberately contains no SSID, credential, address, socket, or carrier.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct NetworkAttachment {
-    pub attachment_id: NetworkAttachmentId,
-    pub host_id: HostId,
-    pub boot_id: BootId,
-    pub interface_pool_id: ResourcePoolId,
-    pub generation: u64,
-}
-
-/// Volatile base input. Secret bytes intentionally implement neither
-/// serialization nor display/debug formatting.
-pub struct NetworkJoinRequest<'a> {
-    pub ssid: &'a [u8],
-    pub credential: &'a [u8],
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum NetworkJoinError {
-    MalformedRequest,
-    CredentialTooLarge,
-    StaleHostBoot,
-    Unsupported,
-    MissingResource,
-    ResourceMismatch,
-    MissingAuthority,
-    StaleAuthority,
-    AuthorityMismatch,
-    InvalidAttachment,
-}
-
+pub const MAXIMUM_JOIN_INPUT_BYTES: u32 = 167;
+pub const MAXIMUM_JOIN_OUTPUT_BYTES: u32 = 167;
+pub const NETWORK_JOIN_WIRE_VERSION: u8 = 1;
 pub fn wifi_station_resource(pool_id: &str) -> ResourceOffer {
     resource_offer(pool_id, WIFI_STATION_RESOURCE_CLASS, 1)
 }
@@ -113,7 +80,7 @@ pub fn network_join_offer(
         }],
         host_operations: vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(NETWORK_JOIN_HOST_OPERATION),
-            target_kind: None,
+            target_kind: Some(kind_id(NETWORK_CONFIG_SUBJECT)),
             maximum_in_flight: 1,
             maximum_input_bytes: MAXIMUM_JOIN_INPUT_BYTES,
             maximum_output_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
@@ -130,6 +97,141 @@ pub fn network_join_offer(
             max_queue_bytes: MAXIMUM_JOIN_INPUT_BYTES,
         },
     }
+}
+
+/// Semantic source of one volatile credential-bearing join request. The Plan
+/// binds only this Face and an exact authority grant; secret bytes enter only
+/// as the bounded host-operation result after Play starts.
+pub fn network_credentials_offer(
+    capability_id: CapabilityId,
+    implementation_id: ImplementationId,
+    artifact_id: ArtifactId,
+) -> CapabilityOffer {
+    CapabilityOffer {
+        startup_parameters: vec![],
+        shorthand: None,
+        capability_id,
+        kind_id: kind_id(NETWORK_CREDENTIALS_OPERATION),
+        kind_contract_revision: KindContractRevision::from(NETWORK_CREDENTIALS_CONTRACT_REVISION),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("conduit.network/credentials-hosted@1"),
+            implementation_id,
+            artifact_id,
+        },
+        inputs: vec![],
+        outputs: vec![PortDescriptor {
+            port_id: PortId::from("request"),
+            value_kind: kind_id(NETWORK_JOIN_REQUEST_KIND),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Value,
+        }],
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(NETWORK_CREDENTIALS_HOST_OPERATION),
+            target_kind: Some(kind_id(NETWORK_CREDENTIALS_SUBJECT)),
+            maximum_in_flight: 1,
+            // The kernel host-operation table requires a non-zero admitted
+            // input bound even though this source invokes the operation with
+            // an exact empty value.
+            maximum_input_bytes: 1,
+            maximum_output_bytes: MAXIMUM_JOIN_INPUT_BYTES,
+        }],
+        resource_requirements: vec![],
+        authority_requirements: vec![AuthorityRequirement {
+            contract_id: AuthorityContractId::from(NETWORK_CREDENTIALS_AUTHORITY),
+            host_operation_contract_id: HostOperationContractId::from(
+                NETWORK_CREDENTIALS_HOST_OPERATION,
+            ),
+            subject_kind: kind_id(NETWORK_CREDENTIALS_SUBJECT),
+        }],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_JOIN_INPUT_BYTES,
+        },
+    }
+}
+
+pub fn network_attachment_clue_offer(
+    capability_id: CapabilityId,
+    implementation_id: ImplementationId,
+    artifact_id: ArtifactId,
+) -> CapabilityOffer {
+    CapabilityOffer {
+        startup_parameters: vec![],
+        shorthand: None,
+        capability_id,
+        kind_id: kind_id(NETWORK_ATTACHMENT_CLUE_OPERATION),
+        kind_contract_revision: KindContractRevision::from(
+            NETWORK_ATTACHMENT_CLUE_CONTRACT_REVISION,
+        ),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("conduit.network/attachment-clue-usb@1"),
+            implementation_id,
+            artifact_id,
+        },
+        inputs: vec![PortDescriptor {
+            port_id: PortId::from("attachment"),
+            value_kind: kind_id(NETWORK_ATTACHMENT_KIND),
+            direction: PortDirection::Input,
+            temporal: PortTemporal::Value,
+        }],
+        outputs: vec![],
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(NETWORK_ATTACHMENT_CLUE_HOST_OPERATION),
+            target_kind: None,
+            maximum_in_flight: 1,
+            maximum_input_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
+            maximum_output_bytes: 1,
+        }],
+        resource_requirements: vec![],
+        authority_requirements: vec![],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
+        },
+    }
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn install_network_bootstrap_catalogs(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), String> {
+    use conduit_form::{KindDefinition, KindSignature};
+
+    for offer in [
+        network_credentials_offer(
+            CapabilityId::from("catalog/network-credentials"),
+            ImplementationId::from("catalog/network-credentials"),
+            ArtifactId::from("catalog/network-credentials"),
+        ),
+        network_join_offer(
+            CapabilityId::from("catalog/network-join"),
+            ImplementationId::from("catalog/network-join"),
+            ArtifactId::from("catalog/network-join"),
+        ),
+        network_attachment_clue_offer(
+            CapabilityId::from("catalog/network-attachment-clue"),
+            ImplementationId::from("catalog/network-attachment-clue"),
+            ArtifactId::from("catalog/network-attachment-clue"),
+        ),
+    ] {
+        startup.insert(KindSignature {
+            kind: offer.kind_id.as_str().to_string(),
+            startup_parameters: vec![],
+        })?;
+        profile
+            .insert(KindDefinition {
+                kind_id: offer.kind_id,
+                kind_contract_revision: offer.kind_contract_revision,
+                inputs: offer.inputs,
+                outputs: offer.outputs,
+                configuration: vec![],
+            })
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
 pub fn network_capable_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
@@ -173,12 +275,7 @@ pub fn execute_fixture_join(
     attachment_id: NetworkAttachmentId,
     generation: u64,
 ) -> Result<NetworkAttachment, NetworkJoinError> {
-    if request.ssid.is_empty() || request.ssid.len() > MAXIMUM_SSID_BYTES {
-        return Err(NetworkJoinError::MalformedRequest);
-    }
-    if request.credential.is_empty() || request.credential.len() > MAXIMUM_CREDENTIAL_BYTES {
-        return Err(NetworkJoinError::CredentialTooLarge);
-    }
+    validate_join_request(&request)?;
     if advertisement.protocol_version != PROTOCOL_VERSION {
         return Err(NetworkJoinError::StaleHostBoot);
     }

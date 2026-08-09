@@ -1,6 +1,6 @@
 //! Native asynchronous adapter over ordinary planner and std-host control APIs.
 
-use conduit_core::{BootId, HostId, OfferGeneration, Plan};
+use conduit_core::{bind_active_play, ActivePlayIdentity, BootId, HostId, OfferGeneration, Plan};
 use conduit_std_host::{
     RunControl, RunControlRequestId, StdHost, StdHostComposition, StdHostConfig, ThreadTimer,
 };
@@ -75,6 +75,24 @@ impl NativeControl {
             )),
         }
         result
+    }
+
+    pub fn plan(&self) -> Option<&Plan> {
+        self.plan.as_ref()
+    }
+
+    pub fn planned_play_identity(&self) -> Option<ActivePlayIdentity> {
+        let plan = self.plan.as_ref()?;
+        let fragment = plan
+            .fragments
+            .iter()
+            .find(|fragment| fragment.host_id == self.host_config.host_id)?;
+        Some(bind_active_play(
+            &plan.plan_id,
+            &fragment.host_id,
+            &fragment.boot_id,
+            0,
+        ))
     }
 
     fn prepare_plan(&mut self, editor: &FormEditor, identity: &str) -> Result<(), String> {

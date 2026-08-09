@@ -15,17 +15,29 @@ use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+mod build_birth;
 mod control;
+mod cross_host_renderer;
 mod form_editor;
 mod portable_demo;
 mod portable_projection;
 mod renderer_execution;
+mod renderer_inspection;
 mod renderer_projection;
 mod route_demo;
 mod route_presentation;
 mod topology;
 
+pub use build_birth::{
+    BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus, PatchbayMode,
+    MAX_BUILD_DOCUMENT_LINES,
+};
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
+pub use cross_host_renderer::{
+    cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
+    CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,
+    PRESENTATION_PROJECT_KIND,
+};
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
@@ -35,6 +47,7 @@ pub use portable_projection::PortableProjectionError;
 pub use renderer_execution::{
     RendererAdapterIdentity, RendererAdapterKind, RendererExecution, RendererExecutionError,
 };
+pub use renderer_inspection::{RendererSelfInspection, RendererSelfInspectionError};
 pub use renderer_projection::{
     AttemptedEditPresentation, PatchbayPresentation, RendererIdentityProjection,
     RendererProjectionError, MAX_RENDERER_CLUES, MAX_RENDERER_DIAGNOSTICS,
@@ -49,6 +62,8 @@ pub use route_presentation::{
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
 pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES;
 
+#[cfg(test)]
+mod build_birth_tests;
 #[cfg(test)]
 mod portable_projection_tests;
 #[cfg(test)]

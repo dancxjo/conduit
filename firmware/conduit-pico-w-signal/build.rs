@@ -18,6 +18,9 @@ use conduit_signal::{
     STD_PICO_USB_SINK_HOST_ID,
 };
 
+mod identity_sidecar;
+use identity_sidecar::render_identity_sidecar;
+
 const SIGNAL_DEMO_FORM: &str = include_str!("../../examples/signal-demo.form");
 const TRIPLE_SIGNAL_FORM: &str = include_str!("../../examples/triple-signal.form");
 const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
@@ -30,7 +33,11 @@ fn main() {
     let target = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());
 
-    generate_pico_signal_image(&out);
+    if firmware_mode() == "wifi-bootstrap" {
+        generate_pico_network_image(&out);
+    } else {
+        generate_pico_signal_image(&out);
+    }
 
     // Only emit the RP2040-specific linker flags for thumbv6m
     if env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default() == "arm"
@@ -46,8 +53,118 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=../../examples/signal-demo.form");
     println!("cargo:rerun-if-changed=../../examples/triple-signal.form");
+    println!("cargo:rerun-if-changed=../../examples/r1-network-bootstrap.conduit");
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_ENV}");
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_RERUN_ENV}");
+}
+
+fn generate_pico_network_image(out: &Path) {
+    let exact = conduit_net::exact_r1_network_bootstrap_plan()
+        .expect("exact R1 USB network bootstrap Plan must resolve");
+    let fragment = exact
+        .plan
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+        .expect("R1 bootstrap Plan must contain the Pico fragment");
+    let lowered = lower_plan_fragment(fragment).expect("Pico network fragment must lower");
+    let generated = generate_embedded_plan(
+        fragment,
+        &lowered,
+        EmbeddedImageBounds {
+            maximum_nodes: 2,
+            maximum_cords: 2,
+            maximum_routes: 1,
+            maximum_route_targets: 1,
+            maximum_host_operations: 2,
+            maximum_resources: 1,
+            maximum_clue_expectations: 8,
+            maximum_configuration_entries: 0,
+            maximum_ports_per_node: conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE,
+            maximum_remote_endpoints: 1,
+            maximum_cord_value_slots: 2,
+            maximum_cord_value_bytes: conduit_net::MAXIMUM_JOIN_INPUT_BYTES
+                + conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES,
+            maximum_clue_items: 32,
+            maximum_clue_bytes: 1024,
+        },
+    )
+    .expect("Pico network fragment must fit reviewed fixed-image bounds");
+    let plan_id = PlanId::from(generated.plan_id.clone());
+    let host_id = HostId::from(generated.host_id.clone());
+    let boot_id = BootId::from(generated.boot_id.clone());
+    let active_play = bind_active_play(&plan_id, &host_id, &boot_id, 0);
+    let boot_clue = bind_clue(&host_id, &boot_id, None, 0);
+    let attachment_clue = bind_clue(
+        &host_id,
+        &boot_id,
+        Some(&active_play.active_play_id),
+        0,
+    );
+    let firmware_build_id = format!(
+        "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}:{}",
+        git_revision(),
+        git_tree_state(),
+        env::var("TARGET").unwrap_or_else(|_| "unknown-target".to_owned()),
+        env::var("PROFILE").unwrap_or_else(|_| "unknown-profile".to_owned()),
+        firmware_mode(),
+        generated.plan_id,
+        generated.fragment_id,
+    );
+    let identity = GeneratedFirmwareIdentity {
+        firmware_mode: firmware_mode(),
+        firmware_build_id: firmware_build_id.clone(),
+        source_document_id: fragment.source_document_id.as_str().to_owned(),
+        checked_form_id: fragment.checked_form_id.as_str().to_owned(),
+        expanded_form_id: fragment.expanded_form_id.as_str().to_owned(),
+        active_play_id: active_play.active_play_id.as_str().to_owned(),
+        boot_clue_id: boot_clue.clue_id.as_str().to_owned(),
+        presentation_ids: Vec::new(),
+        presentation_clue_ids: Vec::new(),
+        terminal_clue_id: attachment_clue.clue_id.as_str().to_owned(),
+    };
+    let mut module = generated.render_no_alloc_firmware_module();
+    render_string_constant(
+        &mut module,
+        "SOURCE_DOCUMENT_ID",
+        fragment.source_document_id.as_str(),
+    );
+    render_string_constant(
+        &mut module,
+        "CHECKED_FORM_ID",
+        fragment.checked_form_id.as_str(),
+    );
+    render_string_constant(
+        &mut module,
+        "EXPANDED_FORM_ID",
+        fragment.expanded_form_id.as_str(),
+    );
+    render_string_constant(
+        &mut module,
+        "ACTIVE_PLAY_ID",
+        active_play.active_play_id.as_str(),
+    );
+    render_string_constant(&mut module, "BOOT_CLUE_ID", boot_clue.clue_id.as_str());
+    render_string_constant(
+        &mut module,
+        "ATTACHMENT_CLUE_ID",
+        attachment_clue.clue_id.as_str(),
+    );
+    render_string_constant(&mut module, "FIRMWARE_BUILD_ID", &firmware_build_id);
+    fs::write(out.join("pico_network_image.rs"), module)
+        .expect("generated Pico network image should be writable");
+    let sidecar = render_identity_sidecar(&generated, &identity);
+    fs::write(out.join("pico_network_identity.json"), &sidecar)
+        .expect("generated Pico network identity sidecar should be writable");
+    if let Ok(path) = env::var(IDENTITY_SIDECAR_ENV) {
+        let path = PathBuf::from(path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)
+                .expect("explicit generated Pico network identity directory should be writable");
+        }
+        fs::write(path, &sidecar)
+            .expect("explicit generated Pico network identity sidecar should be writable");
+    }
 }
 
 fn generate_pico_signal_image(out: &Path) {
@@ -88,7 +205,7 @@ fn generate_pico_signal_image(out: &Path) {
     let lowered = lower_plan_fragment(fragment).expect("Pico fragment must lower");
     let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())
         .expect("Pico fragment must fit the reviewed fixed-image bounds");
-    let identity = GeneratedSignalIdentity::new(&form, &generated);
+    let identity = GeneratedFirmwareIdentity::new(&form, &generated);
 
     fs::write(
         out.join("pico_signal_image.rs"),
@@ -111,7 +228,7 @@ fn generate_pico_signal_image(out: &Path) {
 
 fn render_firmware_module(
     generated: &GeneratedEmbeddedPlan,
-    identity: &GeneratedSignalIdentity,
+    identity: &GeneratedFirmwareIdentity,
 ) -> String {
     let mut module = generated.render_no_alloc_firmware_module();
     render_identity_constants(&mut module, identity);
@@ -128,7 +245,7 @@ fn render_firmware_module(
     module
 }
 
-struct GeneratedSignalIdentity {
+struct GeneratedFirmwareIdentity {
     firmware_mode: &'static str,
     firmware_build_id: String,
     source_document_id: String,
@@ -141,7 +258,7 @@ struct GeneratedSignalIdentity {
     terminal_clue_id: String,
 }
 
-impl GeneratedSignalIdentity {
+impl GeneratedFirmwareIdentity {
     fn new(form: &conduit_form::CheckedForm, generated: &GeneratedEmbeddedPlan) -> Self {
         let plan_id = PlanId::from(generated.plan_id.clone());
         let host_id = HostId::from(generated.host_id.clone());
@@ -222,7 +339,9 @@ fn firmware_build_id(
 }
 
 fn firmware_mode() -> &'static str {
-    if env::var_os("CARGO_FEATURE_TRIPLE_REMOTE").is_some() {
+    if env::var_os("CARGO_FEATURE_WIFI_BOOTSTRAP").is_some() {
+        "wifi-bootstrap"
+    } else if env::var_os("CARGO_FEATURE_TRIPLE_REMOTE").is_some() {
         "triple-remote"
     } else if env::var_os("CARGO_FEATURE_USB_REMOTE").is_some() {
         "usb-remote"
@@ -266,7 +385,7 @@ fn show_placement_id(generated: &GeneratedEmbeddedPlan) -> PlacementId {
     PlacementId::from(node.placement_id.clone())
 }
 
-fn render_identity_constants(module: &mut String, identity: &GeneratedSignalIdentity) {
+fn render_identity_constants(module: &mut String, identity: &GeneratedFirmwareIdentity) {
     render_string_constant(module, "FIRMWARE_BUILD_ID", &identity.firmware_build_id);
     render_string_constant(module, "SOURCE_DOCUMENT_ID", &identity.source_document_id);
     render_string_constant(module, "CHECKED_FORM_ID", &identity.checked_form_id);
@@ -317,90 +436,4 @@ fn pico_signal_bounds() -> EmbeddedImageBounds {
         maximum_clue_items: 16,
         maximum_clue_bytes: 1024,
     }
-}
-
-fn render_identity_sidecar(
-    generated: &GeneratedEmbeddedPlan,
-    identity: &GeneratedSignalIdentity,
-) -> String {
-    let presentation_ids = json_string_array(&identity.presentation_ids);
-    let presentation_clue_ids = json_string_array(&identity.presentation_clue_ids);
-    format!(
-        concat!(
-            "{{\n",
-            "  \"schema\": \"conduit.pico-signal.generated-image@1\",\n",
-            "  \"firmware_mode\": \"{}\",\n",
-            "  \"firmware_build_id\": \"{}\",\n",
-            "  \"source_document_id\": \"{}\",\n",
-            "  \"checked_form_id\": \"{}\",\n",
-            "  \"expanded_form_id\": \"{}\",\n",
-            "  \"plan_id\": \"{}\",\n",
-            "  \"fragment_id\": \"{}\",\n",
-            "  \"host_id\": \"{}\",\n",
-            "  \"boot_id\": \"{}\",\n",
-            "  \"active_play_id\": \"{}\",\n",
-            "  \"boot_clue_id\": \"{}\",\n",
-            "  \"presentation_ids\": {},\n",
-            "  \"presentation_clue_ids\": {},\n",
-            "  \"terminal_clue_id\": \"{}\",\n",
-            "  \"offer_generation\": {},\n",
-            "  \"nodes\": {},\n",
-            "  \"cords\": {},\n",
-            "  \"host_operations\": {},\n",
-            "  \"cord_value_slots\": {},\n",
-            "  \"cord_value_bytes\": {},\n",
-            "  \"clue_items\": {},\n",
-            "  \"clue_bytes\": {}\n",
-            "}}\n"
-        ),
-        identity.firmware_mode,
-        json_escape(&identity.firmware_build_id),
-        json_escape(&identity.source_document_id),
-        json_escape(&identity.checked_form_id),
-        json_escape(&identity.expanded_form_id),
-        json_escape(&generated.plan_id),
-        json_escape(&generated.fragment_id),
-        json_escape(&generated.host_id),
-        json_escape(&generated.boot_id),
-        json_escape(&identity.active_play_id),
-        json_escape(&identity.boot_clue_id),
-        presentation_ids,
-        presentation_clue_ids,
-        json_escape(&identity.terminal_clue_id),
-        generated.offer_generation,
-        generated.nodes.len(),
-        generated.cords.len(),
-        generated.host_operations.len(),
-        generated.cord_value_slots,
-        generated.cord_value_bytes,
-        generated.clue_items,
-        generated.clue_bytes,
-    )
-}
-
-fn json_string_array(values: &[String]) -> String {
-    let mut output = String::from("[");
-    for (index, value) in values.iter().enumerate() {
-        if index > 0 {
-            output.push_str(", ");
-        }
-        write!(output, "\"{}\"", json_escape(value)).expect("String writes cannot fail");
-    }
-    output.push(']');
-    output
-}
-
-fn json_escape(value: &str) -> String {
-    let mut escaped = String::new();
-    for character in value.chars() {
-        match character {
-            '"' => escaped.push_str("\\\""),
-            '\\' => escaped.push_str("\\\\"),
-            '\n' => escaped.push_str("\\n"),
-            '\r' => escaped.push_str("\\r"),
-            '\t' => escaped.push_str("\\t"),
-            character => escaped.push(character),
-        }
-    }
-    escaped
 }

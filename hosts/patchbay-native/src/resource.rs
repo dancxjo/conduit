@@ -20,7 +20,7 @@ pub fn open_form_resource(path: PathBuf) -> Result<FormEditor, String> {
     FormEditor::from_source(path, source).map_err(|error| error.to_string())
 }
 
-pub fn save_form_resource(editor: &FormEditor) -> Result<(), String> {
+pub fn save_form_resource(editor: &mut FormEditor) -> Result<(), String> {
     let view = editor.view();
     let parent = view
         .path
@@ -47,7 +47,10 @@ pub fn save_form_resource(editor: &FormEditor) -> Result<(), String> {
     fs::rename(&temporary, &view.path).map_err(|error| {
         let _ = fs::remove_file(&temporary);
         error.to_string()
-    })
+    })?;
+    editor
+        .mark_saved(view.revision)
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(test)]
@@ -67,8 +70,9 @@ mod tests {
         let mut editor = open_form_resource(path.clone()).unwrap();
         editor.replace_source(greet.into()).unwrap();
         editor.recheck().unwrap();
-        save_form_resource(&editor).unwrap();
+        save_form_resource(&mut editor).unwrap();
         assert_eq!(std::fs::read_to_string(&path).unwrap(), greet);
+        assert_eq!(editor.view().saved_revision, editor.view().revision);
         assert!(open_form_resource(directory.join("document.json")).is_err());
 
         std::fs::remove_file(path).unwrap();

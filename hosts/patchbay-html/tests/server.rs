@@ -18,7 +18,7 @@ fn request(path: &str, method: &str) -> String {
     stream.read_to_string(&mut response).unwrap();
     let closed = worker.join().unwrap().unwrap();
     assert_eq!(
-        closed.manifestation.lifecycle,
+        closed.renderer.manifestation.lifecycle,
         ManifestationLifecycle::Closed
     );
     response
@@ -38,7 +38,7 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let decoded = patchbay_html::RendererSnapshot::decode(body.as_bytes(), 1).unwrap();
     assert_eq!(decoded.revision, 1);
     assert_eq!(
-        decoded.manifestation.lifecycle,
+        decoded.renderer.manifestation.lifecycle,
         ManifestationLifecycle::Available
     );
     assert_eq!(
@@ -108,11 +108,11 @@ fn transport_failure_yields_an_exact_failed_manifestation_clue() {
     let failure = worker.join().unwrap().unwrap_err();
 
     assert_eq!(
-        failure.snapshot.manifestation.lifecycle,
+        failure.snapshot.renderer.manifestation.lifecycle,
         ManifestationLifecycle::Failed
     );
     assert_eq!(
-        failure.snapshot.manifestation.failure,
+        failure.snapshot.renderer.manifestation.failure,
         Some(ManifestationFailure::DeliveryFailed)
     );
     assert_eq!(failure.snapshot.presentation.identity, source_identity);
@@ -120,14 +120,23 @@ fn transport_failure_yields_an_exact_failed_manifestation_clue() {
         failure.snapshot.presentation.basis.active_play_id,
         source_play
     );
-    let clue = failure.snapshot.manifestation.clues.last().unwrap();
+    let clue = failure
+        .snapshot
+        .renderer
+        .manifestation
+        .clues
+        .last()
+        .unwrap();
     assert_eq!(
         clue.manifestation_id,
-        failure.snapshot.manifestation.manifestation_id
+        failure.snapshot.renderer.manifestation.manifestation_id
     );
-    assert_eq!(clue.plan_id, failure.snapshot.manifestation.plan_id);
+    assert_eq!(
+        clue.plan_id,
+        failure.snapshot.renderer.manifestation.plan_id
+    );
     assert_eq!(
         clue.active_play_id,
-        failure.snapshot.manifestation.active_play_id
+        failure.snapshot.renderer.manifestation.active_play_id
     );
 }

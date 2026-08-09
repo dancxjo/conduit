@@ -2,8 +2,8 @@
 
 use conduit_core::ClueId;
 use patchbay_model::{
-    DistributedRouteDemo, FormEditor, PatchbayModel, PatchbayTopology, RendererAdapterIdentity,
-    RendererAdapterKind, RendererExecution,
+    BuildBirthController, DistributedRouteDemo, FormEditor, PatchbayModel, PatchbayTopology,
+    RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
 };
 use std::rc::Rc;
 use winit::application::ApplicationHandler;
@@ -14,6 +14,7 @@ use winit::window::{Window, WindowId};
 
 const HISTORY_CAPACITY: usize = 4;
 mod arguments;
+mod build_birth;
 mod control;
 mod distributed_play;
 mod file_task;
@@ -36,6 +37,8 @@ struct PatchbayApplication {
     form_selection: usize,
     modifiers: winit::keyboard::ModifiersState,
     control: NativeControl,
+    build_birth: BuildBirthController,
+    lifecycle_sequence: u64,
     file_task: NativeFileTask,
     route_demo: Option<DistributedRouteDemo>,
     renderer_execution: Option<RendererExecution>,
@@ -129,6 +132,8 @@ impl PatchbayApplication {
             form_selection: 0,
             modifiers: winit::keyboard::ModifiersState::empty(),
             control,
+            build_birth: BuildBirthController::new(),
+            lifecycle_sequence: 0,
             file_task,
             route_demo,
             renderer_execution,
@@ -139,12 +144,10 @@ impl PatchbayApplication {
             failure: None,
         };
         if arguments.control_demo || arguments.control_demo_stop {
-            let editor = application
-                .form_editor
-                .as_ref()
-                .ok_or("control demo requires --form")?;
-            application.control.request_plan(editor)?;
-            application.control.run(editor)?;
+            application.birth_body()?;
+            application.wake_body()?;
+            application.plan_play()?;
+            application.play_plan()?;
             if arguments.control_demo_stop {
                 application.control.stop()?;
             }
@@ -158,8 +161,13 @@ impl PatchbayApplication {
     fn title(&self) -> String {
         if let Some(editor) = &self.form_editor {
             let view = editor.view();
+            let mode = self
+                .build_birth
+                .document(editor)
+                .map(|document| format!("{:?}", document.mode))
+                .unwrap_or_else(|_| "BuildInvalid".into());
             return format!(
-                "Conduit Patchbay — {} — canonical Form revision {}",
+                "Conduit Patchbay — {mode} — {} — canonical Form revision {}",
                 view.path.display(),
                 view.revision
             );
@@ -184,7 +192,9 @@ impl PatchbayApplication {
             .map_err(|error| error.to_string())?;
         editor.recheck().map_err(|error| error.to_string())?;
         self.form_selection = 0;
+        let title = self.title();
         if let Some(window) = &self.window {
+            window.set_title(&title);
             window.request_redraw();
         }
         Ok(())
@@ -238,20 +248,12 @@ impl PatchbayApplication {
             Key::Named(NamedKey::ArrowUp) => {
                 self.form_selection = self.form_selection.saturating_sub(1)
             }
-            Key::Named(NamedKey::F5) => {
-                self.control.request_plan(
-                    self.form_editor
-                        .as_ref()
-                        .expect("editor presence was checked"),
-                )?;
-            }
-            Key::Named(NamedKey::F6) => {
-                self.control.run(
-                    self.form_editor
-                        .as_ref()
-                        .expect("editor presence was checked"),
-                )?;
-            }
+            Key::Named(NamedKey::F4) => self.birth_body()?,
+            Key::Named(NamedKey::F5) => self.wake_body()?,
+            Key::Named(NamedKey::F6) => self.plan_play()?,
+            Key::Named(NamedKey::F7) if !self.modifiers.alt_key() => self.play_plan()?,
+            Key::Named(NamedKey::F8) if !self.modifiers.alt_key() => self.mark_unsatisfied()?,
+            Key::Named(NamedKey::F9) if !self.modifiers.alt_key() => self.lull_body()?,
             Key::Named(NamedKey::Escape) => self.control.stop()?,
             Key::Named(NamedKey::F7) => {
                 self.file_task.choose_source()?;
@@ -272,7 +274,7 @@ impl PatchbayApplication {
             {
                 save_form_resource(
                     self.form_editor
-                        .as_ref()
+                        .as_mut()
                         .expect("editor presence was checked"),
                 )?;
             }
@@ -299,7 +301,9 @@ impl PatchbayApplication {
         {
             editor.select_graph_item(&identity);
         }
+        let title = self.title();
         if let Some(window) = &self.window {
+            window.set_title(&title);
             window.request_redraw();
         }
         Ok(true)
