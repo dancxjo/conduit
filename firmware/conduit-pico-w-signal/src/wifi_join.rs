@@ -286,6 +286,7 @@ pub async fn run(
             crate::bootsel::wait_for_request(&mut link).await.ok();
         }
     }
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioDriverStartup);
     let usb_startup = establish_usb(&mut link, clue, runtime);
     let radio_startup = crate::radio::init_cyw43_network(
         spawner, pio0, dma, pin23, pin24, pin25, pin29, fw, nvram, clm,
