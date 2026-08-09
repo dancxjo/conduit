@@ -13,11 +13,12 @@ use cyw43::Control;
 
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::signal_execution_identity::SignalExecutionIdentity;
+#[cfg(not(feature = "wifi-bootstrap"))]
+use crate::signal_image::generated_remote_endpoint;
 use crate::signal_image::{
-    generated_cords, generated_host_bindings, generated_nodes, generated_remote_endpoint,
-    generated_routes, remote_signal_layout, CORDS, HOST_BINDING_SLOTS,
-    NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS,
-    RUNTIME_CLUE_BYTES, RUNTIME_CLUE_EVENTS,
+    generated_cords, generated_host_bindings, generated_nodes, generated_routes,
+    remote_signal_layout, CORDS, HOST_BINDING_SLOTS, NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS,
+    ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_CLUE_BYTES, RUNTIME_CLUE_EVENTS,
 };
 use crate::usb_link::{UsbLinkError, UsbLinkResult};
 
@@ -102,6 +103,7 @@ pub struct RemoteSignalKernel {
 }
 
 impl RemoteSignalKernel {
+    #[cfg(not(feature = "wifi-bootstrap"))]
     pub fn new(identity: SignalExecutionIdentity) -> UsbLinkResult<Self> {
         let remote = generated_remote_endpoint().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         Self::new_for_endpoint(identity, remote.endpoint, remote.cord)

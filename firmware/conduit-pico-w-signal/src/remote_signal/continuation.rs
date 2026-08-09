@@ -33,7 +33,7 @@ pub async fn resume_plan_c_signal_sink(
     if !acceptance.same_plan_continues {
         return Err(UsbLinkError::Codec(conduit_wire::WireError::InvalidSession));
     }
-    let binding = state.binding().clone();
+    let binding = &state.binding;
     let mut frame_buf = [0_u8; 2048];
 
     let hello = link.receive_frame(&mut frame_buf).await?;

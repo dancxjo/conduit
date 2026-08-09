@@ -3,7 +3,7 @@
 use embassy_futures::select::{select, Either};
 use embassy_net::{tcp::TcpSocket, Stack};
 use embassy_time::Duration;
-use conduit_core::BootId;
+use conduit_core::LinkBinding;
 
 use crate::network_receipts::WebSocketRouteIdentity;
 use crate::continuable_signal::ContinuableSignalSink;
@@ -16,51 +16,43 @@ const TCP_BUFFER_BYTES: usize = conduit_net::R1_MAXIMUM_FRAME_BYTES as usize + 2
 #[derive(Debug)]
 pub struct WebSocketUnavailable;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     stack: Stack<'static>,
     link: &mut UsbLinkSession,
     clue: &mut UsbCdc,
     control: &mut cyw43::Control<'_>,
-    runtime: &RuntimeTranscriptIdentity,
+    plan_a_runtime: &RuntimeTranscriptIdentity,
+    plan_c_runtime: &RuntimeTranscriptIdentity,
+    route_basis: &[LinkBinding; 2],
+    plan_a_state: &mut Option<ContinuableSignalSink>,
+    plan_c_state: &mut Option<ContinuableSignalSink>,
     continuation: &mut Option<ContinuableSignalSink>,
 ) -> Result<(), WebSocketUnavailable> {
     let Some(config) = stack.config_v4() else {
         remain_bootsel(link).await
     };
     let address = config.address.address().octets();
-    let [usb_link, websocket_link] =
-        conduit_net::r1_route_basis(BootId::from(runtime.boot_id()));
+    let [usb_link, websocket_link] = route_basis;
     let identity = WebSocketRouteIdentity {
         firmware_build_id: crate::network_image::FIRMWARE_BUILD_ID,
         attachment_id: ATTACHMENT_ID,
         interface_pool_id: conduit_net::R1_WIFI_STATION_POOL_ID,
-        usb_link: &usb_link,
-        websocket_link: &websocket_link,
+        usb_link,
+        websocket_link,
         address,
         port: conduit_net::R1_WEBSOCKET_PORT,
         clue_id: conduit_net::R1_WEBSOCKET_ROUTE_CLUE_ID,
     };
     let plan_c = await_query(link).await.map_err(|_| WebSocketUnavailable)?;
-    let execution = if plan_c {
-        crate::plan_c_signal_image::execution_identity()
+    let signal_runtime = if plan_c { plan_c_runtime } else { plan_a_runtime };
+    let mut state = if plan_c {
+        match plan_c_state.take() {
+            Some(state) => state,
+            None => remain_bootsel(link).await,
+        }
     } else {
-        crate::signal_execution_identity::SignalExecutionIdentity::plan_a()
-    };
-    let signal_runtime = runtime.for_plan(execution.plan_id, execution.host_id);
-    let mut plan_a_state;
-    let state = if plan_c {
-        let state = match ContinuableSignalSink::new(&signal_runtime) {
-            Ok(state) => state,
-            Err(_) => remain_bootsel(link).await,
-        };
-        *continuation = Some(state);
-        continuation
-            .as_mut()
-            .expect("Plan C state was installed before carrier activation")
-    } else {
-        plan_a_state = ContinuableSignalSink::new_plan_a(&signal_runtime)
-            .map_err(|_| WebSocketUnavailable)?;
-        &mut plan_a_state
+        plan_a_state.take().ok_or(WebSocketUnavailable)?
     };
     if link
         .send_raw_stream_frame(conduit_net::R1_WEBSOCKET_BASE_READY)
@@ -107,8 +99,8 @@ pub async fn run(
             &mut transport,
             control,
             clue,
-            &signal_runtime,
-            state,
+            signal_runtime,
+            &mut state,
         ),
     )
     .await {
@@ -119,6 +111,9 @@ pub async fn run(
         }
         Either::Second(Err(_)) => {
             socket.abort();
+            if plan_c {
+                *continuation = Some(state);
+            }
             Err(WebSocketUnavailable)
         }
     }

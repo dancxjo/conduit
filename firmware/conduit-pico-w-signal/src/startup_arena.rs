@@ -2,13 +2,16 @@
 
 use core::alloc::{GlobalAlloc, Layout};
 use core::cell::UnsafeCell;
-use portable_atomic::{AtomicUsize, Ordering};
+use portable_atomic::{AtomicBool, AtomicUsize, Ordering};
 
-const STARTUP_ARENA_BYTES: usize = 16 * 1024;
+// Admits the network bootstrap identities plus the three R1 recovery sinks.
+// The arena is sealed before the first R1 Signal Play becomes active.
+const STARTUP_ARENA_BYTES: usize = 24 * 1024;
 
 pub struct StartupArena {
     bytes: UnsafeCell<[u8; STARTUP_ARENA_BYTES]>,
     next: AtomicUsize,
+    sealed: AtomicBool,
 }
 
 unsafe impl Sync for StartupArena {}
@@ -18,12 +21,21 @@ impl StartupArena {
         Self {
             bytes: UnsafeCell::new([0; STARTUP_ARENA_BYTES]),
             next: AtomicUsize::new(0),
+            sealed: AtomicBool::new(false),
         }
+    }
+
+    #[cfg(feature = "wifi-bootstrap")]
+    pub fn seal(&self) {
+        self.sealed.store(true, Ordering::Release);
     }
 }
 
 unsafe impl GlobalAlloc for StartupArena {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        if self.sealed.load(Ordering::Acquire) {
+            return core::ptr::null_mut();
+        }
         let base = self.bytes.get().cast::<u8>() as usize;
         let mut current = self.next.load(Ordering::Relaxed);
         loop {

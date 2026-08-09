@@ -19,7 +19,7 @@ pub async fn run(
     runtime: &RuntimeTranscriptIdentity,
     state: &mut ContinuableSignalSink,
 ) -> Result<(), WebSocketTransportError> {
-    let binding = state.binding().clone();
+    let binding = &state.binding;
     let identity = state.identity;
     let mut bytes = [0_u8; conduit_net::R1_MAXIMUM_FRAME_BYTES as usize];
 
