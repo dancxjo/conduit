@@ -3,8 +3,8 @@ use conduit_core::{
     PlanningRefusalReason,
 };
 use conduit_system_continuity::{
-    exact_r1_signal_plan, R1NewPlanRecovery, R1RecoveryError, R1RecoveryStartClues,
-    R1ReplacementClues, R1SignalRouteSet, MAX_R1_RECOVERY_EVENTS,
+    exact_r1_signal_plan, R1LedResultObservation, R1NewPlanRecovery, R1RecoveryError,
+    R1RecoveryStartClues, R1ReplacementClues, R1SignalRouteSet, MAX_R1_RECOVERY_EVENTS,
 };
 
 fn start() -> (R1NewPlanRecovery, conduit_core::Plan, conduit_core::Plan) {
@@ -115,27 +115,49 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
 
     let pico_host = HostId::from(conduit_net::R1_PICO_HOST_ID);
     let pico_boot = BootId::from("r1/pico-runtime-boot");
+    let plan_b_session = recovery.plan_b_session_binding().unwrap();
     assert_eq!(
-        recovery.record_led_result(
-            pico_host.clone(),
-            pico_boot.clone(),
-            original_plan_a.plan_id.clone(),
-            play_a_id,
-            ClueId::from("r1/stale-led-result"),
-            true,
-        ),
+        recovery.record_led_result(R1LedResultObservation {
+            pico_host_id: pico_host.clone(),
+            pico_boot_id: pico_boot.clone(),
+            plan_id: original_plan_a.plan_id.clone(),
+            active_play_id: play_a_id,
+            observed_session: plan_b_session.clone(),
+            clue_id: ClueId::from("r1/stale-led-result"),
+            level: true,
+        }),
         Err(R1RecoveryError::StaleResult)
     );
     recovery
-        .record_led_result(
-            pico_host,
-            pico_boot,
-            plan_b.plan_id.clone(),
-            recovery.play_b().unwrap().active_play_id.clone(),
-            ClueId::from("r1/plan-b-led-on"),
-            true,
+        .record_led_result(R1LedResultObservation {
+            pico_host_id: pico_host.clone(),
+            pico_boot_id: pico_boot.clone(),
+            plan_id: plan_b.plan_id.clone(),
+            active_play_id: recovery.play_b().unwrap().active_play_id.clone(),
+            observed_session: plan_b_session.clone(),
+            clue_id: ClueId::from("r1/plan-b-led-on"),
+            level: true,
+        })
+        .unwrap();
+    let stale_session = plan_b_session
+        .clone()
+        .with_observed_boots(
+            plan_b_session.source.boot_id.clone(),
+            BootId::from("r1/stale-pico-boot"),
         )
         .unwrap();
+    assert_eq!(
+        recovery.record_led_result(R1LedResultObservation {
+            pico_host_id: pico_host,
+            pico_boot_id: pico_boot,
+            plan_id: plan_b.plan_id.clone(),
+            active_play_id: recovery.play_b().unwrap().active_play_id.clone(),
+            observed_session: stale_session,
+            clue_id: ClueId::from("r1/stale-observed-session"),
+            level: true,
+        }),
+        Err(R1RecoveryError::StaleResult)
+    );
     assert_eq!(recovery.led_results()[0].body_id, body_id);
     assert_eq!(recovery.led_results()[0].wake_id, wake_id);
 }

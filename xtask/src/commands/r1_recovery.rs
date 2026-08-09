@@ -136,15 +136,19 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
         .map_err(|error| format!("invalid Plan B session: {error:?}"))?
         .attachment
         .base;
+    let plan_b_session = recovery
+        .plan_b_session_binding()
+        .map_err(|error| format!("invalid Plan B session: {error:?}"))?;
     recovery
-        .record_led_result(
-            HostId::from(conduit_net::R1_PICO_HOST_ID),
-            pico_boot,
-            plan_b_id.clone(),
-            play_b_id.clone(),
-            ClueId::from("r1/simulated-plan-b-led-result"),
-            true,
-        )
+        .record_led_result(conduit_system_continuity::R1LedResultObservation {
+            pico_host_id: HostId::from(conduit_net::R1_PICO_HOST_ID),
+            pico_boot_id: pico_boot,
+            plan_id: plan_b_id.clone(),
+            active_play_id: play_b_id.clone(),
+            observed_session: plan_b_session,
+            clue_id: ClueId::from("r1/simulated-plan-b-led-result"),
+            level: true,
+        })
         .map_err(|error| format!("failed recording simulated LED result: {error:?}"))?;
 
     if body_id != recovery.body().body_id
