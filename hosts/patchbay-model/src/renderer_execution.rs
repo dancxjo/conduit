@@ -168,7 +168,7 @@ fn renderer_form() -> Result<conduit_form::CheckedForm, RendererExecutionError> 
     .map_err(|_| RendererExecutionError::InvalidRendererForm)
 }
 
-fn renderer_host(
+pub(crate) fn renderer_host(
     adapter: RendererAdapterKind,
     identity: &RendererAdapterIdentity,
 ) -> HostAdvertisement {

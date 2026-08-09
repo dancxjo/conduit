@@ -1,9 +1,9 @@
-use conduit_core::{BootId, ClueId, HostId};
+use conduit_core::{verify_plan, BootId, ClueId, ConnectionBase, HostId};
 use conduit_presentation::{ManifestationError, ManifestationFailure, ManifestationLifecycle};
 
 use crate::{
-    portable_demonstration, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
-    RendererExecutionError,
+    cross_host_renderer_plan, portable_demonstration, RendererAdapterIdentity, RendererAdapterKind,
+    RendererExecution, RendererExecutionError,
 };
 
 fn identity(host: &str, boot: &str, target: &str) -> RendererAdapterIdentity {
@@ -190,4 +190,51 @@ fn self_inspection_rejects_tampered_plan_placement_and_manifestation_clue() {
     let mut inspection = execution.self_inspection().unwrap();
     inspection.manifestation.clues[0].plan_id = conduit_core::PlanId::from("tampered");
     assert!(inspection.validate_against(&presentation).is_err());
+}
+
+#[test]
+fn unchanged_renderer_form_plans_one_exact_cross_host_websocket_line() {
+    let exact = cross_host_renderer_plan(
+        HostId::from("patchbay-source"),
+        BootId::from("patchbay-source-boot"),
+        identity("patchbay-html", "patchbay-html-boot", "html/document-0"),
+    )
+    .unwrap();
+    assert!(verify_plan(&exact.plan));
+    assert_eq!(exact.plan.fragments.len(), 2);
+    let source = exact
+        .plan
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id.as_str() == "patchbay-source")
+        .unwrap();
+    let sink = exact
+        .plan
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id.as_str() == "patchbay-html")
+        .unwrap();
+    assert_eq!(
+        source.placements[0].kind_id.as_str(),
+        "presentation/patchbay-project"
+    );
+    assert_eq!(sink.placements[0].kind_id.as_str(), "presentation/renderer");
+    let connection = source.connections.first().unwrap();
+    assert_eq!(connection.base, ConnectionBase::WebSocket);
+    assert_eq!(connection.item_capacity, 1);
+    assert_eq!(
+        connection.byte_capacity,
+        conduit_presentation::MAX_RENDERER_VALUE_BYTES
+    );
+    let binding = conduit_wire::SessionBinding::from_planned_connection(
+        exact.plan.plan_id.clone(),
+        source.fragment_id.clone(),
+        sink.fragment_id.clone(),
+        connection,
+    )
+    .unwrap();
+    assert_eq!(binding.source.host_id, source.host_id);
+    assert_eq!(binding.sink.host_id, sink.host_id);
+    assert_eq!(binding.attachment.base, ConnectionBase::WebSocket);
+    assert_eq!(binding.attachment.link_binding_id, exact.link.binding_id);
 }
