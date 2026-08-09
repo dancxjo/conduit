@@ -440,6 +440,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-presentation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-planner",
+ "serde",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-realm"
 version = "0.1.0"
 dependencies = [
