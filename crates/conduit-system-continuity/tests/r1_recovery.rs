@@ -9,10 +9,10 @@ use conduit_system_continuity::{
 
 fn start() -> (R1NewPlanRecovery, conduit_core::Plan, conduit_core::Plan) {
     let boot = BootId::from("r1/pico-runtime-boot");
-    let plan_a = exact_r1_signal_plan(boot.clone(), R1SignalRouteSet::UsbOnly)
+    let plan_a = exact_r1_signal_plan(boot.clone(), R1SignalRouteSet::WebSocketOnly)
         .unwrap()
         .plan;
-    let plan_b = exact_r1_signal_plan(boot, R1SignalRouteSet::WebSocketOnly)
+    let plan_b = exact_r1_signal_plan(boot, R1SignalRouteSet::UsbOnly)
         .unwrap()
         .plan;
     let recovery = R1NewPlanRecovery::begin(
@@ -34,13 +34,15 @@ fn start() -> (R1NewPlanRecovery, conduit_core::Plan, conduit_core::Plan) {
     (recovery, plan_a, plan_b)
 }
 
-fn lose_usb(recovery: &mut R1NewPlanRecovery) {
+fn lose_websocket(recovery: &mut R1NewPlanRecovery) {
     recovery
         .observe_route_unavailable(
             LinkObservation {
-                binding_id: conduit_core::LinkBindingId::from(conduit_net::R1_USB_LINK_BINDING_ID),
+                binding_id: conduit_core::LinkBindingId::from(
+                    conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
+                ),
                 availability: LinkAvailability::Unavailable,
-                clue_id: ClueId::from("r1/usb-unavailable"),
+                clue_id: ClueId::from("r1/websocket-unavailable"),
             },
             ClueId::from("r1/play-a-unsatisfied"),
         )
@@ -48,7 +50,7 @@ fn lose_usb(recovery: &mut R1NewPlanRecovery) {
 }
 
 #[test]
-fn one_body_and_wake_replace_immutable_plan_and_play_after_usb_exhaustion() {
+fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion() {
     let (mut recovery, original_plan_a, plan_b) = start();
     let body_id = recovery.body().body_id.clone();
     let wake_id = recovery.wake().wake_id.clone();
@@ -56,9 +58,9 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_usb_exhaustion() {
     let plan_a_session = recovery.plan_a_session_binding().unwrap();
     assert_eq!(
         plan_a_session.attachment.base,
-        conduit_core::ConnectionBase::UsbCdc
+        conduit_core::ConnectionBase::WebSocket
     );
-    lose_usb(&mut recovery);
+    lose_websocket(&mut recovery);
     recovery
         .install_replacement(
             plan_b.clone(),
@@ -89,7 +91,7 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_usb_exhaustion() {
     let plan_b_session = recovery.plan_b_session_binding().unwrap();
     assert_eq!(
         plan_b_session.attachment.base,
-        conduit_core::ConnectionBase::WebSocket
+        conduit_core::ConnectionBase::UsbCdc
     );
     assert_ne!(plan_a_session.plan_id, plan_b_session.plan_id);
     assert_eq!(plan_a_session.sink, plan_b_session.sink);
@@ -141,7 +143,7 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_usb_exhaustion() {
 #[test]
 fn bounded_multi_clue_transition_is_admitted_atomically() {
     let (mut recovery, _, _) = start();
-    lose_usb(&mut recovery);
+    lose_websocket(&mut recovery);
     for sequence in 0..3 {
         recovery
             .refuse_replacement(
@@ -171,7 +173,7 @@ fn bounded_multi_clue_transition_is_admitted_atomically() {
 #[test]
 fn no_valid_replacement_remains_explicitly_unsatisfied() {
     let (mut recovery, _, _) = start();
-    lose_usb(&mut recovery);
+    lose_websocket(&mut recovery);
     recovery
         .refuse_replacement(
             HostId::from(conduit_net::R1_STD_HOST_ID),
@@ -195,7 +197,7 @@ fn no_valid_replacement_remains_explicitly_unsatisfied() {
 #[test]
 fn replacement_cannot_change_the_pico_realization_subject() {
     let (mut recovery, _, mut plan_b) = start();
-    lose_usb(&mut recovery);
+    lose_websocket(&mut recovery);
     let pico = plan_b
         .fragments
         .iter_mut()

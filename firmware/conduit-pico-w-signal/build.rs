@@ -35,6 +35,7 @@ fn main() {
 
     if firmware_mode() == "wifi-bootstrap" {
         generate_pico_network_image(&out);
+        generate_r1_recovery_signal_images(&out);
     } else {
         generate_pico_signal_image(&out);
     }
@@ -56,6 +57,47 @@ fn main() {
     println!("cargo:rerun-if-changed=../../examples/r1-network-bootstrap.conduit");
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_ENV}");
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_RERUN_ENV}");
+}
+
+fn generate_r1_recovery_signal_images(out: &Path) {
+    let form = conduit_form::parse(SIGNAL_DEMO_FORM, &signal_profile_catalog())
+        .expect("R1 Signal form must check against conduit-signal profile");
+    for (stem, routes) in [
+        (
+            "r1_plan_a_signal",
+            conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+        ),
+        (
+            "r1_plan_b_signal",
+            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+        ),
+    ] {
+        let exact = conduit_system_continuity::exact_r1_signal_plan(
+            BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            routes,
+        )
+        .expect("exact R1 recovery Signal Plan must resolve");
+        let fragment = exact
+            .plan
+            .fragments
+            .iter()
+            .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+            .expect("R1 recovery Plan must contain the Pico fragment");
+        let lowered = lower_plan_fragment(fragment).expect("R1 Pico Signal fragment must lower");
+        let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())
+            .expect("R1 Pico Signal fragment must fit reviewed fixed-image bounds");
+        let identity = GeneratedFirmwareIdentity::new(&form, &generated);
+        fs::write(
+            out.join(format!("{stem}_image.rs")),
+            render_firmware_module(&generated, &identity),
+        )
+        .expect("generated R1 Pico Signal image should be writable");
+        fs::write(
+            out.join(format!("{stem}_identity.json")),
+            render_identity_sidecar(&generated, &identity),
+        )
+        .expect("generated R1 Pico Signal identity sidecar should be writable");
+    }
 }
 
 fn generate_pico_network_image(out: &Path) {

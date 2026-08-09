@@ -47,6 +47,7 @@ conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-net = { path = "../../crates/conduit-net", features = ["r1-planning"] }
+conduit-system-continuity = { path = "../../crates/conduit-system-continuity", features = ["r1-recovery"] }
 
 [[bin]]
 name = "conduit-pico-w-signal"

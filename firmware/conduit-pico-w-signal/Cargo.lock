@@ -167,6 +167,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-body"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "serde",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-core"
 version = "0.1.0"
 dependencies = [
@@ -208,6 +217,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-observatory"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "serde",
+]
+
+[[package]]
 name = "conduit-pico-w-signal"
 version = "0.1.0"
 dependencies = [
@@ -220,6 +237,7 @@ dependencies = [
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-system-continuity",
  "conduit-wire",
  "cortex-m",
  "cortex-m-rt",
@@ -265,6 +283,21 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
+ "serde",
+]
+
+[[package]]
+name = "conduit-system-continuity"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-form",
+ "conduit-net",
+ "conduit-observatory",
+ "conduit-planner",
+ "conduit-signal",
+ "conduit-wire",
  "serde",
 ]
 

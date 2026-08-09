@@ -143,7 +143,10 @@ fn generate_remote_endpoints(
                 UnsupportedPlanFeature::RemoteConnection,
             ));
         }
-        if endpoint.binding.base != ConnectionBase::UsbCdc {
+        if !matches!(
+            endpoint.binding.base,
+            ConnectionBase::UsbCdc | ConnectionBase::WebSocket
+        ) {
             return Err(GenerationError::Unsupported(
                 UnsupportedPlanFeature::RemoteConnection,
             ));
