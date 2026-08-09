@@ -4,6 +4,8 @@ extern crate alloc;
 
 mod model;
 #[cfg(feature = "r1-recovery")]
+mod r1_control_planning;
+#[cfg(feature = "r1-recovery")]
 mod r1_planning;
 #[cfg(feature = "r1-recovery")]
 mod r1_recovery;
@@ -12,6 +14,8 @@ mod record;
 mod transition;
 
 pub use model::*;
+#[cfg(feature = "r1-recovery")]
+pub use r1_control_planning::*;
 #[cfg(feature = "r1-recovery")]
 pub use r1_planning::*;
 #[cfg(feature = "r1-recovery")]

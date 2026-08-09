@@ -8,6 +8,10 @@ mod trigger;
 #[cfg(feature = "host-profile")]
 pub use trigger::*;
 #[cfg(feature = "host-profile")]
+mod control;
+#[cfg(feature = "host-profile")]
+pub use control::*;
+#[cfg(feature = "host-profile")]
 mod canonical;
 #[cfg(feature = "host-profile")]
 pub use canonical::signal_startup_catalog;
@@ -533,6 +537,7 @@ mod profile_catalog;
 pub fn signal_profile_catalog() -> conduit_form::ProfileCatalog {
     let mut catalog = profile_catalog::signal_profile_catalog();
     trigger::extend_profile_catalog(&mut catalog);
+    control::extend_control_profile_catalog(&mut catalog);
     catalog
 }
 

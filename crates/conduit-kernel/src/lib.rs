@@ -15,6 +15,7 @@ use core::mem::size_of;
 pub mod scheduler;
 pub mod shared_flow;
 pub mod shared_pool;
+pub mod static_merge;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]
