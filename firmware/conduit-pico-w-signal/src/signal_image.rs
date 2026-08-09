@@ -294,6 +294,8 @@ pub struct RemoteEndpointIdentity {
     pub base_instance_id: &'static str,
     pub link_binding_id: &'static str,
     pub value_kind: &'static str,
+    pub session_item_capacity: u16,
+    pub session_byte_capacity: u32,
     pub maximum_in_flight_items: u16,
     pub maximum_payload_bytes: u32,
     pub maximum_buffered_bytes: u32,
@@ -305,9 +307,11 @@ pub fn generated_remote_endpoint() -> Option<RemoteEndpointIdentity> {
     if generated_signal::GENERATED_REMOTE_ENDPOINT_COUNT != 1 {
         return None;
     }
+    let cord = CordId(*generated_signal::GENERATED_REMOTE_ENDPOINT_CORDS.first()?);
+    let cord_spec = generated_signal::GENERATED_CORDS.get(usize::from(cord.0))?;
     Some(RemoteEndpointIdentity {
         endpoint: RemoteEndpointId(*generated_signal::GENERATED_REMOTE_ENDPOINT_IDS.first()?),
-        cord: CordId(*generated_signal::GENERATED_REMOTE_ENDPOINT_CORDS.first()?),
+        cord,
         connection_id: generated_signal::GENERATED_REMOTE_ENDPOINT_CONNECTION_IDS.first()?,
         source_fragment_id: generated_signal::GENERATED_REMOTE_ENDPOINT_SOURCE_FRAGMENT_IDS
             .first()?,
@@ -323,6 +327,8 @@ pub fn generated_remote_endpoint() -> Option<RemoteEndpointIdentity> {
             .first()?,
         link_binding_id: generated_signal::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS.first()?,
         value_kind: generated_signal::GENERATED_REMOTE_ENDPOINT_VALUE_KINDS.first()?,
+        session_item_capacity: cord_spec.item_capacity,
+        session_byte_capacity: cord_spec.byte_capacity,
         maximum_in_flight_items: *generated_signal::GENERATED_REMOTE_ENDPOINT_MAXIMUM_IN_FLIGHT_ITEMS
             .first()?,
         maximum_payload_bytes: *generated_signal::GENERATED_REMOTE_ENDPOINT_MAXIMUM_PAYLOAD_BYTES
