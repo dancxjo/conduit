@@ -10,5 +10,5 @@ mod transport_types;
 
 pub use demo::demonstration_snapshot;
 pub use server::{PatchbayHtmlServer, ServerError, MAX_HTTP_REQUEST_BYTES};
-pub use snapshot::{SnapshotError, MAX_SNAPSHOT_BYTES, MAX_SNAPSHOT_LINEAR_LINES, SNAPSHOT_SCHEMA};
+pub use snapshot::{SnapshotError, MAX_SNAPSHOT_BYTES, SNAPSHOT_SCHEMA};
 pub use transport_types::*;

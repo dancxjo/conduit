@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-observatory = { path = "../../crates/conduit-observatory" }
+conduit-presentation = { path = "../../crates/conduit-presentation" }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", features = ["form-catalog"] }
 conduit-std-host = { path = "../std" }
 font8x8 = "0.3"

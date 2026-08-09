@@ -17,6 +17,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 mod control;
 mod form_editor;
+mod portable_demo;
+mod portable_projection;
 mod renderer_projection;
 mod route_demo;
 mod route_presentation;
@@ -27,6 +29,8 @@ pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
 };
+pub use portable_demo::portable_demonstration;
+pub use portable_projection::PortableProjectionError;
 pub use renderer_projection::{
     AttemptedEditPresentation, PatchbayPresentation, RendererIdentityProjection,
     RendererProjectionError, MAX_RENDERER_DIAGNOSTICS, MAX_RENDERER_EVIDENCE,
@@ -40,6 +44,9 @@ pub use route_presentation::{
 };
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
 pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES;
+
+#[cfg(test)]
+mod portable_projection_tests;
 
 const LIFECYCLE_CAPACITY: u32 = 2;
 static ID_SEQUENCE: AtomicU64 = AtomicU64::new(1);

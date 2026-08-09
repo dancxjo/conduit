@@ -1,6 +1,19 @@
 use super::{
-    arguments::parse_arguments, render::draw_document, Arguments, PatchbayApplication, BACKGROUND,
+    arguments::parse_arguments, presentation::portable_presentation_lines, render::draw_document,
+    Arguments, PatchbayApplication, BACKGROUND,
 };
+
+#[test]
+fn native_renderer_consumes_the_same_portable_value_as_html_transport() {
+    let presentation = patchbay_model::portable_demonstration().unwrap();
+    let lines = portable_presentation_lines(&presentation).unwrap();
+    let rendered = lines.join("\n");
+    assert!(rendered.contains(presentation.identity.as_str()));
+    assert!(rendered.contains(presentation.basis.deployment_id.as_str()));
+    assert!(rendered.contains(presentation.basis.activation_id.as_str()));
+    assert!(rendered.contains("provider=USB CDC"));
+    assert!(rendered.contains("provider=WebSocket"));
+}
 use std::path::PathBuf;
 
 #[test]
@@ -89,29 +102,14 @@ fn native_document_exposes_both_route_recovery_cases() {
     .expect("distributed route document");
     let lines = application.presentation_lines();
     let text = lines.join("\n");
-    assert!(text.contains("NEW-PLAN RECOVERY"));
-    assert!(text.contains("Plan B  id="));
-    assert!(text.contains("SAME-PLAN FALLBACK"));
-    assert!(text.contains("Plan C unchanged"));
-    assert!(text.contains("LINEAR NARRATION"));
+    assert!(text.contains("PRESENTATION "));
+    assert!(text.contains("REALM patchbay/realm deployment="));
+    assert!(text.contains("The deployment became unsatisfied"));
+    assert!(text.contains("Replacement Plan"));
     assert!(text.contains("Plan identity did not change"));
-    assert!(text.contains("UNPLANNED ROUTE refused=ambient Wi-Fi"));
-    assert!(text.contains("PLAN-A replan-required"));
-    assert!(text.contains("OUTCOME replan=true"));
-    assert!(text.contains("PLAN-B predeclared-fallback"));
-    assert!(text.contains("OUTCOME replan=false"));
-    let visual = lines
-        .iter()
-        .position(|line| line == "ROUTE RECOVERY — same facts, two outcomes")
-        .unwrap();
-    let detail = lines
-        .iter()
-        .position(|line| line == "ROUTE DETAIL — exact identities and evidence")
-        .unwrap();
-    assert!(
-        visual < detail,
-        "compact hierarchy must precede exact detail"
-    );
+    assert!(text.contains("ambient route"));
+    assert!(text.contains("provider=USB CDC"));
+    assert!(text.contains("provider=WebSocket"));
 }
 
 #[test]

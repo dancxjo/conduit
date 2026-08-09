@@ -8,6 +8,8 @@ conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-observatory = { path = "../../crates/conduit-observatory" }
 conduit-planner = { path = "../../crates/conduit-planner" }
+conduit-presentation = { path = "../../crates/conduit-presentation" }
+conduit-realm = { path = "../../crates/conduit-realm" }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
 conduit-std-host = { path = "../std" }
@@ -15,3 +17,4 @@ conduit-wire = { path = "../../crates/conduit-wire" }
 
 [dev-dependencies]
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
+serde_json = "1"

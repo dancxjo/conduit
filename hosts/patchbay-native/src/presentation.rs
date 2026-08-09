@@ -1,12 +1,105 @@
 //! Native Patchbay document composition, kept separate from event-loop policy.
 
 use super::PatchbayApplication;
+use conduit_core::ConnectionProvider;
+use conduit_presentation::{Presentation, PresentationPropertyValue};
 use patchbay_model::GraphItemKind;
 
 const MAX_FORM_PRESENTATION_LINES: usize = 256;
 
+/// Native text is a renderer-local realization of the shared portable value.
+pub(super) fn portable_presentation_lines(
+    presentation: &Presentation,
+) -> Result<Vec<String>, String> {
+    presentation.validate().map_err(|error| error.to_string())?;
+    let basis = &presentation.basis;
+    let mut lines = vec![
+        format!(
+            "PRESENTATION {} revision={}",
+            presentation.identity.as_str(),
+            presentation.revision
+        ),
+        format!(
+            "REALM {} deployment={} activation={}",
+            basis.realm_id.as_str(),
+            basis.deployment_id.as_str(),
+            basis.activation_id.as_str()
+        ),
+        format!(
+            "FORM source={} checked={}",
+            basis.source_document_id.as_str(),
+            basis.checked_form_id.as_str()
+        ),
+        format!(
+            "PLAN {} PLAY {}",
+            basis
+                .plan_id
+                .as_ref()
+                .map_or("not present", |id| id.as_str()),
+            basis
+                .active_play_id
+                .as_ref()
+                .map_or("not present", |id| id.as_str())
+        ),
+    ];
+    for subject in &presentation.subjects {
+        lines.push(format!(
+            "{:?} {} — {}",
+            subject.role, subject.identity, subject.label
+        ));
+        for property in presentation
+            .properties
+            .iter()
+            .filter(|property| property.subject == subject.identity)
+        {
+            lines.push(format!(
+                "  {}={}",
+                property.name,
+                display_property(&property.value)
+            ));
+        }
+        lines.extend(
+            presentation
+                .text
+                .iter()
+                .filter(|text| text.subject == subject.identity)
+                .map(|text| format!("  {}", text.text)),
+        );
+    }
+    lines.truncate(MAX_FORM_PRESENTATION_LINES);
+    Ok(lines)
+}
+
+fn display_property(value: &PresentationPropertyValue) -> String {
+    match value {
+        PresentationPropertyValue::Identity(value) | PresentationPropertyValue::Text(value) => {
+            value.clone()
+        }
+        PresentationPropertyValue::ConnectionProvider(provider) => {
+            display_provider(*provider).into()
+        }
+        PresentationPropertyValue::Count(value) => value.to_string(),
+        PresentationPropertyValue::Flag(value) => value.to_string(),
+    }
+}
+
+fn display_provider(provider: ConnectionProvider) -> &'static str {
+    match provider {
+        ConnectionProvider::Local => "local",
+        ConnectionProvider::InMemory => "in-memory",
+        ConnectionProvider::FixtureFrame => "fixture frame",
+        ConnectionProvider::FixtureDatagram => "fixture datagram",
+        ConnectionProvider::WebSocket => "WebSocket",
+        ConnectionProvider::UsbCdc => "USB CDC",
+    }
+}
+
 impl PatchbayApplication {
     pub(super) fn presentation_lines(&self) -> Vec<String> {
+        if let Some(presentation) = &self.portable_presentation {
+            return portable_presentation_lines(presentation)
+                .unwrap_or_else(|error| vec![format!("PORTABLE PRESENTATION INVALID: {error}")]);
+        }
         let Some(editor) = &self.form_editor else {
             let mut lines = self.topology_lines.clone();
             if let Some(demo) = &self.route_demo {
