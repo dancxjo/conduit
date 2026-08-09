@@ -4,15 +4,33 @@ use conduit_embedded_build::GeneratedEmbeddedPlan;
 
 use super::GeneratedFirmwareIdentity;
 
-pub(super) fn render_identity_sidecar(
+pub(super) fn render_network_identity_sidecar(
     generated: &GeneratedEmbeddedPlan,
     identity: &GeneratedFirmwareIdentity,
 ) -> String {
-    let schema = if identity.firmware_mode == "wifi-bootstrap" {
-        "conduit.pico-network.generated-image@1"
-    } else {
-        "conduit.pico-signal.generated-image@1"
-    };
+    render_identity_sidecar(
+        generated,
+        identity,
+        "conduit.pico-network.generated-image@1",
+    )
+}
+
+pub(super) fn render_signal_identity_sidecar(
+    generated: &GeneratedEmbeddedPlan,
+    identity: &GeneratedFirmwareIdentity,
+) -> String {
+    render_identity_sidecar(
+        generated,
+        identity,
+        "conduit.pico-signal.generated-image@1",
+    )
+}
+
+fn render_identity_sidecar(
+    generated: &GeneratedEmbeddedPlan,
+    identity: &GeneratedFirmwareIdentity,
+    schema: &str,
+) -> String {
     let presentation_ids = json_string_array(&identity.presentation_ids);
     let presentation_clue_ids = json_string_array(&identity.presentation_clue_ids);
     format!(

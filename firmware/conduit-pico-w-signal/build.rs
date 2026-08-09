@@ -19,7 +19,7 @@ use conduit_signal::{
 };
 
 mod identity_sidecar;
-use identity_sidecar::render_identity_sidecar;
+use identity_sidecar::{render_network_identity_sidecar, render_signal_identity_sidecar};
 #[path = "build/firmware_mode.rs"]
 mod firmware_mode;
 use firmware_mode::firmware_mode;
@@ -68,6 +68,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../../examples/triple-signal.form");
     println!("cargo:rerun-if-changed=../../examples/r1-network-bootstrap.conduit");
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_ENV}");
+    r1_control_images::emit_rerun_directives();
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_RERUN_ENV}");
 }
 
@@ -115,7 +116,7 @@ fn generate_r1_recovery_signal_images(out: &Path) {
         }
         fs::write(
             out.join(format!("{stem}_identity.json")),
-            render_identity_sidecar(&generated, &identity),
+            render_signal_identity_sidecar(&generated, &identity),
         )
         .expect("generated R1 Pico Signal identity sidecar should be writable");
     }
@@ -216,7 +217,7 @@ fn generate_pico_network_image(out: &Path) {
     render_string_constant(&mut module, "FIRMWARE_BUILD_ID", &firmware_build_id);
     fs::write(out.join("pico_network_image.rs"), module)
         .expect("generated Pico network image should be writable");
-    let sidecar = render_identity_sidecar(&generated, &identity);
+    let sidecar = render_network_identity_sidecar(&generated, &identity);
     fs::write(out.join("pico_network_identity.json"), &sidecar)
         .expect("generated Pico network identity sidecar should be writable");
     if let Ok(path) = env::var(IDENTITY_SIDECAR_ENV) {
@@ -275,7 +276,7 @@ fn generate_pico_signal_image(out: &Path) {
         render_firmware_module(&generated, &identity),
     )
     .expect("generated Pico Signal image should be writable");
-    let sidecar = render_identity_sidecar(&generated, &identity);
+    let sidecar = render_signal_identity_sidecar(&generated, &identity);
     fs::write(out.join("pico_signal_identity.json"), &sidecar)
         .expect("generated Pico Signal identity sidecar should be writable");
     if let Ok(path) = env::var(IDENTITY_SIDECAR_ENV) {

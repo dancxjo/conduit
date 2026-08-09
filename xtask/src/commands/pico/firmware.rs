@@ -14,7 +14,7 @@ pub const FIRMWARE_PACKAGE: &str = "conduit-pico-w-signal";
 pub const TARGET: &str = "thumbv6m-none-eabi";
 pub const PROFILE: &str = "release";
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FirmwareIdentity {
     pub schema: String,
     pub git_revision: String,
@@ -24,8 +24,77 @@ pub struct FirmwareIdentity {
     pub firmware_build_id: String,
     pub firmware_sha256: String,
     pub generated_image: GeneratedImageIdentity,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r1_control_images: Option<R1ControlImageFamily>,
     pub cyw43_commit: String,
     pub cyw43_assets: Vec<AssetEntry>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct R1ControlImageFamily {
+    pub plan_a: GeneratedImageIdentity,
+    pub plan_b: GeneratedImageIdentity,
+    pub plan_c: GeneratedImageIdentity,
+}
+
+impl FirmwareIdentity {
+    pub fn verified_r1_control_images(&self) -> PicoResult<&R1ControlImageFamily> {
+        let family = self
+            .r1_control_images
+            .as_ref()
+            .ok_or("firmware identity has no R1 control image family")?;
+        if self.schema != "conduit-pico-w-signal/identity@2"
+            || self.firmware_mode != "r1-control"
+            || self.generated_image.schema != "conduit.pico-network.generated-image@1"
+            || self.generated_image.firmware_mode != self.firmware_mode
+            || self.generated_image.firmware_build_id != self.firmware_build_id
+        {
+            return Err("R1 composite firmware primary network identity is invalid".into());
+        }
+        for (image, routes) in [
+            (
+                &family.plan_a,
+                conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+            ),
+            (
+                &family.plan_b,
+                conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+            ),
+            (
+                &family.plan_c,
+                conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
+            ),
+        ] {
+            let exact = conduit_system_continuity::exact_r1_control_plan(
+                conduit_core::BootId::from(conduit_net::R1_PICO_BOOT_ID),
+                routes,
+            )?;
+            let fragment = exact
+                .plan
+                .fragments
+                .iter()
+                .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+                .ok_or("exact R1 control Plan has no Pico fragment")?;
+            if image.schema != "conduit.pico-signal.generated-image@1"
+                || image.firmware_mode != self.firmware_mode
+                || image.source_document_id != exact.plan.source_document_id.as_str()
+                || image.checked_form_id != exact.plan.checked_form_id.as_str()
+                || image.expanded_form_id != exact.plan.expanded_form_id.as_str()
+                || image.plan_id != exact.plan.plan_id.as_str()
+                || image.fragment_id != fragment.fragment_id.as_str()
+                || image.host_id != conduit_net::R1_PICO_HOST_ID
+                || image.boot_id != conduit_net::R1_PICO_BOOT_ID
+                || image.nodes != 1
+                || image.cords != 1
+                || image.host_operations != 1
+                || image.cord_value_slots != 1
+                || image.cord_value_bytes != conduit_signal::SIGNAL_ENCODED_LEN
+            {
+                return Err("R1 composite firmware control image family is invalid".into());
+            }
+        }
+        Ok(family)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -55,7 +124,7 @@ pub struct GeneratedImageIdentity {
     pub clue_bytes: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AssetEntry {
     pub filename: String,
     pub sha256: String,
@@ -100,6 +169,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     }
     println!("==> pico build: cargo {}", build_args.join(" "));
     let generated_identity_sidecar = generated_identity_sidecar_path(&root);
+    let control_identity_sidecars = control_identity_sidecar_paths(&root);
     if args.dry_run {
         println!(
             "  planned: generated identity sidecar {}",
@@ -109,6 +179,11 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         if generated_identity_sidecar.exists() {
             std::fs::remove_file(&generated_identity_sidecar)?;
         }
+        for sidecar in &control_identity_sidecars {
+            if sidecar.exists() {
+                std::fs::remove_file(sidecar)?;
+            }
+        }
         let status = Command::new("cargo")
             .args(build_args)
             .env(
@@ -116,6 +191,18 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
                 &generated_identity_sidecar,
             )
             .env("CONDUIT_PICO_SIGNAL_IDENTITY_RERUN", build_rerun_nonce())
+            .env(
+                "CONDUIT_R1_CONTROL_PLAN_A_IDENTITY_SIDECAR",
+                &control_identity_sidecars[0],
+            )
+            .env(
+                "CONDUIT_R1_CONTROL_PLAN_B_IDENTITY_SIDECAR",
+                &control_identity_sidecars[1],
+            )
+            .env(
+                "CONDUIT_R1_CONTROL_PLAN_C_IDENTITY_SIDECAR",
+                &control_identity_sidecars[2],
+            )
             .status()?;
         if !status.success() {
             return Err("cargo build for Pico W firmware failed".into());
@@ -142,7 +229,12 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         if !status.success() {
             return Err("elf2uf2-rs conversion failed".into());
         }
-        write_identity_manifest(&root, &elf, &generated_identity_sidecar)?;
+        write_identity_manifest(
+            &root,
+            &elf,
+            &generated_identity_sidecar,
+            &control_identity_sidecars,
+        )?;
     }
 
     println!("==> pico build: done — {}", uf2.display());
@@ -153,6 +245,7 @@ fn write_identity_manifest(
     root: &Path,
     elf: &Path,
     generated_identity_sidecar: &Path,
+    control_identity_sidecars: &[PathBuf; 3],
 ) -> PicoResult<()> {
     let git_output = Command::new("git")
         .args(["rev-parse", "HEAD"])
@@ -164,6 +257,15 @@ fn write_identity_manifest(
     let git_revision = String::from_utf8(git_output.stdout)?.trim().to_owned();
     let firmware_sha256 = sha256_file(elf)?;
     let generated_image = read_generated_image_identity(generated_identity_sidecar)?;
+    let r1_control_images = if generated_image.firmware_mode == "r1-control" {
+        Some(R1ControlImageFamily {
+            plan_a: read_generated_image_identity(&control_identity_sidecars[0])?,
+            plan_b: read_generated_image_identity(&control_identity_sidecars[1])?,
+            plan_c: read_generated_image_identity(&control_identity_sidecars[2])?,
+        })
+    } else {
+        None
+    };
 
     let cyw43_assets = CYW43_ASSETS
         .iter()
@@ -174,7 +276,12 @@ fn write_identity_manifest(
         .collect();
 
     let identity = FirmwareIdentity {
-        schema: "conduit-pico-w-signal/identity@1".into(),
+        schema: if r1_control_images.is_some() {
+            "conduit-pico-w-signal/identity@2"
+        } else {
+            "conduit-pico-w-signal/identity@1"
+        }
+        .into(),
         git_revision,
         target: TARGET.into(),
         profile: PROFILE.into(),
@@ -182,9 +289,13 @@ fn write_identity_manifest(
         firmware_build_id: generated_image.firmware_build_id.clone(),
         firmware_sha256,
         generated_image,
+        r1_control_images,
         cyw43_commit: CYW43_COMMIT.into(),
         cyw43_assets,
     };
+    if identity.r1_control_images.is_some() {
+        identity.verified_r1_control_images()?;
+    }
 
     let manifest_path =
         firmware_target_profile_dir(root).join(format!("{FIRMWARE_PACKAGE}.identity.json"));
@@ -196,6 +307,15 @@ fn write_identity_manifest(
     std::fs::write(&manifest_path, serde_json::to_string_pretty(&identity)?)?;
     println!("  identity manifest: {}", manifest_path.display());
     Ok(())
+}
+
+fn control_identity_sidecar_paths(root: &Path) -> [PathBuf; 3] {
+    let directory = firmware_target_profile_dir(root);
+    [
+        directory.join("r1-control-plan-a.generated-image.json"),
+        directory.join("r1-control-plan-b.generated-image.json"),
+        directory.join("r1-control-plan-c.generated-image.json"),
+    ]
 }
 
 pub fn read_identity_manifest(root: &Path) -> PicoResult<FirmwareIdentity> {

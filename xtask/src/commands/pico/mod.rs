@@ -1,6 +1,8 @@
 mod bootsel;
 mod doctor;
 mod firmware;
+#[cfg(test)]
+mod firmware_tests;
 mod flash;
 mod prove_usb;
 #[cfg(unix)]

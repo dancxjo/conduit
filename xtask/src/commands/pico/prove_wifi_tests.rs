@@ -35,6 +35,7 @@ fn identity() -> FirmwareIdentity {
             clue_items: 16,
             clue_bytes: 1024,
         },
+        r1_control_images: None,
         cyw43_commit: "commit".into(),
         cyw43_assets: vec![AssetEntry {
             filename: "asset".into(),
