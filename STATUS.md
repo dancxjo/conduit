@@ -456,7 +456,25 @@ the exact Line and lower binding facts. Deterministic tests distinguish
 same-Plan bounded continuation from new-Plan recovery, and the accepted #361
 physical record supplies the corresponding live proof. This checkpoint adds
 no new physical run, transport family, discovery, retry/replay policy, Wi-Fi
-Base, public-network security claim, or work deferred to #356 and #644.
+Base, public-network security claim, or work deferred to #356.
+
+The canonical ontology migration from #644 is accepted at exact main
+`d41f01061daded9c615ea081a40850d200dedc9f`; push workflow `31338153479`
+passed both required jobs. Current public Rust, model, schema, CLI, Patchbay,
+browser, native-host, firmware, documentation, example, test, and proof-tool
+surfaces use Sign for finite machine-readable execution facts and Line for an
+exact planned connectivity realization. Info remains the generic value
+meaning; the exact Signal value/type family remains intentionally named and
+port-specific, while Port and Face identities stay explicit.
+
+This was a clean break: no live Clue/Evidence compatibility API stands in for
+Sign, no generic Data/Signal compatibility surface stands in for Info, and no
+Carrier alias stands in for Line. Realm, Activation, Deployment, and Provider
+do not remain as current semantic aliases; repository search retains those
+words only in ordinary language, external/implementation names, or explicitly
+historical retirement records. This checkpoint changes vocabulary, not kernel
+semantics, bounds, authority, connectivity policy, retry behavior, or proof
+class, and adds no new physical/HIL claim.
 
 That R1 physical acceptance does not imply manual fallback selection, Plan
 mutation, reconnect policy, discovery, mesh, TLS/public Internet, Zenoh, route
