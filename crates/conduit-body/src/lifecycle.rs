@@ -6,6 +6,7 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::identity::{bind_identity, validate_ids};
+use crate::validation::{validate_clue, validate_new_clue, validate_plan_history};
 use crate::{BodyId, BodyLifecycleEvent, SeedId, WakeId, WakeLifecycleEvent};
 
 pub const MAX_BODY_CLUES: usize = 16;
@@ -34,6 +35,8 @@ pub struct Body {
 pub enum WakeLifecycle {
     AwaitingPlan,
     AwaitingPlay,
+    Held,
+    AwaitingReplacement,
     Playing,
     Unsatisfied,
     Lulled,
@@ -43,6 +46,8 @@ pub enum WakeLifecycle {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WakePlanState {
     AwaitingPlay,
+    Held,
+    Invalidated,
     Playing,
     Unsatisfied,
     Superseded,
@@ -53,6 +58,8 @@ pub struct WakePlan {
     pub plan_id: PlanId,
     pub active_play_id: Option<ActivePlayId>,
     pub state: WakePlanState,
+    #[serde(default)]
+    pub hold: Option<crate::PlanHold>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -81,6 +88,10 @@ pub enum BodyLifecycleError {
     InvalidPlan,
     StalePlan,
     StalePlay,
+    InvalidPlanningBasis,
+    PlanningBasisCapacityExhausted,
+    AuthorityDenied,
+    HoldRequired,
     MismatchedWake,
 }
 
@@ -233,6 +244,20 @@ impl Wake {
         let prior = match self.lifecycle {
             WakeLifecycle::AwaitingPlan if self.plans.is_empty() => None,
             WakeLifecycle::Unsatisfied => self.plans.last().map(|p| &p.plan_id),
+            WakeLifecycle::AwaitingReplacement => {
+                let previous = self
+                    .plans
+                    .last()
+                    .ok_or(BodyLifecycleError::InvalidTransition)?;
+                if previous
+                    .hold
+                    .as_ref()
+                    .is_some_and(|hold| hold.policy.hold_replacement_plan)
+                {
+                    return Err(BodyLifecycleError::HoldRequired);
+                }
+                Some(&previous.plan_id)
+            }
             _ => return Err(BodyLifecycleError::InvalidTransition),
         };
         if prior == Some(&plan.plan_id) {
@@ -262,6 +287,7 @@ impl Wake {
             plan_id: plan.plan_id.clone(),
             active_play_id: None,
             state: WakePlanState::AwaitingPlay,
+            hold: None,
         });
         next.lifecycle = WakeLifecycle::AwaitingPlay;
         Ok(next)
@@ -397,7 +423,7 @@ impl Wake {
         validate_plan_history(self.lifecycle, &self.plans)
     }
 
-    fn validate_plan(&self, plan: &Plan) -> Result<(), BodyLifecycleError> {
+    pub(crate) fn validate_plan(&self, plan: &Plan) -> Result<(), BodyLifecycleError> {
         if !verify_plan(plan) {
             return Err(BodyLifecycleError::InvalidPlan);
         }
@@ -408,74 +434,13 @@ impl Wake {
         }
         Ok(())
     }
-    fn push_event(&mut self, event: WakeLifecycleEvent) -> Result<(), BodyLifecycleError> {
+    pub(crate) fn push_event(
+        &mut self,
+        event: WakeLifecycleEvent,
+    ) -> Result<(), BodyLifecycleError> {
         validate_new_clue(&self.clue_ids, event.clue_id(), MAX_WAKE_CLUES)?;
         self.clue_ids.push(event.clue_id().clone());
         self.events.push(event);
         Ok(())
     }
-}
-
-fn validate_clue(values: &[ClueId], capacity: usize) -> Result<(), BodyLifecycleError> {
-    if values.is_empty() || values.len() > capacity {
-        return Err(BodyLifecycleError::ClueCapacityExhausted);
-    }
-    for (index, value) in values.iter().enumerate() {
-        validate_ids(&[value.as_str()])?;
-        if values[..index].contains(value) {
-            return Err(BodyLifecycleError::DuplicateClue);
-        }
-    }
-    Ok(())
-}
-fn validate_new_clue(
-    values: &[ClueId],
-    value: &ClueId,
-    capacity: usize,
-) -> Result<(), BodyLifecycleError> {
-    validate_ids(&[value.as_str()])?;
-    if values.contains(value) {
-        return Err(BodyLifecycleError::DuplicateClue);
-    }
-    if values.len() >= capacity {
-        return Err(BodyLifecycleError::ClueCapacityExhausted);
-    }
-    Ok(())
-}
-fn validate_plan_history(
-    lifecycle: WakeLifecycle,
-    plans: &[WakePlan],
-) -> Result<(), BodyLifecycleError> {
-    for plan in plans {
-        validate_ids(&[plan.plan_id.as_str()])?;
-        if let Some(play) = &plan.active_play_id {
-            validate_ids(&[play.as_str()])?;
-        }
-    }
-    if plans
-        .iter()
-        .enumerate()
-        .any(|(i, p)| plans[..i].iter().any(|q| q.plan_id == p.plan_id))
-        || plans
-            .iter()
-            .enumerate()
-            .any(|(i, p)| i + 1 < plans.len() && p.state != WakePlanState::Superseded)
-    {
-        return Err(BodyLifecycleError::InvalidTransition);
-    }
-    let current = plans.last();
-    let valid = match lifecycle {
-        WakeLifecycle::AwaitingPlan => plans.is_empty(),
-        WakeLifecycle::AwaitingPlay => current
-            .is_some_and(|p| p.state == WakePlanState::AwaitingPlay && p.active_play_id.is_none()),
-        WakeLifecycle::Playing => {
-            current.is_some_and(|p| p.state == WakePlanState::Playing && p.active_play_id.is_some())
-        }
-        WakeLifecycle::Unsatisfied => current
-            .is_some_and(|p| p.state == WakePlanState::Unsatisfied && p.active_play_id.is_some()),
-        WakeLifecycle::Lulled | WakeLifecycle::Failed => true,
-    };
-    valid
-        .then_some(())
-        .ok_or(BodyLifecycleError::InvalidTransition)
 }
