@@ -12,43 +12,26 @@ use super::doctor::repo_root;
 use super::firmware::{read_identity_manifest, FirmwareIdentity};
 use super::serial::resolve_dual_ports;
 use super::transcript::{self, RuntimeTranscriptIdentity};
+use super::wifi_secrets::SecretEnvValue;
 use super::{PicoArgs, PicoResult};
 use crate::cli::GlobalOpts;
-
-const BOOTSEL_QUERY: &[u8] = b"CONDUIT_BOOTSEL_QUERY@1";
-const BOOTSEL_CHALLENGE_PREFIX: &[u8] = b"CONDUIT_BOOTSEL_CHALLENGE@1:";
-
-struct SecretEnvValue(Vec<u8>);
-
-impl SecretEnvValue {
-    fn read(variable: &str) -> PicoResult<Self> {
-        let value = std::env::var(variable).map_err(|_| {
-            format!("required secret environment variable `{variable}` is absent or not UTF-8")
-        })?;
-        Ok(Self(value.into_bytes()))
-    }
-
-    fn bytes(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl Drop for SecretEnvValue {
-    fn drop(&mut self) {
-        self.0.fill(0);
-    }
-}
 
 pub fn run_prove_pico_wifi_bootstrap(
     link_port_opt: Option<&str>,
     clue_port_opt: Option<&str>,
     ssid_env: Option<&str>,
     credential_env: Option<&str>,
+    websocket_route: bool,
     pico_args: &PicoArgs,
     opts: &GlobalOpts,
 ) -> PicoResult<()> {
     if opts.dry_run || pico_args.dry_run {
-        println!("==> prove pico-wifi-bootstrap (dry-run)");
+        let proof = if websocket_route {
+            "pico-websocket-route"
+        } else {
+            "pico-wifi-bootstrap"
+        };
+        println!("==> prove {proof} (dry-run)");
         println!("  firmware mode: wifi-bootstrap");
         println!(
             "  link port: {}",
@@ -129,6 +112,7 @@ pub fn run_prove_pico_wifi_bootstrap(
             ssid,
             credential,
             &identity,
+            websocket_route,
         )?;
     }
 
@@ -142,6 +126,7 @@ fn run_unix(
     ssid: SecretEnvValue,
     credential: SecretEnvValue,
     identity: &FirmwareIdentity,
+    websocket_route: bool,
 ) -> PicoResult<()> {
     let mut clue = NativePathCdcLineReader::open(clue_port)
         .map_err(|error| format!("failed to open CDC1 clue port: {error}"))?;
@@ -255,15 +240,14 @@ fn run_unix(
         return Err("USB bootstrap session did not reach reciprocal terminal agreement".into());
     }
 
-    carrier.send_raw_stream_frame(BOOTSEL_QUERY, Duration::from_secs(2))?;
-    let challenge = carrier.receive_raw_stream_frame(&mut raw, Duration::from_secs(3))?;
-    let running_build = challenge
-        .strip_prefix(BOOTSEL_CHALLENGE_PREFIX)
-        .ok_or("USB continuity probe returned an invalid BOOTSEL challenge")?;
-    if running_build != identity.firmware_build_id.as_bytes() {
-        return Err("USB continuity challenge came from a different firmware build".into());
+    if websocket_route {
+        super::prove_websocket::verify(&mut carrier, &mut clue, identity, &runtime)?;
+    } else {
+        super::usb_continuity::verify(&mut carrier, identity)?;
+        println!(
+            "==> Physical network attachment Clue and post-attachment USB continuity verified"
+        );
     }
-    println!("==> Physical network attachment Clue and post-attachment USB continuity verified");
     Ok(())
 }
 

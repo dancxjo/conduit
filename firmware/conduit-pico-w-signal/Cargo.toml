@@ -29,7 +29,9 @@ cyw43 = "0.7"
 cyw43-pio = "0.10"
 fixed = "=1.29.0"
 heapless = "0.8"
-embassy-net = { version = "0.9", features = ["dhcpv4", "medium-ethernet", "proto-ipv4"], optional = true }
+embassy-net = { version = "0.9", features = ["dhcpv4", "medium-ethernet", "proto-ipv4", "tcp"], optional = true }
+embedded-websocket = { version = "0.9.5", default-features = false }
+httparse = { version = "1.10", default-features = false }
 
 conduit-core = { path = "../../crates/conduit-core", default-features = false }
 conduit-kernel = { path = "../../crates/conduit-kernel" }

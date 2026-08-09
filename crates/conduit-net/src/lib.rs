@@ -18,6 +18,8 @@ mod external_websocket;
 pub use external_websocket::*;
 mod network_info;
 pub use network_info::*;
+mod r1_route;
+pub use r1_route::*;
 #[cfg(feature = "r1-planning")]
 mod r1_wifi_bootstrap;
 #[cfg(feature = "r1-planning")]

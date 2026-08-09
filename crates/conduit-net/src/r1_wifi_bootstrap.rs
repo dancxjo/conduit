@@ -17,24 +17,17 @@ use conduit_planner::{
 
 use crate::{
     install_network_bootstrap_catalogs, network_attachment_clue_offer, network_credentials_offer,
-    network_join_offer, wifi_station_resource, MAXIMUM_JOIN_INPUT_BYTES,
+    network_join_offer, wifi_station_resource, MAXIMUM_JOIN_INPUT_BYTES, R1_MAXIMUM_FRAME_BYTES,
+    R1_PICO_BOOT_ID, R1_PICO_HOST_ID, R1_PICO_USB_ENDPOINT_ID, R1_STD_BOOT_ID, R1_STD_HOST_ID,
+    R1_STD_USB_ENDPOINT_ID, R1_USB_BASE_INSTANCE_ID, R1_USB_LINK_BINDING_ID,
 };
 
-pub const R1_STD_HOST_ID: &str = "r1/std-bootstrap";
-pub const R1_STD_BOOT_ID: &str = "r1/std-bootstrap-boot";
-pub const R1_PICO_HOST_ID: &str = "r1/pico-w";
-pub const R1_PICO_BOOT_ID: &str = "r1/pico-w-boot";
 pub const R1_CREDENTIALS_CAPABILITY_ID: &str = "r1/std-network-credentials";
 pub const R1_JOIN_CAPABILITY_ID: &str = "r1/pico-network-join";
 pub const R1_ATTACHMENT_CLUE_CAPABILITY_ID: &str = "r1/pico-network-attachment-clue";
 pub const R1_WIFI_POOL_ID: &str = crate::R1_WIFI_STATION_POOL_ID;
-pub const R1_USB_LINK_BINDING_ID: &str = "r1/std-pico-usb-bootstrap";
-pub const R1_USB_BASE_INSTANCE_ID: &str = "r1/pico-usb-cdc-0";
-pub const R1_STD_USB_ENDPOINT_ID: &str = "r1/std-usb-egress";
-pub const R1_PICO_USB_ENDPOINT_ID: &str = "r1/pico-usb-ingress";
 pub const R1_CREDENTIALS_GRANT_ID: &str = "r1/grant/read-network-credentials";
 pub const R1_JOIN_GRANT_ID: &str = "r1/grant/configure-pico-network";
-pub const R1_MAXIMUM_FRAME_BYTES: u32 = 2_048;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExactR1NetworkBootstrapPlan {

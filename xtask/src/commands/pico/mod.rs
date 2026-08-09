@@ -3,6 +3,8 @@ mod doctor;
 mod firmware;
 mod flash;
 mod prove_usb;
+#[cfg(unix)]
+mod prove_websocket;
 mod prove_wifi;
 mod serial;
 #[cfg(unix)]
@@ -10,6 +12,9 @@ mod session_completion;
 #[cfg(unix)]
 mod session_failure;
 mod transcript;
+#[cfg(unix)]
+mod usb_continuity;
+mod wifi_secrets;
 
 use clap::{Args, Subcommand};
 
