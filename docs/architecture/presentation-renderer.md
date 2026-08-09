@@ -1,13 +1,13 @@
 # Portable presentation renderer contract
 
-Conduit presentation follows the same Front/Back law as every other semantic
+Conduit presentation follows the same Face/Back law as every other semantic
 Kind:
 
 ```text
 Presentation -> presentation/renderer -> Manifestation
 ```
 
-`presentation/renderer` is the portable Front. Its checked face contains one
+`presentation/renderer` is the portable Face. Its checked face contains one
 bounded `Presentation` value input and one bounded `Manifestation` value
 output. The Kind name and face do not contain Wayland, DOM, SVG,
 framebuffer, terminal, window, browser, or operating-system facts.
@@ -36,8 +36,8 @@ Those are renderer-local or planned realization state.
 
 A `Manifestation` is the portable result of realizing one exact Presentation.
 It binds the Presentation identity/revision, Plan, active Play, renderer
-placement, admitted output subject, lifecycle, and a finite clue identity
-chain.
+placement, admitted output subject, lifecycle, and a finite typed Manifestation
+Clue chain.
 Its identity is derived from the immutable correlation fields, including the
 output subject.
 
@@ -48,10 +48,12 @@ Prepared -> Available | Failed
 Available -> Replaced | Closed | Failed
 ```
 
-Every transition requires an clue identity that has not appeared earlier
-in that manifestation lifecycle. Backward transitions, duplicate clue,
-stale Presentation/Plan/placement correlation, invalid
-Plans, and non-renderer placements fail closed.
+Every transition appends a Clue built from the actual Manifestation,
+Presentation, Plan, active Play, placement, lifecycle, and failure values. Its
+Clue identity must not have appeared earlier in that lifecycle. Backward
+transitions, duplicate Clues, tampered correlation, stale
+Presentation/Plan/placement correlation, invalid Plans, and non-renderer
+placements fail closed.
 
 The value contains no raw surface, DOM, framebuffer, or pixel payload.
 

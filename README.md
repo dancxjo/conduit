@@ -4,7 +4,7 @@
 
 Conduit is an experimental programming system for building programs as graphs and realizing those graphs across very different machines.
 
-You choose reusable **Kinds** and configure them as **Gears** in a **Form**. **Cords** connect those Gears. **Signals** flow through the Cords. The same meaning can live inside one process, cross into a browser, reach a microcontroller, or span several machines without baking those machines into the authored program.
+You choose reusable **Kinds** and configure them as **Gears** in a **Form**. Gears expose typed **Ports**, **Cords** connect compatible Ports, and **Info** flows through those Cords. Info is shaped, typed data—not an untyped bucket. The same meaning can live inside one process, cross into a browser, reach a microcontroller, or span several machines without baking those machines into the authored program.
 
 ```text
 Kind catalog
@@ -55,9 +55,9 @@ The Form says what the program means.
 
 ---
 
-## Kinds, Gears, Cords, and Signals
+## Kinds, Gears, Ports, Cords, and Info
 
-These four ideas describe most of the semantic graph.
+These five ideas describe most of the semantic graph.
 
 ### Kinds
 
@@ -95,9 +95,15 @@ Gear identity belongs to the meaning of the Form. The planner may later place a 
 
 The word is intentionally local. Conduit is not pretending the whole system is a literal gearbox. **Cords remain Cords.** They connect semantic work; they are not shafts or belts.
 
+### Ports
+
+A **Port** is a typed directional point on a Gear or Face through which Info enters or leaves. Its exact semantic contract includes identity, direction, Info shape/type, and temporal behavior such as one Value, a Flow, or Current state.
+
+A Port is not a drawn jack, queue slot, network socket, carrier endpoint, or Base handle. Renderers and realizations may create those local objects, but they do not replace Port identity.
+
 ### Cords
 
-A **Cord** is a typed semantic connection between Gears.
+A **Cord** is a typed semantic connection between compatible Ports on Gears.
 
 ```text
 [key state] ──> [interpret] ──> [LED state]
@@ -107,26 +113,26 @@ When two Gears are realized on different Hosts, Conduit may need a network or ph
 
 A carrier is not a Cord.
 
-### Signals
+### Info
 
-**Signals are what flow through Cords.**
+**Info is shaped, typed data that flows through Cords.**
 
-A Signal may carry text, numbers, events, state changes, samples, records, frames, booleans, or other typed values. At lower layers it may be encoded into frames, packets, messages, or bytes. Those are realization details.
+Info may include typed text, numbers, events, state, samples, records, frames, booleans, or other shaped values. A **Signal** is one particular Info semantic or mechanism where a Kind explicitly defines it; Info in general is not automatically Signal. At lower layers Info may be encoded into frames, packets, messages, or bytes. Those are realization details.
 
 At the semantic level:
 
-> Kinds define behavior. Gears put that behavior to work. Cords connect Gears. Signals flow.
+> Kinds define behavior. Gears put that behavior to work. Ports expose typed entry and exit points. Cords connect them. Info flows.
 
 ---
 
-## Forms, Fronts, and Backs
+## Forms, Faces, and Backs
 
 A **Form** is meaning expressed as a graph of configured Gears and Cords.
 
-Conduit can also separate a Kind's visible contract from graph-level ways of implementing it. We call those its **Front** and **Back**.
+Conduit can also separate a Kind's visible contract from graph-level ways of implementing it. We call those its **Face** and **Back**.
 
 ```text
-                 FRONT
+                  FACE
           ┌────────────────┐
 input ──> │      Kind      │ ──> output
           └────────────────┘
@@ -143,7 +149,7 @@ input ──> │      Kind      │ ──> output
           └────────────────┘
 ```
 
-The **Front** is the stable semantic contract presented to the surrounding graph.
+The **Face** is the stable semantic contract presented to the surrounding graph, including its typed Ports.
 
 A **Back** is a Form that implements that contract in Conduit terms.
 
@@ -207,7 +213,7 @@ A **Plan** is the exact immutable realization of meaning for an admitted basis o
 
 It answers questions such as:
 
-- Which Back satisfies a Front?
+- Which Back satisfies a Face?
 - Which implementation realizes each Gear?
 - Which Host and exact Boot will perform that work?
 - How is each Cord realized?
@@ -322,10 +328,12 @@ LULL    end that interval without deleting the Body
 FORM    meaning expressed as a semantic graph
 KIND    reusable semantic behavior/contract
 GEAR    configured occurrence of a Kind in a Form
-CORD    typed semantic connection between Gears
-SIGNAL  typed value/state/event flowing through a Cord
-FRONT   visible semantic contract
-BACK    Form implementing a Front
+CORD    typed semantic connection between compatible Ports on Gears
+PORT    typed directional point carrying an Info shape/type and temporal contract
+INFO    shaped, typed data carried through a Cord
+SIGNAL  one particular typed Info semantic or mechanism
+FACE    stable visible semantic contract, including Ports
+BACK    Form implementing a Face
 
 CLUE    bounded truth about what is true or what happened
 HOST    truthful finite realization offers for an exact running environment
@@ -460,7 +468,7 @@ creates the Gear named `pulse` from the Kind `flow/pulse` with the supplied conf
 Current examples also use:
 
 ```text
-(...)     Front
+(...)     Face
 {...}     Back
 =         declarative immutable value relationship
 >         runtime Cord
@@ -513,11 +521,11 @@ A Form should not need to name a machine merely because some realization eventua
 
 ### Interfaces are not implementations
 
-Fronts remain semantic contracts while Backs can express alternative graph-level implementations.
+Faces remain semantic contracts while Backs can express alternative graph-level implementations.
 
 ### Graph implementation is not Host implementation
 
-Backs realize Fronts using Conduit meaning. Hosts offer concrete ways to realize the Gears that remain after graph-level decomposition.
+Backs implement Faces using Conduit meaning. Hosts offer concrete ways to realize the Gears that remain after graph-level decomposition.
 
 ### A carrier is not a Cord
 
@@ -564,7 +572,7 @@ Kind catalog
     │
     ▼
  [Gear] ──Cord──> [Gear] ──Cord──> [Gear]
-                Signals
+            Ports carry Info
 
         Form = meaning
               │
