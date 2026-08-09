@@ -48,7 +48,7 @@ mod websocket_signal;
 mod websocket_transport;
 mod radio;
 mod receipts;
-#[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
+#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
 mod remote_signal;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
 mod remote_kernel;
