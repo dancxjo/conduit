@@ -201,6 +201,7 @@ mod tests {
                 clue_items: 1,
                 clue_bytes: 1,
             },
+            r1_control_images: None,
             cyw43_commit: "test".into(),
             cyw43_assets: vec![],
         };

@@ -8,9 +8,23 @@ use conduit_embedded_build::generate_embedded_plan;
 use conduit_runtime::lowering::lower_plan_fragment;
 
 use super::{
-    pico_signal_bounds, render_firmware_module, render_identity_sidecar,
+    pico_signal_bounds, render_firmware_module, render_signal_identity_sidecar,
     GeneratedFirmwareIdentity, R1_CONTROL_FORM,
 };
+
+const PLAN_A_IDENTITY_ENV: &str = "CONDUIT_R1_CONTROL_PLAN_A_IDENTITY_SIDECAR";
+const PLAN_B_IDENTITY_ENV: &str = "CONDUIT_R1_CONTROL_PLAN_B_IDENTITY_SIDECAR";
+const PLAN_C_IDENTITY_ENV: &str = "CONDUIT_R1_CONTROL_PLAN_C_IDENTITY_SIDECAR";
+
+pub(super) fn emit_rerun_directives() {
+    for variable in [
+        PLAN_A_IDENTITY_ENV,
+        PLAN_B_IDENTITY_ENV,
+        PLAN_C_IDENTITY_ENV,
+    ] {
+        println!("cargo:rerun-if-env-changed={variable}");
+    }
+}
 
 pub(super) fn generate(out: &Path, activate: bool) {
     let form = conduit_form::parse(
@@ -18,18 +32,21 @@ pub(super) fn generate(out: &Path, activate: bool) {
         &conduit_signal::signal_profile_catalog(),
     )
     .expect("R1 three-peer control Form must check");
-    for (stem, routes) in [
+    for (stem, routes, identity_env) in [
         (
             "r1_control_plan_a_signal",
             conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+            PLAN_A_IDENTITY_ENV,
         ),
         (
             "r1_control_plan_b_signal",
             conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+            PLAN_B_IDENTITY_ENV,
         ),
         (
             "r1_control_plan_c_signal",
             conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
+            PLAN_C_IDENTITY_ENV,
         ),
     ] {
         let exact = conduit_system_continuity::exact_r1_control_plan(
@@ -48,11 +65,12 @@ pub(super) fn generate(out: &Path, activate: bool) {
             .expect("R1 control Pico fragment must fit reviewed fixed-image bounds");
         let identity = GeneratedFirmwareIdentity::new(&form, &generated);
         let rendered = render_firmware_module(&generated, &identity);
-        let sidecar = render_identity_sidecar(&generated, &identity);
+        let sidecar = render_signal_identity_sidecar(&generated, &identity);
         fs::write(out.join(format!("{stem}_image.rs")), &rendered)
         .expect("generated R1 control Pico image should be writable");
         fs::write(out.join(format!("{stem}_identity.json")), &sidecar)
         .expect("generated R1 control Pico identity sidecar should be writable");
+        write_explicit_identity(identity_env, &sidecar);
         if activate {
             let active_stem = match routes {
                 conduit_system_continuity::R1SignalRouteSet::WebSocketOnly => {
@@ -67,18 +85,12 @@ pub(super) fn generate(out: &Path, activate: bool) {
             };
             fs::write(out.join(active_stem), &rendered)
                 .expect("active R1 control Pico image should be writable");
-            if matches!(
-                routes,
-                conduit_system_continuity::R1SignalRouteSet::WebSocketOnly
-            ) {
-                write_explicit_identity(&sidecar);
-            }
         }
     }
 }
 
-fn write_explicit_identity(sidecar: &str) {
-    let Ok(path) = std::env::var(super::IDENTITY_SIDECAR_ENV) else {
+fn write_explicit_identity(variable: &str, sidecar: &str) {
+    let Ok(path) = std::env::var(variable) else {
         return;
     };
     let path = PathBuf::from(path);

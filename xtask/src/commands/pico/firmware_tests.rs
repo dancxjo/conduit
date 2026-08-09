@@ -1,0 +1,105 @@
+use conduit_system_continuity::R1SignalRouteSet;
+
+use super::firmware::{FirmwareIdentity, GeneratedImageIdentity, R1ControlImageFamily};
+
+fn control_image(routes: R1SignalRouteSet) -> GeneratedImageIdentity {
+    let exact = conduit_system_continuity::exact_r1_control_plan(
+        conduit_core::BootId::from(conduit_net::R1_PICO_BOOT_ID),
+        routes,
+    )
+    .unwrap();
+    let fragment = exact
+        .plan
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+        .unwrap();
+    GeneratedImageIdentity {
+        schema: "conduit.pico-signal.generated-image@1".into(),
+        firmware_mode: "r1-control".into(),
+        firmware_build_id: format!("control-build-{}", exact.plan.plan_id.as_str()),
+        source_document_id: exact.plan.source_document_id.as_str().into(),
+        checked_form_id: exact.plan.checked_form_id.as_str().into(),
+        expanded_form_id: exact.plan.expanded_form_id.as_str().into(),
+        plan_id: exact.plan.plan_id.as_str().into(),
+        fragment_id: fragment.fragment_id.as_str().into(),
+        host_id: conduit_net::R1_PICO_HOST_ID.into(),
+        boot_id: conduit_net::R1_PICO_BOOT_ID.into(),
+        active_play_id: "control-play".into(),
+        boot_clue_id: "control-boot-sign".into(),
+        presentation_ids: vec![],
+        presentation_clue_ids: vec![],
+        terminal_clue_id: "control-terminal-sign".into(),
+        offer_generation: 1,
+        nodes: 1,
+        cords: 1,
+        host_operations: 1,
+        cord_value_slots: 1,
+        cord_value_bytes: conduit_signal::SIGNAL_ENCODED_LEN,
+        clue_items: 1,
+        clue_bytes: 1,
+    }
+}
+
+fn composite_identity() -> FirmwareIdentity {
+    FirmwareIdentity {
+        schema: "conduit-pico-w-signal/identity@2".into(),
+        git_revision: "revision".into(),
+        target: "thumbv6m-none-eabi".into(),
+        profile: "release".into(),
+        firmware_mode: "r1-control".into(),
+        firmware_build_id: "network-build".into(),
+        firmware_sha256: "sha".into(),
+        generated_image: GeneratedImageIdentity {
+            schema: "conduit.pico-network.generated-image@1".into(),
+            firmware_mode: "r1-control".into(),
+            firmware_build_id: "network-build".into(),
+            source_document_id: "network-source".into(),
+            checked_form_id: "network-checked".into(),
+            expanded_form_id: "network-expanded".into(),
+            plan_id: "network-plan".into(),
+            fragment_id: "network-fragment".into(),
+            host_id: conduit_net::R1_PICO_HOST_ID.into(),
+            boot_id: conduit_net::R1_PICO_BOOT_ID.into(),
+            active_play_id: "network-play".into(),
+            boot_clue_id: "network-boot-sign".into(),
+            presentation_ids: vec![],
+            presentation_clue_ids: vec![],
+            terminal_clue_id: "network-terminal-sign".into(),
+            offer_generation: 1,
+            nodes: 2,
+            cords: 2,
+            host_operations: 2,
+            cord_value_slots: 2,
+            cord_value_bytes: 334,
+            clue_items: 1,
+            clue_bytes: 1,
+        },
+        r1_control_images: Some(R1ControlImageFamily {
+            plan_a: control_image(R1SignalRouteSet::WebSocketOnly),
+            plan_b: control_image(R1SignalRouteSet::UsbOnly),
+            plan_c: control_image(R1SignalRouteSet::WebSocketThenUsb),
+        }),
+        cyw43_commit: "commit".into(),
+        cyw43_assets: vec![],
+    }
+}
+
+#[test]
+fn composite_manifest_requires_the_exact_ordered_control_family() {
+    let identity = composite_identity();
+    assert!(identity.verified_r1_control_images().is_ok());
+
+    let mut substituted = identity.clone();
+    substituted.r1_control_images.as_mut().unwrap().plan_b = substituted
+        .r1_control_images
+        .as_ref()
+        .unwrap()
+        .plan_a
+        .clone();
+    assert!(substituted.verified_r1_control_images().is_err());
+
+    let mut wrong_primary = identity;
+    wrong_primary.generated_image.schema = "conduit.pico-signal.generated-image@1".into();
+    assert!(wrong_primary.verified_r1_control_images().is_err());
+}

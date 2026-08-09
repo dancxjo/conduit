@@ -416,6 +416,7 @@ mod tests {
             firmware_build_id: "firmware-build".into(),
             firmware_sha256: "sha256".into(),
             generated_image: expected_identity(),
+            r1_control_images: None,
             cyw43_commit: "commit".into(),
             cyw43_assets: Vec::new(),
         }
