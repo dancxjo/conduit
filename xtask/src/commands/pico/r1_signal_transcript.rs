@@ -10,6 +10,7 @@ pub fn verify_receipt(
     line: &str,
     plan: &conduit_core::Plan,
     sequence: u64,
+    expected_level: bool,
     firmware: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
 ) -> PicoResult<()> {
@@ -45,8 +46,7 @@ pub fn verify_receipt(
         }
     }
     if record["sequence"].as_u64() != Some(sequence)
-        || record["level"].as_bool()
-            != Some(conduit_signal::signal_level_for_sequence(sequence, false))
+        || record["level"].as_bool() != Some(expected_level)
     {
         return Err("physical LED Sign sequence or level mismatched".into());
     }
@@ -268,8 +268,8 @@ mod tests {
             "presentation_id": presentation.presentation_id.as_str(),
             "clue_id": sign.clue_id.as_str(),
         });
-        verify_receipt(&record.to_string(), &plan, 0, &firmware, &runtime).unwrap();
+        verify_receipt(&record.to_string(), &plan, 0, false, &firmware, &runtime).unwrap();
         record["plan_id"] = serde_json::Value::String("stale-plan".into());
-        assert!(verify_receipt(&record.to_string(), &plan, 0, &firmware, &runtime).is_err());
+        assert!(verify_receipt(&record.to_string(), &plan, 0, false, &firmware, &runtime).is_err());
     }
 }

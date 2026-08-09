@@ -228,7 +228,12 @@ pub(super) fn verify_new_plan_recovery(
                     .read_line(Duration::from_secs(3))
                     .map_err(|error| format!("missing Plan B physical LED Sign: {error}"))?;
                 super::r1_signal_transcript::verify_receipt(
-                    &line, &plan_b, sequence, identity, runtime,
+                    &line,
+                    &plan_b,
+                    sequence,
+                    input.level,
+                    identity,
+                    runtime,
                 )
             },
         )?;
