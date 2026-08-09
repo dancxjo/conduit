@@ -493,7 +493,33 @@ backend. Exact Limine 12.5.2 bootstrap produces the same six-file hybrid ISO
 digest across two builds, boots twice in the one-CPU 64 MiB headless q35 QEMU
 profile, emits one bounded accepted boot Sign per run with fresh HostId and
 BootId, and exits deterministically. This earns `freestanding-emulator` boot
-proof only. It starts no Plan or Play, gives no machine to `conduit-kernel`,
-activates no non-x86_64 backend, and claims no firmware, physical/HIL,
-interrupt, timer, serial-offer, framebuffer, SMP, preemption, network, or
-ConduitOS inspection proof.
+proof only. At that checkpoint it started no Plan or Play, gave no machine to
+`conduit-kernel`, activated no non-x86_64 backend, and claimed no firmware,
+physical/HIL, interrupt, timer, serial-offer, framebuffer, SMP, preemption,
+network, or ConduitOS inspection proof.
+
+The ConduitOS machine and production-kernel slice from #588 is accepted at
+exact main `feae63bbf6d392c468526e9cae352fddb2b03b74`; push workflow
+`31342521260` passed `check`, `browser-host`, and `conduitos-boot`. The x86_64
+backend now admits one 256 KiB runtime arena and finite boot-scoped Memory,
+Clock, Timer, Serial, Interrupt, Idle, and ExecutionLane Bases, resources,
+capabilities, exact typed ports, host-operation slots, IRQ facts, values,
+routes, and Signs before kernel execution. The sole cooperative lane belongs
+to the production `conduit-kernel` fixed scheduler. On each of two
+reproducible one-CPU 64 MiB q35 boots, one real PIT interrupt captured one
+bounded fact, later woke one exact kernel interest outside interrupt context,
+advanced a two-operation profile across one exact Cord, produced one bounded
+COM1 presentation, and terminated with zero pending host operations. Fresh
+HostId, BootId, and seven distinct Base identities correlate the bounded boot
+and kernel Signs.
+
+Deterministic negatives keep cancellation, Base failure, full timer slots,
+full IRQ and Sign storage, masked interrupts, stale or duplicate wakes,
+malformed offer bounds or ports, stale CPU observations, missing ISA features,
+and artifact/offer feature disagreement distinct and fail-closed. The profile
+is deliberately hand-lowered proof input, not a Form, Plan, or Play. This
+checkpoint remains `freestanding-emulator` proof: it adds no allocator,
+ordinary checking/planning/lowering, preemption, SMP, APIC/IOAPIC,
+framebuffer, network, transport, non-x86_64 execution, physical/HIL claim,
+ConduitOS inspection surface, or second runtime. Those remain owned by later
+#588 slices.
