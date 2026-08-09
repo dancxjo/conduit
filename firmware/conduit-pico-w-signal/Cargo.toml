@@ -23,6 +23,7 @@ embassy-rp = { version = "0.10", features = ["critical-section-impl", "rp2040", 
 embassy-time = "0.5"
 embassy-usb = "0.6"
 portable-atomic = { version = "1.14.0", features = ["critical-section"] }
+rp-pac = { version = "7", features = ["rp2040"] }
 static_cell = "2"
 cyw43 = "0.7"
 cyw43-pio = "0.10"

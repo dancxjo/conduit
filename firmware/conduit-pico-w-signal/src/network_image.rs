@@ -13,7 +13,10 @@ pub const NODES: usize = generated::GENERATED_NODES.len();
 pub const CORDS: usize = generated::GENERATED_CORDS.len();
 pub const PORTS: usize = generated::GENERATED_PORTS_PER_NODE;
 pub const QUEUE_SLOTS: usize = generated::CORD_VALUE_SLOTS as usize;
-pub const ROUTE_SLOTS: usize = generated::GENERATED_ROUTES.len();
+// FixedRoutes is directly indexed by (node * ports-per-node + port), so its
+// finite slot table covers the full generated address space rather than only
+// the number of populated routes.
+pub const ROUTE_SLOTS: usize = NODES * PORTS;
 pub const ROUTE_TARGETS: usize = generated::GENERATED_ROUTE_TARGETS.len();
 pub const HOST_BINDING_SLOTS: usize = generated::GENERATED_HOST_OPERATIONS.len();
 pub const PENDING_REQUESTS: usize = generated::GENERATED_HOST_OPERATIONS.len();
@@ -119,33 +122,31 @@ pub fn generated_cords() -> [conduit_kernel::scheduler::CordSpec; CORDS] {
     generated::GENERATED_CORDS
 }
 
-pub fn generated_routes() -> FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS> {
+pub fn generated_routes(
+) -> Result<FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>, conduit_kernel::ProtocolError> {
     let mut routes = FixedRoutes::<ROUTE_SLOTS, ROUTE_TARGETS>::new(PORTS as u16);
     for (node, port, range) in generated::GENERATED_ROUTES {
         let start = usize::from(range.start);
-        let end = start + usize::from(range.len);
-        routes
-            .install(
-                node,
-                port,
-                range,
-                &generated::GENERATED_ROUTE_TARGETS[start..end],
-            )
-            .expect("generated network route installs");
+        let end = start
+            .checked_add(usize::from(range.len))
+            .ok_or(conduit_kernel::ProtocolError::RouteTargetExceeded)?;
+        let targets = generated::GENERATED_ROUTE_TARGETS
+            .get(start..end)
+            .ok_or(conduit_kernel::ProtocolError::RouteTargetExceeded)?;
+        routes.install(node, port, range, targets)?;
     }
-    routes.seal().expect("generated network route table seals");
-    routes
+    routes.seal()?;
+    Ok(routes)
 }
 
-pub fn generated_host_bindings() -> FixedHostOperationBindings<HOST_BINDING_SLOTS> {
+pub fn generated_host_bindings(
+) -> Result<FixedHostOperationBindings<HOST_BINDING_SLOTS>, conduit_kernel::ProtocolError> {
     let mut bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(1);
     for (node, binding) in generated::GENERATED_HOST_OPERATIONS {
-        bindings
-            .install(node, binding)
-            .expect("generated host operation binds");
+        bindings.install(node, binding)?;
     }
-    bindings.seal().expect("generated host operations seal");
-    bindings
+    bindings.seal()?;
+    Ok(bindings)
 }
 
 #[derive(Clone, Copy)]

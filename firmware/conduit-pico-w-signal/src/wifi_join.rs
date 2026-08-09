@@ -1,9 +1,5 @@
 //! Ordinary generated network/join execution over the existing UsbCdc session.
 
-use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
-    HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
-};
 use conduit_kernel::scheduler::{
     FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
@@ -12,8 +8,7 @@ use conduit_kernel::{
     HostOperationOutcome,
 };
 use conduit_wire::{
-    RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
-    SessionMessage, SessionRole,
+    SessionMachine, SessionMessage, SessionRole,
 };
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
@@ -34,8 +29,11 @@ use crate::network_operations::NetworkOperation;
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::usb::PicoUsbCdcCarrier;
 use crate::usb_link::{UsbLinkError, UsbLinkSession};
+use crate::wifi_session::session_binding;
 
 const JOIN_TIMEOUT: Duration = Duration::from_secs(30);
+const CYW43_WPA_PASSPHRASE_MINIMUM_BYTES: usize = 8;
+const CYW43_WPA_PASSPHRASE_MAXIMUM_BYTES: usize = 63;
 const ATTACHMENT_ID: &str = "r1/pico-network-attachment-1";
 static NETWORK_RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
 
@@ -70,6 +68,7 @@ struct JoinKernel {
 
 impl JoinKernel {
     fn new() -> Result<Self, UsbLinkError> {
+        crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelStorage);
         let layout = network_join_layout().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         let remote = generated_remote_endpoint().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         let values = FixedValueStore::new(
@@ -92,11 +91,18 @@ impl JoinKernel {
             (1, 0) => [attachment_clue, join],
             _ => return Err(UsbLinkError::InvalidGeneratedEndpoint),
         };
+        let nodes = generated_nodes();
+        let cords = generated_cords();
+        crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelRoutes);
+        let routes = generated_routes().map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
+        let host_bindings =
+            generated_host_bindings().map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
+        crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelScheduler);
         let scheduler = JoinScheduler::new_with_host_operations(
-            generated_nodes(),
-            generated_cords(),
-            generated_routes(),
-            generated_host_bindings(),
+            nodes,
+            cords,
+            routes,
+            host_bindings,
             drivers,
             values,
             clue,
@@ -126,6 +132,7 @@ impl JoinKernel {
         clue: &mut UsbCdc,
         runtime: &RuntimeTranscriptIdentity,
     ) -> Result<(), UsbLinkError> {
+        crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelExecution);
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
                 if request.node == self.clue_node && request.operation == self.clue_operation {
@@ -180,6 +187,14 @@ impl JoinKernel {
                     credential_len = decoded.credential.len();
                     credential[..credential_len].copy_from_slice(decoded.credential);
                 }
+                if !(CYW43_WPA_PASSPHRASE_MINIMUM_BYTES
+                    ..=CYW43_WPA_PASSPHRASE_MAXIMUM_BYTES)
+                    .contains(&credential_len)
+                {
+                    credential.fill(0);
+                    return Err(UsbLinkError::NetworkJoinFailed);
+                }
+                crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::NetworkJoin);
                 let join_result = with_timeout(
                     JOIN_TIMEOUT,
                     control.join(
@@ -195,9 +210,15 @@ impl JoinKernel {
                     Ok(Err(_)) => return Err(UsbLinkError::NetworkJoinFailed),
                     Err(_) => return Err(UsbLinkError::NetworkConfigurationTimeout),
                 }
+                crate::panic_recovery::set_phase(
+                    crate::panic_recovery::PanicPhase::NetworkConfiguration,
+                );
                 with_timeout(JOIN_TIMEOUT, stack.wait_config_up())
                     .await
                     .map_err(|_| UsbLinkError::NetworkConfigurationTimeout)?;
+                crate::panic_recovery::set_phase(
+                    crate::panic_recovery::PanicPhase::KernelCompletion,
+                );
                 let identity = attachment_identity(runtime);
                 let mut attachment = [0_u8; conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES as usize];
                 let attachment_len = conduit_net::encode_network_attachment(
@@ -267,6 +288,7 @@ pub async fn run(
     spawner: &Spawner,
     carrier: PicoUsbCdcCarrier,
     clue: &mut UsbCdc,
+    panic_record: Option<crate::panic_recovery::PanicRecord>,
     pio0: Peri<'static, PIO0>,
     dma: Peri<'static, DMA_CH0>,
     pin23: Peri<'static, PIN_23>,
@@ -279,14 +301,30 @@ pub async fn run(
     runtime: &RuntimeTranscriptIdentity,
 ) -> ! {
     let mut link = UsbLinkSession::new(carrier).unwrap();
+    if let Some(record) = panic_record {
+        crate::wifi_recovery::serve(&mut link, clue, record, runtime).await;
+    }
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioDriverStartup);
     let usb_startup = establish_usb(&mut link, clue, runtime);
     let radio_startup = crate::radio::init_cyw43_network(
         spawner, pio0, dma, pin23, pin24, pin25, pin29, fw, nvram, clm,
     );
-    let (usb_result, (device, mut control)) = join(usb_startup, radio_startup).await;
+    let (usb_result, radio_result) = join(usb_startup, radio_startup).await;
     if usb_result.is_err() {
         core::future::pending::<()>().await;
     }
+    let (device, mut control) = match radio_result {
+        Ok(radio) => radio,
+        Err(error) => {
+            let _ = clue
+                .write_network_failure(error.code(), attachment_identity(runtime))
+                .await;
+            loop {
+                crate::bootsel::wait_for_request(&mut link).await.ok();
+            }
+        }
+    };
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::NetworkStackStartup);
     let (stack, runner) = embassy_net::new(
         device,
         Config::dhcpv4(Default::default()),
@@ -294,11 +332,16 @@ pub async fn run(
         0x502,
     );
     spawner.spawn(network_task(runner).unwrap());
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionBinding);
     if let Err(error) = run_session(&mut link, clue, &mut control, stack, runtime).await {
         let _ = clue
             .write_network_failure(error.code(), attachment_identity(runtime))
             .await;
-        core::future::pending::<()>().await;
+        // This Play is terminal, but CDC 0 remains an exact-build BOOTSEL
+        // recovery path across host disconnects.
+        loop {
+            crate::bootsel::wait_for_request(&mut link).await.ok();
+        }
     }
     crate::bootsel::wait_for_request(&mut link).await.ok();
     loop {
@@ -306,7 +349,7 @@ pub async fn run(
     }
 }
 
-async fn establish_usb(
+pub(crate) async fn establish_usb(
     link: &mut UsbLinkSession,
     clue: &mut UsbCdc,
     runtime: &RuntimeTranscriptIdentity,
@@ -351,10 +394,24 @@ async fn run_session(
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), UsbLinkError> {
     let binding = session_binding(runtime)?;
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionMachine);
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink)
         .map_err(UsbLinkError::Codec)?;
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelStorage);
     let mut kernel = JoinKernel::new()?;
     let mut frame_buf = [0_u8; 2048];
+    loop {
+        let raw = link.receive_raw_stream_frame(&mut frame_buf).await?;
+        if crate::bootsel::handle_request(link, raw).await? {
+            continue;
+        }
+        if raw == conduit_net::R1_USB_NETWORK_SESSION_QUERY {
+            link.send_raw_stream_frame(conduit_net::R1_USB_NETWORK_SESSION_READY).await?;
+            crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionExecution);
+            break;
+        }
+        return Err(UsbLinkError::InvalidNetworkJoin);
+    }
     let hello = link.receive_frame(&mut frame_buf).await?;
     machine.admit_inbound(hello).map_err(UsbLinkError::Codec)?;
     let response = binding.hello_frame();
@@ -371,12 +428,14 @@ async fn run_session(
         _ => return Err(UsbLinkError::InvalidNetworkJoin),
     };
     machine.admit_inbound(offered).map_err(UsbLinkError::Codec)?;
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelIngress);
     if !matches!(kernel.admit(sequence, payload)?, RemoteIngressOutcome::Accepted { .. }) {
         return Err(UsbLinkError::InvalidNetworkJoin);
     }
     let accepted = binding.frame(SessionMessage::Accepted { sequence });
     machine.admit_outbound(accepted).map_err(UsbLinkError::Codec)?;
     link.send_frame(&accepted).await?;
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelExecution);
     kernel.execute(control, stack, clue, runtime).await?;
     let delivered = binding.frame(SessionMessage::Delivered { sequence });
     machine.admit_outbound(delivered).map_err(UsbLinkError::Codec)?;
@@ -411,7 +470,7 @@ async fn run_session(
     Ok(())
 }
 
-fn attachment_identity<'a>(runtime: &'a RuntimeTranscriptIdentity) -> NetworkAttachmentIdentity<'a> {
+pub(crate) fn attachment_identity<'a>(runtime: &'a RuntimeTranscriptIdentity) -> NetworkAttachmentIdentity<'a> {
     NetworkAttachmentIdentity {
         firmware_build_id: crate::network_image::FIRMWARE_BUILD_ID,
         source_document_id: crate::network_image::SOURCE_DOCUMENT_ID,
@@ -427,54 +486,4 @@ fn attachment_identity<'a>(runtime: &'a RuntimeTranscriptIdentity) -> NetworkAtt
         generation: 1,
         clue_id: crate::network_image::ATTACHMENT_CLUE_ID,
     }
-}
-
-fn session_binding(runtime: &RuntimeTranscriptIdentity) -> Result<SessionBinding, UsbLinkError> {
-    let endpoint = generated_remote_endpoint().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-    let base = ConnectionBase::from_canonical_code(endpoint.base_code)
-        .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-    if base != ConnectionBase::UsbCdc {
-        return Err(UsbLinkError::InvalidGeneratedEndpoint);
-    }
-    let plan_id = PlanId::from(crate::network_image::PLAN_ID);
-    let source_host = HostId::from(endpoint.peer_host);
-    let source_boot = BootId::from(endpoint.peer_boot);
-    let sink_host = HostId::from(endpoint.local_host);
-    let sink_boot = BootId::from(endpoint.local_boot);
-    Ok(SessionBinding {
-        protocol_version: 1,
-        source_active_play_id: bind_active_play(&plan_id, &source_host, &source_boot, 0).active_play_id,
-        sink_active_play_id: bind_active_play(&plan_id, &sink_host, &sink_boot, 0).active_play_id,
-        plan_id,
-        source_fragment_id: FragmentId::from(endpoint.source_fragment_id),
-        sink_fragment_id: FragmentId::from(endpoint.sink_fragment_id),
-        connection_id: ConnectionId::from(endpoint.connection_id),
-        source: SessionEndpointIdentity { host_id: source_host.clone(), boot_id: source_boot.clone() },
-        sink: SessionEndpointIdentity { host_id: sink_host.clone(), boot_id: sink_boot.clone() },
-        value_kind: KindId::from(endpoint.value_kind),
-        limits: SessionLimits {
-            maximum_in_flight_items: endpoint.maximum_in_flight_items,
-            maximum_payload_bytes: endpoint.maximum_payload_bytes,
-            maximum_buffered_bytes: endpoint.maximum_buffered_bytes,
-        },
-        attachment: RouteAttachment {
-            link_binding_id: LinkBindingId::from(endpoint.link_binding_id),
-            base,
-            base_instance_id: ConnectionBaseInstanceId::from(endpoint.base_instance_id),
-            source_host_id: source_host,
-            source_boot_id: source_boot,
-            source_endpoint_id: LinkEndpointId::from(endpoint.peer_endpoint),
-            sink_host_id: sink_host,
-            sink_boot_id: sink_boot,
-            sink_endpoint_id: LinkEndpointId::from(endpoint.local_endpoint),
-            limits: LinkLimits {
-                maximum_in_flight_items: endpoint.maximum_in_flight_items,
-                maximum_payload_bytes: endpoint.maximum_payload_bytes,
-                maximum_buffered_bytes: endpoint.maximum_buffered_bytes,
-                maximum_frame_bytes: endpoint.maximum_frame_bytes,
-            },
-        },
-    }
-    .with_observed_boots(BootId::from(endpoint.peer_boot), BootId::from(runtime.boot_id()))
-    .map_err(UsbLinkError::Codec)?)
 }

@@ -16,6 +16,8 @@ use embassy_rp::{
     usb,
     Peri,
 };
+#[cfg(feature = "wifi-bootstrap")]
+use embassy_time::{with_timeout, Duration};
 use static_cell::StaticCell;
 
 bind_interrupts!(pub struct UsbIrq {
@@ -28,6 +30,25 @@ bind_interrupts!(struct RadioIrqs {
 });
 
 static STATE: StaticCell<cyw43::State> = StaticCell::new();
+
+#[cfg(feature = "wifi-bootstrap")]
+const RADIO_PHASE_TIMEOUT: Duration = Duration::from_secs(20);
+
+#[cfg(feature = "wifi-bootstrap")]
+pub enum NetworkRadioInitError {
+    DriverStartupTimeout,
+    InitializationTimeout,
+}
+
+#[cfg(feature = "wifi-bootstrap")]
+impl NetworkRadioInitError {
+    pub const fn code(&self) -> &'static str {
+        match self {
+            Self::DriverStartupTimeout => "radio-driver-startup-timeout",
+            Self::InitializationTimeout => "radio-initialization-timeout",
+        }
+    }
+}
 
 #[embassy_executor::task]
 async fn cyw43_task(
@@ -88,7 +109,8 @@ pub async fn init_cyw43_network(
     fw: &'static aligned::Aligned<aligned::A4, [u8]>,
     nvram: &'static aligned::Aligned<aligned::A4, [u8]>,
     clm: &'static [u8],
-) -> (cyw43::NetDriver<'static>, Control<'static>) {
+) -> Result<(cyw43::NetDriver<'static>, Control<'static>), NetworkRadioInitError> {
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioDriverStartup);
     let pwr = Output::new(pin23, Level::Low);
     let cs = Output::new(pin25, Level::High);
     let mut pio = Pio::new(pio0, RadioIrqs);
@@ -104,11 +126,30 @@ pub async fn init_cyw43_network(
         dma,
     );
     let state = STATE.init(cyw43::State::new());
-    let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, fw, nvram).await;
+    let driver_startup = with_timeout(
+        RADIO_PHASE_TIMEOUT,
+        cyw43::new(state, pwr, spi, fw, nvram),
+    )
+    .await;
+    let (net_device, mut control, runner) = match driver_startup {
+        Ok(driver) => driver,
+        Err(_) => {
+            crate::panic_recovery::clear();
+            return Err(NetworkRadioInitError::DriverStartupTimeout);
+        }
+    };
     spawner.spawn(cyw43_task(runner).unwrap());
-    control.init(clm).await;
-    control
-        .set_power_management(cyw43::PowerManagementMode::None)
-        .await;
-    (net_device, control)
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioInitialization);
+    let initialization = with_timeout(RADIO_PHASE_TIMEOUT, async {
+        control.init(clm).await;
+        control
+            .set_power_management(cyw43::PowerManagementMode::None)
+            .await;
+    })
+    .await;
+    if initialization.is_err() {
+        crate::panic_recovery::clear();
+        return Err(NetworkRadioInitError::InitializationTimeout);
+    }
+    Ok((net_device, control))
 }
