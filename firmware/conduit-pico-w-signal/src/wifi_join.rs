@@ -347,6 +347,11 @@ pub async fn run(
         crate::signal_image::PLAN_ID,
         crate::signal_image::HOST_ID,
     );
+    if !crate::plan_b_signal_image::validate_replacement() {
+        loop {
+            crate::bootsel::wait_for_request(&mut link).await.ok();
+        }
+    }
     crate::websocket_route::run(
         stack,
         &mut link,

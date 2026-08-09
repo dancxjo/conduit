@@ -15,7 +15,7 @@ use conduit_wire::{
 };
 use cyw43::Control;
 
-use crate::kernel::{boot_identity, terminal_identity};
+use crate::kernel::boot_identity;
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::remote_kernel::RemoteSignalKernel;
 use crate::signal_image::{generated_remote_endpoint, FRAGMENT_ID, HOST_ID, PLAN_ID};
@@ -132,29 +132,22 @@ pub async fn run_remote_signal_sink(
 
     let mut machine =
         SessionMachine::new(binding.clone(), SessionRole::Sink).map_err(UsbLinkError::Codec)?;
-    let mut kernel = RemoteSignalKernel::new()?;
+    let identity = crate::signal_execution_identity::SignalExecutionIdentity::plan_a();
+    let mut kernel = RemoteSignalKernel::new(identity)?;
 
     let mut frame_buf = [0u8; 2048];
     let mut failure_disposition: Option<SessionTerminalDisposition> = None;
 
     // Phase 1: SessionMessage::Hello wait on the proven CDC 0 path.
-    loop {
-        let raw_bytes = link_session.receive_raw_stream_frame(&mut frame_buf).await?;
-        let frame = conduit_wire::decode_session_frame(raw_bytes, 1024, 1024)?;
-        if !matches!(frame.message, SessionMessage::Hello(_)) {
-            return Err(UsbLinkError::Codec(conduit_wire::WireError::InvalidState));
-        }
-        machine
-            .admit_inbound(frame)
-            .map_err(UsbLinkError::Codec)?;
-
-        let hello_frame = binding.hello_frame();
-        machine
-            .admit_outbound(hello_frame)
-            .map_err(UsbLinkError::Codec)?;
-        link_session.send_frame(&hello_frame).await?;
-        break;
+    let raw_bytes = link_session.receive_raw_stream_frame(&mut frame_buf).await?;
+    let frame = conduit_wire::decode_session_frame(raw_bytes, 1024, 1024)?;
+    if !matches!(frame.message, SessionMessage::Hello(_)) {
+        return Err(UsbLinkError::Codec(conduit_wire::WireError::InvalidState));
     }
+    machine.admit_inbound(frame).map_err(UsbLinkError::Codec)?;
+    let hello_frame = binding.hello_frame();
+    machine.admit_outbound(hello_frame).map_err(UsbLinkError::Codec)?;
+    link_session.send_frame(&hello_frame).await?;
 
     // Phase 2: Receive SessionMessage::Ready from Source and emit SessionMessage::Ready from Sink
     let ready_inbound = link_session.receive_frame(&mut frame_buf).await?;
@@ -285,7 +278,7 @@ pub async fn run_remote_signal_sink(
         return Err(UsbLinkError::KernelCancelled);
     }
     clue_cdc
-        .write_terminal(true, terminal_identity(), runtime)
+        .write_terminal(true, identity.terminal(), runtime)
         .await?;
 
     Ok(())

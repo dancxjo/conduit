@@ -53,6 +53,10 @@ mod remote_signal;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
 mod remote_kernel;
 mod signal_image;
+#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
+mod signal_execution_identity;
+#[cfg(feature = "wifi-bootstrap")]
+mod plan_b_signal_image;
 #[cfg(feature = "wifi-bootstrap")]
 mod network_image;
 #[cfg(feature = "wifi-bootstrap")]
