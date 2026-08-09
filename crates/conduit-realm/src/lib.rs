@@ -2,15 +2,6 @@
 
 extern crate alloc;
 
-mod lifecycle;
-mod lifecycle_events;
-mod lifecycle_identity;
-mod lifecycle_validation;
-
-pub use lifecycle::*;
-pub use lifecycle_events::{ActivationLifecycleEvent, DeploymentLifecycleEvent};
-pub use lifecycle_identity::{ActivationId, DeploymentId, MAX_LIFECYCLE_ID_BYTES};
-
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec;
@@ -470,6 +461,3 @@ impl Realm {
 
 #[cfg(test)]
 mod tests;
-
-#[cfg(test)]
-mod lifecycle_tests;

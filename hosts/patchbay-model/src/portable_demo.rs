@@ -1,8 +1,8 @@
 //! One living, bounded semantic input shared by renderer adapter proofs.
 
+use conduit_body::Body;
 use conduit_core::{bind_active_play, EvidenceId};
 use conduit_presentation::Presentation;
-use conduit_realm::{RealmDeployment, RealmId};
 use conduit_std_host::{StdHost, ThreadTimer};
 
 use crate::{
@@ -68,25 +68,24 @@ pub fn portable_demonstration() -> Result<Presentation, String> {
         diagnostics: malformed.checked.diagnostics,
     })
     .map_err(|error| error.to_string())?;
-    let deployment = RealmDeployment::install(
-        RealmId::from("patchbay/realm"),
+    let body = Body::born(
         plan.source_document_id.clone(),
         plan.checked_form_id.clone(),
         1,
-        EvidenceId::from("patchbay/deployed"),
+        EvidenceId::from("patchbay/bornd"),
     )
     .map_err(|error| error.to_string())?;
-    let (deployment, activation) = deployment
-        .activate(1, EvidenceId::from("patchbay/activated"))
+    let (body, wake) = body
+        .wake(1, EvidenceId::from("patchbay/woke"))
         .map_err(|error| error.to_string())?;
-    let activation = activation
+    let wake = wake
         .plan_ready(&plan, EvidenceId::from("patchbay/planned"))
         .map_err(|error| error.to_string())?;
     let active_play = bind_active_play(&plan.plan_id, &host_id, &boot_id, 0);
-    let activation = activation
+    let wake = wake
         .play_started(&active_play, EvidenceId::from("patchbay/playing"))
         .map_err(|error| error.to_string())?;
     projection
-        .to_portable(&deployment, &activation)
+        .to_portable(&body, &wake)
         .map_err(|error| error.to_string())
 }

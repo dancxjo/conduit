@@ -21,8 +21,8 @@ fn portable_snapshot_round_trip_preserves_lifecycle_provider_plan_play_and_evide
     let basis = &decoded.presentation.basis;
     assert!(basis.plan_id.is_some() && basis.active_play_id.is_some());
     assert!(!basis.evidence_ids.is_empty());
-    assert!(!basis.deployment_id.as_str().is_empty());
-    assert!(!basis.activation_id.as_str().is_empty());
+    assert!(!basis.body_id.as_str().is_empty());
+    assert!(!basis.wake_id.as_str().is_empty());
 }
 
 #[test]

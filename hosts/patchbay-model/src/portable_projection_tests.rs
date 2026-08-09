@@ -1,8 +1,8 @@
+use conduit_body::Body;
 use conduit_core::{bind_active_play, ConnectionProvider, EvidenceId};
 use conduit_presentation::{
     PresentationPropertyValue, PresentationRole, MAX_PRESENTATION_TOTAL_BYTES,
 };
-use conduit_realm::{RealmDeployment, RealmId};
 use conduit_std_host::{StdHost, ThreadTimer};
 
 use crate::{
@@ -12,8 +12,8 @@ use crate::{
 
 fn living_portable() -> (
     PatchbayPresentation,
-    RealmDeployment,
-    conduit_realm::RealmActivation,
+    Body,
+    conduit_body::Wake,
     conduit_presentation::Presentation,
 ) {
     let editor = FormEditor::from_source(
@@ -34,23 +34,20 @@ fn living_portable() -> (
         .unwrap();
     let play_document = PlayDocument::from_report(&plan, &report).unwrap();
 
-    let deployment = RealmDeployment::install(
-        RealmId::from("patchbay/realm"),
+    let body = Body::born(
         plan.source_document_id.clone(),
         plan.checked_form_id.clone(),
         1,
-        EvidenceId::from("patchbay/deployed"),
+        EvidenceId::from("patchbay/bornd"),
     )
     .unwrap();
-    let (deployment, activation) = deployment
-        .activate(1, EvidenceId::from("patchbay/activated"))
-        .unwrap();
-    let activation = activation
+    let (body, wake) = body.wake(1, EvidenceId::from("patchbay/woke")).unwrap();
+    let wake = wake
         .plan_ready(&plan, EvidenceId::from("patchbay/planned"))
         .unwrap();
     let active_play = bind_active_play(&plan.plan_id, &host_id, &boot_id, 0);
     assert_eq!(active_play.active_play_id, play_document.active_play_id);
-    let activation = activation
+    let wake = wake
         .play_started(&active_play, EvidenceId::from("patchbay/playing"))
         .unwrap();
     let route = DistributedRouteDemo::build().unwrap();
@@ -63,24 +60,24 @@ fn living_portable() -> (
         vec![route.presentation().clone()],
     )
     .unwrap();
-    let portable = projection.to_portable(&deployment, &activation).unwrap();
-    (projection, deployment, activation, portable)
+    let portable = projection.to_portable(&body, &wake).unwrap();
+    (projection, body, wake, portable)
 }
 
 #[test]
 fn living_patchbay_projection_preserves_lifecycle_plan_play_and_evidence() {
-    let (projection, deployment, activation, portable) = living_portable();
+    let (projection, body, wake, portable) = living_portable();
     let identities = projection.identities();
-    assert_eq!(portable.basis.realm_id, deployment.realm_id);
-    assert_eq!(portable.basis.deployment_id, deployment.deployment_id);
-    assert_eq!(portable.basis.activation_id, activation.activation_id);
+    assert_eq!(portable.basis.seed_id, body.seed_id);
+    assert_eq!(portable.basis.body_id, body.body_id);
+    assert_eq!(portable.basis.wake_id, wake.wake_id);
     assert_eq!(portable.basis.plan_id, identities.plan_id);
     assert_eq!(portable.basis.active_play_id, identities.active_play_id);
     for evidence in identities
         .evidence_ids
         .iter()
-        .chain(deployment.evidence_ids.iter())
-        .chain(activation.evidence_ids.iter())
+        .chain(body.evidence_ids.iter())
+        .chain(wake.evidence_ids.iter())
     {
         assert!(portable.basis.evidence_ids.contains(evidence));
     }
@@ -111,7 +108,7 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_evidence() {
 
 #[test]
 fn renderer_local_state_cannot_change_portable_content_identity() {
-    let (projection, deployment, activation, portable) = living_portable();
+    let (projection, body, wake, portable) = living_portable();
     let local_wayland_state = (120_i32, -45_i32, 175_u16);
     let local_dom_state = ("viewport-node-72", true, 44_u16);
     assert_ne!(
@@ -119,30 +116,25 @@ fn renderer_local_state_cannot_change_portable_content_identity() {
         format!("{local_dom_state:?}")
     );
     assert_eq!(
-        projection
-            .to_portable(&deployment, &activation)
-            .unwrap()
-            .identity,
+        projection.to_portable(&body, &wake).unwrap().identity,
         portable.identity
     );
 }
 
 #[test]
 fn stale_or_terminal_lifecycle_cannot_masquerade_as_live_presentation() {
-    let (projection, deployment, activation, _) = living_portable();
-    let deactivated = activation
-        .deactivate(EvidenceId::from("patchbay/deactivated"))
-        .unwrap();
+    let (projection, body, wake, _) = living_portable();
+    let lulled = wake.lull(EvidenceId::from("patchbay/lulled")).unwrap();
     assert_eq!(
-        projection.to_portable(&deployment, &deactivated),
+        projection.to_portable(&body, &lulled),
         Err(PortableProjectionError::PlayMismatch)
     );
 
-    let mut stale_deployment = deployment;
-    stale_deployment.source_document_id = "other-source".into();
+    let mut stale_body = body;
+    stale_body.source_document_id = "other-source".into();
     assert!(matches!(
-        projection.to_portable(&stale_deployment, &activation),
-        Err(PortableProjectionError::InvalidDeployment(_))
+        projection.to_portable(&stale_body, &wake),
+        Err(PortableProjectionError::InvalidBody(_))
     ));
 }
 

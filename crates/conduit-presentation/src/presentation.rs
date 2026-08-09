@@ -2,11 +2,11 @@
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use conduit_body::{BodyId, SeedId, WakeId};
 use conduit_core::{
     ActivePlayId, CheckedFormId, ConnectionProvider, EvidenceId, ExpandedFormId, PlanId,
     SourceDocumentId,
 };
-use conduit_realm::{ActivationId, DeploymentId, RealmId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -30,9 +30,9 @@ impl PresentationContentId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PresentationBasis {
-    pub realm_id: RealmId,
-    pub deployment_id: DeploymentId,
-    pub activation_id: ActivationId,
+    pub seed_id: SeedId,
+    pub body_id: BodyId,
+    pub wake_id: WakeId,
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: Option<ExpandedFormId>,
@@ -209,9 +209,9 @@ impl Presentation {
             return Err(PresentationError::NonCanonicalEvidence);
         }
         for identity in [
-            self.basis.realm_id.as_str(),
-            self.basis.deployment_id.as_str(),
-            self.basis.activation_id.as_str(),
+            self.basis.seed_id.as_str(),
+            self.basis.body_id.as_str(),
+            self.basis.wake_id.as_str(),
             self.basis.source_document_id.as_str(),
             self.basis.checked_form_id.as_str(),
         ] {
@@ -280,11 +280,11 @@ impl Presentation {
         }
         let total_bytes = self
             .basis
-            .realm_id
+            .seed_id
             .as_str()
             .len()
-            .saturating_add(self.basis.deployment_id.as_str().len())
-            .saturating_add(self.basis.activation_id.as_str().len())
+            .saturating_add(self.basis.body_id.as_str().len())
+            .saturating_add(self.basis.wake_id.as_str().len())
             .saturating_add(self.basis.source_document_id.as_str().len())
             .saturating_add(self.basis.checked_form_id.as_str().len())
             .saturating_add(optional_len(
@@ -352,9 +352,9 @@ impl Presentation {
         let mut digest = Sha256::new();
         hash_string(&mut digest, "conduit.presentation/presentation@1");
         digest.update(self.revision.to_le_bytes());
-        hash_string(&mut digest, self.basis.realm_id.as_str());
-        hash_string(&mut digest, self.basis.deployment_id.as_str());
-        hash_string(&mut digest, self.basis.activation_id.as_str());
+        hash_string(&mut digest, self.basis.seed_id.as_str());
+        hash_string(&mut digest, self.basis.body_id.as_str());
+        hash_string(&mut digest, self.basis.wake_id.as_str());
         hash_string(&mut digest, self.basis.source_document_id.as_str());
         hash_string(&mut digest, self.basis.checked_form_id.as_str());
         hash_optional(

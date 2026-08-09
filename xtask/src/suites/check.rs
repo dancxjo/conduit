@@ -190,6 +190,22 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
+        "check.thumb.body",
+        "Body lifecycle thumb target check",
+        "cargo",
+        &[
+            "check",
+            "-p",
+            "conduit-body",
+            "--target",
+            "thumbv6m-none-eabi",
+        ],
+        None,
+        Some("thumbv6m-none-eabi"),
+        Some(ProofClass::ContractCompile),
+        &[],
+    ),
+    Step::typed(
         "check.thumb.realm",
         "Realm thumb target check",
         "cargo",

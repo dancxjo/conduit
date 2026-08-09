@@ -307,6 +307,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-body"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "serde",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-browser-runtime"
 version = "0.1.0"
 dependencies = [
@@ -443,10 +452,10 @@ dependencies = [
 name = "conduit-presentation"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-form",
  "conduit-planner",
- "conduit-realm",
  "serde",
  "sha2",
 ]
@@ -1372,12 +1381,12 @@ dependencies = [
 name = "patchbay-model"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-form",
  "conduit-observatory",
  "conduit-planner",
  "conduit-presentation",
- "conduit-realm",
  "conduit-signal",
  "conduit-std-catalog",
  "conduit-std-host",

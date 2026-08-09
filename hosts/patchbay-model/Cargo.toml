@@ -9,7 +9,7 @@ conduit-form = { path = "../../crates/conduit-form" }
 conduit-observatory = { path = "../../crates/conduit-observatory" }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-presentation = { path = "../../crates/conduit-presentation" }
-conduit-realm = { path = "../../crates/conduit-realm" }
+conduit-body = { path = "../../crates/conduit-body" }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
 conduit-std-host = { path = "../std" }

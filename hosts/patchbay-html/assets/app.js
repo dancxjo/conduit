@@ -1,4 +1,4 @@
-const schema = "conduit.patchbay.portable-presentation/1";
+const schema = "conduit.patchbay.portable-presentation";
 const providers = new Map([
   ["Local", "local"], ["InMemory", "in-memory"],
   ["FixtureFrame", "fixture frame"], ["FixtureDatagram", "fixture datagram"],
@@ -36,7 +36,7 @@ function select(identity){
   const subject=state.snapshot.presentation.subjects.find(item=>item.identity===identity);
   const dl=document.querySelector("#inspector dl");dl.replaceChildren();term(dl,"Semantic subject",identity);term(dl,"Role",subject?.role);term(dl,"Meaning",subject?.label);
   for(const property of properties(identity))term(dl,property.name,propertyText(property.value));
-  term(dl,"Deployment",state.snapshot.presentation.basis.deployment_id);term(dl,"Activation",state.snapshot.presentation.basis.activation_id);term(dl,"Plan",state.snapshot.presentation.basis.plan_id);term(dl,"Active Play",state.snapshot.presentation.basis.active_play_id);
+  term(dl,"Body",state.snapshot.presentation.basis.body_id);term(dl,"Wake",state.snapshot.presentation.basis.wake_id);term(dl,"Plan",state.snapshot.presentation.basis.plan_id);term(dl,"Active Play",state.snapshot.presentation.basis.active_play_id);
 }
 
 function applyViewport(){const width=740/state.zoom,height=state.graphHeight/state.zoom;document.querySelector("#graph").setAttribute("viewBox",`${state.panX} 0 ${width} ${height}`);}
@@ -55,7 +55,7 @@ function renderCards(){const cards=document.querySelector("#route-cards");cards.
 function render(snapshot){
   state.snapshot=snapshot;const p=snapshot.presentation,b=p.basis;
   document.querySelector("#status").textContent=`Presentation revision ${p.revision} · content ${p.identity} · read-only`;
-  const facts=document.querySelector("#form-facts");facts.replaceChildren();term(facts,"Realm",b.realm_id);term(facts,"Deployment",b.deployment_id);term(facts,"Activation",b.activation_id);term(facts,"Source document",b.source_document_id);term(facts,"Checked Form",b.checked_form_id);
+  const facts=document.querySelector("#form-facts");facts.replaceChildren();term(facts,"Seed",b.seed_id);term(facts,"Body",b.body_id);term(facts,"Wake",b.wake_id);term(facts,"Source document",b.source_document_id);term(facts,"Checked Form",b.checked_form_id);
   const list=document.querySelector("#subjects");list.replaceChildren();for(const subject of p.subjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.setAttribute("aria-pressed","false");button.textContent=`${subject.role}: ${subject.label}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}renderGraph();
   const plan=document.querySelector("#plan dl");plan.replaceChildren();term(plan,"Expanded Form",b.expanded_form_id);term(plan,"Plan",b.plan_id);fillLines("#realizations",subjects("Plan").flatMap(subject=>texts(subject.identity)));
   const play=document.querySelector("#play dl");play.replaceChildren();term(play,"Active Play",b.active_play_id);term(play,"Plan",b.plan_id);fillLines("#evidence",subjects("Evidence").map(subject=>subject.label));

@@ -1,0 +1,135 @@
+use conduit_body::{
+    Body, BodyLifecycleError, BodyLifecycleEvent, BodyState, WakeLifecycle, WakeLifecycleEvent,
+    WakePlanState, MAX_WAKE_EVIDENCE,
+};
+use conduit_core::{bind_active_play, CheckedFormId, EvidenceId, Plan, PlanId, SourceDocumentId};
+
+fn plan(identity: &str) -> Plan {
+    Plan {
+        source_document_id: SourceDocumentId::from("source-a"),
+        checked_form_id: CheckedFormId::from("checked-a"),
+        expanded_form_id: "expanded".into(),
+        plan_id: PlanId::from(identity),
+        fragments: vec![],
+    }
+}
+fn body() -> Body {
+    Body::born(
+        SourceDocumentId::from("source-a"),
+        CheckedFormId::from("checked-a"),
+        4,
+        EvidenceId::from("bornd"),
+    )
+    .unwrap()
+}
+
+#[test]
+fn body_survives_lull_and_one_wake_survives_replan() {
+    let body = body();
+    let body_id = body.body_id.clone();
+    let (awake, wake) = body.wake(9, EvidenceId::from("woke")).unwrap();
+    let plan_a = plan("plan-a");
+    let wake = wake
+        .plan_ready(&plan_a, EvidenceId::from("planned-a"))
+        .unwrap();
+    let play_a = bind_active_play(&plan_a.plan_id, &"host-a".into(), &"boot-a".into(), 1);
+    let wake = wake
+        .play_started(&play_a, EvidenceId::from("playing-a"))
+        .unwrap();
+    let wake = wake
+        .became_unsatisfied(&plan_a.plan_id, EvidenceId::from("unsatisfied-a"))
+        .unwrap();
+    let plan_b = plan("plan-b");
+    let wake = wake
+        .plan_ready(&plan_b, EvidenceId::from("planned-b"))
+        .unwrap();
+    let play_b = bind_active_play(&plan_b.plan_id, &"host-b".into(), &"boot-b".into(), 2);
+    let wake = wake
+        .play_started(&play_b, EvidenceId::from("playing-b"))
+        .unwrap();
+    assert_eq!(wake.plans[0].state, WakePlanState::Superseded);
+    assert_ne!(wake.plans[0].active_play_id, wake.plans[1].active_play_id);
+    let lulled_wake = wake.lull(EvidenceId::from("lulled")).unwrap();
+    let retained = awake
+        .retain_after_lull(&lulled_wake, EvidenceId::from("retained"))
+        .unwrap();
+    assert_eq!(retained.body_id, body_id);
+    assert_eq!(retained.state, BodyState::Lulled);
+    let (_, next_wake) = retained.wake(10, EvidenceId::from("rewoke")).unwrap();
+    assert_ne!(next_wake.wake_id, lulled_wake.wake_id);
+}
+
+#[test]
+fn stale_inputs_and_duplicate_evidence_fail_closed() {
+    let (awake, wake) = body().wake(1, EvidenceId::from("woke")).unwrap();
+    assert_eq!(
+        wake.lull(EvidenceId::from("woke")),
+        Err(BodyLifecycleError::DuplicateEvidence)
+    );
+    let stale = Plan {
+        source_document_id: SourceDocumentId::from("other"),
+        ..plan("stale")
+    };
+    assert_eq!(
+        wake.plan_ready(&stale, EvidenceId::from("stale")),
+        Err(BodyLifecycleError::StalePlan)
+    );
+    assert_eq!(
+        awake.retain_after_lull(&wake, EvidenceId::from("too-soon")),
+        Err(BodyLifecycleError::MismatchedWake)
+    );
+    assert_eq!(wake.lifecycle, WakeLifecycle::AwaitingPlan);
+}
+
+#[test]
+fn typed_events_are_the_exact_evidence_history_and_tampering_fails_closed() {
+    let (awake, wake) = body().wake(1, EvidenceId::from("woke")).unwrap();
+    assert!(matches!(
+        awake.events.last(),
+        Some(BodyLifecycleEvent::Woke { wake_id, evidence_id })
+            if wake_id == &wake.wake_id && evidence_id.as_str() == "woke"
+    ));
+    let exact = plan("exact");
+    let planned = wake
+        .plan_ready(&exact, EvidenceId::from("planned"))
+        .unwrap();
+    assert!(matches!(
+        planned.events.last(),
+        Some(WakeLifecycleEvent::PlanReady { plan_id, evidence_id })
+            if plan_id == &exact.plan_id && evidence_id.as_str() == "planned"
+    ));
+
+    let mut drifted = planned;
+    if let WakeLifecycleEvent::PlanReady { plan_id, .. } = &mut drifted.events[1] {
+        *plan_id = PlanId::from("drifted");
+    }
+    assert_eq!(
+        drifted.validate(),
+        Err(BodyLifecycleError::InvalidTransition)
+    );
+}
+
+#[test]
+fn wake_evidence_history_is_finite() {
+    let (_, wake) = body().wake(1, EvidenceId::from("woke")).unwrap();
+    let exact = plan("bounded");
+    let waiting = wake
+        .plan_ready(&exact, EvidenceId::from("planned"))
+        .unwrap();
+    let play = bind_active_play(&exact.plan_id, &"host".into(), &"boot".into(), 1);
+    let mut playing = waiting
+        .play_started(&play, EvidenceId::from("playing"))
+        .unwrap();
+    for index in 3..MAX_WAKE_EVIDENCE {
+        playing = playing
+            .same_plan_observed(
+                &exact.plan_id,
+                EvidenceId::from(format!("observation-{index}")),
+            )
+            .unwrap();
+    }
+    assert_eq!(
+        playing.same_plan_observed(&exact.plan_id, EvidenceId::from("overflow")),
+        Err(BodyLifecycleError::EvidenceCapacityExhausted)
+    );
+}

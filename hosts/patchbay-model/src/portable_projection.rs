@@ -1,21 +1,19 @@
 //! Adapt the living Patchbay projection into Conduit's portable Presentation value.
 
+use conduit_body::{Body, BodyLifecycleError, BodyState, Wake, WakeLifecycle};
 use conduit_core::EvidenceId;
 use conduit_presentation::{
     Presentation, PresentationBasis, PresentationError, PresentationProperty,
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
     PresentationRole, PresentationSubject, PresentationText,
 };
-use conduit_realm::{
-    ActivationLifecycle, DeploymentState, RealmActivation, RealmDeployment, RealmLifecycleError,
-};
 
 use crate::{GraphItemKind, PatchbayPresentation};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PortableProjectionError {
-    InvalidDeployment(RealmLifecycleError),
-    InvalidActivation(RealmLifecycleError),
+    InvalidBody(BodyLifecycleError),
+    InvalidWake(BodyLifecycleError),
     LifecycleMismatch,
     MissingCheckedForm,
     PlanMismatch,
@@ -102,16 +100,14 @@ impl ContentBuilder {
 impl PatchbayPresentation {
     pub fn to_portable(
         &self,
-        deployment: &RealmDeployment,
-        activation: &RealmActivation,
+        body: &Body,
+        wake: &Wake,
     ) -> Result<Presentation, PortableProjectionError> {
-        deployment
-            .validate()
-            .map_err(PortableProjectionError::InvalidDeployment)?;
-        activation
-            .validate()
-            .map_err(PortableProjectionError::InvalidActivation)?;
-        validate_lifecycle(self, deployment, activation)?;
+        body.validate()
+            .map_err(PortableProjectionError::InvalidBody)?;
+        wake.validate()
+            .map_err(PortableProjectionError::InvalidWake)?;
+        validate_lifecycle(self, body, wake)?;
 
         let identities = self.identities();
         let source_document_id = identities
@@ -121,8 +117,8 @@ impl PatchbayPresentation {
             .document_checked_form_id
             .ok_or(PortableProjectionError::MissingCheckedForm)?;
         let mut evidence_ids = identities.evidence_ids;
-        evidence_ids.extend(deployment.evidence_ids.iter().cloned());
-        evidence_ids.extend(activation.evidence_ids.iter().cloned());
+        evidence_ids.extend(body.evidence_ids.iter().cloned());
+        evidence_ids.extend(wake.evidence_ids.iter().cloned());
         evidence_ids.sort();
         evidence_ids.dedup();
 
@@ -149,9 +145,9 @@ impl PatchbayPresentation {
         Presentation::new(
             self.revision,
             PresentationBasis {
-                realm_id: deployment.realm_id.clone(),
-                deployment_id: deployment.deployment_id.clone(),
-                activation_id: activation.activation_id.clone(),
+                seed_id: body.seed_id.clone(),
+                body_id: body.body_id.clone(),
+                wake_id: wake.wake_id.clone(),
                 source_document_id,
                 checked_form_id,
                 expanded_form_id: identities.expanded_form_id,
@@ -170,8 +166,8 @@ impl PatchbayPresentation {
 
 fn validate_lifecycle(
     presentation: &PatchbayPresentation,
-    deployment: &RealmDeployment,
-    activation: &RealmActivation,
+    body: &Body,
+    wake: &Wake,
 ) -> Result<(), PortableProjectionError> {
     let checked = presentation
         .document
@@ -180,27 +176,27 @@ fn validate_lifecycle(
         .iter()
         .find(|form| form.name == presentation.document.open_form)
         .ok_or(PortableProjectionError::MissingCheckedForm)?;
-    let active_deployment = matches!(
-        &deployment.state,
-        DeploymentState::Active { activation_id } if activation_id == &activation.activation_id
+    let active_body = matches!(
+        &body.state,
+        BodyState::Awake { wake_id } if wake_id == &wake.wake_id
     );
-    if !active_deployment
-        || deployment.deployment_id != activation.deployment_id
-        || deployment.realm_id != activation.realm_id
-        || deployment.source_document_id != activation.source_document_id
-        || deployment.checked_form_id != activation.checked_form_id
+    if !active_body
+        || body.body_id != wake.body_id
+        || body.seed_id != wake.seed_id
+        || body.source_document_id != wake.source_document_id
+        || body.checked_form_id != wake.checked_form_id
         || presentation.document.checked.source_document_id.as_ref()
-            != Some(&deployment.source_document_id)
-        || checked.checked_form_id != deployment.checked_form_id
+            != Some(&body.source_document_id)
+        || checked.checked_form_id != body.checked_form_id
     {
         return Err(PortableProjectionError::LifecycleMismatch);
     }
 
     match (&presentation.plan, &presentation.play) {
-        (None, None) if activation.lifecycle == ActivationLifecycle::AwaitingPlan => Ok(()),
+        (None, None) if wake.lifecycle == WakeLifecycle::AwaitingPlan => Ok(()),
         (Some(plan), None)
-            if activation.lifecycle == ActivationLifecycle::AwaitingPlay
-                && activation.plans.last().is_some_and(|active| {
+            if wake.lifecycle == WakeLifecycle::AwaitingPlay
+                && wake.plans.last().is_some_and(|active| {
                     active.plan_id == plan.plan_id && active.active_play_id.is_none()
                 }) =>
         {
@@ -208,10 +204,10 @@ fn validate_lifecycle(
         }
         (Some(plan), Some(play))
             if matches!(
-                activation.lifecycle,
-                ActivationLifecycle::Active | ActivationLifecycle::Unsatisfied
+                wake.lifecycle,
+                WakeLifecycle::Playing | WakeLifecycle::Unsatisfied
             ) && plan.plan_id == play.plan_id
-                && activation.plans.last().is_some_and(|active| {
+                && wake.plans.last().is_some_and(|active| {
                     active.plan_id == plan.plan_id
                         && active.active_play_id.as_ref() == Some(&play.active_play_id)
                 }) =>

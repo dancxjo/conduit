@@ -158,7 +158,7 @@ impl DistributedRoutePresentation {
     pub fn linear_lines(&self) -> Vec<String> {
         vec![
             format!(
-                "Form source {} checked {}. Plan {} connection {} has one admitted route, {}. {} became unavailable with evidence {}. The deployment became unsatisfied with evidence {}. Planning was requested with evidence {} and succeeded with evidence {}. Replacement Plan {} superseded prior Plan {} with installation evidence {}.",
+                "Form source {} checked {}. Plan {} connection {} has one admitted route, {}. {} became unavailable with evidence {}. The Play became unsatisfied with evidence {}. Planning was requested with evidence {} and succeeded with evidence {}. Replacement Plan {} superseded prior Plan {} with realization evidence {}.",
                 self.source_document_id.as_str(),
                 self.checked_form_id.as_str(),
                 self.new_plan.prior.plan_id.as_str(),
