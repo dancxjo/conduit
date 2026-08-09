@@ -58,6 +58,12 @@ mod signal_execution_identity;
 #[cfg(feature = "wifi-bootstrap")]
 mod plan_b_signal_image;
 #[cfg(feature = "wifi-bootstrap")]
+mod plan_c_signal_image;
+#[cfg(feature = "wifi-bootstrap")]
+mod continuable_signal;
+#[cfg(feature = "wifi-bootstrap")]
+mod signal_recovery;
+#[cfg(feature = "wifi-bootstrap")]
 mod network_image;
 #[cfg(feature = "wifi-bootstrap")]
 mod network_operations;

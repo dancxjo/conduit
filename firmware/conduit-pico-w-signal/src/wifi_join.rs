@@ -343,50 +343,7 @@ pub async fn run(
             crate::bootsel::wait_for_request(&mut link).await.ok();
         }
     }
-    let signal_runtime = runtime.for_plan(
-        crate::signal_image::PLAN_ID,
-        crate::signal_image::HOST_ID,
-    );
-    if !crate::plan_b_signal_image::validate_replacement() {
-        loop {
-            crate::bootsel::wait_for_request(&mut link).await.ok();
-        }
-    }
-    if crate::websocket_route::run(
-        stack,
-        &mut link,
-        clue,
-        &mut control,
-        &signal_runtime,
-    )
-    .await
-    .is_ok()
-    {
-        loop {
-            crate::bootsel::wait_for_request(&mut link).await.ok();
-        }
-    }
-
-    let plan_b_runtime = runtime.for_plan(
-        crate::plan_b_signal_image::execution_identity().plan_id,
-        crate::plan_b_signal_image::execution_identity().host_id,
-    );
-    if crate::remote_signal::run_plan_b_signal_sink(
-        &mut link,
-        clue,
-        &mut control,
-        &plan_b_runtime,
-    )
-    .await
-    .is_err()
-    {
-        loop {
-            crate::bootsel::wait_for_request(&mut link).await.ok();
-        }
-    }
-    loop {
-        crate::bootsel::wait_for_request(&mut link).await.ok();
-    }
+    crate::signal_recovery::run(stack, &mut link, clue, &mut control, runtime).await
 }
 
 pub(crate) async fn establish_usb(

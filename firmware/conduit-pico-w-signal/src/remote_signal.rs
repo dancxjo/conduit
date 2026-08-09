@@ -25,6 +25,11 @@ use crate::signal_image::generated_remote_endpoint;
 use crate::signal_image::RemoteEndpointIdentity;
 use crate::usb_link::{UsbLinkError, UsbLinkSession};
 
+#[cfg(feature = "wifi-bootstrap")]
+mod continuation;
+#[cfg(feature = "wifi-bootstrap")]
+pub use continuation::resume_plan_c_signal_sink;
+
 /// Establish the two physical USB channels before platform initialization can
 /// delay the session service loop.
 #[cfg(not(feature = "wifi-bootstrap"))]
