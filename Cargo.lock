@@ -404,6 +404,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "conduit-planner",
  "serde",
  "serde_json",
 ]
@@ -2342,6 +2343,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "conduit-core",
+ "conduit-net",
  "conduit-signal",
  "conduit-std-host",
  "conduit-wire",

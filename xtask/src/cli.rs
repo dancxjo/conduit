@@ -92,6 +92,16 @@ pub struct ProveArgs {
     /// honest two-sided sink-failure terminal instead of success.
     #[arg(long)]
     pub induce_sink_failure: bool,
+
+    /// Environment variable containing the Wi-Fi SSID. The variable value is
+    /// never printed.
+    #[arg(long)]
+    pub ssid_env: Option<String>,
+
+    /// Environment variable containing the Wi-Fi credential. The variable
+    /// value is never printed.
+    #[arg(long)]
+    pub credential_env: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -107,6 +117,7 @@ pub enum ProveTarget {
     StdBrowserToggle,
     BrowserHost,
     StdPicoUsb,
+    PicoWifiBootstrap,
 }
 
 #[derive(Args, Debug)]

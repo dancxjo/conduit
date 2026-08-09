@@ -284,6 +284,21 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         "cargo",
         &["xtask", "prove", "std-pico-usb", "--dry-run"],
     ),
+    Step::new(
+        "check.pico-wifi-bootstrap.dry-run",
+        "Dry-run verify of the USB-authorized Pico W Wi-Fi proof",
+        "cargo",
+        &[
+            "xtask",
+            "prove",
+            "pico-wifi-bootstrap",
+            "--ssid-env",
+            "CONDUIT_TEST_WIFI_SSID",
+            "--credential-env",
+            "CONDUIT_TEST_WIFI_CREDENTIAL",
+            "--dry-run",
+        ],
+    ),
 ];
 
 pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[

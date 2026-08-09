@@ -41,6 +41,7 @@ pub use run_control::{
     RunControlRequestId,
 };
 pub mod pico_usb_source;
+pub mod pico_wifi_bootstrap;
 pub mod pool_webchat;
 pub mod triple_signal;
 pub mod usb_cdc;

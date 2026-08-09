@@ -29,5 +29,21 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             )
             .map_err(|error| StepError::prereq("prove.std-pico-usb", error.to_string()))
         }
+        ProveTarget::PicoWifiBootstrap => {
+            let pico_args = crate::commands::pico::PicoArgs {
+                dry_run: opts.dry_run,
+                wifi_bootstrap: true,
+                ..Default::default()
+            };
+            crate::commands::pico::run_prove_pico_wifi_bootstrap(
+                args.link_port.as_deref(),
+                args.clue_port.as_deref(),
+                args.ssid_env.as_deref(),
+                args.credential_env.as_deref(),
+                &pico_args,
+                opts,
+            )
+            .map_err(|error| StepError::prereq("prove.pico-wifi-bootstrap", error.to_string()))
+        }
     }
 }

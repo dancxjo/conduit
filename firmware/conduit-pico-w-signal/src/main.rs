@@ -17,17 +17,23 @@
     all(feature = "pico-local", feature = "pico-local-minimal"),
     all(feature = "pico-local-minimal", feature = "usb-remote"),
     all(feature = "pico-local-minimal", feature = "triple-remote"),
-    all(feature = "usb-remote", feature = "triple-remote")
+    all(feature = "usb-remote", feature = "triple-remote"),
+    all(feature = "wifi-bootstrap", feature = "pico-local"),
+    all(feature = "wifi-bootstrap", feature = "pico-local-minimal"),
+    all(feature = "wifi-bootstrap", feature = "usb-remote"),
+    all(feature = "wifi-bootstrap", feature = "triple-remote")
 ))]
 compile_error!("select exactly one Pico firmware mode");
 #[cfg(not(any(
     feature = "pico-local",
     feature = "pico-local-minimal",
     feature = "usb-remote",
-    feature = "triple-remote"
+    feature = "triple-remote",
+    feature = "wifi-bootstrap"
 )))]
 compile_error!("select exactly one Pico firmware mode");
 
+#[cfg(not(feature = "wifi-bootstrap"))]
 mod kernel;
 #[cfg(feature = "session-control")]
 mod bootsel;
@@ -37,8 +43,17 @@ mod receipts;
 mod remote_signal;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 mod remote_kernel;
+#[cfg(not(feature = "wifi-bootstrap"))]
 mod signal_image;
-#[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
+#[cfg(feature = "wifi-bootstrap")]
+mod network_image;
+#[cfg(feature = "wifi-bootstrap")]
+mod network_operations;
+#[cfg(feature = "wifi-bootstrap")]
+mod network_receipts;
+#[cfg(feature = "wifi-bootstrap")]
+mod wifi_join;
+#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
 mod startup_arena;
 mod usb;
 #[cfg(feature = "session-control")]
@@ -52,7 +67,7 @@ use embassy_futures::join::join;
 use embassy_futures::select::{select, Either};
 use panic_halt as _;
 
-#[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
+#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
 #[global_allocator]
 static ALLOCATOR: startup_arena::StartupArena = startup_arena::StartupArena::new();
 
@@ -79,6 +94,10 @@ static CYW43_FW: Aligned<A4, [u8; 231077]> = Aligned(*include_bytes!(
 static CYW43_NVRAM: Aligned<A4, [u8; 742]> = Aligned(*include_bytes!(
     "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/nvram_rp2040.bin"
 ));
+#[cfg(feature = "wifi-bootstrap")]
+static CYW43_CLM: &[u8; 984] = include_bytes!(
+    "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0_clm.bin"
+);
 // License is an identity input to the firmware build.
 const _CYW43_LICENSE: &[u8] = include_bytes!(
     "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/LICENSE-permissive-binary-license-1.0.txt"
@@ -97,10 +116,10 @@ async fn main(spawner: Spawner) {
     #[cfg(not(feature = "session-control"))]
     let (usb_fut, clue_sender) = usb::init_clue_usb(usb_driver);
     spawner.spawn(receipts::usb_task_spawn(usb_fut).unwrap());
-    let runtime = receipts::RuntimeTranscriptIdentity::new(
-        signal_image::PLAN_ID,
-        signal_image::HOST_ID,
-    );
+    #[cfg(not(feature = "wifi-bootstrap"))]
+    let runtime = receipts::RuntimeTranscriptIdentity::new(signal_image::PLAN_ID, signal_image::HOST_ID);
+    #[cfg(feature = "wifi-bootstrap")]
+    let runtime = receipts::RuntimeTranscriptIdentity::new(network_image::PLAN_ID, network_image::HOST_ID);
     let mut cdc = receipts::UsbCdc::new(clue_sender.sender);
 
     #[cfg(feature = "pico-local")]
@@ -193,5 +212,25 @@ async fn main(spawner: Spawner) {
                 .await;
         }
         let _ = bootsel::wait_for_request(&mut link_session).await;
+    }
+
+    #[cfg(feature = "wifi-bootstrap")]
+    {
+        wifi_join::run(
+            &spawner,
+            session_carrier,
+            &mut cdc,
+            p.PIO0,
+            p.DMA_CH0,
+            p.PIN_23,
+            p.PIN_24,
+            p.PIN_25,
+            p.PIN_29,
+            &CYW43_FW,
+            &CYW43_NVRAM,
+            CYW43_CLM,
+            &runtime,
+        )
+        .await;
     }
 }
