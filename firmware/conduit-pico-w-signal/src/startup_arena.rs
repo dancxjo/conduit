@@ -34,6 +34,10 @@ impl StartupArena {
 unsafe impl GlobalAlloc for StartupArena {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         if self.sealed.load(Ordering::Acquire) {
+            #[cfg(feature = "wifi-bootstrap")]
+            crate::panic_recovery::set_phase(
+                crate::panic_recovery::PanicPhase::PostActivationAllocation,
+            );
             return core::ptr::null_mut();
         }
         let base = self.bytes.get().cast::<u8>() as usize;

@@ -30,6 +30,7 @@ pub enum PanicPhase {
     RecoveryClue = 15,
     RecoveryClueWrite = 16,
     RecoveryAdmission = 17,
+    PostActivationAllocation = 18,
     Unclassified = 255,
 }
 
@@ -57,6 +58,7 @@ impl PanicRecord {
             PanicPhase::RecoveryClue => "network-recovery-clue-panic",
             PanicPhase::RecoveryClueWrite => "network-recovery-clue-write-panic",
             PanicPhase::RecoveryAdmission => "r1-recovery-admission-panic",
+            PanicPhase::PostActivationAllocation => "r1-post-activation-allocation-panic",
             PanicPhase::Unclassified => "firmware-panic",
         }
     }
@@ -101,6 +103,7 @@ pub fn take(watchdog_peripheral: Peri<'static, WATCHDOG>) -> Option<PanicRecord>
             15 => PanicPhase::RecoveryClue,
             16 => PanicPhase::RecoveryClueWrite,
             17 => PanicPhase::RecoveryAdmission,
+            18 => PanicPhase::PostActivationAllocation,
             _ => PanicPhase::Unclassified,
         },
     })
