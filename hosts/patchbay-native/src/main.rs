@@ -1,5 +1,6 @@
 //! Native window/event-loop adapter for Patchbay.
 
+use conduit_presentation::Presentation;
 use patchbay_model::{DistributedRouteDemo, FormEditor, PatchbayModel, PatchbayTopology};
 use std::num::NonZeroU32;
 use std::rc::Rc;
@@ -34,6 +35,7 @@ struct PatchbayApplication {
     control: NativeControl,
     file_task: NativeFileTask,
     route_demo: Option<DistributedRouteDemo>,
+    portable_presentation: Option<Presentation>,
     distributed_play: Option<NativeDistributedPlay>,
     window: Option<Rc<Window>>,
     exit_after_window: bool,
@@ -98,6 +100,10 @@ impl PatchbayApplication {
             })
             .transpose()
             .map_err(|error| format!("distributed route demo: {error:?}"))?;
+        let portable_presentation = arguments
+            .distributed_route_demo
+            .then(patchbay_model::portable_demonstration)
+            .transpose()?;
         let distributed_play = arguments
             .distributed_play
             .then(|| NativeDistributedPlay::start(source_host_id, source_boot_id))
@@ -111,6 +117,7 @@ impl PatchbayApplication {
             control,
             file_task,
             route_demo,
+            portable_presentation,
             distributed_play,
             window: None,
             exit_after_window: arguments.exit_after_window,

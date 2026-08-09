@@ -446,6 +446,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
+ "conduit-realm",
  "serde",
  "sha2",
 ]
@@ -1361,10 +1362,7 @@ name = "patchbay-html"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
- "conduit-observatory",
- "conduit-signal",
- "conduit-std-host",
+ "conduit-presentation",
  "patchbay-model",
  "serde",
  "serde_json",
@@ -1378,10 +1376,13 @@ dependencies = [
  "conduit-form",
  "conduit-observatory",
  "conduit-planner",
+ "conduit-presentation",
+ "conduit-realm",
  "conduit-signal",
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-wire",
+ "serde_json",
 ]
 
 [[package]]
@@ -1390,6 +1391,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-observatory",
+ "conduit-presentation",
  "conduit-std-catalog",
  "conduit-std-host",
  "font8x8",

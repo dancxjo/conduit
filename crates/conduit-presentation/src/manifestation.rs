@@ -4,6 +4,7 @@ use alloc::string::String;
 use conduit_core::{
     verify_plan, ActivePlayId, EvidenceId, PlacementId, Plan, PlanId, PlannedOperation,
 };
+use conduit_realm::{ActivationId, DeploymentId, RealmId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -33,6 +34,9 @@ pub enum ManifestationLifecycle {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Manifestation {
     pub manifestation_id: ManifestationId,
+    pub realm_id: RealmId,
+    pub deployment_id: DeploymentId,
+    pub activation_id: ActivationId,
     pub presentation_id: PresentationContentId,
     pub presentation_revision: u64,
     pub plan_id: PlanId,
@@ -83,6 +87,9 @@ impl Manifestation {
         );
         Ok(Self {
             manifestation_id,
+            realm_id: presentation.basis.realm_id.clone(),
+            deployment_id: presentation.basis.deployment_id.clone(),
+            activation_id: presentation.basis.activation_id.clone(),
             presentation_id: presentation.identity.clone(),
             presentation_revision: presentation.revision,
             plan_id: plan.plan_id.clone(),
@@ -139,7 +146,10 @@ impl Manifestation {
             .validate()
             .map_err(|_| ManifestationError::InvalidPresentation)?;
         let placement = renderer_placement(plan, &self.placement_id)?;
-        if self.presentation_id != presentation.identity
+        if self.realm_id != presentation.basis.realm_id
+            || self.deployment_id != presentation.basis.deployment_id
+            || self.activation_id != presentation.basis.activation_id
+            || self.presentation_id != presentation.identity
             || self.presentation_revision != presentation.revision
             || self.plan_id != plan.plan_id
             || self.manifestation_id

@@ -3,14 +3,17 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{
-    ActivePlayId, CheckedFormId, EvidenceId, ExpandedFormId, PlanId, SourceDocumentId,
+    ActivePlayId, CheckedFormId, ConnectionProvider, EvidenceId, ExpandedFormId, PlanId,
+    SourceDocumentId,
 };
+use conduit_realm::{ActivationId, DeploymentId, RealmId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub const MAX_PRESENTATION_SUBJECTS: usize = 1_024;
 pub const MAX_PRESENTATION_RELATIONSHIPS: usize = 2_048;
 pub const MAX_PRESENTATION_TEXT_ITEMS: usize = 2_048;
+pub const MAX_PRESENTATION_PROPERTIES: usize = 4_096;
 pub const MAX_PRESENTATION_EVIDENCE: usize = 1_024;
 pub const MAX_PRESENTATION_ID_BYTES: usize = 256;
 pub const MAX_PRESENTATION_TEXT_BYTES: usize = 1_024;
@@ -27,6 +30,9 @@ impl PresentationContentId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PresentationBasis {
+    pub realm_id: RealmId,
+    pub deployment_id: DeploymentId,
+    pub activation_id: ActivationId,
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: Option<ExpandedFormId>,
@@ -80,6 +86,22 @@ pub struct PresentationText {
     pub text: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PresentationPropertyValue {
+    Identity(String),
+    ConnectionProvider(ConnectionProvider),
+    Text(String),
+    Count(u64),
+    Flag(bool),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PresentationProperty {
+    pub subject: String,
+    pub name: String,
+    pub value: PresentationPropertyValue,
+}
+
 /// One immutable semantic presentation revision.
 ///
 /// Geometry, viewport, toolkit objects, window handles, DOM identity, pixel
@@ -91,6 +113,7 @@ pub struct Presentation {
     pub basis: PresentationBasis,
     pub subjects: Vec<PresentationSubject>,
     pub relationships: Vec<PresentationRelationship>,
+    pub properties: Vec<PresentationProperty>,
     pub text: Vec<PresentationText>,
 }
 
@@ -100,6 +123,7 @@ pub enum PresentationError {
     TooManySubjects,
     TooManyRelationships,
     TooManyTextItems,
+    TooManyProperties,
     TooMuchEvidence,
     EmptyIdentity,
     IdentityTooLong,
@@ -108,6 +132,7 @@ pub enum PresentationError {
     DuplicateSubject,
     UnknownRelationshipSubject,
     UnknownTextSubject,
+    UnknownPropertySubject,
     DuplicateEvidence,
     NonCanonicalEvidence,
     InvalidBasis,
@@ -127,6 +152,7 @@ impl Presentation {
         mut basis: PresentationBasis,
         subjects: Vec<PresentationSubject>,
         relationships: Vec<PresentationRelationship>,
+        properties: Vec<PresentationProperty>,
         text: Vec<PresentationText>,
     ) -> Result<Self, PresentationError> {
         basis.evidence_ids.sort();
@@ -139,6 +165,7 @@ impl Presentation {
             basis,
             subjects,
             relationships,
+            properties,
             text,
         };
         value.validate_content()?;
@@ -167,6 +194,9 @@ impl Presentation {
         if self.text.len() > MAX_PRESENTATION_TEXT_ITEMS {
             return Err(PresentationError::TooManyTextItems);
         }
+        if self.properties.len() > MAX_PRESENTATION_PROPERTIES {
+            return Err(PresentationError::TooManyProperties);
+        }
         if self.basis.evidence_ids.len() > MAX_PRESENTATION_EVIDENCE {
             return Err(PresentationError::TooMuchEvidence);
         }
@@ -178,8 +208,15 @@ impl Presentation {
         {
             return Err(PresentationError::NonCanonicalEvidence);
         }
-        validate_id(self.basis.source_document_id.as_str())?;
-        validate_id(self.basis.checked_form_id.as_str())?;
+        for identity in [
+            self.basis.realm_id.as_str(),
+            self.basis.deployment_id.as_str(),
+            self.basis.activation_id.as_str(),
+            self.basis.source_document_id.as_str(),
+            self.basis.checked_form_id.as_str(),
+        ] {
+            validate_id(identity)?;
+        }
         for identity in [
             self.basis
                 .expanded_form_id
@@ -228,11 +265,27 @@ impl Presentation {
             }
             validate_text(&item.text)?;
         }
+        for property in &self.properties {
+            if !self.has_subject(&property.subject) {
+                return Err(PresentationError::UnknownPropertySubject);
+            }
+            validate_id(&property.name)?;
+            match &property.value {
+                PresentationPropertyValue::Identity(value) => validate_id(value)?,
+                PresentationPropertyValue::Text(value) => validate_text(value)?,
+                PresentationPropertyValue::ConnectionProvider(_)
+                | PresentationPropertyValue::Count(_)
+                | PresentationPropertyValue::Flag(_) => {}
+            }
+        }
         let total_bytes = self
             .basis
-            .source_document_id
+            .realm_id
             .as_str()
             .len()
+            .saturating_add(self.basis.deployment_id.as_str().len())
+            .saturating_add(self.basis.activation_id.as_str().len())
+            .saturating_add(self.basis.source_document_id.as_str().len())
             .saturating_add(self.basis.checked_form_id.as_str().len())
             .saturating_add(optional_len(
                 self.basis.expanded_form_id.as_ref().map(|id| id.as_str()),
@@ -268,6 +321,16 @@ impl Presentation {
                     .sum::<usize>(),
             )
             .saturating_add(
+                self.properties
+                    .iter()
+                    .map(|property| {
+                        property.subject.len()
+                            + property.name.len()
+                            + property_value_len(&property.value)
+                    })
+                    .sum::<usize>(),
+            )
+            .saturating_add(
                 self.text
                     .iter()
                     .map(|item| item.subject.len() + item.text.len())
@@ -289,6 +352,9 @@ impl Presentation {
         let mut digest = Sha256::new();
         hash_string(&mut digest, "conduit.presentation/presentation@1");
         digest.update(self.revision.to_le_bytes());
+        hash_string(&mut digest, self.basis.realm_id.as_str());
+        hash_string(&mut digest, self.basis.deployment_id.as_str());
+        hash_string(&mut digest, self.basis.activation_id.as_str());
         hash_string(&mut digest, self.basis.source_document_id.as_str());
         hash_string(&mut digest, self.basis.checked_form_id.as_str());
         hash_optional(
@@ -316,6 +382,30 @@ impl Presentation {
             hash_string(&mut digest, &relationship.source);
             hash_string(&mut digest, &relationship.target);
             digest.update([relationship.kind as u8]);
+        }
+        for property in &self.properties {
+            hash_string(&mut digest, &property.subject);
+            hash_string(&mut digest, &property.name);
+            match &property.value {
+                PresentationPropertyValue::Identity(value) => {
+                    digest.update([0]);
+                    hash_string(&mut digest, value);
+                }
+                PresentationPropertyValue::ConnectionProvider(provider) => {
+                    digest.update([1, provider.canonical_code()]);
+                }
+                PresentationPropertyValue::Text(value) => {
+                    digest.update([2]);
+                    hash_string(&mut digest, value);
+                }
+                PresentationPropertyValue::Count(value) => {
+                    digest.update([3]);
+                    digest.update(value.to_le_bytes());
+                }
+                PresentationPropertyValue::Flag(value) => {
+                    digest.update([4, u8::from(*value)]);
+                }
+            }
         }
         for item in &self.text {
             hash_string(&mut digest, &item.subject);
@@ -360,6 +450,17 @@ fn hash_optional(digest: &mut Sha256, value: Option<&str>) {
 
 fn optional_len(value: Option<&str>) -> usize {
     value.map_or(0, str::len)
+}
+
+fn property_value_len(value: &PresentationPropertyValue) -> usize {
+    match value {
+        PresentationPropertyValue::Identity(value) | PresentationPropertyValue::Text(value) => {
+            value.len()
+        }
+        PresentationPropertyValue::ConnectionProvider(_) => 1,
+        PresentationPropertyValue::Count(_) => 8,
+        PresentationPropertyValue::Flag(_) => 1,
+    }
 }
 
 fn hex(bytes: &[u8]) -> String {

@@ -17,6 +17,7 @@ use conduit_presentation::{
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
     PresentationText, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES,
 };
+use conduit_realm::{RealmDeployment, RealmId};
 
 const WAYLAND_RESOURCE: &str = "conduit.resource/wayland-surface@1";
 const DOM_RESOURCE: &str = "conduit.resource/browser-document@1";
@@ -78,9 +79,23 @@ fn plan_for(form: &conduit_form::CheckedForm, host: HostAdvertisement) -> condui
 }
 
 fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan) -> Presentation {
+    let deployment = RealmDeployment::install(
+        RealmId::from("patchbay/realm"),
+        form.source_document_id.clone(),
+        form.checked_form_id.clone(),
+        1,
+        EvidenceId::from("patchbay/evidence/deployed"),
+    )
+    .unwrap();
+    let (deployment, activation) = deployment
+        .activate(1, EvidenceId::from("patchbay/evidence/activated"))
+        .unwrap();
     Presentation::new(
         7,
         PresentationBasis {
+            realm_id: deployment.realm_id,
+            deployment_id: deployment.deployment_id,
+            activation_id: activation.activation_id,
             source_document_id: form.source_document_id.clone(),
             checked_form_id: form.checked_form_id.clone(),
             expanded_form_id: Some(form.expanded_form_id.clone()),
@@ -107,6 +122,7 @@ fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan) -> 
             target: "patchbay/renderer".into(),
             kind: PresentationRelationshipKind::Contains,
         }],
+        vec![],
         vec![PresentationText {
             subject: "patchbay/renderer".into(),
             text: "Presentation to Manifestation".into(),
@@ -311,6 +327,7 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
             duplicate,
             valid.subjects.clone(),
             valid.relationships.clone(),
+            valid.properties.clone(),
             valid.text.clone()
         ),
         Err(PresentationError::DuplicateEvidence)
@@ -334,6 +351,7 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
             incoherent,
             valid.subjects.clone(),
             valid.relationships.clone(),
+            valid.properties.clone(),
             valid.text.clone()
         ),
         Err(PresentationError::InvalidBasis)
@@ -351,6 +369,7 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
             valid.basis,
             valid.subjects,
             valid.relationships,
+            valid.properties,
             oversized_text
         ),
         Err(PresentationError::TooManyBytes)
