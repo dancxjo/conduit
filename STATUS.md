@@ -13,6 +13,7 @@ adapter or physical proof.
 | Portable planner capability | optional boot-scoped planner profile/limit offers are part of the `no_std` host advertisement contract; planner identity and scratch state are excluded from plan construction and identity | full and browser-profile equivalence across different planner host/boot identities, bounded pre-planning refusal, missing/ambiguous-offer denial, and a non-planner Pico target with a verified lowerable fragment | the standard reference host advertises `conduit.planner/full@1` and invokes the shared deterministic planner; non-planner hosts remain ordinary complete targets | the actual browser/WASM host advertises `conduit.planner/browser-wasm@1` and plans locally in its WASM start path before lowering and kernel execution | Pico advertises no planner profile; existing generated firmware consumes its externally planned exact fragment, with no general Pico planner claim | no new transport or delegation service | no new physical/HIL claim |
 | Competing capability realizations (R2) | equal checked faces admit distinct host implementations/artifacts; general hard requirements, explicit policy, stable realization characteristics, changing resource observations, finite compute ranges/service/topology, exact authority, and immutable selected Plan facts remain separate | three explicitly synthetic text-generation fixtures prove hard context/privacy rejection, deterministic policy choice, bounded candidate-decision clue, minimum-first compute allocation, observation-driven replacement planning without old-Plan mutation, and non-AI video/storage representability | one selected deterministic fixture executes through ordinary planning, lowering, the fixed kernel, admitted host operation, exact base, and presentation boundaries; normal std preparation validates scalable compute reservations | no new browser adapter or browser-owned realization truth; the required browser job only guards the existing adapter boundary | no firmware execution or bare-metal lane-base claim; `BareMetal` is an architecture-neutral contract demonstrated below physical proof | remote-base and network-storage cases are contract/fixture representations only; no live model API, endpoint, credential, paid service, or new transport claim | no physical CPU enumeration, scheduling-quality, firmware-lane, model, transport, or HIL proof |
 | Connection envelope and session wire formats | allocating fixture envelope plus allocation-stable borrowed exact session protocol; framed sessions preserve base-specific exact identity and bounds | deterministic envelope corpus and session lifecycle/mutation/base-eligibility vectors | native binary-only RFC 6455 and USB CDC bases with fixed frame/buffer bounds | real browser WebSocket API with one-message inbox and explicit send bounds | dual-CDC Pico carrier keeps session frames on CDC0 and clue on CDC1 | actual loopback WebSocket plus physical USB CDC; fixture bases remain synthetic conformance only | reciprocal physical Hello/Ready/value/pressure/failure/terminal lifecycles recorded |
+| Cord meaning and finite Line realization | `CordId`, `LineId`, Base, binding, endpoint, and session identities are distinct; Plans seal exact bounded Line contracts while current availability remains an external Sign | deterministic one-Line/two-Line planning, immutable availability, unsealed-selection denial, session continuation, and replacement-Plan vectors | std planning/runtime consume only exact ready admitted Line offers and expose selected Line/Base/binding diagnostics | browser/WASM sessions and Patchbay HTML consume the same exact planned Line identities without making transport part of Form or Cord meaning | generated fixed images carry exact Line identity through every selectable Pico composition | bounded WebSocket and USB CDC are distinct Lines to the same R1 Pico boot; no new live transport family is claimed | consumes the already-accepted #361 physical replan and admitted-continuation evidence without claiming a new board run |
 | Portable Signal | yes | multi-value fixtures | one std kernel pulse source atomically fans each value to stdout plus two exact remote egresses | browser/WASM kernel show sink with sixteen exact DOM receipts | unchanged Signal forms generate exact local and remote Pico images that drive the CYW43 LED | sixteen ordered values over bounded WebSocket and USB CDC remote cords | sixteen matching ordered stdout, DOM, and physical LED receipts from one exact three-host run |
 | R1 Body and Line recovery | exact immutable Plan candidates, distinct Line readiness Signs, replacement-planning events, allocation-stable session checkpoints, and Body/Wake/Lull lifecycle identities | deterministic new-Plan and same-Plan recovery vectors cannot claim physical acceptance | one terminal peer and two browser peers drive exact planned inputs; ordinary planning replaces an unsatisfied WebSocket-only Plan with USB CDC | two pinned Chromium peers each issue exact keydown/on and keyup/off inputs in every physical branch | one continuously USB-powered Pico W boot exposes WebSocket and USB CDC Lines, retains pre-admitted Plan C continuation state, and seals post-activation allocation | physical WebSocket loss produces either a new USB Plan/Play or bounded same-Plan/same-Play USB continuation according to the immutable Plan | exact-main `cargo xtask prove r1-hil --interactive` completed both physical faults, eighteen correlated LED Signs, same Body and Pico boot, required Wake continuity, Lull, and later Wake |
 | Optional pre-Play HOLD | one Wake may admit an exact immutable Plan plus finite planning-basis Signs, hold reason/source, persistence policy, fixed release-authority contract, and current-validity result while remaining distinct from Playing, active-Play pause, and Lull | deterministic direct, held, authorized release, stale-basis replacement, persistent re-hold, non-persistent replacement, authority denial, bounded-basis, replay-tamper, and lifecycle-separation vectors | `conduit-body` exposes bounded held-Plan admission, inspection, release, invalidation, and replacement APIs; no `ActivePlayId` exists before successful release, and release revalidates the complete current basis before starting Play | no browser UI or adapter claim | no firmware change | no new transport; visibility, reachability, and connectivity confer no release authority | no physical/HIL claim |
@@ -85,6 +86,11 @@ The `check` workflow requires:
   `WebSocket` preserve exact base/base-instance/link/endpoint identity,
   while `Local`, `InMemory`, and `FixtureDatagram` remain invalid for the exact
   remote session contract;
+- exact finite Line offers with distinct Line/Base/binding/endpoint identity,
+  explicit shape/duplex/ordering/reliability/framing/capacity/continuation/
+  security facts, immutable Plan admission, external availability Signs,
+  fail-closed unsealed selection, and Line-aware session wire and generated
+  embedded identity;
 - one actual Chromium browser-local kernel proof with two independent WASM
   instances, exact source/checked/expanded/plan/fragment/play/request/
   presentation/clue identities, stable sealed capacity, sixteen ordered
@@ -431,6 +437,26 @@ delivered the same six correlated physical signs. Both branches quiesced their
 active Play, Lulled without deleting the Body, and issued a distinct later
 WakeId. The command emitted `combined_physical_acceptance: true` and exited
 successfully.
+
+The general R1 Cord/Line boundary from #618 is accepted at exact main
+`416bd3afb2f22251a0e7971773a6185e606947d5`; push workflow `31336211081`
+passed both required jobs. `CordId`, `LineId`, Base, lower binding, physical
+endpoint, and session identities are mechanically distinct. Hosts offer finite
+Lines with explicit scope, traffic shape, duplex, ordering, reliability,
+framing and capacity bounds, continuation, security, peer binding, and current
+availability Sign. Planning seals one exact ordered admitted set into immutable
+Plan identity; runtime selection cannot invent an unsealed Line, and changing
+availability cannot mutate Form, Cord, or Plan identity.
+
+The existing R1 WebSocket and USB CDC realizations are now distinct Lines to
+the same Pico boot and may realize the same semantic Cord. The planner,
+runtime, session wire v3, Observatory/Patchbay projections, generated embedded
+tables, std/browser adapters, and every selectable Pico composition preserve
+the exact Line and lower binding facts. Deterministic tests distinguish
+same-Plan bounded continuation from new-Plan recovery, and the accepted #361
+physical record supplies the corresponding live proof. This checkpoint adds
+no new physical run, transport family, discovery, retry/replay policy, Wi-Fi
+Base, public-network security claim, or work deferred to #356 and #644.
 
 That R1 physical acceptance does not imply manual fallback selection, Plan
 mutation, reconnect policy, discovery, mesh, TLS/public Internet, Zenoh, route
