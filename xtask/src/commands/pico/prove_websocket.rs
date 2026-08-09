@@ -145,23 +145,16 @@ pub(super) fn verify_new_plan_recovery(
             .read_line(Duration::from_secs(3))
             .map_err(|error| format!("timed out reading WebSocket link Sign: {error}"))?;
         verify_link_clue(&link_line, identity, runtime, source_a.binding())?;
-        for input in control_inputs() {
-            r1_control_session::deliver_input(
-                &mut websocket_io,
-                &mut source_a,
-                input,
-                &mut |sequence| {
-                    let line = clue
-                        .read_line(Duration::from_secs(3))
-                        .map_err(|error| format!("missing Plan A physical LED Sign: {error}"))?;
-                    super::r1_signal_transcript::verify_receipt(
-                        &line, &plan_a, sequence, identity, runtime,
-                    )
-                },
-            )?;
-        }
+        super::r1_live_control::deliver_plan_a_inputs(
+            &mut websocket_io,
+            &mut source_a,
+            clue,
+            &plan_a,
+            identity,
+            runtime,
+        )?;
 
-        println!("==> Plan A delivered all three exact peers on/off over WebSocket");
+        println!("==> Plan A delivered live terminal and two-Chromium inputs over WebSocket");
         println!("==> Remove real Wi-Fi/network availability now, then press Enter");
         let mut confirmation = String::new();
         std::io::stdin().read_line(&mut confirmation)?;
