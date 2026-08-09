@@ -3,10 +3,10 @@ use conduit_ai::{
     install_generate_text_catalog, CPU_EXECUTION_RESOURCE,
 };
 use conduit_core::{
-    seal_plan, ActivePlayId, ArchitectureBaseId, ArchitectureBaseKind, BaseExecutionLaneId, ClueId,
+    seal_plan, ActivePlayId, ArchitectureBaseId, ArchitectureBaseKind, BaseExecutionLaneId,
     ComputeDomainId, ComputeLaneAssignment, ComputePerformanceClassId, ComputeServiceGuarantee,
     ComputeTopologyGroup, ComputeTopologyGroupId, ComputeTopologyRequirement, PlacementId,
-    ResourceClassId, ResourceHealth, ResourceObservation,
+    ResourceClassId, ResourceHealth, ResourceObservation, SignId,
 };
 use conduit_planner::{
     plan_selected_realizations_with_characteristics, select_realization_with_policy,
@@ -37,7 +37,7 @@ fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObserv
                     health: ResourceHealth::Ready,
                     unreserved_units: pool.capacity_units,
                     utilized_units: 0,
-                    clue_id: ClueId::from(format!("compute-observation-{index}")),
+                    sign_id: SignId::from(format!("compute-observation-{index}")),
                 })
         })
         .collect()

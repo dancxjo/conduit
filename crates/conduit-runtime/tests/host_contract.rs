@@ -3,7 +3,7 @@ mod host_contract_fixtures;
 use conduit_core::{
     kind_id, port_id, process_owned_line_offer, ArtifactId, BootId, CancellationPolicy,
     CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId, ConnectionBase,
-    ConnectionOutcome, ExecutionProfileId, ExpandedFormId, ExpectedClue, ExpectedTerminal,
+    ConnectionOutcome, ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal,
     FailureReason, FormIdentity, FragmentId, GearId, HostCommand, HostEvent, HostId,
     HostOperationContractId, HostProfileId, ImplementationId, KindContractRevision,
     ObservationKind, OfferGeneration, PlacementId, PlanFragment, PlanId, PlannedGear,
@@ -41,21 +41,21 @@ fn prepare_is_effect_free_and_installed_profile_triggers_generically() {
 }
 
 #[test]
-fn planned_clue_storage_survives_observation_overflow() {
+fn planned_sign_storage_survives_observation_overflow() {
     let advertised = advertisement();
     let fragment = fragment(&advertised);
     let plan_id = fragment.plan_id.clone();
     let mut runtime = HostRuntime::new(advertised, registry(), 1);
 
     runtime.handle(HostCommand::Prepare(fragment.clone()));
-    let prepared_report = mandatory_clue_reports(&mut runtime)
+    let prepared_report = mandatory_sign_reports(&mut runtime)
         .into_iter()
         .next()
-        .expect("prepared plan has a mandatory clue report");
-    assert_eq!(prepared_report.recorded, fragment.expected_clue[..3]);
+        .expect("prepared plan has a mandatory sign report");
+    assert_eq!(prepared_report.recorded, fragment.expected_sign[..3]);
     assert!(!prepared_report.overflowed);
     let allocated_item_slots = prepared_report.allocated_item_slots;
-    assert!(allocated_item_slots >= u32::from(fragment.clue_storage_budget.item_capacity));
+    assert!(allocated_item_slots >= u32::from(fragment.sign_storage_budget.item_capacity));
 
     let triggerd = runtime.handle(HostCommand::StartPlay(plan_id));
     let (plan_id, active_play_id, presentation_id, placement_id, value) = triggerd
@@ -96,10 +96,10 @@ fn planned_clue_storage_survives_observation_overflow() {
         message: None,
     });
 
-    let completed_report = mandatory_clue_reports(&mut runtime)
+    let completed_report = mandatory_sign_reports(&mut runtime)
         .into_iter()
         .next()
-        .expect("completed plan retains mandatory clue");
+        .expect("completed plan retains mandatory sign");
     assert_eq!(
         completed_report.recorded.len(),
         completed_report.expected.len()
@@ -110,17 +110,17 @@ fn planned_clue_storage_survives_observation_overflow() {
         .all(|item| completed_report.recorded.contains(item)));
     assert_eq!(
         completed_report.storage_budget,
-        fragment.clue_storage_budget
+        fragment.sign_storage_budget
     );
     assert_eq!(
         completed_report.used_bytes,
-        fragment.clue_storage_budget.byte_capacity
+        fragment.sign_storage_budget.byte_capacity
     );
     assert_eq!(completed_report.allocated_item_slots, allocated_item_slots);
     assert!(!completed_report.overflowed);
     assert!(observations(&mut runtime)
         .iter()
-        .any(|observation| matches!(observation.kind, ObservationKind::ClueGap { .. })));
+        .any(|observation| matches!(observation.kind, ObservationKind::SignGap { .. })));
 }
 
 #[test]
@@ -450,15 +450,15 @@ fn preparation_rejects_mutation_of_every_executable_identity_field_group() {
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
-    mutated.expected_clue.pop();
+    mutated.expected_sign.pop();
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
-    mutated.clue_storage_budget.item_capacity -= 1;
+    mutated.sign_storage_budget.item_capacity -= 1;
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
-    mutated.clue_storage_budget.byte_capacity -= 1;
+    mutated.sign_storage_budget.byte_capacity -= 1;
     assert_post_identity_mutation_is_rejected(&advertised, mutated);
 
     let mut mutated = original.clone();
@@ -609,19 +609,19 @@ fn preparation_rejects_resealed_policy_dependency_and_budget_lies() {
     );
 
     let mut mutated = fragment(&advertised);
-    mutated.clue_storage_budget.item_capacity -= 1;
+    mutated.sign_storage_budget.item_capacity -= 1;
     let mut runtime = HostRuntime::new(advertised.clone(), registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
-        Some(FailureReason::ClueBudgetExceeded)
+        Some(FailureReason::SignBudgetExceeded)
     );
 
     let mut mutated = fragment(&advertised);
-    mutated.clue_storage_budget.byte_capacity -= 1;
+    mutated.sign_storage_budget.byte_capacity -= 1;
     let mut runtime = HostRuntime::new(advertised, registry(), 64);
     assert_eq!(
         rejection_reason(&runtime.handle(HostCommand::Prepare(reseal_fragment(mutated)))),
-        Some(FailureReason::ClueBudgetExceeded)
+        Some(FailureReason::SignBudgetExceeded)
     );
 }
 
@@ -742,14 +742,14 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
         }],
     };
     let placement_id = PlacementId::from("echo-placement");
-    let expected_clue = vec![
-        ExpectedClue::PlanFragmentReceived,
-        ExpectedClue::PlacementPrepared(placement_id.clone()),
-        ExpectedClue::PlacementTerminal(placement_id.clone()),
-        ExpectedClue::PlanTerminal,
+    let expected_sign = vec![
+        ExpectedSign::PlanFragmentReceived,
+        ExpectedSign::PlacementPrepared(placement_id.clone()),
+        ExpectedSign::PlacementTerminal(placement_id.clone()),
+        ExpectedSign::PlanTerminal,
     ];
-    let clue_storage_budget =
-        mandatory_clue_storage_requirement(&expected_clue).expect("echo clue fits budget types");
+    let sign_storage_budget =
+        mandatory_sign_storage_requirement(&expected_sign).expect("echo sign fits budget types");
     let mut echo_plan = seal_plan(
         FormIdentity {
             source_document_id: SourceDocumentId::from("echo-source"),
@@ -801,8 +801,8 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
                 ExpectedTerminal::PlacementCompleted(placement_id.clone()),
                 ExpectedTerminal::PlanCompleted,
             ],
-            expected_clue,
-            clue_storage_budget,
+            expected_sign,
+            sign_storage_budget,
             plan_fragments: Vec::new(),
         }],
     );
@@ -905,17 +905,17 @@ fn fake_adapter_failure_is_structured_and_terminal() {
             ..
         }
     )));
-    let clue = observations(&mut runtime);
-    assert!(clue.iter().any(|observation| {
+    let sign = observations(&mut runtime);
+    assert!(sign.iter().any(|observation| {
         observation.active_play_id.as_ref() == Some(&active_play_id)
             && observation.presentation_id.as_ref() == Some(&presentation_id)
     }));
     assert_eq!(
-        clue.iter()
-            .map(|observation| observation.clue_id.clone())
+        sign.iter()
+            .map(|observation| observation.sign_id.clone())
             .collect::<BTreeSet<_>>()
             .len(),
-        clue.len()
+        sign.len()
     );
     assert!(failed.events.iter().any(|event| matches!(
         event,

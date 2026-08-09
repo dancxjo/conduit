@@ -1,16 +1,16 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    bind_active_play, verify_plan, ActivePlayId, ActivePlayIdentity, CheckedFormId, ClueId, Plan,
-    PlanId, SourceDocumentId,
+    bind_active_play, verify_plan, ActivePlayId, ActivePlayIdentity, CheckedFormId, Plan, PlanId,
+    SignId, SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::identity::{bind_identity, validate_ids};
-use crate::validation::{validate_clue, validate_new_clue, validate_plan_history};
+use crate::validation::{validate_new_sign, validate_plan_history, validate_sign};
 use crate::{BodyId, BodyLifecycleEvent, SeedId, WakeId, WakeLifecycleEvent};
 
-pub const MAX_BODY_CLUES: usize = 16;
-pub const MAX_WAKE_CLUES: usize = 32;
+pub const MAX_BODY_SIGNS: usize = 16;
+pub const MAX_WAKE_SIGNS: usize = 32;
 pub const MAX_WAKE_PLANS: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -27,7 +27,7 @@ pub struct Body {
     pub checked_form_id: CheckedFormId,
     pub birth_sequence: u64,
     pub state: BodyState,
-    pub clue_ids: Vec<ClueId>,
+    pub sign_ids: Vec<SignId>,
     pub events: Vec<BodyLifecycleEvent>,
 }
 
@@ -72,7 +72,7 @@ pub struct Wake {
     pub wake_sequence: u64,
     pub lifecycle: WakeLifecycle,
     pub plans: Vec<WakePlan>,
-    pub clue_ids: Vec<ClueId>,
+    pub sign_ids: Vec<SignId>,
     pub events: Vec<WakeLifecycleEvent>,
 }
 
@@ -82,8 +82,8 @@ pub enum BodyLifecycleError {
     IdentityTooLong,
     InvalidIdentity,
     InvalidTransition,
-    DuplicateClue,
-    ClueCapacityExhausted,
+    DuplicateSign,
+    SignCapacityExhausted,
     PlanCapacityExhausted,
     InvalidPlan,
     StalePlan,
@@ -106,12 +106,12 @@ impl Body {
         source_document_id: SourceDocumentId,
         checked_form_id: CheckedFormId,
         birth_sequence: u64,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
         validate_ids(&[
             source_document_id.as_str(),
             checked_form_id.as_str(),
-            clue_id.as_str(),
+            sign_id.as_str(),
         ])?;
         let seed_id = SeedId::bind(&source_document_id, &checked_form_id);
         let body_id = BodyId::bound(bind_identity(
@@ -130,21 +130,21 @@ impl Body {
             checked_form_id,
             birth_sequence,
             state: BodyState::Lulled,
-            clue_ids: vec![clue_id.clone()],
-            events: vec![BodyLifecycleEvent::Born { clue_id }],
+            sign_ids: vec![sign_id.clone()],
+            events: vec![BodyLifecycleEvent::Born { sign_id }],
         })
     }
 
     pub fn wake(
         &self,
         wake_sequence: u64,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<(Self, Wake), BodyLifecycleError> {
         self.validate()?;
         if self.state != BodyState::Lulled {
             return Err(BodyLifecycleError::InvalidTransition);
         }
-        validate_new_clue(&self.clue_ids, &clue_id, MAX_BODY_CLUES)?;
+        validate_new_sign(&self.sign_ids, &sign_id, MAX_BODY_SIGNS)?;
         let wake_id = WakeId::bound(bind_identity(
             "wake",
             &[self.body_id.as_str()],
@@ -154,10 +154,10 @@ impl Body {
         body.state = BodyState::Awake {
             wake_id: wake_id.clone(),
         };
-        body.clue_ids.push(clue_id.clone());
+        body.sign_ids.push(sign_id.clone());
         body.events.push(BodyLifecycleEvent::Woke {
             wake_id: wake_id.clone(),
-            clue_id: clue_id.clone(),
+            sign_id: sign_id.clone(),
         });
         let wake = Wake {
             wake_id,
@@ -168,9 +168,9 @@ impl Body {
             wake_sequence,
             lifecycle: WakeLifecycle::AwaitingPlan,
             plans: Vec::new(),
-            clue_ids: vec![clue_id],
+            sign_ids: vec![sign_id],
             events: vec![WakeLifecycleEvent::Woke {
-                clue_id: body.clue_ids.last().cloned().expect("wake clue is present"),
+                sign_id: body.sign_ids.last().cloned().expect("wake sign is present"),
             }],
         };
         Ok((body, wake))
@@ -179,7 +179,7 @@ impl Body {
     pub fn retain_after_lull(
         &self,
         wake: &Wake,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
         wake.validate()?;
@@ -191,13 +191,13 @@ impl Body {
         {
             return Err(BodyLifecycleError::MismatchedWake);
         }
-        validate_new_clue(&self.clue_ids, &clue_id, MAX_BODY_CLUES)?;
+        validate_new_sign(&self.sign_ids, &sign_id, MAX_BODY_SIGNS)?;
         let mut next = self.clone();
         next.state = BodyState::Lulled;
-        next.clue_ids.push(clue_id.clone());
+        next.sign_ids.push(sign_id.clone());
         next.events.push(BodyLifecycleEvent::LullRetained {
             wake_id: wake.wake_id.clone(),
-            clue_id,
+            sign_id,
         });
         Ok(next)
     }
@@ -209,8 +209,8 @@ impl Body {
             self.source_document_id.as_str(),
             self.checked_form_id.as_str(),
         ])?;
-        validate_clue(&self.clue_ids, MAX_BODY_CLUES)?;
-        crate::events::validate_body_events(&self.events, &self.clue_ids, &self.state)?;
+        validate_sign(&self.sign_ids, MAX_BODY_SIGNS)?;
+        crate::events::validate_body_events(&self.events, &self.sign_ids, &self.state)?;
         if self.seed_id != SeedId::bind(&self.source_document_id, &self.checked_form_id)
             || self.body_id.as_str()
                 != bind_identity(
@@ -238,7 +238,7 @@ impl Body {
 }
 
 impl Wake {
-    pub fn plan_ready(&self, plan: &Plan, clue_id: ClueId) -> Result<Self, BodyLifecycleError> {
+    pub fn plan_ready(&self, plan: &Plan, sign_id: SignId) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
         self.validate_plan(plan)?;
         let prior = match self.lifecycle {
@@ -271,12 +271,12 @@ impl Wake {
             WakeLifecycleEvent::Replanned {
                 prior_plan_id: prior_plan_id.clone(),
                 replacement_plan_id: plan.plan_id.clone(),
-                clue_id,
+                sign_id,
             }
         } else {
             WakeLifecycleEvent::PlanReady {
                 plan_id: plan.plan_id.clone(),
-                clue_id,
+                sign_id,
             }
         };
         next.push_event(event)?;
@@ -296,7 +296,7 @@ impl Wake {
     pub fn play_started(
         &self,
         play: &ActivePlayIdentity,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
         if self.lifecycle != WakeLifecycle::AwaitingPlay {
@@ -315,7 +315,7 @@ impl Wake {
         next.push_event(WakeLifecycleEvent::PlayStarted {
             plan_id: play.plan_id.clone(),
             active_play_id: play.active_play_id.clone(),
-            clue_id,
+            sign_id,
         })?;
         let current = next
             .plans
@@ -330,7 +330,7 @@ impl Wake {
     pub fn became_unsatisfied(
         &self,
         plan_id: &PlanId,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
         if self.lifecycle != WakeLifecycle::Playing
@@ -341,7 +341,7 @@ impl Wake {
         let mut next = self.clone();
         next.push_event(WakeLifecycleEvent::BecameUnsatisfied {
             plan_id: plan_id.clone(),
-            clue_id,
+            sign_id,
         })?;
         next.plans
             .last_mut()
@@ -354,7 +354,7 @@ impl Wake {
     pub fn same_plan_observed(
         &self,
         plan_id: &PlanId,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
         if self.lifecycle != WakeLifecycle::Playing
@@ -365,12 +365,12 @@ impl Wake {
         let mut next = self.clone();
         next.push_event(WakeLifecycleEvent::SamePlanObserved {
             plan_id: plan_id.clone(),
-            clue_id,
+            sign_id,
         })?;
         Ok(next)
     }
 
-    pub fn lull(&self, clue_id: ClueId) -> Result<Self, BodyLifecycleError> {
+    pub fn lull(&self, sign_id: SignId) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
         if matches!(
             self.lifecycle,
@@ -379,12 +379,12 @@ impl Wake {
             return Err(BodyLifecycleError::InvalidTransition);
         }
         let mut next = self.clone();
-        next.push_event(WakeLifecycleEvent::Lulled { clue_id })?;
+        next.push_event(WakeLifecycleEvent::Lulled { sign_id })?;
         next.lifecycle = WakeLifecycle::Lulled;
         Ok(next)
     }
 
-    pub fn fail(&self, clue_id: ClueId) -> Result<Self, BodyLifecycleError> {
+    pub fn fail(&self, sign_id: SignId) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
         if matches!(
             self.lifecycle,
@@ -393,7 +393,7 @@ impl Wake {
             return Err(BodyLifecycleError::InvalidTransition);
         }
         let mut next = self.clone();
-        next.push_event(WakeLifecycleEvent::Failed { clue_id })?;
+        next.push_event(WakeLifecycleEvent::Failed { sign_id })?;
         next.lifecycle = WakeLifecycle::Failed;
         Ok(next)
     }
@@ -406,10 +406,10 @@ impl Wake {
             self.source_document_id.as_str(),
             self.checked_form_id.as_str(),
         ])?;
-        validate_clue(&self.clue_ids, MAX_WAKE_CLUES)?;
+        validate_sign(&self.sign_ids, MAX_WAKE_SIGNS)?;
         crate::events::validate_wake_events(
             &self.events,
-            &self.clue_ids,
+            &self.sign_ids,
             self.lifecycle,
             &self.plans,
         )?;
@@ -438,8 +438,8 @@ impl Wake {
         &mut self,
         event: WakeLifecycleEvent,
     ) -> Result<(), BodyLifecycleError> {
-        validate_new_clue(&self.clue_ids, event.clue_id(), MAX_WAKE_CLUES)?;
-        self.clue_ids.push(event.clue_id().clone());
+        validate_new_sign(&self.sign_ids, event.sign_id(), MAX_WAKE_SIGNS)?;
+        self.sign_ids.push(event.sign_id().clone());
         self.events.push(event);
         Ok(())
     }

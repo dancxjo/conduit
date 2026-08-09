@@ -20,7 +20,7 @@ pub struct WebSocketUnavailable;
 pub async fn run(
     stack: Stack<'static>,
     link: &mut UsbLinkSession,
-    clue: &mut UsbCdc,
+    sign: &mut UsbCdc,
     control: &mut cyw43::Control<'_>,
     plan_a_runtime: &RuntimeTranscriptIdentity,
     plan_c_runtime: &RuntimeTranscriptIdentity,
@@ -42,7 +42,7 @@ pub async fn run(
         websocket_link,
         address,
         port: conduit_net::R1_WEBSOCKET_PORT,
-        clue_id: conduit_net::R1_WEBSOCKET_ROUTE_CLUE_ID,
+        sign_id: conduit_net::R1_WEBSOCKET_ROUTE_SIGN_ID,
     };
     let plan_c = await_query(link).await.map_err(|_| WebSocketUnavailable)?;
     let signal_runtime = if plan_c { plan_c_runtime } else { plan_a_runtime };
@@ -63,10 +63,10 @@ pub async fn run(
     }
     let mut frame = [0_u8; 1024];
     match link.receive_raw_stream_frame(&mut frame).await {
-        Ok(raw) if raw == conduit_net::R1_WEBSOCKET_ENDPOINT_CLUE_READY => {}
+        Ok(raw) if raw == conduit_net::R1_WEBSOCKET_ENDPOINT_SIGN_READY => {}
         _ => remain_bootsel(link).await,
     }
-    if clue.write_websocket_endpoint(identity).await.is_err() {
+    if sign.write_websocket_endpoint(identity).await.is_err() {
         remain_bootsel(link).await
     }
 
@@ -83,7 +83,7 @@ pub async fn run(
         remain_bootsel(link).await
     };
     let binding = state.binding();
-    if clue
+    if sign
         .write_websocket_link(identity, binding.sink_active_play_id.as_str())
         .await
         .is_err()
@@ -98,7 +98,7 @@ pub async fn run(
             &mut socket,
             &mut transport,
             control,
-            clue,
+            sign,
             signal_runtime,
             &mut state,
         ),

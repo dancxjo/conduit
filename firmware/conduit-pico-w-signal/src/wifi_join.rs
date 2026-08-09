@@ -4,7 +4,7 @@ use conduit_kernel::scheduler::{
     FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, FixedClueLog, FixedValueStore, HostOperationDisposition,
+    BoundedValueRef, FixedSignLog, FixedValueStore, HostOperationDisposition,
     HostOperationOutcome,
 };
 use conduit_wire::{
@@ -22,12 +22,12 @@ use static_cell::StaticCell;
 use crate::network_image::{
     generated_cords, generated_host_bindings, generated_nodes, generated_remote_endpoint,
     generated_routes, network_join_layout, CORDS, HOST_BINDING_SLOTS, NODES, PENDING_REQUESTS,
-    PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_CLUE_BYTES, RUNTIME_CLUE_EVENTS,
+    PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_SIGN_BYTES, RUNTIME_SIGN_EVENTS,
 };
 use crate::network_receipts::NetworkAttachmentIdentity;
 use crate::network_operations::NetworkOperation;
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
-use crate::usb::PicoUsbCdcCarrier;
+use crate::usb::PicoUsbCdcLine;
 use crate::usb_link::{UsbLinkError, UsbLinkSession};
 use crate::wifi_session::session_binding;
 
@@ -45,7 +45,7 @@ async fn network_task(mut runner: embassy_net::Runner<'static, cyw43::NetDriver<
 type JoinScheduler = FixedScheduler<
     OperationDriver<NetworkOperation, PORTS>,
     FixedValueStore<QUEUE_SLOTS, { conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES as usize }>,
-    FixedClueLog<RUNTIME_CLUE_EVENTS>,
+    FixedSignLog<RUNTIME_SIGN_EVENTS>,
     NODES,
     CORDS,
     PORTS,
@@ -62,8 +62,8 @@ struct JoinKernel {
     cord: conduit_kernel::CordId,
     node: conduit_kernel::NodeId,
     operation: conduit_kernel::HostOperationId,
-    clue_node: conduit_kernel::NodeId,
-    clue_operation: conduit_kernel::HostOperationId,
+    sign_node: conduit_kernel::NodeId,
+    sign_operation: conduit_kernel::HostOperationId,
 }
 
 impl JoinKernel {
@@ -75,20 +75,20 @@ impl JoinKernel {
             conduit_net::MAXIMUM_JOIN_INPUT_BYTES + conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES,
         )
             .map_err(UsbLinkError::Storage)?;
-        let clue = FixedClueLog::new(RUNTIME_CLUE_BYTES).map_err(UsbLinkError::ClueStorage)?;
+        let sign = FixedSignLog::new(RUNTIME_SIGN_BYTES).map_err(UsbLinkError::SignStorage)?;
         let join = NetworkOperation::join(
             layout.join_input_port,
             layout.join_output_port,
             layout.join_operation,
         );
-        let attachment_clue =
-            NetworkOperation::attachment_clue(layout.clue_input_port, layout.clue_operation);
+        let attachment_sign =
+            NetworkOperation::attachment_sign(layout.sign_input_port, layout.sign_operation);
         let join = OperationDriver::new(join).map_err(UsbLinkError::Kernel)?;
-        let attachment_clue =
-            OperationDriver::new(attachment_clue).map_err(UsbLinkError::Kernel)?;
-        let drivers = match (layout.join_node.0, layout.clue_node.0) {
-            (0, 1) => [join, attachment_clue],
-            (1, 0) => [attachment_clue, join],
+        let attachment_sign =
+            OperationDriver::new(attachment_sign).map_err(UsbLinkError::Kernel)?;
+        let drivers = match (layout.join_node.0, layout.sign_node.0) {
+            (0, 1) => [join, attachment_sign],
+            (1, 0) => [attachment_sign, join],
             _ => return Err(UsbLinkError::InvalidGeneratedEndpoint),
         };
         let nodes = generated_nodes();
@@ -105,7 +105,7 @@ impl JoinKernel {
             host_bindings,
             drivers,
             values,
-            clue,
+            sign,
         )
         .map_err(UsbLinkError::Kernel)?;
         Ok(Self {
@@ -114,8 +114,8 @@ impl JoinKernel {
             cord: remote.cord,
             node: layout.join_node,
             operation: layout.join_operation,
-            clue_node: layout.clue_node,
-            clue_operation: layout.clue_operation,
+            sign_node: layout.sign_node,
+            sign_operation: layout.sign_operation,
         })
     }
 
@@ -129,13 +129,13 @@ impl JoinKernel {
         &mut self,
         control: &mut cyw43::Control<'_>,
         stack: Stack<'static>,
-        clue: &mut UsbCdc,
+        sign: &mut UsbCdc,
         runtime: &RuntimeTranscriptIdentity,
     ) -> Result<(), UsbLinkError> {
         crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelExecution);
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
-                if request.node == self.clue_node && request.operation == self.clue_operation {
+                if request.node == self.sign_node && request.operation == self.sign_operation {
                     let encoded = self
                         .scheduler
                         .host_value(request.input.value)
@@ -151,7 +151,7 @@ impl JoinKernel {
                     {
                         return Err(UsbLinkError::InvalidNetworkJoin);
                     }
-                    clue.write_network_attachment(expected).await?;
+                    sign.write_network_attachment(expected).await?;
                     self.scheduler
                         .complete_host_operation(
                             request.node,
@@ -286,8 +286,8 @@ impl JoinKernel {
 #[allow(clippy::too_many_arguments)]
 pub async fn run(
     spawner: &Spawner,
-    carrier: PicoUsbCdcCarrier,
-    clue: &mut UsbCdc,
+    line: PicoUsbCdcLine,
+    sign: &mut UsbCdc,
     panic_record: Option<crate::panic_recovery::PanicRecord>,
     pio0: Peri<'static, PIO0>,
     dma: Peri<'static, DMA_CH0>,
@@ -300,12 +300,12 @@ pub async fn run(
     clm: &'static [u8],
     runtime: &RuntimeTranscriptIdentity,
 ) -> ! {
-    let mut link = UsbLinkSession::new(carrier).unwrap();
+    let mut link = UsbLinkSession::new(line).unwrap();
     if let Some(record) = panic_record {
-        crate::wifi_recovery::serve(&mut link, clue, record, runtime).await;
+        crate::wifi_recovery::serve(&mut link, sign, record, runtime).await;
     }
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioDriverStartup);
-    let usb_startup = establish_usb(&mut link, clue, runtime);
+    let usb_startup = establish_usb(&mut link, sign, runtime);
     let radio_startup = crate::radio::init_cyw43_network(
         spawner, pio0, dma, pin23, pin24, pin25, pin29, fw, nvram, clm,
     );
@@ -316,7 +316,7 @@ pub async fn run(
     let (device, mut control) = match radio_result {
         Ok(radio) => radio,
         Err(error) => {
-            let _ = clue
+            let _ = sign
                 .write_network_failure(error.code(), attachment_identity(runtime))
                 .await;
             loop {
@@ -333,8 +333,8 @@ pub async fn run(
     );
     spawner.spawn(network_task(runner).unwrap());
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionBinding);
-    if let Err(error) = run_session(&mut link, clue, &mut control, stack, runtime).await {
-        let _ = clue
+    if let Err(error) = run_session(&mut link, sign, &mut control, stack, runtime).await {
+        let _ = sign
             .write_network_failure(error.code(), attachment_identity(runtime))
             .await;
         // This Play is terminal, but CDC 0 remains an exact-build BOOTSEL
@@ -343,12 +343,12 @@ pub async fn run(
             crate::bootsel::wait_for_request(&mut link).await.ok();
         }
     }
-    crate::signal_recovery::run(stack, &mut link, clue, &mut control, runtime).await
+    crate::signal_recovery::run(stack, &mut link, sign, &mut control, runtime).await
 }
 
 pub(crate) async fn establish_usb(
     link: &mut UsbLinkSession,
-    clue: &mut UsbCdc,
+    sign: &mut UsbCdc,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), UsbLinkError> {
     let mut frame = [0_u8; 2048];
@@ -363,8 +363,8 @@ pub(crate) async fn establish_usb(
             break;
         }
     }
-    clue.wait_dtr().await;
-    clue
+    sign.wait_dtr().await;
+    sign
         .write_boot_identity(
             crate::receipts::BootIdentity {
                 firmware_build_id: crate::network_image::FIRMWARE_BUILD_ID,
@@ -375,7 +375,7 @@ pub(crate) async fn establish_usb(
                 fragment_id: crate::network_image::FRAGMENT_ID,
                 host_id: crate::network_image::HOST_ID,
                 boot_id: crate::network_image::BOOT_ID,
-                boot_clue_id: crate::network_image::BOOT_CLUE_ID,
+                boot_sign_id: crate::network_image::BOOT_SIGN_ID,
             },
             runtime,
         )
@@ -385,7 +385,7 @@ pub(crate) async fn establish_usb(
 
 async fn run_session(
     link: &mut UsbLinkSession,
-    clue: &mut UsbCdc,
+    sign: &mut UsbCdc,
     control: &mut cyw43::Control<'_>,
     stack: Stack<'static>,
     runtime: &RuntimeTranscriptIdentity,
@@ -433,7 +433,7 @@ async fn run_session(
     machine.admit_outbound(accepted).map_err(UsbLinkError::Codec)?;
     link.send_frame(&accepted).await?;
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelExecution);
-    kernel.execute(control, stack, clue, runtime).await?;
+    kernel.execute(control, stack, sign, runtime).await?;
     let delivered = binding.frame(SessionMessage::Delivered { sequence });
     machine.admit_outbound(delivered).map_err(UsbLinkError::Codec)?;
     link.send_frame(&delivered).await?;
@@ -481,6 +481,6 @@ pub(crate) fn attachment_identity<'a>(runtime: &'a RuntimeTranscriptIdentity) ->
         attachment_id: ATTACHMENT_ID,
         interface_pool_id: conduit_net::R1_WIFI_STATION_POOL_ID,
         generation: 1,
-        clue_id: crate::network_image::ATTACHMENT_CLUE_ID,
+        sign_id: crate::network_image::ATTACHMENT_SIGN_ID,
     }
 }

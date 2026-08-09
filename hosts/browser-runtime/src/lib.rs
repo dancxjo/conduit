@@ -1,18 +1,18 @@
 use conduit_core::{
-    bind_active_play, bind_clue, bind_presentation, kind_id, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ClueIdentity, ConnectionBase, HostAdvertisement, HostId,
+    bind_active_play, bind_presentation, bind_sign, kind_id, ArtifactId, BootId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ConnectionBase, HostAdvertisement, HostId,
     HostOperationContractId, HostProfileId, ImplementationId, OfferGeneration, PlacementId,
     PlanFragment, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PresentationIdentity,
-    PROTOCOL_VERSION,
+    SignIdentity, PROTOCOL_VERSION,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, ClueError, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
+    BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
+    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
     HostedValueStore, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
-    ValueRef, ValueStorage,
+    SignError, ValueRef, ValueStorage,
 };
 use conduit_planner::{
     default_placements, plan_with_advertised_profile, PlanningOptions, BROWSER_PLANNER_PROFILE,
@@ -55,7 +55,7 @@ const ERROR_RECEIPT_CAPACITY: i32 = -8;
 const ERROR_MALFORMED_FRAME: i32 = -9;
 const ERROR_DUPLICATE_COMPLETION: i32 = -10;
 const ERROR_CANCELLED: i32 = -11;
-const ERROR_CLUE_EXHAUSTED: i32 = -12;
+const ERROR_SIGN_EXHAUSTED: i32 = -12;
 const ERROR_TERMINAL_FAILURE: i32 = -13;
 const ERROR_CAPACITY_GROWTH: i32 = -14;
 const ERROR_KERNEL: i32 = -15;
@@ -63,7 +63,7 @@ const ERROR_KERNEL: i32 = -15;
 type BrowserScheduler = FixedScheduler<
     OperationDriver<SignalOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     2,
     1,
     PORTS,
@@ -96,7 +96,7 @@ struct PreparedProjection {
     node: NodeId,
     signal: Signal,
     presentation: PresentationIdentity,
-    clue: ClueIdentity,
+    sign: SignIdentity,
 }
 
 struct PreparedKernel {
@@ -112,7 +112,7 @@ struct PreparedKernel {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct CapacitySeal {
     value: (usize, usize),
-    clue: usize,
+    sign: usize,
     driver_values: usize,
     identity: (usize, usize, usize),
     projections: usize,
@@ -307,12 +307,12 @@ impl Operation for SignalOperation {
 
 impl BrowserSession {
     fn start(host_index: u32) -> Result<Self, i32> {
-        Self::start_with_clue_limit(host_index, None)
+        Self::start_with_sign_limit(host_index, None)
     }
 
-    fn start_with_clue_limit(
+    fn start_with_sign_limit(
         host_index: u32,
-        clue_item_override: Option<u16>,
+        sign_item_override: Option<u16>,
     ) -> Result<Self, i32> {
         let (host_id, boot_id) = match host_index {
             0 => ("browser-host-a", "browser-boot-a"),
@@ -356,10 +356,10 @@ impl BrowserSession {
             projections,
             identity,
             active_play_id,
-        } = prepare_kernel(&advertisement, &fragment, &lowered, clue_item_override)?;
+        } = prepare_kernel(&advertisement, &fragment, &lowered, sign_item_override)?;
         let seal = CapacitySeal {
             value: scheduler.values().allocation_capacities(),
-            clue: scheduler.clues().allocation_capacity(),
+            sign: scheduler.signs().allocation_capacity(),
             driver_values: scheduler
                 .drivers()
                 .iter()
@@ -400,7 +400,7 @@ impl BrowserSession {
     fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             value: self.scheduler.values().allocation_capacities(),
-            clue: self.scheduler.clues().allocation_capacity(),
+            sign: self.scheduler.signs().allocation_capacity(),
             driver_values: self
                 .scheduler
                 .drivers()
@@ -668,7 +668,7 @@ fn prepare_kernel(
     advertisement: &HostAdvertisement,
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
-    clue_item_override: Option<u16>,
+    sign_item_override: Option<u16>,
 ) -> Result<PreparedKernel, i32> {
     if lowered.nodes.len() != 2
         || lowered.cords.len() != 1
@@ -776,17 +776,17 @@ fn prepare_kernel(
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
         .map_err(|_| ERROR_START)?;
-    let clue_items = clue_item_override.unwrap_or_else(|| {
+    let sign_items = sign_item_override.unwrap_or_else(|| {
         let per_signal = 18_u16;
         u16::try_from(count)
             .unwrap_or(u16::MAX)
             .saturating_mul(per_signal)
             .saturating_add(64)
     });
-    let clue_bytes = u32::from(clue_items)
+    let sign_bytes = u32::from(sign_items)
         .checked_mul(u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>()).unwrap())
         .ok_or(ERROR_START)?;
-    let clue = HostedClueLog::new(clue_items, clue_bytes.max(1)).map_err(|_| ERROR_START)?;
+    let sign = HostedSignLog::new(sign_items, sign_bytes.max(1)).map_err(|_| ERROR_START)?;
     let node_specs = lowered
         .node_specs
         .clone()
@@ -806,7 +806,7 @@ fn prepare_kernel(
         host_bindings,
         drivers,
         values,
-        clue,
+        sign,
     )
     .map_err(|_| ERROR_START)?;
 
@@ -817,13 +817,13 @@ fn prepare_kernel(
         0,
     );
     let request_capacity = count.checked_add(wait_count).ok_or(ERROR_START)?;
-    let clue_capacity = count.checked_add(1).ok_or(ERROR_START)?;
+    let sign_capacity = count.checked_add(1).ok_or(ERROR_START)?;
     let mut identity = KernelExecutionIdentityMap::new(
         &lowered.identity,
         &active_play,
         request_capacity,
         count,
-        clue_capacity,
+        sign_capacity,
     )
     .map_err(|_| ERROR_START)?;
     for sequence in 1..count {
@@ -857,7 +857,7 @@ fn prepare_kernel(
             &show_placement.placement_id,
             sequence,
         );
-        let clue = bind_clue(
+        let sign = bind_sign(
             &advertisement.host_id,
             &advertisement.boot_id,
             Some(&active_play.active_play_id),
@@ -867,8 +867,8 @@ fn prepare_kernel(
             .bind_presentation(&lowered.identity, show_node, request, &presentation)
             .map_err(|_| ERROR_START)?;
         identity
-            .bind_clue(
-                &clue,
+            .bind_sign(
+                &sign,
                 Some(show_node),
                 Some(request),
                 Some(&presentation.presentation_id),
@@ -878,19 +878,19 @@ fn prepare_kernel(
             node: show_node,
             signal,
             presentation,
-            clue,
+            sign,
         });
     }
-    let terminal = bind_clue(
+    let terminal = bind_sign(
         &advertisement.host_id,
         &advertisement.boot_id,
         Some(&active_play.active_play_id),
         u64::try_from(count).map_err(|_| ERROR_START)?,
     );
     identity
-        .bind_clue(&terminal, None, None, None)
+        .bind_sign(&terminal, None, None, None)
         .map_err(|_| ERROR_START)?;
-    if identity.lengths() != (request_capacity, count, clue_capacity) {
+    if identity.lengths() != (request_capacity, count, sign_capacity) {
         return Err(ERROR_START);
     }
     Ok(PreparedKernel {
@@ -935,7 +935,7 @@ fn write_presentation_frame(
     input: &[u8],
 ) -> Result<(), i32> {
     writer.text(projection.presentation.presentation_id.as_str())?;
-    writer.text(projection.clue.clue_id.as_str())?;
+    writer.text(projection.sign.sign_id.as_str())?;
     writer.text("presentation/signal")?;
     writer.text("value/signal")?;
     writer.bytes(input)
@@ -947,15 +947,15 @@ fn write_presentation_completion_frame(
     input: &[u8],
 ) -> Result<(), i32> {
     writer.text(projection.presentation.presentation_id.as_str())?;
-    writer.text(projection.clue.clue_id.as_str())?;
+    writer.text(projection.sign.sign_id.as_str())?;
     writer.text("value/signal")?;
     writer.bytes(input)
 }
 
 fn map_scheduler_error(error: SchedulerError) -> i32 {
     match error {
-        SchedulerError::Clue(ClueError::ItemCapacityExceeded | ClueError::ByteCapacityExceeded) => {
-            ERROR_CLUE_EXHAUSTED
+        SchedulerError::Sign(SignError::ItemCapacityExceeded | SignError::ByteCapacityExceeded) => {
+            ERROR_SIGN_EXHAUSTED
         }
         SchedulerError::OperationFailed(_) | SchedulerError::Cancelled => ERROR_TERMINAL_FAILURE,
         _ => ERROR_KERNEL,
@@ -1273,10 +1273,10 @@ mod tests {
     }
 
     #[test]
-    fn clue_exhaustion_is_a_distinct_terminal_failure() {
+    fn sign_exhaustion_is_a_distinct_terminal_failure() {
         assert_eq!(
-            BrowserSession::start_with_clue_limit(0, Some(1)).err(),
-            Some(ERROR_CLUE_EXHAUSTED)
+            BrowserSession::start_with_sign_limit(0, Some(1)).err(),
+            Some(ERROR_SIGN_EXHAUSTED)
         );
     }
 

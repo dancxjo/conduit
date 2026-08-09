@@ -1,10 +1,10 @@
 use conduit_core::{
-    BootId, ClueId, ControlLoopEvent, GearId, HostId, LineAvailability, LineAvailabilitySign,
-    PlanningRefusalReason,
+    BootId, ControlLoopEvent, GearId, HostId, LineAvailability, LineAvailabilitySign,
+    PlanningRefusalReason, SignId,
 };
 use conduit_system_continuity::{
     exact_r1_signal_plan, R1LedResultObservation, R1NewPlanRecovery, R1RecoveryError,
-    R1RecoveryStartClues, R1ReplacementClues, R1SignalRouteSet, MAX_R1_RECOVERY_EVENTS,
+    R1RecoveryStartSigns, R1ReplacementSigns, R1SignalRouteSet, MAX_R1_RECOVERY_EVENTS,
 };
 
 fn start() -> (R1NewPlanRecovery, conduit_core::Plan, conduit_core::Plan) {
@@ -23,11 +23,11 @@ fn start() -> (R1NewPlanRecovery, conduit_core::Plan, conduit_core::Plan) {
         HostId::from(conduit_net::R1_STD_HOST_ID),
         BootId::from(conduit_net::R1_STD_BOOT_ID),
         0,
-        R1RecoveryStartClues {
-            birth: ClueId::from("r1/body-born"),
-            wake: ClueId::from("r1/body-woke"),
-            plan_ready: ClueId::from("r1/plan-a-ready"),
-            play_started: ClueId::from("r1/play-a-started"),
+        R1RecoveryStartSigns {
+            birth: SignId::from("r1/body-born"),
+            wake: SignId::from("r1/body-woke"),
+            plan_ready: SignId::from("r1/plan-a-ready"),
+            play_started: SignId::from("r1/play-a-started"),
         },
     )
     .unwrap();
@@ -43,9 +43,9 @@ fn lose_websocket(recovery: &mut R1NewPlanRecovery) {
                     conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
                 ),
                 availability: LineAvailability::Unavailable,
-                sign_id: ClueId::from("r1/websocket-unavailable"),
+                sign_id: SignId::from("r1/websocket-unavailable"),
             },
-            ClueId::from("r1/play-a-unsatisfied"),
+            SignId::from("r1/play-a-unsatisfied"),
         )
         .unwrap();
 }
@@ -70,12 +70,12 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
             HostId::from(conduit_net::R1_STD_HOST_ID),
             BootId::from(conduit_net::R1_STD_BOOT_ID),
             1,
-            R1ReplacementClues {
-                request: ClueId::from("r1/replan-requested"),
-                planned: ClueId::from("r1/plan-b-planned"),
-                superseded: ClueId::from("r1/plan-a-superseded"),
-                realized: ClueId::from("r1/plan-b-realized"),
-                play_started: ClueId::from("r1/play-b-started"),
+            R1ReplacementSigns {
+                request: SignId::from("r1/replan-requested"),
+                planned: SignId::from("r1/plan-b-planned"),
+                superseded: SignId::from("r1/plan-a-superseded"),
+                realized: SignId::from("r1/plan-b-realized"),
+                play_started: SignId::from("r1/play-b-started"),
             },
         )
         .unwrap();
@@ -110,8 +110,8 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
             event,
             conduit_body::WakeLifecycleEvent::Replanned { .. }
         )),
-        Some(conduit_body::WakeLifecycleEvent::Replanned { clue_id, .. })
-            if clue_id.as_str() == "r1/plan-b-planned"
+        Some(conduit_body::WakeLifecycleEvent::Replanned { sign_id, .. })
+            if sign_id.as_str() == "r1/plan-b-planned"
     ));
 
     let pico_host = HostId::from(conduit_net::R1_PICO_HOST_ID);
@@ -124,7 +124,7 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
             plan_id: original_plan_a.plan_id.clone(),
             active_play_id: play_a_id,
             observed_session: plan_b_session.clone(),
-            clue_id: ClueId::from("r1/stale-led-result"),
+            sign_id: SignId::from("r1/stale-led-result"),
             level: true,
         }),
         Err(R1RecoveryError::StaleResult)
@@ -136,7 +136,7 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
             plan_id: plan_b.plan_id.clone(),
             active_play_id: recovery.play_b().unwrap().active_play_id.clone(),
             observed_session: plan_b_session.clone(),
-            clue_id: ClueId::from("r1/plan-b-led-on"),
+            sign_id: SignId::from("r1/plan-b-led-on"),
             level: true,
         })
         .unwrap();
@@ -154,7 +154,7 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
             plan_id: plan_b.plan_id.clone(),
             active_play_id: recovery.play_b().unwrap().active_play_id.clone(),
             observed_session: stale_session,
-            clue_id: ClueId::from("r1/stale-observed-session"),
+            sign_id: SignId::from("r1/stale-observed-session"),
             level: true,
         }),
         Err(R1RecoveryError::StaleResult)
@@ -164,7 +164,7 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
 }
 
 #[test]
-fn bounded_multi_clue_transition_is_admitted_atomically() {
+fn bounded_multi_sign_transition_is_admitted_atomically() {
     let (mut recovery, _, _) = start();
     lose_websocket(&mut recovery);
     for sequence in 0..3 {
@@ -172,8 +172,8 @@ fn bounded_multi_clue_transition_is_admitted_atomically() {
             .refuse_replacement(
                 HostId::from(conduit_net::R1_STD_HOST_ID),
                 BootId::from(conduit_net::R1_STD_BOOT_ID),
-                ClueId::from(format!("r1/replan-requested-{sequence}")),
-                ClueId::from(format!("r1/no-realization-{sequence}")),
+                SignId::from(format!("r1/replan-requested-{sequence}")),
+                SignId::from(format!("r1/no-realization-{sequence}")),
                 PlanningRefusalReason::NoCompatibleRealization,
             )
             .unwrap();
@@ -184,8 +184,8 @@ fn bounded_multi_clue_transition_is_admitted_atomically() {
         recovery.refuse_replacement(
             HostId::from(conduit_net::R1_STD_HOST_ID),
             BootId::from(conduit_net::R1_STD_BOOT_ID),
-            ClueId::from("r1/replan-requested-overflow"),
-            ClueId::from("r1/no-realization-overflow"),
+            SignId::from("r1/replan-requested-overflow"),
+            SignId::from("r1/no-realization-overflow"),
             PlanningRefusalReason::NoCompatibleRealization,
         ),
         Err(R1RecoveryError::CapacityExhausted)
@@ -201,8 +201,8 @@ fn no_valid_replacement_remains_explicitly_unsatisfied() {
         .refuse_replacement(
             HostId::from(conduit_net::R1_STD_HOST_ID),
             BootId::from(conduit_net::R1_STD_BOOT_ID),
-            ClueId::from("r1/replan-requested"),
-            ClueId::from("r1/no-compatible-realization"),
+            SignId::from("r1/replan-requested"),
+            SignId::from("r1/no-compatible-realization"),
             PlanningRefusalReason::NoCompatibleRealization,
         )
         .unwrap();
@@ -236,12 +236,12 @@ fn replacement_cannot_change_the_pico_realization_subject() {
             HostId::from(conduit_net::R1_STD_HOST_ID),
             BootId::from(conduit_net::R1_STD_BOOT_ID),
             1,
-            R1ReplacementClues {
-                request: ClueId::from("r1/replan-requested"),
-                planned: ClueId::from("r1/plan-b-planned"),
-                superseded: ClueId::from("r1/plan-a-superseded"),
-                realized: ClueId::from("r1/plan-b-realized"),
-                play_started: ClueId::from("r1/play-b-started"),
+            R1ReplacementSigns {
+                request: SignId::from("r1/replan-requested"),
+                planned: SignId::from("r1/plan-b-planned"),
+                superseded: SignId::from("r1/plan-a-superseded"),
+                realized: SignId::from("r1/plan-b-realized"),
+                play_started: SignId::from("r1/play-b-started"),
             },
         ),
         Err(R1RecoveryError::InvalidPlan | R1RecoveryError::WrongRealizationSubject)

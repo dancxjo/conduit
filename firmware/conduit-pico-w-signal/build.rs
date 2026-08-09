@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use conduit_core::{
-    bind_active_play, bind_clue, bind_presentation, BootId, ConnectionBase, HostId,
+    bind_active_play, bind_sign, bind_presentation, BootId, ConnectionBase, HostId,
     PlacementId, PlanId,
 };
 use conduit_embedded_build::{
@@ -33,7 +33,7 @@ const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
 const MAX_STORED_SIGNAL_VALUES: usize = 16;
 const WAIT_VALUE_BYTES: u32 = 8;
-const RUNTIME_CLUE_EVENTS: usize = 256;
+const RUNTIME_SIGN_EVENTS: usize = 256;
 
 fn main() {
     let target = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
@@ -142,15 +142,15 @@ fn generate_pico_network_image(out: &Path) {
             maximum_route_targets: 1,
             maximum_host_operations: 2,
             maximum_resources: 1,
-            maximum_clue_expectations: 8,
+            maximum_sign_expectations: 8,
             maximum_configuration_entries: 0,
             maximum_ports_per_node: conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE,
             maximum_remote_endpoints: 1,
             maximum_cord_value_slots: 2,
             maximum_cord_value_bytes: conduit_net::MAXIMUM_JOIN_INPUT_BYTES
                 + conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES,
-            maximum_clue_items: 32,
-            maximum_clue_bytes: 1024,
+            maximum_sign_items: 32,
+            maximum_sign_bytes: 1024,
         },
     )
     .expect("Pico network fragment must fit reviewed fixed-image bounds");
@@ -158,8 +158,8 @@ fn generate_pico_network_image(out: &Path) {
     let host_id = HostId::from(generated.host_id.clone());
     let boot_id = BootId::from(generated.boot_id.clone());
     let active_play = bind_active_play(&plan_id, &host_id, &boot_id, 0);
-    let boot_clue = bind_clue(&host_id, &boot_id, None, 0);
-    let attachment_clue = bind_clue(
+    let boot_sign = bind_sign(&host_id, &boot_id, None, 0);
+    let attachment_sign = bind_sign(
         &host_id,
         &boot_id,
         Some(&active_play.active_play_id),
@@ -182,10 +182,10 @@ fn generate_pico_network_image(out: &Path) {
         checked_form_id: fragment.checked_form_id.as_str().to_owned(),
         expanded_form_id: fragment.expanded_form_id.as_str().to_owned(),
         active_play_id: active_play.active_play_id.as_str().to_owned(),
-        boot_clue_id: boot_clue.clue_id.as_str().to_owned(),
+        boot_sign_id: boot_sign.sign_id.as_str().to_owned(),
         presentation_ids: Vec::new(),
-        presentation_clue_ids: Vec::new(),
-        terminal_clue_id: attachment_clue.clue_id.as_str().to_owned(),
+        presentation_sign_ids: Vec::new(),
+        terminal_sign_id: attachment_sign.sign_id.as_str().to_owned(),
     };
     let mut module = generated.render_no_alloc_firmware_module();
     render_string_constant(
@@ -208,11 +208,11 @@ fn generate_pico_network_image(out: &Path) {
         "ACTIVE_PLAY_ID",
         active_play.active_play_id.as_str(),
     );
-    render_string_constant(&mut module, "BOOT_CLUE_ID", boot_clue.clue_id.as_str());
+    render_string_constant(&mut module, "BOOT_SIGN_ID", boot_sign.sign_id.as_str());
     render_string_constant(
         &mut module,
-        "ATTACHMENT_CLUE_ID",
-        attachment_clue.clue_id.as_str(),
+        "ATTACHMENT_SIGN_ID",
+        attachment_sign.sign_id.as_str(),
     );
     render_string_constant(&mut module, "FIRMWARE_BUILD_ID", &firmware_build_id);
     fs::write(out.join("pico_network_image.rs"), module)
@@ -300,11 +300,11 @@ fn render_firmware_module(
         concat!(
             "pub const MAX_STORED_SIGNAL_VALUES: usize = {};\n",
             "pub const WAIT_VALUE_BYTES: u32 = {};\n",
-            "pub const RUNTIME_CLUE_EVENTS: usize = {};\n",
+            "pub const RUNTIME_SIGN_EVENTS: usize = {};\n",
         ),
         MAX_STORED_SIGNAL_VALUES,
         WAIT_VALUE_BYTES,
-        RUNTIME_CLUE_EVENTS,
+        RUNTIME_SIGN_EVENTS,
     ));
     module
 }
@@ -316,10 +316,10 @@ struct GeneratedFirmwareIdentity {
     checked_form_id: String,
     expanded_form_id: String,
     active_play_id: String,
-    boot_clue_id: String,
+    boot_sign_id: String,
     presentation_ids: Vec<String>,
-    presentation_clue_ids: Vec<String>,
-    terminal_clue_id: String,
+    presentation_sign_ids: Vec<String>,
+    terminal_sign_id: String,
 }
 
 impl GeneratedFirmwareIdentity {
@@ -338,30 +338,30 @@ impl GeneratedFirmwareIdentity {
                     .to_owned()
             })
             .collect();
-        let presentation_clue_ids = (0..MAX_STORED_SIGNAL_VALUES as u64)
+        let presentation_sign_ids = (0..MAX_STORED_SIGNAL_VALUES as u64)
             .map(|sequence| {
-                bind_clue(
+                bind_sign(
                     &host_id,
                     &boot_id,
                     Some(&active_play.active_play_id),
                     sequence,
                 )
-                .clue_id
+                .sign_id
                 .as_str()
                 .to_owned()
             })
             .collect();
-        let terminal_clue_id = bind_clue(
+        let terminal_sign_id = bind_sign(
             &host_id,
             &boot_id,
             Some(&active_play.active_play_id),
             MAX_STORED_SIGNAL_VALUES as u64,
         )
-        .clue_id
+        .sign_id
         .as_str()
         .to_owned();
-        let boot_clue_id = bind_clue(&host_id, &boot_id, None, 0)
-            .clue_id
+        let boot_sign_id = bind_sign(&host_id, &boot_id, None, 0)
+            .sign_id
             .as_str()
             .to_owned();
         let firmware_build_id = firmware_build_id(form, generated, &active_play.active_play_id);
@@ -373,10 +373,10 @@ impl GeneratedFirmwareIdentity {
             checked_form_id: form.checked_form_id.as_str().to_owned(),
             expanded_form_id: form.expanded_form_id.as_str().to_owned(),
             active_play_id: active_play.active_play_id.as_str().to_owned(),
-            boot_clue_id,
+            boot_sign_id,
             presentation_ids,
-            presentation_clue_ids,
-            terminal_clue_id,
+            presentation_sign_ids,
+            terminal_sign_id,
         }
     }
 }
@@ -441,17 +441,17 @@ fn render_identity_constants(module: &mut String, identity: &GeneratedFirmwareId
     render_string_constant(module, "CHECKED_FORM_ID", &identity.checked_form_id);
     render_string_constant(module, "EXPANDED_FORM_ID", &identity.expanded_form_id);
     render_string_constant(module, "ACTIVE_PLAY_ID", &identity.active_play_id);
-    render_string_constant(module, "BOOT_CLUE_ID", &identity.boot_clue_id);
+    render_string_constant(module, "BOOT_SIGN_ID", &identity.boot_sign_id);
     render_string_constant(
         module,
-        "TERMINAL_CLUE_ID",
-        &identity.terminal_clue_id,
+        "TERMINAL_SIGN_ID",
+        &identity.terminal_sign_id,
     );
     render_string_array(module, "PRESENTATION_IDS", &identity.presentation_ids);
     render_string_array(
         module,
-        "PRESENTATION_CLUE_IDS",
-        &identity.presentation_clue_ids,
+        "PRESENTATION_SIGN_IDS",
+        &identity.presentation_sign_ids,
     );
 }
 
@@ -477,13 +477,13 @@ fn pico_signal_bounds() -> EmbeddedImageBounds {
         maximum_route_targets: 1,
         maximum_host_operations: 2,
         maximum_resources: 2,
-        maximum_clue_expectations: 8,
+        maximum_sign_expectations: 8,
         maximum_configuration_entries: 3,
         maximum_ports_per_node: conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE,
         maximum_remote_endpoints: 2,
         maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         maximum_cord_value_bytes: SIGNAL_ENCODED_LEN,
-        maximum_clue_items: 16,
-        maximum_clue_bytes: 1024,
+        maximum_sign_items: 16,
+        maximum_sign_bytes: 1024,
     }
 }

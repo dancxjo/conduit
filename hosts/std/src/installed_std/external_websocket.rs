@@ -193,7 +193,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         host_requests: 2
             + usize::from(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_HISTORY_ITEMS) * 2
             + 2,
-        clue_items: 512,
+        sign_items: 512,
         maximum_value_bytes: conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
     })
 }

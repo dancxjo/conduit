@@ -2,17 +2,17 @@
 //! numeric tables consumed by `conduit-kernel`.
 
 use conduit_core::{
-    mandatory_clue_storage_requirement, verify_plan_fragment, ActivePlayId, ActivePlayIdentity,
-    AdmittedLine, BootId, ClueId, ClueIdentity, ConnectionId, ExpectedClue, FragmentId, HostId,
-    HostOperationContractId, KindId, LinkEndpoint, PlacementId, PlanFragment, PlanId,
-    PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId, PresentationIdentity,
-    ResourceBinding as PlanResourceBinding, SharedPoolId,
+    mandatory_sign_storage_requirement, verify_plan_fragment, ActivePlayId, ActivePlayIdentity,
+    AdmittedLine, BootId, ConnectionId, ExpectedSign, FragmentId, HostId, HostOperationContractId,
+    KindId, LinkEndpoint, PlacementId, PlanFragment, PlanId, PortDescriptor, PortDirection,
+    PortId as PlanPortId, PresentationId, PresentationIdentity,
+    ResourceBinding as PlanResourceBinding, SharedPoolId, SignId, SignIdentity,
 };
 use conduit_kernel::{
     scheduler::{CordCapacity, CordSpec, NodeSpec},
-    ClueExpectationId, ClueExpectationTarget, CordId, HostOperationBinding, HostOperationId,
-    NodeId, PortId, RemoteEndpointId, ResourceBinding as KernelResourceBinding, ResourceId,
-    RouteRange, RouteTarget,
+    CordId, HostOperationBinding, HostOperationId, NodeId, PortId, RemoteEndpointId,
+    ResourceBinding as KernelResourceBinding, ResourceId, RouteRange, RouteTarget,
+    SignExpectationId, SignExpectationTarget,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -52,8 +52,8 @@ pub enum LoweringError {
     },
     UnsupportedHostOperationConcurrency(PlacementId),
     ResourceBindingInvalid(PlacementId),
-    ClueBudgetInvalid,
-    ClueReferenceMissing,
+    SignBudgetInvalid,
+    SignReferenceMissing,
     SharedPoolInvalid(SharedPoolId),
     SharedPoolConsumerMissing(SharedPoolId),
 }
@@ -132,10 +132,10 @@ pub struct LoweredResource {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LoweredClue {
-    pub expectation: ClueExpectationId,
-    pub expected: ExpectedClue,
-    pub target: ClueExpectationTarget,
+pub struct LoweredSign {
+    pub expectation: SignExpectationId,
+    pub expected: ExpectedSign,
+    pub target: SignExpectationTarget,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -291,8 +291,8 @@ pub struct KernelPresentationIdentity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KernelClueIdentity {
-    pub clue_id: ClueId,
+pub struct KernelSignIdentity {
+    pub sign_id: SignId,
     pub node: Option<NodeId>,
     pub request: Option<conduit_kernel::RequestId>,
     pub presentation_id: Option<PresentationId>,
@@ -306,7 +306,7 @@ pub struct KernelExecutionIdentityMap {
     boot_id: BootId,
     requests: Vec<KernelHostRequestIdentity>,
     presentations: Vec<KernelPresentationIdentity>,
-    clues: Vec<KernelClueIdentity>,
+    signs: Vec<KernelSignIdentity>,
 }
 
 impl KernelExecutionIdentityMap {
@@ -315,7 +315,7 @@ impl KernelExecutionIdentityMap {
         active_play: &ActivePlayIdentity,
         request_capacity: usize,
         presentation_capacity: usize,
-        clue_capacity: usize,
+        sign_capacity: usize,
     ) -> Result<Self, ExecutionIdentityError> {
         if active_play.plan_id != lowered.plan_id {
             return Err(ExecutionIdentityError::WrongPlan);
@@ -327,7 +327,7 @@ impl KernelExecutionIdentityMap {
             boot_id: active_play.boot_id.clone(),
             requests: Vec::with_capacity(request_capacity),
             presentations: Vec::with_capacity(presentation_capacity),
-            clues: Vec::with_capacity(clue_capacity),
+            signs: Vec::with_capacity(sign_capacity),
         })
     }
 
@@ -394,17 +394,17 @@ impl KernelExecutionIdentityMap {
         Ok(())
     }
 
-    pub fn bind_clue(
+    pub fn bind_sign(
         &mut self,
-        clue: &ClueIdentity,
+        sign: &SignIdentity,
         node: Option<NodeId>,
         request: Option<conduit_kernel::RequestId>,
         presentation_id: Option<&PresentationId>,
     ) -> Result<(), ExecutionIdentityError> {
-        if clue.active_play_id.as_ref() != Some(&self.active_play_id) {
+        if sign.active_play_id.as_ref() != Some(&self.active_play_id) {
             return Err(ExecutionIdentityError::WrongActivePlay);
         }
-        if clue.host_id != self.host_id || clue.boot_id != self.boot_id {
+        if sign.host_id != self.host_id || sign.boot_id != self.boot_id {
             return Err(ExecutionIdentityError::WrongHost);
         }
         if node.is_some() != request.is_some() {
@@ -423,18 +423,18 @@ impl KernelExecutionIdentityMap {
                 return Err(ExecutionIdentityError::UnknownPresentation);
             }
         }
-        if self.clues.len() >= self.clues.capacity() {
+        if self.signs.len() >= self.signs.capacity() {
             return Err(ExecutionIdentityError::CapacityExceeded);
         }
         if self
-            .clues
+            .signs
             .iter()
-            .any(|identity| identity.clue_id == clue.clue_id)
+            .any(|identity| identity.sign_id == sign.sign_id)
         {
             return Err(ExecutionIdentityError::DuplicateIdentity);
         }
-        self.clues.push(KernelClueIdentity {
-            clue_id: clue.clue_id.clone(),
+        self.signs.push(KernelSignIdentity {
+            sign_id: sign.sign_id.clone(),
             node,
             request,
             presentation_id: presentation_id.cloned(),
@@ -481,15 +481,15 @@ impl KernelExecutionIdentityMap {
             .find(|identity| identity.node == node && identity.request == request)
     }
 
-    pub fn clue_identity(&self, clue: &ClueId) -> Option<&KernelClueIdentity> {
-        self.clues.iter().find(|identity| &identity.clue_id == clue)
+    pub fn sign_identity(&self, sign: &SignId) -> Option<&KernelSignIdentity> {
+        self.signs.iter().find(|identity| &identity.sign_id == sign)
     }
 
-    pub fn clue_for_presentation(
+    pub fn sign_for_presentation(
         &self,
         presentation: &PresentationId,
-    ) -> Option<&KernelClueIdentity> {
-        self.clues
+    ) -> Option<&KernelSignIdentity> {
+        self.signs
             .iter()
             .find(|identity| identity.presentation_id.as_ref() == Some(presentation))
     }
@@ -498,7 +498,7 @@ impl KernelExecutionIdentityMap {
         (
             self.requests.capacity(),
             self.presentations.capacity(),
-            self.clues.capacity(),
+            self.signs.capacity(),
         )
     }
 
@@ -506,7 +506,7 @@ impl KernelExecutionIdentityMap {
         (
             self.requests.len(),
             self.presentations.len(),
-            self.clues.len(),
+            self.signs.len(),
         )
     }
 }
@@ -521,12 +521,12 @@ pub struct LoweredPlanFragment {
     pub routes: Vec<LoweredRoute>,
     pub host_operations: Vec<LoweredHostOperation>,
     pub resources: Vec<LoweredResource>,
-    pub clues: Vec<LoweredClue>,
+    pub signs: Vec<LoweredSign>,
     pub shared_pools: Vec<LoweredSharedPool>,
     pub cord_value_slots: u16,
     pub cord_value_bytes: u32,
-    pub clue_items: u16,
-    pub clue_bytes: u32,
+    pub sign_items: u16,
+    pub sign_bytes: u32,
 }
 
 pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragment, LoweringError> {
@@ -536,10 +536,10 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
     if fragment.placements.is_empty() {
         return Err(LoweringError::EmptyFragment);
     }
-    if mandatory_clue_storage_requirement(&fragment.expected_clue)
-        != Some(fragment.clue_storage_budget)
+    if mandatory_sign_storage_requirement(&fragment.expected_sign)
+        != Some(fragment.sign_storage_budget)
     {
-        return Err(LoweringError::ClueBudgetInvalid);
+        return Err(LoweringError::SignBudgetInvalid);
     }
     let mut placement_nodes = BTreeMap::new();
     let mut nodes = Vec::with_capacity(fragment.placements.len());
@@ -779,29 +779,29 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         }
     }
 
-    let mut clues = Vec::with_capacity(fragment.expected_clue.len());
-    for (index, expected) in fragment.expected_clue.iter().enumerate() {
+    let mut signs = Vec::with_capacity(fragment.expected_sign.len());
+    for (index, expected) in fragment.expected_sign.iter().enumerate() {
         let target = match expected {
-            ExpectedClue::PlanFragmentReceived | ExpectedClue::PlanTerminal => {
-                ClueExpectationTarget::Fragment
+            ExpectedSign::PlanFragmentReceived | ExpectedSign::PlanTerminal => {
+                SignExpectationTarget::Fragment
             }
-            ExpectedClue::PlacementPrepared(id) | ExpectedClue::PlacementTerminal(id) => {
-                ClueExpectationTarget::Node(
+            ExpectedSign::PlacementPrepared(id) | ExpectedSign::PlacementTerminal(id) => {
+                SignExpectationTarget::Node(
                     *placement_nodes
                         .get(id)
-                        .ok_or(LoweringError::ClueReferenceMissing)?,
+                        .ok_or(LoweringError::SignReferenceMissing)?,
                 )
             }
-            ExpectedClue::ConnectionTerminal(id) => ClueExpectationTarget::Cord(
+            ExpectedSign::ConnectionTerminal(id) => SignExpectationTarget::Cord(
                 cords
                     .iter()
                     .find(|cord| &cord.connection_id == id)
                     .map(|cord| cord.spec.cord)
-                    .ok_or(LoweringError::ClueReferenceMissing)?,
+                    .ok_or(LoweringError::SignReferenceMissing)?,
             ),
         };
-        clues.push(LoweredClue {
-            expectation: ClueExpectationId(as_u16(index)?),
+        signs.push(LoweredSign {
+            expectation: SignExpectationId(as_u16(index)?),
             expected: expected.clone(),
             target,
         });
@@ -848,12 +848,12 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         routes,
         host_operations,
         resources,
-        clues,
+        signs,
         shared_pools,
         cord_value_slots: value_slots,
         cord_value_bytes: value_bytes,
-        clue_items: fragment.clue_storage_budget.item_capacity,
-        clue_bytes: fragment.clue_storage_budget.byte_capacity,
+        sign_items: fragment.sign_storage_budget.item_capacity,
+        sign_bytes: fragment.sign_storage_budget.byte_capacity,
     })
 }
 

@@ -6,7 +6,7 @@ The base is composed only when a display connection and a usable dialog executab
 
 Selected paths cross directly into `ProtectedFileRegistry`, whose private table maps them to the two fixed boot-scoped opaque handles. The semantic Form, checked and expanded identities, Plan, fragment, Play, receipt, kernel protocol, and Patchbay presentation contain the handles and exact access, byte, and commit bounds, never the raw locators. Re-selecting a role revokes its earlier handle and invalidates any prepared Plan.
 
-F7 chooses the read-existing source. F8 chooses a create-only destination; Shift-F8 chooses replace-existing. F9 invokes the shared ordinary protected-resource planning recipe. F10 runs the resulting fragment through `StdHost::run_copy_fragment` and the production kernel. F11 sets the existing bounded copy Stop token. The resulting receipt preserves the exact request, active Play, Plan, source and destination handles, structured result, and kernel clue count.
+F7 chooses the read-existing source. F8 chooses a create-only destination; Shift-F8 chooses replace-existing. F9 invokes the shared ordinary protected-resource planning recipe. F10 runs the resulting fragment through `StdHost::run_copy_fragment` and the production kernel. F11 sets the existing bounded copy Stop token. The resulting receipt preserves the exact request, active Play, Plan, source and destination handles, structured result, and kernel Sign count.
 
 `--native-copy-demo` is a finite platform-acceptance aid: it opens the same two native dialogs at startup and then invokes the same Plan and Run methods. It accepts no locator arguments and does not bypass either protected grant.
 

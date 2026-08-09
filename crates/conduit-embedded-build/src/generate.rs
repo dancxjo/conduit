@@ -1,19 +1,19 @@
 use conduit_core::{
-    verify_plan_fragment, ConfigurationValue, ConnectionBase, ExpectedClue, ExpectedTerminal,
+    verify_plan_fragment, ConfigurationValue, ConnectionBase, ExpectedSign, ExpectedTerminal,
     PlanFragment,
 };
-use conduit_kernel::{ClueExpectationTarget, CordEndpoint};
+use conduit_kernel::{CordEndpoint, SignExpectationTarget};
 use conduit_runtime::lowering::{
     LoweredPlanFragment, RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
 
 use crate::model::{
-    EmbeddedImageBounds, GeneratedClueTarget, GeneratedConfigurationEntry,
-    GeneratedConfigurationValue, GeneratedCordEndpoint, GeneratedEmbeddedPlan,
-    GeneratedExpectedTerminal, GeneratedHostOperation, GeneratedPort, GeneratedStartupDependency,
-    GeneratedStaticClue, GeneratedStaticCord, GeneratedStaticNode, GeneratedStaticRemoteEndpoint,
-    GeneratedStaticResource, GeneratedStaticRoute, GeneratedStaticRouteTarget, GenerationError,
-    UnsupportedPlanFeature,
+    EmbeddedImageBounds, GeneratedConfigurationEntry, GeneratedConfigurationValue,
+    GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedExpectedTerminal,
+    GeneratedHostOperation, GeneratedPort, GeneratedSignTarget, GeneratedStartupDependency,
+    GeneratedStaticCord, GeneratedStaticNode, GeneratedStaticRemoteEndpoint,
+    GeneratedStaticResource, GeneratedStaticRoute, GeneratedStaticRouteTarget, GeneratedStaticSign,
+    GenerationError, UnsupportedPlanFeature,
 };
 use crate::validate::validate_shape;
 use crate::GENERATED_EMBEDDED_PLAN_SCHEMA_VERSION;
@@ -76,7 +76,7 @@ pub fn generate_embedded_plan(
             units: resource.binding.units,
         })
         .collect();
-    let clues = lowered.clues.iter().map(generate_clue).collect();
+    let signs = lowered.signs.iter().map(generate_sign).collect();
     let startup_dependencies = generate_startup_dependencies(fragment, lowered)?;
     let startup_order = fragment
         .startup_order
@@ -114,14 +114,14 @@ pub fn generate_embedded_plan(
         route_targets,
         host_operations,
         resources,
-        clues,
+        signs,
         startup_dependencies,
         startup_order,
         expected_terminals,
         cord_value_slots: lowered.cord_value_slots,
         cord_value_bytes: lowered.cord_value_bytes,
-        clue_items: lowered.clue_items,
-        clue_bytes: lowered.clue_bytes,
+        sign_items: lowered.sign_items,
+        sign_bytes: lowered.sign_bytes,
     })
 }
 
@@ -372,23 +372,23 @@ fn generate_startup_dependencies(
         .collect()
 }
 
-fn generate_clue(clue: &conduit_runtime::lowering::LoweredClue) -> GeneratedStaticClue {
-    let (kind, subject) = match &clue.expected {
-        ExpectedClue::PlanFragmentReceived => ("plan-fragment-received", None),
-        ExpectedClue::PlacementPrepared(id) => ("placement-prepared", Some(id.as_str().to_owned())),
-        ExpectedClue::PlacementTerminal(id) => ("placement-terminal", Some(id.as_str().to_owned())),
-        ExpectedClue::ConnectionTerminal(id) => {
+fn generate_sign(sign: &conduit_runtime::lowering::LoweredSign) -> GeneratedStaticSign {
+    let (kind, subject) = match &sign.expected {
+        ExpectedSign::PlanFragmentReceived => ("plan-fragment-received", None),
+        ExpectedSign::PlacementPrepared(id) => ("placement-prepared", Some(id.as_str().to_owned())),
+        ExpectedSign::PlacementTerminal(id) => ("placement-terminal", Some(id.as_str().to_owned())),
+        ExpectedSign::ConnectionTerminal(id) => {
             ("connection-terminal", Some(id.as_str().to_owned()))
         }
-        ExpectedClue::PlanTerminal => ("plan-terminal", None),
+        ExpectedSign::PlanTerminal => ("plan-terminal", None),
     };
-    let target = match clue.target {
-        ClueExpectationTarget::Fragment => GeneratedClueTarget::Fragment,
-        ClueExpectationTarget::Node(node) => GeneratedClueTarget::Node(node.0),
-        ClueExpectationTarget::Cord(cord) => GeneratedClueTarget::Cord(cord.0),
+    let target = match sign.target {
+        SignExpectationTarget::Fragment => GeneratedSignTarget::Fragment,
+        SignExpectationTarget::Node(node) => GeneratedSignTarget::Node(node.0),
+        SignExpectationTarget::Cord(cord) => GeneratedSignTarget::Cord(cord.0),
     };
-    GeneratedStaticClue {
-        expectation: clue.expectation.0,
+    GeneratedStaticSign {
+        expectation: sign.expectation.0,
         kind,
         subject,
         target,

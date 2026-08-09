@@ -356,7 +356,7 @@ pub fn distributed_toggle_websocket_line_offer() -> LineOffer {
             line_id: LineId::from("s4/line/toggle-websocket"),
             binding_id: binding.binding_id.clone(),
             availability: LineAvailability::Ready,
-            sign_id: conduit_core::ClueId::from("s4/line/toggle-websocket/ready"),
+            sign_id: conduit_core::SignId::from("s4/line/toggle-websocket/ready"),
         },
         binding,
         contract: LineContract {

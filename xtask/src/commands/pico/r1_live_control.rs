@@ -18,7 +18,7 @@ use super::PicoResult;
 pub fn deliver_plan_a_inputs(
     io: &mut impl R1SessionIo,
     source: &mut PicoControlSource,
-    clue: &mut NativePathCdcLineReader,
+    sign: &mut NativePathCdcLineReader,
     plan: &Plan,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
@@ -33,7 +33,7 @@ pub fn deliver_plan_a_inputs(
         },
         |input| {
             let merged = r1_control_session::deliver_input(io, source, input, &mut |sequence| {
-                let line = clue
+                let line = sign
                     .read_line(Duration::from_secs(3))
                     .map_err(|error| format!("missing live Plan A physical LED Sign: {error}"))?;
                 super::r1_signal_transcript::verify_receipt(
@@ -73,7 +73,7 @@ struct PhysicalInputSign<'a> {
     requested_level: bool,
     merged_sequence: u64,
     physical_led_result: &'static str,
-    evidence: &'static str,
+    receipt_basis: &'static str,
 }
 
 impl<'a> PhysicalInputSign<'a> {
@@ -96,7 +96,7 @@ impl<'a> PhysicalInputSign<'a> {
             requested_level: merged.input.level,
             merged_sequence: merged.signal.sequence,
             physical_led_result: if merged.signal.level { "on" } else { "off" },
-            evidence: "verified-pico-receipt",
+            receipt_basis: "verified-pico-receipt",
         }
     }
 }
@@ -174,6 +174,6 @@ mod tests {
         assert_eq!(sign["merged_sequence"], 5);
         assert_eq!(sign["input"], "keyup");
         assert_eq!(sign["physical_led_result"], "off");
-        assert_eq!(sign["evidence"], "verified-pico-receipt");
+        assert_eq!(sign["receipt_basis"], "verified-pico-receipt");
     }
 }

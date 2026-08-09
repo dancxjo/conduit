@@ -10,8 +10,8 @@ use embassy_rp::peripherals::USB;
 use embassy_rp::usb;
 use embassy_usb::class::cdc_acm::CdcAcmClass;
 
-use super::usb::PicoUsbCdcCarrier;
-use crate::receipts::UsbClueError;
+use super::usb::PicoUsbCdcLine;
+use crate::receipts::UsbSignError;
 
 #[allow(dead_code)]
 pub type UsbLinkResult<T> = Result<T, UsbLinkError>;
@@ -22,7 +22,7 @@ pub enum UsbLinkError {
     UsbDisconnected,
     Framing(StreamFrameError),
     Codec(WireError),
-    Clue(UsbClueError),
+    Sign(UsbSignError),
     BufferOverflow,
     InvalidGeneratedEndpoint,
     InvalidSignal,
@@ -32,7 +32,7 @@ pub enum UsbLinkError {
     NetworkConfigurationTimeout,
     Storage(conduit_kernel::StorageError),
     Kernel(conduit_kernel::scheduler::SchedulerError),
-    ClueStorage(conduit_kernel::ClueError),
+    SignStorage(conduit_kernel::SignError),
     KernelIdle,
     KernelCompletedEarly,
     KernelCancelled,
@@ -46,7 +46,7 @@ impl UsbLinkError {
             Self::UsbDisconnected => "usb-disconnected",
             Self::Framing(_) => "malformed-stream-frame",
             Self::Codec(_) => "invalid-session-frame",
-            Self::Clue(_) => "clue-channel-failure",
+            Self::Sign(_) => "sign-channel-failure",
             Self::BufferOverflow => "bounded-buffer-overflow",
             Self::InvalidGeneratedEndpoint => "invalid-generated-endpoint",
             Self::InvalidSignal => "invalid-signal",
@@ -56,7 +56,7 @@ impl UsbLinkError {
             Self::NetworkConfigurationTimeout => "network-configuration-timeout",
             Self::Storage(_) => "kernel-storage-failure",
             Self::Kernel(_) => "kernel-scheduler-failure",
-            Self::ClueStorage(_) => "kernel-clue-failure",
+            Self::SignStorage(_) => "kernel-sign-failure",
             Self::KernelIdle => "kernel-idle-before-effect",
             Self::KernelCompletedEarly => "kernel-completed-before-effect",
             Self::KernelCancelled => "kernel-cancelled",
@@ -77,9 +77,9 @@ impl From<WireError> for UsbLinkError {
     }
 }
 
-impl From<UsbClueError> for UsbLinkError {
-    fn from(err: UsbClueError) -> Self {
-        Self::Clue(err)
+impl From<UsbSignError> for UsbLinkError {
+    fn from(err: UsbSignError) -> Self {
+        Self::Sign(err)
     }
 }
 
@@ -89,9 +89,9 @@ pub struct UsbLinkSession {
 }
 
 impl UsbLinkSession {
-    pub fn new(carrier: PicoUsbCdcCarrier) -> Result<Self, UsbLinkError> {
+    pub fn new(line: PicoUsbCdcLine) -> Result<Self, UsbLinkError> {
         Ok(Self {
-            class: carrier.class,
+            class: line.class,
             decoder: StreamFrameDecoder::new(1024).map_err(UsbLinkError::Framing)?,
         })
     }

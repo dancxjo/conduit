@@ -3,7 +3,7 @@ use super::*;
 type SinkScheduler = FixedScheduler<
     OperationDriver<RenderOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     1,
     1,
     PORTS,
@@ -70,7 +70,7 @@ impl Sink {
                 .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?],
             HostedValueStore::new(1, MAX_RENDERER_VALUE_BYTES, MAX_RENDERER_VALUE_BYTES)
                 .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?,
-            clue_log()?,
+            sign_log()?,
         )
         .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?;
         let session = SessionMachine::new(binding.clone(), SessionRole::Sink)
@@ -285,7 +285,7 @@ impl Sink {
                 presentation,
                 self.renderer_plan.clone(),
                 identity.target_subject.clone(),
-                ClueId::from("patchbay-html/cross-host-prepared"),
+                SignId::from("patchbay-html/cross-host-prepared"),
             )
             .map_err(|error| CrossHostRendererError::Presentation(error.to_string()))?,
         );

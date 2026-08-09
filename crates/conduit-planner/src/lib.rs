@@ -1,6 +1,6 @@
 use conduit_core::{
-    mandatory_clue_storage_requirement, seal_plan, AdmittedLine, AuthorityBinding, AuthorityGrant,
-    CancellationPolicy, CapabilityId, ConnectionBase, ConnectionId, ExpectedClue, ExpectedTerminal,
+    mandatory_sign_storage_requirement, seal_plan, AdmittedLine, AuthorityBinding, AuthorityGrant,
+    CancellationPolicy, CapabilityId, ConnectionBase, ConnectionId, ExpectedSign, ExpectedTerminal,
     FragmentId, GearId, HostAdvertisement, HostId, LineAvailability, LineId, LineOffer,
     PlacementId, Plan, PlanFragment, PlanId, PlannedConnection, PlannedGear, ResourceBinding,
     ResourcePoolId, StartupDependency, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
@@ -34,7 +34,7 @@ pub use canonical::{
 };
 pub use characteristics::{
     plan_selected_realizations_with_characteristics, select_realization_with_characteristics,
-    select_realization_with_characteristics_and_clues, RealizationDecisionDisposition,
+    select_realization_with_characteristics_and_signs, RealizationDecisionDisposition,
     RealizationDecisionRecord, RealizationRejection, RealizationSelection,
     MAXIMUM_REALIZATION_DECISION_RECORDS,
 };
@@ -558,21 +558,21 @@ pub(crate) fn plan_validated_form(
                 }))
                 .chain(core::iter::once(ExpectedTerminal::PlanCompleted))
                 .collect();
-            let expected_clue = core::iter::once(ExpectedClue::PlanFragmentReceived)
+            let expected_sign = core::iter::once(ExpectedSign::PlanFragmentReceived)
                 .chain(placements.iter().map(|placement| {
-                    ExpectedClue::PlacementPrepared(placement.placement_id.clone())
+                    ExpectedSign::PlacementPrepared(placement.placement_id.clone())
                 }))
                 .chain(placements.iter().map(|placement| {
-                    ExpectedClue::PlacementTerminal(placement.placement_id.clone())
+                    ExpectedSign::PlacementTerminal(placement.placement_id.clone())
                 }))
                 .chain(connections.iter().map(|connection| {
-                    ExpectedClue::ConnectionTerminal(connection.connection_id.clone())
+                    ExpectedSign::ConnectionTerminal(connection.connection_id.clone())
                 }))
-                .chain(core::iter::once(ExpectedClue::PlanTerminal))
+                .chain(core::iter::once(ExpectedSign::PlanTerminal))
                 .collect::<Vec<_>>();
-            let clue_storage_budget = mandatory_clue_storage_requirement(&expected_clue)
+            let sign_storage_budget = mandatory_sign_storage_requirement(&expected_sign)
                 .ok_or_else(|| {
-                    PlannerError::ClueBudgetOverflow(host.host_id.as_str().to_string())
+                    PlannerError::SignBudgetOverflow(host.host_id.as_str().to_string())
                 })?;
             Ok(Some(PlanFragment {
                 plan_id: PlanId::from(""),
@@ -591,8 +591,8 @@ pub(crate) fn plan_validated_form(
                 cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
                 terminal_policy: TerminalPolicy::RequireAllPlacementsAndConnections,
                 expected_terminals,
-                expected_clue,
-                clue_storage_budget,
+                expected_sign,
+                sign_storage_budget,
                 plan_fragments: Vec::new(),
             }))
         })

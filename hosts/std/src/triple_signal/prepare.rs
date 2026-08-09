@@ -94,11 +94,11 @@ impl TripleSource {
             .collect::<Result<Vec<_>, _>>()?
             .try_into()
             .map_err(|_| "triple driver width".to_owned())?;
-        let clue_bytes = u32::from(CLUE_ITEMS)
+        let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-            .ok_or_else(|| "triple clue bytes overflow".to_owned())?;
-        let clue =
-            HostedClueLog::new(CLUE_ITEMS, clue_bytes).map_err(|error| format!("{error:?}"))?;
+            .ok_or_else(|| "triple sign bytes overflow".to_owned())?;
+        let sign =
+            HostedSignLog::new(SIGN_ITEMS, sign_bytes).map_err(|error| format!("{error:?}"))?;
         let scheduler = TripleScheduler::new_with_host_operations(
             lowered
                 .node_specs
@@ -116,7 +116,7 @@ impl TripleSource {
             host_bindings,
             drivers,
             values,
-            clue,
+            sign,
         )
         .map_err(|error| format!("{error:?}"))?;
         let active_play =
@@ -145,7 +145,7 @@ impl TripleSource {
             receipts,
             seal: CapacitySeal {
                 values: (0, 0),
-                clue: 0,
+                sign: 0,
                 drivers: 0,
                 identity: (0, 0, 0),
                 receipts: 0,

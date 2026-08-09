@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn send_native(
-    line: &mut NativeWebSocketCarrier,
+    line: &mut NativeWebSocketLine,
     session: &mut SessionMachine,
     binding: &SessionBinding,
     message: SessionMessage<'_>,
@@ -23,7 +23,7 @@ pub(super) fn send_native(
 }
 
 pub(super) fn receive_native<'a>(
-    line: &mut NativeWebSocketCarrier,
+    line: &mut NativeWebSocketLine,
     session: &mut SessionMachine,
     input: &'a mut [u8],
 ) -> Result<SessionMessage<'a>, CrossHostRendererError> {

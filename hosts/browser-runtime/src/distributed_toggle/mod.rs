@@ -21,5 +21,5 @@ const ERROR_SESSION: i32 = -203;
 const ERROR_KERNEL: i32 = -204;
 const ERROR_PRESENTATION: i32 = -205;
 const ERROR_CANCELLED: i32 = -206;
-const ERROR_CLUE: i32 = -207;
+const ERROR_SIGN: i32 = -207;
 const ERROR_CAPACITY: i32 = -208;

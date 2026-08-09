@@ -27,7 +27,7 @@ Layout and comments change `SourceDocumentId` but do not change
 semantic identities. Hidden nested implementation changes leave the parent's
 checked identity alone when its visible exported contract is unchanged, but
 change the parent expanded identity and therefore its plan/fragment identities.
-Plan, play, clue, and presentation identities are not conflated with this
+Plan, play, Sign, and presentation identities are not conflated with this
 document.
 
 ## Deliberate exclusions
@@ -67,7 +67,7 @@ on each exact child fragment before Play start. Parent connection envelopes
 enter only the mapped child input port; atomic named child outputs leave only
 the matching parent face. Item/byte pressure retains and retries the same
 envelope, each input/output closes independently, and cancellation or child
-failure terminalizes every visible connection before parent plan clue.
+failure terminalizes every visible connection before parent plan Sign.
 External events and observations use only parent plan/connection identities;
 child host and placement identities remain internal. This does not restore the
 legacy runtime as the production engine: `conduit-std-host` continues to run
@@ -108,14 +108,14 @@ The identity chain does not stop at expansion:
 - `PlanId` identifies one immutable exact plan;
 - `ActivePlayId` identifies one Play start, bound to plan, host, boot, and a
   monotonic host Play start sequence;
-- `ClueId` identifies one host-recorded observation, bound to host, boot,
-  optional active play, and a monotonic clue sequence; and
+- `SignId` identifies one host-recorded observation, bound to host, boot,
+  optional active play, and a monotonic Sign sequence; and
 - `PresentationId` identifies one presentation request, bound to active play,
   placement, and a monotonic per-placement sequence.
 
 Presentation effects carry both play and presentation IDs through std,
 browser-shaped, Pico-shaped, and composite adapters. A completion with either
 the wrong play or presentation identity is rejected without consuming the
-pending request. Observatory uses the runtime-issued clue ID and projects
-its play/presentation references; it no longer fabricates `clue/{row}`
+pending request. Observatory uses the runtime-issued Sign ID and projects
+its play/presentation references; it no longer fabricates `sign/{row}`
 identities.

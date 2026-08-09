@@ -79,7 +79,7 @@ impl NativeDistributedPlay {
                 self.lines[0] = self.lines[0].replace("awaiting-peer", "completed");
                 self.lines.push(format!("  EXECUTION {summary}"));
                 self.lines.push(
-                    "  KERNEL-CLUE RemoteValueDelivered OperationCompleted pressure-retry=1".into(),
+                    "  KERNEL-SIGN RemoteValueDelivered OperationCompleted pressure-retry=1".into(),
                 );
                 self.receiver = None;
                 Ok(true)

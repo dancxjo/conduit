@@ -532,7 +532,7 @@ mod tests {
                 line_id: line.line_id,
                 binding_id: line.binding.binding_id,
                 availability: conduit_core::LineAvailability::Ready,
-                sign_id: conduit_core::ClueId::from("fixture/pico-line-ready"),
+                sign_id: conduit_core::SignId::from("fixture/pico-line-ready"),
             },
         };
         std_host.replace_line_offers(vec![line_offer.clone()]);

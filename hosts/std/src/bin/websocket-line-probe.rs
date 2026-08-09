@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let wire_binding = binding();
     let mut machine = SessionMachine::new(wire_binding.clone(), SessionRole::Source)
         .map_err(|error| format!("session: {error:?}"))?;
-    let mut carrier = listener
+    let mut line = listener
         .accept()
         .map_err(|error| format!("accept: {error:?}"))?;
     let mut outbound = [0_u8; MAXIMUM_FRAME_BYTES as usize];
@@ -43,10 +43,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         MAXIMUM_FRAME_BYTES,
     )
     .map_err(|error| format!("hello encode: {error:?}"))?;
-    carrier
-        .send_binary(&outbound[..length])
+    line.send_binary(&outbound[..length])
         .map_err(|error| format!("hello send: {error:?}"))?;
-    let length = carrier
+    let length = line
         .receive_binary(&mut inbound)
         .map_err(|error| format!("hello receive: {error:?}"))?;
     let echoed = decode_session_frame(
@@ -70,10 +69,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         MAXIMUM_FRAME_BYTES,
     )
     .map_err(|error| format!("ready encode: {error:?}"))?;
-    carrier
-        .send_binary(&outbound[..length])
+    line.send_binary(&outbound[..length])
         .map_err(|error| format!("ready send: {error:?}"))?;
-    let length = carrier
+    let length = line
         .receive_binary(&mut inbound)
         .map_err(|error| format!("ready receive: {error:?}"))?;
     let echoed = decode_session_frame(
@@ -89,9 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("both exact handshakes were not ready".into());
     }
     println!("ready protocol=1 base=websocket frame_limit={MAXIMUM_FRAME_BYTES}");
-    carrier
-        .close()
-        .map_err(|error| format!("close: {error:?}"))?;
+    line.close().map_err(|error| format!("close: {error:?}"))?;
     Ok(())
 }
 

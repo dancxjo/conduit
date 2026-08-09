@@ -6,11 +6,11 @@ fixed scheduler compiled to `wasm32-unknown-unknown`. It does not construct `Hos
 JavaScript owns only the browser platform effects: real timers and DOM presentation.
 
 Each page host receives an independent WebAssembly instance, so its runtime state, host/boot
-identity, exact plan fragment, active play, scheduler, presentation/clue identities, fixed-size
+identity, exact plan fragment, active play, scheduler, presentation/sign identities, fixed-size
 ABI buffers, and receipt count are not shared with the other page host. The runtime emits one host
 operation request through a 4,096-byte output frame and accepts one completion through a separate
 4,096-byte input frame. A completion advances execution only when its source, checked, expanded,
-plan, fragment, host, boot, active-play, node/request/operation, placement, presentation/clue,
+plan, fragment, host, boot, active-play, node/request/operation, placement, presentation/sign,
 value-kind, and encoded-value fields are the exact bytes expected for the outstanding request.
 
 Run the proof with:
@@ -24,7 +24,7 @@ The Chromium test has one pinned project, one worker, no retries, and no forced 
 runs two independent page hosts concurrently, waits on all fifteen 250 ms intervals per host,
 retains sixteen nine-byte signal receipts per host, and verifies duplicate, malformed, item-bound,
 byte-bound, cancellation, platform-failure, and mismatched-runtime-identity rejection. Rust seals
-numeric routes, operation slots, values, clue, identities, and capture capacities before its
+numeric routes, operation slots, values, sign, identities, and capture capacities before its
 first scheduler step and checks that those capacities do not grow. This is a bounded-capacity proof,
 not a claim that browser allocation can be measured reliably from JavaScript.
 
@@ -43,5 +43,5 @@ messages to 256 bytes, and input events to eight. Disconnect, malformed input,
 oversize input, and successful host completion stay distinct.
 
 `net/websocket` is the authored external protocol operation.
-`ConnectionBase::WebSocket` remains the unrelated carrier for Conduit
-sessions; the webchat does not use that carrier or its session runtime.
+`ConnectionBase::WebSocket` remains the unrelated line for Conduit
+sessions; the webchat does not use that line or its session runtime.

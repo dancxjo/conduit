@@ -115,11 +115,11 @@ impl SystemRecord {
             .filter(|play| &play.plan_id == plan_id)
             .map(|play| play.active_play_id.clone())
             .collect::<Vec<_>>();
-        let clue_ids = snapshot
+        let sign_ids = snapshot
             .observations
             .iter()
             .filter(|observation| observation.plan_id.as_ref() == Some(plan_id))
-            .map(|observation| observation.clue_id.clone())
+            .map(|observation| observation.sign_id.clone())
             .collect::<Vec<_>>();
         for member in assignments.iter().map(|assignment| &assignment.host) {
             if !snapshot.plays.iter().any(|play| {
@@ -156,7 +156,7 @@ impl SystemRecord {
             transition_grants,
             plan_id: plan_id.clone(),
             play_ids,
-            clue_ids,
+            sign_ids,
         })
     }
 }

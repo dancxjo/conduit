@@ -3,9 +3,9 @@
 use conduit_body::Body;
 use conduit_core::{
     bind_active_play, kind_id, resource_offer, resource_requirement, ArtifactId, BootId,
-    CapabilityId, CapabilityLimits, ClueId, ExecutionProfileId, HostAdvertisement, HostId,
+    CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    OfferGeneration, PlanId, PROTOCOL_VERSION,
+    OfferGeneration, PlanId, SignId, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, parse, parse_syntax_document, KindSignature, ProfileCatalog,
@@ -83,10 +83,10 @@ fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan) -> 
         form.source_document_id.clone(),
         form.checked_form_id.clone(),
         1,
-        ClueId::from("patchbay/clue/bornd"),
+        SignId::from("patchbay/sign/bornd"),
     )
     .unwrap();
-    let (body, wake) = body.wake(1, ClueId::from("patchbay/clue/woke")).unwrap();
+    let (body, wake) = body.wake(1, SignId::from("patchbay/sign/woke")).unwrap();
     Presentation::new(
         7,
         PresentationBasis {
@@ -98,7 +98,7 @@ fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan) -> 
             expanded_form_id: Some(form.expanded_form_id.clone()),
             plan_id: Some(plan.plan_id.clone()),
             active_play_id: None,
-            clue_ids: vec![ClueId::from("patchbay/clue/source")],
+            sign_ids: vec![SignId::from("patchbay/sign/source")],
         },
         vec![
             PresentationSubject {
@@ -244,32 +244,32 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
         active.active_play_id,
         placement,
         "linux-host/display-0".into(),
-        ClueId::from("manifestation/prepared"),
+        SignId::from("manifestation/prepared"),
     )
     .unwrap();
     let available = prepared
         .transition(
             ManifestationLifecycle::Available,
-            ClueId::from("manifestation/available"),
+            SignId::from("manifestation/available"),
         )
         .unwrap();
-    assert_eq!(available.clues.len(), 2);
-    assert_eq!(available.clues[1].plan_id, available.plan_id);
-    assert_eq!(available.clues[1].active_play_id, available.active_play_id);
-    assert_eq!(available.clues[1].placement_id, available.placement_id);
+    assert_eq!(available.signs.len(), 2);
+    assert_eq!(available.signs[1].plan_id, available.plan_id);
+    assert_eq!(available.signs[1].active_play_id, available.active_play_id);
+    assert_eq!(available.signs[1].placement_id, available.placement_id);
     let failed = available
         .fail(
             ManifestationFailure::OutputRejected,
-            ClueId::from("manifestation/failed"),
+            SignId::from("manifestation/failed"),
         )
         .unwrap();
     assert_eq!(failed.lifecycle, ManifestationLifecycle::Failed);
     assert_eq!(failed.failure, Some(ManifestationFailure::OutputRejected));
     assert!(failed.validate_against(&presentation, &plan).is_ok());
-    let mut drifted_clue = failed.clone();
-    drifted_clue.clues[1].plan_id = PlanId::from("different-plan");
+    let mut drifted_sign = failed.clone();
+    drifted_sign.signs[1].plan_id = PlanId::from("different-plan");
     assert_eq!(
-        drifted_clue.validate_against(&presentation, &plan),
+        drifted_sign.validate_against(&presentation, &plan),
         Err(ManifestationError::InvalidTransition)
     );
     let realized = available.validate_against(&presentation, &plan).unwrap();
@@ -280,14 +280,14 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
     assert!(matches!(
         available.transition(
             ManifestationLifecycle::Prepared,
-            ClueId::from("manifestation/backwards")
+            SignId::from("manifestation/backwards")
         ),
         Err(ManifestationError::InvalidTransition)
     ));
     assert!(matches!(
         available.transition(
             ManifestationLifecycle::Closed,
-            ClueId::from("manifestation/prepared")
+            SignId::from("manifestation/prepared")
         ),
         Err(ManifestationError::InvalidTransition)
     ));
@@ -333,7 +333,7 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
     assert_eq!(drifting.validate(), Err(PresentationError::InvalidIdentity));
 
     let mut duplicate = valid.basis.clone();
-    duplicate.clue_ids.push(duplicate.clue_ids[0].clone());
+    duplicate.sign_ids.push(duplicate.sign_ids[0].clone());
     assert_eq!(
         Presentation::new(
             valid.revision,
@@ -343,14 +343,14 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
             valid.properties.clone(),
             valid.text.clone()
         ),
-        Err(PresentationError::DuplicateClue)
+        Err(PresentationError::DuplicateSign)
     );
 
     let mut noncanonical = valid.clone();
-    noncanonical.basis.clue_ids.push(ClueId::from("aaa"));
+    noncanonical.basis.sign_ids.push(SignId::from("aaa"));
     assert_eq!(
         noncanonical.validate(),
-        Err(PresentationError::NonCanonicalClue)
+        Err(PresentationError::NonCanonicalSign)
     );
 
     let mut incoherent = valid.basis.clone();

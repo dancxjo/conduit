@@ -32,7 +32,7 @@ fn render_identity_sidecar(
     schema: &str,
 ) -> String {
     let presentation_ids = json_string_array(&identity.presentation_ids);
-    let presentation_clue_ids = json_string_array(&identity.presentation_clue_ids);
+    let presentation_sign_ids = json_string_array(&identity.presentation_sign_ids);
     format!(
         concat!(
             "{{\n",
@@ -47,18 +47,18 @@ fn render_identity_sidecar(
             "  \"host_id\": \"{}\",\n",
             "  \"boot_id\": \"{}\",\n",
             "  \"active_play_id\": \"{}\",\n",
-            "  \"boot_clue_id\": \"{}\",\n",
+            "  \"boot_sign_id\": \"{}\",\n",
             "  \"presentation_ids\": {},\n",
-            "  \"presentation_clue_ids\": {},\n",
-            "  \"terminal_clue_id\": \"{}\",\n",
+            "  \"presentation_sign_ids\": {},\n",
+            "  \"terminal_sign_id\": \"{}\",\n",
             "  \"offer_generation\": {},\n",
             "  \"nodes\": {},\n",
             "  \"cords\": {},\n",
             "  \"host_operations\": {},\n",
             "  \"cord_value_slots\": {},\n",
             "  \"cord_value_bytes\": {},\n",
-            "  \"clue_items\": {},\n",
-            "  \"clue_bytes\": {}\n",
+            "  \"sign_items\": {},\n",
+            "  \"sign_bytes\": {}\n",
             "}}\n"
         ),
         schema,
@@ -72,18 +72,18 @@ fn render_identity_sidecar(
         json_escape(&generated.host_id),
         json_escape(&generated.boot_id),
         json_escape(&identity.active_play_id),
-        json_escape(&identity.boot_clue_id),
+        json_escape(&identity.boot_sign_id),
         presentation_ids,
-        presentation_clue_ids,
-        json_escape(&identity.terminal_clue_id),
+        presentation_sign_ids,
+        json_escape(&identity.terminal_sign_id),
         generated.offer_generation,
         generated.nodes.len(),
         generated.cords.len(),
         generated.host_operations.len(),
         generated.cord_value_slots,
         generated.cord_value_bytes,
-        generated.clue_items,
-        generated.clue_bytes,
+        generated.sign_items,
+        generated.sign_bytes,
     )
 }
 

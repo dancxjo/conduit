@@ -1,10 +1,10 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
 
 use crate::{
-    BoundedValueRef, ClueError, ClueSink, CordEndpoint, CordId, FixedHostOperationBindings,
-    FixedRoutes, HostOperationBinding, HostOperationId, HostOperationOutcome, KernelEventKind,
-    NodeId, Operation, OperationAction, OperationInput, PortId, ProtocolError, RemoteEndpointId,
-    RequestId, RouteTarget, StorageError, ValueRef, ValueStorage,
+    BoundedValueRef, CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes,
+    HostOperationBinding, HostOperationId, HostOperationOutcome, KernelEventKind, NodeId,
+    Operation, OperationAction, OperationInput, PortId, ProtocolError, RemoteEndpointId, RequestId,
+    RouteTarget, SignError, SignSink, StorageError, ValueRef, ValueStorage,
 };
 
 mod active_capacity;
@@ -650,7 +650,7 @@ pub enum SchedulerError {
     ValueOwnershipViolation,
     Cancelled,
     Storage(StorageError),
-    Clue(ClueError),
+    Sign(SignError),
     Routing(ProtocolError),
 }
 
@@ -660,9 +660,9 @@ impl From<StorageError> for SchedulerError {
     }
 }
 
-impl From<ClueError> for SchedulerError {
-    fn from(value: ClueError) -> Self {
-        Self::Clue(value)
+impl From<SignError> for SchedulerError {
+    fn from(value: SignError) -> Self {
+        Self::Sign(value)
     }
 }
 
@@ -710,7 +710,7 @@ pub struct FixedScheduler<
 > where
     D: StepOperation<PORTS>,
     S: ValueStorage,
-    E: ClueSink,
+    E: SignSink,
 {
     node_specs: [NodeSpec<PORTS>; NODES],
     cord_specs: [CordSpec; CORDS],
@@ -721,7 +721,7 @@ pub struct FixedScheduler<
     pending_host_operations: [Option<PendingHostOperation>; PENDING_REQUESTS],
     drivers: [D; NODES],
     values: S,
-    clues: E,
+    signs: E,
     cords: [CordState; CORDS],
     queue_slots: [Option<ValueRef>; QUEUE_SLOTS],
     ready: [bool; NODES],
@@ -761,7 +761,7 @@ impl<
 where
     D: StepOperation<PORTS>,
     S: ValueStorage,
-    E: ClueSink,
+    E: SignSink,
 {
     pub fn new(
         node_specs: [NodeSpec<PORTS>; NODES],
@@ -769,13 +769,13 @@ where
         routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
         drivers: [D; NODES],
         values: S,
-        clues: E,
+        signs: E,
     ) -> Result<Self, SchedulerError> {
         if NODES == 0 || CORDS == 0 {
             return Err(SchedulerError::InvalidPlan);
         }
         Self::new_with_active_counts(
-            NODES, CORDS, node_specs, cord_specs, routes, drivers, values, clues,
+            NODES, CORDS, node_specs, cord_specs, routes, drivers, values, signs,
         )
     }
 
@@ -790,7 +790,7 @@ where
         routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
         drivers: [D; NODES],
         values: S,
-        clues: E,
+        signs: E,
     ) -> Result<Self, SchedulerError> {
         validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
         if PORTS == 0 || QUEUE_SLOTS == 0 || !routes.is_sealed() {
@@ -814,7 +814,7 @@ where
             pending_host_operations: [None; PENDING_REQUESTS],
             drivers,
             values,
-            clues,
+            signs,
             cords: [CordState::EMPTY; CORDS],
             queue_slots: [None; QUEUE_SLOTS],
             ready: core::array::from_fn(|node| node < active_nodes),
@@ -833,7 +833,7 @@ where
         host_bindings: FixedHostOperationBindings<HOST_BINDING_SLOTS>,
         drivers: [D; NODES],
         values: S,
-        clues: E,
+        signs: E,
     ) -> Result<Self, SchedulerError> {
         if NODES == 0 || CORDS == 0 {
             return Err(SchedulerError::InvalidPlan);
@@ -847,7 +847,7 @@ where
             host_bindings,
             drivers,
             values,
-            clues,
+            signs,
         )
     }
 
@@ -863,7 +863,7 @@ where
         host_bindings: FixedHostOperationBindings<HOST_BINDING_SLOTS>,
         drivers: [D; NODES],
         values: S,
-        clues: E,
+        signs: E,
     ) -> Result<Self, SchedulerError> {
         validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
         if PENDING_REQUESTS == 0 || !host_bindings.is_sealed() {
@@ -878,7 +878,7 @@ where
             routes,
             drivers,
             values,
-            clues,
+            signs,
         )?;
         scheduler.host_bindings = Some(host_bindings);
         Ok(scheduler)
@@ -905,7 +905,7 @@ where
             .decisions
             .checked_add(1)
             .ok_or(SchedulerError::DecisionLimitExceeded)?;
-        self.clues
+        self.signs
             .record(NodeId(as_u16(node)?), None, None, KernelEventKind::Decision)?;
 
         let mut io = self.context(node)?;
@@ -956,8 +956,8 @@ where
         &self.values
     }
 
-    pub fn clues(&self) -> &E {
-        &self.clues
+    pub fn signs(&self) -> &E {
+        &self.signs
     }
 
     pub fn cord_usage(&self, cord: CordId) -> Result<(u16, u32), SchedulerError> {
@@ -1004,9 +1004,9 @@ where
         let existing = self.cords[cord_index].offered_remote_sequence;
         let sequence = existing.unwrap_or(self.cords[cord_index].next_remote_sequence);
         if existing.is_none() {
-            self.ensure_clue_capacity(1)?;
+            self.ensure_sign_capacity(1)?;
             self.cords[cord_index].offered_remote_sequence = Some(sequence);
-            self.clues.record(
+            self.signs.record(
                 source_node,
                 Some(source_port),
                 None,
@@ -1056,9 +1056,9 @@ where
         if state.remote_accepted {
             return Ok(());
         }
-        self.ensure_clue_capacity(1)?;
+        self.ensure_sign_capacity(1)?;
         self.cords[cord_index].remote_accepted = true;
-        self.clues.record(
+        self.signs.record(
             source_node,
             Some(source_port),
             None,
@@ -1067,7 +1067,7 @@ where
         Ok(())
     }
 
-    /// Releases the source value only after the carrier reports the exact
+    /// Releases the source value only after the line reports the exact
     /// sequence as delivered by the peer kernel.
     pub fn remote_egress_delivered(
         &mut self,
@@ -1105,7 +1105,7 @@ where
             .next_remote_sequence
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
-        self.ensure_clue_capacity(1)?;
+        self.ensure_sign_capacity(1)?;
         let value = self.pop(cord_index)?;
         self.values.release(value)?;
         let state = &mut self.cords[cord_index];
@@ -1113,7 +1113,7 @@ where
         state.offered_remote_sequence = None;
         state.remote_accepted = false;
         self.ready[usize::from(source_node.0)] = true;
-        self.clues.record(
+        self.signs.record(
             source_node,
             Some(source_port),
             None,
@@ -1124,7 +1124,7 @@ where
 
     /// Admits bytes through a remote ingress cord into the kernel-owned value
     /// store and queue. `Full` performs no allocation or sequence advance, so
-    /// the carrier must retry the same sequence.
+    /// the line must retry the same sequence.
     pub fn admit_remote_input(
         &mut self,
         endpoint: RemoteEndpointId,
@@ -1168,7 +1168,7 @@ where
         let next_sequence = sequence
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
-        self.ensure_clue_capacity(1)?;
+        self.ensure_sign_capacity(1)?;
         let value = self.values.store(bytes)?;
         if let Err(error) = self.push(cord_index, value) {
             self.values.release(value)?;
@@ -1176,7 +1176,7 @@ where
         }
         self.cords[cord_index].next_remote_sequence = next_sequence;
         self.ready[usize::from(sink_node.0)] = true;
-        self.clues.record(
+        self.signs.record(
             sink_node,
             Some(sink_port),
             None,
@@ -1212,10 +1212,10 @@ where
         if self.cords[cord_index].producer_closed {
             return Ok(());
         }
-        self.ensure_clue_capacity(1)?;
+        self.ensure_sign_capacity(1)?;
         self.cords[cord_index].producer_closed = true;
         self.ready[usize::from(sink_node.0)] = true;
-        self.clues.record(
+        self.signs.record(
             sink_node,
             Some(sink_port),
             None,
@@ -1298,7 +1298,7 @@ where
             }
             self.values.get(output.value)?;
         }
-        self.ensure_clue_capacity(1)?;
+        self.ensure_sign_capacity(1)?;
         if outcome.output.map(|output| output.value) != Some(pending.request.input.value) {
             self.values.release(pending.request.input.value)?;
         }
@@ -1307,7 +1307,7 @@ where
             .ok_or(SchedulerError::HostOperationCompletionRejected)?
             .completion = Some(outcome);
         self.ready[usize::from(pending.request.node.0)] = true;
-        self.clues.record(
+        self.signs.record(
             pending.request.node,
             None,
             Some(request),
@@ -1362,8 +1362,8 @@ where
         if self.cancelled {
             return Ok(());
         }
-        self.ensure_clue_capacity(2)?;
-        self.clues.record(
+        self.ensure_sign_capacity(2)?;
+        self.signs.record(
             NodeId(0),
             None,
             None,
@@ -1387,7 +1387,7 @@ where
         }
         self.ready.fill(false);
         self.cancelled = true;
-        self.clues
+        self.signs
             .record(NodeId(0), None, None, KernelEventKind::RunCancelled)?;
         Ok(())
     }
@@ -1502,10 +1502,10 @@ where
         }
 
         if matches!(outcome, StepOutcome::Progress | StepOutcome::Complete) {
-            let mut clue_records =
+            let mut sign_records =
                 self.commit_event_count(node, &io.consumed, &io.consumed_closed, &io.outputs)?;
             if io.host_request.is_some() {
-                clue_records = clue_records
+                sign_records = sign_records
                     .checked_add(1)
                     .ok_or(SchedulerError::InvalidPlan)?;
             }
@@ -1513,12 +1513,12 @@ where
                 if io.host_request.is_some() {
                     return Err(SchedulerError::InvalidHostOperationAccess);
                 }
-                clue_records = clue_records
+                sign_records = sign_records
                     .checked_add(self.output_route_count(node)?)
                     .and_then(|value| value.checked_add(1))
                     .ok_or(SchedulerError::InvalidPlan)?;
             }
-            self.ensure_clue_capacity(clue_records)?;
+            self.ensure_sign_capacity(sign_records)?;
             self.commit(node, io.staged_step())?;
         }
         match outcome {
@@ -1529,7 +1529,7 @@ where
                 self.completed[node] = true;
                 self.ready[node] = false;
                 self.close_outputs(node)?;
-                self.clues.record(
+                self.signs.record(
                     NodeId(as_u16(node)?),
                     None,
                     None,
@@ -1563,7 +1563,7 @@ where
 
         for (port, consumed) in consumed_closed.iter().copied().enumerate() {
             if consumed {
-                self.clues.record(
+                self.signs.record(
                     NodeId(as_u16(node)?),
                     Some(PortId(as_u16(port)?)),
                     None,
@@ -1585,7 +1585,7 @@ where
             if let Some((source_node, _)) = spec.source_local() {
                 self.ready[usize::from(source_node.0)] = true;
             }
-            self.clues.record(
+            self.signs.record(
                 NodeId(as_u16(node)?),
                 Some(PortId(as_u16(port)?)),
                 None,
@@ -1704,7 +1704,7 @@ where
                 completion: None,
             });
             self.last_host_request[node] = Some(request);
-            self.clues.record(
+            self.signs.record(
                 NodeId(as_u16(node)?),
                 None,
                 Some(request),
@@ -1729,7 +1729,7 @@ where
                 if let CordEndpoint::Local { node, .. } = target.sink {
                     self.ready[usize::from(node.0)] = true;
                 }
-                self.clues.record(
+                self.signs.record(
                     NodeId(as_u16(node)?),
                     Some(PortId(as_u16(port)?)),
                     None,
@@ -1997,30 +1997,30 @@ where
         Ok(count)
     }
 
-    fn ensure_clue_capacity(&self, additional: usize) -> Result<(), SchedulerError> {
+    fn ensure_sign_capacity(&self, additional: usize) -> Result<(), SchedulerError> {
         let additional_items =
             u16::try_from(additional).map_err(|_| SchedulerError::InvalidPlan)?;
         if self
-            .clues
+            .signs
             .len()
             .checked_add(additional_items)
-            .filter(|len| *len <= self.clues.item_capacity())
+            .filter(|len| *len <= self.signs.item_capacity())
             .is_none()
         {
-            return Err(SchedulerError::Clue(ClueError::ItemCapacityExceeded));
+            return Err(SchedulerError::Sign(SignError::ItemCapacityExceeded));
         }
         let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>())
             .map_err(|_| SchedulerError::InvalidPlan)?
             .checked_mul(u32::from(additional_items))
             .ok_or(SchedulerError::InvalidPlan)?;
         if self
-            .clues
+            .signs
             .used_bytes()
             .checked_add(charge)
-            .filter(|bytes| *bytes <= self.clues.byte_capacity())
+            .filter(|bytes| *bytes <= self.signs.byte_capacity())
             .is_none()
         {
-            return Err(SchedulerError::Clue(ClueError::ByteCapacityExceeded));
+            return Err(SchedulerError::Sign(SignError::ByteCapacityExceeded));
         }
         Ok(())
     }
@@ -2076,7 +2076,7 @@ where
                 if let CordEndpoint::Local { node, .. } = target.sink {
                     self.ready[usize::from(node.0)] = true;
                 } else {
-                    self.clues.record(
+                    self.signs.record(
                         NodeId(as_u16(node)?),
                         Some(PortId(as_u16(port)?)),
                         None,

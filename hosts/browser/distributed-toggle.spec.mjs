@@ -137,7 +137,7 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
       "hostOperationContractId",
       "placementId",
       "presentationId",
-      "clueId",
+      "signId",
     ];
     for (const [index, presentation] of result.presentations.entries()) {
       const receipt = result.receipts[index];
@@ -157,7 +157,7 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
     expect(new Set(result.presentations.map(({ fragmentId }) => fragmentId)).size).toBe(1);
     expect(new Set(result.presentations.map(({ activePlayId }) => activePlayId)).size).toBe(1);
     expect(new Set(result.presentations.map(({ presentationId }) => presentationId)).size).toBe(16);
-    expect(new Set(result.presentations.map(({ clueId }) => clueId)).size).toBe(16);
+    expect(new Set(result.presentations.map(({ signId }) => signId)).size).toBe(16);
     expect(new Set(result.presentations.map(({ requestId }) => requestId)).size).toBe(16);
     await expect(page.locator("#result")).toHaveText(
       "ok receipts=16 capacity_stable=true",
@@ -199,8 +199,8 @@ test("a broken toggle link after four delivered values fails with retained exact
 
     const browserReady = page.evaluate(async ({ url }) => {
       const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
-      const { BrowserWebSocketCarrier } = await import(
-        "/hosts/browser/websocket-carrier.mjs"
+      const { BrowserWebSocketLine } = await import(
+        "/hosts/browser/websocket-line.mjs"
       );
       const {
         instantiateDistributedToggleRuntime,
@@ -209,7 +209,7 @@ test("a broken toggle link after four delivered values fails with retained exact
       const wasmBytes = await fetch(
         "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
       ).then((response) => response.arrayBuffer());
-      const carrier = await new BrowserWebSocketCarrier({
+      const line = await new BrowserWebSocketLine({
         url,
         maximumMessageBytes: 2048,
         maximumBufferedBytes: 8192,
@@ -226,20 +226,20 @@ test("a broken toggle link after four delivered values fails with retained exact
         completePresentation(effect) {
           const result = domHost.completePresentation(effect);
           if (result.ok && domHost.receipts().length === 4) {
-            void carrier.close(4001, "proof-link-break");
+            void line.close(4001, "proof-link-break");
           }
           return result;
         },
       };
       let failure = null;
       try {
-        await runDistributedToggleRuntime(runtime, carrier, breakingDomHost);
+        await runDistributedToggleRuntime(runtime, line, breakingDomHost);
       } catch (error) {
         failure = { code: error.code ?? null, message: error.message };
       }
       return {
         failure,
-        closed: await carrier.closed(),
+        closed: await line.closed(),
         receipts: domHost.receipts(),
       };
     }, { url });

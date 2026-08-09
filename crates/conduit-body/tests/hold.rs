@@ -4,11 +4,11 @@ use conduit_body::{
     MAX_HOLD_BASIS_SIGNS,
 };
 use conduit_core::{
-    mandatory_clue_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
-    CapabilityId, CapabilityLimits, CheckedFormId, ClueId, ClueStorageBudget, ExecutionProfileId,
-    ExpandedFormId, ExpectedClue, ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId,
-    ImplementationId, KindContractRevision, KindId, OfferGeneration, PlacementId, Plan,
-    PlanFragment, PlanId, PlannedGear, ResourceBinding, ResourceClassId, ResourcePoolId,
+    mandatory_sign_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
+    CapabilityId, CapabilityLimits, CheckedFormId, ExecutionProfileId, ExpandedFormId,
+    ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
+    KindContractRevision, KindId, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId,
+    PlannedGear, ResourceBinding, ResourceClassId, ResourcePoolId, SignId, SignStorageBudget,
     SourceDocumentId, TerminalPolicy,
 };
 
@@ -17,15 +17,15 @@ fn body() -> Body {
         SourceDocumentId::from("source-a"),
         CheckedFormId::from("checked-a"),
         1,
-        ClueId::from("born"),
+        SignId::from("born"),
     )
     .unwrap()
 }
 
 fn exact_plan(label: &str, host: &str) -> Plan {
-    let expected_clue = vec![
-        ExpectedClue::PlanFragmentReceived,
-        ExpectedClue::PlanTerminal,
+    let expected_sign = vec![
+        ExpectedSign::PlanFragmentReceived,
+        ExpectedSign::PlanTerminal,
     ];
     let fragment = PlanFragment {
         plan_id: PlanId::from(""),
@@ -75,9 +75,9 @@ fn exact_plan(label: &str, host: &str) -> Plan {
         cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
         terminal_policy: TerminalPolicy::RequireAllPlacementsAndConnections,
         expected_terminals: vec![ExpectedTerminal::PlanCompleted],
-        expected_clue: expected_clue.clone(),
-        clue_storage_budget: mandatory_clue_storage_requirement(&expected_clue).unwrap_or(
-            ClueStorageBudget {
+        expected_sign: expected_sign.clone(),
+        sign_storage_budget: mandatory_sign_storage_requirement(&expected_sign).unwrap_or(
+            SignStorageBudget {
                 item_capacity: 0,
                 byte_capacity: 0,
             },
@@ -96,9 +96,9 @@ fn exact_plan(label: &str, host: &str) -> Plan {
 
 fn basis(label: &str) -> PlanningBasis {
     PlanningBasis::new(vec![
-        ClueId::from(format!("{label}/host-offer")),
-        ClueId::from(format!("{label}/resource-ready")),
-        ClueId::from(format!("{label}/line-ready")),
+        SignId::from(format!("{label}/host-offer")),
+        SignId::from(format!("{label}/resource-ready")),
+        SignId::from(format!("{label}/line-ready")),
     ])
     .unwrap()
 }
@@ -116,7 +116,7 @@ fn policy(hold_replacement_plan: bool) -> HoldPolicy {
 
 #[test]
 fn wake_can_hold_exact_plan_with_no_play_and_inspect_current_validity() {
-    let (awake, wake) = body().wake(1, ClueId::from("wake")).unwrap();
+    let (awake, wake) = body().wake(1, SignId::from("wake")).unwrap();
     let plan = exact_plan("plan-a", "host-a");
     let planned_basis = basis("basis-a");
     let policy = policy(true);
@@ -125,7 +125,7 @@ fn wake_can_hold_exact_plan_with_no_play_and_inspect_current_validity() {
             &plan,
             planned_basis.clone(),
             policy.clone(),
-            ClueId::from("held-a"),
+            SignId::from("held-a"),
         )
         .unwrap();
 
@@ -162,7 +162,7 @@ fn wake_can_hold_exact_plan_with_no_play_and_inspect_current_validity() {
 
 #[test]
 fn authorized_release_revalidates_then_creates_the_first_play_identity() {
-    let (_, wake) = body().wake(1, ClueId::from("wake")).unwrap();
+    let (_, wake) = body().wake(1, SignId::from("wake")).unwrap();
     let plan = exact_plan("plan-a", "host-a");
     let planned_basis = basis("basis-a");
     let policy = policy(true);
@@ -171,7 +171,7 @@ fn authorized_release_revalidates_then_creates_the_first_play_identity() {
             &plan,
             planned_basis.clone(),
             policy.clone(),
-            ClueId::from("held-a"),
+            SignId::from("held-a"),
         )
         .unwrap();
 
@@ -183,7 +183,7 @@ fn authorized_release_revalidates_then_creates_the_first_play_identity() {
             &HostId::from("controller-host"),
             &BootId::from("controller-boot"),
             1,
-            ClueId::from("denied"),
+            SignId::from("denied"),
         ),
         Err(BodyLifecycleError::AuthorityDenied)
     );
@@ -196,7 +196,7 @@ fn authorized_release_revalidates_then_creates_the_first_play_identity() {
             &HostId::from("controller-host"),
             &BootId::from("controller-boot"),
             1,
-            ClueId::from("released"),
+            SignId::from("released"),
         )
         .unwrap()
     else {
@@ -219,7 +219,7 @@ fn authorized_release_revalidates_then_creates_the_first_play_identity() {
 
 #[test]
 fn stale_release_requires_replan_and_persistent_policy_reholds_replacement() {
-    let (_, wake) = body().wake(1, ClueId::from("wake")).unwrap();
+    let (_, wake) = body().wake(1, SignId::from("wake")).unwrap();
     let plan_a = exact_plan("plan-a", "host-a");
     let policy = policy(true);
     let held = wake
@@ -227,7 +227,7 @@ fn stale_release_requires_replan_and_persistent_policy_reholds_replacement() {
             &plan_a,
             basis("basis-a"),
             policy.clone(),
-            ClueId::from("held-a"),
+            SignId::from("held-a"),
         )
         .unwrap();
 
@@ -238,7 +238,7 @@ fn stale_release_requires_replan_and_persistent_policy_reholds_replacement() {
             &HostId::from("controller-host"),
             &BootId::from("controller-boot"),
             1,
-            ClueId::from("stale-a"),
+            SignId::from("stale-a"),
         )
         .unwrap()
     else {
@@ -250,11 +250,11 @@ fn stale_release_requires_replan_and_persistent_policy_reholds_replacement() {
 
     let plan_b = exact_plan("plan-b", "host-b");
     assert_eq!(
-        stale.plan_ready(&plan_b, ClueId::from("bypass-hold")),
+        stale.plan_ready(&plan_b, SignId::from("bypass-hold")),
         Err(BodyLifecycleError::HoldRequired)
     );
     let replacement = stale
-        .plan_held(&plan_b, basis("basis-b"), policy, ClueId::from("held-b"))
+        .plan_held(&plan_b, basis("basis-b"), policy, SignId::from("held-b"))
         .unwrap();
     assert_eq!(replacement.lifecycle, WakeLifecycle::Held);
     assert_eq!(replacement.plans[0].state, WakePlanState::Superseded);
@@ -265,9 +265,9 @@ fn stale_release_requires_replan_and_persistent_policy_reholds_replacement() {
 
 #[test]
 fn direct_hold_and_lull_are_distinct_and_an_active_play_cannot_be_held() {
-    let (_, wake) = body().wake(1, ClueId::from("wake")).unwrap();
+    let (_, wake) = body().wake(1, SignId::from("wake")).unwrap();
     let plan_a = exact_plan("plan-a", "host-a");
-    let direct = wake.plan_ready(&plan_a, ClueId::from("plan-a")).unwrap();
+    let direct = wake.plan_ready(&plan_a, SignId::from("plan-a")).unwrap();
     let active = conduit_core::bind_active_play(
         &plan_a.plan_id,
         &HostId::from("host-a"),
@@ -275,32 +275,32 @@ fn direct_hold_and_lull_are_distinct_and_an_active_play_cannot_be_held() {
         1,
     );
     let playing = direct
-        .play_started(&active, ClueId::from("playing-a"))
+        .play_started(&active, SignId::from("playing-a"))
         .unwrap();
     assert_eq!(
         playing.plan_held(
             &exact_plan("plan-b", "host-b"),
             basis("basis-b"),
             policy(true),
-            ClueId::from("pause-masquerade"),
+            SignId::from("pause-masquerade"),
         ),
         Err(BodyLifecycleError::InvalidTransition)
     );
-    let lulled = playing.lull(ClueId::from("lulled")).unwrap();
+    let lulled = playing.lull(SignId::from("lulled")).unwrap();
     assert_eq!(lulled.lifecycle, WakeLifecycle::Lulled);
     assert_ne!(lulled.lifecycle, WakeLifecycle::Held);
 }
 
 #[test]
 fn nonpersistent_hold_allows_direct_replacement_after_stale_release() {
-    let (_, wake) = body().wake(1, ClueId::from("wake")).unwrap();
+    let (_, wake) = body().wake(1, SignId::from("wake")).unwrap();
     let policy = policy(false);
     let held = wake
         .plan_held(
             &exact_plan("plan-a", "host-a"),
             basis("basis-a"),
             policy.clone(),
-            ClueId::from("held-a"),
+            SignId::from("held-a"),
         )
         .unwrap();
     let HoldReleaseOutcome::ReplanRequired { wake: stale } = held
@@ -310,14 +310,14 @@ fn nonpersistent_hold_allows_direct_replacement_after_stale_release() {
             &HostId::from("controller-host"),
             &BootId::from("controller-boot"),
             1,
-            ClueId::from("stale-a"),
+            SignId::from("stale-a"),
         )
         .unwrap()
     else {
         panic!("changed basis requires replacement");
     };
     let replacement = stale
-        .plan_ready(&exact_plan("plan-b", "host-b"), ClueId::from("plan-b"))
+        .plan_ready(&exact_plan("plan-b", "host-b"), SignId::from("plan-b"))
         .unwrap();
     assert_eq!(replacement.lifecycle, WakeLifecycle::AwaitingPlay);
 }
@@ -329,26 +329,26 @@ fn basis_bounds_and_held_transition_tampering_fail_closed() {
         Err(BodyLifecycleError::InvalidPlanningBasis)
     );
     assert_eq!(
-        PlanningBasis::new(vec![ClueId::from("same"), ClueId::from("same")]),
+        PlanningBasis::new(vec![SignId::from("same"), SignId::from("same")]),
         Err(BodyLifecycleError::InvalidPlanningBasis)
     );
     assert_eq!(
         PlanningBasis::new(
             (0..=MAX_HOLD_BASIS_SIGNS)
-                .map(|index| ClueId::from(format!("sign-{index}")))
+                .map(|index| SignId::from(format!("sign-{index}")))
                 .collect(),
         ),
         Err(BodyLifecycleError::PlanningBasisCapacityExhausted)
     );
 
-    let (_, wake) = body().wake(1, ClueId::from("wake")).unwrap();
+    let (_, wake) = body().wake(1, SignId::from("wake")).unwrap();
     let policy = policy(true);
     let held = wake
         .plan_held(
             &exact_plan("plan-a", "host-a"),
             basis("basis-a"),
             policy.clone(),
-            ClueId::from("held-a"),
+            SignId::from("held-a"),
         )
         .unwrap();
     let HoldReleaseOutcome::ReplanRequired { wake: mut stale } = held
@@ -358,7 +358,7 @@ fn basis_bounds_and_held_transition_tampering_fail_closed() {
             &HostId::from("controller-host"),
             &BootId::from("controller-boot"),
             1,
-            ClueId::from("stale-a"),
+            SignId::from("stale-a"),
         )
         .unwrap()
     else {

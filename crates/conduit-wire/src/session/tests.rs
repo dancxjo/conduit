@@ -439,7 +439,7 @@ fn session_codec_rejects_malformed_truncated_oversized_and_trailing_frames() {
 #[test]
 fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
     // Contract-level proof that FixtureFrame exercises the exact framed remote session
-    // protocol. This proves session carrier neutrality without claiming that FixtureFrame
+    // protocol. This proves session line neutrality without claiming that FixtureFrame
     // is an installed, runnable, or production-ready physical transport.
     let mut expected = binding();
     expected.attachment.base = ConnectionBase::FixtureFrame;

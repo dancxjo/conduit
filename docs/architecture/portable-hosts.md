@@ -261,7 +261,7 @@ A sink is responsible for:
 - accepting values of one declared kind;
 - preserving their required ordering;
 - performing its semantic effect;
-- producing clue or receipts when required;
+- producing Sign or receipts when required;
 - completing explicitly;
 - and reporting failure rather than pretending success.
 
@@ -334,11 +334,11 @@ If execution fails after Play start, the plan must expose the failure and accoun
 
 ### Receipt
 
-A receipt is machine-readable clue that an expected semantic event occurred.
+A receipt is machine-readable Sign that an expected semantic event occurred.
 
 For the first `show(Signal)` sink, a receipt records the exact sequence and level that the host implementation successfully manifested.
 
-Receipts matter because human observation is not sufficient clue:
+Receipts matter because human observation is not sufficient Sign:
 
 - seeing an LED blink does not prove which sequence value it represented;
 - seeing browser text does not prove the runtime accepted the correct envelope;
@@ -640,7 +640,7 @@ Required rejection categories include:
 - duplicate or contradictory placement;
 - and malformed form bounds.
 
-A planner error should identify the gear, required kind, rejected candidates, and concrete reason. `No plan found` is not sufficient when more exact clue is available.
+A planner error should identify the gear, required kind, rejected candidates, and concrete reason. `No plan found` is not sufficient when more exact Sign is available.
 
 ## Exact plan model
 
@@ -781,7 +781,7 @@ When a queue is full, the source must observe pressure. It may wait, yield, or f
 
 This requirement keeps the same semantics credible on the Pico W and prevents desktop and browser implementations from hiding invalid assumptions behind abundant memory.
 
-## Receipts and Clues
+## Receipts and Signs
 
 Every successful show sink produces receipts equivalent to:
 
@@ -913,7 +913,7 @@ Creating or validating a plan must not produce effects.
 
 Reject an unsupported bound rather than silently allocating more memory, truncating data, or creating a hidden queue.
 
-### Clue beats appearance
+### Sign beats appearance
 
 Tests should compare semantic receipts and deterministic state. Visual browser output and LED behavior remain useful smoke tests, not the only proof.
 

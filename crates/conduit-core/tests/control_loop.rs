@@ -1,10 +1,9 @@
 use conduit_core::{
-    selected_admitted_line, AdmittedLine, BoundLink, ClueId, ConnectionBase,
-    ConnectionBaseInstanceId, ConnectionId, ControlLoopEvent, ControlLoopEventError,
-    CredentialReferenceId, HostId, LineContinuation, LineContract, LineDuplex, LineId,
-    LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
-    LinkAuthorityReference, LinkBindingId, LinkCredentialReference, LinkEndpoint, LinkEndpointId,
-    LinkLimits, PlanId, PlannedConnection, PortId,
+    selected_admitted_line, AdmittedLine, BoundLink, ConnectionBase, ConnectionBaseInstanceId,
+    ConnectionId, ControlLoopEvent, ControlLoopEventError, CredentialReferenceId, HostId,
+    LineContinuation, LineContract, LineDuplex, LineId, LineOrdering, LineReliability, LineScope,
+    LineSecurity, LineTrafficShape, LinkAuthorityReference, LinkBindingId, LinkCredentialReference,
+    LinkEndpoint, LinkEndpointId, LinkLimits, PlanId, PlannedConnection, PortId, SignId,
 };
 
 fn line(id: &str) -> AdmittedLine {
@@ -73,22 +72,22 @@ fn replacement_planning_and_same_plan_route_selection_are_distinct_records() {
             requester_host_id: HostId::from("planner-host"),
             requester_boot_id: conduit_core::BootId::from("planner-boot"),
             authority: conduit_core::PlanningRequestAuthority::HostLocal,
-            request_clue_id: ClueId::from("planning-request"),
+            request_sign_id: SignId::from("planning-request"),
         },
         ControlLoopEvent::PlanningSucceeded {
             prior_plan_id: prior.clone(),
             replacement_plan_id: replacement.clone(),
-            request_clue_id: ClueId::from("planning-request"),
-            clue_id: ClueId::from("planning-succeeded"),
+            request_sign_id: SignId::from("planning-request"),
+            sign_id: SignId::from("planning-succeeded"),
         },
         ControlLoopEvent::PlanSuperseded {
             prior_plan_id: prior,
             replacement_plan_id: replacement.clone(),
-            clue_id: ClueId::from("plan-superseded"),
+            sign_id: SignId::from("plan-superseded"),
         },
         ControlLoopEvent::PlanRealized {
             plan_id: replacement,
-            clue_id: ClueId::from("plan-realized"),
+            sign_id: SignId::from("plan-realized"),
         },
     ];
     assert!(events.iter().all(|event| event.validate().is_ok()));
@@ -104,8 +103,8 @@ fn replacement_must_have_a_new_plan_identity() {
     let event = ControlLoopEvent::PlanningSucceeded {
         prior_plan_id: PlanId::from("same-plan"),
         replacement_plan_id: PlanId::from("same-plan"),
-        request_clue_id: ClueId::from("request"),
-        clue_id: ClueId::from("invalid-success"),
+        request_sign_id: SignId::from("request"),
+        sign_id: SignId::from("invalid-success"),
     };
     assert_eq!(
         event.validate(),
@@ -123,7 +122,7 @@ fn route_selection_may_change_only_inside_the_same_sealed_plan() {
         previous_line_id: Some(LineId::from("line-a")),
         selected_line_id: LineId::from("line-b"),
         selected_binding_id: LinkBindingId::from("line-b"),
-        observation_clue_id: ClueId::from("route-b-ready"),
+        observation_sign_id: SignId::from("route-b-ready"),
     };
     assert_eq!(selected.validate_route_event(&plan_id, &connection), Ok(()));
     assert_eq!(
@@ -147,7 +146,7 @@ fn route_selection_may_change_only_inside_the_same_sealed_plan() {
         previous_line_id: Some(LineId::from("line-a")),
         selected_line_id: LineId::from("line-c"),
         selected_binding_id: LinkBindingId::from("line-c"),
-        observation_clue_id: ClueId::from("route-c-ready"),
+        observation_sign_id: SignId::from("route-c-ready"),
     };
     assert_eq!(
         outside.validate_route_event(&PlanId::from("plan-a"), &connection),
@@ -156,14 +155,14 @@ fn route_selection_may_change_only_inside_the_same_sealed_plan() {
 }
 
 #[test]
-fn a_non_change_and_empty_clue_fail_closed() {
+fn a_non_change_and_empty_sign_fail_closed() {
     let unchanged = ControlLoopEvent::LineSelectionChanged {
         plan_id: PlanId::from("plan-a"),
         connection_id: ConnectionId::from("connection"),
         previous_line_id: Some(LineId::from("line-a")),
         selected_line_id: LineId::from("line-a"),
         selected_binding_id: LinkBindingId::from("line-a"),
-        observation_clue_id: ClueId::from("observation"),
+        observation_sign_id: SignId::from("observation"),
     };
     assert_eq!(
         unchanged.validate(),
@@ -171,9 +170,9 @@ fn a_non_change_and_empty_clue_fail_closed() {
     );
     let empty = ControlLoopEvent::PlanningRefused {
         prior_plan_id: PlanId::from("plan-a"),
-        request_clue_id: ClueId::from("request"),
+        request_sign_id: SignId::from("request"),
         reason: conduit_core::PlanningRefusalReason::NoCompatibleRealization,
-        clue_id: ClueId::from(""),
+        sign_id: SignId::from(""),
     };
     assert_eq!(empty.validate(), Err(ControlLoopEventError::EmptyIdentity));
 }

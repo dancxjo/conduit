@@ -285,12 +285,12 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
 
     let mut output = Vec::with_capacity(2_048);
     let mut timer = RecordingTimer { waits: Vec::new() };
-    let mut clue_sequence = 0;
+    let mut sign_sequence = 0;
     let report = installed_std::run_fragment(
         &advertisement,
         &plan.fragments[0],
         0,
-        &mut clue_sequence,
+        &mut sign_sequence,
         &mut output,
         &mut timer,
         &crate::RunControl::default(),
@@ -318,7 +318,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
         &advertisement,
         &substituted,
         1,
-        &mut clue_sequence,
+        &mut sign_sequence,
         &mut output,
         &mut timer,
         &crate::RunControl::default(),
@@ -470,7 +470,7 @@ fn canonical_clock_has_zero_successful_post_play_start_allocations() {
 }
 
 #[test]
-fn canonical_state_count_executes_current_values_with_bounded_clue() {
+fn canonical_state_count_executes_current_values_with_bounded_sign() {
     let source = r#"form count (
     start: Count = 0
     bump: Tick...| > value: $Count

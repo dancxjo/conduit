@@ -26,7 +26,7 @@ pub const R1_PICO_WEBSOCKET_ENDPOINT_ID: &str = "r1/pico-websocket-ingress";
 pub const R1_WEBSOCKET_PORT: u16 = 8_765;
 pub const R1_MAXIMUM_FRAME_BYTES: u32 = 2_048;
 pub const R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES: u32 = 16;
-pub const R1_WEBSOCKET_ROUTE_CLUE_ID: &str = "r1/pico-websocket-route-ready";
+pub const R1_WEBSOCKET_ROUTE_SIGN_ID: &str = "r1/pico-websocket-route-ready";
 pub const R1_WEBSOCKET_PROBE_PLAN_ID: &str = "r1/websocket-route-probe-plan";
 pub const R1_WEBSOCKET_PROBE_CONNECTION_ID: &str = "r1/websocket-route-probe-connection";
 pub const R1_WEBSOCKET_PROBE_KIND: &str = "network/link-probe";
@@ -34,7 +34,7 @@ pub const R1_WEBSOCKET_PROBE_KIND: &str = "network/link-probe";
 pub const R1_WEBSOCKET_BASE_QUERY: &[u8] = b"CONDUIT_R1_WEBSOCKET_BASE_QUERY@1";
 pub const R1_PLAN_C_WEBSOCKET_BASE_QUERY: &[u8] = b"CONDUIT_R1_PLAN_C_WEBSOCKET_BASE_QUERY@1";
 pub const R1_WEBSOCKET_BASE_READY: &[u8] = b"CONDUIT_R1_WEBSOCKET_BASE_READY@1";
-pub const R1_WEBSOCKET_ENDPOINT_CLUE_READY: &[u8] = b"CONDUIT_R1_WEBSOCKET_ENDPOINT_CLUE_READY@1";
+pub const R1_WEBSOCKET_ENDPOINT_SIGN_READY: &[u8] = b"CONDUIT_R1_WEBSOCKET_ENDPOINT_SIGN_READY@1";
 
 pub fn r1_websocket_line(pico_boot_id: BootId) -> LineOffer {
     link(
@@ -154,7 +154,7 @@ fn link(
             line_id: LineId::from(line_id),
             binding_id: binding.binding_id.clone(),
             availability: LineAvailability::Ready,
-            sign_id: conduit_core::ClueId::from(alloc::format!("{line_id}/ready")),
+            sign_id: conduit_core::SignId::from(alloc::format!("{line_id}/ready")),
         },
         binding,
         contract: LineContract {

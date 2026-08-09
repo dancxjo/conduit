@@ -2,10 +2,10 @@
 
 use std::time::Duration;
 
-use conduit_core::{bind_active_play, BootId, ClueId, ConnectionBase};
+use conduit_core::{bind_active_play, BootId, ConnectionBase, SignId};
 use conduit_std_host::pico_control_source::PicoControlSource;
 use conduit_std_host::r1_control::{R1ControlPeer, R1InputEvent};
-use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
+use conduit_std_host::usb_cdc::{NativePathCdcLine, NativePathCdcLineReader};
 use conduit_wire::{
     decode_session_checkpoint, encode_session_checkpoint_into, SessionMessage, SessionResumeAction,
 };
@@ -18,8 +18,8 @@ use super::super::transcript::RuntimeTranscriptIdentity;
 use super::super::PicoResult;
 
 pub(crate) fn verify_plan_c_continuation(
-    usb: &mut NativePathCdcCarrier,
-    clue: &mut NativePathCdcLineReader,
+    usb: &mut NativePathCdcLine,
+    sign: &mut NativePathCdcLineReader,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
     interactive: bool,
@@ -35,7 +35,7 @@ pub(crate) fn verify_plan_c_continuation(
     .plan;
     let mut websocket = super::connect_with_query(
         usb,
-        clue,
+        sign,
         identity,
         runtime,
         conduit_net::R1_PLAN_C_WEBSOCKET_BASE_QUERY,
@@ -55,27 +55,27 @@ pub(crate) fn verify_plan_c_continuation(
             plan.source_document_id.clone(),
             plan.checked_form_id.clone(),
             0,
-            ClueId::from("r1/physical/plan-c-body-born"),
+            SignId::from("r1/physical/plan-c-body-born"),
         )
         .map_err(lifecycle_error)?;
-        body.wake(0, ClueId::from("r1/physical/plan-c-woke"))
+        body.wake(0, SignId::from("r1/physical/plan-c-woke"))
             .map_err(lifecycle_error)?
     };
     let wake = wake
-        .plan_ready(&plan, ClueId::from("r1/physical/plan-c-ready"))
+        .plan_ready(&plan, SignId::from("r1/physical/plan-c-ready"))
         .map_err(lifecycle_error)?;
     let play = bind_active_play(&plan.plan_id, &source_host, &source_boot, 0);
     let wake = wake
-        .play_started(&play, ClueId::from("r1/physical/plan-c-play-started"))
+        .play_started(&play, SignId::from("r1/physical/plan-c-play-started"))
         .map_err(lifecycle_error)?;
 
     let (sequence, payload) = {
         let mut websocket_io = WebSocketSessionIo::new(&mut websocket);
         r1_control_session::handshake(&mut websocket_io, &mut source)?;
-        let link_line = clue
+        let link_line = sign
             .read_line(Duration::from_secs(3))
             .map_err(|error| format!("timed out reading Plan C WebSocket link Sign: {error}"))?;
-        super::verify_link_clue(&link_line, identity, runtime, source.binding())?;
+        super::verify_link_sign(&link_line, identity, runtime, source.binding())?;
         let (sequence, payload) = source.offer_input(R1InputEvent {
             peer: R1ControlPeer::Terminal,
             peer_sequence: 0,
@@ -136,7 +136,7 @@ pub(crate) fn verify_plan_c_continuation(
     let wake = wake
         .same_plan_observed(
             &plan.plan_id,
-            ClueId::from("r1/physical/plan-c-usb-selected"),
+            SignId::from("r1/physical/plan-c-usb-selected"),
         )
         .map_err(lifecycle_error)?;
 
@@ -148,7 +148,7 @@ pub(crate) fn verify_plan_c_continuation(
         sequence,
         &payload,
         &mut |found| {
-            let line = clue
+            let line = sign
                 .read_line(Duration::from_secs(3))
                 .map_err(|error| format!("missing replayed Plan C LED Sign: {error}"))?;
             super::super::r1_signal_transcript::verify_receipt(
@@ -160,7 +160,7 @@ pub(crate) fn verify_plan_c_continuation(
     for input in super::control_inputs().into_iter().skip(1) {
         let merged =
             r1_control_session::deliver_input(&mut usb_io, &mut source, input, &mut |found| {
-                let line = clue
+                let line = sign
                     .read_line(Duration::from_secs(3))
                     .map_err(|error| format!("missing continued Plan C LED Sign: {error}"))?;
                 super::super::r1_signal_transcript::verify_receipt(
@@ -178,7 +178,7 @@ pub(crate) fn verify_plan_c_continuation(
     if delivered != 6 {
         return Err("continued Plan C did not deliver the exact six deliberate inputs".into());
     }
-    let terminal = clue
+    let terminal = sign
         .read_line(Duration::from_secs(3))
         .map_err(|error| format!("missing continued Plan C terminal Sign: {error}"))?;
     super::super::r1_signal_transcript::verify_terminal(&terminal, &plan, identity, runtime)?;
@@ -188,10 +188,10 @@ pub(crate) fn verify_plan_c_continuation(
         &wake,
         source.is_terminal(),
         wake.wake_sequence + 1,
-        super::super::r1_lifecycle::R1LullClues {
-            wake_lulled: ClueId::from("r1/physical/plan-c-wake-lulled"),
-            body_retained: ClueId::from("r1/physical/plan-c-body-retained"),
-            later_wake: ClueId::from("r1/physical/plan-c-later-wake"),
+        super::super::r1_lifecycle::R1LullSigns {
+            wake_lulled: SignId::from("r1/physical/plan-c-wake-lulled"),
+            body_retained: SignId::from("r1/physical/plan-c-body-retained"),
+            later_wake: SignId::from("r1/physical/plan-c-later-wake"),
         },
     )?;
 

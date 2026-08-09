@@ -14,9 +14,9 @@ exact plans through `conduit-kernel`.
 - item/byte-bounded cord specifications and direct fan-out route ranges;
 - per-node numeric host-operation admission bindings;
 - per-node numeric resource references retaining their exact pool bindings;
-- numeric mandatory-clue targets;
-- exact aggregate cord queue-slot, cord byte, mandatory-clue-item, and
-  mandatory-clue-byte budgets; and
+- numeric mandatory-sign targets;
+- exact aggregate cord queue-slot, cord byte, mandatory-sign-item, and
+  mandatory-sign-byte budgets; and
 - a reverse identity map for plan, fragment, placement, port, connection,
   host-operation contract, and resource binding identities.
 
@@ -31,7 +31,7 @@ This checkpoint deliberately rejects:
 - more than sixteen inputs or outputs per node;
 - more than one cord targeting an input port;
 - host-operation concurrency other than one;
-- malformed endpoints, ports, resources, and clue references; and
+- malformed endpoints, ports, resources, and Sign references; and
 - numeric or aggregate capacity overflow.
 
 Those are integration limits, not claims that the corresponding forms are
@@ -50,14 +50,14 @@ three-sink local fan-out now:
   not collide or permit stale completion;
 - completes waits through the std timer adapter and presentations through the
   stdout adapter;
-- binds a distinct active play and exact presentation/clue identities; and
+- binds a distinct active play and exact presentation/sign identities; and
 - proves with an allocator probe that successful sealed Play start performs
   zero heap allocations and cannot re-enter graph, kind, base, or registry
   lookup.
 
 The complete typed `tick -> tee -> filter/latest -> show` conformance form uses
 the same std/kernel boundary with exact pressure, closure, cancellation,
-resource, clue, and identity proofs. The ordinary `conduit` CLI uses these
+resource, Sign, and identity proofs. The ordinary `conduit` CLI uses these
 installed profiles. Unsupported std forms fail closed; production `StdHost`
 does not contain `HostRuntime`, expose its command surface, or fall back to its
 operation/connection pump.

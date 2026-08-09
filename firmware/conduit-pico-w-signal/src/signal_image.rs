@@ -28,9 +28,9 @@ pub const MAX_STORED_WAIT_VALUES: usize = MAX_STORED_SIGNAL_VALUES - 1;
 pub const VALUE_SLOTS: usize = MAX_STORED_SIGNAL_VALUES + MAX_STORED_WAIT_VALUES;
 #[allow(dead_code)]
 pub const WAIT_VALUE_BYTES: u32 = generated_signal::WAIT_VALUE_BYTES;
-pub const RUNTIME_CLUE_EVENTS: usize = generated_signal::RUNTIME_CLUE_EVENTS;
-pub const RUNTIME_CLUE_BYTES: u32 =
-    (RUNTIME_CLUE_EVENTS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32;
+pub const RUNTIME_SIGN_EVENTS: usize = generated_signal::RUNTIME_SIGN_EVENTS;
+pub const RUNTIME_SIGN_BYTES: u32 =
+    (RUNTIME_SIGN_EVENTS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32;
 
 pub const SOURCE_DOCUMENT_ID: &str = generated_signal::SOURCE_DOCUMENT_ID;
 pub const CHECKED_FORM_ID: &str = generated_signal::CHECKED_FORM_ID;
@@ -42,8 +42,8 @@ pub const BOOT_ID: &str = generated_signal::BOOT_ID;
 pub const ACTIVE_PLAY_ID: &str = generated_signal::ACTIVE_PLAY_ID;
 pub const FIRMWARE_BUILD_ID: &str = generated_signal::FIRMWARE_BUILD_ID;
 #[cfg(not(feature = "wifi-bootstrap"))]
-pub const BOOT_CLUE_ID: &str = generated_signal::BOOT_CLUE_ID;
-pub const TERMINAL_CLUE_ID: &str = generated_signal::TERMINAL_CLUE_ID;
+pub const BOOT_SIGN_ID: &str = generated_signal::BOOT_SIGN_ID;
+pub const TERMINAL_SIGN_ID: &str = generated_signal::TERMINAL_SIGN_ID;
 
 #[allow(dead_code)]
 const WAIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/wait@1";
@@ -53,14 +53,14 @@ const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
 #[derive(Clone, Copy)]
 pub struct PresentationIdentity {
     pub presentation_id: &'static str,
-    pub clue_id: &'static str,
+    pub sign_id: &'static str,
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 pub fn presentation_identity(sequence: usize) -> Option<PresentationIdentity> {
     Some(PresentationIdentity {
         presentation_id: generated_signal::PRESENTATION_IDS.get(sequence)?,
-        clue_id: generated_signal::PRESENTATION_CLUE_IDS.get(sequence)?,
+        sign_id: generated_signal::PRESENTATION_SIGN_IDS.get(sequence)?,
     })
 }
 
@@ -70,8 +70,8 @@ pub fn presentation_ids() -> &'static [&'static str] {
 }
 
 #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
-pub fn presentation_clue_ids() -> &'static [&'static str] {
-    &generated_signal::PRESENTATION_CLUE_IDS
+pub fn presentation_sign_ids() -> &'static [&'static str] {
+    &generated_signal::PRESENTATION_SIGN_IDS
 }
 
 pub fn generated_nodes() -> [conduit_kernel::scheduler::NodeSpec<PORTS>; NODES] {

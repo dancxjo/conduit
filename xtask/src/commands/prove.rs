@@ -21,7 +21,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             };
             crate::commands::pico::run_prove_std_pico_usb(
                 args.link_port.as_deref(),
-                args.clue_port.as_deref(),
+                args.sign_port.as_deref(),
                 args.interactive,
                 args.induce_sink_failure,
                 &pico_args,
@@ -37,7 +37,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             };
             crate::commands::pico::run_prove_pico_wifi_bootstrap(
                 args.link_port.as_deref(),
-                args.clue_port.as_deref(),
+                args.sign_port.as_deref(),
                 args.ssid_env.as_deref(),
                 args.credential_env.as_deref(),
                 crate::commands::pico::WifiProofMode::Bootstrap,
@@ -54,7 +54,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             };
             crate::commands::pico::run_prove_pico_wifi_bootstrap(
                 args.link_port.as_deref(),
-                args.clue_port.as_deref(),
+                args.sign_port.as_deref(),
                 args.ssid_env.as_deref(),
                 args.credential_env.as_deref(),
                 crate::commands::pico::WifiProofMode::WebSocketRoute,
@@ -71,7 +71,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             };
             crate::commands::pico::run_prove_pico_wifi_bootstrap(
                 args.link_port.as_deref(),
-                args.clue_port.as_deref(),
+                args.sign_port.as_deref(),
                 args.ssid_env.as_deref(),
                 args.credential_env.as_deref(),
                 crate::commands::pico::WifiProofMode::R1NewPlanRecovery {
@@ -90,7 +90,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             };
             crate::commands::pico::run_prove_pico_wifi_bootstrap(
                 args.link_port.as_deref(),
-                args.clue_port.as_deref(),
+                args.sign_port.as_deref(),
                 args.ssid_env.as_deref(),
                 args.credential_env.as_deref(),
                 crate::commands::pico::WifiProofMode::R1PlanCContinuation {
@@ -111,7 +111,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             };
             crate::commands::pico::run_prove_pico_wifi_bootstrap(
                 args.link_port.as_deref(),
-                args.clue_port.as_deref(),
+                args.sign_port.as_deref(),
                 args.ssid_env.as_deref(),
                 args.credential_env.as_deref(),
                 crate::commands::pico::WifiProofMode::R1Full {

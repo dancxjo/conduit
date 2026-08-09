@@ -30,16 +30,16 @@ use super::{
 #[cfg(test)]
 use conduit_core::present_host_operation_requirement;
 use conduit_core::{
-    bind_active_play, bind_clue, kind_id, wait_host_operation_requirement, CancellationReason,
+    bind_active_play, bind_sign, kind_id, wait_host_operation_requirement, CancellationReason,
     HostAdvertisement, Observation, ObservationKind, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, ClueSink, CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationOutcome, HostedClueLog, HostedValueStore, NodeId,
-    PortId, ValueStorage,
+    BoundedValueRef, CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes,
+    HostOperationDisposition, HostOperationOutcome, HostedSignLog, HostedValueStore, NodeId,
+    PortId, SignSink, ValueStorage,
 };
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, MAXIMUM_KERNEL_PORTS_PER_NODE,
@@ -69,7 +69,7 @@ const PENDING_REQUESTS: usize = MAX_NODES;
 type InstalledScheduler = FixedScheduler<
     OperationDriver<InstalledOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     MAX_NODES,
     MAX_CORDS,
     PORTS,
@@ -87,7 +87,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     advertisement: &HostAdvertisement,
     fragment: &PlanFragment,
     play_sequence: u64,
-    next_clue_sequence: &mut u64,
+    next_sign_sequence: &mut u64,
     _output: &mut W,
     timer: &mut T,
     control: &RunControl,
@@ -118,7 +118,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut value_bytes = 0_u32;
     let mut request_capacity = 0_usize;
     let mut maximum_value_bytes = TICK_ENCODED_LEN;
-    let mut clue_items = 32_u16;
+    let mut sign_items = 32_u16;
     for placement in &fragment.placements {
         let factory = factory(&placement.implementation_id)
             .ok_or_else(|| "planned implementation is not installed".to_string())?;
@@ -132,9 +132,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         request_capacity = request_capacity
             .checked_add(budget.host_requests)
             .ok_or_else(|| "installed request budget overflow".to_string())?;
-        clue_items = clue_items
-            .checked_add(budget.clue_items)
-            .ok_or_else(|| "installed clue item budget overflow".to_string())?;
+        sign_items = sign_items
+            .checked_add(budget.sign_items)
+            .ok_or_else(|| "installed sign item budget overflow".to_string())?;
         maximum_value_bytes = maximum_value_bytes.max(budget.maximum_value_bytes);
     }
     #[cfg(test)]
@@ -225,14 +225,14 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     host_bindings
         .seal()
         .map_err(|error| format!("seal std host operations: {error:?}"))?;
-    let clue_bytes = u32::from(clue_items)
+    let sign_bytes = u32::from(sign_items)
         .checked_mul(
             u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
-                .map_err(|_| "installed clue charge overflow".to_string())?,
+                .map_err(|_| "installed sign charge overflow".to_string())?,
         )
-        .ok_or_else(|| "installed clue byte budget overflow".to_string())?;
-    let clue = HostedClueLog::new(clue_items, clue_bytes)
-        .map_err(|error| format!("installed clue store: {error:?}"))?;
+        .ok_or_else(|| "installed sign byte budget overflow".to_string())?;
+    let sign = HostedSignLog::new(sign_items, sign_bytes)
+        .map_err(|error| format!("installed sign store: {error:?}"))?;
     let mut external_listener = external_websocket_host::prepare(fragment)?;
     if let Some(listener) = &external_listener {
         writeln!(
@@ -254,7 +254,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         host_bindings,
         drivers,
         values,
-        clue,
+        sign,
     )
     .map_err(|error| format!("install std scheduler: {error:?}"))?;
 
@@ -568,20 +568,20 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             )
             .map_err(|error| format!("bind std request identity: {error:?}"))?;
     }
-    let terminal_clue = bind_clue(
+    let terminal_sign = bind_sign(
         &advertisement.host_id,
         &advertisement.boot_id,
         Some(&active_play.active_play_id),
-        *next_clue_sequence,
+        *next_sign_sequence,
     );
-    *next_clue_sequence = next_clue_sequence
+    *next_sign_sequence = next_sign_sequence
         .checked_add(1)
-        .ok_or_else(|| "std clue sequence exhausted".to_string())?;
+        .ok_or_else(|| "std sign sequence exhausted".to_string())?;
     execution_identity
-        .bind_clue(&terminal_clue, None, None, None)
-        .map_err(|error| format!("bind std terminal clue: {error:?}"))?;
+        .bind_sign(&terminal_sign, None, None, None)
+        .map_err(|error| format!("bind std terminal sign: {error:?}"))?;
     let observations = vec![Observation {
-        clue_id: terminal_clue.clue_id,
+        sign_id: terminal_sign.sign_id,
         active_play_id: Some(active_play.active_play_id.clone()),
         presentation_id: None,
         host_id: advertisement.host_id.clone(),
@@ -608,8 +608,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         kernel: Some(StdKernelExecutionReport {
             active_play_id: active_play.active_play_id,
             decisions: scheduler.decisions(),
-            kernel_events: scheduler.clues().len(),
-            kernel_clue: scheduler.clues().events().collect(),
+            kernel_events: scheduler.signs().len(),
+            kernel_sign: scheduler.signs().events().collect(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids: Vec::new(),

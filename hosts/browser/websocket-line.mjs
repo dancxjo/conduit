@@ -22,7 +22,7 @@ function transportError(code, detail) {
   return error;
 }
 
-export class BrowserWebSocketCarrier {
+export class BrowserWebSocketLine {
   #socket;
   #pending = null;
   #receiver = null;

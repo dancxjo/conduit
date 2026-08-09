@@ -7,10 +7,10 @@ use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionMessage, SessionTerminalDisposition,
 };
 
-use crate::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
-use crate::websocket::{NativeWebSocketCarrier, NativeWebSocketListener};
+use crate::usb_cdc::{NativePathCdcLine, NativePathCdcLineReader};
+use crate::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 
-use super::{PicoClue, RemoteKind, TripleSource};
+use super::{PicoSign, RemoteKind, TripleSource};
 
 #[path = "failure.rs"]
 mod failure;
@@ -22,7 +22,7 @@ pub fn default_pico_ports() -> Result<(PathBuf, PathBuf), String> {
     let entries = std::fs::read_dir(base)
         .map_err(|error| format!("cannot inspect {}: {error}", base.display()))?;
     let mut link = None;
-    let mut clue = None;
+    let mut sign = None;
     for entry in entries {
         let path = entry.map_err(|error| error.to_string())?.path();
         let name = path
@@ -35,25 +35,25 @@ pub fn default_pico_ports() -> Result<(PathBuf, PathBuf), String> {
         if name.ends_with("-if00") {
             link = Some(path);
         } else if name.ends_with("-if02") {
-            clue = Some(path);
+            sign = Some(path);
         }
     }
     Ok((
         link.ok_or_else(|| "Pico CDC0 link interface is not present".to_owned())?,
-        clue.ok_or_else(|| "Pico CDC1 clue interface is not present".to_owned())?,
+        sign.ok_or_else(|| "Pico CDC1 sign interface is not present".to_owned())?,
     ))
 }
 
 pub struct TriplePhysicalRunner {
     pub(super) source: TripleSource,
-    pub(super) pico_clue: PicoClue,
+    pub(super) pico_sign: PicoSign,
 }
 
 impl TriplePhysicalRunner {
     pub fn prepare() -> Result<Self, String> {
         Ok(Self {
             source: TripleSource::prepare()?,
-            pico_clue: PicoClue::exact_triple()?,
+            pico_sign: PicoSign::exact_triple()?,
         })
     }
 
@@ -61,12 +61,12 @@ impl TriplePhysicalRunner {
         mut self,
         listener: NativeWebSocketListener,
         link_path: &Path,
-        clue_path: &Path,
+        sign_path: &Path,
         report: &mut W,
     ) -> Result<(), String> {
-        let mut clue = NativePathCdcLineReader::open(clue_path)
+        let mut sign = NativePathCdcLineReader::open(sign_path)
             .map_err(|error| format!("open Pico CDC1: {error:?}"))?;
-        let mut pico = NativePathCdcCarrier::open(link_path, 1_024)
+        let mut pico = NativePathCdcLine::open(link_path, 1_024)
             .map_err(|error| format!("open Pico CDC0: {error:?}"))?;
         std::thread::sleep(Duration::from_millis(250));
         pico.send_raw_stream_frame(b"CONDUIT_RAW_CDC0_PROBE", Duration::from_secs(2))
@@ -78,11 +78,11 @@ impl TriplePhysicalRunner {
         if reply != b"CONDUIT_RAW_CDC0_REPLY" {
             return Err("Pico raw CDC0 probe reply mismatch".to_owned());
         }
-        let boot_line = clue
+        let boot_line = sign
             .read_line(Duration::from_secs(3))
-            .map_err(|error| format!("Pico boot clue: {error:?}"))?;
-        let runtime = self.pico_clue.verify_boot(&boot_line)?;
-        let ready = clue
+            .map_err(|error| format!("Pico boot sign: {error:?}"))?;
+        let runtime = self.pico_sign.verify_boot(&boot_line)?;
+        let ready = sign
             .read_line(Duration::from_secs(10))
             .map_err(|error| format!("Pico GPIO readiness: {error:?}"))?;
         if ready != "CONDUIT_CYW43_GPIO_READY" {
@@ -112,10 +112,10 @@ impl TriplePhysicalRunner {
 
                 let signal =
                     decode_signal_bytes(&offer.payload).map_err(|error| error.to_string())?;
-                let receipt_line = clue
+                let receipt_line = sign
                     .read_line(Duration::from_secs(3))
                     .map_err(|error| format!("Pico receipt {}: {error:?}", offer.sequence))?;
-                self.pico_clue.verify_receipt(
+                self.pico_sign.verify_receipt(
                     &receipt_line,
                     &runtime,
                     signal.sequence,
@@ -137,7 +137,7 @@ impl TriplePhysicalRunner {
                         "active_play_id": stdout.active_play_id,
                         "placement_id": stdout.placement_id.as_str(),
                         "presentation_id": stdout.presentation_id.as_str(),
-                        "clue_id": stdout.clue_id.as_str(),
+                        "sign_id": stdout.sign_id.as_str(),
                         "sequence": stdout.sequence,
                         "level": stdout.level,
                     })
@@ -152,10 +152,10 @@ impl TriplePhysicalRunner {
             }
             self.complete_browser(&mut browser, final_sequence)?;
             self.complete_pico(&mut pico, final_sequence)?;
-            let terminal = clue
+            let terminal = sign
                 .read_line(Duration::from_secs(3))
-                .map_err(|error| format!("Pico terminal clue: {error:?}"))?;
-            self.pico_clue.verify_terminal(&terminal, &runtime, true)?;
+                .map_err(|error| format!("Pico terminal sign: {error:?}"))?;
+            self.pico_sign.verify_terminal(&terminal, &runtime, true)?;
             if !self.source.is_terminal(RemoteKind::Browser)
                 || !self.source.is_terminal(RemoteKind::Pico)
             {
@@ -168,7 +168,7 @@ impl TriplePhysicalRunner {
             Ok(_) => {}
             Err(cause) => {
                 let propagation =
-                    self.fail_pico_branch(&mut pico, &mut clue, &runtime, 350, report);
+                    self.fail_pico_branch(&mut pico, &mut sign, &runtime, 350, report);
                 return Err(match propagation {
                     Ok(()) => format!("{cause}; failure propagated to Pico terminal"),
                     Err(error) => format!("{cause}; Pico failure propagation: {error}"),
@@ -194,39 +194,38 @@ impl TriplePhysicalRunner {
                 .as_str(),
             runtime.boot_id,
             runtime.active_play_id,
-            self.pico_clue.firmware_build_id().unwrap_or("missing"),
+            self.pico_sign.firmware_build_id().unwrap_or("missing"),
         )
         .map_err(|error| error.to_string())?;
         Ok(())
     }
 
-    fn trigger_browser(&mut self, carrier: &mut NativeWebSocketCarrier) -> Result<(), String> {
-        let hello = receive_browser(&mut self.source, carrier)?;
+    fn trigger_browser(&mut self, line: &mut NativeWebSocketLine) -> Result<(), String> {
+        let hello = receive_browser(&mut self.source, line)?;
         if !matches!(hello, BrowserInbound::Hello) {
             return Err("browser did not begin with Hello".into());
         }
         let binding = self.source.binding(RemoteKind::Browser).clone();
         let hello = binding.hello_frame();
         self.source.admit_outbound(RemoteKind::Browser, hello)?;
-        send_browser(carrier, hello)?;
-        let ready = receive_browser(&mut self.source, carrier)?;
+        send_browser(line, hello)?;
+        let ready = receive_browser(&mut self.source, line)?;
         if !matches!(ready, BrowserInbound::Ready) {
             return Err("browser did not report Ready".into());
         }
         let ready = binding.frame(SessionMessage::Ready);
         self.source.admit_outbound(RemoteKind::Browser, ready)?;
-        send_browser(carrier, ready)
+        send_browser(line, ready)
     }
 
-    fn trigger_pico(&mut self, carrier: &mut NativePathCdcCarrier) -> Result<(), String> {
+    fn trigger_pico(&mut self, line: &mut NativePathCdcLine) -> Result<(), String> {
         let binding = self.source.binding(RemoteKind::Pico).clone();
         let hello = binding.hello_frame();
         self.source.admit_outbound(RemoteKind::Pico, hello)?;
-        carrier
-            .send_frame(&hello, Duration::from_secs(2))
+        line.send_frame(&hello, Duration::from_secs(2))
             .map_err(|error| format!("Pico Hello send: {error:?}"))?;
         let mut bytes = [0_u8; FRAME_BYTES];
-        let hello = carrier
+        let hello = line
             .receive_frame(&mut bytes, Duration::from_secs(3))
             .map_err(|error| format!("Pico Hello receive: {error:?}"))?;
         if !matches!(hello.message, SessionMessage::Hello(_)) {
@@ -235,10 +234,9 @@ impl TriplePhysicalRunner {
         self.source.admit_inbound(RemoteKind::Pico, hello)?;
         let ready = binding.frame(SessionMessage::Ready);
         self.source.admit_outbound(RemoteKind::Pico, ready)?;
-        carrier
-            .send_frame(&ready, Duration::from_secs(2))
+        line.send_frame(&ready, Duration::from_secs(2))
             .map_err(|error| format!("Pico Ready send: {error:?}"))?;
-        let ready = carrier
+        let ready = line
             .receive_frame(&mut bytes, Duration::from_secs(3))
             .map_err(|error| format!("Pico Ready receive: {error:?}"))?;
         if !matches!(ready.message, SessionMessage::Ready) {
@@ -249,7 +247,7 @@ impl TriplePhysicalRunner {
 
     fn offer_browser(
         &mut self,
-        carrier: &mut NativeWebSocketCarrier,
+        line: &mut NativeWebSocketLine,
         offer: &super::TripleOffer,
     ) -> Result<(), String> {
         let binding = self.source.binding(RemoteKind::Browser).clone();
@@ -259,8 +257,8 @@ impl TriplePhysicalRunner {
                 payload: &offer.payload,
             });
             self.source.admit_outbound(RemoteKind::Browser, frame)?;
-            send_browser(carrier, frame)?;
-            let response = receive_browser(&mut self.source, carrier)?;
+            send_browser(line, frame)?;
+            let response = receive_browser(&mut self.source, line)?;
             match response {
                 BrowserInbound::Pressure(sequence) if sequence == offer.sequence => {
                     self.source.pressure(RemoteKind::Browser, offer.sequence)?;
@@ -276,7 +274,7 @@ impl TriplePhysicalRunner {
 
     fn offer_pico(
         &mut self,
-        carrier: &mut NativePathCdcCarrier,
+        line: &mut NativePathCdcLine,
         offer: &super::TripleOffer,
     ) -> Result<(), String> {
         let binding = self.source.binding(RemoteKind::Pico).clone();
@@ -285,11 +283,10 @@ impl TriplePhysicalRunner {
             payload: &offer.payload,
         });
         self.source.admit_outbound(RemoteKind::Pico, frame)?;
-        carrier
-            .send_frame(&frame, Duration::from_secs(2))
+        line.send_frame(&frame, Duration::from_secs(2))
             .map_err(|error| format!("Pico Offered send: {error:?}"))?;
         let mut bytes = [0_u8; FRAME_BYTES];
-        let accepted = carrier
+        let accepted = line
             .receive_frame(&mut bytes, Duration::from_secs(3))
             .map_err(|error| format!("Pico Accepted receive: {error:?}"))?;
         self.source.admit_inbound(RemoteKind::Pico, accepted)?;
@@ -303,10 +300,10 @@ impl TriplePhysicalRunner {
 
     fn await_browser_delivery(
         &mut self,
-        carrier: &mut NativeWebSocketCarrier,
+        line: &mut NativeWebSocketLine,
         sequence: u64,
     ) -> Result<(), String> {
-        let delivered = receive_browser(&mut self.source, carrier)?;
+        let delivered = receive_browser(&mut self.source, line)?;
         match delivered {
             BrowserInbound::Delivered(actual) if actual == sequence => {
                 self.source.delivered(RemoteKind::Browser, sequence)
@@ -317,11 +314,11 @@ impl TriplePhysicalRunner {
 
     fn await_pico_delivery(
         &mut self,
-        carrier: &mut NativePathCdcCarrier,
+        line: &mut NativePathCdcLine,
         sequence: u64,
     ) -> Result<(), String> {
         let mut bytes = [0_u8; FRAME_BYTES];
-        let delivered = carrier
+        let delivered = line
             .receive_frame(&mut bytes, Duration::from_secs(3))
             .map_err(|error| format!("Pico Delivered receive: {error:?}"))?;
         self.source.admit_inbound(RemoteKind::Pico, delivered)?;
@@ -335,7 +332,7 @@ impl TriplePhysicalRunner {
 
     fn complete_browser(
         &mut self,
-        carrier: &mut NativeWebSocketCarrier,
+        line: &mut NativeWebSocketLine,
         final_sequence: u64,
     ) -> Result<(), String> {
         let binding = self.source.binding(RemoteKind::Browser).clone();
@@ -348,9 +345,9 @@ impl TriplePhysicalRunner {
         ] {
             let frame = binding.frame(message);
             self.source.admit_outbound(RemoteKind::Browser, frame)?;
-            send_browser(carrier, frame)?;
+            send_browser(line, frame)?;
         }
-        let terminal = receive_browser(&mut self.source, carrier)?;
+        let terminal = receive_browser(&mut self.source, line)?;
         match terminal {
             BrowserInbound::Terminal(SessionTerminalDisposition::Completed, actual)
                 if actual == final_sequence =>
@@ -363,7 +360,7 @@ impl TriplePhysicalRunner {
 
     fn complete_pico(
         &mut self,
-        carrier: &mut NativePathCdcCarrier,
+        line: &mut NativePathCdcLine,
         final_sequence: u64,
     ) -> Result<(), String> {
         let binding = self.source.binding(RemoteKind::Pico).clone();
@@ -376,12 +373,11 @@ impl TriplePhysicalRunner {
         ] {
             let frame = binding.frame(message);
             self.source.admit_outbound(RemoteKind::Pico, frame)?;
-            carrier
-                .send_frame(&frame, Duration::from_secs(2))
+            line.send_frame(&frame, Duration::from_secs(2))
                 .map_err(|error| format!("Pico terminal send: {error:?}"))?;
         }
         let mut bytes = [0_u8; FRAME_BYTES];
-        let terminal = carrier
+        let terminal = line
             .receive_frame(&mut bytes, Duration::from_secs(3))
             .map_err(|error| format!("Pico terminal receive: {error:?}"))?;
         self.source.admit_inbound(RemoteKind::Pico, terminal)?;
@@ -396,7 +392,7 @@ impl TriplePhysicalRunner {
 }
 
 fn send_browser(
-    carrier: &mut NativeWebSocketCarrier,
+    line: &mut NativeWebSocketLine,
     frame: conduit_wire::SessionFrame<'_>,
 ) -> Result<(), String> {
     let mut bytes = [0_u8; FRAME_BYTES];
@@ -407,8 +403,7 @@ fn send_browser(
         DISTRIBUTED_MAXIMUM_FRAME_BYTES,
     )
     .map_err(|error| format!("{error:?}"))?;
-    carrier
-        .send_binary(&bytes[..length])
+    line.send_binary(&bytes[..length])
         .map_err(|error| format!("{error:?}"))
 }
 
@@ -425,10 +420,10 @@ enum BrowserInbound {
 
 fn receive_browser(
     source: &mut TripleSource,
-    carrier: &mut NativeWebSocketCarrier,
+    line: &mut NativeWebSocketLine,
 ) -> Result<BrowserInbound, String> {
     let mut bytes = [0_u8; FRAME_BYTES];
-    let length = carrier
+    let length = line
         .receive_binary(&mut bytes)
         .map_err(|error| format!("{error:?}"))?;
     let frame = decode_session_frame(

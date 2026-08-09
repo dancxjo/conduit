@@ -99,7 +99,7 @@ cargo test -p conduit-browser-sim triple_signal_form_fans_out_to_std_and_simulat
 That proof keeps the authored form free of platform and transport facts while
 the plan places `local` on std stdout and the other sinks on simulated
 manifestations. Bounded frame/datagram fixtures carry the envelopes. The
-comparison is conformance clue, not browser, firmware, socket, or HIL proof.
+comparison is conformance Sign, not browser, firmware, socket, or HIL proof.
 
 ## Receipts
 

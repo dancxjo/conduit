@@ -1,14 +1,14 @@
 use alloc::vec::Vec;
 
 use conduit_core::{
-    AdmittedLine, ClueId, LineAvailability, LineAvailabilitySign, LineId, PlannedConnection,
+    AdmittedLine, LineAvailability, LineAvailabilitySign, LineId, PlannedConnection, SignId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct LineCandidateState {
     line: AdmittedLine,
     availability: LineAvailability,
-    sign_id: Option<ClueId>,
+    sign_id: Option<SignId>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -201,13 +201,13 @@ mod tests {
     fn observation(
         id: &'static str,
         availability: LineAvailability,
-        clue: &'static str,
+        sign: &'static str,
     ) -> LineAvailabilitySign {
         LineAvailabilitySign {
             line_id: LineId::from(alloc::format!("line/{id}")),
             binding_id: LinkBindingId::from(alloc::format!("binding/{id}")),
             availability,
-            sign_id: ClueId::from(clue),
+            sign_id: SignId::from(sign),
         }
     }
 

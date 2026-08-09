@@ -6,7 +6,7 @@ export default defineConfig({
   testDir: ".",
   testMatch: [
     "signal-dom-host.spec.mjs",
-    "websocket-carrier.spec.mjs",
+    "websocket-line.spec.mjs",
     "distributed-signal.spec.mjs",
     "distributed-toggle.spec.mjs",
     "conduit-site.spec.mjs",

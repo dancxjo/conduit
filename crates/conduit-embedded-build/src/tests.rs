@@ -1,11 +1,11 @@
 use conduit_core::{
-    mandatory_clue_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
-    CapabilityId, CapabilityLimits, CheckedFormId, ClueStorageBudget, ConfigurationEntry,
-    ConfigurationValue, ConnectionBase, ConnectionId, ExecutionProfileId, ExpandedFormId,
-    ExpectedClue, ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
+    mandatory_sign_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
+    CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry, ConfigurationValue,
+    ConnectionBase, ConnectionId, ExecutionProfileId, ExpandedFormId, ExpectedSign,
+    ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
     KindContractRevision, KindId, OfferGeneration, PlacementId, PlanFragment, PlanId,
-    PlannedConnection, PlannedGear, PortDescriptor, PortDirection, PortId, SourceDocumentId,
-    StartupDependency, TerminalPolicy,
+    PlannedConnection, PlannedGear, PortDescriptor, PortDirection, PortId, SignStorageBudget,
+    SourceDocumentId, StartupDependency, TerminalPolicy,
 };
 use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
 use conduit_signal::{
@@ -130,14 +130,14 @@ fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
             maximum_route_targets: 1,
             maximum_host_operations: 2,
             maximum_resources: 2,
-            maximum_clue_expectations: 8,
+            maximum_sign_expectations: 8,
             maximum_configuration_entries: 3,
             maximum_ports_per_node: MAXIMUM_KERNEL_PORTS_PER_NODE,
             maximum_remote_endpoints: 0,
             maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             maximum_cord_value_bytes: SIGNAL_ENCODED_LEN,
-            maximum_clue_items: 16,
-            maximum_clue_bytes: 1024,
+            maximum_sign_items: 16,
+            maximum_sign_bytes: 1024,
         },
     )
     .expect("Pico fragment fits the firmware image contract");
@@ -238,14 +238,14 @@ fn renderer_emits_fixed_current_kernel_tables() {
         route_targets: Vec::new(),
         host_operations: Vec::new(),
         resources: Vec::new(),
-        clues: Vec::new(),
+        signs: Vec::new(),
         startup_dependencies: Vec::new(),
         startup_order: vec![0],
         expected_terminals: Vec::new(),
         cord_value_slots: 0,
         cord_value_bytes: 0,
-        clue_items: 1,
-        clue_bytes: 16,
+        sign_items: 1,
+        sign_bytes: 16,
     };
 
     let module = generated.render_rust_module();
@@ -289,17 +289,17 @@ fn sealed_current_fragment() -> PlanFragment {
         direction: PortDirection::Input,
         temporal: conduit_core::PortTemporal::Value,
     };
-    let expected_clue = vec![
-        ExpectedClue::PlanFragmentReceived,
-        ExpectedClue::PlacementPrepared(source.clone()),
-        ExpectedClue::PlacementPrepared(sink.clone()),
-        ExpectedClue::PlacementTerminal(source.clone()),
-        ExpectedClue::PlacementTerminal(sink.clone()),
-        ExpectedClue::ConnectionTerminal(connection.clone()),
-        ExpectedClue::PlanTerminal,
+    let expected_sign = vec![
+        ExpectedSign::PlanFragmentReceived,
+        ExpectedSign::PlacementPrepared(source.clone()),
+        ExpectedSign::PlacementPrepared(sink.clone()),
+        ExpectedSign::PlacementTerminal(source.clone()),
+        ExpectedSign::PlacementTerminal(sink.clone()),
+        ExpectedSign::ConnectionTerminal(connection.clone()),
+        ExpectedSign::PlanTerminal,
     ];
-    let clue_storage_budget =
-        mandatory_clue_storage_requirement(&expected_clue).unwrap_or(ClueStorageBudget {
+    let sign_storage_budget =
+        mandatory_sign_storage_requirement(&expected_sign).unwrap_or(SignStorageBudget {
             item_capacity: 0,
             byte_capacity: 0,
         });
@@ -401,8 +401,8 @@ fn sealed_current_fragment() -> PlanFragment {
             ExpectedTerminal::ConnectionCompleted(connection),
             ExpectedTerminal::PlanCompleted,
         ],
-        expected_clue,
-        clue_storage_budget,
+        expected_sign,
+        sign_storage_budget,
         plan_fragments: Vec::new(),
     };
 
@@ -482,17 +482,17 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
 
     let sink = PlacementId::from("sink");
     let connection = ConnectionId::from("source-to-sink");
-    let expected_clue = vec![
-        ExpectedClue::PlanFragmentReceived,
-        ExpectedClue::PlacementPrepared(sink.clone()),
-        ExpectedClue::PlacementTerminal(sink.clone()),
-        ExpectedClue::ConnectionTerminal(connection.clone()),
-        ExpectedClue::PlanTerminal,
+    let expected_sign = vec![
+        ExpectedSign::PlanFragmentReceived,
+        ExpectedSign::PlacementPrepared(sink.clone()),
+        ExpectedSign::PlacementTerminal(sink.clone()),
+        ExpectedSign::ConnectionTerminal(connection.clone()),
+        ExpectedSign::PlanTerminal,
     ];
-    let clue_storage_budget =
-        mandatory_clue_storage_requirement(&expected_clue).expect("clue budget");
-    pico_fragment.expected_clue = expected_clue;
-    pico_fragment.clue_storage_budget = clue_storage_budget;
+    let sign_storage_budget =
+        mandatory_sign_storage_requirement(&expected_sign).expect("sign budget");
+    pico_fragment.expected_sign = expected_sign;
+    pico_fragment.sign_storage_budget = sign_storage_budget;
     pico_fragment.expected_terminals = vec![
         ExpectedTerminal::PlacementCompleted(sink),
         ExpectedTerminal::ConnectionCompleted(connection),
@@ -511,16 +511,16 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
     std_fragment.startup_order = vec![PlacementId::from("source")];
     let source_placement = PlacementId::from("source");
     let connection_id = ConnectionId::from("source-to-sink");
-    let std_clue = vec![
-        ExpectedClue::PlanFragmentReceived,
-        ExpectedClue::PlacementPrepared(source_placement.clone()),
-        ExpectedClue::PlacementTerminal(source_placement.clone()),
-        ExpectedClue::ConnectionTerminal(connection_id.clone()),
-        ExpectedClue::PlanTerminal,
+    let std_sign = vec![
+        ExpectedSign::PlanFragmentReceived,
+        ExpectedSign::PlacementPrepared(source_placement.clone()),
+        ExpectedSign::PlacementTerminal(source_placement.clone()),
+        ExpectedSign::ConnectionTerminal(connection_id.clone()),
+        ExpectedSign::PlanTerminal,
     ];
-    let std_budget = mandatory_clue_storage_requirement(&std_clue).expect("std budget");
-    std_fragment.expected_clue = std_clue;
-    std_fragment.clue_storage_budget = std_budget;
+    let std_budget = mandatory_sign_storage_requirement(&std_sign).expect("std budget");
+    std_fragment.expected_sign = std_sign;
+    std_fragment.sign_storage_budget = std_budget;
     std_fragment.expected_terminals = vec![
         ExpectedTerminal::PlacementCompleted(source_placement),
         ExpectedTerminal::ConnectionCompleted(connection_id),

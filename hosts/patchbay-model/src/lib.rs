@@ -4,8 +4,8 @@
 //! capability registry or accepts UI-authored advertisements.
 
 use conduit_core::{
-    BootId, CapabilityId, ClueId, HostAdvertisement, HostId, Observation, ObservationKind,
-    OfferGeneration,
+    BootId, CapabilityId, HostAdvertisement, HostId, Observation, ObservationKind, OfferGeneration,
+    SignId,
 };
 use conduit_observatory::{
     CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport,
@@ -50,9 +50,9 @@ pub use renderer_execution::{
 pub use renderer_inspection::{RendererSelfInspection, RendererSelfInspectionError};
 pub use renderer_projection::{
     AttemptedEditPresentation, PatchbayPresentation, RendererIdentityProjection,
-    RendererProjectionError, MAX_RENDERER_CLUES, MAX_RENDERER_DIAGNOSTICS,
-    MAX_RENDERER_GRAPH_ITEMS, MAX_RENDERER_INSPECTION_LINES, MAX_RENDERER_PLAN_ITEMS,
-    MAX_RENDERER_ROUTES, MAX_RENDERER_ROUTE_CANDIDATES, MAX_RENDERER_TOPOLOGY_ITEMS,
+    RendererProjectionError, MAX_RENDERER_DIAGNOSTICS, MAX_RENDERER_GRAPH_ITEMS,
+    MAX_RENDERER_INSPECTION_LINES, MAX_RENDERER_PLAN_ITEMS, MAX_RENDERER_ROUTES,
+    MAX_RENDERER_ROUTE_CANDIDATES, MAX_RENDERER_SIGNS, MAX_RENDERER_TOPOLOGY_ITEMS,
 };
 pub use route_demo::{DistributedRouteDemo, RouteDemoError};
 pub use route_presentation::{
@@ -183,7 +183,7 @@ impl PatchbayModel {
 
     fn observation(&self, sequence: u64, kind: ObservationKind) -> Observation {
         Observation {
-            clue_id: ClueId::from(format!(
+            sign_id: SignId::from(format!(
                 "patchbay-lifecycle/{}/{}",
                 self.projection.boot_id().as_str(),
                 sequence

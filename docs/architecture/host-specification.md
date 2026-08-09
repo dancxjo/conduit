@@ -145,7 +145,7 @@ A capability offer is not:
 - an active gear;
 - a plan;
 - a promise of permanent availability;
-- or clue that the capability has already been used.
+- or Sign that the capability has already been used.
 
 ### 4.6 Kind
 
@@ -213,7 +213,7 @@ A plan selects:
 - initialization data;
 - Play start order;
 - authority requirements;
-- and expected completion clue.
+- and expected completion Sign.
 
 Creating a plan MUST NOT start it.
 
@@ -770,11 +770,11 @@ struct ConnectionEnvelope {
 
 Malformed or oversized envelopes MUST be rejected before unbounded allocation or semantic execution.
 
-## 14. Observation and Clues
+## 14. Observation and Signs
 
 A host MUST provide machine-readable observations.
 
-Visual or physical manifestation alone is insufficient clue.
+Visual or physical manifestation alone is insufficient Sign.
 
 For example, a Pico W LED may visibly blink, but the host must also retain or emit records such as:
 
@@ -902,7 +902,7 @@ The resulting composite host might expose:
 capability: demonstration/run-signal
 ```
 
-or it might expose the pulse output, show input, completion clue, or another declared boundary.
+or it might expose the pulse output, show input, completion Sign, or another declared boundary.
 
 The parent planning scope sees one host offering the exposed capability.
 
@@ -1079,7 +1079,7 @@ A semantic kind is not its manifestation.
 
 A remote connection is not its transport.
 
-A visual effect is not sufficient execution clue.
+A visual effect is not sufficient execution Sign.
 
 A composite host is still a host.
 ```
@@ -1152,7 +1152,7 @@ The following questions remain open:
 
 ## 24. Summary
 
-The Conduit host is a software runtime that offers bounded semantic capabilities, accepts exact plan fragments, prepares them without starting them, starts them only after commitment, carries typed values through bounded connections, and produces machine-readable clue.
+The Conduit host is a software runtime that offers bounded semantic capabilities, accepts exact plan fragments, prepares them without starting them, starts them only after commitment, carries typed values through bounded connections, and produces machine-readable Sign.
 
 A primitive host realizes capabilities from a platform.
 

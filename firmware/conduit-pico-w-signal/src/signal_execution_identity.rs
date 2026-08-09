@@ -13,9 +13,9 @@ pub struct SignalExecutionIdentity {
     pub host_id: &'static str,
     pub boot_id: &'static str,
     pub active_play_id: &'static str,
-    pub terminal_clue_id: &'static str,
+    pub terminal_sign_id: &'static str,
     pub(crate) presentation_ids: &'static [&'static str],
-    pub(crate) presentation_clue_ids: &'static [&'static str],
+    pub(crate) presentation_sign_ids: &'static [&'static str],
 }
 
 impl SignalExecutionIdentity {
@@ -30,9 +30,9 @@ impl SignalExecutionIdentity {
             host_id: crate::signal_image::HOST_ID,
             boot_id: crate::signal_image::BOOT_ID,
             active_play_id: crate::signal_image::ACTIVE_PLAY_ID,
-            terminal_clue_id: crate::signal_image::TERMINAL_CLUE_ID,
+            terminal_sign_id: crate::signal_image::TERMINAL_SIGN_ID,
             presentation_ids: crate::signal_image::presentation_ids(),
-            presentation_clue_ids: crate::signal_image::presentation_clue_ids(),
+            presentation_sign_ids: crate::signal_image::presentation_sign_ids(),
         }
     }
 
@@ -53,7 +53,7 @@ impl SignalExecutionIdentity {
             boot_id: self.boot_id,
             active_play_id: self.active_play_id,
             presentation_id: self.presentation_ids.get(sequence)?,
-            clue_id: self.presentation_clue_ids.get(sequence)?,
+            sign_id: self.presentation_sign_ids.get(sequence)?,
         })
     }
 
@@ -68,7 +68,7 @@ impl SignalExecutionIdentity {
             host_id: self.host_id,
             boot_id: self.boot_id,
             active_play_id: self.active_play_id,
-            clue_id: self.terminal_clue_id,
+            sign_id: self.terminal_sign_id,
         }
     }
 }

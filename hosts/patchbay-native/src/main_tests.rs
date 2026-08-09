@@ -34,7 +34,7 @@ fn native_renderer_inspects_its_exact_realization_without_local_state() {
         "RENDERER BASE contract=conduit.host/present@1 target=presentation/base/wayland-surface@1"
     ));
     assert!(text.contains("RENDERER LIMITS active=1 queue-items=1"));
-    assert!(text.contains("RENDERER CLUE "));
+    assert!(text.contains("RENDERER SIGN "));
 }
 use std::path::PathBuf;
 

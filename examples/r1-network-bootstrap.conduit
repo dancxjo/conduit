@@ -1,8 +1,8 @@
 form r1-network-bootstrap {
     credentials: network/credentials
     join: network/join
-    attachment_clue: network/attachment-clue
+    attachment_sign: network/attachment-sign
 
     credentials.request > join.request
-    join.attachment > attachment_clue.attachment
+    join.attachment > attachment_sign.attachment
 }

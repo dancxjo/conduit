@@ -125,7 +125,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_items,
         value_bytes,
         host_requests: 0,
-        clue_items: 32,
+        sign_items: 32,
         maximum_value_bytes: MAX_TEXT_BYTES,
     })
 }

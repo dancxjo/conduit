@@ -1,4 +1,4 @@
-//! Native USB CDC ACM carrier implementation for std host.
+//! Native USB CDC ACM line implementation for std host.
 //!
 //! Provides length-prefixed stream framing over native POSIX serial endpoints
 //! and generic `Read + Write` streams.
@@ -213,16 +213,16 @@ impl Drop for OperatorTerminal {
     }
 }
 
-/// Physical path-based native USB CDC carrier using poll(2) and raw non-blocking POSIX descriptor.
+/// Physical path-based native USB CDC line using poll(2) and raw non-blocking POSIX descriptor.
 #[cfg(unix)]
-pub struct NativePathCdcCarrier {
+pub struct NativePathCdcLine {
     fd: FdGuard,
     maximum_frame_bytes: usize,
     decoder: StreamFrameDecoder<2048>,
 }
 
 #[cfg(unix)]
-impl NativePathCdcCarrier {
+impl NativePathCdcLine {
     pub fn open<P: AsRef<Path>>(
         path: P,
         maximum_frame_bytes: usize,
@@ -578,15 +578,15 @@ impl NativePathCdcLineReader {
     }
 }
 
-/// Generic stream-based carrier for hardware-free unit tests.
-pub struct NativeUsbCdcCarrier<R, W> {
+/// Generic stream-based line for hardware-free unit tests.
+pub struct NativeUsbCdcLine<R, W> {
     reader: R,
     writer: W,
     maximum_frame_bytes: usize,
     decoder: StreamFrameDecoder<2048>,
 }
 
-impl<R: Read, W: Write> NativeUsbCdcCarrier<R, W> {
+impl<R: Read, W: Write> NativeUsbCdcLine<R, W> {
     pub fn new(
         reader: R,
         writer: W,
@@ -748,18 +748,18 @@ mod tests {
             encode_stream_frame(&wire_buf[2..2 + frame_len], 1024, &mut framed_buf).unwrap();
 
         let half = total_bytes / 2;
-        let mut carrier =
-            NativeUsbCdcCarrier::new(Cursor::new(&framed_buf[..half]), Vec::new(), 1024).unwrap();
+        let mut line =
+            NativeUsbCdcLine::new(Cursor::new(&framed_buf[..half]), Vec::new(), 1024).unwrap();
         let mut out_buf = [0u8; 2048];
         assert!(matches!(
-            carrier.receive_frame(&mut out_buf),
+            line.receive_frame(&mut out_buf),
             Err(NativeUsbCdcError::Disconnected)
         ));
 
-        let mut carrier2 =
-            NativeUsbCdcCarrier::new(Cursor::new(&framed_buf[..total_bytes]), Vec::new(), 1024)
+        let mut line2 =
+            NativeUsbCdcLine::new(Cursor::new(&framed_buf[..total_bytes]), Vec::new(), 1024)
                 .unwrap();
-        let received = carrier2.receive_frame(&mut out_buf).unwrap();
+        let received = line2.receive_frame(&mut out_buf).unwrap();
         assert_eq!(received.identity, frame.identity);
     }
 
@@ -770,17 +770,15 @@ mod tests {
         let ready = binding.frame(SessionMessage::Ready);
 
         let mut stream = Vec::new();
-        let mut carrier_tx =
-            NativeUsbCdcCarrier::new(Cursor::new(Vec::new()), &mut stream, 512).unwrap();
-        carrier_tx.send_frame(&hello).unwrap();
-        carrier_tx.send_frame(&ready).unwrap();
+        let mut line_tx = NativeUsbCdcLine::new(Cursor::new(Vec::new()), &mut stream, 512).unwrap();
+        line_tx.send_frame(&hello).unwrap();
+        line_tx.send_frame(&ready).unwrap();
 
-        let mut carrier_rx =
-            NativeUsbCdcCarrier::new(Cursor::new(stream), Vec::new(), 512).unwrap();
+        let mut line_rx = NativeUsbCdcLine::new(Cursor::new(stream), Vec::new(), 512).unwrap();
         let mut out_buf = [0u8; 512];
-        let f1 = carrier_rx.receive_frame(&mut out_buf).unwrap();
+        let f1 = line_rx.receive_frame(&mut out_buf).unwrap();
         assert!(matches!(f1.message, SessionMessage::Hello(_)));
-        let f2 = carrier_rx.receive_frame(&mut out_buf).unwrap();
+        let f2 = line_rx.receive_frame(&mut out_buf).unwrap();
         assert!(matches!(f2.message, SessionMessage::Ready));
     }
 
@@ -789,43 +787,39 @@ mod tests {
         let binding = test_binding();
         let frame = binding.hello_frame();
         let mut stream = Vec::new();
-        let mut carrier_tx =
-            NativeUsbCdcCarrier::new(Cursor::new(Vec::new()), &mut stream, 512).unwrap();
-        carrier_tx.send_frame(&frame).unwrap();
+        let mut line_tx = NativeUsbCdcLine::new(Cursor::new(Vec::new()), &mut stream, 512).unwrap();
+        line_tx.send_frame(&frame).unwrap();
         assert!(!stream.is_empty());
     }
 
     #[test]
     fn test_4_timeout_would_block_is_finite() {
-        let mut carrier =
-            NativeUsbCdcCarrier::new(Cursor::new(Vec::new()), Vec::new(), 512).unwrap();
+        let mut line = NativeUsbCdcLine::new(Cursor::new(Vec::new()), Vec::new(), 512).unwrap();
         let mut out_buf = [0u8; 512];
         assert!(matches!(
-            carrier.receive_frame(&mut out_buf),
+            line.receive_frame(&mut out_buf),
             Err(NativeUsbCdcError::Disconnected)
         ));
     }
 
     #[test]
     fn test_5_eof_disconnect_is_distinct_from_timeout() {
-        let mut carrier =
-            NativeUsbCdcCarrier::new(Cursor::new(Vec::new()), Vec::new(), 512).unwrap();
+        let mut line = NativeUsbCdcLine::new(Cursor::new(Vec::new()), Vec::new(), 512).unwrap();
         let mut out_buf = [0u8; 512];
-        let res = carrier.receive_frame(&mut out_buf);
+        let res = line.receive_frame(&mut out_buf);
         assert!(matches!(res, Err(NativeUsbCdcError::Disconnected)));
     }
 
     #[test]
     fn test_6_malformed_length_framing_fails_closed() {
         let malformed = vec![0xFF, 0xFF, 0x01, 0x02, 0x03];
-        let mut carrier =
-            NativeUsbCdcCarrier::new(Cursor::new(malformed), Vec::new(), 512).unwrap();
+        let mut line = NativeUsbCdcLine::new(Cursor::new(malformed), Vec::new(), 512).unwrap();
         let mut out_buf = [0u8; 512];
-        assert!(carrier.receive_frame(&mut out_buf).is_err());
+        assert!(line.receive_frame(&mut out_buf).is_err());
     }
 
     #[test]
-    fn test_7_source_sink_session_machine_exchange_works_over_carrier() {
+    fn test_7_source_sink_session_machine_exchange_works_over_line() {
         let binding = test_binding();
         let mut source_machine = SessionMachine::new(binding.clone(), SessionRole::Source).unwrap();
         let mut sink_machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
@@ -835,10 +829,10 @@ mod tests {
         source_machine.admit_outbound(hello).unwrap();
 
         let mut c1 = Vec::new();
-        let mut tx1 = NativeUsbCdcCarrier::new(Cursor::new(Vec::new()), &mut c1, 512).unwrap();
+        let mut tx1 = NativeUsbCdcLine::new(Cursor::new(Vec::new()), &mut c1, 512).unwrap();
         tx1.send_frame(&hello).unwrap();
 
-        let mut rx1 = NativeUsbCdcCarrier::new(Cursor::new(c1), Vec::new(), 512).unwrap();
+        let mut rx1 = NativeUsbCdcLine::new(Cursor::new(c1), Vec::new(), 512).unwrap();
         let mut buf1 = [0u8; 512];
         let f1 = rx1.receive_frame(&mut buf1).unwrap();
         sink_machine.admit_inbound(f1).unwrap();
@@ -847,9 +841,9 @@ mod tests {
         let sink_hello = binding.hello_frame();
         sink_machine.admit_outbound(sink_hello).unwrap();
         let mut c2 = Vec::new();
-        let mut tx2 = NativeUsbCdcCarrier::new(Cursor::new(Vec::new()), &mut c2, 512).unwrap();
+        let mut tx2 = NativeUsbCdcLine::new(Cursor::new(Vec::new()), &mut c2, 512).unwrap();
         tx2.send_frame(&sink_hello).unwrap();
-        let mut rx2 = NativeUsbCdcCarrier::new(Cursor::new(c2), Vec::new(), 512).unwrap();
+        let mut rx2 = NativeUsbCdcLine::new(Cursor::new(c2), Vec::new(), 512).unwrap();
         let mut buf2 = [0u8; 512];
         let f2 = rx2.receive_frame(&mut buf2).unwrap();
         source_machine.admit_inbound(f2).unwrap();
@@ -858,9 +852,9 @@ mod tests {
         let ready = binding.frame(SessionMessage::Ready);
         source_machine.admit_outbound(ready).unwrap();
         let mut c3 = Vec::new();
-        let mut tx3 = NativeUsbCdcCarrier::new(Cursor::new(Vec::new()), &mut c3, 512).unwrap();
+        let mut tx3 = NativeUsbCdcLine::new(Cursor::new(Vec::new()), &mut c3, 512).unwrap();
         tx3.send_frame(&ready).unwrap();
-        let mut rx3 = NativeUsbCdcCarrier::new(Cursor::new(c3), Vec::new(), 512).unwrap();
+        let mut rx3 = NativeUsbCdcLine::new(Cursor::new(c3), Vec::new(), 512).unwrap();
         let mut buf3 = [0u8; 512];
         let f3 = rx3.receive_frame(&mut buf3).unwrap();
         sink_machine.admit_inbound(f3).unwrap();
@@ -869,9 +863,9 @@ mod tests {
         let sink_ready = binding.frame(SessionMessage::Ready);
         sink_machine.admit_outbound(sink_ready).unwrap();
         let mut c4 = Vec::new();
-        let mut tx4 = NativeUsbCdcCarrier::new(Cursor::new(Vec::new()), &mut c4, 512).unwrap();
+        let mut tx4 = NativeUsbCdcLine::new(Cursor::new(Vec::new()), &mut c4, 512).unwrap();
         tx4.send_frame(&sink_ready).unwrap();
-        let mut rx4 = NativeUsbCdcCarrier::new(Cursor::new(c4), Vec::new(), 512).unwrap();
+        let mut rx4 = NativeUsbCdcLine::new(Cursor::new(c4), Vec::new(), 512).unwrap();
         let mut buf4 = [0u8; 512];
         let f4 = rx4.receive_frame(&mut buf4).unwrap();
         source_machine.admit_inbound(f4).unwrap();

@@ -369,13 +369,13 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
     ),
     Step::new(
         "check.kernel.streamed",
-        "test streamed_output_uses_a_virtual_clock_and_retains_terminal_clue",
+        "test streamed_output_uses_a_virtual_clock_and_retains_terminal_sign",
         "cargo",
         &[
             "test",
             "-p",
             "conduit-std-host",
-            "streamed_output_uses_a_virtual_clock_and_retains_terminal_clue",
+            "streamed_output_uses_a_virtual_clock_and_retains_terminal_sign",
         ],
     ),
     Step::new(
@@ -656,8 +656,8 @@ pub const PLANNING_S2_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
-        "check.planning.clue-overflow",
-        "test planned_clue_storage_survives_observation_overflow",
+        "check.planning.sign-overflow",
+        "test planned_sign_storage_survives_observation_overflow",
         "cargo",
         &[
             "test",
@@ -665,7 +665,7 @@ pub const PLANNING_S2_STEPS: &[Step] = &[
             "conduit-runtime",
             "--test",
             "host_contract",
-            "planned_clue_storage_survives_observation_overflow",
+            "planned_sign_storage_survives_observation_overflow",
         ],
     ),
     Step::typed(
@@ -705,9 +705,9 @@ pub const FORM_S3_STEPS: &[Step] = &[
     Step::new("check.form.composite-input-output-only", "test input_only_and_output_only_exports_plan_as_ordinary_operations", "cargo", &["test", "-p", "conduit-composite", "input_only_and_output_only_exports_plan_as_ordinary_operations"]),
     Step::new("check.form.composite-face-mapping-mutation", "test composite_definition_rejects_every_face_mapping_mutation", "cargo", &["test", "-p", "conduit-composite", "composite_definition_rejects_every_face_mapping_mutation"]),
     Step::new("check.form.composite-terminal-failure", "test named_face_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks", "cargo", &["test", "-p", "conduit-composite", "named_face_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks"]),
-    Step::new("check.form.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_clue_and_presentation_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_clue_and_presentation_distinct"]),
+    Step::new("check.form.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct"]),
     Step::new("check.form.fake-adapter-failure", "test fake_adapter_failure_is_structured_and_terminal", "cargo", &["test", "-p", "conduit-runtime", "--test", "host_contract", "fake_adapter_failure_is_structured_and_terminal"]),
-    Step::new("check.form.observatory-report-identity", "test report_separates_identity_capability_plan_connection_and_clue_tables", "cargo", &["test", "-p", "conduit-observatory", "report_separates_identity_capability_plan_connection_and_clue_tables"]),
+    Step::new("check.form.observatory-report-identity", "test report_separates_identity_capability_plan_connection_and_sign_tables", "cargo", &["test", "-p", "conduit-observatory", "report_separates_identity_capability_plan_connection_and_sign_tables"]),
 ];
 
 pub const BROWSER_CHECK_STEPS: &[Step] = &[

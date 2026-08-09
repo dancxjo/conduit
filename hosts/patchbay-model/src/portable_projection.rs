@@ -1,7 +1,7 @@
 //! Adapt the living Patchbay projection into Conduit's portable Presentation value.
 
 use conduit_body::{Body, BodyLifecycleError, BodyState, Wake, WakeLifecycle};
-use conduit_core::ClueId;
+use conduit_core::SignId;
 use conduit_presentation::{
     Presentation, PresentationBasis, PresentationError, PresentationProperty,
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
@@ -116,11 +116,11 @@ impl PatchbayPresentation {
         let checked_form_id = identities
             .document_checked_form_id
             .ok_or(PortableProjectionError::MissingCheckedForm)?;
-        let mut clue_ids = identities.clue_ids;
-        clue_ids.extend(body.clue_ids.iter().cloned());
-        clue_ids.extend(wake.clue_ids.iter().cloned());
-        clue_ids.sort();
-        clue_ids.dedup();
+        let mut sign_ids = identities.sign_ids;
+        sign_ids.extend(body.sign_ids.iter().cloned());
+        sign_ids.extend(wake.sign_ids.iter().cloned());
+        sign_ids.sort();
+        sign_ids.dedup();
 
         let mut content = ContentBuilder::new();
         let document = content.subject(
@@ -153,7 +153,7 @@ impl PatchbayPresentation {
                 expanded_form_id: identities.expanded_form_id,
                 plan_id: identities.plan_id,
                 active_play_id: identities.active_play_id,
-                clue_ids,
+                sign_ids,
             },
             content.subjects,
             content.relationships,
@@ -307,8 +307,8 @@ fn append_plan_and_play(
         for line in &play.lines {
             content.line(&subject, line);
         }
-        for clue in &play.clues {
-            append_clue(document, &clue.clue_id, content);
+        for sign in &play.signs {
+            append_sign(document, &sign.sign_id, content);
         }
     }
 }
@@ -333,8 +333,8 @@ fn append_topology(
         );
         content.describes(&subject, document);
     }
-    for clue in &topology.clues {
-        append_clue(document, &clue.clue_id, content);
+    for sign in &topology.signs {
+        append_sign(document, &sign.sign_id, content);
     }
 }
 
@@ -417,11 +417,11 @@ fn append_line_candidates(
     }
 }
 
-fn append_clue(document: &str, clue: &ClueId, content: &mut ContentBuilder) {
+fn append_sign(document: &str, sign: &SignId, content: &mut ContentBuilder) {
     let subject = content.subject(
-        PresentationRole::Clue,
-        clue.as_str(),
-        format!("Clue {}", clue.as_str()),
+        PresentationRole::Sign,
+        sign.as_str(),
+        format!("Sign {}", sign.as_str()),
     );
     content.describes(&subject, document);
 }

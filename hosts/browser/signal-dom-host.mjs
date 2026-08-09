@@ -73,7 +73,7 @@ export class BrowserDomHost {
       effect?.bootId,
       effect?.activePlayId,
       effect?.presentationId,
-      effect?.clueId,
+      effect?.signId,
       effect?.hostOperationContractId,
       effect?.placementId,
     ];
@@ -123,7 +123,7 @@ export class BrowserDomHost {
       fragmentId: effect.fragmentId,
       activePlayId: effect.activePlayId,
       presentationId: effect.presentationId,
-      clueId: effect.clueId,
+      signId: effect.signId,
       requestNode: effect.requestNode,
       requestId: effect.requestId,
       operationId: effect.operationId,
@@ -153,7 +153,7 @@ export class BrowserDomHost {
     output.dataset.fragmentId = receipt.fragmentId;
     output.dataset.activePlayId = receipt.activePlayId;
     output.dataset.presentationId = receipt.presentationId;
-    output.dataset.clueId = receipt.clueId;
+    output.dataset.signId = receipt.signId;
     output.dataset.requestId = String(receipt.requestId);
     output.dataset.placementId = receipt.placementId;
     output.dataset.sequence = receipt.sequence;
@@ -182,7 +182,7 @@ export class BrowserDomHost {
         operationId: effect.operationId,
         hostOperationContractId: effect.hostOperationContractId,
         presentationId: effect.presentationId,
-        clueId: effect.clueId,
+        signId: effect.signId,
         placementId: effect.placementId,
         ...(hasRemoteIdentity
           ? {

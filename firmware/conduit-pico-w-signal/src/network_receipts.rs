@@ -1,7 +1,7 @@
 use heapless::String as HString;
 use conduit_core::LineOffer;
 
-use crate::receipts::{UsbCdc, UsbClueError, RECEIPT_BUFFER_BYTES};
+use crate::receipts::{UsbCdc, UsbSignError, RECEIPT_BUFFER_BYTES};
 
 #[derive(Clone, Copy)]
 pub struct NetworkAttachmentIdentity<'a> {
@@ -17,7 +17,7 @@ pub struct NetworkAttachmentIdentity<'a> {
     pub attachment_id: &'a str,
     pub interface_pool_id: &'static str,
     pub generation: u64,
-    pub clue_id: &'static str,
+    pub sign_id: &'static str,
 }
 
 #[derive(Clone, Copy)]
@@ -29,21 +29,21 @@ pub struct WebSocketRouteIdentity<'a> {
     pub websocket_link: &'a LineOffer,
     pub address: [u8; 4],
     pub port: u16,
-    pub clue_id: &'static str,
+    pub sign_id: &'static str,
 }
 
 impl UsbCdc {
     pub async fn write_websocket_endpoint(
         &mut self,
         identity: WebSocketRouteIdentity<'_>,
-    ) -> Result<(), UsbClueError> {
+    ) -> Result<(), UsbSignError> {
         let mut line: HString<1024> = HString::new();
         core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
                     "{{",
-                    "\"schema\":\"conduit.network/websocket-endpoint-clue@1\",",
+                    "\"schema\":\"conduit.network/websocket-endpoint-sign@1\",",
                     "\"firmware_build_id\":\"{}\",",
                     "\"host_id\":\"{}\",",
                     "\"runtime_boot_id\":\"{}\",",
@@ -71,7 +71,7 @@ impl UsbCdc {
                 conduit_net::R1_MAXIMUM_FRAME_BYTES,
             ),
         )
-        .map_err(|_| UsbClueError::FormatOverflow)?;
+        .map_err(|_| UsbSignError::FormatOverflow)?;
         self.write_all_mandatory(line.as_bytes()).await
     }
 
@@ -79,14 +79,14 @@ impl UsbCdc {
         &mut self,
         identity: WebSocketRouteIdentity<'_>,
         websocket_active_play_id: &str,
-    ) -> Result<(), UsbClueError> {
+    ) -> Result<(), UsbSignError> {
         let mut line: HString<1024> = HString::new();
         core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
                     "{{",
-                    "\"schema\":\"conduit.network/websocket-link-clue@1\",",
+                    "\"schema\":\"conduit.network/websocket-link-sign@1\",",
                     "\"firmware_build_id\":\"{}\",",
                     "\"host_id\":\"{}\",",
                     "\"runtime_boot_id\":\"{}\",",
@@ -99,7 +99,7 @@ impl UsbCdc {
                     "\"sink_endpoint_id\":\"{}\",",
                     "\"maximum_frame_bytes\":{},",
                     "\"handshake\":true,",
-                    "\"clue_id\":\"{}\"",
+                    "\"sign_id\":\"{}\"",
                     "}}\n"
                 ),
                 identity.firmware_build_id,
@@ -113,24 +113,24 @@ impl UsbCdc {
                 identity.websocket_link.binding.source.endpoint_id.as_str(),
                 identity.websocket_link.binding.sink.endpoint_id.as_str(),
                 conduit_net::R1_MAXIMUM_FRAME_BYTES,
-                identity.clue_id,
+                identity.sign_id,
             ),
         )
-        .map_err(|_| UsbClueError::FormatOverflow)?;
+        .map_err(|_| UsbSignError::FormatOverflow)?;
         self.write_all_mandatory(line.as_bytes()).await
     }
 
     pub async fn write_network_attachment(
         &mut self,
         identity: NetworkAttachmentIdentity<'_>,
-    ) -> Result<(), UsbClueError> {
+    ) -> Result<(), UsbSignError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
                     "{{",
-                    "\"schema\":\"conduit.network/attachment-clue@1\",",
+                    "\"schema\":\"conduit.network/attachment-sign@1\",",
                     "\"firmware_build_id\":\"{}\",",
                     "\"source_document_id\":\"{}\",",
                     "\"checked_form_id\":\"{}\",",
@@ -143,7 +143,7 @@ impl UsbCdc {
                     "\"attachment_id\":\"{}\",",
                     "\"interface_pool_id\":\"{}\",",
                     "\"generation\":{},",
-                    "\"clue_id\":\"{}\"",
+                    "\"sign_id\":\"{}\"",
                     "}}\n"
                 ),
                 identity.firmware_build_id,
@@ -158,10 +158,10 @@ impl UsbCdc {
                 identity.attachment_id,
                 identity.interface_pool_id,
                 identity.generation,
-                identity.clue_id,
+                identity.sign_id,
             ),
         )
-        .map_err(|_| UsbClueError::FormatOverflow)?;
+        .map_err(|_| UsbSignError::FormatOverflow)?;
         self.write_all_mandatory(line.as_bytes()).await
     }
 
@@ -169,14 +169,14 @@ impl UsbCdc {
         &mut self,
         code: &str,
         identity: NetworkAttachmentIdentity<'_>,
-    ) -> Result<(), UsbClueError> {
+    ) -> Result<(), UsbSignError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
                     "{{",
-                    "\"schema\":\"conduit.network/join-failure-clue@1\",",
+                    "\"schema\":\"conduit.network/join-failure-sign@1\",",
                     "\"firmware_build_id\":\"{}\",",
                     "\"source_document_id\":\"{}\",",
                     "\"checked_form_id\":\"{}\",",
@@ -187,7 +187,7 @@ impl UsbCdc {
                     "\"boot_id\":\"{}\",",
                     "\"active_play_id\":\"{}\",",
                     "\"interface_pool_id\":\"{}\",",
-                    "\"clue_id\":\"{}\",",
+                    "\"sign_id\":\"{}\",",
                     "\"error_code\":\"{}\"",
                     "}}\n"
                 ),
@@ -201,11 +201,11 @@ impl UsbCdc {
                 identity.boot_id,
                 identity.active_play_id,
                 identity.interface_pool_id,
-                identity.clue_id,
+                identity.sign_id,
                 code,
             ),
         )
-        .map_err(|_| UsbClueError::FormatOverflow)?;
+        .map_err(|_| UsbSignError::FormatOverflow)?;
         self.write_all_mandatory(line.as_bytes()).await
     }
 
@@ -213,29 +213,29 @@ impl UsbCdc {
         &mut self,
         code: &str,
         identity: NetworkAttachmentIdentity<'_>,
-    ) -> Result<(), UsbClueError> {
+    ) -> Result<(), UsbSignError> {
         let mut line: HString<1024> = HString::new();
         core::fmt::write(
             &mut line,
             format_args!(
                 concat!(
                     "{{",
-                    "\"schema\":\"conduit.network/recovery-failure-clue@1\",",
+                    "\"schema\":\"conduit.network/recovery-failure-sign@1\",",
                     "\"firmware_build_id\":\"{}\",",
                     "\"runtime_boot_id\":\"{}\",",
                     "\"runtime_active_play_id\":\"{}\",",
-                    "\"clue_id\":\"{}\",",
+                    "\"sign_id\":\"{}\",",
                     "\"error_code\":\"{}\"",
                     "}}\n"
                 ),
                 identity.firmware_build_id,
                 identity.boot_id,
                 identity.active_play_id,
-                identity.clue_id,
+                identity.sign_id,
                 code,
             ),
         )
-        .map_err(|_| UsbClueError::FormatOverflow)?;
+        .map_err(|_| UsbSignError::FormatOverflow)?;
         self.write_all_mandatory(line.as_bytes()).await
     }
 }

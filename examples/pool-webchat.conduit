@@ -1,4 +1,4 @@
-# Dynamic chat semantics. Carrier selection belongs to the Plan/host and is
+# Dynamic chat semantics. Line selection belongs to the Plan/host and is
 # deliberately absent from this authored Form.
 form chat/peer (
     recv: ChatMessage...| > send: ChatMessage...|

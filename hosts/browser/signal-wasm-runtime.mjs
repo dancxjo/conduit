@@ -141,7 +141,7 @@ export function decodeEffect(bytes) {
       ...common,
       ...remote,
       presentationId: frame.text(),
-      clueId: frame.text(),
+      signId: frame.text(),
       presentationKind: frame.text(),
       value: Object.freeze({
         valueKind: frame.text(),
@@ -187,7 +187,7 @@ function encodeCompletion(effect, completion) {
   }
   if (effect.kind === EFFECT_PRESENT || effect.kind === EFFECT_DISTRIBUTED_PRESENT) {
     frame.text(completion.presentationId);
-    frame.text(completion.clueId);
+    frame.text(completion.signId);
     frame.text(completion.value.valueKind);
     frame.bytesField(Uint8Array.from(completion.value.encoded));
   }
@@ -337,7 +337,7 @@ export function successfulCompletion(effect) {
   }
   if (effect.kind === EFFECT_PRESENT || effect.kind === EFFECT_DISTRIBUTED_PRESENT) {
     completion.presentationId = effect.presentationId;
-    completion.clueId = effect.clueId;
+    completion.signId = effect.signId;
     completion.value = effect.value;
   }
   return Object.freeze(completion);

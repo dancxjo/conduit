@@ -7,7 +7,7 @@ use patchbay_html::{
 };
 
 #[test]
-fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_clue() {
+fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_sign() {
     let snapshot = demonstration_snapshot().unwrap();
     let bytes = snapshot.encode().unwrap();
     let decoded = RendererSnapshot::decode(&bytes, snapshot.revision).unwrap();
@@ -21,7 +21,7 @@ fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_clue() {
     }));
     let basis = &decoded.presentation.basis;
     assert!(basis.plan_id.is_some() && basis.active_play_id.is_some());
-    assert!(!basis.clue_ids.is_empty());
+    assert!(!basis.sign_ids.is_empty());
     assert!(!basis.body_id.as_str().is_empty());
     assert!(!basis.wake_id.as_str().is_empty());
     assert_eq!(
@@ -42,7 +42,7 @@ fn html_adapter_failure_is_typed_without_mutating_the_source_presentation() {
     snapshot
         .mark_failed(
             ManifestationFailure::DeliveryFailed,
-            conduit_core::ClueId::from("patchbay-html/delivery-failed"),
+            conduit_core::SignId::from("patchbay-html/delivery-failed"),
         )
         .unwrap();
     assert_eq!(
@@ -59,7 +59,7 @@ fn html_adapter_failure_is_typed_without_mutating_the_source_presentation() {
         snapshot
             .renderer
             .manifestation
-            .clues
+            .signs
             .last()
             .unwrap()
             .manifestation_id,

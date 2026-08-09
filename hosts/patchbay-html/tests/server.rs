@@ -96,7 +96,7 @@ fn malformed_and_oversized_requests_do_not_stop_later_delivery() {
 }
 
 #[test]
-fn transport_failure_yields_an_exact_failed_manifestation_clue() {
+fn transport_failure_yields_an_exact_failed_manifestation_sign() {
     let snapshot = demonstration_snapshot().unwrap();
     let source_identity = snapshot.presentation.identity.clone();
     let source_play = snapshot.presentation.basis.active_play_id.clone();
@@ -120,23 +120,23 @@ fn transport_failure_yields_an_exact_failed_manifestation_clue() {
         failure.snapshot.presentation.basis.active_play_id,
         source_play
     );
-    let clue = failure
+    let sign = failure
         .snapshot
         .renderer
         .manifestation
-        .clues
+        .signs
         .last()
         .unwrap();
     assert_eq!(
-        clue.manifestation_id,
+        sign.manifestation_id,
         failure.snapshot.renderer.manifestation.manifestation_id
     );
     assert_eq!(
-        clue.plan_id,
+        sign.plan_id,
         failure.snapshot.renderer.manifestation.plan_id
     );
     assert_eq!(
-        clue.active_play_id,
+        sign.active_play_id,
         failure.snapshot.renderer.manifestation.active_play_id
     );
 }

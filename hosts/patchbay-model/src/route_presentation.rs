@@ -1,7 +1,7 @@
-//! Toolkit-independent views of one clue-backed distributed route demonstration.
+//! Toolkit-independent views of one sign-backed distributed route demonstration.
 
 use conduit_core::{
-    ClueId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, LinkBindingId, PlanId,
+    ConnectionBase, ConnectionBaseInstanceId, ConnectionId, LinkBindingId, PlanId, SignId,
     SourceDocumentId,
 };
 
@@ -25,26 +25,26 @@ pub struct NewPlanRecoveryPresentation {
     pub prior: RoutePlanPresentation,
     pub replacement_plan_id: PlanId,
     pub unavailable_binding_id: LinkBindingId,
-    pub unavailable_clue_id: ClueId,
-    pub unsatisfied_clue_id: ClueId,
-    pub planning_request_clue_id: ClueId,
-    pub planning_success_clue_id: ClueId,
-    pub installed_clue_id: ClueId,
+    pub unavailable_sign_id: SignId,
+    pub unsatisfied_sign_id: SignId,
+    pub planning_request_sign_id: SignId,
+    pub planning_success_sign_id: SignId,
+    pub installed_sign_id: SignId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SamePlanFallbackPresentation {
     pub plan: RoutePlanPresentation,
     pub unavailable_binding_id: LinkBindingId,
-    pub unavailable_clue_id: ClueId,
+    pub unavailable_sign_id: SignId,
     pub selected_binding_id: LinkBindingId,
-    pub selection_clue_id: ClueId,
+    pub selection_sign_id: SignId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RefusedRoutePresentation {
     pub binding_id: LinkBindingId,
-    pub observation_clue_id: ClueId,
+    pub observation_sign_id: SignId,
 }
 
 /// One immutable semantic snapshot consumed by every route-demo presentation.
@@ -91,8 +91,8 @@ impl DistributedRoutePresentation {
             ),
             "  UNSATISFIED — no admitted route ready".into(),
             format!(
-                "    ↓ planning requested clue={}",
-                self.new_plan.planning_request_clue_id.as_str()
+                "    ↓ planning requested sign={}",
+                self.new_plan.planning_request_sign_id.as_str()
             ),
             format!(
                 "  Plan B  id={} prior={}",
@@ -100,11 +100,11 @@ impl DistributedRoutePresentation {
                 self.new_plan.prior.plan_id.as_str()
             ),
             format!(
-                "  clue unavailable={} unsatisfied={} planned={} installed={}",
-                self.new_plan.unavailable_clue_id.as_str(),
-                self.new_plan.unsatisfied_clue_id.as_str(),
-                self.new_plan.planning_success_clue_id.as_str(),
-                self.new_plan.installed_clue_id.as_str()
+                "  sign unavailable={} unsatisfied={} planned={} installed={}",
+                self.new_plan.unavailable_sign_id.as_str(),
+                self.new_plan.unsatisfied_sign_id.as_str(),
+                self.new_plan.planning_success_sign_id.as_str(),
+                self.new_plan.installed_sign_id.as_str()
             ),
             "SAME-PLAN FALLBACK".into(),
             format!(
@@ -133,14 +133,14 @@ impl DistributedRoutePresentation {
                 self.same_plan.plan.plan_id.as_str()
             ),
             format!(
-                "  clue unavailable={} selection={}",
-                self.same_plan.unavailable_clue_id.as_str(),
-                self.same_plan.selection_clue_id.as_str()
+                "  sign unavailable={} selection={}",
+                self.same_plan.unavailable_sign_id.as_str(),
+                self.same_plan.selection_sign_id.as_str()
             ),
             format!(
-                "UNPLANNED ROUTE refused={} reason=not sealed into Plan clue={}",
+                "UNPLANNED ROUTE refused={} reason=not sealed into Plan sign={}",
                 display_binding(&self.refused.binding_id),
-                self.refused.observation_clue_id.as_str()
+                self.refused.observation_sign_id.as_str()
             ),
         ]);
         let insertion = lines.len().saturating_sub(3);
@@ -158,36 +158,36 @@ impl DistributedRoutePresentation {
     pub fn linear_lines(&self) -> Vec<String> {
         vec![
             format!(
-                "Form source {} checked {}. Plan {} connection {} has one admitted route, {}. {} became unavailable with clue {}. The Play became unsatisfied with clue {}. Planning was requested with clue {} and succeeded with clue {}. Replacement Plan {} superseded prior Plan {} with realization clue {}.",
+                "Form source {} checked {}. Plan {} connection {} has one admitted route, {}. {} became unavailable with sign {}. The Play became unsatisfied with sign {}. Planning was requested with sign {} and succeeded with sign {}. Replacement Plan {} superseded prior Plan {} with realization sign {}.",
                 self.source_document_id.as_str(),
                 self.checked_form_id.as_str(),
                 self.new_plan.prior.plan_id.as_str(),
                 self.new_plan.prior.connection_id.as_str(),
                 candidate_names(&self.new_plan.prior),
                 display_binding(&self.new_plan.unavailable_binding_id),
-                self.new_plan.unavailable_clue_id.as_str(),
-                self.new_plan.unsatisfied_clue_id.as_str(),
-                self.new_plan.planning_request_clue_id.as_str(),
-                self.new_plan.planning_success_clue_id.as_str(),
+                self.new_plan.unavailable_sign_id.as_str(),
+                self.new_plan.unsatisfied_sign_id.as_str(),
+                self.new_plan.planning_request_sign_id.as_str(),
+                self.new_plan.planning_success_sign_id.as_str(),
                 self.new_plan.replacement_plan_id.as_str(),
                 self.new_plan.prior.plan_id.as_str(),
-                self.new_plan.installed_clue_id.as_str(),
+                self.new_plan.installed_sign_id.as_str(),
             ),
             format!(
-                "Plan {} connection {} has two admitted routes in deterministic order: {}. {} became unavailable with clue {}. {} was selected with clue {}. Plan identity did not change: {}.",
+                "Plan {} connection {} has two admitted routes in deterministic order: {}. {} became unavailable with sign {}. {} was selected with sign {}. Plan identity did not change: {}.",
                 self.same_plan.plan.plan_id.as_str(),
                 self.same_plan.plan.connection_id.as_str(),
                 candidate_names(&self.same_plan.plan),
                 display_binding(&self.same_plan.unavailable_binding_id),
-                self.same_plan.unavailable_clue_id.as_str(),
+                self.same_plan.unavailable_sign_id.as_str(),
                 display_binding(&self.same_plan.selected_binding_id),
-                self.same_plan.selection_clue_id.as_str(),
+                self.same_plan.selection_sign_id.as_str(),
                 self.same_plan.plan.plan_id.as_str(),
             ),
             format!(
-                "An observed ambient route, {}, was refused because it was not sealed into the active Plan. Observation clue was {}.",
+                "An observed ambient route, {}, was refused because it was not sealed into the active Plan. Observation sign was {}.",
                 display_binding(&self.refused.binding_id),
-                self.refused.observation_clue_id.as_str(),
+                self.refused.observation_sign_id.as_str(),
             ),
         ]
     }

@@ -3,7 +3,7 @@
 The checked-in corpus executes canonical Form source through production
 boundaries. These are deterministic acceptance commands, not parser-only
 examples: each successful program reaches planning, `conduit-kernel`, host
-operation completion, a terminal result, and bounded clue.
+operation completion, a terminal result, and bounded Sign.
 
 Run commands from the repository root.
 
@@ -17,7 +17,7 @@ accepted source/plan/firmware identities; see `examples/README.md`.
 
 ```bash
 cargo test -p conduit-std-host --test canonical_text_pipeline \
-  canonical_program_one_runs_through_the_planner_kernel_and_terminal_clue
+  canonical_program_one_runs_through_the_planner_kernel_and_terminal_sign
 ```
 
 The source in `examples/hello.conduit` sends the literal `"Hello, world."` to
@@ -118,7 +118,7 @@ cargo xtask prove browser-host --locked
 
 The software-gated distributed Signal case loads
 `examples/signal-demo.conduit`. That source contains no host, platform,
-address, carrier, or WebSocket fact. Planning selects one std source fragment,
+address, Line, or WebSocket fact. Planning selects one std source fragment,
 one browser/WASM sink fragment, and the exact observed bounded WebSocket link.
 
 Expected software-suite result:
@@ -130,7 +130,7 @@ Expected software-suite result:
 
 The two skipped cases require an attached physical Pico and are not part of the
 Program 6 claim. The std/browser proof delivers 16 exact receipts, exercises
-capacity-one pressure, reaches terminal clue on both kernels, and leaves no
+capacity-one pressure, reaches terminal Sign on both kernels, and leaves no
 retained or in-flight value. Its link-break case remains a distinct failure.
 
 ## Program 5 boundary
@@ -150,7 +150,7 @@ the remaining page. Form, checked, expanded, Plan, fragment, Play, placement,
 and host-operation identities are retained without recording message content.
 
 This is mechanically distinct from `ConnectionBase::WebSocket`, which
-transports Conduit sessions between hosts. No carrier link binding or session
+transports Conduit sessions between Hosts. No Line, link binding, or session
 frame appears in the authored external-WebSocket plan.
 
 Focused proof:

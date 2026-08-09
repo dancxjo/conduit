@@ -10,8 +10,8 @@
 </main>
 <script type="module">
 import { createPoolWebchat } from "./pool-webchat-runtime.mjs";
-const url = new URLSearchParams(location.search).get("carrier");
-if (!url) throw new Error("pool webchat requires a planned carrier URL");
+const url = new URLSearchParams(location.search).get("line");
+if (!url) throw new Error("pool webchat requires a planned line URL");
 globalThis.__poolWebchat = await createPoolWebchat({
   url,
   list: document.querySelector("#history"),

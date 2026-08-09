@@ -19,7 +19,7 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
 }
 
 #[test]
-fn canonical_program_one_runs_through_the_planner_kernel_and_terminal_clue() {
+fn canonical_program_one_runs_through_the_planner_kernel_and_terminal_sign() {
     let expanded = expanded();
     assert_eq!(expanded.gears.len(), 3);
     assert_eq!(expanded.connections.len(), 2);

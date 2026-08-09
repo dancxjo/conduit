@@ -4,8 +4,8 @@ use conduit_core::{CancellationPolicy, TerminalPolicy};
 use conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
 
 use crate::model::{
-    GeneratedClueTarget, GeneratedConfigurationEntry, GeneratedConfigurationValue,
-    GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedPort, GeneratedStaticNode,
+    GeneratedConfigurationEntry, GeneratedConfigurationValue, GeneratedCordEndpoint,
+    GeneratedEmbeddedPlan, GeneratedPort, GeneratedSignTarget, GeneratedStaticNode,
 };
 
 impl GeneratedEmbeddedPlan {
@@ -66,7 +66,7 @@ impl GeneratedEmbeddedPlan {
         render_routes(&mut output, self);
         render_host_operations(&mut output, self);
         render_resources(&mut output, self);
-        render_clue(&mut output, self);
+        render_sign(&mut output, self);
         render_startup(&mut output, self);
         render_expected_terminals(&mut output, self);
         output
@@ -135,7 +135,7 @@ impl GeneratedEmbeddedPlan {
         render_routes(&mut output, self);
         render_host_operations(&mut output, self);
         render_resources(&mut output, self);
-        render_clue(&mut output, self);
+        render_sign(&mut output, self);
         render_startup(&mut output, self);
         render_expected_terminals(&mut output, self);
         output
@@ -196,8 +196,8 @@ fn render_budgets(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     for (name, kind, value) in [
         ("CORD_VALUE_SLOTS", "u16", u64::from(plan.cord_value_slots)),
         ("CORD_VALUE_BYTES", "u32", u64::from(plan.cord_value_bytes)),
-        ("CLUE_ITEMS", "u16", u64::from(plan.clue_items)),
-        ("CLUE_BYTES", "u32", u64::from(plan.clue_bytes)),
+        ("SIGN_ITEMS", "u16", u64::from(plan.sign_items)),
+        ("SIGN_BYTES", "u32", u64::from(plan.sign_bytes)),
     ] {
         writeln!(output, "pub const {name}: {kind} = {value};").expect("String writes cannot fail");
     }
@@ -367,29 +367,29 @@ fn render_resources(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     output.push_str("];\n");
 }
 
-fn render_clue(output: &mut String, plan: &GeneratedEmbeddedPlan) {
+fn render_sign(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     writeln!(
         output,
-        "pub const GENERATED_CLUE_TARGETS: [(conduit_kernel::ClueExpectationId, conduit_kernel::ClueExpectationTarget); {}] = [",
-        plan.clues.len()
+        "pub const GENERATED_SIGN_TARGETS: [(conduit_kernel::SignExpectationId, conduit_kernel::SignExpectationTarget); {}] = [",
+        plan.signs.len()
     )
     .expect("String writes cannot fail");
-    for clue in &plan.clues {
-        let target = match clue.target {
-            GeneratedClueTarget::Fragment => {
-                "conduit_kernel::ClueExpectationTarget::Fragment".to_owned()
+    for sign in &plan.signs {
+        let target = match sign.target {
+            GeneratedSignTarget::Fragment => {
+                "conduit_kernel::SignExpectationTarget::Fragment".to_owned()
             }
-            GeneratedClueTarget::Node(node) => format!(
-                "conduit_kernel::ClueExpectationTarget::Node(conduit_kernel::NodeId({node}))"
+            GeneratedSignTarget::Node(node) => format!(
+                "conduit_kernel::SignExpectationTarget::Node(conduit_kernel::NodeId({node}))"
             ),
-            GeneratedClueTarget::Cord(cord) => format!(
-                "conduit_kernel::ClueExpectationTarget::Cord(conduit_kernel::CordId({cord}))"
+            GeneratedSignTarget::Cord(cord) => format!(
+                "conduit_kernel::SignExpectationTarget::Cord(conduit_kernel::CordId({cord}))"
             ),
         };
         writeln!(
             output,
-            "    (conduit_kernel::ClueExpectationId({}), {}),",
-            clue.expectation, target
+            "    (conduit_kernel::SignExpectationId({}), {}),",
+            sign.expectation, target
         )
         .expect("String writes cannot fail");
     }
@@ -397,12 +397,12 @@ fn render_clue(output: &mut String, plan: &GeneratedEmbeddedPlan) {
 
     writeln!(
         output,
-        "pub const GENERATED_CLUE_IDENTITIES: [(&str, Option<&str>); {}] = [",
-        plan.clues.len()
+        "pub const GENERATED_SIGN_IDENTITIES: [(&str, Option<&str>); {}] = [",
+        plan.signs.len()
     )
     .expect("String writes cannot fail");
-    for clue in &plan.clues {
-        render_kind_subject(output, clue.kind, clue.subject.as_deref());
+    for sign in &plan.signs {
+        render_kind_subject(output, sign.kind, sign.subject.as_deref());
     }
     output.push_str("];\n");
 }

@@ -4,25 +4,25 @@ use alloc::vec::Vec;
 
 use conduit_body::{Body, BodyId, BodyLifecycleError, Wake, WakeId};
 use conduit_core::{
-    bind_active_play, ActivePlayId, ActivePlayIdentity, BootId, ClueId, ControlLoopEvent, GearId,
-    HostId, LineAvailability, LineAvailabilitySign, Plan, PlanId, PlanningRequestAuthority,
-    PlayUnsatisfiedReason,
+    bind_active_play, ActivePlayId, ActivePlayIdentity, BootId, ControlLoopEvent, GearId, HostId,
+    LineAvailability, LineAvailabilitySign, Plan, PlanId, PlanningRequestAuthority,
+    PlayUnsatisfiedReason, SignId,
 };
 use conduit_wire::{LineDisposition, LineError, LineMachine, SessionBinding, WireError};
 use serde::{Deserialize, Serialize};
 
 pub const MAX_R1_RECOVERY_EVENTS: usize = 8;
-pub const MAX_R1_LED_RESULT_CLUES: usize = 4;
+pub const MAX_R1_LED_RESULT_SIGNS: usize = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct R1LedResultClue {
+pub struct R1LedResultSign {
     pub body_id: BodyId,
     pub wake_id: WakeId,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
     pub pico_host_id: HostId,
     pub pico_boot_id: BootId,
-    pub clue_id: ClueId,
+    pub sign_id: SignId,
     pub level: bool,
 }
 
@@ -33,25 +33,25 @@ pub struct R1LedResultObservation {
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
     pub observed_session: SessionBinding,
-    pub clue_id: ClueId,
+    pub sign_id: SignId,
     pub level: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct R1RecoveryStartClues {
-    pub birth: ClueId,
-    pub wake: ClueId,
-    pub plan_ready: ClueId,
-    pub play_started: ClueId,
+pub struct R1RecoveryStartSigns {
+    pub birth: SignId,
+    pub wake: SignId,
+    pub plan_ready: SignId,
+    pub play_started: SignId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct R1ReplacementClues {
-    pub request: ClueId,
-    pub planned: ClueId,
-    pub superseded: ClueId,
-    pub realized: ClueId,
-    pub play_started: ClueId,
+pub struct R1ReplacementSigns {
+    pub request: SignId,
+    pub planned: SignId,
+    pub superseded: SignId,
+    pub realized: SignId,
+    pub play_started: SignId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,7 +64,7 @@ pub struct R1NewPlanRecovery {
     plan_b: Option<Plan>,
     play_b: Option<ActivePlayIdentity>,
     events: Vec<ControlLoopEvent>,
-    led_results: Vec<R1LedResultClue>,
+    led_results: Vec<R1LedResultSign>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,7 +108,7 @@ impl R1NewPlanRecovery {
         play_host_id: HostId,
         play_boot_id: BootId,
         play_sequence: u64,
-        clues: R1RecoveryStartClues,
+        signs: R1RecoveryStartSigns,
     ) -> Result<Self, R1RecoveryError> {
         if !conduit_core::verify_plan(&plan_a) || find_gear(&plan_a, &obligation_gear_id).is_none()
         {
@@ -118,12 +118,12 @@ impl R1NewPlanRecovery {
             plan_a.source_document_id.clone(),
             plan_a.checked_form_id.clone(),
             birth_sequence,
-            clues.birth,
+            signs.birth,
         )?;
-        let (body, wake) = body.wake(wake_sequence, clues.wake)?;
-        let wake = wake.plan_ready(&plan_a, clues.plan_ready)?;
+        let (body, wake) = body.wake(wake_sequence, signs.wake)?;
+        let wake = wake.plan_ready(&plan_a, signs.plan_ready)?;
         let play_a = bind_active_play(&plan_a.plan_id, &play_host_id, &play_boot_id, play_sequence);
-        let wake = wake.play_started(&play_a, clues.play_started)?;
+        let wake = wake.play_started(&play_a, signs.play_started)?;
         Ok(Self {
             body,
             wake,
@@ -133,14 +133,14 @@ impl R1NewPlanRecovery {
             plan_b: None,
             play_b: None,
             events: Vec::with_capacity(MAX_R1_RECOVERY_EVENTS),
-            led_results: Vec::with_capacity(MAX_R1_LED_RESULT_CLUES),
+            led_results: Vec::with_capacity(MAX_R1_LED_RESULT_SIGNS),
         })
     }
 
     pub fn observe_line_unavailable(
         &mut self,
         observation: LineAvailabilitySign,
-        unsatisfied_clue_id: ClueId,
+        unsatisfied_sign_id: SignId,
     ) -> Result<(), R1RecoveryError> {
         if observation.availability != LineAvailability::Unavailable || self.plan_b.is_some() {
             return Err(R1RecoveryError::InvalidObservation);
@@ -172,7 +172,7 @@ impl R1NewPlanRecovery {
             connection_id: connection.connection_id.clone(),
             line_id: observation.line_id,
             binding_id: observation.binding_id,
-            observation_clue_id: observation.sign_id,
+            observation_sign_id: observation.sign_id,
         };
         unavailable
             .validate_route_event(&self.plan_a.plan_id, connection)
@@ -180,7 +180,7 @@ impl R1NewPlanRecovery {
         let unsatisfied = ControlLoopEvent::PlayBecameUnsatisfied {
             plan_id: self.plan_a.plan_id.clone(),
             reason: PlayUnsatisfiedReason::NoAdmittedRouteReady,
-            clue_id: unsatisfied_clue_id.clone(),
+            sign_id: unsatisfied_sign_id.clone(),
         };
         unsatisfied
             .validate()
@@ -188,7 +188,7 @@ impl R1NewPlanRecovery {
         self.reserve_event_slots(2)?;
         let next_wake = self
             .wake
-            .became_unsatisfied(&self.plan_a.plan_id, unsatisfied_clue_id)?;
+            .became_unsatisfied(&self.plan_a.plan_id, unsatisfied_sign_id)?;
         self.push_event(unavailable)?;
         self.push_event(unsatisfied)?;
         self.wake = next_wake;
@@ -204,7 +204,7 @@ impl R1NewPlanRecovery {
         play_host_id: HostId,
         play_boot_id: BootId,
         play_sequence: u64,
-        clues: R1ReplacementClues,
+        signs: R1ReplacementSigns,
     ) -> Result<(), R1RecoveryError> {
         if self.plan_b.is_some()
             || self.wake.lifecycle != conduit_body::WakeLifecycle::Unsatisfied
@@ -231,35 +231,35 @@ impl R1NewPlanRecovery {
             requester_host_id,
             requester_boot_id,
             authority: PlanningRequestAuthority::HostLocal,
-            request_clue_id: clues.request.clone(),
+            request_sign_id: signs.request.clone(),
         };
-        let wake_replan_clue = clues.planned.clone();
+        let wake_replan_sign = signs.planned.clone();
         let planned = ControlLoopEvent::PlanningSucceeded {
             prior_plan_id: self.plan_a.plan_id.clone(),
             replacement_plan_id: plan_b.plan_id.clone(),
-            request_clue_id: clues.request,
-            clue_id: clues.planned,
+            request_sign_id: signs.request,
+            sign_id: signs.planned,
         };
         let superseded = ControlLoopEvent::PlanSuperseded {
             prior_plan_id: self.plan_a.plan_id.clone(),
             replacement_plan_id: plan_b.plan_id.clone(),
-            clue_id: clues.superseded,
+            sign_id: signs.superseded,
         };
         let realized = ControlLoopEvent::PlanRealized {
             plan_id: plan_b.plan_id.clone(),
-            clue_id: clues.realized,
+            sign_id: signs.realized,
         };
         for event in [&request, &planned, &superseded, &realized] {
             event.validate().map_err(|_| R1RecoveryError::InvalidPlan)?;
         }
         self.reserve_event_slots(4)?;
-        let next_wake = self.wake.plan_ready(&plan_b, wake_replan_clue)?;
+        let next_wake = self.wake.plan_ready(&plan_b, wake_replan_sign)?;
         self.push_event(request)?;
         self.push_event(planned)?;
         self.push_event(superseded)?;
         self.push_event(realized)?;
         let play_b = bind_active_play(&plan_b.plan_id, &play_host_id, &play_boot_id, play_sequence);
-        self.wake = next_wake.play_started(&play_b, clues.play_started)?;
+        self.wake = next_wake.play_started(&play_b, signs.play_started)?;
         self.plan_b = Some(plan_b);
         self.play_b = Some(play_b);
         Ok(())
@@ -269,8 +269,8 @@ impl R1NewPlanRecovery {
         &mut self,
         requester_host_id: HostId,
         requester_boot_id: BootId,
-        request_clue_id: ClueId,
-        refusal_clue_id: ClueId,
+        request_sign_id: SignId,
+        refusal_sign_id: SignId,
         reason: conduit_core::PlanningRefusalReason,
     ) -> Result<(), R1RecoveryError> {
         if self.plan_b.is_some() || self.wake.lifecycle != conduit_body::WakeLifecycle::Unsatisfied
@@ -282,13 +282,13 @@ impl R1NewPlanRecovery {
             requester_host_id,
             requester_boot_id,
             authority: PlanningRequestAuthority::HostLocal,
-            request_clue_id: request_clue_id.clone(),
+            request_sign_id: request_sign_id.clone(),
         };
         let refusal = ControlLoopEvent::PlanningRefused {
             prior_plan_id: self.plan_a.plan_id.clone(),
-            request_clue_id,
+            request_sign_id,
             reason,
-            clue_id: refusal_clue_id,
+            sign_id: refusal_sign_id,
         };
         for event in [&request, &refusal] {
             event.validate().map_err(|_| R1RecoveryError::InvalidPlan)?;
@@ -323,17 +323,17 @@ impl R1NewPlanRecovery {
         {
             return Err(R1RecoveryError::StaleResult);
         }
-        if self.led_results.len() >= MAX_R1_LED_RESULT_CLUES {
+        if self.led_results.len() >= MAX_R1_LED_RESULT_SIGNS {
             return Err(R1RecoveryError::CapacityExhausted);
         }
-        self.led_results.push(R1LedResultClue {
+        self.led_results.push(R1LedResultSign {
             body_id: self.body.body_id.clone(),
             wake_id: self.wake.wake_id.clone(),
             plan_id: observation.plan_id,
             active_play_id: observation.active_play_id,
             pico_host_id: observation.pico_host_id,
             pico_boot_id: observation.pico_boot_id,
-            clue_id: observation.clue_id,
+            sign_id: observation.sign_id,
             level: observation.level,
         });
         Ok(())
@@ -378,7 +378,7 @@ impl R1NewPlanRecovery {
         &self.events
     }
 
-    pub fn led_results(&self) -> &[R1LedResultClue] {
+    pub fn led_results(&self) -> &[R1LedResultSign] {
         &self.led_results
     }
 

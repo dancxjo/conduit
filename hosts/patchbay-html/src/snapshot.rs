@@ -1,5 +1,5 @@
 use crate::transport_types::RendererSnapshot;
-use conduit_core::ClueId;
+use conduit_core::SignId;
 use conduit_presentation::{ManifestationFailure, ManifestationLifecycle};
 use patchbay_model::RendererExecution;
 
@@ -55,11 +55,11 @@ impl RendererSnapshot {
         Ok(value)
     }
 
-    pub fn mark_available(&mut self, clue_id: ClueId) -> Result<(), SnapshotError> {
+    pub fn mark_available(&mut self, sign_id: SignId) -> Result<(), SnapshotError> {
         self.renderer.manifestation = self
             .renderer
             .manifestation
-            .transition(ManifestationLifecycle::Available, clue_id)
+            .transition(ManifestationLifecycle::Available, sign_id)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
         self.validate()
     }
@@ -67,21 +67,21 @@ impl RendererSnapshot {
     pub fn mark_failed(
         &mut self,
         failure: ManifestationFailure,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<(), SnapshotError> {
         self.renderer.manifestation = self
             .renderer
             .manifestation
-            .fail(failure, clue_id)
+            .fail(failure, sign_id)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
         self.validate()
     }
 
-    pub fn mark_closed(&mut self, clue_id: ClueId) -> Result<(), SnapshotError> {
+    pub fn mark_closed(&mut self, sign_id: SignId) -> Result<(), SnapshotError> {
         self.renderer.manifestation = self
             .renderer
             .manifestation
-            .transition(ManifestationLifecycle::Closed, clue_id)
+            .transition(ManifestationLifecycle::Closed, sign_id)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
         self.validate()
     }

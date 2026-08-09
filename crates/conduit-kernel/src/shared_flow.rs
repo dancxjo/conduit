@@ -34,7 +34,7 @@ pub enum FanError {
 }
 
 /// State for one semantic input item replicated to one immutable membership
-/// snapshot. Hosts/carriers may apply pressure to individual addressed
+/// snapshot. Hosts/lines may apply pressure to individual addressed
 /// branches, but cannot add or remove recipients from the captured item.
 pub struct FixedFan<const BRANCHES: usize> {
     branches: [Option<FanBranch>; BRANCHES],

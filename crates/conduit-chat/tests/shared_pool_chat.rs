@@ -6,7 +6,7 @@ use conduit_form::{
 const SOURCE: &str = include_str!("../../../examples/pool-webchat.conduit");
 
 #[test]
-fn native_pool_chat_has_explicit_fan_merge_and_no_authored_carrier() {
+fn native_pool_chat_has_explicit_fan_merge_and_no_authored_line() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_chat::install_pool_chat_catalogs(&mut startup, &mut profile).unwrap();
@@ -26,7 +26,7 @@ fn native_pool_chat_has_explicit_fan_merge_and_no_authored_carrier() {
     for forbidden in ["WebSocket", "websocket", "net/", "socket", "address"] {
         assert!(
             !SOURCE.contains(forbidden),
-            "authored carrier fact: {forbidden}"
+            "authored line fact: {forbidden}"
         );
     }
 }

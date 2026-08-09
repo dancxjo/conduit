@@ -6,9 +6,9 @@ use conduit_core::{
 };
 use conduit_observatory::{HostReport, OperationalState};
 use conduit_system_continuity::{
-    delegated_reboot_face, delegated_reboot_offer, CarrierLossDisposition, DelegatedRebootGrant,
-    DelegatedRebootTransaction, HostInstance, RebootDecision, RebootDenial, RebootPendingState,
-    RebootProgressError, RebootRequest, RebootRequestId,
+    delegated_reboot_face, delegated_reboot_offer, DelegatedRebootGrant,
+    DelegatedRebootTransaction, HostInstance, LineLossDisposition, RebootDecision, RebootDenial,
+    RebootPendingState, RebootProgressError, RebootRequest, RebootRequestId,
 };
 use conduit_wire::{LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
 
@@ -101,7 +101,7 @@ fn grant(controller: &HostInstance, target: &HostInstance) -> DelegatedRebootGra
         selected_line_id: LineId::from("line/controller-to-target"),
         maximum_transitions: 1,
         proof_window_ticks: 2,
-        clue_sequence_base: 40,
+        sign_sequence_base: 40,
     }
 }
 
@@ -116,7 +116,7 @@ fn request(controller: &HostInstance, target: &HostInstance, id: &str) -> Reboot
 }
 
 #[test]
-fn authorized_reboot_separates_acceptance_carrier_loss_and_completed_proof() {
+fn authorized_reboot_separates_acceptance_line_loss_and_completed_proof() {
     let controller = host("host/controller", "boot/controller-1");
     let target = host("host/target", "boot/target-1");
     let mut transaction = DelegatedRebootTransaction::new(grant(&controller, &target));
@@ -132,14 +132,14 @@ fn authorized_reboot_separates_acceptance_carrier_loss_and_completed_proof() {
     assert_eq!(accepted.attempts_remaining, 0);
     assert_eq!(transaction.state(), RebootPendingState::Accepted);
     assert_eq!(
-        transaction.control_carrier_lost(),
-        CarrierLossDisposition::IntentionalTransitionPending
+        transaction.control_line_lost(),
+        LineLossDisposition::IntentionalTransitionPending
     );
 
     transaction
         .old_boot_terminated(
             &request.request_id,
-            conduit_core::ClueId::from("clue/old-boot-terminal"),
+            conduit_core::SignId::from("sign/old-boot-terminal"),
         )
         .unwrap();
     assert_eq!(transaction.state(), RebootPendingState::AwaitingReplacement);
@@ -153,7 +153,7 @@ fn authorized_reboot_separates_acceptance_carrier_loss_and_completed_proof() {
                 state: OperationalState::Available,
                 capabilities: vec![],
             },
-            conduit_core::ClueId::from("clue/new-boot-report"),
+            conduit_core::SignId::from("sign/new-boot-report"),
         )
         .unwrap();
     assert_ne!(proof.acceptance.target.boot_id, proof.new_boot);
@@ -237,7 +237,7 @@ fn support_authority_reachability_boot_and_replay_fail_independently() {
         panic!("expected accepted request followed by replay denial");
     };
     assert_eq!(replayed.reason, RebootDenial::Replay);
-    assert_ne!(accepted.clue_id, replayed.clue_id);
+    assert_ne!(accepted.sign_id, replayed.sign_id);
     assert_eq!(replay.attempts_used(), 1);
 }
 
@@ -262,18 +262,18 @@ fn proof_window_expires_to_unknown_without_fabricating_transport_failure() {
         RebootPendingState::UnknownProofWindowExpired
     );
     assert_eq!(
-        transaction.control_carrier_lost(),
-        CarrierLossDisposition::OrdinaryTransportFailure
+        transaction.control_line_lost(),
+        LineLossDisposition::OrdinaryTransportFailure
     );
     assert_eq!(
         transaction
-            .old_boot_terminated(&request.request_id, conduit_core::ClueId::from("clue/late")),
+            .old_boot_terminated(&request.request_id, conduit_core::SignId::from("sign/late")),
         Err(RebootProgressError::ProofWindowExpired)
     );
 }
 
 #[test]
-fn malformed_request_is_denied_with_machine_readable_clue() {
+fn malformed_request_is_denied_with_machine_readable_sign() {
     let controller = host("host/controller", "boot/controller-1");
     let target = host("host/target", "boot/target-1");
     let malformed = request(&controller, &target, "");
@@ -286,7 +286,7 @@ fn malformed_request_is_denied_with_machine_readable_clue() {
         panic!("malformed request was accepted");
     };
     assert_eq!(receipt.reason, RebootDenial::MalformedRequest);
-    assert!(!receipt.clue_id.as_str().is_empty());
+    assert!(!receipt.sign_id.as_str().is_empty());
 }
 
 #[test]

@@ -6,7 +6,7 @@
 //! Stdin reads are performed exclusively inside `complete_trigger_wait`,
 //! i.e. within the admitted await-trigger host-operation lifecycle.
 //!
-//! Session/carrier transport lives in `carrier.rs`; tests live in `source_tests.rs`.
+//! Session/line transport lives in `line.rs`; tests live in `source_tests.rs`.
 
 use super::operation::{CapacitySeal, ToggleSourceOperation};
 use super::plan::exact_distributed_toggle_plan;
@@ -17,7 +17,7 @@ use conduit_kernel::scheduler::{
 };
 use conduit_kernel::{
     CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedClueLog, HostedValueStore, RemoteEndpointId, RequestId,
+    HostOperationOutcome, HostedSignLog, HostedValueStore, RemoteEndpointId, RequestId,
     ValueStorage,
 };
 use conduit_runtime::lowering::{
@@ -39,12 +39,12 @@ const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES * 2 + MAXIMUM_WAITS) as u16;
 const MAXIMUM_STORED_BYTES: u32 = MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN
     + MAXIMUM_VALUES as u32 * TRIGGER_ENCODED_LEN
     + MAXIMUM_WAITS as u32;
-pub(super) const CLUE_ITEMS: u16 = 256;
+pub(super) const SIGN_ITEMS: u16 = 256;
 
 pub(super) type ToggleScheduler = FixedScheduler<
     OperationDriver<ToggleSourceOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     2,
     2,
     PORTS,
@@ -211,11 +211,11 @@ impl DistributedToggleSource {
             [toggle_driver, trigger_driver]
         };
 
-        let clue_bytes = u32::from(CLUE_ITEMS)
+        let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-            .ok_or_else(|| "source clue budget overflow".to_string())?;
-        let clue =
-            HostedClueLog::new(CLUE_ITEMS, clue_bytes).map_err(|error| format!("{error:?}"))?;
+            .ok_or_else(|| "source sign budget overflow".to_string())?;
+        let sign =
+            HostedSignLog::new(SIGN_ITEMS, sign_bytes).map_err(|error| format!("{error:?}"))?;
 
         let remote = &lowered.remote_endpoints[0];
         let connection = fragment
@@ -248,7 +248,7 @@ impl DistributedToggleSource {
             host_bindings,
             drivers,
             store,
-            clue,
+            sign,
         )
         .map_err(|error| format!("{error:?}"))?;
 
@@ -276,7 +276,7 @@ impl DistributedToggleSource {
             .map_err(|error| format!("{error:?}"))?;
         let seal = CapacitySeal {
             values: scheduler.values().allocation_capacities(),
-            clue: scheduler.clues().allocation_capacity(),
+            sign: scheduler.signs().allocation_capacity(),
             drivers: scheduler
                 .drivers()
                 .iter()
@@ -299,7 +299,7 @@ impl DistributedToggleSource {
     pub(super) fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
-            clue: self.scheduler.clues().allocation_capacity(),
+            sign: self.scheduler.signs().allocation_capacity(),
             drivers: self
                 .scheduler
                 .drivers()
@@ -412,7 +412,7 @@ impl DistributedToggleSource {
         stdin: &mut R,
         report: &mut W,
     ) -> Result<(), String> {
-        super::carrier::run_source(self, listener, stdin, report)
+        super::line::run_source(self, listener, stdin, report)
     }
 
     pub fn fragment(&self) -> &PlanFragment {

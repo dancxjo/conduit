@@ -1,7 +1,7 @@
 //! Canonical Patchbay Build/Birth control over Form and Body lifecycle truth.
 
 use conduit_body::{Body, BodyLifecycleError, BodyState, Wake, WakeLifecycle};
-use conduit_core::{ActivePlayIdentity, ClueId, Plan, PlanId};
+use conduit_core::{ActivePlayIdentity, Plan, PlanId, SignId};
 
 use crate::FormEditor;
 
@@ -84,7 +84,7 @@ impl BuildBirthController {
         &mut self,
         editor: &FormEditor,
         birth_sequence: u64,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<(), BuildBirthError> {
         if self.body.is_some() {
             return Err(BuildBirthError::AlreadyBorn);
@@ -103,86 +103,86 @@ impl BuildBirthController {
                 .ok_or(BuildBirthError::UncheckedRevision)?,
             form.checked_form_id.clone(),
             birth_sequence,
-            clue_id,
+            sign_id,
         )?);
         self.born_revision = Some(view.revision);
         self.wake = None;
         Ok(())
     }
 
-    pub fn wake(&mut self, wake_sequence: u64, clue_id: ClueId) -> Result<(), BuildBirthError> {
+    pub fn wake(&mut self, wake_sequence: u64, sign_id: SignId) -> Result<(), BuildBirthError> {
         let body = self.body.as_ref().ok_or(BuildBirthError::BodyNotBorn)?;
-        let (body, wake) = body.wake(wake_sequence, clue_id)?;
+        let (body, wake) = body.wake(wake_sequence, sign_id)?;
         self.body = Some(body);
         self.wake = Some(wake);
         Ok(())
     }
 
-    pub fn plan_ready(&mut self, plan: &Plan, clue_id: ClueId) -> Result<(), BuildBirthError> {
+    pub fn plan_ready(&mut self, plan: &Plan, sign_id: SignId) -> Result<(), BuildBirthError> {
         let wake = self.wake.as_ref().ok_or(BuildBirthError::BodyNotAwake)?;
-        self.wake = Some(wake.plan_ready(plan, clue_id)?);
+        self.wake = Some(wake.plan_ready(plan, sign_id)?);
         Ok(())
     }
 
     pub fn play_started(
         &mut self,
         play: &ActivePlayIdentity,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<(), BuildBirthError> {
         let wake = self.wake.as_ref().ok_or(BuildBirthError::BodyNotAwake)?;
-        self.wake = Some(wake.play_started(play, clue_id)?);
+        self.wake = Some(wake.play_started(play, sign_id)?);
         Ok(())
     }
 
     pub fn became_unsatisfied(
         &mut self,
         plan_id: &PlanId,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<(), BuildBirthError> {
         let wake = self.wake.as_ref().ok_or(BuildBirthError::BodyNotAwake)?;
-        self.wake = Some(wake.became_unsatisfied(plan_id, clue_id)?);
+        self.wake = Some(wake.became_unsatisfied(plan_id, sign_id)?);
         Ok(())
     }
 
     pub fn same_plan_observed(
         &mut self,
         plan_id: &PlanId,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<(), BuildBirthError> {
         let wake = self.wake.as_ref().ok_or(BuildBirthError::BodyNotAwake)?;
-        self.wake = Some(wake.same_plan_observed(plan_id, clue_id)?);
+        self.wake = Some(wake.same_plan_observed(plan_id, sign_id)?);
         Ok(())
     }
 
-    pub fn lull(&mut self, clue_id: ClueId, retained_clue: ClueId) -> Result<(), BuildBirthError> {
+    pub fn lull(&mut self, sign_id: SignId, retained_sign: SignId) -> Result<(), BuildBirthError> {
         let wake = self
             .wake
             .as_ref()
             .ok_or(BuildBirthError::BodyNotAwake)?
-            .lull(clue_id)?;
-        self.retain_terminal_wake(wake, retained_clue)
+            .lull(sign_id)?;
+        self.retain_terminal_wake(wake, retained_sign)
     }
 
     pub fn fail_wake(
         &mut self,
-        clue_id: ClueId,
-        retained_clue: ClueId,
+        sign_id: SignId,
+        retained_sign: SignId,
     ) -> Result<(), BuildBirthError> {
         let wake = self
             .wake
             .as_ref()
             .ok_or(BuildBirthError::BodyNotAwake)?
-            .fail(clue_id)?;
-        self.retain_terminal_wake(wake, retained_clue)
+            .fail(sign_id)?;
+        self.retain_terminal_wake(wake, retained_sign)
     }
 
     fn retain_terminal_wake(
         &mut self,
         wake: Wake,
-        retained_clue: ClueId,
+        retained_sign: SignId,
     ) -> Result<(), BuildBirthError> {
         let body = self.body.as_ref().ok_or(BuildBirthError::BodyNotBorn)?;
-        self.body = Some(body.retain_after_lull(&wake, retained_clue)?);
+        self.body = Some(body.retain_after_lull(&wake, retained_sign)?);
         self.wake = Some(wake);
         Ok(())
     }

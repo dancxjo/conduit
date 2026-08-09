@@ -1,5 +1,5 @@
 use conduit_body::{BodyLifecycleEvent, BodyState, WakeLifecycle, WakeLifecycleEvent};
-use conduit_core::{bind_active_play, ClueId};
+use conduit_core::{bind_active_play, SignId};
 use conduit_std_host::StdHost;
 
 use crate::{BuildBirthController, BuildBirthError, FormEditor, PatchbayMode};
@@ -35,12 +35,12 @@ fn build_birth_wake_replan_play_and_lull_use_exact_canonical_values() {
         ))
         .unwrap();
     assert_eq!(
-        lifecycle.birth(&editor, 7, ClueId::from("build/born")),
+        lifecycle.birth(&editor, 7, SignId::from("build/born")),
         Err(BuildBirthError::UncheckedRevision)
     );
     editor.recheck().unwrap();
     lifecycle
-        .birth(&editor, 7, ClueId::from("build/born"))
+        .birth(&editor, 7, SignId::from("build/born"))
         .unwrap();
     let born_body = lifecycle.body().unwrap().clone();
     let (first_plan, first_play) = planned_on_fresh_host(&editor);
@@ -50,7 +50,7 @@ fn build_birth_wake_replan_play_and_lull_use_exact_canonical_values() {
     assert_eq!(
         born_body.events,
         vec![BodyLifecycleEvent::Born {
-            clue_id: ClueId::from("build/born")
+            sign_id: SignId::from("build/born")
         }]
     );
     assert!(lifecycle.wake_value().is_none());
@@ -61,21 +61,21 @@ fn build_birth_wake_replan_play_and_lull_use_exact_canonical_values() {
     editor.recheck().unwrap();
     assert_eq!(lifecycle.body(), Some(&born_body));
 
-    lifecycle.wake(3, ClueId::from("build/woke")).unwrap();
+    lifecycle.wake(3, SignId::from("build/woke")).unwrap();
     lifecycle
-        .plan_ready(&first_plan, ClueId::from("build/planned-a"))
+        .plan_ready(&first_plan, SignId::from("build/planned-a"))
         .unwrap();
     lifecycle
-        .play_started(&first_play, ClueId::from("build/played-a"))
+        .play_started(&first_play, SignId::from("build/played-a"))
         .unwrap();
     lifecycle
-        .became_unsatisfied(&first_plan.plan_id, ClueId::from("build/unsatisfied"))
+        .became_unsatisfied(&first_plan.plan_id, SignId::from("build/unsatisfied"))
         .unwrap();
     lifecycle
-        .plan_ready(&replacement_plan, ClueId::from("build/planned-b"))
+        .plan_ready(&replacement_plan, SignId::from("build/planned-b"))
         .unwrap();
     lifecycle
-        .play_started(&replacement_play, ClueId::from("build/played-b"))
+        .play_started(&replacement_play, SignId::from("build/played-b"))
         .unwrap();
 
     let wake = lifecycle.wake_value().unwrap();
@@ -94,8 +94,8 @@ fn build_birth_wake_replan_play_and_lull_use_exact_canonical_values() {
 
     lifecycle
         .lull(
-            ClueId::from("build/lulled"),
-            ClueId::from("build/lull-retained"),
+            SignId::from("build/lulled"),
+            SignId::from("build/lull-retained"),
         )
         .unwrap();
     assert_eq!(lifecycle.body().unwrap().state, BodyState::Lulled);
@@ -138,7 +138,7 @@ fn invalid_duplicate_and_terminal_transitions_remain_distinct() {
     let mut invalid = editor("form broken {");
     let mut lifecycle = BuildBirthController::new();
     assert_eq!(
-        lifecycle.birth(&invalid, 0, ClueId::from("invalid/born")),
+        lifecycle.birth(&invalid, 0, SignId::from("invalid/born")),
         Err(BuildBirthError::UncheckedRevision)
     );
     assert!(lifecycle
@@ -153,24 +153,24 @@ fn invalid_duplicate_and_terminal_transitions_remain_distinct() {
         .unwrap();
     invalid.recheck().unwrap();
     lifecycle
-        .birth(&invalid, 0, ClueId::from("valid/born"))
+        .birth(&invalid, 0, SignId::from("valid/born"))
         .unwrap();
     assert_eq!(
-        lifecycle.birth(&invalid, 1, ClueId::from("duplicate/born")),
+        lifecycle.birth(&invalid, 1, SignId::from("duplicate/born")),
         Err(BuildBirthError::AlreadyBorn)
     );
     assert_eq!(
         lifecycle.plan_ready(
             &planned_on_fresh_host(&invalid).0,
-            ClueId::from("early/plan")
+            SignId::from("early/plan")
         ),
         Err(BuildBirthError::BodyNotAwake)
     );
-    lifecycle.wake(0, ClueId::from("valid/woke")).unwrap();
+    lifecycle.wake(0, SignId::from("valid/woke")).unwrap();
     lifecycle
         .fail_wake(
-            ClueId::from("wake/failed"),
-            ClueId::from("wake/failure-retained"),
+            SignId::from("wake/failed"),
+            SignId::from("wake/failure-retained"),
         )
         .unwrap();
     assert_eq!(lifecycle.body().unwrap().state, BodyState::Lulled);

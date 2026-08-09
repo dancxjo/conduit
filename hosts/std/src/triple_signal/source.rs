@@ -2,16 +2,16 @@ use std::thread;
 use std::time::Duration;
 
 use conduit_core::{
-    bind_active_play, bind_clue, bind_presentation, BootId, ClueId, ConnectionBase, PlacementId,
-    PlanFragment, PresentationId,
+    bind_active_play, bind_presentation, bind_sign, BootId, ConnectionBase, PlacementId,
+    PlanFragment, PresentationId, SignId,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    ClueQuery, CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
-    HostOperationOutcome, HostedClueLog, HostedValueStore, KernelEventKind, NodeId,
-    RemoteEndpointId, ValueStorage,
+    CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
+    HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEventKind, NodeId,
+    RemoteEndpointId, SignQuery, ValueStorage,
 };
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -33,12 +33,12 @@ const VALUES: usize = 16;
 const WAITS: usize = VALUES - 1;
 const STORED_ITEMS: u16 = (VALUES + WAITS) as u16;
 const STORED_BYTES: u32 = VALUES as u32 * SIGNAL_ENCODED_LEN + WAITS as u32 * 8;
-const CLUE_ITEMS: u16 = 512;
+const SIGN_ITEMS: u16 = 512;
 
 type TripleScheduler = FixedScheduler<
     OperationDriver<TripleOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     2,
     3,
     PORTS,
@@ -68,7 +68,7 @@ pub struct StdoutReceipt {
     pub active_play_id: String,
     pub placement_id: PlacementId,
     pub presentation_id: PresentationId,
-    pub clue_id: ClueId,
+    pub sign_id: SignId,
     pub sequence: u64,
     pub level: bool,
 }
@@ -84,7 +84,7 @@ struct RemoteBranch {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct CapacitySeal {
     values: (usize, usize),
-    clue: usize,
+    sign: usize,
     drivers: usize,
     identity: (usize, usize, usize),
     receipts: usize,
@@ -299,11 +299,11 @@ impl TripleSource {
             || self.scheduler.values().used_items() != 0
             || !self
                 .scheduler
-                .clues()
+                .signs()
                 .contains_kind(KernelEventKind::RemoteValueDelivered)
             || !self
                 .scheduler
-                .clues()
+                .signs()
                 .contains_kind(KernelEventKind::OperationCompleted)
             || self.capacity_seal() != self.seal
         {
@@ -360,7 +360,7 @@ impl TripleSource {
             let signal = decode_signal_bytes(input).map_err(|error| error.to_string())?;
             let presentation =
                 bind_presentation(&self.active_play_id, &self.show_placement, signal.sequence);
-            let clue = bind_clue(
+            let sign = bind_sign(
                 &self.fragment.host_id,
                 &self.fragment.boot_id,
                 Some(&self.active_play_id),
@@ -375,8 +375,8 @@ impl TripleSource {
                 )
                 .map_err(|error| format!("{error:?}"))?;
             self.identity
-                .bind_clue(
-                    &clue,
+                .bind_sign(
+                    &sign,
                     Some(request.node),
                     Some(request.request),
                     Some(&presentation.presentation_id),
@@ -388,7 +388,7 @@ impl TripleSource {
                 active_play_id: self.active_play_id.as_str().to_owned(),
                 placement_id: self.show_placement.clone(),
                 presentation_id: presentation.presentation_id,
-                clue_id: clue.clue_id,
+                sign_id: sign.sign_id,
                 sequence: signal.sequence,
                 level: signal.level,
             });
@@ -425,7 +425,7 @@ impl TripleSource {
     fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
-            clue: self.scheduler.clues().allocation_capacity(),
+            sign: self.scheduler.signs().allocation_capacity(),
             drivers: self
                 .scheduler
                 .drivers()

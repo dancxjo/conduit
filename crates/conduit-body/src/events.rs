@@ -1,4 +1,4 @@
-use conduit_core::{ActivePlayId, ClueId, PlanId};
+use conduit_core::{ActivePlayId, PlanId, SignId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -8,17 +8,17 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyLifecycleEvent {
-    Born { clue_id: ClueId },
-    Woke { wake_id: WakeId, clue_id: ClueId },
-    LullRetained { wake_id: WakeId, clue_id: ClueId },
+    Born { sign_id: SignId },
+    Woke { wake_id: WakeId, sign_id: SignId },
+    LullRetained { wake_id: WakeId, sign_id: SignId },
 }
 
 impl BodyLifecycleEvent {
-    pub fn clue_id(&self) -> &ClueId {
+    pub fn sign_id(&self) -> &SignId {
         match self {
-            Self::Born { clue_id }
-            | Self::Woke { clue_id, .. }
-            | Self::LullRetained { clue_id, .. } => clue_id,
+            Self::Born { sign_id }
+            | Self::Woke { sign_id, .. }
+            | Self::LullRetained { sign_id, .. } => sign_id,
         }
     }
 }
@@ -26,83 +26,83 @@ impl BodyLifecycleEvent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WakeLifecycleEvent {
     Woke {
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     PlanReady {
         plan_id: PlanId,
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     PlanHeld {
         prior_plan_id: Option<PlanId>,
         plan_id: PlanId,
-        basis_sign_ids: alloc::vec::Vec<ClueId>,
+        basis_sign_ids: alloc::vec::Vec<SignId>,
         policy: HoldPolicy,
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     HeldPlanReleased {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     HeldPlanInvalidated {
         plan_id: PlanId,
-        current_basis_sign_ids: alloc::vec::Vec<ClueId>,
-        clue_id: ClueId,
+        current_basis_sign_ids: alloc::vec::Vec<SignId>,
+        sign_id: SignId,
     },
     PlayStarted {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     BecameUnsatisfied {
         plan_id: PlanId,
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     Replanned {
         prior_plan_id: PlanId,
         replacement_plan_id: PlanId,
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     SamePlanObserved {
         plan_id: PlanId,
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     Lulled {
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     Failed {
-        clue_id: ClueId,
+        sign_id: SignId,
     },
 }
 
 impl WakeLifecycleEvent {
-    pub fn clue_id(&self) -> &ClueId {
+    pub fn sign_id(&self) -> &SignId {
         match self {
-            Self::Woke { clue_id }
-            | Self::PlanReady { clue_id, .. }
-            | Self::PlanHeld { clue_id, .. }
-            | Self::HeldPlanReleased { clue_id, .. }
-            | Self::HeldPlanInvalidated { clue_id, .. }
-            | Self::PlayStarted { clue_id, .. }
-            | Self::BecameUnsatisfied { clue_id, .. }
-            | Self::Replanned { clue_id, .. }
-            | Self::SamePlanObserved { clue_id, .. }
-            | Self::Lulled { clue_id }
-            | Self::Failed { clue_id } => clue_id,
+            Self::Woke { sign_id }
+            | Self::PlanReady { sign_id, .. }
+            | Self::PlanHeld { sign_id, .. }
+            | Self::HeldPlanReleased { sign_id, .. }
+            | Self::HeldPlanInvalidated { sign_id, .. }
+            | Self::PlayStarted { sign_id, .. }
+            | Self::BecameUnsatisfied { sign_id, .. }
+            | Self::Replanned { sign_id, .. }
+            | Self::SamePlanObserved { sign_id, .. }
+            | Self::Lulled { sign_id }
+            | Self::Failed { sign_id } => sign_id,
         }
     }
 }
 
 pub(crate) fn validate_body_events(
     events: &[BodyLifecycleEvent],
-    clue: &[ClueId],
+    sign: &[SignId],
     state: &BodyState,
 ) -> Result<(), BodyLifecycleError> {
-    if events.len() != clue.len()
+    if events.len() != sign.len()
         || events
             .iter()
-            .zip(clue)
-            .any(|(event, id)| event.clue_id() != id)
+            .zip(sign)
+            .any(|(event, id)| event.sign_id() != id)
         || !matches!(events.first(), Some(BodyLifecycleEvent::Born { .. }))
     {
         return Err(BodyLifecycleError::InvalidTransition);
@@ -131,15 +131,15 @@ pub(crate) fn validate_body_events(
 
 pub(crate) fn validate_wake_events(
     events: &[WakeLifecycleEvent],
-    clue: &[ClueId],
+    sign: &[SignId],
     lifecycle: WakeLifecycle,
     plans: &[WakePlan],
 ) -> Result<(), BodyLifecycleError> {
-    if events.len() != clue.len()
+    if events.len() != sign.len()
         || events
             .iter()
-            .zip(clue)
-            .any(|(event, id)| event.clue_id() != id)
+            .zip(sign)
+            .any(|(event, id)| event.sign_id() != id)
         || !matches!(events.first(), Some(WakeLifecycleEvent::Woke { .. }))
     {
         return Err(BodyLifecycleError::InvalidTransition);

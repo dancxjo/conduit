@@ -1,5 +1,5 @@
 pub use conduit_core::{
-    authority_grant, kind_id, mandatory_clue_storage_requirement, port_id,
+    authority_grant, kind_id, mandatory_sign_storage_requirement, port_id,
     present_authority_requirement, present_host_operation_requirement, resource_offer,
     resource_requirement, seal_plan, wait_host_operation_requirement, ArtifactId, AuthorityGrant,
     BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase, ExecutionProfileId,
@@ -448,16 +448,16 @@ pub fn rejection_reason(output: &conduit_runtime::RuntimeOutput) -> Option<Failu
     })
 }
 
-pub fn mandatory_clue_reports(runtime: &mut HostRuntime) -> Vec<conduit_core::MandatoryClueReport> {
+pub fn mandatory_sign_reports(runtime: &mut HostRuntime) -> Vec<conduit_core::MandatorySignReport> {
     runtime
         .handle(HostCommand::Inspect)
         .events
         .into_iter()
         .find_map(|event| match event {
-            HostEvent::MandatoryClueReports { items } => Some(items),
+            HostEvent::MandatorySignReports { items } => Some(items),
             _ => None,
         })
-        .expect("inspection returns mandatory clue reports")
+        .expect("inspection returns mandatory sign reports")
 }
 
 pub fn reseal_fragment(mut fragment: PlanFragment) -> PlanFragment {

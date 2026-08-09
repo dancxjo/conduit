@@ -30,7 +30,7 @@ pub fn verify_receipt(
         &placement.placement_id,
         sequence,
     );
-    let sign = conduit_core::bind_clue(
+    let sign = conduit_core::bind_sign(
         &fragment.host_id,
         &fragment.boot_id,
         Some(&planned_play.active_play_id),
@@ -39,7 +39,7 @@ pub fn verify_receipt(
     for (field, expected) in [
         ("schema", "conduit-pico-w-signal/receipt@1"),
         ("presentation_id", presentation.presentation_id.as_str()),
-        ("clue_id", sign.clue_id.as_str()),
+        ("sign_id", sign.sign_id.as_str()),
     ] {
         if record[field].as_str() != Some(expected) {
             return Err(format!("physical LED Sign field `{field}` mismatched").into());
@@ -65,7 +65,7 @@ pub fn verify_terminal(
     let fragment = pico_fragment(plan)?;
     let planned_play =
         conduit_core::bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
-    let sign = conduit_core::bind_clue(
+    let sign = conduit_core::bind_sign(
         &fragment.host_id,
         &fragment.boot_id,
         Some(&planned_play.active_play_id),
@@ -73,7 +73,7 @@ pub fn verify_terminal(
     );
     if record["schema"].as_str() != Some("conduit-pico-w-signal/terminal@1")
         || record["success"].as_bool() != Some(true)
-        || record["clue_id"].as_str() != Some(sign.clue_id.as_str())
+        || record["sign_id"].as_str() != Some(sign.sign_id.as_str())
     {
         return Err("Plan B terminal Sign identity or disposition mismatched".into());
     }
@@ -147,7 +147,7 @@ fn pico_fragment(plan: &conduit_core::Plan) -> PicoResult<&conduit_core::PlanFra
 
 #[cfg(test)]
 mod tests {
-    use conduit_core::{bind_active_play, bind_clue, bind_presentation, BootId};
+    use conduit_core::{bind_active_play, bind_presentation, bind_sign, BootId};
 
     use super::super::firmware::{FirmwareIdentity, GeneratedImageIdentity};
     use super::*;
@@ -195,18 +195,18 @@ mod tests {
                 host_id: network_fragment.host_id.as_str().into(),
                 boot_id: network_fragment.boot_id.as_str().into(),
                 active_play_id: "network-play".into(),
-                boot_clue_id: "network-boot-sign".into(),
+                boot_sign_id: "network-boot-sign".into(),
                 presentation_ids: vec![],
-                presentation_clue_ids: vec![],
-                terminal_clue_id: "network-terminal-sign".into(),
+                presentation_sign_ids: vec![],
+                terminal_sign_id: "network-terminal-sign".into(),
                 offer_generation: 1,
                 nodes: 2,
                 cords: 2,
                 host_operations: 2,
                 cord_value_slots: 2,
                 cord_value_bytes: 1,
-                clue_items: 1,
-                clue_bytes: 1,
+                sign_items: 1,
+                sign_bytes: 1,
             },
             r1_control_images: None,
             cyw43_commit: "test".into(),
@@ -237,7 +237,7 @@ mod tests {
         );
         let presentation =
             bind_presentation(&planned_play.active_play_id, &placement.placement_id, 0);
-        let sign = bind_clue(
+        let sign = bind_sign(
             &fragment.host_id,
             &fragment.boot_id,
             Some(&planned_play.active_play_id),
@@ -266,7 +266,7 @@ mod tests {
             "sequence": 0,
             "level": false,
             "presentation_id": presentation.presentation_id.as_str(),
-            "clue_id": sign.clue_id.as_str(),
+            "sign_id": sign.sign_id.as_str(),
         });
         verify_receipt(&record.to_string(), &plan, 0, false, &firmware, &runtime).unwrap();
         record["plan_id"] = serde_json::Value::String("stale-plan".into());

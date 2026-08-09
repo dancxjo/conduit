@@ -8,7 +8,7 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, ResourceOffer,
 };
 
-/// Authored external WebSocket semantics. This is not a Conduit session carrier.
+/// Authored external WebSocket semantics. This is not a Conduit session line.
 pub const EXTERNAL_WEBSOCKET_CLIENT_KIND: &str = "net/websocket";
 pub const EXTERNAL_WEBSOCKET_LISTENER_KIND: &str = "net/websocket/listen";
 pub const EXTERNAL_WEBSOCKET_CLIENT_REVISION: &str = "conduit.net/websocket-client@1";

@@ -2,17 +2,17 @@
 
 use super::{SignalReceipt, StdKernelExecutionReport, StdRunReport, TimerAdapter};
 use conduit_core::{
-    bind_active_play, bind_clue, bind_presentation, HostAdvertisement, Observation,
+    bind_active_play, bind_presentation, bind_sign, HostAdvertisement, Observation,
     ObservationKind, PlanFragment, TerminalDisposition, ValuePayload,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, ClueSink, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
-    ValueStorage,
+    BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
+    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
+    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, SignSink,
+    ValueRef, ValueStorage,
 };
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, MAXIMUM_KERNEL_PORTS_PER_NODE,
@@ -37,7 +37,7 @@ type SignalScheduler<
 > = FixedScheduler<
     OperationDriver<SignalOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     NODES,
     CORDS,
     PORTS,
@@ -52,7 +52,7 @@ struct PreparedSignalProjection {
     node: conduit_kernel::NodeId,
     signal: Signal,
     presentation: conduit_core::PresentationIdentity,
-    clue: conduit_core::ClueIdentity,
+    sign: conduit_core::SignIdentity,
     payload: ValuePayload,
     connection_id: Option<conduit_core::ConnectionId>,
 }
@@ -225,7 +225,7 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
     advertisement: &HostAdvertisement,
     fragment: &PlanFragment,
     play_sequence: u64,
-    next_clue_sequence: &mut u64,
+    next_sign_sequence: &mut u64,
     output: &mut W,
     timer: &mut T,
 ) -> Result<StdRunReport, String> {
@@ -234,7 +234,7 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
             advertisement,
             fragment,
             play_sequence,
-            next_clue_sequence,
+            next_sign_sequence,
             output,
             timer,
         ),
@@ -242,7 +242,7 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
             advertisement,
             fragment,
             play_sequence,
-            next_clue_sequence,
+            next_sign_sequence,
             output,
             timer,
         ),
@@ -264,7 +264,7 @@ fn run_signal_profile<
     advertisement: &HostAdvertisement,
     fragment: &PlanFragment,
     play_sequence: u64,
-    next_clue_sequence: &mut u64,
+    next_sign_sequence: &mut u64,
     output: &mut W,
     timer: &mut T,
 ) -> Result<StdRunReport, String> {
@@ -402,30 +402,30 @@ fn run_signal_profile<
         })
         .sum();
 
-    let clue_events_per_signal = 10_u64
+    let sign_events_per_signal = 10_u64
         .checked_add(
             u64::try_from(show_nodes.len())
                 .ok()
                 .and_then(|shows| shows.checked_mul(8))
-                .ok_or_else(|| "kernel clue item budget overflow".to_string())?,
+                .ok_or_else(|| "kernel sign item budget overflow".to_string())?,
         )
-        .ok_or_else(|| "kernel clue item budget overflow".to_string())?;
-    let clue_items = u16::try_from(
+        .ok_or_else(|| "kernel sign item budget overflow".to_string())?;
+    let sign_items = u16::try_from(
         configuration
             .count
-            .checked_mul(clue_events_per_signal)
+            .checked_mul(sign_events_per_signal)
             .and_then(|value| value.checked_add(64))
-            .ok_or_else(|| "kernel clue item budget overflow".to_string())?,
+            .ok_or_else(|| "kernel sign item budget overflow".to_string())?,
     )
-    .map_err(|_| "kernel clue item budget overflow".to_string())?;
-    let clue_bytes = u32::from(clue_items)
+    .map_err(|_| "kernel sign item budget overflow".to_string())?;
+    let sign_bytes = u32::from(sign_items)
         .checked_mul(
             u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
-                .map_err(|_| "kernel clue charge overflow".to_string())?,
+                .map_err(|_| "kernel sign charge overflow".to_string())?,
         )
-        .ok_or_else(|| "kernel clue byte budget overflow".to_string())?;
-    let clue = HostedClueLog::new(clue_items, clue_bytes)
-        .map_err(|error| format!("kernel clue store: {error:?}"))?;
+        .ok_or_else(|| "kernel sign byte budget overflow".to_string())?;
+    let sign = HostedSignLog::new(sign_items, sign_bytes)
+        .map_err(|error| format!("kernel sign store: {error:?}"))?;
     let node_specs = lowered
         .node_specs
         .try_into()
@@ -451,7 +451,7 @@ fn run_signal_profile<
         host_bindings,
         drivers,
         values,
-        clue,
+        sign,
     )
     .map_err(|error| format!("install signal scheduler: {error:?}"))?;
 
@@ -467,29 +467,29 @@ fn run_signal_profile<
     let request_capacity = presentation_capacity
         .checked_add(wait_count)
         .ok_or_else(|| "execution request identity capacity overflow".to_string())?;
-    let clue_capacity = presentation_capacity
+    let sign_capacity = presentation_capacity
         .checked_add(1)
-        .ok_or_else(|| "execution clue identity capacity overflow".to_string())?;
+        .ok_or_else(|| "execution sign identity capacity overflow".to_string())?;
     let mut execution_identity = KernelExecutionIdentityMap::new(
         &lowered.identity,
         &active_play,
         request_capacity,
         presentation_capacity,
-        clue_capacity,
+        sign_capacity,
     )
     .map_err(|error| format!("prepare execution identity map: {error:?}"))?;
     let identity_capacity_before = execution_identity.allocation_capacities();
     let mut receipts = Vec::with_capacity(presentation_capacity);
-    let mut observations = Vec::with_capacity(clue_capacity);
+    let mut observations = Vec::with_capacity(sign_capacity);
     let mut presentation_ids = Vec::with_capacity(presentation_capacity);
     let mut dispatched_requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
     let mut manifested_requests = Vec::<HostOperationRequest>::with_capacity(presentation_capacity);
-    let clue_sequence_start = *next_clue_sequence;
-    let clue_count =
-        u64::try_from(clue_capacity).map_err(|_| "execution clue count overflow".to_string())?;
-    let clue_sequence_end = clue_sequence_start
-        .checked_add(clue_count)
-        .ok_or_else(|| "host clue sequence exhausted".to_string())?;
+    let sign_sequence_start = *next_sign_sequence;
+    let sign_count =
+        u64::try_from(sign_capacity).map_err(|_| "execution sign count overflow".to_string())?;
+    let sign_sequence_end = sign_sequence_start
+        .checked_add(sign_count)
+        .ok_or_else(|| "host sign sequence exhausted".to_string())?;
     let mut prepared_projections = Vec::with_capacity(presentation_capacity);
     for index in 0..count {
         let sequence =
@@ -509,15 +509,15 @@ fn run_signal_profile<
                 &show_placement.placement_id,
                 sequence,
             );
-            let clue_offset = u64::try_from(prepared_projections.len())
-                .map_err(|_| "host clue sequence exhausted".to_string())?;
-            let clue = bind_clue(
+            let sign_offset = u64::try_from(prepared_projections.len())
+                .map_err(|_| "host sign sequence exhausted".to_string())?;
+            let sign = bind_sign(
                 &advertisement.host_id,
                 &advertisement.boot_id,
                 Some(&active_play.active_play_id),
-                clue_sequence_start
-                    .checked_add(clue_offset)
-                    .ok_or_else(|| "host clue sequence exhausted".to_string())?,
+                sign_sequence_start
+                    .checked_add(sign_offset)
+                    .ok_or_else(|| "host sign sequence exhausted".to_string())?,
             );
             let connection_id = fragment
                 .connections
@@ -529,16 +529,16 @@ fn run_signal_profile<
                 payload: encode_signal(&signal),
                 signal: signal.clone(),
                 presentation,
-                clue,
+                sign,
                 connection_id,
             });
         }
     }
-    let terminal_clue = bind_clue(
+    let terminal_sign = bind_sign(
         &advertisement.host_id,
         &advertisement.boot_id,
         Some(&active_play.active_play_id),
-        clue_sequence_end - 1,
+        sign_sequence_end - 1,
     );
     // SEALED PROFILE PLAY START BEGIN: numeric tables and preallocated capture only.
     #[cfg(test)]
@@ -646,20 +646,20 @@ fn run_signal_profile<
             )
             .map_err(|error| format!("bind presentation identity: {error:?}"))?;
         execution_identity
-            .bind_clue(
-                &prepared.clue,
+            .bind_sign(
+                &prepared.sign,
                 Some(request.node),
                 Some(request.request),
                 Some(&prepared.presentation.presentation_id),
             )
-            .map_err(|error| format!("bind presentation clue identity: {error:?}"))?;
+            .map_err(|error| format!("bind presentation sign identity: {error:?}"))?;
         receipts.push(SignalReceipt {
             placement_id: prepared.presentation.placement_id.clone(),
             sequence: prepared.signal.sequence,
             level: prepared.signal.level,
         });
         observations.push(Observation {
-            clue_id: prepared.clue.clue_id,
+            sign_id: prepared.sign.sign_id,
             active_play_id: Some(active_play.active_play_id.clone()),
             presentation_id: Some(prepared.presentation.presentation_id.clone()),
             host_id: advertisement.host_id.clone(),
@@ -673,12 +673,12 @@ fn run_signal_profile<
         });
         presentation_ids.push(prepared.presentation.presentation_id);
     }
-    *next_clue_sequence = clue_sequence_end;
+    *next_sign_sequence = sign_sequence_end;
     execution_identity
-        .bind_clue(&terminal_clue, None, None, None)
-        .map_err(|error| format!("bind terminal clue identity: {error:?}"))?;
+        .bind_sign(&terminal_sign, None, None, None)
+        .map_err(|error| format!("bind terminal sign identity: {error:?}"))?;
     observations.push(Observation {
-        clue_id: terminal_clue.clue_id,
+        sign_id: terminal_sign.sign_id,
         active_play_id: Some(active_play.active_play_id.clone()),
         presentation_id: None,
         host_id: advertisement.host_id.clone(),
@@ -690,7 +690,7 @@ fn run_signal_profile<
             disposition: TerminalDisposition::Completed,
         },
     });
-    if execution_identity.lengths() != (request_capacity, presentation_capacity, clue_capacity)
+    if execution_identity.lengths() != (request_capacity, presentation_capacity, sign_capacity)
         || execution_identity.allocation_capacities() != identity_capacity_before
     {
         return Err("execution identity map is incomplete or grew after Play start".to_string());
@@ -703,8 +703,8 @@ fn run_signal_profile<
         kernel: Some(StdKernelExecutionReport {
             active_play_id: active_play.active_play_id,
             decisions: scheduler.decisions(),
-            kernel_events: scheduler.clues().len(),
-            kernel_clue: scheduler.clues().events().collect(),
+            kernel_events: scheduler.signs().len(),
+            kernel_sign: scheduler.signs().events().collect(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids,

@@ -1,6 +1,6 @@
 //! Native window/event-loop adapter for Patchbay.
 
-use conduit_core::ClueId;
+use conduit_core::SignId;
 use patchbay_model::{
     BuildBirthController, DistributedRouteDemo, FormEditor, PatchbayModel, PatchbayTopology,
     RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
@@ -116,7 +116,7 @@ impl PatchbayApplication {
                         boot_id: source_boot_id.clone(),
                         target_subject: "patchbay-native/window-0".into(),
                     },
-                    ClueId::from("patchbay-native/manifestation-prepared"),
+                    SignId::from("patchbay-native/manifestation-prepared"),
                 )
                 .map_err(|error| error.to_string())
             })
@@ -389,7 +389,7 @@ impl ApplicationHandler for PatchbayApplication {
                         || line.starts_with("STOP ")
                         || line.starts_with("RUN-TERMINAL ")
                         || line.trim_start().starts_with("CONTROL ")
-                        || line.trim_start().starts_with("KERNEL-CLUE ")
+                        || line.trim_start().starts_with("KERNEL-SIGN ")
                 }) {
                     println!("patchbay control {line}");
                 }
@@ -453,7 +453,7 @@ impl ApplicationHandler for PatchbayApplication {
                 == conduit_presentation::ManifestationLifecycle::Available
             {
                 if let Err(error) =
-                    execution.mark_closed(ClueId::from("patchbay-native/window-closed"))
+                    execution.mark_closed(SignId::from("patchbay-native/window-closed"))
                 {
                     self.failure = Some(format!("cannot close native Manifestation: {error}"));
                 }

@@ -18,7 +18,7 @@ not a pause of an active Play, and not Lull.
 - the complete exact Plan, through which selected Hosts, Boots, Bases, Lines,
   resources, capabilities, implementations, limits, and authority bindings are
   inspectable when applicable;
-- a finite ordered `PlanningBasis` of exact Clue identities for every relevant
+- a finite ordered `PlanningBasis` of exact Sign identities for every relevant
   planning Sign;
 - an exact hold reason and source;
 - the explicit authority contract and grant required to release the hold;
@@ -67,7 +67,7 @@ automatically by waiting in HOLD.
 ## Bounds and stop line
 
 Planning basis storage is capped by `MAX_HOLD_BASIS_SIGNS`; empty, duplicate,
-oversized, or invalid identities fail closed. Wake Plan history and Clue history
+oversized, or invalid identities fail closed. Wake Plan history and Sign history
 retain their existing finite bounds. The Plan is cloned only while the Wake is
 already awake and before Play; active execution remains outside this module.
 

@@ -1,14 +1,14 @@
 //! Bounded optional gate between one exact Plan and its first Play.
 //!
 //! HOLD is Wake lifecycle state. It retains the immutable Plan, the exact
-//! planning-basis Clue identities, the hold policy, and the explicit release
+//! planning-basis Sign identities, the hold policy, and the explicit release
 //! authority without issuing an active Play identity or invoking a platform.
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use conduit_core::{
     bind_active_play, verify_plan, ActivePlayIdentity, AuthorityContractId, AuthorityGrantId,
-    BootId, ClueId, HostId, Plan, PlanId,
+    BootId, HostId, Plan, PlanId, SignId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -87,24 +87,24 @@ impl HoldPolicy {
     }
 }
 
-/// Exact finite set of planning-basis Signs represented by their Clue IDs.
+/// Exact finite set of planning-basis Signs represented by their Sign IDs.
 ///
 /// The producer must include every current fact whose change can invalidate
 /// the Plan. Release compares this complete set exactly; it never infers
 /// authority or validity from visible Hosts or reachable Lines.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlanningBasis {
-    sign_ids: Vec<ClueId>,
+    sign_ids: Vec<SignId>,
 }
 
 impl PlanningBasis {
-    pub fn new(sign_ids: Vec<ClueId>) -> Result<Self, BodyLifecycleError> {
+    pub fn new(sign_ids: Vec<SignId>) -> Result<Self, BodyLifecycleError> {
         let basis = Self { sign_ids };
         basis.validate()?;
         Ok(basis)
     }
 
-    pub fn sign_ids(&self) -> &[ClueId] {
+    pub fn sign_ids(&self) -> &[SignId] {
         &self.sign_ids
     }
 
@@ -113,7 +113,7 @@ impl PlanningBasis {
     }
 }
 
-pub(crate) fn validate_planning_basis_signs(sign_ids: &[ClueId]) -> Result<(), BodyLifecycleError> {
+pub(crate) fn validate_planning_basis_signs(sign_ids: &[SignId]) -> Result<(), BodyLifecycleError> {
     if sign_ids.is_empty() {
         return Err(BodyLifecycleError::InvalidPlanningBasis);
     }
@@ -178,7 +178,7 @@ impl Wake {
         plan: &Plan,
         basis: PlanningBasis,
         policy: HoldPolicy,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
         self.validate_plan(plan)?;
@@ -221,7 +221,7 @@ impl Wake {
             plan_id: plan.plan_id.clone(),
             basis_sign_ids: hold.basis.sign_ids.clone(),
             policy: hold.policy.clone(),
-            clue_id,
+            sign_id,
         })?;
         if let Some(previous) = next.plans.last_mut() {
             previous.state = WakePlanState::Superseded;
@@ -266,7 +266,7 @@ impl Wake {
         host_id: &HostId,
         boot_id: &BootId,
         play_sequence: u64,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<HoldReleaseOutcome, BodyLifecycleError> {
         self.validate()?;
         authority.validate()?;
@@ -289,7 +289,7 @@ impl Wake {
             next.push_event(WakeLifecycleEvent::HeldPlanInvalidated {
                 plan_id: hold.plan.plan_id.clone(),
                 current_basis_sign_ids: current_basis.sign_ids.clone(),
-                clue_id,
+                sign_id,
             })?;
             next.plans
                 .last_mut()
@@ -303,7 +303,7 @@ impl Wake {
         next.push_event(WakeLifecycleEvent::HeldPlanReleased {
             plan_id: hold.plan.plan_id.clone(),
             active_play_id: active_play.active_play_id.clone(),
-            clue_id,
+            sign_id,
         })?;
         let current = next
             .plans

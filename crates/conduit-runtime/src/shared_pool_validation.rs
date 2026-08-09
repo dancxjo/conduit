@@ -181,8 +181,8 @@ mod tests {
             member_limits: PoolMemberLimits {
                 queue_item_capacity: 2,
                 queue_byte_capacity: 512,
-                clue_item_capacity: 8,
-                clue_byte_capacity: 1024,
+                sign_item_capacity: 8,
+                sign_byte_capacity: 1024,
             },
             realization_envelope: vec![PoolRealizationEnvelope {
                 host_id: HostId::from("host"),

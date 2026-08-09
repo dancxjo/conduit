@@ -80,7 +80,7 @@ fn stale_source_boot_realization_and_authority_are_distinct_rejections() {
 }
 
 #[test]
-fn completed_play_projection_keeps_exact_play_plan_and_clue() {
+fn completed_play_projection_keeps_exact_play_plan_and_sign() {
     let (_editor, mut host, plan) = planned_hello();
     let mut output = Vec::with_capacity(4096);
     let report = host
@@ -91,7 +91,7 @@ fn completed_play_projection_keeps_exact_play_plan_and_clue() {
     assert_eq!(document.terminal, TerminalDisposition::Completed);
     assert!(rendered.contains(plan.plan_id.as_str()));
     assert!(rendered.contains(report.kernel.as_ref().unwrap().active_play_id.as_str()));
-    assert!(rendered.contains("CLUE id="));
+    assert!(rendered.contains("SIGN id="));
     assert!(rendered.contains("PRESSURE exposed=false"));
 }
 

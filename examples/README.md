@@ -13,7 +13,7 @@ Canonical source uses the `.conduit` suffix and the face/back/gear surface:
 
 The `.form` files and `hello.panel` use the older explicit `form 0`
 compatibility parser. They remain byte-for-byte fixtures for accepted kernel,
-browser, firmware, carrier, composite, and clue identities. They are not
+browser, firmware, Line, composite, and Sign identities. They are not
 examples of the canonical source surface and must not be silently reinterpreted
 or rewritten under the canonical parser.
 

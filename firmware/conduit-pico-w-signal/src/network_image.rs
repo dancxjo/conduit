@@ -20,17 +20,17 @@ pub const ROUTE_SLOTS: usize = NODES * PORTS;
 pub const ROUTE_TARGETS: usize = generated::GENERATED_ROUTE_TARGETS.len();
 pub const HOST_BINDING_SLOTS: usize = generated::GENERATED_HOST_OPERATIONS.len();
 pub const PENDING_REQUESTS: usize = generated::GENERATED_HOST_OPERATIONS.len();
-// Generated CLUE_ITEMS/CLUE_BYTES are the Plan's mandatory identity-bearing
-// Clue budget. The kernel event log has a distinct fixed in-memory profile:
+// Generated SIGN_ITEMS/SIGN_BYTES are the Plan's mandatory identity-bearing
+// Sign budget. The kernel event log has a distinct fixed in-memory profile:
 // its byte charge is target-specific `KernelEvent` storage, not serialized
-// mandatory-Clue identity bytes.
+// mandatory-Sign identity bytes.
 #[allow(dead_code)]
-pub const MANDATORY_PLAN_CLUE_ITEMS: u16 = generated::CLUE_ITEMS;
+pub const MANDATORY_PLAN_SIGN_ITEMS: u16 = generated::SIGN_ITEMS;
 #[allow(dead_code)]
-pub const MANDATORY_PLAN_CLUE_BYTES: u32 = generated::CLUE_BYTES;
-pub const RUNTIME_CLUE_EVENTS: usize = 32;
-pub const RUNTIME_CLUE_BYTES: u32 =
-    (RUNTIME_CLUE_EVENTS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32;
+pub const MANDATORY_PLAN_SIGN_BYTES: u32 = generated::SIGN_BYTES;
+pub const RUNTIME_SIGN_EVENTS: usize = 32;
+pub const RUNTIME_SIGN_BYTES: u32 =
+    (RUNTIME_SIGN_EVENTS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32;
 pub const PLAN_ID: &str = generated::PLAN_ID;
 pub const FRAGMENT_ID: &str = generated::FRAGMENT_ID;
 pub const SOURCE_DOCUMENT_ID: &str = generated::SOURCE_DOCUMENT_ID;
@@ -38,8 +38,8 @@ pub const CHECKED_FORM_ID: &str = generated::CHECKED_FORM_ID;
 pub const EXPANDED_FORM_ID: &str = generated::EXPANDED_FORM_ID;
 pub const HOST_ID: &str = generated::HOST_ID;
 pub const BOOT_ID: &str = generated::BOOT_ID;
-pub const BOOT_CLUE_ID: &str = generated::BOOT_CLUE_ID;
-pub const ATTACHMENT_CLUE_ID: &str = generated::ATTACHMENT_CLUE_ID;
+pub const BOOT_SIGN_ID: &str = generated::BOOT_SIGN_ID;
+pub const ATTACHMENT_SIGN_ID: &str = generated::ATTACHMENT_SIGN_ID;
 pub const FIRMWARE_BUILD_ID: &str = generated::FIRMWARE_BUILD_ID;
 
 #[derive(Clone, Copy)]
@@ -48,9 +48,9 @@ pub struct NetworkJoinLayout {
     pub join_input_port: PortId,
     pub join_output_port: PortId,
     pub join_operation: HostOperationId,
-    pub clue_node: NodeId,
-    pub clue_input_port: PortId,
-    pub clue_operation: HostOperationId,
+    pub sign_node: NodeId,
+    pub sign_input_port: PortId,
+    pub sign_operation: HostOperationId,
 }
 
 pub fn network_join_layout() -> Option<NetworkJoinLayout> {
@@ -82,25 +82,25 @@ pub fn network_join_layout() -> Option<NetworkJoinLayout> {
                 && *info == conduit_net::NETWORK_ATTACHMENT_KIND
         })
         .map(|(_, port, _, _)| *port)?;
-    let clue_node = generated::GENERATED_KIND_IDS
+    let sign_node = generated::GENERATED_KIND_IDS
         .iter()
-        .position(|kind| *kind == conduit_net::NETWORK_ATTACHMENT_CLUE_OPERATION)
+        .position(|kind| *kind == conduit_net::NETWORK_ATTACHMENT_SIGN_OPERATION)
         .and_then(|index| u16::try_from(index).ok())
         .map(NodeId)?;
-    let clue_input_port = generated::GENERATED_INPUT_PORTS
+    let sign_input_port = generated::GENERATED_INPUT_PORTS
         .iter()
         .find(|(candidate, _, port, info)| {
-            *candidate == clue_node
+            *candidate == sign_node
                 && *port == "attachment"
                 && *info == conduit_net::NETWORK_ATTACHMENT_KIND
         })
         .map(|(_, port, _, _)| *port)?;
-    let clue_operation = generated::GENERATED_HOST_OPERATIONS
+    let sign_operation = generated::GENERATED_HOST_OPERATIONS
         .iter()
         .zip(generated::GENERATED_HOST_OPERATION_IDENTITIES.iter())
         .find(|((candidate, _), (contract, _, _))| {
-            *candidate == clue_node
-                && *contract == conduit_net::NETWORK_ATTACHMENT_CLUE_HOST_OPERATION
+            *candidate == sign_node
+                && *contract == conduit_net::NETWORK_ATTACHMENT_SIGN_HOST_OPERATION
         })
         .map(|((_, binding), _)| binding.operation)?;
     Some(NetworkJoinLayout {
@@ -108,9 +108,9 @@ pub fn network_join_layout() -> Option<NetworkJoinLayout> {
         join_input_port,
         join_output_port,
         join_operation,
-        clue_node,
-        clue_input_port,
-        clue_operation,
+        sign_node,
+        sign_input_port,
+        sign_operation,
     })
 }
 

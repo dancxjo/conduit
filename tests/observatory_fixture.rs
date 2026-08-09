@@ -215,7 +215,7 @@ fn observatory_fixture_report() -> Result<String, String> {
     };
     let report = build_report(&snapshot)?;
     Ok(format!(
-        "SIMULATION ONLY: synthetic observatory fixture; not connected-host clue\n{}",
+        "SIMULATION ONLY: synthetic observatory fixture; not connected-host sign\n{}",
         render_text_report(&report)
     ))
 }
@@ -299,10 +299,10 @@ fn observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work() {
     assert!(stdout.contains("base=FixtureFrame"), "{stdout}");
     assert!(stdout.contains("base=FixtureDatagram"), "{stdout}");
     assert!(
-        stdout.contains("clue id=") && stdout.contains("active_play=none presentation=none"),
+        stdout.contains("sign id=") && stdout.contains("active_play=none presentation=none"),
         "{stdout}"
     );
-    assert!(!stdout.contains("clue id=clue/"), "{stdout}");
+    assert!(!stdout.contains("sign id=sign/"), "{stdout}");
     assert!(stdout.contains("retention bounded=true"), "{stdout}");
     assert!(
         !stdout.contains("receipt signal placement="),

@@ -54,7 +54,7 @@ with the top-level plan, and hosted/Observatory reports render them separately.
 A comment-only source edit therefore changes only `SourceDocumentId`; a
 semantic edit changes checked and expanded identity as well.
 
-## Startup, cancellation, terminal, and clue contracts
+## Startup, cancellation, terminal, and Sign contracts
 
 Every fragment now binds an explicit startup dependency graph and a
 deterministic local startup order. Each cord makes its sink a prerequisite of
@@ -71,26 +71,26 @@ The first executable policy profile is deliberately narrow:
 - terminal completion requires every planned placement and connection.
 
 Preparation rejects any other resealed policy. It also reconstructs the exact
-terminal and mandatory-clue descriptors from placements and connections,
+terminal and mandatory-sign descriptors from placements and connections,
 so deleting, reordering, or inventing descriptors cannot relax the contract.
 
-`ClueStorageBudget` binds independent item and byte capacities. The
+`SignStorageBudget` binds independent item and byte capacities. The
 first-profile byte rule charges one discriminant byte per mandatory descriptor
 plus the UTF-8 byte length of its placement or connection identity when one is
 present. Planning fails if the requirement cannot be represented by the public
 budget types. Preparation fails closed if either capacity is below the exact
 mandatory requirement.
 
-The hosted reboot runtime now allocates the plan's clue item slots during
+The hosted reboot runtime now allocates the plan's Sign item slots during
 preparation. Each recorded event is a bounded numeric index into the fragment's
-sealed expected-clue table, so execution does not clone identity strings or
+sealed expected-sign table, so execution does not clone identity strings or
 grow a hidden per-event allocation. Inspection reconstructs a
-`MandatoryClueReport` with expected and recorded descriptors, the bound
+`MandatorySignReport` with expected and recorded descriptors, the bound
 budget, serialized bytes used, the allocation shape, and an explicit overflow
 flag. This mandatory log is independent of the lossy general observation ring:
-terminal clue remains complete even when that ring reports an
-`ClueGap`. Lowering the same commitments into the S1 kernel's
-`ClueSink` remains open integration work.
+terminal Sign remains complete even when that ring reports an
+`SignGap`. Lowering the same commitments into the S1 kernel's
+`SignSink` remains open integration work.
 
 ## Exact host-operation requirements
 
@@ -210,8 +210,8 @@ boot, then requires exactly one current observation with the same binding
 identity and every immutable fact. The deterministic in-memory, frame, and
 datagram fixtures use explicit no-credential and process-owned authority facts;
 those are simulation facts, not credential, socket, browser, firmware, or
-physical proof. Future live carriers must supply their real opaque credential
-and authority references. Carrier configuration, secret material, retry,
+physical proof. Future live lines must supply their real opaque credential
+and authority references. Line configuration, secret material, retry,
 reconnect, encryption, and session protocols remain outside this compact S2
 binding and require their own later runtime contracts.
 
@@ -231,8 +231,8 @@ The focused vectors prove:
 - resealed contract, profile, and port lies fail preparation against the
   current advertisement and installed implementation; and
 - post-seal and resealed startup, cancellation, terminal, and independent
-  clue-item/clue-byte mutations fail identity or preparation; and
-- the hosted mandatory-clue allocation stays fixed from preparation through
+  sign-item/sign-byte mutations fail identity or preparation; and
+- the hosted mandatory-sign allocation stays fixed from preparation through
   completion and remains complete while the general observation ring
   overflows; and
 - planning, fragment identity, preparation, action admission, and completion
@@ -259,8 +259,8 @@ sealed, remote cords bind exact current link observations, bound-fact mutation
 changes identity or fails verification, preparation recomputes the executable
 commitments, and deterministic negatives cover every field group. The
 `ConnectionBase` enum remains only a runtime dispatch class derived from a
-`LinkBinding`; it is no longer clue of remote availability. Planned
-clue, host-operation, resource, authority, and link commitments are not yet
+`LinkBinding`; it is no longer Sign of remote availability. Planned
+Sign, host-operation, resource, authority, and link commitments are not yet
 lowered into the S1 kernel stores, which remains explicit integration work
 rather than an unproven S2 plan claim.
 

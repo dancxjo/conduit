@@ -1,7 +1,7 @@
 //! Typed R1 Lull and later-Wake evidence after physical session quiescence.
 
 use conduit_body::{Body, BodyState, Wake, WakeLifecycle};
-use conduit_core::ClueId;
+use conduit_core::SignId;
 use serde::Serialize;
 
 use super::PicoResult;
@@ -26,10 +26,10 @@ pub struct R1LullOutcome {
     pub wake: Wake,
 }
 
-pub struct R1LullClues {
-    pub wake_lulled: ClueId,
-    pub body_retained: ClueId,
-    pub later_wake: ClueId,
+pub struct R1LullSigns {
+    pub wake_lulled: SignId,
+    pub body_retained: SignId,
+    pub later_wake: SignId,
 }
 
 pub fn lull_and_wake(
@@ -37,17 +37,17 @@ pub fn lull_and_wake(
     wake: &Wake,
     session_terminal: bool,
     later_wake_sequence: u64,
-    clues: R1LullClues,
+    signs: R1LullSigns,
 ) -> PicoResult<R1LullOutcome> {
     if !session_terminal {
         return Err("R1 active Play is not quiescent at Lull".into());
     }
-    let lulled_wake = wake.lull(clues.wake_lulled).map_err(lifecycle_error)?;
+    let lulled_wake = wake.lull(signs.wake_lulled).map_err(lifecycle_error)?;
     let retained = body
-        .retain_after_lull(&lulled_wake, clues.body_retained)
+        .retain_after_lull(&lulled_wake, signs.body_retained)
         .map_err(lifecycle_error)?;
     let (body, later_wake) = retained
-        .wake(later_wake_sequence, clues.later_wake)
+        .wake(later_wake_sequence, signs.later_wake)
         .map_err(lifecycle_error)?;
     let body_retained = retained.body_id == body.body_id && later_wake.body_id == body.body_id;
     let later_wake_new = later_wake.wake_id != lulled_wake.wake_id;
@@ -98,12 +98,12 @@ mod tests {
             plan.source_document_id.clone(),
             plan.checked_form_id.clone(),
             1,
-            ClueId::from("r1/test/born"),
+            SignId::from("r1/test/born"),
         )
         .unwrap();
-        let (body, wake) = body.wake(1, ClueId::from("r1/test/woke")).unwrap();
+        let (body, wake) = body.wake(1, SignId::from("r1/test/woke")).unwrap();
         let wake = wake
-            .plan_ready(&plan, ClueId::from("r1/test/planned"))
+            .plan_ready(&plan, SignId::from("r1/test/planned"))
             .unwrap();
         let play = bind_active_play(
             &plan.plan_id,
@@ -112,23 +112,23 @@ mod tests {
             0,
         );
         let wake = wake
-            .play_started(&play, ClueId::from("r1/test/playing"))
+            .play_started(&play, SignId::from("r1/test/playing"))
             .unwrap();
         (body, wake)
     }
 
-    fn clues() -> R1LullClues {
-        R1LullClues {
-            wake_lulled: ClueId::from("r1/test/lulled"),
-            body_retained: ClueId::from("r1/test/retained"),
-            later_wake: ClueId::from("r1/test/later-wake"),
+    fn signs() -> R1LullSigns {
+        R1LullSigns {
+            wake_lulled: SignId::from("r1/test/lulled"),
+            body_retained: SignId::from("r1/test/retained"),
+            later_wake: SignId::from("r1/test/later-wake"),
         }
     }
 
     #[test]
     fn terminal_play_lulls_same_body_and_later_wake_is_new() {
         let (body, wake) = playing();
-        let outcome = lull_and_wake(&body, &wake, true, 2, clues()).unwrap();
+        let outcome = lull_and_wake(&body, &wake, true, 2, signs()).unwrap();
         assert_eq!(outcome.sign.body_id, body.body_id.as_str());
         assert_eq!(outcome.sign.completed_wake_id, wake.wake_id.as_str());
         assert_ne!(outcome.sign.later_wake_id, outcome.sign.completed_wake_id);
@@ -140,13 +140,13 @@ mod tests {
     #[test]
     fn active_play_cannot_be_reported_as_lulled() {
         let (body, wake) = playing();
-        assert!(lull_and_wake(&body, &wake, false, 2, clues()).is_err());
+        assert!(lull_and_wake(&body, &wake, false, 2, signs()).is_err());
     }
 
     #[test]
     fn later_wake_runs_plan_c_and_retains_the_one_body() {
         let (body, wake) = playing();
-        let first = lull_and_wake(&body, &wake, true, 2, clues()).unwrap();
+        let first = lull_and_wake(&body, &wake, true, 2, signs()).unwrap();
         let plan_c = conduit_system_continuity::exact_r1_control_plan(
             BootId::from(conduit_net::R1_PICO_BOOT_ID),
             conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
@@ -155,7 +155,7 @@ mod tests {
         .plan;
         let wake = first
             .wake
-            .plan_ready(&plan_c, ClueId::from("r1/test/plan-c-ready"))
+            .plan_ready(&plan_c, SignId::from("r1/test/plan-c-ready"))
             .unwrap();
         let play = bind_active_play(
             &plan_c.plan_id,
@@ -164,17 +164,17 @@ mod tests {
             0,
         );
         let wake = wake
-            .play_started(&play, ClueId::from("r1/test/plan-c-playing"))
+            .play_started(&play, SignId::from("r1/test/plan-c-playing"))
             .unwrap();
         let second = lull_and_wake(
             &first.body,
             &wake,
             true,
             3,
-            R1LullClues {
-                wake_lulled: ClueId::from("r1/test/plan-c-lulled"),
-                body_retained: ClueId::from("r1/test/plan-c-retained"),
-                later_wake: ClueId::from("r1/test/plan-c-later-wake"),
+            R1LullSigns {
+                wake_lulled: SignId::from("r1/test/plan-c-lulled"),
+                body_retained: SignId::from("r1/test/plan-c-retained"),
+                later_wake: SignId::from("r1/test/plan-c-later-wake"),
             },
         )
         .unwrap();
