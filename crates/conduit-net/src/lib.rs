@@ -40,6 +40,11 @@ pub const R1_USB_NETWORK_SESSION_FAILED: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_FA
 /// Host acknowledgement that the admitted Clue face is ready to receive the
 /// recovery record associated with `R1_USB_NETWORK_SESSION_FAILED`.
 pub const R1_USB_NETWORK_FAILURE_CLUE_READY: &[u8] = b"CONDUIT_R1_NETWORK_FAILURE_CLUE_READY@1";
+pub const R1_USB_NETWORK_FAILURE_CLUE_WRITTEN: &[u8] = b"CONDUIT_R1_NETWORK_FAILURE_CLUE_WRITTEN@1";
+pub const R1_USB_NETWORK_FAILURE_CLUE_FORMAT_FAILED: &[u8] =
+    b"CONDUIT_R1_NETWORK_FAILURE_CLUE_FORMAT_FAILED@1";
+pub const R1_USB_NETWORK_FAILURE_CLUE_DISCONNECTED: &[u8] =
+    b"CONDUIT_R1_NETWORK_FAILURE_CLUE_DISCONNECTED@1";
 pub const NETWORK_JOIN_OPERATION: &str = "network/join";
 pub const NETWORK_CREDENTIALS_OPERATION: &str = "network/credentials";
 pub const NETWORK_ATTACHMENT_CLUE_OPERATION: &str = "network/attachment-clue";

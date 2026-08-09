@@ -1,7 +1,7 @@
 //! Bounded post-panic evidence and exact-build BOOTSEL recovery.
 
 use crate::panic_recovery::PanicRecord;
-use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
+use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc, UsbClueError};
 use crate::usb_link::UsbLinkSession;
 
 pub async fn serve(
@@ -35,16 +35,25 @@ pub async fn serve(
                         crate::panic_recovery::set_phase(
                             crate::panic_recovery::PanicPhase::RecoveryClue,
                         );
-                        clue.wait_dtr().await;
                         crate::panic_recovery::set_phase(
                             crate::panic_recovery::PanicPhase::RecoveryClueWrite,
                         );
-                        let _ = clue
+                        let status = match clue
                             .write_network_failure(
                                 record.code(),
                                 crate::wifi_join::attachment_identity(runtime),
                             )
-                            .await;
+                            .await
+                        {
+                            Ok(()) => conduit_net::R1_USB_NETWORK_FAILURE_CLUE_WRITTEN,
+                            Err(UsbClueError::FormatOverflow) => {
+                                conduit_net::R1_USB_NETWORK_FAILURE_CLUE_FORMAT_FAILED
+                            }
+                            Err(UsbClueError::Disconnected) => {
+                                conduit_net::R1_USB_NETWORK_FAILURE_CLUE_DISCONNECTED
+                            }
+                        };
+                        let _ = link.send_raw_stream_frame(status).await;
                     }
                     break;
                 }

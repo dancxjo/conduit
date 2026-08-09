@@ -278,6 +278,16 @@ fn wait_for_network_session_readiness(carrier: &mut NativePathCdcCarrier) -> Pic
             conduit_net::R1_USB_NETWORK_FAILURE_CLUE_READY,
             Duration::from_secs(2),
         )?;
+        let status = carrier.receive_raw_stream_frame(&mut raw, Duration::from_secs(3))?;
+        if status == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_FORMAT_FAILED {
+            return Err("Pico recovery Clue exceeded its admitted format bound".into());
+        }
+        if status == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_DISCONNECTED {
+            return Err("Pico recovery Clue face disconnected during delivery".into());
+        }
+        if status != conduit_net::R1_USB_NETWORK_FAILURE_CLUE_WRITTEN {
+            return Err("Pico returned an unexpected recovery Clue disposition".into());
+        }
         return Err("Pico reported that this boot cannot admit the network Session".into());
     }
     if reply != conduit_net::R1_USB_NETWORK_SESSION_READY {
