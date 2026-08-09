@@ -3,15 +3,14 @@
 use std::thread;
 use std::time::Duration;
 
-use conduit_core::{bind_active_play, BootId, HostId, Plan, PlanFragment};
+use conduit_core::{bind_active_play, BootId, HostId, LinkBinding, Plan, PlanFragment};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, ClueQuery, CordId, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
-    HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
-    RemoteEndpointId, RequestId, ValueRef, ValueStorage,
+    ClueQuery, CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
+    HostOperationId, HostOperationOutcome, HostedClueLog, HostedValueStore, KernelEventKind,
+    RemoteEndpointId, RequestId, ValueStorage,
 };
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -21,11 +20,15 @@ use conduit_signal::{
     encode_signal, exact_std_pico_usb_plan, parse_pulse_configuration, Signal,
     DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN, STD_PICO_USB_SOURCE_HOST_ID,
 };
-use conduit_wire::{SessionBinding, SessionFrame, SessionMachine, SessionRole};
+use conduit_wire::{
+    SessionBinding, SessionCheckpointAcceptance, SessionCheckpointOffer, SessionFrame,
+    SessionMachine, SessionRole,
+};
+
+mod pulse;
+use pulse::{PulseOperation, MAXIMUM_VALUES, MAXIMUM_WAITS};
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-const MAXIMUM_VALUES: usize = 16;
-const MAXIMUM_WAITS: usize = MAXIMUM_VALUES - 1;
 const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES + MAXIMUM_WAITS) as u16;
 const MAXIMUM_STORED_BYTES: u32 =
     MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN + MAXIMUM_WAITS as u32 * 8;
@@ -51,74 +54,6 @@ struct CapacitySeal {
     clue: usize,
     driver: usize,
     identity: (usize, usize, usize),
-}
-
-struct PulseOperation {
-    values: Vec<ValueRef>,
-    waits: Vec<ValueRef>,
-    next: usize,
-    pending: Option<RequestId>,
-}
-
-impl PulseOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidLifecycle,
-            detail,
-        })
-    }
-
-    fn emit_current(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .copied()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            })
-    }
-
-    fn allocation_capacity(&self) -> usize {
-        self.values.capacity() + self.waits.capacity()
-    }
-}
-
-impl Operation for PulseOperation {
-    fn start(&mut self) -> OperationAction {
-        self.emit_current()
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        if self.next >= self.values.len() {
-            return OperationAction::Complete;
-        }
-        let Some(wait) = self.waits.get(self.next - 1).copied() else {
-            return Self::fail(1);
-        };
-        let request = RequestId(self.next as u32);
-        self.pending = Some(request);
-        OperationAction::RequestHostOperation {
-            request,
-            operation: HostOperationId(0),
-            input: BoundedValueRef::new(wait, 8).expect("planned wait is exactly eight bytes"),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.emit_current()
-            }
-            _ => Self::fail(2),
-        }
-    }
 }
 
 pub struct PicoUsbSource {
@@ -148,8 +83,11 @@ impl PicoUsbSource {
         let lowered = lower_plan_fragment(&fragment).map_err(|error| format!("{error:?}"))?;
         if lowered.nodes.len() != 1
             || lowered.cords.len() != 1
-            || lowered.remote_endpoints.len() != 1
-            || lowered.remote_endpoints[0].direction != RemoteCordDirection::Egress
+            || lowered.remote_endpoints.is_empty()
+            || lowered
+                .remote_endpoints
+                .iter()
+                .any(|endpoint| endpoint.direction != RemoteCordDirection::Egress)
             || lowered.host_operations.len() != 1
         {
             return Err("std fragment is not one exact kernel remote egress".to_owned());
@@ -226,13 +164,8 @@ impl PicoUsbSource {
             )
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
-        let driver = OperationDriver::new(PulseOperation {
-            values: signal_values,
-            waits,
-            next: 0,
-            pending: None,
-        })
-        .map_err(|error| format!("{error:?}"))?;
+        let driver = OperationDriver::new(PulseOperation::new(signal_values, waits))
+            .map_err(|error| format!("{error:?}"))?;
         let clue_bytes = u32::from(CLUE_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or_else(|| "source clue byte bound overflow".to_owned())?;
@@ -302,6 +235,44 @@ impl PicoUsbSource {
 
     pub fn binding(&self) -> &SessionBinding {
         &self.binding
+    }
+
+    pub fn checkpoint_offer(&self) -> SessionCheckpointOffer<'_> {
+        self.session.checkpoint_offer()
+    }
+
+    pub fn resume_with_link(
+        &mut self,
+        link: &LinkBinding,
+        peer: SessionCheckpointOffer<'_>,
+    ) -> Result<SessionCheckpointAcceptance, String> {
+        let remote = &self.lowered.remote_endpoints[0];
+        let connection = self
+            .fragment
+            .connections
+            .iter()
+            .find(|connection| connection.connection_id == remote.connection_id)
+            .ok_or_else(|| "planned source connection missing".to_owned())?;
+        let binding = SessionBinding::from_planned_connection_with_link(
+            self.fragment.plan_id.clone(),
+            remote.source_fragment_id.clone(),
+            remote.sink_fragment_id.clone(),
+            connection,
+            link,
+        )
+        .and_then(|binding| {
+            binding.with_observed_boots(
+                self.binding.source.boot_id.clone(),
+                self.binding.sink.boot_id.clone(),
+            )
+        })
+        .map_err(|error| format!("{error:?}"))?;
+        let acceptance = self
+            .session
+            .resume_with_attachment(binding.clone(), peer)
+            .map_err(|error| format!("{error:?}"))?;
+        self.binding = binding;
+        Ok(acceptance)
     }
 
     pub fn observe_sink_boot(&mut self, sink_boot: BootId) -> Result<(), String> {
