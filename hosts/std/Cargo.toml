@@ -20,6 +20,7 @@ conduit-net = { path = "../../crates/conduit-net", features = ["form-catalog", "
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
+conduit-system-continuity = { path = "../../crates/conduit-system-continuity", features = ["r1-recovery"] }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
 conduit-wire = { path = "../../crates/conduit-wire" }
 tungstenite = "0.30.0"
@@ -27,6 +28,3 @@ serde_json = "1"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
-
-[dev-dependencies]
-conduit-system-continuity = { path = "../../crates/conduit-system-continuity", features = ["r1-recovery"] }

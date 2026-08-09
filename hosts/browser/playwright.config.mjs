@@ -12,6 +12,7 @@ export default defineConfig({
     "conduit-site.spec.mjs",
     "webchat.spec.mjs",
     "pool-webchat.spec.mjs",
+    "r1-three-peer-input.spec.mjs",
     "triple-signal.spec.mjs",
   ],
   fullyParallel: false,
