@@ -315,6 +315,22 @@ pub const WORKSPACE_STEPS: &[Step] = &[
             "--dry-run",
         ],
     ),
+    Step::new(
+        "check.r1-plan-c-continuation-hil.dry-run",
+        "Dry-run verify of the physical R1 same-Plan Line continuation proof",
+        "cargo",
+        &[
+            "xtask",
+            "prove",
+            "r1-plan-c-continuation-hil",
+            "--interactive",
+            "--ssid-env",
+            "CONDUIT_TEST_WIFI_SSID",
+            "--credential-env",
+            "CONDUIT_TEST_WIFI_CREDENTIAL",
+            "--dry-run",
+        ],
+    ),
 ];
 
 pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[

@@ -21,6 +21,7 @@ pub enum WifiProofMode {
     Bootstrap,
     WebSocketRoute,
     R1NewPlanRecovery { interactive: bool },
+    R1PlanCContinuation { interactive: bool },
 }
 
 pub fn run_prove_pico_wifi_bootstrap(
@@ -37,6 +38,7 @@ pub fn run_prove_pico_wifi_bootstrap(
             WifiProofMode::Bootstrap => "pico-wifi-bootstrap",
             WifiProofMode::WebSocketRoute => "pico-websocket-route",
             WifiProofMode::R1NewPlanRecovery { .. } => "r1-new-plan-recovery-hil",
+            WifiProofMode::R1PlanCContinuation { .. } => "r1-plan-c-continuation-hil",
         };
         println!("==> prove {proof} (dry-run)");
         println!("  firmware mode: wifi-bootstrap");
@@ -259,6 +261,15 @@ fn run_unix(
         }
         WifiProofMode::R1NewPlanRecovery { interactive } => {
             super::prove_websocket::verify_new_plan_recovery(
+                &mut carrier,
+                &mut clue,
+                identity,
+                &runtime,
+                interactive,
+            )?;
+        }
+        WifiProofMode::R1PlanCContinuation { interactive } => {
+            super::prove_websocket::verify_plan_c_continuation(
                 &mut carrier,
                 &mut clue,
                 identity,

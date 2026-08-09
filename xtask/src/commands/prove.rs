@@ -82,6 +82,27 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             )
             .map_err(|error| StepError::prereq("prove.r1-new-plan-recovery-hil", error.to_string()))
         }
+        ProveTarget::R1PlanCContinuationHil => {
+            let pico_args = crate::commands::pico::PicoArgs {
+                dry_run: opts.dry_run,
+                wifi_bootstrap: true,
+                ..Default::default()
+            };
+            crate::commands::pico::run_prove_pico_wifi_bootstrap(
+                args.link_port.as_deref(),
+                args.clue_port.as_deref(),
+                args.ssid_env.as_deref(),
+                args.credential_env.as_deref(),
+                crate::commands::pico::WifiProofMode::R1PlanCContinuation {
+                    interactive: args.interactive,
+                },
+                &pico_args,
+                opts,
+            )
+            .map_err(|error| {
+                StepError::prereq("prove.r1-plan-c-continuation-hil", error.to_string())
+            })
+        }
         ProveTarget::R1NewPlanRecovery => crate::commands::r1_recovery::run(opts),
     }
 }
