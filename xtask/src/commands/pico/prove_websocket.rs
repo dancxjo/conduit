@@ -13,6 +13,9 @@ use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
 use conduit_std_host::websocket::NativeWebSocketCarrier;
 use serde::Serialize;
 
+mod plan_c;
+pub(super) use plan_c::verify_plan_c_continuation;
+
 pub(super) fn verify(
     usb: &mut NativePathCdcCarrier,
     clue: &mut NativePathCdcLineReader,
@@ -44,7 +47,23 @@ fn connect(
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
 ) -> PicoResult<NativeWebSocketCarrier> {
-    usb.send_raw_stream_frame(conduit_net::R1_WEBSOCKET_BASE_QUERY, Duration::from_secs(2))?;
+    connect_with_query(
+        usb,
+        clue,
+        identity,
+        runtime,
+        conduit_net::R1_WEBSOCKET_BASE_QUERY,
+    )
+}
+
+fn connect_with_query(
+    usb: &mut NativePathCdcCarrier,
+    clue: &mut NativePathCdcLineReader,
+    identity: &FirmwareIdentity,
+    runtime: &RuntimeTranscriptIdentity,
+    query: &[u8],
+) -> PicoResult<NativeWebSocketCarrier> {
+    usb.send_raw_stream_frame(query, Duration::from_secs(2))?;
     let mut raw = [0_u8; 2048];
     if usb.receive_raw_stream_frame(&mut raw, Duration::from_secs(3))?
         != conduit_net::R1_WEBSOCKET_BASE_READY

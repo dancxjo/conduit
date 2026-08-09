@@ -121,6 +121,7 @@ pub enum ProveTarget {
     PicoWebsocketRoute,
     R1NewPlanRecovery,
     R1NewPlanRecoveryHil,
+    R1PlanCContinuationHil,
 }
 
 #[derive(Args, Debug)]
