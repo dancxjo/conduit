@@ -5,9 +5,28 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
+conduit-body = { path = "../conduit-body", optional = true }
+conduit-form = { path = "../conduit-form", optional = true }
+conduit-net = { path = "../conduit-net", optional = true }
 conduit-observatory = { path = "../conduit-observatory" }
+conduit-planner = { path = "../conduit-planner", optional = true }
+conduit-signal = { path = "../conduit-signal", features = ["host-profile"], optional = true }
 conduit-wire = { path = "../conduit-wire" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+
+[features]
+default = []
+r1-recovery = [
+    "dep:conduit-body",
+    "dep:conduit-form",
+    "dep:conduit-net",
+    "dep:conduit-planner",
+    "dep:conduit-signal",
+]
+
+[[test]]
+name = "r1_recovery"
+required-features = ["r1-recovery"]
 
 [dev-dependencies]
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
