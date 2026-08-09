@@ -14,6 +14,8 @@ use conduit_presentation::{
     MAX_RENDERER_VALUE_BYTES,
 };
 
+use crate::{RendererSelfInspection, RendererSelfInspectionError};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RendererAdapterKind {
     NativeWayland,
@@ -42,6 +44,7 @@ pub enum RendererExecutionError {
     Planning,
     MissingPlacement,
     Manifestation(ManifestationError),
+    Inspection(RendererSelfInspectionError),
 }
 
 impl core::fmt::Display for RendererExecutionError {
@@ -140,6 +143,16 @@ impl RendererExecution {
             ));
         }
         Ok(())
+    }
+
+    pub fn self_inspection(&self) -> Result<RendererSelfInspection, RendererExecutionError> {
+        self.validate()?;
+        RendererSelfInspection::new(
+            &self.presentation,
+            self.plan.clone(),
+            self.manifestation.clone(),
+        )
+        .map_err(RendererExecutionError::Inspection)
     }
 }
 

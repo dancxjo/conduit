@@ -20,6 +20,7 @@ mod form_editor;
 mod portable_demo;
 mod portable_projection;
 mod renderer_execution;
+mod renderer_inspection;
 mod renderer_projection;
 mod route_demo;
 mod route_presentation;
@@ -35,6 +36,7 @@ pub use portable_projection::PortableProjectionError;
 pub use renderer_execution::{
     RendererAdapterIdentity, RendererAdapterKind, RendererExecution, RendererExecutionError,
 };
+pub use renderer_inspection::{RendererSelfInspection, RendererSelfInspectionError};
 pub use renderer_projection::{
     AttemptedEditPresentation, PatchbayPresentation, RendererIdentityProjection,
     RendererProjectionError, MAX_RENDERER_CLUES, MAX_RENDERER_DIAGNOSTICS,

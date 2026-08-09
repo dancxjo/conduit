@@ -1382,6 +1382,7 @@ dependencies = [
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-wire",
+ "serde",
  "serde_json",
 ]
 

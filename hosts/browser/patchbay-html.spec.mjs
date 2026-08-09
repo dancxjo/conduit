@@ -25,6 +25,15 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#diagnostics li")).toHaveCount(1);
     await expect(page.locator("#diagnostics li")).toContainText("CND-FRM-004");
     await expect(page.locator("#realizations li").first()).toBeVisible();
+    await expect(page.locator("#plan")).toContainText("presentation/renderer");
+    await expect(page.locator("#plan")).toContainText("presentation/renderer-dom-svg@1");
+    await expect(page.locator("#plan")).toContainText("patchbay-html/dom-svg@1");
+    await expect(page.locator("#realizations")).toContainText("Port presentation · Input · Info presentation/presentation@1 · Value");
+    await expect(page.locator("#realizations")).toContainText("Port manifestation · Output · Info presentation/manifestation@1 · Value");
+    await expect(page.locator("#realizations")).toContainText("Resource patchbay-html/host/presentation");
+    await expect(page.locator("#realizations")).toContainText("Base conduit.host/present@1 · target presentation/base/dom-svg@1");
+    await expect(page.locator("#clue")).toContainText("Renderer patchbay-html/manifestation-prepared · Prepared");
+    await expect(page.locator("#clue")).toContainText("Renderer patchbay-html/document-ready · Available");
     await expect(page.locator("#topology li").first()).toContainText("boot");
     await expect(page.locator("#route-cards li").filter({hasText:"USB CDC"}).first()).toBeVisible();
     await expect(page.locator("#route-cards li").filter({hasText:"WebSocket"}).first()).toBeVisible();
@@ -41,8 +50,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(await page.locator("#graph [data-subject].selected").getAttribute("data-subject")).toBe(identity);
     await expect(page.locator("#linear li")).toHaveCount(snapshot.presentation.text.length);
 
-    expect(snapshot.manifestation.lifecycle).toBe("Available");
-    const identitiesBefore={content:snapshot.presentation.identity,plan:snapshot.presentation.basis.plan_id,play:snapshot.presentation.basis.active_play_id,manifestation:snapshot.manifestation.manifestation_id,subjects:listSubjects};
+    expect(snapshot.renderer.manifestation.lifecycle).toBe("Available");
+    const identitiesBefore={content:snapshot.presentation.identity,plan:snapshot.presentation.basis.plan_id,play:snapshot.presentation.basis.active_play_id,manifestation:snapshot.renderer.manifestation.manifestation_id,subjects:listSubjects};
     await page.locator("#zoom-in").click();await page.locator("#pan-right").click();await page.locator("#arrange").click();await page.locator("#theme").click();
     await expect(page.locator("#arrange")).toHaveAttribute("aria-pressed","true");await expect(page.locator("#theme")).toHaveAttribute("aria-pressed","true");
     expect(await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort())).toEqual(identitiesBefore.subjects);

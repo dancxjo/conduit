@@ -25,12 +25,12 @@ fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_clue() {
     assert!(!basis.body_id.as_str().is_empty());
     assert!(!basis.wake_id.as_str().is_empty());
     assert_eq!(
-        decoded.manifestation.lifecycle,
+        decoded.renderer.manifestation.lifecycle,
         ManifestationLifecycle::Prepared
     );
     assert!(decoded
-        .manifestation
-        .validate_against(&decoded.presentation, &decoded.renderer_plan)
+        .renderer
+        .validate_against(&decoded.presentation)
         .is_ok());
 }
 
@@ -46,23 +46,24 @@ fn html_adapter_failure_is_typed_without_mutating_the_source_presentation() {
         )
         .unwrap();
     assert_eq!(
-        snapshot.manifestation.lifecycle,
+        snapshot.renderer.manifestation.lifecycle,
         ManifestationLifecycle::Failed
     );
     assert_eq!(
-        snapshot.manifestation.failure,
+        snapshot.renderer.manifestation.failure,
         Some(ManifestationFailure::DeliveryFailed)
     );
     assert_eq!(snapshot.presentation.identity, source_identity);
     assert_eq!(snapshot.presentation.basis.active_play_id, source_play);
     assert_eq!(
         snapshot
+            .renderer
             .manifestation
             .clues
             .last()
             .unwrap()
             .manifestation_id,
-        snapshot.manifestation.manifestation_id
+        snapshot.renderer.manifestation.manifestation_id
     );
     assert!(snapshot.encode().is_ok());
 }
@@ -117,7 +118,7 @@ fn stale_malformed_unknown_oversized_and_drifted_snapshots_fail_closed() {
         Err(SnapshotError::Malformed(_))
     ));
     value = serde_json::from_slice(&bytes).unwrap();
-    value["manifestation"]["presentation_revision"] = 99.into();
+    value["renderer"]["manifestation"]["presentation_revision"] = 99.into();
     assert_eq!(
         RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
         Err(SnapshotError::InvalidIdentity)
