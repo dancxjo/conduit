@@ -140,7 +140,7 @@ pub(crate) fn verify_plan_c_continuation(
 
     let mut usb_io = UsbSessionIo::new(usb);
     r1_control_session::handshake(&mut usb_io, &mut source)?;
-    r1_control_session::replay_offered(
+    let merged = r1_control_session::replay_offered(
         &mut usb_io,
         &mut source,
         sequence,
@@ -154,15 +154,18 @@ pub(crate) fn verify_plan_c_continuation(
             )
         },
     )?;
+    super::super::r1_live_control::emit_physical_input_sign(&plan, &merged)?;
     for input in super::control_inputs().into_iter().skip(1) {
-        r1_control_session::deliver_input(&mut usb_io, &mut source, input, &mut |found| {
-            let line = clue
-                .read_line(Duration::from_secs(3))
-                .map_err(|error| format!("missing continued Plan C LED Sign: {error}"))?;
-            super::super::r1_signal_transcript::verify_receipt(
-                &line, &plan, found, identity, runtime,
-            )
-        })?;
+        let merged =
+            r1_control_session::deliver_input(&mut usb_io, &mut source, input, &mut |found| {
+                let line = clue
+                    .read_line(Duration::from_secs(3))
+                    .map_err(|error| format!("missing continued Plan C LED Sign: {error}"))?;
+                super::super::r1_signal_transcript::verify_receipt(
+                    &line, &plan, found, identity, runtime,
+                )
+            })?;
+        super::super::r1_live_control::emit_physical_input_sign(&plan, &merged)?;
     }
     let delivered = r1_control_session::finish(&mut usb_io, &mut source)?;
     if delivered != 6 {
