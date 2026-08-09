@@ -37,7 +37,7 @@ pub fn deliver_plan_a_inputs(
                     .read_line(Duration::from_secs(3))
                     .map_err(|error| format!("missing live Plan A physical LED Sign: {error}"))?;
                 super::r1_signal_transcript::verify_receipt(
-                    &line, plan, sequence, identity, runtime,
+                    &line, plan, sequence, input.level, identity, runtime,
                 )
             })
             .map_err(|error| error.to_string())?;

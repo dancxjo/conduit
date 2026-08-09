@@ -154,7 +154,7 @@ pub(crate) fn verify_plan_c_continuation(
                 .read_line(Duration::from_secs(3))
                 .map_err(|error| format!("missing replayed Plan C LED Sign: {error}"))?;
             super::super::r1_signal_transcript::verify_receipt(
-                &line, &plan, found, identity, runtime,
+                &line, &plan, found, true, identity, runtime,
             )
         },
     )?;
@@ -166,7 +166,12 @@ pub(crate) fn verify_plan_c_continuation(
                     .read_line(Duration::from_secs(3))
                     .map_err(|error| format!("missing continued Plan C LED Sign: {error}"))?;
                 super::super::r1_signal_transcript::verify_receipt(
-                    &line, &plan, found, identity, runtime,
+                    &line,
+                    &plan,
+                    found,
+                    input.level,
+                    identity,
+                    runtime,
                 )
             })?;
         super::super::r1_live_control::emit_physical_input_sign(&plan, &merged)?;
