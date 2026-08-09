@@ -40,12 +40,12 @@ pub fn plan_expanded_canonical(
         bases,
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
             connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &[],
+            line_offers: &[],
         },
     )
 }

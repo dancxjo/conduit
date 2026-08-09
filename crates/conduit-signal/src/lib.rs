@@ -19,7 +19,7 @@ pub use canonical::signal_startup_catalog;
 mod distributed_identity;
 #[cfg(feature = "host-profile")]
 pub use distributed_identity::{
-    distributed_source_advertisement_for, distributed_websocket_link_binding_for,
+    distributed_source_advertisement_for, distributed_websocket_line_offer_for,
 };
 #[cfg(feature = "host-profile")]
 mod distributed_plan;
@@ -44,13 +44,15 @@ use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionBase,
+    CapabilityOffer, ClueId, ConfigurationEntry, ConfigurationValue, ConnectionBase,
     ConnectionBaseInstanceId, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision, KindId,
-    LinkAuthorityReference, LinkAvailability, LinkBinding, LinkBindingId, LinkCredentialReference,
-    LinkEndpoint, LinkEndpointId, LinkLimits, OfferGeneration, PortDescriptor, PortDirection,
-    ResourceOffer, ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS,
-    PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
+    LineAvailability, LineAvailabilitySign, LineContinuation, LineContract, LineDuplex, LineId,
+    LineOffer, LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
+    LinkAuthorityReference, LinkBinding, LinkBindingId, LinkCredentialReference, LinkEndpoint,
+    LinkEndpointId, LinkLimits, OfferGeneration, PortDescriptor, PortDirection, ResourceOffer,
+    ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
@@ -93,6 +95,7 @@ pub const DISTRIBUTED_STD_BOOT_ID: &str = "s4/std-source-boot";
 pub const DISTRIBUTED_BROWSER_HOST_ID: &str = "s4/browser-sink";
 pub const DISTRIBUTED_BROWSER_BOOT_ID: &str = "s4/browser-sink-boot";
 pub const DISTRIBUTED_LINK_BINDING_ID: &str = "s4/std-browser-link";
+pub const DISTRIBUTED_LINE_ID: &str = "s4/line/distributed-websocket";
 pub const DISTRIBUTED_BASE_INSTANCE_ID: &str = "s4/websocket-loopback-instance";
 pub const DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS: u16 = 1;
 pub const DISTRIBUTED_MAXIMUM_BUFFERED_BYTES: u32 = SIGNAL_ENCODED_LEN;
@@ -497,8 +500,8 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
 }
 
 #[cfg(feature = "host-profile")]
-pub fn distributed_websocket_link_binding() -> LinkBinding {
-    LinkBinding {
+pub fn distributed_websocket_line_offer() -> LineOffer {
+    let binding = LinkBinding {
         binding_id: LinkBindingId::from(DISTRIBUTED_LINK_BINDING_ID),
         source: LinkEndpoint {
             host_id: HostId::from(DISTRIBUTED_STD_HOST_ID),
@@ -512,7 +515,6 @@ pub fn distributed_websocket_link_binding() -> LinkBinding {
         },
         base: ConnectionBase::WebSocket,
         base_instance_id: ConnectionBaseInstanceId::from(DISTRIBUTED_BASE_INSTANCE_ID),
-        availability: LinkAvailability::Ready,
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
         limits: LinkLimits {
@@ -520,6 +522,25 @@ pub fn distributed_websocket_link_binding() -> LinkBinding {
             maximum_payload_bytes: SIGNAL_ENCODED_LEN,
             maximum_buffered_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
             maximum_frame_bytes: DISTRIBUTED_MAXIMUM_FRAME_BYTES,
+        },
+    };
+    LineOffer {
+        line_id: LineId::from(DISTRIBUTED_LINE_ID),
+        availability: LineAvailabilitySign {
+            line_id: LineId::from(DISTRIBUTED_LINE_ID),
+            binding_id: binding.binding_id.clone(),
+            availability: LineAvailability::Ready,
+            sign_id: ClueId::from("s4/line/distributed-websocket/ready"),
+        },
+        binding,
+        contract: LineContract {
+            scope: LineScope::Machine,
+            traffic_shape: LineTrafficShape::Message,
+            duplex: LineDuplex::FullDuplex,
+            ordering: LineOrdering::Ordered,
+            reliability: LineReliability::Reliable,
+            continuation: LineContinuation::None,
+            security: LineSecurity::PlaintextNetwork,
         },
     }
 }

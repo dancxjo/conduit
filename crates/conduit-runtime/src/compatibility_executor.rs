@@ -206,7 +206,7 @@ pub struct HostRuntime {
     released_plans: BTreeSet<PlanId>,
     implementations: ImplementationRegistry,
     authority_grants: Vec<conduit_core::AuthorityGrant>,
-    link_bindings: Vec<conduit_core::LinkBinding>,
+    line_offers: Vec<conduit_core::LineOffer>,
     next_active_play_sequence: u64,
     next_clue_sequence: u64,
     composite_boundary_effects: VecDeque<CompositeBoundaryEffect>,
@@ -222,7 +222,7 @@ impl core::fmt::Debug for HostRuntime {
             .field("released_plans", &self.released_plans)
             .field("implementations", &self.implementations)
             .field("authority_grants", &self.authority_grants.len())
-            .field("link_bindings", &self.link_bindings.len())
+            .field("line_offers", &self.line_offers.len())
             .finish()
     }
 }
@@ -414,8 +414,12 @@ fn validate_fragment_execution_contract(
         ));
     }
     if fragment.connections.iter().any(|connection| {
-        let invalid_binding = connection.link_binding.as_ref().is_some_and(|binding| {
-            binding.binding_id.as_str().is_empty()
+        let invalid_line = connection.selected_line.as_ref().is_some_and(|line| {
+            let binding = &line.binding;
+            line.line_id.as_str().is_empty()
+                || !connection.permits_line(line)
+                || connection.admitted_lines.is_empty()
+                || binding.binding_id.as_str().is_empty()
                 || binding.source.host_id.as_str().is_empty()
                 || binding.source.boot_id.as_str().is_empty()
                 || binding.source.endpoint_id.as_str().is_empty()
@@ -426,7 +430,6 @@ fn validate_fragment_execution_contract(
                 || binding.source.host_id == binding.sink.host_id
                 || binding.base == ConnectionBase::Local
                 || binding.base_instance_id.as_str().is_empty()
-                || binding.availability != conduit_core::LinkAvailability::Ready
                 || binding.limits.maximum_in_flight_items < connection.item_capacity
                 || binding.limits.maximum_payload_bytes < connection.byte_capacity
                 || binding.limits.maximum_buffered_bytes < connection.byte_capacity
@@ -442,18 +445,7 @@ fn validate_fragment_execution_contract(
                         if grant_id.as_str().is_empty()
                 )
         });
-        invalid_binding
-            || match connection.base {
-                ConnectionBase::Local => connection.link_binding.is_some(),
-                ConnectionBase::InMemory
-                | ConnectionBase::FixtureFrame
-                | ConnectionBase::FixtureDatagram
-                | ConnectionBase::WebSocket
-                | ConnectionBase::UsbCdc => connection
-                    .link_binding
-                    .as_ref()
-                    .is_none_or(|binding| binding.base != connection.base),
-            }
+        invalid_line || connection.selected_line.is_none() != connection.admitted_lines.is_empty()
     }) {
         return Some((
             FailureReason::LinkBindingMismatch,
@@ -717,16 +709,16 @@ fn authority_binding_matches_current_grant(
 }
 
 fn link_binding_matches_current_observation(
-    binding: &conduit_core::LinkBinding,
-    observations: &[conduit_core::LinkBinding],
+    binding: &conduit_core::BoundLink,
+    offers: &[conduit_core::LineOffer],
 ) -> bool {
-    let mut matches = observations
+    let mut matches = offers
         .iter()
-        .filter(|observation| observation.binding_id == binding.binding_id);
-    matches
-        .next()
-        .is_some_and(|observation| observation == binding)
-        && matches.next().is_none()
+        .filter(|offer| offer.binding.binding_id == binding.binding_id);
+    matches.next().is_some_and(|offer| {
+        offer.binding.bound_link() == *binding
+            && offer.availability.availability == conduit_core::LineAvailability::Ready
+    }) && matches.next().is_none()
 }
 
 impl HostRuntime {
@@ -763,7 +755,7 @@ impl HostRuntime {
         implementations: ImplementationRegistry,
         observation_limit: usize,
         authority_grants: Vec<conduit_core::AuthorityGrant>,
-        link_bindings: Vec<conduit_core::LinkBinding>,
+        line_offers: Vec<conduit_core::LineOffer>,
     ) -> Self {
         let mut runtime = Self {
             advertisement,
@@ -773,7 +765,7 @@ impl HostRuntime {
             released_plans: BTreeSet::new(),
             implementations,
             authority_grants,
-            link_bindings,
+            line_offers,
             next_active_play_sequence: 0,
             next_clue_sequence: 0,
             composite_boundary_effects: VecDeque::new(),
@@ -783,8 +775,8 @@ impl HostRuntime {
         runtime
     }
 
-    pub fn replace_link_bindings(&mut self, link_bindings: Vec<conduit_core::LinkBinding>) {
-        self.link_bindings = link_bindings;
+    pub fn replace_line_offers(&mut self, line_offers: Vec<conduit_core::LineOffer>) {
+        self.line_offers = line_offers;
     }
 
     /// Installs the exact named composite seam after ordinary fragment
@@ -1626,7 +1618,11 @@ impl HostRuntime {
         for connection in &fragment.connections {
             let source = placements.get(&connection.source_placement_id);
             let sink = placements.get(&connection.sink_placement_id);
-            let role = match (connection.base, source.is_some(), sink.is_some()) {
+            let base = connection
+                .selected_line
+                .as_ref()
+                .map_or(ConnectionBase::Local, |line| line.binding.base);
+            let role = match (base, source.is_some(), sink.is_some()) {
                 (ConnectionBase::Local, true, true) => ConnectionRole::Local,
                 (ConnectionBase::InMemory, true, false) => ConnectionRole::Outbound,
                 (ConnectionBase::InMemory, false, true) => ConnectionRole::Inbound,
@@ -1641,13 +1637,14 @@ impl HostRuntime {
                         message: Some(format!(
                             "connection '{}' has invalid local endpoints for {:?}",
                             connection.connection_id.as_str(),
-                            connection.base
+                            base
                         )),
                     });
                     return output;
                 }
             };
-            if let Some(binding) = &connection.link_binding {
+            if let Some(line) = &connection.selected_line {
+                let binding = &line.binding;
                 let local_endpoint_matches = match role {
                     ConnectionRole::Outbound => {
                         binding.source.host_id == fragment.host_id
@@ -1670,7 +1667,7 @@ impl HostRuntime {
                     });
                     return output;
                 }
-                if !link_binding_matches_current_observation(binding, &self.link_bindings) {
+                if !link_binding_matches_current_observation(binding, &self.line_offers) {
                     output.events.push(HostEvent::PreparationRejected {
                         plan_id: fragment.plan_id,
                         reason: FailureReason::LinkUnavailable,

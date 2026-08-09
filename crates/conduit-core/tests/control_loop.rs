@@ -1,32 +1,48 @@
 use conduit_core::{
-    selected_bound_link, BoundLink, ClueId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId,
-    ControlLoopEvent, ControlLoopEventError, CredentialReferenceId, HostId, LinkAuthorityReference,
-    LinkBindingId, LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
-    PlannedConnection, PortId,
+    selected_admitted_line, AdmittedLine, BoundLink, ClueId, ConnectionBase,
+    ConnectionBaseInstanceId, ConnectionId, ControlLoopEvent, ControlLoopEventError,
+    CredentialReferenceId, HostId, LineContinuation, LineContract, LineDuplex, LineId,
+    LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
+    LinkAuthorityReference, LinkBindingId, LinkCredentialReference, LinkEndpoint, LinkEndpointId,
+    LinkLimits, PlanId, PlannedConnection, PortId,
 };
 
-fn route(binding_id: &str) -> BoundLink {
-    BoundLink {
-        binding_id: LinkBindingId::from(binding_id),
-        source: LinkEndpoint {
-            host_id: HostId::from("source"),
-            boot_id: conduit_core::BootId::from("source-boot"),
-            endpoint_id: LinkEndpointId::from(format!("{binding_id}-source")),
+fn line(id: &str) -> AdmittedLine {
+    AdmittedLine {
+        line_id: LineId::from(id),
+        binding: BoundLink {
+            binding_id: LinkBindingId::from(id),
+            source: LinkEndpoint {
+                host_id: HostId::from("source"),
+                boot_id: conduit_core::BootId::from("source-boot"),
+                endpoint_id: LinkEndpointId::from(format!("{id}-source")),
+            },
+            sink: LinkEndpoint {
+                host_id: HostId::from("sink"),
+                boot_id: conduit_core::BootId::from("sink-boot"),
+                endpoint_id: LinkEndpointId::from(format!("{id}-sink")),
+            },
+            base: ConnectionBase::WebSocket,
+            base_instance_id: ConnectionBaseInstanceId::from(format!("{id}-base")),
+            credential: LinkCredentialReference::Opaque(CredentialReferenceId::from(
+                "credential-ref",
+            )),
+            authority: LinkAuthorityReference::ProcessOwned,
+            limits: LinkLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: 64,
+                maximum_buffered_bytes: 64,
+                maximum_frame_bytes: 128,
+            },
         },
-        sink: LinkEndpoint {
-            host_id: HostId::from("sink"),
-            boot_id: conduit_core::BootId::from("sink-boot"),
-            endpoint_id: LinkEndpointId::from(format!("{binding_id}-sink")),
-        },
-        base: ConnectionBase::WebSocket,
-        base_instance_id: ConnectionBaseInstanceId::from(format!("{binding_id}-base")),
-        credential: LinkCredentialReference::Opaque(CredentialReferenceId::from("credential-ref")),
-        authority: LinkAuthorityReference::ProcessOwned,
-        limits: LinkLimits {
-            maximum_in_flight_items: 1,
-            maximum_payload_bytes: 64,
-            maximum_buffered_bytes: 64,
-            maximum_frame_bytes: 128,
+        contract: LineContract {
+            scope: LineScope::Machine,
+            traffic_shape: LineTrafficShape::Message,
+            duplex: LineDuplex::FullDuplex,
+            ordering: LineOrdering::Ordered,
+            reliability: LineReliability::Reliable,
+            continuation: LineContinuation::None,
+            security: LineSecurity::PlaintextNetwork,
         },
     }
 }
@@ -40,9 +56,8 @@ fn connection() -> PlannedConnection {
         sink_port_id: PortId::from("in"),
         value_kind: conduit_core::KindId::from("value/test"),
         temporal: conduit_core::PortTemporal::Value,
-        base: ConnectionBase::WebSocket,
-        link_binding: None,
-        route_candidates: vec![route("route-a"), route("route-b")],
+        selected_line: Some(line("line-a")),
+        admitted_lines: vec![line("line-a"), line("line-b")],
         item_capacity: 1,
         byte_capacity: 64,
     }
@@ -102,21 +117,23 @@ fn replacement_must_have_a_new_plan_identity() {
 fn route_selection_may_change_only_inside_the_same_sealed_plan() {
     let plan_id = PlanId::from("plan-a");
     let connection = connection();
-    let selected = ControlLoopEvent::RouteSelectionChanged {
+    let selected = ControlLoopEvent::LineSelectionChanged {
         plan_id: plan_id.clone(),
         connection_id: connection.connection_id.clone(),
-        previous_binding_id: Some(LinkBindingId::from("route-a")),
-        selected_binding_id: LinkBindingId::from("route-b"),
+        previous_line_id: Some(LineId::from("line-a")),
+        selected_line_id: LineId::from("line-b"),
+        selected_binding_id: LinkBindingId::from("line-b"),
         observation_clue_id: ClueId::from("route-b-ready"),
     };
     assert_eq!(selected.validate_route_event(&plan_id, &connection), Ok(()));
     assert_eq!(
-        selected_bound_link(&selected, &connection).map(|candidate| candidate.binding_id.as_str()),
-        Some("route-b")
+        selected_admitted_line(&selected, &connection)
+            .map(|candidate| candidate.binding.binding_id.as_str()),
+        Some("line-b")
     );
 
     let mut wrong_plan = selected.clone();
-    if let ControlLoopEvent::RouteSelectionChanged { plan_id, .. } = &mut wrong_plan {
+    if let ControlLoopEvent::LineSelectionChanged { plan_id, .. } = &mut wrong_plan {
         *plan_id = PlanId::from("plan-b");
     }
     assert_eq!(
@@ -124,11 +141,12 @@ fn route_selection_may_change_only_inside_the_same_sealed_plan() {
         Err(ControlLoopEventError::RouteEventPlanMismatch)
     );
 
-    let outside = ControlLoopEvent::RouteSelectionChanged {
+    let outside = ControlLoopEvent::LineSelectionChanged {
         plan_id,
         connection_id: connection.connection_id.clone(),
-        previous_binding_id: Some(LinkBindingId::from("route-a")),
-        selected_binding_id: LinkBindingId::from("route-c"),
+        previous_line_id: Some(LineId::from("line-a")),
+        selected_line_id: LineId::from("line-c"),
+        selected_binding_id: LinkBindingId::from("line-c"),
         observation_clue_id: ClueId::from("route-c-ready"),
     };
     assert_eq!(
@@ -139,11 +157,12 @@ fn route_selection_may_change_only_inside_the_same_sealed_plan() {
 
 #[test]
 fn a_non_change_and_empty_clue_fail_closed() {
-    let unchanged = ControlLoopEvent::RouteSelectionChanged {
+    let unchanged = ControlLoopEvent::LineSelectionChanged {
         plan_id: PlanId::from("plan-a"),
         connection_id: ConnectionId::from("connection"),
-        previous_binding_id: Some(LinkBindingId::from("route-a")),
-        selected_binding_id: LinkBindingId::from("route-a"),
+        previous_line_id: Some(LineId::from("line-a")),
+        selected_line_id: LineId::from("line-a"),
+        selected_binding_id: LinkBindingId::from("line-a"),
         observation_clue_id: ClueId::from("observation"),
     };
     assert_eq!(
@@ -170,7 +189,7 @@ fn architecture_contract_keeps_replan_and_route_change_language_distinct() {
         "PlanningSucceeded",
         "PlanSuperseded",
         "PlanRealized",
-        "RouteSelectionChanged",
+        "LineSelectionChanged",
         "#466",
         "#495",
         "#496",

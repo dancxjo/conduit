@@ -1,6 +1,6 @@
 use conduit_core::{BootId, ConnectionBase};
 use conduit_net::{
-    r1_route_basis, r1_websocket_probe_binding, R1_MAXIMUM_FRAME_BYTES, R1_PICO_HOST_ID,
+    r1_line_basis, r1_websocket_probe_binding, R1_MAXIMUM_FRAME_BYTES, R1_PICO_HOST_ID,
     R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
 };
 use conduit_wire::{SessionMachine, SessionMessage, SessionRole};
@@ -8,20 +8,33 @@ use conduit_wire::{SessionMachine, SessionMessage, SessionRole};
 #[test]
 fn one_boot_has_two_exact_bounded_route_facts() {
     let boot = BootId::from("pico/runtime-boot");
-    let [usb, websocket] = r1_route_basis(boot.clone());
-    assert_eq!(usb.sink.host_id.as_str(), R1_PICO_HOST_ID);
-    assert_eq!(websocket.sink.host_id, usb.sink.host_id);
-    assert_eq!(websocket.sink.boot_id, boot);
-    assert_eq!(websocket.sink.boot_id, usb.sink.boot_id);
-    assert_eq!(usb.base, ConnectionBase::UsbCdc);
-    assert_eq!(websocket.base, ConnectionBase::WebSocket);
-    assert_ne!(usb.binding_id, websocket.binding_id);
-    assert_ne!(usb.base_instance_id, websocket.base_instance_id);
-    assert_ne!(usb.source.endpoint_id, websocket.source.endpoint_id);
-    assert_ne!(usb.sink.endpoint_id, websocket.sink.endpoint_id);
-    assert_eq!(websocket.limits.maximum_frame_bytes, R1_MAXIMUM_FRAME_BYTES);
+    let [usb, websocket] = r1_line_basis(boot.clone());
+    assert_eq!(usb.binding.sink.host_id.as_str(), R1_PICO_HOST_ID);
+    assert_eq!(websocket.binding.sink.host_id, usb.binding.sink.host_id);
+    assert_eq!(websocket.binding.sink.boot_id, boot);
+    assert_eq!(websocket.binding.sink.boot_id, usb.binding.sink.boot_id);
+    assert_eq!(usb.binding.base, ConnectionBase::UsbCdc);
+    assert_eq!(websocket.binding.base, ConnectionBase::WebSocket);
+    assert_ne!(usb.line_id, websocket.line_id);
+    assert_ne!(usb.binding.binding_id, websocket.binding.binding_id);
+    assert_ne!(
+        usb.binding.base_instance_id,
+        websocket.binding.base_instance_id
+    );
+    assert_ne!(
+        usb.binding.source.endpoint_id,
+        websocket.binding.source.endpoint_id
+    );
+    assert_ne!(
+        usb.binding.sink.endpoint_id,
+        websocket.binding.sink.endpoint_id
+    );
     assert_eq!(
-        websocket.limits.maximum_payload_bytes,
+        websocket.binding.limits.maximum_frame_bytes,
+        R1_MAXIMUM_FRAME_BYTES
+    );
+    assert_eq!(
+        websocket.binding.limits.maximum_payload_bytes,
         R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES
     );
 }

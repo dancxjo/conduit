@@ -8,7 +8,7 @@ use conduit_core::{
 
 use crate::{
     CapabilityAvailability, CapabilityRow, CapabilityStatusReport, CapabilitySupport, ClueRow,
-    FragmentRow, HostRow, LinkRow, ObservatoryReport, ObservatorySnapshot, OfferFreshness,
+    FragmentRow, HostRow, LineRow, ObservatoryReport, ObservatorySnapshot, OfferFreshness,
     OperationalState, PlacementRow, PlanRow, RetentionRow,
 };
 
@@ -65,11 +65,11 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
         })
         .collect::<Vec<_>>();
 
-    let links = snapshot
-        .links
+    let lines = snapshot
+        .lines
         .iter()
-        .map(|report| LinkRow {
-            binding: report.binding.clone(),
+        .map(|report| LineRow {
+            offer: report.offer.clone(),
             state: report.state,
         })
         .collect::<Vec<_>>();
@@ -141,8 +141,8 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
                         source_placement_id: connection.source_placement_id.clone(),
                         sink_placement_id: connection.sink_placement_id.clone(),
                         value_kind: connection.value_kind.clone(),
-                        base: connection.base,
-                        link_binding: connection.link_binding.clone(),
+                        selected_line: connection.selected_line.clone(),
+                        admitted_lines: connection.admitted_lines.clone(),
                         item_capacity: connection.item_capacity,
                         byte_capacity: connection.byte_capacity,
                     })
@@ -190,7 +190,7 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
     Ok(ObservatoryReport {
         hosts,
         capabilities,
-        links,
+        lines,
         plans,
         fragments,
         placements,
@@ -241,15 +241,15 @@ pub fn validate_snapshot(snapshot: &ObservatorySnapshot) -> Result<(), String> {
     }
 
     let mut link_ids = BTreeSet::new();
-    for link in &snapshot.links {
-        if !link_ids.insert(link.binding.binding_id.clone()) {
+    for link in &snapshot.lines {
+        if !link_ids.insert(link.offer.line_id.clone()) {
             return Err("duplicate link observation".to_string());
         }
-        for endpoint in [&link.binding.source, &link.binding.sink] {
+        for endpoint in [&link.offer.binding.source, &link.offer.binding.sink] {
             if !host_boots.contains(&(endpoint.host_id.clone(), endpoint.boot_id.clone())) {
                 return Err(format!(
                     "link {} names an unreported host/boot",
-                    link.binding.binding_id.as_str()
+                    link.offer.line_id.as_str()
                 ));
             }
         }

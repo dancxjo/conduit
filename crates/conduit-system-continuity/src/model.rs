@@ -2,8 +2,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, ArtifactId, AuthorityBinding, AuthorityGrantId, BootId, CapabilityId,
-    CheckedFace, CheckedFormId, GearId, HostId, ImplementationId, LinkBindingId, PlacementId,
-    PlanId,
+    CheckedFace, CheckedFormId, GearId, HostId, ImplementationId, LineId, PlacementId, PlanId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -61,7 +60,7 @@ pub struct DelegatedTransitionGrant {
     pub controller: HostInstance,
     pub subject: HostInstance,
     pub capability_id: CapabilityId,
-    pub link_binding_id: LinkBindingId,
+    pub selected_line_id: LineId,
     pub maximum_transitions: u16,
     pub proof_window_ticks: u16,
     pub clue_sequence_base: u64,

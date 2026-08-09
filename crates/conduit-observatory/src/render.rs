@@ -48,12 +48,13 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             capability.availability
         );
     }
-    let _ = writeln!(output, "links {}", report.links.len());
-    for link in &report.links {
-        let binding = &link.binding;
+    let _ = writeln!(output, "lines {}", report.lines.len());
+    for line in &report.lines {
+        let binding = &line.offer.binding;
         let _ = writeln!(
             output,
-            "link id={} source_host={} source_boot={} source_endpoint={} sink_host={} sink_boot={} sink_endpoint={} base={:?} base_instance={} state={:?} availability={:?} in_flight_limit={} payload_limit={} buffered_limit={} frame_limit={} authority={:?}",
+            "line id={} binding={} source_host={} source_boot={} source_endpoint={} sink_host={} sink_boot={} sink_endpoint={} base={:?} base_instance={} state={:?} availability={:?} shape={:?} duplex={:?} ordering={:?} reliability={:?} continuation={:?} security={:?} in_flight_limit={} payload_limit={} buffered_limit={} frame_limit={} authority={:?}",
+            line.offer.line_id.as_str(),
             binding.binding_id.as_str(),
             binding.source.host_id.as_str(),
             binding.source.boot_id.as_str(),
@@ -63,8 +64,14 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             binding.sink.endpoint_id.as_str(),
             binding.base,
             binding.base_instance_id.as_str(),
-            link.state,
-            binding.availability,
+            line.state,
+            line.offer.availability.availability,
+            line.offer.contract.traffic_shape,
+            line.offer.contract.duplex,
+            line.offer.contract.ordering,
+            line.offer.contract.reliability,
+            line.offer.contract.continuation,
+            line.offer.contract.security,
             binding.limits.maximum_in_flight_items,
             binding.limits.maximum_payload_bytes,
             binding.limits.maximum_buffered_bytes,
@@ -120,14 +127,14 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for connection in &report.connections {
         let _ = writeln!(
             output,
-            "connection plan={} connection={} source={} sink={} value_kind={} base={:?} link_binding={:?} queue_items={} queue_bytes={}",
+            "connection plan={} connection={} source={} sink={} value_kind={} selected_line={:?} admitted_lines={} queue_items={} queue_bytes={}",
             connection.plan_id.as_str(),
             connection.connection_id.as_str(),
             connection.source_placement_id.as_str(),
             connection.sink_placement_id.as_str(),
             connection.value_kind.as_str(),
-            connection.base,
-            connection.link_binding,
+            connection.selected_line,
+            connection.admitted_lines.len(),
             connection.item_capacity,
             connection.byte_capacity
         );

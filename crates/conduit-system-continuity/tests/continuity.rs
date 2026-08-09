@@ -4,7 +4,7 @@ use conduit_core::{
     TerminalDisposition,
 };
 use conduit_observatory::{
-    CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LinkReport,
+    CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LineReport,
     ObservatorySnapshot, OfferFreshness, OperationalState, PlanLifecycle, PlayReport,
     RetentionReport, SNAPSHOT_SCHEMA,
 };
@@ -57,7 +57,7 @@ fn plays(plan: &Plan, play_sequence: u64) -> Vec<PlayReport> {
 fn snapshot(
     plan: Plan,
     hosts: Vec<HostReport>,
-    links: Vec<conduit_core::LinkBinding>,
+    lines: Vec<conduit_core::LineOffer>,
     play_sequence: u64,
 ) -> ObservatorySnapshot {
     let plays = plays(&plan, play_sequence);
@@ -90,10 +90,10 @@ fn snapshot(
     ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.to_owned(),
         hosts,
-        links: links
+        lines: lines
             .into_iter()
-            .map(|binding| LinkReport {
-                binding,
+            .map(|offer| LineReport {
+                offer,
                 state: OperationalState::Available,
             })
             .collect(),
@@ -171,7 +171,7 @@ fn fixture() -> Fixture {
         controller: members[0].clone(),
         subject: members[2].clone(),
         capability_id: CapabilityId::from("capability/pico-reboot"),
-        link_binding_id: exact.pico_link.binding_id.clone(),
+        selected_line_id: exact.pico_line.line_id.clone(),
         maximum_transitions: 1,
         proof_window_ticks: 2,
         clue_sequence_base: 40,
@@ -183,7 +183,7 @@ fn fixture() -> Fixture {
             available_host(exact.browser_advertisement.clone()),
             available_host(exact.pico_advertisement.clone()),
         ],
-        vec![exact.browser_link.clone(), exact.pico_link.clone()],
+        vec![exact.browser_line.clone(), exact.pico_line.clone()],
         1,
     );
     Fixture {
@@ -228,20 +228,20 @@ fn replacement(fixture: &Fixture) -> (conduit_core::HostAdvertisement, Plan, Obs
             }
         }
         for connection in &mut fragment.connections {
-            if let Some(link) = &mut connection.link_binding {
-                if &link.source.boot_id == old_boot {
-                    link.source.boot_id = new_boot.clone();
+            if let Some(link) = &mut connection.selected_line {
+                if &link.binding.source.boot_id == old_boot {
+                    link.binding.source.boot_id = new_boot.clone();
                 }
-                if &link.sink.boot_id == old_boot {
-                    link.sink.boot_id = new_boot.clone();
+                if &link.binding.sink.boot_id == old_boot {
+                    link.binding.sink.boot_id = new_boot.clone();
                 }
             }
-            for candidate in &mut connection.route_candidates {
-                if &candidate.source.boot_id == old_boot {
-                    candidate.source.boot_id = new_boot.clone();
+            for candidate in &mut connection.admitted_lines {
+                if &candidate.binding.source.boot_id == old_boot {
+                    candidate.binding.source.boot_id = new_boot.clone();
                 }
-                if &candidate.sink.boot_id == old_boot {
-                    candidate.sink.boot_id = new_boot.clone();
+                if &candidate.binding.sink.boot_id == old_boot {
+                    candidate.binding.sink.boot_id = new_boot.clone();
                 }
             }
         }
@@ -256,13 +256,13 @@ fn replacement(fixture: &Fixture) -> (conduit_core::HostAdvertisement, Plan, Obs
     );
     assert_ne!(plan.plan_id, fixture.exact.plan.plan_id);
 
-    let browser_link = fixture.exact.browser_link.clone();
-    let mut pico_link = fixture.exact.pico_link.clone();
-    if pico_link.source.host_id == pico.host_id {
-        pico_link.source.boot_id = new_boot.clone();
+    let browser_line = fixture.exact.browser_line.clone();
+    let mut pico_line = fixture.exact.pico_line.clone();
+    if pico_line.binding.source.host_id == pico.host_id {
+        pico_line.binding.source.boot_id = new_boot.clone();
     }
-    if pico_link.sink.host_id == pico.host_id {
-        pico_link.sink.boot_id = new_boot;
+    if pico_line.binding.sink.host_id == pico.host_id {
+        pico_line.binding.sink.boot_id = new_boot;
     }
     // The browser link is intentionally unchanged; link reachability is not membership.
     let replacement_snapshot = snapshot(
@@ -272,7 +272,7 @@ fn replacement(fixture: &Fixture) -> (conduit_core::HostAdvertisement, Plan, Obs
             available_host(fixture.exact.browser_advertisement.clone()),
             available_host(pico.clone()),
         ],
-        vec![browser_link, pico_link],
+        vec![browser_line, pico_line],
         2,
     );
     (pico, plan, replacement_snapshot)

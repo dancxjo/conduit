@@ -7,7 +7,7 @@ use conduit_core::{
 };
 use conduit_std_host::websocket::NativeWebSocketListener;
 use conduit_wire::{
-    decode_session_frame, encode_session_frame_into, RouteAttachment, SessionBinding,
+    decode_session_frame, encode_session_frame_into, LineAttachment, SessionBinding,
     SessionEndpointIdentity, SessionLimits, SessionMachine, SessionMessage, SessionRole,
 };
 
@@ -133,7 +133,8 @@ fn binding() -> SessionBinding {
             maximum_payload_bytes: MAXIMUM_PAYLOAD_BYTES,
             maximum_buffered_bytes: MAXIMUM_PAYLOAD_BYTES,
         },
-        attachment: RouteAttachment {
+        attachment: LineAttachment {
+            line_id: "line/websocket-probe".into(),
             link_binding_id: LinkBindingId::from("probe/link"),
             base: ConnectionBase::WebSocket,
             base_instance_id: ConnectionBaseInstanceId::from("probe/websocket/instance"),

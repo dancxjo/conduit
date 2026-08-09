@@ -31,12 +31,12 @@ pub fn prepare_copy_task(
         &[ConnectionBase::Local],
         PlanningOptions {
             connection_bases: &overrides,
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 1,
             authority_grants: &[],
             protected_resource_grants: grants,
-            link_bindings: &[],
+            line_offers: &[],
         },
     )
     .map_err(|error| error.to_string())?;

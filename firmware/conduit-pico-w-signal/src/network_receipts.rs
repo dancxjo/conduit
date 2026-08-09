@@ -1,5 +1,5 @@
 use heapless::String as HString;
-use conduit_core::LinkBinding;
+use conduit_core::LineOffer;
 
 use crate::receipts::{UsbCdc, UsbClueError, RECEIPT_BUFFER_BYTES};
 
@@ -25,8 +25,8 @@ pub struct WebSocketRouteIdentity<'a> {
     pub firmware_build_id: &'static str,
     pub attachment_id: &'static str,
     pub interface_pool_id: &'static str,
-    pub usb_link: &'a LinkBinding,
-    pub websocket_link: &'a LinkBinding,
+    pub usb_link: &'a LineOffer,
+    pub websocket_link: &'a LineOffer,
     pub address: [u8; 4],
     pub port: u16,
     pub clue_id: &'static str,
@@ -57,12 +57,12 @@ impl UsbCdc {
                     "}}\n"
                 ),
                 identity.firmware_build_id,
-                identity.websocket_link.sink.host_id.as_str(),
-                identity.websocket_link.sink.boot_id.as_str(),
+                identity.websocket_link.binding.sink.host_id.as_str(),
+                identity.websocket_link.binding.sink.boot_id.as_str(),
                 identity.attachment_id,
                 identity.interface_pool_id,
-                identity.websocket_link.base_instance_id.as_str(),
-                identity.websocket_link.sink.endpoint_id.as_str(),
+                identity.websocket_link.binding.base_instance_id.as_str(),
+                identity.websocket_link.binding.sink.endpoint_id.as_str(),
                 identity.address[0],
                 identity.address[1],
                 identity.address[2],
@@ -103,15 +103,15 @@ impl UsbCdc {
                     "}}\n"
                 ),
                 identity.firmware_build_id,
-                identity.websocket_link.sink.host_id.as_str(),
-                identity.websocket_link.sink.boot_id.as_str(),
+                identity.websocket_link.binding.sink.host_id.as_str(),
+                identity.websocket_link.binding.sink.boot_id.as_str(),
                 websocket_active_play_id,
                 identity.attachment_id,
-                identity.usb_link.binding_id.as_str(),
-                identity.websocket_link.binding_id.as_str(),
-                identity.websocket_link.base_instance_id.as_str(),
-                identity.websocket_link.source.endpoint_id.as_str(),
-                identity.websocket_link.sink.endpoint_id.as_str(),
+                identity.usb_link.binding.binding_id.as_str(),
+                identity.websocket_link.binding.binding_id.as_str(),
+                identity.websocket_link.binding.base_instance_id.as_str(),
+                identity.websocket_link.binding.source.endpoint_id.as_str(),
+                identity.websocket_link.binding.sink.endpoint_id.as_str(),
                 conduit_net::R1_MAXIMUM_FRAME_BYTES,
                 identity.clue_id,
             ),

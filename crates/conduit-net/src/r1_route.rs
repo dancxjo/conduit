@@ -2,20 +2,24 @@
 
 use conduit_core::{
     bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
-    HostId, KindId, LinkAuthorityReference, LinkAvailability, LinkBinding, LinkBindingId,
-    LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
+    HostId, KindId, LineAvailability, LineAvailabilitySign, LineContinuation, LineContract,
+    LineDuplex, LineId, LineOffer, LineOrdering, LineReliability, LineScope, LineSecurity,
+    LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkBindingId, LinkCredentialReference,
+    LinkEndpoint, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
 };
-use conduit_wire::{RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
+use conduit_wire::{LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
 
 pub const R1_STD_HOST_ID: &str = "r1/std-bootstrap";
 pub const R1_STD_BOOT_ID: &str = "r1/std-bootstrap-boot";
 pub const R1_PICO_HOST_ID: &str = "r1/pico-w";
 pub const R1_PICO_BOOT_ID: &str = "r1/pico-w-boot";
 pub const R1_USB_LINK_BINDING_ID: &str = "r1/std-pico-usb-bootstrap";
+pub const R1_USB_LINE_ID: &str = "r1/line/std-pico-usb";
 pub const R1_USB_BASE_INSTANCE_ID: &str = "r1/pico-usb-cdc-0";
 pub const R1_STD_USB_ENDPOINT_ID: &str = "r1/std-usb-egress";
 pub const R1_PICO_USB_ENDPOINT_ID: &str = "r1/pico-usb-ingress";
 pub const R1_WEBSOCKET_LINK_BINDING_ID: &str = "r1/std-pico-websocket-route";
+pub const R1_WEBSOCKET_LINE_ID: &str = "r1/line/std-pico-websocket";
 pub const R1_WEBSOCKET_BASE_INSTANCE_ID: &str = "r1/pico-websocket-0";
 pub const R1_STD_WEBSOCKET_ENDPOINT_ID: &str = "r1/std-websocket-egress";
 pub const R1_PICO_WEBSOCKET_ENDPOINT_ID: &str = "r1/pico-websocket-ingress";
@@ -32,8 +36,9 @@ pub const R1_PLAN_C_WEBSOCKET_BASE_QUERY: &[u8] = b"CONDUIT_R1_PLAN_C_WEBSOCKET_
 pub const R1_WEBSOCKET_BASE_READY: &[u8] = b"CONDUIT_R1_WEBSOCKET_BASE_READY@1";
 pub const R1_WEBSOCKET_ENDPOINT_CLUE_READY: &[u8] = b"CONDUIT_R1_WEBSOCKET_ENDPOINT_CLUE_READY@1";
 
-pub fn r1_websocket_link(pico_boot_id: BootId) -> LinkBinding {
+pub fn r1_websocket_line(pico_boot_id: BootId) -> LineOffer {
     link(
+        R1_WEBSOCKET_LINE_ID,
         ConnectionBase::WebSocket,
         R1_WEBSOCKET_LINK_BINDING_ID,
         R1_WEBSOCKET_BASE_INSTANCE_ID,
@@ -43,8 +48,9 @@ pub fn r1_websocket_link(pico_boot_id: BootId) -> LinkBinding {
     )
 }
 
-pub fn r1_usb_link_for_boot(pico_boot_id: BootId) -> LinkBinding {
+pub fn r1_usb_line_for_boot(pico_boot_id: BootId) -> LineOffer {
     link(
+        R1_USB_LINE_ID,
         ConnectionBase::UsbCdc,
         R1_USB_LINK_BINDING_ID,
         R1_USB_BASE_INSTANCE_ID,
@@ -54,15 +60,16 @@ pub fn r1_usb_link_for_boot(pico_boot_id: BootId) -> LinkBinding {
     )
 }
 
-pub fn r1_route_basis(pico_boot_id: BootId) -> [LinkBinding; 2] {
+pub fn r1_line_basis(pico_boot_id: BootId) -> [LineOffer; 2] {
     [
-        r1_usb_link_for_boot(pico_boot_id.clone()),
-        r1_websocket_link(pico_boot_id),
+        r1_usb_line_for_boot(pico_boot_id.clone()),
+        r1_websocket_line(pico_boot_id),
     ]
 }
 
 pub fn r1_websocket_probe_binding(pico_boot_id: BootId) -> SessionBinding {
-    let link = r1_websocket_link(pico_boot_id);
+    let line = r1_websocket_line(pico_boot_id);
+    let link = line.binding;
     let plan_id = PlanId::from(R1_WEBSOCKET_PROBE_PLAN_ID);
     SessionBinding {
         protocol_version: PROTOCOL_VERSION,
@@ -93,7 +100,8 @@ pub fn r1_websocket_probe_binding(pico_boot_id: BootId) -> SessionBinding {
             maximum_payload_bytes: R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
             maximum_buffered_bytes: R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
         },
-        attachment: RouteAttachment {
+        attachment: LineAttachment {
+            line_id: line.line_id,
             link_binding_id: link.binding_id,
             base: link.base,
             base_instance_id: link.base_instance_id,
@@ -109,14 +117,15 @@ pub fn r1_websocket_probe_binding(pico_boot_id: BootId) -> SessionBinding {
 }
 
 fn link(
+    line_id: &str,
     base: ConnectionBase,
     binding_id: &str,
     base_instance_id: &str,
     source_endpoint_id: &str,
     sink_endpoint_id: &str,
     pico_boot_id: BootId,
-) -> LinkBinding {
-    LinkBinding {
+) -> LineOffer {
+    let binding = LinkBinding {
         binding_id: LinkBindingId::from(binding_id),
         source: LinkEndpoint {
             host_id: HostId::from(R1_STD_HOST_ID),
@@ -130,7 +139,6 @@ fn link(
         },
         base,
         base_instance_id: ConnectionBaseInstanceId::from(base_instance_id),
-        availability: LinkAvailability::Ready,
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
         limits: LinkLimits {
@@ -138,6 +146,37 @@ fn link(
             maximum_payload_bytes: R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
             maximum_buffered_bytes: R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
             maximum_frame_bytes: R1_MAXIMUM_FRAME_BYTES,
+        },
+    };
+    LineOffer {
+        line_id: LineId::from(line_id),
+        availability: LineAvailabilitySign {
+            line_id: LineId::from(line_id),
+            binding_id: binding.binding_id.clone(),
+            availability: LineAvailability::Ready,
+            sign_id: conduit_core::ClueId::from(alloc::format!("{line_id}/ready")),
+        },
+        binding,
+        contract: LineContract {
+            scope: if base == ConnectionBase::WebSocket {
+                LineScope::LocalNetwork
+            } else {
+                LineScope::PointToPoint
+            },
+            traffic_shape: if base == ConnectionBase::WebSocket {
+                LineTrafficShape::Message
+            } else {
+                LineTrafficShape::ByteStream
+            },
+            duplex: LineDuplex::FullDuplex,
+            ordering: LineOrdering::Ordered,
+            reliability: LineReliability::Reliable,
+            continuation: LineContinuation::BoundedSessionReconciliation,
+            security: if base == ConnectionBase::WebSocket {
+                LineSecurity::PlaintextNetwork
+            } else {
+                LineSecurity::PhysicalPossession
+            },
         },
     }
 }

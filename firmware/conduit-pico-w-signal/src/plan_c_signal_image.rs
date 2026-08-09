@@ -51,6 +51,7 @@ pub fn endpoint(base: ConnectionBase) -> Option<RemoteEndpointIdentity> {
         peer_endpoint: generated::GENERATED_REMOTE_ENDPOINT_PEER_ENDPOINTS.get(index)?,
         base_code: *generated::GENERATED_REMOTE_ENDPOINT_BASE_CODES.get(index)?,
         base_instance_id: generated::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS.get(index)?,
+        line_id: generated::GENERATED_REMOTE_ENDPOINT_LINE_IDS.get(index)?,
         link_binding_id: generated::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS.get(index)?,
         value_kind: generated::GENERATED_REMOTE_ENDPOINT_VALUE_KINDS.get(index)?,
         session_item_capacity: cord_spec.item_capacity,

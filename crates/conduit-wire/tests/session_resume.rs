@@ -3,7 +3,7 @@ use conduit_core::{
     HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
 };
 use conduit_wire::{
-    RouteAttachment, SessionBinding, SessionCheckpoint, SessionCheckpointOffer,
+    LineAttachment, SessionBinding, SessionCheckpoint, SessionCheckpointOffer,
     SessionEndpointIdentity, SessionLimits, SessionMachine, SessionMessage, SessionResumeAction,
     SessionRole, SessionTransferCheckpoint, WireError,
 };
@@ -84,7 +84,8 @@ fn binding() -> SessionBinding {
             maximum_payload_bytes: 16,
             maximum_buffered_bytes: 16,
         },
-        attachment: RouteAttachment {
+        attachment: LineAttachment {
+            line_id: "line/session".into(),
             link_binding_id: LinkBindingId::from("resume/websocket"),
             base: ConnectionBase::WebSocket,
             base_instance_id: ConnectionBaseInstanceId::from("resume/ws-base"),

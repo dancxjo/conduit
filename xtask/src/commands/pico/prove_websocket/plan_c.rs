@@ -2,9 +2,7 @@
 
 use std::time::Duration;
 
-use conduit_core::{
-    bind_active_play, BootId, ClueId, ConnectionBase, LinkAvailability, LinkBinding,
-};
+use conduit_core::{bind_active_play, BootId, ClueId, ConnectionBase};
 use conduit_std_host::pico_control_source::PicoControlSource;
 use conduit_std_host::r1_control::{R1ControlPeer, R1InputEvent};
 use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
@@ -120,7 +118,7 @@ pub(crate) fn verify_plan_c_continuation(
     let sink_raw = usb.receive_raw_stream_frame(&mut sink_checkpoint, Duration::from_secs(3))?;
     let sink_offer = decode_session_checkpoint(sink_raw, 2048).map_err(wire_error)?;
     let usb_link = usb_candidate(&plan)?;
-    let acceptance = source.resume_with_link(&usb_link, sink_offer)?;
+    let acceptance = source.resume_with_line(&usb_link, sink_offer)?;
     if acceptance.action != SessionResumeAction::ReplayOffered(sequence)
         || !acceptance.same_plan_continues
     {
@@ -235,24 +233,14 @@ fn wire_error(error: conduit_wire::WireError) -> Box<dyn std::error::Error> {
     format!("Plan C checkpoint wire rejected: {error:?}").into()
 }
 
-fn usb_candidate(plan: &conduit_core::Plan) -> PicoResult<LinkBinding> {
+fn usb_candidate(plan: &conduit_core::Plan) -> PicoResult<conduit_core::AdmittedLine> {
     let connection = super::remote_connection(plan)?;
     let candidate = connection
-        .route_candidates
+        .admitted_lines
         .iter()
-        .find(|candidate| candidate.base == ConnectionBase::UsbCdc)
+        .find(|candidate| candidate.binding.base == ConnectionBase::UsbCdc)
         .ok_or("Plan C has no sealed USB CDC candidate")?;
-    Ok(LinkBinding {
-        binding_id: candidate.binding_id.clone(),
-        source: candidate.source.clone(),
-        sink: candidate.sink.clone(),
-        base: candidate.base,
-        base_instance_id: candidate.base_instance_id.clone(),
-        availability: LinkAvailability::Ready,
-        credential: candidate.credential.clone(),
-        authority: candidate.authority.clone(),
-        limits: candidate.limits,
-    })
+    Ok(candidate.clone())
 }
 
 #[derive(Serialize)]

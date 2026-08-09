@@ -6,7 +6,7 @@
 use super::super::plan::exact_distributed_toggle_plan;
 use super::*;
 use conduit_core::{CapabilityId, ConnectionBase, GearId};
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
+use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_runtime::lowering::RemoteCordDirection;
 use conduit_signal::{
     distributed_toggle_browser_sink_advertisement, distributed_toggle_std_source_advertisement,
@@ -77,7 +77,7 @@ fn missing_link_binding_fails_toggle_planning() {
             ),
         ]),
     };
-    assert!(plan_with_link_bindings(
+    assert!(plan_with_line_offers(
         &form,
         &[source, sink],
         &placements,

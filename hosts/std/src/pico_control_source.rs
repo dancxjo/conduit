@@ -1,6 +1,6 @@
 //! Session source for kernel-merged deliberate input on an exact R1 control Plan.
 
-use conduit_core::{BootId, HostId, LinkBinding, Plan, PlanFragment};
+use conduit_core::{BootId, HostId, Plan, PlanFragment};
 use conduit_runtime::lowering::{lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection};
 use conduit_signal::{encode_signal_fixed, SIGNAL_ENCODED_LEN};
 use conduit_wire::{
@@ -97,9 +97,9 @@ impl PicoControlSource {
         self.session.checkpoint_offer()
     }
 
-    pub fn resume_with_link(
+    pub fn resume_with_line(
         &mut self,
-        link: &LinkBinding,
+        line: &conduit_core::AdmittedLine,
         peer: SessionCheckpointOffer<'_>,
     ) -> Result<SessionCheckpointAcceptance, String> {
         let remote = &self.lowered.remote_endpoints[0];
@@ -109,12 +109,12 @@ impl PicoControlSource {
             .iter()
             .find(|connection| connection.connection_id == remote.connection_id)
             .ok_or_else(|| "R1 control remote Cord missing".to_string())?;
-        let replacement = SessionBinding::from_planned_connection_with_link(
+        let replacement = SessionBinding::from_planned_connection_with_line(
             self.fragment.plan_id.clone(),
             remote.source_fragment_id.clone(),
             remote.sink_fragment_id.clone(),
             connection,
-            link,
+            line,
         )
         .and_then(|binding| {
             binding.with_observed_boots(

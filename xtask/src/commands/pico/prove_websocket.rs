@@ -185,13 +185,14 @@ pub(super) fn verify_new_plan_recovery(
     drop(websocket);
 
     recovery
-        .observe_route_unavailable(
-            conduit_core::LinkObservation {
+        .observe_line_unavailable(
+            conduit_core::LineAvailabilitySign {
+                line_id: conduit_core::LineId::from(conduit_net::R1_WEBSOCKET_LINE_ID),
                 binding_id: conduit_core::LinkBindingId::from(
                     conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
                 ),
-                availability: conduit_core::LinkAvailability::Unavailable,
-                clue_id: conduit_core::ClueId::from("r1/physical/websocket-line-unavailable"),
+                availability: conduit_core::LineAvailability::Unavailable,
+                sign_id: conduit_core::ClueId::from("r1/physical/websocket-line-unavailable"),
             },
             conduit_core::ClueId::from("r1/physical/play-a-unsatisfied"),
         )
@@ -388,7 +389,7 @@ fn remote_connection(plan: &conduit_core::Plan) -> PicoResult<&conduit_core::Pla
     plan.fragments
         .iter()
         .flat_map(|fragment| &fragment.connections)
-        .find(|connection| !connection.route_candidates.is_empty())
+        .find(|connection| !connection.admitted_lines.is_empty())
         .ok_or_else(|| "R1 Plan has no remote Cord realization".into())
 }
 

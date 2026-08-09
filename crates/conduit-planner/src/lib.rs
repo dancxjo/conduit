@@ -1,7 +1,7 @@
 use conduit_core::{
-    mandatory_clue_storage_requirement, seal_plan, AuthorityBinding, AuthorityGrant, BoundLink,
+    mandatory_clue_storage_requirement, seal_plan, AdmittedLine, AuthorityBinding, AuthorityGrant,
     CancellationPolicy, CapabilityId, ConnectionBase, ConnectionId, ExpectedClue, ExpectedTerminal,
-    FragmentId, GearId, HostAdvertisement, HostId, LinkAvailability, LinkBinding, LinkBindingId,
+    FragmentId, GearId, HostAdvertisement, HostId, LineAvailability, LineId, LineOffer,
     PlacementId, Plan, PlanFragment, PlanId, PlannedConnection, PlannedGear, ResourceBinding,
     ResourcePoolId, StartupDependency, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
     DEFAULT_CONNECTION_ITEM_CAPACITY,
@@ -89,38 +89,44 @@ pub fn plan_with_authority_grants(
         bases,
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
             connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
             authority_grants,
             protected_resource_grants: &[],
-            link_bindings: &[],
+            line_offers: &[],
         },
     )
 }
 
-pub fn plan_with_link_bindings(
+pub fn plan_with_line_offers(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[ConnectionBase],
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
-    link_bindings: &[LinkBinding],
+    line_offers: &[LineOffer],
 ) -> Result<Plan, PlannerError> {
+    let mut offered_bases = bases.to_vec();
+    for offer in line_offers {
+        if !offered_bases.contains(&offer.binding.base) {
+            offered_bases.push(offer.binding.base);
+        }
+    }
     plan_with_options(
         form,
         hosts,
         placements,
-        bases,
+        &offered_bases,
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity,
             connection_byte_capacity,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings,
+            line_offers,
         },
     )
 }
@@ -160,12 +166,12 @@ pub fn plan_with_connection_limits_and_base_overrides(
         bases,
         PlanningOptions {
             connection_bases,
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity,
             connection_byte_capacity,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &[],
+            line_offers: &[],
         },
     )
 }
@@ -191,12 +197,12 @@ pub(crate) fn plan_validated_form(
 ) -> Result<Plan, PlannerError> {
     let PlanningOptions {
         connection_bases,
-        route_candidates,
+        line_candidates,
         connection_item_capacity,
         connection_byte_capacity,
         authority_grants,
         protected_resource_grants,
-        link_bindings,
+        line_offers,
     } = options;
     let host_index = hosts
         .iter()
@@ -208,7 +214,7 @@ pub(crate) fn plan_validated_form(
     }
     validate_authority_grants(authority_grants)?;
     validate_protected_resource_grants(protected_resource_grants)?;
-    validate_link_bindings(link_bindings)?;
+    validate_line_offers(line_offers)?;
 
     let mut placement_count = BTreeMap::<(HostId, CapabilityId), u16>::new();
     let mut resource_usage = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
@@ -432,7 +438,7 @@ pub(crate) fn plan_validated_form(
             .iter()
             .find(|item| &item.placement_id == sink_placement)
             .expect("sink placement must exist");
-        let (base, link_binding, sealed_candidates) = select_base(BaseSelection {
+        let (selected_line, admitted_lines) = select_line(LineSelection {
             source: source_plan,
             sink: sink_plan,
             bases,
@@ -442,11 +448,11 @@ pub(crate) fn plan_validated_form(
                     connection.sink_gear_id.clone(),
                 ))
                 .copied(),
-            requested_candidates: route_candidates.get(&(
+            requested_candidates: line_candidates.get(&(
                 connection.source_gear_id.clone(),
                 connection.sink_gear_id.clone(),
             )),
-            link_bindings,
+            line_offers,
             connection_item_capacity,
             connection_byte_capacity,
         })?;
@@ -490,9 +496,8 @@ pub(crate) fn plan_validated_form(
             sink_port_id: connection.sink_port_id.clone(),
             value_kind: connection.value_kind.clone(),
             temporal: connection.temporal,
-            base,
-            link_binding,
-            route_candidates: sealed_candidates,
+            selected_line,
+            admitted_lines,
             item_capacity: connection_item_capacity,
             byte_capacity: connection_byte_capacity,
         });
@@ -759,27 +764,27 @@ fn find_capability<'a>(
         .ok_or_else(|| PlannerError::UnknownCapability(capability_id.as_str().to_string()))
 }
 
-struct BaseSelection<'a> {
+struct LineSelection<'a> {
     source: &'a PlannedGear,
     sink: &'a PlannedGear,
     bases: &'a [ConnectionBase],
     requested: Option<ConnectionBase>,
-    requested_candidates: Option<&'a Vec<LinkBindingId>>,
-    link_bindings: &'a [LinkBinding],
+    requested_candidates: Option<&'a Vec<LineId>>,
+    line_offers: &'a [LineOffer],
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
 }
 
-fn select_base(
-    selection: BaseSelection<'_>,
-) -> Result<(ConnectionBase, Option<LinkBinding>, Vec<BoundLink>), PlannerError> {
-    let BaseSelection {
+fn select_line(
+    selection: LineSelection<'_>,
+) -> Result<(Option<AdmittedLine>, Vec<AdmittedLine>), PlannerError> {
+    let LineSelection {
         source,
         sink,
         bases,
         requested,
         requested_candidates,
-        link_bindings,
+        line_offers,
         connection_item_capacity,
         connection_byte_capacity,
     } = selection;
@@ -794,11 +799,11 @@ fn select_base(
             )));
         }
         if requested_candidates.is_some_and(|candidates| !candidates.is_empty()) {
-            return Err(PlannerError::InvalidLinkBinding(
-                "local connections cannot seal remote route candidates".to_string(),
+            return Err(PlannerError::InvalidLineOffer(
+                "local Cords cannot seal remote Line candidates".to_string(),
             ));
         }
-        return Ok((ConnectionBase::Local, None, Vec::new()));
+        return Ok((None, Vec::new()));
     }
 
     if requested == Some(ConnectionBase::Local) {
@@ -808,37 +813,39 @@ fn select_base(
             sink.gear_id.as_str()
         )));
     }
-    let endpoint_matches = |binding: &&LinkBinding| {
-        binding.source.host_id == source.host_id
-            && binding.source.boot_id == source.boot_id
-            && binding.sink.host_id == sink.host_id
-            && binding.sink.boot_id == sink.boot_id
-            && requested.is_none_or(|base| binding.base == base)
+    let endpoint_matches = |offer: &&LineOffer| {
+        offer.binding.source.host_id == source.host_id
+            && offer.binding.source.boot_id == source.boot_id
+            && offer.binding.sink.host_id == sink.host_id
+            && offer.binding.sink.boot_id == sink.boot_id
+            && requested.is_none_or(|base| offer.binding.base == base)
+            && bases.contains(&offer.binding.base)
     };
-    let exact = link_bindings
+    let exact = line_offers
         .iter()
         .filter(endpoint_matches)
         .collect::<Vec<_>>();
     if exact.is_empty() {
-        return Err(PlannerError::LinkBindingMissing(format!(
-            "no observed boot-scoped link for '{}' -> '{}'",
+        return Err(PlannerError::LineOfferMissing(format!(
+            "no boot-scoped Line offered for '{}' -> '{}'",
             source.gear_id.as_str(),
             sink.gear_id.as_str()
         )));
     }
     let ready = exact
         .into_iter()
-        .filter(|binding| {
-            binding.availability == LinkAvailability::Ready
-                && binding.limits.maximum_in_flight_items >= connection_item_capacity
-                && binding.limits.maximum_payload_bytes >= connection_byte_capacity
-                && binding.limits.maximum_buffered_bytes >= connection_byte_capacity
-                && binding.limits.maximum_frame_bytes >= binding.limits.maximum_payload_bytes
+        .filter(|offer| {
+            offer.availability.availability == LineAvailability::Ready
+                && offer.binding.limits.maximum_in_flight_items >= connection_item_capacity
+                && offer.binding.limits.maximum_payload_bytes >= connection_byte_capacity
+                && offer.binding.limits.maximum_buffered_bytes >= connection_byte_capacity
+                && offer.binding.limits.maximum_frame_bytes
+                    >= offer.binding.limits.maximum_payload_bytes
         })
         .collect::<Vec<_>>();
     if ready.is_empty() {
-        return Err(PlannerError::LinkBindingUnavailable(format!(
-            "observed link for '{}' -> '{}' is unavailable or below item/byte limits",
+        return Err(PlannerError::LineOfferUnavailable(format!(
+            "offered Line for '{}' -> '{}' is unavailable or below item/byte limits",
             source.gear_id.as_str(),
             sink.gear_id.as_str()
         )));
@@ -847,52 +854,49 @@ fn select_base(
         let unique_candidates = requested_candidates.iter().collect::<BTreeSet<_>>();
         if requested_candidates.is_empty() || unique_candidates.len() != requested_candidates.len()
         {
-            return Err(PlannerError::InvalidLinkBinding(
-                "route candidate policy must be non-empty and contain no duplicates".to_string(),
+            return Err(PlannerError::InvalidLineOffer(
+                "Line candidate policy must be non-empty and contain no duplicates".to_string(),
             ));
         }
         let mut selected = Vec::with_capacity(requested_candidates.len());
-        for binding_id in requested_candidates {
+        for line_id in requested_candidates {
             let matches = ready
                 .iter()
-                .filter(|binding| &binding.binding_id == binding_id)
+                .filter(|offer| &offer.line_id == line_id)
                 .collect::<Vec<_>>();
             if matches.len() != 1 {
-                return Err(PlannerError::LinkBindingMissing(format!(
-                    "requested route '{}' is not one exact ready bounded link",
-                    binding_id.as_str()
+                return Err(PlannerError::LineOfferMissing(format!(
+                    "requested Line '{}' is not one exact ready bounded offer",
+                    line_id.as_str()
                 )));
             }
-            selected.push((*matches[0]).clone());
+            selected.push(matches[0].admitted_line());
         }
         let first = selected[0].clone();
-        return Ok((
-            first.base,
-            Some(first),
-            selected
-                .iter()
-                .map(|binding| binding.bound_link())
-                .collect(),
-        ));
+        return Ok((Some(first), selected));
     }
     if ready.len() != 1 {
-        return Err(PlannerError::LinkBindingAmbiguous(format!(
-            "multiple observed links satisfy '{}' -> '{}'",
+        return Err(PlannerError::LineOfferAmbiguous(format!(
+            "multiple offered Lines satisfy '{}' -> '{}'",
             source.gear_id.as_str(),
             sink.gear_id.as_str()
         )));
     }
-    let binding = ready[0].clone();
-    Ok((
-        binding.base,
-        Some(binding.clone()),
-        vec![binding.bound_link()],
-    ))
+    let line = ready[0].admitted_line();
+    Ok((Some(line.clone()), vec![line]))
 }
 
-fn validate_link_bindings(bindings: &[LinkBinding]) -> Result<(), PlannerError> {
-    if bindings.iter().any(|binding| {
-        binding.binding_id.as_str().is_empty()
+fn validate_line_offers(offers: &[LineOffer]) -> Result<(), PlannerError> {
+    if offers.iter().any(|offer| {
+        let binding = &offer.binding;
+        offer.line_id.as_str().is_empty()
+            || !offer.validate_sign_identity()
+            || binding.binding_id.as_str().is_empty()
+            || offer.line_id.as_str() == binding.binding_id.as_str()
+            || offer.line_id.as_str() == binding.base_instance_id.as_str()
+            || offer.line_id.as_str() == binding.source.endpoint_id.as_str()
+            || offer.line_id.as_str() == binding.sink.endpoint_id.as_str()
+            || binding.binding_id.as_str() == binding.base_instance_id.as_str()
             || binding.source.host_id.as_str().is_empty()
             || binding.source.boot_id.as_str().is_empty()
             || binding.source.endpoint_id.as_str().is_empty()
@@ -918,17 +922,21 @@ fn validate_link_bindings(bindings: &[LinkBinding]) -> Result<(), PlannerError> 
                     if grant_id.as_str().is_empty()
             )
     }) {
-        return Err(PlannerError::InvalidLinkBinding(
-            "remote link bindings require non-empty distinct boot-scoped endpoints, one initialized non-local base, and positive limits".to_string(),
+        return Err(PlannerError::InvalidLineOffer(
+            "remote Line offers require distinct Line/binding/Base identities, one matching availability Sign, non-empty boot-scoped endpoints, and positive finite limits".to_string(),
         ));
     }
-    let unique_ids = bindings
+    let unique_lines = offers
         .iter()
-        .map(|binding| &binding.binding_id)
+        .map(|offer| &offer.line_id)
         .collect::<BTreeSet<_>>();
-    if unique_ids.len() != bindings.len() {
-        return Err(PlannerError::InvalidLinkBinding(
-            "link binding identities must be unique".to_string(),
+    let unique_bindings = offers
+        .iter()
+        .map(|offer| &offer.binding.binding_id)
+        .collect::<BTreeSet<_>>();
+    if unique_lines.len() != offers.len() || unique_bindings.len() != offers.len() {
+        return Err(PlannerError::InvalidLineOffer(
+            "Line and lower binding identities must each be unique".to_string(),
         ));
     }
     Ok(())

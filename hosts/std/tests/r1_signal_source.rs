@@ -1,4 +1,4 @@
-use conduit_core::{BootId, ConnectionBase, HostId, LinkAvailability, LinkBinding};
+use conduit_core::{BootId, ConnectionBase, HostId};
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 use conduit_std_host::{
     pico_control_source::PicoControlSource,
@@ -54,21 +54,10 @@ fn production_source_retains_plan_play_and_offer_across_sealed_usb_resume() {
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.connections)
-        .find(|connection| connection.route_candidates.len() == 2)
+        .find(|connection| connection.admitted_lines.len() == 2)
         .expect("dual-Line Cord")
         .clone();
-    let usb = &connection.route_candidates[1];
-    let usb = LinkBinding {
-        binding_id: usb.binding_id.clone(),
-        source: usb.source.clone(),
-        sink: usb.sink.clone(),
-        base: usb.base,
-        base_instance_id: usb.base_instance_id.clone(),
-        availability: LinkAvailability::Ready,
-        credential: usb.credential.clone(),
-        authority: usb.authority.clone(),
-        limits: usb.limits,
-    };
+    let usb = connection.admitted_lines[1].clone();
     let mut source =
         PicoUsbSource::prepare_plan(exact.plan, &HostId::from(conduit_net::R1_STD_HOST_ID))
             .expect("production Plan-C source");
@@ -103,7 +92,7 @@ fn production_source_retains_plan_play_and_offer_across_sealed_usb_resume() {
     let plan_id = source.binding().plan_id.clone();
     let source_play_id = source.binding().source_active_play_id.clone();
     let sink_play_id = source.binding().sink_active_play_id.clone();
-    let usb_binding = conduit_wire::SessionBinding::from_planned_connection_with_link(
+    let usb_binding = conduit_wire::SessionBinding::from_planned_connection_with_line(
         source.binding().plan_id.clone(),
         source.binding().source_fragment_id.clone(),
         source.binding().sink_fragment_id.clone(),
@@ -117,7 +106,7 @@ fn production_source_retains_plan_play_and_offer_across_sealed_usb_resume() {
     )
     .unwrap();
     let source_acceptance = source
-        .resume_with_link(&usb, sink.checkpoint_offer())
+        .resume_with_line(&usb, sink.checkpoint_offer())
         .unwrap();
     let source_offer =
         decode_session_checkpoint(&source_checkpoint[..source_checkpoint_len], 1024).unwrap();
@@ -149,21 +138,10 @@ fn control_source_retains_exact_input_across_sealed_usb_resume() {
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.connections)
-        .find(|connection| connection.route_candidates.len() == 2)
+        .find(|connection| connection.admitted_lines.len() == 2)
         .expect("dual-Line control Cord")
         .clone();
-    let candidate = &connection.route_candidates[1];
-    let usb = LinkBinding {
-        binding_id: candidate.binding_id.clone(),
-        source: candidate.source.clone(),
-        sink: candidate.sink.clone(),
-        base: candidate.base,
-        base_instance_id: candidate.base_instance_id.clone(),
-        availability: LinkAvailability::Ready,
-        credential: candidate.credential.clone(),
-        authority: candidate.authority.clone(),
-        limits: candidate.limits,
-    };
+    let usb = connection.admitted_lines[1].clone();
     let mut source =
         PicoControlSource::prepare_plan(exact.plan, &HostId::from(conduit_net::R1_STD_HOST_ID))
             .expect("production control Plan-C source");
@@ -199,7 +177,7 @@ fn control_source_retains_exact_input_across_sealed_usb_resume() {
     let source_play_id = source.binding().source_active_play_id.clone();
     let sink_play_id = source.binding().sink_active_play_id.clone();
     let acceptance = source
-        .resume_with_link(&usb, sink.checkpoint_offer())
+        .resume_with_line(&usb, sink.checkpoint_offer())
         .unwrap();
 
     assert_eq!(acceptance.action, SessionResumeAction::ReplayOffered(0));

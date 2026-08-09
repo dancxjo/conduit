@@ -21,13 +21,13 @@ use conduit_kernel::{
     HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
     HostedValueStore, KernelEventKind, RemoteEndpointId, RequestId, ValueStorage,
 };
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
+use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
 };
 use conduit_signal::{
     decode_signal_bytes, distributed_toggle_browser_sink_advertisement,
-    distributed_toggle_std_source_advertisement, distributed_toggle_websocket_link_binding,
+    distributed_toggle_std_source_advertisement, distributed_toggle_websocket_line_offer,
     signal_profile_catalog, DISTRIBUTED_MAXIMUM_FRAME_BYTES, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
     SHOW_KIND, SIGNAL_ENCODED_LEN,
 };
@@ -121,14 +121,14 @@ fn exact_toggle_plan() -> Result<Plan, i32> {
             ),
         ]),
     };
-    plan_with_link_bindings(
+    plan_with_line_offers(
         &form,
         &[source, sink],
         &placements,
         &[ConnectionBase::Local, ConnectionBase::WebSocket],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
-        &[distributed_toggle_websocket_link_binding()],
+        &[distributed_toggle_websocket_line_offer()],
     )
     .map_err(|_| ERROR_PREPARE)
 }

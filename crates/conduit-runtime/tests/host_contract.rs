@@ -1,7 +1,7 @@
 mod host_contract_fixtures;
 
 use conduit_core::{
-    kind_id, port_id, process_owned_link_binding, ArtifactId, BootId, CancellationPolicy,
+    kind_id, port_id, process_owned_line_offer, ArtifactId, BootId, CancellationPolicy,
     CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId, ConnectionBase,
     ConnectionOutcome, ExecutionProfileId, ExpandedFormId, ExpectedClue, ExpectedTerminal,
     FailureReason, FormIdentity, FragmentId, GearId, HostCommand, HostEvent, HostId,
@@ -11,7 +11,7 @@ use conduit_core::{
     ValuePayload, TIMER_RESOURCE_CLASS,
 };
 use conduit_form::parse;
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
+use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_runtime::{
     HostRuntime, ImplementationFailure, ImplementationRegistry, OperationImplementation,
 };
@@ -1158,7 +1158,7 @@ fn remote_link_plan_fixture() -> (
     HostAdvertisement,
     HostAdvertisement,
     conduit_core::Plan,
-    conduit_core::LinkBinding,
+    conduit_core::LineOffer,
 ) {
     let form = parse(
         "form 0\n\nlink-runtime {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
@@ -1191,7 +1191,8 @@ fn remote_link_plan_fixture() -> (
             ),
         ]),
     };
-    let link = process_owned_link_binding(
+    let link = process_owned_line_offer(
+        "line/runtime",
         "link/runtime",
         ConnectionBase::InMemory,
         "fixture/in-memory/runtime",
@@ -1200,7 +1201,7 @@ fn remote_link_plan_fixture() -> (
         conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
         conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
     );
-    let plan = plan_with_link_bindings(
+    let plan = plan_with_line_offers(
         &form,
         &[source.clone(), sink.clone()],
         &placements,
@@ -1213,7 +1214,7 @@ fn remote_link_plan_fixture() -> (
     (source, sink, plan, link)
 }
 
-fn remote_link_source_fixture() -> (HostAdvertisement, PlanFragment, conduit_core::LinkBinding) {
+fn remote_link_source_fixture() -> (HostAdvertisement, PlanFragment, conduit_core::LineOffer) {
     let (source, _sink, plan, link) = remote_link_plan_fixture();
     let fragment = plan
         .fragments
@@ -1255,12 +1256,12 @@ fn exact_remote_fragments_lower_to_directional_kernel_cords() {
         ingress.direction,
         conduit_runtime::lowering::RemoteCordDirection::Ingress
     );
-    assert_eq!(egress.binding, link.bound_link());
-    assert_eq!(ingress.binding, link.bound_link());
-    assert_eq!(egress.local, link.source);
-    assert_eq!(egress.peer, link.sink);
-    assert_eq!(ingress.local, link.sink);
-    assert_eq!(ingress.peer, link.source);
+    assert_eq!(egress.line, conduit_core::AdmittedLine::from(&link));
+    assert_eq!(ingress.line, conduit_core::AdmittedLine::from(&link));
+    assert_eq!(egress.local, link.binding.source);
+    assert_eq!(egress.peer, link.binding.sink);
+    assert_eq!(ingress.local, link.binding.sink);
+    assert_eq!(ingress.peer, link.binding.source);
     assert_eq!(egress.connection_id, ingress.connection_id);
     assert_eq!(egress.value_kind, ingress.value_kind);
     assert_eq!(
@@ -1562,7 +1563,7 @@ fn preparation_requires_the_exact_current_boot_scoped_link_observation() {
     );
 
     let mut stale = link.clone();
-    stale.source.boot_id = BootId::from("stale-link-source-boot");
+    stale.binding.source.boot_id = BootId::from("stale-link-source-boot");
     let mut runtime = HostRuntime::new_with_external_state(
         source.clone(),
         adapter_registry(),
@@ -1576,7 +1577,8 @@ fn preparation_requires_the_exact_current_boot_scoped_link_observation() {
     );
 
     let mut conflicting = link.clone();
-    conflicting.base_instance_id = conduit_core::ConnectionBaseInstanceId::from("conflicting/base");
+    conflicting.binding.base_instance_id =
+        conduit_core::ConnectionBaseInstanceId::from("conflicting/base");
     let mut runtime = HostRuntime::new_with_external_state(
         source.clone(),
         adapter_registry(),
@@ -1591,9 +1593,10 @@ fn preparation_requires_the_exact_current_boot_scoped_link_observation() {
 
     let mut mutated = fragment.clone();
     mutated.connections[0]
-        .link_binding
+        .selected_line
         .as_mut()
         .expect("link binding exists")
+        .binding
         .source
         .boot_id = BootId::from("resealed-wrong-boot");
     let mut runtime = HostRuntime::new_with_external_state(
@@ -1740,7 +1743,8 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
             ),
         ]),
     };
-    let link_binding = process_owned_link_binding(
+    let link_binding = process_owned_line_offer(
+        "line/adapter",
         "link/adapter",
         ConnectionBase::InMemory,
         "fixture/in-memory/adapter",
@@ -1749,7 +1753,7 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
         conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
         conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
     );
-    let cross_host_plan = plan_with_link_bindings(
+    let cross_host_plan = plan_with_line_offers(
         &form,
         &[source_advertisement.clone(), sink_advertisement],
         &placements,

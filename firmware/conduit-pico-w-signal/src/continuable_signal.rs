@@ -2,10 +2,10 @@
 
 use conduit_core::{
     bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
-    HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
+    HostId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_wire::{
-    RouteAttachment, SessionBinding, SessionCheckpointAcceptance, SessionCheckpointOffer,
+    LineAttachment, SessionBinding, SessionCheckpointAcceptance, SessionCheckpointOffer,
     SessionEndpointIdentity, SessionLimits, SessionMachine, SessionRole,
 };
 
@@ -128,7 +128,8 @@ fn binding(
             maximum_payload_bytes: endpoint.session_byte_capacity,
             maximum_buffered_bytes: endpoint.session_byte_capacity,
         },
-        attachment: RouteAttachment {
+        attachment: LineAttachment {
+            line_id: LineId::from(endpoint.line_id),
             link_binding_id: LinkBindingId::from(endpoint.link_binding_id),
             base,
             base_instance_id: ConnectionBaseInstanceId::from(endpoint.base_instance_id),

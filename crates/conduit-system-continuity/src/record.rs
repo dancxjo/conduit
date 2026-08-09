@@ -139,10 +139,10 @@ impl SystemRecord {
             .into_iter()
             .collect();
         let observed_links = snapshot
-            .links
+            .lines
             .iter()
             .filter(|link| link.state == OperationalState::Available)
-            .map(|link| link.binding.binding_id.clone())
+            .map(|line| line.offer.binding.binding_id.clone())
             .collect();
 
         Ok(Self {

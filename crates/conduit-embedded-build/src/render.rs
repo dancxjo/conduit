@@ -640,6 +640,11 @@ fn render_remote_endpoints(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     );
     render_string_slice(
         output,
+        "GENERATED_REMOTE_ENDPOINT_LINE_IDS",
+        plan.remote_endpoints.iter().map(|re| re.line_id.as_str()),
+    );
+    render_string_slice(
+        output,
         "GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS",
         plan.remote_endpoints
             .iter()

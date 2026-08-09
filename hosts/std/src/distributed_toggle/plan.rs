@@ -4,10 +4,10 @@
 //! advertisements and returns the exact two-fragment plan.
 
 use conduit_core::{CapabilityId, ConnectionBase, GearId, HostAdvertisement, Plan};
-use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
+use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_signal::{
     distributed_toggle_browser_sink_advertisement, distributed_toggle_std_source_advertisement,
-    distributed_toggle_websocket_link_binding, signal_profile_catalog,
+    distributed_toggle_websocket_line_offer, signal_profile_catalog,
     DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN,
 };
 use std::collections::BTreeMap;
@@ -52,8 +52,8 @@ pub fn exact_distributed_toggle_plan() -> Result<DistributedTogglePlan, String> 
             ),
         ]),
     };
-    let link = distributed_toggle_websocket_link_binding();
-    let plan = plan_with_link_bindings(
+    let link = distributed_toggle_websocket_line_offer();
+    let plan = plan_with_line_offers(
         &form,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,

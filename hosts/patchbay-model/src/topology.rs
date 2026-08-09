@@ -76,7 +76,7 @@ impl PatchbayTopology {
                     .map(|host| host.planner_capabilities.len() + host.resources.len())
                     .sum::<usize>(),
             )
-            .saturating_add(report.links.len())
+            .saturating_add(report.lines.len())
             .saturating_add(report.clues.len());
         if report_bytes > MAX_RETAINED_REPORT_BYTES || presentation_lines > MAX_TOPOLOGY_LINES {
             return Err(TopologyViewError::ReportTooLarge);
@@ -191,23 +191,28 @@ impl PatchbayTopology {
             }
         }
 
-        let mut links = report.links.iter().collect::<Vec<_>>();
-        links.sort_by(|left, right| left.binding.binding_id.cmp(&right.binding.binding_id));
+        let mut links = report.lines.iter().collect::<Vec<_>>();
+        links.sort_by(|left, right| {
+            left.offer
+                .binding
+                .binding_id
+                .cmp(&right.offer.binding.binding_id)
+        });
         push_line(&mut lines, format!("LINKS {}", links.len()))?;
         for link in links {
             push_line(
                 &mut lines,
                 format!(
                     "  link={} {}@{} -> {}@{} base={:?} instance={} report={:?} availability={:?}",
-                    link.binding.binding_id.as_str(),
-                    link.binding.source.host_id.as_str(),
-                    link.binding.source.boot_id.as_str(),
-                    link.binding.sink.host_id.as_str(),
-                    link.binding.sink.boot_id.as_str(),
-                    link.binding.base,
-                    link.binding.base_instance_id.as_str(),
+                    link.offer.binding.binding_id.as_str(),
+                    link.offer.binding.source.host_id.as_str(),
+                    link.offer.binding.source.boot_id.as_str(),
+                    link.offer.binding.sink.host_id.as_str(),
+                    link.offer.binding.sink.boot_id.as_str(),
+                    link.offer.binding.base,
+                    link.offer.binding.base_instance_id.as_str(),
                     link.state,
-                    link.binding.availability
+                    link.offer.availability.availability
                 ),
             )?;
         }
@@ -255,9 +260,9 @@ fn push_line(lines: &mut Vec<String>, line: String) -> Result<(), TopologyViewEr
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{BootId, ClueId, HostId, LinkAvailability, Observation, ObservationKind};
+    use conduit_core::{BootId, ClueId, HostId, LineAvailability, Observation, ObservationKind};
     use conduit_observatory::{
-        CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LinkReport,
+        CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LineReport,
         ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
     };
 
@@ -297,10 +302,10 @@ mod tests {
         let mut browser_old = browser_new.clone();
         browser_old.boot_id = BootId::from("s4/triple-browser-old-boot");
         let pico = exact.pico_advertisement;
-        let websocket = exact.browser_link;
-        let mut usb = exact.pico_link;
+        let websocket = exact.browser_line;
+        let mut usb = exact.pico_line;
         if !link_available {
-            usb.availability = LinkAvailability::Unavailable;
+            usb.availability.availability = LineAvailability::Unavailable;
         }
         let observations = vec![Observation {
             clue_id: ClueId::from("fleet/clue-1"),
@@ -321,13 +326,13 @@ mod tests {
                 host_report(browser_new, OperationalState::Available),
                 host_report(pico, OperationalState::Available),
             ],
-            links: vec![
-                LinkReport {
-                    binding: websocket,
+            lines: vec![
+                LineReport {
+                    offer: websocket,
                     state: OperationalState::Available,
                 },
-                LinkReport {
-                    binding: usb,
+                LineReport {
+                    offer: usb,
                     state: if link_available {
                         OperationalState::Available
                     } else {
@@ -463,7 +468,7 @@ mod tests {
         let oversized = ObservatorySnapshot {
             schema: SNAPSHOT_SCHEMA.into(),
             hosts,
-            links: Vec::new(),
+            lines: Vec::new(),
             plans: Vec::new(),
             plays: Vec::new(),
             observations: Vec::new(),

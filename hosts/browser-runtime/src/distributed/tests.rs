@@ -73,11 +73,11 @@ fn triple_browser_reconstructs_its_fragment_from_the_same_three_host_plan() {
     assert_eq!(sink.binding.plan_id, exact.plan.plan_id);
     assert_eq!(
         sink.binding.attachment.link_binding_id,
-        exact.browser_link.binding_id
+        exact.browser_line.binding.binding_id
     );
     assert_eq!(
         sink.binding.attachment.base_instance_id,
-        exact.browser_link.base_instance_id
+        exact.browser_line.binding.base_instance_id
     );
     assert_eq!(sink.lowered.remote_endpoints.len(), 1);
     assert_eq!(sink.capacity_seal(), sink.seal);

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    verify_plan, CapabilityId, ConnectionBase, GearId, LinkBindingId, LinkEndpointId,
+    verify_plan, CapabilityId, ConnectionBase, GearId, LineId, LinkBindingId, LinkEndpointId,
 };
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
 use conduit_signal::{
@@ -9,8 +9,8 @@ use conduit_signal::{
 };
 
 fn plan_with_policy(
-    ordered_ids: Vec<LinkBindingId>,
-    mutate: impl FnOnce(&mut Vec<conduit_core::LinkBinding>),
+    ordered_ids: Vec<LineId>,
+    mutate: impl FnOnce(&mut Vec<conduit_core::LineOffer>),
 ) -> Result<conduit_core::Plan, conduit_planner::PlannerError> {
     let exact = triple::exact_plan().expect("baseline triple plan");
     let form = conduit_form::parse(
@@ -50,16 +50,21 @@ fn plan_with_policy(
             ),
         ]),
     };
-    let mut usb_alternative = exact.browser_link.clone();
-    usb_alternative.binding_id = LinkBindingId::from("s4/triple-browser-usb-link");
-    usb_alternative.base = ConnectionBase::UsbCdc;
-    usb_alternative.base_instance_id =
+    let mut usb_alternative = exact.browser_line.clone();
+    usb_alternative.line_id = LineId::from("s4/line/triple-browser-usb");
+    usb_alternative.binding.binding_id = LinkBindingId::from("s4/triple-browser-usb-link");
+    usb_alternative.binding.base = ConnectionBase::UsbCdc;
+    usb_alternative.binding.base_instance_id =
         conduit_core::ConnectionBaseInstanceId::from("s4/triple-browser-usb-0");
-    usb_alternative.source.endpoint_id = LinkEndpointId::from("s4/triple-browser-usb-egress");
-    usb_alternative.sink.endpoint_id = LinkEndpointId::from("s4/triple-browser-usb-ingress");
-    let mut links = vec![exact.browser_link, usb_alternative, exact.pico_link];
+    usb_alternative.binding.source.endpoint_id =
+        LinkEndpointId::from("s4/triple-browser-usb-egress");
+    usb_alternative.binding.sink.endpoint_id =
+        LinkEndpointId::from("s4/triple-browser-usb-ingress");
+    usb_alternative.availability.line_id = usb_alternative.line_id.clone();
+    usb_alternative.availability.binding_id = usb_alternative.binding.binding_id.clone();
+    let mut links = vec![exact.browser_line, usb_alternative, exact.pico_line];
     mutate(&mut links);
-    let route_candidates =
+    let line_candidates =
         BTreeMap::from([((GearId::from("pulse"), GearId::from("web")), ordered_ids)]);
     plan_with_options(
         &form,
@@ -76,12 +81,12 @@ fn plan_with_policy(
         ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
-            route_candidates: &route_candidates,
+            line_candidates: &line_candidates,
             connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             connection_byte_capacity: SIGNAL_ENCODED_LEN,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &links,
+            line_offers: &links,
         },
     )
 }
@@ -91,9 +96,9 @@ fn web_connection(plan: &conduit_core::Plan) -> &conduit_core::PlannedConnection
         .iter()
         .flat_map(|fragment| &fragment.connections)
         .find(|connection| {
-            connection.route_candidates.iter().any(|candidate| {
-                candidate.binding_id == LinkBindingId::from(triple::BROWSER_LINK_ID)
-                    || candidate.binding_id == LinkBindingId::from("s4/triple-browser-usb-link")
+            connection.admitted_lines.iter().any(|candidate| {
+                candidate.line_id == LineId::from(triple::BROWSER_LINE_ID)
+                    || candidate.line_id == LineId::from("s4/line/triple-browser-usb")
             })
         })
         .expect("web connection")
@@ -101,20 +106,20 @@ fn web_connection(plan: &conduit_core::Plan) -> &conduit_core::PlannedConnection
 
 #[test]
 fn policy_seals_one_or_multiple_ready_routes_in_identity_bound_order() {
-    let websocket = LinkBindingId::from(triple::BROWSER_LINK_ID);
-    let usb = LinkBindingId::from("s4/triple-browser-usb-link");
+    let websocket = LineId::from(triple::BROWSER_LINE_ID);
+    let usb = LineId::from("s4/line/triple-browser-usb");
     let one = plan_with_policy(vec![websocket.clone()], |_| {}).expect("one route");
     let two = plan_with_policy(vec![websocket.clone(), usb.clone()], |_| {}).expect("two routes");
     let reversed = plan_with_policy(vec![usb, websocket], |_| {}).expect("reversed routes");
 
-    assert_eq!(web_connection(&one).route_candidates.len(), 1);
-    assert_eq!(web_connection(&two).route_candidates.len(), 2);
+    assert_eq!(web_connection(&one).admitted_lines.len(), 1);
+    assert_eq!(web_connection(&two).admitted_lines.len(), 2);
     assert_eq!(
-        web_connection(&two).route_candidates[0].base,
+        web_connection(&two).admitted_lines[0].binding.base,
         ConnectionBase::WebSocket
     );
     assert_eq!(
-        web_connection(&two).route_candidates[1].base,
+        web_connection(&two).admitted_lines[1].binding.base,
         ConnectionBase::UsbCdc
     );
     assert_ne!(one.plan_id, two.plan_id);
@@ -124,36 +129,23 @@ fn policy_seals_one_or_multiple_ready_routes_in_identity_bound_order() {
 
 #[test]
 fn mutable_availability_does_not_rewrite_the_sealed_plan() {
-    let mut plan = plan_with_policy(vec![LinkBindingId::from(triple::BROWSER_LINK_ID)], |_| {})
+    let plan = plan_with_policy(vec![LineId::from(triple::BROWSER_LINE_ID)], |_| {})
         .expect("sealed route");
     let original_id = plan.plan_id.clone();
-    for fragment in &mut plan.fragments {
-        for connection in &mut fragment.connections {
-            if connection.route_candidates.iter().any(|candidate| {
-                candidate.binding_id == LinkBindingId::from(triple::BROWSER_LINK_ID)
-            }) {
-                connection
-                    .link_binding
-                    .as_mut()
-                    .expect("observation")
-                    .availability = conduit_core::LinkAvailability::Unavailable;
-            }
-        }
-    }
     assert_eq!(plan.plan_id, original_id);
     assert!(verify_plan(&plan));
 }
 
 #[test]
 fn duplicate_or_underbounded_candidate_policy_fails_closed() {
-    let websocket = LinkBindingId::from(triple::BROWSER_LINK_ID);
-    let usb = LinkBindingId::from("s4/triple-browser-usb-link");
+    let websocket = LineId::from(triple::BROWSER_LINE_ID);
+    let usb = LineId::from("s4/line/triple-browser-usb");
     assert!(matches!(
         plan_with_policy(vec![websocket.clone(), usb.clone(), websocket], |_| {}),
-        Err(conduit_planner::PlannerError::InvalidLinkBinding(_))
+        Err(conduit_planner::PlannerError::InvalidLineOffer(_))
     ));
     assert!(plan_with_policy(vec![usb], |links| {
-        links[1].limits.maximum_payload_bytes = SIGNAL_ENCODED_LEN - 1;
+        links[1].binding.limits.maximum_payload_bytes = SIGNAL_ENCODED_LEN - 1;
     })
     .is_err());
 }

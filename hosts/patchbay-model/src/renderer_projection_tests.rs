@@ -142,9 +142,9 @@ fn projection_rejects_each_unbounded_collection() {
         Err(RendererProjectionError::TooManyRoutes)
     );
 
-    let mut route_candidates = presentation.routes.clone();
-    let candidate = route_candidates[0].same_plan.plan.candidates[0].clone();
-    route_candidates[0].same_plan.plan.candidates =
+    let mut line_candidates = presentation.routes.clone();
+    let candidate = line_candidates[0].same_plan.plan.candidates[0].clone();
+    line_candidates[0].same_plan.plan.candidates =
         vec![candidate; MAX_RENDERER_ROUTE_CANDIDATES + 1];
     assert_eq!(
         PatchbayPresentation::new(
@@ -153,7 +153,7 @@ fn projection_rejects_each_unbounded_collection() {
             None,
             None,
             None,
-            route_candidates,
+            line_candidates,
         ),
         Err(RendererProjectionError::TooManyRouteCandidates)
     );

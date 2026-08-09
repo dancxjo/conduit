@@ -104,12 +104,12 @@ fn planned_copy(
         &[ConnectionBase::Local],
         PlanningOptions {
             connection_bases: &overrides,
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 1,
             authority_grants: &[],
             protected_resource_grants: &[source_grant, destination_grant],
-            link_bindings: &[],
+            line_offers: &[],
         },
     )
     .expect("protected choices seal into copy Plan");

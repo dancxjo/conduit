@@ -6,7 +6,7 @@ use conduit_core::{
     FragmentId, HostId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PROTOCOL_VERSION,
 };
 use conduit_wire::{
-    decode_envelope, decode_session_frame, encode_session_frame_into, RouteAttachment,
+    decode_envelope, decode_session_frame, encode_session_frame_into, LineAttachment,
     SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine, SessionMessage,
     SessionRole, WireError,
 };
@@ -120,7 +120,8 @@ fn binding(envelope: &ConnectionEnvelope) -> SessionBinding {
             maximum_payload_bytes: CORPUS_MAXIMUM_PAYLOAD_BYTES,
             maximum_buffered_bytes: CORPUS_MAXIMUM_PAYLOAD_BYTES,
         },
-        attachment: RouteAttachment {
+        attachment: LineAttachment {
+            line_id: "line/session-corpus".into(),
             link_binding_id: LinkBindingId::from("corpus/link"),
             base: ConnectionBase::WebSocket,
             base_instance_id: ConnectionBaseInstanceId::from("corpus/base"),
@@ -296,13 +297,13 @@ fn malformed_corpus_drives_live_session_codec_denial() {
     let golden = envelope(corpus!("golden.bin"), "golden.bin");
     let baseline = binding(&golden);
     let encoded = encode_offered(&baseline, 0, &golden.payload);
-    assert_eq!(encoded[4], 2, "carrier-neutral session identity is wire v2");
+    assert_eq!(encoded[4], 3, "Line-aware session identity is wire v3");
 
-    let mut legacy_v1 = encoded.clone();
-    legacy_v1[4] = 1;
+    let mut legacy_v2 = encoded.clone();
+    legacy_v2[4] = 2;
     assert_eq!(
         decode_session_frame(
-            &legacy_v1,
+            &legacy_v2,
             CORPUS_MAXIMUM_PAYLOAD_BYTES,
             SESSION_MAXIMUM_FRAME_BYTES,
         ),

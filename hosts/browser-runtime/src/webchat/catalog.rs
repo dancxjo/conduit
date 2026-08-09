@@ -22,7 +22,7 @@ pub(super) fn advertisement() -> HostAdvertisement {
                 maximum_connections: 128,
                 maximum_authority_grants: 64,
                 maximum_protected_resource_grants: 64,
-                maximum_link_bindings: 128,
+                maximum_line_offers: 128,
             },
         }],
         capabilities: vec![

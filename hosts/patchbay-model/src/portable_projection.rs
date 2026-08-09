@@ -357,12 +357,12 @@ fn append_routes(
         for line in route.linear_lines() {
             content.line(&subject, line);
         }
-        append_route_candidates(&subject, "prior", &route.new_plan.prior, content);
-        append_route_candidates(&subject, "same-plan", &route.same_plan.plan, content);
+        append_line_candidates(&subject, "prior", &route.new_plan.prior, content);
+        append_line_candidates(&subject, "same-plan", &route.same_plan.plan, content);
     }
 }
 
-fn append_route_candidates(
+fn append_line_candidates(
     route: &str,
     phase: &str,
     plan: &crate::RoutePlanPresentation,

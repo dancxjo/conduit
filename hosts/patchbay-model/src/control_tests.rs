@@ -96,18 +96,18 @@ fn completed_play_projection_keeps_exact_play_plan_and_clue() {
 }
 
 #[test]
-fn live_link_availability_changes_do_not_mutate_sealed_route_candidates() {
+fn live_link_availability_changes_do_not_mutate_sealed_line_candidates() {
     let exact = conduit_signal::triple::exact_plan().unwrap();
     let plan = exact.plan;
     let before = plan.clone();
     let document =
         PlanDocument::from_plan(PatchbayRequestId::new("plan/routes").unwrap(), &plan).unwrap();
-    let mut link = exact.browser_link;
-    link.availability = conduit_core::LinkAvailability::Unavailable;
+    let mut link = exact.browser_line;
+    link.availability.availability = conduit_core::LineAvailability::Unavailable;
     assert_eq!(plan, before);
     assert!(document.lines.iter().any(|line| line.contains("CANDIDATE")));
     assert_eq!(
-        link.availability,
-        conduit_core::LinkAvailability::Unavailable
+        link.availability.availability,
+        conduit_core::LineAvailability::Unavailable
     );
 }

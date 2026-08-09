@@ -11,10 +11,10 @@ use conduit_net::{
 fn one_exact_plan_carries_runtime_credentials_over_the_observed_usb_line() {
     let exact = exact_r1_network_bootstrap_plan().unwrap();
     assert_eq!(exact.plan.fragments.len(), 2);
-    assert_eq!(exact.usb_link.base, ConnectionBase::UsbCdc);
-    assert_eq!(exact.usb_link.limits.maximum_in_flight_items, 1);
+    assert_eq!(exact.usb_line.binding.base, ConnectionBase::UsbCdc);
+    assert_eq!(exact.usb_line.binding.limits.maximum_in_flight_items, 1);
     assert_eq!(
-        exact.usb_link.limits.maximum_payload_bytes,
+        exact.usb_line.binding.limits.maximum_payload_bytes,
         MAXIMUM_JOIN_INPUT_BYTES
     );
     let std = exact
@@ -39,13 +39,19 @@ fn one_exact_plan_carries_runtime_credentials_over_the_observed_usb_line() {
     let remote = pico
         .connections
         .iter()
-        .find(|connection| connection.base == ConnectionBase::UsbCdc)
+        .find(|connection| {
+            connection
+                .selected_line
+                .as_ref()
+                .map(|line| line.binding.base)
+                == Some(ConnectionBase::UsbCdc)
+        })
         .unwrap();
     assert_eq!(remote.sink_port_id.as_str(), "request");
     let attachment = pico
         .connections
         .iter()
-        .find(|connection| connection.base == ConnectionBase::Local)
+        .find(|connection| connection.selected_line.is_none())
         .unwrap();
     assert_eq!(attachment.value_kind.as_str(), NETWORK_ATTACHMENT_KIND);
     assert_eq!(attachment.source_port_id.as_str(), "attachment");

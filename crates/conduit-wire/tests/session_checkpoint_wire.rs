@@ -3,7 +3,7 @@ use conduit_core::{
     HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
 };
 use conduit_wire::{
-    decode_session_checkpoint, encode_session_checkpoint_into, RouteAttachment, SessionBinding,
+    decode_session_checkpoint, encode_session_checkpoint_into, LineAttachment, SessionBinding,
     SessionEndpointIdentity, SessionLimits, SessionMachine, SessionMessage, SessionResumeAction,
     SessionRole, WireError,
 };
@@ -42,7 +42,8 @@ fn binding(base: ConnectionBase) -> SessionBinding {
             maximum_payload_bytes: 9,
             maximum_buffered_bytes: 9,
         },
-        attachment: RouteAttachment {
+        attachment: LineAttachment {
+            line_id: "line/session".into(),
             link_binding_id: LinkBindingId::from(format!("r1/{suffix}-line")),
             base,
             base_instance_id: ConnectionBaseInstanceId::from(format!("r1/{suffix}-base")),

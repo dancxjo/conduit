@@ -1,5 +1,5 @@
 use conduit_core::{
-    AuthorityGrant, CapabilityId, ConnectionBase, GearId, HostId, LinkBinding, LinkBindingId,
+    AuthorityGrant, CapabilityId, ConnectionBase, GearId, HostId, LineId, LineOffer,
     ProtectedResourceGrant,
 };
 use std::collections::BTreeMap;
@@ -18,13 +18,13 @@ pub struct PlacementChoices {
 #[derive(Debug, Clone, Copy)]
 pub struct PlanningOptions<'a> {
     pub connection_bases: &'a BTreeMap<(GearId, GearId), ConnectionBase>,
-    /// Exact observed binding identities to seal, in deterministic preference order.
-    pub route_candidates: &'a BTreeMap<(GearId, GearId), Vec<LinkBindingId>>,
+    /// Exact offered Line identities to seal, in deterministic preference order.
+    pub line_candidates: &'a BTreeMap<(GearId, GearId), Vec<LineId>>,
     pub connection_item_capacity: u16,
     pub connection_byte_capacity: u32,
     pub authority_grants: &'a [AuthorityGrant],
     pub protected_resource_grants: &'a [ProtectedResourceGrant],
-    pub link_bindings: &'a [LinkBinding],
+    pub line_offers: &'a [LineOffer],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,10 +57,10 @@ pub enum PlannerError {
     InvalidAuthorityContract(String),
     AuthorityGrantMissing(String),
     AuthorityGrantAmbiguous(String),
-    InvalidLinkBinding(String),
-    LinkBindingMissing(String),
-    LinkBindingUnavailable(String),
-    LinkBindingAmbiguous(String),
+    InvalidLineOffer(String),
+    LineOfferMissing(String),
+    LineOfferUnavailable(String),
+    LineOfferAmbiguous(String),
     UnavailableConnectionBase(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
@@ -137,10 +137,10 @@ impl std::fmt::Display for PlannerError {
             Self::AuthorityGrantAmbiguous(value) => {
                 write!(f, "authority grant ambiguous: {value}")
             }
-            Self::InvalidLinkBinding(value) => write!(f, "invalid link binding: {value}"),
-            Self::LinkBindingMissing(value) => write!(f, "link binding missing: {value}"),
-            Self::LinkBindingUnavailable(value) => write!(f, "link binding unavailable: {value}"),
-            Self::LinkBindingAmbiguous(value) => write!(f, "link binding ambiguous: {value}"),
+            Self::InvalidLineOffer(value) => write!(f, "invalid Line offer: {value}"),
+            Self::LineOfferMissing(value) => write!(f, "Line offer missing: {value}"),
+            Self::LineOfferUnavailable(value) => write!(f, "Line offer unavailable: {value}"),
+            Self::LineOfferAmbiguous(value) => write!(f, "Line offer ambiguous: {value}"),
             Self::UnavailableConnectionBase(value) => {
                 write!(f, "unavailable connection base: {value}")
             }

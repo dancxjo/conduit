@@ -110,12 +110,12 @@ fn planned_pool() -> Result<(String, conduit_runtime::lowering::LoweredSharedPoo
         &[ConnectionBase::Local],
         PlanningOptions {
             connection_bases: &empty_bases,
-            route_candidates: &empty_routes,
+            line_candidates: &empty_routes,
             connection_item_capacity: 32,
             connection_byte_capacity: 8_192,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &[],
+            line_offers: &[],
         },
         &requirements,
     )
@@ -163,7 +163,7 @@ fn advertisement() -> HostAdvertisement {
                 maximum_connections: 8,
                 maximum_authority_grants: 1,
                 maximum_protected_resource_grants: 0,
-                maximum_link_bindings: 0,
+                maximum_line_offers: 0,
             },
         }],
     }

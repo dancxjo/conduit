@@ -413,8 +413,8 @@ impl LegacyStdFixtureHost {
         self.runtime.handle(command)
     }
 
-    pub fn replace_link_bindings(&mut self, bindings: Vec<conduit_core::LinkBinding>) {
-        self.runtime.replace_link_bindings(bindings);
+    pub fn replace_line_offers(&mut self, lines: Vec<conduit_core::LineOffer>) {
+        self.runtime.replace_line_offers(lines);
     }
 }
 
@@ -437,7 +437,7 @@ fn is_installed_kernel_signal_profile(fragment: &PlanFragment) -> bool {
         && fragment
             .connections
             .iter()
-            .all(|connection| connection.base == ConnectionBase::Local)
+            .all(|connection| connection.selected_line.is_none())
 }
 
 pub fn load_checked_form(path: &str) -> Result<CheckedForm, Box<dyn std::error::Error>> {
@@ -497,13 +497,21 @@ fn write_operator_report<W: Write>(
     for connection in &fragment.connections {
         writeln!(
             out,
-            "connection {} {}:{} -> {}:{} via {:?} queue={}",
+            "connection {} {}:{} -> {}:{} line={} base={:?} queue={}",
             connection.connection_id.as_str(),
             connection.source_placement_id.as_str(),
             connection.source_port_id.as_str(),
             connection.sink_placement_id.as_str(),
             connection.sink_port_id.as_str(),
-            connection.base,
+            connection
+                .selected_line
+                .as_ref()
+                .map_or("local", |line| line.line_id.as_str()),
+            connection
+                .selected_line
+                .as_ref()
+                .map(|line| line.binding.base)
+                .unwrap_or(ConnectionBase::Local),
             connection.item_capacity
         )
         .map_err(|error| error.to_string())?;
@@ -515,8 +523,8 @@ fn write_operator_report<W: Write>(
 mod tests {
     use super::{StdHost, StdHostConfig, TimerAdapter};
     use conduit_core::{
-        seal_plan, BootId, ConnectionBase, ConnectionId, FormIdentity, HostId, OfferGeneration,
-        PortDirection, PortId,
+        seal_plan, BootId, ConnectionId, FormIdentity, HostId, OfferGeneration, PortDirection,
+        PortId,
     };
     use conduit_form::parse;
     use conduit_signal::signal_profile_catalog;
@@ -689,7 +697,10 @@ mod tests {
             expanded_form_id: fragment.expanded_form_id.clone(),
         };
         let mut remote = fragment.clone();
-        remote.connections[0].base = ConnectionBase::InMemory;
+        let foreign_line: conduit_core::AdmittedLine =
+            (&conduit_signal::distributed_websocket_line_offer()).into();
+        remote.connections[0].selected_line = Some(foreign_line.clone());
+        remote.connections[0].admitted_lines = vec![foreign_line];
         let remote = seal_plan(form_identity.clone(), vec![remote]);
         assert!(matches!(
             conduit_runtime::lowering::lower_plan_fragment(&remote.fragments[0]),

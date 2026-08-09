@@ -1,8 +1,7 @@
 use conduit_core::{
-    verify_plan, BootId, ConnectionBase, GearId, HostAdvertisement, HostId, LinkBindingId,
-    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, ProtectedResourceAccess,
-    ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId,
-    ResourceHandleId,
+    verify_plan, BootId, ConnectionBase, GearId, HostAdvertisement, HostId, PlannerCapabilityOffer,
+    PlannerLimits, PlannerProfileId, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
+    ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
 };
 use conduit_planner::{
     default_placements, plan_with_advertised_profile, PlannerError, PlanningOptions,
@@ -11,7 +10,8 @@ use conduit_planner::{
 use conduit_runtime::lowering::lower_plan_fragment;
 use std::collections::BTreeMap;
 
-static EMPTY_ROUTE_CANDIDATES: BTreeMap<(GearId, GearId), Vec<LinkBindingId>> = BTreeMap::new();
+static EMPTY_ROUTE_CANDIDATES: BTreeMap<(GearId, GearId), Vec<conduit_core::LineId>> =
+    BTreeMap::new();
 
 fn portable_inputs() -> (conduit_form::CheckedForm, Vec<HostAdvertisement>) {
     let form = conduit_form::parse(
@@ -40,12 +40,12 @@ fn planner_host(host: &str, boot: &str, profile: &str, limits: PlannerLimits) ->
 fn options<'a>(overrides: &'a BTreeMap<(GearId, GearId), ConnectionBase>) -> PlanningOptions<'a> {
     PlanningOptions {
         connection_bases: overrides,
-        route_candidates: &EMPTY_ROUTE_CANDIDATES,
+        line_candidates: &EMPTY_ROUTE_CANDIDATES,
         connection_item_capacity: 1,
         connection_byte_capacity: 9,
         authority_grants: &[],
         protected_resource_grants: &[],
-        link_bindings: &[],
+        line_offers: &[],
     }
 }
 
@@ -70,7 +70,7 @@ fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
             maximum_connections: 1,
             maximum_authority_grants: 0,
             maximum_protected_resource_grants: 0,
-            maximum_link_bindings: 0,
+            maximum_line_offers: 0,
         },
     );
 
@@ -119,7 +119,7 @@ fn bounded_profile_refuses_before_planning_without_delegation() {
             maximum_connections: 1,
             maximum_authority_grants: 0,
             maximum_protected_resource_grants: 0,
-            maximum_link_bindings: 0,
+            maximum_line_offers: 0,
         },
     );
 
@@ -180,7 +180,7 @@ fn portable_profile_admits_protected_grants_before_planning() {
             maximum_connections: 1,
             maximum_authority_grants: 0,
             maximum_protected_resource_grants: 0,
-            maximum_link_bindings: 0,
+            maximum_line_offers: 0,
         },
     );
     let grant = ProtectedResourceGrant {

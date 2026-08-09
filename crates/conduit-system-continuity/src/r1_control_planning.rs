@@ -56,8 +56,8 @@ pub fn exact_r1_control_plan(
 ) -> Result<ExactR1ControlPlan, String> {
     let source = r1_control_source_advertisement();
     let pico = r1_signal_pico_advertisement(pico_boot_id.clone());
-    let observed_links = conduit_net::r1_route_basis(pico_boot_id);
-    let plan = plan_r1_control(&source, &pico, &observed_links, route_set)?;
+    let observed_lines = conduit_net::r1_line_basis(pico_boot_id);
+    let plan = plan_r1_control(&source, &pico, &observed_lines, route_set)?;
 
     Ok(ExactR1ControlPlan {
         source_advertisement: source,
@@ -70,7 +70,7 @@ pub fn exact_r1_control_plan(
 fn plan_r1_control(
     source: &HostAdvertisement,
     pico: &HostAdvertisement,
-    observed_links: &[conduit_core::LinkBinding; 2],
+    observed_lines: &[conduit_core::LineOffer; 2],
     route_set: R1SignalRouteSet,
 ) -> Result<Plan, String> {
     let form = conduit_form::parse(
@@ -103,24 +103,24 @@ fn plan_r1_control(
         },
     );
 
-    let selected_links = match route_set {
-        R1SignalRouteSet::UsbOnly => vec![observed_links[0].clone()],
-        R1SignalRouteSet::WebSocketOnly => vec![observed_links[1].clone()],
+    let selected_lines = match route_set {
+        R1SignalRouteSet::UsbOnly => vec![observed_lines[0].clone()],
+        R1SignalRouteSet::WebSocketOnly => vec![observed_lines[1].clone()],
         R1SignalRouteSet::WebSocketThenUsb => {
-            vec![observed_links[1].clone(), observed_links[0].clone()]
+            vec![observed_lines[1].clone(), observed_lines[0].clone()]
         }
     };
     let mut allowed_bases = vec![ConnectionBase::Local];
-    for base in selected_links.iter().map(|link| link.base) {
+    for base in selected_lines.iter().map(|line| line.binding.base) {
         if !allowed_bases.contains(&base) {
             allowed_bases.push(base);
         }
     }
-    let route_candidates = BTreeMap::from([(
+    let line_candidates = BTreeMap::from([(
         (GearId::from("merge"), GearId::from("show")),
-        selected_links
+        selected_lines
             .iter()
-            .map(|link| link.binding_id.clone())
+            .map(|line| line.line_id.clone())
             .collect(),
     )]);
     let plan = plan_with_options(
@@ -130,12 +130,12 @@ fn plan_r1_control(
         &allowed_bases,
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
-            route_candidates: &route_candidates,
+            line_candidates: &line_candidates,
             connection_item_capacity: 1,
             connection_byte_capacity: conduit_signal::SIGNAL_ENCODED_LEN,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &selected_links,
+            line_offers: &selected_lines,
         },
     )
     .map_err(|error| error.to_string())?;
@@ -152,7 +152,7 @@ mod tests {
         plan.fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .find(|connection| !connection.route_candidates.is_empty())
+            .find(|connection| !connection.admitted_lines.is_empty())
             .expect("one remote Pico LED Cord")
     }
 
@@ -182,9 +182,15 @@ mod tests {
             placement.kind_id.as_str() == conduit_signal::MERGE_THREE_SIGNAL_KIND
         }));
         let remote = remote_connection(&exact.plan);
-        assert_eq!(remote.route_candidates.len(), 2);
-        assert_eq!(remote.route_candidates[0].base, ConnectionBase::WebSocket);
-        assert_eq!(remote.route_candidates[1].base, ConnectionBase::UsbCdc);
+        assert_eq!(remote.admitted_lines.len(), 2);
+        assert_eq!(
+            remote.admitted_lines[0].binding.base,
+            ConnectionBase::WebSocket
+        );
+        assert_eq!(
+            remote.admitted_lines[1].binding.base,
+            ConnectionBase::UsbCdc
+        );
     }
 
     #[test]
@@ -216,7 +222,7 @@ mod tests {
         source.resources[0].capacity_units = 2;
         let boot = BootId::from("r1/pico-runtime-boot");
         let pico = r1_signal_pico_advertisement(boot.clone());
-        let observed_links = conduit_net::r1_route_basis(boot);
+        let observed_links = conduit_net::r1_line_basis(boot);
         assert!(plan_r1_control(
             &source,
             &pico,

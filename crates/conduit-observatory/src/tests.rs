@@ -3,14 +3,14 @@ use alloc::vec;
 
 use super::{
     build_report, render_text_report, unsupported_state, CapabilityAvailability,
-    CapabilityStatusReport, CapabilitySupport, HostReport, LinkReport, ObservatorySnapshot,
+    CapabilityStatusReport, CapabilitySupport, HostReport, LineReport, ObservatorySnapshot,
     OfferFreshness, OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport,
     PlayReport, PressureReport, RetentionReport, SNAPSHOT_SCHEMA,
 };
 use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
 use conduit_core::{
-    authority_grant, present_authority_requirement, process_owned_link_binding, BootId,
-    CapabilityId, ConnectionBase, GearId, HostCommand, HostId, ObservationKind, OfferGeneration,
+    authority_grant, present_authority_requirement, process_owned_line_offer, BootId, CapabilityId,
+    ConnectionBase, GearId, HostCommand, HostId, ObservationKind, OfferGeneration,
     TerminalDisposition,
 };
 use conduit_form::parse;
@@ -121,8 +121,9 @@ fn report_separates_identity_capability_plan_connection_and_clue_tables() {
             ConnectionBase::FixtureDatagram,
         ),
     ]);
-    let link_bindings = vec![
-        process_owned_link_binding(
+    let line_offers = vec![
+        process_owned_line_offer(
+            "line/std-browser",
             "link/std-browser",
             ConnectionBase::FixtureFrame,
             "fixture/frame/std-browser",
@@ -131,7 +132,8 @@ fn report_separates_identity_capability_plan_connection_and_clue_tables() {
             4,
             64,
         ),
-        process_owned_link_binding(
+        process_owned_line_offer(
+            "line/std-pico",
             "link/std-pico",
             ConnectionBase::FixtureDatagram,
             "fixture/datagram/std-pico",
@@ -152,16 +154,16 @@ fn report_separates_identity_capability_plan_connection_and_clue_tables() {
         ],
         PlanningOptions {
             connection_bases: &connection_bases,
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: 4,
             connection_byte_capacity: 64,
             authority_grants: core::slice::from_ref(&browser_authority_grant),
             protected_resource_grants: &[],
-            link_bindings: &link_bindings,
+            line_offers: &line_offers,
         },
     )
     .expect("M1 triple-simulation plan resolves");
-    std_host.replace_link_bindings(link_bindings.clone());
+    std_host.replace_line_offers(line_offers.clone());
     let fragment = plan
         .fragments
         .iter()
@@ -240,10 +242,10 @@ fn report_separates_identity_capability_plan_connection_and_clue_tables() {
     let snapshot = ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.into(),
         hosts,
-        links: link_bindings
+        lines: line_offers
             .into_iter()
-            .map(|binding| LinkReport {
-                binding,
+            .map(|offer| LineReport {
+                offer,
                 state: OperationalState::Available,
             })
             .collect(),
@@ -258,7 +260,7 @@ fn report_separates_identity_capability_plan_connection_and_clue_tables() {
     };
     let report = build_report(&snapshot).expect("neutral report projects");
     assert_eq!(report.hosts.len(), 3);
-    assert_eq!(report.links.len(), 2);
+    assert_eq!(report.lines.len(), 2);
     assert!(report.capabilities.iter().all(|capability| {
         capability.support == CapabilitySupport::Supported
             && capability.availability == CapabilityAvailability::Available
@@ -281,18 +283,20 @@ fn report_separates_identity_capability_plan_connection_and_clue_tables() {
             && placement.authority[0].grant_id == browser_authority_grant.grant_id
     }));
     assert_eq!(report.connections.len(), 3);
-    assert!(report
-        .connections
-        .iter()
-        .any(|connection| connection.base == ConnectionBase::FixtureFrame));
-    assert!(report
-        .connections
-        .iter()
-        .any(|connection| connection.base == ConnectionBase::FixtureDatagram));
-    assert!(report.connections.iter().all(|connection| {
-        (connection.base == ConnectionBase::Local && connection.link_binding.is_none())
-            || (connection.base != ConnectionBase::Local && connection.link_binding.is_some())
-    }));
+    assert!(report.connections.iter().any(|connection| connection
+        .selected_line
+        .as_ref()
+        .map(|line| line.binding.base)
+        == Some(ConnectionBase::FixtureFrame)));
+    assert!(report.connections.iter().any(|connection| connection
+        .selected_line
+        .as_ref()
+        .map(|line| line.binding.base)
+        == Some(ConnectionBase::FixtureDatagram)));
+    assert!(report.connections.iter().all(|connection| connection
+        .selected_line
+        .as_ref()
+        .is_none_or(|selected| connection.admitted_lines.contains(selected))));
     assert!(report
         .clues
         .iter()
@@ -330,8 +334,8 @@ fn report_separates_identity_capability_plan_connection_and_clue_tables() {
     state_snapshot.hosts[2].state = OperationalState::Denied;
     state_snapshot.hosts[0].capabilities[0].support = CapabilitySupport::Unsupported;
     state_snapshot.hosts[0].capabilities[0].availability = CapabilityAvailability::Unavailable;
-    state_snapshot.links[0].state = OperationalState::Failed;
-    state_snapshot.links[1].state = OperationalState::Unknown;
+    state_snapshot.lines[0].state = OperationalState::Failed;
+    state_snapshot.lines[1].state = OperationalState::Unknown;
     state_snapshot.plays[0].lifecycle = PlanLifecycle::Failed;
     state_snapshot.plays[0].terminal_disposition = Some(TerminalDisposition::Failed {
         reason: conduit_core::FailureReason::UnsupportedKind,
@@ -350,8 +354,8 @@ fn report_separates_identity_capability_plan_connection_and_clue_tables() {
     assert_eq!(state_report.hosts[0].state, OperationalState::Stale);
     assert_eq!(state_report.hosts[1].state, OperationalState::Unreachable);
     assert_eq!(state_report.hosts[2].state, OperationalState::Denied);
-    assert_eq!(state_report.links[0].state, OperationalState::Failed);
-    assert_eq!(state_report.links[1].state, OperationalState::Unknown);
+    assert_eq!(state_report.lines[0].state, OperationalState::Failed);
+    assert_eq!(state_report.lines[1].state, OperationalState::Unknown);
     assert_eq!(
         state_report.capabilities[0].support,
         CapabilitySupport::Unsupported
@@ -408,8 +412,8 @@ fn projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof() {
     let snapshot = ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.into(),
         hosts,
-        links: vec![LinkReport {
-            binding: exact.link_binding.clone(),
+        lines: vec![LineReport {
+            offer: exact.line_offer.clone(),
             state: OperationalState::Available,
         }],
         plans: vec![exact.plan],
@@ -425,8 +429,8 @@ fn projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof() {
     let report = build_report(&snapshot).expect("exact S4 arrangement projects");
     assert_eq!(report.hosts.len(), 2);
     assert_eq!(report.fragments.len(), 2);
-    assert_eq!(report.links.len(), 1);
-    assert_eq!(report.links[0].binding, exact.link_binding);
+    assert_eq!(report.lines.len(), 1);
+    assert_eq!(report.lines[0].offer, exact.line_offer);
     let rendered = render_text_report(&report);
     assert!(rendered.contains("base=UsbCdc"));
     assert!(rendered.contains("s4/std-pico-usb-cdc-link"));

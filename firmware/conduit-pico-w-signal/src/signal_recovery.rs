@@ -23,7 +23,7 @@ pub async fn run(
     let plan_a_runtime = runtime.for_plan(plan_a.plan_id, plan_a.host_id);
     let plan_b_runtime = runtime.for_plan(plan_b.plan_id, plan_b.host_id);
     let plan_c_runtime = runtime.for_plan(plan_c.plan_id, plan_c.host_id);
-    let route_basis = conduit_net::r1_route_basis(BootId::from(runtime.boot_id()));
+    let route_basis = conduit_net::r1_line_basis(BootId::from(runtime.boot_id()));
     let mut plan_a_state = match crate::continuable_signal::ContinuableSignalSink::new_plan_a(
         &plan_a_runtime,
     ) {

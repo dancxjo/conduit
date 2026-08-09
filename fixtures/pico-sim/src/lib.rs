@@ -161,12 +161,12 @@ mod std_fixture {
     use super::{led_receipt, pico_advertisement, LedReceipt, PicoSimConfig};
     use alloc::vec::Vec;
     use conduit_core::{
-        process_owned_link_binding, CapabilityId, ConnectionBase, HostAdvertisement, HostCommand,
+        process_owned_line_offer, CapabilityId, ConnectionBase, HostAdvertisement, HostCommand,
         HostEvent, HostId, ImplementationId, Observation, PlacementId, Plan, PlanFragment,
         PlatformEffect,
     };
     use conduit_form::CheckedForm;
-    use conduit_planner::{plan, plan_with_link_bindings, PlacementChoice, PlacementChoices};
+    use conduit_planner::{plan, plan_with_line_offers, PlacementChoice, PlacementChoices};
     use conduit_runtime::{HostRuntime, RuntimeOutput};
     use conduit_signal::{signal_registry, SIGNAL_PRESENTATION_KIND};
     use std::collections::BTreeMap;
@@ -202,8 +202,8 @@ mod std_fixture {
             self.runtime.handle(command)
         }
 
-        pub fn replace_link_bindings(&mut self, bindings: Vec<conduit_core::LinkBinding>) {
-            self.runtime.replace_link_bindings(bindings);
+        pub fn replace_line_offers(&mut self, lines: Vec<conduit_core::LineOffer>) {
+            self.runtime.replace_line_offers(lines);
         }
 
         pub fn plan_local(&self, form: &CheckedForm) -> Result<Plan, Box<dyn std::error::Error>> {
@@ -256,7 +256,8 @@ mod std_fixture {
                     ),
                 ]),
             };
-            let links = [process_owned_link_binding(
+            let lines = [process_owned_line_offer(
+                "line/std-pico",
                 "link/std-pico",
                 ConnectionBase::FixtureDatagram,
                 "fixture/datagram/std-pico",
@@ -265,14 +266,14 @@ mod std_fixture {
                 4,
                 64,
             )];
-            Ok(plan_with_link_bindings(
+            Ok(plan_with_line_offers(
                 form,
                 &[std_advertisement.clone(), self.advertisement().clone()],
                 &placements,
                 &[ConnectionBase::FixtureDatagram],
                 4,
                 64,
-                &links,
+                &lines,
             )?)
         }
 
@@ -455,7 +456,7 @@ mod tests {
         let connection = fragment
             .connections
             .iter()
-            .find(|connection| connection.base == ConnectionBase::Local)
+            .find(|connection| connection.selected_line.is_none())
             .expect("pico local connection is planned");
         assert_eq!(connection.item_capacity, 4);
         assert_eq!(connection.byte_capacity, 64);
@@ -499,17 +500,43 @@ mod tests {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.connections)
-            .find(|connection| connection.base == ConnectionBase::FixtureDatagram)
+            .find(|connection| {
+                connection
+                    .selected_line
+                    .as_ref()
+                    .map(|line| line.binding.base)
+                    == Some(ConnectionBase::FixtureDatagram)
+            })
             .expect("datagram fixture connection is planned");
         assert_eq!(connection.item_capacity, 4);
         assert_eq!(connection.byte_capacity, 64);
         let connection_id = connection.connection_id.clone();
-        let link_binding = connection
-            .link_binding
+        let line = connection
+            .selected_line
             .clone()
-            .expect("remote datagram connection binds an observed link");
-        std_host.replace_link_bindings(vec![link_binding.clone()]);
-        pico.replace_link_bindings(vec![link_binding]);
+            .expect("remote datagram connection seals a Line");
+        let line_offer = conduit_core::LineOffer {
+            line_id: line.line_id.clone(),
+            binding: conduit_core::LinkBinding {
+                binding_id: line.binding.binding_id.clone(),
+                source: line.binding.source.clone(),
+                sink: line.binding.sink.clone(),
+                base: line.binding.base,
+                base_instance_id: line.binding.base_instance_id.clone(),
+                credential: line.binding.credential.clone(),
+                authority: line.binding.authority.clone(),
+                limits: line.binding.limits,
+            },
+            contract: line.contract,
+            availability: conduit_core::LineAvailabilitySign {
+                line_id: line.line_id,
+                binding_id: line.binding.binding_id,
+                availability: conduit_core::LineAvailability::Ready,
+                sign_id: conduit_core::ClueId::from("fixture/pico-line-ready"),
+            },
+        };
+        std_host.replace_line_offers(vec![line_offer.clone()]);
+        pico.replace_line_offers(vec![line_offer]);
 
         for fragment in &plan.fragments {
             if fragment.host_id == std_host.advertisement().host_id {
@@ -703,14 +730,16 @@ mod tests {
     ) -> Vec<conduit_core::PlanFragment> {
         let mut sorted = fragments.to_vec();
         sorted.sort_by_key(|fragment| {
-            fragment
-                .connections
+            fragment.connections.iter().any(|connection| {
+                connection
+                    .selected_line
+                    .as_ref()
+                    .map(|line| line.binding.base)
+                    == Some(ConnectionBase::FixtureDatagram)
+            }) && fragment
+                .placements
                 .iter()
-                .any(|connection| connection.base == ConnectionBase::FixtureDatagram)
-                && fragment
-                    .placements
-                    .iter()
-                    .all(|placement| placement.outputs.is_empty())
+                .all(|placement| placement.outputs.is_empty())
         });
         sorted.reverse();
         sorted

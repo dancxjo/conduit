@@ -2,7 +2,7 @@
 
 use conduit_core::{
     ActivePlayId, BootId, ClueId, ConnectionBase, ControlLoopEvent, GearId, HostId,
-    LinkAvailability, LinkObservation, PlanId,
+    LineAvailability, LineAvailabilitySign, LineId, PlanId,
 };
 use conduit_system_continuity::{
     exact_r1_signal_plan, R1LedResultClue, R1NewPlanRecovery, R1RecoveryStartClues,
@@ -101,13 +101,14 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
         .base;
 
     recovery
-        .observe_route_unavailable(
-            LinkObservation {
+        .observe_line_unavailable(
+            LineAvailabilitySign {
+                line_id: LineId::from(conduit_net::R1_WEBSOCKET_LINE_ID),
                 binding_id: conduit_core::LinkBindingId::from(
                     conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
                 ),
-                availability: LinkAvailability::Unavailable,
-                clue_id: ClueId::from("r1/injected-websocket-line-unavailable"),
+                availability: LineAvailability::Unavailable,
+                sign_id: ClueId::from("r1/injected-websocket-line-unavailable"),
             },
             ClueId::from("r1/play-a-unsatisfied"),
         )

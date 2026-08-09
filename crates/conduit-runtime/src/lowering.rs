@@ -3,10 +3,10 @@
 
 use conduit_core::{
     mandatory_clue_storage_requirement, verify_plan_fragment, ActivePlayId, ActivePlayIdentity,
-    BootId, BoundLink, ClueId, ClueIdentity, ConnectionBase, ConnectionId, ExpectedClue,
-    FragmentId, HostId, HostOperationContractId, KindId, LinkEndpoint, PlacementId, PlanFragment,
-    PlanId, PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId,
-    PresentationIdentity, ResourceBinding as PlanResourceBinding, SharedPoolId,
+    AdmittedLine, BootId, ClueId, ClueIdentity, ConnectionId, ExpectedClue, FragmentId, HostId,
+    HostOperationContractId, KindId, LinkEndpoint, PlacementId, PlanFragment, PlanId,
+    PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId, PresentationIdentity,
+    ResourceBinding as PlanResourceBinding, SharedPoolId,
 };
 use conduit_kernel::{
     scheduler::{CordCapacity, CordSpec, NodeSpec},
@@ -90,8 +90,8 @@ pub enum RemoteCordDirection {
 }
 
 /// Exact identity binding retained outside the allocation-independent kernel.
-/// The host must bind this numeric endpoint to this observed link before
-/// trigger; the carrier is not allowed to choose or rewrite any fact here.
+/// The host must bind this numeric endpoint to this admitted Line before
+/// trigger; the Base adapter is not allowed to choose or rewrite any fact.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredRemoteEndpoint {
     pub endpoint: RemoteEndpointId,
@@ -104,7 +104,7 @@ pub struct LoweredRemoteEndpoint {
     pub peer: LinkEndpoint,
     pub value_kind: KindId,
     pub temporal: conduit_core::PortTemporal,
-    pub binding: BoundLink,
+    pub line: AdmittedLine,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -673,7 +673,7 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         }
         let spec = match (source_node.zip(source_port), sink_node.zip(sink_port)) {
             (Some((source_node, source_port)), Some((sink_node, sink_port))) => {
-                if connection.base != ConnectionBase::Local || connection.link_binding.is_some() {
+                if connection.selected_line.is_some() || !connection.admitted_lines.is_empty() {
                     return Err(LoweringError::InvalidRemoteConnection(
                         connection.connection_id.clone(),
                     ));

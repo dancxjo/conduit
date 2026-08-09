@@ -7,9 +7,9 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 
 use conduit_core::{
-    authority_grant, process_owned_link_binding_with_limits, ArtifactId, AuthorityGrant,
+    authority_grant, process_owned_line_offer_with_limits, ArtifactId, AuthorityGrant,
     CapabilityId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    LinkBinding, LinkEndpointId, LinkLimits, OfferGeneration, Plan, PROTOCOL_VERSION,
+    LinkEndpointId, LinkLimits, OfferGeneration, Plan, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -19,7 +19,7 @@ use crate::{
     install_network_bootstrap_catalogs, network_attachment_clue_offer, network_credentials_offer,
     network_join_offer, wifi_station_resource, MAXIMUM_JOIN_INPUT_BYTES, R1_MAXIMUM_FRAME_BYTES,
     R1_PICO_BOOT_ID, R1_PICO_HOST_ID, R1_PICO_USB_ENDPOINT_ID, R1_STD_BOOT_ID, R1_STD_HOST_ID,
-    R1_STD_USB_ENDPOINT_ID, R1_USB_BASE_INSTANCE_ID, R1_USB_LINK_BINDING_ID,
+    R1_STD_USB_ENDPOINT_ID, R1_USB_BASE_INSTANCE_ID, R1_USB_LINE_ID, R1_USB_LINK_BINDING_ID,
 };
 
 pub const R1_CREDENTIALS_CAPABILITY_ID: &str = "r1/std-network-credentials";
@@ -33,7 +33,7 @@ pub const R1_JOIN_GRANT_ID: &str = "r1/grant/configure-pico-network";
 pub struct ExactR1NetworkBootstrapPlan {
     pub source_advertisement: HostAdvertisement,
     pub pico_advertisement: HostAdvertisement,
-    pub usb_link: LinkBinding,
+    pub usb_line: conduit_core::LineOffer,
     pub authority_grants: [AuthorityGrant; 2],
     pub plan: Plan,
 }
@@ -79,10 +79,11 @@ pub fn r1_pico_network_advertisement() -> HostAdvertisement {
     }
 }
 
-pub fn r1_usb_bootstrap_link() -> LinkBinding {
+pub fn r1_usb_bootstrap_line() -> conduit_core::LineOffer {
     let source = r1_std_bootstrap_advertisement();
     let sink = r1_pico_network_advertisement();
-    let mut binding = process_owned_link_binding_with_limits(
+    let mut line = process_owned_line_offer_with_limits(
+        R1_USB_LINE_ID,
         R1_USB_LINK_BINDING_ID,
         ConnectionBase::UsbCdc,
         R1_USB_BASE_INSTANCE_ID,
@@ -95,9 +96,9 @@ pub fn r1_usb_bootstrap_link() -> LinkBinding {
             maximum_frame_bytes: R1_MAXIMUM_FRAME_BYTES,
         },
     );
-    binding.source.endpoint_id = LinkEndpointId::from(R1_STD_USB_ENDPOINT_ID);
-    binding.sink.endpoint_id = LinkEndpointId::from(R1_PICO_USB_ENDPOINT_ID);
-    binding
+    line.binding.source.endpoint_id = LinkEndpointId::from(R1_STD_USB_ENDPOINT_ID);
+    line.binding.sink.endpoint_id = LinkEndpointId::from(R1_PICO_USB_ENDPOINT_ID);
+    line
 }
 
 pub fn exact_r1_network_bootstrap_plan() -> Result<ExactR1NetworkBootstrapPlan, String> {
@@ -171,7 +172,7 @@ pub fn exact_r1_network_bootstrap_plan() -> Result<ExactR1NetworkBootstrapPlan, 
             CapabilityId::from(R1_JOIN_CAPABILITY_ID),
         ),
     ];
-    let usb_link = r1_usb_bootstrap_link();
+    let usb_line = r1_usb_bootstrap_line();
     let plan = plan_expanded_canonical_with_options(
         &form,
         &[source_advertisement.clone(), pico_advertisement.clone()],
@@ -179,19 +180,19 @@ pub fn exact_r1_network_bootstrap_plan() -> Result<ExactR1NetworkBootstrapPlan, 
         &[ConnectionBase::Local, ConnectionBase::UsbCdc],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
-            route_candidates: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: MAXIMUM_JOIN_INPUT_BYTES,
             authority_grants: &authority_grants,
             protected_resource_grants: &[],
-            link_bindings: core::slice::from_ref(&usb_link),
+            line_offers: core::slice::from_ref(&usb_line),
         },
     )
     .map_err(|error| error.to_string())?;
     Ok(ExactR1NetworkBootstrapPlan {
         source_advertisement,
         pico_advertisement,
-        usb_link,
+        usb_line,
         authority_grants,
         plan,
     })

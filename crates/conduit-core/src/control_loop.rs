@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AuthorityGrantId, BootId, BoundLink, ClueId, ConnectionId, HostId, LinkBindingId, PlanId,
-    PlannedConnection,
+    AdmittedLine, AuthorityGrantId, BootId, ClueId, ConnectionId, HostId, LineId, LinkBindingId,
+    PlanId, PlannedConnection,
 };
 
 /// Why the current deployed realization cannot continue. Queue pressure is
@@ -36,9 +36,10 @@ pub enum PlanningRequestAuthority {
 /// retries, invoke a planner, install a fragment, or issue authority.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ControlLoopEvent {
-    LinkBecameUnavailable {
+    LineBecameUnavailable {
         plan_id: PlanId,
         connection_id: ConnectionId,
+        line_id: LineId,
         binding_id: LinkBindingId,
         observation_clue_id: ClueId,
     },
@@ -75,10 +76,11 @@ pub enum ControlLoopEvent {
         plan_id: PlanId,
         clue_id: ClueId,
     },
-    RouteSelectionChanged {
+    LineSelectionChanged {
         plan_id: PlanId,
         connection_id: ConnectionId,
-        previous_binding_id: Option<LinkBindingId>,
+        previous_line_id: Option<LineId>,
+        selected_line_id: LineId,
         selected_binding_id: LinkBindingId,
         observation_clue_id: ClueId,
     },
@@ -97,14 +99,16 @@ pub enum ControlLoopEventError {
 impl ControlLoopEvent {
     pub fn validate(&self) -> Result<(), ControlLoopEventError> {
         let identities_are_nonempty = match self {
-            Self::LinkBecameUnavailable {
+            Self::LineBecameUnavailable {
                 plan_id,
                 connection_id,
+                line_id,
                 binding_id,
                 observation_clue_id,
             } => {
                 nonempty(plan_id.as_str())
                     && nonempty(connection_id.as_str())
+                    && nonempty(line_id.as_str())
                     && nonempty(binding_id.as_str())
                     && nonempty(observation_clue_id.as_str())
             }
@@ -162,18 +166,20 @@ impl ControlLoopEvent {
                     && nonempty(replacement_plan_id.as_str())
                     && nonempty(clue_id.as_str())
             }
-            Self::RouteSelectionChanged {
+            Self::LineSelectionChanged {
                 plan_id,
                 connection_id,
-                previous_binding_id,
+                previous_line_id,
+                selected_line_id,
                 selected_binding_id,
                 observation_clue_id,
             } => {
                 nonempty(plan_id.as_str())
                     && nonempty(connection_id.as_str())
-                    && previous_binding_id
+                    && previous_line_id
                         .as_ref()
                         .is_none_or(|identity| nonempty(identity.as_str()))
+                    && nonempty(selected_line_id.as_str())
                     && nonempty(selected_binding_id.as_str())
                     && nonempty(observation_clue_id.as_str())
             }
@@ -194,11 +200,11 @@ impl ControlLoopEvent {
             } if prior_plan_id == replacement_plan_id => {
                 Err(ControlLoopEventError::ReplacementReusedPlanIdentity)
             }
-            Self::RouteSelectionChanged {
-                previous_binding_id: Some(previous),
-                selected_binding_id,
+            Self::LineSelectionChanged {
+                previous_line_id: Some(previous),
+                selected_line_id,
                 ..
-            } if previous == selected_binding_id => {
+            } if previous == selected_line_id => {
                 Err(ControlLoopEventError::RouteSelectionDidNotChange)
             }
             _ => Ok(()),
@@ -213,19 +219,26 @@ impl ControlLoopEvent {
         connection: &PlannedConnection,
     ) -> Result<(), ControlLoopEventError> {
         self.validate()?;
-        let (plan_id, connection_id, binding_id) = match self {
-            Self::LinkBecameUnavailable {
+        let (plan_id, connection_id, line_id, binding_id) = match self {
+            Self::LineBecameUnavailable {
                 plan_id,
                 connection_id,
+                line_id,
                 binding_id,
                 ..
-            } => (plan_id, connection_id, binding_id),
-            Self::RouteSelectionChanged {
+            } => (plan_id, connection_id, line_id, binding_id),
+            Self::LineSelectionChanged {
                 plan_id,
                 connection_id,
+                selected_line_id,
                 selected_binding_id,
                 ..
-            } => (plan_id, connection_id, selected_binding_id),
+            } => (
+                plan_id,
+                connection_id,
+                selected_line_id,
+                selected_binding_id,
+            ),
             _ => return Ok(()),
         };
         if plan_id != active_plan_id {
@@ -234,13 +247,11 @@ impl ControlLoopEvent {
         if connection_id != &connection.connection_id {
             return Err(ControlLoopEventError::RouteEventConnectionMismatch);
         }
-        let admitted = connection.route_candidates.iter().any(|candidate| {
-            &candidate.binding_id == binding_id && connection.permits_bound_link(candidate)
-        }) || connection.route_candidates.is_empty()
-            && connection
-                .link_binding
-                .as_ref()
-                .is_some_and(|binding| &binding.binding_id == binding_id);
+        let admitted = connection.admitted_lines.iter().any(|candidate| {
+            &candidate.line_id == line_id
+                && &candidate.binding.binding_id == binding_id
+                && connection.permits_line(candidate)
+        });
         if !admitted {
             return Err(ControlLoopEventError::RouteOutsideSealedCandidates);
         }
@@ -254,19 +265,20 @@ fn nonempty(value: &str) -> bool {
 
 /// Identity-only helper for presentations that need to render a selected route
 /// without copying base or credential facts into the event vocabulary.
-pub fn selected_bound_link<'a>(
+pub fn selected_admitted_line<'a>(
     event: &ControlLoopEvent,
     connection: &'a PlannedConnection,
-) -> Option<&'a BoundLink> {
-    let ControlLoopEvent::RouteSelectionChanged {
+) -> Option<&'a AdmittedLine> {
+    let ControlLoopEvent::LineSelectionChanged {
+        selected_line_id,
         selected_binding_id,
         ..
     } = event
     else {
         return None;
     };
-    connection
-        .route_candidates
-        .iter()
-        .find(|candidate| &candidate.binding_id == selected_binding_id)
+    connection.admitted_lines.iter().find(|candidate| {
+        &candidate.line_id == selected_line_id
+            && &candidate.binding.binding_id == selected_binding_id
+    })
 }

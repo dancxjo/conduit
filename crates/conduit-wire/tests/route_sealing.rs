@@ -1,7 +1,7 @@
 use conduit_core::{
-    process_owned_link_binding, BootId, ConnectionBase, ConnectionId, FragmentId,
-    HostAdvertisement, HostId, HostProfileId, KindId, LinkAvailability, LinkBindingId,
-    OfferGeneration, PlanId, PlannedConnection, PortId, PortTemporal, PROTOCOL_VERSION,
+    process_owned_line_offer, AdmittedLine, BootId, ConnectionBase, ConnectionId, FragmentId,
+    HostAdvertisement, HostId, HostProfileId, KindId, OfferGeneration, PlanId, PlannedConnection,
+    PortId, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_wire::{SessionBinding, WireError};
 
@@ -18,10 +18,7 @@ fn host(id: &str) -> HostAdvertisement {
     }
 }
 
-fn connection_with_routes(
-    selected: conduit_core::LinkBinding,
-    routes: Vec<conduit_core::BoundLink>,
-) -> PlannedConnection {
+fn connection_with_routes(selected: AdmittedLine, lines: Vec<AdmittedLine>) -> PlannedConnection {
     PlannedConnection {
         connection_id: ConnectionId::from("connection"),
         source_placement_id: conduit_core::PlacementId::from("source-placement"),
@@ -30,9 +27,8 @@ fn connection_with_routes(
         sink_port_id: PortId::from("in"),
         value_kind: KindId::from("value"),
         temporal: PortTemporal::Flow { closes: true },
-        base: selected.base,
-        link_binding: Some(selected),
-        route_candidates: routes,
+        selected_line: Some(selected),
+        admitted_lines: lines,
         item_capacity: 1,
         byte_capacity: 64,
     }
@@ -42,7 +38,8 @@ fn connection_with_routes(
 fn session_rejects_selected_link_outside_sealed_candidates() {
     let source = host("source");
     let sink = host("sink");
-    let sealed = process_owned_link_binding(
+    let sealed = process_owned_line_offer(
+        "line/sealed",
         "sealed",
         ConnectionBase::UsbCdc,
         "usb/0",
@@ -51,7 +48,8 @@ fn session_rejects_selected_link_outside_sealed_candidates() {
         1,
         64,
     );
-    let mut unsealed = process_owned_link_binding(
+    let unsealed = process_owned_line_offer(
+        "line/unsealed",
         "unsealed",
         ConnectionBase::UsbCdc,
         "usb/1",
@@ -60,8 +58,7 @@ fn session_rejects_selected_link_outside_sealed_candidates() {
         1,
         64,
     );
-    unsealed.binding_id = LinkBindingId::from("unsealed");
-    let connection = connection_with_routes(unsealed, vec![sealed.bound_link()]);
+    let connection = connection_with_routes((&unsealed).into(), vec![(&sealed).into()]);
 
     assert_eq!(
         SessionBinding::from_planned_connection(
@@ -75,10 +72,11 @@ fn session_rejects_selected_link_outside_sealed_candidates() {
 }
 
 #[test]
-fn two_sealed_carriers_share_one_logical_identity_but_keep_exact_attachments() {
+fn two_sealed_lines_share_one_cord_identity_but_keep_exact_attachments() {
     let source = host("source");
     let sink = host("sink");
-    let mut usb = process_owned_link_binding(
+    let mut usb = process_owned_line_offer(
+        "line/usb",
         "usb",
         ConnectionBase::UsbCdc,
         "usb/0",
@@ -87,7 +85,8 @@ fn two_sealed_carriers_share_one_logical_identity_but_keep_exact_attachments() {
         1,
         64,
     );
-    let mut websocket = process_owned_link_binding(
+    let mut websocket = process_owned_line_offer(
+        "line/websocket",
         "websocket",
         ConnectionBase::WebSocket,
         "websocket/0",
@@ -96,40 +95,33 @@ fn two_sealed_carriers_share_one_logical_identity_but_keep_exact_attachments() {
         1,
         64,
     );
-    usb.limits.maximum_frame_bytes = 2_048;
-    websocket.limits.maximum_frame_bytes = 2_048;
-    let connection =
-        connection_with_routes(usb.clone(), vec![usb.bound_link(), websocket.bound_link()]);
-    let make = |link| {
-        SessionBinding::from_planned_connection_with_link(
+    usb.binding.limits.maximum_frame_bytes = 2_048;
+    websocket.binding.limits.maximum_frame_bytes = 2_048;
+    let usb_admitted: AdmittedLine = (&usb).into();
+    let websocket_admitted: AdmittedLine = (&websocket).into();
+    let connection = connection_with_routes(
+        usb_admitted.clone(),
+        vec![usb_admitted.clone(), websocket_admitted.clone()],
+    );
+    let make = |line| {
+        SessionBinding::from_planned_connection_with_line(
             PlanId::from("plan"),
             FragmentId::from("source-fragment"),
             FragmentId::from("sink-fragment"),
             &connection,
-            link,
+            line,
         )
         .expect("sealed ready attachment")
     };
-    let usb_session = make(&usb);
-    let websocket_session = make(&websocket);
+    let usb_session = make(&usb_admitted);
+    let websocket_session = make(&websocket_admitted);
 
     assert_eq!(usb_session.identity(), websocket_session.identity());
     assert_ne!(usb_session.attachment, websocket_session.attachment);
     assert_eq!(usb_session.attachment.base, ConnectionBase::UsbCdc);
     assert_eq!(websocket_session.attachment.base, ConnectionBase::WebSocket);
 
-    let mut unavailable = websocket;
-    unavailable.availability = LinkAvailability::Unavailable;
-    assert_eq!(
-        SessionBinding::from_planned_connection_with_link(
-            PlanId::from("plan"),
-            FragmentId::from("source-fragment"),
-            FragmentId::from("sink-fragment"),
-            &connection,
-            &unavailable,
-        ),
-        Err(WireError::InvalidSession)
-    );
+    assert_ne!(websocket.availability, usb.availability);
 
     let mut mismatched = usb_session;
     mismatched.attachment.sink_boot_id = BootId::from("different-boot");

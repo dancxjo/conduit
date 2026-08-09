@@ -88,20 +88,23 @@ impl PlanDocument {
                     format!(
                         "    CORD connection={} base={:?} items={} bytes={}",
                         connection.connection_id.as_str(),
-                        connection.base,
+                        connection
+                            .selected_line
+                            .as_ref()
+                            .map(|line| line.binding.base),
                         connection.item_capacity,
                         connection.byte_capacity
                     ),
                 )?;
-                for (index, candidate) in connection.route_candidates.iter().enumerate() {
+                for (index, candidate) in connection.admitted_lines.iter().enumerate() {
                     push(
                         &mut lines,
                         format!(
                             "      CANDIDATE index={} binding={} base={:?} instance={}",
                             index,
-                            candidate.binding_id.as_str(),
-                            candidate.base,
-                            candidate.base_instance_id.as_str()
+                            candidate.binding.binding_id.as_str(),
+                            candidate.binding.base,
+                            candidate.binding.base_instance_id.as_str()
                         ),
                     )?;
                 }

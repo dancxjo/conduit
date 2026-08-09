@@ -464,7 +464,7 @@ fn remote_branch(
     let remote = lowered
         .remote_endpoints
         .iter()
-        .find(|remote| remote.binding.base == base)
+        .find(|remote| remote.line.binding.base == base)
         .ok_or_else(|| format!("missing {base:?} triple endpoint"))?;
     if remote.direction != RemoteCordDirection::Egress {
         return Err("triple source endpoint is not egress".to_owned());

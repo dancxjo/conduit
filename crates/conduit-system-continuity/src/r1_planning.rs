@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase, GearId,
-    HostAdvertisement, HostProfileId, ImplementationId, LinkBinding, OfferGeneration, Plan,
+    HostAdvertisement, HostProfileId, ImplementationId, LineOffer, OfferGeneration, Plan,
     PROTOCOL_VERSION,
 };
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
@@ -35,7 +35,7 @@ pub enum R1SignalRouteSet {
 pub struct ExactR1SignalPlan {
     pub source_advertisement: HostAdvertisement,
     pub pico_advertisement: HostAdvertisement,
-    pub observed_links: [LinkBinding; 2],
+    pub observed_lines: [LineOffer; 2],
     pub route_set: R1SignalRouteSet,
     pub plan: Plan,
 }
@@ -122,7 +122,7 @@ pub fn exact_r1_signal_plan(
 ) -> Result<ExactR1SignalPlan, String> {
     let source_advertisement = r1_signal_source_advertisement();
     let pico_advertisement = r1_signal_pico_advertisement(pico_boot_id.clone());
-    let observed_links = conduit_net::r1_route_basis(pico_boot_id);
+    let observed_lines = conduit_net::r1_line_basis(pico_boot_id);
     let form = conduit_form::parse(
         include_str!("../../../examples/signal-demo.form"),
         &signal_profile_catalog(),
@@ -146,19 +146,22 @@ pub fn exact_r1_signal_plan(
             ),
         ]),
     };
-    let selected_links: Vec<LinkBinding> = match route_set {
-        R1SignalRouteSet::UsbOnly => vec![observed_links[0].clone()],
-        R1SignalRouteSet::WebSocketOnly => vec![observed_links[1].clone()],
+    let selected_lines: Vec<LineOffer> = match route_set {
+        R1SignalRouteSet::UsbOnly => vec![observed_lines[0].clone()],
+        R1SignalRouteSet::WebSocketOnly => vec![observed_lines[1].clone()],
         R1SignalRouteSet::WebSocketThenUsb => {
-            vec![observed_links[1].clone(), observed_links[0].clone()]
+            vec![observed_lines[1].clone(), observed_lines[0].clone()]
         }
     };
-    let allowed_bases: Vec<ConnectionBase> = selected_links.iter().map(|link| link.base).collect();
+    let allowed_bases: Vec<ConnectionBase> = selected_lines
+        .iter()
+        .map(|line| line.binding.base)
+        .collect();
     let candidate_order = BTreeMap::from([(
         (GearId::from("pulse"), GearId::from("show")),
-        selected_links
+        selected_lines
             .iter()
-            .map(|link| link.binding_id.clone())
+            .map(|line| line.line_id.clone())
             .collect(),
     )]);
     let plan = plan_with_options(
@@ -168,19 +171,19 @@ pub fn exact_r1_signal_plan(
         &allowed_bases,
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
-            route_candidates: &candidate_order,
+            line_candidates: &candidate_order,
             connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             connection_byte_capacity: SIGNAL_ENCODED_LEN,
             authority_grants: &[],
             protected_resource_grants: &[],
-            link_bindings: &selected_links,
+            line_offers: &selected_lines,
         },
     )
     .map_err(|error| error.to_string())?;
     Ok(ExactR1SignalPlan {
         source_advertisement,
         pico_advertisement,
-        observed_links,
+        observed_lines,
         route_set,
         plan,
     })
@@ -195,7 +198,7 @@ mod tests {
             .iter()
             .flat_map(|fragment| &fragment.connections)
             .find(|connection| {
-                !connection.route_candidates.is_empty() || connection.link_binding.is_some()
+                !connection.admitted_lines.is_empty() || connection.selected_line.is_some()
             })
             .expect("remote LED Cord")
     }
@@ -207,24 +210,26 @@ mod tests {
         let websocket =
             exact_r1_signal_plan(boot.clone(), R1SignalRouteSet::WebSocketOnly).unwrap();
         let dual = exact_r1_signal_plan(boot, R1SignalRouteSet::WebSocketThenUsb).unwrap();
-        assert_eq!(remote_connection(&usb.plan).route_candidates.len(), 1);
+        assert_eq!(remote_connection(&usb.plan).admitted_lines.len(), 1);
         assert_eq!(
-            remote_connection(&usb.plan).route_candidates[0].base,
+            remote_connection(&usb.plan).admitted_lines[0].binding.base,
             ConnectionBase::UsbCdc
         );
-        assert_eq!(remote_connection(&websocket.plan).route_candidates.len(), 1);
+        assert_eq!(remote_connection(&websocket.plan).admitted_lines.len(), 1);
         assert_eq!(
-            remote_connection(&websocket.plan).route_candidates[0].base,
+            remote_connection(&websocket.plan).admitted_lines[0]
+                .binding
+                .base,
             ConnectionBase::WebSocket
         );
         assert_ne!(usb.plan.plan_id, websocket.plan.plan_id);
-        assert_eq!(remote_connection(&dual.plan).route_candidates.len(), 2);
+        assert_eq!(remote_connection(&dual.plan).admitted_lines.len(), 2);
         assert_eq!(
-            remote_connection(&dual.plan).route_candidates[0].base,
+            remote_connection(&dual.plan).admitted_lines[0].binding.base,
             ConnectionBase::WebSocket
         );
         assert_eq!(
-            remote_connection(&dual.plan).route_candidates[1].base,
+            remote_connection(&dual.plan).admitted_lines[1].binding.base,
             ConnectionBase::UsbCdc
         );
         assert_ne!(dual.plan.plan_id, usb.plan.plan_id);
@@ -250,8 +255,8 @@ mod tests {
             R1SignalRouteSet::WebSocketOnly,
         )
         .unwrap();
-        let mut stale = exact.observed_links[1].clone();
-        stale.sink.boot_id = BootId::from("r1/stale-boot");
+        let mut stale = exact.observed_lines[1].clone();
+        stale.binding.sink.boot_id = BootId::from("r1/stale-boot");
         let form = conduit_form::parse(
             include_str!("../../../examples/signal-demo.form"),
             &signal_profile_catalog(),
@@ -282,15 +287,15 @@ mod tests {
             &[ConnectionBase::WebSocket],
             PlanningOptions {
                 connection_bases: &BTreeMap::new(),
-                route_candidates: &BTreeMap::from([(
+                line_candidates: &BTreeMap::from([(
                     (GearId::from("pulse"), GearId::from("show")),
-                    vec![stale.binding_id.clone()],
+                    vec![stale.line_id.clone()],
                 )]),
                 connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
                 connection_byte_capacity: SIGNAL_ENCODED_LEN,
                 authority_grants: &[],
                 protected_resource_grants: &[],
-                link_bindings: &[stale],
+                line_offers: &[stale],
             },
         )
         .is_err());

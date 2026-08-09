@@ -4,7 +4,7 @@ use conduit_core::{
     bind_clue, kind_id, ArtifactId, AuthorityContractId, AuthorityGrantId, AuthorityRequirement,
     BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFace, ClueId,
     ExecutionProfileId, HostAdvertisement, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, KindContractRevision, LinkBindingId, PortDescriptor, PortDirection, PortId,
+    ImplementationId, KindContractRevision, LineId, PortDescriptor, PortDirection, PortId,
     PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_observatory::{HostReport, OperationalState};
@@ -103,7 +103,7 @@ pub struct RebootRequest {
     pub controller: HostInstance,
     pub target: HostInstance,
     pub required_face: CheckedFace,
-    pub link_binding_id: LinkBindingId,
+    pub selected_line_id: LineId,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -275,7 +275,7 @@ impl DelegatedRebootTransaction {
         if request.request_id.as_str().is_empty()
             || self.grant.grant_id.as_str().is_empty()
             || self.grant.capability_id.as_str().is_empty()
-            || self.grant.link_binding_id.as_str().is_empty()
+            || self.grant.selected_line_id.as_str().is_empty()
             || self.grant.proof_window_ticks == 0
             || target.protocol_version != PROTOCOL_VERSION
         {
@@ -288,8 +288,8 @@ impl DelegatedRebootTransaction {
             return Some(RebootDenial::Unauthorized);
         }
         if session.validate().is_err()
-            || request.link_binding_id != session.attachment.link_binding_id
-            || request.link_binding_id != self.grant.link_binding_id
+            || request.selected_line_id != session.attachment.line_id
+            || request.selected_line_id != self.grant.selected_line_id
             || session.source.host_id != request.controller.host_id
             || session.source.boot_id != request.controller.boot_id
             || session.sink.host_id != request.target.host_id
