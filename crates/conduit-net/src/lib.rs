@@ -29,33 +29,33 @@ pub const WIFI_STATION_RESOURCE_CLASS: &str = "conduit.resource/network/wifi-sta
 pub const R1_WIFI_STATION_POOL_ID: &str = "r1/pico-wifi-station-0";
 /// Base-level CDC control payload asking whether the R1 network Session can
 /// now accept its exact Hello. This is readiness of the planned USB Line, not
-/// semantic Info and not a substitute for runtime Clues.
+/// semantic Info and not a substitute for runtime Signs.
 pub const R1_USB_NETWORK_SESSION_QUERY: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_QUERY@1";
 /// Exact reply emitted only after radio initialization and bounded network
 /// Join kernel admission have completed.
 pub const R1_USB_NETWORK_SESSION_READY: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_READY@1";
 
 /// The queried R1 network Session cannot become ready on this boot. The
-/// machine-readable failure remains on the admitted Clue face.
+/// machine-readable failure remains on the admitted Sign face.
 pub const R1_USB_NETWORK_SESSION_FAILED: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_FAILED@1";
 
-/// Host acknowledgement that the admitted Clue face is ready to receive the
+/// Host acknowledgement that the admitted Sign face is ready to receive the
 /// recovery record associated with `R1_USB_NETWORK_SESSION_FAILED`.
-pub const R1_USB_NETWORK_FAILURE_CLUE_READY: &[u8] = b"CONDUIT_R1_NETWORK_FAILURE_CLUE_READY@1";
-pub const R1_USB_NETWORK_FAILURE_CLUE_WRITTEN: &[u8] = b"CONDUIT_R1_NETWORK_FAILURE_CLUE_WRITTEN@1";
-pub const R1_USB_NETWORK_FAILURE_CLUE_FORMAT_FAILED: &[u8] =
-    b"CONDUIT_R1_NETWORK_FAILURE_CLUE_FORMAT_FAILED@1";
-pub const R1_USB_NETWORK_FAILURE_CLUE_DISCONNECTED: &[u8] =
-    b"CONDUIT_R1_NETWORK_FAILURE_CLUE_DISCONNECTED@1";
+pub const R1_USB_NETWORK_FAILURE_SIGN_READY: &[u8] = b"CONDUIT_R1_NETWORK_FAILURE_SIGN_READY@1";
+pub const R1_USB_NETWORK_FAILURE_SIGN_WRITTEN: &[u8] = b"CONDUIT_R1_NETWORK_FAILURE_SIGN_WRITTEN@1";
+pub const R1_USB_NETWORK_FAILURE_SIGN_FORMAT_FAILED: &[u8] =
+    b"CONDUIT_R1_NETWORK_FAILURE_SIGN_FORMAT_FAILED@1";
+pub const R1_USB_NETWORK_FAILURE_SIGN_DISCONNECTED: &[u8] =
+    b"CONDUIT_R1_NETWORK_FAILURE_SIGN_DISCONNECTED@1";
 pub const NETWORK_JOIN_OPERATION: &str = "network/join";
 pub const NETWORK_CREDENTIALS_OPERATION: &str = "network/credentials";
-pub const NETWORK_ATTACHMENT_CLUE_OPERATION: &str = "network/attachment-clue";
+pub const NETWORK_ATTACHMENT_SIGN_OPERATION: &str = "network/attachment-sign";
 pub const NETWORK_JOIN_CONTRACT_REVISION: &str = "conduit.network/join@1";
 pub const NETWORK_CREDENTIALS_CONTRACT_REVISION: &str = "conduit.network/credentials@1";
-pub const NETWORK_ATTACHMENT_CLUE_CONTRACT_REVISION: &str = "conduit.network/attachment-clue@1";
+pub const NETWORK_ATTACHMENT_SIGN_CONTRACT_REVISION: &str = "conduit.network/attachment-sign@1";
 pub const NETWORK_JOIN_HOST_OPERATION: &str = "conduit.host/network-join@1";
 pub const NETWORK_CREDENTIALS_HOST_OPERATION: &str = "conduit.host/network-credentials@1";
-pub const NETWORK_ATTACHMENT_CLUE_HOST_OPERATION: &str = "conduit.host/network-attachment-clue@1";
+pub const NETWORK_ATTACHMENT_SIGN_HOST_OPERATION: &str = "conduit.host/network-attachment-sign@1";
 pub const NETWORK_CONFIG_AUTHORITY: &str = "conduit.authority/network-config@1";
 pub const NETWORK_CONFIG_SUBJECT: &str = "authority/network-configurator";
 pub const NETWORK_CREDENTIALS_AUTHORITY: &str = "conduit.authority/network-credentials@1";
@@ -173,7 +173,7 @@ pub fn network_credentials_offer(
     }
 }
 
-pub fn network_attachment_clue_offer(
+pub fn network_attachment_sign_offer(
     capability_id: CapabilityId,
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
@@ -182,12 +182,12 @@ pub fn network_attachment_clue_offer(
         startup_parameters: vec![],
         shorthand: None,
         capability_id,
-        kind_id: kind_id(NETWORK_ATTACHMENT_CLUE_OPERATION),
+        kind_id: kind_id(NETWORK_ATTACHMENT_SIGN_OPERATION),
         kind_contract_revision: KindContractRevision::from(
-            NETWORK_ATTACHMENT_CLUE_CONTRACT_REVISION,
+            NETWORK_ATTACHMENT_SIGN_CONTRACT_REVISION,
         ),
         implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("conduit.network/attachment-clue-usb@1"),
+            execution_profile_id: ExecutionProfileId::from("conduit.network/attachment-sign-usb@1"),
             implementation_id,
             artifact_id,
         },
@@ -199,7 +199,7 @@ pub fn network_attachment_clue_offer(
         }],
         outputs: vec![],
         host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(NETWORK_ATTACHMENT_CLUE_HOST_OPERATION),
+            contract_id: HostOperationContractId::from(NETWORK_ATTACHMENT_SIGN_HOST_OPERATION),
             target_kind: None,
             maximum_in_flight: 1,
             maximum_input_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
@@ -233,10 +233,10 @@ pub fn install_network_bootstrap_catalogs(
             ImplementationId::from("catalog/network-join"),
             ArtifactId::from("catalog/network-join"),
         ),
-        network_attachment_clue_offer(
-            CapabilityId::from("catalog/network-attachment-clue"),
-            ImplementationId::from("catalog/network-attachment-clue"),
-            ArtifactId::from("catalog/network-attachment-clue"),
+        network_attachment_sign_offer(
+            CapabilityId::from("catalog/network-attachment-sign"),
+            ImplementationId::from("catalog/network-attachment-sign"),
+            ArtifactId::from("catalog/network-attachment-sign"),
         ),
     ] {
         startup.insert(KindSignature {

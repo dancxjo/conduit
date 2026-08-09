@@ -1,5 +1,5 @@
 use crate::{RendererSnapshot, SnapshotError};
-use conduit_core::ClueId;
+use conduit_core::SignId;
 use conduit_presentation::ManifestationFailure;
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
@@ -72,7 +72,7 @@ impl PatchbayHtmlServer {
         }
         let listener = TcpListener::bind(address)?;
         let mut snapshot = snapshot.clone();
-        snapshot.mark_available(ClueId::from("patchbay-html/document-ready"))?;
+        snapshot.mark_available(SignId::from("patchbay-html/document-ready"))?;
         let encoded_snapshot = snapshot.encode()?;
         Ok(Self {
             listener,
@@ -116,7 +116,7 @@ impl PatchbayHtmlServer {
         }
         if let Err(error) = self
             .snapshot
-            .mark_closed(ClueId::from("patchbay-html/server-closed"))
+            .mark_closed(SignId::from("patchbay-html/server-closed"))
         {
             return Err(self.delivery_failure(ServerError::Snapshot(error)));
         }
@@ -126,7 +126,7 @@ impl PatchbayHtmlServer {
     fn delivery_failure(&mut self, error: ServerError) -> RendererDeliveryFailure {
         let _ = self.snapshot.mark_failed(
             ManifestationFailure::DeliveryFailed,
-            ClueId::from("patchbay-html/delivery-failed"),
+            SignId::from("patchbay-html/delivery-failed"),
         );
         RendererDeliveryFailure {
             error,

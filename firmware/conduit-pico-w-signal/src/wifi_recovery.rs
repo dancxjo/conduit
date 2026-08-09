@@ -1,16 +1,16 @@
 //! Bounded post-panic evidence and exact-build BOOTSEL recovery.
 
 use crate::panic_recovery::PanicRecord;
-use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc, UsbClueError};
+use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc, UsbSignError};
 use crate::usb_link::UsbLinkSession;
 
 pub async fn serve(
     link: &mut UsbLinkSession,
-    clue: &mut UsbCdc,
+    sign: &mut UsbCdc,
     record: PanicRecord,
     runtime: &RuntimeTranscriptIdentity,
 ) -> ! {
-    if crate::wifi_join::establish_usb(link, clue, runtime)
+    if crate::wifi_join::establish_usb(link, sign, runtime)
         .await
         .is_ok()
     {
@@ -19,7 +19,7 @@ pub async fn serve(
             match link.receive_raw_stream_frame(&mut frame).await {
                 Ok(raw) if raw == conduit_net::R1_USB_NETWORK_SESSION_QUERY => {
                     // End the host's CDC 0 readiness wait before writing the
-                    // authoritative typed failure Clue on CDC 1.
+                    // authoritative typed failure Sign on CDC 1.
                     if link
                         .send_raw_stream_frame(conduit_net::R1_USB_NETWORK_SESSION_FAILED)
                         .await
@@ -28,29 +28,29 @@ pub async fn serve(
                         let ready = link.receive_raw_stream_frame(&mut frame).await;
                         if !matches!(
                             ready,
-                            Ok(raw) if raw == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_READY
+                            Ok(raw) if raw == conduit_net::R1_USB_NETWORK_FAILURE_SIGN_READY
                         ) {
                             break;
                         }
                         crate::panic_recovery::set_phase(
-                            crate::panic_recovery::PanicPhase::RecoveryClue,
+                            crate::panic_recovery::PanicPhase::RecoverySign,
                         );
                         crate::panic_recovery::set_phase(
-                            crate::panic_recovery::PanicPhase::RecoveryClueWrite,
+                            crate::panic_recovery::PanicPhase::RecoverySignWrite,
                         );
-                        let status = match clue
+                        let status = match sign
                             .write_network_recovery_failure(
                                 record.code(),
                                 crate::wifi_join::attachment_identity(runtime),
                             )
                             .await
                         {
-                            Ok(()) => conduit_net::R1_USB_NETWORK_FAILURE_CLUE_WRITTEN,
-                            Err(UsbClueError::FormatOverflow) => {
-                                conduit_net::R1_USB_NETWORK_FAILURE_CLUE_FORMAT_FAILED
+                            Ok(()) => conduit_net::R1_USB_NETWORK_FAILURE_SIGN_WRITTEN,
+                            Err(UsbSignError::FormatOverflow) => {
+                                conduit_net::R1_USB_NETWORK_FAILURE_SIGN_FORMAT_FAILED
                             }
-                            Err(UsbClueError::Disconnected) => {
-                                conduit_net::R1_USB_NETWORK_FAILURE_CLUE_DISCONNECTED
+                            Err(UsbSignError::Disconnected) => {
+                                conduit_net::R1_USB_NETWORK_FAILURE_SIGN_DISCONNECTED
                             }
                         };
                         let _ = link.send_raw_stream_frame(status).await;

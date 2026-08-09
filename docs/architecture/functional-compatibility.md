@@ -12,7 +12,7 @@ Conduit uses **functional compatibility**, not nominal compatibility.
 
 A catalog path, Form name, Kind ID, Gear ID, implementation name, artifact identity, or revision label does not by itself make two things compatible or incompatible.
 
-Names remain valuable for authorship, discovery, catalog organization, provenance, diagnostics, clue, and exact realization records. They are not hidden nominal types.
+Names remain valuable for authorship, discovery, catalog organization, provenance, diagnostics, Sign, and exact realization records. They are not hidden nominal types.
 
 For the first implementation, compatibility is deliberately simple:
 
@@ -101,7 +101,7 @@ Once a realization is selected, the Plan remains exact. It may seal:
 - authority;
 - connections and route candidates;
 - finite limits;
-- clue requirements.
+- Sign requirements.
 
 Functional compatibility therefore does **not** mean runtime improvisation. A compatible realization absent from an already-sealed Plan cannot be substituted opportunistically unless the Plan explicitly admitted that alternative or a new planning pass produces a new Plan.
 
@@ -120,7 +120,7 @@ different face + same revision   -> incompatible
 
 A revision change that changes the checked face is naturally incompatible because the face changed. A revision change that leaves the canonical checked face unchanged does not create incompatibility merely by changing the revision token.
 
-Proof and conformance clue remain attached to the exact implementation/artifact/revision that was actually tested. Functional compatibility does not transfer historical proof claims to an untested implementation.
+Proof and conformance Sign remain attached to the exact implementation/artifact/revision that was actually tested. Functional compatibility does not transfer historical proof claims to an untested implementation.
 
 ## Identity
 
@@ -133,7 +133,7 @@ expanded form identity
 selected implementation/artifact identity
 Plan identity
 Play identity
-clue identity
+Sign identity
 ```
 
 `FaceId` or an equivalent canonical checked-face digest may be useful internally. The exact representation is an implementation choice, but compatibility must derive from the checked face rather than from the source/catalog name.
@@ -150,7 +150,7 @@ Do not infer compatibility from declaration order, friendly names alone, or impl
 
 Catalog categories such as `text/`, `time/`, `flow/`, `web/`, or `llm/` remain useful organization and opt-in packaging boundaries.
 
-A Host may advertise named Kinds for discovery and Clues, but planning eligibility is based on their checked faces plus other explicit planning requirements. Category prefixes and Kind names do not form a nominal type hierarchy.
+A Host may advertise named Kinds for discovery and Signs, but planning eligibility is based on their checked faces plus other explicit planning requirements. Category prefixes and Kind names do not form a nominal type hierarchy.
 
 A host compiled with an opt-in family still advertises only the exact realizations it can currently promise. Functional compatibility does not weaken runtime truth or finite limits.
 
@@ -214,7 +214,7 @@ This rule does not introduce:
 - ambient dynamic plugin selection;
 - unplanned runtime substitution;
 - proof transfer between implementations;
-- weakening of resource, authority, transport, or clue exactness.
+- weakening of resource, authority, transport, or Sign exactness.
 
 ## Canonical sentence
 

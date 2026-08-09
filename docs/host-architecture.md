@@ -21,19 +21,19 @@ host core contract
 ## What each layer means
 
 - **Host core contract:** boot-scoped identity, exact finite advertisements,
-  planning inputs, Play start/effect/completion protocol, and clue correlation.
+  planning inputs, Play start/effect/completion protocol, and Sign correlation.
   It has no mandatory filesystem, process, socket, display, audio, GPIO, USB,
   Wi-Fi, Tokio, Embassy, DOM, or operating-system method.
 - **Catalog category:** an organizational namespace such as `text/`, `time/`, or
   `state/`. A category is neither a base nor a planner promise.
-- **Operation:** one semantic callable face, such as `text/upper`. Compatibility
+- **Kind:** one reusable semantic callable face, such as `text/upper`. Compatibility
   is equality of its canonical checked face. Its authored name and revision are
   provenance and diagnostics, not nominal compatibility gates (issue #522).
 - **Family:** a composition boundary that can contribute a related set of
-  operation implementations. Selecting a family includes machinery; it does not
-  itself advertise a category prefix or promise every operation in that category.
-- **Base/platform adapter:** the implementation of an admitted effect or
-  carrier, such as a Rust timer, browser DOM presentation, CYW43 GPIO, or USB CDC.
+  Kind implementations. Selecting a family includes machinery; it does not
+  itself advertise a category prefix or promise every Kind in that category.
+- **Base/platform adapter:** the implementation of an admitted effect or Line,
+  such as a Rust timer, browser DOM presentation, CYW43 GPIO, or USB CDC.
   It does not plan, schedule, invent connectivity, or define semantic meaning.
 - **Host composition:** the deliberately selected families, bases, and
   policy in one binary or firmware image.
@@ -56,7 +56,7 @@ strict subset. The planner consumes only the resulting exact offers.
 | `conduit-std-catalog` | semantic catalog plus some reference offers | Operation contracts are semantic; offer constructors are current reference-host implementation facts |
 | `conduit-signal` host-profile modules | capability contracts and profile fixtures | Shared Signal faces plus exact std/browser/Pico offers used by accepted vertical proofs |
 | `hosts/std::StdHostComposition` | host composition | Selects existing Signal, time, text, and state implementation families; `reference()` is broad and `minimal()` promises none of them |
-| `hosts/std` timers, stdout, WebSocket, and USB code | bases/platform implementations | Real std effects and carriers beneath selected plans; WebSocket/USB are not host-core methods |
+| `hosts/std` timers, stdout, WebSocket, and USB code | bases/platform implementations | Real std effects and lines beneath selected plans; WebSocket/USB are not host-core methods |
 | `hosts/browser-runtime` | browser composition and bases | Exact browser/WASM offers with timer/DOM/WebSocket machinery; not a compatibility runtime |
 | `firmware/conduit-pico-w-signal` and generated image | Pico W composition and bases | Selectable fixed Signal images; local-minimal omits Conduit session/lifecycle control, while physical-proof and remote modes include it explicitly; no general Pico capability claim |
 | fixture hosts and legacy drivers | legacy/compatibility coupling | Test-only fenced paths; not production host definitions or a second accepted runtime |
@@ -74,7 +74,7 @@ The checked examples intentionally expose different sets:
 - std reference: Signal, time, text, and state operation families;
 - browser distributed sink: the exact presentation face required by that image;
 - Pico-local Signal image: the exact pulse and GPIO-backed presentation faces;
-- Pico-local-minimal image: the same exact Signal faces and clue base,
+- Pico-local-minimal image: the same exact Signal faces and Sign base,
   without the optional Conduit wire/session or BOOTSEL lifecycle-control family;
 - Pico USB/triple remote images: the exact GPIO-backed presentation sink face
   plus the explicitly selected bounded USB session-control base;
@@ -86,7 +86,7 @@ Resources and reachability remain separate from offers. Compiling or initializin
 a base does not authorize it, and selecting a family does not bypass resource,
 authority, policy, or link admission.
 
-## Public vocabulary and current internal names
+## Public vocabulary and Rust names
 
 The source and user-facing model uses these terms consistently:
 
@@ -96,8 +96,7 @@ upper: text/upper    Gear named upper
 text                 catalog category
 ```
 
-Some established Rust identifiers predate that vocabulary. Their current
-conceptual mapping is deliberate:
+Public Rust identifiers use the same vocabulary deliberately:
 
 | Current internal name | Public meaning |
 |---|---|

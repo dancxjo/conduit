@@ -4,7 +4,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_body::{BodyId, SeedId, WakeId};
 use conduit_core::{
-    ActivePlayId, CheckedFormId, ClueId, ConnectionBase, ExpandedFormId, PlanId, SourceDocumentId,
+    ActivePlayId, CheckedFormId, ConnectionBase, ExpandedFormId, PlanId, SignId, SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -13,7 +13,7 @@ pub const MAX_PRESENTATION_SUBJECTS: usize = 1_024;
 pub const MAX_PRESENTATION_RELATIONSHIPS: usize = 2_048;
 pub const MAX_PRESENTATION_TEXT_ITEMS: usize = 2_048;
 pub const MAX_PRESENTATION_PROPERTIES: usize = 4_096;
-pub const MAX_PRESENTATION_CLUES: usize = 1_024;
+pub const MAX_PRESENTATION_SIGNS: usize = 1_024;
 pub const MAX_PRESENTATION_ID_BYTES: usize = 256;
 pub const MAX_PRESENTATION_TEXT_BYTES: usize = 1_024;
 pub const MAX_PRESENTATION_TOTAL_BYTES: usize = 512 * 1024;
@@ -37,7 +37,7 @@ pub struct PresentationBasis {
     pub expanded_form_id: Option<ExpandedFormId>,
     pub plan_id: Option<PlanId>,
     pub active_play_id: Option<ActivePlayId>,
-    pub clue_ids: Vec<ClueId>,
+    pub sign_ids: Vec<SignId>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -52,7 +52,7 @@ pub enum PresentationRole {
     Host,
     Route,
     Diagnostic,
-    Clue,
+    Sign,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -123,7 +123,7 @@ pub enum PresentationError {
     TooManyRelationships,
     TooManyTextItems,
     TooManyProperties,
-    TooManyClues,
+    TooManySigns,
     EmptyIdentity,
     IdentityTooLong,
     EmptyText,
@@ -132,8 +132,8 @@ pub enum PresentationError {
     UnknownRelationshipSubject,
     UnknownTextSubject,
     UnknownPropertySubject,
-    DuplicateClue,
-    NonCanonicalClue,
+    DuplicateSign,
+    NonCanonicalSign,
     InvalidBasis,
     TooManyBytes,
     InvalidIdentity,
@@ -154,9 +154,9 @@ impl Presentation {
         properties: Vec<PresentationProperty>,
         text: Vec<PresentationText>,
     ) -> Result<Self, PresentationError> {
-        basis.clue_ids.sort();
-        if basis.clue_ids.windows(2).any(|pair| pair[0] == pair[1]) {
-            return Err(PresentationError::DuplicateClue);
+        basis.sign_ids.sort();
+        if basis.sign_ids.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(PresentationError::DuplicateSign);
         }
         let mut value = Self {
             identity: PresentationContentId(String::new()),
@@ -196,16 +196,16 @@ impl Presentation {
         if self.properties.len() > MAX_PRESENTATION_PROPERTIES {
             return Err(PresentationError::TooManyProperties);
         }
-        if self.basis.clue_ids.len() > MAX_PRESENTATION_CLUES {
-            return Err(PresentationError::TooManyClues);
+        if self.basis.sign_ids.len() > MAX_PRESENTATION_SIGNS {
+            return Err(PresentationError::TooManySigns);
         }
         if self
             .basis
-            .clue_ids
+            .sign_ids
             .windows(2)
             .any(|pair| pair[0] >= pair[1])
         {
-            return Err(PresentationError::NonCanonicalClue);
+            return Err(PresentationError::NonCanonicalSign);
         }
         for identity in [
             self.basis.seed_id.as_str(),
@@ -237,8 +237,8 @@ impl Presentation {
         {
             return Err(PresentationError::InvalidBasis);
         }
-        for clue in &self.basis.clue_ids {
-            validate_id(clue.as_str())?;
+        for sign in &self.basis.sign_ids {
+            validate_id(sign.as_str())?;
         }
         for subject in &self.subjects {
             validate_id(&subject.identity)?;
@@ -297,7 +297,7 @@ impl Presentation {
             ))
             .saturating_add(
                 self.basis
-                    .clue_ids
+                    .sign_ids
                     .iter()
                     .map(|id| id.as_str().len())
                     .sum::<usize>(),
@@ -368,8 +368,8 @@ impl Presentation {
             &mut digest,
             self.basis.active_play_id.as_ref().map(|id| id.as_str()),
         );
-        for clue in &self.basis.clue_ids {
-            hash_string(&mut digest, clue.as_str());
+        for sign in &self.basis.sign_ids {
+            hash_string(&mut digest, sign.as_str());
         }
         for subject in &self.subjects {
             hash_string(&mut digest, &subject.identity);

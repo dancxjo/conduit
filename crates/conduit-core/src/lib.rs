@@ -91,7 +91,7 @@ identity_type!(CheckedFormId);
 identity_type!(ExpandedFormId);
 identity_type!(PlanId);
 identity_type!(ActivePlayId);
-identity_type!(ClueId);
+identity_type!(SignId);
 identity_type!(PresentationId);
 identity_type!(FragmentId);
 identity_type!(PlacementId);
@@ -148,8 +148,8 @@ pub struct ActivePlayIdentity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ClueIdentity {
-    pub clue_id: ClueId,
+pub struct SignIdentity {
+    pub sign_id: SignId,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub active_play_id: Option<ActivePlayId>,
@@ -208,14 +208,14 @@ fn hash_identity_string(hash: &mut Sha256, value: &str) {
     hash.update(value.as_bytes());
 }
 
-pub fn bind_clue(
+pub fn bind_sign(
     host_id: &HostId,
     boot_id: &BootId,
     active_play_id: Option<&ActivePlayId>,
     sequence: u64,
-) -> ClueIdentity {
+) -> SignIdentity {
     let mut canonical = Vec::new();
-    push_string(&mut canonical, "clue");
+    push_string(&mut canonical, "sign");
     push_string(&mut canonical, host_id.as_str());
     push_string(&mut canonical, boot_id.as_str());
     push_string(
@@ -223,8 +223,8 @@ pub fn bind_clue(
         active_play_id.map_or("no-active-play", ActivePlayId::as_str),
     );
     push_u64(&mut canonical, sequence);
-    ClueIdentity {
-        clue_id: ClueId::from(hash_bytes(&canonical)),
+    SignIdentity {
+        sign_id: SignId::from(hash_bytes(&canonical)),
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
         active_play_id: active_play_id.cloned(),
@@ -433,7 +433,7 @@ pub enum ExpectedTerminal {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ExpectedClue {
+pub enum ExpectedSign {
     PlanFragmentReceived,
     PlacementPrepared(PlacementId),
     PlacementTerminal(PlacementId),
@@ -460,31 +460,31 @@ pub enum TerminalPolicy {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ClueStorageBudget {
+pub struct SignStorageBudget {
     pub item_capacity: u16,
     pub byte_capacity: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MandatoryClueReport {
+pub struct MandatorySignReport {
     pub plan_id: PlanId,
-    pub expected: Vec<ExpectedClue>,
-    pub recorded: Vec<ExpectedClue>,
-    pub storage_budget: ClueStorageBudget,
+    pub expected: Vec<ExpectedSign>,
+    pub recorded: Vec<ExpectedSign>,
+    pub storage_budget: SignStorageBudget,
     pub allocated_item_slots: u32,
     pub used_bytes: u32,
     pub overflowed: bool,
 }
 
-pub fn mandatory_clue_storage_requirement(clue: &[ExpectedClue]) -> Option<ClueStorageBudget> {
-    let item_capacity = u16::try_from(clue.len()).ok()?;
+pub fn mandatory_sign_storage_requirement(sign: &[ExpectedSign]) -> Option<SignStorageBudget> {
+    let item_capacity = u16::try_from(sign.len()).ok()?;
     let mut byte_capacity = 0u32;
-    for item in clue {
+    for item in sign {
         let identity = match item {
-            ExpectedClue::PlanFragmentReceived | ExpectedClue::PlanTerminal => None,
-            ExpectedClue::PlacementPrepared(placement_id)
-            | ExpectedClue::PlacementTerminal(placement_id) => Some(placement_id.as_str()),
-            ExpectedClue::ConnectionTerminal(connection_id) => Some(connection_id.as_str()),
+            ExpectedSign::PlanFragmentReceived | ExpectedSign::PlanTerminal => None,
+            ExpectedSign::PlacementPrepared(placement_id)
+            | ExpectedSign::PlacementTerminal(placement_id) => Some(placement_id.as_str()),
+            ExpectedSign::ConnectionTerminal(connection_id) => Some(connection_id.as_str()),
         };
         let identity_bytes = match identity {
             Some(value) => u32::try_from(value.len()).ok()?,
@@ -492,7 +492,7 @@ pub fn mandatory_clue_storage_requirement(clue: &[ExpectedClue]) -> Option<ClueS
         };
         byte_capacity = byte_capacity.checked_add(1)?.checked_add(identity_bytes)?;
     }
-    Some(ClueStorageBudget {
+    Some(SignStorageBudget {
         item_capacity,
         byte_capacity,
     })
@@ -551,8 +551,8 @@ pub struct PlanFragment {
     pub cancellation_policy: CancellationPolicy,
     pub terminal_policy: TerminalPolicy,
     pub expected_terminals: Vec<ExpectedTerminal>,
-    pub expected_clue: Vec<ExpectedClue>,
-    pub clue_storage_budget: ClueStorageBudget,
+    pub expected_sign: Vec<ExpectedSign>,
+    pub sign_storage_budget: SignStorageBudget,
     pub plan_fragments: Vec<FragmentCommitment>,
 }
 
@@ -956,8 +956,8 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         canonical.extend_from_slice(&pool.maximum_members.to_le_bytes());
         canonical.extend_from_slice(&pool.member_limits.queue_item_capacity.to_le_bytes());
         push_u32(&mut canonical, pool.member_limits.queue_byte_capacity);
-        canonical.extend_from_slice(&pool.member_limits.clue_item_capacity.to_le_bytes());
-        push_u32(&mut canonical, pool.member_limits.clue_byte_capacity);
+        canonical.extend_from_slice(&pool.member_limits.sign_item_capacity.to_le_bytes());
+        push_u32(&mut canonical, pool.member_limits.sign_byte_capacity);
         push_u32(&mut canonical, pool.realization_envelope.len() as u32);
         for realization in &pool.realization_envelope {
             push_string(&mut canonical, realization.host_id.as_str());
@@ -1011,27 +1011,27 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             ExpectedTerminal::PlanCompleted => canonical.push(2),
         }
     }
-    push_u32(&mut canonical, fragment.expected_clue.len() as u32);
-    for clue in &fragment.expected_clue {
-        match clue {
-            ExpectedClue::PlanFragmentReceived => canonical.push(0),
-            ExpectedClue::PlacementPrepared(placement_id) => {
+    push_u32(&mut canonical, fragment.expected_sign.len() as u32);
+    for sign in &fragment.expected_sign {
+        match sign {
+            ExpectedSign::PlanFragmentReceived => canonical.push(0),
+            ExpectedSign::PlacementPrepared(placement_id) => {
                 canonical.push(1);
                 push_string(&mut canonical, placement_id.as_str());
             }
-            ExpectedClue::PlacementTerminal(placement_id) => {
+            ExpectedSign::PlacementTerminal(placement_id) => {
                 canonical.push(2);
                 push_string(&mut canonical, placement_id.as_str());
             }
-            ExpectedClue::ConnectionTerminal(connection_id) => {
+            ExpectedSign::ConnectionTerminal(connection_id) => {
                 canonical.push(3);
                 push_string(&mut canonical, connection_id.as_str());
             }
-            ExpectedClue::PlanTerminal => canonical.push(4),
+            ExpectedSign::PlanTerminal => canonical.push(4),
         }
     }
-    canonical.extend_from_slice(&fragment.clue_storage_budget.item_capacity.to_le_bytes());
-    push_u32(&mut canonical, fragment.clue_storage_budget.byte_capacity);
+    canonical.extend_from_slice(&fragment.sign_storage_budget.item_capacity.to_le_bytes());
+    push_u32(&mut canonical, fragment.sign_storage_budget.byte_capacity);
     FragmentId::from(hash_bytes(&canonical))
 }
 
@@ -1186,11 +1186,11 @@ pub enum FailureReason {
     RequiredBranchFailed,
     InvalidLifecycleCommand,
     LatePlatformCompletion,
-    ClueGap,
+    SignGap,
     InvalidStartupDependencies,
     UnsupportedCancellationPolicy,
     UnsupportedTerminalPolicy,
-    ClueBudgetExceeded,
+    SignBudgetExceeded,
     HostOperationContractMismatch,
     HostOperationNotPlanned,
     HostOperationInputExceeded,
@@ -1243,7 +1243,7 @@ pub struct ConnectionTerminalDisposition {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Observation {
-    pub clue_id: ClueId,
+    pub sign_id: SignId,
     pub active_play_id: Option<ActivePlayId>,
     pub presentation_id: Option<PresentationId>,
     pub host_id: HostId,
@@ -1287,7 +1287,7 @@ pub enum ObservationKind {
     },
     Cancelled,
     Released,
-    ClueGap {
+    SignGap {
         dropped: u64,
     },
 }
@@ -1426,8 +1426,8 @@ pub enum HostEvent {
     Observations {
         items: Vec<Observation>,
     },
-    MandatoryClueReports {
-        items: Vec<MandatoryClueReport>,
+    MandatorySignReports {
+        items: Vec<MandatorySignReport>,
     },
 }
 
@@ -1634,7 +1634,7 @@ pub fn process_owned_line_offer_with_limits(
             line_id: LineId::from(line_id),
             binding_id: binding.binding_id.clone(),
             availability: LineAvailability::Ready,
-            sign_id: ClueId::from(format!("{line_id}/availability/ready")),
+            sign_id: SignId::from(format!("{line_id}/availability/ready")),
         },
         binding,
         contract: LineContract {

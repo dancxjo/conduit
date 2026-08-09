@@ -1,11 +1,11 @@
 use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
-    bind_clue, kind_id, ArtifactId, AuthorityContractId, AuthorityGrantId, AuthorityRequirement,
-    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFace, ClueId,
-    ExecutionProfileId, HostAdvertisement, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, KindContractRevision, LineId, PortDescriptor, PortDirection, PortId,
-    PortTemporal, PROTOCOL_VERSION,
+    bind_sign, kind_id, ArtifactId, AuthorityContractId, AuthorityGrantId, AuthorityRequirement,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFace, ExecutionProfileId,
+    HostAdvertisement, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    KindContractRevision, LineId, PortDescriptor, PortDirection, PortId, PortTemporal, SignId,
+    PROTOCOL_VERSION,
 };
 use conduit_observatory::{HostReport, OperationalState};
 use conduit_wire::SessionBinding;
@@ -123,7 +123,7 @@ pub struct RebootRejectionReceipt {
     pub request_id: RebootRequestId,
     pub target: HostInstance,
     pub reason: RebootDenial,
-    pub clue_id: ClueId,
+    pub sign_id: SignId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -133,15 +133,15 @@ pub struct RebootAcceptanceReceipt {
     pub target: HostInstance,
     pub attempts_used: u16,
     pub attempts_remaining: u16,
-    pub clue_id: ClueId,
+    pub sign_id: SignId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RebootCompletionProof {
     pub acceptance: RebootAcceptanceReceipt,
-    pub old_boot_terminal_clue: ClueId,
+    pub old_boot_terminal_sign: SignId,
     pub new_boot: BootId,
-    pub post_boot_clue: ClueId,
+    pub post_boot_sign: SignId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -171,19 +171,19 @@ pub enum RebootProgressError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum CarrierLossDisposition {
+pub enum LineLossDisposition {
     IntentionalTransitionPending,
     OrdinaryTransportFailure,
 }
 
-/// Finite state for one exact delegated grant. It owns no scheduler, carrier,
+/// Finite state for one exact delegated grant. It owns no scheduler, line,
 /// membership table, authority store, or platform reboot implementation.
 pub struct DelegatedRebootTransaction {
     grant: DelegatedRebootGrant,
     attempts_used: u16,
     last_request: Option<RebootRequestId>,
     acceptance: Option<RebootAcceptanceReceipt>,
-    old_boot_terminal_clue: Option<ClueId>,
+    old_boot_terminal_sign: Option<SignId>,
     remaining_proof_ticks: u16,
     state: RebootPendingState,
 }
@@ -196,7 +196,7 @@ impl DelegatedRebootTransaction {
             attempts_used: 0,
             last_request: None,
             acceptance: None,
-            old_boot_terminal_clue: None,
+            old_boot_terminal_sign: None,
             state: RebootPendingState::Idle,
         }
     }
@@ -232,15 +232,15 @@ impl DelegatedRebootTransaction {
                 request_id: request.request_id.clone(),
                 target: request.target.clone(),
                 reason,
-                clue_id: bind_clue(
+                sign_id: bind_sign(
                     &request.target.host_id,
                     &request.target.boot_id,
                     None,
                     self.grant
-                        .clue_sequence_base
+                        .sign_sequence_base
                         .saturating_add(u64::from(self.attempts_used) * 2 + 1),
                 )
-                .clue_id,
+                .sign_id,
             });
         }
 
@@ -250,15 +250,15 @@ impl DelegatedRebootTransaction {
             target: request.target.clone(),
             attempts_used: self.attempts_used,
             attempts_remaining: self.grant.maximum_transitions - self.attempts_used,
-            clue_id: bind_clue(
+            sign_id: bind_sign(
                 &request.target.host_id,
                 &request.target.boot_id,
                 None,
                 self.grant
-                    .clue_sequence_base
+                    .sign_sequence_base
                     .saturating_add(u64::from(self.attempts_used) * 2),
             )
-            .clue_id,
+            .sign_id,
         };
         self.acceptance = Some(receipt.clone());
         self.remaining_proof_ticks = self.grant.proof_window_ticks;
@@ -315,19 +315,19 @@ impl DelegatedRebootTransaction {
         }
     }
 
-    pub fn control_carrier_lost(&self) -> CarrierLossDisposition {
+    pub fn control_line_lost(&self) -> LineLossDisposition {
         match self.state {
             RebootPendingState::Accepted | RebootPendingState::AwaitingReplacement => {
-                CarrierLossDisposition::IntentionalTransitionPending
+                LineLossDisposition::IntentionalTransitionPending
             }
-            _ => CarrierLossDisposition::OrdinaryTransportFailure,
+            _ => LineLossDisposition::OrdinaryTransportFailure,
         }
     }
 
     pub fn old_boot_terminated(
         &mut self,
         request_id: &RebootRequestId,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<(), RebootProgressError> {
         let acceptance = self
             .acceptance
@@ -342,7 +342,7 @@ impl DelegatedRebootTransaction {
         if self.state != RebootPendingState::Accepted {
             return Err(RebootProgressError::NotAccepted);
         }
-        self.old_boot_terminal_clue = Some(clue_id);
+        self.old_boot_terminal_sign = Some(sign_id);
         self.state = RebootPendingState::AwaitingReplacement;
         Ok(())
     }
@@ -364,7 +364,7 @@ impl DelegatedRebootTransaction {
         &mut self,
         request_id: &RebootRequestId,
         report: &HostReport,
-        post_boot_clue: ClueId,
+        post_boot_sign: SignId,
     ) -> Result<RebootCompletionProof, RebootProgressError> {
         if self.state == RebootPendingState::UnknownProofWindowExpired {
             return Err(RebootProgressError::ProofWindowExpired);
@@ -390,12 +390,12 @@ impl DelegatedRebootTransaction {
         }
         let proof = RebootCompletionProof {
             acceptance: acceptance.clone(),
-            old_boot_terminal_clue: self
-                .old_boot_terminal_clue
+            old_boot_terminal_sign: self
+                .old_boot_terminal_sign
                 .clone()
                 .ok_or(RebootProgressError::OldBootNotTerminated)?,
             new_boot: report.advertisement.boot_id.clone(),
-            post_boot_clue,
+            post_boot_sign,
         };
         self.state = RebootPendingState::Completed;
         Ok(proof)

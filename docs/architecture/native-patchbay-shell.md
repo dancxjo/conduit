@@ -17,7 +17,7 @@ portable planner profile; the native capability required by parent #554 is a
 later #559 slice.
 
 Startup produces a bounded Observatory snapshot containing the current
-`HostStarted` and `AdvertisementPublished` clue vocabulary. Before event
+`HostStarted` and `AdvertisementPublished` Sign vocabulary. Before event
 loop exit, shutdown produces another valid bounded snapshot marking that exact
 boot unreachable. The native adapter validates and renders both through the
 ordinary Observatory report path. These are current-model reports, not a

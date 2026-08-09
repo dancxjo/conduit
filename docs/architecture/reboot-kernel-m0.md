@@ -1,4 +1,4 @@
-# Reboot Kernel M0 Clue
+# Reboot Kernel M0 Sign
 
 This records the local validation for GitHub issue #349,
 `[Milestone M0] Reboot kernel exactness and adapter readiness`.
@@ -34,7 +34,7 @@ cargo check -p conduit-core --target thumbv6m-none-eabi
   `conduit-signal` production dependency or kind-name match in runtime.
 - Plan and fragment identities bind executable fields including implementation
   IDs, artifact IDs, ports, value kinds, connection base and capacities,
-  startup order, expected terminals, and expected clue.
+  startup order, expected terminals, and expected Sign.
 - Runtime preparation verifies sealed plan identity before accepting work and
   rejects mutated executable identity fields deterministically.
 - Composite capability boundaries are derived from checked form exports and the

@@ -19,12 +19,12 @@ function processExit(child) {
   });
 }
 
-test("actual Chromium and native RFC 6455 carriers exchange bounded binary protocol frames", async ({
+test("actual Chromium and native RFC 6455 lines exchange bounded binary protocol frames", async ({
   page,
 }) => {
   const base = spawn(
     "cargo",
-    ["run", "--quiet", "-p", "conduit-std-host", "--bin", "websocket-carrier-probe"],
+    ["run", "--quiet", "-p", "conduit-std-host", "--bin", "websocket-line-probe"],
     { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] },
   );
   const stderr = [];
@@ -35,14 +35,14 @@ test("actual Chromium and native RFC 6455 carriers exchange bounded binary proto
   try {
     const url = await nextLine(lines);
     expect(url).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/conduit$/);
-    await page.goto("/hosts/browser/websocket-carrier.test.html");
+    await page.goto("/hosts/browser/websocket-line.test.html");
     const result = await page.evaluate(async ({ url }) => {
-      const { BrowserWebSocketCarrier, BrowserWebSocketFailure } = await import(
-        "/hosts/browser/websocket-carrier.mjs"
+      const { BrowserWebSocketLine, BrowserWebSocketFailure } = await import(
+        "/hosts/browser/websocket-line.mjs"
       );
       let invalidBinding;
       try {
-        new BrowserWebSocketCarrier({
+        new BrowserWebSocketLine({
           url: "ws://0.0.0.0:9/conduit",
           maximumMessageBytes: 1024,
           maximumBufferedBytes: 1024,
@@ -50,17 +50,17 @@ test("actual Chromium and native RFC 6455 carriers exchange bounded binary proto
       } catch (error) {
         invalidBinding = error.message;
       }
-      const carrier = await new BrowserWebSocketCarrier({
+      const line = await new BrowserWebSocketLine({
         url,
         maximumMessageBytes: 1024,
         maximumBufferedBytes: 1024,
       }).open();
-      const hello = await carrier.receiveBinary();
-      const helloSend = carrier.sendBinary(hello);
-      const ready = await carrier.receiveBinary();
-      const oversized = carrier.sendBinary(new Uint8Array(1025));
-      const readySend = carrier.sendBinary(ready);
-      const closed = await carrier.closed();
+      const hello = await line.receiveBinary();
+      const helloSend = line.sendBinary(hello);
+      const ready = await line.receiveBinary();
+      const oversized = line.sendBinary(new Uint8Array(1025));
+      const readySend = line.sendBinary(ready);
+      const closed = await line.closed();
       return {
         invalidBinding,
         helloMagic: new TextDecoder().decode(hello.slice(0, 4)),

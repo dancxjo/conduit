@@ -1,7 +1,7 @@
 # Host Observatory
 
 `conduit-observatory` is a read-only projection over neutral current-model
-reports. It does not open carriers, start or cancel Plays, edit forms, grant
+reports. It does not open lines, start or cancel Plays, edit forms, grant
 authority, install bases, discover hosts, or maintain fleet membership.
 
 ## Authoritative input
@@ -15,7 +15,7 @@ One versioned `ObservatorySnapshot` contains:
 - boot-scoped active and terminal Play reports;
 - per-Play placement and connection lifecycle, terminal disposition, failure,
   and optional measured pressure;
-- runtime-issued observations with distinct Play, presentation, and clue
+- runtime-issued observations with distinct Play, presentation, and Sign
   identities;
 - a finite retention capacity, retained item count, and dropped item count.
 
@@ -25,7 +25,7 @@ from planned queue limits.
 
 `validate_snapshot` rejects unsupported schemas, invalid or duplicate plans,
 duplicate hosts/boots, links whose endpoints lack exact host reports, Plays or
-clue naming unknown identities, presentation clue without a Play, and
+Sign naming unknown identities, presentation Sign without a Play, and
 inconsistent retention accounting.
 
 ## Operator path
@@ -52,16 +52,16 @@ runtime work. A tampered host/boot or other unresolved identity fails closed.
 
 The report provides complete table-shaped rows for hosts, capabilities, links,
 plans, fragments, placements, connections, Plays, Play placements, Play
-connections, clue, and retention. Text rendering uses those same rows; no
+connections, Sign, and retention. Text rendering uses those same rows; no
 graph canvas or UI state is required.
 
 Capabilities keep kind, contract, execution profile, implementation, limits,
 freshness, support, and availability separate. Plays keep plan, host, boot,
 placement, connection, pressure, failure, terminal disposition, presentation,
-and clue identities separate. Pressure is `unknown` unless an authoritative
+and Sign identities separate. Pressure is `unknown` unless an authoritative
 producer supplies measurements.
 
-Host-level `ClueGap` counts and snapshot-level retention loss are summed for
+Host-level `SignGap` counts and snapshot-level retention loss are summed for
 visibility while remaining separately described in the retention explanation.
 
 ## Checkpoint commands

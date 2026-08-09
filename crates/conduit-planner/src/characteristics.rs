@@ -37,7 +37,7 @@ pub enum RealizationDecisionDisposition {
     Selected,
 }
 
-/// Bounded, prompt-free planning clues for one equal-face candidate.
+/// Bounded, prompt-free planning signs for one equal-face candidate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RealizationDecisionRecord {
     pub gear_id: GearId,
@@ -53,7 +53,7 @@ pub struct RealizationDecisionRecord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RealizationSelection {
     pub choice: PlacementChoice,
-    pub clues: Vec<RealizationDecisionRecord>,
+    pub signs: Vec<RealizationDecisionRecord>,
 }
 
 pub fn select_realization_with_characteristics(
@@ -64,7 +64,7 @@ pub fn select_realization_with_characteristics(
     observations: &[ResourceObservation],
     policy: &RealizationPolicy,
 ) -> Result<PlacementChoice, PlannerError> {
-    select_realization_with_characteristics_and_clues(
+    select_realization_with_characteristics_and_signs(
         gear,
         hosts,
         advertisements,
@@ -75,7 +75,7 @@ pub fn select_realization_with_characteristics(
     .map(|selection| selection.choice)
 }
 
-pub fn select_realization_with_characteristics_and_clues(
+pub fn select_realization_with_characteristics_and_signs(
     gear: &CheckedGear,
     hosts: &[HostAdvertisement],
     advertisements: &[RealizationAdvertisement],
@@ -100,13 +100,13 @@ pub fn select_realization_with_characteristics_and_clues(
     }
     if face_candidates.len() > MAXIMUM_REALIZATION_DECISION_RECORDS {
         return Err(PlannerError::PlannerLimitExceeded(format!(
-            "gear '{}' has {} equal-face candidates above the clues bound of {}",
+            "gear '{}' has {} equal-face candidates above the signs bound of {}",
             gear.gear_id.as_str(),
             face_candidates.len(),
             MAXIMUM_REALIZATION_DECISION_RECORDS
         )));
     }
-    let mut clues = Vec::with_capacity(face_candidates.len());
+    let mut signs = Vec::with_capacity(face_candidates.len());
     let mut hard_admitted = Vec::with_capacity(face_candidates.len());
     for (host, offer) in face_candidates {
         let facts = advertisement_for(host, offer, advertisements);
@@ -116,7 +116,7 @@ pub fn select_realization_with_characteristics_and_clues(
         if rejection.is_none() {
             hard_admitted.push((host, offer));
         }
-        clues.push(decision_record(
+        signs.push(decision_record(
             gear,
             host,
             offer,
@@ -138,7 +138,7 @@ pub fn select_realization_with_characteristics_and_clues(
     for (host, offer) in hard_admitted {
         if observations_admit(host, offer, observations) {
             observed_admitted.push((host, offer));
-        } else if let Some(record) = clues.iter_mut().find(|record| {
+        } else if let Some(record) = signs.iter_mut().find(|record| {
             record.host_id == host.host_id && record.capability_id == offer.capability_id
         }) {
             record.disposition = RealizationDecisionDisposition::Rejected(
@@ -169,17 +169,17 @@ pub fn select_realization_with_characteristics_and_clues(
         host_id: observed_admitted[0].0.host_id.clone(),
         capability_id: observed_admitted[0].1.capability_id.clone(),
     };
-    for record in &mut clues {
+    for record in &mut signs {
         if record.host_id == choice.host_id && record.capability_id == choice.capability_id {
             record.disposition = RealizationDecisionDisposition::Selected;
         }
     }
-    clues.sort_by(|left, right| {
+    signs.sort_by(|left, right| {
         left.host_id
             .cmp(&right.host_id)
             .then_with(|| left.capability_id.cmp(&right.capability_id))
     });
-    Ok(RealizationSelection { choice, clues })
+    Ok(RealizationSelection { choice, signs })
 }
 
 fn decision_record(

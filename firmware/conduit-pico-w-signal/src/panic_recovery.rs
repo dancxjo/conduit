@@ -27,10 +27,10 @@ pub enum PanicPhase {
     NetworkJoin = 12,
     NetworkConfiguration = 13,
     KernelCompletion = 14,
-    RecoveryClue = 15,
-    RecoveryClueWrite = 16,
+    RecoverySign = 15,
+    RecoverySignWrite = 16,
     RecoveryAdmission = 17,
-    PostActivationAllocation = 18,
+    PostPlayStartAllocation = 18,
     PlanCLineFailure = 19,
     PlanCLineFailureAllocation = 20,
     PlanCCheckpoint = 21,
@@ -63,10 +63,10 @@ impl PanicRecord {
             PanicPhase::NetworkJoin => "network-join-panic",
             PanicPhase::NetworkConfiguration => "network-configuration-panic",
             PanicPhase::KernelCompletion => "network-kernel-completion-panic",
-            PanicPhase::RecoveryClue => "network-recovery-clue-panic",
-            PanicPhase::RecoveryClueWrite => "network-recovery-clue-write-panic",
+            PanicPhase::RecoverySign => "network-recovery-sign-panic",
+            PanicPhase::RecoverySignWrite => "network-recovery-sign-write-panic",
             PanicPhase::RecoveryAdmission => "r1-recovery-admission-panic",
-            PanicPhase::PostActivationAllocation => "r1-post-activation-allocation-panic",
+            PanicPhase::PostPlayStartAllocation => "r1-post-play-start-allocation-panic",
             PanicPhase::PlanCLineFailure => "r1-plan-c-line-failure-panic",
             PanicPhase::PlanCLineFailureAllocation => {
                 "r1-plan-c-line-failure-allocation-panic"
@@ -89,14 +89,14 @@ pub fn set_phase(phase: PanicPhase) {
         .write(|value| *value = RECORD_MAGIC | phase as u32);
 }
 
-pub fn record_post_activation_allocation() {
+pub fn record_post_play_start_allocation() {
     let current = rp_pac::WATCHDOG.scratch0().read() & !RECORD_MAGIC_MASK;
     let phase = match current {
         19 => PanicPhase::PlanCLineFailureAllocation,
         21 => PanicPhase::PlanCCheckpointAllocation,
         23 => PanicPhase::PlanCResumeAllocation,
         25 => PanicPhase::PlanCSessionAllocation,
-        _ => PanicPhase::PostActivationAllocation,
+        _ => PanicPhase::PostPlayStartAllocation,
     };
     set_phase(phase);
 }
@@ -130,10 +130,10 @@ pub fn take(watchdog_peripheral: Peri<'static, WATCHDOG>) -> Option<PanicRecord>
             12 => PanicPhase::NetworkJoin,
             13 => PanicPhase::NetworkConfiguration,
             14 => PanicPhase::KernelCompletion,
-            15 => PanicPhase::RecoveryClue,
-            16 => PanicPhase::RecoveryClueWrite,
+            15 => PanicPhase::RecoverySign,
+            16 => PanicPhase::RecoverySignWrite,
             17 => PanicPhase::RecoveryAdmission,
-            18 => PanicPhase::PostActivationAllocation,
+            18 => PanicPhase::PostPlayStartAllocation,
             19 => PanicPhase::PlanCLineFailure,
             20 => PanicPhase::PlanCLineFailureAllocation,
             21 => PanicPhase::PlanCCheckpoint,

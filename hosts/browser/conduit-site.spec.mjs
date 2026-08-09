@@ -101,7 +101,7 @@ test("terminal trigger changes the homepage only after Conduit presentation comp
     expect(proof.capacityStable).toBe(true);
     expect(proof.closed).toEqual({ ok: true, code: 1000, reason: "conduit-terminal" });
     expect(new Set(proof.receipts.map(({ planId }) => planId)).size).toBe(1);
-    for (const field of ["planId", "fragmentId", "activePlayId", "presentationId", "clueId"]) {
+    for (const field of ["planId", "fragmentId", "activePlayId", "presentationId", "signId"]) {
       await expect(page.locator(`#proof-${field === "activePlayId" ? "play" : field.replace("Id", "")}`))
         .toHaveText(proof.receipts.at(-1)[field]);
     }

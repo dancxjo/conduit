@@ -11,20 +11,19 @@ use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    ClueSink, CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationOutcome, HostedClueLog, HostedValueStore, NodeId,
-    PortId, ValueStorage,
+    CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
+    HostOperationOutcome, HostedSignLog, HostedValueStore, NodeId, PortId, SignSink, ValueStorage,
 };
 use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
 
 const MAX_COPY_BYTES: u64 = 16 * 1024 * 1024;
-const MAX_CLUE_ITEMS: u16 = 20_000;
+const MAX_SIGN_ITEMS: u16 = 20_000;
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 
 type CopyScheduler = FixedScheduler<
     OperationDriver<CopyOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     1,
     1,
     PORTS,
@@ -320,7 +319,7 @@ fn execute_copy(
     }
     Ok((
         result.ok_or_else(|| "copy kernel terminated without a result".to_string())?,
-        usize::from(scheduler.clues().len()),
+        usize::from(scheduler.signs().len()),
     ))
 }
 
@@ -378,11 +377,11 @@ fn copy_scheduler(fragment: &PlanFragment) -> Result<CopyScheduler, String> {
         item_capacity: 0,
         byte_capacity: 0,
     };
-    let clue_bytes = u32::from(MAX_CLUE_ITEMS)
+    let sign_bytes = u32::from(MAX_SIGN_ITEMS)
         .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-        .ok_or_else(|| "copy clue byte budget overflow".to_string())?;
-    let clue = HostedClueLog::new(MAX_CLUE_ITEMS, clue_bytes)
-        .map_err(|error| format!("prepare copy clue: {error:?}"))?;
+        .ok_or_else(|| "copy sign byte budget overflow".to_string())?;
+    let sign = HostedSignLog::new(MAX_SIGN_ITEMS, sign_bytes)
+        .map_err(|error| format!("prepare copy sign: {error:?}"))?;
     CopyScheduler::new_with_active_counts_and_host_operations(
         1,
         0,
@@ -392,7 +391,7 @@ fn copy_scheduler(fragment: &PlanFragment) -> Result<CopyScheduler, String> {
         bindings,
         [driver],
         values,
-        clue,
+        sign,
     )
     .map_err(|error| format!("prepare copy scheduler: {error:?}"))
 }

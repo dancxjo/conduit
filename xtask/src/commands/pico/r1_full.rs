@@ -1,21 +1,21 @@
 //! One-boot physical R1 orchestration across both recovery branches.
 
-use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
+use conduit_std_host::usb_cdc::{NativePathCdcLine, NativePathCdcLineReader};
 
 use super::firmware::FirmwareIdentity;
 use super::transcript::RuntimeTranscriptIdentity;
 use super::PicoResult;
 
 pub fn run(
-    carrier: &mut NativePathCdcCarrier,
-    clue: &mut NativePathCdcLineReader,
+    line: &mut NativePathCdcLine,
+    sign: &mut NativePathCdcLineReader,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
     interactive: bool,
 ) -> PicoResult<()> {
     let lifecycle = super::prove_websocket::verify_new_plan_recovery(
-        carrier,
-        clue,
+        line,
+        sign,
         identity,
         runtime,
         interactive,
@@ -25,8 +25,8 @@ pub fn run(
     let mut confirmation = String::new();
     std::io::stdin().read_line(&mut confirmation)?;
     let final_lifecycle = super::prove_websocket::verify_plan_c_continuation(
-        carrier,
-        clue,
+        line,
+        sign,
         identity,
         runtime,
         interactive,

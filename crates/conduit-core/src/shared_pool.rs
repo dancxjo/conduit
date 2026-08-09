@@ -55,16 +55,16 @@ impl From<String> for PoolDeclarationId {
 pub struct PoolMemberLimits {
     pub queue_item_capacity: u16,
     pub queue_byte_capacity: u32,
-    pub clue_item_capacity: u16,
-    pub clue_byte_capacity: u32,
+    pub sign_item_capacity: u16,
+    pub sign_byte_capacity: u32,
 }
 
 impl PoolMemberLimits {
     pub fn is_finite_and_nonzero(self) -> bool {
         self.queue_item_capacity > 0
             && self.queue_byte_capacity > 0
-            && self.clue_item_capacity > 0
-            && self.clue_byte_capacity > 0
+            && self.sign_item_capacity > 0
+            && self.sign_byte_capacity > 0
     }
 }
 

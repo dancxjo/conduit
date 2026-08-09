@@ -5,13 +5,13 @@ use crate::{
     SourceSelection,
 };
 use conduit_core::{
-    verify_plan, ActivePlayId, CheckedFormId, ClueId, ExpandedFormId, PlanId, SourceDocumentId,
+    verify_plan, ActivePlayId, CheckedFormId, ExpandedFormId, PlanId, SignId, SourceDocumentId,
 };
 use conduit_observatory::ObservatoryReport;
 
 pub const MAX_RENDERER_GRAPH_ITEMS: usize = 512;
 pub const MAX_RENDERER_DIAGNOSTICS: usize = 128;
-pub const MAX_RENDERER_CLUES: usize = 512;
+pub const MAX_RENDERER_SIGNS: usize = 512;
 pub const MAX_RENDERER_ROUTES: usize = 32;
 pub const MAX_RENDERER_ROUTE_CANDIDATES: usize = 512;
 pub const MAX_RENDERER_TOPOLOGY_ITEMS: usize = 1_024;
@@ -22,7 +22,7 @@ pub const MAX_RENDERER_PLAN_ITEMS: usize = 4_096;
 pub enum RendererProjectionError {
     GraphTooLarge,
     TooManyDiagnostics,
-    TooManyClues,
+    TooManySigns,
     TooManyRoutes,
     TooManyRouteCandidates,
     TopologyTooLarge,
@@ -41,7 +41,7 @@ impl std::fmt::Display for RendererProjectionError {
             Self::TooManyDiagnostics => {
                 formatter.write_str("renderer diagnostics exceed their finite bound")
             }
-            Self::TooManyClues => formatter.write_str("renderer clue exceeds its finite bound"),
+            Self::TooManySigns => formatter.write_str("renderer sign exceeds its finite bound"),
             Self::TooManyRoutes => formatter.write_str("renderer routes exceed their finite bound"),
             Self::TooManyRouteCandidates => {
                 formatter.write_str("renderer route candidates exceed their finite bound")
@@ -82,7 +82,7 @@ pub struct RendererIdentityProjection {
     pub plan_id: Option<PlanId>,
     pub expanded_form_id: Option<ExpandedFormId>,
     pub active_play_id: Option<ActivePlayId>,
-    pub clue_ids: Vec<ClueId>,
+    pub sign_ids: Vec<SignId>,
 }
 
 /// One immutable revision of the ordinary Patchbay presentation surface.
@@ -141,10 +141,10 @@ impl PatchbayPresentation {
         if document.source.len() > crate::MAX_FORM_SOURCE_BYTES {
             return Err(RendererProjectionError::SourceTooLarge);
         }
-        let report_clue = topology.as_ref().map_or(0, |report| report.clues.len());
-        let play_clue = play.as_ref().map_or(0, |play| play.clues.len());
-        if report_clue.saturating_add(play_clue) > MAX_RENDERER_CLUES {
-            return Err(RendererProjectionError::TooManyClues);
+        let report_sign = topology.as_ref().map_or(0, |report| report.signs.len());
+        let play_sign = play.as_ref().map_or(0, |play| play.signs.len());
+        if report_sign.saturating_add(play_sign) > MAX_RENDERER_SIGNS {
+            return Err(RendererProjectionError::TooManySigns);
         }
         if routes.len() > MAX_RENDERER_ROUTES {
             return Err(RendererProjectionError::TooManyRoutes);
@@ -201,7 +201,7 @@ impl PatchbayPresentation {
                 || !verify_plan(&plan.exact)
         }) || play.as_ref().is_some_and(|play| {
             plan.as_ref().map(|plan| &plan.plan_id) != Some(&play.plan_id)
-                || play.clues.iter().any(|observation| {
+                || play.signs.iter().any(|observation| {
                     observation
                         .plan_id
                         .as_ref()
@@ -257,16 +257,16 @@ impl PatchbayPresentation {
         let plan_checked_form_id = self.plan.as_ref().map(|plan| plan.checked_form_id.clone());
         let expanded_form_id = self.plan.as_ref().map(|plan| plan.expanded_form_id.clone());
         let active_play_id = self.play.as_ref().map(|play| play.active_play_id.clone());
-        let mut clue_ids = self.play.as_ref().map_or_else(Vec::new, |play| {
-            play.clues
+        let mut sign_ids = self.play.as_ref().map_or_else(Vec::new, |play| {
+            play.signs
                 .iter()
-                .map(|observation| observation.clue_id.clone())
+                .map(|observation| observation.sign_id.clone())
                 .collect()
         });
         if let Some(report) = &self.topology {
-            clue_ids.extend(report.clues.iter().map(|row| row.clue_id.clone()));
+            sign_ids.extend(report.signs.iter().map(|row| row.sign_id.clone()));
         }
-        Self::deduplicate_clue(&mut clue_ids);
+        Self::deduplicate_sign(&mut sign_ids);
         RendererIdentityProjection {
             source_document_id,
             document_checked_form_id,
@@ -274,13 +274,13 @@ impl PatchbayPresentation {
             plan_id,
             expanded_form_id,
             active_play_id,
-            clue_ids,
+            sign_ids,
         }
     }
 
-    fn deduplicate_clue(clue_ids: &mut Vec<ClueId>) {
-        clue_ids.sort();
-        clue_ids.dedup();
+    fn deduplicate_sign(sign_ids: &mut Vec<SignId>) {
+        sign_ids.sort();
+        sign_ids.dedup();
     }
 }
 
@@ -295,7 +295,7 @@ fn topology_item_count(report: &ObservatoryReport) -> usize {
         .saturating_add(report.placements.len())
         .saturating_add(report.connections.len())
         .saturating_add(report.plays.len())
-        .saturating_add(report.clues.len());
+        .saturating_add(report.signs.len());
     let host_details = report.hosts.iter().fold(0usize, |count, host| {
         count
             .saturating_add(host.planner_capabilities.len())
@@ -362,7 +362,7 @@ fn plan_item_count(plan: &conduit_core::Plan) -> usize {
                 .saturating_add(fragment.startup_dependencies.len())
                 .saturating_add(fragment.startup_order.len())
                 .saturating_add(fragment.expected_terminals.len())
-                .saturating_add(fragment.expected_clue.len())
+                .saturating_add(fragment.expected_sign.len())
                 .saturating_add(fragment.plan_fragments.len())
         })
 }

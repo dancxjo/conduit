@@ -77,7 +77,7 @@ impl PatchbayTopology {
                     .sum::<usize>(),
             )
             .saturating_add(report.lines.len())
-            .saturating_add(report.clues.len());
+            .saturating_add(report.signs.len());
         if report_bytes > MAX_RETAINED_REPORT_BYTES || presentation_lines > MAX_TOPOLOGY_LINES {
             return Err(TopologyViewError::ReportTooLarge);
         }
@@ -221,21 +221,21 @@ impl PatchbayTopology {
             &mut lines,
             format!(
                 "OBSERVATIONS {} retained={} capacity={} visible_gaps={}",
-                report.clues.len(),
+                report.signs.len(),
                 report.retention.retained_items,
                 report.retention.item_capacity,
                 report.retention.visible_gap_count
             ),
         )?;
-        for clue in &report.clues {
+        for sign in &report.signs {
             push_line(
                 &mut lines,
                 format!(
-                    "  clue={} host={} boot={} kind={:?}",
-                    clue.clue_id.as_str(),
-                    clue.host_id.as_str(),
-                    clue.boot_id.as_str(),
-                    clue.kind
+                    "  sign={} host={} boot={} kind={:?}",
+                    sign.sign_id.as_str(),
+                    sign.host_id.as_str(),
+                    sign.boot_id.as_str(),
+                    sign.kind
                 ),
             )?;
         }
@@ -260,7 +260,7 @@ fn push_line(lines: &mut Vec<String>, line: String) -> Result<(), TopologyViewEr
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{BootId, ClueId, HostId, LineAvailability, Observation, ObservationKind};
+    use conduit_core::{BootId, HostId, LineAvailability, Observation, ObservationKind, SignId};
     use conduit_observatory::{
         CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LineReport,
         ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
@@ -308,7 +308,7 @@ mod tests {
             usb.availability.availability = LineAvailability::Unavailable;
         }
         let observations = vec![Observation {
-            clue_id: ClueId::from("fleet/clue-1"),
+            sign_id: SignId::from("fleet/sign-1"),
             active_play_id: None,
             presentation_id: None,
             host_id: laptop.host_id.clone(),

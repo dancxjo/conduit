@@ -1,4 +1,4 @@
-use conduit_core::{verify_plan, BootId, ClueId, ConnectionBase, HostId};
+use conduit_core::{verify_plan, BootId, ConnectionBase, HostId, SignId};
 use conduit_presentation::{ManifestationError, ManifestationFailure, ManifestationLifecycle};
 
 use crate::{
@@ -21,14 +21,14 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
         presentation.clone(),
         RendererAdapterKind::NativeWayland,
         identity("native-host", "native-boot", "native/display-0"),
-        ClueId::from("native/prepared"),
+        SignId::from("native/prepared"),
     )
     .unwrap();
     let html = RendererExecution::prepare(
         presentation.clone(),
         RendererAdapterKind::HtmlDomSvg,
         identity("html-host", "html-boot", "html/document-0"),
-        ClueId::from("html/prepared"),
+        SignId::from("html/prepared"),
     )
     .unwrap();
     assert_eq!(native.presentation.identity, html.presentation.identity);
@@ -67,11 +67,11 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
     );
     assert_eq!(html_placement.resources.len(), 1);
     assert_eq!(
-        native.manifestation.clues[0].placement_id,
+        native.manifestation.signs[0].placement_id,
         native_placement.placement_id
     );
     assert_eq!(
-        html.manifestation.clues[0].placement_id,
+        html.manifestation.signs[0].placement_id,
         html_placement.placement_id
     );
     assert_eq!(
@@ -83,9 +83,9 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
         ManifestationLifecycle::Prepared
     );
     native
-        .mark_available(ClueId::from("native/available"))
+        .mark_available(SignId::from("native/available"))
         .unwrap();
-    native.mark_closed(ClueId::from("native/closed")).unwrap();
+    native.mark_closed(SignId::from("native/closed")).unwrap();
     assert_eq!(
         native.manifestation.lifecycle,
         ManifestationLifecycle::Closed
@@ -102,13 +102,13 @@ fn renderer_failure_is_typed_and_cannot_mutate_source_play_identity() {
         presentation,
         RendererAdapterKind::NativeWayland,
         identity("native-host", "native-boot", "native/display-0"),
-        ClueId::from("native/prepared"),
+        SignId::from("native/prepared"),
     )
     .unwrap();
     execution
         .mark_failed(
             ManifestationFailure::OutputRejected,
-            ClueId::from("native/output-rejected"),
+            SignId::from("native/output-rejected"),
         )
         .unwrap();
     assert_eq!(
@@ -131,7 +131,7 @@ fn stale_manifestation_correlation_fails_closed() {
         presentation,
         RendererAdapterKind::HtmlDomSvg,
         identity("html-host", "html-boot", "html/document-0"),
-        ClueId::from("html/prepared"),
+        SignId::from("html/prepared"),
     )
     .unwrap();
     execution.manifestation.presentation_revision += 1;
@@ -144,17 +144,17 @@ fn stale_manifestation_correlation_fails_closed() {
 }
 
 #[test]
-fn self_inspection_is_the_exact_renderer_plan_placement_and_clue_chain() {
+fn self_inspection_is_the_exact_renderer_plan_placement_and_sign_chain() {
     let presentation = portable_demonstration().unwrap();
     let mut execution = RendererExecution::prepare(
         presentation,
         RendererAdapterKind::NativeWayland,
         identity("native-host", "native-boot", "native/display-0"),
-        ClueId::from("native/prepared"),
+        SignId::from("native/prepared"),
     )
     .unwrap();
     execution
-        .mark_available(ClueId::from("native/available"))
+        .mark_available(SignId::from("native/available"))
         .unwrap();
     let inspection = execution.self_inspection().unwrap();
     let placement = inspection.renderer_placement().unwrap();
@@ -165,17 +165,17 @@ fn self_inspection_is_the_exact_renderer_plan_placement_and_clue_chain() {
     assert_eq!(placement.outputs, conduit_presentation::renderer_outputs());
     assert_eq!(placement.resources.len(), 1);
     assert_eq!(placement.host_operations.len(), 1);
-    assert_eq!(inspection.manifestation.clues.len(), 2);
+    assert_eq!(inspection.manifestation.signs.len(), 2);
 }
 
 #[test]
-fn self_inspection_rejects_tampered_plan_placement_and_manifestation_clue() {
+fn self_inspection_rejects_tampered_plan_placement_and_manifestation_sign() {
     let presentation = portable_demonstration().unwrap();
     let execution = RendererExecution::prepare(
         presentation.clone(),
         RendererAdapterKind::HtmlDomSvg,
         identity("html-host", "html-boot", "html/document-0"),
-        ClueId::from("html/prepared"),
+        SignId::from("html/prepared"),
     )
     .unwrap();
     let mut inspection = execution.self_inspection().unwrap();
@@ -188,7 +188,7 @@ fn self_inspection_rejects_tampered_plan_placement_and_manifestation_clue() {
     assert!(inspection.validate_against(&presentation).is_err());
 
     let mut inspection = execution.self_inspection().unwrap();
-    inspection.manifestation.clues[0].plan_id = conduit_core::PlanId::from("tampered");
+    inspection.manifestation.signs[0].plan_id = conduit_core::PlanId::from("tampered");
     assert!(inspection.validate_against(&presentation).is_err());
 }
 
@@ -263,7 +263,7 @@ fn planned_renderer_execution_distinguishes_missing_and_ambiguous_placements() {
             presentation.clone(),
             missing,
             "html/document-0".into(),
-            ClueId::from("missing"),
+            SignId::from("missing"),
         ),
         Err(RendererExecutionError::MissingPlacement)
     );
@@ -282,7 +282,7 @@ fn planned_renderer_execution_distinguishes_missing_and_ambiguous_placements() {
             presentation,
             ambiguous,
             "html/document-0".into(),
-            ClueId::from("ambiguous"),
+            SignId::from("ambiguous"),
         ),
         Err(RendererExecutionError::AmbiguousPlacement)
     );

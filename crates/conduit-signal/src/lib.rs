@@ -44,14 +44,14 @@ use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ClueId, ConfigurationEntry, ConfigurationValue, ConnectionBase,
+    CapabilityOffer, ConfigurationEntry, ConfigurationValue, ConnectionBase,
     ConnectionBaseInstanceId, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision, KindId,
     LineAvailability, LineAvailabilitySign, LineContinuation, LineContract, LineDuplex, LineId,
     LineOffer, LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
     LinkAuthorityReference, LinkBinding, LinkBindingId, LinkCredentialReference, LinkEndpoint,
     LinkEndpointId, LinkLimits, OfferGeneration, PortDescriptor, PortDirection, ResourceOffer,
-    ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    ResourceRequirement, SignId, ValuePayload, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
     TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
@@ -423,7 +423,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
 }
 
 /// Exact production host facts used by the live S4 std-to-browser checkpoint.
-/// The ephemeral loopback URL is carrier configuration and is deliberately not
+/// The ephemeral loopback URL is line configuration and is deliberately not
 /// part of these semantic or plan-visible identities.
 #[cfg(feature = "host-profile")]
 pub fn distributed_std_source_advertisement() -> HostAdvertisement {
@@ -530,7 +530,7 @@ pub fn distributed_websocket_line_offer() -> LineOffer {
             line_id: LineId::from(DISTRIBUTED_LINE_ID),
             binding_id: binding.binding_id.clone(),
             availability: LineAvailability::Ready,
-            sign_id: ClueId::from("s4/line/distributed-websocket/ready"),
+            sign_id: SignId::from("s4/line/distributed-websocket/ready"),
         },
         binding,
         contract: LineContract {

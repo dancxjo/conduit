@@ -1,7 +1,7 @@
 //! One living, bounded semantic input shared by renderer adapter proofs.
 
 use conduit_body::Body;
-use conduit_core::{bind_active_play, ClueId};
+use conduit_core::{bind_active_play, SignId};
 use conduit_presentation::Presentation;
 use conduit_std_host::{StdHost, ThreadTimer};
 
@@ -72,18 +72,18 @@ pub fn portable_demonstration() -> Result<Presentation, String> {
         plan.source_document_id.clone(),
         plan.checked_form_id.clone(),
         1,
-        ClueId::from("patchbay/bornd"),
+        SignId::from("patchbay/bornd"),
     )
     .map_err(|error| error.to_string())?;
     let (body, wake) = body
-        .wake(1, ClueId::from("patchbay/woke"))
+        .wake(1, SignId::from("patchbay/woke"))
         .map_err(|error| error.to_string())?;
     let wake = wake
-        .plan_ready(&plan, ClueId::from("patchbay/planned"))
+        .plan_ready(&plan, SignId::from("patchbay/planned"))
         .map_err(|error| error.to_string())?;
     let active_play = bind_active_play(&plan.plan_id, &host_id, &boot_id, 0);
     let wake = wake
-        .play_started(&active_play, ClueId::from("patchbay/playing"))
+        .play_started(&active_play, SignId::from("patchbay/playing"))
         .map_err(|error| error.to_string())?;
     projection
         .to_portable(&body, &wake)

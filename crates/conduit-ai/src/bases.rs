@@ -31,7 +31,7 @@ pub const MAXIMUM_CONTEXT_CHARACTERISTIC: &str = "conduit.realization/maximum-co
 pub const MAXIMUM_OUTPUT_CHARACTERISTIC: &str = "conduit.realization/maximum-output-tokens@1";
 pub const DATA_EGRESS_CHARACTERISTIC: &str = "conduit.realization/data-egress@1";
 pub const METERED_COST_CHARACTERISTIC: &str = "conduit.realization/metered-cost@1";
-pub const BENCHMARK_CLUE_CHARACTERISTIC: &str = "conduit.realization/benchmark-clue@1";
+pub const BENCHMARK_SIGN_CHARACTERISTIC: &str = "conduit.realization/benchmark-sign@1";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BaseProofClass {
@@ -57,7 +57,7 @@ pub struct GenerateTextBaseFacts {
     pub maximum_output_tokens: u64,
     pub data_handling: DataHandling,
     pub metering: Metering,
-    pub benchmark_clue: String,
+    pub benchmark_sign: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -101,10 +101,10 @@ pub fn generate_text_realization_advertisements(
                     ),
                     RealizationCharacteristic {
                         characteristic_id: RealizationCharacteristicId::from(
-                            BENCHMARK_CLUE_CHARACTERISTIC,
+                            BENCHMARK_SIGN_CHARACTERISTIC,
                         ),
                         value: RealizationCharacteristicValue::Label(
-                            fixture.facts.benchmark_clue.clone(),
+                            fixture.facts.benchmark_sign.clone(),
                         ),
                     },
                 ],
@@ -205,7 +205,7 @@ fn base(
     maximum_output_tokens: u64,
     data_handling: DataHandling,
     metering: Metering,
-    benchmark_clue: &str,
+    benchmark_sign: &str,
     remote: bool,
 ) -> GenerateTextBaseFixture {
     let contract = generate_text_contract();
@@ -308,7 +308,7 @@ fn base(
             maximum_output_tokens,
             data_handling,
             metering,
-            benchmark_clue: benchmark_clue.to_string(),
+            benchmark_sign: benchmark_sign.to_string(),
         },
     }
 }

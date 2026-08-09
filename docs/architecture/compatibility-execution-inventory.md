@@ -5,7 +5,7 @@ This inventory concerns the legacy hosted executor, not functional callable comp
 `conduit-runtime` now has two compile-time surfaces:
 
 - default/no features: current exact-plan `lowering` only;
-- `compatibility-executor`: `HostRuntime`, its implementation registry and operation-state protocol, compatibility bases, pump, queue ownership, lifecycle, and clue machinery.
+- `compatibility-executor`: `HostRuntime`, its implementation registry and operation-state protocol, compatibility bases, pump, queue ownership, lifecycle, and Sign machinery.
 
 Production std and browser hosts and the Pico firmware build depend on `conduit-runtime` with default features disabled. They can lower exact plans but cannot name or instantiate `HostRuntime`. Enabling a fixture elsewhere in a whole-workspace build does not change the feature declaration in a production image; each production package is also checked independently by the required std, WASM, and firmware commands.
 
@@ -18,7 +18,7 @@ Production std and browser hosts and the Pico firmware build depend on `conduit-
 | `crates/conduit-runtime/tests/host_contract.rs` and `host_contract_fixtures` | legacy test support | integration test declares `required-features = ["compatibility-executor"]` |
 | `hosts/std/src/lib.rs` / `LegacyStdFixtureHost` | legacy fixture driver | both the type and dependency feature are gated by the explicitly named `legacy-fixture-driver`; production `StdHost` uses the kernel |
 | `fixtures/browser-sim` | simulation fixture | explicitly enables `conduit-runtime/compatibility-executor` and Signal's `legacy-fixture-driver` |
-| `fixtures/pico-sim` | simulation fixture | its `compatibility-fixture` feature explicitly enables the compatibility executor and Signal legacy driver; the no-default carrier remains free of them |
+| `fixtures/pico-sim` | simulation fixture | its `compatibility-fixture` feature explicitly enables the compatibility executor and Signal legacy driver; the no-default build remains free of them |
 | `crates/conduit-composite` | composite compatibility fixture | the crate's explicitly named `compatibility-fixture` feature enables the retained child `HostRuntime`; deletion waits for a kernel-backed composite replacement |
 | `crates/conduit-signal/src/host_profile.rs` | legacy implementation/registry support | separated from current Signal contracts and catalog; available only through `legacy-fixture-driver` |
 | `crates/conduit-std-catalog/src/host_profile.rs` and its runtime conformance test | legacy implementation/registry support | available only through the explicitly named `compatibility-fixture`; form-catalog consumers disable defaults |

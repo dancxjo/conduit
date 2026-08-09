@@ -12,20 +12,20 @@ use conduit_core::BootId;
 use conduit_std_host::pico_control_source::PicoControlSource;
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 use conduit_std_host::r1_control::{R1ControlPeer, R1InputEvent};
-use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
-use conduit_std_host::websocket::NativeWebSocketCarrier;
+use conduit_std_host::usb_cdc::{NativePathCdcLine, NativePathCdcLineReader};
+use conduit_std_host::websocket::NativeWebSocketLine;
 use serde::Serialize;
 
 mod plan_c;
 pub(super) use plan_c::verify_plan_c_continuation;
 
 pub(super) fn verify(
-    usb: &mut NativePathCdcCarrier,
-    clue: &mut NativePathCdcLineReader,
+    usb: &mut NativePathCdcLine,
+    sign: &mut NativePathCdcLineReader,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
 ) -> PicoResult<()> {
-    let mut websocket = connect(usb, clue, identity, runtime)?;
+    let mut websocket = connect(usb, sign, identity, runtime)?;
     let plan_a = conduit_system_continuity::exact_r1_signal_plan(
         BootId::from(conduit_net::R1_PICO_BOOT_ID),
         conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
@@ -36,27 +36,27 @@ pub(super) fn verify(
     source.observe_sink_boot(BootId::from(runtime.boot_id.as_str()))?;
     let mut websocket_io = WebSocketSessionIo::new(&mut websocket);
     r1_signal::handshake(&mut websocket_io, &mut source)?;
-    let link_line = clue
+    let link_line = sign
         .read_line(Duration::from_secs(3))
         .map_err(|error| format!("timed out reading WebSocket link Sign: {error}"))?;
-    verify_link_clue(&link_line, identity, runtime, source.binding())?;
+    verify_link_sign(&link_line, identity, runtime, source.binding())?;
     super::usb_continuity::verify(usb, identity)?;
     websocket
         .close()
-        .map_err(|error| format!("failed to close WebSocket carrier: {error:?}"))?;
+        .map_err(|error| format!("failed to close WebSocket line: {error:?}"))?;
     println!("==> Physical WebSocket Session, exact route Sign, and simultaneous USB continuity verified");
     Ok(())
 }
 
 fn connect(
-    usb: &mut NativePathCdcCarrier,
-    clue: &mut NativePathCdcLineReader,
+    usb: &mut NativePathCdcLine,
+    sign: &mut NativePathCdcLineReader,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
-) -> PicoResult<NativeWebSocketCarrier> {
+) -> PicoResult<NativeWebSocketLine> {
     connect_with_query(
         usb,
-        clue,
+        sign,
         identity,
         runtime,
         conduit_net::R1_WEBSOCKET_BASE_QUERY,
@@ -64,12 +64,12 @@ fn connect(
 }
 
 fn connect_with_query(
-    usb: &mut NativePathCdcCarrier,
-    clue: &mut NativePathCdcLineReader,
+    usb: &mut NativePathCdcLine,
+    sign: &mut NativePathCdcLineReader,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
     query: &[u8],
-) -> PicoResult<NativeWebSocketCarrier> {
+) -> PicoResult<NativeWebSocketLine> {
     usb.send_raw_stream_frame(query, Duration::from_secs(2))?;
     let mut raw = [0_u8; 2048];
     if usb.receive_raw_stream_frame(&mut raw, Duration::from_secs(3))?
@@ -78,24 +78,24 @@ fn connect_with_query(
         return Err("Pico returned an unexpected WebSocket Base readiness payload".into());
     }
     usb.send_raw_stream_frame(
-        conduit_net::R1_WEBSOCKET_ENDPOINT_CLUE_READY,
+        conduit_net::R1_WEBSOCKET_ENDPOINT_SIGN_READY,
         Duration::from_secs(2),
     )?;
-    let endpoint_line = clue
+    let endpoint_line = sign
         .read_line(Duration::from_secs(3))
         .map_err(|error| format!("timed out reading WebSocket endpoint Sign: {error}"))?;
-    let address = verify_endpoint_clue(&endpoint_line, identity, runtime)?;
+    let address = verify_endpoint_sign(&endpoint_line, identity, runtime)?;
     let socket_address = SocketAddr::V4(SocketAddrV4::new(address, conduit_net::R1_WEBSOCKET_PORT));
     let url = format!("ws://{socket_address}/conduit");
     let websocket =
-        NativeWebSocketCarrier::connect(socket_address, &url, conduit_net::R1_MAXIMUM_FRAME_BYTES)
-            .map_err(|error| format!("failed to connect bounded WebSocket carrier: {error:?}"))?;
+        NativeWebSocketLine::connect(socket_address, &url, conduit_net::R1_MAXIMUM_FRAME_BYTES)
+            .map_err(|error| format!("failed to connect bounded WebSocket line: {error:?}"))?;
     Ok(websocket)
 }
 
 pub(super) fn verify_new_plan_recovery(
-    usb: &mut NativePathCdcCarrier,
-    clue: &mut NativePathCdcLineReader,
+    usb: &mut NativePathCdcLine,
+    sign: &mut NativePathCdcLineReader,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
     interactive: bool,
@@ -103,7 +103,7 @@ pub(super) fn verify_new_plan_recovery(
     if !interactive {
         return Err("physical R1 network-loss proof requires --interactive".into());
     }
-    let mut websocket = connect(usb, clue, identity, runtime)?;
+    let mut websocket = connect(usb, sign, identity, runtime)?;
     super::usb_continuity::verify(usb, identity)?;
 
     let (plan_a, plan_b) = recovery_plans()?;
@@ -128,11 +128,11 @@ pub(super) fn verify_new_plan_recovery(
         source_host.clone(),
         source_boot.clone(),
         0,
-        conduit_system_continuity::R1RecoveryStartClues {
-            birth: conduit_core::ClueId::from("r1/physical/body-born"),
-            wake: conduit_core::ClueId::from("r1/physical/body-woke"),
-            plan_ready: conduit_core::ClueId::from("r1/physical/plan-a-ready"),
-            play_started: conduit_core::ClueId::from("r1/physical/play-a-started"),
+        conduit_system_continuity::R1RecoveryStartSigns {
+            birth: conduit_core::SignId::from("r1/physical/body-born"),
+            wake: conduit_core::SignId::from("r1/physical/body-woke"),
+            plan_ready: conduit_core::SignId::from("r1/physical/plan-a-ready"),
+            play_started: conduit_core::SignId::from("r1/physical/play-a-started"),
         },
     )
     .map_err(|error| format!("failed to begin physical R1 recovery record: {error:?}"))?;
@@ -141,14 +141,14 @@ pub(super) fn verify_new_plan_recovery(
     {
         let mut websocket_io = WebSocketSessionIo::new(&mut websocket);
         r1_control_session::handshake(&mut websocket_io, &mut source_a)?;
-        let link_line = clue
+        let link_line = sign
             .read_line(Duration::from_secs(3))
             .map_err(|error| format!("timed out reading WebSocket link Sign: {error}"))?;
-        verify_link_clue(&link_line, identity, runtime, source_a.binding())?;
+        verify_link_sign(&link_line, identity, runtime, source_a.binding())?;
         super::r1_live_control::deliver_plan_a_inputs(
             &mut websocket_io,
             &mut source_a,
-            clue,
+            sign,
             &plan_a,
             identity,
             runtime,
@@ -192,9 +192,9 @@ pub(super) fn verify_new_plan_recovery(
                     conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
                 ),
                 availability: conduit_core::LineAvailability::Unavailable,
-                sign_id: conduit_core::ClueId::from("r1/physical/websocket-line-unavailable"),
+                sign_id: conduit_core::SignId::from("r1/physical/websocket-line-unavailable"),
             },
-            conduit_core::ClueId::from("r1/physical/play-a-unsatisfied"),
+            conduit_core::SignId::from("r1/physical/play-a-unsatisfied"),
         )
         .map_err(|error| format!("failed recording physical Line loss: {error:?}"))?;
     recovery
@@ -205,12 +205,12 @@ pub(super) fn verify_new_plan_recovery(
             source_host.clone(),
             source_boot,
             0,
-            conduit_system_continuity::R1ReplacementClues {
-                request: conduit_core::ClueId::from("r1/physical/replan-requested"),
-                planned: conduit_core::ClueId::from("r1/physical/plan-b-planned"),
-                superseded: conduit_core::ClueId::from("r1/physical/plan-a-superseded"),
-                realized: conduit_core::ClueId::from("r1/physical/plan-b-realized"),
-                play_started: conduit_core::ClueId::from("r1/physical/play-b-started"),
+            conduit_system_continuity::R1ReplacementSigns {
+                request: conduit_core::SignId::from("r1/physical/replan-requested"),
+                planned: conduit_core::SignId::from("r1/physical/plan-b-planned"),
+                superseded: conduit_core::SignId::from("r1/physical/plan-a-superseded"),
+                realized: conduit_core::SignId::from("r1/physical/plan-b-realized"),
+                play_started: conduit_core::SignId::from("r1/physical/play-b-started"),
             },
         )
         .map_err(|error| format!("failed recording physical replacement Plan: {error:?}"))?;
@@ -225,7 +225,7 @@ pub(super) fn verify_new_plan_recovery(
             &mut source_b,
             input,
             &mut |sequence| {
-                let line = clue
+                let line = sign
                     .read_line(Duration::from_secs(3))
                     .map_err(|error| format!("missing Plan B physical LED Sign: {error}"))?;
                 super::r1_signal_transcript::verify_receipt(
@@ -244,7 +244,7 @@ pub(super) fn verify_new_plan_recovery(
     if delivered != 6 {
         return Err("USB Plan B did not deliver the exact six deliberate inputs".into());
     }
-    let terminal = clue
+    let terminal = sign
         .read_line(Duration::from_secs(3))
         .map_err(|error| format!("missing Plan B terminal Sign: {error}"))?;
     super::r1_signal_transcript::verify_terminal(&terminal, &plan_b, identity, runtime)?;
@@ -265,7 +265,7 @@ pub(super) fn verify_new_plan_recovery(
             plan_id: plan_b_id,
             active_play_id: play_b_id,
             observed_session: source_b.binding().clone(),
-            clue_id: conduit_core::ClueId::from("r1/physical/plan-b-led-result"),
+            sign_id: conduit_core::SignId::from("r1/physical/plan-b-led-result"),
             level: true,
         })
         .map_err(|error| format!("failed recording physical Plan B LED result: {error:?}"))?;
@@ -274,10 +274,10 @@ pub(super) fn verify_new_plan_recovery(
         recovery.wake(),
         source_b.is_terminal(),
         2,
-        super::r1_lifecycle::R1LullClues {
-            wake_lulled: conduit_core::ClueId::from("r1/physical/replan-wake-lulled"),
-            body_retained: conduit_core::ClueId::from("r1/physical/replan-body-retained"),
-            later_wake: conduit_core::ClueId::from("r1/physical/replan-later-wake"),
+        super::r1_lifecycle::R1LullSigns {
+            wake_lulled: conduit_core::SignId::from("r1/physical/replan-wake-lulled"),
+            body_retained: conduit_core::SignId::from("r1/physical/replan-body-retained"),
+            later_wake: conduit_core::SignId::from("r1/physical/replan-later-wake"),
         },
     )?;
     let outcome = PhysicalNewPlanRecoveryOutcome {
@@ -348,7 +348,7 @@ struct PhysicalNewPlanRecoveryOutcome<'a> {
     plan_b_link_binding_id: &'static str,
     plan_b_base_instance_id: &'static str,
     control_events: &'a [conduit_core::ControlLoopEvent],
-    led_results: &'a [conduit_system_continuity::R1LedResultClue],
+    led_results: &'a [conduit_system_continuity::R1LedResultSign],
     lifecycle: &'a super::r1_lifecycle::R1LullSign,
     branch_a_physical_acceptance: bool,
 }
@@ -393,7 +393,7 @@ fn remote_connection(plan: &conduit_core::Plan) -> PicoResult<&conduit_core::Pla
         .ok_or_else(|| "R1 Plan has no remote Cord realization".into())
 }
 
-fn verify_endpoint_clue(
+fn verify_endpoint_sign(
     line: &str,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
@@ -403,7 +403,7 @@ fn verify_endpoint_clue(
     verify_fields(
         &record,
         &[
-            ("schema", "conduit.network/websocket-endpoint-clue@1"),
+            ("schema", "conduit.network/websocket-endpoint-sign@1"),
             ("firmware_build_id", identity.firmware_build_id.as_str()),
             ("host_id", identity.generated_image.host_id.as_str()),
             ("runtime_boot_id", runtime.boot_id.as_str()),
@@ -446,7 +446,7 @@ fn verify_endpoint_clue(
     Ok(address)
 }
 
-fn verify_link_clue(
+fn verify_link_sign(
     line: &str,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
@@ -457,7 +457,7 @@ fn verify_link_clue(
     verify_fields(
         &record,
         &[
-            ("schema", "conduit.network/websocket-link-clue@1"),
+            ("schema", "conduit.network/websocket-link-sign@1"),
             ("firmware_build_id", identity.firmware_build_id.as_str()),
             ("host_id", identity.generated_image.host_id.as_str()),
             ("runtime_boot_id", runtime.boot_id.as_str()),
@@ -483,7 +483,7 @@ fn verify_link_clue(
                 "sink_endpoint_id",
                 conduit_net::R1_PICO_WEBSOCKET_ENDPOINT_ID,
             ),
-            ("clue_id", conduit_net::R1_WEBSOCKET_ROUTE_CLUE_ID),
+            ("sign_id", conduit_net::R1_WEBSOCKET_ROUTE_SIGN_ID),
         ],
     )?;
     if record["handshake"].as_bool() != Some(true)

@@ -124,7 +124,7 @@ fn state_count_budget(placement: &PlannedGear) -> Result<OperationBudget, String
         value_items: values as u16,
         value_bytes: conduit_std_catalog::COUNT_ENCODED_LEN * values as u32,
         host_requests: 0,
-        clue_items: 96,
+        sign_items: 96,
         maximum_value_bytes: conduit_std_catalog::COUNT_ENCODED_LEN,
     })
 }
@@ -164,7 +164,7 @@ fn count_presentation_budget(placement: &PlannedGear) -> Result<OperationBudget,
         value_items: 0,
         value_bytes: 0,
         host_requests: maximum as usize,
-        clue_items: 64,
+        sign_items: 64,
         maximum_value_bytes: conduit_std_catalog::COUNT_ENCODED_LEN,
     })
 }

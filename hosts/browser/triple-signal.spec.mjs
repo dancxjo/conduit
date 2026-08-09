@@ -72,8 +72,8 @@ test("one unchanged form produces matching stdout, DOM, and physical Pico LED re
     await page.goto("/hosts/browser/distributed-signal.test.html");
     const result = await page.evaluate(async ({ url }) => {
       const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
-      const { BrowserWebSocketCarrier } = await import(
-        "/hosts/browser/websocket-carrier.mjs"
+      const { BrowserWebSocketLine } = await import(
+        "/hosts/browser/websocket-line.mjs"
       );
       const {
         instantiateDistributedBrowserRuntime,
@@ -85,7 +85,7 @@ test("one unchanged form produces matching stdout, DOM, and physical Pico LED re
         if (!response.ok) throw new Error("three-host browser WASM artifact missing");
         return response.arrayBuffer();
       });
-      const carrier = await new BrowserWebSocketCarrier({
+      const line = await new BrowserWebSocketLine({
         url,
         maximumMessageBytes: 2048,
         maximumBufferedBytes: 8192,
@@ -98,11 +98,11 @@ test("one unchanged form produces matching stdout, DOM, and physical Pico LED re
         maximumReceiptBytes: 144,
       });
       const runtime = await instantiateDistributedBrowserRuntime(wasmBytes, { triple: true });
-      const run = await runDistributedBrowserRuntime(runtime, carrier, domHost);
+      const run = await runDistributedBrowserRuntime(runtime, line, domHost);
       return {
         ...run,
         receipts: domHost.receipts(),
-        closed: await carrier.closed(),
+        closed: await line.closed(),
       };
     }, { url });
     await exited;
@@ -138,7 +138,7 @@ test("one unchanged form produces matching stdout, DOM, and physical Pico LED re
     expect(result.receipts.every(({ linkBindingId }) =>
       linkBindingId === "s4/triple-std-browser-link")).toBe(true);
     expect(new Set(stdoutReceipts.map(({ presentation_id }) => presentation_id)).size).toBe(16);
-    expect(new Set(stdoutReceipts.map(({ clue_id }) => clue_id)).size).toBe(16);
+    expect(new Set(stdoutReceipts.map(({ sign_id }) => sign_id)).size).toBe(16);
     await expect(page.locator("#browser-sink output")).toHaveCount(16);
     await expect(page.locator("#browser-sink output").last()).toHaveAttribute(
       "data-sequence", "15",
@@ -172,8 +172,8 @@ test("a broken browser link fails the one kernel and reaches a physical Pico ter
     await page.goto("/hosts/browser/distributed-signal.test.html");
     const result = await page.evaluate(async ({ url }) => {
       const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
-      const { BrowserWebSocketCarrier } = await import(
-        "/hosts/browser/websocket-carrier.mjs"
+      const { BrowserWebSocketLine } = await import(
+        "/hosts/browser/websocket-line.mjs"
       );
       const {
         instantiateDistributedBrowserRuntime,
@@ -182,7 +182,7 @@ test("a broken browser link fails the one kernel and reaches a physical Pico ter
       const wasmBytes = await fetch(
         "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
       ).then((response) => response.arrayBuffer());
-      const carrier = await new BrowserWebSocketCarrier({
+      const line = await new BrowserWebSocketLine({
         url,
         maximumMessageBytes: 2048,
         maximumBufferedBytes: 8192,
@@ -199,18 +199,18 @@ test("a broken browser link fails the one kernel and reaches a physical Pico ter
         completePresentation(effect) {
           const completion = domHost.completePresentation(effect);
           if (completion.ok && domHost.receipts().length === 4) {
-            void carrier.close(4001, "three-host-proof-link-break");
+            void line.close(4001, "three-host-proof-link-break");
           }
           return completion;
         },
       };
       let failure;
       try {
-        await runDistributedBrowserRuntime(runtime, carrier, breakingDomHost);
+        await runDistributedBrowserRuntime(runtime, line, breakingDomHost);
       } catch (error) {
         failure = error.message;
       }
-      return { failure, receipts: domHost.receipts(), closed: await carrier.closed() };
+      return { failure, receipts: domHost.receipts(), closed: await line.closed() };
     }, { url });
     const exit = await exited;
     const stdoutReceipts = [];

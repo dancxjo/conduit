@@ -1,4 +1,4 @@
-//! Fixed-buffer RFC 6455 binary-message carrier over one Embassy TCP socket.
+//! Fixed-buffer RFC 6455 binary-message line over one Embassy TCP socket.
 
 use embassy_net::tcp::TcpSocket;
 use embedded_websocket::{

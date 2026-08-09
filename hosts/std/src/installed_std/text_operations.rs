@@ -177,7 +177,7 @@ fn text_literal_budget(placement: &PlannedGear) -> Result<OperationBudget, Strin
         value_items: 1,
         value_bytes: u32::try_from(text.len()).map_err(|_| "text literal is too large")?,
         host_requests: 0,
-        clue_items: 32,
+        sign_items: 32,
         maximum_value_bytes: MAX_TEXT_BYTES,
     })
 }
@@ -203,7 +203,7 @@ fn text_upper_budget(placement: &PlannedGear) -> Result<OperationBudget, String>
         value_items: MAX_TEXT_VALUES as u16,
         value_bytes: MAX_TEXT_BYTES * MAX_TEXT_VALUES as u32,
         host_requests: MAX_TEXT_VALUES as usize,
-        clue_items: 64,
+        sign_items: 64,
         maximum_value_bytes: MAX_TEXT_BYTES,
     })
 }
@@ -226,7 +226,7 @@ fn text_join_budget(placement: &PlannedGear) -> Result<OperationBudget, String> 
         value_items: MAX_TEXT_VALUES as u16,
         value_bytes: MAX_TEXT_BYTES * MAX_TEXT_VALUES as u32,
         host_requests: MAX_TEXT_VALUES as usize,
-        clue_items: 64,
+        sign_items: 64,
         maximum_value_bytes: MAX_TEXT_BYTES,
     })
 }
@@ -250,7 +250,7 @@ fn text_presentation_budget(placement: &PlannedGear) -> Result<OperationBudget, 
         value_items: 0,
         value_bytes: 0,
         host_requests: maximum_values as usize,
-        clue_items: 64,
+        sign_items: 64,
         maximum_value_bytes: MAX_TEXT_BYTES,
     })
 }

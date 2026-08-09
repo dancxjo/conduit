@@ -1,5 +1,5 @@
 use conduit_body::Body;
-use conduit_core::{bind_active_play, ClueId, ConnectionBase};
+use conduit_core::{bind_active_play, ConnectionBase, SignId};
 use conduit_presentation::{
     PresentationPropertyValue, PresentationRole, MAX_PRESENTATION_TOTAL_BYTES,
 };
@@ -38,17 +38,17 @@ fn living_portable() -> (
         plan.source_document_id.clone(),
         plan.checked_form_id.clone(),
         1,
-        ClueId::from("patchbay/bornd"),
+        SignId::from("patchbay/bornd"),
     )
     .unwrap();
-    let (body, wake) = body.wake(1, ClueId::from("patchbay/woke")).unwrap();
+    let (body, wake) = body.wake(1, SignId::from("patchbay/woke")).unwrap();
     let wake = wake
-        .plan_ready(&plan, ClueId::from("patchbay/planned"))
+        .plan_ready(&plan, SignId::from("patchbay/planned"))
         .unwrap();
     let active_play = bind_active_play(&plan.plan_id, &host_id, &boot_id, 0);
     assert_eq!(active_play.active_play_id, play_document.active_play_id);
     let wake = wake
-        .play_started(&active_play, ClueId::from("patchbay/playing"))
+        .play_started(&active_play, SignId::from("patchbay/playing"))
         .unwrap();
     let route = DistributedRouteDemo::build().unwrap();
     let projection = PatchbayPresentation::new(
@@ -65,7 +65,7 @@ fn living_portable() -> (
 }
 
 #[test]
-fn living_patchbay_projection_preserves_lifecycle_plan_play_and_clue() {
+fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
     let (projection, body, wake, portable) = living_portable();
     let identities = projection.identities();
     assert_eq!(portable.basis.seed_id, body.seed_id);
@@ -73,13 +73,13 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_clue() {
     assert_eq!(portable.basis.wake_id, wake.wake_id);
     assert_eq!(portable.basis.plan_id, identities.plan_id);
     assert_eq!(portable.basis.active_play_id, identities.active_play_id);
-    for clue in identities
-        .clue_ids
+    for sign in identities
+        .sign_ids
         .iter()
-        .chain(body.clue_ids.iter())
-        .chain(wake.clue_ids.iter())
+        .chain(body.sign_ids.iter())
+        .chain(wake.sign_ids.iter())
     {
-        assert!(portable.basis.clue_ids.contains(clue));
+        assert!(portable.basis.sign_ids.contains(sign));
     }
     assert!(portable
         .subjects
@@ -123,7 +123,7 @@ fn renderer_local_state_cannot_change_portable_content_identity() {
 #[test]
 fn stale_or_terminal_lifecycle_cannot_masquerade_as_live_presentation() {
     let (projection, body, wake, _) = living_portable();
-    let lulled = wake.lull(ClueId::from("patchbay/lulled")).unwrap();
+    let lulled = wake.lull(SignId::from("patchbay/lulled")).unwrap();
     assert_eq!(
         projection.to_portable(&body, &lulled),
         Err(PortableProjectionError::PlayMismatch)

@@ -1,7 +1,7 @@
 mod common;
 
 use common::competing_hosts;
-use conduit_core::{ClueId, ResourceHealth, ResourceObservation};
+use conduit_core::{ResourceHealth, ResourceObservation, SignId};
 use conduit_form::parse;
 use conduit_planner::{plan_selected_realizations, RealizationPolicy, RealizationPreference};
 use conduit_signal::signal_profile_catalog;
@@ -36,7 +36,7 @@ fn observations(hosts: &[conduit_core::HostAdvertisement; 2]) -> Vec<ResourceObs
                 health: ResourceHealth::Ready,
                 unreserved_units: if index == 0 { 1 } else { 3 },
                 utilized_units: 0,
-                clue_id: ClueId::from(format!("observation-{index}")),
+                sign_id: SignId::from(format!("observation-{index}")),
             }
         })
         .collect()

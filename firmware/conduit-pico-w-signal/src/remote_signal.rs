@@ -2,7 +2,7 @@
 //!
 //! Evaluates incoming SessionFrames, manages SessionMachine lifecycle,
 //! ingests Signal items, drives CYW43 LED presentation, emits receipts over
-//! CDC 1 (clue interface), and returns session truth on CDC 0.
+//! CDC 1 (sign interface), and returns session truth on CDC 0.
 
 use conduit_core::ConnectionBase;
 #[cfg(not(feature = "wifi-bootstrap"))]
@@ -39,13 +39,13 @@ pub use continuation::resume_plan_c_signal_sink;
 #[cfg(not(feature = "wifi-bootstrap"))]
 pub async fn establish_usb_channels(
     link_session: &mut UsbLinkSession,
-    clue_cdc: &mut UsbCdc,
+    sign_cdc: &mut UsbCdc,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), UsbLinkError> {
     let mut frame_buf = [0u8; 2048];
 
     // Prove CDC 0 in both directions before touching CDC 1. The link must not be
-    // held behind clue-channel startup or DTR state.
+    // held behind sign-channel startup or DTR state.
     link_session.wait_connection().await;
     loop {
         let raw_bytes = link_session
@@ -62,10 +62,10 @@ pub async fn establish_usb_channels(
         }
     }
 
-    // The boot identity is mandatory clue, but CDC 1 readiness must not
+    // The boot identity is mandatory sign, but CDC 1 readiness must not
     // prevent the independent CDC 0 physical checkpoint above from completing.
-    clue_cdc.wait_dtr().await;
-    clue_cdc
+    sign_cdc.wait_dtr().await;
+    sign_cdc
         .write_boot_identity(boot_identity(), runtime)
         .await?;
 
@@ -75,14 +75,14 @@ pub async fn establish_usb_channels(
 #[cfg(not(feature = "wifi-bootstrap"))]
 pub async fn run_remote_signal_sink(
     link_session: &mut UsbLinkSession,
-    clue_cdc: &mut UsbCdc,
+    sign_cdc: &mut UsbCdc,
     control: &mut Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), UsbLinkError> {
     let planned = generated_remote_endpoint().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
     run_remote_signal_sink_for(
         link_session,
-        clue_cdc,
+        sign_cdc,
         control,
         runtime,
         planned,
@@ -94,7 +94,7 @@ pub async fn run_remote_signal_sink(
 #[cfg(feature = "wifi-bootstrap")]
 pub async fn run_plan_b_signal_sink(
     link_session: &mut UsbLinkSession,
-    clue_cdc: &mut UsbCdc,
+    sign_cdc: &mut UsbCdc,
     control: &mut Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
     state: &mut ContinuableSignalSink,
@@ -110,7 +110,7 @@ pub async fn run_plan_b_signal_sink(
     let binding = &state.binding;
     run_prepared_signal_sink(
         link_session,
-        clue_cdc,
+        sign_cdc,
         control,
         runtime,
         binding,
@@ -124,7 +124,7 @@ pub async fn run_plan_b_signal_sink(
 #[cfg(not(feature = "wifi-bootstrap"))]
 async fn run_remote_signal_sink_for(
     link_session: &mut UsbLinkSession,
-    clue_cdc: &mut UsbCdc,
+    sign_cdc: &mut UsbCdc,
     control: &mut Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
     planned: RemoteEndpointIdentity,
@@ -202,7 +202,7 @@ async fn run_remote_signal_sink_for(
 
     run_prepared_signal_sink(
         link_session,
-        clue_cdc,
+        sign_cdc,
         control,
         runtime,
         &binding,
@@ -218,7 +218,7 @@ async fn run_remote_signal_sink_for(
 #[allow(clippy::too_many_arguments)]
 async fn run_prepared_signal_sink(
     link_session: &mut UsbLinkSession,
-    clue_cdc: &mut UsbCdc,
+    sign_cdc: &mut UsbCdc,
     control: &mut Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
     binding: &SessionBinding,
@@ -300,7 +300,7 @@ async fn run_prepared_signal_sink(
             // Delivered is emitted only after the kernel-owned host operation has
             // completed the physical LED effect and its mandatory receipt.
             if let Err(error) = kernel
-                .present_accepted(sequence, control, clue_cdc, runtime)
+                .present_accepted(sequence, control, sign_cdc, runtime)
                 .await
             {
                 return fail_active_session(
@@ -368,7 +368,7 @@ async fn run_prepared_signal_sink(
     if failure_disposition.is_some() {
         return Err(UsbLinkError::KernelCancelled);
     }
-    clue_cdc
+    sign_cdc
         .write_terminal(true, identity.terminal(), runtime)
         .await?;
 

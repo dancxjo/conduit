@@ -152,7 +152,7 @@ pub struct StdKernelExecutionReport {
     pub active_play_id: conduit_core::ActivePlayId,
     pub decisions: u32,
     pub kernel_events: u16,
-    pub kernel_clue: Vec<conduit_kernel::KernelEvent>,
+    pub kernel_sign: Vec<conduit_kernel::KernelEvent>,
     pub value_allocation_capacity_before: (usize, usize),
     pub value_allocation_capacity_after: (usize, usize),
     pub presentation_ids: Vec<conduit_core::PresentationId>,
@@ -203,12 +203,12 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
     write_operator_report(output, &advertisement, &fragment.plan_id, &fragment)?;
     let mut resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
     let reservation = resources.prepare_and_reserve(&advertisement, &fragment)?;
-    let mut clue_sequence = 0;
+    let mut sign_sequence = 0;
     let result = kernel_multivalue::execute_fragment(
         &advertisement,
         &fragment,
         0,
-        &mut clue_sequence,
+        &mut sign_sequence,
         output,
         timer,
     );
@@ -239,7 +239,7 @@ pub struct StdHost {
     advertisement: HostAdvertisement,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
-    next_kernel_clue_sequence: u64,
+    next_kernel_sign_sequence: u64,
 }
 
 impl Default for StdHost {
@@ -269,7 +269,7 @@ impl StdHost {
             advertisement,
             kernel_resources,
             next_kernel_play_sequence: 0,
-            next_kernel_clue_sequence: 0,
+            next_kernel_sign_sequence: 0,
         }
     }
 
@@ -341,7 +341,7 @@ impl StdHost {
                     &advertisement,
                     &fragment,
                     play_sequence,
-                    &mut self.next_kernel_clue_sequence,
+                    &mut self.next_kernel_sign_sequence,
                     output,
                     timer,
                     control,
@@ -354,7 +354,7 @@ impl StdHost {
                     &advertisement,
                     &fragment,
                     play_sequence,
-                    &mut self.next_kernel_clue_sequence,
+                    &mut self.next_kernel_sign_sequence,
                     output,
                     timer,
                 )
@@ -597,7 +597,7 @@ mod tests {
         assert_eq!(lowered.resources.len(), 2);
         assert_eq!(lowered.cord_value_slots, 4);
         assert_eq!(lowered.cord_value_bytes, 64);
-        assert_eq!(lowered.clue_items, fragment.expected_clue.len() as u16);
+        assert_eq!(lowered.sign_items, fragment.expected_sign.len() as u16);
         assert_eq!(lowered.identity.placements.len(), 2);
         assert_eq!(lowered.identity.connections.len(), 1);
         assert_eq!(lowered.identity.ports.len(), 2);
@@ -651,7 +651,7 @@ mod tests {
             .ports
             .iter()
             .any(|port| port.direction == PortDirection::Output));
-        assert_eq!(lowered.clues.len(), fragment.expected_clue.len());
+        assert_eq!(lowered.signs.len(), fragment.expected_sign.len());
         assert!(lowered
             .host_operations
             .iter()
@@ -755,7 +755,7 @@ mod tests {
     }
 
     #[test]
-    fn streamed_output_uses_a_virtual_clock_and_retains_terminal_clue() {
+    fn streamed_output_uses_a_virtual_clock_and_retains_terminal_sign() {
         let mut host = StdHost::new_with_config(StdHostConfig {
             host_id: HostId::from("test-host"),
             boot_id: BootId::from("virtual-clock-boot"),
@@ -825,12 +825,12 @@ mod tests {
                 == 3
         );
         for observation in &report.observations {
-            let clue = kernel
+            let sign = kernel
                 .identity
-                .clue_identity(&observation.clue_id)
-                .expect("host clue reverses to its kernel identity row");
+                .sign_identity(&observation.sign_id)
+                .expect("host sign reverses to its kernel identity row");
             assert_eq!(
-                clue.presentation_id.as_ref(),
+                sign.presentation_id.as_ref(),
                 observation.presentation_id.as_ref()
             );
             if let Some(presentation_id) = &observation.presentation_id {
@@ -856,9 +856,9 @@ mod tests {
                 assert_eq!(
                     kernel
                         .identity
-                        .clue_for_presentation(presentation_id)
-                        .map(|identity| &identity.clue_id),
-                    Some(&observation.clue_id)
+                        .sign_for_presentation(presentation_id)
+                        .map(|identity| &identity.sign_id),
+                    Some(&observation.sign_id)
                 );
             }
         }

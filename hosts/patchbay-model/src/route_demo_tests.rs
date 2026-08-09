@@ -45,16 +45,16 @@ fn visual_and_linear_views_preserve_one_typed_identity_set() {
         facts.new_plan.prior.plan_id.as_str(),
         facts.new_plan.prior.connection_id.as_str(),
         facts.new_plan.replacement_plan_id.as_str(),
-        facts.new_plan.unavailable_clue_id.as_str(),
-        facts.new_plan.unsatisfied_clue_id.as_str(),
-        facts.new_plan.planning_request_clue_id.as_str(),
-        facts.new_plan.planning_success_clue_id.as_str(),
-        facts.new_plan.installed_clue_id.as_str(),
+        facts.new_plan.unavailable_sign_id.as_str(),
+        facts.new_plan.unsatisfied_sign_id.as_str(),
+        facts.new_plan.planning_request_sign_id.as_str(),
+        facts.new_plan.planning_success_sign_id.as_str(),
+        facts.new_plan.installed_sign_id.as_str(),
         facts.same_plan.plan.plan_id.as_str(),
         facts.same_plan.plan.connection_id.as_str(),
-        facts.same_plan.unavailable_clue_id.as_str(),
-        facts.same_plan.selection_clue_id.as_str(),
-        facts.refused.observation_clue_id.as_str(),
+        facts.same_plan.unavailable_sign_id.as_str(),
+        facts.same_plan.selection_sign_id.as_str(),
+        facts.refused.observation_sign_id.as_str(),
     ];
     for identity in exact_identities {
         assert!(visual.contains(identity), "visual omitted {identity}");
@@ -82,7 +82,7 @@ fn visual_and_linear_views_preserve_one_typed_identity_set() {
 }
 
 #[test]
-fn projection_uses_typed_bases_and_exact_validated_event_clue() {
+fn projection_uses_typed_bases_and_exact_validated_event_sign() {
     let demo = DistributedRouteDemo::build().expect("route demo");
     let facts = demo.presentation();
     assert_eq!(
@@ -99,39 +99,39 @@ fn projection_uses_typed_bases_and_exact_validated_event_clue() {
         panic!("route demo must retain its six validated control events");
     };
     let ControlLoopEvent::LineBecameUnavailable {
-        observation_clue_id,
+        observation_sign_id,
         ..
     } = link
     else {
         panic!("first event must be link loss");
     };
-    assert_eq!(&facts.new_plan.unavailable_clue_id, observation_clue_id);
-    let ControlLoopEvent::PlayBecameUnsatisfied { clue_id, .. } = unsatisfied else {
+    assert_eq!(&facts.new_plan.unavailable_sign_id, observation_sign_id);
+    let ControlLoopEvent::PlayBecameUnsatisfied { sign_id, .. } = unsatisfied else {
         panic!("second event must be an unsatisfied Play");
     };
-    assert_eq!(&facts.new_plan.unsatisfied_clue_id, clue_id);
+    assert_eq!(&facts.new_plan.unsatisfied_sign_id, sign_id);
     let ControlLoopEvent::PlanningRequested {
-        request_clue_id, ..
+        request_sign_id, ..
     } = requested
     else {
         panic!("third event must be planning request");
     };
-    assert_eq!(&facts.new_plan.planning_request_clue_id, request_clue_id);
-    let ControlLoopEvent::PlanningSucceeded { clue_id, .. } = succeeded else {
+    assert_eq!(&facts.new_plan.planning_request_sign_id, request_sign_id);
+    let ControlLoopEvent::PlanningSucceeded { sign_id, .. } = succeeded else {
         panic!("fourth event must be planning success");
     };
-    assert_eq!(&facts.new_plan.planning_success_clue_id, clue_id);
-    let ControlLoopEvent::PlanSuperseded { clue_id, .. } = installed else {
+    assert_eq!(&facts.new_plan.planning_success_sign_id, sign_id);
+    let ControlLoopEvent::PlanSuperseded { sign_id, .. } = installed else {
         panic!("fifth event must install the replacement Plan");
     };
-    assert_eq!(&facts.new_plan.installed_clue_id, clue_id);
+    assert_eq!(&facts.new_plan.installed_sign_id, sign_id);
     let ControlLoopEvent::LineSelectionChanged {
-        observation_clue_id,
+        observation_sign_id,
         ..
     } = selected
     else {
         panic!("sixth event must be same-Plan selection");
     };
-    assert_eq!(&facts.same_plan.selection_clue_id, observation_clue_id);
-    assert_eq!(&facts.same_plan.unavailable_clue_id, observation_clue_id);
+    assert_eq!(&facts.same_plan.selection_sign_id, observation_sign_id);
+    assert_eq!(&facts.same_plan.unavailable_sign_id, observation_sign_id);
 }

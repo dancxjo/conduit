@@ -3,11 +3,11 @@ use conduit_ai::{
     install_generate_text_catalog, DATA_EGRESS_CHARACTERISTIC, MAXIMUM_CONTEXT_CHARACTERISTIC,
     METERED_COST_CHARACTERISTIC,
 };
-use conduit_core::{ClueId, RealizationCharacteristicId, ResourceHealth, ResourceObservation};
+use conduit_core::{RealizationCharacteristicId, ResourceHealth, ResourceObservation, SignId};
 use conduit_planner::{
     plan_selected_realizations_with_characteristics,
     replan_selected_realizations_with_characteristics,
-    select_realization_with_characteristics_and_clues, HardRealizationRequirements,
+    select_realization_with_characteristics_and_signs, HardRealizationRequirements,
     PlanningOptions, RealizationDecisionDisposition, RealizationPolicy, RealizationPreference,
     RealizationRejection, RealizationReplanOutcome,
 };
@@ -40,7 +40,7 @@ fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObserv
                     health: ResourceHealth::Ready,
                     unreserved_units: pool.capacity_units,
                     utilized_units: 0,
-                    clue_id: ClueId::from(format!("{}-observation-{index}", host.host_id.as_str())),
+                    sign_id: SignId::from(format!("{}-observation-{index}", host.host_id.as_str())),
                 })
         })
         .collect()
@@ -101,7 +101,7 @@ fn context_and_privacy_hard_requirements_select_only_large_local() {
 }
 
 #[test]
-fn bounded_decision_clue_explains_rejections_and_exact_selection() {
+fn bounded_decision_sign_explains_rejections_and_exact_selection() {
     let form = form();
     let fixtures = generate_text_base_fixtures();
     let hosts = fixtures
@@ -121,7 +121,7 @@ fn bounded_decision_clue_explains_rejections_and_exact_selection() {
         ..HardRealizationRequirements::default()
     };
 
-    let selection = select_realization_with_characteristics_and_clues(
+    let selection = select_realization_with_characteristics_and_signs(
         &form.gears[0],
         &hosts,
         &advertisements,
@@ -129,11 +129,11 @@ fn bounded_decision_clue_explains_rejections_and_exact_selection() {
         &observations(&hosts),
         &RealizationPolicy::default(),
     )
-    .expect("decision clues accompanies selection");
+    .expect("decision signs accompanies selection");
     assert_eq!(selection.choice.host_id.as_str(), "ai-large-local");
-    assert_eq!(selection.clues.len(), 3);
+    assert_eq!(selection.signs.len(), 3);
     let small = selection
-        .clues
+        .signs
         .iter()
         .find(|record| record.host_id.as_str() == "ai-small-local")
         .expect("small candidate is recorded");
@@ -144,7 +144,7 @@ fn bounded_decision_clue_explains_rejections_and_exact_selection() {
         ))
     );
     let large = selection
-        .clues
+        .signs
         .iter()
         .find(|record| record.host_id.as_str() == "ai-large-local")
         .expect("large candidate is recorded");
@@ -162,7 +162,7 @@ fn bounded_decision_clue_explains_rejections_and_exact_selection() {
             .artifact_id
     );
     let remote = selection
-        .clues
+        .signs
         .iter()
         .find(|record| record.host_id.as_str() == "ai-remote-base")
         .expect("remote candidate is recorded");
@@ -175,7 +175,7 @@ fn bounded_decision_clue_explains_rejections_and_exact_selection() {
 }
 
 #[test]
-fn decision_clue_fails_before_exceeding_its_candidate_bound() {
+fn decision_sign_fails_before_exceeding_its_candidate_bound() {
     let form = form();
     let fixture = generate_text_base_fixtures()[0].clone();
     let mut hosts = Vec::new();
@@ -195,7 +195,7 @@ fn decision_clue_fails_before_exceeding_its_candidate_bound() {
         advertisements.push(facts.pop().expect("one realization fact"));
         hosts.push(host);
     }
-    let error = select_realization_with_characteristics_and_clues(
+    let error = select_realization_with_characteristics_and_signs(
         &form.gears[0],
         &hosts,
         &advertisements,
@@ -203,7 +203,7 @@ fn decision_clue_fails_before_exceeding_its_candidate_bound() {
         &observations(&hosts),
         &RealizationPolicy::default(),
     )
-    .expect_err("candidate clues cannot grow above its fixed planning bound");
+    .expect_err("candidate signs cannot grow above its fixed planning bound");
     assert!(matches!(
         error,
         conduit_planner::PlannerError::PlannerLimitExceeded(_)
@@ -219,7 +219,7 @@ fn explicit_policy_can_prefer_remote_among_hard_admissible_candidates() {
         .map(|fixture| fixture.advertisement.clone())
         .collect::<Vec<_>>();
     let advertisements = generate_text_realization_advertisements(&fixtures);
-    let selection = select_realization_with_characteristics_and_clues(
+    let selection = select_realization_with_characteristics_and_signs(
         &form.gears[0],
         &hosts,
         &advertisements,
@@ -236,7 +236,7 @@ fn explicit_policy_can_prefer_remote_among_hard_admissible_candidates() {
     assert_eq!(selection.choice.host_id.as_str(), "ai-remote-base");
     assert_eq!(
         selection
-            .clues
+            .signs
             .iter()
             .filter(|record| record.disposition == RealizationDecisionDisposition::Admitted)
             .count(),

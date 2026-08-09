@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AuthorityGrantId, BootId, ClueId, ConnectionBaseInstanceId, CredentialReferenceId, HostId,
-    LineId, LinkBindingId, LinkEndpointId,
+    AuthorityGrantId, BootId, ConnectionBaseInstanceId, CredentialReferenceId, HostId, LineId,
+    LinkBindingId, LinkEndpointId, SignId,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -220,7 +220,7 @@ pub struct LineAvailabilitySign {
     pub line_id: LineId,
     pub binding_id: LinkBindingId,
     pub availability: LineAvailability,
-    pub sign_id: ClueId,
+    pub sign_id: SignId,
 }
 
 impl LinkBinding {
@@ -243,7 +243,7 @@ impl LineOffer {
     pub fn availability_sign(
         &self,
         availability: LineAvailability,
-        sign_id: ClueId,
+        sign_id: SignId,
     ) -> LineAvailabilitySign {
         LineAvailabilitySign {
             line_id: self.line_id.clone(),

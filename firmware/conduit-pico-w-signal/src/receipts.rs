@@ -24,7 +24,7 @@ pub struct UsbCdc {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum UsbClueError {
+pub enum UsbSignError {
     FormatOverflow,
     Disconnected,
 }
@@ -49,7 +49,7 @@ impl UsbCdc {
 
     /// Write a mandatory proof marker to CDC 1.
     #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
-    pub async fn write_marker(&mut self, msg: &str) -> Result<(), UsbClueError> {
+    pub async fn write_marker(&mut self, msg: &str) -> Result<(), UsbSignError> {
         self.write_all_mandatory(msg.as_bytes()).await?;
         self.write_all_mandatory(b"\n").await
     }
@@ -129,7 +129,7 @@ pub struct BootIdentity {
     pub fragment_id: &'static str,
     pub host_id: &'static str,
     pub boot_id: &'static str,
-    pub boot_clue_id: &'static str,
+    pub boot_sign_id: &'static str,
 }
 
 #[derive(Clone, Copy)]
@@ -144,7 +144,7 @@ pub struct PresentationReceiptIdentity {
     pub boot_id: &'static str,
     pub active_play_id: &'static str,
     pub presentation_id: &'static str,
-    pub clue_id: &'static str,
+    pub sign_id: &'static str,
 }
 
 #[derive(Clone, Copy)]
@@ -158,7 +158,7 @@ pub struct TerminalIdentity {
     pub host_id: &'static str,
     pub boot_id: &'static str,
     pub active_play_id: &'static str,
-    pub clue_id: &'static str,
+    pub sign_id: &'static str,
 }
 
 /// Task that runs the USB device state machine.
@@ -176,7 +176,7 @@ impl UsbCdc {
         &mut self,
         identity: BootIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) -> Result<(), UsbClueError> {
+    ) -> Result<(), UsbSignError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         core::fmt::write(
             &mut line,
@@ -194,7 +194,7 @@ impl UsbCdc {
                     "\"boot_id\":\"{}\",",
                     "\"runtime_boot_id\":\"{}\",",
                     "\"runtime_active_play_id\":\"{}\",",
-                    "\"clue_id\":\"{}\"",
+                    "\"sign_id\":\"{}\"",
                     "}}\n"
                 ),
                 identity.firmware_build_id,
@@ -207,10 +207,10 @@ impl UsbCdc {
                 identity.boot_id,
                 runtime.boot_id(),
                 runtime.active_play_id(),
-                identity.boot_clue_id,
+                identity.boot_sign_id,
             ),
         )
-        .map_err(|_| UsbClueError::FormatOverflow)?;
+        .map_err(|_| UsbSignError::FormatOverflow)?;
         self.write_all_mandatory(line.as_bytes()).await
     }
 
@@ -221,7 +221,7 @@ impl UsbCdc {
         level: bool,
         identity: PresentationReceiptIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) -> Result<(), UsbClueError> {
+    ) -> Result<(), UsbSignError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         core::fmt::write(
             &mut line,
@@ -243,7 +243,7 @@ impl UsbCdc {
                     "\"sequence\":{},",
                     "\"level\":{},",
                     "\"presentation_id\":\"{}\",",
-                    "\"clue_id\":\"{}\"",
+                    "\"sign_id\":\"{}\"",
                     "}}\n"
                 ),
                 identity.firmware_build_id,
@@ -260,10 +260,10 @@ impl UsbCdc {
                 sequence,
                 level,
                 identity.presentation_id,
-                identity.clue_id,
+                identity.sign_id,
             ),
         )
-        .map_err(|_| UsbClueError::FormatOverflow)?;
+        .map_err(|_| UsbSignError::FormatOverflow)?;
         self.write_all_mandatory(line.as_bytes()).await
     }
 
@@ -273,7 +273,7 @@ impl UsbCdc {
         success: bool,
         identity: TerminalIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) -> Result<(), UsbClueError> {
+    ) -> Result<(), UsbSignError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         core::fmt::write(
             &mut line,
@@ -293,7 +293,7 @@ impl UsbCdc {
                     "\"runtime_boot_id\":\"{}\",",
                     "\"runtime_active_play_id\":\"{}\",",
                     "\"success\":{},",
-                    "\"clue_id\":\"{}\"",
+                    "\"sign_id\":\"{}\"",
                     "}}\n"
                 ),
                 identity.firmware_build_id,
@@ -308,10 +308,10 @@ impl UsbCdc {
                 runtime.boot_id(),
                 runtime.active_play_id(),
                 success,
-                identity.clue_id,
+                identity.sign_id,
             ),
         )
-        .map_err(|_| UsbClueError::FormatOverflow)?;
+        .map_err(|_| UsbSignError::FormatOverflow)?;
         self.write_all_mandatory(line.as_bytes()).await
     }
 
@@ -322,7 +322,7 @@ impl UsbCdc {
         e: conduit_kernel::scheduler::SchedulerError,
         identity: TerminalIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) -> Result<(), UsbClueError> {
+    ) -> Result<(), UsbSignError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         core::fmt::write(
             &mut line,
@@ -342,7 +342,7 @@ impl UsbCdc {
                     "\"runtime_boot_id\":\"{}\",",
                     "\"runtime_active_play_id\":\"{}\",",
                     "\"success\":false,",
-                    "\"clue_id\":\"{}\",",
+                    "\"sign_id\":\"{}\",",
                     "\"error\":\"{:?}\"",
                     "}}\n"
                 ),
@@ -357,15 +357,15 @@ impl UsbCdc {
                 identity.active_play_id,
                 runtime.boot_id(),
                 runtime.active_play_id(),
-                identity.clue_id,
+                identity.sign_id,
                 e,
             ),
         )
-        .map_err(|_| UsbClueError::FormatOverflow)?;
+        .map_err(|_| UsbSignError::FormatOverflow)?;
         self.write_all_mandatory(line.as_bytes()).await
     }
 
-    /// Write terminal failure clue for a transport/session/kernel failure
+    /// Write terminal failure sign for a transport/session/kernel failure
     /// that is not representable as a scheduler error value.
     #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
     #[cfg(not(feature = "wifi-bootstrap"))]
@@ -374,7 +374,7 @@ impl UsbCdc {
         code: &str,
         identity: TerminalIdentity,
         runtime: &RuntimeTranscriptIdentity,
-    ) -> Result<(), UsbClueError> {
+    ) -> Result<(), UsbSignError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
         core::fmt::write(
             &mut line,
@@ -394,7 +394,7 @@ impl UsbCdc {
                     "\"runtime_boot_id\":\"{}\",",
                     "\"runtime_active_play_id\":\"{}\",",
                     "\"success\":false,",
-                    "\"clue_id\":\"{}\",",
+                    "\"sign_id\":\"{}\",",
                     "\"error_code\":\"{}\"",
                     "}}\n"
                 ),
@@ -409,18 +409,18 @@ impl UsbCdc {
                 identity.active_play_id,
                 runtime.boot_id(),
                 runtime.active_play_id(),
-                identity.clue_id,
+                identity.sign_id,
                 code,
             ),
         )
-        .map_err(|_| UsbClueError::FormatOverflow)?;
+        .map_err(|_| UsbSignError::FormatOverflow)?;
         self.write_all_mandatory(line.as_bytes()).await
     }
 
     pub(crate) async fn write_all_mandatory(
         &mut self,
         data: &[u8],
-    ) -> Result<(), UsbClueError> {
+    ) -> Result<(), UsbSignError> {
         let mut offset = 0;
         while offset < data.len() {
             let chunk_len = (data.len() - offset).min(MAX_PACKET_SIZE as usize);
@@ -430,7 +430,7 @@ impl UsbCdc {
                 .await
                 .is_err()
             {
-                return Err(UsbClueError::Disconnected);
+                return Err(UsbSignError::Disconnected);
             }
             offset += chunk_len;
         }

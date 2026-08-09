@@ -1,32 +1,32 @@
-use conduit_core::ClueId;
+use conduit_core::SignId;
 
 use crate::identity::validate_ids;
 use crate::{BodyLifecycleError, WakeLifecycle, WakePlan, WakePlanState};
 
-pub(crate) fn validate_clue(values: &[ClueId], capacity: usize) -> Result<(), BodyLifecycleError> {
+pub(crate) fn validate_sign(values: &[SignId], capacity: usize) -> Result<(), BodyLifecycleError> {
     if values.is_empty() || values.len() > capacity {
-        return Err(BodyLifecycleError::ClueCapacityExhausted);
+        return Err(BodyLifecycleError::SignCapacityExhausted);
     }
     for (index, value) in values.iter().enumerate() {
         validate_ids(&[value.as_str()])?;
         if values[..index].contains(value) {
-            return Err(BodyLifecycleError::DuplicateClue);
+            return Err(BodyLifecycleError::DuplicateSign);
         }
     }
     Ok(())
 }
 
-pub(crate) fn validate_new_clue(
-    values: &[ClueId],
-    value: &ClueId,
+pub(crate) fn validate_new_sign(
+    values: &[SignId],
+    value: &SignId,
     capacity: usize,
 ) -> Result<(), BodyLifecycleError> {
     validate_ids(&[value.as_str()])?;
     if values.contains(value) {
-        return Err(BodyLifecycleError::DuplicateClue);
+        return Err(BodyLifecycleError::DuplicateSign);
     }
     if values.len() >= capacity {
-        return Err(BodyLifecycleError::ClueCapacityExhausted);
+        return Err(BodyLifecycleError::SignCapacityExhausted);
     }
     Ok(())
 }

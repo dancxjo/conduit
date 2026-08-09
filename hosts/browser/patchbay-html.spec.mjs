@@ -20,7 +20,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#status")).toContainText("Manifestation Available");
     await expect(page.getByRole("heading",{name:"Form"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
-    await expect(page.getByRole("heading",{name:"Active Play and Clues"})).toBeVisible();
+    await expect(page.getByRole("heading",{name:"Active Play and Signs"})).toBeVisible();
     await expect(page.locator("#route-cards h3").first()).toContainText("Route");
     await expect(page.locator("#diagnostics li")).toHaveCount(1);
     await expect(page.locator("#diagnostics li")).toContainText("CND-FRM-004");
@@ -38,8 +38,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#realizations")).toContainText("base WebSocket");
     await expect(page.locator("#realizations")).toContainText("binding patchbay-renderer/binding/websocket");
     await expect(page.locator("#realizations")).toContainText("base-instance patchbay-renderer/websocket-instance");
-    await expect(page.locator("#clue")).toContainText("Renderer patchbay-html/cross-host-prepared · Prepared");
-    await expect(page.locator("#clue")).toContainText("Renderer patchbay-html/document-ready · Available");
+    await expect(page.locator("#sign")).toContainText("Renderer patchbay-html/cross-host-prepared · Prepared");
+    await expect(page.locator("#sign")).toContainText("Renderer patchbay-html/document-ready · Available");
     await expect(page.locator("#topology li").first()).toContainText("boot");
     await expect(page.locator("#route-cards li").filter({hasText:"USB CDC"}).first()).toBeVisible();
     await expect(page.locator("#route-cards li").filter({hasText:"WebSocket"}).first()).toBeVisible();

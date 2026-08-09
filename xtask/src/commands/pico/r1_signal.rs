@@ -4,8 +4,8 @@ use std::time::Duration;
 
 use conduit_signal::SIGNAL_ENCODED_LEN;
 use conduit_std_host::pico_usb_source::PicoUsbSource;
-use conduit_std_host::usb_cdc::NativePathCdcCarrier;
-use conduit_std_host::websocket::NativeWebSocketCarrier;
+use conduit_std_host::usb_cdc::NativePathCdcLine;
+use conduit_std_host::websocket::NativeWebSocketLine;
 #[cfg(test)]
 use conduit_wire::SessionTerminalDisposition;
 use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionFrame, SessionMessage};
@@ -21,12 +21,12 @@ pub trait R1SessionIo {
 }
 
 pub struct WebSocketSessionIo<'a> {
-    carrier: &'a mut NativeWebSocketCarrier,
+    line: &'a mut NativeWebSocketLine,
 }
 
 impl<'a> WebSocketSessionIo<'a> {
-    pub fn new(carrier: &'a mut NativeWebSocketCarrier) -> Self {
-        Self { carrier }
+    pub fn new(line: &'a mut NativeWebSocketLine) -> Self {
+        Self { line }
     }
 }
 
@@ -40,14 +40,14 @@ impl R1SessionIo for WebSocketSessionIo<'_> {
             SESSION_FRAME_BYTES,
         )
         .map_err(|error| format!("failed encoding R1 Session frame: {error:?}"))?;
-        self.carrier
+        self.line
             .send_binary(&bytes[..length])
             .map_err(|error| format!("WebSocket send failed: {error:?}").into())
     }
 
     fn receive<'a>(&mut self, bytes: &'a mut [u8]) -> PicoResult<SessionFrame<'a>> {
         let length = self
-            .carrier
+            .line
             .receive_binary(bytes)
             .map_err(|error| format!("WebSocket receive failed: {error:?}"))?;
         decode_session_frame(&bytes[..length], SESSION_PAYLOAD_BYTES, SESSION_FRAME_BYTES)
@@ -56,24 +56,24 @@ impl R1SessionIo for WebSocketSessionIo<'_> {
 }
 
 pub struct UsbSessionIo<'a> {
-    carrier: &'a mut NativePathCdcCarrier,
+    line: &'a mut NativePathCdcLine,
 }
 
 impl<'a> UsbSessionIo<'a> {
-    pub fn new(carrier: &'a mut NativePathCdcCarrier) -> Self {
-        Self { carrier }
+    pub fn new(line: &'a mut NativePathCdcLine) -> Self {
+        Self { line }
     }
 }
 
 impl R1SessionIo for UsbSessionIo<'_> {
     fn send(&mut self, frame: &SessionFrame<'_>) -> PicoResult<()> {
-        self.carrier
+        self.line
             .send_frame(frame, Duration::from_secs(2))
             .map_err(Into::into)
     }
 
     fn receive<'a>(&mut self, bytes: &'a mut [u8]) -> PicoResult<SessionFrame<'a>> {
-        self.carrier
+        self.line
             .receive_frame(bytes, Duration::from_secs(15))
             .map_err(Into::into)
     }

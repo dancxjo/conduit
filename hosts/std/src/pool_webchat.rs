@@ -1,7 +1,7 @@
 //! Host realization of the source-level shared-pool chat proof.
 //!
 //! The authored source contains only pool, fan, merge, room, and peer
-//! semantics. This host module selects RFC6455 as the physical browser carrier
+//! semantics. This host module selects RFC6455 as the physical browser line
 //! after the exact pool Plan has been checked, planned, and lowered.
 
 use crate::external_websocket::{
@@ -40,15 +40,15 @@ pub fn run(bind: &str) -> Result<(), String> {
     let address = bind
         .parse::<SocketAddr>()
         .map_err(|error| format!("invalid bind address: {error}"))?;
-    let mut carrier = ExternalWebSocketListener::bind(
+    let mut line = ExternalWebSocketListener::bind(
         address,
         conduit_chat::POOL_WEBCHAT_MAXIMUM_PEERS,
         MAXIMUM_MESSAGE_BYTES as u32,
     )
-    .map_err(|error| format!("pool chat carrier bind: {error:?}"))?;
+    .map_err(|error| format!("pool chat line bind: {error:?}"))?;
     println!(
-        "pool-webchat-ready address={} source={} plan={} pool={} carrier=websocket",
-        carrier.local_addr().map_err(debug_error)?,
+        "pool-webchat-ready address={} source={} plan={} pool={} line=websocket",
+        line.local_addr().map_err(debug_error)?,
         source_identity()?,
         plan_id,
         lowered_pool.pool_id.as_str(),
@@ -63,15 +63,15 @@ pub fn run(bind: &str) -> Result<(), String> {
     .map_err(|error| format!("pool initialization: {error:?}"))?;
     let mut members = [None; MAXIMUM_PEERS];
     for _ in 0..2 {
-        let peer = carrier.accept_peer().map_err(debug_error)?;
+        let peer = line.accept_peer().map_err(debug_error)?;
         members[peer.index()] = Some(admit(&mut pool, peer)?);
     }
-    drive_chat(&mut carrier, &mut pool, &mut members)?;
+    drive_chat(&mut line, &mut pool, &mut members)?;
     println!(
-        "pool-webchat-complete plan={} pool={} clue={} population={}",
+        "pool-webchat-complete plan={} pool={} sign={} population={}",
         plan_id,
         lowered_pool.pool_id.as_str(),
-        pool.clues().count(),
+        pool.signs().count(),
         pool.active_population(),
     );
     Ok(())
@@ -95,8 +95,8 @@ fn planned_pool() -> Result<(String, conduit_runtime::lowering::LoweredSharedPoo
             member_limits: PoolMemberLimits {
                 queue_item_capacity: 32,
                 queue_byte_capacity: 8_192,
-                clue_item_capacity: 8,
-                clue_byte_capacity: 1_024,
+                sign_item_capacity: 8,
+                sign_byte_capacity: 1_024,
             },
             admission_authority: authority.clone(),
         },
@@ -206,7 +206,7 @@ fn admit(
 }
 
 fn drive_chat(
-    carrier: &mut ExternalWebSocketListener,
+    line: &mut ExternalWebSocketListener,
     pool: &mut FixedSharedPool<MAXIMUM_PEERS, 256>,
     members: &mut [Option<MemberIdentity>; MAXIMUM_PEERS],
 ) -> Result<(), String> {
@@ -218,8 +218,8 @@ fn drive_chat(
     let mut merge = FixedMerge::<32>::new().map_err(debug_error)?;
     while pool.active_population() > 0 {
         let source = members[current.index()]
-            .ok_or_else(|| "carrier selected an inactive member".to_string())?;
-        match carrier.receive_binary(current, &mut bytes) {
+            .ok_or_else(|| "line selected an inactive member".to_string())?;
+        match line.receive_binary(current, &mut bytes) {
             Ok(length) => {
                 sequence += 1;
                 let value = ValueRef {
@@ -242,8 +242,7 @@ fn drive_chat(
                     .map_err(debug_error)?;
                 for recipient in snapshot[..recipients].iter().copied() {
                     let target = ExternalPeerId::from_index(recipient.placement.play);
-                    carrier
-                        .send_binary(target, &bytes[..length])
+                    line.send_binary(target, &bytes[..length])
                         .map_err(debug_error)?;
                     fan.deliver(recipient).map_err(debug_error)?;
                 }
@@ -252,7 +251,7 @@ fn drive_chat(
             Err(ExternalWebSocketError::Disconnected) => release(pool, members, current)?,
             Err(error) => return Err(debug_error(error)),
         }
-        let Some(next) = carrier.next_connected_after(current) else {
+        let Some(next) = line.next_connected_after(current) else {
             break;
         };
         current = next;

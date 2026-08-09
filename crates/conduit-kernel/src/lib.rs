@@ -5,7 +5,7 @@
 //! This crate is the forward S1 kernel. It does not adapt the reboot runtime:
 //! callers lower exact plans into numeric port, host-operation, and route
 //! bindings before Play start. The fixed and hosted storage profiles implement
-//! the same value/clue contracts.
+//! the same value/sign contracts.
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -29,7 +29,7 @@ pub struct PortId(pub u16);
 #[repr(transparent)]
 pub struct CordId(pub u16);
 
-/// Numeric identity for one plan-lowered carrier boundary. The kernel does not
+/// Numeric identity for one plan-lowered line boundary. The kernel does not
 /// interpret base or transport configuration; the host binds this identity
 /// to the exact observed link before Play start.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -50,7 +50,7 @@ pub struct ResourceId(pub u16);
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]
-pub struct ClueExpectationId(pub u16);
+pub struct SignExpectationId(pub u16);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ResourceBinding {
@@ -59,7 +59,7 @@ pub struct ResourceBinding {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ClueExpectationTarget {
+pub enum SignExpectationTarget {
     Fragment,
     Node(NodeId),
     Cord(CordId),
@@ -687,14 +687,14 @@ pub struct KernelEvent {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ClueError {
+pub enum SignError {
     InvalidBudget,
     ItemCapacityExceeded,
     ByteCapacityExceeded,
     SequenceOverflow,
 }
 
-pub trait ClueSink {
+pub trait SignSink {
     fn item_capacity(&self) -> u16;
     fn byte_capacity(&self) -> u32;
     fn len(&self) -> u16;
@@ -708,14 +708,14 @@ pub trait ClueSink {
         port: Option<PortId>,
         request: Option<RequestId>,
         kind: KernelEventKind,
-    ) -> Result<KernelEvent, ClueError>;
+    ) -> Result<KernelEvent, SignError>;
 }
 
-pub trait ClueQuery {
+pub trait SignQuery {
     fn contains_kind(&self, kind: KernelEventKind) -> bool;
 }
 
-pub struct FixedClueLog<const EVENTS: usize> {
+pub struct FixedSignLog<const EVENTS: usize> {
     entries: [Option<KernelEvent>; EVENTS],
     len: u16,
     byte_capacity: u32,
@@ -723,18 +723,18 @@ pub struct FixedClueLog<const EVENTS: usize> {
     next_sequence: u32,
 }
 
-impl<const EVENTS: usize> FixedClueLog<EVENTS> {
-    pub fn new(byte_capacity: u32) -> Result<Self, ClueError> {
+impl<const EVENTS: usize> FixedSignLog<EVENTS> {
+    pub fn new(byte_capacity: u32) -> Result<Self, SignError> {
         let physical_bytes = EVENTS
             .checked_mul(size_of::<KernelEvent>())
             .and_then(|value| u32::try_from(value).ok())
-            .ok_or(ClueError::InvalidBudget)?;
+            .ok_or(SignError::InvalidBudget)?;
         if EVENTS == 0
             || EVENTS > usize::from(u16::MAX)
             || byte_capacity == 0
             || byte_capacity > physical_bytes
         {
-            return Err(ClueError::InvalidBudget);
+            return Err(SignError::InvalidBudget);
         }
         Ok(Self {
             entries: [None; EVENTS],
@@ -750,7 +750,7 @@ impl<const EVENTS: usize> FixedClueLog<EVENTS> {
     }
 }
 
-impl<const EVENTS: usize> ClueSink for FixedClueLog<EVENTS> {
+impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
     fn item_capacity(&self) -> u16 {
         u16::try_from(EVENTS).unwrap_or(u16::MAX)
     }
@@ -773,11 +773,11 @@ impl<const EVENTS: usize> ClueSink for FixedClueLog<EVENTS> {
         port: Option<PortId>,
         request: Option<RequestId>,
         kind: KernelEventKind,
-    ) -> Result<KernelEvent, ClueError> {
+    ) -> Result<KernelEvent, SignError> {
         let charge =
-            u32::try_from(size_of::<KernelEvent>()).map_err(|_| ClueError::InvalidBudget)?;
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
         if usize::from(self.len) >= EVENTS {
-            return Err(ClueError::ItemCapacityExceeded);
+            return Err(SignError::ItemCapacityExceeded);
         }
         if self
             .used_bytes
@@ -785,10 +785,10 @@ impl<const EVENTS: usize> ClueSink for FixedClueLog<EVENTS> {
             .filter(|used| *used <= self.byte_capacity)
             .is_none()
         {
-            return Err(ClueError::ByteCapacityExceeded);
+            return Err(SignError::ByteCapacityExceeded);
         }
         let sequence = self.next_sequence;
-        let next_sequence = sequence.checked_add(1).ok_or(ClueError::SequenceOverflow)?;
+        let next_sequence = sequence.checked_add(1).ok_or(SignError::SequenceOverflow)?;
         let event = KernelEvent {
             sequence,
             node,
@@ -804,14 +804,14 @@ impl<const EVENTS: usize> ClueSink for FixedClueLog<EVENTS> {
     }
 }
 
-impl<const EVENTS: usize> ClueQuery for FixedClueLog<EVENTS> {
+impl<const EVENTS: usize> SignQuery for FixedSignLog<EVENTS> {
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
         self.events().any(|event| event.kind == kind)
     }
 }
 
 #[cfg(feature = "alloc")]
-pub struct HostedClueLog {
+pub struct HostedSignLog {
     entries: alloc::vec::Vec<Option<KernelEvent>>,
     len: u16,
     byte_capacity: u32,
@@ -820,14 +820,14 @@ pub struct HostedClueLog {
 }
 
 #[cfg(feature = "alloc")]
-impl HostedClueLog {
-    pub fn new(item_capacity: u16, byte_capacity: u32) -> Result<Self, ClueError> {
+impl HostedSignLog {
+    pub fn new(item_capacity: u16, byte_capacity: u32) -> Result<Self, SignError> {
         let physical_bytes = usize::from(item_capacity)
             .checked_mul(size_of::<KernelEvent>())
             .and_then(|value| u32::try_from(value).ok())
-            .ok_or(ClueError::InvalidBudget)?;
+            .ok_or(SignError::InvalidBudget)?;
         if item_capacity == 0 || byte_capacity == 0 || byte_capacity > physical_bytes {
-            return Err(ClueError::InvalidBudget);
+            return Err(SignError::InvalidBudget);
         }
         let mut entries = alloc::vec::Vec::with_capacity(usize::from(item_capacity));
         entries.resize(usize::from(item_capacity), None);
@@ -850,7 +850,7 @@ impl HostedClueLog {
 }
 
 #[cfg(feature = "alloc")]
-impl ClueSink for HostedClueLog {
+impl SignSink for HostedSignLog {
     fn item_capacity(&self) -> u16 {
         u16::try_from(self.entries.len()).unwrap_or(u16::MAX)
     }
@@ -873,11 +873,11 @@ impl ClueSink for HostedClueLog {
         port: Option<PortId>,
         request: Option<RequestId>,
         kind: KernelEventKind,
-    ) -> Result<KernelEvent, ClueError> {
+    ) -> Result<KernelEvent, SignError> {
         let charge =
-            u32::try_from(size_of::<KernelEvent>()).map_err(|_| ClueError::InvalidBudget)?;
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
         if usize::from(self.len) >= self.entries.len() {
-            return Err(ClueError::ItemCapacityExceeded);
+            return Err(SignError::ItemCapacityExceeded);
         }
         if self
             .used_bytes
@@ -885,10 +885,10 @@ impl ClueSink for HostedClueLog {
             .filter(|used| *used <= self.byte_capacity)
             .is_none()
         {
-            return Err(ClueError::ByteCapacityExceeded);
+            return Err(SignError::ByteCapacityExceeded);
         }
         let sequence = self.next_sequence;
-        let next_sequence = sequence.checked_add(1).ok_or(ClueError::SequenceOverflow)?;
+        let next_sequence = sequence.checked_add(1).ok_or(SignError::SequenceOverflow)?;
         let event = KernelEvent {
             sequence,
             node,
@@ -905,7 +905,7 @@ impl ClueSink for HostedClueLog {
 }
 
 #[cfg(feature = "alloc")]
-impl ClueQuery for HostedClueLog {
+impl SignQuery for HostedSignLog {
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
         self.events().any(|event| event.kind == kind)
     }

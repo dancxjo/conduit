@@ -23,7 +23,7 @@ impl TimerAdapter for StopOnFirstWait {
 }
 
 #[test]
-fn exact_stop_request_uses_scheduler_cancellation_and_returns_terminal_clue() {
+fn exact_stop_request_uses_scheduler_cancellation_and_returns_terminal_sign() {
     let source = include_str!("../../../examples/clock.conduit");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
@@ -56,11 +56,11 @@ fn exact_stop_request_uses_scheduler_cancellation_and_returns_terminal_clue() {
         })
     ));
     assert_eq!(report.control_receipts.len(), 1);
-    let clue = &report.kernel.as_ref().unwrap().kernel_clue;
-    assert!(clue
+    let sign = &report.kernel.as_ref().unwrap().kernel_sign;
+    assert!(sign
         .iter()
         .any(|event| { event.kind == conduit_kernel::KernelEventKind::CancellationRequested }));
-    assert!(clue
+    assert!(sign
         .iter()
         .any(|event| { event.kind == conduit_kernel::KernelEventKind::RunCancelled }));
     assert_eq!(

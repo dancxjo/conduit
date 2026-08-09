@@ -39,7 +39,7 @@ produce the same plan regardless of which capable host invokes the contract.
 
 A target host does not need a planner offer. Its ordinary advertisements remain
 complete planning input, and its exact fragment retains the same validation,
-lowering, execution, and clue contracts. In particular, the Pico profile
+lowering, execution, and Sign contracts. In particular, the Pico profile
 continues to advertise no planner capability while accepting the generated
 bounded fragment used by the existing firmware path.
 
@@ -64,4 +64,4 @@ planner; it establishes that the host contract does not forbid such a profile.
   non-planner constrained target can consume and execute its exact fragment.
 
 WASM compilation is not by itself browser execution, and a Thumb build is not
-physical clue. This capability boundary changes neither proof class.
+physical Sign. This capability boundary changes neither proof class.

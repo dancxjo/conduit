@@ -1,7 +1,7 @@
 use crate::{
-    ArchitectureBaseId, BaseExecutionLaneId, BootId, CapabilityId, ClueId, ComputeDomainId,
+    ArchitectureBaseId, BaseExecutionLaneId, BootId, CapabilityId, ComputeDomainId,
     ComputePerformanceClassId, ComputeTopologyGroupId, GearId, HostId, OfferGeneration,
-    ResourceBindingRoleId, ResourceClassId, ResourceHandleId, ResourcePoolId,
+    ResourceBindingRoleId, ResourceClassId, ResourceHandleId, ResourcePoolId, SignId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -78,7 +78,7 @@ pub enum ResourceHealth {
     Unavailable,
 }
 
-/// Mutable current clue about one stable, boot-scoped resource pool.
+/// Mutable current sign about one stable, boot-scoped resource pool.
 ///
 /// Unreserved capacity, current utilization, and concrete scheduler lane
 /// assignment are distinct. This observation deliberately contains no lane or
@@ -93,7 +93,7 @@ pub struct ResourceObservation {
     pub health: ResourceHealth,
     pub unreserved_units: u32,
     pub utilized_units: u32,
-    pub clue_id: ClueId,
+    pub sign_id: SignId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

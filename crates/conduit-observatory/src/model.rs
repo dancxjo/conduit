@@ -2,11 +2,11 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, AdmittedLine, AuthorityBinding, AuthorityRequirement, BootId, CapabilityId,
-    CapabilityLimits, CheckedFormId, ClueId, ConnectionId, ConnectionTerminalDisposition,
+    CapabilityLimits, CheckedFormId, ConnectionId, ConnectionTerminalDisposition,
     ExecutionProfileId, ExpandedFormId, FragmentId, HostAdvertisement, HostId,
     HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision, KindId,
     LineOffer, Observation, OfferGeneration, PlacementId, Plan, PlanId, PlannerCapabilityOffer,
-    PortDescriptor, PresentationId, ResourceBinding, ResourceOffer, ResourceRequirement,
+    PortDescriptor, PresentationId, ResourceBinding, ResourceOffer, ResourceRequirement, SignId,
     SourceDocumentId, TerminalDisposition,
 };
 use serde::{Deserialize, Serialize};
@@ -227,8 +227,8 @@ pub struct ConnectionRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ClueRow {
-    pub clue_id: ClueId,
+pub struct SignRow {
+    pub sign_id: SignId,
     pub active_play_id: Option<ActivePlayId>,
     pub presentation_id: Option<PresentationId>,
     pub host_id: HostId,
@@ -258,6 +258,6 @@ pub struct ObservatoryReport {
     pub placements: Vec<PlacementRow>,
     pub connections: Vec<ConnectionRow>,
     pub plays: Vec<PlayReport>,
-    pub clues: Vec<ClueRow>,
+    pub signs: Vec<SignRow>,
     pub retention: RetentionRow,
 }

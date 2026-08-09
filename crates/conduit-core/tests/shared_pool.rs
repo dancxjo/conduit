@@ -1,11 +1,11 @@
 use conduit_core::{
-    kind_id, mandatory_clue_storage_requirement, seal_plan, ArtifactId, AuthorityGrantId, BootId,
+    kind_id, mandatory_sign_storage_requirement, seal_plan, ArtifactId, AuthorityGrantId, BootId,
     CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
-    ClueStorageBudget, ExecutionProfileId, ExpandedFormId, ExpectedClue, ExpectedTerminal,
-    FaceStartupParameter, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
-    KindContractRevision, PlacementId, PlanFragment, PlanId, PlannedGear, PlannedSharedPool,
-    PoolDeclarationId, PoolMemberLimits, PoolRealizationEnvelope, PortDescriptor, PortDirection,
-    PortTemporal, SharedPoolId, SourceDocumentId, TerminalPolicy,
+    ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FaceStartupParameter,
+    FormIdentity, FragmentId, GearId, HostId, ImplementationId, KindContractRevision, PlacementId,
+    PlanFragment, PlanId, PlannedGear, PlannedSharedPool, PoolDeclarationId, PoolMemberLimits,
+    PoolRealizationEnvelope, PortDescriptor, PortDirection, PortTemporal, SharedPoolId,
+    SignStorageBudget, SourceDocumentId, TerminalPolicy,
 };
 
 fn member_offer(kind: &str, revision: &str) -> CapabilityOffer {
@@ -56,8 +56,8 @@ fn pool() -> PlannedSharedPool {
         member_limits: PoolMemberLimits {
             queue_item_capacity: 4,
             queue_byte_capacity: 1_024,
-            clue_item_capacity: 16,
-            clue_byte_capacity: 2_048,
+            sign_item_capacity: 16,
+            sign_byte_capacity: 2_048,
         },
         realization_envelope: vec![PoolRealizationEnvelope {
             host_id: HostId::from("browser-host"),
@@ -72,9 +72,9 @@ fn pool() -> PlannedSharedPool {
 }
 
 fn fragment(pool: PlannedSharedPool) -> PlanFragment {
-    let expected_clue = vec![
-        ExpectedClue::PlanFragmentReceived,
-        ExpectedClue::PlanTerminal,
+    let expected_sign = vec![
+        ExpectedSign::PlanFragmentReceived,
+        ExpectedSign::PlanTerminal,
     ];
     PlanFragment {
         plan_id: PlanId::from(""),
@@ -122,9 +122,9 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
         terminal_policy: TerminalPolicy::RequireAllPlacementsAndConnections,
         expected_terminals: vec![ExpectedTerminal::PlanCompleted],
-        expected_clue: expected_clue.clone(),
-        clue_storage_budget: mandatory_clue_storage_requirement(&expected_clue).unwrap_or(
-            ClueStorageBudget {
+        expected_sign: expected_sign.clone(),
+        sign_storage_budget: mandatory_sign_storage_requirement(&expected_sign).unwrap_or(
+            SignStorageBudget {
                 item_capacity: 0,
                 byte_capacity: 0,
             },

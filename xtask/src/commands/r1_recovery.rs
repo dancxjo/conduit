@@ -1,12 +1,12 @@
-//! Deterministic R1 new-Plan recovery proof with an explicitly injected Line-loss Clue.
+//! Deterministic R1 new-Plan recovery proof with an explicitly injected Line-loss Sign.
 
 use conduit_core::{
-    ActivePlayId, BootId, ClueId, ConnectionBase, ControlLoopEvent, GearId, HostId,
-    LineAvailability, LineAvailabilitySign, LineId, PlanId,
+    ActivePlayId, BootId, ConnectionBase, ControlLoopEvent, GearId, HostId, LineAvailability,
+    LineAvailabilitySign, LineId, PlanId, SignId,
 };
 use conduit_system_continuity::{
-    exact_r1_signal_plan, R1LedResultClue, R1NewPlanRecovery, R1RecoveryStartClues,
-    R1ReplacementClues, R1SignalRouteSet,
+    exact_r1_signal_plan, R1LedResultSign, R1NewPlanRecovery, R1RecoveryStartSigns,
+    R1ReplacementSigns, R1SignalRouteSet,
 };
 use serde::Serialize;
 
@@ -28,7 +28,7 @@ struct SoftwareRecoveryOutcome {
     play_b_id: ActivePlayId,
     plan_b_line: ConnectionBase,
     control_events: Vec<ControlLoopEvent>,
-    led_result: R1LedResultClue,
+    led_result: R1LedResultSign,
     physical_acceptance: bool,
 }
 
@@ -36,7 +36,7 @@ pub fn run(opts: &GlobalOpts) -> Result<(), StepError> {
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "==> R1 deterministic recovery would inject an exact WebSocket Line-unavailable Clue"
+                "==> R1 deterministic recovery would inject an exact WebSocket Line-unavailable Sign"
             );
             println!("    proof class: deterministic-simulation; physical acceptance: false");
         }
@@ -82,11 +82,11 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
         HostId::from(conduit_net::R1_STD_HOST_ID),
         BootId::from(conduit_net::R1_STD_BOOT_ID),
         0,
-        R1RecoveryStartClues {
-            birth: ClueId::from("r1/body-born"),
-            wake: ClueId::from("r1/body-woke"),
-            plan_ready: ClueId::from("r1/plan-a-ready"),
-            play_started: ClueId::from("r1/play-a-started"),
+        R1RecoveryStartSigns {
+            birth: SignId::from("r1/body-born"),
+            wake: SignId::from("r1/body-woke"),
+            plan_ready: SignId::from("r1/plan-a-ready"),
+            play_started: SignId::from("r1/play-a-started"),
         },
     )
     .map_err(|error| format!("failed beginning recovery: {error:?}"))?;
@@ -108,9 +108,9 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
                     conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
                 ),
                 availability: LineAvailability::Unavailable,
-                sign_id: ClueId::from("r1/injected-websocket-line-unavailable"),
+                sign_id: SignId::from("r1/injected-websocket-line-unavailable"),
             },
-            ClueId::from("r1/play-a-unsatisfied"),
+            SignId::from("r1/play-a-unsatisfied"),
         )
         .map_err(|error| format!("failed injecting WebSocket Line loss: {error:?}"))?;
     recovery
@@ -121,12 +121,12 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
             HostId::from(conduit_net::R1_STD_HOST_ID),
             BootId::from(conduit_net::R1_STD_BOOT_ID),
             1,
-            R1ReplacementClues {
-                request: ClueId::from("r1/replan-requested"),
-                planned: ClueId::from("r1/plan-b-planned"),
-                superseded: ClueId::from("r1/plan-a-superseded"),
-                realized: ClueId::from("r1/plan-b-realized"),
-                play_started: ClueId::from("r1/play-b-started"),
+            R1ReplacementSigns {
+                request: SignId::from("r1/replan-requested"),
+                planned: SignId::from("r1/plan-b-planned"),
+                superseded: SignId::from("r1/plan-a-superseded"),
+                realized: SignId::from("r1/plan-b-realized"),
+                play_started: SignId::from("r1/play-b-started"),
             },
         )
         .map_err(|error| format!("failed installing replacement: {error:?}"))?;
@@ -147,7 +147,7 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
             plan_id: plan_b_id.clone(),
             active_play_id: play_b_id.clone(),
             observed_session: plan_b_session,
-            clue_id: ClueId::from("r1/simulated-plan-b-led-result"),
+            sign_id: SignId::from("r1/simulated-plan-b-led-result"),
             level: true,
         })
         .map_err(|error| format!("failed recording simulated LED result: {error:?}"))?;
@@ -163,7 +163,7 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
     }
     Ok(SoftwareRecoveryOutcome {
         proof_class: ProofClass::DeterministicSimulation,
-        fault_injection: "typed-websocket-line-unavailable-clue",
+        fault_injection: "typed-websocket-line-unavailable-sign",
         body_id,
         wake_id,
         plan_a_id,

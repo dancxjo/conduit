@@ -56,14 +56,14 @@ impl Operation for JoinOperation {
     }
 }
 
-pub(crate) struct AttachmentClueOperation {
+pub(crate) struct AttachmentSignOperation {
     input_port: PortId,
     operation: conduit_kernel::HostOperationId,
     pending: Option<RequestId>,
     completed: bool,
 }
 
-impl Operation for AttachmentClueOperation {
+impl Operation for AttachmentSignOperation {
     fn start(&mut self) -> OperationAction {
         OperationAction::Await
     }
@@ -107,7 +107,7 @@ impl Operation for AttachmentClueOperation {
 
 pub enum NetworkOperation {
     Join(JoinOperation),
-    AttachmentClue(AttachmentClueOperation),
+    AttachmentSign(AttachmentSignOperation),
 }
 
 impl NetworkOperation {
@@ -125,11 +125,11 @@ impl NetworkOperation {
         })
     }
 
-    pub fn attachment_clue(
+    pub fn attachment_sign(
         input_port: PortId,
         operation: conduit_kernel::HostOperationId,
     ) -> Self {
-        Self::AttachmentClue(AttachmentClueOperation {
+        Self::AttachmentSign(AttachmentSignOperation {
             input_port,
             operation,
             pending: None,
@@ -142,21 +142,21 @@ impl Operation for NetworkOperation {
     fn start(&mut self) -> OperationAction {
         match self {
             Self::Join(operation) => operation.start(),
-            Self::AttachmentClue(operation) => operation.start(),
+            Self::AttachmentSign(operation) => operation.start(),
         }
     }
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match self {
             Self::Join(operation) => operation.resume(input),
-            Self::AttachmentClue(operation) => operation.resume(input),
+            Self::AttachmentSign(operation) => operation.resume(input),
         }
     }
 
     fn advance(&mut self) -> OperationAction {
         match self {
             Self::Join(operation) => operation.advance(),
-            Self::AttachmentClue(operation) => operation.advance(),
+            Self::AttachmentSign(operation) => operation.advance(),
         }
     }
 }

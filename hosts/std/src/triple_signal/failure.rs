@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use conduit_wire::{SessionMessage, SessionTerminalDisposition};
 
-use crate::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
+use crate::usb_cdc::{NativePathCdcLine, NativePathCdcLineReader};
 
 use super::{RemoteKind, TriplePhysicalRunner, FRAME_BYTES};
 use crate::triple_signal::PicoRuntimeIdentity;
@@ -11,8 +11,8 @@ use crate::triple_signal::PicoRuntimeIdentity;
 impl TriplePhysicalRunner {
     pub(super) fn fail_pico_branch<W: Write>(
         &mut self,
-        carrier: &mut NativePathCdcCarrier,
-        clue: &mut NativePathCdcLineReader,
+        line: &mut NativePathCdcLine,
+        sign: &mut NativePathCdcLineReader,
         runtime: &PicoRuntimeIdentity,
         code: u16,
         report: &mut W,
@@ -22,12 +22,11 @@ impl TriplePhysicalRunner {
         let binding = self.source.binding(RemoteKind::Pico).clone();
         let failed = binding.frame(SessionMessage::Failed { code });
         self.source.admit_outbound(RemoteKind::Pico, failed)?;
-        carrier
-            .send_frame(&failed, Duration::from_secs(2))
+        line.send_frame(&failed, Duration::from_secs(2))
             .map_err(|error| format!("Pico Failed send: {error:?}"))?;
 
         let mut bytes = [0_u8; FRAME_BYTES];
-        let reciprocal = carrier
+        let reciprocal = line
             .receive_frame(&mut bytes, Duration::from_secs(3))
             .map_err(|error| format!("Pico Failed receive: {error:?}"))?;
         self.source.admit_inbound(RemoteKind::Pico, reciprocal)?;
@@ -44,10 +43,9 @@ impl TriplePhysicalRunner {
             final_sequence,
         });
         self.source.admit_outbound(RemoteKind::Pico, terminal)?;
-        carrier
-            .send_frame(&terminal, Duration::from_secs(2))
+        line.send_frame(&terminal, Duration::from_secs(2))
             .map_err(|error| format!("Pico failed terminal send: {error:?}"))?;
-        let reciprocal = carrier
+        let reciprocal = line
             .receive_frame(&mut bytes, Duration::from_secs(3))
             .map_err(|error| format!("Pico failed terminal receive: {error:?}"))?;
         self.source.admit_inbound(RemoteKind::Pico, reciprocal)?;
@@ -65,11 +63,11 @@ impl TriplePhysicalRunner {
             ));
         }
 
-        let terminal_clue = clue
+        let terminal_sign = sign
             .read_line(Duration::from_secs(3))
-            .map_err(|error| format!("Pico failed terminal clue: {error:?}"))?;
-        self.pico_clue
-            .verify_terminal(&terminal_clue, runtime, false)?;
+            .map_err(|error| format!("Pico failed terminal sign: {error:?}"))?;
+        self.pico_sign
+            .verify_terminal(&terminal_sign, runtime, false)?;
         writeln!(
             report,
             "summary plan={} pico_link={} pico_boot={} values={} terminal=failed failure_code={code}",

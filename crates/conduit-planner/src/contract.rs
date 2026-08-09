@@ -65,7 +65,7 @@ pub enum PlannerError {
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
     CyclicStartupDependencies(String),
-    ClueBudgetOverflow(String),
+    SignBudgetOverflow(String),
     InvalidPlacementSyntax(String),
     InvalidSharedPool(String),
 }
@@ -153,8 +153,8 @@ impl std::fmt::Display for PlannerError {
             Self::CyclicStartupDependencies(value) => {
                 write!(f, "cyclic startup dependencies: {value}")
             }
-            Self::ClueBudgetOverflow(value) => {
-                write!(f, "mandatory clue budget overflow: {value}")
+            Self::SignBudgetOverflow(value) => {
+                write!(f, "mandatory sign budget overflow: {value}")
             }
             Self::InvalidPlacementSyntax(value) => write!(f, "invalid placement syntax: {value}"),
             Self::InvalidSharedPool(value) => write!(f, "invalid shared pool: {value}"),

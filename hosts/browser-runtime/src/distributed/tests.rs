@@ -84,23 +84,23 @@ fn triple_browser_reconstructs_its_fragment_from_the_same_three_host_plan() {
 }
 
 #[test]
-fn clue_exhaustion_is_structured_before_remote_admission_changes_sequence() {
+fn sign_exhaustion_is_structured_before_remote_admission_changes_sequence() {
     let mut sink = DistributedSink::prepare(Some(1), PlanKind::StdBrowser, None)
-        .expect("small clue sink prepares");
+        .expect("small sign sink prepares");
     trigger(&mut sink);
     let binding = sink.binding.clone();
     sink.ingest(&offered(&binding, 0)).expect("first admits");
     sink.advance().expect("first delivered");
     sink.advance().expect("first held for pressure");
-    assert_eq!(sink.ingest(&offered(&binding, 1)), Err(ERROR_CLUE));
+    assert_eq!(sink.ingest(&offered(&binding, 1)), Err(ERROR_SIGN));
     assert_eq!(sink.output_kind, OUTPUT_SESSION);
     assert_eq!(sink.output[5], 8, "structured Failed frame");
-    assert_eq!(sink.advance(), Err(ERROR_CLUE));
-    assert_eq!(sink.output[5], 9, "clue terminal frame");
+    assert_eq!(sink.advance(), Err(ERROR_SIGN));
+    assert_eq!(sink.output[5], 9, "sign terminal frame");
     assert_eq!(
         sink.scheduler.values().used_items(),
         1,
-        "clue exhaustion preserves rather than silently releases the admitted value"
+        "sign exhaustion preserves rather than silently releases the admitted value"
     );
     assert_eq!(sink.capacity_seal(), sink.seal);
 }

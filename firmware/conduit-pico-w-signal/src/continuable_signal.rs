@@ -1,4 +1,4 @@
-//! Retained Plan C sink state shared by its admitted carrier candidates.
+//! Retained Plan C sink state shared by its admitted line candidates.
 
 use conduit_core::{
     bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,

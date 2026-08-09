@@ -682,7 +682,7 @@ fn drive_with_failure(
 }
 
 #[test]
-fn canonical_parameterized_form_expands_plans_and_runs_through_normal_kernel_clue() {
+fn canonical_parameterized_form_expands_plans_and_runs_through_normal_kernel_sign() {
     let fragment = canonical_demo_fragment();
     assert_eq!(fragment.placements.len(), 2);
     assert_eq!(fragment.connections.len(), 1);
@@ -977,7 +977,7 @@ fn observation_overflow_records_gap() {
     let observations = inspect(&mut runtime);
     assert!(observations
         .iter()
-        .any(|item| matches!(item.kind, ObservationKind::ClueGap { .. })));
+        .any(|item| matches!(item.kind, ObservationKind::SignGap { .. })));
 }
 
 #[test]
@@ -1199,7 +1199,7 @@ fn fanout_accounts_for_each_branches_byte_capacity_independently() {
 }
 
 #[test]
-fn release_after_failure_and_cancellation_preserves_terminal_clue() {
+fn release_after_failure_and_cancellation_preserves_terminal_sign() {
     for fail in [false, true] {
         let fragment = demo_fragment("form 0\n\ndemo {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 2\n pulse.period-ms = 0\n pulse.initial = false\n pulse > show\n}\n", 4, 64);
         let plan_id = fragment.plan_id.clone();

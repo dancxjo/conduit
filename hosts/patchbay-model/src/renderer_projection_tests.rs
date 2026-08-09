@@ -44,7 +44,7 @@ fn living_projection() -> (PatchbayPresentation, conduit_core::Plan) {
 }
 
 #[test]
-fn one_projection_preserves_exact_document_plan_play_route_and_clue_facts() {
+fn one_projection_preserves_exact_document_plan_play_route_and_sign_facts() {
     let (presentation, plan) = living_projection();
     let identities = presentation.identities();
     assert_eq!(
@@ -68,8 +68,8 @@ fn one_projection_preserves_exact_document_plan_play_route_and_clue_facts() {
         identities.active_play_id.as_ref(),
         presentation.play.as_ref().map(|play| &play.active_play_id)
     );
-    for observation in &presentation.play.as_ref().unwrap().clues {
-        assert!(identities.clue_ids.contains(&observation.clue_id));
+    for observation in &presentation.play.as_ref().unwrap().signs {
+        assert!(identities.sign_ids.contains(&observation.sign_id));
     }
     let route = &presentation.routes[0];
     assert_eq!(
@@ -159,8 +159,8 @@ fn projection_rejects_each_unbounded_collection() {
     );
 
     let mut play = presentation.play.clone().unwrap();
-    let observation = play.clues[0].clone();
-    play.clues = vec![observation; MAX_RENDERER_CLUES + 1];
+    let observation = play.signs[0].clone();
+    play.signs = vec![observation; MAX_RENDERER_SIGNS + 1];
     assert_eq!(
         PatchbayPresentation::new(
             8,
@@ -170,7 +170,7 @@ fn projection_rejects_each_unbounded_collection() {
             None,
             Vec::new(),
         ),
-        Err(RendererProjectionError::TooManyClues)
+        Err(RendererProjectionError::TooManySigns)
     );
 
     let mut topology = presentation.topology.clone().unwrap();

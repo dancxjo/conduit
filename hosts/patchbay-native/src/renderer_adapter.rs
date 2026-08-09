@@ -1,7 +1,7 @@
 //! Native surface execution and typed Manifestation lifecycle correlation.
 
 use super::{draw_document, PatchbayApplication, BACKGROUND};
-use conduit_core::ClueId;
+use conduit_core::SignId;
 use conduit_presentation::{ManifestationFailure, ManifestationLifecycle};
 use std::num::NonZeroU32;
 
@@ -13,7 +13,7 @@ impl PatchbayApplication {
                     let newly_available =
                         execution.manifestation.lifecycle == ManifestationLifecycle::Prepared;
                     execution
-                        .mark_available(ClueId::from("patchbay-native/window-presented"))
+                        .mark_available(SignId::from("patchbay-native/window-presented"))
                         .map_err(|error| error.to_string())?;
                     if newly_available {
                         println!(
@@ -30,7 +30,7 @@ impl PatchbayApplication {
                 if let Some(execution) = &mut self.renderer_execution {
                     let _ = execution.mark_failed(
                         ManifestationFailure::OutputRejected,
-                        ClueId::from("patchbay-native/window-rejected"),
+                        SignId::from("patchbay-native/window-rejected"),
                     );
                 }
                 Err(error)

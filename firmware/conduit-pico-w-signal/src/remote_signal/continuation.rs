@@ -12,7 +12,7 @@ use crate::usb_link::{UsbLinkError, UsbLinkSession};
 
 pub async fn resume_plan_c_signal_sink(
     link: &mut UsbLinkSession,
-    clue: &mut UsbCdc,
+    sign: &mut UsbCdc,
     control: &mut cyw43::Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
     state: &mut ContinuableSignalSink,
@@ -78,7 +78,7 @@ pub async fn resume_plan_c_signal_sink(
                 let accepted = binding.frame(SessionMessage::Accepted { sequence });
                 state.machine.admit_outbound(accepted).map_err(UsbLinkError::Codec)?;
                 link.send_frame(&accepted).await?;
-                state.kernel.present_accepted(sequence, control, clue, runtime).await?;
+                state.kernel.present_accepted(sequence, control, sign, runtime).await?;
                 let delivered = binding.frame(SessionMessage::Delivered { sequence });
                 state.machine.admit_outbound(delivered).map_err(UsbLinkError::Codec)?;
                 link.send_frame(&delivered).await?;
@@ -124,6 +124,6 @@ pub async fn resume_plan_c_signal_sink(
     if failure.is_some() {
         return Err(UsbLinkError::KernelCancelled);
     }
-    clue.write_terminal(true, state.identity.terminal(), runtime).await?;
+    sign.write_terminal(true, state.identity.terminal(), runtime).await?;
     Ok(())
 }

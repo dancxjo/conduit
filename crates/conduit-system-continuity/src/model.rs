@@ -63,7 +63,7 @@ pub struct DelegatedTransitionGrant {
     pub selected_line_id: LineId,
     pub maximum_transitions: u16,
     pub proof_window_ticks: u16,
-    pub clue_sequence_base: u64,
+    pub sign_sequence_base: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,7 +78,7 @@ pub struct SystemRecord {
     pub transition_grants: Vec<DelegatedTransitionGrant>,
     pub plan_id: PlanId,
     pub play_ids: Vec<ActivePlayId>,
-    pub clue_ids: Vec<conduit_core::ClueId>,
+    pub sign_ids: Vec<conduit_core::SignId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

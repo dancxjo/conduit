@@ -170,11 +170,11 @@ fn renderer_self_inspection_lines(
             operation.maximum_output_bytes
         )
     }));
-    lines.extend(manifestation.clues.iter().map(|clue| {
+    lines.extend(manifestation.signs.iter().map(|sign| {
         format!(
-            "RENDERER CLUE {} lifecycle={:?}",
-            clue.clue_id.as_str(),
-            clue.lifecycle
+            "RENDERER SIGN {} lifecycle={:?}",
+            sign.sign_id.as_str(),
+            sign.lifecycle
         )
     }));
     Ok(lines)
@@ -287,6 +287,6 @@ fn append_route_demo(lines: &mut Vec<String>, demo: &patchbay_model::Distributed
     lines.extend(demo.visual_lines());
     lines.push("LINEAR NARRATION".into());
     lines.extend(demo.linear_lines());
-    lines.push("ROUTE DETAIL — exact identities and Clues".into());
+    lines.push("ROUTE DETAIL — exact identities and Signs".into());
     lines.extend_from_slice(demo.lines());
 }

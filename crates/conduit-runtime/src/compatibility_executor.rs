@@ -1,12 +1,12 @@
 use conduit_core::{
-    bind_active_play, bind_clue, bind_presentation, mandatory_clue_storage_requirement,
+    bind_active_play, bind_presentation, bind_sign, mandatory_sign_storage_requirement,
     verify_plan_fragment, ActivePlayId, BoundedQueue, CancellationPolicy, CancellationReason,
-    ClueStorageBudget, ConnectionBase, ConnectionEnvelope, ConnectionId, ConnectionOutcome,
-    ConnectionTerminalDisposition, ExpectedClue, ExpectedTerminal, FailureReason,
-    HostAdvertisement, HostCommand, HostEvent, MandatoryClueReport, Observation, ObservationKind,
+    ConnectionBase, ConnectionEnvelope, ConnectionId, ConnectionOutcome,
+    ConnectionTerminalDisposition, ExpectedSign, ExpectedTerminal, FailureReason,
+    HostAdvertisement, HostCommand, HostEvent, MandatorySignReport, Observation, ObservationKind,
     PlacementId, PlacementLifecycleState, PlanFragment, PlanId, PlannedConnection, PlannedGear,
-    PlatformEffect, PresentationId, StartupDependency, TerminalDisposition, TerminalPolicy,
-    ValuePayload, PROTOCOL_VERSION,
+    PlatformEffect, PresentationId, SignStorageBudget, StartupDependency, TerminalDisposition,
+    TerminalPolicy, ValuePayload, PROTOCOL_VERSION,
 };
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
@@ -208,7 +208,7 @@ pub struct HostRuntime {
     authority_grants: Vec<conduit_core::AuthorityGrant>,
     line_offers: Vec<conduit_core::LineOffer>,
     next_active_play_sequence: u64,
-    next_clue_sequence: u64,
+    next_sign_sequence: u64,
     composite_boundary_effects: VecDeque<CompositeBoundaryEffect>,
 }
 
@@ -229,7 +229,7 @@ impl core::fmt::Debug for HostRuntime {
 
 struct RuntimePlan {
     fragment: PlanFragment,
-    mandatory_clue: MandatoryClueLog,
+    mandatory_sign: MandatorySignLog,
     placements: BTreeMap<PlacementId, RuntimePlacement>,
     connections: BTreeMap<ConnectionId, RuntimeConnection>,
     state: PlanState,
@@ -261,29 +261,29 @@ struct CompositeOutputState {
 }
 
 #[derive(Debug)]
-struct MandatoryClueLog {
+struct MandatorySignLog {
     recorded_indices: Vec<u16>,
     allocated_item_slots: u32,
-    storage_budget: ClueStorageBudget,
+    storage_budget: SignStorageBudget,
     used_bytes: u32,
     overflowed: bool,
 }
 
-impl MandatoryClueLog {
+impl MandatorySignLog {
     fn new(fragment: &PlanFragment) -> Self {
         let recorded_indices =
-            Vec::with_capacity(usize::from(fragment.clue_storage_budget.item_capacity));
+            Vec::with_capacity(usize::from(fragment.sign_storage_budget.item_capacity));
         Self {
             allocated_item_slots: u32::try_from(recorded_indices.capacity()).unwrap_or(u32::MAX),
             recorded_indices,
-            storage_budget: fragment.clue_storage_budget,
+            storage_budget: fragment.sign_storage_budget,
             used_bytes: 0,
             overflowed: false,
         }
     }
 
-    fn record(&mut self, expected: &[ExpectedClue], clue: ExpectedClue) {
-        let Some(index) = expected.iter().position(|item| item == &clue) else {
+    fn record(&mut self, expected: &[ExpectedSign], sign: ExpectedSign) {
+        let Some(index) = expected.iter().position(|item| item == &sign) else {
             self.overflowed = true;
             return;
         };
@@ -294,7 +294,7 @@ impl MandatoryClueLog {
         if self.recorded_indices.contains(&index) {
             return;
         }
-        let Some(charge) = mandatory_clue_storage_requirement(core::slice::from_ref(&clue)) else {
+        let Some(charge) = mandatory_sign_storage_requirement(core::slice::from_ref(&sign)) else {
             self.overflowed = true;
             return;
         };
@@ -312,8 +312,8 @@ impl MandatoryClueLog {
         self.used_bytes = used_bytes;
     }
 
-    fn report(&self, plan_id: PlanId, expected: &[ExpectedClue]) -> MandatoryClueReport {
-        MandatoryClueReport {
+    fn report(&self, plan_id: PlanId, expected: &[ExpectedSign]) -> MandatorySignReport {
+        MandatorySignReport {
             plan_id,
             expected: expected.to_vec(),
             recorded: self
@@ -495,7 +495,7 @@ fn validate_fragment_execution_contract(
     if fragment.terminal_policy != TerminalPolicy::RequireAllPlacementsAndConnections {
         return Some((
             FailureReason::UnsupportedTerminalPolicy,
-            "host requires terminal clue for every placement and connection".to_string(),
+            "host requires terminal sign for every placement and connection".to_string(),
         ));
     }
 
@@ -567,41 +567,41 @@ fn validate_fragment_execution_contract(
         ));
     }
 
-    let expected_clue =
-        core::iter::once(ExpectedClue::PlanFragmentReceived)
+    let expected_sign =
+        core::iter::once(ExpectedSign::PlanFragmentReceived)
             .chain(
                 fragment.placements.iter().map(|placement| {
-                    ExpectedClue::PlacementPrepared(placement.placement_id.clone())
+                    ExpectedSign::PlacementPrepared(placement.placement_id.clone())
                 }),
             )
             .chain(
                 fragment.placements.iter().map(|placement| {
-                    ExpectedClue::PlacementTerminal(placement.placement_id.clone())
+                    ExpectedSign::PlacementTerminal(placement.placement_id.clone())
                 }),
             )
             .chain(fragment.connections.iter().map(|connection| {
-                ExpectedClue::ConnectionTerminal(connection.connection_id.clone())
+                ExpectedSign::ConnectionTerminal(connection.connection_id.clone())
             }))
-            .chain(core::iter::once(ExpectedClue::PlanTerminal))
+            .chain(core::iter::once(ExpectedSign::PlanTerminal))
             .collect::<Vec<_>>();
-    if fragment.expected_clue != expected_clue {
+    if fragment.expected_sign != expected_sign {
         return Some((
-            FailureReason::ClueBudgetExceeded,
-            "mandatory clue descriptors do not cover the exact fragment".to_string(),
+            FailureReason::SignBudgetExceeded,
+            "mandatory sign descriptors do not cover the exact fragment".to_string(),
         ));
     }
-    let Some(required) = mandatory_clue_storage_requirement(&fragment.expected_clue) else {
+    let Some(required) = mandatory_sign_storage_requirement(&fragment.expected_sign) else {
         return Some((
-            FailureReason::ClueBudgetExceeded,
-            "mandatory clue cannot be represented by the public budget types".to_string(),
+            FailureReason::SignBudgetExceeded,
+            "mandatory sign cannot be represented by the public budget types".to_string(),
         ));
     };
-    if fragment.clue_storage_budget.item_capacity < required.item_capacity
-        || fragment.clue_storage_budget.byte_capacity < required.byte_capacity
+    if fragment.sign_storage_budget.item_capacity < required.item_capacity
+        || fragment.sign_storage_budget.byte_capacity < required.byte_capacity
     {
         return Some((
-            FailureReason::ClueBudgetExceeded,
-            "mandatory clue exceeds its planned item or byte budget".to_string(),
+            FailureReason::SignBudgetExceeded,
+            "mandatory sign exceeds its planned item or byte budget".to_string(),
         ));
     }
     None
@@ -767,7 +767,7 @@ impl HostRuntime {
             authority_grants,
             line_offers,
             next_active_play_sequence: 0,
-            next_clue_sequence: 0,
+            next_sign_sequence: 0,
             composite_boundary_effects: VecDeque::new(),
         };
         runtime.record_observation(None, None, None, ObservationKind::HostStarted);
@@ -1097,13 +1097,13 @@ impl HostRuntime {
                     HostEvent::Observations {
                         items: self.observations.clone(),
                     },
-                    HostEvent::MandatoryClueReports {
+                    HostEvent::MandatorySignReports {
                         items: self
                             .plans
                             .iter()
                             .map(|(plan_id, plan)| {
-                                plan.mandatory_clue
-                                    .report(plan_id.clone(), &plan.fragment.expected_clue)
+                                plan.mandatory_sign
+                                    .report(plan_id.clone(), &plan.fragment.expected_sign)
                             })
                             .collect(),
                     },
@@ -1766,7 +1766,7 @@ impl HostRuntime {
         self.plans.insert(
             fragment.plan_id.clone(),
             RuntimePlan {
-                mandatory_clue: MandatoryClueLog::new(&fragment),
+                mandatory_sign: MandatorySignLog::new(&fragment),
                 fragment: fragment.clone(),
                 placements,
                 connections,
@@ -3112,26 +3112,26 @@ impl HostRuntime {
         presentation_id: Option<PresentationId>,
         kind: ObservationKind,
     ) {
-        let mandatory_clue = match (&kind, &placement_id, &connection_id) {
+        let mandatory_sign = match (&kind, &placement_id, &connection_id) {
             (ObservationKind::PlanFragmentReceived, _, _) => {
-                Some(ExpectedClue::PlanFragmentReceived)
+                Some(ExpectedSign::PlanFragmentReceived)
             }
             (ObservationKind::PlacementPrepared, Some(placement_id), _) => {
-                Some(ExpectedClue::PlacementPrepared(placement_id.clone()))
+                Some(ExpectedSign::PlacementPrepared(placement_id.clone()))
             }
             (ObservationKind::PlacementTerminal { .. }, Some(placement_id), _) => {
-                Some(ExpectedClue::PlacementTerminal(placement_id.clone()))
+                Some(ExpectedSign::PlacementTerminal(placement_id.clone()))
             }
             (ObservationKind::ConnectionTerminal { .. }, _, Some(connection_id)) => {
-                Some(ExpectedClue::ConnectionTerminal(connection_id.clone()))
+                Some(ExpectedSign::ConnectionTerminal(connection_id.clone()))
             }
-            (ObservationKind::PlanTerminal { .. }, _, _) => Some(ExpectedClue::PlanTerminal),
+            (ObservationKind::PlanTerminal { .. }, _, _) => Some(ExpectedSign::PlanTerminal),
             _ => None,
         };
-        if let (Some(plan_id), Some(clue)) = (&plan_id, mandatory_clue) {
+        if let (Some(plan_id), Some(sign)) = (&plan_id, mandatory_sign) {
             if let Some(plan) = self.plans.get_mut(plan_id) {
-                plan.mandatory_clue
-                    .record(&plan.fragment.expected_clue, clue);
+                plan.mandatory_sign
+                    .record(&plan.fragment.expected_sign, sign);
             }
         }
         if self.observation_limit == 0 {
@@ -3142,9 +3142,9 @@ impl HostRuntime {
             .and_then(|plan_id| self.plans.get(plan_id))
             .and_then(|plan| plan.active_play_id.clone());
         if self.observations.len() < self.observation_limit {
-            let clue_id = self.issue_clue_id(active_play_id.as_ref());
+            let sign_id = self.issue_sign_id(active_play_id.as_ref());
             self.observations.push(Observation {
-                clue_id,
+                sign_id,
                 active_play_id,
                 presentation_id,
                 host_id: self.advertisement.host_id.clone(),
@@ -3159,7 +3159,7 @@ impl HostRuntime {
 
         let mut dropped = 1u64;
         if let Some(Observation {
-            kind: ObservationKind::ClueGap { dropped: previous },
+            kind: ObservationKind::SignGap { dropped: previous },
             ..
         }) = self.observations.first()
         {
@@ -3170,9 +3170,9 @@ impl HostRuntime {
         }
         if self.observation_limit == 1 {
             self.observations.clear();
-            let gap_clue_id = self.issue_clue_id(None);
+            let gap_sign_id = self.issue_sign_id(None);
             self.observations.push(Observation {
-                clue_id: gap_clue_id,
+                sign_id: gap_sign_id,
                 active_play_id: None,
                 presentation_id: None,
                 host_id: self.advertisement.host_id.clone(),
@@ -3180,7 +3180,7 @@ impl HostRuntime {
                 plan_id: None,
                 placement_id: None,
                 connection_id: None,
-                kind: ObservationKind::ClueGap { dropped },
+                kind: ObservationKind::SignGap { dropped },
             });
             return;
         }
@@ -3188,11 +3188,11 @@ impl HostRuntime {
             self.observations.remove(0);
             dropped += 1;
         }
-        let gap_clue_id = self.issue_clue_id(None);
+        let gap_sign_id = self.issue_sign_id(None);
         self.observations.insert(
             0,
             Observation {
-                clue_id: gap_clue_id,
+                sign_id: gap_sign_id,
                 active_play_id: None,
                 presentation_id: None,
                 host_id: self.advertisement.host_id.clone(),
@@ -3200,12 +3200,12 @@ impl HostRuntime {
                 plan_id: None,
                 placement_id: None,
                 connection_id: None,
-                kind: ObservationKind::ClueGap { dropped },
+                kind: ObservationKind::SignGap { dropped },
             },
         );
-        let clue_id = self.issue_clue_id(active_play_id.as_ref());
+        let sign_id = self.issue_sign_id(active_play_id.as_ref());
         self.observations.push(Observation {
-            clue_id,
+            sign_id,
             active_play_id,
             presentation_id,
             host_id: self.advertisement.host_id.clone(),
@@ -3217,18 +3217,18 @@ impl HostRuntime {
         });
     }
 
-    fn issue_clue_id(&mut self, active_play_id: Option<&ActivePlayId>) -> conduit_core::ClueId {
-        let clue = bind_clue(
+    fn issue_sign_id(&mut self, active_play_id: Option<&ActivePlayId>) -> conduit_core::SignId {
+        let sign = bind_sign(
             &self.advertisement.host_id,
             &self.advertisement.boot_id,
             active_play_id,
-            self.next_clue_sequence,
+            self.next_sign_sequence,
         );
-        self.next_clue_sequence = self
-            .next_clue_sequence
+        self.next_sign_sequence = self
+            .next_sign_sequence
             .checked_add(1)
-            .expect("clue identity sequence exhausted");
-        clue.clue_id
+            .expect("sign identity sequence exhausted");
+        sign.sign_id
     }
 }
 

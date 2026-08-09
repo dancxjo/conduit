@@ -8,9 +8,9 @@ use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    ClueQuery, CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
-    HostOperationId, HostOperationOutcome, HostedClueLog, HostedValueStore, KernelEventKind,
-    RemoteEndpointId, RequestId, ValueStorage,
+    CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition, HostOperationId,
+    HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEventKind, RemoteEndpointId,
+    RequestId, SignQuery, ValueStorage,
 };
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -32,12 +32,12 @@ const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES + MAXIMUM_WAITS) as u16;
 const MAXIMUM_STORED_BYTES: u32 =
     MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN + MAXIMUM_WAITS as u32 * 8;
-const CLUE_ITEMS: u16 = 256;
+const SIGN_ITEMS: u16 = 256;
 
 type SourceScheduler = FixedScheduler<
     OperationDriver<PulseOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     1,
     1,
     PORTS,
@@ -51,7 +51,7 @@ type SourceScheduler = FixedScheduler<
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct CapacitySeal {
     values: (usize, usize),
-    clue: usize,
+    sign: usize,
     driver: usize,
     identity: (usize, usize, usize),
 }
@@ -166,11 +166,11 @@ impl PicoUsbSource {
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
         let driver = OperationDriver::new(PulseOperation::new(signal_values, waits))
             .map_err(|error| format!("{error:?}"))?;
-        let clue_bytes = u32::from(CLUE_ITEMS)
+        let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-            .ok_or_else(|| "source clue byte bound overflow".to_owned())?;
-        let clue =
-            HostedClueLog::new(CLUE_ITEMS, clue_bytes).map_err(|error| format!("{error:?}"))?;
+            .ok_or_else(|| "source sign byte bound overflow".to_owned())?;
+        let sign =
+            HostedSignLog::new(SIGN_ITEMS, sign_bytes).map_err(|error| format!("{error:?}"))?;
         let scheduler = SourceScheduler::new_with_host_operations(
             lowered
                 .node_specs
@@ -188,7 +188,7 @@ impl PicoUsbSource {
             host_bindings,
             [driver],
             values,
-            clue,
+            sign,
         )
         .map_err(|error| format!("{error:?}"))?;
         let active_play =
@@ -213,7 +213,7 @@ impl PicoUsbSource {
             .map_err(|error| format!("{error:?}"))?;
         let seal = CapacitySeal {
             values: scheduler.values().allocation_capacities(),
-            clue: scheduler.clues().allocation_capacity(),
+            sign: scheduler.signs().allocation_capacity(),
             driver: scheduler.drivers()[0].operation().allocation_capacity(),
             identity: identity.allocation_capacities(),
         };
@@ -385,11 +385,11 @@ impl PicoUsbSource {
                 != (0, 0)
             || !self
                 .scheduler
-                .clues()
+                .signs()
                 .contains_kind(KernelEventKind::RemoteValueDelivered)
             || !self
                 .scheduler
-                .clues()
+                .signs()
                 .contains_kind(KernelEventKind::OperationCompleted)
             || self.capacity_seal() != self.seal
         {
@@ -447,7 +447,7 @@ impl PicoUsbSource {
     fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
-            clue: self.scheduler.clues().allocation_capacity(),
+            sign: self.scheduler.signs().allocation_capacity(),
             driver: self.scheduler.drivers()[0]
                 .operation()
                 .allocation_capacity(),

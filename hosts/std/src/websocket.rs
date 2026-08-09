@@ -56,7 +56,7 @@ impl NativeWebSocketListener {
         Ok(format!("ws://{address}/conduit"))
     }
 
-    pub fn accept(self) -> Result<NativeWebSocketCarrier, NativeWebSocketError> {
+    pub fn accept(self) -> Result<NativeWebSocketLine, NativeWebSocketError> {
         let (stream, peer) = self
             .listener
             .accept()
@@ -80,19 +80,19 @@ impl NativeWebSocketListener {
                     NativeWebSocketError::Handshake
                 }
             })?;
-        Ok(NativeWebSocketCarrier {
+        Ok(NativeWebSocketLine {
             socket,
             maximum_message_bytes: self.maximum_message_bytes,
         })
     }
 }
 
-pub struct NativeWebSocketCarrier {
+pub struct NativeWebSocketLine {
     socket: WebSocket<TcpStream>,
     maximum_message_bytes: usize,
 }
 
-impl NativeWebSocketCarrier {
+impl NativeWebSocketLine {
     pub fn connect(
         address: SocketAddr,
         url: &str,
@@ -199,7 +199,7 @@ fn map_socket_error(error: TungsteniteError) -> NativeWebSocketError {
 
 #[cfg(test)]
 mod tests {
-    use super::{NativeWebSocketCarrier, NativeWebSocketError, NativeWebSocketListener};
+    use super::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener};
     use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
     use std::thread;
     use tungstenite::protocol::Message;
@@ -208,8 +208,7 @@ mod tests {
     fn unavailable_and_unspecified_client_endpoints_fail_distinctly() {
         let unspecified = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 8765));
         assert_eq!(
-            NativeWebSocketCarrier::connect(unspecified, "ws://0.0.0.0:8765/conduit", 16)
-                .map(|_| ()),
+            NativeWebSocketLine::connect(unspecified, "ws://0.0.0.0:8765/conduit", 16).map(|_| ()),
             Err(NativeWebSocketError::InvalidLimit)
         );
 
@@ -218,7 +217,7 @@ mod tests {
         let address = unavailable.local_addr().expect("reserved address");
         drop(unavailable);
         assert!(matches!(
-            NativeWebSocketCarrier::connect(address, &format!("ws://{address}/conduit"), 16),
+            NativeWebSocketLine::connect(address, &format!("ws://{address}/conduit"), 16),
             Err(NativeWebSocketError::Transport(_))
         ));
     }
@@ -231,17 +230,17 @@ mod tests {
         assert!(address.ip().is_loopback());
         assert_ne!(address.port(), 0);
         let server = thread::spawn(move || {
-            let mut carrier = listener.accept().expect("RFC 6455 accepts");
-            assert_eq!(carrier.maximum_message_bytes(), 16);
+            let mut line = listener.accept().expect("RFC 6455 accepts");
+            assert_eq!(line.maximum_message_bytes(), 16);
             assert_eq!(
-                carrier.send_binary(&[0; 17]),
+                line.send_binary(&[0; 17]),
                 Err(NativeWebSocketError::OversizedMessage)
             );
             let mut input = [0_u8; 16];
-            let length = carrier.receive_binary(&mut input).expect("binary arrives");
+            let length = line.receive_binary(&mut input).expect("binary arrives");
             assert_eq!(&input[..length], b"actual-binary");
-            carrier.send_binary(b"bounded-reply").expect("reply sends");
-            carrier.close().expect("normal close sends");
+            line.send_binary(b"bounded-reply").expect("reply sends");
+            line.close().expect("normal close sends");
         });
         let stream = TcpStream::connect(address).expect("client connects");
         let (mut client, _) = tungstenite::client(url, stream).expect("client upgrades");
@@ -259,9 +258,9 @@ mod tests {
         let address = listener.local_addr().expect("address");
         let url = listener.url().expect("url");
         let server = thread::spawn(move || {
-            let mut carrier = listener.accept().expect("RFC 6455 accepts");
+            let mut line = listener.accept().expect("RFC 6455 accepts");
             assert_eq!(
-                carrier.receive_binary(&mut [0_u8; 16]),
+                line.receive_binary(&mut [0_u8; 16]),
                 Err(NativeWebSocketError::TextMessageRejected)
             );
         });
@@ -279,9 +278,9 @@ mod tests {
         let address = listener.local_addr().expect("address");
         let url = listener.url().expect("url");
         let server = thread::spawn(move || {
-            let mut carrier = listener.accept().expect("RFC 6455 accepts");
+            let mut line = listener.accept().expect("RFC 6455 accepts");
             assert_eq!(
-                carrier.receive_binary(&mut [0_u8; 16]),
+                line.receive_binary(&mut [0_u8; 16]),
                 Err(NativeWebSocketError::Disconnected)
             );
         });
@@ -294,12 +293,12 @@ mod tests {
         let address = listener.local_addr().expect("address");
         let url = listener.url().expect("url");
         let server = thread::spawn(move || {
-            let mut carrier = listener.accept().expect("RFC 6455 accepts");
+            let mut line = listener.accept().expect("RFC 6455 accepts");
             let mut input = [0_u8; 16];
-            let length = carrier.receive_binary(&mut input).expect("frame arrives");
+            let length = line.receive_binary(&mut input).expect("frame arrives");
             assert_eq!(&input[..length], b"offered");
             assert_eq!(
-                carrier.receive_binary(&mut input),
+                line.receive_binary(&mut input),
                 Err(NativeWebSocketError::Disconnected)
             );
         });

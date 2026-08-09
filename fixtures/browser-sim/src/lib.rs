@@ -344,7 +344,7 @@ impl BrowserSimPage {
                     line_id: line.line_id.clone(),
                     binding_id: line.binding.binding_id.clone(),
                     availability: conduit_core::LineAvailability::Ready,
-                    sign_id: conduit_core::ClueId::from(format!(
+                    sign_id: conduit_core::SignId::from(format!(
                         "fixture/line/{}/ready",
                         line.line_id.as_str()
                     )),
@@ -801,7 +801,7 @@ mod tests {
                     line_id: line.line_id.clone(),
                     binding_id: line.binding.binding_id.clone(),
                     availability: conduit_core::LineAvailability::Ready,
-                    sign_id: conduit_core::ClueId::from(format!(
+                    sign_id: conduit_core::SignId::from(format!(
                         "fixture/{}/ready",
                         line.line_id.as_str()
                     )),

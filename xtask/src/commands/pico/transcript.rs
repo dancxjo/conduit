@@ -13,7 +13,7 @@ pub fn verify_boot(
 ) -> PicoResult<RuntimeTranscriptIdentity> {
     let record = parse_schema(line, "conduit-pico-w-signal/boot@1")?;
     verify_static(&record, identity, false)?;
-    verify_field(&record, "clue_id", &identity.generated_image.boot_clue_id)?;
+    verify_field(&record, "sign_id", &identity.generated_image.boot_sign_id)?;
     let runtime = RuntimeTranscriptIdentity {
         boot_id: required_string(&record, "runtime_boot_id")?.to_owned(),
         active_play_id: required_string(&record, "runtime_active_play_id")?.to_owned(),
@@ -65,12 +65,12 @@ pub fn verify_receipt(
     )?;
     verify_field(
         &record,
-        "clue_id",
+        "sign_id",
         identity
             .generated_image
-            .presentation_clue_ids
+            .presentation_sign_ids
             .get(sequence)
-            .ok_or("identity manifest has no clue ID for receipt")?,
+            .ok_or("identity manifest has no sign ID for receipt")?,
     )
 }
 
@@ -104,8 +104,8 @@ fn verify_terminal_disposition(
     }
     verify_field(
         &record,
-        "clue_id",
-        &identity.generated_image.terminal_clue_id,
+        "sign_id",
+        &identity.generated_image.terminal_sign_id,
     )
 }
 

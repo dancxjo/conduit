@@ -91,8 +91,8 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
     await page.goto("/hosts/browser/distributed-signal.test.html");
     const result = await page.evaluate(async ({ url }) => {
       const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
-      const { BrowserWebSocketCarrier } = await import(
-        "/hosts/browser/websocket-carrier.mjs"
+      const { BrowserWebSocketLine } = await import(
+        "/hosts/browser/websocket-line.mjs"
       );
       const {
         instantiateDistributedBrowserRuntime,
@@ -104,7 +104,7 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
         if (!response.ok) throw new Error("distributed browser WASM artifact missing");
         return response.arrayBuffer();
       });
-      const carrier = await new BrowserWebSocketCarrier({
+      const line = await new BrowserWebSocketLine({
         url,
         maximumMessageBytes: 2048,
         maximumBufferedBytes: 8192,
@@ -117,8 +117,8 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
         maximumReceiptBytes: 144,
       });
       const runtime = await instantiateDistributedBrowserRuntime(wasmBytes);
-      const run = await runDistributedBrowserRuntime(runtime, carrier, domHost);
-      const closed = await carrier.closed();
+      const run = await runDistributedBrowserRuntime(runtime, line, domHost);
+      const closed = await line.closed();
       const receipts = domHost.receipts();
       document.querySelector("#result").textContent = "ok";
       return {
@@ -183,7 +183,7 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
       "hostOperationContractId",
       "placementId",
       "presentationId",
-      "clueId",
+      "signId",
       "connectionId",
       "linkBindingId",
       "baseInstanceId",
@@ -214,7 +214,7 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
     expect(new Set(result.presentations.map(({ sourceActivePlayId }) =>
       sourceActivePlayId)).size).toBe(1);
     expect(new Set(result.presentations.map(({ presentationId }) => presentationId)).size).toBe(16);
-    expect(new Set(result.presentations.map(({ clueId }) => clueId)).size).toBe(16);
+    expect(new Set(result.presentations.map(({ signId }) => signId)).size).toBe(16);
     expect(new Set(result.presentations.map(({ requestId }) => requestId)).size).toBe(16);
     expect(result.presentations.every(({ encoded }, index) =>
       encoded.length === 9 && encoded[8] === index % 2)).toBe(true);
@@ -262,8 +262,8 @@ test("native Patchbay source and browser peer execute one exact distributed Play
     await page.goto("/hosts/browser/distributed-signal.test.html");
     const result = await page.evaluate(async ({ url, sourceHostId, sourceBootId }) => {
       const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
-      const { BrowserWebSocketCarrier } = await import(
-        "/hosts/browser/websocket-carrier.mjs"
+      const { BrowserWebSocketLine } = await import(
+        "/hosts/browser/websocket-line.mjs"
       );
       const {
         instantiateDistributedBrowserRuntime,
@@ -272,7 +272,7 @@ test("native Patchbay source and browser peer execute one exact distributed Play
       const wasmBytes = await fetch(
         "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
       ).then((response) => response.arrayBuffer());
-      const carrier = await new BrowserWebSocketCarrier({
+      const line = await new BrowserWebSocketLine({
         url,
         maximumMessageBytes: 2048,
         maximumBufferedBytes: 8192,
@@ -287,8 +287,8 @@ test("native Patchbay source and browser peer execute one exact distributed Play
       const runtime = await instantiateDistributedBrowserRuntime(wasmBytes, {
         sourceIdentity: { hostId: sourceHostId, bootId: sourceBootId },
       });
-      const run = await runDistributedBrowserRuntime(runtime, carrier, domHost);
-      return { run, receipts: domHost.receipts(), closed: await carrier.closed() };
+      const run = await runDistributedBrowserRuntime(runtime, line, domHost);
+      return { run, receipts: domHost.receipts(), closed: await line.closed() };
     }, { url, sourceHostId, sourceBootId });
     await exited;
     const summary = await lines.matching(/^summary /);
@@ -339,8 +339,8 @@ test("a broken live link after four delivered values fails with retained exact r
     await page.goto("/hosts/browser/distributed-signal.test.html");
     const result = await page.evaluate(async ({ url }) => {
       const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
-      const { BrowserWebSocketCarrier } = await import(
-        "/hosts/browser/websocket-carrier.mjs"
+      const { BrowserWebSocketLine } = await import(
+        "/hosts/browser/websocket-line.mjs"
       );
       const {
         instantiateDistributedBrowserRuntime,
@@ -349,7 +349,7 @@ test("a broken live link after four delivered values fails with retained exact r
       const wasmBytes = await fetch(
         "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
       ).then((response) => response.arrayBuffer());
-      const carrier = await new BrowserWebSocketCarrier({
+      const line = await new BrowserWebSocketLine({
         url,
         maximumMessageBytes: 2048,
         maximumBufferedBytes: 8192,
@@ -366,20 +366,20 @@ test("a broken live link after four delivered values fails with retained exact r
         completePresentation(effect) {
           const result = domHost.completePresentation(effect);
           if (result.ok && domHost.receipts().length === 4) {
-            void carrier.close(4001, "proof-link-break");
+            void line.close(4001, "proof-link-break");
           }
           return result;
         },
       };
       let failure = null;
       try {
-        await runDistributedBrowserRuntime(runtime, carrier, breakingDomHost);
+        await runDistributedBrowserRuntime(runtime, line, breakingDomHost);
       } catch (error) {
         failure = { code: error.code ?? null, message: error.message };
       }
       return {
         failure,
-        closed: await carrier.closed(),
+        closed: await line.closed(),
         receipts: domHost.receipts(),
       };
     }, { url });

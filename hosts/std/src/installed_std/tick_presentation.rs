@@ -108,7 +108,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_items: 0,
         value_bytes: 0,
         host_requests: maximum as usize,
-        clue_items: 64,
+        sign_items: 64,
         maximum_value_bytes: conduit_std_catalog::TICK_ENCODED_LEN,
     })
 }

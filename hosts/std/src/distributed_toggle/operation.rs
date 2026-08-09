@@ -11,7 +11,7 @@ use conduit_kernel::{
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct CapacitySeal {
     pub values: (usize, usize),
-    pub clue: usize,
+    pub sign: usize,
     pub drivers: usize,
     pub identity: (usize, usize, usize),
 }

@@ -162,7 +162,7 @@ pub fn admit_run(
 pub struct PlayDocument {
     pub active_play_id: ActivePlayId,
     pub plan_id: PlanId,
-    pub clues: Vec<Observation>,
+    pub signs: Vec<Observation>,
     pub lines: Vec<String>,
     pub terminal: TerminalDisposition,
 }
@@ -187,7 +187,7 @@ impl PlayDocument {
         push(
             &mut lines,
             format!(
-                "  PRESSURE exposed=false decisions={} kernel_events={} clue_gaps=0",
+                "  PRESSURE exposed=false decisions={} kernel_events={} sign_gaps=0",
                 kernel.decisions, kernel.kernel_events
             ),
         )?;
@@ -195,17 +195,17 @@ impl PlayDocument {
             push(
                 &mut lines,
                 format!(
-                    "  CLUE id={} kind={:?}",
-                    observation.clue_id.as_str(),
+                    "  SIGN id={} kind={:?}",
+                    observation.sign_id.as_str(),
                     observation.kind
                 ),
             )?;
         }
-        for event in &kernel.kernel_clue {
+        for event in &kernel.kernel_sign {
             push(
                 &mut lines,
                 format!(
-                    "  KERNEL-CLUE sequence={} node={} kind={:?}",
+                    "  KERNEL-SIGN sequence={} node={} kind={:?}",
                     event.sequence, event.node.0, event.kind
                 ),
             )?;
@@ -224,7 +224,7 @@ impl PlayDocument {
         Ok(Self {
             active_play_id: kernel.active_play_id.clone(),
             plan_id: plan.plan_id.clone(),
-            clues: report.observations.clone(),
+            signs: report.observations.clone(),
             lines,
             terminal,
         })

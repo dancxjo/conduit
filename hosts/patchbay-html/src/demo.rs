@@ -1,5 +1,5 @@
 use crate::RendererSnapshot;
-use conduit_core::{BootId, ClueId, HostId};
+use conduit_core::{BootId, HostId, SignId};
 use patchbay_model::{RendererAdapterIdentity, RendererAdapterKind, RendererExecution};
 
 pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
@@ -11,7 +11,7 @@ pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
             boot_id: BootId::from("patchbay-html/boot"),
             target_subject: "patchbay-html/document-0".into(),
         },
-        ClueId::from("patchbay-html/manifestation-prepared"),
+        SignId::from("patchbay-html/manifestation-prepared"),
     )
     .map_err(|error| error.to_string())?;
     RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())

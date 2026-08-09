@@ -11,7 +11,7 @@ export async function createPoolWebchat({ url, list, input, button, status }) {
   let received = 0;
   await new Promise((resolve, reject) => {
     socket.addEventListener("open", resolve, { once: true });
-    socket.addEventListener("error", () => reject(new Error("CND-POOL-CHAT-001 carrier open failed")), { once: true });
+    socket.addEventListener("error", () => reject(new Error("CND-POOL-CHAT-001 line open failed")), { once: true });
   });
   status.textContent = "joined";
   button.disabled = false;

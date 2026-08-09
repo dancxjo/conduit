@@ -2,9 +2,9 @@
 
 use conduit_core::{
     bind_active_play, kind_id, resource_offer, resource_requirement, ActivePlayId, ArtifactId,
-    BootId, CapabilityId, CapabilityLimits, ClueId, ExecutionProfileId, HostAdvertisement, HostId,
+    BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    OfferGeneration, PlacementId, Plan, PROTOCOL_VERSION,
+    OfferGeneration, PlacementId, Plan, SignId, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{default_placements, plan};
@@ -61,7 +61,7 @@ impl RendererExecution {
         presentation: Presentation,
         adapter: RendererAdapterKind,
         identity: RendererAdapterIdentity,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<Self, RendererExecutionError> {
         presentation.validate().map_err(|_| {
             RendererExecutionError::Manifestation(ManifestationError::InvalidPresentation)
@@ -72,14 +72,14 @@ impl RendererExecution {
             .map_err(|_| RendererExecutionError::Planning)?;
         let plan = plan(&form, &[advertisement], &placements, &[])
             .map_err(|_| RendererExecutionError::Planning)?;
-        Self::prepare_planned(presentation, plan, identity.target_subject, clue_id)
+        Self::prepare_planned(presentation, plan, identity.target_subject, sign_id)
     }
 
     pub fn prepare_planned(
         presentation: Presentation,
         plan: Plan,
         target_subject: String,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<Self, RendererExecutionError> {
         presentation.validate().map_err(|_| {
             RendererExecutionError::Manifestation(ManifestationError::InvalidPresentation)
@@ -108,7 +108,7 @@ impl RendererExecution {
             active_play_id.clone(),
             placement_id.clone(),
             target_subject,
-            clue_id,
+            sign_id,
         )
         .map_err(RendererExecutionError::Manifestation)?;
         Ok(Self {
@@ -120,13 +120,13 @@ impl RendererExecution {
         })
     }
 
-    pub fn mark_available(&mut self, clue_id: ClueId) -> Result<(), RendererExecutionError> {
+    pub fn mark_available(&mut self, sign_id: SignId) -> Result<(), RendererExecutionError> {
         if self.manifestation.lifecycle == ManifestationLifecycle::Available {
             return Ok(());
         }
         self.manifestation = self
             .manifestation
-            .transition(ManifestationLifecycle::Available, clue_id)
+            .transition(ManifestationLifecycle::Available, sign_id)
             .map_err(RendererExecutionError::Manifestation)?;
         Ok(())
     }
@@ -134,19 +134,19 @@ impl RendererExecution {
     pub fn mark_failed(
         &mut self,
         failure: ManifestationFailure,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<(), RendererExecutionError> {
         self.manifestation = self
             .manifestation
-            .fail(failure, clue_id)
+            .fail(failure, sign_id)
             .map_err(RendererExecutionError::Manifestation)?;
         Ok(())
     }
 
-    pub fn mark_closed(&mut self, clue_id: ClueId) -> Result<(), RendererExecutionError> {
+    pub fn mark_closed(&mut self, sign_id: SignId) -> Result<(), RendererExecutionError> {
         self.manifestation = self
             .manifestation
-            .transition(ManifestationLifecycle::Closed, clue_id)
+            .transition(ManifestationLifecycle::Closed, sign_id)
             .map_err(RendererExecutionError::Manifestation)?;
         Ok(())
     }

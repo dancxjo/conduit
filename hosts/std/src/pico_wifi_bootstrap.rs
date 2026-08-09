@@ -6,10 +6,10 @@ use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, ClueQuery, CordId, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
+    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
     HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
-    RemoteEndpointId, RequestId, ValueStorage,
+    RemoteEndpointId, RequestId, SignQuery, ValueStorage,
 };
 use conduit_runtime::lowering::{
     lower_plan_fragment, RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE,
@@ -18,7 +18,7 @@ use conduit_wire::{SessionBinding, SessionFrame, SessionMachine, SessionRole};
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 const VALUE_ITEMS: u16 = 2;
-const CLUE_ITEMS: u16 = 32;
+const SIGN_ITEMS: u16 = 32;
 
 struct VolatileCredentials {
     ssid: [u8; conduit_net::MAXIMUM_SSID_BYTES],
@@ -137,7 +137,7 @@ impl CredentialOperation {
 type CredentialScheduler = FixedScheduler<
     OperationDriver<CredentialOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     1,
     1,
     PORTS,
@@ -239,11 +239,11 @@ impl PicoWifiBootstrapSource {
             output,
         })
         .map_err(|error| format!("{error:?}"))?;
-        let clue_bytes = u32::from(CLUE_ITEMS)
+        let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-            .ok_or_else(|| "credential source clue bound overflow".to_owned())?;
-        let clue =
-            HostedClueLog::new(CLUE_ITEMS, clue_bytes).map_err(|error| format!("{error:?}"))?;
+            .ok_or_else(|| "credential source sign bound overflow".to_owned())?;
+        let sign =
+            HostedSignLog::new(SIGN_ITEMS, sign_bytes).map_err(|error| format!("{error:?}"))?;
         let scheduler = CredentialScheduler::new_with_host_operations(
             lowered
                 .node_specs
@@ -261,7 +261,7 @@ impl PicoWifiBootstrapSource {
             host_bindings,
             [driver],
             values,
-            clue,
+            sign,
         )
         .map_err(|error| format!("{error:?}"))?;
         let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
@@ -383,14 +383,14 @@ impl PicoWifiBootstrapSource {
         }
         if !self
             .scheduler
-            .clues()
+            .signs()
             .contains_kind(KernelEventKind::RemoteValueDelivered)
             || !self
                 .scheduler
-                .clues()
+                .signs()
                 .contains_kind(KernelEventKind::OperationCompleted)
         {
-            return Err("credential source terminal clues missing".to_owned());
+            return Err("credential source terminal signs missing".to_owned());
         }
         Ok(1)
     }

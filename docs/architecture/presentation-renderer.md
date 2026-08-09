@@ -19,14 +19,14 @@ A `Presentation` is an immutable semantic content revision. It binds:
 - the exact source and checked Form identities;
 - optional expanded Form, Plan, and active Play identities as one coherent
   chain;
-- a canonical finite clue identity set;
+- a canonical finite Sign identity set;
 - finite semantic subjects, roles, relationships, labels, accessibility names,
   and subject-owned text.
 
 The whole value has an aggregate byte ceiling in addition to count and
 per-field bounds. Its content identity is derived from all semantic content.
 Changing a label, relationship, exact identity, or revision changes the
-content identity; reordering or duplicating canonical clue is rejected.
+content identity; reordering or duplicating canonical Sign is rejected.
 
 Coordinates, viewport, focus mechanics, toolkit objects, DOM identity, native
 handles, pixel buffers, and base resources do not occur in this contract.
@@ -37,7 +37,7 @@ Those are renderer-local or planned realization state.
 A `Manifestation` is the portable result of realizing one exact Presentation.
 It binds the Presentation identity/revision, Plan, active Play, renderer
 placement, admitted output subject, lifecycle, and a finite typed Manifestation
-Clue chain.
+Sign chain.
 Its identity is derived from the immutable correlation fields, including the
 output subject.
 
@@ -48,10 +48,10 @@ Prepared -> Available | Failed
 Available -> Replaced | Closed | Failed
 ```
 
-Every transition appends a Clue built from the actual Manifestation,
+Every transition appends a Sign built from the actual Manifestation,
 Presentation, Plan, active Play, placement, lifecycle, and failure values. Its
-Clue identity must not have appeared earlier in that lifecycle. Backward
-transitions, duplicate Clues, tampered correlation, stale
+Sign identity must not have appeared earlier in that lifecycle. Backward
+transitions, duplicate Signs, tampered correlation, stale
 Presentation/Plan/placement correlation, invalid Plans, and non-renderer
 placements fail closed.
 
@@ -83,7 +83,7 @@ bounded typed `RendererSelfInspection`. The value contains the actual validated
 renderer Plan and Manifestation; it does not reconstruct selected identities
 from display strings. Both native and HTML surfaces derive the renderer Face
 and Ports, placement, implementation and artifact, Host and Boot, resources,
-finite limits, renderer Plan and Play, Manifestation lifecycle, and exact Clue
+finite limits, renderer Plan and Play, Manifestation lifecycle, and exact Sign
 chain from that same value.
 
 The inspection is accepted only when the Plan verifies, the Manifestation

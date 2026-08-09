@@ -150,8 +150,8 @@ fn requirements() -> BTreeMap<SharedPoolId, SharedPoolPlanningRequirement> {
             member_limits: PoolMemberLimits {
                 queue_item_capacity: 4,
                 queue_byte_capacity: 1_024,
-                clue_item_capacity: 16,
-                clue_byte_capacity: 2_048,
+                sign_item_capacity: 16,
+                sign_byte_capacity: 2_048,
             },
             admission_authority: authority(),
         },

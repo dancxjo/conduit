@@ -1,5 +1,5 @@
 use conduit_kernel::shared_pool::{
-    FixedSharedPool, MemberIdentity, MemberKey, MemberPlacement, PoolClueReason, PoolError, PoolId,
+    FixedSharedPool, MemberIdentity, MemberKey, MemberPlacement, PoolError, PoolId, PoolSignReason,
 };
 use conduit_kernel::NodeId;
 
@@ -51,10 +51,10 @@ fn keyed_membership_is_finite_and_slot_reuse_rejects_stale_epochs() {
     pool.trigger(replacement).unwrap();
     assert_eq!(pool.member_for_key(key(2)).unwrap(), replacement);
 
-    let reasons = pool.clues().map(|event| event.reason).collect::<Vec<_>>();
-    assert!(reasons.contains(&PoolClueReason::PoolFull));
-    assert!(reasons.contains(&PoolClueReason::DuplicateKey));
-    assert!(reasons.contains(&PoolClueReason::Released));
+    let reasons = pool.signs().map(|event| event.reason).collect::<Vec<_>>();
+    assert!(reasons.contains(&PoolSignReason::PoolFull));
+    assert!(reasons.contains(&PoolSignReason::DuplicateKey));
+    assert!(reasons.contains(&PoolSignReason::Released));
 }
 
 #[test]
@@ -106,11 +106,11 @@ fn fan_snapshot_is_key_ordered_and_does_not_change_when_membership_changes() {
 }
 
 #[test]
-fn clue_exhaustion_never_partially_mutates_membership() {
+fn sign_exhaustion_never_partially_mutates_membership() {
     let mut pool = FixedSharedPool::<1, 1>::new(PoolId(4), 1, 7, 1).unwrap();
     let preparing = pool.admit(key(1), placement(0), 7).unwrap();
-    assert_eq!(pool.trigger(preparing), Err(PoolError::ClueExhausted));
+    assert_eq!(pool.trigger(preparing), Err(PoolError::SignExhausted));
     assert_eq!(pool.active_population(), 0);
     assert_eq!(pool.population(), 1);
-    assert_eq!(pool.clues().count(), 1);
+    assert_eq!(pool.signs().count(), 1);
 }

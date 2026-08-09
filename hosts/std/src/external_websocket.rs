@@ -1,5 +1,5 @@
 //! Native adapter for the authored `net/websocket/listen` host operation.
-//! This is deliberately separate from the Conduit-session WebSocket carrier.
+//! This is deliberately separate from the Conduit-session WebSocket line.
 
 use std::io;
 use std::net::{SocketAddr, TcpListener, TcpStream};

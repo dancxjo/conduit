@@ -6,6 +6,6 @@ Execution lowers that Plan through the ordinary numeric kernel boundary. A one-b
 
 Create-only commit uses a same-directory hard link so a concurrent destination cannot be overwritten. Replacement uses a same-directory rename. Neither policy writes the final destination incrementally. Stop is checked between every admitted chunk; it calls kernel cancellation and removes the temporary file. Partial I/O and cleanup failure remain separate results.
 
-Every run returns a receipt naming the request, active Play, Plan, source handle, destination handle, structured result, copied byte count where applicable, and kernel clue count. Raw paths remain base-private and are absent from the Form, Plan, receipt, and kernel protocol.
+Every run returns a receipt naming the request, active Play, Plan, source handle, destination handle, structured result, copied byte count where applicable, and kernel Sign count. Raw paths remain base-private and are absent from the Form, Plan, receipt, and kernel protocol.
 
 The current std profile admits at most 16 MiB per run. Browser targets, the task-facing UI, Inspect presentation, and human usability observation are later #354 slices; this implementation makes no claim about them.

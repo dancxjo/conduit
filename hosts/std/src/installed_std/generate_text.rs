@@ -176,7 +176,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_items: 1,
         value_bytes: maximum_output_bytes,
         host_requests: 1,
-        clue_items: 32,
+        sign_items: 32,
         maximum_value_bytes: maximum_input_bytes.max(maximum_output_bytes),
     })
 }

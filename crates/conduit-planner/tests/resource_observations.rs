@@ -1,7 +1,7 @@
 mod common;
 
 use common::{competing_hosts, pulse_gear};
-use conduit_core::{ClueId, ResourceHealth, ResourceObservation};
+use conduit_core::{ResourceHealth, ResourceObservation, SignId};
 use conduit_planner::{
     select_realization_with_observations, HardRealizationRequirements, PlannerError,
     RealizationPolicy, RealizationPreference,
@@ -12,7 +12,7 @@ fn observation(
     health: ResourceHealth,
     unreserved_units: u32,
     utilized_units: u32,
-    clue: &str,
+    sign: &str,
 ) -> ResourceObservation {
     let required_class = &host.capabilities[0].resource_requirements[0].class_id;
     let pool = host
@@ -29,7 +29,7 @@ fn observation(
         health,
         unreserved_units,
         utilized_units,
-        clue_id: ClueId::from(clue),
+        sign_id: SignId::from(sign),
     }
 }
 

@@ -67,7 +67,7 @@ PLAN   exact immutable realization of a form
 PLAY   one active execution of a plan
 ```
 
-A Kind is not a Gear, and neither is an implementation. A Port is not a renderer jack, queue slot, carrier endpoint, or Base handle. Info is specifically shaped/typed data and is not automatically Signal. A Face is not its Back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active Play.
+A Kind is not a Gear, and neither is an implementation. A Port is not a renderer jack, queue slot, Line endpoint, or Base handle. Info is specifically shaped/typed data and is not automatically Signal. A Face is not its Back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active Play.
 
 ### Identity stages
 
@@ -80,16 +80,16 @@ expanded form
 plan
 plan fragment
 active play
-clue item
+Sign item
 presentation
 ```
 
-A spelling-only edit may change source identity without changing checked meaning. A hidden nested implementation may change expanded identity without changing the visible checked contract. A new placement or boot changes the plan. A replay creates a new play. A UI row is not a clue identity.
+A spelling-only edit may change source identity without changing checked meaning. A hidden nested implementation may change expanded identity without changing the visible checked contract. A new placement or boot changes the plan. A replay creates a new play. A UI row is not a Sign identity.
 
 ### Availability, authority, and relationship
 
 ```text
-reachable       a carrier can currently address an endpoint
+reachable       a Line can currently address an endpoint
 observed link   one exact boot-scoped path is currently available
 member          a participant belongs to a larger durable relationship
 trusted         an authority decision permits some action
@@ -103,7 +103,7 @@ A discovered device is not automatically a host. A host on the network is not au
 
 ### Execution and presentation
 
-The DOM, stdout, LEDs, dashboards, and future Workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or clue.
+The DOM, stdout, LEDs, dashboards, and future Workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or Sign.
 
 A presentation may summarize or arrange runtime facts. It may not manufacture them.
 
@@ -125,7 +125,7 @@ Before a play starts, the host knows and admits the finite shape needed for exec
 - queue items and buffered bytes;
 - timers and host-operation concurrency;
 - resource reservations;
-- mandatory clue storage;
+- mandatory Sign storage;
 - cancellation and terminal bookkeeping.
 
 Hosted profiles may use heap-backed storage before Play start. Constrained profiles may use fixed arenas. Neither may conceal unbounded growth, discovery, retry, string lookup, graph scanning, or queue creation in an admitted hot path.
@@ -140,7 +140,7 @@ The kernel owns execution order and correlation. The platform adapter owns only 
 
 Pressure is not an implementation inconvenience to hide with buffering. It is runtime truth.
 
-Values remain accounted for through offered, accepted, delivered, failed, cancelled, or terminal disposition. Disconnect, malformed input, stale boot, authority denial, resource exhaustion, clue exhaustion, and unsupported behavior remain distinguishable.
+Values remain accounted for through offered, accepted, delivered, failed, cancelled, or terminal disposition. Disconnect, malformed input, stale boot, authority denial, resource exhaustion, Sign exhaustion, and unsupported behavior remain distinguishable.
 
 Automatic retry is a semantic promise and therefore must be planned. A base may not invent it.
 
@@ -202,7 +202,7 @@ A Host produces a Part. A Part may pair with a Body and offer capabilities. A Fo
 
 Membership, reachability, authority, capability, placement, and link state remain separate.
 
-This layer waits until Host reports, live Links, the small standard catalog, and Clues are trustworthy. It must consume the kernel rather than invent a parallel distributed world.
+This layer waits until Host reports, live Links, the small standard catalog, and Signs are trustworthy. It must consume the kernel rather than invent a parallel distributed world.
 
 ## Proof classes
 
@@ -214,7 +214,7 @@ The repository uses precise proof names:
 4. actual platform adapter or runtime;
 5. live transport;
 6. actual firmware execution;
-7. physical or hardware-in-the-loop clue.
+7. physical or hardware-in-the-loop Sign.
 
 A Thumb build is not firmware execution. A WASM build is not browser execution. A browser test is not a live network link. A loopback socket is not installation security. An LED blink is not a machine-readable receipt.
 
@@ -245,7 +245,7 @@ Ideas are classified so that deferral does not feel like erasure and preservatio
 These ideas are current, load-bearing direction and have executable proof in the salvage tree:
 
 - semantic forms, host capability offers, and exact plans;
-- source, checked, expanded, plan, play, clue, and presentation identity separation;
+- source, checked, expanded, plan, play, Sign, and presentation identity separation;
 - typed named ports and explicit fan-out;
 - bounded port-aware `conduit-kernel` execution;
 - generic host operations;
@@ -335,7 +335,7 @@ Conduit should become useful from the outside inward:
 - then let an unfamiliar person complete one useful task;
 - only then grow the freeform Workbench and larger domains.
 
-The user should not need to understand the machinery before receiving value. After the task works, Conduit should make every hidden choice inspectable: source, checked meaning, expansion, plan, placement, resources, authority, play, clue, and presentation.
+The user should not need to understand the machinery before receiving value. After the task works, Conduit should make every hidden choice inspectable: source, checked meaning, expansion, plan, placement, resources, authority, play, Sign, and presentation.
 
 ## Governance of this canon
 

@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 #[cfg(unix)]
 use conduit_std_host::pico_wifi_bootstrap::PicoWifiBootstrapSource;
 #[cfg(unix)]
-use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
+use conduit_std_host::usb_cdc::{NativePathCdcLine, NativePathCdcLineReader};
 use conduit_wire::{SessionMessage, SessionTerminalDisposition};
 
 use super::doctor::repo_root;
@@ -38,7 +38,7 @@ impl WifiProofMode {
 
 pub fn run_prove_pico_wifi_bootstrap(
     link_port_opt: Option<&str>,
-    clue_port_opt: Option<&str>,
+    sign_port_opt: Option<&str>,
     ssid_env: Option<&str>,
     credential_env: Option<&str>,
     mode: WifiProofMode,
@@ -60,8 +60,8 @@ pub fn run_prove_pico_wifi_bootstrap(
             link_port_opt.unwrap_or("<auto-discover CDC 0>")
         );
         println!(
-            "  clue port: {}",
-            clue_port_opt.unwrap_or("<auto-discover CDC 1>")
+            "  sign port: {}",
+            sign_port_opt.unwrap_or("<auto-discover CDC 1>")
         );
         println!(
             "  SSID source: {}",
@@ -86,20 +86,20 @@ pub fn run_prove_pico_wifi_bootstrap(
     let ssid = SecretEnvValue::read(ssid_name)?;
     let credential = SecretEnvValue::read(credential_name)?;
 
-    let (link_port_path, clue_port_path) = match resolve_dual_ports(link_port_opt, clue_port_opt) {
+    let (link_port_path, sign_port_path) = match resolve_dual_ports(link_port_opt, sign_port_opt) {
         Ok(ports) => ports,
         Err(_) => {
             println!("==> Active Pico W CDC ports not found. Flashing Wi-Fi bootstrap image...");
             super::flash::run_flash(pico_args)?;
             println!("==> Waiting for USB CDC ports to enumerate...");
             std::thread::sleep(Duration::from_secs(3));
-            resolve_dual_ports(link_port_opt, clue_port_opt)?
+            resolve_dual_ports(link_port_opt, sign_port_opt)?
         }
     };
     println!(
-        "==> prove pico-wifi-bootstrap: link port {}, clue port {}",
+        "==> prove pico-wifi-bootstrap: link port {}, sign port {}",
         link_port_path.display(),
-        clue_port_path.display()
+        sign_port_path.display()
     );
 
     let identity = read_identity_manifest(&repo_root())?;
@@ -145,7 +145,7 @@ pub fn run_prove_pico_wifi_bootstrap(
     {
         run_unix(
             &link_port_path,
-            &clue_port_path,
+            &sign_port_path,
             ssid,
             credential,
             &identity,
@@ -159,39 +159,33 @@ pub fn run_prove_pico_wifi_bootstrap(
 #[cfg(unix)]
 fn run_unix(
     link_port: &std::path::Path,
-    clue_port: &std::path::Path,
+    sign_port: &std::path::Path,
     ssid: SecretEnvValue,
     credential: SecretEnvValue,
     identity: &FirmwareIdentity,
     mode: WifiProofMode,
 ) -> PicoResult<()> {
-    let mut clue = NativePathCdcLineReader::open(clue_port)
-        .map_err(|error| format!("failed to open CDC1 clue port: {error}"))?;
-    let mut carrier = NativePathCdcCarrier::open(link_port, 1024)
+    let mut sign = NativePathCdcLineReader::open(sign_port)
+        .map_err(|error| format!("failed to open CDC1 sign port: {error}"))?;
+    let mut line = NativePathCdcLine::open(link_port, 1024)
         .map_err(|error| format!("failed to open CDC0 link port: {error}"))?;
     std::thread::sleep(Duration::from_millis(250));
 
-    carrier.send_raw_stream_frame(b"CONDUIT_RAW_CDC0_PROBE", Duration::from_secs(2))?;
+    line.send_raw_stream_frame(b"CONDUIT_RAW_CDC0_PROBE", Duration::from_secs(2))?;
     let mut raw = [0_u8; 2048];
-    if carrier.receive_raw_stream_frame(&mut raw, Duration::from_secs(3))?
-        != b"CONDUIT_RAW_CDC0_REPLY"
+    if line.receive_raw_stream_frame(&mut raw, Duration::from_secs(3))? != b"CONDUIT_RAW_CDC0_REPLY"
     {
         return Err("raw CDC0 probe reply payload mismatch".into());
     }
-    let boot_line = clue
+    let boot_line = sign
         .read_line(Duration::from_secs(3))
-        .map_err(|error| format!("timed out reading Pico boot Clue: {error}"))?;
+        .map_err(|error| format!("timed out reading Pico boot Sign: {error}"))?;
     let runtime = transcript::verify_boot(&boot_line, identity)?;
 
-    match wait_for_network_session_readiness(&mut carrier)? {
+    match wait_for_network_session_readiness(&mut line)? {
         NetworkSessionReadiness::Ready => {}
         NetworkSessionReadiness::Failed => {
-            return Err(read_recovery_clue(
-                &mut carrier,
-                &mut clue,
-                identity,
-                &runtime,
-            ));
+            return Err(read_recovery_sign(&mut line, &mut sign, identity, &runtime));
         }
     }
 
@@ -206,9 +200,9 @@ fn run_unix(
         return Err("runtime Pico Play identity disagrees with the exact rebound Plan".into());
     }
 
-    if let Err(handshake_error) = handshake(&mut source, &mut carrier, &binding) {
-        return Err(session_phase_failure_with_clue(
-            &mut clue,
+    if let Err(handshake_error) = handshake(&mut source, &mut line, &binding) {
+        return Err(session_phase_failure_with_sign(
+            &mut sign,
             "USB bootstrap handshake",
             handshake_error,
             identity,
@@ -226,21 +220,21 @@ fn run_unix(
         payload: &payload[..payload_len],
     });
     source.admit_outbound(offered)?;
-    carrier.send_frame(&offered, Duration::from_secs(2))?;
+    line.send_frame(&offered, Duration::from_secs(2))?;
     receive_exact(
-        &mut carrier,
+        &mut line,
         &mut source,
         Duration::from_secs(3),
         |message| matches!(message, SessionMessage::Accepted { sequence: found } if found == sequence),
     )?;
     source.accepted(sequence)?;
 
-    let attachment_line = clue.read_line(Duration::from_secs(65)).map_err(|error| {
-        format!("timed out waiting for network attachment/failure Clue: {error}")
+    let attachment_line = sign.read_line(Duration::from_secs(65)).map_err(|error| {
+        format!("timed out waiting for network attachment/failure Sign: {error}")
     })?;
-    verify_attachment_clue(&attachment_line, identity, &runtime)?;
+    verify_attachment_sign(&attachment_line, identity, &runtime)?;
     receive_exact(
-        &mut carrier,
+        &mut line,
         &mut source,
         Duration::from_secs(3),
         |message| matches!(message, SessionMessage::Delivered { sequence: found } if found == sequence),
@@ -252,45 +246,40 @@ fn run_unix(
 
     let input_closed = binding.frame(SessionMessage::InputClosed { final_sequence: 1 });
     source.admit_outbound(input_closed)?;
-    carrier.send_frame(&input_closed, Duration::from_secs(2))?;
+    line.send_frame(&input_closed, Duration::from_secs(2))?;
     let terminal = binding.frame(SessionMessage::Terminal {
         disposition: SessionTerminalDisposition::Completed,
         final_sequence: 1,
     });
     source.admit_outbound(terminal)?;
-    carrier.send_frame(&terminal, Duration::from_secs(2))?;
-    receive_exact(
-        &mut carrier,
-        &mut source,
-        Duration::from_secs(3),
-        |message| {
-            matches!(
-                message,
-                SessionMessage::Terminal {
-                    disposition: SessionTerminalDisposition::Completed,
-                    final_sequence: 1,
-                }
-            )
-        },
-    )?;
+    line.send_frame(&terminal, Duration::from_secs(2))?;
+    receive_exact(&mut line, &mut source, Duration::from_secs(3), |message| {
+        matches!(
+            message,
+            SessionMessage::Terminal {
+                disposition: SessionTerminalDisposition::Completed,
+                final_sequence: 1,
+            }
+        )
+    })?;
     if !source.is_terminal() {
         return Err("USB bootstrap session did not reach reciprocal terminal agreement".into());
     }
 
     match mode {
         WifiProofMode::Bootstrap => {
-            super::usb_continuity::verify(&mut carrier, identity)?;
+            super::usb_continuity::verify(&mut line, identity)?;
             println!(
-                "==> Physical network attachment Clue and post-attachment USB continuity verified"
+                "==> Physical network attachment Sign and post-attachment USB continuity verified"
             );
         }
         WifiProofMode::WebSocketRoute => {
-            super::prove_websocket::verify(&mut carrier, &mut clue, identity, &runtime)?;
+            super::prove_websocket::verify(&mut line, &mut sign, identity, &runtime)?;
         }
         WifiProofMode::R1NewPlanRecovery { interactive } => {
             let _ = super::prove_websocket::verify_new_plan_recovery(
-                &mut carrier,
-                &mut clue,
+                &mut line,
+                &mut sign,
                 identity,
                 &runtime,
                 interactive,
@@ -298,8 +287,8 @@ fn run_unix(
         }
         WifiProofMode::R1PlanCContinuation { interactive } => {
             let _ = super::prove_websocket::verify_plan_c_continuation(
-                &mut carrier,
-                &mut clue,
+                &mut line,
+                &mut sign,
                 identity,
                 &runtime,
                 interactive,
@@ -307,7 +296,7 @@ fn run_unix(
             )?;
         }
         WifiProofMode::R1Full { interactive } => {
-            super::r1_full::run(&mut carrier, &mut clue, identity, &runtime, interactive)?;
+            super::r1_full::run(&mut line, &mut sign, identity, &runtime, interactive)?;
         }
     }
     Ok(())
@@ -321,14 +310,14 @@ enum NetworkSessionReadiness {
 
 #[cfg(unix)]
 fn wait_for_network_session_readiness(
-    carrier: &mut NativePathCdcCarrier,
+    line: &mut NativePathCdcLine,
 ) -> PicoResult<NetworkSessionReadiness> {
-    carrier.send_raw_stream_frame(
+    line.send_raw_stream_frame(
         conduit_net::R1_USB_NETWORK_SESSION_QUERY,
         Duration::from_secs(2),
     )?;
     let mut raw = [0_u8; 1024];
-    let reply = carrier.receive_raw_stream_frame(&mut raw, Duration::from_secs(30))?;
+    let reply = line.receive_raw_stream_frame(&mut raw, Duration::from_secs(30))?;
     if reply == conduit_net::R1_USB_NETWORK_SESSION_FAILED {
         return Ok(NetworkSessionReadiness::Failed);
     }
@@ -339,71 +328,70 @@ fn wait_for_network_session_readiness(
 }
 
 #[cfg(unix)]
-fn read_recovery_clue(
-    carrier: &mut NativePathCdcCarrier,
-    clue: &mut NativePathCdcLineReader,
+fn read_recovery_sign(
+    line: &mut NativePathCdcLine,
+    sign: &mut NativePathCdcLineReader,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Box<dyn std::error::Error> {
     std::thread::scope(|scope| -> Box<dyn std::error::Error> {
         let disposition = scope.spawn(|| -> Result<Vec<u8>, String> {
-            carrier
-                .send_raw_stream_frame(
-                    conduit_net::R1_USB_NETWORK_FAILURE_CLUE_READY,
-                    Duration::from_secs(2),
-                )
-                .map_err(|error| error.to_string())?;
+            line.send_raw_stream_frame(
+                conduit_net::R1_USB_NETWORK_FAILURE_SIGN_READY,
+                Duration::from_secs(2),
+            )
+            .map_err(|error| error.to_string())?;
             let mut raw = [0_u8; 1024];
-            Ok(carrier
+            Ok(line
                 .receive_raw_stream_frame(&mut raw, Duration::from_secs(3))
                 .map_err(|error| error.to_string())?
                 .to_vec())
         });
-        let line = match clue.read_line(Duration::from_secs(3)) {
+        let line = match sign.read_line(Duration::from_secs(3)) {
             Ok(line) => line,
-            Err(error) => return format!("no bounded Pico recovery Clue arrived: {error}").into(),
+            Err(error) => return format!("no bounded Pico recovery Sign arrived: {error}").into(),
         };
         let status = match disposition.join() {
             Ok(Ok(status)) => status,
             Ok(Err(error)) => return error.into(),
             Err(_) => return "Pico recovery disposition reader panicked".into(),
         };
-        if status == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_FORMAT_FAILED {
-            return "Pico recovery Clue exceeded its admitted format bound".into();
+        if status == conduit_net::R1_USB_NETWORK_FAILURE_SIGN_FORMAT_FAILED {
+            return "Pico recovery Sign exceeded its admitted format bound".into();
         }
-        if status == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_DISCONNECTED {
-            return "Pico recovery Clue face disconnected during delivery".into();
+        if status == conduit_net::R1_USB_NETWORK_FAILURE_SIGN_DISCONNECTED {
+            return "Pico recovery Sign face disconnected during delivery".into();
         }
-        if status.as_slice() != conduit_net::R1_USB_NETWORK_FAILURE_CLUE_WRITTEN {
-            return "Pico returned an unexpected recovery Clue disposition".into();
+        if status.as_slice() != conduit_net::R1_USB_NETWORK_FAILURE_SIGN_WRITTEN {
+            return "Pico returned an unexpected recovery Sign disposition".into();
         }
-        match verify_attachment_clue(&line, identity, runtime) {
-            Ok(()) => "Pico emitted an unexpected attachment success Clue".into(),
-            Err(error) => format!("Pico failure Clue: {error}").into(),
+        match verify_attachment_sign(&line, identity, runtime) {
+            Ok(()) => "Pico emitted an unexpected attachment success Sign".into(),
+            Err(error) => format!("Pico failure Sign: {error}").into(),
         }
     })
 }
 
 #[cfg(unix)]
-fn session_phase_failure_with_clue(
-    clue: &mut NativePathCdcLineReader,
+fn session_phase_failure_with_sign(
+    sign: &mut NativePathCdcLineReader,
     phase: &str,
     phase_error: Box<dyn std::error::Error>,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Box<dyn std::error::Error> {
-    match clue.read_line(Duration::from_secs(3)) {
-        Ok(line) => match verify_attachment_clue(&line, identity, runtime) {
+    match sign.read_line(Duration::from_secs(3)) {
+        Ok(line) => match verify_attachment_sign(&line, identity, runtime) {
             Ok(()) => format!(
-                "{phase} failed ({phase_error}); Pico emitted an unexpected attachment success Clue"
+                "{phase} failed ({phase_error}); Pico emitted an unexpected attachment success Sign"
             )
             .into(),
-            Err(clue_error) => {
-                format!("{phase} failed ({phase_error}); Pico failure Clue: {clue_error}").into()
+            Err(sign_error) => {
+                format!("{phase} failed ({phase_error}); Pico failure Sign: {sign_error}").into()
             }
         },
-        Err(clue_error) => format!(
-            "{phase} failed ({phase_error}); no bounded Pico failure Clue arrived: {clue_error}"
+        Err(sign_error) => format!(
+            "{phase} failed ({phase_error}); no bounded Pico failure Sign arrived: {sign_error}"
         )
         .into(),
     }
@@ -432,19 +420,19 @@ fn verify_source_identity(
 #[cfg(unix)]
 fn handshake(
     source: &mut PicoWifiBootstrapSource,
-    carrier: &mut NativePathCdcCarrier,
+    line: &mut NativePathCdcLine,
     binding: &conduit_wire::SessionBinding,
 ) -> PicoResult<()> {
     let hello = binding.hello_frame();
     source.admit_outbound(hello)?;
-    carrier.send_frame(&hello, Duration::from_secs(2))?;
-    receive_exact(carrier, source, Duration::from_secs(5), |message| {
+    line.send_frame(&hello, Duration::from_secs(2))?;
+    receive_exact(line, source, Duration::from_secs(5), |message| {
         matches!(message, SessionMessage::Hello(_))
     })?;
     let ready = binding.frame(SessionMessage::Ready);
     source.admit_outbound(ready)?;
-    carrier.send_frame(&ready, Duration::from_secs(2))?;
-    receive_exact(carrier, source, Duration::from_secs(5), |message| {
+    line.send_frame(&ready, Duration::from_secs(2))?;
+    receive_exact(line, source, Duration::from_secs(5), |message| {
         matches!(message, SessionMessage::Ready)
     })?;
     if !source.is_active() {
@@ -455,7 +443,7 @@ fn handshake(
 
 #[cfg(unix)]
 fn receive_exact(
-    carrier: &mut NativePathCdcCarrier,
+    line: &mut NativePathCdcLine,
     source: &mut PicoWifiBootstrapSource,
     timeout: Duration,
     expected: impl Fn(SessionMessage<'_>) -> bool,
@@ -463,7 +451,7 @@ fn receive_exact(
     let deadline = Instant::now() + timeout;
     let mut frame = [0_u8; 2048];
     while Instant::now() < deadline {
-        match carrier.receive_frame(&mut frame, Duration::from_millis(100)) {
+        match line.receive_frame(&mut frame, Duration::from_millis(100)) {
             Ok(received) if expected(received.message) => {
                 source.admit_inbound(received)?;
                 return Ok(());
@@ -479,38 +467,38 @@ fn receive_exact(
 }
 
 #[cfg(unix)]
-fn verify_attachment_clue(
+fn verify_attachment_sign(
     line: &str,
     identity: &FirmwareIdentity,
     runtime: &RuntimeTranscriptIdentity,
 ) -> PicoResult<()> {
     let record: serde_json::Value = serde_json::from_str(line)
-        .map_err(|error| format!("malformed bounded network Clue JSON: {error}"))?;
+        .map_err(|error| format!("malformed bounded network Sign JSON: {error}"))?;
     let schema = record["schema"].as_str();
-    if schema == Some("conduit.network/recovery-failure-clue@1") {
+    if schema == Some("conduit.network/recovery-failure-sign@1") {
         for (field, expected) in [
             ("firmware_build_id", identity.firmware_build_id.as_str()),
             ("runtime_boot_id", runtime.boot_id.as_str()),
             ("runtime_active_play_id", runtime.active_play_id.as_str()),
             (
-                "clue_id",
-                identity.generated_image.terminal_clue_id.as_str(),
+                "sign_id",
+                identity.generated_image.terminal_sign_id.as_str(),
             ),
         ] {
             if record[field].as_str() != Some(expected) {
-                return Err(format!("network recovery Clue field `{field}` mismatched").into());
+                return Err(format!("network recovery Sign field `{field}` mismatched").into());
             }
         }
         let code = record["error_code"]
             .as_str()
             .unwrap_or("missing-error-code");
-        return Err(format!("Pico network recovery reported bounded Clue `{code}`").into());
+        return Err(format!("Pico network recovery reported bounded Sign `{code}`").into());
     }
     if !matches!(
         schema,
-        Some("conduit.network/attachment-clue@1" | "conduit.network/join-failure-clue@1")
+        Some("conduit.network/attachment-sign@1" | "conduit.network/join-failure-sign@1")
     ) {
-        return Err("unexpected network Clue schema".into());
+        return Err("unexpected network Sign schema".into());
     }
     let generated = &identity.generated_image;
     for (field, expected) in [
@@ -524,22 +512,22 @@ fn verify_attachment_clue(
         ("boot_id", runtime.boot_id.as_str()),
         ("active_play_id", runtime.active_play_id.as_str()),
         ("interface_pool_id", conduit_net::R1_WIFI_STATION_POOL_ID),
-        ("clue_id", generated.terminal_clue_id.as_str()),
+        ("sign_id", generated.terminal_sign_id.as_str()),
     ] {
         if record[field].as_str() != Some(expected) {
-            return Err(format!("network attachment Clue field `{field}` mismatched").into());
+            return Err(format!("network attachment Sign field `{field}` mismatched").into());
         }
     }
-    if schema == Some("conduit.network/join-failure-clue@1") {
+    if schema == Some("conduit.network/join-failure-sign@1") {
         let code = record["error_code"]
             .as_str()
             .unwrap_or("missing-error-code");
-        return Err(format!("Pico network join failed with bounded Clue `{code}`").into());
+        return Err(format!("Pico network join failed with bounded Sign `{code}`").into());
     }
     if record["generation"].as_u64() != Some(1)
         || record["attachment_id"].as_str().is_none_or(str::is_empty)
     {
-        return Err("network attachment Clue identity is incomplete".into());
+        return Err("network attachment Sign identity is incomplete".into());
     }
     Ok(())
 }

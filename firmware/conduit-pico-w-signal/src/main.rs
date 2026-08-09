@@ -6,7 +6,7 @@
 //! allocation. The explicit `usb-remote` image uses one finite startup arena
 //! for owned session identities; active transport remains statically bounded.
 //! `pico-local-minimal` is a compile-only composition proof with the same
-//! kernel-backed Signal faces and USB clue, but no wire/session or BOOTSEL
+//! kernel-backed Signal faces and USB sign, but no wire/session or BOOTSEL
 //! lifecycle-control base. It is not a substitute for physical acceptance.
 #![no_std]
 #![no_main]
@@ -131,23 +131,23 @@ async fn main(spawner: Spawner) {
     let panic_record = panic_recovery::take(p.WATCHDOG);
 
     // Physical-proof and remote modes expose dual CDC: CDC 0 owns session and
-    // lifecycle control, while CDC 1 owns clue. The minimal composition
-    // omits that optional family and exposes one clue-only CDC interface.
+    // lifecycle control, while CDC 1 owns sign. The minimal composition
+    // omits that optional family and exposes one sign-only CDC interface.
     let usb_driver = embassy_rp::usb::Driver::new(p.USB, radio::UsbIrq);
     #[cfg(feature = "session-control")]
-    let (usb_fut, session_carrier, clue_sender) = usb::init_composite_usb(usb_driver);
+    let (usb_fut, session_line, sign_sender) = usb::init_composite_usb(usb_driver);
     #[cfg(not(feature = "session-control"))]
-    let (usb_fut, clue_sender) = usb::init_clue_usb(usb_driver);
+    let (usb_fut, sign_sender) = usb::init_sign_usb(usb_driver);
     spawner.spawn(receipts::usb_task_spawn(usb_fut).unwrap());
     #[cfg(not(feature = "wifi-bootstrap"))]
     let runtime = receipts::RuntimeTranscriptIdentity::new(signal_image::PLAN_ID, signal_image::HOST_ID);
     #[cfg(feature = "wifi-bootstrap")]
     let runtime = receipts::RuntimeTranscriptIdentity::new(network_image::PLAN_ID, network_image::HOST_ID);
-    let mut cdc = receipts::UsbCdc::new(clue_sender.sender);
+    let mut cdc = receipts::UsbCdc::new(sign_sender.sender);
 
     #[cfg(feature = "pico-local")]
     {
-        let mut link_session = usb_link::UsbLinkSession::new(session_carrier).unwrap();
+        let mut link_session = usb_link::UsbLinkSession::new(session_line).unwrap();
         let (mut control, _) = radio::init_cyw43(
             &spawner,
             p.PIO0,
@@ -160,7 +160,7 @@ async fn main(spawner: Spawner) {
             &CYW43_NVRAM,
         )
         .await;
-        // While the local proof is idle waiting for its clue consumer,
+        // While the local proof is idle waiting for its sign consumer,
         // CDC 0 remains an autonomous recovery path into BOOTSEL.
         match select(cdc.wait_dtr(), bootsel::wait_for_request(&mut link_session)).await {
             Either::First(()) => {}
@@ -192,7 +192,7 @@ async fn main(spawner: Spawner) {
 
     #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
     {
-        let mut link_session = usb_link::UsbLinkSession::new(session_carrier).unwrap();
+        let mut link_session = usb_link::UsbLinkSession::new(session_line).unwrap();
 
         // Service the physical USB startup while CYW43 initializes. Enumeration is
         // not a live CDC service: both futures must be polled from the beginning.
@@ -241,7 +241,7 @@ async fn main(spawner: Spawner) {
     {
         wifi_join::run(
             &spawner,
-            session_carrier,
+            session_line,
             &mut cdc,
             panic_record,
             p.PIO0,

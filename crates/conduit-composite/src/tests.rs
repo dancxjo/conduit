@@ -1170,8 +1170,8 @@ fn named_face_delivery_failure_and_cancellation_are_parent_terminal_without_topo
         4
     );
     assert!(!format!("{failed:?}").contains("multi-child"));
-    let clue = failed_composite.handle(HostCommand::Inspect);
-    assert!(clue.events.iter().any(|event| match event {
+    let sign = failed_composite.handle(HostCommand::Inspect);
+    assert!(sign.events.iter().any(|event| match event {
         HostEvent::Observations { items } => items.iter().any(|observation| matches!(
             observation.kind,
             ObservationKind::PlanTerminal {

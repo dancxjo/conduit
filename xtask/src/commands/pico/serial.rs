@@ -44,7 +44,7 @@ pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
     let file = std::fs::OpenOptions::new().read(true).open(&port)?;
     conduit_std_host::usb_cdc::configure_cdc_port(&file, 0, 50).map_err(|e| {
         format!(
-            "Failed to configure clue serial port {}: {}",
+            "Failed to configure sign serial port {}: {}",
             port.display(),
             e
         )
@@ -166,10 +166,10 @@ fn validate_expected_identity(identity: &FirmwareIdentity) -> PicoResult<()> {
         )
         .into());
     }
-    if expected.presentation_clue_ids.len() != EXPECTED_RECEIPTS {
+    if expected.presentation_sign_ids.len() != EXPECTED_RECEIPTS {
         return Err(format!(
-            "identity manifest contains {} presentation clue IDs; expected {EXPECTED_RECEIPTS}",
-            expected.presentation_clue_ids.len()
+            "identity manifest contains {} presentation sign IDs; expected {EXPECTED_RECEIPTS}",
+            expected.presentation_sign_ids.len()
         )
         .into());
     }
@@ -182,7 +182,7 @@ fn verify_boot_identity(
 ) -> PicoResult<RuntimeTranscriptIdentity> {
     let expected = &identity.generated_image;
     verify_static_identity(record, identity, false)?;
-    verify_field(record, "clue_id", &expected.boot_clue_id)?;
+    verify_field(record, "sign_id", &expected.boot_sign_id)?;
     read_runtime_identity(record, expected)
 }
 
@@ -210,7 +210,7 @@ fn verify_presentation_identity(
         "presentation_id",
         &expected.presentation_ids[sequence],
     )?;
-    verify_field(record, "clue_id", &expected.presentation_clue_ids[sequence])
+    verify_field(record, "sign_id", &expected.presentation_sign_ids[sequence])
 }
 
 fn verify_terminal_identity(
@@ -221,7 +221,7 @@ fn verify_terminal_identity(
     let expected = &identity.generated_image;
     verify_static_identity(record, identity, true)?;
     verify_runtime_identity(record, runtime)?;
-    verify_field(record, "clue_id", &expected.terminal_clue_id)
+    verify_field(record, "sign_id", &expected.terminal_sign_id)
 }
 
 fn verify_static_identity(
@@ -321,9 +321,9 @@ fn read_runtime_field(record: &serde_json::Value, field: &str) -> PicoResult<Str
 
 pub fn resolve_dual_ports(
     link_arg: Option<&str>,
-    clue_arg: Option<&str>,
+    sign_arg: Option<&str>,
 ) -> PicoResult<(PathBuf, PathBuf)> {
-    if let (Some(l), Some(e)) = (link_arg, clue_arg) {
+    if let (Some(l), Some(e)) = (link_arg, sign_arg) {
         return Ok((PathBuf::from(l), PathBuf::from(e)));
     }
 
@@ -347,26 +347,26 @@ pub fn resolve_dual_ports(
             let link = link_arg
                 .map(PathBuf::from)
                 .unwrap_or_else(|| matches[0].clone());
-            let clue = clue_arg
+            let sign = sign_arg
                 .map(PathBuf::from)
                 .unwrap_or_else(|| matches[1].clone());
-            return Ok((link, clue));
+            return Ok((link, sign));
         } else if matches.len() == 1 {
             let single = matches[0].clone();
             return Ok((
                 link_arg
                     .map(PathBuf::from)
                     .unwrap_or_else(|| single.clone()),
-                clue_arg.map(PathBuf::from).unwrap_or(single),
+                sign_arg.map(PathBuf::from).unwrap_or(single),
             ));
         }
     }
 
-    if let (Some(l), None) = (link_arg, clue_arg) {
+    if let (Some(l), None) = (link_arg, sign_arg) {
         return Ok((PathBuf::from(l), PathBuf::from(l)));
     }
 
-    Err("no Conduit Pico W serial device found under /dev/serial/by-id; pass --link-port and --clue-port".into())
+    Err("no Conduit Pico W serial device found under /dev/serial/by-id; pass --link-port and --sign-port".into())
 }
 
 #[cfg(test)]
@@ -387,22 +387,22 @@ mod tests {
             host_id: "host".into(),
             boot_id: "boot".into(),
             active_play_id: "play".into(),
-            boot_clue_id: "boot-clue".into(),
+            boot_sign_id: "boot-sign".into(),
             presentation_ids: (0..EXPECTED_RECEIPTS)
                 .map(|sequence| format!("presentation-{sequence}"))
                 .collect(),
-            presentation_clue_ids: (0..EXPECTED_RECEIPTS)
-                .map(|sequence| format!("clue-{sequence}"))
+            presentation_sign_ids: (0..EXPECTED_RECEIPTS)
+                .map(|sequence| format!("sign-{sequence}"))
                 .collect(),
-            terminal_clue_id: "terminal-clue".into(),
+            terminal_sign_id: "terminal-sign".into(),
             offer_generation: 1,
             nodes: 2,
             cords: 1,
             host_operations: 2,
             cord_value_slots: 1,
             cord_value_bytes: 9,
-            clue_items: 7,
-            clue_bytes: 327,
+            sign_items: 7,
+            sign_bytes: 327,
         }
     }
 
@@ -436,7 +436,7 @@ mod tests {
                 "\"boot_id\":\"boot\",",
                 "\"runtime_boot_id\":\"runtime-boot\",",
                 "\"runtime_active_play_id\":\"{}\",",
-                "\"clue_id\":\"boot-clue\"}}\n"
+                "\"sign_id\":\"boot-sign\"}}\n"
             ),
             runtime_play(),
         )
@@ -460,7 +460,7 @@ mod tests {
                 "\"sequence\":{},",
                 "\"level\":{},",
                 "\"presentation_id\":\"presentation-{}\",",
-                "\"clue_id\":\"clue-{}\"}}\n"
+                "\"sign_id\":\"sign-{}\"}}\n"
             ),
             runtime_play(),
             sequence,
@@ -486,7 +486,7 @@ mod tests {
                 "\"runtime_boot_id\":\"runtime-boot\",",
                 "\"runtime_active_play_id\":\"{}\",",
                 "\"success\":true,",
-                "\"clue_id\":\"terminal-clue\"}}\n"
+                "\"sign_id\":\"terminal-sign\"}}\n"
             ),
             runtime_play(),
         )

@@ -15,7 +15,7 @@ pub async fn run(
     socket: &mut TcpSocket<'_>,
     transport: &mut WebSocketTransport,
     control: &mut cyw43::Control<'_>,
-    clue: &mut UsbCdc,
+    sign: &mut UsbCdc,
     runtime: &RuntimeTranscriptIdentity,
     state: &mut ContinuableSignalSink,
 ) -> Result<(), WebSocketTransportError> {
@@ -68,7 +68,7 @@ pub async fn run(
                 )
                 .await?;
                 state.kernel
-                    .present_accepted(sequence, control, clue, runtime)
+                    .present_accepted(sequence, control, sign, runtime)
                     .await
                     .map_err(kernel_error)?;
                 send(
@@ -103,7 +103,7 @@ pub async fn run(
             _ => state.machine.admit_inbound(frame).map_err(|_| WebSocketTransportError::Frame)?,
         }
         if state.machine.is_terminal() {
-            clue
+            sign
                 .write_terminal(true, identity.terminal(), runtime)
                 .await
                 .map_err(|_| WebSocketTransportError::Disconnected)?;

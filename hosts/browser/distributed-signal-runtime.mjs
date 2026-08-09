@@ -97,7 +97,7 @@ function requireStatus(status, operation) {
   if (status < 0) throw new Error(`CND-DST-S4-005 ${operation} failed ${status}`);
 }
 
-export async function runDistributedBrowserRuntime(runtime, carrier, domHost) {
+export async function runDistributedBrowserRuntime(runtime, line, domHost) {
   const presentations = [];
   let sessionFramesSent = 0;
   let sessionFramesReceived = 0;
@@ -105,7 +105,7 @@ export async function runDistributedBrowserRuntime(runtime, carrier, domHost) {
     const pending = output(runtime);
     if (pending?.kind === OUTPUT_SESSION) {
       const messageKind = pending.bytes[5];
-      const sent = carrier.sendBinary(pending.bytes);
+      const sent = line.sendBinary(pending.bytes);
       if (!sent.ok) throw new Error(`${sent.code} ${sent.detail}`);
       sessionFramesSent += 1;
       if (messageKind === SESSION_ACCEPTED || messageKind === SESSION_DELIVERED) {
@@ -132,7 +132,7 @@ export async function runDistributedBrowserRuntime(runtime, carrier, domHost) {
       continue;
     }
     if (runtime.api.conduit_browser_distributed_status() === STATUS_COMPLETE) break;
-    const inbound = await carrier.receiveBinary();
+    const inbound = await line.receiveBinary();
     writeInput(runtime, inbound);
     requireStatus(
       runtime.api.conduit_browser_distributed_ingest(inbound.length),

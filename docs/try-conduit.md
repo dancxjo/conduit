@@ -86,7 +86,7 @@ This is not the browser simulation. The command:
 1. builds the real Rust browser runtime for `wasm32-unknown-unknown`;
 2. starts the repository's static HTTP server;
 3. starts the native std-side distributed toggle source;
-4. creates the bounded loopback WebSocket carrier; and
+4. creates the bounded loopback WebSocket Line; and
 5. prints an HTTP URL for a real browser page.
 
 Open the exact URL printed by the command in a normal browser. It looks like:
@@ -154,8 +154,8 @@ things it lists:
 - selected placements and implementations;
 - connection base and queue bounds;
 - the active Play and terminal state;
-- presentation clue; and
-- bounded clue retention and visible gaps.
+- presentation Sign; and
+- bounded Sign retention and visible gaps.
 
 A current std reference-host report contains the separately owned Signal pair
 and nine installed `conduit.std` operation offers. The standard nucleus is:
@@ -224,7 +224,7 @@ cargo xtask prove std-pico-usb --interactive
 The proof uses the real dual-CDC firmware:
 
 - CDC 0 carries bounded Conduit session frames;
-- CDC 1 carries physical clue receipts.
+- CDC 1 carries physical Sign receipts.
 
 Before admitting the graph session, the operator tooling verifies the physical
 CDC path, the running Pico boot identity, the exact generated image/plan
@@ -235,7 +235,7 @@ the Pico's CYW43 LED manifests the corresponding physical state. This is a
 hardware-gated physical proof, not something ordinary CI can reproduce without
 the board.
 
-The non-interactive exact carrier proof is:
+The non-interactive exact Line proof is:
 
 ```bash
 just prove-std-pico-usb
@@ -294,7 +294,7 @@ CONDUIT_THREE_HOST_FAILURE=1 \
   hosts/browser/triple-signal.spec.mjs
 ```
 
-See issue #350 and `STATUS.md` for the exact accepted clue boundary rather
+See issue #350 and `STATUS.md` for the exact accepted Sign boundary rather
 than treating these commands alone as proof of a historical run.
 
 ## 6. What the platform can do now
@@ -304,7 +304,7 @@ The current executable substrate includes:
 - native hosted execution through the bounded Conduit kernel;
 - actual Rust/WASM browser execution and DOM presentation;
 - actual physical RP2040/Pico W execution;
-- bounded live WebSocket and USB CDC carriers using the same exact remote-session
+- bounded live WebSocket and USB CDC lines using the same exact remote-session
   semantics;
 - one exact three-host form spanning stdout, DOM, and physical LED;
 - boot-scoped portable planner capability offers on std and browser hosts;
@@ -318,7 +318,7 @@ reason to blur the difference between installed code and user-facing programs.
 
 ## Proof classes matter
 
-These commands intentionally represent different levels of clue:
+These commands intentionally represent different levels of Sign:
 
 - `just demo-std` and `just demo-triple-local`: executable native programs;
 - `just toggle`: interactive hosted browser demonstration;
@@ -329,7 +329,7 @@ These commands intentionally represent different levels of clue:
   three-host proof.
 
 Compilation is not execution. Simulation is not an actual browser. Firmware
-build is not board execution. A live carrier is not automatically a general
+build is not board execution. A live Line is not automatically a general
 network stack. Conduit keeps those distinctions explicit because they are part
 of the architecture, not documentation caveats.
 

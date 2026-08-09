@@ -5,7 +5,7 @@ current Observatory boundary. `PatchbayTopology` accepts only validated
 `ObservatorySnapshot` values and retains at most four projected reports in the
 native composition. When another arrives, the oldest presentation report is
 dropped and the cumulative drop count remains visible. The Observatory
-snapshot's own clue capacity and visible-gap count are shown separately.
+snapshot's own Sign capacity and visible-gap count are shown separately.
 Each accepted report is limited to 256 projected topology lines and 64 KiB of
 neutral rendered report data before it enters history; an oversized report is
 rejected without displacing the last valid view.

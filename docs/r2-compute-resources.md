@@ -44,7 +44,7 @@ The deterministic planner tests prove bounded minimum-first allocation, exact
 service and topology selection, hosted/bare-metal contract parity, Plan identity
 sealing, and the exclusion of physical lane identifiers from serialized Plans.
 They do not claim operating-system scheduling quality, bare-metal interrupt
-behavior, firmware execution, or physical/HIL clue.
+behavior, firmware execution, or physical/HIL Sign.
 
 ## Non-AI generality check
 

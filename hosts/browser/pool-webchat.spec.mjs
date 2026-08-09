@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { spawn } from "node:child_process";
 
 let server;
-let carrierUrl;
+let lineUrl;
 let serverOutput = "";
 
 test.beforeAll(async () => {
@@ -10,7 +10,7 @@ test.beforeAll(async () => {
     cwd: new URL("../..", import.meta.url).pathname,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  carrierUrl = await new Promise((resolve, reject) => {
+  lineUrl = await new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error("pool webchat server did not become ready")), 10_000);
     const inspect = (chunk) => {
       serverOutput += chunk.toString();
@@ -41,7 +41,7 @@ test("dynamic browser peers join broadcast leave and continue through the planne
   const context = await browser.newContext();
   const pageA = await context.newPage();
   const pageB = await context.newPage();
-  const target = `/hosts/browser/pool-webchat.test.html?carrier=${encodeURIComponent(carrierUrl)}`;
+  const target = `/hosts/browser/pool-webchat.test.html?line=${encodeURIComponent(lineUrl)}`;
   await pageA.goto(target);
   await expect(pageA.getByRole("status")).toHaveText("joined");
   await pageB.goto(target);
@@ -82,7 +82,7 @@ test("dynamic browser peers join broadcast leave and continue through the planne
   await expect.poll(() => server.exitCode).toBe(0);
   expect(serverOutput).toContain("pool-webchat-complete");
   expect(serverOutput).toContain("population=0");
-  expect(serverOutput).toMatch(/source=[^\s]+ plan=[0-9a-f]+ pool=pool-webchat\/peers carrier=websocket/);
+  expect(serverOutput).toMatch(/source=[^\s]+ plan=[0-9a-f]+ pool=pool-webchat\/peers line=websocket/);
   expect(serverOutput).not.toContain("hello from");
   expect(serverOutput).not.toContain("remaining peer continues");
   await context.close();

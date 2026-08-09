@@ -20,7 +20,7 @@ Conduit then asks a different question:
 
 > Given what is actually true right now, how can this Form be realized?
 
-That is where Hosts, Bases, Clues, Plans, and Plays enter.
+That is where Hosts, Bases, Signs, Plans, and Plays enter.
 
 ---
 
@@ -47,7 +47,7 @@ form signal-demo {
     Kind                       Kind
 ```
 
-The Form does **not** say that `show` means stdout. It does not say both Gears must run in the same process. It does not say whether a cross-machine Cord is realized by WebSocket, USB CDC, shared memory, or some future carrier.
+The Form does **not** say that `show` means stdout. It does not say both Gears must run in the same process. It does not say whether a cross-machine Cord is realized by WebSocket, USB CDC, shared memory, or some future Line.
 
 Those are realization questions.
 
@@ -99,7 +99,7 @@ The word is intentionally local. Conduit is not pretending the whole system is a
 
 A **Port** is a typed directional point on a Gear or Face through which Info enters or leaves. Its exact semantic contract includes identity, direction, Info shape/type, and temporal behavior such as one Value, a Flow, or Current state.
 
-A Port is not a drawn jack, queue slot, network socket, carrier endpoint, or Base handle. Renderers and realizations may create those local objects, but they do not replace Port identity.
+A Port is not a drawn jack, queue slot, network socket, Line endpoint, or Base handle. Renderers and realizations may create those local objects, but they do not replace Port identity.
 
 ### Cords
 
@@ -111,7 +111,7 @@ A **Cord** is a typed semantic connection between compatible Ports on Gears.
 
 When two Gears are realized on different Hosts, Conduit may need a network or physical mechanism to carry that connection. The program still sees a Cord.
 
-A carrier is not a Cord.
+A Line is not a Cord.
 
 ### Info
 
@@ -185,7 +185,7 @@ A **Seed** is authored workspace/source material: Forms, Body definitions, asset
 
 A **Body** is the durable intended world born from Seed material. It owns durable obligations.
 
-A Body is not a Host, process, device, deployment, or current execution. It can persist while the machines and realizations beneath it change.
+A Body is not a Host, process, device, realization, or current execution. It can persist while the machines and realizations beneath it change.
 
 ### Wake and Lull
 
@@ -232,13 +232,13 @@ Planning is not execution. A Plan may exist without being played, and a new Plan
 
 ---
 
-## Clues, Hosts, and Bases
+## Signs, Hosts, and Bases
 
 The authored Form is only half the story. Real machines are finite and inconvenient, which is useful information rather than something Conduit tries to erase.
 
-### Clues
+### Signs
 
-**Clues** are bounded machine-readable truth about what is currently true and what happened.
+**Signs** are bounded machine-readable truth about what is currently true and what happened.
 
 Examples include:
 
@@ -252,7 +252,7 @@ this Play reached a terminal outcome
 this physical effect was observed
 ```
 
-Clues are not intent, authority, or Plans. They are the basis from which Conduit can reason honestly about realization and history.
+Signs are not intent, authority, or Plans. They are the basis from which Conduit can reason honestly about realization and history.
 
 ### Hosts
 
@@ -305,7 +305,7 @@ same Gears
 same Pico Host / Boot
 ```
 
-What changed is a **Clue** about one possible realization.
+What changed is a **Sign** about one possible realization.
 
 If the current Plan already admitted WebSocket as an alternative route, the Play may continue under the same Plan by selecting that route.
 
@@ -334,16 +334,16 @@ INFO    shaped, typed data carried through a Cord
 FACE    stable visible semantic contract, including Ports
 BACK    Form implementing a Face
 
-CLUE    bounded truth about what is true or what happened
+SIGN    bounded truth about what is true or what happened
 HOST    truthful finite realization offers for an exact running environment
 BASE    platform/machine mechanism beneath a Host offer
-PLAN    exact immutable realization for an admitted basis of Clues
+PLAN    exact immutable realization for an admitted basis of Signs
 PLAY    active execution of one exact Plan
 ```
 
 A useful compression is:
 
-> **Form is meaning. Body is durable intent. Clues describe the observed world. Hosts offer finite possibilities. Bases are machine mechanisms. Plan makes realization exact. Play makes that Plan active.**
+> **Form is meaning. Body is durable intent. Signs describe the observed world. Hosts offer finite possibilities. Bases are machine mechanisms. Plan makes realization exact. Play makes that Plan active.**
 
 ---
 
@@ -368,7 +368,7 @@ Portability comes from **planning around those differences**, not denying them.
 
 Conduit is designed with constrained systems in mind.
 
-Before a Play begins, its exact realization admits finite execution needs: Gears, ports, Cords, queue items, bytes, resources, Host-side mechanisms, Bases, and required Clue storage.
+Before a Play begins, its exact realization admits finite execution needs: Gears, ports, Cords, queue items, bytes, resources, Host-side mechanisms, Bases, and required Sign storage.
 
 A hosted implementation may perform richer preparation while planning. Once admitted execution begins, however, the runtime should not quietly acquire unbounded needs.
 
@@ -430,7 +430,7 @@ REALIZATION
 PLAY
   active runtime state
 
-CLUES
+SIGNS
   current truth + bounded history
 ```
 
@@ -442,7 +442,7 @@ With supported Pico W firmware attached, the physical proof tooling includes:
 cargo xtask prove std-pico-usb --interactive
 ```
 
-The Pico uses bounded USB CDC machinery for the Conduit path and separate physical proof/Clue reporting where the current proof profile requires it.
+The Pico uses bounded USB CDC machinery for the Conduit path and separate physical proof/Sign reporting where the current proof profile requires it.
 
 Because physical proofs require attached hardware, they are intentionally hardware-gated rather than being presented as ordinary CI.
 
@@ -526,7 +526,7 @@ Faces remain semantic contracts while Backs can express alternative graph-level 
 
 Backs implement Faces using Conduit meaning. Hosts offer concrete ways to realize the Gears that remain after graph-level decomposition.
 
-### A carrier is not a Cord
+### A Line is not a Cord
 
 WebSocket, USB CDC, shared memory, and future transports are possible realizations of connectivity. They should not become the meaning of the connection itself.
 
@@ -538,7 +538,7 @@ A Host possessing a capability does not automatically imply that a Body or Play 
 
 Selecting an exact realization does not mean that realization is currently active.
 
-### Clues are not plans
+### Signs are not plans
 
 A changed fact about the world may invalidate or pressure a realization, but it does not mutate an immutable Plan into a different Plan.
 
@@ -585,4 +585,4 @@ Seed → Body → Wake
              Play
 ```
 
-**Kinds describe reusable semantic behavior. Gears are configured uses of those Kinds. Cords connect the Gears. Forms capture the meaning. Bodies make durable obligations from authored Seeds. Clues say what is true. Hosts offer finite possibilities through machine Bases. Plans choose an exact realization. Plays run it.**
+**Kinds describe reusable semantic behavior. Gears are configured uses of those Kinds. Cords connect the Gears. Forms capture the meaning. Bodies make durable obligations from authored Seeds. Signs say what is true. Hosts offer finite possibilities through machine Bases. Plans choose an exact realization. Plays run it.**

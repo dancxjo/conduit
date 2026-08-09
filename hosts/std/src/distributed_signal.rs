@@ -1,6 +1,6 @@
 //! Exact std source half of the live S4 std-to-browser Signal proof.
 
-use crate::websocket::{NativeWebSocketCarrier, NativeWebSocketListener};
+use crate::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 use conduit_core::{bind_active_play, PlanFragment};
 #[cfg(test)]
 use conduit_core::{CapabilityId, ConnectionBase, GearId};
@@ -8,10 +8,10 @@ use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, ClueQuery, CordId, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
+    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
     HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
-    RemoteEndpointId, RequestId, ValueRef, ValueStorage,
+    RemoteEndpointId, RequestId, SignQuery, ValueRef, ValueStorage,
 };
 #[cfg(test)]
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
@@ -46,12 +46,12 @@ const MAXIMUM_WAITS: usize = 15;
 const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES + MAXIMUM_WAITS) as u16;
 const MAXIMUM_STORED_BYTES: u32 =
     MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN + MAXIMUM_WAITS as u32 * 8;
-const CLUE_ITEMS: u16 = 256;
+const SIGN_ITEMS: u16 = 256;
 
 type SourceScheduler = FixedScheduler<
     OperationDriver<PulseOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     1,
     1,
     PORTS,
@@ -65,7 +65,7 @@ type SourceScheduler = FixedScheduler<
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct CapacitySeal {
     values: (usize, usize),
-    clue: usize,
+    sign: usize,
     driver: usize,
     identity: (usize, usize, usize),
 }
@@ -261,11 +261,11 @@ impl DistributedSource {
             pending: None,
         })
         .map_err(|error| format!("{error:?}"))?;
-        let clue_bytes = u32::from(CLUE_ITEMS)
+        let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-            .ok_or_else(|| "source clue budget overflow".to_string())?;
-        let clue =
-            HostedClueLog::new(CLUE_ITEMS, clue_bytes).map_err(|error| format!("{error:?}"))?;
+            .ok_or_else(|| "source sign budget overflow".to_string())?;
+        let sign =
+            HostedSignLog::new(SIGN_ITEMS, sign_bytes).map_err(|error| format!("{error:?}"))?;
         let scheduler = SourceScheduler::new_with_host_operations(
             lowered
                 .node_specs
@@ -283,7 +283,7 @@ impl DistributedSource {
             host_bindings,
             [driver],
             values,
-            clue,
+            sign,
         )
         .map_err(|error| format!("{error:?}"))?;
         let active_play =
@@ -308,7 +308,7 @@ impl DistributedSource {
             .map_err(|error| format!("{error:?}"))?;
         let seal = CapacitySeal {
             values: scheduler.values().allocation_capacities(),
-            clue: scheduler.clues().allocation_capacity(),
+            sign: scheduler.signs().allocation_capacity(),
             driver: scheduler.drivers()[0].operation().allocation_capacity(),
             identity: identity.allocation_capacities(),
         };
@@ -327,7 +327,7 @@ impl DistributedSource {
     fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
-            clue: self.scheduler.clues().allocation_capacity(),
+            sign: self.scheduler.signs().allocation_capacity(),
             driver: self.scheduler.drivers()[0]
                 .operation()
                 .allocation_capacity(),
@@ -411,7 +411,7 @@ impl DistributedSource {
 
     fn send(
         &mut self,
-        carrier: &mut NativeWebSocketCarrier,
+        line: &mut NativeWebSocketLine,
         message: SessionMessage<'_>,
         output: &mut [u8; DISTRIBUTED_MAXIMUM_FRAME_BYTES as usize],
     ) -> Result<(), String> {
@@ -426,17 +426,16 @@ impl DistributedSource {
             DISTRIBUTED_MAXIMUM_FRAME_BYTES,
         )
         .map_err(|error| format!("{error:?}"))?;
-        carrier
-            .send_binary(&output[..length])
+        line.send_binary(&output[..length])
             .map_err(|error| format!("{error:?}"))
     }
 
     fn receive<'a>(
         &mut self,
-        carrier: &mut NativeWebSocketCarrier,
+        line: &mut NativeWebSocketLine,
         input: &'a mut [u8; DISTRIBUTED_MAXIMUM_FRAME_BYTES as usize],
     ) -> Result<SessionMessage<'a>, String> {
-        let length = carrier
+        let length = line
             .receive_binary(input)
             .map_err(|error| format!("{error:?}"))?;
         let frame = decode_session_frame(
@@ -456,12 +455,12 @@ impl DistributedSource {
         listener: NativeWebSocketListener,
         report: &mut W,
     ) -> Result<(), String> {
-        let mut carrier = listener.accept().map_err(|error| format!("{error:?}"))?;
+        let mut line = listener.accept().map_err(|error| format!("{error:?}"))?;
         let mut outbound = [0_u8; DISTRIBUTED_MAXIMUM_FRAME_BYTES as usize];
         let mut inbound = [0_u8; DISTRIBUTED_MAXIMUM_FRAME_BYTES as usize];
 
         if !matches!(
-            self.receive(&mut carrier, &mut inbound).map_err(|detail| {
+            self.receive(&mut line, &mut inbound).map_err(|detail| {
                 format!("CND-DST-S4-201 phase=before-readiness detail={detail}")
             })?,
             SessionMessage::Hello(_)
@@ -470,16 +469,16 @@ impl DistributedSource {
         }
         let hello_binding = self.binding.clone();
         let hello = hello_binding.hello_frame().message;
-        self.send(&mut carrier, hello, &mut outbound)?;
+        self.send(&mut line, hello, &mut outbound)?;
         if !matches!(
-            self.receive(&mut carrier, &mut inbound).map_err(|detail| {
+            self.receive(&mut line, &mut inbound).map_err(|detail| {
                 format!("CND-DST-S4-201 phase=before-readiness detail={detail}")
             })?,
             SessionMessage::Ready
         ) {
             return Err("browser did not report Ready".to_string());
         }
-        self.send(&mut carrier, SessionMessage::Ready, &mut outbound)?;
+        self.send(&mut line, SessionMessage::Ready, &mut outbound)?;
         if !self.session.is_active() {
             return Err("std source triggerd before both exact readiness facts".to_string());
         }
@@ -487,14 +486,14 @@ impl DistributedSource {
         while let Some((sequence, payload)) = self.next_offer()? {
             loop {
                 self.send(
-                    &mut carrier,
+                    &mut line,
                     SessionMessage::Offered {
                         sequence,
                         payload: &payload,
                     },
                     &mut outbound,
                 )?;
-                match self.receive(&mut carrier, &mut inbound).map_err(|detail| {
+                match self.receive(&mut line, &mut inbound).map_err(|detail| {
                     format!(
                         "CND-DST-S4-202 phase=value-in-flight sequence={sequence} detail={detail}"
                     )
@@ -513,7 +512,7 @@ impl DistributedSource {
                     }
                     other => return Err(format!("unexpected offer response {other:?}")),
                 }
-                match self.receive(&mut carrier, &mut inbound).map_err(|detail| {
+                match self.receive(&mut line, &mut inbound).map_err(|detail| {
                     format!(
                         "CND-DST-S4-202 phase=value-in-flight sequence={sequence} detail={detail}"
                     )
@@ -541,12 +540,12 @@ impl DistributedSource {
         }
         let final_sequence = MAXIMUM_VALUES as u64;
         self.send(
-            &mut carrier,
+            &mut line,
             SessionMessage::InputClosed { final_sequence },
             &mut outbound,
         )?;
         self.send(
-            &mut carrier,
+            &mut line,
             SessionMessage::Terminal {
                 disposition: SessionTerminalDisposition::Completed,
                 final_sequence,
@@ -554,7 +553,7 @@ impl DistributedSource {
             &mut outbound,
         )?;
         match self
-            .receive(&mut carrier, &mut inbound)
+            .receive(&mut line, &mut inbound)
             .map_err(|detail| format!("CND-DST-S4-203 phase=terminal-agreement detail={detail}"))?
         {
             SessionMessage::Terminal {
@@ -572,11 +571,11 @@ impl DistributedSource {
                 != (0, 0)
             || !self
                 .scheduler
-                .clues()
+                .signs()
                 .contains_kind(KernelEventKind::RemoteValueDelivered)
             || !self
                 .scheduler
-                .clues()
+                .signs()
                 .contains_kind(KernelEventKind::OperationCompleted)
             || self.capacity_seal() != self.seal
             || self.pressure_retries != 1
@@ -595,7 +594,7 @@ impl DistributedSource {
             self.pressure_retries,
         )
         .map_err(|error| error.to_string())?;
-        carrier.close().map_err(|error| format!("{error:?}"))?;
+        line.close().map_err(|error| format!("{error:?}"))?;
         Ok(())
     }
 
@@ -620,7 +619,7 @@ mod tests {
     #[test]
     fn unchanged_form_prepares_exact_independent_remote_fragments() {
         let canonical_source = include_str!("../../../examples/signal-demo.conduit");
-        for realization_fact in ["std", "browser", "websocket", "host", "carrier"] {
+        for realization_fact in ["std", "browser", "websocket", "host", "line"] {
             assert!(!canonical_source
                 .to_ascii_lowercase()
                 .contains(realization_fact));

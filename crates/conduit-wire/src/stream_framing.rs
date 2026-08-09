@@ -1,6 +1,6 @@
-//! Bounded allocation-free byte-stream framing for Conduit carrier streams.
+//! Bounded allocation-free byte-stream framing for Conduit line streams.
 //!
-//! Provides a 2-byte big-endian length-prefixed framing codec for carriers
+//! Provides a 2-byte big-endian length-prefixed framing codec for lines
 //! (such as USB CDC ACM serial streams) that present raw byte streams rather
 //! than pre-framed messages.
 

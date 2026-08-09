@@ -20,7 +20,7 @@ pub(super) struct OperationBudget {
     pub(super) value_items: u16,
     pub(super) value_bytes: u32,
     pub(super) host_requests: usize,
-    pub(super) clue_items: u16,
+    pub(super) sign_items: u16,
     pub(super) maximum_value_bytes: u32,
 }
 
@@ -58,7 +58,7 @@ pub(super) static TEST_OBSERVER_FACTORY: InstalledFactory = InstalledFactory {
             value_items: 0,
             value_bytes: 0,
             host_requests: 0,
-            clue_items: 16,
+            sign_items: 16,
             maximum_value_bytes: TICK_ENCODED_LEN,
         })
     },
@@ -311,18 +311,18 @@ fn tick_budget_for(
         .checked_mul(u64::from(TICK_ENCODED_LEN) * 2)
         .and_then(|bytes| u32::try_from(bytes.max(1)).ok())
         .ok_or_else(|| "tick value byte budget overflow".to_string())?;
-    let clue_items = configuration
+    let sign_items = configuration
         .count
         .checked_mul(15)
         .and_then(|items| items.checked_add(64))
         .and_then(|items| u16::try_from(items).ok())
-        .ok_or_else(|| "tick clue item budget overflow".to_string())?;
+        .ok_or_else(|| "tick sign item budget overflow".to_string())?;
     Ok(OperationBudget {
         value_items,
         value_bytes,
         host_requests: usize::try_from(configuration.count)
             .map_err(|_| "tick request budget overflow".to_string())?,
-        clue_items,
+        sign_items,
         maximum_value_bytes: TICK_ENCODED_LEN,
     })
 }

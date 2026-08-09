@@ -22,31 +22,31 @@ realization
 execution
         |
         v
-clue + new observations
+Sign + new observations
 ```
 
 These arrows are inspectable transitions, not one `fallback()` operation. A
 link base reports observations. A planner constructs Plans. Realization
 installs or rejects exact Plan fragments. The execution kernel runs an admitted
-Play. Clue reports what occurred. None inherits another responsibility by
+Play. Sign reports what occurred. None inherits another responsibility by
 convenience.
 
 ## Responsibilities and identity
 
 | Stage | Inputs | Durable or semantic output | State that remains outside Plan identity |
 | --- | --- | --- | --- |
-| Observation | current host boot/generation reports, capability/resource facts, authority facts, Line availability Signs | clue identities and exact facts supplied to planning | readiness, utilization, pressure, current selected Line |
+| Observation | current host boot/generation reports, capability/resource facts, authority facts, Line availability Signs | Sign identities and exact facts supplied to planning | readiness, utilization, pressure, current selected Line |
 | Planning | checked semantic intent, equal-face candidate realizations, hard requirements, current observations, explicit policy, exact grants | a new immutable Plan with exact host/implementation/artifact/resources/authority/routes/bounds | planner identity, scratch state, rejected candidates, mutable readiness |
 | Realization | one exact Plan and current host/boot/Line state | installed exact fragments/Lines and fresh Play identities, or an explicit refusal/unsatisfied record | adapter handles, sockets, base queues, current Line selection |
-| Execution | installed fragment, active Play, admitted inputs/effects | terminal or continuing Play clue | transient pressure, in-flight work, base-local identifiers |
-| Clue/observation | exact runtime/base facts | bounded machine-readable records that may become fresh planning input | inferred causality or authority not stated by the producer |
+| Execution | installed fragment, active Play, admitted inputs/effects | terminal or continuing Play Sign | transient pressure, in-flight work, base-local identifiers |
+| Sign/observation | exact runtime/base facts | bounded machine-readable records that may become fresh planning input | inferred causality or authority not stated by the producer |
 
 Plan identity contains facts whose mutation would change the admitted
 realization: checked/expanded form identity, host and boot/generation,
 implementation and artifact, resource and authority bindings, finite limits,
 connection candidate order, and fragment commitments. It does not contain
 current link health, selected-route state, utilization, queue pressure, physical
-lane assignment, Play identity, or clue identity.
+lane assignment, Play identity, or Sign identity.
 
 A Plan is immutable. New topology observations are never patched into it. A
 planning operation that chooses a materially different realization produces a
@@ -60,8 +60,8 @@ The active Plan may seal several exact ordered `BoundLink` candidates for one
 connection. `LineMachine` may select another Ready member of that set. The
 result is `ControlLoopEvent::LineSelectionChanged` with the unchanged
 `plan_id`, exact connection, previous/selected binding identities, and the
-observation clue. It does not emit planning-success, Plan-supersession, or
-realization-generation clue.
+observation Sign. It does not emit planning-success, Plan-supersession, or
+realization-generation Sign.
 
 The selected route must already be in the connection's sealed candidates. A
 newly discovered compatible Line is not eligible until a new Plan admits it.
@@ -106,7 +106,7 @@ it is not retroactively a planning refusal.
 - `PlanRealized`;
 - `LineSelectionChanged` within one unchanged Plan.
 
-Every record carries exact clue identity. Route records validate against the
+Every record carries exact Sign identity. Route records validate against the
 active Plan and connection's sealed candidates. Replacement records reject Plan
 identity reuse. The unsatisfied reasons deliberately exclude queue pressure:
 bounded pressure remains ordinary execution state while the current realization
@@ -137,14 +137,14 @@ authority.
 ### 3. Reused and freshly observed inputs
 
 The checked semantic intent and explicit durable requirements may be reused.
-The old Plan is clue/context, never a mutable template. Host boot and offer
+The old Plan is sign/context, never a mutable template. Host boot and offer
 generation, capability implementations, resources/utilization, authority/grant
 validity, link health, and applicable policy inputs must be supplied as current
 planning inputs. Stale boot-scoped grants and observations fail closed.
 
 ### 4. Old Play termination and supersession
 
-Plan supersession and Play termination are different Clues. Realization first
+Plan supersession and Play termination are different Signs. Realization first
 records which Plan supersedes which. Every old Play then reaches an exact
 terminal/cancelled disposition under its existing identity; late completions
 remain invalid. Replacement realization issues fresh Play identities bound to
@@ -162,15 +162,15 @@ the state and reports the gap.
 
 ### 6. Observatory presentation
 
-Observatory presents an ordered clue view, not invented causality:
+Observatory presents an ordered Sign view, not invented causality:
 
 1. old Plan and old Plays;
-2. exact changed observation and producer clue;
+2. exact changed observation and producer Sign;
 3. realization-unsatisfied record if one was emitted;
 4. planning request and refusal or successful replacement Plan;
-5. Plan-supersession clue;
+5. Plan-supersession Sign;
 6. realization installation and fresh Plays;
-7. later execution clue.
+7. later execution Sign.
 
 Missing records remain visible gaps. Mere timestamp adjacency must not be
 rendered as “link loss caused replan,” and a selected-route change must not be
@@ -179,7 +179,7 @@ shown as a new Plan generation.
 ### 7. Selected-route changes
 
 A selected-route change records one unchanged `PlanId`, exact connection ID,
-previous and selected admitted binding IDs, and the observation clue ID.
+previous and selected admitted binding IDs, and the observation Sign ID.
 The selected base attachment and runtime session state remain outside Plan
 identity. If the desired Line is absent from the sealed set, Line selection
 fails and software may separately report unsatisfaction/request replanning.

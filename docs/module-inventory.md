@@ -23,10 +23,10 @@ Reviewed commit: 82fec9f1b65ff537148244698cd16744416ce8dc
 
 | Path | Lines | Classification | Production / Test / Blank Mix | Primary Responsibilities | Priority |
 | --- | --- | --- | --- | --- | --- |
-| [`crates/conduit-runtime/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/src/lib.rs) | 4,642 | priority | 3,522 prod (76%), 1,120 test (24%), 157 blank (3%) | Core runtime host engine, operation traits, mandatory clue logging, composite boundary handling, inline conformance tests | High |
+| [`crates/conduit-runtime/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/src/lib.rs) | 4,642 | priority | 3,522 prod (76%), 1,120 test (24%), 157 blank (3%) | Core runtime host engine, operation traits, mandatory Sign logging, composite boundary handling, inline conformance tests | High |
 | [`crates/conduit-kernel/src/scheduler.rs`](file:///home/dancxjo/src/conduit/crates/conduit-kernel/src/scheduler.rs) | 4,308 | priority | 2,216 prod (51%), 2,092 test (49%), 176 blank (4%) | Fixed-capacity kernel scheduler, node/cord specs, step execution loop, inline scheduler tests | High |
 | [`crates/conduit-composite/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-composite/src/lib.rs) | 3,746 | priority | 1,930 prod (52%), 1,816 test (48%), 126 blank (3%) | Multi-host composite definition, boundary face mapping, composite execution, inline tests | Priority candidate #3 |
-| [`crates/conduit-runtime/tests/host_contract.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/tests/host_contract.rs) | 2,262 | priority | 0 prod (0%), 2,262 test (100%), 184 blank (8%) | Integration contract test suite for host runtime lifecycle and clue verification | Medium |
+| [`crates/conduit-runtime/tests/host_contract.rs`](file:///home/dancxjo/src/conduit/crates/conduit-runtime/tests/host_contract.rs) | 2,262 | priority | 0 prod (0%), 2,262 test (100%), 184 blank (8%) | Integration contract test suite for host runtime lifecycle and Sign verification | Medium |
 | [`crates/conduit-form/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-form/src/lib.rs) | 2,042 | priority | 1,378 prod (67%), 664 test (33%), 125 blank (6%) | Form CST parsing, checked form AST validation, profile catalog, inline tests | Priority candidate #5 |
 | [`crates/conduit-planner/src/lib.rs`](file:///home/dancxjo/src/conduit/crates/conduit-planner/src/lib.rs) | 1,982 | priority | 1,000 prod (50%), 982 test (50%), 94 blank (5%) | Form-to-plan expansion, host placement solver, cord routing, inline tests | Priority candidate #4 |
 | [`crates/conduit-wire/src/session.rs`](file:///home/dancxjo/src/conduit/crates/conduit-wire/src/session.rs) | 1,549 | priority | 977 prod (63%), 572 test (37%), 102 blank (7%) | Wire session state machine, frame encoder/decoder codec, inline tests | Medium |
@@ -74,10 +74,10 @@ Do not combine with:
 ### `crates/conduit-kernel/src/lib.rs`
 
 Current responsibilities:
-- Core kernel identifier types (`NodeId`, `PortId`, `CordId`, `RemoteEndpointId`, `ResourceId`, `ClueExpectationId`).
-- Fixed-capacity kernel containers (`FixedHostOperationBindings`, `FixedRoutes`, `FixedValueStore`, `FixedClueLog`).
+- Core kernel identifier types (`NodeId`, `PortId`, `CordId`, `RemoteEndpointId`, `ResourceId`, `SignExpectationId`).
+- Fixed-capacity kernel containers (`FixedHostOperationBindings`, `FixedRoutes`, `FixedValueStore`, `FixedSignLog`).
 - Operation execution traits and outcomes (`Operation`, `HostOperationOutcome`, `Failure`).
-- Inline production module `mod hosted` (lines 598–788, 191 lines) for heap-allocated adapters (`HostedValueStore`, `HostedClueLog`).
+- Inline production module `mod hosted` (lines 598–788, 191 lines) for heap-allocated adapters (`HostedValueStore`, `HostedSignLog`).
 - Inline unit tests (`mod tests` spanning 310 lines).
 
 Recommended first seam:
@@ -105,7 +105,7 @@ Do not combine with:
 Current responsibilities:
 - Definition of core operation execution traits (`OperationState`, `OperationImplementation`) and registry (`ImplementationRegistry`).
 - Definition of boundary types (`CompositePortBinding`, `CompositeBoundaryEffect`, `RuntimeOutput`).
-- Implementation of primary `HostRuntime` lifecycle (plan preparation, Play start, step pumping, cancellation, release, mandatory clue collection, composite boundary management).
+- Implementation of primary `HostRuntime` lifecycle (plan preparation, Play start, step pumping, cancellation, release, mandatory Sign collection, composite boundary management).
 - Inline conformance test suite (`mod conformance` spanning 1,120 lines).
 
 Recommended first seam:
@@ -267,7 +267,7 @@ Do not combine with:
 ### `crates/conduit-core/src/lib.rs`
 
 Current responsibilities:
-- Core canon identity types (`FormIdentity`, `ActivePlayIdentity`, `ClueIdentity`, `PresentationIdentity`).
+- Core canon identity types (`FormIdentity`, `ActivePlayIdentity`, `SignIdentity`, `PresentationIdentity`).
 - Plan fragment definitions, fragment commitment, and sealing logic (`Plan`, `PlanFragment`, `FragmentCommitment`, `seal_plan`, `verify_plan`).
 - Capability offers, host advertisements, authority grants, and link bindings.
 - Observation and host lifecycle events (`Observation`, `ObservationKind`, `HostCommand`, `HostEvent`, `PlatformEffect`).
@@ -323,7 +323,7 @@ Do not combine with:
 ### `crates/conduit-observatory/src/lib.rs`
 
 Current responsibilities:
-- Telemetry data structures (`HostRow`, `CapabilityRow`, `LinkRow`, `PlanRow`, `PlacementRow`, `ConnectionRow`, `ClueRow`, `ObservatoryReport`).
+- Telemetry data structures (`HostRow`, `CapabilityRow`, `LinkRow`, `PlanRow`, `PlacementRow`, `ConnectionRow`, `SignRow`, `ObservatoryReport`).
 - Report generation logic (`build_report`).
 - Text report renderer (`render_text_report`).
 - Inline unit tests (`mod tests` spanning 289 lines).
@@ -351,7 +351,7 @@ Do not combine with:
 ### `crates/conduit-runtime/src/lowering.rs`
 
 Current responsibilities:
-- Lowered plan data structures (`LoweredNode`, `LoweredCord`, `LoweredRoute`, `LoweredHostOperation`, `LoweredResource`, `LoweredClue`).
+- Lowered plan data structures (`LoweredNode`, `LoweredCord`, `LoweredRoute`, `LoweredHostOperation`, `LoweredResource`, `LoweredSign`).
 - Identity maps (`KernelIdentityMap`, `KernelExecutionIdentityMap`).
 - Lowering pass algorithm (`lower_plan_fragment`).
 

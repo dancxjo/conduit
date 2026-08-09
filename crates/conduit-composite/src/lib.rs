@@ -1,5 +1,5 @@
 use conduit_core::{
-    bind_active_play, bind_clue, kind_id, verify_plan, ActivePlayId, ArtifactId, BootId,
+    bind_active_play, bind_sign, kind_id, verify_plan, ActivePlayId, ArtifactId, BootId,
     CapabilityLimits, CapabilityOffer, ConnectionEnvelope, ConnectionId, ConnectionOutcome,
     ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand, HostEvent, HostId,
     HostProfileId, ImplementationId, Observation, ObservationKind, OfferGeneration, Plan,
@@ -288,7 +288,7 @@ pub struct CompositeHost {
     delivery_mode: DeliveryMode,
     failure_translation: FailureReason,
     next_active_play_sequence: u64,
-    next_clue_sequence: u64,
+    next_sign_sequence: u64,
 }
 
 impl CompositeHost {
@@ -589,7 +589,7 @@ impl CompositeHost {
             delivery_mode: DeliveryMode::Immediate,
             failure_translation: definition.failure_translation,
             next_active_play_sequence: 0,
-            next_clue_sequence: 0,
+            next_sign_sequence: 0,
         };
         host.record(None, ObservationKind::HostStarted);
         host.record(None, ObservationKind::AdvertisementPublished);
@@ -1857,7 +1857,7 @@ impl CompositeHost {
         if self.observations.len() == self.observation_limit {
             let mut dropped = 1;
             if let Some(Observation {
-                kind: ObservationKind::ClueGap { dropped: previous },
+                kind: ObservationKind::SignGap { dropped: previous },
                 ..
             }) = self.observations.first()
             {
@@ -1868,9 +1868,9 @@ impl CompositeHost {
             }
             if self.observation_limit == 1 {
                 self.observations.clear();
-                let gap_clue_id = self.issue_clue_id(None);
+                let gap_sign_id = self.issue_sign_id(None);
                 self.observations.push(Observation {
-                    clue_id: gap_clue_id,
+                    sign_id: gap_sign_id,
                     active_play_id: None,
                     presentation_id: None,
                     host_id: self.advertisement.host_id.clone(),
@@ -1878,7 +1878,7 @@ impl CompositeHost {
                     plan_id: None,
                     placement_id: None,
                     connection_id: None,
-                    kind: ObservationKind::ClueGap { dropped },
+                    kind: ObservationKind::SignGap { dropped },
                 });
                 return;
             }
@@ -1886,11 +1886,11 @@ impl CompositeHost {
                 self.observations.remove(0);
                 dropped += 1;
             }
-            let gap_clue_id = self.issue_clue_id(None);
+            let gap_sign_id = self.issue_sign_id(None);
             self.observations.insert(
                 0,
                 Observation {
-                    clue_id: gap_clue_id,
+                    sign_id: gap_sign_id,
                     active_play_id: None,
                     presentation_id: None,
                     host_id: self.advertisement.host_id.clone(),
@@ -1898,13 +1898,13 @@ impl CompositeHost {
                     plan_id: None,
                     placement_id: None,
                     connection_id: None,
-                    kind: ObservationKind::ClueGap { dropped },
+                    kind: ObservationKind::SignGap { dropped },
                 },
             );
         }
-        let clue_id = self.issue_clue_id(active_play_id.as_ref());
+        let sign_id = self.issue_sign_id(active_play_id.as_ref());
         self.observations.push(Observation {
-            clue_id,
+            sign_id,
             active_play_id,
             presentation_id: None,
             host_id: self.advertisement.host_id.clone(),
@@ -1916,18 +1916,18 @@ impl CompositeHost {
         });
     }
 
-    fn issue_clue_id(&mut self, active_play_id: Option<&ActivePlayId>) -> conduit_core::ClueId {
-        let clue = bind_clue(
+    fn issue_sign_id(&mut self, active_play_id: Option<&ActivePlayId>) -> conduit_core::SignId {
+        let sign = bind_sign(
             &self.advertisement.host_id,
             &self.advertisement.boot_id,
             active_play_id,
-            self.next_clue_sequence,
+            self.next_sign_sequence,
         );
-        self.next_clue_sequence = self
-            .next_clue_sequence
+        self.next_sign_sequence = self
+            .next_sign_sequence
             .checked_add(1)
-            .expect("clue identity sequence exhausted");
-        clue.clue_id
+            .expect("sign identity sequence exhausted");
+        sign.sign_id
     }
 }
 

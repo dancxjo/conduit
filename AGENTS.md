@@ -26,15 +26,15 @@ Every change must preserve these rules unless an explicit architecture issue cha
 
 1. **Forms describe meaning. Hosts offer implementations. Plans make realization exact.**
 2. Authored forms do not contain host, boot, implementation, operating-system, device, transport, socket, address, DOM, GPIO, stdout, credential, or resource-binding facts.
-3. Source documents, checked forms, expanded forms, plans, fragments, plays, evidence, and presentation are distinct identities.
+3. Source documents, checked forms, expanded forms, plans, fragments, plays, Signs, and presentation are distinct identities.
 4. Kinds, implementations, initialized implementations, capabilities, selected capabilities, reservations, and active instances are distinct states.
 5. Every executable input and output has an exact typed port identity. Emission is port-specific; fan-out is explicit and atomic under pressure. Never restore implicit broadcast semantics.
-6. All queues, buffers, values, operation slots, routes, evidence, resources, and mandatory work are finite and admitted before activation. A hosted convenience profile may allocate before activation, but activation may not hide unbounded growth.
+6. All queues, buffers, values, operation slots, routes, Signs, resources, and mandatory work are finite and admitted before Play start. A hosted convenience profile may allocate before Play start, but Play start may not hide unbounded growth.
 7. Platform effects cross a generic admitted host-operation boundary. Platform adapters do not become schedulers, planners, policy engines, or sources of runtime truth.
 8. Availability is not authority. Reachability is not membership. Membership is not trust. A link observation is not permission to use an external subject.
-9. A connection provider carries an exact planned cord. It does not invent connectivity, retry semantics, identity, or authority absent from the plan.
+9. A Line realization carries an exact planned Cord. It does not invent connectivity, retry semantics, identity, or authority absent from the Plan.
 10. There is one execution kernel. Fixtures and temporary compatibility façades may exist only when named honestly and fenced away from production paths.
-11. Failures, pressure, cancellation, evidence gaps, stale identities, and unsupported cases remain distinct and machine-readable. Do not convert them into success, retries, generic errors, or presentation-only state.
+11. Failures, pressure, cancellation, Sign gaps, stale identities, and unsupported cases remain distinct and machine-readable. Do not convert them into success, retries, generic errors, or presentation-only state.
 12. Simulation, compilation, browser execution, firmware execution, live transport, and physical/HIL proof are different proof classes. Never promote one into another.
 
 ## Scope and concurrency
@@ -66,7 +66,7 @@ Large Rust files are an architectural warning, not a badge of productivity. Do n
 - A new or materially expanded production `.rs` file should normally remain below 500 lines. Crossing that threshold requires an explicit explanation in the PR and a reason a coherent module boundary would be worse.
 - Do not add more responsibility to an existing production file above 500 lines without extracting at least one coherent responsibility in the same change or in a prerequisite extraction PR. Files above 800 lines are frozen against unrelated growth.
 - Test files are not exempt. Split integration tests by contract or proof surface before they become a chronological grab bag. Shared fixtures and builders belong in a small `common` support module, not duplicated across giant test files.
-- Split by stable responsibility and dependency direction, not by arbitrary size. Use names such as `identity.rs`, `validation.rs`, `admission.rs`, `scheduler.rs`, `evidence.rs`, or `tests/authority.rs`; never use `part1.rs`, `misc.rs`, `helpers2.rs`, or numbered shards.
+- Split by stable responsibility and dependency direction, not by arbitrary size. Use names such as `identity.rs`, `validation.rs`, `admission.rs`, `scheduler.rs`, `sign.rs`, or `tests/authority.rs`; never use `part1.rs`, `misc.rs`, `helpers2.rs`, or numbered shards.
 - Preserve public paths deliberately with narrow `pub use` re-exports when compatibility matters. Do not make every extracted item public merely to satisfy the compiler.
 - Prefer extraction-only PRs: move one coherent responsibility, preserve behavior and public contracts, and avoid semantic cleanup, renaming, or redesign in the same diff.
 - Before extraction, identify the module's inputs, outputs, invariants, and private collaborators. After extraction, prove there are no dependency cycles and that lower-level modules do not import orchestration layers.

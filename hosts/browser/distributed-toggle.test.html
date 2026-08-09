@@ -5,7 +5,7 @@
 <section id="browser-sink" aria-label="distributed browser toggle sink"></section>
 <script type="module">
 import { BrowserDomHost } from "./signal-dom-host.mjs";
-import { BrowserWebSocketCarrier } from "./websocket-carrier.mjs";
+import { BrowserWebSocketLine } from "./websocket-line.mjs";
 import {
   instantiateDistributedToggleRuntime,
   runDistributedToggleRuntime,
@@ -24,7 +24,7 @@ if (!url) {
       if (!response.ok) throw new Error("browser WASM artifact missing");
       return response.arrayBuffer();
     });
-    const carrier = await new BrowserWebSocketCarrier({
+    const line = await new BrowserWebSocketLine({
       url,
       maximumMessageBytes: 2048,
       maximumBufferedBytes: 8192,
@@ -47,8 +47,8 @@ if (!url) {
         return result;
       },
     };
-    const result = await runDistributedToggleRuntime(runtime, carrier, observableDomHost);
-    const closed = await carrier.closed();
+    const result = await runDistributedToggleRuntime(runtime, line, observableDomHost);
+    const closed = await line.closed();
     globalThis.__distributedToggleProof = {
       ...result,
       presentations: result.presentations.map((effect) => {

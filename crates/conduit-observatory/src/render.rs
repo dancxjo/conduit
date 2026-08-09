@@ -190,20 +190,20 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             );
         }
     }
-    let _ = writeln!(output, "clue {}", report.clues.len());
-    for clue in &report.clues {
+    let _ = writeln!(output, "sign {}", report.signs.len());
+    for sign in &report.signs {
         let _ = writeln!(
             output,
-            "clue id={} active_play={} presentation={} host={} boot={} plan={} placement={} connection={} kind={:?}",
-            clue.clue_id.as_str(),
-            clue.active_play_id.as_ref().map(ActivePlayId::as_str).unwrap_or("none"),
-            clue.presentation_id.as_ref().map(PresentationId::as_str).unwrap_or("none"),
-            clue.host_id.as_str(),
-            clue.boot_id.as_str(),
-            clue.plan_id.as_ref().map(PlanId::as_str).unwrap_or("none"),
-            clue.placement_id.as_ref().map(PlacementId::as_str).unwrap_or("none"),
-            clue.connection_id.as_ref().map(ConnectionId::as_str).unwrap_or("none"),
-            clue.kind
+            "sign id={} active_play={} presentation={} host={} boot={} plan={} placement={} connection={} kind={:?}",
+            sign.sign_id.as_str(),
+            sign.active_play_id.as_ref().map(ActivePlayId::as_str).unwrap_or("none"),
+            sign.presentation_id.as_ref().map(PresentationId::as_str).unwrap_or("none"),
+            sign.host_id.as_str(),
+            sign.boot_id.as_str(),
+            sign.plan_id.as_ref().map(PlanId::as_str).unwrap_or("none"),
+            sign.placement_id.as_ref().map(PlacementId::as_str).unwrap_or("none"),
+            sign.connection_id.as_ref().map(ConnectionId::as_str).unwrap_or("none"),
+            sign.kind
         );
     }
     let _ = writeln!(

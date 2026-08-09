@@ -122,10 +122,10 @@ fn external_websocket_compatibility_is_the_checked_face_not_the_nominal_kind() {
 }
 
 #[test]
-fn authored_external_socket_cannot_masquerade_as_a_conduit_session_carrier() {
-    for carrier in [ConnectionBase::WebSocket, ConnectionBase::UsbCdc] {
-        assert_ne!(client().kind_id.as_str(), format!("{carrier:?}"));
-        assert_ne!(listener().kind_id.as_str(), format!("{carrier:?}"));
+fn authored_external_socket_cannot_masquerade_as_a_conduit_session_line() {
+    for line in [ConnectionBase::WebSocket, ConnectionBase::UsbCdc] {
+        assert_ne!(client().kind_id.as_str(), format!("{line:?}"));
+        assert_ne!(listener().kind_id.as_str(), format!("{line:?}"));
     }
     assert!(ConnectionBase::WebSocket.supports_remote_session());
     assert!(!client().kind_id.as_str().contains("ConnectionBase"));

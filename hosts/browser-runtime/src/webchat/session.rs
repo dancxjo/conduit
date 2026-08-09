@@ -9,7 +9,7 @@ use conduit_kernel::scheduler::{
 };
 use conduit_kernel::{
     BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationDisposition, HostOperationOutcome, HostedClueLog, HostedValueStore,
+    FixedRoutes, HostOperationDisposition, HostOperationOutcome, HostedSignLog, HostedValueStore,
     NodeId, PortId, ValueStorage,
 };
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
@@ -32,13 +32,13 @@ const HOST_BINDINGS: usize = NODES * 4;
 const PENDING_REQUESTS: usize = 3;
 const VALUE_ITEMS: u16 = 32;
 const VALUE_BYTES: u32 = 8_192;
-const CLUE_ITEMS: u16 = 1_024;
+const SIGN_ITEMS: u16 = 1_024;
 const REQUEST_IDENTITIES: usize = 64;
 
 type ChatScheduler = FixedScheduler<
     OperationDriver<BrowserChatOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     NODES,
     CORDS,
     PORTS,
@@ -207,12 +207,12 @@ impl BrowserChatSession {
                 .map_err(|_| -216)?;
         }
         bindings.seal().map_err(|_| -216)?;
-        let clue_bytes = u32::from(CLUE_ITEMS)
+        let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or(-217)?;
-        let clue = HostedClueLog::new(CLUE_ITEMS, clue_bytes).map_err(|_| -217)?;
+        let sign = HostedSignLog::new(SIGN_ITEMS, sign_bytes).map_err(|_| -217)?;
         let scheduler = ChatScheduler::new_with_active_counts_and_host_operations(
-            NODES, CORDS, node_specs, cord_specs, routes, bindings, drivers, values, clue,
+            NODES, CORDS, node_specs, cord_specs, routes, bindings, drivers, values, sign,
         )
         .map_err(|_| -218)?;
         let active_play =

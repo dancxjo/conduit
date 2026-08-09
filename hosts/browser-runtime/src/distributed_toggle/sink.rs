@@ -10,16 +10,17 @@ use super::super::{
 };
 use super::operation::{CapacitySeal, ToggleShowOperation};
 use conduit_core::{
-    bind_active_play, bind_clue, bind_presentation, CapabilityId, ConnectionBase, GearId, Plan,
+    bind_active_play, bind_presentation, bind_sign, CapabilityId, ConnectionBase, GearId, Plan,
     PlanFragment,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    ClueError, ClueQuery, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
-    HostedValueStore, KernelEventKind, RemoteEndpointId, RequestId, ValueStorage,
+    CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
+    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
+    HostedValueStore, KernelEventKind, RemoteEndpointId, RequestId, SignError, SignQuery,
+    ValueStorage,
 };
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_runtime::lowering::{
@@ -38,18 +39,19 @@ use conduit_wire::{
 use std::collections::BTreeMap;
 
 use super::{
-    ERROR_CANCELLED, ERROR_CAPACITY, ERROR_CLUE, ERROR_KERNEL, ERROR_PREPARE, ERROR_PRESENTATION,
-    ERROR_SESSION, OUTPUT_NONE, OUTPUT_PRESENT, OUTPUT_SESSION, STATUS_COMPLETE, STATUS_RUNNING,
+    ERROR_CANCELLED, ERROR_CAPACITY, ERROR_KERNEL, ERROR_PREPARE, ERROR_PRESENTATION,
+    ERROR_SESSION, ERROR_SIGN, OUTPUT_NONE, OUTPUT_PRESENT, OUTPUT_SESSION, STATUS_COMPLETE,
+    STATUS_RUNNING,
 };
 
 pub(super) const ROUTE_SLOTS: usize = 1;
-pub(super) const CLUE_ITEMS: u16 = 256;
+pub(super) const SIGN_ITEMS: u16 = 256;
 const PRESSURE_HOLD_SEQUENCE: u64 = 1;
 
 pub(super) type ToggleSinkScheduler = FixedScheduler<
     OperationDriver<ToggleShowOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     1,
     1,
     PORTS,
@@ -134,7 +136,7 @@ fn exact_toggle_plan() -> Result<Plan, i32> {
 }
 
 impl ToggleDistributedSink {
-    pub(super) fn prepare(clue_override: Option<u16>) -> Result<Self, i32> {
+    pub(super) fn prepare(sign_override: Option<u16>) -> Result<Self, i32> {
         let advertisement = distributed_toggle_browser_sink_advertisement();
         let plan = exact_toggle_plan()?;
         let fragment = plan
@@ -177,11 +179,11 @@ impl ToggleDistributedSink {
         host_bindings.seal().map_err(|_| ERROR_PREPARE)?;
         let values = HostedValueStore::new(1, SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN)
             .map_err(|_| ERROR_PREPARE)?;
-        let clue_items = clue_override.unwrap_or(CLUE_ITEMS);
-        let clue_bytes = u32::from(clue_items)
+        let sign_items = sign_override.unwrap_or(SIGN_ITEMS);
+        let sign_bytes = u32::from(sign_items)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or(ERROR_PREPARE)?;
-        let clue = HostedClueLog::new(clue_items, clue_bytes.max(1)).map_err(|_| ERROR_PREPARE)?;
+        let sign = HostedSignLog::new(sign_items, sign_bytes.max(1)).map_err(|_| ERROR_PREPARE)?;
         let driver = OperationDriver::new(ToggleShowOperation {
             next: 0,
             pending: None,
@@ -204,7 +206,7 @@ impl ToggleDistributedSink {
             host_bindings,
             [driver],
             values,
-            clue,
+            sign,
         )
         .map_err(|_| ERROR_PREPARE)?;
         let active_play =
@@ -238,7 +240,7 @@ impl ToggleDistributedSink {
                 &placement.placement_id,
                 index as u64,
             );
-            let clue = bind_clue(
+            let sign = bind_sign(
                 &fragment.host_id,
                 &fragment.boot_id,
                 Some(&active_play.active_play_id),
@@ -248,8 +250,8 @@ impl ToggleDistributedSink {
                 .bind_presentation(&lowered.identity, show_node, request, &presentation)
                 .map_err(|_| ERROR_PREPARE)?;
             identity
-                .bind_clue(
-                    &clue,
+                .bind_sign(
+                    &sign,
                     Some(show_node),
                     Some(request),
                     Some(&presentation.presentation_id),
@@ -259,23 +261,23 @@ impl ToggleDistributedSink {
                 node: show_node,
                 signal,
                 presentation,
-                clue,
+                sign,
             });
         }
-        let terminal = bind_clue(
+        let terminal = bind_sign(
             &fragment.host_id,
             &fragment.boot_id,
             Some(&active_play.active_play_id),
             MAXIMUM_RECEIPTS as u64,
         );
         identity
-            .bind_clue(&terminal, None, None, None)
+            .bind_sign(&terminal, None, None, None)
             .map_err(|_| ERROR_PREPARE)?;
         let session =
             SessionMachine::new(binding.clone(), SessionRole::Sink).map_err(|_| ERROR_SESSION)?;
         let seal = CapacitySeal {
             values: scheduler.values().allocation_capacities(),
-            clue: scheduler.clues().allocation_capacity(),
+            sign: scheduler.signs().allocation_capacity(),
             identity: identity.allocation_capacities(),
             projections: projections.capacity(),
         };
@@ -319,7 +321,7 @@ impl ToggleDistributedSink {
     pub(super) fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
-            clue: self.scheduler.clues().allocation_capacity(),
+            sign: self.scheduler.signs().allocation_capacity(),
             identity: self.identity.allocation_capacities(),
             projections: self.projections.capacity(),
         }
@@ -387,9 +389,9 @@ impl ToggleDistributedSink {
                     .admit_remote_input(endpoint, cord, sequence, payload)
                 {
                     Ok(admission) => admission,
-                    Err(conduit_kernel::scheduler::SchedulerError::Clue(
-                        ClueError::ItemCapacityExceeded | ClueError::ByteCapacityExceeded,
-                    )) => return self.fail_session(23, ERROR_CLUE),
+                    Err(conduit_kernel::scheduler::SchedulerError::Sign(
+                        SignError::ItemCapacityExceeded | SignError::ByteCapacityExceeded,
+                    )) => return self.fail_session(23, ERROR_SIGN),
                     Err(_) => return self.fail_session(24, ERROR_KERNEL),
                 };
                 match admission {
@@ -477,11 +479,11 @@ impl ToggleDistributedSink {
                         || self.scheduler.cord_usage(cord).map_err(|_| ERROR_KERNEL)? != (0, 0)
                         || !self
                             .scheduler
-                            .clues()
+                            .signs()
                             .contains_kind(KernelEventKind::RemoteInputClosed)
                         || !self
                             .scheduler
-                            .clues()
+                            .signs()
                             .contains_kind(KernelEventKind::OperationCompleted)
                         || self.capacity_seal() != self.seal
                         || self.pressure_retries != 1
@@ -499,9 +501,9 @@ impl ToggleDistributedSink {
                     self.error = ERROR_CANCELLED;
                     return Err(ERROR_CANCELLED);
                 }
-                Err(conduit_kernel::scheduler::SchedulerError::Clue(
-                    ClueError::ItemCapacityExceeded | ClueError::ByteCapacityExceeded,
-                )) => return self.fail_session(25, ERROR_CLUE),
+                Err(conduit_kernel::scheduler::SchedulerError::Sign(
+                    SignError::ItemCapacityExceeded | SignError::ByteCapacityExceeded,
+                )) => return self.fail_session(25, ERROR_SIGN),
                 Err(error) => return self.fail_session(26, map_scheduler_error(error)),
             }
         }

@@ -20,7 +20,7 @@ use conduit_signal::{exact_std_pico_usb_plan, signal_profile_catalog};
 use conduit_std_host::{LegacyStdFixtureHost, StdHostConfig};
 
 #[test]
-fn report_separates_identity_capability_plan_connection_and_clue_tables() {
+fn report_separates_identity_capability_plan_connection_and_sign_tables() {
     let mut std_host = LegacyStdFixtureHost::new_with_config(StdHostConfig {
         host_id: HostId::from("std-host-triple"),
         boot_id: BootId::from("std-boot-triple"),
@@ -298,10 +298,10 @@ fn report_separates_identity_capability_plan_connection_and_clue_tables() {
         .as_ref()
         .is_none_or(|selected| connection.admitted_lines.contains(selected))));
     assert!(report
-        .clues
+        .signs
         .iter()
-        .all(|row| !row.clue_id.as_str().is_empty()));
-    assert!(report.clues.iter().any(|row| {
+        .all(|row| !row.sign_id.as_str().is_empty()));
+    assert!(report.signs.iter().any(|row| {
         row.plan_id == Some(report.plans[0].plan_id.clone())
             && row.active_play_id.is_some()
             && matches!(row.kind, ObservationKind::PlanPlayStarted)
@@ -326,7 +326,7 @@ fn report_separates_identity_capability_plan_connection_and_clue_tables() {
     assert!(rendered.contains("plays 1"));
     assert!(rendered.contains("pressure=in_flight=Some(0)"));
     assert!(rendered.contains("active_play="));
-    assert!(!rendered.contains("clue id=clue/"));
+    assert!(!rendered.contains("sign id=sign/"));
 
     let mut state_snapshot = snapshot.clone();
     state_snapshot.hosts[0].state = OperationalState::Stale;
@@ -344,8 +344,8 @@ fn report_separates_identity_capability_plan_connection_and_clue_tables() {
     state_snapshot.plays[0].connections[0].lifecycle = PlanLifecycle::Failed;
     state_snapshot.plays[0].connections[0].failure_message = Some("sink rejected".into());
     let mut gap = state_snapshot.observations[0].clone();
-    gap.clue_id = conduit_core::ClueId::from("host-gap-clue");
-    gap.kind = ObservationKind::ClueGap { dropped: 3 };
+    gap.sign_id = conduit_core::SignId::from("host-gap-sign");
+    gap.kind = ObservationKind::SignGap { dropped: 3 };
     state_snapshot.observations.push(gap);
     state_snapshot.retention.retained_items += 1;
     state_snapshot.retention.dropped_items = 2;

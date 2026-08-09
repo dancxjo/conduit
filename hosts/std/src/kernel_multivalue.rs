@@ -5,7 +5,7 @@
 
 use super::TimerAdapter;
 use conduit_core::{
-    bind_active_play, bind_clue, bind_presentation, kind_id, port_id,
+    bind_active_play, bind_presentation, bind_sign, kind_id, port_id,
     present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
@@ -20,10 +20,10 @@ use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, ClueSink, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
+    BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
+    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
     HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput,
-    PortId as KernelPortId, RequestId, ValueRef, ValueStorage,
+    PortId as KernelPortId, RequestId, SignSink, ValueRef, ValueStorage,
 };
 use conduit_planner::{default_placements, plan_with_options, PlannerError, PlanningOptions};
 use conduit_runtime::lowering::{
@@ -58,7 +58,7 @@ const PENDING_REQUESTS: usize = 3;
 type MultiValueScheduler = FixedScheduler<
     OperationDriver<MultiValueOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     NODES,
     CORDS,
     PORTS,
@@ -79,14 +79,14 @@ enum InjectedBoundaryFault {
 
 #[derive(Clone, Copy, Debug)]
 struct ExecutionOptions {
-    clue_items: u16,
+    sign_items: u16,
     fault: InjectedBoundaryFault,
 }
 
 impl Default for ExecutionOptions {
     fn default() -> Self {
         Self {
-            clue_items: 256,
+            sign_items: 256,
             fault: InjectedBoundaryFault::None,
         }
     }
@@ -137,7 +137,7 @@ struct PreparedKernelProjection {
     ordinal: u64,
     tick: u64,
     presentation: conduit_core::PresentationIdentity,
-    clue: conduit_core::ClueIdentity,
+    sign: conduit_core::SignIdentity,
     payload: ValuePayload,
 }
 
@@ -658,7 +658,7 @@ pub fn execute_fragment<W: Write, T: TimerAdapter>(
     host: &HostAdvertisement,
     fragment: &PlanFragment,
     play_sequence: u64,
-    next_clue_sequence: &mut u64,
+    next_sign_sequence: &mut u64,
     output: &mut W,
     timer: &mut T,
 ) -> Result<MultiValueRunReport, String> {
@@ -666,7 +666,7 @@ pub fn execute_fragment<W: Write, T: TimerAdapter>(
         host,
         fragment,
         play_sequence,
-        next_clue_sequence,
+        next_sign_sequence,
         output,
         timer,
         ExecutionOptions::default(),
@@ -678,7 +678,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     host: &HostAdvertisement,
     fragment: &PlanFragment,
     play_sequence: u64,
-    next_clue_sequence: &mut u64,
+    next_sign_sequence: &mut u64,
     output: &mut W,
     timer: &mut T,
     options: ExecutionOptions,
@@ -852,11 +852,11 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
 
     let event_charge = u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
         .map_err(|_| "kernel event charge overflow".to_string())?;
-    let clue = HostedClueLog::new(
-        options.clue_items,
-        event_charge.saturating_mul(u32::from(options.clue_items)),
+    let sign = HostedSignLog::new(
+        options.sign_items,
+        event_charge.saturating_mul(u32::from(options.sign_items)),
     )
-    .map_err(|error| format!("kernel clue store: {error:?}"))?;
+    .map_err(|error| format!("kernel sign store: {error:?}"))?;
     let node_specs = lowered
         .node_specs
         .try_into()
@@ -875,7 +875,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         host_bindings,
         drivers,
         values,
-        clue,
+        sign,
     )
     .map_err(|error| format!("install multi-value scheduler: {error:?}"))?;
     if options.fault == InjectedBoundaryFault::CancelBeforeDispatch {
@@ -911,10 +911,10 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     let mut presentation_ids = Vec::with_capacity(3);
     let mut dispatched_requests = Vec::<HostOperationRequest>::with_capacity(7);
     let mut manifestations = Vec::<KernelManifestation>::with_capacity(3);
-    let clue_sequence_start = *next_clue_sequence;
-    let clue_sequence_end = clue_sequence_start
+    let sign_sequence_start = *next_sign_sequence;
+    let sign_sequence_end = sign_sequence_start
         .checked_add(4)
-        .ok_or_else(|| "host clue sequence exhausted".to_string())?;
+        .ok_or_else(|| "host sign sequence exhausted".to_string())?;
     let mut prepared_projections = Vec::with_capacity(3);
     for (index, (branch, ordinal, tick)) in [
         (ManifestationBranch::Even, 0_u64, 0_u64),
@@ -933,33 +933,33 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             &placement.placement_id,
             ordinal,
         );
-        let clue = bind_clue(
+        let sign = bind_sign(
             &host.host_id,
             &host.boot_id,
             Some(&active_play.active_play_id),
-            clue_sequence_start
+            sign_sequence_start
                 .checked_add(
-                    u64::try_from(index).map_err(|_| "host clue sequence exhausted".to_string())?,
+                    u64::try_from(index).map_err(|_| "host sign sequence exhausted".to_string())?,
                 )
-                .ok_or_else(|| "host clue sequence exhausted".to_string())?,
+                .ok_or_else(|| "host sign sequence exhausted".to_string())?,
         );
         prepared_projections.push(PreparedKernelProjection {
             branch,
             ordinal,
             tick,
             presentation,
-            clue,
+            sign,
             payload: ValuePayload {
                 value_kind: kind_id(TICK_VALUE_KIND),
                 encoded: tick.to_le_bytes().to_vec(),
             },
         });
     }
-    let terminal = bind_clue(
+    let terminal = bind_sign(
         &host.host_id,
         &host.boot_id,
         Some(&active_play.active_play_id),
-        clue_sequence_end - 1,
+        sign_sequence_end - 1,
     );
     let mut deferred_even_completion: Option<HostOperationRequest> = None;
     let mut pressure_items = 0_u16;
@@ -1143,12 +1143,12 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     }
     let input_closed_events = u16::try_from(
         scheduler
-            .clues()
+            .signs()
             .events()
             .filter(|event| event.kind == KernelEventKind::InputClosed)
             .count(),
     )
-    .map_err(|_| "input-closure clue count overflow".to_string())?;
+    .map_err(|_| "input-closure sign count overflow".to_string())?;
     let terminal_order_exact = [
         tee_node,
         filter_node,
@@ -1158,18 +1158,18 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     ]
     .iter()
     .all(|node| {
-        let closed = scheduler.clues().events().find(|event| {
+        let closed = scheduler.signs().events().find(|event| {
             event.node == *node
                 && event.port == Some(KernelPortId(0))
                 && event.kind == KernelEventKind::InputClosed
         });
-        let completed = scheduler.clues().events().find(|event| {
+        let completed = scheduler.signs().events().find(|event| {
             event.node == *node && event.kind == KernelEventKind::OperationCompleted
         });
         matches!((closed, completed), (Some(closed), Some(completed)) if closed.sequence < completed.sequence)
     });
     if input_closed_events != 5 || !terminal_order_exact {
-        return Err("kernel closure clue is missing or out of terminal order".to_string());
+        return Err("kernel closure sign is missing or out of terminal order".to_string());
     }
     for request in &dispatched_requests {
         execution_identity
@@ -1197,19 +1197,19 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             )
             .map_err(|error| format!("bind presentation identity: {error:?}"))?;
         execution_identity
-            .bind_clue(
-                &prepared.clue,
+            .bind_sign(
+                &prepared.sign,
                 Some(manifestation.request.node),
                 Some(manifestation.request.request),
                 Some(&prepared.presentation.presentation_id),
             )
-            .map_err(|error| format!("bind presentation clue identity: {error:?}"))?;
+            .map_err(|error| format!("bind presentation sign identity: {error:?}"))?;
         receipts.push(MultiValueReceipt {
             placement_id: placement.placement_id.clone(),
             tick: prepared.tick,
         });
         observations.push(Observation {
-            clue_id: prepared.clue.clue_id,
+            sign_id: prepared.sign.sign_id,
             active_play_id: Some(active_play.active_play_id.clone()),
             presentation_id: Some(prepared.presentation.presentation_id.clone()),
             host_id: host.host_id.clone(),
@@ -1223,12 +1223,12 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         });
         presentation_ids.push(prepared.presentation.presentation_id);
     }
-    *next_clue_sequence = clue_sequence_end;
+    *next_sign_sequence = sign_sequence_end;
     execution_identity
-        .bind_clue(&terminal, None, None, None)
-        .map_err(|error| format!("bind terminal clue identity: {error:?}"))?;
+        .bind_sign(&terminal, None, None, None)
+        .map_err(|error| format!("bind terminal sign identity: {error:?}"))?;
     observations.push(Observation {
-        clue_id: terminal.clue_id,
+        sign_id: terminal.sign_id,
         active_play_id: Some(active_play.active_play_id.clone()),
         presentation_id: None,
         host_id: host.host_id.clone(),
@@ -1251,7 +1251,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         receipts,
         active_play_id: active_play.active_play_id,
         decisions: scheduler.decisions(),
-        kernel_events: scheduler.clues().len(),
+        kernel_events: scheduler.signs().len(),
         value_allocation_capacity_before: value_allocation_before,
         value_allocation_capacity_after: value_allocation_after,
         presentation_ids,
@@ -1286,7 +1286,7 @@ mod tests {
     };
     use crate::TimerAdapter;
     use conduit_core::{
-        bind_clue, BootId, HostAdvertisement, HostId, OfferGeneration, PlanFragment,
+        bind_sign, BootId, HostAdvertisement, HostId, OfferGeneration, PlanFragment,
     };
     use conduit_form::parse;
     use conduit_runtime::lowering::{lower_plan_fragment, ExecutionIdentityError};
@@ -1348,12 +1348,12 @@ mod tests {
         let mut timer = VirtualTimer {
             waits: Vec::with_capacity(4),
         };
-        let mut clue_sequence = 0;
+        let mut sign_sequence = 0;
         let mut report = execute_fragment(
             &host,
             &fragment,
             0,
-            &mut clue_sequence,
+            &mut sign_sequence,
             &mut output,
             &mut timer,
         )
@@ -1388,12 +1388,12 @@ mod tests {
         assert_eq!(report.identity.lengths(), (7, 3, 4));
         assert_eq!(report.post_play_start_allocations, 0);
         for observation in &report.observations {
-            let clue = report
+            let sign = report
                 .identity
-                .clue_identity(&observation.clue_id)
-                .expect("host clue reverses to its kernel identity row");
+                .sign_identity(&observation.sign_id)
+                .expect("host sign reverses to its kernel identity row");
             assert_eq!(
-                clue.presentation_id.as_ref(),
+                sign.presentation_id.as_ref(),
                 observation.presentation_id.as_ref()
             );
             let Some(presentation) = observation.presentation_id.as_ref() else {
@@ -1421,14 +1421,14 @@ mod tests {
             assert_eq!(
                 report
                     .identity
-                    .clue_for_presentation(presentation)
-                    .map(|identity| &identity.clue_id),
-                Some(&observation.clue_id)
+                    .sign_for_presentation(presentation)
+                    .map(|identity| &identity.sign_id),
+                Some(&observation.sign_id)
             );
         }
         assert_eq!(report.observations.len(), 4);
-        assert_eq!(clue_sequence, 4);
-        let wrong_host_clue = bind_clue(
+        assert_eq!(sign_sequence, 4);
+        let wrong_host_sign = bind_sign(
             &HostId::from("wrong-host"),
             &host.boot_id,
             Some(&report.active_play_id),
@@ -1437,7 +1437,7 @@ mod tests {
         assert_eq!(
             report
                 .identity
-                .bind_clue(&wrong_host_clue, None, None, None),
+                .bind_sign(&wrong_host_sign, None, None, None),
             Err(ExecutionIdentityError::WrongHost)
         );
     }
@@ -1485,7 +1485,7 @@ mod tests {
     }
 
     #[test]
-    fn clue_exhaustion_fails_closed_inside_the_installed_scheduler() {
+    fn sign_exhaustion_fails_closed_inside_the_installed_scheduler() {
         let (host, fragment) = planned_fixture();
         let mut timer = VirtualTimer::default();
         let error = execute_fragment_with_options(
@@ -1496,11 +1496,11 @@ mod tests {
             &mut Vec::new(),
             &mut timer,
             ExecutionOptions {
-                clue_items: 1,
+                sign_items: 1,
                 ..ExecutionOptions::default()
             },
         )
-        .expect_err("clue budget exhaustion must fail closed");
+        .expect_err("sign budget exhaustion must fail closed");
         assert!(error.contains("ItemCapacityExceeded"), "{error}");
     }
 }

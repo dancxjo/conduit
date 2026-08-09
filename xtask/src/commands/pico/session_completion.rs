@@ -3,7 +3,7 @@
 use std::time::{Duration, Instant};
 
 use conduit_std_host::pico_usb_source::PicoUsbSource;
-use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
+use conduit_std_host::usb_cdc::{NativePathCdcLine, NativePathCdcLineReader};
 use conduit_wire::{SessionBinding, SessionMessage, SessionTerminalDisposition};
 
 use super::firmware::FirmwareIdentity;
@@ -12,8 +12,8 @@ use super::PicoResult;
 
 pub fn complete(
     source: &mut PicoUsbSource,
-    carrier: &mut NativePathCdcCarrier,
-    clue: &mut NativePathCdcLineReader,
+    line: &mut NativePathCdcLine,
+    sign: &mut NativePathCdcLineReader,
     binding: &SessionBinding,
     final_sequence: u64,
     identity: &FirmwareIdentity,
@@ -23,7 +23,7 @@ pub fn complete(
     source
         .admit_outbound(input_closed)
         .map_err(|error| format!("source rejected outbound InputClosed: {error:?}"))?;
-    carrier.send_frame(&input_closed, Duration::from_secs(2))?;
+    line.send_frame(&input_closed, Duration::from_secs(2))?;
 
     let terminal = binding.frame(SessionMessage::Terminal {
         disposition: SessionTerminalDisposition::Completed,
@@ -32,7 +32,7 @@ pub fn complete(
     source
         .admit_outbound(terminal)
         .map_err(|error| format!("source rejected outbound Terminal: {error:?}"))?;
-    carrier.send_frame(&terminal, Duration::from_secs(2))?;
+    line.send_frame(&terminal, Duration::from_secs(2))?;
 
     let mut frame_buf = [0_u8; 2048];
     let deadline = Instant::now() + Duration::from_secs(3);
@@ -40,7 +40,7 @@ pub fn complete(
         if Instant::now() >= deadline {
             return Err("timed out waiting for Pico terminal agreement".into());
         }
-        match carrier.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
+        match line.receive_frame(&mut frame_buf, Duration::from_millis(100)) {
             Ok(frame) => match frame.message {
                 SessionMessage::Terminal {
                     disposition: SessionTerminalDisposition::Completed,
@@ -63,10 +63,10 @@ pub fn complete(
     if !source.is_terminal() {
         return Err("source session did not reach exact terminal agreement".into());
     }
-    let line = clue
+    let line = sign
         .read_line(Duration::from_secs(3))
-        .map_err(|error| format!("timed out reading Pico terminal clue: {error}"))?;
+        .map_err(|error| format!("timed out reading Pico terminal sign: {error}"))?;
     transcript::verify_terminal(&line, identity, runtime)?;
-    println!("==> Pico terminal agreement and CDC 1 terminal clue validated");
+    println!("==> Pico terminal agreement and CDC 1 terminal sign validated");
     Ok(())
 }

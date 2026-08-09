@@ -7,13 +7,13 @@ use sink::Sink;
 use wire::*;
 
 use crate::{RendererSnapshot, SnapshotError};
-use conduit_core::{bind_active_play, BootId, ClueId, HostId, PlanFragment};
+use conduit_core::{bind_active_play, BootId, HostId, PlanFragment, SignId};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
+    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
     HostedValueStore, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
     RequestId, ValueRef, ValueStorage,
 };
@@ -21,7 +21,7 @@ use conduit_presentation::{Presentation, MAX_RENDERER_VALUE_BYTES};
 use conduit_runtime::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
-use conduit_std_host::websocket::{NativeWebSocketCarrier, NativeWebSocketListener};
+use conduit_std_host::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
     SessionMessage, SessionRole, SessionTerminalDisposition,
@@ -36,13 +36,13 @@ use tungstenite::protocol::{Message, WebSocket, WebSocketConfig};
 use tungstenite::stream::MaybeTlsStream;
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-const CLUE_ITEMS: u16 = 64;
+const SIGN_ITEMS: u16 = 64;
 const FRAME_BYTES: usize = CROSS_HOST_MAXIMUM_FRAME_BYTES as usize;
 
 type SourceScheduler = FixedScheduler<
     OperationDriver<ProjectOperation, PORTS>,
     HostedValueStore,
-    HostedClueLog,
+    HostedSignLog,
     1,
     1,
     PORTS,
@@ -230,11 +230,11 @@ fn lowered_remote(
     Ok((lowered, binding, endpoint, cord))
 }
 
-fn clue_log() -> Result<HostedClueLog, CrossHostRendererError> {
-    let bytes = u32::from(CLUE_ITEMS)
+fn sign_log() -> Result<HostedSignLog, CrossHostRendererError> {
+    let bytes = u32::from(SIGN_ITEMS)
         .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-        .ok_or_else(|| CrossHostRendererError::Kernel("Clue budget overflow".into()))?;
-    HostedClueLog::new(CLUE_ITEMS, bytes)
+        .ok_or_else(|| CrossHostRendererError::Kernel("Sign budget overflow".into()))?;
+    HostedSignLog::new(SIGN_ITEMS, bytes)
         .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))
 }
 
@@ -309,7 +309,7 @@ impl Source {
             [OperationDriver::new(ProjectOperation { value })
                 .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?],
             values,
-            clue_log()?,
+            sign_log()?,
         )
         .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?;
         let session = SessionMachine::new(binding.clone(), SessionRole::Source)

@@ -4,7 +4,7 @@ use super::{
     PlacementChoices, PlannerError,
 };
 use conduit_core::{
-    authority_grant, kind_id, mandatory_clue_storage_requirement, present_authority_requirement,
+    authority_grant, kind_id, mandatory_sign_storage_requirement, present_authority_requirement,
     process_owned_line_offer, verify_plan, verify_plan_fragment, ArtifactId, CancellationPolicy,
     CapabilityLimits, CapabilityOffer, ConfigurationValue, ConnectionBase, ExpandedFormId,
     HostAdvertisement, HostId, HostProfileId, ImplementationId, KindContractRevision, KindId,
@@ -280,9 +280,9 @@ fn planning_binds_exact_contract_profile_and_every_port() {
         TerminalPolicy::RequireAllPlacementsAndConnections
     );
     assert_eq!(
-        fragment.clue_storage_budget,
-        mandatory_clue_storage_requirement(&fragment.expected_clue)
-            .expect("focused clue fits public budget types")
+        fragment.sign_storage_budget,
+        mandatory_sign_storage_requirement(&fragment.expected_sign)
+            .expect("focused sign fits public budget types")
     );
 }
 

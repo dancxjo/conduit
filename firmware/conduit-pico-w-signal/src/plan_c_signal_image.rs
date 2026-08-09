@@ -22,9 +22,9 @@ pub fn execution_identity() -> SignalExecutionIdentity {
         host_id: generated::HOST_ID,
         boot_id: generated::BOOT_ID,
         active_play_id: generated::ACTIVE_PLAY_ID,
-        terminal_clue_id: generated::TERMINAL_CLUE_ID,
+        terminal_sign_id: generated::TERMINAL_SIGN_ID,
         presentation_ids: &generated::PRESENTATION_IDS,
-        presentation_clue_ids: &generated::PRESENTATION_CLUE_IDS,
+        presentation_sign_ids: &generated::PRESENTATION_SIGN_IDS,
     }
 }
 

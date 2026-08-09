@@ -39,7 +39,7 @@ pub(crate) fn validate_resource_observations(
             || observation.boot_id.as_str().is_empty()
             || observation.pool_id.as_str().is_empty()
             || observation.class_id.as_str().is_empty()
-            || observation.clue_id.as_str().is_empty()
+            || observation.sign_id.as_str().is_empty()
         {
             return invalid("observation identities must be non-empty");
         }

@@ -9,7 +9,7 @@ use crate::usb_link::UsbLinkSession;
 pub async fn run(
     stack: Stack<'static>,
     link: &mut UsbLinkSession,
-    clue: &mut UsbCdc,
+    sign: &mut UsbCdc,
     control: &mut cyw43::Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
 ) -> ! {
@@ -50,7 +50,7 @@ pub async fn run(
         if crate::websocket_route::run(
             stack,
             link,
-            clue,
+            sign,
             control,
             &plan_a_runtime,
             &plan_c_runtime,
@@ -68,7 +68,7 @@ pub async fn run(
         if let Some(mut state) = continuation {
             if crate::remote_signal::resume_plan_c_signal_sink(
                 link,
-                clue,
+                sign,
                 control,
                 &plan_c_runtime,
                 &mut state,
@@ -86,7 +86,7 @@ pub async fn run(
         };
         if crate::remote_signal::run_plan_b_signal_sink(
             link,
-            clue,
+            sign,
             control,
             &plan_b_runtime,
             &mut state,

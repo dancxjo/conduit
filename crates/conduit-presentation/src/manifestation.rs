@@ -2,14 +2,14 @@
 
 use alloc::string::String;
 use conduit_body::{BodyId, SeedId, WakeId};
-use conduit_core::{verify_plan, ActivePlayId, ClueId, PlacementId, Plan, PlanId, PlannedGear};
+use conduit_core::{verify_plan, ActivePlayId, PlacementId, Plan, PlanId, PlannedGear, SignId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{Presentation, PresentationContentId, RENDERER_KIND};
 
 pub const MAX_MANIFESTATION_TARGET_BYTES: usize = 256;
-pub const MAX_MANIFESTATION_CLUES: usize = 3;
+pub const MAX_MANIFESTATION_SIGNS: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ManifestationId(String);
@@ -37,8 +37,8 @@ pub enum ManifestationFailure {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ManifestationClue {
-    pub clue_id: ClueId,
+pub struct ManifestationSign {
+    pub sign_id: SignId,
     pub manifestation_id: ManifestationId,
     pub presentation_id: PresentationContentId,
     pub plan_id: PlanId,
@@ -62,7 +62,7 @@ pub struct Manifestation {
     pub target_subject: String,
     pub lifecycle: ManifestationLifecycle,
     pub failure: Option<ManifestationFailure>,
-    pub clues: alloc::vec::Vec<ManifestationClue>,
+    pub signs: alloc::vec::Vec<ManifestationSign>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -89,7 +89,7 @@ impl Manifestation {
         active_play_id: ActivePlayId,
         placement_id: PlacementId,
         target_subject: String,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<Self, ManifestationError> {
         presentation
             .validate()
@@ -116,16 +116,16 @@ impl Manifestation {
             target_subject,
             lifecycle: ManifestationLifecycle::Prepared,
             failure: None,
-            clues: alloc::vec::Vec::new(),
+            signs: alloc::vec::Vec::new(),
         };
-        manifestation.push_clue(clue_id);
+        manifestation.push_sign(sign_id);
         Ok(manifestation)
     }
 
     pub fn transition(
         &self,
         lifecycle: ManifestationLifecycle,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<Self, ManifestationError> {
         let accepted = matches!(
             (self.lifecycle, lifecycle),
@@ -141,35 +141,35 @@ impl Manifestation {
             )
         );
         if !accepted
-            || self.clues.len() >= MAX_MANIFESTATION_CLUES
-            || self.clues.iter().any(|clue| clue.clue_id == clue_id)
+            || self.signs.len() >= MAX_MANIFESTATION_SIGNS
+            || self.signs.iter().any(|sign| sign.sign_id == sign_id)
         {
             return Err(ManifestationError::InvalidTransition);
         }
         let mut next = self.clone();
         next.lifecycle = lifecycle;
         next.failure = None;
-        next.push_clue(clue_id);
+        next.push_sign(sign_id);
         Ok(next)
     }
 
     pub fn fail(
         &self,
         failure: ManifestationFailure,
-        clue_id: ClueId,
+        sign_id: SignId,
     ) -> Result<Self, ManifestationError> {
         if !matches!(
             self.lifecycle,
             ManifestationLifecycle::Prepared | ManifestationLifecycle::Available
-        ) || self.clues.len() >= MAX_MANIFESTATION_CLUES
-            || self.clues.iter().any(|clue| clue.clue_id == clue_id)
+        ) || self.signs.len() >= MAX_MANIFESTATION_SIGNS
+            || self.signs.iter().any(|sign| sign.sign_id == sign_id)
         {
             return Err(ManifestationError::InvalidTransition);
         }
         let mut next = self.clone();
         next.lifecycle = ManifestationLifecycle::Failed;
         next.failure = Some(failure);
-        next.push_clue(clue_id);
+        next.push_sign(sign_id);
         Ok(next)
     }
 
@@ -201,16 +201,16 @@ impl Manifestation {
         }
         validate_target(&self.target_subject)?;
         if (self.lifecycle == ManifestationLifecycle::Failed) != self.failure.is_some()
-            || !self.valid_clues()
+            || !self.valid_signs()
         {
             return Err(ManifestationError::InvalidTransition);
         }
         Ok(placement)
     }
 
-    fn push_clue(&mut self, clue_id: ClueId) {
-        self.clues.push(ManifestationClue {
-            clue_id,
+    fn push_sign(&mut self, sign_id: SignId) {
+        self.signs.push(ManifestationSign {
+            sign_id,
             manifestation_id: self.manifestation_id.clone(),
             presentation_id: self.presentation_id.clone(),
             plan_id: self.plan_id.clone(),
@@ -221,32 +221,32 @@ impl Manifestation {
         });
     }
 
-    fn valid_clues(&self) -> bool {
-        if self.clues.is_empty() || self.clues.len() > MAX_MANIFESTATION_CLUES {
+    fn valid_signs(&self) -> bool {
+        if self.signs.is_empty() || self.signs.len() > MAX_MANIFESTATION_SIGNS {
             return false;
         }
         let mut prior = None;
-        for (index, clue) in self.clues.iter().enumerate() {
-            if clue.clue_id.as_str().is_empty()
-                || clue.clue_id.as_str().len() > crate::MAX_PRESENTATION_ID_BYTES
-                || self.clues[..index]
+        for (index, sign) in self.signs.iter().enumerate() {
+            if sign.sign_id.as_str().is_empty()
+                || sign.sign_id.as_str().len() > crate::MAX_PRESENTATION_ID_BYTES
+                || self.signs[..index]
                     .iter()
-                    .any(|earlier| earlier.clue_id == clue.clue_id)
-                || clue.manifestation_id != self.manifestation_id
-                || clue.presentation_id != self.presentation_id
-                || clue.plan_id != self.plan_id
-                || clue.active_play_id != self.active_play_id
-                || clue.placement_id != self.placement_id
-                || (clue.lifecycle == ManifestationLifecycle::Failed) != clue.failure.is_some()
-                || !valid_lifecycle_step(prior, clue.lifecycle)
+                    .any(|earlier| earlier.sign_id == sign.sign_id)
+                || sign.manifestation_id != self.manifestation_id
+                || sign.presentation_id != self.presentation_id
+                || sign.plan_id != self.plan_id
+                || sign.active_play_id != self.active_play_id
+                || sign.placement_id != self.placement_id
+                || (sign.lifecycle == ManifestationLifecycle::Failed) != sign.failure.is_some()
+                || !valid_lifecycle_step(prior, sign.lifecycle)
             {
                 return false;
             }
-            prior = Some(clue.lifecycle);
+            prior = Some(sign.lifecycle);
         }
-        self.clues
+        self.signs
             .last()
-            .is_some_and(|clue| clue.lifecycle == self.lifecycle && clue.failure == self.failure)
+            .is_some_and(|sign| sign.lifecycle == self.lifecycle && sign.failure == self.failure)
     }
 }
 

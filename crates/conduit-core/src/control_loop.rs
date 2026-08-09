@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AdmittedLine, AuthorityGrantId, BootId, ClueId, ConnectionId, HostId, LineId, LinkBindingId,
-    PlanId, PlannedConnection,
+    AdmittedLine, AuthorityGrantId, BootId, ConnectionId, HostId, LineId, LinkBindingId, PlanId,
+    PlannedConnection, SignId,
 };
 
 /// Why the current deployed realization cannot continue. Queue pressure is
@@ -31,7 +31,7 @@ pub enum PlanningRequestAuthority {
     Delegated(AuthorityGrantId),
 }
 
-/// Minimum clue vocabulary for the observation -> planning -> realization
+/// Minimum sign vocabulary for the observation -> planning -> realization
 /// control loop. These records describe transitions; they do not perform link
 /// retries, invoke a planner, install a fragment, or issue authority.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,40 +41,40 @@ pub enum ControlLoopEvent {
         connection_id: ConnectionId,
         line_id: LineId,
         binding_id: LinkBindingId,
-        observation_clue_id: ClueId,
+        observation_sign_id: SignId,
     },
     PlayBecameUnsatisfied {
         plan_id: PlanId,
         reason: PlayUnsatisfiedReason,
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     PlanningRequested {
         prior_plan_id: PlanId,
         requester_host_id: HostId,
         requester_boot_id: BootId,
         authority: PlanningRequestAuthority,
-        request_clue_id: ClueId,
+        request_sign_id: SignId,
     },
     PlanningRefused {
         prior_plan_id: PlanId,
-        request_clue_id: ClueId,
+        request_sign_id: SignId,
         reason: PlanningRefusalReason,
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     PlanningSucceeded {
         prior_plan_id: PlanId,
         replacement_plan_id: PlanId,
-        request_clue_id: ClueId,
-        clue_id: ClueId,
+        request_sign_id: SignId,
+        sign_id: SignId,
     },
     PlanSuperseded {
         prior_plan_id: PlanId,
         replacement_plan_id: PlanId,
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     PlanRealized {
         plan_id: PlanId,
-        clue_id: ClueId,
+        sign_id: SignId,
     },
     LineSelectionChanged {
         plan_id: PlanId,
@@ -82,7 +82,7 @@ pub enum ControlLoopEvent {
         previous_line_id: Option<LineId>,
         selected_line_id: LineId,
         selected_binding_id: LinkBindingId,
-        observation_clue_id: ClueId,
+        observation_sign_id: SignId,
     },
 }
 
@@ -104,31 +104,31 @@ impl ControlLoopEvent {
                 connection_id,
                 line_id,
                 binding_id,
-                observation_clue_id,
+                observation_sign_id,
             } => {
                 nonempty(plan_id.as_str())
                     && nonempty(connection_id.as_str())
                     && nonempty(line_id.as_str())
                     && nonempty(binding_id.as_str())
-                    && nonempty(observation_clue_id.as_str())
+                    && nonempty(observation_sign_id.as_str())
             }
             Self::PlayBecameUnsatisfied {
-                plan_id, clue_id, ..
+                plan_id, sign_id, ..
             }
-            | Self::PlanRealized { plan_id, clue_id } => {
-                nonempty(plan_id.as_str()) && nonempty(clue_id.as_str())
+            | Self::PlanRealized { plan_id, sign_id } => {
+                nonempty(plan_id.as_str()) && nonempty(sign_id.as_str())
             }
             Self::PlanningRequested {
                 prior_plan_id,
                 requester_host_id,
                 requester_boot_id,
                 authority,
-                request_clue_id,
+                request_sign_id,
             } => {
                 nonempty(prior_plan_id.as_str())
                     && nonempty(requester_host_id.as_str())
                     && nonempty(requester_boot_id.as_str())
-                    && nonempty(request_clue_id.as_str())
+                    && nonempty(request_sign_id.as_str())
                     && match authority {
                         PlanningRequestAuthority::HostLocal => true,
                         PlanningRequestAuthority::Delegated(grant_id) => {
@@ -138,33 +138,33 @@ impl ControlLoopEvent {
             }
             Self::PlanningRefused {
                 prior_plan_id,
-                request_clue_id,
-                clue_id,
+                request_sign_id,
+                sign_id,
                 ..
             } => {
                 nonempty(prior_plan_id.as_str())
-                    && nonempty(request_clue_id.as_str())
-                    && nonempty(clue_id.as_str())
+                    && nonempty(request_sign_id.as_str())
+                    && nonempty(sign_id.as_str())
             }
             Self::PlanningSucceeded {
                 prior_plan_id,
                 replacement_plan_id,
-                request_clue_id,
-                clue_id,
+                request_sign_id,
+                sign_id,
             } => {
                 nonempty(prior_plan_id.as_str())
                     && nonempty(replacement_plan_id.as_str())
-                    && nonempty(request_clue_id.as_str())
-                    && nonempty(clue_id.as_str())
+                    && nonempty(request_sign_id.as_str())
+                    && nonempty(sign_id.as_str())
             }
             Self::PlanSuperseded {
                 prior_plan_id,
                 replacement_plan_id,
-                clue_id,
+                sign_id,
             } => {
                 nonempty(prior_plan_id.as_str())
                     && nonempty(replacement_plan_id.as_str())
-                    && nonempty(clue_id.as_str())
+                    && nonempty(sign_id.as_str())
             }
             Self::LineSelectionChanged {
                 plan_id,
@@ -172,7 +172,7 @@ impl ControlLoopEvent {
                 previous_line_id,
                 selected_line_id,
                 selected_binding_id,
-                observation_clue_id,
+                observation_sign_id,
             } => {
                 nonempty(plan_id.as_str())
                     && nonempty(connection_id.as_str())
@@ -181,7 +181,7 @@ impl ControlLoopEvent {
                         .is_none_or(|identity| nonempty(identity.as_str()))
                     && nonempty(selected_line_id.as_str())
                     && nonempty(selected_binding_id.as_str())
-                    && nonempty(observation_clue_id.as_str())
+                    && nonempty(observation_sign_id.as_str())
             }
         };
         if !identities_are_nonempty {
@@ -211,7 +211,7 @@ impl ControlLoopEvent {
         }
     }
 
-    /// Checks route observation/selection clue against one exact deployed
+    /// Checks route observation/selection sign against one exact deployed
     /// connection. The event may name only a route sealed by that same Plan.
     pub fn validate_route_event(
         &self,
