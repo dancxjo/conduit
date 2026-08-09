@@ -9,7 +9,7 @@ const state = { snapshot:null, selected:null, zoom:1, panX:0, reversed:false, gr
 function requireSnapshot(value) {
   const presentation=value?.presentation;
   if (!value || value.schema!==schema || !Number.isSafeInteger(value.revision) || value.revision!==presentation?.revision) throw new Error("unsupported snapshot schema");
-  if (!presentation.basis || typeof presentation.identity!=="string" || !Array.isArray(presentation.subjects) || !Array.isArray(presentation.relationships) || !Array.isArray(presentation.properties) || !Array.isArray(presentation.text)) throw new Error("malformed portable Presentation");
+  if (!presentation.basis || typeof presentation.identity!=="string" || !Array.isArray(presentation.subjects) || !Array.isArray(presentation.relationships) || !Array.isArray(presentation.properties) || !Array.isArray(presentation.text) || !value.renderer_plan || !value.manifestation) throw new Error("malformed portable renderer execution");
   for (const property of presentation.properties) {
     const base=property.value?.ConnectionBase;
     if (base!==undefined && !bases.has(base)) throw new Error("unsupported connection base");
@@ -36,7 +36,7 @@ function select(identity){
   const subject=state.snapshot.presentation.subjects.find(item=>item.identity===identity);
   const dl=document.querySelector("#inspector dl");dl.replaceChildren();term(dl,"Semantic subject",identity);term(dl,"Role",subject?.role);term(dl,"Meaning",subject?.label);
   for(const property of properties(identity))term(dl,property.name,propertyText(property.value));
-  term(dl,"Body",state.snapshot.presentation.basis.body_id);term(dl,"Wake",state.snapshot.presentation.basis.wake_id);term(dl,"Plan",state.snapshot.presentation.basis.plan_id);term(dl,"Active Play",state.snapshot.presentation.basis.active_play_id);
+  term(dl,"Body",state.snapshot.presentation.basis.body_id);term(dl,"Wake",state.snapshot.presentation.basis.wake_id);term(dl,"Source Plan",state.snapshot.presentation.basis.plan_id);term(dl,"Source Play",state.snapshot.presentation.basis.active_play_id);term(dl,"Renderer Plan",state.snapshot.manifestation.plan_id);term(dl,"Renderer Play",state.snapshot.manifestation.active_play_id);term(dl,"Manifestation",state.snapshot.manifestation.manifestation_id);term(dl,"Manifestation lifecycle",state.snapshot.manifestation.lifecycle);
 }
 
 function applyViewport(){const width=740/state.zoom,height=state.graphHeight/state.zoom;document.querySelector("#graph").setAttribute("viewBox",`${state.panX} 0 ${width} ${height}`);}
@@ -54,10 +54,10 @@ function renderCards(){const cards=document.querySelector("#route-cards");cards.
 
 function render(snapshot){
   state.snapshot=snapshot;const p=snapshot.presentation,b=p.basis;
-  document.querySelector("#status").textContent=`Presentation revision ${p.revision} · content ${p.identity} · read-only`;
+  document.querySelector("#status").textContent=`Presentation revision ${p.revision} · content ${p.identity} · Manifestation ${snapshot.manifestation.lifecycle} · read-only`;
   const facts=document.querySelector("#form-facts");facts.replaceChildren();term(facts,"Seed",b.seed_id);term(facts,"Body",b.body_id);term(facts,"Wake",b.wake_id);term(facts,"Source document",b.source_document_id);term(facts,"Checked Form",b.checked_form_id);
   const list=document.querySelector("#subjects");list.replaceChildren();for(const subject of p.subjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.setAttribute("aria-pressed","false");button.textContent=`${subject.role}: ${subject.label}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}renderGraph();
-  const plan=document.querySelector("#plan dl");plan.replaceChildren();term(plan,"Expanded Form",b.expanded_form_id);term(plan,"Plan",b.plan_id);fillLines("#realizations",subjects("Plan").flatMap(subject=>texts(subject.identity)));
+  const plan=document.querySelector("#plan dl");plan.replaceChildren();term(plan,"Expanded Form",b.expanded_form_id);term(plan,"Source Plan",b.plan_id);term(plan,"Renderer Plan",snapshot.manifestation.plan_id);term(plan,"Renderer Play",snapshot.manifestation.active_play_id);term(plan,"Manifestation",snapshot.manifestation.manifestation_id);term(plan,"Lifecycle",snapshot.manifestation.lifecycle);fillLines("#realizations",snapshot.renderer_plan.fragments.flatMap(fragment=>fragment.placements.map(placement=>`${placement.gear_id} · host ${fragment.host_id} · boot ${fragment.boot_id} · implementation ${placement.implementation_id} · artifact ${placement.artifact_id}`)));
   const play=document.querySelector("#play dl");play.replaceChildren();term(play,"Active Play",b.active_play_id);term(play,"Plan",b.plan_id);fillLines("#clue",subjects("Clue").map(subject=>subject.label));
   fillLines("#diagnostics ol",subjects("Diagnostic").flatMap(subject=>texts(subject.identity)));renderCards();fillLines("#topology ul",subjects("Host").flatMap(subject=>[subject.accessibility_name,...texts(subject.identity)]));fillLines("#linear ol",p.text.map(item=>item.text));select(p.subjects[0]?.identity);
 }

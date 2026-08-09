@@ -1,5 +1,7 @@
 use crate::transport_types::RendererSnapshot;
-use conduit_presentation::Presentation;
+use conduit_core::ClueId;
+use conduit_presentation::{ManifestationFailure, ManifestationLifecycle};
+use patchbay_model::RendererExecution;
 
 pub const SNAPSHOT_SCHEMA: &str = "conduit.patchbay.portable-presentation";
 pub const MAX_SNAPSHOT_BYTES: usize = conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES + 16_384;
@@ -37,15 +39,47 @@ impl std::fmt::Display for SnapshotError {
 impl std::error::Error for SnapshotError {}
 
 impl RendererSnapshot {
-    pub fn from_portable(presentation: Presentation) -> Result<Self, SnapshotError> {
-        presentation
+    pub fn from_execution(execution: RendererExecution) -> Result<Self, SnapshotError> {
+        execution
             .validate()
             .map_err(|_| SnapshotError::InvalidIdentity)?;
-        Ok(Self {
+        let value = Self {
             schema: SNAPSHOT_SCHEMA.into(),
-            revision: presentation.revision,
-            presentation,
-        })
+            revision: execution.presentation.revision,
+            presentation: execution.presentation,
+            renderer_plan: execution.plan,
+            manifestation: execution.manifestation,
+        };
+        value.validate()?;
+        Ok(value)
+    }
+
+    pub fn mark_available(&mut self, clue_id: ClueId) -> Result<(), SnapshotError> {
+        self.manifestation = self
+            .manifestation
+            .transition(ManifestationLifecycle::Available, clue_id)
+            .map_err(|_| SnapshotError::InvalidIdentity)?;
+        self.validate()
+    }
+
+    pub fn mark_failed(
+        &mut self,
+        failure: ManifestationFailure,
+        clue_id: ClueId,
+    ) -> Result<(), SnapshotError> {
+        self.manifestation = self
+            .manifestation
+            .fail(failure, clue_id)
+            .map_err(|_| SnapshotError::InvalidIdentity)?;
+        self.validate()
+    }
+
+    pub fn mark_closed(&mut self, clue_id: ClueId) -> Result<(), SnapshotError> {
+        self.manifestation = self
+            .manifestation
+            .transition(ManifestationLifecycle::Closed, clue_id)
+            .map_err(|_| SnapshotError::InvalidIdentity)?;
+        self.validate()
     }
 
     pub fn encode(&self) -> Result<Vec<u8>, SnapshotError> {
@@ -78,7 +112,13 @@ impl RendererSnapshot {
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
-        if self.revision != self.presentation.revision || self.presentation.validate().is_err() {
+        if self.revision != self.presentation.revision
+            || self.presentation.validate().is_err()
+            || self
+                .manifestation
+                .validate_against(&self.presentation, &self.renderer_plan)
+                .is_err()
+        {
             return Err(SnapshotError::InvalidIdentity);
         }
         Ok(())

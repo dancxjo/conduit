@@ -94,9 +94,20 @@ fn display_base(base: ConnectionBase) -> &'static str {
 
 impl PatchbayApplication {
     pub(super) fn presentation_lines(&self) -> Vec<String> {
-        if let Some(presentation) = &self.portable_presentation {
-            return portable_presentation_lines(presentation)
+        if let Some(execution) = &self.renderer_execution {
+            let mut lines = portable_presentation_lines(&execution.presentation)
                 .unwrap_or_else(|error| vec![format!("PORTABLE PRESENTATION INVALID: {error}")]);
+            lines.insert(
+                1,
+                format!(
+                    "MANIFESTATION {} renderer-plan={} renderer-play={} lifecycle={:?}",
+                    execution.manifestation.manifestation_id.as_str(),
+                    execution.manifestation.plan_id.as_str(),
+                    execution.manifestation.active_play_id.as_str(),
+                    execution.manifestation.lifecycle
+                ),
+            );
+            return lines;
         }
         let Some(editor) = &self.form_editor else {
             let mut lines = self.topology_lines.clone();

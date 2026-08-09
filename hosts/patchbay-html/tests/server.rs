@@ -1,3 +1,4 @@
+use conduit_presentation::{ManifestationFailure, ManifestationLifecycle};
 use patchbay_html::{demonstration_snapshot, PatchbayHtmlServer, ServerError};
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
@@ -15,7 +16,11 @@ fn request(path: &str, method: &str) -> String {
     .unwrap();
     let mut response = String::new();
     stream.read_to_string(&mut response).unwrap();
-    worker.join().unwrap().unwrap();
+    let closed = worker.join().unwrap().unwrap();
+    assert_eq!(
+        closed.manifestation.lifecycle,
+        ManifestationLifecycle::Closed
+    );
     response
 }
 
@@ -32,6 +37,10 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let body = response.split("\r\n\r\n").nth(1).unwrap();
     let decoded = patchbay_html::RendererSnapshot::decode(body.as_bytes(), 1).unwrap();
     assert_eq!(decoded.revision, 1);
+    assert_eq!(
+        decoded.manifestation.lifecycle,
+        ManifestationLifecycle::Available
+    );
     assert_eq!(
         request("/unknown", "GET").lines().next(),
         Some("HTTP/1.1 404 Not Found")
@@ -84,4 +93,41 @@ fn malformed_and_oversized_requests_do_not_stop_later_delivery() {
     assert!(valid_response.starts_with("HTTP/1.1 200 OK"));
 
     worker.join().unwrap().unwrap();
+}
+
+#[test]
+fn transport_failure_yields_an_exact_failed_manifestation_clue() {
+    let snapshot = demonstration_snapshot().unwrap();
+    let source_identity = snapshot.presentation.identity.clone();
+    let source_play = snapshot.presentation.basis.active_play_id.clone();
+    let server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+    let address = server.local_addr().unwrap();
+    let worker = std::thread::spawn(move || server.serve_count(1));
+
+    let _silent_client = TcpStream::connect(address).unwrap();
+    let failure = worker.join().unwrap().unwrap_err();
+
+    assert_eq!(
+        failure.snapshot.manifestation.lifecycle,
+        ManifestationLifecycle::Failed
+    );
+    assert_eq!(
+        failure.snapshot.manifestation.failure,
+        Some(ManifestationFailure::DeliveryFailed)
+    );
+    assert_eq!(failure.snapshot.presentation.identity, source_identity);
+    assert_eq!(
+        failure.snapshot.presentation.basis.active_play_id,
+        source_play
+    );
+    let clue = failure.snapshot.manifestation.clues.last().unwrap();
+    assert_eq!(
+        clue.manifestation_id,
+        failure.snapshot.manifestation.manifestation_id
+    );
+    assert_eq!(clue.plan_id, failure.snapshot.manifestation.plan_id);
+    assert_eq!(
+        clue.active_play_id,
+        failure.snapshot.manifestation.active_play_id
+    );
 }

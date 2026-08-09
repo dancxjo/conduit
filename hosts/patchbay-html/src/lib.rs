@@ -1,7 +1,7 @@
 //! Bounded delivery adapter for the read-only HTML Patchbay renderer.
 //!
-//! Its JSON is renderer transport, not the portable Presentation/Manifestation
-//! semantic contract owned by issue #602.
+//! Its JSON carries the portable Presentation and exact Manifestation result;
+//! DOM/SVG objects and HTTP mechanics remain renderer-local transport facts.
 
 mod demo;
 mod server;

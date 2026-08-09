@@ -17,6 +17,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const snapshot=await (await fetch(`${url}/api/snapshot`)).json();
     await page.goto(url);
     await expect(page.locator("#status")).toContainText("Presentation revision 1");
+    await expect(page.locator("#status")).toContainText("Manifestation Available");
     await expect(page.getByRole("heading",{name:"Form"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Active Play and Clues"})).toBeVisible();
@@ -40,11 +41,12 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(await page.locator("#graph [data-subject].selected").getAttribute("data-subject")).toBe(identity);
     await expect(page.locator("#linear li")).toHaveCount(snapshot.presentation.text.length);
 
-    const identitiesBefore={content:snapshot.presentation.identity,plan:snapshot.presentation.basis.plan_id,play:snapshot.presentation.basis.active_play_id,subjects:listSubjects};
+    expect(snapshot.manifestation.lifecycle).toBe("Available");
+    const identitiesBefore={content:snapshot.presentation.identity,plan:snapshot.presentation.basis.plan_id,play:snapshot.presentation.basis.active_play_id,manifestation:snapshot.manifestation.manifestation_id,subjects:listSubjects};
     await page.locator("#zoom-in").click();await page.locator("#pan-right").click();await page.locator("#arrange").click();await page.locator("#theme").click();
     await expect(page.locator("#arrange")).toHaveAttribute("aria-pressed","true");await expect(page.locator("#theme")).toHaveAttribute("aria-pressed","true");
     expect(await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort())).toEqual(identitiesBefore.subjects);
-    await expect(page.locator("#status")).toContainText(identitiesBefore.content);await expect(page.locator("#plan")).toContainText(identitiesBefore.plan);await expect(page.locator("#play")).toContainText(identitiesBefore.play);
+    await expect(page.locator("#status")).toContainText(identitiesBefore.content);await expect(page.locator("#plan")).toContainText(identitiesBefore.plan);await expect(page.locator("#plan")).toContainText(identitiesBefore.manifestation);await expect(page.locator("#play")).toContainText(identitiesBefore.play);
 
     const planBefore=await page.locator("#plan").textContent(); await page.reload();
     await expect(page.locator("#plan")).toContainText(snapshot.presentation.basis.plan_id); expect(await page.locator("#plan").textContent()).toBe(planBefore);
