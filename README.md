@@ -331,7 +331,6 @@ GEAR    configured occurrence of a Kind in a Form
 CORD    typed semantic connection between compatible Ports on Gears
 PORT    typed directional point carrying an Info shape/type and temporal contract
 INFO    shaped, typed data carried through a Cord
-SIGNAL  one particular typed Info semantic or mechanism
 FACE    stable visible semantic contract, including Ports
 BACK    Form implementing a Face
 
