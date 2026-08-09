@@ -25,6 +25,13 @@ pub async fn serve(
                         .await
                         .is_ok()
                     {
+                        crate::panic_recovery::set_phase(
+                            crate::panic_recovery::PanicPhase::RecoveryClue,
+                        );
+                        clue.wait_dtr().await;
+                        crate::panic_recovery::set_phase(
+                            crate::panic_recovery::PanicPhase::RecoveryClueWrite,
+                        );
                         let _ = clue
                             .write_network_failure(
                                 record.code(),

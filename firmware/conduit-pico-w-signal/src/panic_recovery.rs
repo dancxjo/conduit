@@ -27,6 +27,8 @@ pub enum PanicPhase {
     NetworkJoin = 12,
     NetworkConfiguration = 13,
     KernelCompletion = 14,
+    RecoveryClue = 15,
+    RecoveryClueWrite = 16,
     Unclassified = 255,
 }
 
@@ -51,6 +53,8 @@ impl PanicRecord {
             PanicPhase::NetworkJoin => "network-join-panic",
             PanicPhase::NetworkConfiguration => "network-configuration-panic",
             PanicPhase::KernelCompletion => "network-kernel-completion-panic",
+            PanicPhase::RecoveryClue => "network-recovery-clue-panic",
+            PanicPhase::RecoveryClueWrite => "network-recovery-clue-write-panic",
             PanicPhase::Unclassified => "firmware-panic",
         }
     }
@@ -92,6 +96,8 @@ pub fn take(watchdog_peripheral: Peri<'static, WATCHDOG>) -> Option<PanicRecord>
             12 => PanicPhase::NetworkJoin,
             13 => PanicPhase::NetworkConfiguration,
             14 => PanicPhase::KernelCompletion,
+            15 => PanicPhase::RecoveryClue,
+            16 => PanicPhase::RecoveryClueWrite,
             _ => PanicPhase::Unclassified,
         },
     })
