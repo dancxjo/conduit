@@ -1,6 +1,9 @@
 //! Read-only Plan/Play projections and fail-closed Run admission.
 
-use conduit_core::{verify_plan, HostAdvertisement, Plan, PlanId, TerminalDisposition};
+use conduit_core::{
+    verify_plan, ActivePlayId, CheckedFormId, ExpandedFormId, HostAdvertisement, Observation, Plan,
+    PlanId, SourceDocumentId, TerminalDisposition,
+};
 use conduit_std_host::StdRunReport;
 
 const MAXIMUM_CONTROL_ID_BYTES: usize = 128;
@@ -38,6 +41,10 @@ pub enum ControlError {
 pub struct PlanDocument {
     pub request_id: PatchbayRequestId,
     pub plan_id: PlanId,
+    pub source_document_id: SourceDocumentId,
+    pub checked_form_id: CheckedFormId,
+    pub expanded_form_id: ExpandedFormId,
+    pub exact: Plan,
     pub lines: Vec<String>,
 }
 
@@ -103,6 +110,10 @@ impl PlanDocument {
         Ok(Self {
             request_id,
             plan_id: plan.plan_id.clone(),
+            source_document_id: plan.source_document_id.clone(),
+            checked_form_id: plan.checked_form_id.clone(),
+            expanded_form_id: plan.expanded_form_id.clone(),
+            exact: plan.clone(),
             lines,
         })
     }
@@ -146,6 +157,9 @@ pub fn admit_run(
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlayDocument {
+    pub active_play_id: ActivePlayId,
+    pub plan_id: PlanId,
+    pub evidence: Vec<Observation>,
     pub lines: Vec<String>,
     pub terminal: TerminalDisposition,
 }
@@ -204,7 +218,13 @@ impl PlayDocument {
                 ),
             )?;
         }
-        Ok(Self { lines, terminal })
+        Ok(Self {
+            active_play_id: kernel.active_play_id.clone(),
+            plan_id: plan.plan_id.clone(),
+            evidence: report.observations.clone(),
+            lines,
+            terminal,
+        })
     }
 }
 
