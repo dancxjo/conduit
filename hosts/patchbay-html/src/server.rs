@@ -1,5 +1,6 @@
 use crate::{RendererSnapshot, SnapshotError};
 use conduit_core::ClueId;
+use conduit_presentation::ManifestationFailure;
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
@@ -31,6 +32,20 @@ impl std::fmt::Display for ServerError {
 }
 
 impl std::error::Error for ServerError {}
+
+#[derive(Debug)]
+pub struct RendererDeliveryFailure {
+    pub error: ServerError,
+    pub snapshot: Box<RendererSnapshot>,
+}
+
+impl std::fmt::Display for RendererDeliveryFailure {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "renderer delivery failed: {}", self.error)
+    }
+}
+
+impl std::error::Error for RendererDeliveryFailure {}
 
 impl From<std::io::Error> for ServerError {
     fn from(value: std::io::Error) -> Self {
@@ -74,20 +89,49 @@ impl PatchbayHtmlServer {
         Ok(self.listener.local_addr()?)
     }
 
-    pub fn serve(self) -> Result<(), ServerError> {
-        for stream in self.listener.incoming() {
-            self.handle(stream?)?;
+    pub fn serve(mut self) -> Result<(), RendererDeliveryFailure> {
+        loop {
+            let stream = match self.listener.accept() {
+                Ok((stream, _)) => stream,
+                Err(error) => return Err(self.delivery_failure(ServerError::Io(error))),
+            };
+            if let Err(error) = self.handle(stream) {
+                return Err(self.delivery_failure(error));
+            }
         }
-        Ok(())
     }
 
-    pub fn serve_count(mut self, count: usize) -> Result<RendererSnapshot, ServerError> {
+    pub fn serve_count(
+        mut self,
+        count: usize,
+    ) -> Result<RendererSnapshot, RendererDeliveryFailure> {
         for _ in 0..count {
-            self.handle(self.listener.accept()?.0)?;
+            let stream = match self.listener.accept() {
+                Ok((stream, _)) => stream,
+                Err(error) => return Err(self.delivery_failure(ServerError::Io(error))),
+            };
+            if let Err(error) = self.handle(stream) {
+                return Err(self.delivery_failure(error));
+            }
         }
-        self.snapshot
-            .mark_closed(ClueId::from("patchbay-html/server-closed"))?;
+        if let Err(error) = self
+            .snapshot
+            .mark_closed(ClueId::from("patchbay-html/server-closed"))
+        {
+            return Err(self.delivery_failure(ServerError::Snapshot(error)));
+        }
         Ok(self.snapshot)
+    }
+
+    fn delivery_failure(&mut self, error: ServerError) -> RendererDeliveryFailure {
+        let _ = self.snapshot.mark_failed(
+            ManifestationFailure::DeliveryFailed,
+            ClueId::from("patchbay-html/delivery-failed"),
+        );
+        RendererDeliveryFailure {
+            error,
+            snapshot: Box::new(self.snapshot.clone()),
+        }
     }
 
     fn handle(&self, mut stream: TcpStream) -> Result<(), ServerError> {

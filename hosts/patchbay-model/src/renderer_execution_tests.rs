@@ -34,6 +34,46 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
     assert_eq!(native.presentation.identity, html.presentation.identity);
     assert_ne!(native.plan.plan_id, html.plan.plan_id);
     assert_ne!(native.active_play_id, html.active_play_id);
+    let native_placement = &native.plan.fragments[0].placements[0];
+    let html_placement = &html.plan.fragments[0].placements[0];
+    assert_eq!(native_placement.host_id.as_str(), "native-host");
+    assert_eq!(native_placement.boot_id.as_str(), "native-boot");
+    assert_eq!(
+        native_placement.implementation_id.as_str(),
+        "presentation/renderer-wayland@1"
+    );
+    assert_eq!(
+        native_placement.host_operations[0]
+            .target_kind
+            .as_ref()
+            .unwrap()
+            .as_str(),
+        "presentation/base/wayland-surface@1"
+    );
+    assert_eq!(native_placement.resources.len(), 1);
+    assert_eq!(html_placement.host_id.as_str(), "html-host");
+    assert_eq!(html_placement.boot_id.as_str(), "html-boot");
+    assert_eq!(
+        html_placement.implementation_id.as_str(),
+        "presentation/renderer-dom-svg@1"
+    );
+    assert_eq!(
+        html_placement.host_operations[0]
+            .target_kind
+            .as_ref()
+            .unwrap()
+            .as_str(),
+        "presentation/base/dom-svg@1"
+    );
+    assert_eq!(html_placement.resources.len(), 1);
+    assert_eq!(
+        native.manifestation.clues[0].placement_id,
+        native_placement.placement_id
+    );
+    assert_eq!(
+        html.manifestation.clues[0].placement_id,
+        html_placement.placement_id
+    );
     assert_eq!(
         native.manifestation.lifecycle,
         ManifestationLifecycle::Prepared

@@ -1,4 +1,4 @@
-use conduit_presentation::ManifestationLifecycle;
+use conduit_presentation::{ManifestationFailure, ManifestationLifecycle};
 use patchbay_html::{demonstration_snapshot, PatchbayHtmlServer, ServerError};
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
@@ -93,4 +93,41 @@ fn malformed_and_oversized_requests_do_not_stop_later_delivery() {
     assert!(valid_response.starts_with("HTTP/1.1 200 OK"));
 
     worker.join().unwrap().unwrap();
+}
+
+#[test]
+fn transport_failure_yields_an_exact_failed_manifestation_clue() {
+    let snapshot = demonstration_snapshot().unwrap();
+    let source_identity = snapshot.presentation.identity.clone();
+    let source_play = snapshot.presentation.basis.active_play_id.clone();
+    let server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+    let address = server.local_addr().unwrap();
+    let worker = std::thread::spawn(move || server.serve_count(1));
+
+    let _silent_client = TcpStream::connect(address).unwrap();
+    let failure = worker.join().unwrap().unwrap_err();
+
+    assert_eq!(
+        failure.snapshot.manifestation.lifecycle,
+        ManifestationLifecycle::Failed
+    );
+    assert_eq!(
+        failure.snapshot.manifestation.failure,
+        Some(ManifestationFailure::DeliveryFailed)
+    );
+    assert_eq!(failure.snapshot.presentation.identity, source_identity);
+    assert_eq!(
+        failure.snapshot.presentation.basis.active_play_id,
+        source_play
+    );
+    let clue = failure.snapshot.manifestation.clues.last().unwrap();
+    assert_eq!(
+        clue.manifestation_id,
+        failure.snapshot.manifestation.manifestation_id
+    );
+    assert_eq!(clue.plan_id, failure.snapshot.manifestation.plan_id);
+    assert_eq!(
+        clue.active_play_id,
+        failure.snapshot.manifestation.active_play_id
+    );
 }

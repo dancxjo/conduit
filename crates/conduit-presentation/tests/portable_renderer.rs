@@ -5,7 +5,7 @@ use conduit_core::{
     bind_active_play, kind_id, resource_offer, resource_requirement, ArtifactId, BootId,
     CapabilityId, CapabilityLimits, ClueId, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    OfferGeneration, PROTOCOL_VERSION,
+    OfferGeneration, PlanId, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, parse, parse_syntax_document, KindSignature, ProfileCatalog,
@@ -253,7 +253,10 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
             ClueId::from("manifestation/available"),
         )
         .unwrap();
-    assert_eq!(available.clue_ids.len(), 2);
+    assert_eq!(available.clues.len(), 2);
+    assert_eq!(available.clues[1].plan_id, available.plan_id);
+    assert_eq!(available.clues[1].active_play_id, available.active_play_id);
+    assert_eq!(available.clues[1].placement_id, available.placement_id);
     let failed = available
         .fail(
             ManifestationFailure::OutputRejected,
@@ -262,6 +265,13 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
         .unwrap();
     assert_eq!(failed.lifecycle, ManifestationLifecycle::Failed);
     assert_eq!(failed.failure, Some(ManifestationFailure::OutputRejected));
+    assert!(failed.validate_against(&presentation, &plan).is_ok());
+    let mut drifted_clue = failed.clone();
+    drifted_clue.clues[1].plan_id = PlanId::from("different-plan");
+    assert_eq!(
+        drifted_clue.validate_against(&presentation, &plan),
+        Err(ManifestationError::InvalidTransition)
+    );
     let realized = available.validate_against(&presentation, &plan).unwrap();
     assert_eq!(
         realized.implementation_id.as_str(),

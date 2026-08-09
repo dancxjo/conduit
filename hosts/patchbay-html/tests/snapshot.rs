@@ -55,6 +55,15 @@ fn html_adapter_failure_is_typed_without_mutating_the_source_presentation() {
     );
     assert_eq!(snapshot.presentation.identity, source_identity);
     assert_eq!(snapshot.presentation.basis.active_play_id, source_play);
+    assert_eq!(
+        snapshot
+            .manifestation
+            .clues
+            .last()
+            .unwrap()
+            .manifestation_id,
+        snapshot.manifestation.manifestation_id
+    );
     assert!(snapshot.encode().is_ok());
 }
 
