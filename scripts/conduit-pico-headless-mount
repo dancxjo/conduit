@@ -1,0 +1,81 @@
+#!/bin/sh
+set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+
+fail() {
+    printf 'conduit-pico-headless-mount: %s\n' "$*" >&2
+    exit 1
+}
+
+[ "$#" -eq 0 ] || fail "this helper accepts no arguments"
+[ "$(id -u)" -eq 0 ] || fail "must run through sudo"
+
+case "${SUDO_UID:-}" in
+    ''|*[!0-9]*) fail "SUDO_UID is missing or invalid" ;;
+esac
+case "${SUDO_GID:-}" in
+    ''|*[!0-9]*) fail "SUDO_GID is missing or invalid" ;;
+esac
+[ "$SUDO_UID" -gt 0 ] || fail "refusing a root-owned caller mount"
+
+candidates=""
+candidate_count=0
+while read -r path label fstype type; do
+    [ "$type" = "part" ] || continue
+    case "$label" in
+        RPI-RP2|BOOTSEL) ;;
+        *) continue ;;
+    esac
+    case "$fstype" in
+        vfat|msdos) ;;
+        *) fail "$path has BOOTSEL label but unsafe filesystem '$fstype'" ;;
+    esac
+    case "$path" in
+        /dev/*) ;;
+        *) fail "lsblk returned unsafe device path '$path'" ;;
+    esac
+    candidates="${candidates}${path}\n"
+    candidate_count=$((candidate_count + 1))
+done <<EOF
+$(lsblk -rpn -o PATH,LABEL,FSTYPE,TYPE)
+EOF
+
+[ "$candidate_count" -eq 1 ] || fail "expected exactly one BOOTSEL partition, found $candidate_count"
+device=$(printf '%b' "$candidates" | sed -n '1p')
+[ -b "$device" ] || fail "candidate is not a block device: $device"
+
+parent_name=$(lsblk -dn -o PKNAME "$device" | tr -d '[:space:]')
+[ -n "$parent_name" ] || fail "cannot resolve parent disk for $device"
+parent="/dev/$parent_name"
+[ -b "$parent" ] || fail "parent is not a block device: $parent"
+[ "$(lsblk -dn -o TYPE "$parent" | tr -d '[:space:]')" = "disk" ] || fail "$parent is not a disk"
+[ "$(lsblk -dn -o RM "$parent" | tr -d '[:space:]')" = "1" ] || fail "$parent is not removable"
+[ "$(lsblk -dn -o TRAN "$parent" | tr -d '[:space:]')" = "usb" ] || fail "$parent is not USB-attached"
+
+existing=$(findmnt -rn -S "$device" -o TARGET || true)
+[ -z "$existing" ] || fail "$device is already mounted at $existing"
+
+base=/run/conduit-pico-bootsel
+mountpoint="$base/$SUDO_UID"
+if [ -e "$base" ] && [ -L "$base" ]; then
+    fail "$base must not be a symbolic link"
+fi
+mkdir -p "$base"
+chown root:root "$base"
+chmod 0755 "$base"
+if [ -e "$mountpoint" ] && [ -L "$mountpoint" ]; then
+    fail "$mountpoint must not be a symbolic link"
+fi
+mkdir -p "$mountpoint"
+chown root:root "$mountpoint"
+chmod 0700 "$mountpoint"
+
+mount -t vfat -o "rw,nosuid,nodev,noexec,uid=$SUDO_UID,gid=$SUDO_GID,umask=0077,flush" "$device" "$mountpoint"
+mounted_source=$(findmnt -rn -T "$mountpoint" -o SOURCE)
+[ "$mounted_source" = "$device" ] || {
+    umount "$mountpoint" || true
+    fail "mounted source mismatch: expected $device, got $mounted_source"
+}
+
+printf '%s\n' "$mountpoint"
