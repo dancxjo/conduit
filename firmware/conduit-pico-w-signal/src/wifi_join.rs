@@ -66,6 +66,7 @@ struct JoinKernel {
 
 impl JoinKernel {
     fn new() -> Result<Self, UsbLinkError> {
+        crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelStorage);
         let layout = network_join_layout().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         let remote = generated_remote_endpoint().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         let values = FixedValueStore::new(
@@ -88,11 +89,17 @@ impl JoinKernel {
             (1, 0) => [attachment_clue, join],
             _ => return Err(UsbLinkError::InvalidGeneratedEndpoint),
         };
+        let nodes = generated_nodes();
+        let cords = generated_cords();
+        crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelRoutes);
+        let routes = generated_routes();
+        let host_bindings = generated_host_bindings();
+        crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelScheduler);
         let scheduler = JoinScheduler::new_with_host_operations(
-            generated_nodes(),
-            generated_cords(),
-            generated_routes(),
-            generated_host_bindings(),
+            nodes,
+            cords,
+            routes,
+            host_bindings,
             drivers,
             values,
             clue,
@@ -314,7 +321,7 @@ pub async fn run(
         0x502,
     );
     spawner.spawn(network_task(runner).unwrap());
-    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionAdmission);
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionBinding);
     if let Err(error) = run_session(&mut link, clue, &mut control, stack, runtime).await {
         let _ = clue
             .write_network_failure(error.code(), attachment_identity(runtime))
@@ -376,8 +383,10 @@ async fn run_session(
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), UsbLinkError> {
     let binding = session_binding(runtime)?;
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionMachine);
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink)
         .map_err(UsbLinkError::Codec)?;
+    crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelStorage);
     let mut kernel = JoinKernel::new()?;
     let mut frame_buf = [0_u8; 2048];
     loop {
