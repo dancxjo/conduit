@@ -298,7 +298,11 @@ pub async fn run(
         let _ = clue
             .write_network_failure(error.code(), attachment_identity(runtime))
             .await;
-        core::future::pending::<()>().await;
+        // This Play is terminal, but CDC 0 remains an exact-build BOOTSEL
+        // recovery path across host disconnects.
+        loop {
+            crate::bootsel::wait_for_request(&mut link).await.ok();
+        }
     }
     crate::bootsel::wait_for_request(&mut link).await.ok();
     loop {
@@ -355,6 +359,17 @@ async fn run_session(
         .map_err(UsbLinkError::Codec)?;
     let mut kernel = JoinKernel::new()?;
     let mut frame_buf = [0_u8; 2048];
+    loop {
+        let raw = link.receive_raw_stream_frame(&mut frame_buf).await?;
+        if crate::bootsel::handle_request(link, raw).await? {
+            continue;
+        }
+        if raw == conduit_net::R1_USB_NETWORK_SESSION_QUERY {
+            link.send_raw_stream_frame(conduit_net::R1_USB_NETWORK_SESSION_READY).await?;
+            break;
+        }
+        return Err(UsbLinkError::InvalidNetworkJoin);
+    }
     let hello = link.receive_frame(&mut frame_buf).await?;
     machine.admit_inbound(hello).map_err(UsbLinkError::Codec)?;
     let response = binding.hello_frame();
@@ -441,7 +456,7 @@ fn session_binding(runtime: &RuntimeTranscriptIdentity) -> Result<SessionBinding
     let source_boot = BootId::from(endpoint.peer_boot);
     let sink_host = HostId::from(endpoint.local_host);
     let sink_boot = BootId::from(endpoint.local_boot);
-    Ok(SessionBinding {
+    SessionBinding {
         protocol_version: 1,
         source_active_play_id: bind_active_play(&plan_id, &source_host, &source_boot, 0).active_play_id,
         sink_active_play_id: bind_active_play(&plan_id, &sink_host, &sink_boot, 0).active_play_id,
@@ -476,5 +491,5 @@ fn session_binding(runtime: &RuntimeTranscriptIdentity) -> Result<SessionBinding
         },
     }
     .with_observed_boots(BootId::from(endpoint.peer_boot), BootId::from(runtime.boot_id()))
-    .map_err(UsbLinkError::Codec)?)
+    .map_err(UsbLinkError::Codec)
 }

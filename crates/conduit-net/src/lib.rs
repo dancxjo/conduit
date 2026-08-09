@@ -25,6 +25,13 @@ pub use r1_wifi_bootstrap::*;
 
 pub const WIFI_STATION_RESOURCE_CLASS: &str = "conduit.resource/network/wifi-station@1";
 pub const R1_WIFI_STATION_POOL_ID: &str = "r1/pico-wifi-station-0";
+/// Base-level CDC control payload asking whether the R1 network Session can
+/// now accept its exact Hello. This is readiness of the planned USB Line, not
+/// semantic Info and not a substitute for runtime Clues.
+pub const R1_USB_NETWORK_SESSION_QUERY: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_QUERY@1";
+/// Exact reply emitted only after radio initialization and bounded network
+/// Join kernel admission have completed.
+pub const R1_USB_NETWORK_SESSION_READY: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_READY@1";
 pub const NETWORK_JOIN_OPERATION: &str = "network/join";
 pub const NETWORK_CREDENTIALS_OPERATION: &str = "network/credentials";
 pub const NETWORK_ATTACHMENT_CLUE_OPERATION: &str = "network/attachment-clue";
