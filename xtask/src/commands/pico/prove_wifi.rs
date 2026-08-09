@@ -161,14 +161,16 @@ fn run_unix(
         .map_err(|error| format!("timed out reading Pico boot Clue: {error}"))?;
     let runtime = transcript::verify_boot(&boot_line, identity)?;
 
-    if let Err(readiness_error) = wait_for_network_session_readiness(&mut carrier) {
-        return Err(session_phase_failure_with_clue(
-            &mut clue,
-            "network Session readiness",
-            readiness_error,
-            identity,
-            &runtime,
-        ));
+    match wait_for_network_session_readiness(&mut carrier)? {
+        NetworkSessionReadiness::Ready => {}
+        NetworkSessionReadiness::Failed => {
+            return Err(read_recovery_clue(
+                &mut carrier,
+                &mut clue,
+                identity,
+                &runtime,
+            ));
+        }
     }
 
     let mut source = PicoWifiBootstrapSource::prepare(ssid.bytes(), credential.bytes())
@@ -266,7 +268,15 @@ fn run_unix(
 }
 
 #[cfg(unix)]
-fn wait_for_network_session_readiness(carrier: &mut NativePathCdcCarrier) -> PicoResult<()> {
+enum NetworkSessionReadiness {
+    Ready,
+    Failed,
+}
+
+#[cfg(unix)]
+fn wait_for_network_session_readiness(
+    carrier: &mut NativePathCdcCarrier,
+) -> PicoResult<NetworkSessionReadiness> {
     carrier.send_raw_stream_frame(
         conduit_net::R1_USB_NETWORK_SESSION_QUERY,
         Duration::from_secs(2),
@@ -274,26 +284,55 @@ fn wait_for_network_session_readiness(carrier: &mut NativePathCdcCarrier) -> Pic
     let mut raw = [0_u8; 1024];
     let reply = carrier.receive_raw_stream_frame(&mut raw, Duration::from_secs(30))?;
     if reply == conduit_net::R1_USB_NETWORK_SESSION_FAILED {
-        carrier.send_raw_stream_frame(
-            conduit_net::R1_USB_NETWORK_FAILURE_CLUE_READY,
-            Duration::from_secs(2),
-        )?;
-        let status = carrier.receive_raw_stream_frame(&mut raw, Duration::from_secs(3))?;
-        if status == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_FORMAT_FAILED {
-            return Err("Pico recovery Clue exceeded its admitted format bound".into());
-        }
-        if status == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_DISCONNECTED {
-            return Err("Pico recovery Clue face disconnected during delivery".into());
-        }
-        if status != conduit_net::R1_USB_NETWORK_FAILURE_CLUE_WRITTEN {
-            return Err("Pico returned an unexpected recovery Clue disposition".into());
-        }
-        return Err("Pico reported that this boot cannot admit the network Session".into());
+        return Ok(NetworkSessionReadiness::Failed);
     }
     if reply != conduit_net::R1_USB_NETWORK_SESSION_READY {
         return Err("Pico returned an unexpected network Session readiness payload".into());
     }
-    Ok(())
+    Ok(NetworkSessionReadiness::Ready)
+}
+
+#[cfg(unix)]
+fn read_recovery_clue(
+    carrier: &mut NativePathCdcCarrier,
+    clue: &mut NativePathCdcLineReader,
+    identity: &FirmwareIdentity,
+    runtime: &RuntimeTranscriptIdentity,
+) -> Box<dyn std::error::Error> {
+    std::thread::scope(|scope| -> Box<dyn std::error::Error> {
+        let clue_read = scope.spawn(|| clue.read_line(Duration::from_secs(3)));
+        if let Err(error) = carrier.send_raw_stream_frame(
+            conduit_net::R1_USB_NETWORK_FAILURE_CLUE_READY,
+            Duration::from_secs(2),
+        ) {
+            return Box::new(error);
+        }
+        let mut raw = [0_u8; 1024];
+        let status = match carrier.receive_raw_stream_frame(&mut raw, Duration::from_secs(3)) {
+            Ok(status) => status,
+            Err(error) => return Box::new(error),
+        };
+        let line = match clue_read.join() {
+            Ok(Ok(line)) => line,
+            Ok(Err(error)) => {
+                return format!("no bounded Pico recovery Clue arrived: {error}").into()
+            }
+            Err(_) => return "Pico recovery Clue reader panicked".into(),
+        };
+        if status == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_FORMAT_FAILED {
+            return "Pico recovery Clue exceeded its admitted format bound".into();
+        }
+        if status == conduit_net::R1_USB_NETWORK_FAILURE_CLUE_DISCONNECTED {
+            return "Pico recovery Clue face disconnected during delivery".into();
+        }
+        if status != conduit_net::R1_USB_NETWORK_FAILURE_CLUE_WRITTEN {
+            return "Pico returned an unexpected recovery Clue disposition".into();
+        }
+        match verify_attachment_clue(&line, identity, runtime) {
+            Ok(()) => "Pico emitted an unexpected attachment success Clue".into(),
+            Err(error) => format!("Pico failure Clue: {error}").into(),
+        }
+    })
 }
 
 #[cfg(unix)]
