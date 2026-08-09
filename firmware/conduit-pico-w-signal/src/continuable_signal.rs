@@ -101,9 +101,9 @@ fn binding(
         sink: SessionEndpointIdentity { host_id: sink_host.clone(), boot_id: sink_boot.clone() },
         value_kind: KindId::from(endpoint.value_kind),
         limits: SessionLimits {
-            maximum_in_flight_items: endpoint.maximum_in_flight_items,
-            maximum_payload_bytes: endpoint.maximum_payload_bytes,
-            maximum_buffered_bytes: endpoint.maximum_buffered_bytes,
+            maximum_in_flight_items: endpoint.session_item_capacity,
+            maximum_payload_bytes: endpoint.session_byte_capacity,
+            maximum_buffered_bytes: endpoint.session_byte_capacity,
         },
         attachment: RouteAttachment {
             link_binding_id: LinkBindingId::from(endpoint.link_binding_id),

@@ -35,9 +35,11 @@ pub fn endpoint(base: ConnectionBase) -> Option<RemoteEndpointIdentity> {
     let index = generated::GENERATED_REMOTE_ENDPOINT_BASE_CODES
         .iter()
         .position(|code| ConnectionBase::from_canonical_code(*code) == Some(base))?;
+    let cord = CordId(*generated::GENERATED_REMOTE_ENDPOINT_CORDS.get(index)?);
+    let cord_spec = generated::GENERATED_CORDS.get(usize::from(cord.0))?;
     Some(RemoteEndpointIdentity {
         endpoint: RemoteEndpointId(*generated::GENERATED_REMOTE_ENDPOINT_IDS.get(index)?),
-        cord: CordId(*generated::GENERATED_REMOTE_ENDPOINT_CORDS.get(index)?),
+        cord,
         connection_id: generated::GENERATED_REMOTE_ENDPOINT_CONNECTION_IDS.get(index)?,
         source_fragment_id: generated::GENERATED_REMOTE_ENDPOINT_SOURCE_FRAGMENT_IDS.get(index)?,
         sink_fragment_id: generated::GENERATED_REMOTE_ENDPOINT_SINK_FRAGMENT_IDS.get(index)?,
@@ -51,6 +53,8 @@ pub fn endpoint(base: ConnectionBase) -> Option<RemoteEndpointIdentity> {
         base_instance_id: generated::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS.get(index)?,
         link_binding_id: generated::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS.get(index)?,
         value_kind: generated::GENERATED_REMOTE_ENDPOINT_VALUE_KINDS.get(index)?,
+        session_item_capacity: cord_spec.item_capacity,
+        session_byte_capacity: cord_spec.byte_capacity,
         maximum_in_flight_items: *generated::GENERATED_REMOTE_ENDPOINT_MAXIMUM_IN_FLIGHT_ITEMS
             .get(index)?,
         maximum_payload_bytes: *generated::GENERATED_REMOTE_ENDPOINT_MAXIMUM_PAYLOAD_BYTES
