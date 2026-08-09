@@ -20,6 +20,9 @@ use conduit_signal::{
 
 mod identity_sidecar;
 use identity_sidecar::render_identity_sidecar;
+#[path = "build/firmware_mode.rs"]
+mod firmware_mode;
+use firmware_mode::firmware_mode;
 #[path = "build/r1_control_images.rs"]
 mod r1_control_images;
 
@@ -39,7 +42,11 @@ fn main() {
     if firmware_mode() == "wifi-bootstrap" {
         generate_pico_network_image(&out);
         generate_r1_recovery_signal_images(&out);
-        r1_control_images::generate(&out);
+        r1_control_images::generate(&out, false);
+    } else if firmware_mode() == "r1-control" {
+        generate_pico_network_image(&out);
+        generate_r1_recovery_signal_images(&out);
+        r1_control_images::generate(&out, true);
     } else {
         generate_pico_signal_image(&out);
     }
@@ -392,20 +399,6 @@ fn firmware_build_id(
         generated.fragment_id,
         active_play_id.as_str(),
     )
-}
-
-fn firmware_mode() -> &'static str {
-    if env::var_os("CARGO_FEATURE_WIFI_BOOTSTRAP").is_some() {
-        "wifi-bootstrap"
-    } else if env::var_os("CARGO_FEATURE_TRIPLE_REMOTE").is_some() {
-        "triple-remote"
-    } else if env::var_os("CARGO_FEATURE_USB_REMOTE").is_some() {
-        "usb-remote"
-    } else if env::var_os("CARGO_FEATURE_PICO_LOCAL_MINIMAL").is_some() {
-        "pico-local-minimal"
-    } else {
-        "pico-local"
-    }
 }
 
 fn git_revision() -> String {

@@ -73,6 +73,10 @@ pub struct PicoArgs {
     #[arg(long, global = true)]
     pub wifi_bootstrap: bool,
 
+    /// Build or flash the R1 three-peer control image over WebSocket and USB CDC.
+    #[arg(long, global = true)]
+    pub r1_control: bool,
+
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
     #[arg(long, global = true)]
     pub refresh_radio_assets: bool,
@@ -111,6 +115,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
     if usize::from(args.usb_remote)
         + usize::from(args.triple_remote)
         + usize::from(args.wifi_bootstrap)
+        + usize::from(args.r1_control)
         > 1
     {
         return Err("select only one remote Pico firmware mode".into());
@@ -131,7 +136,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
 
 pub fn run_local(mut args: PicoArgs) -> PicoResult<()> {
     apply_environment_defaults(&mut args);
-    if args.usb_remote || args.triple_remote || args.wifi_bootstrap {
+    if args.usb_remote || args.triple_remote || args.wifi_bootstrap || args.r1_control {
         return Err("the complete `pico local` workflow requires the pico-local image; use `pico build --usb-remote`, `pico flash --usb-remote`, then `prove std-pico-usb` for the remote proof".into());
     }
     run_doctor(args.dry_run)?;
