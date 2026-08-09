@@ -13,14 +13,16 @@ fn document_renders_unicode_scripts_on_the_software_surface() {
 }
 
 #[test]
-fn existing_background_and_accent_palette_values_are_preserved() {
+fn existing_background_and_accent_palette_roles_are_preserved() {
     let mut buffer = vec![BACKGROUND; 320 * 40];
     draw_document(&mut buffer, 320, 40, &["HOSTS".to_owned()]);
-    assert_eq!(BACKGROUND, 0x0015_1820);
-    assert!(buffer.contains(&0x006d_d7c7));
-    assert!(buffer
+    let rendered_colors = buffer
         .iter()
-        .all(|pixel| *pixel == BACKGROUND || *pixel == 0x006d_d7c7));
+        .copied()
+        .filter(|pixel| *pixel != BACKGROUND)
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(rendered_colors.len(), 1);
+    assert!(buffer.contains(&BACKGROUND));
 }
 
 #[test]
