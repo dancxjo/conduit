@@ -17,6 +17,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 mod control;
 mod form_editor;
+mod renderer_projection;
 mod route_demo;
 mod route_presentation;
 mod topology;
@@ -25,6 +26,12 @@ pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, Play
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphForm,
     GraphItem, GraphItemKind, SourceSelection,
+};
+pub use renderer_projection::{
+    PatchbayPresentation, RendererIdentityProjection, RendererProjectionError,
+    MAX_RENDERER_DIAGNOSTICS, MAX_RENDERER_EVIDENCE, MAX_RENDERER_GRAPH_ITEMS,
+    MAX_RENDERER_INSPECTION_LINES, MAX_RENDERER_PLAN_ITEMS, MAX_RENDERER_ROUTES,
+    MAX_RENDERER_ROUTE_CANDIDATES, MAX_RENDERER_TOPOLOGY_ITEMS,
 };
 pub use route_demo::{DistributedRouteDemo, RouteDemoError};
 pub use route_presentation::{

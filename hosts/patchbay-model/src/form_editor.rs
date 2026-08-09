@@ -65,6 +65,7 @@ pub struct GraphItem {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GraphForm {
     pub name: String,
+    pub checked_form_id: conduit_core::CheckedFormId,
     pub source_span: Span,
     pub items: Vec<GraphItem>,
 }
@@ -329,6 +330,7 @@ fn graph_revision(
         }
         forms.push(GraphForm {
             name: form.name.clone(),
+            checked_form_id: form.checked_form_id.clone(),
             source_span: syntax.span,
             items,
         });
