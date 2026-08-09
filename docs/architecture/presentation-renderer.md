@@ -7,9 +7,9 @@ Kind:
 Presentation -> presentation/renderer -> Manifestation
 ```
 
-`presentation/renderer` is the portable Face. Its checked face contains one
-bounded `Presentation` value input and one bounded `Manifestation` value
-output. The Kind name and face do not contain Wayland, DOM, SVG,
+`presentation/renderer` is the portable Face. Its checked Face contains one
+bounded `Presentation` Info input and one bounded `Manifestation` Info
+output. The Kind name and Face do not contain Wayland, DOM, SVG,
 framebuffer, terminal, window, browser, or operating-system facts.
 
 ## Presentation
@@ -75,3 +75,19 @@ steps add reusable semantic value. Decomposition ends at admitted presentation
 host operations and resources. Wayland buffer commits, DOM mutation,
 framebuffer writes, and terminal escapes remain base mechanisms rather
 than a `machine/*` semantic catalog.
+
+## Renderer self-inspection
+
+Patchbay inspects the realization currently drawing Patchbay through one
+bounded typed `RendererSelfInspection`. The value contains the actual validated
+renderer Plan and Manifestation; it does not reconstruct selected identities
+from display strings. Both native and HTML surfaces derive the renderer Face
+and Ports, placement, implementation and artifact, Host and Boot, resources,
+finite limits, renderer Plan and Play, Manifestation lifecycle, and exact Clue
+chain from that same value.
+
+The inspection is accepted only when the Plan verifies, the Manifestation
+validates against the exact Presentation and Plan, and exactly one
+`presentation/renderer` placement matches the Manifestation placement. Missing,
+ambiguous, stale, or tampered correlation fails closed. Renderer-local window,
+DOM, geometry, focus, viewport, and theme state never enters this inspection.

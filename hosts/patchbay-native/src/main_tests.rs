@@ -14,6 +14,28 @@ fn native_renderer_consumes_the_same_portable_value_as_html_transport() {
     assert!(rendered.contains("base=USB CDC"));
     assert!(rendered.contains("base=WebSocket"));
 }
+
+#[test]
+fn native_renderer_inspects_its_exact_realization_without_local_state() {
+    let application = PatchbayApplication::new(Arguments {
+        distributed_route_demo: true,
+        ..Arguments::default()
+    })
+    .unwrap();
+    let text = application.presentation_lines().join("\n");
+    assert!(text.contains("RENDERER FACE presentation/renderer inputs=1 outputs=1"));
+    assert!(text.contains("RENDERER PLACEMENT "));
+    assert!(text.contains("implementation=presentation/renderer-wayland@1"));
+    assert!(text.contains("artifact=patchbay-native/wayland@1"));
+    assert!(text.contains("RENDERER PORT presentation Input info=presentation/presentation@1"));
+    assert!(text.contains("RENDERER PORT manifestation Output info=presentation/manifestation@1"));
+    assert!(text.contains("RENDERER RESOURCE pool="));
+    assert!(text.contains(
+        "RENDERER BASE contract=conduit.host/present@1 target=presentation/base/wayland-surface@1"
+    ));
+    assert!(text.contains("RENDERER LIMITS active=1 queue-items=1"));
+    assert!(text.contains("RENDERER CLUE "));
+}
 use std::path::PathBuf;
 
 #[test]

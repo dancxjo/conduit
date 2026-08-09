@@ -3,7 +3,7 @@
 use super::PatchbayApplication;
 use conduit_core::ConnectionBase;
 use conduit_presentation::{Presentation, PresentationPropertyValue};
-use patchbay_model::GraphItemKind;
+use patchbay_model::{GraphItemKind, RendererSelfInspection};
 
 const MAX_FORM_PRESENTATION_LINES: usize = 256;
 
@@ -92,21 +92,105 @@ fn display_base(base: ConnectionBase) -> &'static str {
     }
 }
 
+fn renderer_self_inspection_lines(
+    inspection: &RendererSelfInspection,
+) -> Result<Vec<String>, String> {
+    let placement = inspection
+        .renderer_placement()
+        .map_err(|error| error.to_string())?;
+    let manifestation = &inspection.manifestation;
+    let mut lines = vec![
+        format!(
+            "RENDERER FACE {} inputs={} outputs={}",
+            placement.kind_id.as_str(),
+            placement.inputs.len(),
+            placement.outputs.len()
+        ),
+        format!(
+            "RENDERER PLACEMENT {} host={} boot={}",
+            placement.placement_id.as_str(),
+            placement.host_id.as_str(),
+            placement.boot_id.as_str()
+        ),
+        format!(
+            "RENDERER REALIZATION implementation={} artifact={} capability={} profile={} offer-generation={}",
+            placement.implementation_id.as_str(),
+            placement.artifact_id.as_str(),
+            placement.capability_id.as_str(),
+            placement.execution_profile_id.as_str(),
+            placement.offer_generation.0
+        ),
+        format!(
+            "RENDERER LIMITS active={} queue-items={} queue-bytes={}",
+            placement.limits.max_active_instances,
+            placement.limits.max_queue_items,
+            placement.limits.max_queue_bytes
+        ),
+        format!(
+            "MANIFESTATION {} renderer-plan={} renderer-play={} lifecycle={:?}",
+            manifestation.manifestation_id.as_str(),
+            manifestation.plan_id.as_str(),
+            manifestation.active_play_id.as_str(),
+            manifestation.lifecycle
+        ),
+    ];
+    lines.extend(
+        placement
+            .inputs
+            .iter()
+            .chain(&placement.outputs)
+            .map(|port| {
+                format!(
+                    "RENDERER PORT {} {:?} info={} temporal={:?}",
+                    port.port_id.as_str(),
+                    port.direction,
+                    port.value_kind.as_str(),
+                    port.temporal
+                )
+            }),
+    );
+    lines.extend(placement.resources.iter().map(|resource| {
+        format!(
+            "RENDERER RESOURCE pool={} class={} units={}",
+            resource.pool_id.as_str(),
+            resource.class_id.as_str(),
+            resource.units
+        )
+    }));
+    lines.extend(placement.host_operations.iter().map(|operation| {
+        format!(
+            "RENDERER BASE contract={} target={} in-flight={} input-bytes={} output-bytes={}",
+            operation.contract_id.as_str(),
+            operation
+                .target_kind
+                .as_ref()
+                .map_or("not present", |target| target.as_str()),
+            operation.maximum_in_flight,
+            operation.maximum_input_bytes,
+            operation.maximum_output_bytes
+        )
+    }));
+    lines.extend(manifestation.clues.iter().map(|clue| {
+        format!(
+            "RENDERER CLUE {} lifecycle={:?}",
+            clue.clue_id.as_str(),
+            clue.lifecycle
+        )
+    }));
+    Ok(lines)
+}
+
 impl PatchbayApplication {
     pub(super) fn presentation_lines(&self) -> Vec<String> {
         if let Some(execution) = &self.renderer_execution {
             let mut lines = portable_presentation_lines(&execution.presentation)
                 .unwrap_or_else(|error| vec![format!("PORTABLE PRESENTATION INVALID: {error}")]);
-            lines.insert(
-                1,
-                format!(
-                    "MANIFESTATION {} renderer-plan={} renderer-play={} lifecycle={:?}",
-                    execution.manifestation.manifestation_id.as_str(),
-                    execution.manifestation.plan_id.as_str(),
-                    execution.manifestation.active_play_id.as_str(),
-                    execution.manifestation.lifecycle
-                ),
-            );
+            let inspection = match execution.self_inspection() {
+                Ok(inspection) => renderer_self_inspection_lines(&inspection)
+                    .unwrap_or_else(|error| vec![format!("RENDERER INSPECTION INVALID: {error}")]),
+                Err(error) => vec![format!("RENDERER INSPECTION INVALID: {error}")],
+            };
+            lines.splice(1..1, inspection);
             return lines;
         }
         let Some(editor) = &self.form_editor else {

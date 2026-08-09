@@ -142,3 +142,52 @@ fn stale_manifestation_correlation_fails_closed() {
         ))
     );
 }
+
+#[test]
+fn self_inspection_is_the_exact_renderer_plan_placement_and_clue_chain() {
+    let presentation = portable_demonstration().unwrap();
+    let mut execution = RendererExecution::prepare(
+        presentation,
+        RendererAdapterKind::NativeWayland,
+        identity("native-host", "native-boot", "native/display-0"),
+        ClueId::from("native/prepared"),
+    )
+    .unwrap();
+    execution
+        .mark_available(ClueId::from("native/available"))
+        .unwrap();
+    let inspection = execution.self_inspection().unwrap();
+    let placement = inspection.renderer_placement().unwrap();
+    assert_eq!(inspection.plan, execution.plan);
+    assert_eq!(inspection.manifestation, execution.manifestation);
+    assert_eq!(placement.placement_id, execution.placement_id);
+    assert_eq!(placement.inputs, conduit_presentation::renderer_inputs());
+    assert_eq!(placement.outputs, conduit_presentation::renderer_outputs());
+    assert_eq!(placement.resources.len(), 1);
+    assert_eq!(placement.host_operations.len(), 1);
+    assert_eq!(inspection.manifestation.clues.len(), 2);
+}
+
+#[test]
+fn self_inspection_rejects_tampered_plan_placement_and_manifestation_clue() {
+    let presentation = portable_demonstration().unwrap();
+    let execution = RendererExecution::prepare(
+        presentation.clone(),
+        RendererAdapterKind::HtmlDomSvg,
+        identity("html-host", "html-boot", "html/document-0"),
+        ClueId::from("html/prepared"),
+    )
+    .unwrap();
+    let mut inspection = execution.self_inspection().unwrap();
+    inspection.plan.fragments[0].placements[0].artifact_id =
+        conduit_core::ArtifactId::from("tampered");
+    assert!(inspection.validate_against(&presentation).is_err());
+
+    let mut inspection = execution.self_inspection().unwrap();
+    inspection.manifestation.placement_id = conduit_core::PlacementId::from("missing");
+    assert!(inspection.validate_against(&presentation).is_err());
+
+    let mut inspection = execution.self_inspection().unwrap();
+    inspection.manifestation.clues[0].plan_id = conduit_core::PlanId::from("tampered");
+    assert!(inspection.validate_against(&presentation).is_err());
+}

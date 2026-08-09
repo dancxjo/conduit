@@ -46,16 +46,18 @@ impl RendererSnapshot {
         let value = Self {
             schema: SNAPSHOT_SCHEMA.into(),
             revision: execution.presentation.revision,
+            renderer: execution
+                .self_inspection()
+                .map_err(|_| SnapshotError::InvalidIdentity)?,
             presentation: execution.presentation,
-            renderer_plan: execution.plan,
-            manifestation: execution.manifestation,
         };
         value.validate()?;
         Ok(value)
     }
 
     pub fn mark_available(&mut self, clue_id: ClueId) -> Result<(), SnapshotError> {
-        self.manifestation = self
+        self.renderer.manifestation = self
+            .renderer
             .manifestation
             .transition(ManifestationLifecycle::Available, clue_id)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
@@ -67,7 +69,8 @@ impl RendererSnapshot {
         failure: ManifestationFailure,
         clue_id: ClueId,
     ) -> Result<(), SnapshotError> {
-        self.manifestation = self
+        self.renderer.manifestation = self
+            .renderer
             .manifestation
             .fail(failure, clue_id)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
@@ -75,7 +78,8 @@ impl RendererSnapshot {
     }
 
     pub fn mark_closed(&mut self, clue_id: ClueId) -> Result<(), SnapshotError> {
-        self.manifestation = self
+        self.renderer.manifestation = self
+            .renderer
             .manifestation
             .transition(ManifestationLifecycle::Closed, clue_id)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
@@ -114,10 +118,7 @@ impl RendererSnapshot {
         }
         if self.revision != self.presentation.revision
             || self.presentation.validate().is_err()
-            || self
-                .manifestation
-                .validate_against(&self.presentation, &self.renderer_plan)
-                .is_err()
+            || self.renderer.validate_against(&self.presentation).is_err()
         {
             return Err(SnapshotError::InvalidIdentity);
         }
