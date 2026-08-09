@@ -15,6 +15,7 @@ use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+mod build_birth;
 mod control;
 mod cross_host_renderer;
 mod form_editor;
@@ -27,6 +28,10 @@ mod route_demo;
 mod route_presentation;
 mod topology;
 
+pub use build_birth::{
+    BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus, PatchbayMode,
+    MAX_BUILD_DOCUMENT_LINES,
+};
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
 pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
@@ -57,6 +62,8 @@ pub use route_presentation::{
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
 pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES;
 
+#[cfg(test)]
+mod build_birth_tests;
 #[cfg(test)]
 mod portable_projection_tests;
 #[cfg(test)]
