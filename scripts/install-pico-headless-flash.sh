@@ -26,11 +26,11 @@ install -o root -g root -m 0755 "$source_helper" "$target_helper"
 
 temporary_rule=$(mktemp)
 trap 'rm -f "$temporary_rule"' EXIT HUP INT TERM
-printf '%%plugdev ALL=(root) NOPASSWD: %s\n' "$target_helper" > "$temporary_rule"
+printf '%%plugdev ALL=(root) NOPASSWD: %s "", %s --unmount\n' "$target_helper" "$target_helper" > "$temporary_rule"
 chmod 0440 "$temporary_rule"
 visudo -cf "$temporary_rule" >/dev/null
 install -o root -g root -m 0440 "$temporary_rule" "$target_rule"
 visudo -cf "$target_rule" >/dev/null
 
 printf 'Installed narrow headless Pico BOOTSEL mount support.\n'
-printf 'Members of plugdev may now run only: sudo -n %s\n' "$target_helper"
+printf 'Members of plugdev may now run only the fixed mount and unmount helper operations.\n'

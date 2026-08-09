@@ -8,7 +8,10 @@ fail() {
     exit 1
 }
 
-[ "$#" -eq 0 ] || fail "this helper accepts no arguments"
+[ "$#" -le 1 ] || fail "accepts only the fixed --unmount operation"
+if [ "$#" -eq 1 ] && [ "$1" != "--unmount" ]; then
+    fail "accepts only the fixed --unmount operation"
+fi
 [ "$(id -u)" -eq 0 ] || fail "must run through sudo"
 
 case "${SUDO_UID:-}" in
@@ -18,6 +21,36 @@ case "${SUDO_GID:-}" in
     ''|*[!0-9]*) fail "SUDO_GID is missing or invalid" ;;
 esac
 [ "$SUDO_UID" -gt 0 ] || fail "refusing a root-owned caller mount"
+
+base=/run/conduit-pico-bootsel
+mountpoint="$base/$SUDO_UID"
+if [ "$#" -eq 1 ]; then
+    [ -d "$mountpoint" ] || fail "fixed mountpoint does not exist: $mountpoint"
+    [ ! -L "$base" ] || fail "$base must not be a symbolic link"
+    [ ! -L "$mountpoint" ] || fail "$mountpoint must not be a symbolic link"
+    mount_record=$(findmnt -rn -M "$mountpoint" -o TARGET,SOURCE,FSTYPE || true)
+    [ -n "$mount_record" ] || fail "fixed mountpoint is not mounted: $mountpoint"
+    target=''
+    source=''
+    fstype=''
+    extra=''
+    read -r target source fstype extra <<EOF
+$mount_record
+EOF
+    [ -n "$target" ] && [ -n "$source" ] && [ -n "$fstype" ] && [ -z "$extra" ] || fail "cannot validate the fixed mount record"
+    [ "$target" = "$mountpoint" ] || fail "mounted target mismatch: $target"
+    case "$source" in
+        /dev/*) ;;
+        *) fail "mounted source is not a block device: $source" ;;
+    esac
+    case "$fstype" in
+        vfat|msdos) ;;
+        *) fail "mounted filesystem is not FAT: $fstype" ;;
+    esac
+    umount -- "$mountpoint"
+    rmdir -- "$mountpoint"
+    exit 0
+fi
 
 candidates=""
 candidate_count=0
@@ -56,8 +89,6 @@ parent="/dev/$parent_name"
 existing=$(findmnt -rn -S "$device" -o TARGET || true)
 [ -z "$existing" ] || fail "$device is already mounted at $existing"
 
-base=/run/conduit-pico-bootsel
-mountpoint="$base/$SUDO_UID"
 if [ -e "$base" ] && [ -L "$base" ]; then
     fail "$base must not be a symbolic link"
 fi

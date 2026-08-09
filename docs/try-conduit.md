@@ -190,11 +190,12 @@ sudo scripts/install-pico-headless-flash.sh
 ```
 
 The installer permits members of `plugdev` to invoke only the fixed root-owned
-helper. It discovers exactly one removable USB FAT volume labeled `RPI-RP2` or
-`BOOTSEL`, mounts it beneath `/run/conduit-pico-bootsel` with
-`nosuid,nodev,noexec`, and accepts no caller-controlled device or mount path.
-The ordinary flash command uses it automatically; no desktop automounter is
-required.
+mount and cleanup operations. The helper discovers exactly one removable USB
+FAT volume labeled `RPI-RP2` or `BOOTSEL`, mounts it beneath
+`/run/conduit-pico-bootsel` with `nosuid,nodev,noexec`, then unmounts that exact
+fixed path after the synchronized copy. It accepts no caller-controlled device
+or mount path. The ordinary flash command uses it automatically; no desktop
+automounter is required.
 
 ```bash
 just pico-build-remote

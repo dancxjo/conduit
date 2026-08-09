@@ -69,6 +69,7 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
     if !status.success() {
         return Err("sync failed after UF2 copy".into());
     }
+    release_headless_mount(&mount)?;
 
     let deadline = Instant::now() + Duration::from_secs(10);
     while Instant::now() < deadline {
@@ -78,6 +79,24 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
         std::thread::sleep(Duration::from_millis(500));
     }
     println!("==> pico flash: done");
+    Ok(())
+}
+
+fn release_headless_mount(mount: &std::path::Path) -> PicoResult<()> {
+    if !mount.starts_with("/run/conduit-pico-bootsel/") {
+        return Ok(());
+    }
+    let output = Command::new("sudo")
+        .args(["-n", HEADLESS_MOUNT_HELPER, "--unmount"])
+        .output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "headless BOOTSEL cleanup failed after UF2 copy: {}",
+            stderr.trim()
+        )
+        .into());
+    }
     Ok(())
 }
 
