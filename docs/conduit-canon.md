@@ -54,8 +54,12 @@ The project succeeds by refusing to collapse concepts that are convenient to con
 KIND   reusable semantic behavior such as text/upper
 FORM   authored composition of semantic work
 GEAR   one configured occurrence of a kind in a form
-CORD   typed flow between gears
-FACE   explicit visible boundary of a form
+PORT   typed directional point through which Info enters or leaves
+CORD   typed semantic connection between compatible ports on gears
+INFO   shaped, typed data carried through cords
+SIGNAL one particular Info semantic or mechanism where explicitly named
+FACE   stable visible semantic contract of a kind or form, including ports
+BACK   form that implements a face in Conduit terms
 
 IMPL   platform-specific realization of a kind
 HOST   running software environment that makes truthful finite offers
@@ -63,7 +67,7 @@ PLAN   exact immutable realization of a form
 PLAY   one active execution of a plan
 ```
 
-A Kind is not a Gear, and neither is an implementation. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active Play.
+A Kind is not a Gear, and neither is an implementation. A Port is not a renderer jack, queue slot, carrier endpoint, or Base handle. Info is specifically shaped/typed data and is not automatically Signal. A Face is not its Back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active Play.
 
 ### Identity stages
 
@@ -80,7 +84,7 @@ clue item
 presentation
 ```
 
-A spelling-only edit may change source identity without changing checked meaning. A hidden nested implementation may change expanded identity without changing the visible checked contract. A new placement or boot changes the plan. A replay creates a new play. A UI row is not an clue identity.
+A spelling-only edit may change source identity without changing checked meaning. A hidden nested implementation may change expanded identity without changing the visible checked contract. A new placement or boot changes the plan. A replay creates a new play. A UI row is not a clue identity.
 
 ### Availability, authority, and relationship
 
@@ -121,7 +125,7 @@ Before a play starts, the host knows and admits the finite shape needed for exec
 - queue items and buffered bytes;
 - timers and host-operation concurrency;
 - resource reservations;
-- mandatory clue;
+- mandatory clue storage;
 - cancellation and terminal bookkeeping.
 
 Hosted profiles may use heap-backed storage before Play start. Constrained profiles may use fixed arenas. Neither may conceal unbounded growth, discovery, retry, string lookup, graph scanning, or queue creation in an admitted hot path.
@@ -299,7 +303,7 @@ These remain intentionally open questions:
 - how much automatic placement and negotiation belongs above explicit planning;
 - how bodies gather on neutral ground without confusing discovery with trust;
 - which timing profiles can be admitted across which local regions;
-- the final operator experience connecting task fronts, Observatory, and Workbench;
+- the final operator experience connecting task faces, Observatory, and Workbench;
 - how a body exposes a face into another body while preserving continuity and authority;
 - how much infrastructure installation Conduit should replace rather than compose with.
 

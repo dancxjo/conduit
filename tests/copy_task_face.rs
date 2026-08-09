@@ -9,7 +9,7 @@ fn test_directory(label: &str) -> PathBuf {
         .expect("clock must follow the Unix epoch")
         .as_nanos();
     let path = std::env::temp_dir().join(format!(
-        "conduit-copy-front-{label}-{}-{nonce}",
+        "conduit-copy-face-{label}-{}-{nonce}",
         std::process::id()
     ));
     fs::create_dir(&path).expect("test directory should be creatable");

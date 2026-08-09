@@ -29,7 +29,7 @@ fn checked_renderer_form() -> conduit_form::CheckedForm {
         "form 0\n\npatchbay-show {\n    renderer: presentation/renderer\n}\n",
         &catalog,
     )
-    .expect("one ordinary portable renderer Front checks")
+    .expect("one ordinary portable renderer Face checks")
 }
 
 fn host(
@@ -129,7 +129,7 @@ fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan) -> 
 }
 
 #[test]
-fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
+fn unchanged_face_plans_to_exact_wayland_and_dom_realizations() {
     let form = checked_renderer_form();
     let wayland = plan_for(
         &form,
@@ -197,7 +197,7 @@ fn headless_host_is_valid_but_cannot_invent_a_renderer_offer() {
 }
 
 #[test]
-fn renderer_front_can_be_composed_as_an_ordinary_form_back() {
+fn renderer_face_can_be_composed_as_an_ordinary_form_back() {
     let mut startup = StartupCatalog::new();
     startup
         .insert(KindSignature {
