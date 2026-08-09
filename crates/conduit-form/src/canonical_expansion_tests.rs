@@ -1,6 +1,6 @@
 use crate::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, ConfigurationValue, KindDefinition, OperationSignature, ProfileCatalog,
+    ConfigurationRule, ConfigurationValue, KindDefinition, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 use conduit_core::{kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection};
@@ -17,24 +17,24 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     for signature in [
-        OperationSignature {
-            operation: "test/source".into(),
+        KindSignature {
+            kind: "test/source".into(),
             startup_parameters: vec![],
         },
-        OperationSignature {
-            operation: "test/pass".into(),
+        KindSignature {
+            kind: "test/pass".into(),
             startup_parameters: vec![StartupParameterSignature {
                 name: "count".into(),
                 value_type: "Count".into(),
                 default: Some("1".into()),
             }],
         },
-        OperationSignature {
-            operation: "test/sink".into(),
+        KindSignature {
+            kind: "test/sink".into(),
             startup_parameters: vec![],
         },
-        OperationSignature {
-            operation: "test/use-pool".into(),
+        KindSignature {
+            kind: "test/use-pool".into(),
             startup_parameters: vec![StartupParameterSignature {
                 name: "members".into(),
                 value_type: "Pool".into(),
@@ -101,16 +101,16 @@ fn parameterized_form_flattens_to_ordinary_primitive_graph() {
 
     assert_eq!(
         expanded
-            .operations
+            .gears
             .iter()
-            .map(|operation| operation.operation_id.as_str())
+            .map(|gear| gear.gear_id.as_str())
             .collect::<Vec<_>>(),
         ["main/relay/pass", "main/sink", "main/source"]
     );
     let pass = expanded
-        .operations
+        .gears
         .iter()
-        .find(|operation| operation.kind_id.as_str() == "test/pass")
+        .find(|gear| gear.kind_id.as_str() == "test/pass")
         .unwrap();
     assert_eq!(pass.configuration[0].value, ConfigurationValue::U64(2));
     assert_eq!(expanded.connections.len(), 2);
@@ -136,8 +136,8 @@ fn two_explicit_consumers_share_one_exact_expanded_pool_reference() {
             .collect::<Vec<_>>(),
         ["room/left/use", "room/right/use"]
     );
-    assert!(expanded.operations.iter().all(|operation| {
-        operation.pool_references == vec![conduit_core::SharedPoolId::from("room/peers")]
+    assert!(expanded.gears.iter().all(|gear| {
+        gear.pool_references == vec![conduit_core::SharedPoolId::from("room/peers")]
     }));
     expanded.validate_expansion().unwrap();
 
@@ -172,7 +172,7 @@ fn nested_expansion_and_source_reordering_have_deterministic_identity() {
     let reordered = expand(reordered, "main");
     assert_eq!(first.checked_form_id, reordered.checked_form_id);
     assert_eq!(first.expanded_form_id, reordered.expanded_form_id);
-    assert_eq!(first.operations, reordered.operations);
+    assert_eq!(first.gears, reordered.gears);
     assert_eq!(first.connections, reordered.connections);
 }
 
@@ -236,9 +236,9 @@ fn public_input_fanout_flattens_to_explicit_ordinary_connections() {
     let expanded = expand(source, "main");
     assert_eq!(expanded.connections.len(), 2);
     assert!(expanded.connections.iter().all(|connection| {
-        connection.source_operation_id.as_str() == "main/source"
+        connection.source_gear_id.as_str() == "main/source"
             && matches!(
-                connection.sink_operation_id.as_str(),
+                connection.sink_gear_id.as_str(),
                 "main/fan/left" | "main/fan/right"
             )
     }));
@@ -249,19 +249,16 @@ fn expanded_identity_rejects_graph_contract_and_provenance_mutation() {
     let source = "form main {\n source: test/source\n sink: test/sink\n source > sink\n}\n";
     let baseline = expand(source, "main");
 
-    let mut operation = baseline.clone();
-    operation.operations[0].kind_contract_revision = KindContractRevision::from("mutated@1");
-    assert_eq!(
-        operation.validate_expansion().unwrap_err().code,
-        "CND-FRM-049"
-    );
+    let mut gear = baseline.clone();
+    gear.gears[0].kind_contract_revision = KindContractRevision::from("mutated@1");
+    assert_eq!(gear.validate_expansion().unwrap_err().code, "CND-FRM-049");
 
     let mut cord = baseline.clone();
     cord.connections[0].sink_port_id = port_id("mutated");
     assert_eq!(cord.validate_expansion().unwrap_err().code, "CND-FRM-049");
 
     let mut provenance = baseline;
-    provenance.provenance[0].source_cell = "substituted".into();
+    provenance.provenance[0].source_gear = "substituted".into();
     assert_eq!(
         provenance.validate_expansion().unwrap_err().code,
         "CND-FRM-049"
@@ -273,24 +270,24 @@ fn expanded_identity_rejects_graph_contract_and_provenance_mutation() {
 }
 
 #[test]
-fn inline_reusable_and_primitive_cells_expand_without_a_parallel_path() {
+fn inline_reusable_and_primitive_gears_expand_without_a_parallel_path() {
     let source = "form relay (\n input: test/value > output: test/value\n) {\n input > test/pass > output\n}\n\nform main {\n test/source > relay() > test/sink\n}\n";
     let expanded = expand(source, "main");
-    assert_eq!(expanded.operations.len(), 3);
+    assert_eq!(expanded.gears.len(), 3);
     assert_eq!(expanded.connections.len(), 2);
     assert!(expanded
         .provenance
         .iter()
-        .all(|row| row.source_cell.starts_with("inline-")));
+        .all(|row| row.source_gear.starts_with("inline-")));
 }
 
 #[test]
 fn face_binding_preserves_flow_closure_and_current_observation_contracts() {
     let mut startup = StartupCatalog::new();
-    for operation in ["state/count", "test/ticks", "test/current"] {
+    for gear in ["state/count", "test/ticks", "test/current"] {
         startup
-            .insert(OperationSignature {
-                operation: operation.into(),
+            .insert(KindSignature {
+                kind: gear.into(),
                 startup_parameters: vec![],
             })
             .unwrap();
@@ -343,7 +340,7 @@ fn face_binding_preserves_flow_closure_and_current_observation_contracts() {
             configuration: vec![],
         })
         .unwrap();
-    let source = "form count (\n    bump: Tick...| > value: $Count\n) {\n    cell: state/count\n    bump > cell.bump\n    cell.value > value\n}\n\nform main {\n    ticks: test/ticks\n    count: count\n    show: test/current\n    ticks > count > show\n}\n";
+    let source = "form count (\n    bump: Tick...| > value: $Count\n) {\n    gear: state/count\n    bump > gear.bump\n    gear.value > value\n}\n\nform main {\n    ticks: test/ticks\n    count: count\n    show: test/current\n    ticks > count > show\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "main", &profile).unwrap();
     let count = checked
@@ -352,9 +349,9 @@ fn face_binding_preserves_flow_closure_and_current_observation_contracts() {
         .find(|form| form.name == "count")
         .unwrap();
     let state = expanded
-        .operations
+        .gears
         .iter()
-        .find(|operation| operation.kind_id.as_str() == "state/count")
+        .find(|gear| gear.kind_id.as_str() == "state/count")
         .unwrap();
     assert_eq!(count.checked_face(), state.checked_face());
 

@@ -3,8 +3,8 @@ use conduit_core::HostCommand;
 #[cfg(feature = "legacy-fixture-driver")]
 use conduit_core::ImplementationId;
 use conduit_core::{
-    ConnectionProvider, HostAdvertisement, HostId, Observation, OfferGeneration, Plan,
-    PlanFragment, PlanId,
+    ConnectionBase, HostAdvertisement, HostId, Observation, OfferGeneration, Plan, PlanFragment,
+    PlanId,
 };
 use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
@@ -148,13 +148,13 @@ pub struct StdKernelExecutionReport {
     pub active_play_id: conduit_core::ActivePlayId,
     pub decisions: u32,
     pub kernel_events: u16,
-    pub kernel_evidence: Vec<conduit_kernel::KernelEvent>,
+    pub kernel_clue: Vec<conduit_kernel::KernelEvent>,
     pub value_allocation_capacity_before: (usize, usize),
     pub value_allocation_capacity_after: (usize, usize),
     pub presentation_ids: Vec<conduit_core::PresentationId>,
     pub identity: conduit_runtime::lowering::KernelExecutionIdentityMap,
     #[cfg(test)]
-    pub post_activation_allocations: usize,
+    pub post_play_start_allocations: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -199,12 +199,12 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
     write_operator_report(output, &advertisement, &fragment.plan_id, &fragment)?;
     let mut resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
     let reservation = resources.prepare_and_reserve(&advertisement, &fragment)?;
-    let mut evidence_sequence = 0;
+    let mut clue_sequence = 0;
     let result = kernel_multivalue::execute_fragment(
         &advertisement,
         &fragment,
         0,
-        &mut evidence_sequence,
+        &mut clue_sequence,
         output,
         timer,
     );
@@ -234,8 +234,8 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
 pub struct StdHost {
     advertisement: HostAdvertisement,
     kernel_resources: kernel_preparation::KernelResourceLedger,
-    next_kernel_activation_sequence: u64,
-    next_kernel_evidence_sequence: u64,
+    next_kernel_play_sequence: u64,
+    next_kernel_clue_sequence: u64,
 }
 
 impl Default for StdHost {
@@ -264,8 +264,8 @@ impl StdHost {
         Self {
             advertisement,
             kernel_resources,
-            next_kernel_activation_sequence: 0,
-            next_kernel_evidence_sequence: 0,
+            next_kernel_play_sequence: 0,
+            next_kernel_clue_sequence: 0,
         }
     }
 
@@ -278,30 +278,25 @@ impl StdHost {
         form: &CheckedForm,
         placements: Option<&PlacementChoices>,
     ) -> Result<Plan, Box<dyn std::error::Error>> {
-        let realm = vec![self.advertisement().clone()];
+        let hosts = vec![self.advertisement().clone()];
         let placements = match placements {
             Some(placements) => placements.clone(),
-            None => default_placements(form, &realm)?,
+            None => default_placements(form, &hosts)?,
         };
-        Ok(plan(
-            form,
-            &realm,
-            &placements,
-            &[ConnectionProvider::Local],
-        )?)
+        Ok(plan(form, &hosts, &placements, &[ConnectionBase::Local])?)
     }
 
     pub fn plan_expanded_local(
         &self,
         form: &conduit_form::ExpandedCanonicalForm,
     ) -> Result<Plan, Box<dyn std::error::Error>> {
-        let realm = vec![self.advertisement().clone()];
-        let placements = conduit_planner::default_expanded_placements(form, &realm)?;
+        let hosts = vec![self.advertisement().clone()];
+        let placements = conduit_planner::default_expanded_placements(form, &hosts)?;
         Ok(conduit_planner::plan_expanded_canonical(
             form,
-            &realm,
+            &hosts,
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         )?)
     }
 
@@ -333,16 +328,16 @@ impl StdHost {
             .kernel_resources
             .prepare_and_reserve(&advertisement, &fragment)?;
         let result = (|| {
-            let activation_sequence = self.next_kernel_activation_sequence;
-            self.next_kernel_activation_sequence = activation_sequence
+            let play_sequence = self.next_kernel_play_sequence;
+            self.next_kernel_play_sequence = play_sequence
                 .checked_add(1)
-                .ok_or_else(|| "kernel activation sequence exhausted".to_string())?;
+                .ok_or_else(|| "kernel Play sequence exhausted".to_string())?;
             if installed_standard {
                 installed_std::run_fragment(
                     &advertisement,
                     &fragment,
-                    activation_sequence,
-                    &mut self.next_kernel_evidence_sequence,
+                    play_sequence,
+                    &mut self.next_kernel_clue_sequence,
                     output,
                     timer,
                     control,
@@ -354,8 +349,8 @@ impl StdHost {
                 kernel_signal::run_signal_fragment(
                     &advertisement,
                     &fragment,
-                    activation_sequence,
-                    &mut self.next_kernel_evidence_sequence,
+                    play_sequence,
+                    &mut self.next_kernel_clue_sequence,
                     output,
                     timer,
                 )
@@ -438,7 +433,7 @@ fn is_installed_kernel_signal_profile(fragment: &PlanFragment) -> bool {
         && fragment
             .connections
             .iter()
-            .all(|connection| connection.provider == ConnectionProvider::Local)
+            .all(|connection| connection.base == ConnectionBase::Local)
 }
 
 pub fn load_checked_form(path: &str) -> Result<CheckedForm, Box<dyn std::error::Error>> {
@@ -485,7 +480,7 @@ fn write_operator_report<W: Write>(
         writeln!(
             out,
             "place {} kind={} host={} boot={} capability={} implementation={} artifact={}",
-            placement.operation_id.as_str(),
+            placement.gear_id.as_str(),
             placement.kind_id.as_str(),
             placement.host_id.as_str(),
             placement.boot_id.as_str(),
@@ -504,7 +499,7 @@ fn write_operator_report<W: Write>(
             connection.source_port_id.as_str(),
             connection.sink_placement_id.as_str(),
             connection.sink_port_id.as_str(),
-            connection.provider,
+            connection.base,
             connection.item_capacity
         )
         .map_err(|error| error.to_string())?;
@@ -516,22 +511,22 @@ fn write_operator_report<W: Write>(
 mod tests {
     use super::{StdHost, StdHostConfig, TimerAdapter};
     use conduit_core::{
-        seal_plan, BootId, ConnectionId, ConnectionProvider, FormIdentity, HostId, OfferGeneration,
+        seal_plan, BootId, ConnectionBase, ConnectionId, FormIdentity, HostId, OfferGeneration,
         PortDirection, PortId,
     };
     use conduit_form::parse;
     use conduit_signal::signal_profile_catalog;
     use std::time::Duration;
 
-    fn sealed_activation_region(source: &str) -> &str {
+    fn sealed_play_start_region(source: &str) -> &str {
         source
-            .split_once("SEALED PROFILE ACTIVATION BEGIN")
+            .split_once("SEALED PROFILE PLAY START BEGIN")
             .and_then(|(_, remainder)| {
                 remainder
-                    .split_once("SEALED PROFILE ACTIVATION END")
-                    .map(|(activation, _)| activation)
+                    .split_once("SEALED PROFILE PLAY START END")
+                    .map(|(trigger, _)| trigger)
             })
-            .expect("sealed activation markers remain paired")
+            .expect("sealed Play-start markers remain paired")
     }
 
     #[test]
@@ -540,7 +535,7 @@ mod tests {
             "fragment.",
             "lowered.",
             "kind_id(",
-            "provider",
+            "base",
             "registry",
             ".find(",
             ".collect(",
@@ -554,11 +549,11 @@ mod tests {
             ("signal", include_str!("kernel_signal.rs")),
             ("multi-value", include_str!("kernel_multivalue.rs")),
         ] {
-            let activation = sealed_activation_region(source);
+            let trigger = sealed_play_start_region(source);
             for token in forbidden {
                 assert!(
-                    !activation.contains(token),
-                    "{name} sealed activation reintroduced '{token}'"
+                    !trigger.contains(token),
+                    "{name} sealed Play-start region reintroduced '{token}'"
                 );
             }
         }
@@ -590,10 +585,7 @@ mod tests {
         assert_eq!(lowered.resources.len(), 2);
         assert_eq!(lowered.cord_value_slots, 4);
         assert_eq!(lowered.cord_value_bytes, 64);
-        assert_eq!(
-            lowered.evidence_items,
-            fragment.expected_evidence.len() as u16
-        );
+        assert_eq!(lowered.clue_items, fragment.expected_clue.len() as u16);
         assert_eq!(lowered.identity.placements.len(), 2);
         assert_eq!(lowered.identity.connections.len(), 1);
         assert_eq!(lowered.identity.ports.len(), 2);
@@ -647,7 +639,7 @@ mod tests {
             .ports
             .iter()
             .any(|port| port.direction == PortDirection::Output));
-        assert_eq!(lowered.evidence.len(), fragment.expected_evidence.len());
+        assert_eq!(lowered.clues.len(), fragment.expected_clue.len());
         assert!(lowered
             .host_operations
             .iter()
@@ -693,7 +685,7 @@ mod tests {
             expanded_form_id: fragment.expanded_form_id.clone(),
         };
         let mut remote = fragment.clone();
-        remote.connections[0].provider = ConnectionProvider::InMemory;
+        remote.connections[0].base = ConnectionBase::InMemory;
         let remote = seal_plan(form_identity.clone(), vec![remote]);
         assert!(matches!(
             conduit_runtime::lowering::lower_plan_fragment(&remote.fragments[0]),
@@ -748,7 +740,7 @@ mod tests {
     }
 
     #[test]
-    fn streamed_output_uses_a_virtual_clock_and_retains_terminal_evidence() {
+    fn streamed_output_uses_a_virtual_clock_and_retains_terminal_clue() {
         let mut host = StdHost::new_with_config(StdHostConfig {
             host_id: HostId::from("test-host"),
             boot_id: BootId::from("virtual-clock-boot"),
@@ -797,7 +789,7 @@ mod tests {
         assert_eq!(kernel.identity.plan_id, plan_id);
         assert_eq!(kernel.identity.active_play_id, kernel.active_play_id);
         assert_eq!(kernel.identity.lengths(), (5, 3, 4));
-        assert_eq!(kernel.post_activation_allocations, 0);
+        assert_eq!(kernel.post_play_start_allocations, 0);
         assert!(kernel
             .presentation_ids
             .windows(2)
@@ -818,12 +810,12 @@ mod tests {
                 == 3
         );
         for observation in &report.observations {
-            let evidence = kernel
+            let clue = kernel
                 .identity
-                .evidence(&observation.evidence_id)
-                .expect("host evidence reverses to its kernel identity row");
+                .clue_identity(&observation.clue_id)
+                .expect("host clue reverses to its kernel identity row");
             assert_eq!(
-                evidence.presentation_id.as_ref(),
+                clue.presentation_id.as_ref(),
                 observation.presentation_id.as_ref()
             );
             if let Some(presentation_id) = &observation.presentation_id {
@@ -849,9 +841,9 @@ mod tests {
                 assert_eq!(
                     kernel
                         .identity
-                        .evidence_for_presentation(presentation_id)
-                        .map(|identity| &identity.evidence_id),
-                    Some(&observation.evidence_id)
+                        .clue_for_presentation(presentation_id)
+                        .map(|identity| &identity.clue_id),
+                    Some(&observation.clue_id)
                 );
             }
         }
@@ -895,7 +887,7 @@ mod tests {
         assert_eq!(report.receipts.len(), 48);
         let kernel = report.kernel.expect("triple local form uses kernel");
         assert_eq!(kernel.identity.lengths(), (63, 48, 49));
-        assert_eq!(kernel.post_activation_allocations, 0);
+        assert_eq!(kernel.post_play_start_allocations, 0);
     }
 
     #[test]

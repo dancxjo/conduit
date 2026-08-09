@@ -3,7 +3,7 @@ use super::{
     SchedulerError, SchedulerStatus, StepIo, StepOperation, StepOutcome,
 };
 use crate::{
-    BoundedValueRef, CordId, EvidenceQuery, EvidenceSink, Failure, FailureCode, FixedEvidenceLog,
+    BoundedValueRef, ClueQuery, ClueSink, CordId, Failure, FailureCode, FixedClueLog,
     FixedHostOperationBindings, FixedRoutes, FixedValueStore, HostOperationBinding,
     HostOperationDisposition, HostOperationId, HostOperationOutcome, KernelEventKind, NodeId,
     Operation, OperationAction, OperationInput, PortId, ProtocolError, RemoteEndpointId, RequestId,
@@ -615,7 +615,7 @@ fn multi_value_port_graph_handles_pressure_closure_and_uneven_consumers() {
     let event_charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let normalized = execute(
         FixedValueStore::<8, 4>::new(16).unwrap(),
-        FixedEvidenceLog::<128>::new(event_charge * 128).unwrap(),
+        FixedClueLog::<128>::new(event_charge * 128).unwrap(),
     );
     assert_eq!(normalized.show_a_len, 2);
     assert_eq!(normalized.show_a[..2], [0, 2]);
@@ -630,7 +630,7 @@ fn public_operation_state_machine_drives_atomic_tee_scheduler_step() {
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let normalized = execute_operation_adapter(
         FixedValueStore::<4, 4>::new(16).unwrap(),
-        FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        FixedClueLog::<64>::new(charge * 64).unwrap(),
     );
     assert_eq!(normalized.left, 0);
     assert_eq!(normalized.right, 0);
@@ -640,16 +640,16 @@ fn public_operation_state_machine_drives_atomic_tee_scheduler_step() {
 #[cfg(feature = "alloc")]
 #[test]
 fn hosted_and_fixed_operation_adapter_vectors_match() {
-    use crate::{HostedEvidenceLog, HostedValueStore};
+    use crate::{HostedClueLog, HostedValueStore};
 
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let fixed = execute_operation_adapter(
         FixedValueStore::<4, 4>::new(16).unwrap(),
-        FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        FixedClueLog::<64>::new(charge * 64).unwrap(),
     );
     let hosted = execute_operation_adapter(
         HostedValueStore::new(4, 4, 16).unwrap(),
-        HostedEvidenceLog::new(64, charge * 64).unwrap(),
+        HostedClueLog::new(64, charge * 64).unwrap(),
     );
     assert_eq!(fixed, hosted);
 }
@@ -709,7 +709,7 @@ fn operation_adapter_routes_correlated_host_completion() {
                 OperationDriver::new(AdapterOperation::Sink { seen: None }).unwrap(),
             ],
             values,
-            FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+            FixedClueLog::<64>::new(charge * 64).unwrap(),
         )
         .unwrap();
     scheduler.step().unwrap();
@@ -741,7 +741,7 @@ fn full_multi_value_form_runs_through_public_operation_adapter() {
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let normalized = execute_full_operation_adapter(
         FixedValueStore::<8, 4>::new(24).unwrap(),
-        FixedEvidenceLog::<256>::new(charge * 256).unwrap(),
+        FixedClueLog::<256>::new(charge * 256).unwrap(),
     );
     assert_eq!(normalized.produced, 4);
     assert_eq!(normalized.show_a_len, 2);
@@ -756,16 +756,16 @@ fn full_multi_value_form_runs_through_public_operation_adapter() {
 #[cfg(feature = "alloc")]
 #[test]
 fn hosted_and_fixed_full_operation_adapter_vectors_match() {
-    use crate::{HostedEvidenceLog, HostedValueStore};
+    use crate::{HostedClueLog, HostedValueStore};
 
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let fixed = execute_full_operation_adapter(
         FixedValueStore::<8, 4>::new(24).unwrap(),
-        FixedEvidenceLog::<256>::new(charge * 256).unwrap(),
+        FixedClueLog::<256>::new(charge * 256).unwrap(),
     );
     let hosted = execute_full_operation_adapter(
         HostedValueStore::new(8, 4, 24).unwrap(),
-        HostedEvidenceLog::new(256, charge * 256).unwrap(),
+        HostedClueLog::new(256, charge * 256).unwrap(),
     );
     assert_eq!(fixed, hosted);
 }
@@ -778,17 +778,17 @@ struct FullAdapterNormalized {
     show_b_len: usize,
     produced: usize,
     decisions: u32,
-    evidence_len: u16,
-    evidence_bytes: u32,
+    clue_len: u16,
+    clue_bytes: u32,
     used_items: u16,
     pending: usize,
     saw_input_closed: bool,
 }
 
-fn execute_full_operation_adapter<S, E>(mut values: S, evidence: E) -> FullAdapterNormalized
+fn execute_full_operation_adapter<S, E>(mut values: S, clues: E) -> FullAdapterNormalized
 where
     S: ValueStorage,
-    E: EvidenceSink + EvidenceQuery,
+    E: ClueSink + ClueQuery,
 {
     let seed = values.store(&[255]).unwrap();
     let mut routes = FixedRoutes::<12, 5>::new(2);
@@ -878,7 +878,7 @@ where
                 .unwrap(),
             ],
             values,
-            evidence,
+            clues,
         )
         .unwrap();
 
@@ -950,12 +950,12 @@ where
         show_b_len: *show_b_len,
         produced,
         decisions: scheduler.decisions(),
-        evidence_len: scheduler.evidence().len(),
-        evidence_bytes: scheduler.evidence().used_bytes(),
+        clue_len: scheduler.clues().len(),
+        clue_bytes: scheduler.clues().used_bytes(),
         used_items: scheduler.values().used_items(),
         pending: scheduler.pending_host_operation_count(),
         saw_input_closed: scheduler
-            .evidence()
+            .clues()
             .contains_kind(KernelEventKind::InputClosed),
     }
 }
@@ -965,15 +965,15 @@ struct AdapterNormalized {
     left: u16,
     right: u16,
     decisions: u32,
-    evidence_len: u16,
-    evidence_bytes: u32,
+    clue_len: u16,
+    clue_bytes: u32,
     used_items: u16,
 }
 
-fn execute_operation_adapter<S, E>(mut values: S, evidence: E) -> AdapterNormalized
+fn execute_operation_adapter<S, E>(mut values: S, clues: E) -> AdapterNormalized
 where
     S: ValueStorage,
-    E: EvidenceSink,
+    E: ClueSink,
 {
     let value = values.store(&[42]).unwrap();
     let mut routes = FixedRoutes::<8, 3>::new(2);
@@ -1022,7 +1022,7 @@ where
             OperationDriver::new(AdapterOperation::Sink { seen: None }).unwrap(),
         ],
         values,
-        evidence,
+        clues,
     )
     .unwrap();
     scheduler.run(32).unwrap();
@@ -1036,8 +1036,8 @@ where
         left: left.slot,
         right: right.slot,
         decisions: scheduler.decisions(),
-        evidence_len: scheduler.evidence().len(),
-        evidence_bytes: scheduler.evidence().used_bytes(),
+        clue_len: scheduler.clues().len(),
+        clue_bytes: scheduler.clues().used_bytes(),
         used_items: scheduler.values().used_items(),
     }
 }
@@ -1047,7 +1047,7 @@ fn blocked_join_preserves_every_input_until_atomic_commit() {
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let normalized = execute_join(
         FixedValueStore::<4, 4>::new(16).unwrap(),
-        FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        FixedClueLog::<64>::new(charge * 64).unwrap(),
     );
     assert_eq!(normalized.output_slot, 0);
     assert_eq!(normalized.used_items, 0);
@@ -1056,16 +1056,16 @@ fn blocked_join_preserves_every_input_until_atomic_commit() {
 #[cfg(feature = "alloc")]
 #[test]
 fn hosted_and_fixed_join_rollback_vectors_match() {
-    use crate::{HostedEvidenceLog, HostedValueStore};
+    use crate::{HostedClueLog, HostedValueStore};
 
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let fixed = execute_join(
         FixedValueStore::<4, 4>::new(16).unwrap(),
-        FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        FixedClueLog::<64>::new(charge * 64).unwrap(),
     );
     let hosted = execute_join(
         HostedValueStore::new(4, 4, 16).unwrap(),
-        HostedEvidenceLog::new(64, charge * 64).unwrap(),
+        HostedClueLog::new(64, charge * 64).unwrap(),
     );
     assert_eq!(fixed, hosted);
 }
@@ -1074,15 +1074,15 @@ fn hosted_and_fixed_join_rollback_vectors_match() {
 struct JoinNormalized {
     output_slot: u16,
     decisions: u32,
-    evidence_len: u16,
-    evidence_bytes: u32,
+    clue_len: u16,
+    clue_bytes: u32,
     used_items: u16,
 }
 
-fn execute_join<S, E>(mut values: S, evidence: E) -> JoinNormalized
+fn execute_join<S, E>(mut values: S, clues: E) -> JoinNormalized
 where
     S: ValueStorage,
-    E: EvidenceSink,
+    E: ClueSink,
 {
     let left = values.store(&[10]).unwrap();
     let right = values.store(&[20]).unwrap();
@@ -1124,7 +1124,7 @@ where
             JoinDriver::Sink { seen: None },
         ],
         values,
-        evidence,
+        clues,
     )
     .unwrap();
     scheduler.step().unwrap();
@@ -1139,8 +1139,8 @@ where
     JoinNormalized {
         output_slot: seen.slot,
         decisions: scheduler.decisions(),
-        evidence_len: scheduler.evidence().len(),
-        evidence_bytes: scheduler.evidence().used_bytes(),
+        clue_len: scheduler.clues().len(),
+        clue_bytes: scheduler.clues().used_bytes(),
         used_items: scheduler.values().used_items(),
     }
 }
@@ -1148,16 +1148,16 @@ where
 #[cfg(feature = "alloc")]
 #[test]
 fn hosted_and_fixed_schedulers_have_matching_multi_value_vectors() {
-    use crate::{HostedEvidenceLog, HostedValueStore};
+    use crate::{HostedClueLog, HostedValueStore};
 
     let event_charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let fixed = execute(
         FixedValueStore::<8, 4>::new(16).unwrap(),
-        FixedEvidenceLog::<128>::new(event_charge * 128).unwrap(),
+        FixedClueLog::<128>::new(event_charge * 128).unwrap(),
     );
     let hosted = execute(
         HostedValueStore::new(8, 4, 16).unwrap(),
-        HostedEvidenceLog::new(128, event_charge * 128).unwrap(),
+        HostedClueLog::new(128, event_charge * 128).unwrap(),
     );
     assert_eq!(fixed, hosted);
 }
@@ -1167,7 +1167,7 @@ fn scheduler_admits_correlates_and_wakes_host_operations() {
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let normalized = execute_host_operation(
         FixedValueStore::<8, 8>::new(32).unwrap(),
-        FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        FixedClueLog::<64>::new(charge * 64).unwrap(),
     );
     assert_eq!(normalized.request, RequestId(7));
     assert_eq!(normalized.operation, HostOperationId(0));
@@ -1184,7 +1184,7 @@ fn scheduler_rejects_unbound_host_operation_before_consumption_commit() {
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let mut scheduler = host_scheduler_with_binding_node(
         FixedValueStore::<8, 8>::new(32).unwrap(),
-        FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        FixedClueLog::<64>::new(charge * 64).unwrap(),
         NodeId(0),
     );
     scheduler.step().unwrap();
@@ -1205,7 +1205,7 @@ fn scheduler_never_reuses_a_retired_request_identity() {
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let mut scheduler = host_scheduler(
         FixedValueStore::<8, 8>::new(32).unwrap(),
-        FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        FixedClueLog::<64>::new(charge * 64).unwrap(),
     );
     scheduler.step().unwrap();
     scheduler.step().unwrap();
@@ -1239,33 +1239,33 @@ fn scheduler_never_reuses_a_retired_request_identity() {
 #[cfg(feature = "alloc")]
 #[test]
 fn hosted_and_fixed_host_operation_vectors_match() {
-    use crate::{HostedEvidenceLog, HostedValueStore};
+    use crate::{HostedClueLog, HostedValueStore};
 
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let fixed = execute_host_operation(
         FixedValueStore::<8, 8>::new(32).unwrap(),
-        FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        FixedClueLog::<64>::new(charge * 64).unwrap(),
     );
     let hosted = execute_host_operation(
         HostedValueStore::new(8, 8, 32).unwrap(),
-        HostedEvidenceLog::new(64, charge * 64).unwrap(),
+        HostedClueLog::new(64, charge * 64).unwrap(),
     );
     assert_eq!(fixed, hosted);
 }
 
 #[cfg(feature = "alloc")]
 #[test]
-fn hosted_executor_keeps_allocation_shape_after_activation() {
-    use crate::{HostedEvidenceLog, HostedValueStore};
+fn hosted_executor_keeps_allocation_shape_after_play_start() {
+    use crate::{HostedClueLog, HostedValueStore};
 
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let values = HostedValueStore::new(8, 8, 32).unwrap();
     let value_shape = values.allocation_capacities();
-    let evidence = HostedEvidenceLog::new(64, charge * 64).unwrap();
-    let evidence_shape = evidence.allocation_capacity();
-    let mut scheduler = host_scheduler(values, evidence);
+    let clues = HostedClueLog::new(64, charge * 64).unwrap();
+    let clue_shape = clues.allocation_capacity();
+    let mut scheduler = host_scheduler(values, clues);
     assert_eq!(scheduler.values.allocation_capacities(), value_shape);
-    assert_eq!(scheduler.evidence.allocation_capacity(), evidence_shape);
+    assert_eq!(scheduler.clues.allocation_capacity(), clue_shape);
     scheduler.step().unwrap();
     scheduler.step().unwrap();
     let request = scheduler.next_host_request().unwrap();
@@ -1283,7 +1283,7 @@ fn hosted_executor_keeps_allocation_shape_after_activation() {
         .unwrap();
     scheduler.run(32).unwrap();
     assert_eq!(scheduler.values.allocation_capacities(), value_shape);
-    assert_eq!(scheduler.evidence.allocation_capacity(), evidence_shape);
+    assert_eq!(scheduler.clues.allocation_capacity(), clue_shape);
     assert_eq!(scheduler.values.used_items(), 0);
 }
 
@@ -1292,7 +1292,7 @@ fn cancellation_rejects_late_host_completion_and_releases_pending_input() {
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let mut scheduler = host_scheduler(
         FixedValueStore::<8, 8>::new(32).unwrap(),
-        FixedEvidenceLog::<64>::new(charge * 64).unwrap(),
+        FixedClueLog::<64>::new(charge * 64).unwrap(),
     );
     scheduler.step().unwrap();
     scheduler.step().unwrap();
@@ -1322,7 +1322,7 @@ fn cancellation_rejects_late_host_completion_and_releases_pending_input() {
     };
     assert!(cancelled);
     assert!(scheduler
-        .evidence()
+        .clues()
         .contains_kind(KernelEventKind::RunCancelled));
 }
 
@@ -1333,20 +1333,20 @@ struct HostNormalized {
     input: [u8; 1],
     output_slot: u16,
     decisions: u32,
-    evidence_len: u16,
-    evidence_bytes: u32,
+    clue_len: u16,
+    clue_bytes: u32,
     used_items: u16,
     pending: usize,
     saw_requested: bool,
     saw_completed: bool,
 }
 
-fn execute_host_operation<S, E>(values: S, evidence: E) -> HostNormalized
+fn execute_host_operation<S, E>(values: S, clues: E) -> HostNormalized
 where
     S: ValueStorage,
-    E: EvidenceSink + EvidenceQuery,
+    E: ClueSink + ClueQuery,
 {
-    let mut scheduler = host_scheduler(values, evidence);
+    let mut scheduler = host_scheduler(values, clues);
     assert!(matches!(
         scheduler.step().unwrap(),
         SchedulerStatus::Progress { node: NodeId(0) }
@@ -1443,38 +1443,38 @@ where
         input,
         output_slot: seen.slot,
         decisions: scheduler.decisions(),
-        evidence_len: scheduler.evidence().len(),
-        evidence_bytes: scheduler.evidence().used_bytes(),
+        clue_len: scheduler.clues().len(),
+        clue_bytes: scheduler.clues().used_bytes(),
         used_items: scheduler.values().used_items(),
         pending: scheduler.pending_host_operation_count(),
         saw_requested: scheduler
-            .evidence()
+            .clues()
             .contains_kind(KernelEventKind::HostOperationRequested),
         saw_completed: scheduler
-            .evidence()
+            .clues()
             .contains_kind(KernelEventKind::HostOperationCompleted),
     }
 }
 
 fn host_scheduler<S, E>(
     values: S,
-    evidence: E,
+    clues: E,
 ) -> FixedScheduler<HostDriver, S, E, 3, 2, 2, 2, 6, 2, 3, 1>
 where
     S: ValueStorage,
-    E: EvidenceSink,
+    E: ClueSink,
 {
-    host_scheduler_with_binding_node(values, evidence, NodeId(1))
+    host_scheduler_with_binding_node(values, clues, NodeId(1))
 }
 
 fn host_scheduler_with_binding_node<S, E>(
     mut values: S,
-    evidence: E,
+    clues: E,
     binding_node: NodeId,
 ) -> FixedScheduler<HostDriver, S, E, 3, 2, 2, 2, 6, 2, 3, 1>
 where
     S: ValueStorage,
-    E: EvidenceSink,
+    E: ClueSink,
 {
     let input = values.store(&[3]).unwrap();
     let mut routes = FixedRoutes::<6, 2>::new(2);
@@ -1526,7 +1526,7 @@ where
             HostDriver::Sink { seen: None },
         ],
         values,
-        evidence,
+        clues,
     )
     .unwrap()
 }
@@ -1536,7 +1536,7 @@ fn cancellation_releases_queued_and_driver_owned_values_and_is_terminal() {
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let normalized = execute_cancellation(
         FixedValueStore::<4, 4>::new(8).unwrap(),
-        FixedEvidenceLog::<16>::new(charge * 16).unwrap(),
+        FixedClueLog::<16>::new(charge * 16).unwrap(),
     );
     assert_eq!(normalized.used_items, 0);
     assert!(normalized.driver_cancelled);
@@ -1548,16 +1548,16 @@ fn cancellation_releases_queued_and_driver_owned_values_and_is_terminal() {
 #[cfg(feature = "alloc")]
 #[test]
 fn hosted_and_fixed_cancellation_vectors_match() {
-    use crate::{HostedEvidenceLog, HostedValueStore};
+    use crate::{HostedClueLog, HostedValueStore};
 
     let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>()).unwrap();
     let fixed = execute_cancellation(
         FixedValueStore::<4, 4>::new(8).unwrap(),
-        FixedEvidenceLog::<16>::new(charge * 16).unwrap(),
+        FixedClueLog::<16>::new(charge * 16).unwrap(),
     );
     let hosted = execute_cancellation(
         HostedValueStore::new(4, 4, 8).unwrap(),
-        HostedEvidenceLog::new(16, charge * 16).unwrap(),
+        HostedClueLog::new(16, charge * 16).unwrap(),
     );
     assert_eq!(fixed, hosted);
 }
@@ -1565,18 +1565,18 @@ fn hosted_and_fixed_cancellation_vectors_match() {
 #[derive(Debug, Eq, PartialEq)]
 struct CancellationNormalized {
     used_items: u16,
-    evidence_len: u16,
-    evidence_bytes: u32,
+    clue_len: u16,
+    clue_bytes: u32,
     driver_cancelled: bool,
     status: SchedulerStatus,
     saw_cancellation_requested: bool,
     saw_run_cancelled: bool,
 }
 
-fn execute_cancellation<S, E>(mut values: S, evidence: E) -> CancellationNormalized
+fn execute_cancellation<S, E>(mut values: S, clues: E) -> CancellationNormalized
 where
     S: ValueStorage,
-    E: EvidenceSink + EvidenceQuery,
+    E: ClueSink + ClueQuery,
 {
     let source_values = [
         Some(values.store(&[0]).unwrap()),
@@ -1627,7 +1627,7 @@ where
             Driver::BlockedSink { cancelled: false },
         ],
         values,
-        evidence,
+        clues,
     )
     .unwrap();
     assert!(matches!(
@@ -1644,15 +1644,15 @@ where
     };
     CancellationNormalized {
         used_items: scheduler.values().used_items(),
-        evidence_len: scheduler.evidence().len(),
-        evidence_bytes: scheduler.evidence().used_bytes(),
+        clue_len: scheduler.clues().len(),
+        clue_bytes: scheduler.clues().used_bytes(),
         driver_cancelled: cancelled,
         status: scheduler.step().unwrap(),
         saw_cancellation_requested: scheduler
-            .evidence()
+            .clues()
             .contains_kind(KernelEventKind::CancellationRequested),
         saw_run_cancelled: scheduler
-            .evidence()
+            .clues()
             .contains_kind(KernelEventKind::RunCancelled),
     }
 }
@@ -1664,16 +1664,16 @@ struct Normalized {
     show_b: [u16; 4],
     show_b_len: usize,
     decisions: u32,
-    evidence_len: u16,
-    evidence_bytes: u32,
+    clue_len: u16,
+    clue_bytes: u32,
     used_items: u16,
     saw_input_closed: bool,
 }
 
-fn execute<S, E>(mut values: S, evidence: E) -> Normalized
+fn execute<S, E>(mut values: S, clues: E) -> Normalized
 where
     S: ValueStorage,
-    E: EvidenceSink + EvidenceQuery,
+    E: ClueSink + ClueQuery,
 {
     let source_values = [
         Some(values.store(&[0]).unwrap()),
@@ -1773,7 +1773,7 @@ where
     ];
     let mut scheduler =
         FixedScheduler::<_, _, _, NODES, CORDS, PORTS, CORDS, { NODES * PORTS }, CORDS>::new(
-            nodes, cords, routes, drivers, values, evidence,
+            nodes, cords, routes, drivers, values, clues,
         )
         .unwrap();
 
@@ -1800,11 +1800,11 @@ where
         show_b,
         show_b_len: *len,
         decisions: scheduler.decisions(),
-        evidence_len: scheduler.evidence().len(),
-        evidence_bytes: scheduler.evidence().used_bytes(),
+        clue_len: scheduler.clues().len(),
+        clue_bytes: scheduler.clues().used_bytes(),
         used_items: scheduler.values().used_items(),
         saw_input_closed: scheduler
-            .evidence()
+            .clues()
             .contains_kind(KernelEventKind::InputClosed),
     }
 }
@@ -1835,9 +1835,8 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
         )
         .unwrap();
     source_routes.seal().unwrap();
-    let source_evidence =
-        FixedEvidenceLog::<64>::new((64 * core::mem::size_of::<crate::KernelEvent>()) as u32)
-            .unwrap();
+    let source_clue =
+        FixedClueLog::<64>::new((64 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
     let mut source = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
         [node([None; PORTS])],
         [CordSpec::remote_egress(
@@ -1856,15 +1855,14 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
             next: 0,
         }],
         source_values,
-        source_evidence,
+        source_clue,
     )
     .unwrap();
 
     let mut sink_routes = FixedRoutes::<2, 1>::new(PORTS as u16);
     sink_routes.seal().unwrap();
-    let sink_evidence =
-        FixedEvidenceLog::<64>::new((64 * core::mem::size_of::<crate::KernelEvent>()) as u32)
-            .unwrap();
+    let sink_clue =
+        FixedClueLog::<64>::new((64 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
     let mut sink = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
         [node([Some(CordId(0)), None])],
         [CordSpec::remote_ingress(
@@ -1884,7 +1882,7 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
             stall: false,
         }],
         FixedValueStore::<1, 4>::new(4).unwrap(),
-        sink_evidence,
+        sink_clue,
     )
     .unwrap();
 
@@ -1984,10 +1982,10 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
     assert_eq!(sink.values().used_items(), 0);
     assert_eq!(sink.cord_usage(CordId(0)).unwrap(), (0, 0));
     assert!(source
-        .evidence()
+        .clues()
         .contains_kind(KernelEventKind::RemoteValueDelivered));
     assert!(sink
-        .evidence()
+        .clues()
         .contains_kind(KernelEventKind::RemoteInputClosed));
     source.cancel().unwrap();
     assert_eq!(
@@ -2001,7 +1999,7 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
 }
 
 #[test]
-fn remote_delivery_evidence_exhaustion_preserves_the_in_flight_value() {
+fn remote_delivery_clue_exhaustion_preserves_the_in_flight_value() {
     let endpoint = RemoteEndpointId(0);
     let mut values = FixedValueStore::<1, 4>::new(4).unwrap();
     let value = values.store(b"data").unwrap();
@@ -2018,9 +2016,8 @@ fn remote_delivery_evidence_exhaustion_preserves_the_in_flight_value() {
         )
         .unwrap();
     routes.seal().unwrap();
-    let evidence =
-        FixedEvidenceLog::<4>::new((4 * core::mem::size_of::<crate::KernelEvent>()) as u32)
-            .unwrap();
+    let clues =
+        FixedClueLog::<4>::new((4 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
     let mut scheduler = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
         [node([None; PORTS])],
         [CordSpec::remote_egress(
@@ -2039,7 +2036,7 @@ fn remote_delivery_evidence_exhaustion_preserves_the_in_flight_value() {
             next: 0,
         }],
         values,
-        evidence,
+        clues,
     )
     .unwrap();
 
@@ -2053,9 +2050,7 @@ fn remote_delivery_evidence_exhaustion_preserves_the_in_flight_value() {
         .unwrap();
     assert_eq!(
         scheduler.remote_egress_delivered(endpoint, CordId(0), offer.sequence),
-        Err(SchedulerError::Evidence(
-            crate::EvidenceError::ItemCapacityExceeded
-        ))
+        Err(SchedulerError::Clue(crate::ClueError::ItemCapacityExceeded))
     );
     assert_eq!(scheduler.cord_usage(CordId(0)).unwrap(), (1, 4));
     assert_eq!(scheduler.values().reference_count(value).unwrap(), 1);

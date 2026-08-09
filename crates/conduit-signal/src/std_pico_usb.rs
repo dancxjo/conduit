@@ -5,9 +5,8 @@ use alloc::vec;
 
 use conduit_core::{
     process_owned_link_binding_with_limits, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConnectionProvider, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LinkBinding, LinkLimits, OfferGeneration, OperationId, Plan,
-    PROTOCOL_VERSION,
+    CapabilityOffer, ConnectionBase, GearId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, LinkBinding, LinkLimits, OfferGeneration, Plan, PROTOCOL_VERSION,
 };
 use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
 
@@ -24,7 +23,7 @@ pub const STD_PICO_USB_SOURCE_BOOT_ID: &str = "s4/std-pico-source-boot";
 pub const STD_PICO_USB_SINK_HOST_ID: &str = "s4/pico-usb-sink";
 pub const STD_PICO_USB_SINK_BOOT_ID: &str = "s4/pico-usb-sink-image-boot";
 pub const STD_PICO_USB_LINK_BINDING_ID: &str = "s4/std-pico-usb-cdc-link";
-pub const STD_PICO_USB_PROVIDER_INSTANCE_ID: &str = "s4/pico-usb-cdc-0";
+pub const STD_PICO_USB_BASE_INSTANCE_ID: &str = "s4/pico-usb-cdc-0";
 pub const STD_PICO_USB_SOURCE_ENDPOINT_ID: &str = "s4/std-pico-usb-egress";
 pub const STD_PICO_USB_SINK_ENDPOINT_ID: &str = "s4/pico-usb-ingress";
 
@@ -117,8 +116,8 @@ pub fn std_pico_usb_link_binding() -> LinkBinding {
     let sink = std_pico_usb_sink_advertisement();
     let mut binding = process_owned_link_binding_with_limits(
         STD_PICO_USB_LINK_BINDING_ID,
-        ConnectionProvider::UsbCdc,
-        STD_PICO_USB_PROVIDER_INSTANCE_ID,
+        ConnectionBase::UsbCdc,
+        STD_PICO_USB_BASE_INSTANCE_ID,
         &source,
         &sink,
         LinkLimits {
@@ -143,16 +142,16 @@ pub fn exact_std_pico_usb_plan() -> Result<ExactStdPicoUsbPlan, alloc::string::S
     )
     .map_err(|error| error.to_string())?;
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("pulse"),
+                GearId::from("pulse"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("std-pico-pulse-1"),
                 },
             ),
             (
-                OperationId::from("show"),
+                GearId::from("show"),
                 PlacementChoice {
                     host_id: sink_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("pico-cyw43-show-1"),
@@ -165,7 +164,7 @@ pub fn exact_std_pico_usb_plan() -> Result<ExactStdPicoUsbPlan, alloc::string::S
         &form,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,
-        &[ConnectionProvider::UsbCdc],
+        &[ConnectionBase::UsbCdc],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
         core::slice::from_ref(&link_binding),

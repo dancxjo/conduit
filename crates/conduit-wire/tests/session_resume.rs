@@ -1,7 +1,6 @@
 use conduit_core::{
-    bind_active_play, BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
-    FragmentId, HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
-    PROTOCOL_VERSION,
+    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
 };
 use conduit_wire::{
     RouteAttachment, SessionBinding, SessionCheckpoint, SessionCheckpointOffer,
@@ -40,8 +39,8 @@ fn binding() -> SessionBinding {
         },
         attachment: RouteAttachment {
             link_binding_id: LinkBindingId::from("resume/websocket"),
-            provider: ConnectionProvider::WebSocket,
-            provider_instance_id: ConnectionProviderInstanceId::from("resume/ws-provider"),
+            base: ConnectionBase::WebSocket,
+            base_instance_id: ConnectionBaseInstanceId::from("resume/ws-base"),
             source_host_id: source_host,
             source_boot_id: source_boot,
             source_endpoint_id: LinkEndpointId::from("resume/ws-source"),
@@ -61,15 +60,14 @@ fn binding() -> SessionBinding {
 fn replacement_binding() -> SessionBinding {
     let mut replacement = binding();
     replacement.attachment.link_binding_id = LinkBindingId::from("resume/usb");
-    replacement.attachment.provider = ConnectionProvider::UsbCdc;
-    replacement.attachment.provider_instance_id =
-        ConnectionProviderInstanceId::from("resume/usb-provider");
+    replacement.attachment.base = ConnectionBase::UsbCdc;
+    replacement.attachment.base_instance_id = ConnectionBaseInstanceId::from("resume/usb-base");
     replacement.attachment.source_endpoint_id = LinkEndpointId::from("resume/usb-source");
     replacement.attachment.sink_endpoint_id = LinkEndpointId::from("resume/usb-sink");
     replacement
 }
 
-fn activate(machine: &mut SessionMachine) {
+fn trigger(machine: &mut SessionMachine) {
     let exact = machine.binding().clone();
     machine.admit_outbound(exact.hello_frame()).unwrap();
     machine.admit_inbound(exact.hello_frame()).unwrap();
@@ -86,7 +84,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
     let original = binding();
     let replacement = replacement_binding();
     let mut clean = SessionMachine::new(original.clone(), SessionRole::Source).unwrap();
-    activate(&mut clean);
+    trigger(&mut clean);
     let clean_offer = SessionCheckpointOffer {
         identity: original.identity(),
         checkpoint: clean.checkpoint(),
@@ -106,7 +104,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
     );
 
     let mut offered_source = SessionMachine::new(original.clone(), SessionRole::Source).unwrap();
-    activate(&mut offered_source);
+    trigger(&mut offered_source);
     offered_source
         .admit_outbound(original.frame(SessionMessage::Offered {
             sequence: 0,
@@ -132,7 +130,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
     );
 
     let mut awaiting_sink = SessionMachine::new(original.clone(), SessionRole::Sink).unwrap();
-    activate(&mut awaiting_sink);
+    trigger(&mut awaiting_sink);
     assert_eq!(
         awaiting_sink
             .resume_with_attachment(
@@ -152,7 +150,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
     );
 
     let mut accepted_source = SessionMachine::new(original.clone(), SessionRole::Source).unwrap();
-    activate(&mut accepted_source);
+    trigger(&mut accepted_source);
     accepted_source
         .admit_outbound(original.frame(SessionMessage::Offered {
             sequence: 0,
@@ -186,7 +184,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
 fn contradictory_stale_or_different_logical_checkpoints_fail_closed() {
     let original = binding();
     let mut machine = SessionMachine::new(original.clone(), SessionRole::Source).unwrap();
-    activate(&mut machine);
+    trigger(&mut machine);
     assert_eq!(
         machine.resume_with_attachment(
             replacement_binding(),

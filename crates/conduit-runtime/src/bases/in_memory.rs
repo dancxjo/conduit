@@ -4,7 +4,7 @@ use conduit_core::{
 use std::collections::VecDeque;
 
 #[derive(Debug)]
-pub struct InMemoryConnectionProvider {
+pub struct InMemoryConnectionBase {
     plan_id: PlanId,
     connection_id: conduit_core::ConnectionId,
     value_kind: KindId,
@@ -16,7 +16,7 @@ pub struct InMemoryConnectionProvider {
     queue: VecDeque<ConnectionEnvelope>,
 }
 
-impl InMemoryConnectionProvider {
+impl InMemoryConnectionBase {
     pub fn new(plan_id: PlanId, connection: &PlannedConnection) -> Self {
         Self {
             plan_id,

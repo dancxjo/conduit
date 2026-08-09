@@ -6,8 +6,8 @@
 //! allocation. The explicit `usb-remote` image uses one finite startup arena
 //! for owned session identities; active transport remains statically bounded.
 //! `pico-local-minimal` is a compile-only composition proof with the same
-//! kernel-backed Signal faces and USB evidence, but no wire/session or BOOTSEL
-//! lifecycle-control provider. It is not a substitute for physical acceptance.
+//! kernel-backed Signal faces and USB clue, but no wire/session or BOOTSEL
+//! lifecycle-control base. It is not a substitute for physical acceptance.
 #![no_std]
 #![no_main]
 
@@ -89,19 +89,19 @@ async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
     // Physical-proof and remote modes expose dual CDC: CDC 0 owns session and
-    // lifecycle control, while CDC 1 owns evidence. The minimal composition
-    // omits that optional family and exposes one evidence-only CDC interface.
+    // lifecycle control, while CDC 1 owns clue. The minimal composition
+    // omits that optional family and exposes one clue-only CDC interface.
     let usb_driver = embassy_rp::usb::Driver::new(p.USB, radio::UsbIrq);
     #[cfg(feature = "session-control")]
-    let (usb_fut, session_carrier, evidence_sender) = usb::init_composite_usb(usb_driver);
+    let (usb_fut, session_carrier, clue_sender) = usb::init_composite_usb(usb_driver);
     #[cfg(not(feature = "session-control"))]
-    let (usb_fut, evidence_sender) = usb::init_evidence_usb(usb_driver);
+    let (usb_fut, clue_sender) = usb::init_clue_usb(usb_driver);
     spawner.spawn(receipts::usb_task_spawn(usb_fut).unwrap());
     let runtime = receipts::RuntimeTranscriptIdentity::new(
         signal_image::PLAN_ID,
         signal_image::HOST_ID,
     );
-    let mut cdc = receipts::UsbCdc::new(evidence_sender.sender);
+    let mut cdc = receipts::UsbCdc::new(clue_sender.sender);
 
     #[cfg(feature = "pico-local")]
     {
@@ -118,7 +118,7 @@ async fn main(spawner: Spawner) {
             &CYW43_NVRAM,
         )
         .await;
-        // While the local proof is idle waiting for its evidence consumer,
+        // While the local proof is idle waiting for its clue consumer,
         // CDC 0 remains an autonomous recovery path into BOOTSEL.
         match select(cdc.wait_dtr(), bootsel::wait_for_request(&mut link_session)).await {
             Either::First(()) => {}

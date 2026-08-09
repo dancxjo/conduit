@@ -1,16 +1,16 @@
-//! Toolkit-independent views of one evidence-backed distributed route demonstration.
+//! Toolkit-independent views of one clue-backed distributed route demonstration.
 
 use conduit_core::{
-    ConnectionId, ConnectionProvider, ConnectionProviderInstanceId, EvidenceId, LinkBindingId,
-    PlanId, SourceDocumentId,
+    ClueId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, LinkBindingId, PlanId,
+    SourceDocumentId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RouteCandidatePresentation {
     pub order: usize,
     pub binding_id: LinkBindingId,
-    pub provider: ConnectionProvider,
-    pub provider_instance_id: ConnectionProviderInstanceId,
+    pub base: ConnectionBase,
+    pub base_instance_id: ConnectionBaseInstanceId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,26 +25,26 @@ pub struct NewPlanRecoveryPresentation {
     pub prior: RoutePlanPresentation,
     pub replacement_plan_id: PlanId,
     pub unavailable_binding_id: LinkBindingId,
-    pub unavailable_evidence_id: EvidenceId,
-    pub unsatisfied_evidence_id: EvidenceId,
-    pub planning_request_evidence_id: EvidenceId,
-    pub planning_success_evidence_id: EvidenceId,
-    pub installed_evidence_id: EvidenceId,
+    pub unavailable_clue_id: ClueId,
+    pub unsatisfied_clue_id: ClueId,
+    pub planning_request_clue_id: ClueId,
+    pub planning_success_clue_id: ClueId,
+    pub installed_clue_id: ClueId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SamePlanFallbackPresentation {
     pub plan: RoutePlanPresentation,
     pub unavailable_binding_id: LinkBindingId,
-    pub unavailable_evidence_id: EvidenceId,
+    pub unavailable_clue_id: ClueId,
     pub selected_binding_id: LinkBindingId,
-    pub selection_evidence_id: EvidenceId,
+    pub selection_clue_id: ClueId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RefusedRoutePresentation {
     pub binding_id: LinkBindingId,
-    pub observation_evidence_id: EvidenceId,
+    pub observation_clue_id: ClueId,
 }
 
 /// One immutable semantic snapshot consumed by every route-demo presentation.
@@ -91,8 +91,8 @@ impl DistributedRoutePresentation {
             ),
             "  UNSATISFIED — no admitted route ready".into(),
             format!(
-                "    ↓ planning requested evidence={}",
-                self.new_plan.planning_request_evidence_id.as_str()
+                "    ↓ planning requested clue={}",
+                self.new_plan.planning_request_clue_id.as_str()
             ),
             format!(
                 "  Plan B  id={} prior={}",
@@ -100,11 +100,11 @@ impl DistributedRoutePresentation {
                 self.new_plan.prior.plan_id.as_str()
             ),
             format!(
-                "  evidence unavailable={} unsatisfied={} planned={} installed={}",
-                self.new_plan.unavailable_evidence_id.as_str(),
-                self.new_plan.unsatisfied_evidence_id.as_str(),
-                self.new_plan.planning_success_evidence_id.as_str(),
-                self.new_plan.installed_evidence_id.as_str()
+                "  clue unavailable={} unsatisfied={} planned={} installed={}",
+                self.new_plan.unavailable_clue_id.as_str(),
+                self.new_plan.unsatisfied_clue_id.as_str(),
+                self.new_plan.planning_success_clue_id.as_str(),
+                self.new_plan.installed_clue_id.as_str()
             ),
             "SAME-PLAN FALLBACK".into(),
             format!(
@@ -133,14 +133,14 @@ impl DistributedRoutePresentation {
                 self.same_plan.plan.plan_id.as_str()
             ),
             format!(
-                "  evidence unavailable={} selection={}",
-                self.same_plan.unavailable_evidence_id.as_str(),
-                self.same_plan.selection_evidence_id.as_str()
+                "  clue unavailable={} selection={}",
+                self.same_plan.unavailable_clue_id.as_str(),
+                self.same_plan.selection_clue_id.as_str()
             ),
             format!(
-                "UNPLANNED ROUTE refused={} reason=not sealed into Plan evidence={}",
+                "UNPLANNED ROUTE refused={} reason=not sealed into Plan clue={}",
                 display_binding(&self.refused.binding_id),
-                self.refused.observation_evidence_id.as_str()
+                self.refused.observation_clue_id.as_str()
             ),
         ]);
         let insertion = lines.len().saturating_sub(3);
@@ -158,36 +158,36 @@ impl DistributedRoutePresentation {
     pub fn linear_lines(&self) -> Vec<String> {
         vec![
             format!(
-                "Form source {} checked {}. Plan {} connection {} has one admitted route, {}. {} became unavailable with evidence {}. The Play became unsatisfied with evidence {}. Planning was requested with evidence {} and succeeded with evidence {}. Replacement Plan {} superseded prior Plan {} with realization evidence {}.",
+                "Form source {} checked {}. Plan {} connection {} has one admitted route, {}. {} became unavailable with clue {}. The Play became unsatisfied with clue {}. Planning was requested with clue {} and succeeded with clue {}. Replacement Plan {} superseded prior Plan {} with realization clue {}.",
                 self.source_document_id.as_str(),
                 self.checked_form_id.as_str(),
                 self.new_plan.prior.plan_id.as_str(),
                 self.new_plan.prior.connection_id.as_str(),
                 candidate_names(&self.new_plan.prior),
                 display_binding(&self.new_plan.unavailable_binding_id),
-                self.new_plan.unavailable_evidence_id.as_str(),
-                self.new_plan.unsatisfied_evidence_id.as_str(),
-                self.new_plan.planning_request_evidence_id.as_str(),
-                self.new_plan.planning_success_evidence_id.as_str(),
+                self.new_plan.unavailable_clue_id.as_str(),
+                self.new_plan.unsatisfied_clue_id.as_str(),
+                self.new_plan.planning_request_clue_id.as_str(),
+                self.new_plan.planning_success_clue_id.as_str(),
                 self.new_plan.replacement_plan_id.as_str(),
                 self.new_plan.prior.plan_id.as_str(),
-                self.new_plan.installed_evidence_id.as_str(),
+                self.new_plan.installed_clue_id.as_str(),
             ),
             format!(
-                "Plan {} connection {} has two admitted routes in deterministic order: {}. {} became unavailable with evidence {}. {} was selected with evidence {}. Plan identity did not change: {}.",
+                "Plan {} connection {} has two admitted routes in deterministic order: {}. {} became unavailable with clue {}. {} was selected with clue {}. Plan identity did not change: {}.",
                 self.same_plan.plan.plan_id.as_str(),
                 self.same_plan.plan.connection_id.as_str(),
                 candidate_names(&self.same_plan.plan),
                 display_binding(&self.same_plan.unavailable_binding_id),
-                self.same_plan.unavailable_evidence_id.as_str(),
+                self.same_plan.unavailable_clue_id.as_str(),
                 display_binding(&self.same_plan.selected_binding_id),
-                self.same_plan.selection_evidence_id.as_str(),
+                self.same_plan.selection_clue_id.as_str(),
                 self.same_plan.plan.plan_id.as_str(),
             ),
             format!(
-                "An observed ambient route, {}, was refused because it was not sealed into the active Plan. Observation evidence was {}.",
+                "An observed ambient route, {}, was refused because it was not sealed into the active Plan. Observation clue was {}.",
                 display_binding(&self.refused.binding_id),
-                self.refused.observation_evidence_id.as_str(),
+                self.refused.observation_clue_id.as_str(),
             ),
         ]
     }
@@ -209,11 +209,11 @@ fn candidate_lines(
                 "○"
             };
             format!(
-                "    {marker} order={} {} binding={} provider-instance={}",
+                "    {marker} order={} {} binding={} base-instance={}",
                 candidate.order,
-                display_provider(candidate.provider),
+                display_base(candidate.base),
                 candidate.binding_id.as_str(),
-                candidate.provider_instance_id.as_str()
+                candidate.base_instance_id.as_str()
             )
         })
         .collect()
@@ -224,24 +224,24 @@ fn candidate_names(plan: &RoutePlanPresentation) -> String {
         .iter()
         .map(|candidate| {
             format!(
-                "{} (binding {}, provider instance {})",
-                display_provider(candidate.provider),
+                "{} (binding {}, base instance {})",
+                display_base(candidate.base),
                 candidate.binding_id.as_str(),
-                candidate.provider_instance_id.as_str()
+                candidate.base_instance_id.as_str()
             )
         })
         .collect::<Vec<_>>()
         .join(", then ")
 }
 
-fn display_provider(provider: ConnectionProvider) -> &'static str {
-    match provider {
-        ConnectionProvider::Local => "local connection",
-        ConnectionProvider::InMemory => "in-memory connection",
-        ConnectionProvider::FixtureFrame => "fixture frame",
-        ConnectionProvider::FixtureDatagram => "fixture datagram",
-        ConnectionProvider::WebSocket => "WebSocket",
-        ConnectionProvider::UsbCdc => "USB CDC",
+fn display_base(base: ConnectionBase) -> &'static str {
+    match base {
+        ConnectionBase::Local => "local connection",
+        ConnectionBase::InMemory => "in-memory connection",
+        ConnectionBase::FixtureFrame => "fixture frame",
+        ConnectionBase::FixtureDatagram => "fixture datagram",
+        ConnectionBase::WebSocket => "WebSocket",
+        ConnectionBase::UsbCdc => "USB CDC",
     }
 }
 

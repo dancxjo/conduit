@@ -5,7 +5,7 @@
 
 use super::super::plan::exact_distributed_toggle_plan;
 use super::*;
-use conduit_core::{CapabilityId, ConnectionProvider, OperationId};
+use conduit_core::{CapabilityId, ConnectionBase, GearId};
 use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
 use conduit_runtime::lowering::RemoteCordDirection;
 use conduit_signal::{
@@ -25,7 +25,7 @@ fn unchanged_toggle_form_prepares_exact_independent_remote_fragments() {
         .find(|fragment| fragment.host_id == exact.sink_advertisement.host_id)
         .expect("sink fragment");
     let lowered = lower_plan_fragment(sink).expect("sink lowers");
-    // Source fragment has 2 nodes (activate + toggle)
+    // Source fragment has 2 nodes (trigger + toggle)
     assert_eq!(source.fragment().placements.len(), 2);
     // Sink fragment has 1 node (show)
     assert_eq!(sink.placements.len(), 1);
@@ -53,23 +53,23 @@ fn missing_link_binding_fails_toggle_planning() {
     )
     .unwrap();
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("activate"),
+                GearId::from("trigger"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
-                    capability_id: CapabilityId::from("activate-1"),
+                    capability_id: CapabilityId::from("trigger-1"),
                 },
             ),
             (
-                OperationId::from("toggle"),
+                GearId::from("toggle"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("toggle-1"),
                 },
             ),
             (
-                OperationId::from("show"),
+                GearId::from("show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("toggle-dom-show-1"),
@@ -81,7 +81,7 @@ fn missing_link_binding_fails_toggle_planning() {
         &form,
         &[source, sink],
         &placements,
-        &[ConnectionProvider::Local, ConnectionProvider::WebSocket],
+        &[ConnectionBase::Local, ConnectionBase::WebSocket],
         1,
         SIGNAL_ENCODED_LEN,
         &[],
@@ -89,12 +89,12 @@ fn missing_link_binding_fails_toggle_planning() {
     .is_err());
 }
 
-/// EOF from stdin (Ok(0)) must produce a structured error, not a fabricated activation.
+/// EOF from stdin (Ok(0)) must produce a structured error, not a fabricated trigger.
 #[test]
-fn complete_activation_wait_rejects_eof() {
+fn complete_trigger_wait_rejects_eof() {
     use conduit_kernel::scheduler::SchedulerStatus;
     let mut source = DistributedToggleSource::prepare().expect("prepare");
-    // Step until the scheduler issues the first await-activation request.
+    // Step until the scheduler issues the first await-trigger request.
     let request = loop {
         if let Some(req) = source.scheduler.next_host_request() {
             break req;
@@ -107,18 +107,18 @@ fn complete_activation_wait_rejects_eof() {
     // EOF reader always returns Ok(0).
     let mut eof_stdin: &[u8] = b"";
     let mut report = Vec::<u8>::new();
-    let result = source.complete_activation_wait(request, &mut report, &mut eof_stdin, 0);
+    let result = source.complete_trigger_wait(request, &mut report, &mut eof_stdin, 0);
     assert!(
         result.is_err(),
-        "EOF must be a structured error, not a successful activation"
+        "EOF must be a structured error, not a successful trigger"
     );
     let msg = result.unwrap_err();
     assert!(msg.contains("EOF"), "error should mention EOF, got: {msg}");
 }
 
-/// A read error must produce a structured error, not a fabricated activation.
+/// A read error must produce a structured error, not a fabricated trigger.
 #[test]
-fn complete_activation_wait_rejects_read_error() {
+fn complete_trigger_wait_rejects_read_error() {
     use conduit_kernel::scheduler::SchedulerStatus;
     use std::io;
     struct ErrorReader;
@@ -145,9 +145,9 @@ fn complete_activation_wait_rejects_read_error() {
         }
     };
     let mut report = Vec::<u8>::new();
-    let result = source.complete_activation_wait(request, &mut report, &mut ErrorReader, 0);
+    let result = source.complete_trigger_wait(request, &mut report, &mut ErrorReader, 0);
     assert!(
         result.is_err(),
-        "read error must be a structured error, not a successful activation"
+        "read error must be a structured error, not a successful trigger"
     );
 }

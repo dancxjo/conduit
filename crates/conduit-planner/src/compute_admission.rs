@@ -10,18 +10,16 @@ pub(crate) type RemainingComputeMinimum = BTreeMap<(HostId, ResourcePoolId), u32
 /// whole-form finite resource allocator, not a separate scheduler.
 pub(crate) fn admit_minima(
     form: &CheckedForm,
-    realm: &BTreeMap<HostId, &HostAdvertisement>,
+    hosts: &BTreeMap<HostId, &HostAdvertisement>,
     placements: &PlacementChoices,
 ) -> Result<RemainingComputeMinimum, PlannerError> {
     let mut remaining = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
-    for operation in &form.operations {
+    for gear in &form.gears {
         let choice = placements
-            .by_operation
-            .get(&operation.operation_id)
-            .ok_or_else(|| {
-                PlannerError::MissingPlacement(operation.operation_id.as_str().to_string())
-            })?;
-        let host = realm
+            .by_gear
+            .get(&gear.gear_id)
+            .ok_or_else(|| PlannerError::MissingPlacement(gear.gear_id.as_str().to_string()))?;
+        let host = hosts
             .get(&choice.host_id)
             .ok_or_else(|| PlannerError::UnknownHost(choice.host_id.as_str().to_string()))?;
         let capability = host

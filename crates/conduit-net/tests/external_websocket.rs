@@ -1,4 +1,4 @@
-use conduit_core::{ArtifactId, CapabilityId, ConnectionProvider, ImplementationId};
+use conduit_core::{ArtifactId, CapabilityId, ConnectionBase, ImplementationId};
 use conduit_net::{
     browser_external_websocket_family, external_websocket_client_offer,
     external_websocket_listener_offer, std_external_websocket_family,
@@ -123,12 +123,12 @@ fn external_websocket_compatibility_is_the_checked_face_not_the_nominal_kind() {
 
 #[test]
 fn authored_external_socket_cannot_masquerade_as_a_conduit_session_carrier() {
-    for carrier in [ConnectionProvider::WebSocket, ConnectionProvider::UsbCdc] {
+    for carrier in [ConnectionBase::WebSocket, ConnectionBase::UsbCdc] {
         assert_ne!(client().kind_id.as_str(), format!("{carrier:?}"));
         assert_ne!(listener().kind_id.as_str(), format!("{carrier:?}"));
     }
-    assert!(ConnectionProvider::WebSocket.supports_remote_session());
-    assert!(!client().kind_id.as_str().contains("ConnectionProvider"));
+    assert!(ConnectionBase::WebSocket.supports_remote_session());
+    assert!(!client().kind_id.as_str().contains("ConnectionBase"));
 }
 
 #[cfg(feature = "form-catalog")]
@@ -142,8 +142,8 @@ fn canonical_duplex_source_checks_and_expands_to_the_external_client_leaf() {
     let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
         conduit_form::expand_canonical_form(&checked, "echo-client-demo", &profile).unwrap();
-    assert_eq!(expanded.operations.len(), 1);
-    let socket = &expanded.operations[0];
+    assert_eq!(expanded.gears.len(), 1);
+    let socket = &expanded.gears[0];
     assert_eq!(socket.kind_id.as_str(), EXTERNAL_WEBSOCKET_CLIENT_KIND);
     assert_eq!(socket.inputs, client().inputs);
     assert_eq!(socket.outputs, client().outputs);

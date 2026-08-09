@@ -34,7 +34,7 @@ fn canonical_program_four_runs_startup_flow_and_current_through_one_kernel() {
     assert_eq!(syntax.round_trip(), PROGRAM);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "count-demo", &profile).unwrap();
-    assert_eq!(expanded.operations.len(), 3);
+    assert_eq!(expanded.gears.len(), 3);
 
     let mut host = StdHost::new();
     let plan = host.plan_expanded_local(&expanded).unwrap();

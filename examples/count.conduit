@@ -2,9 +2,9 @@ form count (
     start: Count = 0
     bump: Tick...| > value: $Count
 ) {
-    cell: state/count(start)
-    bump > cell.bump
-    cell.value > value
+    gear: state/count(start)
+    bump > gear.bump
+    gear.value > value
 }
 
 form count-demo {

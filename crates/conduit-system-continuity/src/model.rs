@@ -2,7 +2,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, ArtifactId, AuthorityBinding, AuthorityGrantId, BootId, CapabilityId,
-    CheckedFace, CheckedFormId, HostId, ImplementationId, LinkBindingId, OperationId, PlacementId,
+    CheckedFace, CheckedFormId, GearId, HostId, ImplementationId, LinkBindingId, PlacementId,
     PlanId,
 };
 use serde::{Deserialize, Serialize};
@@ -39,7 +39,7 @@ pub struct HostInstance {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RoleRequirement {
     pub role_id: RoleId,
-    pub operation_id: OperationId,
+    pub gear_id: GearId,
     pub checked_face: CheckedFace,
 }
 
@@ -64,7 +64,7 @@ pub struct DelegatedTransitionGrant {
     pub link_binding_id: LinkBindingId,
     pub maximum_transitions: u16,
     pub proof_window_ticks: u16,
-    pub evidence_sequence_base: u64,
+    pub clue_sequence_base: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -79,7 +79,7 @@ pub struct SystemRecord {
     pub transition_grants: Vec<DelegatedTransitionGrant>,
     pub plan_id: PlanId,
     pub play_ids: Vec<ActivePlayId>,
-    pub evidence_ids: Vec<conduit_core::EvidenceId>,
+    pub clue_ids: Vec<conduit_core::ClueId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

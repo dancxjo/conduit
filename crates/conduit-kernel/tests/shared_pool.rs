@@ -1,6 +1,5 @@
 use conduit_kernel::shared_pool::{
-    FixedSharedPool, MemberIdentity, MemberKey, MemberPlacement, PoolError, PoolEvidenceReason,
-    PoolId,
+    FixedSharedPool, MemberIdentity, MemberKey, MemberPlacement, PoolClueReason, PoolError, PoolId,
 };
 use conduit_kernel::NodeId;
 
@@ -30,9 +29,9 @@ fn placeholder() -> MemberIdentity {
 fn keyed_membership_is_finite_and_slot_reuse_rejects_stale_epochs() {
     let mut pool = FixedSharedPool::<2, 16>::new(PoolId(4), 2, 7, 2).unwrap();
     let first = pool.admit(key(2), placement(1), 7).unwrap();
-    pool.activate(first).unwrap();
+    pool.trigger(first).unwrap();
     let second = pool.admit(key(1), placement(0), 7).unwrap();
-    pool.activate(second).unwrap();
+    pool.trigger(second).unwrap();
     assert_eq!(pool.active_population(), 2);
     assert_eq!(
         pool.admit(key(3), placement(0), 7),
@@ -49,16 +48,13 @@ fn keyed_membership_is_finite_and_slot_reuse_rejects_stale_epochs() {
     assert_eq!(replacement.slot, first.slot);
     assert_eq!(replacement.epoch, first.epoch + 1);
     assert_eq!(pool.validate_active(first), Err(PoolError::StaleMember));
-    pool.activate(replacement).unwrap();
+    pool.trigger(replacement).unwrap();
     assert_eq!(pool.member_for_key(key(2)).unwrap(), replacement);
 
-    let reasons = pool
-        .evidence()
-        .map(|event| event.reason)
-        .collect::<Vec<_>>();
-    assert!(reasons.contains(&PoolEvidenceReason::PoolFull));
-    assert!(reasons.contains(&PoolEvidenceReason::DuplicateKey));
-    assert!(reasons.contains(&PoolEvidenceReason::Released));
+    let reasons = pool.clues().map(|event| event.reason).collect::<Vec<_>>();
+    assert!(reasons.contains(&PoolClueReason::PoolFull));
+    assert!(reasons.contains(&PoolClueReason::DuplicateKey));
+    assert!(reasons.contains(&PoolClueReason::Released));
 }
 
 #[test]
@@ -75,13 +71,13 @@ fn authority_realization_preparation_and_lifecycle_fail_independently() {
     let failed = pool.admit(key(1), placement(0), 7).unwrap();
     pool.fail_preparation(failed).unwrap();
     assert_eq!(pool.population(), 0);
-    assert_eq!(pool.activate(failed), Err(PoolError::InvalidLifecycle));
+    assert_eq!(pool.trigger(failed), Err(PoolError::InvalidLifecycle));
     assert_eq!(pool.member_for_key(key(9)), Err(PoolError::UnknownKey));
 
     let retried = pool.admit(key(1), placement(0), 7).unwrap();
     assert!(retried.epoch > failed.epoch);
-    pool.activate(retried).unwrap();
-    assert_eq!(pool.activate(retried), Err(PoolError::InvalidLifecycle));
+    pool.trigger(retried).unwrap();
+    assert_eq!(pool.trigger(retried), Err(PoolError::InvalidLifecycle));
 }
 
 #[test]
@@ -91,7 +87,7 @@ fn fan_snapshot_is_key_ordered_and_does_not_change_when_membership_changes() {
         let member = pool
             .admit(key(value), placement(u16::from(value - 1)), 7)
             .unwrap();
-        pool.activate(member).unwrap();
+        pool.trigger(member).unwrap();
     }
     let mut snapshot = [placeholder(); 3];
     let captured = pool.snapshot_active(&mut snapshot).unwrap();
@@ -99,7 +95,7 @@ fn fan_snapshot_is_key_ordered_and_does_not_change_when_membership_changes() {
     assert_eq!([snapshot[0].key, snapshot[1].key], [key(1), key(3)]);
 
     let joined = pool.admit(key(2), placement(1), 7).unwrap();
-    pool.activate(joined).unwrap();
+    pool.trigger(joined).unwrap();
     assert_eq!(captured, 2);
     assert_eq!([snapshot[0].key, snapshot[1].key], [key(1), key(3)]);
     assert_eq!(pool.snapshot_active(&mut snapshot).unwrap(), 3);
@@ -110,11 +106,11 @@ fn fan_snapshot_is_key_ordered_and_does_not_change_when_membership_changes() {
 }
 
 #[test]
-fn evidence_exhaustion_never_partially_mutates_membership() {
+fn clue_exhaustion_never_partially_mutates_membership() {
     let mut pool = FixedSharedPool::<1, 1>::new(PoolId(4), 1, 7, 1).unwrap();
     let preparing = pool.admit(key(1), placement(0), 7).unwrap();
-    assert_eq!(pool.activate(preparing), Err(PoolError::EvidenceExhausted));
+    assert_eq!(pool.trigger(preparing), Err(PoolError::ClueExhausted));
     assert_eq!(pool.active_population(), 0);
     assert_eq!(pool.population(), 1);
-    assert_eq!(pool.evidence().count(), 1);
+    assert_eq!(pool.clues().count(), 1);
 }

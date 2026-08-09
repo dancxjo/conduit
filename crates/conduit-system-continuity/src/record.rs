@@ -52,7 +52,7 @@ impl SystemRecord {
         for requirement in &requirements {
             let mut matches = placements
                 .iter()
-                .filter(|placement| placement.operation_id == requirement.operation_id);
+                .filter(|placement| placement.gear_id == requirement.gear_id);
             let placement = matches
                 .next()
                 .ok_or_else(|| ContinuityError::MissingRole(requirement.role_id.as_str().into()))?;
@@ -115,11 +115,11 @@ impl SystemRecord {
             .filter(|play| &play.plan_id == plan_id)
             .map(|play| play.active_play_id.clone())
             .collect::<Vec<_>>();
-        let evidence_ids = snapshot
+        let clue_ids = snapshot
             .observations
             .iter()
             .filter(|observation| observation.plan_id.as_ref() == Some(plan_id))
-            .map(|observation| observation.evidence_id.clone())
+            .map(|observation| observation.clue_id.clone())
             .collect::<Vec<_>>();
         for member in assignments.iter().map(|assignment| &assignment.host) {
             if !snapshot.plays.iter().any(|play| {
@@ -156,7 +156,7 @@ impl SystemRecord {
             transition_grants,
             plan_id: plan_id.clone(),
             play_ids,
-            evidence_ids,
+            clue_ids,
         })
     }
 }
@@ -180,7 +180,7 @@ fn unique_requirements(requirements: &[RoleRequirement]) -> Result<(), Continuit
         .collect::<BTreeSet<_>>();
     let operations = requirements
         .iter()
-        .map(|item| item.operation_id.as_str())
+        .map(|item| item.gear_id.as_str())
         .collect::<BTreeSet<_>>();
     if roles.len() == requirements.len() && operations.len() == requirements.len() {
         Ok(())

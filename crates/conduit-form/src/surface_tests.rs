@@ -4,7 +4,7 @@ use crate::{
 };
 
 #[test]
-fn canonical_clock_form_round_trips_with_named_and_inline_cells() {
+fn canonical_clock_form_round_trips_with_named_and_inline_gears() {
     let source = "# canonical source\nform clock-demo {\n    clock: time/every(1s)\n    clock > presentation/tick\n}\n";
     let document = parse_syntax_document(source);
     let forms = document.forms().expect("canonical form parses");
@@ -12,11 +12,11 @@ fn canonical_clock_form_round_trips_with_named_and_inline_cells() {
     assert_eq!(document.round_trip(), source);
     assert_eq!(forms.len(), 1);
     assert_eq!(forms[0].name.text, "clock-demo");
-    let BackStatement::NamedCell(clock) = &forms[0].back[0] else {
-        panic!("first statement should be a named cell");
+    let BackStatement::NamedGear(clock) = &forms[0].back[0] else {
+        panic!("first statement should be a named gear");
     };
     assert_eq!(clock.name.text, "clock");
-    assert_eq!(clock.invocation.operation.text, "time/every");
+    assert_eq!(clock.invocation.kind.text, "time/every");
     assert!(matches!(
         &clock.invocation.arguments[..],
         [Argument::Positional(expression)] if expression.text == "1s"
@@ -26,8 +26,8 @@ fn canonical_clock_form_round_trips_with_named_and_inline_cells() {
     };
     assert!(matches!(
         &cord.stages[..],
-        [CordStage::Reference(clock), CordStage::InlineCell(tick)]
-            if clock.text == "clock" && tick.operation.text == "presentation/tick"
+        [CordStage::Reference(clock), CordStage::InlineGear(tick)]
+            if clock.text == "clock" && tick.kind.text == "presentation/tick"
     ));
 }
 
@@ -65,8 +65,8 @@ fn canonical_face_keeps_startup_values_runtime_ports_and_shorthand_distinct() {
         .expect("central pair is recorded");
     assert_eq!(shorthand.input_port.text, "state");
     assert_eq!(shorthand.output_port.text, "view");
-    let BackStatement::NamedCell(hero) = &form.back[0] else {
-        panic!("hero is a named cell");
+    let BackStatement::NamedGear(hero) = &form.back[0] else {
+        panic!("hero is a named gear");
     };
     assert_eq!(hero.invocation.arguments.len(), 2);
 }
@@ -107,7 +107,7 @@ fn canonical_duplex_face_has_auxiliary_ports_without_a_shorthand_path() {
 }
 
 #[test]
-fn canonical_back_represents_values_named_arguments_and_anonymous_cells() {
+fn canonical_back_represents_values_named_arguments_and_anonymous_gears() {
     let source = "form demo {\n    freq = 1s\n    clock: time/every(freq = 1s)\n    time/every(freq) > sensors/read\n}\n";
     let document = parse_syntax_document(source);
     let form = &document.forms().expect("back parses")[0];
@@ -117,8 +117,8 @@ fn canonical_back_represents_values_named_arguments_and_anonymous_cells() {
     };
     assert_eq!(freq.name.text, "freq");
     assert_eq!(freq.value.text, "1s");
-    let BackStatement::NamedCell(clock) = &form.back[1] else {
-        panic!("clock is a named cell");
+    let BackStatement::NamedGear(clock) = &form.back[1] else {
+        panic!("clock is a named gear");
     };
     assert!(matches!(
         &clock.invocation.arguments[..],
@@ -126,11 +126,11 @@ fn canonical_back_represents_values_named_arguments_and_anonymous_cells() {
             if name.text == "freq" && value.text == "1s"
     ));
     let BackStatement::Cord(cord) = &form.back[2] else {
-        panic!("anonymous cells form a cord");
+        panic!("anonymous gears form a cord");
     };
     assert!(matches!(
         &cord.stages[..],
-        [CordStage::InlineCell(_), CordStage::InlineCell(_)]
+        [CordStage::InlineGear(_), CordStage::InlineGear(_)]
     ));
 }
 
@@ -163,7 +163,7 @@ fn canonical_negative_corpus_has_stable_diagnostics_and_exact_spans() {
             "form bad (\n    a: A > b: B\n    c: C > d: D\n) {\n}\n",
             "more than one shorthand face pair",
         ),
-        ("form bad {\n    clock:\n}\n", "missing cell operation"),
+        ("form bad {\n    clock:\n}\n", "missing Gear Kind"),
         (
             "form bad {\n    clock: time/every(freq = 1s, 2s)\n}\n",
             "positional argument cannot follow",
@@ -263,13 +263,13 @@ fn canonical_parser_handles_inline_form_calls_and_quoted_punctuation() {
     };
     assert!(matches!(
         &cord.stages[0],
-        CordStage::InlineCell(call) if call.operation.text == "greet"
+        CordStage::InlineGear(call) if call.kind.text == "greet"
     ));
 }
 
 #[test]
 fn canonical_parser_rejects_unbalanced_invocation_expressions() {
-    let source = "form bad {\n    cell: time/every(nested(value)\n}\n";
+    let source = "form bad {\n    gear: time/every(nested(value)\n}\n";
     let document = parse_syntax_document(source);
     let diagnostic = document.diagnostics.first().expect("unbalanced call fails");
 

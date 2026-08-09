@@ -1,6 +1,6 @@
 use conduit_core::{
-    AuthorityGrant, CapabilityId, ConnectionProvider, HostId, LinkBinding, LinkBindingId,
-    OperationId, ProtectedResourceGrant,
+    AuthorityGrant, CapabilityId, ConnectionBase, GearId, HostId, LinkBinding, LinkBindingId,
+    ProtectedResourceGrant,
 };
 use std::collections::BTreeMap;
 
@@ -12,14 +12,14 @@ pub struct PlacementChoice {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlacementChoices {
-    pub by_operation: BTreeMap<OperationId, PlacementChoice>,
+    pub by_gear: BTreeMap<GearId, PlacementChoice>,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct PlanningOptions<'a> {
-    pub connection_providers: &'a BTreeMap<(OperationId, OperationId), ConnectionProvider>,
+    pub connection_bases: &'a BTreeMap<(GearId, GearId), ConnectionBase>,
     /// Exact observed binding identities to seal, in deterministic preference order.
-    pub route_candidates: &'a BTreeMap<(OperationId, OperationId), Vec<LinkBindingId>>,
+    pub route_candidates: &'a BTreeMap<(GearId, GearId), Vec<LinkBindingId>>,
     pub connection_item_capacity: u16,
     pub connection_byte_capacity: u32,
     pub authority_grants: &'a [AuthorityGrant],
@@ -33,7 +33,7 @@ pub enum PlannerError {
     PlannerCapabilityNotAdvertised(String),
     PlannerCapabilityAmbiguous(String),
     PlannerLimitExceeded(String),
-    UnknownOperation(String),
+    UnknownGear(String),
     MissingPlacement(String),
     DuplicatePlacement(String),
     UnknownHost(String),
@@ -61,11 +61,11 @@ pub enum PlannerError {
     LinkBindingMissing(String),
     LinkBindingUnavailable(String),
     LinkBindingAmbiguous(String),
-    UnavailableConnectionProvider(String),
+    UnavailableConnectionBase(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
     CyclicStartupDependencies(String),
-    EvidenceBudgetOverflow(String),
+    ClueBudgetOverflow(String),
     InvalidPlacementSyntax(String),
     InvalidSharedPool(String),
 }
@@ -81,7 +81,7 @@ impl std::fmt::Display for PlannerError {
                 write!(f, "planner capability ambiguous: {value}")
             }
             Self::PlannerLimitExceeded(value) => write!(f, "planner limit exceeded: {value}"),
-            Self::UnknownOperation(value) => write!(f, "unknown operation '{value}'"),
+            Self::UnknownGear(value) => write!(f, "unknown gear '{value}'"),
             Self::MissingPlacement(value) => write!(f, "missing placement for '{value}'"),
             Self::DuplicatePlacement(value) => write!(f, "duplicate placement for '{value}'"),
             Self::UnknownHost(value) => write!(f, "unknown host '{value}'"),
@@ -141,8 +141,8 @@ impl std::fmt::Display for PlannerError {
             Self::LinkBindingMissing(value) => write!(f, "link binding missing: {value}"),
             Self::LinkBindingUnavailable(value) => write!(f, "link binding unavailable: {value}"),
             Self::LinkBindingAmbiguous(value) => write!(f, "link binding ambiguous: {value}"),
-            Self::UnavailableConnectionProvider(value) => {
-                write!(f, "unavailable connection provider: {value}")
+            Self::UnavailableConnectionBase(value) => {
+                write!(f, "unavailable connection base: {value}")
             }
             Self::QueueRequirementAboveHostLimit(value) => {
                 write!(f, "queue requirement above host limit: {value}")
@@ -153,8 +153,8 @@ impl std::fmt::Display for PlannerError {
             Self::CyclicStartupDependencies(value) => {
                 write!(f, "cyclic startup dependencies: {value}")
             }
-            Self::EvidenceBudgetOverflow(value) => {
-                write!(f, "mandatory evidence budget overflow: {value}")
+            Self::ClueBudgetOverflow(value) => {
+                write!(f, "mandatory clue budget overflow: {value}")
             }
             Self::InvalidPlacementSyntax(value) => write!(f, "invalid placement syntax: {value}"),
             Self::InvalidSharedPool(value) => write!(f, "invalid shared pool: {value}"),
@@ -178,13 +178,13 @@ pub fn parse_placements(source: &str) -> Result<PlacementChoices, PlannerError> 
     }
 
     let mut index = 1usize;
-    let mut by_operation = BTreeMap::new();
+    let mut by_gear = BTreeMap::new();
     while index < lines.len() {
         let header = lines[index];
         let operation_name = header
             .strip_suffix(':')
             .ok_or_else(|| PlannerError::InvalidPlacementSyntax(header.to_string()))?;
-        if by_operation.contains_key(&OperationId::from(operation_name)) {
+        if by_gear.contains_key(&GearId::from(operation_name)) {
             return Err(PlannerError::DuplicatePlacement(operation_name.to_string()));
         }
         let host_line = lines
@@ -195,8 +195,8 @@ pub fn parse_placements(source: &str) -> Result<PlacementChoices, PlannerError> 
             .ok_or_else(|| PlannerError::InvalidPlacementSyntax(operation_name.to_string()))?;
         let host_id = parse_assignment(host_line, "host")?;
         let capability_id = parse_assignment(capability_line, "capability")?;
-        by_operation.insert(
-            OperationId::from(operation_name),
+        by_gear.insert(
+            GearId::from(operation_name),
             PlacementChoice {
                 host_id: HostId::from(host_id),
                 capability_id: CapabilityId::from(capability_id),
@@ -205,7 +205,7 @@ pub fn parse_placements(source: &str) -> Result<PlacementChoices, PlannerError> 
         index += 3;
     }
 
-    Ok(PlacementChoices { by_operation })
+    Ok(PlacementChoices { by_gear })
 }
 
 fn parse_assignment<'a>(line: &'a str, key: &str) -> Result<&'a str, PlannerError> {

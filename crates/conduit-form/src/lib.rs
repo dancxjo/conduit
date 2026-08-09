@@ -1,6 +1,6 @@
 use conduit_core::{
     CapabilityId, CheckedFormId, ConfigurationEntry, ConfigurationValue, ExpandedFormId,
-    FormIdentity, KindContractRevision, KindId, OperationId, PortDescriptor, PortDirection, PortId,
+    FormIdentity, GearId, KindContractRevision, KindId, PortDescriptor, PortDirection, PortId,
     SourceDocumentId,
 };
 use sha2::{Digest, Sha256};
@@ -85,8 +85,8 @@ impl FormDocument {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CheckedOperation {
-    pub operation_id: OperationId,
+pub struct CheckedGear {
+    pub gear_id: GearId,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,
     pub startup_parameters: Vec<conduit_core::FaceStartupParameter>,
@@ -99,9 +99,9 @@ pub struct CheckedOperation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedConnection {
-    pub source_operation_id: OperationId,
+    pub source_gear_id: GearId,
     pub source_port_id: PortId,
-    pub sink_operation_id: OperationId,
+    pub sink_gear_id: GearId,
     pub sink_port_id: PortId,
     pub value_kind: KindId,
     pub temporal: conduit_core::PortTemporal,
@@ -113,7 +113,7 @@ pub struct CheckedForm {
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
     pub name: String,
-    pub operations: Vec<CheckedOperation>,
+    pub gears: Vec<CheckedGear>,
     pub connections: Vec<CheckedConnection>,
     pub exports: Vec<CheckedExport>,
     pub nested_forms: Vec<CheckedNestedForm>,
@@ -134,7 +134,7 @@ impl CheckedForm {
     /// while retaining a previously sealed identity.
     pub fn validate_identities(&self) -> Result<(), FormError> {
         for pair in self.nested_forms.windows(2) {
-            if pair[0].operation_id >= pair[1].operation_id {
+            if pair[0].gear_id >= pair[1].gear_id {
                 return Err(FormError::InvalidIdentity(
                     "nested expansion rows are not unique canonical paths".into(),
                 ));
@@ -142,39 +142,35 @@ impl CheckedForm {
         }
         for nested in &self.nested_forms {
             nested.form.validate_identities()?;
-            let operation = self
-                .operations
+            let gear = self
+                .gears
                 .iter()
-                .find(|operation| operation.operation_id == nested.operation_id)
+                .find(|gear| gear.gear_id == nested.gear_id)
                 .ok_or_else(|| {
                     FormError::InvalidIdentity(format!(
-                        "nested expansion path '{}' has no checked operation",
-                        nested.operation_id.as_str()
+                        "nested expansion path '{}' has no checked gear",
+                        nested.gear_id.as_str()
                     ))
                 })?;
             let boundary = nested
                 .form
                 .export_boundary_unvalidated(&nested.export_capability_id)?;
             let definition = boundary.kind_definition();
-            if operation.kind_id != definition.kind_id
-                || operation.kind_contract_revision != definition.kind_contract_revision
-                || operation.inputs != definition.inputs
-                || operation.outputs != definition.outputs
-                || !operation.configuration.is_empty()
+            if gear.kind_id != definition.kind_id
+                || gear.kind_contract_revision != definition.kind_contract_revision
+                || gear.inputs != definition.inputs
+                || gear.outputs != definition.outputs
+                || !gear.configuration.is_empty()
             {
                 return Err(FormError::InvalidIdentity(format!(
                     "nested expansion path '{}' differs from its selected export",
-                    nested.operation_id.as_str()
+                    nested.gear_id.as_str()
                 )));
             }
         }
 
-        let expected_checked = checked_form_id(
-            &self.name,
-            &self.operations,
-            &self.connections,
-            &self.exports,
-        );
+        let expected_checked =
+            checked_form_id(&self.name, &self.gears, &self.connections, &self.exports);
         if self.checked_form_id != expected_checked {
             return Err(FormError::InvalidIdentity(
                 "checked form identity differs from its canonical semantic form".into(),
@@ -214,7 +210,7 @@ impl CheckedForm {
                     capability_id.as_str()
                 ))
             })?;
-        validate_export_faces(export, &self.operations)?;
+        validate_export_faces(export, &self.gears)?;
         let inputs = export
             .input_faces
             .iter()
@@ -243,7 +239,7 @@ impl CheckedForm {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedNestedForm {
-    pub operation_id: OperationId,
+    pub gear_id: GearId,
     pub export_capability_id: CapabilityId,
     pub form: CheckedForm,
 }
@@ -270,7 +266,7 @@ pub enum CompositeFaceTerminal {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedCompositeFace {
     pub external_port: PortDescriptor,
-    pub internal_operation_id: OperationId,
+    pub internal_gear_id: GearId,
     pub internal_port_id: PortId,
     pub terminal: CompositeFaceTerminal,
 }
@@ -397,8 +393,8 @@ pub enum FormError {
     MissingBlockEnd,
     EmptyFormName,
     DuplicateKind(String),
-    DuplicateOperation(String),
-    UnknownOperation(String),
+    DuplicateGear(String),
+    UnknownGear(String),
     UnsupportedKind { kind: String, supported: String },
     InvalidConfiguration(String),
     InvalidConnection(String),
@@ -430,8 +426,8 @@ impl std::fmt::Display for FormError {
             Self::MissingBlockEnd => write!(f, "expected closing '}}' at end of form"),
             Self::EmptyFormName => write!(f, "form name must not be empty"),
             Self::DuplicateKind(kind) => write!(f, "duplicate profile kind '{kind}'"),
-            Self::DuplicateOperation(name) => write!(f, "duplicate operation '{name}'"),
-            Self::UnknownOperation(name) => write!(f, "unknown operation '{name}'"),
+            Self::DuplicateGear(name) => write!(f, "duplicate gear '{name}'"),
+            Self::UnknownGear(name) => write!(f, "unknown gear '{name}'"),
             Self::UnsupportedKind { kind, supported } => {
                 write!(f, "unsupported kind '{kind}'. supported kinds: {supported}")
             }
@@ -450,12 +446,12 @@ impl std::fmt::Display for FormError {
 impl std::error::Error for FormError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct OperationDraft {
+struct GearDraft {
     definition: KindDefinition,
     configuration: Vec<ConfigurationEntry>,
 }
 
-impl OperationDraft {
+impl GearDraft {
     fn new(kind: &str, catalog: &ProfileCatalog) -> Result<Self, FormError> {
         let kind_id = KindId::from(kind);
         let definition =
@@ -603,7 +599,7 @@ fn parse_form_block(
         return Err((FormError::EmptyFormName, header.span));
     }
 
-    let mut operations = BTreeMap::<String, OperationDraft>::new();
+    let mut gears = BTreeMap::<String, GearDraft>::new();
     let mut connections = Vec::<CheckedConnection>::new();
     let mut exports = Vec::<CheckedExport>::new();
     let mut nested_forms = Vec::<CheckedNestedForm>::new();
@@ -612,11 +608,11 @@ fn parse_form_block(
         let located = lines[index];
         let line = located.text;
         if line == "}" {
-            nested_forms.sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
-            let checked_operations = operations
+            nested_forms.sort_by(|left, right| left.gear_id.cmp(&right.gear_id));
+            let checked_operations = gears
                 .iter()
-                .map(|(operation_name, draft)| CheckedOperation {
-                    operation_id: OperationId::from(operation_name.as_str()),
+                .map(|(operation_name, draft)| CheckedGear {
+                    gear_id: GearId::from(operation_name.as_str()),
                     kind_id: draft.definition.kind_id.clone(),
                     kind_contract_revision: draft.definition.kind_contract_revision.clone(),
                     startup_parameters: draft
@@ -662,7 +658,7 @@ fn parse_form_block(
                     checked_form_id,
                     expanded_form_id,
                     name,
-                    operations: checked_operations,
+                    gears: checked_operations,
                     connections,
                     exports,
                     nested_forms,
@@ -671,8 +667,8 @@ fn parse_form_block(
             ));
         }
         if line.starts_with("export ") && line.ends_with('{') {
-            let (export, next) = parse_export_block(lines, index, &operations)
-                .map_err(|error| (error, located.span))?;
+            let (export, next) =
+                parse_export_block(lines, index, &gears).map_err(|error| (error, located.span))?;
             if exports
                 .iter()
                 .any(|checked| checked.capability_id == export.capability_id)
@@ -694,7 +690,7 @@ fn parse_form_block(
             let (operation_name, capability_name) =
                 nested_declaration.split_once(':').ok_or_else(|| {
                     (
-                        FormError::InvalidNestedForm("expected 'operation: capability {'".into()),
+                        FormError::InvalidNestedForm("expected 'kind: capability {'".into()),
                         located.span,
                     )
                 })?;
@@ -703,9 +699,9 @@ fn parse_form_block(
             if operation_name.is_empty() || capability_name.is_empty() {
                 return Err((FormError::InvalidBlockStart, located.span));
             }
-            if operations.contains_key(operation_name) {
+            if gears.contains_key(operation_name) {
                 return Err((
-                    FormError::DuplicateOperation(operation_name.to_string()),
+                    FormError::DuplicateGear(operation_name.to_string()),
                     located.span,
                 ));
             }
@@ -715,15 +711,15 @@ fn parse_form_block(
             let boundary = nested_form
                 .export_boundary(&export_capability_id)
                 .map_err(|error| (error, located.span))?;
-            operations.insert(
+            gears.insert(
                 operation_name.to_string(),
-                OperationDraft {
+                GearDraft {
                     definition: boundary.kind_definition(),
                     configuration: Vec::new(),
                 },
             );
             nested_forms.push(CheckedNestedForm {
-                operation_id: OperationId::from(operation_name),
+                gear_id: GearId::from(operation_name),
                 export_capability_id,
                 form: nested_form,
             });
@@ -734,32 +730,31 @@ fn parse_form_block(
             return Err((FormError::InvalidExport(line.to_string()), located.span));
         }
         if let Some((left, right)) = line.split_once(':') {
-            let operation_id = left.trim().to_string();
-            if operations.contains_key(&operation_id) {
-                return Err((FormError::DuplicateOperation(operation_id), located.span));
+            let gear_id = left.trim().to_string();
+            if gears.contains_key(&gear_id) {
+                return Err((FormError::DuplicateGear(gear_id), located.span));
             }
-            operations.insert(
-                operation_id,
-                OperationDraft::new(right.trim(), catalog)
-                    .map_err(|error| (error, located.span))?,
+            gears.insert(
+                gear_id,
+                GearDraft::new(right.trim(), catalog).map_err(|error| (error, located.span))?,
             );
             index += 1;
             continue;
         }
         if let Some((left, right)) = line.split_once('=') {
-            let (operation_id, key) = left.trim().split_once('.').ok_or_else(|| {
+            let (gear_id, key) = left.trim().split_once('.').ok_or_else(|| {
                 (
                     FormError::InvalidConfiguration(line.to_string()),
                     located.span,
                 )
             })?;
-            let operation = operations.get_mut(operation_id.trim()).ok_or_else(|| {
+            let gear = gears.get_mut(gear_id.trim()).ok_or_else(|| {
                 (
-                    FormError::UnknownOperation(operation_id.trim().to_string()),
+                    FormError::UnknownGear(gear_id.trim().to_string()),
                     located.span,
                 )
             })?;
-            let entry = operation
+            let entry = gear
                 .configuration
                 .iter_mut()
                 .find(|entry| entry.key == key.trim())
@@ -768,14 +763,14 @@ fn parse_form_block(
                         FormError::InvalidConfiguration(format!(
                             "unsupported key '{}' for '{}'",
                             key.trim(),
-                            operation.definition.kind_id.as_str()
+                            gear.definition.kind_id.as_str()
                         )),
                         located.span,
                     )
                 })?;
             let value = parse_configuration_value(right.trim(), &entry.value)
                 .map_err(|error| (error, located.span))?;
-            let field = operation
+            let field = gear
                 .definition
                 .configuration
                 .iter()
@@ -785,7 +780,7 @@ fn parse_form_block(
                 return Err((
                     FormError::InvalidConfiguration(format!(
                         "value for '{}.{}' violates the profile catalog rule",
-                        operation_id.trim(),
+                        gear_id.trim(),
                         key.trim()
                     )),
                     located.span,
@@ -797,7 +792,7 @@ fn parse_form_block(
         }
         if let Some((left, right)) = line.split_once("->") {
             connections.push(
-                parse_connection(left.trim(), right.trim(), &operations)
+                parse_connection(left.trim(), right.trim(), &gears)
                     .map_err(|error| (error, located.span))?,
             );
             index += 1;
@@ -805,7 +800,7 @@ fn parse_form_block(
         }
         if let Some((left, right)) = line.split_once('>') {
             connections.push(
-                parse_shorthand_connection(left.trim(), right.trim(), &operations)
+                parse_shorthand_connection(left.trim(), right.trim(), &gears)
                     .map_err(|error| (error, located.span))?,
             );
             index += 1;
@@ -978,8 +973,8 @@ fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
         FormError::MissingBlockEnd => "CND-FRM-004",
         FormError::EmptyFormName => "CND-FRM-005",
         FormError::DuplicateKind(_) => "CND-FRM-006",
-        FormError::DuplicateOperation(_) => "CND-FRM-007",
-        FormError::UnknownOperation(_) => "CND-FRM-008",
+        FormError::DuplicateGear(_) => "CND-FRM-007",
+        FormError::UnknownGear(_) => "CND-FRM-008",
         FormError::UnsupportedKind { .. } => "CND-FRM-009",
         FormError::InvalidConfiguration(_) => "CND-FRM-010",
         FormError::InvalidConnection(_) => "CND-FRM-011",
@@ -1002,7 +997,7 @@ fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
 fn parse_export_block(
     lines: &[LocatedLine<'_>],
     start: usize,
-    operations: &BTreeMap<String, OperationDraft>,
+    gears: &BTreeMap<String, GearDraft>,
 ) -> Result<(CheckedExport, usize), FormError> {
     let header = lines
         .get(start)
@@ -1033,7 +1028,7 @@ fn parse_export_block(
             validate_export_face_names(&export)?;
             return Ok((export, index + 1));
         }
-        let face = parse_export_face(line.text, operations)?;
+        let face = parse_export_face(line.text, gears)?;
         match face.external_port.direction {
             PortDirection::Input => input_faces.push(face),
             PortDirection::Output => output_faces.push(face),
@@ -1045,7 +1040,7 @@ fn parse_export_block(
 
 fn parse_export_face(
     source: &str,
-    operations: &BTreeMap<String, OperationDraft>,
+    gears: &BTreeMap<String, GearDraft>,
 ) -> Result<CheckedCompositeFace, FormError> {
     let (direction, body) = if let Some(body) = source.strip_prefix("input ") {
         (PortDirection::Input, body)
@@ -1076,11 +1071,11 @@ fn parse_export_face(
     if external_port_id.is_empty() || value_kind.is_empty() {
         return Err(FormError::InvalidExport(source.to_string()));
     }
-    let (operation_id, port_id) = parse_endpoint(endpoint.trim())?;
-    let operation = operation(operations, operation_id.trim())?;
+    let (gear_id, port_id) = parse_endpoint(endpoint.trim())?;
+    let gear = gear(gears, gear_id.trim())?;
     let internal_port = match direction {
-        PortDirection::Input => &operation.definition.inputs,
-        PortDirection::Output => &operation.definition.outputs,
+        PortDirection::Input => &gear.definition.inputs,
+        PortDirection::Output => &gear.definition.outputs,
     }
     .iter()
     .find(|port| port.port_id.as_str() == port_id.trim())
@@ -1091,7 +1086,7 @@ fn parse_export_face(
                 PortDirection::Input => "input",
                 PortDirection::Output => "output",
             },
-            operation_id.trim(),
+            gear_id.trim(),
             port_id.trim(),
             match direction {
                 PortDirection::Input => "input",
@@ -1113,7 +1108,7 @@ fn parse_export_face(
             direction,
             temporal: conduit_core::PortTemporal::Value,
         },
-        internal_operation_id: OperationId::from(operation_id.trim()),
+        internal_gear_id: GearId::from(gear_id.trim()),
         internal_port_id: PortId::from(port_id.trim()),
         terminal: CompositeFaceTerminal::Independent,
     })
@@ -1132,10 +1127,7 @@ fn validate_export_face_names(export: &CheckedExport) -> Result<(), FormError> {
     Ok(())
 }
 
-fn validate_export_faces(
-    export: &CheckedExport,
-    operations: &[CheckedOperation],
-) -> Result<(), FormError> {
+fn validate_export_faces(export: &CheckedExport, gears: &[CheckedGear]) -> Result<(), FormError> {
     validate_export_face_names(export)?;
     for (direction, faces) in [
         (PortDirection::Input, &export.input_faces),
@@ -1147,18 +1139,18 @@ fn validate_export_faces(
                     "face direction differs from its export collection".into(),
                 ));
             }
-            let operation = operations
+            let gear = gears
                 .iter()
-                .find(|operation| operation.operation_id == face.internal_operation_id)
+                .find(|gear| gear.gear_id == face.internal_gear_id)
                 .ok_or_else(|| {
                     FormError::InvalidExport(format!(
-                        "face '{}' names a missing internal operation",
+                        "face '{}' names a missing internal gear",
                         face.external_port.port_id.as_str()
                     ))
                 })?;
             let endpoint = match direction {
-                PortDirection::Input => &operation.inputs,
-                PortDirection::Output => &operation.outputs,
+                PortDirection::Input => &gear.inputs,
+                PortDirection::Output => &gear.outputs,
             }
             .iter()
             .find(|port| port.port_id == face.internal_port_id)
@@ -1210,49 +1202,43 @@ fn parse_configuration_value(
 fn parse_connection(
     left: &str,
     right: &str,
-    operations: &BTreeMap<String, OperationDraft>,
+    gears: &BTreeMap<String, GearDraft>,
 ) -> Result<CheckedConnection, FormError> {
-    let (source_operation, source_port) = parse_endpoint(left)?;
-    let (sink_operation, sink_port) = parse_endpoint(right)?;
-    connection_from_ports(
-        source_operation,
-        source_port,
-        sink_operation,
-        sink_port,
-        operations,
-    )
+    let (source_gear, source_port) = parse_endpoint(left)?;
+    let (sink_gear, sink_port) = parse_endpoint(right)?;
+    connection_from_ports(source_gear, source_port, sink_gear, sink_port, gears)
 }
 
 fn parse_shorthand_connection(
-    source_operation: &str,
-    sink_operation: &str,
-    operations: &BTreeMap<String, OperationDraft>,
+    source_gear: &str,
+    sink_gear: &str,
+    gears: &BTreeMap<String, GearDraft>,
 ) -> Result<CheckedConnection, FormError> {
-    let source = operation(operations, source_operation)?;
-    let sink = operation(operations, sink_operation)?;
+    let source = gear(gears, source_gear)?;
+    let sink = gear(gears, sink_gear)?;
     if source.definition.outputs.len() != 1 || sink.definition.inputs.len() != 1 {
         return Err(FormError::InvalidConnection(format!(
-            "shorthand requires exactly one output and one input for '{source_operation} > {sink_operation}'"
+            "shorthand requires exactly one output and one input for '{source_gear} > {sink_gear}'"
         )));
     }
     connection_from_ports(
-        source_operation,
+        source_gear,
         source.definition.outputs[0].port_id.as_str(),
-        sink_operation,
+        sink_gear,
         sink.definition.inputs[0].port_id.as_str(),
-        operations,
+        gears,
     )
 }
 
 fn connection_from_ports(
-    source_operation: &str,
+    source_gear: &str,
     source_port: &str,
-    sink_operation: &str,
+    sink_gear: &str,
     sink_port: &str,
-    operations: &BTreeMap<String, OperationDraft>,
+    gears: &BTreeMap<String, GearDraft>,
 ) -> Result<CheckedConnection, FormError> {
-    let source = operation(operations, source_operation)?;
-    let sink = operation(operations, sink_operation)?;
+    let source = gear(gears, source_gear)?;
+    let sink = gear(gears, sink_gear)?;
     let source_descriptor = source
         .definition
         .outputs
@@ -1260,7 +1246,7 @@ fn connection_from_ports(
         .find(|port| port.port_id.as_str() == source_port)
         .ok_or_else(|| {
             FormError::InvalidConnection(format!(
-                "'{source_operation}' has no output port '{source_port}'"
+                "'{source_gear}' has no output port '{source_port}'"
             ))
         })?;
     let sink_descriptor = sink
@@ -1269,9 +1255,7 @@ fn connection_from_ports(
         .iter()
         .find(|port| port.port_id.as_str() == sink_port)
         .ok_or_else(|| {
-            FormError::InvalidConnection(format!(
-                "'{sink_operation}' has no input port '{sink_port}'"
-            ))
+            FormError::InvalidConnection(format!("'{sink_gear}' has no input port '{sink_port}'"))
         })?;
     if source_descriptor.value_kind != sink_descriptor.value_kind
         || source_descriptor.temporal != sink_descriptor.temporal
@@ -1285,22 +1269,22 @@ fn connection_from_ports(
         )));
     }
     Ok(CheckedConnection {
-        source_operation_id: OperationId::from(source_operation),
+        source_gear_id: GearId::from(source_gear),
         source_port_id: source_descriptor.port_id.clone(),
-        sink_operation_id: OperationId::from(sink_operation),
+        sink_gear_id: GearId::from(sink_gear),
         sink_port_id: sink_descriptor.port_id.clone(),
         value_kind: source_descriptor.value_kind.clone(),
         temporal: source_descriptor.temporal,
     })
 }
 
-fn operation<'a>(
-    operations: &'a BTreeMap<String, OperationDraft>,
-    operation_id: &str,
-) -> Result<&'a OperationDraft, FormError> {
-    operations
-        .get(operation_id)
-        .ok_or_else(|| FormError::UnknownOperation(operation_id.to_string()))
+fn gear<'a>(
+    gears: &'a BTreeMap<String, GearDraft>,
+    gear_id: &str,
+) -> Result<&'a GearDraft, FormError> {
+    gears
+        .get(gear_id)
+        .ok_or_else(|| FormError::UnknownGear(gear_id.to_string()))
 }
 
 fn parse_endpoint(endpoint: &str) -> Result<(&str, &str), FormError> {
@@ -1311,19 +1295,19 @@ fn parse_endpoint(endpoint: &str) -> Result<(&str, &str), FormError> {
 
 fn canonical_form_text(
     name: &str,
-    operations: &[CheckedOperation],
+    gears: &[CheckedGear],
     connections: &[CheckedConnection],
     exports: &[CheckedExport],
 ) -> String {
     let mut text = format!("form:{name}\n");
-    for operation in operations {
+    for gear in gears {
         text.push_str(&format!(
             "op:{}:{}:{}|",
-            operation.operation_id.as_str(),
-            operation.kind_id.as_str(),
-            operation.kind_contract_revision.as_str()
+            gear.gear_id.as_str(),
+            gear.kind_id.as_str(),
+            gear.kind_contract_revision.as_str()
         ));
-        for port in operation.inputs.iter().chain(&operation.outputs) {
+        for port in gear.inputs.iter().chain(&gear.outputs) {
             let direction = match port.direction {
                 conduit_core::PortDirection::Input => "input",
                 conduit_core::PortDirection::Output => "output",
@@ -1336,7 +1320,7 @@ fn canonical_form_text(
                 port.temporal.as_str()
             ));
         }
-        for entry in &operation.configuration {
+        for entry in &gear.configuration {
             text.push_str(&format!(
                 "cfg:{}={}|",
                 entry.key,
@@ -1347,9 +1331,9 @@ fn canonical_form_text(
     for connection in connections {
         text.push_str(&format!(
             "conn:{}:{}->{}:{}:{}|",
-            connection.source_operation_id.as_str(),
+            connection.source_gear_id.as_str(),
             connection.source_port_id.as_str(),
-            connection.sink_operation_id.as_str(),
+            connection.sink_gear_id.as_str(),
             connection.sink_port_id.as_str(),
             connection.temporal.as_str()
         ));
@@ -1370,7 +1354,7 @@ fn canonical_form_text(
                 face.external_port.port_id.as_str(),
                 face.external_port.value_kind.as_str(),
                 face.external_port.temporal.as_str(),
-                face.internal_operation_id.as_str(),
+                face.internal_gear_id.as_str(),
                 face.internal_port_id.as_str(),
             ));
         }
@@ -1380,13 +1364,13 @@ fn canonical_form_text(
 
 fn checked_form_id(
     name: &str,
-    operations: &[CheckedOperation],
+    gears: &[CheckedGear],
     connections: &[CheckedConnection],
     exports: &[CheckedExport],
 ) -> CheckedFormId {
     CheckedFormId::from(hash_string(&canonical_form_text(
         name,
-        operations,
+        gears,
         connections,
         exports,
     )))
@@ -1399,7 +1383,7 @@ fn expanded_form_id(
     let mut canonical = format!("expanded-form:{}", checked_form_id.as_str());
     for nested in nested_forms {
         canonical.push_str("|nested:");
-        push_identity_field(&mut canonical, nested.operation_id.as_str());
+        push_identity_field(&mut canonical, nested.gear_id.as_str());
         push_identity_field(&mut canonical, nested.export_capability_id.as_str());
         push_identity_field(&mut canonical, nested.form.expanded_form_id.as_str());
     }

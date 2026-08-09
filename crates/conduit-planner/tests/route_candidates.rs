@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    verify_plan, CapabilityId, ConnectionProvider, LinkBindingId, LinkEndpointId, OperationId,
+    verify_plan, CapabilityId, ConnectionBase, GearId, LinkBindingId, LinkEndpointId,
 };
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
 use conduit_signal::{
@@ -19,30 +19,30 @@ fn plan_with_policy(
     )
     .expect("checked form");
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("pulse"),
+                GearId::from("pulse"),
                 PlacementChoice {
                     host_id: exact.source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(triple::PULSE_CAPABILITY_ID),
                 },
             ),
             (
-                OperationId::from("local"),
+                GearId::from("local"),
                 PlacementChoice {
                     host_id: exact.source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(triple::STDOUT_CAPABILITY_ID),
                 },
             ),
             (
-                OperationId::from("web"),
+                GearId::from("web"),
                 PlacementChoice {
                     host_id: exact.browser_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(triple::BROWSER_CAPABILITY_ID),
                 },
             ),
             (
-                OperationId::from("light"),
+                GearId::from("light"),
                 PlacementChoice {
                     host_id: exact.pico_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(triple::PICO_CAPABILITY_ID),
@@ -52,17 +52,15 @@ fn plan_with_policy(
     };
     let mut usb_alternative = exact.browser_link.clone();
     usb_alternative.binding_id = LinkBindingId::from("s4/triple-browser-usb-link");
-    usb_alternative.provider = ConnectionProvider::UsbCdc;
-    usb_alternative.provider_instance_id =
-        conduit_core::ConnectionProviderInstanceId::from("s4/triple-browser-usb-0");
+    usb_alternative.base = ConnectionBase::UsbCdc;
+    usb_alternative.base_instance_id =
+        conduit_core::ConnectionBaseInstanceId::from("s4/triple-browser-usb-0");
     usb_alternative.source.endpoint_id = LinkEndpointId::from("s4/triple-browser-usb-egress");
     usb_alternative.sink.endpoint_id = LinkEndpointId::from("s4/triple-browser-usb-ingress");
     let mut links = vec![exact.browser_link, usb_alternative, exact.pico_link];
     mutate(&mut links);
-    let route_candidates = BTreeMap::from([(
-        (OperationId::from("pulse"), OperationId::from("web")),
-        ordered_ids,
-    )]);
+    let route_candidates =
+        BTreeMap::from([((GearId::from("pulse"), GearId::from("web")), ordered_ids)]);
     plan_with_options(
         &form,
         &[
@@ -72,12 +70,12 @@ fn plan_with_policy(
         ],
         &placements,
         &[
-            ConnectionProvider::Local,
-            ConnectionProvider::WebSocket,
-            ConnectionProvider::UsbCdc,
+            ConnectionBase::Local,
+            ConnectionBase::WebSocket,
+            ConnectionBase::UsbCdc,
         ],
         PlanningOptions {
-            connection_providers: &BTreeMap::new(),
+            connection_bases: &BTreeMap::new(),
             route_candidates: &route_candidates,
             connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             connection_byte_capacity: SIGNAL_ENCODED_LEN,
@@ -112,12 +110,12 @@ fn policy_seals_one_or_multiple_ready_routes_in_identity_bound_order() {
     assert_eq!(web_connection(&one).route_candidates.len(), 1);
     assert_eq!(web_connection(&two).route_candidates.len(), 2);
     assert_eq!(
-        web_connection(&two).route_candidates[0].provider,
-        ConnectionProvider::WebSocket
+        web_connection(&two).route_candidates[0].base,
+        ConnectionBase::WebSocket
     );
     assert_eq!(
-        web_connection(&two).route_candidates[1].provider,
-        ConnectionProvider::UsbCdc
+        web_connection(&two).route_candidates[1].base,
+        ConnectionBase::UsbCdc
     );
     assert_ne!(one.plan_id, two.plan_id);
     assert_ne!(two.plan_id, reversed.plan_id);

@@ -1,22 +1,22 @@
 use crate::{PlacementChoice, PlacementChoices, PlannerError};
 use conduit_core::{CapabilityId, HostAdvertisement};
-use conduit_form::CheckedOperation;
+use conduit_form::CheckedGear;
 use std::collections::BTreeMap;
 
 pub(crate) fn default_placements_unvalidated(
-    operations: &[CheckedOperation],
-    realm: &[HostAdvertisement],
+    gears: &[CheckedGear],
+    hosts: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
-    let host = realm
+    let host = hosts
         .first()
-        .ok_or_else(|| PlannerError::UnknownHost("realm is empty".to_string()))?;
-    let mut by_operation = BTreeMap::new();
+        .ok_or_else(|| PlannerError::UnknownHost("hosts is empty".to_string()))?;
+    let mut by_gear = BTreeMap::new();
     let mut selected_counts = BTreeMap::<CapabilityId, u16>::new();
-    for operation in operations {
+    for gear in gears {
         let mut candidates = host
             .capabilities
             .iter()
-            .filter(|offer| offer.checked_face() == operation.checked_face())
+            .filter(|offer| offer.checked_face() == gear.checked_face())
             .filter(|offer| {
                 selected_counts
                     .get(&offer.capability_id)
@@ -27,24 +27,25 @@ pub(crate) fn default_placements_unvalidated(
             .collect::<Vec<_>>();
         candidates.sort_by_key(|offer| {
             (
-                offer.kind_id != operation.kind_id,
-                offer.kind_contract_revision != operation.kind_contract_revision,
+                offer.kind_id != gear.kind_id,
+                offer.kind_contract_revision != gear.kind_contract_revision,
                 offer.capability_id.clone(),
             )
         });
-        let offer = candidates.first().copied().ok_or_else(|| {
-            PlannerError::UnknownCapability(operation.kind_id.as_str().to_string())
-        })?;
+        let offer = candidates
+            .first()
+            .copied()
+            .ok_or_else(|| PlannerError::UnknownCapability(gear.kind_id.as_str().to_string()))?;
         *selected_counts
             .entry(offer.capability_id.clone())
             .or_default() += 1;
-        by_operation.insert(
-            operation.operation_id.clone(),
+        by_gear.insert(
+            gear.gear_id.clone(),
             PlacementChoice {
                 host_id: host.host_id.clone(),
                 capability_id: offer.capability_id.clone(),
             },
         );
     }
-    Ok(PlacementChoices { by_operation })
+    Ok(PlacementChoices { by_gear })
 }

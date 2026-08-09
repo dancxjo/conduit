@@ -1,6 +1,6 @@
 //! Composite USB device initialisation for dual CDC interfaces.
 //!
-//! Creates CDC 0 (Conduit UsbCdc link interface) and CDC 1 (evidence transcript interface).
+//! Creates CDC 0 (Conduit UsbCdc link interface) and CDC 1 (clue transcript interface).
 
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb;
@@ -12,7 +12,7 @@ pub const MAX_PACKET_SIZE: u8 = 64;
 
 #[cfg(feature = "session-control")]
 static LINK_STATE: StaticCell<State> = StaticCell::new();
-static EVIDENCE_STATE: StaticCell<State> = StaticCell::new();
+static CLUE_STATE: StaticCell<State> = StaticCell::new();
 
 static USB_DEVICE_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
 static USB_CONFIG_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
@@ -24,7 +24,7 @@ pub struct PicoUsbCdcCarrier {
     pub class: CdcAcmClass<'static, usb::Driver<'static, USB>>,
 }
 
-pub struct UsbEvidenceSender {
+pub struct UsbClueSender {
     pub sender: Sender<'static, usb::Driver<'static, USB>>,
 }
 
@@ -34,7 +34,7 @@ pub fn init_composite_usb(
 ) -> (
     UsbDevice<'static, usb::Driver<'static, USB>>,
     PicoUsbCdcCarrier,
-    UsbEvidenceSender,
+    UsbClueSender,
 ) {
     let device_descriptor = USB_DEVICE_DESCRIPTOR.init([0u8; 256]);
     let config_descriptor = USB_CONFIG_DESCRIPTOR.init([0u8; 256]);
@@ -42,7 +42,7 @@ pub fn init_composite_usb(
     let control_buf = USB_CONTROL_BUF.init([0u8; 64]);
 
     let link_state = LINK_STATE.init(State::new());
-    let evidence_state = EVIDENCE_STATE.init(State::new());
+    let clue_state = CLUE_STATE.init(State::new());
 
     let mut config = embassy_usb::Config::new(0x2e8a, 0x000a);
     config.manufacturer = Some("Conduit");
@@ -63,33 +63,33 @@ pub fn init_composite_usb(
     // CDC 0: Link interface (unsplit CdcAcmClass)
     let link_class = CdcAcmClass::new(&mut builder, link_state, MAX_PACKET_SIZE as u16);
 
-    // CDC 1: Evidence interface
-    let evidence_class = CdcAcmClass::new(&mut builder, evidence_state, MAX_PACKET_SIZE as u16);
-    let (evidence_sender, _evidence_receiver) = evidence_class.split();
+    // CDC 1: Clue interface
+    let clue_class = CdcAcmClass::new(&mut builder, clue_state, MAX_PACKET_SIZE as u16);
+    let (clue_sender, _clue_receiver) = clue_class.split();
 
     let device = builder.build();
 
     (
         device,
         PicoUsbCdcCarrier { class: link_class },
-        UsbEvidenceSender {
-            sender: evidence_sender,
+        UsbClueSender {
+            sender: clue_sender,
         },
     )
 }
 
 #[cfg(not(feature = "session-control"))]
-pub fn init_evidence_usb(
+pub fn init_clue_usb(
     driver: usb::Driver<'static, USB>,
 ) -> (
     UsbDevice<'static, usb::Driver<'static, USB>>,
-    UsbEvidenceSender,
+    UsbClueSender,
 ) {
     let device_descriptor = USB_DEVICE_DESCRIPTOR.init([0u8; 256]);
     let config_descriptor = USB_CONFIG_DESCRIPTOR.init([0u8; 256]);
     let bos_descriptor = USB_BOS_DESCRIPTOR.init([0u8; 256]);
     let control_buf = USB_CONTROL_BUF.init([0u8; 64]);
-    let evidence_state = EVIDENCE_STATE.init(State::new());
+    let clue_state = CLUE_STATE.init(State::new());
 
     let mut config = embassy_usb::Config::new(0x2e8a, 0x000a);
     config.manufacturer = Some("Conduit");
@@ -106,12 +106,12 @@ pub fn init_evidence_usb(
         bos_descriptor,
         control_buf,
     );
-    let evidence_class = CdcAcmClass::new(&mut builder, evidence_state, MAX_PACKET_SIZE as u16);
-    let (evidence_sender, _evidence_receiver) = evidence_class.split();
+    let clue_class = CdcAcmClass::new(&mut builder, clue_state, MAX_PACKET_SIZE as u16);
+    let (clue_sender, _clue_receiver) = clue_class.split();
     (
         builder.build(),
-        UsbEvidenceSender {
-            sender: evidence_sender,
+        UsbClueSender {
+            sender: clue_sender,
         },
     )
 }

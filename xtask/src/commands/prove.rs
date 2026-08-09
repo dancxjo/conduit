@@ -21,7 +21,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             };
             crate::commands::pico::run_prove_std_pico_usb(
                 args.link_port.as_deref(),
-                args.evidence_port.as_deref(),
+                args.clue_port.as_deref(),
                 args.interactive,
                 args.induce_sink_failure,
                 &pico_args,

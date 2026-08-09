@@ -1,13 +1,13 @@
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use conduit_form::{OperationSignature, StartupCatalog, StartupParameterSignature};
+use conduit_form::{KindSignature, StartupCatalog, StartupParameterSignature};
 
 pub fn signal_startup_catalog() -> StartupCatalog {
     let mut catalog = StartupCatalog::new();
     catalog
-        .insert(OperationSignature {
-            operation: crate::PULSE_KIND.to_string(),
+        .insert(KindSignature {
+            kind: crate::PULSE_KIND.to_string(),
             startup_parameters: vec![
                 StartupParameterSignature {
                     name: "count".to_string(),
@@ -28,8 +28,8 @@ pub fn signal_startup_catalog() -> StartupCatalog {
         })
         .expect("the Signal pulse signature is unique");
     catalog
-        .insert(OperationSignature {
-            operation: crate::SHOW_KIND.to_string(),
+        .insert(KindSignature {
+            kind: crate::SHOW_KIND.to_string(),
             startup_parameters: Vec::new(),
         })
         .expect("the Signal presentation signature is unique");

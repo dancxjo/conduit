@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AuthorityGrantId, BootId, ConnectionProviderInstanceId, CredentialReferenceId, EvidenceId,
-    HostId, LinkBindingId, LinkEndpointId,
+    AuthorityGrantId, BootId, ClueId, ConnectionBaseInstanceId, CredentialReferenceId, HostId,
+    LinkBindingId, LinkEndpointId,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ConnectionProvider {
+pub enum ConnectionBase {
     Local,
     InMemory,
     /// Deterministic bounded frame transit used only by conformance fixtures.
@@ -19,7 +19,7 @@ pub enum ConnectionProvider {
     UsbCdc,
 }
 
-impl ConnectionProvider {
+impl ConnectionBase {
     pub const fn canonical_code(self) -> u8 {
         match self {
             Self::Local => 0,
@@ -82,14 +82,14 @@ pub struct LinkLimits {
     pub maximum_frame_bytes: u32,
 }
 
-/// One observed, directional, boot-scoped initialized provider instance.
+/// One observed, directional, boot-scoped initialized base instance.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LinkBinding {
     pub binding_id: LinkBindingId,
     pub source: LinkEndpoint,
     pub sink: LinkEndpoint,
-    pub provider: ConnectionProvider,
-    pub provider_instance_id: ConnectionProviderInstanceId,
+    pub base: ConnectionBase,
+    pub base_instance_id: ConnectionBaseInstanceId,
     pub availability: LinkAvailability,
     pub credential: LinkCredentialReference,
     pub authority: LinkAuthorityReference,
@@ -102,8 +102,8 @@ pub struct BoundLink {
     pub binding_id: LinkBindingId,
     pub source: LinkEndpoint,
     pub sink: LinkEndpoint,
-    pub provider: ConnectionProvider,
-    pub provider_instance_id: ConnectionProviderInstanceId,
+    pub base: ConnectionBase,
+    pub base_instance_id: ConnectionBaseInstanceId,
     pub credential: LinkCredentialReference,
     pub authority: LinkAuthorityReference,
     pub limits: LinkLimits,
@@ -115,8 +115,8 @@ impl From<&LinkBinding> for BoundLink {
             binding_id: binding.binding_id.clone(),
             source: binding.source.clone(),
             sink: binding.sink.clone(),
-            provider: binding.provider,
-            provider_instance_id: binding.provider_instance_id.clone(),
+            base: binding.base,
+            base_instance_id: binding.base_instance_id.clone(),
             credential: binding.credential.clone(),
             authority: binding.authority.clone(),
             limits: binding.limits,
@@ -124,12 +124,12 @@ impl From<&LinkBinding> for BoundLink {
     }
 }
 
-/// Mutable evidence about a link, deliberately outside route identity.
+/// Mutable clue about a link, deliberately outside route identity.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LinkObservation {
     pub binding_id: LinkBindingId,
     pub availability: LinkAvailability,
-    pub evidence_id: EvidenceId,
+    pub clue_id: ClueId,
 }
 
 impl LinkBinding {
@@ -137,11 +137,11 @@ impl LinkBinding {
         BoundLink::from(self)
     }
 
-    pub fn observation(&self, evidence_id: EvidenceId) -> LinkObservation {
+    pub fn observation(&self, clue_id: ClueId) -> LinkObservation {
         LinkObservation {
             binding_id: self.binding_id.clone(),
             availability: self.availability,
-            evidence_id,
+            clue_id,
         }
     }
 }

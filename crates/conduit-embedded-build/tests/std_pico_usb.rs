@@ -53,11 +53,8 @@ fn exact_planned_usb_sink_is_the_generated_remote_ingress() {
     assert_eq!(endpoint.peer_host, planned.source.host_id.as_str());
     assert_eq!(endpoint.peer_boot, planned.source.boot_id.as_str());
     assert_eq!(endpoint.peer_endpoint, planned.source.endpoint_id.as_str());
-    assert_eq!(endpoint.provider, planned.provider);
-    assert_eq!(
-        endpoint.provider_instance_id,
-        planned.provider_instance_id.as_str()
-    );
+    assert_eq!(endpoint.base, planned.base);
+    assert_eq!(endpoint.base_instance_id, planned.base_instance_id.as_str());
     assert_eq!(endpoint.link_binding_id, planned.binding_id.as_str());
     assert_eq!(endpoint.maximum_in_flight_items, 1);
     assert_eq!(endpoint.maximum_payload_bytes, SIGNAL_ENCODED_LEN);
@@ -68,7 +65,7 @@ fn exact_planned_usb_sink_is_the_generated_remote_ingress() {
         endpoint.source_fragment_id.as_str(),
         endpoint.sink_fragment_id.as_str(),
         endpoint.link_binding_id.as_str(),
-        endpoint.provider_instance_id.as_str(),
+        endpoint.base_instance_id.as_str(),
         endpoint.local_endpoint.as_str(),
         endpoint.peer_endpoint.as_str(),
     ] {
@@ -86,7 +83,7 @@ fn local_image_cannot_masquerade_as_the_remote_usb_sink() {
         &form,
         core::slice::from_ref(&host),
         &placements,
-        &[conduit_core::ConnectionProvider::Local],
+        &[conduit_core::ConnectionBase::Local],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
     )

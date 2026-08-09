@@ -51,20 +51,19 @@ The project succeeds by refusing to collapse concepts that are convenient to con
 ### Meaning and realization
 
 ```text
-OP     semantic operation such as text/upper
+KIND   reusable semantic behavior such as text/upper
 FORM   authored composition of semantic work
-CELL   one named occurrence in a form
-CORD   typed flow between cells
+GEAR   one configured occurrence of a kind in a form
+CORD   typed flow between gears
 FACE   explicit visible boundary of a form
 
-IMPL   platform-specific realization of an operation
-HOST   running software environment that offers exact operations
-GEAR   a capability currently shown by a part or host
+IMPL   platform-specific realization of a kind
+HOST   running software environment that makes truthful finite offers
 PLAN   exact immutable realization of a form
 PLAY   one active execution of a plan
 ```
 
-An operation is not an implementation. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised operation offer is not selected. A selected offer is not reserved. A reservation is not an active play. Established Rust names such as `KindId` remain internal compatibility-sensitive vocabulary; [the host architecture note](host-architecture.md#public-vocabulary-and-current-internal-names) records the mapping.
+A Kind is not a Gear, and neither is an implementation. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active Play.
 
 ### Identity stages
 
@@ -77,11 +76,11 @@ expanded form
 plan
 plan fragment
 active play
-evidence item
+clue item
 presentation
 ```
 
-A spelling-only edit may change source identity without changing checked meaning. A hidden nested implementation may change expanded identity without changing the visible checked contract. A new placement or boot changes the plan. A replay creates a new play. A UI row is not an evidence identity.
+A spelling-only edit may change source identity without changing checked meaning. A hidden nested implementation may change expanded identity without changing the visible checked contract. A new placement or boot changes the plan. A replay creates a new play. A UI row is not an clue identity.
 
 ### Availability, authority, and relationship
 
@@ -100,7 +99,7 @@ A discovered device is not automatically a host. A host on the network is not au
 
 ### Execution and presentation
 
-The DOM, stdout, LEDs, dashboards, and future Workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or evidence.
+The DOM, stdout, LEDs, dashboards, and future Workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or clue.
 
 A presentation may summarize or arrange runtime facts. It may not manufacture them.
 
@@ -112,20 +111,20 @@ Every executable input and output has a port identity, direction, and value kind
 
 Fan-out is an explicit planned property. One emission is admitted atomically to the required branches or waits under pressure. The kernel never interprets an unqualified `emit` as broadcast to whatever happens to be connected.
 
-### Bounded before activation
+### Bounded before Play start
 
 Before a play starts, the host knows and admits the finite shape needed for execution:
 
-- cell instances;
+- gear instances;
 - values and bytes;
 - cords and routes;
 - queue items and buffered bytes;
 - timers and host-operation concurrency;
 - resource reservations;
-- mandatory evidence;
+- mandatory clue;
 - cancellation and terminal bookkeeping.
 
-Hosted profiles may use heap-backed storage before activation. Constrained profiles may use fixed arenas. Neither may conceal unbounded growth, discovery, retry, string lookup, graph scanning, or queue creation in an admitted hot path.
+Hosted profiles may use heap-backed storage before Play start. Constrained profiles may use fixed arenas. Neither may conceal unbounded growth, discovery, retry, string lookup, graph scanning, or queue creation in an admitted hot path.
 
 ### Generic host operations
 
@@ -137,9 +136,9 @@ The kernel owns execution order and correlation. The platform adapter owns only 
 
 Pressure is not an implementation inconvenience to hide with buffering. It is runtime truth.
 
-Values remain accounted for through offered, accepted, delivered, failed, cancelled, or terminal disposition. Disconnect, malformed input, stale boot, authority denial, resource exhaustion, evidence exhaustion, and unsupported behavior remain distinguishable.
+Values remain accounted for through offered, accepted, delivered, failed, cancelled, or terminal disposition. Disconnect, malformed input, stale boot, authority denial, resource exhaustion, clue exhaustion, and unsupported behavior remain distinguishable.
 
-Automatic retry is a semantic promise and therefore must be planned. A provider may not invent it.
+Automatic retry is a semantic promise and therefore must be planned. A base may not invent it.
 
 ### One kernel
 
@@ -149,11 +148,11 @@ Temporary compatibility façades may help migrate old tests or composite fixture
 
 ## Form and composition direction
 
-A form is semantic source, not deployment configuration.
+A form is semantic source, not platform installation configuration.
 
 A form may contain:
 
-- cells and their semantic operations;
+- configured Gears and their Kinds;
 - typed cords;
 - semantic configuration;
 - explicit finite work bounds;
@@ -187,19 +186,19 @@ The forward vocabulary is:
 ```text
 HOST  a running software environment
 PART  the presence a host contributes to a body
-GEAR  capability offered by a part
+CAPABILITY  truthful finite realization offer from a part
 ROLE  semantic requirement declared by a form
-CAST  exact binding of roles to gear
+CAST  exact binding of roles to capabilities
 LINK  communication path between parts
 BODY  durable top-level realization of a form
 SOUL  durable continuity and recoverable identity of a body
 ```
 
-A host produces a part. A part may pair with a body and show gear. A form requires roles. A cast binds roles to exact gear. A plan fixes cells, parts, hosts, links, authority, resources, and bounds. A play activates that plan. A soul preserves continuity across restarts without pretending a restarted boot is the same execution session.
+A Host produces a Part. A Part may pair with a Body and offer capabilities. A Form contains configured Gears and may require Roles. A Cast binds Roles to exact capabilities. A Plan binds each Gear to exact implementation, Part, Host, Base, authority, resource, route, and bound facts. A Play starts that Plan. A Soul preserves continuity across restarts without pretending a restarted Boot is the same execution session.
 
 Membership, reachability, authority, capability, placement, and link state remain separate.
 
-This layer waits until host reports, live links, the small standard catalog, and evidence are trustworthy. It must consume the kernel rather than invent a parallel distributed world.
+This layer waits until Host reports, live Links, the small standard catalog, and Clues are trustworthy. It must consume the kernel rather than invent a parallel distributed world.
 
 ## Proof classes
 
@@ -211,9 +210,9 @@ The repository uses precise proof names:
 4. actual platform adapter or runtime;
 5. live transport;
 6. actual firmware execution;
-7. physical or hardware-in-the-loop evidence.
+7. physical or hardware-in-the-loop clue.
 
-A Thumb build is not firmware execution. A WASM build is not browser execution. A browser test is not a live network link. A loopback socket is not deployment security. An LED blink is not a machine-readable receipt.
+A Thumb build is not firmware execution. A WASM build is not browser execution. A browser test is not a live network link. A loopback socket is not installation security. An LED blink is not a machine-readable receipt.
 
 `STATUS.md` records the highest proof class currently established for each surface.
 
@@ -226,7 +225,7 @@ The salvage sequence is intentionally layered:
 3. lossless authored forms, nesting, and named faces;
 4. actual std, browser, and Pico hosts with bounded live links;
 5. a small executable `conduit.std` catalog;
-6. BODY, PART, GEAR, ROLE, CAST, LINK, and SOUL;
+6. BODY, PART, CAPABILITY, ROLE, CAST, LINK, and SOUL;
 7. Observatory over real reports, then useful tasks and Workbench;
 8. domain proofs such as Tongues and Netherwick;
 9. deadline-bounded regions and ConduitOS only after the bounded execution image is mature.
@@ -242,7 +241,7 @@ Ideas are classified so that deferral does not feel like erasure and preservatio
 These ideas are current, load-bearing direction and have executable proof in the salvage tree:
 
 - semantic forms, host capability offers, and exact plans;
-- source, checked, expanded, plan, play, evidence, and presentation identity separation;
+- source, checked, expanded, plan, play, clue, and presentation identity separation;
 - typed named ports and explicit fan-out;
 - bounded port-aware `conduit-kernel` execution;
 - generic host operations;
@@ -258,9 +257,9 @@ These are valuable directions waiting on named prerequisites:
 
 - actual Pico W firmware and physical LED receipts;
 - live std-browser and std-Pico links;
-- Zenoh as a later connection provider, not an architectural foundation;
+- Zenoh as a later connection base, not an architectural foundation;
 - the small executable standard catalog;
-- BODY/PART/GEAR/ROLE/CAST/LINK/SOUL;
+- BODY/PART/CAPABILITY/ROLE/CAST/LINK/SOUL;
 - a real Host Observatory over authoritative reports;
 - Copy a file as the first unfamiliar-user task;
 - the Workbench as an authoring client of forms and the runtime;
@@ -283,7 +282,7 @@ These remain useful quarry material but are not to be restored wholesale:
 - connection-shaped composite exports;
 - the unsafe first copy-file implementation;
 - UI-owned runtime truth and task authority;
-- giant provider and catalog inventories added before one executable vertical slice;
+- giant base and catalog inventories added before one executable vertical slice;
 - browser retry matrices and screenshot timing as acceptance;
 - direct platform facts in authored source;
 - the entire pre-reboot workspace as one indivisible recovery target.
@@ -302,7 +301,7 @@ These remain intentionally open questions:
 - which timing profiles can be admitted across which local regions;
 - the final operator experience connecting task fronts, Observatory, and Workbench;
 - how a body exposes a face into another body while preserving continuity and authority;
-- how much of infrastructure deployment Conduit should replace rather than compose with.
+- how much infrastructure installation Conduit should replace rather than compose with.
 
 An unresolved dream is not a promise and not a rejection. It is a question whose answer must eventually be made executable.
 
@@ -332,7 +331,7 @@ Conduit should become useful from the outside inward:
 - then let an unfamiliar person complete one useful task;
 - only then grow the freeform Workbench and larger domains.
 
-The user should not need to understand the machinery before receiving value. After the task works, Conduit should make every hidden choice inspectable: source, checked meaning, expansion, plan, placement, resources, authority, play, evidence, and presentation.
+The user should not need to understand the machinery before receiving value. After the task works, Conduit should make every hidden choice inspectable: source, checked meaning, expansion, plan, placement, resources, authority, play, clue, and presentation.
 
 ## Governance of this canon
 

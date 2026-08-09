@@ -175,7 +175,7 @@ pub fn install_count_pipeline_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, OperationSignature};
+    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, KindSignature};
     for (contract, revision) in [
         (state_count_contract(), STATE_COUNT_CONTRACT_REVISION),
         (
@@ -183,8 +183,8 @@ pub fn install_count_pipeline_catalogs(
             COUNT_PRESENTATION_CONTRACT_REVISION,
         ),
     ] {
-        startup.insert(OperationSignature {
-            operation: contract.kind_id.as_str().to_string(),
+        startup.insert(KindSignature {
+            kind: contract.kind_id.as_str().to_string(),
             startup_parameters: contract
                 .configuration
                 .iter()
@@ -251,7 +251,7 @@ mod tests {
         let mut profile = conduit_form::ProfileCatalog::new();
         crate::install_time_pipeline_catalogs(&mut startup, &mut profile).unwrap();
         install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-        let source = "form count (\n    start: Count = 0\n    bump: Tick...| > value: $Count\n) {\n    cell: state/count(start)\n    bump > cell.bump\n    cell.value > value\n}\nform main {\n    clock: time/every(1s)\n    count: count\n    show: presentation/count\n    clock > count > show\n}\n";
+        let source = "form count (\n    start: Count = 0\n    bump: Tick...| > value: $Count\n) {\n    gear: state/count(start)\n    bump > gear.bump\n    gear.value > value\n}\nform main {\n    clock: time/every(1s)\n    count: count\n    show: presentation/count\n    clock > count > show\n}\n";
         let syntax = conduit_form::parse_syntax_document(source);
         let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
         let expanded = conduit_form::expand_canonical_form(&checked, "main", &profile).unwrap();
@@ -261,7 +261,7 @@ mod tests {
             .find(|form| form.name == "count")
             .unwrap();
         let state = expanded
-            .operations
+            .gears
             .iter()
             .find(|operation| operation.kind_id.as_str() == STATE_COUNT_KIND)
             .unwrap();

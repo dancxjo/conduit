@@ -3,12 +3,12 @@
 use conduit_body::Body;
 use conduit_core::{
     bind_active_play, kind_id, resource_offer, resource_requirement, ArtifactId, BootId,
-    CapabilityId, CapabilityLimits, EvidenceId, ExecutionProfileId, HostAdvertisement, HostId,
+    CapabilityId, CapabilityLimits, ClueId, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
     OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_form::{
-    check_syntax_document, parse, parse_syntax_document, OperationSignature, ProfileCatalog,
+    check_syntax_document, parse, parse_syntax_document, KindSignature, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_planner::{default_placements, plan, PlannerError};
@@ -83,12 +83,10 @@ fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan) -> 
         form.source_document_id.clone(),
         form.checked_form_id.clone(),
         1,
-        EvidenceId::from("patchbay/evidence/bornd"),
+        ClueId::from("patchbay/clue/bornd"),
     )
     .unwrap();
-    let (body, wake) = body
-        .wake(1, EvidenceId::from("patchbay/evidence/woke"))
-        .unwrap();
+    let (body, wake) = body.wake(1, ClueId::from("patchbay/clue/woke")).unwrap();
     Presentation::new(
         7,
         PresentationBasis {
@@ -100,7 +98,7 @@ fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan) -> 
             expanded_form_id: Some(form.expanded_form_id.clone()),
             plan_id: Some(plan.plan_id.clone()),
             active_play_id: None,
-            evidence_ids: vec![EvidenceId::from("patchbay/evidence/source")],
+            clue_ids: vec![ClueId::from("patchbay/clue/source")],
         },
         vec![
             PresentationSubject {
@@ -111,7 +109,7 @@ fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan) -> 
             },
             PresentationSubject {
                 identity: "patchbay/renderer".into(),
-                role: PresentationRole::Cell,
+                role: PresentationRole::Gear,
                 label: "Renderer".into(),
                 accessibility_name: "Portable presentation renderer".into(),
             },
@@ -141,7 +139,7 @@ fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
             "renderer-wayland",
             "presentation/renderer-wayland@1",
             "patchbay-native/wayland@1",
-            "presentation/provider/wayland-surface@1",
+            "presentation/base/wayland-surface@1",
             WAYLAND_RESOURCE,
         ),
     );
@@ -153,7 +151,7 @@ fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
             "renderer-dom-svg",
             "presentation/renderer-dom-svg@1",
             "patchbay-html/dom-svg@1",
-            "presentation/provider/dom-svg@1",
+            "presentation/base/dom-svg@1",
             DOM_RESOURCE,
         ),
     );
@@ -202,8 +200,8 @@ fn headless_host_is_valid_but_cannot_invent_a_renderer_offer() {
 fn renderer_front_can_be_composed_as_an_ordinary_form_back() {
     let mut startup = StartupCatalog::new();
     startup
-        .insert(OperationSignature {
-            operation: "presentation/renderer".into(),
+        .insert(KindSignature {
+            kind: "presentation/renderer".into(),
             startup_parameters: vec![],
         })
         .unwrap();
@@ -213,7 +211,7 @@ fn renderer_front_can_be_composed_as_an_ordinary_form_back() {
     let checked = check_syntax_document(&syntax, &startup).expect("portable renderer Back checks");
     let form = &checked.forms[0];
     assert_eq!(form.runtime_ports.len(), 2);
-    assert_eq!(form.cells[0].operation, "presentation/renderer");
+    assert_eq!(form.gears[0].kind, "presentation/renderer");
     assert_eq!(form.cords.len(), 2);
 }
 
@@ -228,7 +226,7 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
             "renderer-wayland",
             "presentation/renderer-wayland@1",
             "patchbay-native/wayland@1",
-            "presentation/provider/wayland-surface@1",
+            "presentation/base/wayland-surface@1",
             WAYLAND_RESOURCE,
         ),
     );
@@ -246,16 +244,16 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
         active.active_play_id,
         placement,
         "linux-host/display-0".into(),
-        EvidenceId::from("manifestation/prepared"),
+        ClueId::from("manifestation/prepared"),
     )
     .unwrap();
     let available = prepared
         .transition(
             ManifestationLifecycle::Available,
-            EvidenceId::from("manifestation/available"),
+            ClueId::from("manifestation/available"),
         )
         .unwrap();
-    assert_eq!(available.evidence_ids.len(), 2);
+    assert_eq!(available.clue_ids.len(), 2);
     let realized = available.validate_against(&presentation, &plan).unwrap();
     assert_eq!(
         realized.implementation_id.as_str(),
@@ -264,14 +262,14 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
     assert!(matches!(
         available.transition(
             ManifestationLifecycle::Prepared,
-            EvidenceId::from("manifestation/backwards")
+            ClueId::from("manifestation/backwards")
         ),
         Err(ManifestationError::InvalidTransition)
     ));
     assert!(matches!(
         available.transition(
             ManifestationLifecycle::Closed,
-            EvidenceId::from("manifestation/prepared")
+            ClueId::from("manifestation/prepared")
         ),
         Err(ManifestationError::InvalidTransition)
     ));
@@ -284,7 +282,7 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
             "renderer-dom-svg",
             "presentation/renderer-dom-svg@1",
             "patchbay-html/dom-svg@1",
-            "presentation/provider/dom-svg@1",
+            "presentation/base/dom-svg@1",
             DOM_RESOURCE,
         ),
     );
@@ -305,7 +303,7 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
             "renderer-dom-svg",
             "presentation/renderer-dom-svg@1",
             "patchbay-html/dom-svg@1",
-            "presentation/provider/dom-svg@1",
+            "presentation/base/dom-svg@1",
             DOM_RESOURCE,
         ),
     );
@@ -317,9 +315,7 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
     assert_eq!(drifting.validate(), Err(PresentationError::InvalidIdentity));
 
     let mut duplicate = valid.basis.clone();
-    duplicate
-        .evidence_ids
-        .push(duplicate.evidence_ids[0].clone());
+    duplicate.clue_ids.push(duplicate.clue_ids[0].clone());
     assert_eq!(
         Presentation::new(
             valid.revision,
@@ -329,17 +325,14 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
             valid.properties.clone(),
             valid.text.clone()
         ),
-        Err(PresentationError::DuplicateEvidence)
+        Err(PresentationError::DuplicateClue)
     );
 
     let mut noncanonical = valid.clone();
-    noncanonical
-        .basis
-        .evidence_ids
-        .push(EvidenceId::from("aaa"));
+    noncanonical.basis.clue_ids.push(ClueId::from("aaa"));
     assert_eq!(
         noncanonical.validate(),
-        Err(PresentationError::NonCanonicalEvidence)
+        Err(PresentationError::NonCanonicalClue)
     );
 
     let mut incoherent = valid.basis.clone();

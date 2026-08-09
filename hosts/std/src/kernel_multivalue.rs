@@ -5,7 +5,7 @@
 
 use super::TimerAdapter;
 use conduit_core::{
-    bind_active_play, bind_evidence, bind_presentation, kind_id, port_id,
+    bind_active_play, bind_clue, bind_presentation, kind_id, port_id,
     present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
@@ -20,8 +20,8 @@ use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, EvidenceSink, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedEvidenceLog,
+    BoundedValueRef, ClueSink, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
+    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
     HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput,
     PortId as KernelPortId, RequestId, ValueRef, ValueStorage,
 };
@@ -58,7 +58,7 @@ const PENDING_REQUESTS: usize = 3;
 type MultiValueScheduler = FixedScheduler<
     OperationDriver<MultiValueOperation, PORTS>,
     HostedValueStore,
-    HostedEvidenceLog,
+    HostedClueLog,
     NODES,
     CORDS,
     PORTS,
@@ -79,14 +79,14 @@ enum InjectedBoundaryFault {
 
 #[derive(Clone, Copy, Debug)]
 struct ExecutionOptions {
-    evidence_items: u16,
+    clue_items: u16,
     fault: InjectedBoundaryFault,
 }
 
 impl Default for ExecutionOptions {
     fn default() -> Self {
         Self {
-            evidence_items: 256,
+            clue_items: 256,
             fault: InjectedBoundaryFault::None,
         }
     }
@@ -115,7 +115,7 @@ pub struct MultiValueRunReport {
     pub terminal_order_exact: bool,
     pub identity: KernelExecutionIdentityMap,
     #[cfg(test)]
-    pub post_activation_allocations: usize,
+    pub post_play_start_allocations: usize,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -137,7 +137,7 @@ struct PreparedKernelProjection {
     ordinal: u64,
     tick: u64,
     presentation: conduit_core::PresentationIdentity,
-    evidence: conduit_core::EvidenceIdentity,
+    clue: conduit_core::ClueIdentity,
     payload: ValuePayload,
 }
 
@@ -543,16 +543,16 @@ pub fn plan_local(
     form: &CheckedForm,
     host: &HostAdvertisement,
 ) -> Result<conduit_core::Plan, PlannerError> {
-    let realm = core::slice::from_ref(host);
-    let placements = default_placements(form, realm)?;
-    let provider_choices = BTreeMap::new();
+    let hosts = core::slice::from_ref(host);
+    let placements = default_placements(form, hosts)?;
+    let base_choices = BTreeMap::new();
     plan_with_options(
         form,
-        realm,
+        hosts,
         &placements,
-        &[conduit_core::ConnectionProvider::Local],
+        &[conduit_core::ConnectionBase::Local],
         PlanningOptions {
-            connection_providers: &provider_choices,
+            connection_bases: &base_choices,
             route_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 8,
@@ -657,16 +657,16 @@ fn revision(kind: &str) -> KindContractRevision {
 pub fn execute_fragment<W: Write, T: TimerAdapter>(
     host: &HostAdvertisement,
     fragment: &PlanFragment,
-    activation_sequence: u64,
-    next_evidence_sequence: &mut u64,
+    play_sequence: u64,
+    next_clue_sequence: &mut u64,
     output: &mut W,
     timer: &mut T,
 ) -> Result<MultiValueRunReport, String> {
     execute_fragment_with_options(
         host,
         fragment,
-        activation_sequence,
-        next_evidence_sequence,
+        play_sequence,
+        next_clue_sequence,
         output,
         timer,
         ExecutionOptions::default(),
@@ -677,8 +677,8 @@ pub fn execute_fragment<W: Write, T: TimerAdapter>(
 fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     host: &HostAdvertisement,
     fragment: &PlanFragment,
-    activation_sequence: u64,
-    next_evidence_sequence: &mut u64,
+    play_sequence: u64,
+    next_clue_sequence: &mut u64,
     output: &mut W,
     timer: &mut T,
     options: ExecutionOptions,
@@ -703,7 +703,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             let placement = &fragment.placements[usize::from(node.node.0)];
             placement.kind_id.as_str() == kind
                 && operation
-                    .map(|name| placement.operation_id.as_str() == name)
+                    .map(|name| placement.gear_id.as_str() == name)
                     .unwrap_or(true)
         })
     };
@@ -852,11 +852,11 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
 
     let event_charge = u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
         .map_err(|_| "kernel event charge overflow".to_string())?;
-    let evidence = HostedEvidenceLog::new(
-        options.evidence_items,
-        event_charge.saturating_mul(u32::from(options.evidence_items)),
+    let clue = HostedClueLog::new(
+        options.clue_items,
+        event_charge.saturating_mul(u32::from(options.clue_items)),
     )
-    .map_err(|error| format!("kernel evidence store: {error:?}"))?;
+    .map_err(|error| format!("kernel clue store: {error:?}"))?;
     let node_specs = lowered
         .node_specs
         .try_into()
@@ -875,7 +875,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         host_bindings,
         drivers,
         values,
-        evidence,
+        clue,
     )
     .map_err(|error| format!("install multi-value scheduler: {error:?}"))?;
     if options.fault == InjectedBoundaryFault::CancelBeforeDispatch {
@@ -888,7 +888,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         &fragment.plan_id,
         &host.host_id,
         &host.boot_id,
-        activation_sequence,
+        play_sequence,
     );
     let mut execution_identity =
         KernelExecutionIdentityMap::new(&lowered.identity, &active_play, 7, 3, 4)
@@ -911,10 +911,10 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     let mut presentation_ids = Vec::with_capacity(3);
     let mut dispatched_requests = Vec::<HostOperationRequest>::with_capacity(7);
     let mut manifestations = Vec::<KernelManifestation>::with_capacity(3);
-    let evidence_sequence_start = *next_evidence_sequence;
-    let evidence_sequence_end = evidence_sequence_start
+    let clue_sequence_start = *next_clue_sequence;
+    let clue_sequence_end = clue_sequence_start
         .checked_add(4)
-        .ok_or_else(|| "host evidence sequence exhausted".to_string())?;
+        .ok_or_else(|| "host clue sequence exhausted".to_string())?;
     let mut prepared_projections = Vec::with_capacity(3);
     for (index, (branch, ordinal, tick)) in [
         (ManifestationBranch::Even, 0_u64, 0_u64),
@@ -933,41 +933,40 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             &placement.placement_id,
             ordinal,
         );
-        let evidence = bind_evidence(
+        let clue = bind_clue(
             &host.host_id,
             &host.boot_id,
             Some(&active_play.active_play_id),
-            evidence_sequence_start
+            clue_sequence_start
                 .checked_add(
-                    u64::try_from(index)
-                        .map_err(|_| "host evidence sequence exhausted".to_string())?,
+                    u64::try_from(index).map_err(|_| "host clue sequence exhausted".to_string())?,
                 )
-                .ok_or_else(|| "host evidence sequence exhausted".to_string())?,
+                .ok_or_else(|| "host clue sequence exhausted".to_string())?,
         );
         prepared_projections.push(PreparedKernelProjection {
             branch,
             ordinal,
             tick,
             presentation,
-            evidence,
+            clue,
             payload: ValuePayload {
                 value_kind: kind_id(TICK_VALUE_KIND),
                 encoded: tick.to_le_bytes().to_vec(),
             },
         });
     }
-    let terminal = bind_evidence(
+    let terminal = bind_clue(
         &host.host_id,
         &host.boot_id,
         Some(&active_play.active_play_id),
-        evidence_sequence_end - 1,
+        clue_sequence_end - 1,
     );
     let mut deferred_even_completion: Option<HostOperationRequest> = None;
     let mut pressure_items = 0_u16;
     let mut pressure_bytes = 0_u32;
-    // SEALED PROFILE ACTIVATION BEGIN: numeric tables and preallocated capture only.
+    // SEALED PROFILE PLAY START BEGIN: numeric tables and preallocated capture only.
     #[cfg(test)]
-    let activation_probe = crate::allocation_probe::begin();
+    let play_start_probe = crate::allocation_probe::begin();
     loop {
         while let Some(request) = scheduler.next_host_request() {
             dispatched_requests.push(request);
@@ -1107,9 +1106,9 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             }
         }
     }
-    // SEALED PROFILE ACTIVATION END: hosted identity/observation projection resumes.
+    // SEALED PROFILE PLAY START END: hosted identity/observation projection resumes.
     #[cfg(test)]
-    let post_activation_allocations = activation_probe.finish();
+    let post_play_start_allocations = play_start_probe.finish();
     let even_exact = manifestations
         .iter()
         .filter(|manifestation| manifestation.branch == ManifestationBranch::Even)
@@ -1136,20 +1135,20 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         .map(|driver| driver.operation().allocation_capacity())
         .sum::<usize>();
     if driver_capacity_after != driver_capacity_before {
-        return Err("multi-value operation storage grew after activation".to_string());
+        return Err("multi-value operation storage grew after Play start".to_string());
     }
     let value_allocation_after = scheduler.values().allocation_capacities();
     if value_allocation_after != value_allocation_before {
-        return Err("multi-value value storage grew after activation".to_string());
+        return Err("multi-value value storage grew after Play start".to_string());
     }
     let input_closed_events = u16::try_from(
         scheduler
-            .evidence()
+            .clues()
             .events()
             .filter(|event| event.kind == KernelEventKind::InputClosed)
             .count(),
     )
-    .map_err(|_| "input-closure evidence count overflow".to_string())?;
+    .map_err(|_| "input-closure clue count overflow".to_string())?;
     let terminal_order_exact = [
         tee_node,
         filter_node,
@@ -1159,18 +1158,18 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     ]
     .iter()
     .all(|node| {
-        let closed = scheduler.evidence().events().find(|event| {
+        let closed = scheduler.clues().events().find(|event| {
             event.node == *node
                 && event.port == Some(KernelPortId(0))
                 && event.kind == KernelEventKind::InputClosed
         });
-        let completed = scheduler.evidence().events().find(|event| {
+        let completed = scheduler.clues().events().find(|event| {
             event.node == *node && event.kind == KernelEventKind::OperationCompleted
         });
         matches!((closed, completed), (Some(closed), Some(completed)) if closed.sequence < completed.sequence)
     });
     if input_closed_events != 5 || !terminal_order_exact {
-        return Err("kernel closure evidence is missing or out of terminal order".to_string());
+        return Err("kernel closure clue is missing or out of terminal order".to_string());
     }
     for request in &dispatched_requests {
         execution_identity
@@ -1198,19 +1197,19 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             )
             .map_err(|error| format!("bind presentation identity: {error:?}"))?;
         execution_identity
-            .bind_evidence(
-                &prepared.evidence,
+            .bind_clue(
+                &prepared.clue,
                 Some(manifestation.request.node),
                 Some(manifestation.request.request),
                 Some(&prepared.presentation.presentation_id),
             )
-            .map_err(|error| format!("bind presentation evidence identity: {error:?}"))?;
+            .map_err(|error| format!("bind presentation clue identity: {error:?}"))?;
         receipts.push(MultiValueReceipt {
             placement_id: placement.placement_id.clone(),
             tick: prepared.tick,
         });
         observations.push(Observation {
-            evidence_id: prepared.evidence.evidence_id,
+            clue_id: prepared.clue.clue_id,
             active_play_id: Some(active_play.active_play_id.clone()),
             presentation_id: Some(prepared.presentation.presentation_id.clone()),
             host_id: host.host_id.clone(),
@@ -1224,12 +1223,12 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         });
         presentation_ids.push(prepared.presentation.presentation_id);
     }
-    *next_evidence_sequence = evidence_sequence_end;
+    *next_clue_sequence = clue_sequence_end;
     execution_identity
-        .bind_evidence(&terminal, None, None, None)
-        .map_err(|error| format!("bind terminal evidence identity: {error:?}"))?;
+        .bind_clue(&terminal, None, None, None)
+        .map_err(|error| format!("bind terminal clue identity: {error:?}"))?;
     observations.push(Observation {
-        evidence_id: terminal.evidence_id,
+        clue_id: terminal.clue_id,
         active_play_id: Some(active_play.active_play_id.clone()),
         presentation_id: None,
         host_id: host.host_id.clone(),
@@ -1244,7 +1243,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     if execution_identity.lengths() != (7, 3, 4)
         || execution_identity.allocation_capacities() != identity_capacity_before
     {
-        return Err("execution identity map is incomplete or grew after activation".to_string());
+        return Err("execution identity map is incomplete or grew after Play start".to_string());
     }
 
     Ok(MultiValueRunReport {
@@ -1252,7 +1251,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         receipts,
         active_play_id: active_play.active_play_id,
         decisions: scheduler.decisions(),
-        kernel_events: scheduler.evidence().len(),
+        kernel_events: scheduler.clues().len(),
         value_allocation_capacity_before: value_allocation_before,
         value_allocation_capacity_after: value_allocation_after,
         presentation_ids,
@@ -1263,7 +1262,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         terminal_order_exact,
         identity: execution_identity,
         #[cfg(test)]
-        post_activation_allocations,
+        post_play_start_allocations,
     })
 }
 
@@ -1287,7 +1286,7 @@ mod tests {
     };
     use crate::TimerAdapter;
     use conduit_core::{
-        bind_evidence, BootId, HostAdvertisement, HostId, OfferGeneration, PlanFragment,
+        bind_clue, BootId, HostAdvertisement, HostId, OfferGeneration, PlanFragment,
     };
     use conduit_form::parse;
     use conduit_runtime::lowering::{lower_plan_fragment, ExecutionIdentityError};
@@ -1349,12 +1348,12 @@ mod tests {
         let mut timer = VirtualTimer {
             waits: Vec::with_capacity(4),
         };
-        let mut evidence_sequence = 0;
+        let mut clue_sequence = 0;
         let mut report = execute_fragment(
             &host,
             &fragment,
             0,
-            &mut evidence_sequence,
+            &mut clue_sequence,
             &mut output,
             &mut timer,
         )
@@ -1387,14 +1386,14 @@ mod tests {
         assert_eq!(report.identity.plan_id, fragment.plan_id);
         assert_eq!(report.identity.active_play_id, report.active_play_id);
         assert_eq!(report.identity.lengths(), (7, 3, 4));
-        assert_eq!(report.post_activation_allocations, 0);
+        assert_eq!(report.post_play_start_allocations, 0);
         for observation in &report.observations {
-            let evidence = report
+            let clue = report
                 .identity
-                .evidence(&observation.evidence_id)
-                .expect("host evidence reverses to its kernel identity row");
+                .clue_identity(&observation.clue_id)
+                .expect("host clue reverses to its kernel identity row");
             assert_eq!(
-                evidence.presentation_id.as_ref(),
+                clue.presentation_id.as_ref(),
                 observation.presentation_id.as_ref()
             );
             let Some(presentation) = observation.presentation_id.as_ref() else {
@@ -1422,14 +1421,14 @@ mod tests {
             assert_eq!(
                 report
                     .identity
-                    .evidence_for_presentation(presentation)
-                    .map(|identity| &identity.evidence_id),
-                Some(&observation.evidence_id)
+                    .clue_for_presentation(presentation)
+                    .map(|identity| &identity.clue_id),
+                Some(&observation.clue_id)
             );
         }
         assert_eq!(report.observations.len(), 4);
-        assert_eq!(evidence_sequence, 4);
-        let wrong_host_evidence = bind_evidence(
+        assert_eq!(clue_sequence, 4);
+        let wrong_host_clue = bind_clue(
             &HostId::from("wrong-host"),
             &host.boot_id,
             Some(&report.active_play_id),
@@ -1438,7 +1437,7 @@ mod tests {
         assert_eq!(
             report
                 .identity
-                .bind_evidence(&wrong_host_evidence, None, None, None),
+                .bind_clue(&wrong_host_clue, None, None, None),
             Err(ExecutionIdentityError::WrongHost)
         );
     }
@@ -1486,7 +1485,7 @@ mod tests {
     }
 
     #[test]
-    fn evidence_exhaustion_fails_closed_inside_the_installed_scheduler() {
+    fn clue_exhaustion_fails_closed_inside_the_installed_scheduler() {
         let (host, fragment) = planned_fixture();
         let mut timer = VirtualTimer::default();
         let error = execute_fragment_with_options(
@@ -1497,11 +1496,11 @@ mod tests {
             &mut Vec::new(),
             &mut timer,
             ExecutionOptions {
-                evidence_items: 1,
+                clue_items: 1,
                 ..ExecutionOptions::default()
             },
         )
-        .expect_err("evidence budget exhaustion must fail closed");
+        .expect_err("clue budget exhaustion must fail closed");
         assert!(error.contains("ItemCapacityExceeded"), "{error}");
     }
 }

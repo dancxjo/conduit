@@ -1,5 +1,5 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{ConfigurationValue, PlannedOperation, PortDirection, PortTemporal};
+use conduit_core::{ConfigurationValue, PlannedGear, PortDirection, PortTemporal};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId, ValueRef, ValueStorage,
@@ -117,20 +117,20 @@ impl CountPresentationOperation {
     }
 }
 
-fn state_count_budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn state_count_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_state_count(placement)?;
     let values = conduit_std_catalog::MAX_COUNT_VALUES;
     Ok(OperationBudget {
         value_items: values as u16,
         value_bytes: conduit_std_catalog::COUNT_ENCODED_LEN * values as u32,
         host_requests: 0,
-        evidence_items: 96,
+        clue_items: 96,
         maximum_value_bytes: conduit_std_catalog::COUNT_ENCODED_LEN,
     })
 }
 
 fn prepare_state_count(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_state_count(placement)?;
@@ -153,7 +153,7 @@ fn prepare_state_count(
     }))
 }
 
-fn count_presentation_budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn count_presentation_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_count_presentation(placement)?;
     let maximum = count_configuration(
         placement,
@@ -164,13 +164,13 @@ fn count_presentation_budget(placement: &PlannedOperation) -> Result<OperationBu
         value_items: 0,
         value_bytes: 0,
         host_requests: maximum as usize,
-        evidence_items: 64,
+        clue_items: 64,
         maximum_value_bytes: conduit_std_catalog::COUNT_ENCODED_LEN,
     })
 }
 
 fn prepare_count_presentation(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_count_presentation(placement)?;
@@ -187,11 +187,7 @@ fn prepare_count_presentation(
     ))
 }
 
-fn count_configuration(
-    placement: &PlannedOperation,
-    key: &str,
-    maximum: u64,
-) -> Result<u64, String> {
+fn count_configuration(placement: &PlannedGear, key: &str, maximum: u64) -> Result<u64, String> {
     placement
         .configuration
         .iter()
@@ -209,7 +205,7 @@ fn count_configuration(
         })
 }
 
-fn validate_state_count(placement: &PlannedOperation) -> Result<(), String> {
+fn validate_state_count(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
         conduit_std_catalog::STATE_COUNT_KIND,
@@ -234,7 +230,7 @@ fn validate_state_count(placement: &PlannedOperation) -> Result<(), String> {
     .map(|_| ())
 }
 
-fn validate_count_presentation(placement: &PlannedOperation) -> Result<(), String> {
+fn validate_count_presentation(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
         conduit_std_catalog::COUNT_PRESENTATION_KIND,
@@ -260,7 +256,7 @@ fn validate_count_presentation(placement: &PlannedOperation) -> Result<(), Strin
 
 #[allow(clippy::too_many_arguments)]
 fn validate_identity(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     kind: &str,
     revision: &str,
     profile: &str,

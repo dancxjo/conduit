@@ -9,7 +9,7 @@ with `replan_may_be_requested`, but the machine never invokes a planner or
 changes the Plan.
 
 `RouteUpdate` is the machine-readable transition record. It retains the exact
-observation evidence ID, the previous selected binding when present, and either
+observation clue ID, the previous selected binding when present, and either
 the newly selected exact `BoundLink` with `same_plan_continues` or the explicit
 unsatisfied result. Thus observation change, selection change, and no-route
 state are distinguishable without carrier-owned policy.

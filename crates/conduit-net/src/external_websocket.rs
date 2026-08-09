@@ -36,7 +36,7 @@ pub const EXTERNAL_WEBSOCKET_LISTENER_RESOURCE: &str =
 
 pub const URL_VALUE_KIND: &str = "value/net-url@1";
 pub const NET_ADDRESS_VALUE_KIND: &str = "value/net-address@1";
-/// One complete RFC 6455 binary message. Providers must reject text frames,
+/// One complete RFC 6455 binary message. Bases must reject text frames,
 /// fragmented values beyond the admitted message bound, and malformed frames.
 pub const WEBSOCKET_MESSAGE_VALUE_KIND: &str = "WebSocketMessage";
 pub const BOOLEAN_VALUE_KIND: &str = "Boolean";
@@ -215,7 +215,7 @@ pub fn install_external_websocket_catalogs(
 ) -> Result<(), alloc::string::String> {
     use conduit_core::ConfigurationValue;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, OperationSignature,
+        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
         StartupParameterSignature,
     };
 
@@ -223,8 +223,8 @@ pub fn install_external_websocket_catalogs(
         browser_external_websocket_family().capability,
         std_external_websocket_family().capability,
     ] {
-        startup.insert(OperationSignature {
-            operation: offer.kind_id.as_str().to_string(),
+        startup.insert(KindSignature {
+            kind: offer.kind_id.as_str().to_string(),
             startup_parameters: offer
                 .startup_parameters
                 .iter()

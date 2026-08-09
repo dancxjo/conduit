@@ -31,9 +31,9 @@ pub enum MemberState {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PoolEvidenceReason {
+pub enum PoolClueReason {
     Admitted,
-    Activated,
+    PlayStarted,
     ReleaseRequested,
     Released,
     PoolFull,
@@ -45,7 +45,7 @@ pub enum PoolEvidenceReason {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct PoolEvidence {
+pub struct PoolClue {
     pub sequence: u32,
     pub pool: PoolId,
     pub key: MemberKey,
@@ -54,13 +54,13 @@ pub struct PoolEvidence {
     pub placement: Option<MemberPlacement>,
     pub from: MemberState,
     pub to: MemberState,
-    pub reason: PoolEvidenceReason,
+    pub reason: PoolClueReason,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PoolError {
     InvalidContract,
-    EvidenceExhausted,
+    ClueExhausted,
     SequenceOverflow,
     PoolFull,
     DuplicateKey,
@@ -104,20 +104,20 @@ impl MemberSlot {
 }
 
 /// Fixed-storage membership truth owned by the execution kernel. It allocates
-/// no member cells and schedules no work; it admits exact already-lowered
+/// no member Gears and schedules no work; it admits exact already-lowered
 /// member placements and protects their occupation epochs.
-pub struct FixedSharedPool<const SLOTS: usize, const EVIDENCE: usize> {
+pub struct FixedSharedPool<const SLOTS: usize, const CLUE: usize> {
     pool: PoolId,
     maximum_members: u16,
     authority: u16,
     realization_count: u16,
     slots: [MemberSlot; SLOTS],
-    evidence: [Option<PoolEvidence>; EVIDENCE],
-    evidence_len: u16,
+    clues: [Option<PoolClue>; CLUE],
+    clue_len: u16,
     next_sequence: u32,
 }
 
-impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE> {
+impl<const SLOTS: usize, const CLUE: usize> FixedSharedPool<SLOTS, CLUE> {
     pub fn new(
         pool: PoolId,
         maximum_members: u16,
@@ -128,8 +128,8 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
             || usize::from(maximum_members) > SLOTS
             || authority == u16::MAX
             || realization_count == 0
-            || EVIDENCE == 0
-            || EVIDENCE > usize::from(u16::MAX)
+            || CLUE == 0
+            || CLUE > usize::from(u16::MAX)
         {
             return Err(PoolError::InvalidContract);
         }
@@ -139,8 +139,8 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
             authority,
             realization_count,
             slots: [MemberSlot::EMPTY; SLOTS],
-            evidence: [None; EVIDENCE],
-            evidence_len: 0,
+            clues: [None; CLUE],
+            clue_len: 0,
             next_sequence: 0,
         })
     }
@@ -159,8 +159,8 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
             .count() as u16
     }
 
-    pub fn evidence(&self) -> impl Iterator<Item = PoolEvidence> + '_ {
-        self.evidence.iter().copied().flatten()
+    pub fn clues(&self) -> impl Iterator<Item = PoolClue> + '_ {
+        self.clues.iter().copied().flatten()
     }
 
     pub fn admit(
@@ -170,25 +170,25 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
         authority: u16,
     ) -> Result<MemberIdentity, PoolError> {
         if authority != self.authority {
-            self.record_denial(key, PoolEvidenceReason::AuthorityDenied)?;
+            self.record_denial(key, PoolClueReason::AuthorityDenied)?;
             return Err(PoolError::AuthorityDenied);
         }
         if placement.realization >= self.realization_count {
-            self.record_denial(key, PoolEvidenceReason::RealizationDenied)?;
+            self.record_denial(key, PoolClueReason::RealizationDenied)?;
             return Err(PoolError::RealizationDenied);
         }
         if self.slots[..usize::from(self.maximum_members)]
             .iter()
             .any(|slot| slot.state != MemberState::Empty && slot.key == key)
         {
-            self.record_denial(key, PoolEvidenceReason::DuplicateKey)?;
+            self.record_denial(key, PoolClueReason::DuplicateKey)?;
             return Err(PoolError::DuplicateKey);
         }
         let Some(index) = self.slots[..usize::from(self.maximum_members)]
             .iter()
             .position(|slot| slot.state == MemberState::Empty)
         else {
-            self.record_denial(key, PoolEvidenceReason::PoolFull)?;
+            self.record_denial(key, PoolClueReason::PoolFull)?;
             return Err(PoolError::PoolFull);
         };
         let epoch = self.slots[index]
@@ -202,7 +202,7 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
             Some(placement),
             MemberState::Empty,
             MemberState::Preparing,
-            PoolEvidenceReason::Admitted,
+            PoolClueReason::Admitted,
         )?;
         self.slots[index] = MemberSlot {
             key,
@@ -213,12 +213,12 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
         Ok(self.slots[index].identity(self.pool, index as u16))
     }
 
-    pub fn activate(&mut self, member: MemberIdentity) -> Result<(), PoolError> {
+    pub fn trigger(&mut self, member: MemberIdentity) -> Result<(), PoolError> {
         self.transition(
             member,
             MemberState::Preparing,
             MemberState::Active,
-            PoolEvidenceReason::Activated,
+            PoolClueReason::PlayStarted,
         )
     }
 
@@ -227,7 +227,7 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
             member,
             MemberState::Preparing,
             MemberState::Empty,
-            PoolEvidenceReason::PreparationFailed,
+            PoolClueReason::PreparationFailed,
         )
     }
 
@@ -236,7 +236,7 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
             member,
             MemberState::Active,
             MemberState::Releasing,
-            PoolEvidenceReason::ReleaseRequested,
+            PoolClueReason::ReleaseRequested,
         )
     }
 
@@ -245,7 +245,7 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
             member,
             MemberState::Active,
             MemberState::Releasing,
-            PoolEvidenceReason::MemberFailed,
+            PoolClueReason::MemberFailed,
         )
     }
 
@@ -254,7 +254,7 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
             member,
             MemberState::Releasing,
             MemberState::Empty,
-            PoolEvidenceReason::Released,
+            PoolClueReason::Released,
         )
     }
 
@@ -326,7 +326,7 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
         member: MemberIdentity,
         from: MemberState,
         to: MemberState,
-        reason: PoolEvidenceReason,
+        reason: PoolClueReason,
     ) -> Result<(), PoolError> {
         let slot = self.exact_slot(member)?;
         if slot.state != from {
@@ -345,11 +345,7 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
         Ok(())
     }
 
-    fn record_denial(
-        &mut self,
-        key: MemberKey,
-        reason: PoolEvidenceReason,
-    ) -> Result<(), PoolError> {
+    fn record_denial(&mut self, key: MemberKey, reason: PoolClueReason) -> Result<(), PoolError> {
         self.record(
             key,
             None,
@@ -370,14 +366,14 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
         placement: Option<MemberPlacement>,
         from: MemberState,
         to: MemberState,
-        reason: PoolEvidenceReason,
+        reason: PoolClueReason,
     ) -> Result<(), PoolError> {
-        if usize::from(self.evidence_len) >= EVIDENCE {
-            return Err(PoolError::EvidenceExhausted);
+        if usize::from(self.clue_len) >= CLUE {
+            return Err(PoolError::ClueExhausted);
         }
         let sequence = self.next_sequence;
         let next = sequence.checked_add(1).ok_or(PoolError::SequenceOverflow)?;
-        self.evidence[usize::from(self.evidence_len)] = Some(PoolEvidence {
+        self.clues[usize::from(self.clue_len)] = Some(PoolClue {
             sequence,
             pool: self.pool,
             key,
@@ -388,7 +384,7 @@ impl<const SLOTS: usize, const EVIDENCE: usize> FixedSharedPool<SLOTS, EVIDENCE>
             to,
             reason,
         });
-        self.evidence_len += 1;
+        self.clue_len += 1;
         self.next_sequence = next;
         Ok(())
     }

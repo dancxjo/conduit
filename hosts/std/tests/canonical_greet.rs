@@ -62,19 +62,19 @@ fn explicit_positional_binding_recursively_executes_only_primitive_leaves() {
         .iter()
         .find(|form| form.name == "welcome")
         .unwrap();
-    assert!(welcome.cells.iter().any(|cell| cell.operation == "greet"
-        && cell.startup_bindings[0].value
+    assert!(welcome.gears.iter().any(|gear| gear.kind == "greet"
+        && gear.startup_bindings[0].value
             == conduit_form::CanonicalStartupValue::Literal("\"Welcome\"".to_string())));
 
     let (expanded, output, _) = run("welcome");
     assert!(output.contains("WelcomeTravis\n"), "{output}");
-    assert_eq!(expanded.operations.len(), 3);
+    assert_eq!(expanded.gears.len(), 3);
     assert!(!expanded
-        .operations
+        .gears
         .iter()
         .any(|operation| operation.kind_id.as_str() == "greet"));
     let join = expanded
-        .operations
+        .gears
         .iter()
         .find(|operation| operation.kind_id.as_str() == "text/join")
         .expect("expanded back has one join leaf");
@@ -88,7 +88,7 @@ fn explicit_positional_binding_recursively_executes_only_primitive_leaves() {
     assert!(expanded.provenance.iter().any(|row| {
         row.source_form == "greet"
             && row.form_path == ["welcome", "hello"]
-            && row.source_cell == "join"
+            && row.source_gear == "join"
     }));
 }
 

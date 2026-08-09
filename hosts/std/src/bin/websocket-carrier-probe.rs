@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use conduit_core::{
-    bind_active_play, BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId,
-    FragmentId, HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
+    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
     PROTOCOL_VERSION,
 };
 use conduit_std_host::websocket::NativeWebSocketListener;
@@ -88,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !machine.is_active() {
         return Err("both exact handshakes were not ready".into());
     }
-    println!("ready protocol=1 provider=websocket frame_limit={MAXIMUM_FRAME_BYTES}");
+    println!("ready protocol=1 base=websocket frame_limit={MAXIMUM_FRAME_BYTES}");
     carrier
         .close()
         .map_err(|error| format!("close: {error:?}"))?;
@@ -135,8 +135,8 @@ fn binding() -> SessionBinding {
         },
         attachment: RouteAttachment {
             link_binding_id: LinkBindingId::from("probe/link"),
-            provider: ConnectionProvider::WebSocket,
-            provider_instance_id: ConnectionProviderInstanceId::from("probe/websocket/instance"),
+            base: ConnectionBase::WebSocket,
+            base_instance_id: ConnectionBaseInstanceId::from("probe/websocket/instance"),
             source_host_id: source.host_id,
             source_boot_id: source.boot_id,
             source_endpoint_id: LinkEndpointId::from("probe/source-endpoint"),

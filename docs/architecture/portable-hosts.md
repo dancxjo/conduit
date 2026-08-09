@@ -8,7 +8,7 @@
 
 Conduit lets an authored form run across different software hosts without baking those hosts into the form.
 
-A realm contains host instances. Each host advertises the semantic capabilities it can currently provide. A form describes work in terms of those semantics. A planner combines the form, the realm's current capability offers, explicit policy, and available links to create an exact plan. Activating that plan starts the work only after every required placement and connection is ready.
+A planning scope contains host instances. Each host advertises the semantic capabilities it can currently provide. A form describes work in terms of those semantics. A planner combines the form, the planning scope's current capability offers, explicit policy, and available links to create an exact plan. Activating that plan starts the work only after every required placement and connection is ready.
 
 The same semantic operation may manifest differently on different hosts.
 
@@ -32,7 +32,7 @@ Conduit instead keeps three questions separate:
 
 1. **What should happen?**
 2. **What can the current hosts do?**
-3. **How will this particular realm realize the work now?**
+3. **How will this particular planning scope realize the work now?**
 
 A form answers the first question.
 
@@ -48,19 +48,19 @@ They are not identical. Their implementations, limits, links, clocks, storage, a
 
 This document uses ordinary engineering language. These are concepts, not a requirement that every public command or file format use the same words forever.
 
-### Realm
+### Planning scope
 
-A realm is the set of host instances currently visible to one planning session.
+A planning scope is the set of host instances currently visible to one planning session.
 
-For the first implementation, realm membership may be explicit and development-oriented. A host can register with the local operator or planner and become available for placement.
+For the first implementation, planning scope membership may be explicit and development-oriented. A host can register with the local operator or planner and become available for placement.
 
-The current implementation checkpoint is recorded in [Realm membership readiness](realm-membership.md).
+The current implementation checkpoint is recorded in [Planning scope membership readiness](planning scope-membership.md).
 
 The first read-only operational projection is recorded in [Host Observatory readiness](host-observatory.md).
 
 The small reusable standard catalog is recorded in [Small `conduit.std` catalog readiness](std-catalog.md).
 
-A realm records or observes:
+A planning scope records or observes:
 
 - host identities;
 - host boot or session identities;
@@ -69,13 +69,13 @@ A realm records or observes:
 - exact plans;
 - and active plan state.
 
-A realm is not merely a network segment. A reachable endpoint is not automatically a host, and a host is not automatically trusted merely because it is reachable.
+A planning scope is not merely a network segment. A reachable endpoint is not automatically a host, and a host is not automatically trusted merely because it is reachable.
 
 Durable body identity, secure admission, recovery, and `.soul` archives are later layers described near the end of this document. They must build on this model rather than distort the first implementation.
 
 ### Host
 
-A host is a software runtime that can execute cells and advertise capabilities.
+A host is a software runtime that can execute gears and advertise capabilities.
 
 The host is not the physical machine by itself.
 
@@ -93,8 +93,8 @@ A host is responsible for:
 - assigning a fresh boot or session identity;
 - discovering which implementations are currently initialized;
 - advertising capabilities and their limits;
-- reserving cell instances and queues for a plan;
-- executing selected cells;
+- reserving gear instances and queues for a plan;
+- executing selected gears;
 - carrying local and remote cords;
 - reporting receipts, completion, and failure;
 - and releasing resources when a plan ends or is replaced.
@@ -143,7 +143,7 @@ Advertising a capability is an observation, not an authority grant and not an in
 
 A kind is a semantic contract.
 
-A kind defines what a cell means, what typed values it accepts or produces, how it completes, how it fails, and what behavior an implementation must preserve.
+A kind defines what a gear means, what typed values it accepts or produces, how it completes, how it fails, and what behavior an implementation must preserve.
 
 Examples used in the first slice:
 
@@ -206,7 +206,7 @@ A form is an authored semantic graph.
 
 A form names:
 
-- cells;
+- gears;
 - their kinds;
 - typed cords;
 - semantic configuration;
@@ -229,17 +229,17 @@ A form does not name:
 
 The same form should remain valid when the planner chooses a different faithful realization.
 
-### Cell
+### Gear
 
-A cell is one named occurrence in a form.
+A gear is one named occurrence in a form.
 
-A cell has a semantic kind. A plan later selects an implementation and host placement for that occurrence.
+A gear has a semantic kind. A plan later selects an implementation and host placement for that occurrence.
 
-The first architecture needs only a small number of structural cell roles. It should resist a rush toward a huge standard library.
+The first architecture needs only a small number of structural gear roles. It should resist a rush toward a huge standard library.
 
 ### Source and sink
 
-The two fundamental structural cell shapes are:
+The two fundamental structural gear shapes are:
 
 ```text
 Source<T>  produces typed values
@@ -261,7 +261,7 @@ A sink is responsible for:
 - accepting values of one declared kind;
 - preserving their required ordering;
 - performing its semantic effect;
-- producing evidence or receipts when required;
+- producing clue or receipts when required;
 - completing explicitly;
 - and reporting failure rather than pretending success.
 
@@ -269,7 +269,7 @@ Transformations will later consume and produce values, effectively composing a s
 
 ### Cord
 
-A cord carries typed values between cells.
+A cord carries typed values between gears.
 
 The semantic meaning of a cord does not depend on whether the selected plan realizes it as:
 
@@ -281,16 +281,16 @@ The semantic meaning of a cord does not depend on whether the selected plan real
 - shared memory;
 - or a future physical transport.
 
-Transport independence does not mean transport differences disappear. The exact plan records the provider, limits, ordering guarantees, framing, and failure behavior.
+Transport independence does not mean transport differences disappear. The exact plan records the base, limits, ordering guarantees, framing, and failure behavior.
 
 ### Plan
 
-A plan is an immutable, exact realization of a form for one realm state.
+A plan is an immutable, exact realization of a form for one planning scope state.
 
 A plan fixes:
 
 - the exact form digest;
-- every cell identity;
+- every gear identity;
 - every selected implementation;
 - every host identity and boot identity;
 - every selected capability advertisement;
@@ -303,23 +303,23 @@ A plan fixes:
 - terminal behavior;
 - and all other choices needed for execution.
 
-A plan is not a suggestion. It is the complete answer to how the form will run in this realm.
+A plan is not a suggestion. It is the complete answer to how the form will run in this planning scope.
 
 A plan is not active merely because it exists.
 
 Any change to placement, implementation, transport, bounds, or required capabilities creates a new plan.
 
-### Activation
+### Play start
 
-Activation prepares and starts a plan.
+Play start prepares and starts a plan.
 
 The source must not begin emitting merely because planning succeeded. Every required sink, queue, and remote link must be prepared first.
 
-The minimum activation sequence is:
+The minimum Play start sequence is:
 
 1. Resolve every selected host by exact host ID and boot ID.
 2. Confirm every selected capability advertisement is still current.
-3. Reserve every cell instance.
+3. Reserve every gear instance.
 4. Reserve every bounded queue and buffer.
 5. Establish every remote link.
 6. Confirm every required sink is ready.
@@ -330,15 +330,15 @@ The minimum activation sequence is:
 
 If preparation fails, no source begins.
 
-If execution fails after activation, the plan must expose the failure and account for values already delivered and values not delivered. The first implementation does not need transparent reconnection or replay.
+If execution fails after Play start, the plan must expose the failure and account for values already delivered and values not delivered. The first implementation does not need transparent reconnection or replay.
 
 ### Receipt
 
-A receipt is machine-readable evidence that an expected semantic event occurred.
+A receipt is machine-readable clue that an expected semantic event occurred.
 
 For the first `show(Signal)` sink, a receipt records the exact sequence and level that the host implementation successfully manifested.
 
-Receipts matter because human observation is not sufficient evidence:
+Receipts matter because human observation is not sufficient clue:
 
 - seeing an LED blink does not prove which sequence value it represented;
 - seeing browser text does not prove the runtime accepted the correct envelope;
@@ -448,7 +448,7 @@ The form contains no platform facts.
 
 ### Three manifestations
 
-The decisive realm demonstration uses one source and three instances of the same sink kind:
+The decisive planning scope demonstration uses one source and three instances of the same sink kind:
 
 ```conduit
 form 0
@@ -495,7 +495,7 @@ Each instance has its own:
 - host ID;
 - boot ID;
 - capability advertisements;
-- reserved cell instances;
+- reserved gear instances;
 - queues;
 - receipts;
 - and execution state.
@@ -564,7 +564,7 @@ It must:
 - provide a monotonic timer implementation;
 - support bounded WebSocket links to browser hosts;
 - support one bounded TCP or UDP link to the Pico W host;
-- and initially act as the operator and planning process for the demonstration realm.
+- and initially act as the operator and planning process for the demonstration planning scope.
 
 The std host may temporarily provide explicit registration and rendezvous for development. That is a convenience for the first vertical slice, not a permanent central-coordinator requirement.
 
@@ -599,7 +599,7 @@ The first capability contract must express at least:
 
 - the exact semantic contract revision and execution profile;
 - every input and output port identity, direction, and value kind;
-- maximum active cell instances;
+- maximum active gear instances;
 - maximum queue items;
 - maximum encoded item size;
 - and any platform-specific restrictions relevant to planning.
@@ -640,7 +640,7 @@ Required rejection categories include:
 - duplicate or contradictory placement;
 - and malformed form bounds.
 
-A planner error should identify the cell, required kind, rejected candidates, and concrete reason. `No plan found` is not sufficient when more exact evidence is available.
+A planner error should identify the gear, required kind, rejected candidates, and concrete reason. `No plan found` is not sufficient when more exact clue is available.
 
 ## Exact plan model
 
@@ -655,16 +655,16 @@ pub struct Plan {
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
     pub hosts: BoundedHostSelections,
-    pub cells: BoundedCellPlacements,
+    pub gears: BoundedGearPlacements,
     pub cords: BoundedCordRealizations,
     pub startup: BoundedStartupSteps,
     pub expected_receipts: BoundedReceiptRequirements,
 }
 ```
 
-Each cell placement identifies:
+Each gear placement identifies:
 
-- cell ID;
+- gear ID;
 - semantic kind;
 - semantic kind contract revision;
 - execution profile identity;
@@ -682,7 +682,7 @@ Each cord realization identifies:
 - value kind;
 - writer placement;
 - reader placement;
-- provider;
+- base;
 - item capacity;
 - encoded byte capacity;
 - ordering profile;
@@ -705,16 +705,16 @@ no transparent reconnect
 
 The three-manifestation form creates three cords rather than one magical broadcast channel.
 
-Required initial providers:
+Required initial bases:
 
 ```text
-local             cells on one host
+local             gears on one host
 browser-memory    browser host instance to browser host instance
 websocket         browser host to std host
 tcp-or-udp        std host to Pico W host
 ```
 
-Provider APIs must report a common set of outcomes:
+Base APIs must report a common set of outcomes:
 
 ```text
 ready
@@ -725,9 +725,9 @@ malformed
 terminal
 ```
 
-A provider may have additional diagnostics, but it must not erase these semantic outcomes.
+A base may have additional diagnostics, but it must not erase these semantic outcomes.
 
-No provider may rely on a hidden unbounded queue in a library, browser API wrapper, task channel, or socket adapter.
+No base may rely on a hidden unbounded queue in a library, browser API wrapper, task channel, or socket adapter.
 
 ## Wire envelope
 
@@ -781,14 +781,14 @@ When a queue is full, the source must observe pressure. It may wait, yield, or f
 
 This requirement keeps the same semantics credible on the Pico W and prevents desktop and browser implementations from hiding invalid assumptions behind abundant memory.
 
-## Receipts and evidence
+## Receipts and Clues
 
 Every successful show sink produces receipts equivalent to:
 
 ```rust
 pub struct ShowReceipt {
     pub plan_id: PlanId,
-    pub cell_id: CellId,
+    pub gear_id: GearId,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub sequence: u64,
@@ -817,7 +817,7 @@ The implementation issue is complete only when all of these work.
 flow/pulse -> presentation/show
 ```
 
-Both cells run on one Rust std host. Stdout and receipts account for sixteen signals.
+Both gears run on one Rust std host. Stdout and receipts account for sixteen signals.
 
 ### 2. Multiple browser hosts
 
@@ -829,7 +829,7 @@ The operator view visibly distinguishes both host and boot identities.
 
 ### 3. Local Pico W
 
-Both cells run on the Pico W. The onboard LED alternates sixteen times and the host retains sixteen exact receipts.
+Both gears run on the Pico W. The onboard LED alternates sixteen times and the host retains sixteen exact receipts.
 
 ### 4. Standard host to browser
 
@@ -868,7 +868,7 @@ conduit-plan
     host advertisements, placement validation, exact plans, diagnostics
 
 conduit-runtime-core
-    bounded source/sink lifecycle, cord semantics, activation state machine
+    bounded source/sink lifecycle, cord semantics, Play start state machine
 
 conduit-host-std
     portable Rust std host, stdout, timers, operator/planner fixture
@@ -903,9 +903,9 @@ A planner must not assume an implementation exists merely because a kind exists.
 
 ### Plans are exact
 
-Do not leave runtime placement, implementation selection, queue sizing, or transport choice to ambient discovery after activation begins.
+Do not leave runtime placement, implementation selection, queue sizing, or transport choice to ambient discovery after Play start begins.
 
-### Activation is separate from planning
+### Play start is separate from planning
 
 Creating or validating a plan must not produce effects.
 
@@ -913,7 +913,7 @@ Creating or validating a plan must not produce effects.
 
 Reject an unsupported bound rather than silently allocating more memory, truncating data, or creating a hidden queue.
 
-### Evidence beats appearance
+### Clue beats appearance
 
 Tests should compare semantic receipts and deterministic state. Visual browser output and LED behavior remain useful smoke tests, not the only proof.
 
@@ -959,7 +959,7 @@ These are not rejected forever. They are excluded so the first proof remains sma
 
 ## Future durable body and soul layer
 
-The longer architecture adds durable identity above the realm and host model.
+The longer architecture adds durable identity above the planning scope and host model.
 
 A body is a long-lived distributed identity that can reorganize work around the capabilities currently offered by its admitted hosts.
 
@@ -971,11 +971,11 @@ That later model should preserve the foundation established here:
 hosts advertise capabilities
 forms describe semantic work
 plans map forms to exact host realizations
-activation begins only after preparation
+Play start begins only after preparation
 receipts account for semantic effects
 ```
 
-Durable admission will replace development-oriented realm registration. Soul history will preserve body continuity across host restarts and plan changes. Neither requires changing the meaning of `Source<T>`, `Sink<T>`, semantic kinds, capability offers, exact plans, bounded cords, or receipts.
+Durable admission will replace development-oriented planning scope registration. Soul history will preserve body continuity across host restarts and plan changes. Neither requires changing the meaning of `Source<T>`, `Sink<T>`, semantic kinds, capability offers, exact plans, bounded cords, or receipts.
 
 The portable signal demonstration is therefore not a disposable toy. It is the narrow waist upon which later bodies, robotics, recovery, and richer semantic libraries can be built.
 
@@ -990,7 +990,7 @@ A host advertises current capabilities under explicit limits.
 A capability advertisement is not authority and does not start work.
 A planner combines forms, offers, links, placement policy, and bounds.
 A plan makes every execution choice exact.
-A plan is immutable and inactive until activation.
+A plan is immutable and inactive until Play start.
 A cord carries typed values independently of its selected transport.
 Every queue and frame is bounded.
 A semantic sink may manifest differently while preserving the same value.
@@ -1004,13 +1004,13 @@ This document captures the following current decisions:
 
 1. Begin with three host profiles: browser, Pico W, and portable Rust std.
 2. Treat multiple browser host instances as real independent hosts.
-3. Use `Source<T>` and `Sink<T>` as the two fundamental structural cell shapes.
+3. Use `Source<T>` and `Sink<T>` as the two fundamental structural gear shapes.
 4. Use a finite alternating `Signal` as the first portable value.
 5. Use one semantic show sink with three host-specific manifestations.
 6. Keep forms free of platform and transport details.
 7. Let hosts advertise exact implementations and limits.
 8. Let the planner produce an immutable exact plan.
-9. Separate planning from activation.
+9. Separate planning from Play start.
 10. Require bounded cords, frames, queues, and executions.
 11. Use machine-readable receipts as the cross-host correctness proof.
 12. Defer durable body and soul mechanics until the portable execution waist works.

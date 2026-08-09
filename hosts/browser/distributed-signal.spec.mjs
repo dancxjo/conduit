@@ -183,10 +183,10 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
       "hostOperationContractId",
       "placementId",
       "presentationId",
-      "evidenceId",
+      "clueId",
       "connectionId",
       "linkBindingId",
-      "providerInstanceId",
+      "baseInstanceId",
     ];
     for (const [index, presentation] of result.presentations.entries()) {
       const receipt = result.receipts[index];
@@ -204,8 +204,8 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
       bootId === "s4/browser-sink-boot")).toBe(true);
     expect(result.receipts.every(({ linkBindingId }) =>
       linkBindingId === "s4/std-browser-link")).toBe(true);
-    expect(result.receipts.every(({ providerInstanceId }) =>
-      providerInstanceId === "s4/websocket-loopback-instance")).toBe(true);
+    expect(result.receipts.every(({ baseInstanceId }) =>
+      baseInstanceId === "s4/websocket-loopback-instance")).toBe(true);
     expect(new Set(result.presentations.map(({ planId }) => planId)).size).toBe(1);
     expect(new Set(result.presentations.map(({ fragmentId }) => fragmentId)).size).toBe(1);
     expect(new Set(result.presentations.map(({ sourceFragmentId }) => sourceFragmentId)).size)
@@ -214,7 +214,7 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
     expect(new Set(result.presentations.map(({ sourceActivePlayId }) =>
       sourceActivePlayId)).size).toBe(1);
     expect(new Set(result.presentations.map(({ presentationId }) => presentationId)).size).toBe(16);
-    expect(new Set(result.presentations.map(({ evidenceId }) => evidenceId)).size).toBe(16);
+    expect(new Set(result.presentations.map(({ clueId }) => clueId)).size).toBe(16);
     expect(new Set(result.presentations.map(({ requestId }) => requestId)).size).toBe(16);
     expect(result.presentations.every(({ encoded }, index) =>
       encoded.length === 9 && encoded[8] === index % 2)).toBe(true);

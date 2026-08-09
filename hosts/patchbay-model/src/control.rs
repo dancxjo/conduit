@@ -75,8 +75,8 @@ impl PlanDocument {
             )?;
             for placement in &fragment.placements {
                 push(&mut lines, format!(
-                    "    CELL operation={} placement={} host={} boot={} capability={} implementation={} artifact={}",
-                    placement.operation_id.as_str(), placement.placement_id.as_str(),
+                    "    GEAR operation={} placement={} host={} boot={} capability={} implementation={} artifact={}",
+                    placement.gear_id.as_str(), placement.placement_id.as_str(),
                     placement.host_id.as_str(), placement.boot_id.as_str(),
                     placement.capability_id.as_str(), placement.implementation_id.as_str(),
                     placement.artifact_id.as_str()
@@ -86,9 +86,9 @@ impl PlanDocument {
                 push(
                     &mut lines,
                     format!(
-                        "    CORD connection={} provider={:?} items={} bytes={}",
+                        "    CORD connection={} base={:?} items={} bytes={}",
                         connection.connection_id.as_str(),
-                        connection.provider,
+                        connection.base,
                         connection.item_capacity,
                         connection.byte_capacity
                     ),
@@ -97,11 +97,11 @@ impl PlanDocument {
                     push(
                         &mut lines,
                         format!(
-                            "      CANDIDATE index={} binding={} provider={:?} instance={}",
+                            "      CANDIDATE index={} binding={} base={:?} instance={}",
                             index,
                             candidate.binding_id.as_str(),
-                            candidate.provider,
-                            candidate.provider_instance_id.as_str()
+                            candidate.base,
+                            candidate.base_instance_id.as_str()
                         ),
                     )?;
                 }
@@ -122,13 +122,13 @@ impl PlanDocument {
 pub fn admit_run(
     plan: &Plan,
     current_source: &conduit_core::SourceDocumentId,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
 ) -> Result<(), ControlError> {
     if &plan.source_document_id != current_source {
         return Err(ControlError::StalePlan);
     }
     for fragment in &plan.fragments {
-        let host = realm
+        let host = hosts
             .iter()
             .find(|host| host.host_id == fragment.host_id)
             .ok_or(ControlError::UnavailableRealization)?;
@@ -159,7 +159,7 @@ pub fn admit_run(
 pub struct PlayDocument {
     pub active_play_id: ActivePlayId,
     pub plan_id: PlanId,
-    pub evidence: Vec<Observation>,
+    pub clues: Vec<Observation>,
     pub lines: Vec<String>,
     pub terminal: TerminalDisposition,
 }
@@ -184,7 +184,7 @@ impl PlayDocument {
         push(
             &mut lines,
             format!(
-                "  PRESSURE exposed=false decisions={} kernel_events={} evidence_gaps=0",
+                "  PRESSURE exposed=false decisions={} kernel_events={} clue_gaps=0",
                 kernel.decisions, kernel.kernel_events
             ),
         )?;
@@ -192,17 +192,17 @@ impl PlayDocument {
             push(
                 &mut lines,
                 format!(
-                    "  EVIDENCE id={} kind={:?}",
-                    observation.evidence_id.as_str(),
+                    "  CLUE id={} kind={:?}",
+                    observation.clue_id.as_str(),
                     observation.kind
                 ),
             )?;
         }
-        for event in &kernel.kernel_evidence {
+        for event in &kernel.kernel_clue {
             push(
                 &mut lines,
                 format!(
-                    "  KERNEL-EVIDENCE sequence={} node={} kind={:?}",
+                    "  KERNEL-CLUE sequence={} node={} kind={:?}",
                     event.sequence, event.node.0, event.kind
                 ),
             )?;
@@ -221,7 +221,7 @@ impl PlayDocument {
         Ok(Self {
             active_play_id: kernel.active_play_id.clone(),
             plan_id: plan.plan_id.clone(),
-            evidence: report.observations.clone(),
+            clues: report.observations.clone(),
             lines,
             terminal,
         })

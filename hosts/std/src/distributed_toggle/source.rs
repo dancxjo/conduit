@@ -1,10 +1,10 @@
 //! Struct definition and kernel orchestration for the S4 toggle-demo std source.
 //!
-//! `DistributedToggleSource` prepares the kernel fragment (activate + toggle)
+//! `DistributedToggleSource` prepares the kernel fragment (trigger + toggle)
 //! and drives the WebSocket session to the browser sink host.
 //!
-//! Stdin reads are performed exclusively inside `complete_activation_wait`,
-//! i.e. within the admitted await-activation host-operation lifecycle.
+//! Stdin reads are performed exclusively inside `complete_trigger_wait`,
+//! i.e. within the admitted await-trigger host-operation lifecycle.
 //!
 //! Session/carrier transport lives in `carrier.rs`; tests live in `source_tests.rs`.
 
@@ -17,7 +17,7 @@ use conduit_kernel::scheduler::{
 };
 use conduit_kernel::{
     CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedEvidenceLog, HostedValueStore, RemoteEndpointId, RequestId,
+    HostOperationOutcome, HostedClueLog, HostedValueStore, RemoteEndpointId, RequestId,
     ValueStorage,
 };
 use conduit_runtime::lowering::{
@@ -25,8 +25,8 @@ use conduit_runtime::lowering::{
     MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
 use conduit_signal::{
-    encode_signal, parse_activate_configuration, parse_toggle_configuration, Signal,
-    ACTIVATION_ENCODED_LEN, SIGNAL_ENCODED_LEN,
+    encode_signal, parse_toggle_configuration, parse_trigger_configuration, Signal,
+    SIGNAL_ENCODED_LEN, TRIGGER_ENCODED_LEN,
 };
 use conduit_wire::{SessionBinding, SessionMachine, SessionRole};
 use std::io::{BufRead, Write};
@@ -37,21 +37,21 @@ pub(super) const MAXIMUM_VALUES: usize = 16;
 pub(super) const MAXIMUM_WAITS: usize = MAXIMUM_VALUES;
 const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES * 2 + MAXIMUM_WAITS) as u16;
 const MAXIMUM_STORED_BYTES: u32 = MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN
-    + MAXIMUM_VALUES as u32 * ACTIVATION_ENCODED_LEN
+    + MAXIMUM_VALUES as u32 * TRIGGER_ENCODED_LEN
     + MAXIMUM_WAITS as u32;
-pub(super) const EVIDENCE_ITEMS: u16 = 256;
+pub(super) const CLUE_ITEMS: u16 = 256;
 
 pub(super) type ToggleScheduler = FixedScheduler<
     OperationDriver<ToggleSourceOperation, PORTS>,
     HostedValueStore,
-    HostedEvidenceLog,
+    HostedClueLog,
     2,
     2,
     PORTS,
     2,
     ROUTE_SLOTS,
     2,
-    1,
+    2,
     2,
 >;
 
@@ -89,23 +89,23 @@ impl DistributedToggleSource {
             ));
         }
 
-        let activate_placement = fragment
+        let trigger_placement = fragment
             .placements
             .iter()
-            .find(|placement| placement.kind_id.as_str() == "interaction/activate")
-            .ok_or("activate placement missing")?;
+            .find(|placement| placement.kind_id.as_str() == "interaction/trigger")
+            .ok_or("trigger placement missing")?;
         let toggle_placement = fragment
             .placements
             .iter()
             .find(|placement| placement.kind_id.as_str() == "state/toggle")
             .ok_or("toggle placement missing")?;
 
-        let activate_config = parse_activate_configuration(&activate_placement.configuration)
+        let trigger_config = parse_trigger_configuration(&trigger_placement.configuration)
             .map_err(|error| error.to_string())?;
         let toggle_config = parse_toggle_configuration(&toggle_placement.configuration)
             .map_err(|error| error.to_string())?;
-        if activate_config.count != MAXIMUM_VALUES as u64 {
-            return Err("toggle form activation count is not the S4 vector".to_string());
+        if trigger_config.count != MAXIMUM_VALUES as u64 {
+            return Err("toggle form trigger count is not the S4 vector".to_string());
         }
 
         let mut store = HostedValueStore::new(
@@ -115,9 +115,9 @@ impl DistributedToggleSource {
         )
         .map_err(|error| format!("{error:?}"))?;
 
-        let mut activation_values = Vec::with_capacity(MAXIMUM_VALUES);
-        for sequence in 0..activate_config.count {
-            activation_values.push(
+        let mut trigger_values = Vec::with_capacity(MAXIMUM_VALUES);
+        for sequence in 0..trigger_config.count {
+            trigger_values.push(
                 store
                     .store(&sequence.to_le_bytes())
                     .map_err(|error| format!("{error:?}"))?,
@@ -135,7 +135,7 @@ impl DistributedToggleSource {
 
         let mut signal_values = Vec::with_capacity(MAXIMUM_VALUES);
         let mut current_level = toggle_config.initial;
-        for sequence in 0..activate_config.count {
+        for sequence in 0..trigger_config.count {
             current_level = !current_level;
             let payload = encode_signal(&Signal {
                 sequence,
@@ -161,7 +161,7 @@ impl DistributedToggleSource {
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
 
-        let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut host_bindings = FixedHostOperationBindings::<2>::new(1);
         host_bindings
             .install(
                 lowered.host_operations[0].node,
@@ -170,16 +170,16 @@ impl DistributedToggleSource {
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
 
-        let activate_node_idx = lowered
+        let trigger_node_idx = lowered
             .nodes
             .iter()
             .position(|node| {
                 fragment
                     .placements
                     .get(usize::from(node.node.0))
-                    .is_some_and(|placement| placement.kind_id.as_str() == "interaction/activate")
+                    .is_some_and(|placement| placement.kind_id.as_str() == "interaction/trigger")
             })
-            .ok_or("activate node not found in lowered fragment")?;
+            .ok_or("trigger node not found in lowered fragment")?;
         let toggle_node_idx = lowered
             .nodes
             .iter()
@@ -191,31 +191,31 @@ impl DistributedToggleSource {
             })
             .ok_or("toggle node not found in lowered fragment")?;
 
-        let activate_driver = OperationDriver::new(ToggleSourceOperation::Activate {
+        let trigger_driver = OperationDriver::new(ToggleSourceOperation::Trigger {
             tokens: token_values,
-            values: activation_values.clone(),
+            values: trigger_values.clone(),
             next: 0,
             pending: None,
         })
         .map_err(|error| format!("{error:?}"))?;
         let toggle_driver = OperationDriver::new(ToggleSourceOperation::Toggle {
             signals: signal_values,
-            expected_activations: activation_values,
+            expected_triggers: trigger_values,
             next: 0,
         })
         .map_err(|error| format!("{error:?}"))?;
 
-        let drivers = if activate_node_idx < toggle_node_idx {
-            [activate_driver, toggle_driver]
+        let drivers = if trigger_node_idx < toggle_node_idx {
+            [trigger_driver, toggle_driver]
         } else {
-            [toggle_driver, activate_driver]
+            [toggle_driver, trigger_driver]
         };
 
-        let evidence_bytes = u32::from(EVIDENCE_ITEMS)
+        let clue_bytes = u32::from(CLUE_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-            .ok_or_else(|| "source evidence budget overflow".to_string())?;
-        let evidence = HostedEvidenceLog::new(EVIDENCE_ITEMS, evidence_bytes)
-            .map_err(|error| format!("{error:?}"))?;
+            .ok_or_else(|| "source clue budget overflow".to_string())?;
+        let clue =
+            HostedClueLog::new(CLUE_ITEMS, clue_bytes).map_err(|error| format!("{error:?}"))?;
 
         let remote = &lowered.remote_endpoints[0];
         let connection = fragment
@@ -248,7 +248,7 @@ impl DistributedToggleSource {
             host_bindings,
             drivers,
             store,
-            evidence,
+            clue,
         )
         .map_err(|error| format!("{error:?}"))?;
 
@@ -260,12 +260,12 @@ impl DistributedToggleSource {
         let mut identity =
             KernelExecutionIdentityMap::new(&lowered.identity, &active_play, MAXIMUM_WAITS, 0, 1)
                 .map_err(|error| format!("{error:?}"))?;
-        let activate_node = lowered.nodes[activate_node_idx].node;
+        let trigger_node = lowered.nodes[trigger_node_idx].node;
         for sequence in 0..MAXIMUM_WAITS {
             identity
                 .bind_request(
                     &lowered.identity,
-                    activate_node,
+                    trigger_node,
                     RequestId(sequence as u32),
                     HostOperationId(0),
                 )
@@ -276,7 +276,7 @@ impl DistributedToggleSource {
             .map_err(|error| format!("{error:?}"))?;
         let seal = CapacitySeal {
             values: scheduler.values().allocation_capacities(),
-            evidence: scheduler.evidence().allocation_capacity(),
+            clue: scheduler.clues().allocation_capacity(),
             drivers: scheduler
                 .drivers()
                 .iter()
@@ -299,7 +299,7 @@ impl DistributedToggleSource {
     pub(super) fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
-            evidence: self.scheduler.evidence().allocation_capacity(),
+            clue: self.scheduler.clues().allocation_capacity(),
             drivers: self
                 .scheduler
                 .drivers()
@@ -315,32 +315,32 @@ impl DistributedToggleSource {
         (remote.endpoint, remote.cord)
     }
 
-    fn complete_activation_wait<R: BufRead>(
+    fn complete_trigger_wait<R: BufRead>(
         &mut self,
         request: HostOperationRequest,
         report: &mut impl Write,
         stdin: &mut R,
-        activation_index: usize,
+        trigger_index: usize,
     ) -> Result<(), String> {
         let expected = self
             .identity
             .request(request.node, request.request)
-            .ok_or_else(|| "unbound await-activation request identity".to_string())?;
+            .ok_or_else(|| "unbound await-trigger request identity".to_string())?;
         if expected.operation != request.operation {
-            return Err("await-activation request operation identity mismatch".to_string());
+            return Err("await-trigger request operation identity mismatch".to_string());
         }
         writeln!(
             report,
-            "Press Enter to activate ({activation_index}/{MAXIMUM_VALUES})"
+            "Press Enter to trigger ({trigger_index}/{MAXIMUM_VALUES})"
         )
         .map_err(|error| error.to_string())?;
         let mut line = String::new();
         let bytes_read = stdin
             .read_line(&mut line)
-            .map_err(|error| format!("CND-TOG-ACTIVATE-EOF stdin read failed: {error}"))?;
+            .map_err(|error| format!("CND-TOG-TRIGGER-EOF stdin read failed: {error}"))?;
         if bytes_read == 0 {
             return Err(
-                "CND-TOG-ACTIVATE-EOF stdin reached EOF before all activations were received"
+                "CND-TOG-TRIGGER-EOF stdin reached EOF before all triggers were received"
                     .to_string(),
             );
         }
@@ -361,10 +361,10 @@ impl DistributedToggleSource {
         &mut self,
         report: &mut impl Write,
         stdin: &mut R,
-        activation_index: &mut usize,
+        trigger_index: &mut usize,
     ) -> Result<Option<(u64, [u8; SIGNAL_ENCODED_LEN as usize])>, String> {
         let (endpoint, cord) = self.remote();
-        let mut completed_activation = false;
+        let mut completed_trigger = false;
         loop {
             if let Some(offer) = self
                 .scheduler
@@ -380,12 +380,12 @@ impl DistributedToggleSource {
                     .map_err(|_| "remote Signal payload width mismatch".to_string())?;
                 return Ok(Some((offer.sequence, payload)));
             }
-            if !completed_activation {
+            if !completed_trigger {
                 if let Some(request) = self.scheduler.next_host_request() {
-                    let current_index = *activation_index;
-                    *activation_index += 1;
-                    self.complete_activation_wait(request, report, stdin, current_index)?;
-                    completed_activation = true;
+                    let current_index = *trigger_index;
+                    *trigger_index += 1;
+                    self.complete_trigger_wait(request, report, stdin, current_index)?;
+                    completed_trigger = true;
                     continue;
                 }
             }

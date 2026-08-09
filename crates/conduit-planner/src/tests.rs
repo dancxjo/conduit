@@ -4,12 +4,12 @@ use super::{
     PlacementChoices, PlannerError,
 };
 use conduit_core::{
-    authority_grant, kind_id, mandatory_evidence_storage_requirement,
-    present_authority_requirement, process_owned_link_binding, verify_plan, verify_plan_fragment,
-    ArtifactId, CancellationPolicy, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ConnectionProvider, ExpandedFormId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, KindId, OfferGeneration, PortDescriptor, PortDirection, PortId,
-    SourceDocumentId, StartupDependency, TerminalPolicy, PROTOCOL_VERSION,
+    authority_grant, kind_id, mandatory_clue_storage_requirement, present_authority_requirement,
+    process_owned_link_binding, verify_plan, verify_plan_fragment, ArtifactId, CancellationPolicy,
+    CapabilityLimits, CapabilityOffer, ConfigurationValue, ConnectionBase, ExpandedFormId,
+    HostAdvertisement, HostId, HostProfileId, ImplementationId, KindContractRevision, KindId,
+    OfferGeneration, PortDescriptor, PortDirection, PortId, SourceDocumentId, StartupDependency,
+    TerminalPolicy, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
 use conduit_signal::{
@@ -140,33 +140,30 @@ fn host_for_checked_form(form: &conduit_form::CheckedForm) -> HostAdvertisement 
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: form
-            .operations
+            .gears
             .iter()
-            .map(|operation| CapabilityOffer {
+            .map(|gear| CapabilityOffer {
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: conduit_core::CapabilityId::from(format!(
                     "capability/{}",
-                    operation.operation_id.as_str()
+                    gear.gear_id.as_str()
                 )),
-                kind_id: operation.kind_id.clone(),
-                kind_contract_revision: operation.kind_contract_revision.clone(),
+                kind_id: gear.kind_id.clone(),
+                kind_contract_revision: gear.kind_contract_revision.clone(),
                 implementation: conduit_core::ImplementationOffer {
                     execution_profile_id: conduit_core::ExecutionProfileId::from(format!(
                         "profile/{}",
-                        operation.operation_id.as_str()
+                        gear.gear_id.as_str()
                     )),
                     implementation_id: ImplementationId::from(format!(
                         "implementation/{}",
-                        operation.operation_id.as_str()
+                        gear.gear_id.as_str()
                     )),
-                    artifact_id: ArtifactId::from(format!(
-                        "artifact/{}",
-                        operation.operation_id.as_str()
-                    )),
+                    artifact_id: ArtifactId::from(format!("artifact/{}", gear.gear_id.as_str())),
                 },
-                inputs: operation.inputs.clone(),
-                outputs: operation.outputs.clone(),
+                inputs: gear.inputs.clone(),
+                outputs: gear.outputs.clone(),
                 host_operations: vec![],
                 resource_requirements: vec![],
                 authority_requirements: vec![],
@@ -186,13 +183,13 @@ fn parses_block_placement_file() {
             "placements 0\npulse:\n    host = \"std-host-1\"\n    capability = \"pulse-1\"\nshow:\n    host = \"std-host-1\"\n    capability = \"stdout-show-1\"\n",
         )
         .expect("placements should parse");
-    assert_eq!(placements.by_operation.len(), 2);
+    assert_eq!(placements.by_gear.len(), 2);
 }
 
 #[test]
-fn default_placement_uses_realm() {
+fn default_placement_uses_hosts() {
     let placements = default_placements(&form(), &[host()]).expect("placements must work");
-    assert_eq!(placements.by_operation.len(), 2);
+    assert_eq!(placements.by_gear.len(), 2);
 }
 
 #[test]
@@ -205,7 +202,7 @@ fn planning_binds_exact_contract_profile_and_every_port() {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .expect("exact plan resolves");
     assert_eq!(plan.source_document_id, form.source_document_id);
@@ -217,11 +214,11 @@ fn planning_binds_exact_contract_profile_and_every_port() {
             && fragment.expanded_form_id == form.expanded_form_id
     }));
     for placement in &plan.fragments[0].placements {
-        let operation = form
-            .operations
+        let gear = form
+            .gears
             .iter()
-            .find(|operation| operation.operation_id == placement.operation_id)
-            .expect("checked operation exists");
+            .find(|gear| gear.gear_id == placement.gear_id)
+            .expect("checked gear exists");
         let capability = host
             .capabilities
             .iter()
@@ -229,7 +226,7 @@ fn planning_binds_exact_contract_profile_and_every_port() {
             .expect("capability exists");
         assert_eq!(
             placement.kind_contract_revision,
-            operation.kind_contract_revision
+            gear.kind_contract_revision
         );
         assert_eq!(
             placement.kind_contract_revision,
@@ -239,8 +236,8 @@ fn planning_binds_exact_contract_profile_and_every_port() {
             placement.execution_profile_id,
             capability.implementation.execution_profile_id
         );
-        assert_eq!(placement.inputs, operation.inputs);
-        assert_eq!(placement.outputs, operation.outputs);
+        assert_eq!(placement.inputs, gear.inputs);
+        assert_eq!(placement.outputs, gear.outputs);
         assert_eq!(placement.host_operations, capability.host_operations);
         assert_eq!(
             placement.resources.len(),
@@ -283,9 +280,9 @@ fn planning_binds_exact_contract_profile_and_every_port() {
         TerminalPolicy::RequireAllPlacementsAndConnections
     );
     assert_eq!(
-        fragment.evidence_storage_budget,
-        mandatory_evidence_storage_requirement(&fragment.expected_evidence)
-            .expect("focused evidence fits public budget types")
+        fragment.clue_storage_budget,
+        mandatory_clue_storage_requirement(&fragment.expected_clue)
+            .expect("focused clue fits public budget types")
     );
 }
 
@@ -301,8 +298,8 @@ fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
 
     let placements = default_placements(&form, std::slice::from_ref(&host))
         .expect("Pico advertisement covers the exact Signal form");
-    assert_eq!(placements.by_operation.len(), 2);
-    assert!(placements.by_operation.values().all(|choice| {
+    assert_eq!(placements.by_gear.len(), 2);
+    assert!(placements.by_gear.values().all(|choice| {
         choice.host_id == host.host_id
             && host
                 .capabilities
@@ -314,7 +311,7 @@ fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
     )
@@ -343,7 +340,7 @@ fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
             == "pico-w/kernel-cyw43-show-signal-v1"));
 
     let connection = &fragment.connections[0];
-    assert_eq!(connection.provider, ConnectionProvider::Local);
+    assert_eq!(connection.base, ConnectionBase::Local);
     assert!(connection.link_binding.is_none());
     assert_eq!(
         connection.item_capacity,
@@ -374,7 +371,7 @@ fn planning_rejects_cyclic_startup_dependencies() {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .expect("acyclic plan resolves");
     let fragment = &plan.fragments[0];
@@ -397,7 +394,7 @@ fn a_self_cord_is_runtime_routing_not_a_startup_cycle() {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .unwrap();
     let fragment = &plan.fragments[0];
@@ -418,7 +415,7 @@ fn planning_rejects_invalid_host_operation_requirements() {
             &form,
             std::slice::from_ref(&host),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         ),
         Err(PlannerError::InvalidHostOperationRequirement(_))
     ));
@@ -437,7 +434,7 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
             &form,
             std::slice::from_ref(&advertised),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         ),
         Err(PlannerError::InvalidResourceContract(_))
     ));
@@ -453,7 +450,7 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
             &form,
             std::slice::from_ref(&advertised),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         ),
         Err(PlannerError::UnavailableResource(_))
     ));
@@ -471,7 +468,7 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
             &form,
             std::slice::from_ref(&advertised),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         ),
         Err(PlannerError::InvalidResourceContract(_))
     ));
@@ -485,7 +482,7 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
             &form,
             std::slice::from_ref(&advertised),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         ),
         Err(PlannerError::ResourceCapacityExceeded(_))
     ));
@@ -502,7 +499,7 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
             &form,
             std::slice::from_ref(&advertised),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         ),
         Err(PlannerError::ResourceCapacityExceeded(_))
     ));
@@ -528,7 +525,7 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
             &form,
             std::slice::from_ref(&invalid),
             &invalid_placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
             &[],
         ),
         Err(PlannerError::InvalidAuthorityContract(_))
@@ -545,7 +542,7 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
             &form,
             std::slice::from_ref(&advertised),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
             &[],
         ),
         Err(PlannerError::AuthorityGrantMissing(_))
@@ -563,7 +560,7 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
             &form,
             std::slice::from_ref(&advertised),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
             &[stale],
         ),
         Err(PlannerError::AuthorityGrantMissing(_))
@@ -583,7 +580,7 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
             &form,
             std::slice::from_ref(&advertised),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
             &[grant.clone(), duplicate_scope],
         ),
         Err(PlannerError::AuthorityGrantAmbiguous(_))
@@ -593,7 +590,7 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
         &form,
         std::slice::from_ref(&advertised),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         std::slice::from_ref(&grant),
     )
     .expect("exact grant resolves");
@@ -609,24 +606,24 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
 }
 
 #[test]
-fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_providers() {
+fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
     let form = form();
     let source = host();
     let mut sink = host();
     sink.host_id = HostId::from("remote-host");
     sink.boot_id = conduit_core::BootId::from("remote-boot");
-    let realm = [source.clone(), sink.clone()];
+    let hosts = [source.clone(), sink.clone()];
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                conduit_core::OperationId::from("pulse"),
+                conduit_core::GearId::from("pulse"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: conduit_core::CapabilityId::from("pulse-1"),
                 },
             ),
             (
-                conduit_core::OperationId::from("show"),
+                conduit_core::GearId::from("show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
@@ -637,9 +634,9 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_providers(
     assert!(matches!(
         plan_with_link_bindings(
             &form,
-            &realm,
+            &hosts,
             &placements,
-            &[ConnectionProvider::FixtureFrame],
+            &[ConnectionBase::FixtureFrame],
             4,
             64,
             &[],
@@ -649,7 +646,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_providers(
 
     let exact = process_owned_link_binding(
         "link/source-remote",
-        ConnectionProvider::FixtureFrame,
+        ConnectionBase::FixtureFrame,
         "fixture/frame/source-remote",
         &source,
         &sink,
@@ -659,21 +656,21 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_providers(
     let mut stale = exact.clone();
     stale.sink.boot_id = conduit_core::BootId::from("stale-boot");
     assert!(matches!(
-        plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[stale]),
+        plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[stale]),
         Err(PlannerError::LinkBindingMissing(_))
     ));
 
     let mut unavailable = exact.clone();
     unavailable.availability = conduit_core::LinkAvailability::Unavailable;
     assert!(matches!(
-        plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[unavailable],),
+        plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[unavailable],),
         Err(PlannerError::LinkBindingUnavailable(_))
     ));
 
     let mut underbounded = exact.clone();
     underbounded.limits.maximum_buffered_bytes = 63;
     assert!(matches!(
-        plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[underbounded],),
+        plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[underbounded],),
         Err(PlannerError::LinkBindingUnavailable(_))
     ));
 
@@ -682,7 +679,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_providers(
     assert!(matches!(
         plan_with_link_bindings(
             &form,
-            &realm,
+            &hosts,
             &placements,
             &[],
             4,
@@ -693,9 +690,9 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_providers(
     ));
 
     let mut invalid = exact.clone();
-    invalid.provider_instance_id = conduit_core::ConnectionProviderInstanceId::from("");
+    invalid.base_instance_id = conduit_core::ConnectionBaseInstanceId::from("");
     assert!(matches!(
-        plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[invalid]),
+        plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[invalid]),
         Err(PlannerError::InvalidLinkBinding(_))
     ));
 
@@ -706,7 +703,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_providers(
     assert!(matches!(
         plan_with_link_bindings(
             &form,
-            &realm,
+            &hosts,
             &placements,
             &[],
             4,
@@ -720,7 +717,7 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_providers(
     invalid_authority.authority =
         conduit_core::LinkAuthorityReference::Grant(conduit_core::AuthorityGrantId::from(""));
     assert!(matches!(
-        plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[invalid_authority],),
+        plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[invalid_authority],),
         Err(PlannerError::InvalidLinkBinding(_))
     ));
 
@@ -733,20 +730,20 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_providers(
     );
     let plan = plan_with_link_bindings(
         &form,
-        &realm,
+        &hosts,
         &placements,
         &[],
         4,
         64,
         std::slice::from_ref(&secured),
     )
-    .expect("an observed link, not a global provider enum, resolves the remote cord");
+    .expect("an observed link, not a global base enum, resolves the remote cord");
     assert!(verify_plan(&plan));
     let connection = plan.fragments[0]
         .connections
         .first()
         .expect("remote connection exists");
-    assert_eq!(connection.provider, secured.provider);
+    assert_eq!(connection.base, secured.base);
     assert_eq!(connection.link_binding.as_ref(), Some(&secured));
 }
 
@@ -757,18 +754,18 @@ fn planning_link_binding_mutations_change_fragment_identity() {
     let mut sink = host();
     sink.host_id = HostId::from("remote-host");
     sink.boot_id = conduit_core::BootId::from("remote-boot");
-    let realm = [source.clone(), sink.clone()];
+    let hosts = [source.clone(), sink.clone()];
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                conduit_core::OperationId::from("pulse"),
+                conduit_core::GearId::from("pulse"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: conduit_core::CapabilityId::from("pulse-1"),
                 },
             ),
             (
-                conduit_core::OperationId::from("show"),
+                conduit_core::GearId::from("show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
@@ -778,14 +775,14 @@ fn planning_link_binding_mutations_change_fragment_identity() {
     };
     let link = process_owned_link_binding(
         "link/mutation",
-        ConnectionProvider::FixtureFrame,
+        ConnectionBase::FixtureFrame,
         "fixture/frame/mutation",
         &source,
         &sink,
         4,
         64,
     );
-    let original = plan_with_link_bindings(&form, &realm, &placements, &[], 4, 64, &[link])
+    let original = plan_with_link_bindings(&form, &hosts, &placements, &[], 4, 64, &[link])
         .expect("remote plan resolves")
         .fragments[0]
         .clone();
@@ -810,10 +807,10 @@ fn planning_link_binding_mutations_change_fragment_identity() {
                 binding.sink.endpoint_id =
                     conduit_core::LinkEndpointId::from("mutated-sink-endpoint")
             }
-            7 => binding.provider = ConnectionProvider::FixtureDatagram,
+            7 => binding.base = ConnectionBase::FixtureDatagram,
             8 => {
-                binding.provider_instance_id =
-                    conduit_core::ConnectionProviderInstanceId::from("mutated/provider")
+                binding.base_instance_id =
+                    conduit_core::ConnectionBaseInstanceId::from("mutated/base")
             }
             9 => binding.availability = conduit_core::LinkAvailability::Unavailable,
             10 => {
@@ -838,7 +835,7 @@ fn planning_link_binding_mutations_change_fragment_identity() {
         assert_eq!(
             verify_plan_fragment(&mutated),
             field == 9,
-            "field {field}: only mutable availability evidence stays outside fragment identity"
+            "field {field}: only mutable availability clue stays outside fragment identity"
         );
     }
 }
@@ -853,7 +850,7 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .expect("exact plan resolves");
 
@@ -863,7 +860,7 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
         &source_changed,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .expect("source-identity plan resolves");
     assert_ne!(original.plan_id, source_plan.plan_id);
@@ -875,7 +872,7 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
             &checked_changed,
             std::slice::from_ref(&host),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         ),
         Err(PlannerError::InvalidFormIdentity(_))
     ));
@@ -887,7 +884,7 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
             &expanded_changed,
             std::slice::from_ref(&host),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         ),
         Err(PlannerError::InvalidFormIdentity(_))
     ));
@@ -925,7 +922,7 @@ fn planning_binds_nested_expansion_changes_beyond_the_checked_boundary() {
         .expect("changed nested parent checks");
     assert_eq!(baseline.checked_form_id, changed.checked_form_id);
     assert_ne!(baseline.expanded_form_id, changed.expanded_form_id);
-    assert_eq!(baseline.operations, changed.operations);
+    assert_eq!(baseline.gears, changed.gears);
 
     let host = host_for_checked_form(&baseline);
     let placements = default_placements(&baseline, std::slice::from_ref(&host))
@@ -934,14 +931,14 @@ fn planning_binds_nested_expansion_changes_beyond_the_checked_boundary() {
         &baseline,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .expect("baseline parent plans");
     let changed_plan = plan(
         &changed,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .expect("changed expansion plans against the same visible offers");
 
@@ -963,7 +960,7 @@ fn planning_binds_nested_expansion_changes_beyond_the_checked_boundary() {
             &omitted,
             std::slice::from_ref(&host),
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
         ),
         Err(PlannerError::InvalidFormIdentity(_))
     ));
@@ -983,7 +980,7 @@ fn planning_accepts_face_preserving_revision_and_rejects_face_change() {
         &form,
         std::slice::from_ref(&mismatched_revision),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .expect("face-preserving revision is compatible");
     assert_eq!(
@@ -1000,7 +997,7 @@ fn planning_accepts_face_preserving_revision_and_rejects_face_change() {
             &form,
             std::slice::from_ref(&mismatched_temporal),
             &placements,
-            &[ConnectionProvider::Local]
+            &[ConnectionBase::Local]
         ),
         Err(PlannerError::IncompatibleCheckedFace(_))
     ));
@@ -1019,7 +1016,7 @@ fn planning_accepts_face_preserving_revision_and_rejects_face_change() {
             &form,
             std::slice::from_ref(&mismatched_ports),
             &placements,
-            &[ConnectionProvider::Local]
+            &[ConnectionBase::Local]
         ),
         Err(PlannerError::IncompatibleCheckedFace(_))
     ));
@@ -1032,7 +1029,7 @@ fn planning_rejects_unknown_host() {
             "placements 0\npulse:\n    host = \"missing\"\n    capability = \"pulse-1\"\nshow:\n    host = \"missing\"\n    capability = \"stdout-show-1\"\n",
         )
         .expect("placements should parse");
-    let error = plan(&form, &[host()], &placements, &[ConnectionProvider::Local])
+    let error = plan(&form, &[host()], &placements, &[ConnectionBase::Local])
         .expect_err("planning should fail");
     assert!(matches!(error, PlannerError::UnknownHost(_)));
 }

@@ -2,7 +2,7 @@
 //! PR #405 instead of maintaining a second, hand-written mutation vocabulary.
 
 use conduit_core::{
-    bind_active_play, BootId, ConnectionEnvelope, ConnectionProvider, ConnectionProviderInstanceId,
+    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionEnvelope,
     FragmentId, HostId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PROTOCOL_VERSION,
 };
 use conduit_wire::{
@@ -122,8 +122,8 @@ fn binding(envelope: &ConnectionEnvelope) -> SessionBinding {
         },
         attachment: RouteAttachment {
             link_binding_id: LinkBindingId::from("corpus/link"),
-            provider: ConnectionProvider::WebSocket,
-            provider_instance_id: ConnectionProviderInstanceId::from("corpus/provider"),
+            base: ConnectionBase::WebSocket,
+            base_instance_id: ConnectionBaseInstanceId::from("corpus/base"),
             source_host_id: source.host_id,
             source_boot_id: source.boot_id,
             source_endpoint_id: LinkEndpointId::from("corpus/source-endpoint"),
@@ -140,7 +140,7 @@ fn binding(envelope: &ConnectionEnvelope) -> SessionBinding {
     }
 }
 
-fn activate(machine: &mut SessionMachine) {
+fn trigger(machine: &mut SessionMachine) {
     let exact = machine.binding().clone();
     machine.admit_outbound(exact.hello_frame()).unwrap();
     machine.admit_inbound(exact.hello_frame()).unwrap();
@@ -244,7 +244,7 @@ fn identity_and_sequence_mutation_corpus_drives_session_denial() {
             frame.identity.connection_id = mutation.connection_id.as_str();
         }
         let mut machine = SessionMachine::new(baseline.clone(), SessionRole::Source).unwrap();
-        activate(&mut machine);
+        trigger(&mut machine);
         assert_eq!(
             machine.admit_outbound(frame),
             Err(WireError::InvalidSession),
@@ -266,7 +266,7 @@ fn identity_and_sequence_mutation_corpus_drives_session_denial() {
 
     let wrong_sequence = envelope(corpus!("wrong_sequence.bin"), "wrong_sequence.bin");
     let mut machine = SessionMachine::new(baseline.clone(), SessionRole::Source).unwrap();
-    activate(&mut machine);
+    trigger(&mut machine);
     assert_eq!(
         machine.admit_outbound(baseline.frame(SessionMessage::Offered {
             sequence: wrong_sequence.sequence,

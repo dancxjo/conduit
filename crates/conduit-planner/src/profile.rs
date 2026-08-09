@@ -1,6 +1,6 @@
 use crate::{plan_with_options, PlacementChoices, PlannerError, PlanningOptions};
 use conduit_core::{
-    ConnectionProvider, HostAdvertisement, Plan, PlannerCapabilityOffer, PlannerLimits,
+    ConnectionBase, HostAdvertisement, Plan, PlannerCapabilityOffer, PlannerLimits,
     PlannerProfileId,
 };
 use conduit_form::CheckedForm;
@@ -10,7 +10,7 @@ pub const BROWSER_PLANNER_PROFILE: &str = "conduit.planner/browser-wasm@1";
 
 pub const FULL_PLANNER_LIMITS: PlannerLimits = PlannerLimits {
     maximum_host_advertisements: u16::MAX,
-    maximum_operations: u16::MAX,
+    maximum_gears: u16::MAX,
     maximum_connections: u16::MAX,
     maximum_authority_grants: u16::MAX,
     maximum_protected_resource_grants: u16::MAX,
@@ -24,9 +24,9 @@ pub fn plan_with_advertised_profile(
     planner_host: &HostAdvertisement,
     profile_id: &PlannerProfileId,
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    providers: &[ConnectionProvider],
+    bases: &[ConnectionBase],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
     let mut offers = planner_host
@@ -49,26 +49,22 @@ pub fn plan_with_advertised_profile(
             profile_id.as_str()
         )));
     }
-    admit_request(offer, form, realm, &options)?;
-    plan_with_options(form, realm, placements, providers, options)
+    admit_request(offer, form, hosts, &options)?;
+    plan_with_options(form, hosts, placements, bases, options)
 }
 
 fn admit_request(
     offer: &PlannerCapabilityOffer,
     form: &CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     options: &PlanningOptions<'_>,
 ) -> Result<(), PlannerError> {
     admit_count(
         "host advertisements",
-        realm.len(),
+        hosts.len(),
         offer.limits.maximum_host_advertisements,
     )?;
-    admit_count(
-        "operations",
-        form.operations.len(),
-        offer.limits.maximum_operations,
-    )?;
+    admit_count("gears", form.gears.len(), offer.limits.maximum_gears)?;
     admit_count(
         "connections",
         form.connections.len(),

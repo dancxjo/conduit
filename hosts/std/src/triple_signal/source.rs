@@ -2,15 +2,15 @@ use std::thread;
 use std::time::Duration;
 
 use conduit_core::{
-    bind_active_play, bind_evidence, bind_presentation, BootId, ConnectionProvider, EvidenceId,
-    PlacementId, PlanFragment, PresentationId,
+    bind_active_play, bind_clue, bind_presentation, BootId, ClueId, ConnectionBase, PlacementId,
+    PlanFragment, PresentationId,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    CordId, EvidenceQuery, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
-    HostOperationOutcome, HostedEvidenceLog, HostedValueStore, KernelEventKind, NodeId,
+    ClueQuery, CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
+    HostOperationOutcome, HostedClueLog, HostedValueStore, KernelEventKind, NodeId,
     RemoteEndpointId, ValueStorage,
 };
 use conduit_runtime::lowering::{
@@ -33,12 +33,12 @@ const VALUES: usize = 16;
 const WAITS: usize = VALUES - 1;
 const STORED_ITEMS: u16 = (VALUES + WAITS) as u16;
 const STORED_BYTES: u32 = VALUES as u32 * SIGNAL_ENCODED_LEN + WAITS as u32 * 8;
-const EVIDENCE_ITEMS: u16 = 512;
+const CLUE_ITEMS: u16 = 512;
 
 type TripleScheduler = FixedScheduler<
     OperationDriver<TripleOperation, PORTS>,
     HostedValueStore,
-    HostedEvidenceLog,
+    HostedClueLog,
     2,
     3,
     PORTS,
@@ -68,7 +68,7 @@ pub struct StdoutReceipt {
     pub active_play_id: String,
     pub placement_id: PlacementId,
     pub presentation_id: PresentationId,
-    pub evidence_id: EvidenceId,
+    pub clue_id: ClueId,
     pub sequence: u64,
     pub level: bool,
 }
@@ -84,7 +84,7 @@ struct RemoteBranch {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct CapacitySeal {
     values: (usize, usize),
-    evidence: usize,
+    clue: usize,
     drivers: usize,
     identity: (usize, usize, usize),
     receipts: usize,
@@ -299,11 +299,11 @@ impl TripleSource {
             || self.scheduler.values().used_items() != 0
             || !self
                 .scheduler
-                .evidence()
+                .clues()
                 .contains_kind(KernelEventKind::RemoteValueDelivered)
             || !self
                 .scheduler
-                .evidence()
+                .clues()
                 .contains_kind(KernelEventKind::OperationCompleted)
             || self.capacity_seal() != self.seal
         {
@@ -360,7 +360,7 @@ impl TripleSource {
             let signal = decode_signal_bytes(input).map_err(|error| error.to_string())?;
             let presentation =
                 bind_presentation(&self.active_play_id, &self.show_placement, signal.sequence);
-            let evidence = bind_evidence(
+            let clue = bind_clue(
                 &self.fragment.host_id,
                 &self.fragment.boot_id,
                 Some(&self.active_play_id),
@@ -375,8 +375,8 @@ impl TripleSource {
                 )
                 .map_err(|error| format!("{error:?}"))?;
             self.identity
-                .bind_evidence(
-                    &evidence,
+                .bind_clue(
+                    &clue,
                     Some(request.node),
                     Some(request.request),
                     Some(&presentation.presentation_id),
@@ -388,7 +388,7 @@ impl TripleSource {
                 active_play_id: self.active_play_id.as_str().to_owned(),
                 placement_id: self.show_placement.clone(),
                 presentation_id: presentation.presentation_id,
-                evidence_id: evidence.evidence_id,
+                clue_id: clue.clue_id,
                 sequence: signal.sequence,
                 level: signal.level,
             });
@@ -425,7 +425,7 @@ impl TripleSource {
     fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
-            evidence: self.scheduler.evidence().allocation_capacity(),
+            clue: self.scheduler.clues().allocation_capacity(),
             drivers: self
                 .scheduler
                 .drivers()
@@ -459,13 +459,13 @@ fn node_for_kind(
 fn remote_branch(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
-    provider: ConnectionProvider,
+    base: ConnectionBase,
 ) -> Result<RemoteBranch, String> {
     let remote = lowered
         .remote_endpoints
         .iter()
-        .find(|remote| remote.binding.provider == provider)
-        .ok_or_else(|| format!("missing {provider:?} triple endpoint"))?;
+        .find(|remote| remote.binding.base == base)
+        .ok_or_else(|| format!("missing {base:?} triple endpoint"))?;
     if remote.direction != RemoteCordDirection::Egress {
         return Err("triple source endpoint is not egress".to_owned());
     }

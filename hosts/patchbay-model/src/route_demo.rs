@@ -1,9 +1,9 @@
-//! Evidence-backed projection of distributed route selection and replanning.
+//! Clue-backed projection of distributed route selection and replanning.
 
 use conduit_core::{
-    BootId, CapabilityId, ConnectionProvider, ControlLoopEvent, DeploymentUnsatisfiedReason,
-    EvidenceId, HostAdvertisement, HostId, LinkAvailability, LinkBindingId, LinkEndpointId,
-    OfferGeneration, OperationId, PlanningRequestAuthority,
+    BootId, CapabilityId, ClueId, ConnectionBase, ControlLoopEvent, GearId, HostAdvertisement,
+    HostId, LinkAvailability, LinkBindingId, LinkEndpointId, OfferGeneration,
+    PlanningRequestAuthority, PlayUnsatisfiedReason,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -30,7 +30,7 @@ pub enum RouteDemoError {
     Planning(String),
     MissingConnection,
     Route(RouteError),
-    InvalidEvidence,
+    InvalidClue,
     InspectionTooLarge,
 }
 
@@ -112,7 +112,7 @@ impl DistributedRouteDemo {
         let lost = conduit_core::LinkObservation {
             binding_id: LinkBindingId::from(USB_ROUTE),
             availability: LinkAvailability::Unavailable,
-            evidence_id: EvidenceId::from("route-demo/plan-a/usb-unavailable"),
+            clue_id: ClueId::from("route-demo/plan-a/usb-unavailable"),
         };
         let update = one_machine.observe(&lost)?;
         if !matches!(
@@ -121,7 +121,7 @@ impl DistributedRouteDemo {
                 replan_may_be_requested: true
             }
         ) {
-            return Err(RouteDemoError::InvalidEvidence);
+            return Err(RouteDemoError::InvalidClue);
         }
         let connection_id = one_connection.connection_id.clone();
         let events = [
@@ -129,42 +129,40 @@ impl DistributedRouteDemo {
                 plan_id: one.plan_id.clone(),
                 connection_id: connection_id.clone(),
                 binding_id: lost.binding_id.clone(),
-                observation_evidence_id: lost.evidence_id.clone(),
+                observation_clue_id: lost.clue_id.clone(),
             },
-            ControlLoopEvent::DeploymentBecameUnsatisfied {
+            ControlLoopEvent::PlayBecameUnsatisfied {
                 plan_id: one.plan_id.clone(),
-                reason: DeploymentUnsatisfiedReason::NoAdmittedRouteReady,
-                evidence_id: EvidenceId::from("route-demo/plan-a/unsatisfied"),
+                reason: PlayUnsatisfiedReason::NoAdmittedRouteReady,
+                clue_id: ClueId::from("route-demo/plan-a/unsatisfied"),
             },
             ControlLoopEvent::PlanningRequested {
                 prior_plan_id: one.plan_id.clone(),
                 requester_host_id: source_host_id,
                 requester_boot_id: source_boot_id,
                 authority: PlanningRequestAuthority::HostLocal,
-                request_evidence_id: EvidenceId::from("route-demo/plan-a/replan-request"),
+                request_clue_id: ClueId::from("route-demo/plan-a/replan-request"),
             },
             ControlLoopEvent::PlanningSucceeded {
                 prior_plan_id: one.plan_id.clone(),
                 replacement_plan_id: replacement.plan_id.clone(),
-                request_evidence_id: EvidenceId::from("route-demo/plan-a/replan-request"),
-                evidence_id: EvidenceId::from("route-demo/plan-c/planned"),
+                request_clue_id: ClueId::from("route-demo/plan-a/replan-request"),
+                clue_id: ClueId::from("route-demo/plan-c/planned"),
             },
             ControlLoopEvent::PlanSuperseded {
                 prior_plan_id: one.plan_id.clone(),
                 replacement_plan_id: replacement.plan_id.clone(),
-                evidence_id: EvidenceId::from("route-demo/plan-c/installed"),
+                clue_id: ClueId::from("route-demo/plan-c/installed"),
             },
         ];
         for event in &events {
-            event
-                .validate()
-                .map_err(|_| RouteDemoError::InvalidEvidence)?;
+            event.validate().map_err(|_| RouteDemoError::InvalidClue)?;
             if matches!(event, ControlLoopEvent::LinkBecameUnavailable { .. }) {
                 event
                     .validate_route_event(&one.plan_id, one_connection)
-                    .map_err(|_| RouteDemoError::InvalidEvidence)?;
+                    .map_err(|_| RouteDemoError::InvalidClue)?;
             }
-            push(&mut lines, format!("  EVIDENCE {event:?}"))?;
+            push(&mut lines, format!("  CLUE {event:?}"))?;
         }
         push(
             &mut lines,
@@ -185,17 +183,17 @@ impl DistributedRouteDemo {
         let ready = conduit_core::LinkObservation {
             binding_id: LinkBindingId::from(conduit_signal::DISTRIBUTED_LINK_BINDING_ID),
             availability: LinkAvailability::Ready,
-            evidence_id: EvidenceId::from("route-demo/plan-b/websocket-ready"),
+            clue_id: ClueId::from("route-demo/plan-b/websocket-ready"),
         };
         fallback_machine.observe(&ready)?;
         let fallback_lost = conduit_core::LinkObservation {
             binding_id: LinkBindingId::from(USB_ROUTE),
             availability: LinkAvailability::Unavailable,
-            evidence_id: EvidenceId::from("route-demo/plan-b/usb-unavailable"),
+            clue_id: ClueId::from("route-demo/plan-b/usb-unavailable"),
         };
         let changed = fallback_machine.observe(&fallback_lost)?;
         let RouteDisposition::Selected { link, .. } = changed.disposition else {
-            return Err(RouteDemoError::InvalidEvidence);
+            return Err(RouteDemoError::InvalidClue);
         };
         let selected_binding_id = link.binding_id.clone();
         let selection = ControlLoopEvent::RouteSelectionChanged {
@@ -203,13 +201,13 @@ impl DistributedRouteDemo {
             connection_id: fallback_connection.connection_id.clone(),
             previous_binding_id: changed.previous_selection.cloned(),
             selected_binding_id: link.binding_id.clone(),
-            observation_evidence_id: fallback_lost.evidence_id.clone(),
+            observation_clue_id: fallback_lost.clue_id.clone(),
         };
         selection
             .validate_route_event(&fallback.plan_id, fallback_connection)
-            .map_err(|_| RouteDemoError::InvalidEvidence)?;
+            .map_err(|_| RouteDemoError::InvalidClue)?;
         push(&mut lines, format!("  OBSERVATION {fallback_lost:?}"))?;
-        push(&mut lines, format!("  EVIDENCE {selection:?}"))?;
+        push(&mut lines, format!("  CLUE {selection:?}"))?;
         push(
             &mut lines,
             format!(
@@ -222,11 +220,11 @@ impl DistributedRouteDemo {
         let invented = conduit_core::LinkObservation {
             binding_id: LinkBindingId::from("ambient/unplanned-wifi"),
             availability: LinkAvailability::Ready,
-            evidence_id: EvidenceId::from("route-demo/ambient-observation"),
+            clue_id: ClueId::from("route-demo/ambient-observation"),
         };
         let refusal = fallback_machine.observe(&invented);
         if refusal != Err(RouteError::UnsealedObservation) {
-            return Err(RouteDemoError::InvalidEvidence);
+            return Err(RouteDemoError::InvalidClue);
         }
         push(
             &mut lines,
@@ -236,46 +234,46 @@ impl DistributedRouteDemo {
         let [link_event, unsatisfied_event, request_event, success_event, installed_event] =
             &events;
         let ControlLoopEvent::LinkBecameUnavailable {
-            observation_evidence_id: unavailable_evidence_id,
+            observation_clue_id: unavailable_clue_id,
             ..
         } = link_event
         else {
-            return Err(RouteDemoError::InvalidEvidence);
+            return Err(RouteDemoError::InvalidClue);
         };
-        let ControlLoopEvent::DeploymentBecameUnsatisfied {
-            evidence_id: unsatisfied_evidence_id,
+        let ControlLoopEvent::PlayBecameUnsatisfied {
+            clue_id: unsatisfied_clue_id,
             ..
         } = unsatisfied_event
         else {
-            return Err(RouteDemoError::InvalidEvidence);
+            return Err(RouteDemoError::InvalidClue);
         };
         let ControlLoopEvent::PlanningRequested {
-            request_evidence_id: planning_request_evidence_id,
+            request_clue_id: planning_request_clue_id,
             ..
         } = request_event
         else {
-            return Err(RouteDemoError::InvalidEvidence);
+            return Err(RouteDemoError::InvalidClue);
         };
         let ControlLoopEvent::PlanningSucceeded {
-            evidence_id: planning_success_evidence_id,
+            clue_id: planning_success_clue_id,
             ..
         } = success_event
         else {
-            return Err(RouteDemoError::InvalidEvidence);
+            return Err(RouteDemoError::InvalidClue);
         };
         let ControlLoopEvent::PlanSuperseded {
-            evidence_id: installed_evidence_id,
+            clue_id: installed_clue_id,
             ..
         } = installed_event
         else {
-            return Err(RouteDemoError::InvalidEvidence);
+            return Err(RouteDemoError::InvalidClue);
         };
         let ControlLoopEvent::RouteSelectionChanged {
-            observation_evidence_id: selection_evidence_id,
+            observation_clue_id: selection_clue_id,
             ..
         } = &selection
         else {
-            return Err(RouteDemoError::InvalidEvidence);
+            return Err(RouteDemoError::InvalidClue);
         };
         let presentation = DistributedRoutePresentation {
             source_document_id: one.source_document_id.clone(),
@@ -284,22 +282,22 @@ impl DistributedRouteDemo {
                 prior: plan_presentation(&one, one_connection),
                 replacement_plan_id: replacement.plan_id.clone(),
                 unavailable_binding_id: lost.binding_id,
-                unavailable_evidence_id: unavailable_evidence_id.clone(),
-                unsatisfied_evidence_id: unsatisfied_evidence_id.clone(),
-                planning_request_evidence_id: planning_request_evidence_id.clone(),
-                planning_success_evidence_id: planning_success_evidence_id.clone(),
-                installed_evidence_id: installed_evidence_id.clone(),
+                unavailable_clue_id: unavailable_clue_id.clone(),
+                unsatisfied_clue_id: unsatisfied_clue_id.clone(),
+                planning_request_clue_id: planning_request_clue_id.clone(),
+                planning_success_clue_id: planning_success_clue_id.clone(),
+                installed_clue_id: installed_clue_id.clone(),
             },
             same_plan: SamePlanFallbackPresentation {
                 plan: plan_presentation(&fallback, fallback_connection),
                 unavailable_binding_id: fallback_lost.binding_id,
-                unavailable_evidence_id: selection_evidence_id.clone(),
+                unavailable_clue_id: selection_clue_id.clone(),
                 selected_binding_id,
-                selection_evidence_id: selection_evidence_id.clone(),
+                selection_clue_id: selection_clue_id.clone(),
             },
             refused: RefusedRoutePresentation {
                 binding_id: invented.binding_id,
-                observation_evidence_id: invented.evidence_id,
+                observation_clue_id: invented.clue_id,
             },
         };
         let mut control_events = events.to_vec();
@@ -346,8 +344,8 @@ fn plan_presentation(
             .map(|(order, candidate)| RouteCandidatePresentation {
                 order,
                 binding_id: candidate.binding_id.clone(),
-                provider: candidate.provider,
-                provider_instance_id: candidate.provider_instance_id.clone(),
+                base: candidate.base,
+                base_instance_id: candidate.base_instance_id.clone(),
             })
             .collect(),
     }
@@ -368,16 +366,16 @@ fn planned(
         conduit_form::expand_canonical_form(&checked, "signal-demo", &signal_profile_catalog())
             .map_err(|_| RouteDemoError::InvalidSemanticForm)?;
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("signal-demo/pulse"),
+                GearId::from("signal-demo/pulse"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("pulse-1"),
                 },
             ),
             (
-                OperationId::from("signal-demo/show"),
+                GearId::from("signal-demo/show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("dom-show-1"),
@@ -390,15 +388,15 @@ fn planned(
     websocket.source.boot_id = source.boot_id.clone();
     let mut usb = websocket.clone();
     usb.binding_id = LinkBindingId::from(USB_ROUTE);
-    usb.provider = ConnectionProvider::UsbCdc;
-    usb.provider_instance_id = "route-demo/usb-provider".into();
+    usb.base = ConnectionBase::UsbCdc;
+    usb.base_instance_id = "route-demo/usb-base".into();
     usb.source.endpoint_id = LinkEndpointId::from("route-demo/usb-source");
     usb.sink.endpoint_id = LinkEndpointId::from("route-demo/usb-sink");
     let links = [usb, websocket];
     let route_candidates = BTreeMap::from([(
         (
-            OperationId::from("signal-demo/pulse"),
-            OperationId::from("signal-demo/show"),
+            GearId::from("signal-demo/pulse"),
+            GearId::from("signal-demo/show"),
         ),
         candidate_ids
             .iter()
@@ -410,9 +408,9 @@ fn planned(
         &form,
         &[source, sink],
         &placements,
-        &[ConnectionProvider::WebSocket, ConnectionProvider::UsbCdc],
+        &[ConnectionBase::WebSocket, ConnectionBase::UsbCdc],
         PlanningOptions {
-            connection_providers: &BTreeMap::new(),
+            connection_bases: &BTreeMap::new(),
             route_candidates: &route_candidates,
             connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             connection_byte_capacity: SIGNAL_ENCODED_LEN,
@@ -466,11 +464,11 @@ fn render_plan(
         push(
             lines,
             format!(
-                "    CANDIDATE order={} binding={} provider={:?} provider-instance={} source-endpoint={} sink-endpoint={} availability=runtime-observation",
+                "    CANDIDATE order={} binding={} base={:?} base-instance={} source-endpoint={} sink-endpoint={} availability=runtime-observation",
                 index,
                 candidate.binding_id.as_str(),
-                candidate.provider,
-                candidate.provider_instance_id.as_str(),
+                candidate.base,
+                candidate.base_instance_id.as_str(),
                 candidate.source.endpoint_id.as_str(),
                 candidate.sink.endpoint_id.as_str()
             ),

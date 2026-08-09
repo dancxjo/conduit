@@ -14,7 +14,7 @@ fn canonical_browser_chat_expands_to_three_exact_bounded_leaves() {
     let syntax = parse_syntax_document(SOURCE);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "webchat-browser-demo", &profile).unwrap();
-    assert_eq!(expanded.operations.len(), 3);
+    assert_eq!(expanded.gears.len(), 3);
     assert_eq!(expanded.connections.len(), 2);
     for kind in [
         conduit_chat::WEB_TEXT_INPUT_KIND,
@@ -22,7 +22,7 @@ fn canonical_browser_chat_expands_to_three_exact_bounded_leaves() {
         conduit_chat::WEB_LIST_KIND,
     ] {
         assert!(expanded
-            .operations
+            .gears
             .iter()
             .any(|operation| operation.kind_id.as_str() == kind));
     }

@@ -1,12 +1,12 @@
 use conduit_core::{
     kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ConnectionProvider, ExecutionProfileId, HostAdvertisement, HostId,
+    ConfigurationValue, ConnectionBase, ExecutionProfileId, HostAdvertisement, HostId,
     HostProfileId, ImplementationId, KindContractRevision, OfferGeneration, PortDescriptor,
     PortDirection, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, OperationSignature, ProfileCatalog, StartupCatalog,
+    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use conduit_planner::{
@@ -31,14 +31,14 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     startup
-        .insert(OperationSignature {
-            operation: "text/source".into(),
+        .insert(KindSignature {
+            kind: "text/source".into(),
             startup_parameters: vec![],
         })
         .unwrap();
     startup
-        .insert(OperationSignature {
-            operation: "text/join".into(),
+        .insert(KindSignature {
+            kind: "text/join".into(),
             startup_parameters: vec![StartupParameterSignature {
                 name: "prefix".into(),
                 value_type: "Count".into(),
@@ -47,8 +47,8 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         })
         .unwrap();
     startup
-        .insert(OperationSignature {
-            operation: "presentation/text".into(),
+        .insert(KindSignature {
+            kind: "presentation/text".into(),
             startup_parameters: vec![],
         })
         .unwrap();
@@ -174,9 +174,9 @@ fn nested_form_terminates_only_in_exact_planned_host_operation_leaves() {
     let expanded = expanded();
     assert_eq!(
         expanded
-            .operations
+            .gears
             .iter()
-            .map(|operation| operation.operation_id.as_str())
+            .map(|gear| gear.gear_id.as_str())
             .collect::<Vec<_>>(),
         ["welcome/hello/join", "welcome/show", "welcome/source"]
     );
@@ -185,9 +185,9 @@ fn nested_form_terminates_only_in_exact_planned_host_operation_leaves() {
         .iter()
         .any(|row| row.source_form == "greet" && row.form_path == ["welcome", "hello"]));
     let join = expanded
-        .operations
+        .gears
         .iter()
-        .find(|operation| operation.kind_id.as_str() == "text/join")
+        .find(|gear| gear.kind_id.as_str() == "text/join")
         .unwrap();
     assert_eq!(join.configuration[0].value, ConfigurationValue::U64(2));
 
@@ -198,20 +198,20 @@ fn nested_form_terminates_only_in_exact_planned_host_operation_leaves() {
         &expanded,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .expect("ordinary planner seals expanded leaves");
 
     let planned = &plan.fragments[0].placements;
-    assert_eq!(planned.len(), expanded.operations.len());
+    assert_eq!(planned.len(), expanded.gears.len());
     assert_eq!(
         planned
             .iter()
-            .map(|operation| {
+            .map(|gear| {
                 (
-                    operation.kind_id.as_str(),
-                    operation.implementation_id.as_str(),
-                    operation.artifact_id.as_str(),
+                    gear.kind_id.as_str(),
+                    gear.implementation_id.as_str(),
+                    gear.artifact_id.as_str(),
                 )
             })
             .collect::<Vec<_>>(),
@@ -225,9 +225,7 @@ fn nested_form_terminates_only_in_exact_planned_host_operation_leaves() {
             ("text/source", "std/text-source", "test/text-source"),
         ]
     );
-    assert!(planned
-        .iter()
-        .all(|operation| operation.host_id == host.host_id));
+    assert!(planned.iter().all(|gear| gear.host_id == host.host_id));
 }
 
 #[test]
@@ -241,12 +239,12 @@ fn equal_face_with_different_name_and_revision_is_compatible() {
         .unwrap();
     join.kind_id = kind_id("text/coincident-shape");
     let placements = default_expanded_placements(&expanded, std::slice::from_ref(&wrong_kind))
-        .expect("different nominal operation with the same face is compatible");
+        .expect("different nominal gear with the same face is compatible");
     let plan = plan_expanded_canonical(
         &expanded,
         std::slice::from_ref(&wrong_kind),
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
     .unwrap();
     assert!(plan.fragments[0].placements.iter().any(|placement| {
@@ -283,18 +281,18 @@ fn same_name_with_a_different_face_is_incompatible() {
 }
 
 #[test]
-fn two_cells_of_one_operation_can_select_different_equal_face_hosts() {
+fn two_gears_of_one_kind_can_select_different_equal_face_hosts() {
     let (startup, profile) = catalogs();
     let syntax =
         parse_syntax_document("form split {\n    left: text/source\n    right: text/source\n}\n");
-    let checked = check_syntax_document(&syntax, &startup).expect("two source cells check");
+    let checked = check_syntax_document(&syntax, &startup).expect("two source gears check");
     let expanded =
-        expand_canonical_form(&checked, "split", &profile).expect("two source cells expand");
-    assert_eq!(expanded.operations.len(), 2);
+        expand_canonical_form(&checked, "split", &profile).expect("two source gears expand");
+    assert_eq!(expanded.gears.len(), 2);
     assert!(expanded
-        .operations
+        .gears
         .iter()
-        .all(|cell| cell.kind_id.as_str() == "text/source"));
+        .all(|gear| gear.kind_id.as_str() == "text/source"));
 
     let left = host();
     let mut right = host();
@@ -307,16 +305,16 @@ fn two_cells_of_one_operation_can_select_different_equal_face_hosts() {
     }
 
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                expanded.operations[0].operation_id.clone(),
+                expanded.gears[0].gear_id.clone(),
                 PlacementChoice {
                     host_id: left.host_id.clone(),
                     capability_id: CapabilityId::from("text-source"),
                 },
             ),
             (
-                expanded.operations[1].operation_id.clone(),
+                expanded.gears[1].gear_id.clone(),
                 PlacementChoice {
                     host_id: right.host_id.clone(),
                     capability_id: CapabilityId::from("peer-text-source"),
@@ -328,9 +326,9 @@ fn two_cells_of_one_operation_can_select_different_equal_face_hosts() {
         &expanded,
         &[left.clone(), right.clone()],
         &placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
     )
-    .expect("one unchanged semantic form may place equal-face cells on peer hosts");
+    .expect("one unchanged semantic form may place equal-face gears on peer hosts");
 
     assert_eq!(plan.fragments.len(), 2);
     assert_eq!(
@@ -345,11 +343,11 @@ fn two_cells_of_one_operation_can_select_different_equal_face_hosts() {
         .fragments
         .iter()
         .map(|fragment| {
-            let cell = &fragment.placements[0];
+            let gear = &fragment.placements[0];
             (
-                cell.operation_id.as_str(),
-                cell.host_id.as_str(),
-                cell.implementation_id.as_str(),
+                gear.gear_id.as_str(),
+                gear.host_id.as_str(),
+                gear.implementation_id.as_str(),
             )
         })
         .collect::<Vec<_>>();
@@ -366,14 +364,14 @@ fn two_cells_of_one_operation_can_select_different_equal_face_hosts() {
 fn uncatalogued_native_escape_fails_before_planning() {
     let (startup, profile) = catalogs();
     let syntax = parse_syntax_document("form main {\n escape: native/callback(\"symbol\")\n}\n");
-    let checked = check_syntax_document(&syntax, &startup).expect_err("unknown operation fails");
+    let checked = check_syntax_document(&syntax, &startup).expect_err("unknown gear fails");
     assert!(checked.message.contains("native/callback"));
 
     let syntax = parse_syntax_document("form main {\n escape: ffi/call\n}\n");
     let mut startup = StartupCatalog::new();
     startup
-        .insert(OperationSignature {
-            operation: "ffi/call".into(),
+        .insert(KindSignature {
+            kind: "ffi/call".into(),
             startup_parameters: vec![],
         })
         .unwrap();

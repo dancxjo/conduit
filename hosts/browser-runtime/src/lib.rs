@@ -1,7 +1,7 @@
 use conduit_core::{
-    bind_active_play, bind_evidence, bind_presentation, kind_id, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ConnectionProvider, EvidenceIdentity, HostAdvertisement,
-    HostId, HostOperationContractId, HostProfileId, ImplementationId, OfferGeneration, PlacementId,
+    bind_active_play, bind_clue, bind_presentation, kind_id, ArtifactId, BootId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ClueIdentity, ConnectionBase, HostAdvertisement, HostId,
+    HostOperationContractId, HostProfileId, ImplementationId, OfferGeneration, PlacementId,
     PlanFragment, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PresentationIdentity,
     PROTOCOL_VERSION,
 };
@@ -9,8 +9,8 @@ use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, EvidenceError, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedEvidenceLog,
+    BoundedValueRef, ClueError, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
+    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedClueLog,
     HostedValueStore, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -55,7 +55,7 @@ const ERROR_RECEIPT_CAPACITY: i32 = -8;
 const ERROR_MALFORMED_FRAME: i32 = -9;
 const ERROR_DUPLICATE_COMPLETION: i32 = -10;
 const ERROR_CANCELLED: i32 = -11;
-const ERROR_EVIDENCE_EXHAUSTED: i32 = -12;
+const ERROR_CLUE_EXHAUSTED: i32 = -12;
 const ERROR_TERMINAL_FAILURE: i32 = -13;
 const ERROR_CAPACITY_GROWTH: i32 = -14;
 const ERROR_KERNEL: i32 = -15;
@@ -63,7 +63,7 @@ const ERROR_KERNEL: i32 = -15;
 type BrowserScheduler = FixedScheduler<
     OperationDriver<SignalOperation, PORTS>,
     HostedValueStore,
-    HostedEvidenceLog,
+    HostedClueLog,
     2,
     1,
     PORTS,
@@ -76,7 +76,7 @@ type BrowserScheduler = FixedScheduler<
 
 thread_local! {
     // Every WebAssembly instance owns a distinct linear memory and therefore a distinct pair of
-    // cells. JavaScript instantiates this module twice; there is no page-global Rust runtime.
+    // gears. JavaScript instantiates this module twice; there is no page-global Rust runtime.
     static SESSION: RefCell<Option<BrowserSession>> = const { RefCell::new(None) };
     static INPUT: RefCell<[u8; FRAME_CAPACITY]> = const { RefCell::new([0; FRAME_CAPACITY]) };
 }
@@ -96,7 +96,7 @@ struct PreparedProjection {
     node: NodeId,
     signal: Signal,
     presentation: PresentationIdentity,
-    evidence: EvidenceIdentity,
+    clue: ClueIdentity,
 }
 
 struct PreparedKernel {
@@ -112,7 +112,7 @@ struct PreparedKernel {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct CapacitySeal {
     value: (usize, usize),
-    evidence: usize,
+    clue: usize,
     driver_values: usize,
     identity: (usize, usize, usize),
     projections: usize,
@@ -307,12 +307,12 @@ impl Operation for SignalOperation {
 
 impl BrowserSession {
     fn start(host_index: u32) -> Result<Self, i32> {
-        Self::start_with_evidence_limit(host_index, None)
+        Self::start_with_clue_limit(host_index, None)
     }
 
-    fn start_with_evidence_limit(
+    fn start_with_clue_limit(
         host_index: u32,
-        evidence_item_override: Option<u16>,
+        clue_item_override: Option<u16>,
     ) -> Result<Self, i32> {
         let (host_id, boot_id) = match host_index {
             0 => ("browser-host-a", "browser-boot-a"),
@@ -325,18 +325,18 @@ impl BrowserSession {
             &signal_profile_catalog(),
         )
         .map_err(|_| ERROR_START)?;
-        let realm = [advertisement.clone()];
-        let placements = default_placements(&form, &realm).map_err(|_| ERROR_START)?;
-        let provider_overrides = BTreeMap::new();
+        let hosts = [advertisement.clone()];
+        let placements = default_placements(&form, &hosts).map_err(|_| ERROR_START)?;
+        let base_overrides = BTreeMap::new();
         let mut planned = plan_with_advertised_profile(
             &advertisement,
             &PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
             &form,
-            &realm,
+            &hosts,
             &placements,
-            &[ConnectionProvider::Local],
+            &[ConnectionBase::Local],
             PlanningOptions {
-                connection_providers: &provider_overrides,
+                connection_bases: &base_overrides,
                 route_candidates: &BTreeMap::new(),
                 connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
                 connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
@@ -356,10 +356,10 @@ impl BrowserSession {
             projections,
             identity,
             active_play_id,
-        } = prepare_kernel(&advertisement, &fragment, &lowered, evidence_item_override)?;
+        } = prepare_kernel(&advertisement, &fragment, &lowered, clue_item_override)?;
         let seal = CapacitySeal {
             value: scheduler.values().allocation_capacities(),
-            evidence: scheduler.evidence().allocation_capacity(),
+            clue: scheduler.clues().allocation_capacity(),
             driver_values: scheduler
                 .drivers()
                 .iter()
@@ -400,7 +400,7 @@ impl BrowserSession {
     fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             value: self.scheduler.values().allocation_capacities(),
-            evidence: self.scheduler.evidence().allocation_capacity(),
+            clue: self.scheduler.clues().allocation_capacity(),
             driver_values: self
                 .scheduler
                 .drivers()
@@ -668,7 +668,7 @@ fn prepare_kernel(
     advertisement: &HostAdvertisement,
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
-    evidence_item_override: Option<u16>,
+    clue_item_override: Option<u16>,
 ) -> Result<PreparedKernel, i32> {
     if lowered.nodes.len() != 2
         || lowered.cords.len() != 1
@@ -776,18 +776,17 @@ fn prepare_kernel(
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
         .map_err(|_| ERROR_START)?;
-    let evidence_items = evidence_item_override.unwrap_or_else(|| {
+    let clue_items = clue_item_override.unwrap_or_else(|| {
         let per_signal = 18_u16;
         u16::try_from(count)
             .unwrap_or(u16::MAX)
             .saturating_mul(per_signal)
             .saturating_add(64)
     });
-    let evidence_bytes = u32::from(evidence_items)
+    let clue_bytes = u32::from(clue_items)
         .checked_mul(u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>()).unwrap())
         .ok_or(ERROR_START)?;
-    let evidence =
-        HostedEvidenceLog::new(evidence_items, evidence_bytes.max(1)).map_err(|_| ERROR_START)?;
+    let clue = HostedClueLog::new(clue_items, clue_bytes.max(1)).map_err(|_| ERROR_START)?;
     let node_specs = lowered
         .node_specs
         .clone()
@@ -807,7 +806,7 @@ fn prepare_kernel(
         host_bindings,
         drivers,
         values,
-        evidence,
+        clue,
     )
     .map_err(|_| ERROR_START)?;
 
@@ -818,13 +817,13 @@ fn prepare_kernel(
         0,
     );
     let request_capacity = count.checked_add(wait_count).ok_or(ERROR_START)?;
-    let evidence_capacity = count.checked_add(1).ok_or(ERROR_START)?;
+    let clue_capacity = count.checked_add(1).ok_or(ERROR_START)?;
     let mut identity = KernelExecutionIdentityMap::new(
         &lowered.identity,
         &active_play,
         request_capacity,
         count,
-        evidence_capacity,
+        clue_capacity,
     )
     .map_err(|_| ERROR_START)?;
     for sequence in 1..count {
@@ -858,7 +857,7 @@ fn prepare_kernel(
             &show_placement.placement_id,
             sequence,
         );
-        let evidence = bind_evidence(
+        let clue = bind_clue(
             &advertisement.host_id,
             &advertisement.boot_id,
             Some(&active_play.active_play_id),
@@ -868,8 +867,8 @@ fn prepare_kernel(
             .bind_presentation(&lowered.identity, show_node, request, &presentation)
             .map_err(|_| ERROR_START)?;
         identity
-            .bind_evidence(
-                &evidence,
+            .bind_clue(
+                &clue,
                 Some(show_node),
                 Some(request),
                 Some(&presentation.presentation_id),
@@ -879,19 +878,19 @@ fn prepare_kernel(
             node: show_node,
             signal,
             presentation,
-            evidence,
+            clue,
         });
     }
-    let terminal = bind_evidence(
+    let terminal = bind_clue(
         &advertisement.host_id,
         &advertisement.boot_id,
         Some(&active_play.active_play_id),
         u64::try_from(count).map_err(|_| ERROR_START)?,
     );
     identity
-        .bind_evidence(&terminal, None, None, None)
+        .bind_clue(&terminal, None, None, None)
         .map_err(|_| ERROR_START)?;
-    if identity.lengths() != (request_capacity, count, evidence_capacity) {
+    if identity.lengths() != (request_capacity, count, clue_capacity) {
         return Err(ERROR_START);
     }
     Ok(PreparedKernel {
@@ -936,7 +935,7 @@ fn write_presentation_frame(
     input: &[u8],
 ) -> Result<(), i32> {
     writer.text(projection.presentation.presentation_id.as_str())?;
-    writer.text(projection.evidence.evidence_id.as_str())?;
+    writer.text(projection.clue.clue_id.as_str())?;
     writer.text("presentation/signal")?;
     writer.text("value/signal")?;
     writer.bytes(input)
@@ -948,16 +947,16 @@ fn write_presentation_completion_frame(
     input: &[u8],
 ) -> Result<(), i32> {
     writer.text(projection.presentation.presentation_id.as_str())?;
-    writer.text(projection.evidence.evidence_id.as_str())?;
+    writer.text(projection.clue.clue_id.as_str())?;
     writer.text("value/signal")?;
     writer.bytes(input)
 }
 
 fn map_scheduler_error(error: SchedulerError) -> i32 {
     match error {
-        SchedulerError::Evidence(
-            EvidenceError::ItemCapacityExceeded | EvidenceError::ByteCapacityExceeded,
-        ) => ERROR_EVIDENCE_EXHAUSTED,
+        SchedulerError::Clue(ClueError::ItemCapacityExceeded | ClueError::ByteCapacityExceeded) => {
+            ERROR_CLUE_EXHAUSTED
+        }
         SchedulerError::OperationFailed(_) | SchedulerError::Cancelled => ERROR_TERMINAL_FAILURE,
         _ => ERROR_KERNEL,
     }
@@ -1027,7 +1026,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
             profile_id: PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
             limits: PlannerLimits {
                 maximum_host_advertisements: 16,
-                maximum_operations: 64,
+                maximum_gears: 64,
                 maximum_connections: 128,
                 maximum_authority_grants: 64,
                 maximum_protected_resource_grants: 64,
@@ -1274,15 +1273,15 @@ mod tests {
     }
 
     #[test]
-    fn evidence_exhaustion_is_a_distinct_terminal_failure() {
+    fn clue_exhaustion_is_a_distinct_terminal_failure() {
         assert_eq!(
-            BrowserSession::start_with_evidence_limit(0, Some(1)).err(),
-            Some(ERROR_EVIDENCE_EXHAUSTED)
+            BrowserSession::start_with_clue_limit(0, Some(1)).err(),
+            Some(ERROR_CLUE_EXHAUSTED)
         );
     }
 
     #[test]
-    fn capacities_are_sealed_before_activation_and_never_grow() {
+    fn capacities_are_sealed_before_play_start_and_never_grow() {
         let mut session = BrowserSession::start(0).expect("browser kernel session starts");
         while session.status() == STATUS_RUNNING {
             assert_eq!(session.capacity_seal(), session.seal);

@@ -1,9 +1,9 @@
 use conduit_core::{
-    kind_id, mandatory_evidence_storage_requirement, seal_plan, ArtifactId, AuthorityGrantId,
-    BootId, CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
-    EvidenceStorageBudget, ExecutionProfileId, ExpandedFormId, ExpectedEvidence, ExpectedTerminal,
-    FaceStartupParameter, FormIdentity, FragmentId, HostId, ImplementationId, KindContractRevision,
-    OperationId, PlacementId, PlanFragment, PlanId, PlannedOperation, PlannedSharedPool,
+    kind_id, mandatory_clue_storage_requirement, seal_plan, ArtifactId, AuthorityGrantId, BootId,
+    CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
+    ClueStorageBudget, ExecutionProfileId, ExpandedFormId, ExpectedClue, ExpectedTerminal,
+    FaceStartupParameter, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
+    KindContractRevision, PlacementId, PlanFragment, PlanId, PlannedGear, PlannedSharedPool,
     PoolDeclarationId, PoolMemberLimits, PoolRealizationEnvelope, PortDescriptor, PortDirection,
     PortTemporal, SharedPoolId, SourceDocumentId, TerminalPolicy,
 };
@@ -56,8 +56,8 @@ fn pool() -> PlannedSharedPool {
         member_limits: PoolMemberLimits {
             queue_item_capacity: 4,
             queue_byte_capacity: 1_024,
-            evidence_item_capacity: 16,
-            evidence_byte_capacity: 2_048,
+            clue_item_capacity: 16,
+            clue_byte_capacity: 2_048,
         },
         realization_envelope: vec![PoolRealizationEnvelope {
             host_id: HostId::from("browser-host"),
@@ -72,9 +72,9 @@ fn pool() -> PlannedSharedPool {
 }
 
 fn fragment(pool: PlannedSharedPool) -> PlanFragment {
-    let expected_evidence = vec![
-        ExpectedEvidence::PlanFragmentReceived,
-        ExpectedEvidence::PlanTerminal,
+    let expected_clue = vec![
+        ExpectedClue::PlanFragmentReceived,
+        ExpectedClue::PlanTerminal,
     ];
     PlanFragment {
         plan_id: PlanId::from(""),
@@ -88,9 +88,9 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         placements: pool
             .consumers
             .iter()
-            .map(|placement_id| PlannedOperation {
+            .map(|placement_id| PlannedGear {
                 placement_id: placement_id.clone(),
-                operation_id: OperationId::from(placement_id.as_str()),
+                gear_id: GearId::from(placement_id.as_str()),
                 kind_id: kind_id("test/pool-consumer"),
                 kind_contract_revision: KindContractRevision::from("test/pool-consumer@1"),
                 execution_profile_id: ExecutionProfileId::from("test/pool-consumer-hosted@1"),
@@ -122,12 +122,13 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
         terminal_policy: TerminalPolicy::RequireAllPlacementsAndConnections,
         expected_terminals: vec![ExpectedTerminal::PlanCompleted],
-        expected_evidence: expected_evidence.clone(),
-        evidence_storage_budget: mandatory_evidence_storage_requirement(&expected_evidence)
-            .unwrap_or(EvidenceStorageBudget {
+        expected_clue: expected_clue.clone(),
+        clue_storage_budget: mandatory_clue_storage_requirement(&expected_clue).unwrap_or(
+            ClueStorageBudget {
                 item_capacity: 0,
                 byte_capacity: 0,
-            }),
+            },
+        ),
         plan_fragments: vec![],
     }
 }

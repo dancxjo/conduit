@@ -11,12 +11,12 @@ impl ExpandedCanonicalForm {
             shorthand: None,
             local_values: Vec::new(),
             pools: Vec::new(),
-            cells: Vec::new(),
+            gears: Vec::new(),
             cords: Vec::new(),
         };
         let expected = expanded_identity(
             &form,
-            &self.operations,
+            &self.gears,
             &self.connections,
             &self.shared_pools,
             &self.provenance,
@@ -33,34 +33,28 @@ impl ExpandedCanonicalForm {
                 "expanded source provenance differs from its exact source document mapping".into(),
             ));
         }
-        let operations = self
-            .operations
+        let gears = self
+            .gears
             .iter()
-            .map(|operation| (operation.operation_id.clone(), operation))
+            .map(|gear| (gear.gear_id.clone(), gear))
             .collect::<BTreeMap<_, _>>();
-        if operations.len() != self.operations.len() {
+        if gears.len() != self.gears.len() {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-038",
-                "expanded operation paths are not unique".into(),
+                "expanded gear paths are not unique".into(),
             ));
         }
         for connection in &self.connections {
-            let source = operations
-                .get(&connection.source_operation_id)
-                .and_then(|operation| {
-                    operation
-                        .outputs
-                        .iter()
-                        .find(|port| port.port_id == connection.source_port_id)
-                });
-            let sink = operations
-                .get(&connection.sink_operation_id)
-                .and_then(|operation| {
-                    operation
-                        .inputs
-                        .iter()
-                        .find(|port| port.port_id == connection.sink_port_id)
-                });
+            let source = gears.get(&connection.source_gear_id).and_then(|gear| {
+                gear.outputs
+                    .iter()
+                    .find(|port| port.port_id == connection.source_port_id)
+            });
+            let sink = gears.get(&connection.sink_gear_id).and_then(|gear| {
+                gear.inputs
+                    .iter()
+                    .find(|port| port.port_id == connection.sink_port_id)
+            });
             if source.map(|port| (&port.value_kind, port.temporal))
                 != Some((&connection.value_kind, connection.temporal))
                 || sink.map(|port| (&port.value_kind, port.temporal))
@@ -83,10 +77,10 @@ impl ExpandedCanonicalForm {
                 ));
             }
             let mut consumers = self
-                .operations
+                .gears
                 .iter()
-                .filter(|operation| operation.pool_references.contains(&pool.pool_id))
-                .map(|operation| operation.operation_id.clone())
+                .filter(|gear| gear.pool_references.contains(&pool.pool_id))
+                .map(|gear| gear.gear_id.clone())
                 .collect::<Vec<_>>();
             consumers.sort();
             if consumers.is_empty() || consumers != pool.consumers {
@@ -99,18 +93,18 @@ impl ExpandedCanonicalForm {
         let provenance_ids = self
             .provenance
             .iter()
-            .map(|row| row.operation_id.as_str())
+            .map(|row| row.gear_id.as_str())
             .collect::<BTreeSet<_>>();
         if provenance_ids.len() != self.provenance.len()
-            || provenance_ids.len() != self.operations.len()
+            || provenance_ids.len() != self.gears.len()
             || !self
-                .operations
+                .gears
                 .iter()
-                .all(|operation| provenance_ids.contains(operation.operation_id.as_str()))
+                .all(|gear| provenance_ids.contains(gear.gear_id.as_str()))
         {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-049",
-                "expanded provenance must name every primitive cell exactly once".into(),
+                "expanded provenance must name every primitive gear exactly once".into(),
             ));
         }
         Ok(())
@@ -119,17 +113,17 @@ impl ExpandedCanonicalForm {
 
 pub(super) fn expanded_identity(
     form: &CheckedCanonicalForm,
-    operations: &[CheckedOperation],
+    gears: &[CheckedGear],
     connections: &[CheckedConnection],
     shared_pools: &[ExpandedSharedPool],
-    provenance: &[ExpandedCellProvenance],
+    provenance: &[ExpandedGearProvenance],
 ) -> ExpandedFormId {
     let mut canonical = format!("canonical-expanded:{}", form.checked_form_id.as_str());
-    for operation in operations {
-        push(&mut canonical, operation.operation_id.as_str());
-        push(&mut canonical, operation.kind_id.as_str());
-        push(&mut canonical, operation.kind_contract_revision.as_str());
-        for parameter in &operation.startup_parameters {
+    for gear in gears {
+        push(&mut canonical, gear.gear_id.as_str());
+        push(&mut canonical, gear.kind_id.as_str());
+        push(&mut canonical, gear.kind_contract_revision.as_str());
+        for parameter in &gear.startup_parameters {
             push(&mut canonical, &parameter.name);
             push(&mut canonical, &parameter.value_type);
             push(
@@ -141,11 +135,11 @@ pub(super) fn expanded_identity(
                 },
             );
         }
-        if let Some((input, output)) = &operation.shorthand {
+        if let Some((input, output)) = &gear.shorthand {
             push(&mut canonical, input.as_str());
             push(&mut canonical, output.as_str());
         }
-        for port in operation.inputs.iter().chain(&operation.outputs) {
+        for port in gear.inputs.iter().chain(&gear.outputs) {
             push(&mut canonical, port.port_id.as_str());
             push(&mut canonical, port.value_kind.as_str());
             push(&mut canonical, port.temporal.as_str());
@@ -157,7 +151,7 @@ pub(super) fn expanded_identity(
                 },
             );
         }
-        for entry in &operation.configuration {
+        for entry in &gear.configuration {
             push(&mut canonical, &entry.key);
             match entry.value {
                 conduit_core::ConfigurationValue::Bool(value) => {
@@ -174,15 +168,15 @@ pub(super) fn expanded_identity(
                 }
             }
         }
-        for pool in &operation.pool_references {
+        for pool in &gear.pool_references {
             push(&mut canonical, "pool-reference");
             push(&mut canonical, pool.as_str());
         }
     }
     for connection in connections {
-        push(&mut canonical, connection.source_operation_id.as_str());
+        push(&mut canonical, connection.source_gear_id.as_str());
         push(&mut canonical, connection.source_port_id.as_str());
-        push(&mut canonical, connection.sink_operation_id.as_str());
+        push(&mut canonical, connection.sink_gear_id.as_str());
         push(&mut canonical, connection.sink_port_id.as_str());
         push(&mut canonical, connection.value_kind.as_str());
         push(&mut canonical, connection.temporal.as_str());
@@ -219,25 +213,25 @@ pub(super) fn expanded_identity(
         }
     }
     for row in provenance {
-        push(&mut canonical, &row.operation_id);
+        push(&mut canonical, &row.gear_id);
         push(&mut canonical, &row.form_path.join("/"));
         push(&mut canonical, &row.source_form);
-        push(&mut canonical, &row.source_cell);
+        push(&mut canonical, &row.source_gear);
     }
     ExpandedFormId::from(hash_string(&canonical))
 }
 
 pub(super) fn provenance_digest(
     source_document_id: &conduit_core::SourceDocumentId,
-    provenance: &[ExpandedCellProvenance],
+    provenance: &[ExpandedGearProvenance],
 ) -> String {
     let mut canonical = String::from("canonical-expansion-provenance");
     push(&mut canonical, source_document_id.as_str());
     for row in provenance {
-        push(&mut canonical, &row.operation_id);
+        push(&mut canonical, &row.gear_id);
         push(&mut canonical, &row.form_path.join("/"));
         push(&mut canonical, &row.source_form);
-        push(&mut canonical, &row.source_cell);
+        push(&mut canonical, &row.source_gear);
         push(&mut canonical, &row.source_span.start.to_string());
         push(&mut canonical, &row.source_span.end.to_string());
         push(&mut canonical, &row.source_span.line.to_string());

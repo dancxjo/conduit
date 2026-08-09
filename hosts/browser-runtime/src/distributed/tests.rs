@@ -1,6 +1,6 @@
 use super::*;
 
-fn activate(sink: &mut DistributedSink) {
+fn trigger(sink: &mut DistributedSink) {
     let binding = sink.binding.clone();
     sink.session
         .admit_inbound(binding.hello_frame())
@@ -76,31 +76,31 @@ fn triple_browser_reconstructs_its_fragment_from_the_same_three_host_plan() {
         exact.browser_link.binding_id
     );
     assert_eq!(
-        sink.binding.attachment.provider_instance_id,
-        exact.browser_link.provider_instance_id
+        sink.binding.attachment.base_instance_id,
+        exact.browser_link.base_instance_id
     );
     assert_eq!(sink.lowered.remote_endpoints.len(), 1);
     assert_eq!(sink.capacity_seal(), sink.seal);
 }
 
 #[test]
-fn evidence_exhaustion_is_structured_before_remote_admission_changes_sequence() {
+fn clue_exhaustion_is_structured_before_remote_admission_changes_sequence() {
     let mut sink = DistributedSink::prepare(Some(1), PlanKind::StdBrowser, None)
-        .expect("small evidence sink prepares");
-    activate(&mut sink);
+        .expect("small clue sink prepares");
+    trigger(&mut sink);
     let binding = sink.binding.clone();
     sink.ingest(&offered(&binding, 0)).expect("first admits");
     sink.advance().expect("first delivered");
     sink.advance().expect("first held for pressure");
-    assert_eq!(sink.ingest(&offered(&binding, 1)), Err(ERROR_EVIDENCE));
+    assert_eq!(sink.ingest(&offered(&binding, 1)), Err(ERROR_CLUE));
     assert_eq!(sink.output_kind, OUTPUT_SESSION);
     assert_eq!(sink.output[5], 8, "structured Failed frame");
-    assert_eq!(sink.advance(), Err(ERROR_EVIDENCE));
-    assert_eq!(sink.output[5], 9, "evidence terminal frame");
+    assert_eq!(sink.advance(), Err(ERROR_CLUE));
+    assert_eq!(sink.output[5], 9, "clue terminal frame");
     assert_eq!(
         sink.scheduler.values().used_items(),
         1,
-        "evidence exhaustion preserves rather than silently releases the admitted value"
+        "clue exhaustion preserves rather than silently releases the admitted value"
     );
     assert_eq!(sink.capacity_seal(), sink.seal);
 }
@@ -108,7 +108,7 @@ fn evidence_exhaustion_is_structured_before_remote_admission_changes_sequence() 
 #[test]
 fn browser_sink_failure_and_cancellation_emit_structured_terminal_frames() {
     let mut failed = DistributedSink::prepare(None, PlanKind::Triple, None).expect("sink prepares");
-    activate(&mut failed);
+    trigger(&mut failed);
     let binding = failed.binding.clone();
     failed.ingest(&offered(&binding, 0)).expect("value admits");
     failed.advance().expect("value delivered");
@@ -127,7 +127,7 @@ fn browser_sink_failure_and_cancellation_emit_structured_terminal_frames() {
 
     let mut cancelled =
         DistributedSink::prepare(None, PlanKind::Triple, None).expect("sink prepares");
-    activate(&mut cancelled);
+    trigger(&mut cancelled);
     assert_eq!(cancelled.cancel(), Err(ERROR_CANCELLED));
     assert_eq!(cancelled.output[5], 7, "cancelled frame");
     assert_eq!(cancelled.advance(), Err(ERROR_CANCELLED));
@@ -138,7 +138,7 @@ fn browser_sink_failure_and_cancellation_emit_structured_terminal_frames() {
 #[test]
 fn triple_browser_rejects_a_malformed_live_frame_without_admission() {
     let mut sink = DistributedSink::prepare(None, PlanKind::Triple, None).expect("sink prepares");
-    activate(&mut sink);
+    trigger(&mut sink);
     assert_eq!(sink.ingest(&[0_u8; 8]), Err(ERROR_SESSION));
     assert_eq!(sink.session.next_sequence(), 0);
     assert_eq!(sink.scheduler.values().used_items(), 0);
@@ -148,7 +148,7 @@ fn triple_browser_rejects_a_malformed_live_frame_without_admission() {
 fn wrong_remote_completion_identity_fails_closed() {
     let mut sink =
         DistributedSink::prepare(None, PlanKind::StdBrowser, None).expect("sink prepares");
-    activate(&mut sink);
+    trigger(&mut sink);
     let binding = sink.binding.clone();
     sink.ingest(&offered(&binding, 0)).expect("value admits");
     sink.advance().expect("value delivered");

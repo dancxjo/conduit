@@ -2,7 +2,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, AuthorityBinding, AuthorityRequirement, BootId, CapabilityId, CapabilityLimits,
-    CheckedFormId, ConnectionId, ConnectionProvider, ConnectionTerminalDisposition, EvidenceId,
+    CheckedFormId, ClueId, ConnectionBase, ConnectionId, ConnectionTerminalDisposition,
     ExecutionProfileId, ExpandedFormId, FragmentId, HostAdvertisement, HostId,
     HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision, KindId,
     LinkBinding, Observation, OfferGeneration, PlacementId, Plan, PlanId, PlannerCapabilityOffer,
@@ -220,15 +220,15 @@ pub struct ConnectionRow {
     pub source_placement_id: PlacementId,
     pub sink_placement_id: PlacementId,
     pub value_kind: KindId,
-    pub provider: ConnectionProvider,
+    pub base: ConnectionBase,
     pub link_binding: Option<LinkBinding>,
     pub item_capacity: u16,
     pub byte_capacity: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct EvidenceRow {
-    pub evidence_id: EvidenceId,
+pub struct ClueRow {
+    pub clue_id: ClueId,
     pub active_play_id: Option<ActivePlayId>,
     pub presentation_id: Option<PresentationId>,
     pub host_id: HostId,
@@ -258,6 +258,6 @@ pub struct ObservatoryReport {
     pub placements: Vec<PlacementRow>,
     pub connections: Vec<ConnectionRow>,
     pub plays: Vec<PlayReport>,
-    pub evidence: Vec<EvidenceRow>,
+    pub clues: Vec<ClueRow>,
     pub retention: RetentionRow,
 }

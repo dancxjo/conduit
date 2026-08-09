@@ -1,5 +1,5 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{ConfigurationValue, PlannedOperation};
+use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId, ValueRef, ValueStorage,
@@ -185,7 +185,7 @@ impl ExternalWebSocketListenerOperation {
     }
 }
 
-fn budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     Ok(OperationBudget {
         value_items: conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_ITEMS,
@@ -193,13 +193,13 @@ fn budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
         host_requests: 2
             + usize::from(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_HISTORY_ITEMS) * 2
             + 2,
-        evidence_items: 512,
+        clue_items: 512,
         maximum_value_bytes: conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
     })
 }
 
 fn prepare(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;
@@ -234,7 +234,7 @@ fn store(values: &mut conduit_kernel::HostedValueStore, bytes: &[u8]) -> Result<
         .map_err(|error| format!("store external WebSocket command: {error:?}"))
 }
 
-fn validate(placement: &PlannedOperation) -> Result<(), String> {
+fn validate(placement: &PlannedGear) -> Result<(), String> {
     let offer = conduit_net::std_external_websocket_family().capability;
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision

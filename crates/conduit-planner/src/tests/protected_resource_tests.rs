@@ -3,7 +3,7 @@ use crate::{
     default_placements, plan_with_options, PlacementChoices, PlannerError, PlanningOptions,
 };
 use conduit_core::{
-    verify_plan, ConnectionProvider, HostAdvertisement, HostId, ProtectedResourceAccess,
+    verify_plan, ConnectionBase, HostAdvertisement, HostId, ProtectedResourceAccess,
     ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceHandleId,
 };
 use std::collections::BTreeMap;
@@ -12,7 +12,7 @@ fn protected_grant(handle: &str) -> ProtectedResourceGrant {
     ProtectedResourceGrant {
         role_id: ResourceBindingRoleId::from("source"),
         handle_id: ResourceHandleId::from(handle),
-        operation_id: conduit_core::OperationId::from("pulse"),
+        gear_id: conduit_core::GearId::from("pulse"),
         host_id: HostId::from("std-host-1"),
         boot_id: conduit_core::BootId::from("boot-1"),
         capability_id: conduit_core::CapabilityId::from("pulse-1"),
@@ -25,18 +25,18 @@ fn protected_grant(handle: &str) -> ProtectedResourceGrant {
 
 fn plan_with_protected_test_grants(
     form: &conduit_form::CheckedForm,
-    realm: &[HostAdvertisement],
+    hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     grants: &[ProtectedResourceGrant],
 ) -> Result<conduit_core::Plan, PlannerError> {
-    let provider_overrides = BTreeMap::new();
+    let base_overrides = BTreeMap::new();
     plan_with_options(
         form,
-        realm,
+        hosts,
         placements,
-        &[ConnectionProvider::Local],
+        &[ConnectionBase::Local],
         PlanningOptions {
-            connection_providers: &provider_overrides,
+            connection_bases: &base_overrides,
             route_candidates: &BTreeMap::new(),
             connection_item_capacity: 4,
             connection_byte_capacity: 64,
@@ -53,24 +53,24 @@ fn choices_are_exact_boot_scoped_plan_bindings() {
     let mut target = host();
     target.capabilities[0].resource_requirements[0].protected_role =
         Some(ResourceBindingRoleId::from("source"));
-    let realm = vec![target];
-    let placements = default_placements(&form, &realm).expect("placements resolve");
+    let hosts = vec![target];
+    let placements = default_placements(&form, &hosts).expect("placements resolve");
 
     assert!(matches!(
-        plan_with_protected_test_grants(&form, &realm, &placements, &[]),
+        plan_with_protected_test_grants(&form, &hosts, &placements, &[]),
         Err(PlannerError::ProtectedResourceGrantMissing(_))
     ));
 
     let mut stale = protected_grant("handle/source");
     stale.boot_id = conduit_core::BootId::from("stale-boot");
     assert!(matches!(
-        plan_with_protected_test_grants(&form, &realm, &placements, &[stale]),
+        plan_with_protected_test_grants(&form, &hosts, &placements, &[stale]),
         Err(PlannerError::ProtectedResourceGrantMissing(_))
     ));
 
     let grant = protected_grant("handle/source");
     let plan =
-        plan_with_protected_test_grants(&form, &realm, &placements, core::slice::from_ref(&grant))
+        plan_with_protected_test_grants(&form, &hosts, &placements, core::slice::from_ref(&grant))
             .expect("exact protected grant plans");
     assert!(verify_plan(&plan));
     let binding = plan.fragments[0].placements[0].resources[0]
@@ -85,7 +85,7 @@ fn choices_are_exact_boot_scoped_plan_bindings() {
     let different_handle = protected_grant("handle/other-source");
     let changed = plan_with_protected_test_grants(
         &form,
-        &realm,
+        &hosts,
         &placements,
         core::slice::from_ref(&different_handle),
     )
@@ -107,13 +107,13 @@ fn grants_reject_incoherent_policy_and_handle_reuse() {
     let mut target = host();
     target.capabilities[0].resource_requirements[0].protected_role =
         Some(ResourceBindingRoleId::from("source"));
-    let realm = vec![target];
-    let placements = default_placements(&form, &realm).expect("placements resolve");
+    let hosts = vec![target];
+    let placements = default_placements(&form, &hosts).expect("placements resolve");
 
     let mut incoherent = protected_grant("handle/source");
     incoherent.commit_policy = ProtectedResourceCommitPolicy::ReplaceExisting;
     assert!(matches!(
-        plan_with_protected_test_grants(&form, &realm, &placements, &[incoherent]),
+        plan_with_protected_test_grants(&form, &hosts, &placements, &[incoherent]),
         Err(PlannerError::InvalidProtectedResourceGrant(_))
     ));
 
@@ -121,7 +121,7 @@ fn grants_reject_incoherent_policy_and_handle_reuse() {
     let mut second = first.clone();
     second.role_id = ResourceBindingRoleId::from("destination");
     assert!(matches!(
-        plan_with_protected_test_grants(&form, &realm, &placements, &[first, second]),
+        plan_with_protected_test_grants(&form, &hosts, &placements, &[first, second]),
         Err(PlannerError::InvalidProtectedResourceGrant(_))
     ));
 }

@@ -5,8 +5,8 @@ use alloc::vec;
 
 use conduit_core::{
     process_owned_link_binding_with_limits, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConnectionProvider, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LinkBinding, LinkEndpointId, LinkLimits, OfferGeneration, OperationId, Plan,
+    CapabilityOffer, ConnectionBase, GearId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, LinkBinding, LinkEndpointId, LinkLimits, OfferGeneration, Plan,
     PROTOCOL_VERSION,
 };
 use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
@@ -27,11 +27,11 @@ pub const PICO_HOST_ID: &str = "s4/triple-pico";
 pub const PICO_IMAGE_BOOT_ID: &str = "s4/triple-pico-image-boot";
 
 pub const BROWSER_LINK_ID: &str = "s4/triple-std-browser-link";
-pub const BROWSER_PROVIDER_INSTANCE_ID: &str = "s4/triple-websocket-loopback";
+pub const BROWSER_BASE_INSTANCE_ID: &str = "s4/triple-websocket-loopback";
 pub const BROWSER_SOURCE_ENDPOINT_ID: &str = "s4/triple-browser-egress";
 pub const BROWSER_SINK_ENDPOINT_ID: &str = "s4/triple-browser-ingress";
 pub const PICO_LINK_ID: &str = "s4/triple-std-pico-link";
-pub const PICO_PROVIDER_INSTANCE_ID: &str = "s4/triple-pico-usb-cdc-0";
+pub const PICO_BASE_INSTANCE_ID: &str = "s4/triple-pico-usb-cdc-0";
 pub const PICO_SOURCE_ENDPOINT_ID: &str = "s4/triple-pico-egress";
 pub const PICO_SINK_ENDPOINT_ID: &str = "s4/triple-pico-ingress";
 
@@ -169,8 +169,8 @@ pub fn pico_advertisement() -> HostAdvertisement {
 
 fn link(
     id: &str,
-    provider: ConnectionProvider,
-    provider_instance: &str,
+    base: ConnectionBase,
+    base_instance: &str,
     source_endpoint: &str,
     sink_endpoint: &str,
     source: &HostAdvertisement,
@@ -178,8 +178,8 @@ fn link(
 ) -> LinkBinding {
     let mut binding = process_owned_link_binding_with_limits(
         id,
-        provider,
-        provider_instance,
+        base,
+        base_instance,
         source,
         sink,
         LinkLimits {
@@ -200,8 +200,8 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
     let pico_advertisement = pico_advertisement();
     let browser_link = link(
         BROWSER_LINK_ID,
-        ConnectionProvider::WebSocket,
-        BROWSER_PROVIDER_INSTANCE_ID,
+        ConnectionBase::WebSocket,
+        BROWSER_BASE_INSTANCE_ID,
         BROWSER_SOURCE_ENDPOINT_ID,
         BROWSER_SINK_ENDPOINT_ID,
         &source_advertisement,
@@ -209,8 +209,8 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
     );
     let pico_link = link(
         PICO_LINK_ID,
-        ConnectionProvider::UsbCdc,
-        PICO_PROVIDER_INSTANCE_ID,
+        ConnectionBase::UsbCdc,
+        PICO_BASE_INSTANCE_ID,
         PICO_SOURCE_ENDPOINT_ID,
         PICO_SINK_ENDPOINT_ID,
         &source_advertisement,
@@ -222,30 +222,30 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
     )
     .map_err(|error| error.to_string())?;
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("pulse"),
+                GearId::from("pulse"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(PULSE_CAPABILITY_ID),
                 },
             ),
             (
-                OperationId::from("local"),
+                GearId::from("local"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(STDOUT_CAPABILITY_ID),
                 },
             ),
             (
-                OperationId::from("web"),
+                GearId::from("web"),
                 PlacementChoice {
                     host_id: browser_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(BROWSER_CAPABILITY_ID),
                 },
             ),
             (
-                OperationId::from("light"),
+                GearId::from("light"),
                 PlacementChoice {
                     host_id: pico_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(PICO_CAPABILITY_ID),
@@ -262,9 +262,9 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
         ],
         &placements,
         &[
-            ConnectionProvider::Local,
-            ConnectionProvider::WebSocket,
-            ConnectionProvider::UsbCdc,
+            ConnectionBase::Local,
+            ConnectionBase::WebSocket,
+            ConnectionBase::UsbCdc,
         ],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
@@ -327,30 +327,30 @@ mod tests {
         let mut stale = exact.browser_link.clone();
         stale.sink.boot_id = conduit_core::BootId::from("stale-browser-boot");
         let placements = PlacementChoices {
-            by_operation: BTreeMap::from([
+            by_gear: BTreeMap::from([
                 (
-                    OperationId::from("pulse"),
+                    GearId::from("pulse"),
                     PlacementChoice {
                         host_id: exact.source_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from(PULSE_CAPABILITY_ID),
                     },
                 ),
                 (
-                    OperationId::from("local"),
+                    GearId::from("local"),
                     PlacementChoice {
                         host_id: exact.source_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from(STDOUT_CAPABILITY_ID),
                     },
                 ),
                 (
-                    OperationId::from("web"),
+                    GearId::from("web"),
                     PlacementChoice {
                         host_id: exact.browser_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from(BROWSER_CAPABILITY_ID),
                     },
                 ),
                 (
-                    OperationId::from("light"),
+                    GearId::from("light"),
                     PlacementChoice {
                         host_id: exact.pico_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from(PICO_CAPABILITY_ID),
@@ -367,9 +367,9 @@ mod tests {
             ],
             &placements,
             &[
-                ConnectionProvider::Local,
-                ConnectionProvider::WebSocket,
-                ConnectionProvider::UsbCdc,
+                ConnectionBase::Local,
+                ConnectionBase::WebSocket,
+                ConnectionBase::UsbCdc,
             ],
             1,
             SIGNAL_ENCODED_LEN,

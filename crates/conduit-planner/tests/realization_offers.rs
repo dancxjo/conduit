@@ -35,11 +35,11 @@ fn one_host_offers_and_plans_distinct_implementations_of_the_same_face() {
     );
     host.capabilities.push(alternate.clone());
 
-    let operation = &form.operations[0];
+    let gear = &form.gears[0];
     let mut placements = default_placements(&form, std::slice::from_ref(&host))
         .expect("equal-face realizations are candidates");
-    placements.by_operation.insert(
-        operation.operation_id.clone(),
+    placements.by_gear.insert(
+        gear.gear_id.clone(),
         PlacementChoice {
             host_id: host.host_id.clone(),
             capability_id: alternate.capability_id.clone(),

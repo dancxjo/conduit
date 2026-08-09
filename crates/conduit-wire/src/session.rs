@@ -1,7 +1,7 @@
 use conduit_core::{
-    bind_active_play, ActivePlayId, BootId, ConnectionId, ConnectionProvider,
-    ConnectionProviderInstanceId, FragmentId, HostId, KindId, LinkAvailability, LinkBinding,
-    LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PlannedConnection, PROTOCOL_VERSION,
+    bind_active_play, ActivePlayId, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId,
+    FragmentId, HostId, KindId, LinkAvailability, LinkBinding, LinkBindingId, LinkEndpointId,
+    LinkLimits, PlanId, PlannedConnection, PROTOCOL_VERSION,
 };
 
 use crate::{WireError, MAX_ID_BYTES};
@@ -42,8 +42,8 @@ pub struct SessionLimits {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RouteAttachment {
     pub link_binding_id: LinkBindingId,
-    pub provider: ConnectionProvider,
-    pub provider_instance_id: ConnectionProviderInstanceId,
+    pub base: ConnectionBase,
+    pub base_instance_id: ConnectionBaseInstanceId,
     pub source_host_id: HostId,
     pub source_boot_id: BootId,
     pub source_endpoint_id: LinkEndpointId,
@@ -82,9 +82,9 @@ impl SessionBinding {
         connection: &PlannedConnection,
         link: &LinkBinding,
     ) -> Result<Self, WireError> {
-        if !link.provider.supports_remote_session()
+        if !link.base.supports_remote_session()
             || link.availability != LinkAvailability::Ready
-            || (connection.route_candidates.is_empty() && link.provider != connection.provider)
+            || (connection.route_candidates.is_empty() && link.base != connection.base)
             || !connection.permits_bound_link(&link.bound_link())
             || connection.item_capacity > link.limits.maximum_in_flight_items
             || connection.byte_capacity > link.limits.maximum_payload_bytes
@@ -121,8 +121,8 @@ impl SessionBinding {
             },
             attachment: RouteAttachment {
                 link_binding_id: link.binding_id.clone(),
-                provider: link.provider,
-                provider_instance_id: link.provider_instance_id.clone(),
+                base: link.base,
+                base_instance_id: link.base_instance_id.clone(),
                 source_host_id: link.source.host_id.clone(),
                 source_boot_id: link.source.boot_id.clone(),
                 source_endpoint_id: link.source.endpoint_id.clone(),
@@ -167,8 +167,8 @@ impl SessionBinding {
         if self.protocol_version != PROTOCOL_VERSION {
             return Err(WireError::WrongProtocolVersion);
         }
-        if !self.attachment.provider.supports_remote_session() {
-            return Err(WireError::InvalidProvider);
+        if !self.attachment.base.supports_remote_session() {
+            return Err(WireError::InvalidBase);
         }
         let identities = [
             self.plan_id.as_str(),
@@ -183,7 +183,7 @@ impl SessionBinding {
             self.sink.boot_id.as_str(),
             self.value_kind.as_str(),
             self.attachment.link_binding_id.as_str(),
-            self.attachment.provider_instance_id.as_str(),
+            self.attachment.base_instance_id.as_str(),
             self.attachment.source_host_id.as_str(),
             self.attachment.source_boot_id.as_str(),
             self.attachment.source_endpoint_id.as_str(),
@@ -258,8 +258,8 @@ impl SessionBinding {
             identity: self.identity(),
             message: SessionMessage::Hello(SessionHello {
                 link_binding_id: self.attachment.link_binding_id.as_str(),
-                provider: self.attachment.provider,
-                provider_instance_id: self.attachment.provider_instance_id.as_str(),
+                base: self.attachment.base,
+                base_instance_id: self.attachment.base_instance_id.as_str(),
                 source_endpoint_id: self.attachment.source_endpoint_id.as_str(),
                 sink_endpoint_id: self.attachment.sink_endpoint_id.as_str(),
                 limits: self.attachment.limits,
@@ -295,8 +295,8 @@ pub struct SessionIdentity<'a> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SessionHello<'a> {
     pub link_binding_id: &'a str,
-    pub provider: ConnectionProvider,
-    pub provider_instance_id: &'a str,
+    pub base: ConnectionBase,
+    pub base_instance_id: &'a str,
     pub source_endpoint_id: &'a str,
     pub sink_endpoint_id: &'a str,
     pub limits: LinkLimits,
@@ -389,8 +389,8 @@ pub fn encode_session_frame_into(
     match frame.message {
         SessionMessage::Hello(hello) => {
             writer.text(hello.link_binding_id)?;
-            writer.u8(provider_code(hello.provider)?)?;
-            writer.text(hello.provider_instance_id)?;
+            writer.u8(base_code(hello.base)?)?;
+            writer.text(hello.base_instance_id)?;
             writer.text(hello.source_endpoint_id)?;
             writer.text(hello.sink_endpoint_id)?;
             writer.u16(hello.limits.maximum_in_flight_items)?;
@@ -467,8 +467,8 @@ pub fn decode_session_frame(
     let message = match kind {
         1 => SessionMessage::Hello(SessionHello {
             link_binding_id: cursor.text()?,
-            provider: decode_provider(cursor.u8()?)?,
-            provider_instance_id: cursor.text()?,
+            base: decode_base(cursor.u8()?)?,
+            base_instance_id: cursor.text()?,
             source_endpoint_id: cursor.text()?,
             sink_endpoint_id: cursor.text()?,
             limits: LinkLimits {
@@ -525,8 +525,8 @@ fn identity_matches(binding: &SessionBinding, identity: SessionIdentity<'_>) -> 
 
 fn hello_matches(binding: &SessionBinding, hello: SessionHello<'_>) -> bool {
     hello.link_binding_id == binding.attachment.link_binding_id.as_str()
-        && hello.provider == binding.attachment.provider
-        && hello.provider_instance_id == binding.attachment.provider_instance_id.as_str()
+        && hello.base == binding.attachment.base
+        && hello.base_instance_id == binding.attachment.base_instance_id.as_str()
         && hello.source_endpoint_id == binding.attachment.source_endpoint_id.as_str()
         && hello.sink_endpoint_id == binding.attachment.sink_endpoint_id.as_str()
         && hello.limits == binding.attachment.limits
@@ -547,20 +547,19 @@ fn message_kind(message: SessionMessage<'_>) -> u8 {
     }
 }
 
-fn provider_code(provider: ConnectionProvider) -> Result<u8, WireError> {
-    if !provider.supports_remote_session() {
-        return Err(WireError::InvalidProvider);
+fn base_code(base: ConnectionBase) -> Result<u8, WireError> {
+    if !base.supports_remote_session() {
+        return Err(WireError::InvalidBase);
     }
-    Ok(provider.canonical_code())
+    Ok(base.canonical_code())
 }
 
-fn decode_provider(code: u8) -> Result<ConnectionProvider, WireError> {
-    let provider =
-        ConnectionProvider::from_canonical_code(code).ok_or(WireError::InvalidProvider)?;
-    if !provider.supports_remote_session() {
-        return Err(WireError::InvalidProvider);
+fn decode_base(code: u8) -> Result<ConnectionBase, WireError> {
+    let base = ConnectionBase::from_canonical_code(code).ok_or(WireError::InvalidBase)?;
+    if !base.supports_remote_session() {
+        return Err(WireError::InvalidBase);
     }
-    Ok(provider)
+    Ok(base)
 }
 
 fn terminal_code(disposition: SessionTerminalDisposition) -> u8 {
@@ -586,7 +585,7 @@ fn hello_encoded_len(binding: &SessionBinding) -> Result<usize, WireError> {
         .and_then(|value| {
             value.checked_add(
                 binding.attachment.link_binding_id.as_str().len()
-                    + binding.attachment.provider_instance_id.as_str().len()
+                    + binding.attachment.base_instance_id.as_str().len()
                     + binding.attachment.source_endpoint_id.as_str().len()
                     + binding.attachment.sink_endpoint_id.as_str().len(),
             )

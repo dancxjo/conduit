@@ -1,7 +1,7 @@
 //! Native Patchbay document composition, kept separate from event-loop policy.
 
 use super::PatchbayApplication;
-use conduit_core::ConnectionProvider;
+use conduit_core::ConnectionBase;
 use conduit_presentation::{Presentation, PresentationPropertyValue};
 use patchbay_model::GraphItemKind;
 
@@ -75,22 +75,20 @@ fn display_property(value: &PresentationPropertyValue) -> String {
         PresentationPropertyValue::Identity(value) | PresentationPropertyValue::Text(value) => {
             value.clone()
         }
-        PresentationPropertyValue::ConnectionProvider(provider) => {
-            display_provider(*provider).into()
-        }
+        PresentationPropertyValue::ConnectionBase(base) => display_base(*base).into(),
         PresentationPropertyValue::Count(value) => value.to_string(),
         PresentationPropertyValue::Flag(value) => value.to_string(),
     }
 }
 
-fn display_provider(provider: ConnectionProvider) -> &'static str {
-    match provider {
-        ConnectionProvider::Local => "local",
-        ConnectionProvider::InMemory => "in-memory",
-        ConnectionProvider::FixtureFrame => "fixture frame",
-        ConnectionProvider::FixtureDatagram => "fixture datagram",
-        ConnectionProvider::WebSocket => "WebSocket",
-        ConnectionProvider::UsbCdc => "USB CDC",
+fn display_base(base: ConnectionBase) -> &'static str {
+    match base {
+        ConnectionBase::Local => "local",
+        ConnectionBase::InMemory => "in-memory",
+        ConnectionBase::FixtureFrame => "fixture frame",
+        ConnectionBase::FixtureDatagram => "fixture datagram",
+        ConnectionBase::WebSocket => "WebSocket",
+        ConnectionBase::UsbCdc => "USB CDC",
     }
 }
 
@@ -163,7 +161,7 @@ impl PatchbayApplication {
                     GraphItemKind::FaceInput => "face-in",
                     GraphItemKind::FaceOutput => "face-out",
                     GraphItemKind::StartupValue => "startup",
-                    GraphItemKind::Cell => "cell",
+                    GraphItemKind::Gear => "gear",
                     GraphItemKind::Cord => "cord",
                 };
                 lines.push(format!(
@@ -189,6 +187,6 @@ fn append_route_demo(lines: &mut Vec<String>, demo: &patchbay_model::Distributed
     lines.extend(demo.visual_lines());
     lines.push("LINEAR NARRATION".into());
     lines.extend(demo.linear_lines());
-    lines.push("ROUTE DETAIL — exact identities and evidence".into());
+    lines.push("ROUTE DETAIL — exact identities and Clues".into());
     lines.extend_from_slice(demo.lines());
 }

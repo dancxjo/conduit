@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 use conduit_core::{
-    ActivePlayId, ArtifactId, AuthorityGrantId, CapabilityId, CheckedFormId, EvidenceId,
+    ActivePlayId, ArtifactId, AuthorityGrantId, CapabilityId, CheckedFormId, ClueId,
     ImplementationId, PlanId,
 };
 use conduit_observatory::{HostReport, OperationalState};
@@ -52,12 +52,12 @@ impl SystemRecord {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TransitionCause {
     Local {
-        accepted_evidence_id: EvidenceId,
+        accepted_clue_id: ClueId,
     },
     Delegated {
         grant_id: AuthorityGrantId,
         controller: HostInstance,
-        accepted_evidence_id: EvidenceId,
+        accepted_clue_id: ClueId,
     },
 }
 
@@ -69,10 +69,10 @@ pub struct AcceptedTransition {
 }
 
 impl AcceptedTransition {
-    pub fn old_boot_terminated(self, evidence_id: EvidenceId) -> TerminatedTransition {
+    pub fn old_boot_terminated(self, clue_id: ClueId) -> TerminatedTransition {
         TerminatedTransition {
             accepted: self,
-            terminal_evidence_id: evidence_id,
+            terminal_clue_id: clue_id,
         }
     }
 }
@@ -80,7 +80,7 @@ impl AcceptedTransition {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TerminatedTransition {
     pub accepted: AcceptedTransition,
-    pub terminal_evidence_id: EvidenceId,
+    pub terminal_clue_id: ClueId,
 }
 
 impl TerminatedTransition {

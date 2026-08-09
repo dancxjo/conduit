@@ -4,8 +4,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_body::{BodyId, SeedId, WakeId};
 use conduit_core::{
-    ActivePlayId, CheckedFormId, ConnectionProvider, EvidenceId, ExpandedFormId, PlanId,
-    SourceDocumentId,
+    ActivePlayId, CheckedFormId, ClueId, ConnectionBase, ExpandedFormId, PlanId, SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -14,7 +13,7 @@ pub const MAX_PRESENTATION_SUBJECTS: usize = 1_024;
 pub const MAX_PRESENTATION_RELATIONSHIPS: usize = 2_048;
 pub const MAX_PRESENTATION_TEXT_ITEMS: usize = 2_048;
 pub const MAX_PRESENTATION_PROPERTIES: usize = 4_096;
-pub const MAX_PRESENTATION_EVIDENCE: usize = 1_024;
+pub const MAX_PRESENTATION_CLUES: usize = 1_024;
 pub const MAX_PRESENTATION_ID_BYTES: usize = 256;
 pub const MAX_PRESENTATION_TEXT_BYTES: usize = 1_024;
 pub const MAX_PRESENTATION_TOTAL_BYTES: usize = 512 * 1024;
@@ -38,14 +37,14 @@ pub struct PresentationBasis {
     pub expanded_form_id: Option<ExpandedFormId>,
     pub plan_id: Option<PlanId>,
     pub active_play_id: Option<ActivePlayId>,
-    pub evidence_ids: Vec<EvidenceId>,
+    pub clue_ids: Vec<ClueId>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PresentationRole {
     Document,
     Form,
-    Cell,
+    Gear,
     Port,
     Cord,
     Plan,
@@ -53,7 +52,7 @@ pub enum PresentationRole {
     Host,
     Route,
     Diagnostic,
-    Evidence,
+    Clue,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -89,7 +88,7 @@ pub struct PresentationText {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PresentationPropertyValue {
     Identity(String),
-    ConnectionProvider(ConnectionProvider),
+    ConnectionBase(ConnectionBase),
     Text(String),
     Count(u64),
     Flag(bool),
@@ -105,7 +104,7 @@ pub struct PresentationProperty {
 /// One immutable semantic presentation revision.
 ///
 /// Geometry, viewport, toolkit objects, window handles, DOM identity, pixel
-/// storage, and provider resources are deliberately absent.
+/// storage, and base resources are deliberately absent.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Presentation {
     pub identity: PresentationContentId,
@@ -124,7 +123,7 @@ pub enum PresentationError {
     TooManyRelationships,
     TooManyTextItems,
     TooManyProperties,
-    TooMuchEvidence,
+    TooManyClues,
     EmptyIdentity,
     IdentityTooLong,
     EmptyText,
@@ -133,8 +132,8 @@ pub enum PresentationError {
     UnknownRelationshipSubject,
     UnknownTextSubject,
     UnknownPropertySubject,
-    DuplicateEvidence,
-    NonCanonicalEvidence,
+    DuplicateClue,
+    NonCanonicalClue,
     InvalidBasis,
     TooManyBytes,
     InvalidIdentity,
@@ -155,9 +154,9 @@ impl Presentation {
         properties: Vec<PresentationProperty>,
         text: Vec<PresentationText>,
     ) -> Result<Self, PresentationError> {
-        basis.evidence_ids.sort();
-        if basis.evidence_ids.windows(2).any(|pair| pair[0] == pair[1]) {
-            return Err(PresentationError::DuplicateEvidence);
+        basis.clue_ids.sort();
+        if basis.clue_ids.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(PresentationError::DuplicateClue);
         }
         let mut value = Self {
             identity: PresentationContentId(String::new()),
@@ -197,16 +196,16 @@ impl Presentation {
         if self.properties.len() > MAX_PRESENTATION_PROPERTIES {
             return Err(PresentationError::TooManyProperties);
         }
-        if self.basis.evidence_ids.len() > MAX_PRESENTATION_EVIDENCE {
-            return Err(PresentationError::TooMuchEvidence);
+        if self.basis.clue_ids.len() > MAX_PRESENTATION_CLUES {
+            return Err(PresentationError::TooManyClues);
         }
         if self
             .basis
-            .evidence_ids
+            .clue_ids
             .windows(2)
             .any(|pair| pair[0] >= pair[1])
         {
-            return Err(PresentationError::NonCanonicalEvidence);
+            return Err(PresentationError::NonCanonicalClue);
         }
         for identity in [
             self.basis.seed_id.as_str(),
@@ -238,8 +237,8 @@ impl Presentation {
         {
             return Err(PresentationError::InvalidBasis);
         }
-        for evidence in &self.basis.evidence_ids {
-            validate_id(evidence.as_str())?;
+        for clue in &self.basis.clue_ids {
+            validate_id(clue.as_str())?;
         }
         for subject in &self.subjects {
             validate_id(&subject.identity)?;
@@ -273,7 +272,7 @@ impl Presentation {
             match &property.value {
                 PresentationPropertyValue::Identity(value) => validate_id(value)?,
                 PresentationPropertyValue::Text(value) => validate_text(value)?,
-                PresentationPropertyValue::ConnectionProvider(_)
+                PresentationPropertyValue::ConnectionBase(_)
                 | PresentationPropertyValue::Count(_)
                 | PresentationPropertyValue::Flag(_) => {}
             }
@@ -298,7 +297,7 @@ impl Presentation {
             ))
             .saturating_add(
                 self.basis
-                    .evidence_ids
+                    .clue_ids
                     .iter()
                     .map(|id| id.as_str().len())
                     .sum::<usize>(),
@@ -369,8 +368,8 @@ impl Presentation {
             &mut digest,
             self.basis.active_play_id.as_ref().map(|id| id.as_str()),
         );
-        for evidence in &self.basis.evidence_ids {
-            hash_string(&mut digest, evidence.as_str());
+        for clue in &self.basis.clue_ids {
+            hash_string(&mut digest, clue.as_str());
         }
         for subject in &self.subjects {
             hash_string(&mut digest, &subject.identity);
@@ -391,8 +390,8 @@ impl Presentation {
                     digest.update([0]);
                     hash_string(&mut digest, value);
                 }
-                PresentationPropertyValue::ConnectionProvider(provider) => {
-                    digest.update([1, provider.canonical_code()]);
+                PresentationPropertyValue::ConnectionBase(base) => {
+                    digest.update([1, base.canonical_code()]);
                 }
                 PresentationPropertyValue::Text(value) => {
                     digest.update([2]);
@@ -457,7 +456,7 @@ fn property_value_len(value: &PresentationPropertyValue) -> usize {
         PresentationPropertyValue::Identity(value) | PresentationPropertyValue::Text(value) => {
             value.len()
         }
-        PresentationPropertyValue::ConnectionProvider(_) => 1,
+        PresentationPropertyValue::ConnectionBase(_) => 1,
         PresentationPropertyValue::Count(_) => 8,
         PresentationPropertyValue::Flag(_) => 1,
     }

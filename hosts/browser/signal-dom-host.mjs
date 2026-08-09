@@ -73,7 +73,7 @@ export class BrowserDomHost {
       effect?.bootId,
       effect?.activePlayId,
       effect?.presentationId,
-      effect?.evidenceId,
+      effect?.clueId,
       effect?.hostOperationContractId,
       effect?.placementId,
     ];
@@ -86,7 +86,7 @@ export class BrowserDomHost {
       effect?.sinkEndpointId,
       effect?.connectionId,
       effect?.linkBindingId,
-      effect?.providerInstanceId,
+      effect?.baseInstanceId,
     ];
     const hasRemoteIdentity = remoteIdentityFields.some((value) => value !== undefined);
     const requiresRemoteIdentity = effect?.kind === DISTRIBUTED_PRESENTATION_EFFECT;
@@ -123,7 +123,7 @@ export class BrowserDomHost {
       fragmentId: effect.fragmentId,
       activePlayId: effect.activePlayId,
       presentationId: effect.presentationId,
-      evidenceId: effect.evidenceId,
+      clueId: effect.clueId,
       requestNode: effect.requestNode,
       requestId: effect.requestId,
       operationId: effect.operationId,
@@ -142,7 +142,7 @@ export class BrowserDomHost {
             sinkEndpointId: effect.sinkEndpointId,
             connectionId: effect.connectionId,
             linkBindingId: effect.linkBindingId,
-            providerInstanceId: effect.providerInstanceId,
+            baseInstanceId: effect.baseInstanceId,
           }
         : {}),
     });
@@ -153,7 +153,7 @@ export class BrowserDomHost {
     output.dataset.fragmentId = receipt.fragmentId;
     output.dataset.activePlayId = receipt.activePlayId;
     output.dataset.presentationId = receipt.presentationId;
-    output.dataset.evidenceId = receipt.evidenceId;
+    output.dataset.clueId = receipt.clueId;
     output.dataset.requestId = String(receipt.requestId);
     output.dataset.placementId = receipt.placementId;
     output.dataset.sequence = receipt.sequence;
@@ -182,7 +182,7 @@ export class BrowserDomHost {
         operationId: effect.operationId,
         hostOperationContractId: effect.hostOperationContractId,
         presentationId: effect.presentationId,
-        evidenceId: effect.evidenceId,
+        clueId: effect.clueId,
         placementId: effect.placementId,
         ...(hasRemoteIdentity
           ? {
@@ -194,7 +194,7 @@ export class BrowserDomHost {
               sinkEndpointId: effect.sinkEndpointId,
               connectionId: effect.connectionId,
               linkBindingId: effect.linkBindingId,
-              providerInstanceId: effect.providerInstanceId,
+              baseInstanceId: effect.baseInstanceId,
             }
           : {}),
         value: Object.freeze({

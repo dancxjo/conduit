@@ -5,16 +5,14 @@ use super::{
     write_presentation_frame, FrameWriter, PreparedProjection, FRAME_CAPACITY, MAXIMUM_RECEIPTS,
     PORTS,
 };
-use conduit_core::{
-    bind_active_play, bind_evidence, bind_presentation, BootId, HostId, PlanFragment,
-};
+use conduit_core::{bind_active_play, bind_clue, bind_presentation, BootId, HostId, PlanFragment};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, EvidenceError, EvidenceQuery, Failure, FailureCode,
+    BoundedValueRef, ClueError, ClueQuery, CordId, Failure, FailureCode,
     FixedHostOperationBindings, FixedRoutes, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedEvidenceLog, HostedValueStore, KernelEventKind, Operation,
+    HostOperationOutcome, HostedClueLog, HostedValueStore, KernelEventKind, Operation,
     OperationAction, OperationInput, PortId, RemoteEndpointId, RequestId, ValueStorage,
 };
 use conduit_runtime::lowering::{
@@ -42,15 +40,15 @@ const ERROR_SESSION: i32 = -103;
 const ERROR_KERNEL: i32 = -104;
 const ERROR_PRESENTATION: i32 = -105;
 const ERROR_CANCELLED: i32 = -106;
-const ERROR_EVIDENCE: i32 = -107;
+const ERROR_CLUE: i32 = -107;
 const ERROR_CAPACITY: i32 = -108;
 const ROUTE_SLOTS: usize = 1;
-const EVIDENCE_ITEMS: u16 = 256;
+const CLUE_ITEMS: u16 = 256;
 
 type SinkScheduler = FixedScheduler<
     OperationDriver<ShowOperation, PORTS>,
     HostedValueStore,
-    HostedEvidenceLog,
+    HostedClueLog,
     1,
     1,
     PORTS,
@@ -69,7 +67,7 @@ thread_local! {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct CapacitySeal {
     values: (usize, usize),
-    evidence: usize,
+    clue: usize,
     identity: (usize, usize, usize),
     projections: usize,
 }
@@ -167,7 +165,7 @@ enum PlanKind {
 
 impl DistributedSink {
     fn prepare(
-        evidence_override: Option<u16>,
+        clue_override: Option<u16>,
         kind: PlanKind,
         source_identity: Option<(HostId, BootId)>,
     ) -> Result<Self, i32> {
@@ -223,12 +221,11 @@ impl DistributedSink {
         host_bindings.seal().map_err(|_| ERROR_PREPARE)?;
         let values = HostedValueStore::new(1, SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN)
             .map_err(|_| ERROR_PREPARE)?;
-        let evidence_items = evidence_override.unwrap_or(EVIDENCE_ITEMS);
-        let evidence_bytes = u32::from(evidence_items)
+        let clue_items = clue_override.unwrap_or(CLUE_ITEMS);
+        let clue_bytes = u32::from(clue_items)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or(ERROR_PREPARE)?;
-        let evidence = HostedEvidenceLog::new(evidence_items, evidence_bytes.max(1))
-            .map_err(|_| ERROR_PREPARE)?;
+        let clue = HostedClueLog::new(clue_items, clue_bytes.max(1)).map_err(|_| ERROR_PREPARE)?;
         let driver = OperationDriver::new(ShowOperation {
             next: 0,
             pending: None,
@@ -251,7 +248,7 @@ impl DistributedSink {
             host_bindings,
             [driver],
             values,
-            evidence,
+            clue,
         )
         .map_err(|_| ERROR_PREPARE)?;
         let active_play =
@@ -284,7 +281,7 @@ impl DistributedSink {
                 &placement.placement_id,
                 index as u64,
             );
-            let evidence = bind_evidence(
+            let clue = bind_clue(
                 &fragment.host_id,
                 &fragment.boot_id,
                 Some(&active_play.active_play_id),
@@ -294,8 +291,8 @@ impl DistributedSink {
                 .bind_presentation(&lowered.identity, show_node, request, &presentation)
                 .map_err(|_| ERROR_PREPARE)?;
             identity
-                .bind_evidence(
-                    &evidence,
+                .bind_clue(
+                    &clue,
                     Some(show_node),
                     Some(request),
                     Some(&presentation.presentation_id),
@@ -305,23 +302,23 @@ impl DistributedSink {
                 node: show_node,
                 signal,
                 presentation,
-                evidence,
+                clue,
             });
         }
-        let terminal = bind_evidence(
+        let terminal = bind_clue(
             &fragment.host_id,
             &fragment.boot_id,
             Some(&active_play.active_play_id),
             MAXIMUM_RECEIPTS as u64,
         );
         identity
-            .bind_evidence(&terminal, None, None, None)
+            .bind_clue(&terminal, None, None, None)
             .map_err(|_| ERROR_PREPARE)?;
         let session =
             SessionMachine::new(binding.clone(), SessionRole::Sink).map_err(|_| ERROR_SESSION)?;
         let seal = CapacitySeal {
             values: scheduler.values().allocation_capacities(),
-            evidence: scheduler.evidence().allocation_capacity(),
+            clue: scheduler.clues().allocation_capacity(),
             identity: identity.allocation_capacities(),
             projections: projections.capacity(),
         };
@@ -365,7 +362,7 @@ impl DistributedSink {
     fn capacity_seal(&self) -> CapacitySeal {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
-            evidence: self.scheduler.evidence().allocation_capacity(),
+            clue: self.scheduler.clues().allocation_capacity(),
             identity: self.identity.allocation_capacities(),
             projections: self.projections.capacity(),
         }
@@ -433,9 +430,9 @@ impl DistributedSink {
                     .admit_remote_input(endpoint, cord, sequence, payload)
                 {
                     Ok(admission) => admission,
-                    Err(conduit_kernel::scheduler::SchedulerError::Evidence(
-                        EvidenceError::ItemCapacityExceeded | EvidenceError::ByteCapacityExceeded,
-                    )) => return self.fail_session(23, ERROR_EVIDENCE),
+                    Err(conduit_kernel::scheduler::SchedulerError::Clue(
+                        ClueError::ItemCapacityExceeded | ClueError::ByteCapacityExceeded,
+                    )) => return self.fail_session(23, ERROR_CLUE),
                     Err(_) => return self.fail_session(24, ERROR_KERNEL),
                 };
                 match admission {
@@ -524,11 +521,11 @@ impl DistributedSink {
                         || self.scheduler.cord_usage(cord).map_err(|_| ERROR_KERNEL)? != (0, 0)
                         || !self
                             .scheduler
-                            .evidence()
+                            .clues()
                             .contains_kind(KernelEventKind::RemoteInputClosed)
                         || !self
                             .scheduler
-                            .evidence()
+                            .clues()
                             .contains_kind(KernelEventKind::OperationCompleted)
                         || self.capacity_seal() != self.seal
                         || self.pressure_retries != 1
@@ -546,9 +543,9 @@ impl DistributedSink {
                     self.error = ERROR_CANCELLED;
                     return Err(ERROR_CANCELLED);
                 }
-                Err(conduit_kernel::scheduler::SchedulerError::Evidence(
-                    EvidenceError::ItemCapacityExceeded | EvidenceError::ByteCapacityExceeded,
-                )) => return self.fail_session(25, ERROR_EVIDENCE),
+                Err(conduit_kernel::scheduler::SchedulerError::Clue(
+                    ClueError::ItemCapacityExceeded | ClueError::ByteCapacityExceeded,
+                )) => return self.fail_session(25, ERROR_CLUE),
                 Err(error) => return self.fail_session(26, map_scheduler_error(error)),
             }
         }
@@ -689,7 +686,7 @@ fn write_remote_identity_frame(
         binding.attachment.sink_endpoint_id.as_str(),
         binding.connection_id.as_str(),
         binding.attachment.link_binding_id.as_str(),
-        binding.attachment.provider_instance_id.as_str(),
+        binding.attachment.base_instance_id.as_str(),
     ] {
         writer.text(identity)?;
     }

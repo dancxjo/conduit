@@ -93,7 +93,7 @@ pub struct ShorthandPair {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BackStatement {
-    NamedCell(NamedCell),
+    NamedGear(NamedGear),
     Pool(PoolDeclaration),
     LocalValue(LocalValue),
     Cord(Cord),
@@ -108,7 +108,7 @@ pub struct PoolDeclaration {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NamedCell {
+pub struct NamedGear {
     pub name: SpannedText,
     pub invocation: Invocation,
     pub span: Span,
@@ -130,13 +130,13 @@ pub struct Cord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CordStage {
     Reference(SpannedText),
-    InlineCell(Invocation),
+    InlineGear(Invocation),
     Literal(Expression),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Invocation {
-    pub operation: SpannedText,
+    pub kind: SpannedText,
     pub arguments: Vec<Argument>,
     pub span: Span,
 }

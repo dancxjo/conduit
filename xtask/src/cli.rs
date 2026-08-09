@@ -66,7 +66,6 @@ pub enum CheckSuite {
     KernelTakeover,
     PlanningS2,
     FormS3,
-    Realm,
     Observatory,
     StdCatalog,
     All,
@@ -81,9 +80,9 @@ pub struct ProveArgs {
     #[arg(long)]
     pub link_port: Option<String>,
 
-    /// Explicit USB CDC evidence port (CDC 1).
+    /// Explicit USB CDC clue port (CDC 1).
     #[arg(long)]
-    pub evidence_port: Option<String>,
+    pub clue_port: Option<String>,
 
     /// Run interactive button console control mode.
     #[arg(long)]

@@ -10,7 +10,7 @@ use super::text_operations::{
     TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
 };
 use super::tick_presentation::TickPresentationOperation;
-use conduit_core::{PlannedOperation, PortDirection};
+use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
@@ -20,15 +20,15 @@ pub(super) struct OperationBudget {
     pub(super) value_items: u16,
     pub(super) value_bytes: u32,
     pub(super) host_requests: usize,
-    pub(super) evidence_items: u16,
+    pub(super) clue_items: u16,
     pub(super) maximum_value_bytes: u32,
 }
 
 pub(super) struct InstalledFactory {
     pub(super) implementation_id: &'static str,
-    pub(super) budget: fn(&PlannedOperation) -> Result<OperationBudget, String>,
+    pub(super) budget: fn(&PlannedGear) -> Result<OperationBudget, String>,
     pub(super) prepare: fn(
-        &PlannedOperation,
+        &PlannedGear,
         &mut conduit_kernel::HostedValueStore,
     ) -> Result<InstalledOperation, String>,
 }
@@ -58,7 +58,7 @@ pub(super) static TEST_OBSERVER_FACTORY: InstalledFactory = InstalledFactory {
             value_items: 0,
             value_bytes: 0,
             host_requests: 0,
-            evidence_items: 16,
+            clue_items: 16,
             maximum_value_bytes: TICK_ENCODED_LEN,
         })
     },
@@ -286,14 +286,14 @@ impl TickOperation {
     }
 }
 
-fn tick_budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn tick_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_tick_placement(placement)?;
     let configuration =
         parse_tick_configuration(&placement.configuration).map_err(|error| error.to_string())?;
     tick_budget_for(&configuration)
 }
 
-fn every_budget(placement: &PlannedOperation) -> Result<OperationBudget, String> {
+fn every_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_every_placement(placement)?;
     tick_budget_for(&parse_every_configuration(&placement.configuration)?)
 }
@@ -311,24 +311,24 @@ fn tick_budget_for(
         .checked_mul(u64::from(TICK_ENCODED_LEN) * 2)
         .and_then(|bytes| u32::try_from(bytes.max(1)).ok())
         .ok_or_else(|| "tick value byte budget overflow".to_string())?;
-    let evidence_items = configuration
+    let clue_items = configuration
         .count
         .checked_mul(15)
         .and_then(|items| items.checked_add(64))
         .and_then(|items| u16::try_from(items).ok())
-        .ok_or_else(|| "tick evidence item budget overflow".to_string())?;
+        .ok_or_else(|| "tick clue item budget overflow".to_string())?;
     Ok(OperationBudget {
         value_items,
         value_bytes,
         host_requests: usize::try_from(configuration.count)
             .map_err(|_| "tick request budget overflow".to_string())?,
-        evidence_items,
+        clue_items,
         maximum_value_bytes: TICK_ENCODED_LEN,
     })
 }
 
 fn prepare_tick(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_tick_placement(placement)?;
@@ -338,7 +338,7 @@ fn prepare_tick(
 }
 
 fn prepare_every(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_every_placement(placement)?;
@@ -373,7 +373,7 @@ fn prepare_tick_values(
     }))
 }
 
-fn validate_tick_placement(placement: &PlannedOperation) -> Result<(), String> {
+fn validate_tick_placement(placement: &PlannedGear) -> Result<(), String> {
     if placement.kind_id.as_str() != TICK_KIND
         || placement.kind_contract_revision.as_str() != TICK_CONTRACT_REVISION
         || placement.execution_profile_id.as_str() != TICK_EXECUTION_PROFILE
@@ -390,7 +390,7 @@ fn validate_tick_placement(placement: &PlannedOperation) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_every_placement(placement: &PlannedOperation) -> Result<(), String> {
+fn validate_every_placement(placement: &PlannedGear) -> Result<(), String> {
     if placement.kind_id.as_str() != TIME_EVERY_KIND
         || placement.kind_contract_revision.as_str() != TIME_EVERY_CONTRACT_REVISION
         || placement.execution_profile_id.as_str() != TIME_EVERY_EXECUTION_PROFILE
@@ -409,7 +409,7 @@ fn validate_every_placement(placement: &PlannedOperation) -> Result<(), String> 
 
 #[cfg(test)]
 fn prepare_test_observer(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     if placement.kind_id.as_str() != TEST_OBSERVER_KIND

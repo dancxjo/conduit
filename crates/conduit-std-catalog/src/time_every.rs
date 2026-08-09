@@ -80,19 +80,19 @@ pub fn install_time_pipeline_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, OperationSignature,
+        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
         StartupParameterSignature,
     };
-    startup.insert(OperationSignature {
-        operation: TIME_EVERY_KIND.to_string(),
+    startup.insert(KindSignature {
+        kind: TIME_EVERY_KIND.to_string(),
         startup_parameters: vec![StartupParameterSignature {
             name: "freq".to_string(),
             value_type: "Duration".to_string(),
             default: None,
         }],
     })?;
-    startup.insert(OperationSignature {
-        operation: super::TICK_PRESENTATION_KIND.to_string(),
+    startup.insert(KindSignature {
+        kind: super::TICK_PRESENTATION_KIND.to_string(),
         startup_parameters: vec![StartupParameterSignature {
             name: "maximum-values".to_string(),
             value_type: "Count".to_string(),

@@ -1,7 +1,7 @@
 use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
 use conduit_core::{
-    process_owned_link_binding, BootId, CapabilityId, ConnectionProvider, HostCommand, HostEvent,
-    HostId, OfferGeneration, OperationId,
+    process_owned_link_binding, BootId, CapabilityId, ConnectionBase, GearId, HostCommand,
+    HostEvent, HostId, OfferGeneration,
 };
 use conduit_form::parse;
 use conduit_observatory::{
@@ -87,30 +87,30 @@ fn observatory_fixture_report() -> Result<String, String> {
     )
     .map_err(|err| err.to_string())?;
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("pulse"),
+                GearId::from("pulse"),
                 PlacementChoice {
                     host_id: HostId::from("std-host-triple"),
                     capability_id: CapabilityId::from("pulse-1"),
                 },
             ),
             (
-                OperationId::from("local"),
+                GearId::from("local"),
                 PlacementChoice {
                     host_id: HostId::from("std-host-triple"),
                     capability_id: CapabilityId::from("stdout-show-1"),
                 },
             ),
             (
-                OperationId::from("web"),
+                GearId::from("web"),
                 PlacementChoice {
                     host_id: HostId::from("browser-sim-triple"),
                     capability_id: CapabilityId::from("dom-show"),
                 },
             ),
             (
-                OperationId::from("light"),
+                GearId::from("light"),
                 PlacementChoice {
                     host_id: HostId::from("pico-sim-triple"),
                     capability_id: CapabilityId::from("onboard-led"),
@@ -118,24 +118,24 @@ fn observatory_fixture_report() -> Result<String, String> {
             ),
         ]),
     };
-    let connection_providers = BTreeMap::from([
+    let connection_bases = BTreeMap::from([
         (
-            (OperationId::from("pulse"), OperationId::from("local")),
-            ConnectionProvider::Local,
+            (GearId::from("pulse"), GearId::from("local")),
+            ConnectionBase::Local,
         ),
         (
-            (OperationId::from("pulse"), OperationId::from("web")),
-            ConnectionProvider::FixtureFrame,
+            (GearId::from("pulse"), GearId::from("web")),
+            ConnectionBase::FixtureFrame,
         ),
         (
-            (OperationId::from("pulse"), OperationId::from("light")),
-            ConnectionProvider::FixtureDatagram,
+            (GearId::from("pulse"), GearId::from("light")),
+            ConnectionBase::FixtureDatagram,
         ),
     ]);
     let link_bindings = [
         process_owned_link_binding(
             "link/std-browser",
-            ConnectionProvider::FixtureFrame,
+            ConnectionBase::FixtureFrame,
             "fixture/frame/std-browser",
             &advertisements[0],
             &advertisements[1],
@@ -144,7 +144,7 @@ fn observatory_fixture_report() -> Result<String, String> {
         ),
         process_owned_link_binding(
             "link/std-pico",
-            ConnectionProvider::FixtureDatagram,
+            ConnectionBase::FixtureDatagram,
             "fixture/datagram/std-pico",
             &advertisements[0],
             &advertisements[2],
@@ -157,12 +157,12 @@ fn observatory_fixture_report() -> Result<String, String> {
         &advertisements,
         &placements,
         &[
-            ConnectionProvider::Local,
-            ConnectionProvider::FixtureFrame,
-            ConnectionProvider::FixtureDatagram,
+            ConnectionBase::Local,
+            ConnectionBase::FixtureFrame,
+            ConnectionBase::FixtureDatagram,
         ],
         PlanningOptions {
-            connection_providers: &connection_providers,
+            connection_bases: &connection_bases,
             route_candidates: &BTreeMap::new(),
             connection_item_capacity: 4,
             connection_byte_capacity: 64,
@@ -213,7 +213,7 @@ fn observatory_fixture_report() -> Result<String, String> {
     };
     let report = build_report(&snapshot)?;
     Ok(format!(
-        "SIMULATION ONLY: synthetic observatory fixture; not connected-host evidence\n{}",
+        "SIMULATION ONLY: synthetic observatory fixture; not connected-host clue\n{}",
         render_text_report(&report)
     ))
 }
@@ -294,16 +294,16 @@ fn observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work() {
     assert!(stdout.contains("plans 1"), "{stdout}");
     assert!(stdout.contains("placements 4"), "{stdout}");
     assert!(stdout.contains("connections 3"), "{stdout}");
-    assert!(stdout.contains("provider=FixtureFrame"), "{stdout}");
-    assert!(stdout.contains("provider=FixtureDatagram"), "{stdout}");
+    assert!(stdout.contains("base=FixtureFrame"), "{stdout}");
+    assert!(stdout.contains("base=FixtureDatagram"), "{stdout}");
     assert!(
-        stdout.contains("evidence id=") && stdout.contains("active_play=none presentation=none"),
+        stdout.contains("clue id=") && stdout.contains("active_play=none presentation=none"),
         "{stdout}"
     );
-    assert!(!stdout.contains("evidence id=evidence/"), "{stdout}");
+    assert!(!stdout.contains("clue id=clue/"), "{stdout}");
     assert!(stdout.contains("retention bounded=true"), "{stdout}");
     assert!(
         !stdout.contains("receipt signal placement="),
-        "observatory report must not activate work: {stdout}"
+        "observatory report must not trigger work: {stdout}"
     );
 }

@@ -62,7 +62,7 @@ fn copy_task_runs_then_reveals_path_free_form_and_exact_plan() {
         "{inspected}"
     );
     assert!(
-        inspected.contains("operation: copy (face: 0 inputs, 0 outputs)"),
+        inspected.contains("gear: copy (face: 0 inputs, 0 outputs)"),
         "{inspected}"
     );
     assert!(!inspected.contains(source.to_str().unwrap()), "{inspected}");

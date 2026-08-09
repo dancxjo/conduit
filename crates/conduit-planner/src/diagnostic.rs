@@ -69,7 +69,7 @@ mod tests {
             checked_form_id: CheckedFormId::from("checked-1"),
             expanded_form_id: ExpandedFormId::from("expanded-1"),
             name: "demo".into(),
-            operations: Vec::new(),
+            gears: Vec::new(),
             connections: Vec::new(),
             exports: Vec::new(),
             nested_forms: Vec::new(),
@@ -81,7 +81,7 @@ mod tests {
         let diagnostic = structured_planner_diagnostic(
             &checked_form(),
             &PlannerError::IncompatibleCheckedFace(
-                "operation secret face differs from host-local secret".into(),
+                "gear secret face differs from host-local secret".into(),
             ),
         )
         .unwrap();
@@ -89,7 +89,7 @@ mod tests {
         assert_eq!(diagnostic.code, "CND-PLN-012");
         assert!(diagnostic.summary.contains("canonical checked face"));
         assert!(!json.contains("host-local secret"));
-        assert!(!json.contains("operation secret"));
+        assert!(!json.contains("gear secret"));
         assert_eq!(diagnostic.source_document_id, "source-1");
         assert_eq!(diagnostic.related[0].subject, "checked-1");
     }

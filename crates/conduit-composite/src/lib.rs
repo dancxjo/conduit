@@ -1,15 +1,15 @@
 use conduit_core::{
-    bind_active_play, bind_evidence, kind_id, verify_plan, ActivePlayId, ArtifactId, BootId,
-    CapabilityLimits, CapabilityOffer, ConnectionEnvelope, ConnectionId, ConnectionOutcome,
-    ConnectionProvider, ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand,
+    bind_active_play, bind_clue, kind_id, verify_plan, ActivePlayId, ArtifactId, BootId,
+    CapabilityLimits, CapabilityOffer, ConnectionBase, ConnectionEnvelope, ConnectionId,
+    ConnectionOutcome, ExecutionProfileId, FailureReason, HostAdvertisement, HostCommand,
     HostEvent, HostId, HostProfileId, ImplementationId, Observation, ObservationKind,
     OfferGeneration, Plan, PlanFragment, PlanId, PlatformEffect, PortDescriptor, PortId,
     TerminalDisposition, PROTOCOL_VERSION,
 };
 use conduit_form::{CheckedForm, CompositeFaceTerminal};
 use conduit_runtime::{
-    providers::in_memory::InMemoryConnectionProvider, CompositeBoundaryEffect,
-    CompositePortBinding, HostRuntime, RuntimeOutput,
+    bases::in_memory::InMemoryConnectionBase, CompositeBoundaryEffect, CompositePortBinding,
+    HostRuntime, RuntimeOutput,
 };
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
@@ -104,24 +104,23 @@ impl CompositeDefinition {
         let boundary = form
             .export_boundary(export_capability_id)
             .map_err(|error| CompositeError::InvalidInternalPlan(error.to_string()))?;
-        let placement_for = |operation_id: &conduit_core::OperationId| {
+        let placement_for = |gear_id: &conduit_core::GearId| {
             internal_plan
                 .fragments
                 .iter()
                 .flat_map(|fragment| &fragment.placements)
-                .find(|placement| &placement.operation_id == operation_id)
+                .find(|placement| &placement.gear_id == gear_id)
         };
         let bind_faces = |faces: &[conduit_form::CheckedCompositeFace]| {
             faces
                 .iter()
                 .map(|face| {
-                    let placement =
-                        placement_for(&face.internal_operation_id).ok_or_else(|| {
-                            CompositeError::InvalidInternalPlan(format!(
-                                "face '{}' internal operation is absent from the exact plan",
-                                face.external_port.port_id.as_str()
-                            ))
-                        })?;
+                    let placement = placement_for(&face.internal_gear_id).ok_or_else(|| {
+                        CompositeError::InvalidInternalPlan(format!(
+                            "face '{}' internal operation is absent from the exact plan",
+                            face.external_port.port_id.as_str()
+                        ))
+                    })?;
                     let planned_port = match face.external_port.direction {
                         conduit_core::PortDirection::Input => &placement.inputs,
                         conduit_core::PortDirection::Output => &placement.outputs,
@@ -270,7 +269,7 @@ struct ChildRuntime {
 struct InternalConnection {
     source_child: HostId,
     sink_child: HostId,
-    provider: InMemoryConnectionProvider,
+    base: InMemoryConnectionBase,
 }
 
 #[derive(Debug)]
@@ -289,7 +288,7 @@ pub struct CompositeHost {
     delivery_mode: DeliveryMode,
     failure_translation: FailureReason,
     next_active_play_sequence: u64,
-    next_evidence_sequence: u64,
+    next_clue_sequence: u64,
 }
 
 impl CompositeHost {
@@ -493,7 +492,7 @@ impl CompositeHost {
             BTreeMap::<ConnectionId, Vec<(HostId, conduit_core::PlannedConnection)>>::new();
         for fragment in &definition.internal_plan.fragments {
             for connection in &fragment.connections {
-                if connection.provider == ConnectionProvider::InMemory {
+                if connection.base == ConnectionBase::InMemory {
                     connection_rows
                         .entry(connection.connection_id.clone())
                         .or_default()
@@ -555,7 +554,7 @@ impl CompositeHost {
                 InternalConnection {
                     source_child,
                     sink_child,
-                    provider: InMemoryConnectionProvider::new(internal_plan_id.clone(), connection),
+                    base: InMemoryConnectionBase::new(internal_plan_id.clone(), connection),
                 },
             );
         }
@@ -586,7 +585,7 @@ impl CompositeHost {
             delivery_mode: DeliveryMode::Immediate,
             failure_translation: definition.failure_translation,
             next_active_play_sequence: 0,
-            next_evidence_sequence: 0,
+            next_clue_sequence: 0,
         };
         host.record(None, ObservationKind::HostStarted);
         host.record(None, ObservationKind::AdvertisementPublished);
@@ -609,26 +608,26 @@ impl CompositeHost {
         self.delivery_mode = mode;
     }
 
-    pub fn provider_status(&self) -> ConnectionOutcome {
+    pub fn base_status(&self) -> ConnectionOutcome {
         self.internal_connections
             .values()
             .next()
             .map_or(ConnectionOutcome::Terminal, |connection| {
-                connection.provider.status()
+                connection.base.status()
             })
     }
 
-    pub fn provider_queued_items(&self) -> usize {
+    pub fn base_queued_items(&self) -> usize {
         self.internal_connections
             .values()
-            .map(|connection| connection.provider.queued_items())
+            .map(|connection| connection.base.queued_items())
             .sum()
     }
 
-    pub fn provider_queued_bytes(&self) -> u32 {
+    pub fn base_queued_bytes(&self) -> u32 {
         self.internal_connections
             .values()
-            .map(|connection| connection.provider.queued_bytes())
+            .map(|connection| connection.base.queued_bytes())
             .sum()
     }
 
@@ -652,7 +651,7 @@ impl CompositeHost {
         let Some(connection_id) = self
             .internal_connections
             .iter()
-            .find(|(_, connection)| connection.provider.queued_items() > 0)
+            .find(|(_, connection)| connection.base.queued_items() > 0)
             .map(|(connection_id, _)| connection_id.clone())
         else {
             return external;
@@ -665,7 +664,7 @@ impl CompositeHost {
             (
                 connection.source_child.clone(),
                 connection.sink_child.clone(),
-                connection.provider.deliver(),
+                connection.base.deliver(),
             )
         };
         let Some((ConnectionOutcome::Delivered, mut envelope)) = delivery else {
@@ -711,7 +710,7 @@ impl CompositeHost {
         external
     }
 
-    pub fn disconnect_provider(&mut self, external_plan_id: &PlanId) -> RuntimeOutput {
+    pub fn disconnect_base(&mut self, external_plan_id: &PlanId) -> RuntimeOutput {
         let mut external = RuntimeOutput::default();
         let Some(connection_id) = self.internal_connections.keys().next().cloned() else {
             return external;
@@ -723,8 +722,8 @@ impl CompositeHost {
                 .expect("listed internal connection exists");
             (
                 connection.source_child.clone(),
-                connection.provider.queued_items() > 0,
-                connection.provider.disconnect(),
+                connection.base.queued_items() > 0,
+                connection.base.disconnect(),
             )
         };
         if !had_queued_envelopes {
@@ -752,7 +751,7 @@ impl CompositeHost {
     pub fn handle(&mut self, command: HostCommand) -> RuntimeOutput {
         match command {
             HostCommand::Prepare(fragment) => self.prepare(fragment),
-            HostCommand::Activate(plan_id) => self.activate(plan_id),
+            HostCommand::StartPlay(plan_id) => self.start_play(plan_id),
             HostCommand::AcceptConnectionEnvelope(envelope) => {
                 self.accept_external_envelope(envelope)
             }
@@ -1133,7 +1132,7 @@ impl CompositeHost {
             } else {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id,
-                    reason: FailureReason::InvalidOperationConfiguration,
+                    reason: FailureReason::InvalidGearConfiguration,
                     message: Some(
                         "external connection must have exactly one composite endpoint".into(),
                     ),
@@ -1152,13 +1151,13 @@ impl CompositeHost {
                     .iter()
                     .find(|face| face.external_port.port_id == face_port_id),
             };
-            if connection.provider == ConnectionProvider::Local
+            if connection.base == ConnectionBase::Local
                 || face.is_none_or(|face| face.external_port.value_kind != connection.value_kind)
                 || external_connections.contains_key(&connection.connection_id)
             {
                 output.events.push(HostEvent::PreparationRejected {
                     plan_id,
-                    reason: FailureReason::InvalidOperationConfiguration,
+                    reason: FailureReason::InvalidGearConfiguration,
                     message: Some(
                         "external connection differs from an exact named composite face".into(),
                     ),
@@ -1249,10 +1248,10 @@ impl CompositeHost {
         output
     }
 
-    fn activate(&mut self, plan_id: PlanId) -> RuntimeOutput {
+    fn start_play(&mut self, plan_id: PlanId) -> RuntimeOutput {
         let mut output = RuntimeOutput::default();
         let Some(plan) = self.external_plans.get_mut(&plan_id) else {
-            output.events.push(HostEvent::ActivationRejected {
+            output.events.push(HostEvent::PlayStartRejected {
                 plan_id,
                 reason: FailureReason::InvalidLifecycleCommand,
                 message: Some("unknown external plan".into()),
@@ -1260,7 +1259,7 @@ impl CompositeHost {
             return output;
         };
         if plan.state != ExternalState::Prepared {
-            output.events.push(HostEvent::ActivationRejected {
+            output.events.push(HostEvent::PlayStartRejected {
                 plan_id,
                 reason: FailureReason::InvalidLifecycleCommand,
                 message: Some("external plan is not prepared".into()),
@@ -1268,7 +1267,7 @@ impl CompositeHost {
             return output;
         }
         let Some(next_active_play_sequence) = self.next_active_play_sequence.checked_add(1) else {
-            output.events.push(HostEvent::ActivationRejected {
+            output.events.push(HostEvent::PlayStartRejected {
                 plan_id,
                 reason: FailureReason::InvalidLifecycleCommand,
                 message: Some("active-play identity sequence exhausted".into()),
@@ -1284,8 +1283,8 @@ impl CompositeHost {
         self.next_active_play_sequence = next_active_play_sequence;
         plan.active_play_id = Some(active_play.active_play_id.clone());
         plan.state = ExternalState::Active;
-        self.record(Some(plan_id.clone()), ObservationKind::PlanActivated);
-        output.events.push(HostEvent::Activated {
+        self.record(Some(plan_id.clone()), ObservationKind::PlanPlayStarted);
+        output.events.push(HostEvent::PlayStarted {
             plan_id: plan_id.clone(),
             active_play_id: active_play.active_play_id,
         });
@@ -1323,7 +1322,7 @@ impl CompositeHost {
                     .get_mut(&host_id)
                     .expect("listed child exists")
                     .runtime
-                    .handle(HostCommand::Activate(self.internal_plan_id.clone()));
+                    .handle(HostCommand::StartPlay(self.internal_plan_id.clone()));
                 (host_id, child_output)
             })
             .collect();
@@ -1470,7 +1469,7 @@ impl CompositeHost {
                                 Some(connection) if connection.source_child == child => (
                                     connection.source_child.clone(),
                                     connection.sink_child.clone(),
-                                    connection.provider.accept(envelope),
+                                    connection.base.accept(envelope),
                                 ),
                                 _ => {
                                     let source_output = self
@@ -1506,7 +1505,7 @@ impl CompositeHost {
                                     .internal_connections
                                     .get_mut(&connection_id)
                                     .expect("accepted internal connection exists")
-                                    .provider
+                                    .base
                                     .deliver()
                                     .expect("accepted envelope must be queued");
                                 debug_assert_eq!(delivery_outcome, ConnectionOutcome::Delivered);
@@ -1854,7 +1853,7 @@ impl CompositeHost {
         if self.observations.len() == self.observation_limit {
             let mut dropped = 1;
             if let Some(Observation {
-                kind: ObservationKind::EvidenceGap { dropped: previous },
+                kind: ObservationKind::ClueGap { dropped: previous },
                 ..
             }) = self.observations.first()
             {
@@ -1865,9 +1864,9 @@ impl CompositeHost {
             }
             if self.observation_limit == 1 {
                 self.observations.clear();
-                let gap_evidence_id = self.issue_evidence_id(None);
+                let gap_clue_id = self.issue_clue_id(None);
                 self.observations.push(Observation {
-                    evidence_id: gap_evidence_id,
+                    clue_id: gap_clue_id,
                     active_play_id: None,
                     presentation_id: None,
                     host_id: self.advertisement.host_id.clone(),
@@ -1875,7 +1874,7 @@ impl CompositeHost {
                     plan_id: None,
                     placement_id: None,
                     connection_id: None,
-                    kind: ObservationKind::EvidenceGap { dropped },
+                    kind: ObservationKind::ClueGap { dropped },
                 });
                 return;
             }
@@ -1883,11 +1882,11 @@ impl CompositeHost {
                 self.observations.remove(0);
                 dropped += 1;
             }
-            let gap_evidence_id = self.issue_evidence_id(None);
+            let gap_clue_id = self.issue_clue_id(None);
             self.observations.insert(
                 0,
                 Observation {
-                    evidence_id: gap_evidence_id,
+                    clue_id: gap_clue_id,
                     active_play_id: None,
                     presentation_id: None,
                     host_id: self.advertisement.host_id.clone(),
@@ -1895,13 +1894,13 @@ impl CompositeHost {
                     plan_id: None,
                     placement_id: None,
                     connection_id: None,
-                    kind: ObservationKind::EvidenceGap { dropped },
+                    kind: ObservationKind::ClueGap { dropped },
                 },
             );
         }
-        let evidence_id = self.issue_evidence_id(active_play_id.as_ref());
+        let clue_id = self.issue_clue_id(active_play_id.as_ref());
         self.observations.push(Observation {
-            evidence_id,
+            clue_id,
             active_play_id,
             presentation_id: None,
             host_id: self.advertisement.host_id.clone(),
@@ -1913,21 +1912,18 @@ impl CompositeHost {
         });
     }
 
-    fn issue_evidence_id(
-        &mut self,
-        active_play_id: Option<&ActivePlayId>,
-    ) -> conduit_core::EvidenceId {
-        let evidence = bind_evidence(
+    fn issue_clue_id(&mut self, active_play_id: Option<&ActivePlayId>) -> conduit_core::ClueId {
+        let clue = bind_clue(
             &self.advertisement.host_id,
             &self.advertisement.boot_id,
             active_play_id,
-            self.next_evidence_sequence,
+            self.next_clue_sequence,
         );
-        self.next_evidence_sequence = self
-            .next_evidence_sequence
+        self.next_clue_sequence = self
+            .next_clue_sequence
             .checked_add(1)
-            .expect("evidence identity sequence exhausted");
-        evidence.evidence_id
+            .expect("clue identity sequence exhausted");
+        clue.clue_id
     }
 }
 

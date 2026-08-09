@@ -667,8 +667,8 @@ impl<R: Read, W: Write> NativeUsbCdcCarrier<R, W> {
 mod tests {
     use super::*;
     use conduit_core::{
-        BootId, ConnectionId, ConnectionProvider, ConnectionProviderInstanceId, FragmentId, HostId,
-        KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
+        BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId, HostId, KindId,
+        LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
     };
     use conduit_wire::{
         RouteAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
@@ -718,8 +718,8 @@ mod tests {
             },
             attachment: RouteAttachment {
                 link_binding_id: LinkBindingId::from("link-1"),
-                provider: ConnectionProvider::UsbCdc,
-                provider_instance_id: ConnectionProviderInstanceId::from("prov-1"),
+                base: ConnectionBase::UsbCdc,
+                base_instance_id: ConnectionBaseInstanceId::from("prov-1"),
                 source_host_id: source.host_id,
                 source_boot_id: source.boot_id,
                 source_endpoint_id: LinkEndpointId::from("end-1"),

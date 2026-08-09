@@ -3,7 +3,7 @@
 //! Resolves the `remote-toggle.form` against the std source and browser sink
 //! advertisements and returns the exact two-fragment plan.
 
-use conduit_core::{CapabilityId, ConnectionProvider, HostAdvertisement, OperationId, Plan};
+use conduit_core::{CapabilityId, ConnectionBase, GearId, HostAdvertisement, Plan};
 use conduit_planner::{plan_with_link_bindings, PlacementChoice, PlacementChoices};
 use conduit_signal::{
     distributed_toggle_browser_sink_advertisement, distributed_toggle_std_source_advertisement,
@@ -28,23 +28,23 @@ pub fn exact_distributed_toggle_plan() -> Result<DistributedTogglePlan, String> 
     )
     .map_err(|error| error.to_string())?;
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("activate"),
+                GearId::from("trigger"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
-                    capability_id: CapabilityId::from("activate-1"),
+                    capability_id: CapabilityId::from("trigger-1"),
                 },
             ),
             (
-                OperationId::from("toggle"),
+                GearId::from("toggle"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("toggle-1"),
                 },
             ),
             (
-                OperationId::from("show"),
+                GearId::from("show"),
                 PlacementChoice {
                     host_id: sink_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("toggle-dom-show-1"),
@@ -57,7 +57,7 @@ pub fn exact_distributed_toggle_plan() -> Result<DistributedTogglePlan, String> 
         &form,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,
-        &[ConnectionProvider::Local, ConnectionProvider::WebSocket],
+        &[ConnectionBase::Local, ConnectionBase::WebSocket],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
         &[link],

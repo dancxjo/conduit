@@ -1,9 +1,7 @@
 //! Shared exact planning for the std-to-browser Signal execution pair.
 
 use alloc::collections::BTreeMap;
-use conduit_core::{
-    BootId, CapabilityId, ConnectionProvider, HostAdvertisement, HostId, OperationId, Plan,
-};
+use conduit_core::{BootId, CapabilityId, ConnectionBase, GearId, HostAdvertisement, HostId, Plan};
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
@@ -38,16 +36,16 @@ pub fn exact_distributed_signal_plan_for(
     )
     .map_err(|error| error.to_string())?;
     let placements = PlacementChoices {
-        by_operation: BTreeMap::from([
+        by_gear: BTreeMap::from([
             (
-                OperationId::from("signal-demo/pulse"),
+                GearId::from("signal-demo/pulse"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("pulse-1"),
                 },
             ),
             (
-                OperationId::from("signal-demo/show"),
+                GearId::from("signal-demo/show"),
                 PlacementChoice {
                     host_id: sink_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("dom-show-1"),
@@ -60,9 +58,9 @@ pub fn exact_distributed_signal_plan_for(
         &form,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,
-        &[ConnectionProvider::WebSocket],
+        &[ConnectionBase::WebSocket],
         PlanningOptions {
-            connection_providers: &BTreeMap::new(),
+            connection_bases: &BTreeMap::new(),
             route_candidates: &BTreeMap::new(),
             connection_item_capacity: crate::DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             connection_byte_capacity: crate::SIGNAL_ENCODED_LEN,

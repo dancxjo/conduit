@@ -1,5 +1,5 @@
 const schema = "conduit.patchbay.portable-presentation";
-const providers = new Map([
+const bases = new Map([
   ["Local", "local"], ["InMemory", "in-memory"],
   ["FixtureFrame", "fixture frame"], ["FixtureDatagram", "fixture datagram"],
   ["WebSocket", "WebSocket"], ["UsbCdc", "USB CDC"],
@@ -11,8 +11,8 @@ function requireSnapshot(value) {
   if (!value || value.schema!==schema || !Number.isSafeInteger(value.revision) || value.revision!==presentation?.revision) throw new Error("unsupported snapshot schema");
   if (!presentation.basis || typeof presentation.identity!=="string" || !Array.isArray(presentation.subjects) || !Array.isArray(presentation.relationships) || !Array.isArray(presentation.properties) || !Array.isArray(presentation.text)) throw new Error("malformed portable Presentation");
   for (const property of presentation.properties) {
-    const provider=property.value?.ConnectionProvider;
-    if (provider!==undefined && !providers.has(provider)) throw new Error("unsupported connection provider");
+    const base=property.value?.ConnectionBase;
+    if (base!==undefined && !bases.has(base)) throw new Error("unsupported connection base");
   }
   return value;
 }
@@ -26,7 +26,7 @@ function propertyText(value){
   if(value.Text!==undefined)return value.Text;
   if(value.Count!==undefined)return String(value.Count);
   if(value.Flag!==undefined)return String(value.Flag);
-  if(value.ConnectionProvider!==undefined)return providers.get(value.ConnectionProvider);
+  if(value.ConnectionBase!==undefined)return bases.get(value.ConnectionBase);
   return "unsupported";
 }
 
@@ -58,7 +58,7 @@ function render(snapshot){
   const facts=document.querySelector("#form-facts");facts.replaceChildren();term(facts,"Seed",b.seed_id);term(facts,"Body",b.body_id);term(facts,"Wake",b.wake_id);term(facts,"Source document",b.source_document_id);term(facts,"Checked Form",b.checked_form_id);
   const list=document.querySelector("#subjects");list.replaceChildren();for(const subject of p.subjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.setAttribute("aria-pressed","false");button.textContent=`${subject.role}: ${subject.label}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}renderGraph();
   const plan=document.querySelector("#plan dl");plan.replaceChildren();term(plan,"Expanded Form",b.expanded_form_id);term(plan,"Plan",b.plan_id);fillLines("#realizations",subjects("Plan").flatMap(subject=>texts(subject.identity)));
-  const play=document.querySelector("#play dl");play.replaceChildren();term(play,"Active Play",b.active_play_id);term(play,"Plan",b.plan_id);fillLines("#evidence",subjects("Evidence").map(subject=>subject.label));
+  const play=document.querySelector("#play dl");play.replaceChildren();term(play,"Active Play",b.active_play_id);term(play,"Plan",b.plan_id);fillLines("#clue",subjects("Clue").map(subject=>subject.label));
   fillLines("#diagnostics ol",subjects("Diagnostic").flatMap(subject=>texts(subject.identity)));renderCards();fillLines("#topology ul",subjects("Host").flatMap(subject=>[subject.accessibility_name,...texts(subject.identity)]));fillLines("#linear ol",p.text.map(item=>item.text));select(p.subjects[0]?.identity);
 }
 

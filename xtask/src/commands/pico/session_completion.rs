@@ -13,7 +13,7 @@ use super::PicoResult;
 pub fn complete(
     source: &mut PicoUsbSource,
     carrier: &mut NativePathCdcCarrier,
-    evidence: &mut NativePathCdcLineReader,
+    clue: &mut NativePathCdcLineReader,
     binding: &SessionBinding,
     final_sequence: u64,
     identity: &FirmwareIdentity,
@@ -63,10 +63,10 @@ pub fn complete(
     if !source.is_terminal() {
         return Err("source session did not reach exact terminal agreement".into());
     }
-    let line = evidence
+    let line = clue
         .read_line(Duration::from_secs(3))
-        .map_err(|error| format!("timed out reading Pico terminal evidence: {error}"))?;
+        .map_err(|error| format!("timed out reading Pico terminal clue: {error}"))?;
     transcript::verify_terminal(&line, identity, runtime)?;
-    println!("==> Pico terminal agreement and CDC 1 terminal evidence validated");
+    println!("==> Pico terminal agreement and CDC 1 terminal clue validated");
     Ok(())
 }

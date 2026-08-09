@@ -133,7 +133,7 @@ export function decodeEffect(bytes) {
           sinkEndpointId: frame.text(),
           connectionId: frame.text(),
           linkBindingId: frame.text(),
-          providerInstanceId: frame.text(),
+          baseInstanceId: frame.text(),
         }
       : {};
     effect = Object.freeze({
@@ -141,7 +141,7 @@ export function decodeEffect(bytes) {
       ...common,
       ...remote,
       presentationId: frame.text(),
-      evidenceId: frame.text(),
+      clueId: frame.text(),
       presentationKind: frame.text(),
       value: Object.freeze({
         valueKind: frame.text(),
@@ -183,11 +183,11 @@ function encodeCompletion(effect, completion) {
     frame.text(completion.sinkEndpointId);
     frame.text(completion.connectionId);
     frame.text(completion.linkBindingId);
-    frame.text(completion.providerInstanceId);
+    frame.text(completion.baseInstanceId);
   }
   if (effect.kind === EFFECT_PRESENT || effect.kind === EFFECT_DISTRIBUTED_PRESENT) {
     frame.text(completion.presentationId);
-    frame.text(completion.evidenceId);
+    frame.text(completion.clueId);
     frame.text(completion.value.valueKind);
     frame.bytesField(Uint8Array.from(completion.value.encoded));
   }
@@ -333,11 +333,11 @@ export function successfulCompletion(effect) {
     completion.sinkEndpointId = effect.sinkEndpointId;
     completion.connectionId = effect.connectionId;
     completion.linkBindingId = effect.linkBindingId;
-    completion.providerInstanceId = effect.providerInstanceId;
+    completion.baseInstanceId = effect.baseInstanceId;
   }
   if (effect.kind === EFFECT_PRESENT || effect.kind === EFFECT_DISTRIBUTED_PRESENT) {
     completion.presentationId = effect.presentationId;
-    completion.evidenceId = effect.evidenceId;
+    completion.clueId = effect.clueId;
     completion.value = effect.value;
   }
   return Object.freeze(completion);

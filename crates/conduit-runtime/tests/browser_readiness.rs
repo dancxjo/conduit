@@ -163,7 +163,7 @@ fn repository_status_matrix_keeps_proof_classes_distinct() {
         "generated fixed image",
         "exact Pico-local, std↔Pico, and final std/browser/Pico board runs recorded",
         "attached-board Playwright cases remain explicitly hardware-gated",
-        "fixture providers remain synthetic conformance only",
+        "fixture bases remain synthetic conformance only",
         "No UDP, Zenoh, TCP",
         "Frame/datagram fixtures are not WebSocket or UDP sockets",
     ] {

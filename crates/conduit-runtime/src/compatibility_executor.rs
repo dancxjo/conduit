@@ -1,12 +1,12 @@
 use conduit_core::{
-    bind_active_play, bind_evidence, bind_presentation, mandatory_evidence_storage_requirement,
+    bind_active_play, bind_clue, bind_presentation, mandatory_clue_storage_requirement,
     verify_plan_fragment, ActivePlayId, BoundedQueue, CancellationPolicy, CancellationReason,
-    ConnectionEnvelope, ConnectionId, ConnectionOutcome, ConnectionProvider,
-    ConnectionTerminalDisposition, EvidenceStorageBudget, ExpectedEvidence, ExpectedTerminal,
-    FailureReason, HostAdvertisement, HostCommand, HostEvent, MandatoryEvidenceReport, Observation,
-    ObservationKind, PlacementId, PlacementLifecycleState, PlanFragment, PlanId, PlannedConnection,
-    PlannedOperation, PlatformEffect, PresentationId, StartupDependency, TerminalDisposition,
-    TerminalPolicy, ValuePayload, PROTOCOL_VERSION,
+    ClueStorageBudget, ConnectionBase, ConnectionEnvelope, ConnectionId, ConnectionOutcome,
+    ConnectionTerminalDisposition, ExpectedClue, ExpectedTerminal, FailureReason,
+    HostAdvertisement, HostCommand, HostEvent, MandatoryClueReport, Observation, ObservationKind,
+    PlacementId, PlacementLifecycleState, PlanFragment, PlanId, PlannedConnection, PlannedGear,
+    PlatformEffect, PresentationId, StartupDependency, TerminalDisposition, TerminalPolicy,
+    ValuePayload, PROTOCOL_VERSION,
 };
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
@@ -84,7 +84,7 @@ pub trait OperationState {
 ///
 /// The registry identifies an implementation by kind and implementation ID, asks it to validate
 /// and prepare a planned operation, and receives opaque [`OperationState`]. The runtime then drives
-/// that state with activation and input completions; requested platform work is returned as generic
+/// that state with trigger and input completions; requested platform work is returned as generic
 /// [`OperationAction`] values and translated to [`PlatformEffect`]. Adding a semantic kind must only
 /// require installing another implementation, never adding a kind-name match to the runtime.
 pub trait OperationImplementation {
@@ -104,7 +104,7 @@ pub trait OperationImplementation {
     }
     fn prepare(
         &self,
-        placement: &PlannedOperation,
+        placement: &PlannedGear,
     ) -> Result<Box<dyn OperationState>, ImplementationFailure>;
 
     fn minimum_value_size(&self, _value_kind: &conduit_core::KindId) -> Option<u32> {
@@ -208,7 +208,7 @@ pub struct HostRuntime {
     authority_grants: Vec<conduit_core::AuthorityGrant>,
     link_bindings: Vec<conduit_core::LinkBinding>,
     next_active_play_sequence: u64,
-    next_evidence_sequence: u64,
+    next_clue_sequence: u64,
     composite_boundary_effects: VecDeque<CompositeBoundaryEffect>,
 }
 
@@ -229,7 +229,7 @@ impl core::fmt::Debug for HostRuntime {
 
 struct RuntimePlan {
     fragment: PlanFragment,
-    mandatory_evidence: MandatoryEvidenceLog,
+    mandatory_clue: MandatoryClueLog,
     placements: BTreeMap<PlacementId, RuntimePlacement>,
     connections: BTreeMap<ConnectionId, RuntimeConnection>,
     state: PlanState,
@@ -261,29 +261,29 @@ struct CompositeOutputState {
 }
 
 #[derive(Debug)]
-struct MandatoryEvidenceLog {
+struct MandatoryClueLog {
     recorded_indices: Vec<u16>,
     allocated_item_slots: u32,
-    storage_budget: EvidenceStorageBudget,
+    storage_budget: ClueStorageBudget,
     used_bytes: u32,
     overflowed: bool,
 }
 
-impl MandatoryEvidenceLog {
+impl MandatoryClueLog {
     fn new(fragment: &PlanFragment) -> Self {
         let recorded_indices =
-            Vec::with_capacity(usize::from(fragment.evidence_storage_budget.item_capacity));
+            Vec::with_capacity(usize::from(fragment.clue_storage_budget.item_capacity));
         Self {
             allocated_item_slots: u32::try_from(recorded_indices.capacity()).unwrap_or(u32::MAX),
             recorded_indices,
-            storage_budget: fragment.evidence_storage_budget,
+            storage_budget: fragment.clue_storage_budget,
             used_bytes: 0,
             overflowed: false,
         }
     }
 
-    fn record(&mut self, expected: &[ExpectedEvidence], evidence: ExpectedEvidence) {
-        let Some(index) = expected.iter().position(|item| item == &evidence) else {
+    fn record(&mut self, expected: &[ExpectedClue], clue: ExpectedClue) {
+        let Some(index) = expected.iter().position(|item| item == &clue) else {
             self.overflowed = true;
             return;
         };
@@ -294,8 +294,7 @@ impl MandatoryEvidenceLog {
         if self.recorded_indices.contains(&index) {
             return;
         }
-        let Some(charge) = mandatory_evidence_storage_requirement(core::slice::from_ref(&evidence))
-        else {
+        let Some(charge) = mandatory_clue_storage_requirement(core::slice::from_ref(&clue)) else {
             self.overflowed = true;
             return;
         };
@@ -313,8 +312,8 @@ impl MandatoryEvidenceLog {
         self.used_bytes = used_bytes;
     }
 
-    fn report(&self, plan_id: PlanId, expected: &[ExpectedEvidence]) -> MandatoryEvidenceReport {
-        MandatoryEvidenceReport {
+    fn report(&self, plan_id: PlanId, expected: &[ExpectedClue]) -> MandatoryClueReport {
+        MandatoryClueReport {
             plan_id,
             expected: expected.to_vec(),
             recorded: self
@@ -340,7 +339,7 @@ enum PlanState {
 }
 
 struct RuntimePlacement {
-    spec: PlannedOperation,
+    spec: PlannedGear,
     lifecycle: PlacementLifecycleState,
     terminal: Option<TerminalDisposition>,
     implementation_state: Box<dyn OperationState>,
@@ -425,8 +424,8 @@ fn validate_fragment_execution_contract(
                 || binding.sink.endpoint_id.as_str().is_empty()
                 || binding.source.endpoint_id == binding.sink.endpoint_id
                 || binding.source.host_id == binding.sink.host_id
-                || binding.provider == ConnectionProvider::Local
-                || binding.provider_instance_id.as_str().is_empty()
+                || binding.base == ConnectionBase::Local
+                || binding.base_instance_id.as_str().is_empty()
                 || binding.availability != conduit_core::LinkAvailability::Ready
                 || binding.limits.maximum_in_flight_items < connection.item_capacity
                 || binding.limits.maximum_payload_bytes < connection.byte_capacity
@@ -444,21 +443,21 @@ fn validate_fragment_execution_contract(
                 )
         });
         invalid_binding
-            || match connection.provider {
-                ConnectionProvider::Local => connection.link_binding.is_some(),
-                ConnectionProvider::InMemory
-                | ConnectionProvider::FixtureFrame
-                | ConnectionProvider::FixtureDatagram
-                | ConnectionProvider::WebSocket
-                | ConnectionProvider::UsbCdc => connection
+            || match connection.base {
+                ConnectionBase::Local => connection.link_binding.is_some(),
+                ConnectionBase::InMemory
+                | ConnectionBase::FixtureFrame
+                | ConnectionBase::FixtureDatagram
+                | ConnectionBase::WebSocket
+                | ConnectionBase::UsbCdc => connection
                     .link_binding
                     .as_ref()
-                    .is_none_or(|binding| binding.provider != connection.provider),
+                    .is_none_or(|binding| binding.base != connection.base),
             }
     }) {
         return Some((
             FailureReason::LinkBindingMismatch,
-            "remote connections require one ready exact non-local link binding with initialized provider, explicit credential/authority references, and sufficient limits; local connections must not bind a link".to_string(),
+            "remote connections require one ready exact non-local link binding with initialized base, explicit credential/authority references, and sufficient limits; local connections must not bind a link".to_string(),
         ));
     }
     if fragment.placements.iter().any(|placement| {
@@ -504,7 +503,7 @@ fn validate_fragment_execution_contract(
     if fragment.terminal_policy != TerminalPolicy::RequireAllPlacementsAndConnections {
         return Some((
             FailureReason::UnsupportedTerminalPolicy,
-            "host requires terminal evidence for every placement and connection".to_string(),
+            "host requires terminal clue for every placement and connection".to_string(),
         ));
     }
 
@@ -576,44 +575,48 @@ fn validate_fragment_execution_contract(
         ));
     }
 
-    let expected_evidence =
-        core::iter::once(ExpectedEvidence::PlanFragmentReceived)
-            .chain(fragment.placements.iter().map(|placement| {
-                ExpectedEvidence::PlacementPrepared(placement.placement_id.clone())
-            }))
-            .chain(fragment.placements.iter().map(|placement| {
-                ExpectedEvidence::PlacementTerminal(placement.placement_id.clone())
-            }))
+    let expected_clue =
+        core::iter::once(ExpectedClue::PlanFragmentReceived)
+            .chain(
+                fragment.placements.iter().map(|placement| {
+                    ExpectedClue::PlacementPrepared(placement.placement_id.clone())
+                }),
+            )
+            .chain(
+                fragment.placements.iter().map(|placement| {
+                    ExpectedClue::PlacementTerminal(placement.placement_id.clone())
+                }),
+            )
             .chain(fragment.connections.iter().map(|connection| {
-                ExpectedEvidence::ConnectionTerminal(connection.connection_id.clone())
+                ExpectedClue::ConnectionTerminal(connection.connection_id.clone())
             }))
-            .chain(core::iter::once(ExpectedEvidence::PlanTerminal))
+            .chain(core::iter::once(ExpectedClue::PlanTerminal))
             .collect::<Vec<_>>();
-    if fragment.expected_evidence != expected_evidence {
+    if fragment.expected_clue != expected_clue {
         return Some((
-            FailureReason::EvidenceBudgetExceeded,
-            "mandatory evidence descriptors do not cover the exact fragment".to_string(),
+            FailureReason::ClueBudgetExceeded,
+            "mandatory clue descriptors do not cover the exact fragment".to_string(),
         ));
     }
-    let Some(required) = mandatory_evidence_storage_requirement(&fragment.expected_evidence) else {
+    let Some(required) = mandatory_clue_storage_requirement(&fragment.expected_clue) else {
         return Some((
-            FailureReason::EvidenceBudgetExceeded,
-            "mandatory evidence cannot be represented by the public budget types".to_string(),
+            FailureReason::ClueBudgetExceeded,
+            "mandatory clue cannot be represented by the public budget types".to_string(),
         ));
     };
-    if fragment.evidence_storage_budget.item_capacity < required.item_capacity
-        || fragment.evidence_storage_budget.byte_capacity < required.byte_capacity
+    if fragment.clue_storage_budget.item_capacity < required.item_capacity
+        || fragment.clue_storage_budget.byte_capacity < required.byte_capacity
     {
         return Some((
-            FailureReason::EvidenceBudgetExceeded,
-            "mandatory evidence exceeds its planned item or byte budget".to_string(),
+            FailureReason::ClueBudgetExceeded,
+            "mandatory clue exceeds its planned item or byte budget".to_string(),
         ));
     }
     None
 }
 
 fn validate_host_operation_action(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     action: &OperationAction,
 ) -> Result<(), ImplementationFailure> {
     let (contract, target_kind, input_bytes) = match action {
@@ -661,7 +664,7 @@ fn validate_host_operation_action(
 }
 
 fn validate_authority_action(
-    placement: &PlannedOperation,
+    placement: &PlannedGear,
     action: &OperationAction,
 ) -> Result<(), ImplementationFailure> {
     let (contract, target_kind) = match action {
@@ -772,7 +775,7 @@ impl HostRuntime {
             authority_grants,
             link_bindings,
             next_active_play_sequence: 0,
-            next_evidence_sequence: 0,
+            next_clue_sequence: 0,
             composite_boundary_effects: VecDeque::new(),
         };
         runtime.record_observation(None, None, None, ObservationKind::HostStarted);
@@ -785,7 +788,7 @@ impl HostRuntime {
     }
 
     /// Installs the exact named composite seam after ordinary fragment
-    /// preparation and before activation. It is intentionally absent from the
+    /// preparation and before Play start. It is intentionally absent from the
     /// production std path; only the temporary hosted composite facade uses it.
     pub fn configure_composite_boundary(
         &mut self,
@@ -802,7 +805,7 @@ impl HostRuntime {
         {
             return Err(ImplementationFailure::new(
                 FailureReason::InvalidLifecycleCommand,
-                "composite boundary must be configured once before activation",
+                "composite boundary must be configured once before Play start",
             ));
         }
         let mut names = BTreeSet::new();
@@ -815,13 +818,13 @@ impl HostRuntime {
                 || binding.byte_capacity == 0
             {
                 return Err(ImplementationFailure::new(
-                    FailureReason::InvalidOperationConfiguration,
+                    FailureReason::InvalidGearConfiguration,
                     "composite port identity and capacities must be nonzero",
                 ));
             }
             let placement = plan.placements.get(&binding.placement_id).ok_or_else(|| {
                 ImplementationFailure::new(
-                    FailureReason::InvalidOperationConfiguration,
+                    FailureReason::InvalidGearConfiguration,
                     "composite port names a missing placement",
                 )
             })?;
@@ -834,13 +837,13 @@ impl HostRuntime {
                 .find(|port| port.port_id == binding.internal_port_id)
                 .ok_or_else(|| {
                     ImplementationFailure::new(
-                        FailureReason::InvalidOperationConfiguration,
+                        FailureReason::InvalidGearConfiguration,
                         "composite port names a missing or wrongly directed endpoint",
                     )
                 })?;
             if port.value_kind != binding.value_kind {
                 return Err(ImplementationFailure::new(
-                    FailureReason::InvalidOperationConfiguration,
+                    FailureReason::InvalidGearConfiguration,
                     "composite port value kind differs from its endpoint",
                 ));
             }
@@ -856,7 +859,7 @@ impl HostRuntime {
                 ))
             {
                 return Err(ImplementationFailure::new(
-                    FailureReason::InvalidOperationConfiguration,
+                    FailureReason::InvalidGearConfiguration,
                     "duplicate composite input name or endpoint",
                 ));
             }
@@ -871,7 +874,7 @@ impl HostRuntime {
                 ))
             {
                 return Err(ImplementationFailure::new(
-                    FailureReason::InvalidOperationConfiguration,
+                    FailureReason::InvalidGearConfiguration,
                     "duplicate composite output name or endpoint",
                 ));
             }
@@ -1058,7 +1061,7 @@ impl HostRuntime {
                 RuntimeOutput::default()
             }
             HostCommand::Prepare(fragment) => self.prepare(fragment),
-            HostCommand::Activate(plan_id) => self.activate(&plan_id),
+            HostCommand::StartPlay(plan_id) => self.start_play(&plan_id),
             HostCommand::CompleteWait {
                 plan_id,
                 placement_id,
@@ -1102,13 +1105,13 @@ impl HostRuntime {
                     HostEvent::Observations {
                         items: self.observations.clone(),
                     },
-                    HostEvent::MandatoryEvidenceReports {
+                    HostEvent::MandatoryClueReports {
                         items: self
                             .plans
                             .iter()
                             .map(|(plan_id, plan)| {
-                                plan.mandatory_evidence
-                                    .report(plan_id.clone(), &plan.fragment.expected_evidence)
+                                plan.mandatory_clue
+                                    .report(plan_id.clone(), &plan.fragment.expected_clue)
                             })
                             .collect(),
                     },
@@ -1623,22 +1626,22 @@ impl HostRuntime {
         for connection in &fragment.connections {
             let source = placements.get(&connection.source_placement_id);
             let sink = placements.get(&connection.sink_placement_id);
-            let role = match (connection.provider, source.is_some(), sink.is_some()) {
-                (ConnectionProvider::Local, true, true) => ConnectionRole::Local,
-                (ConnectionProvider::InMemory, true, false) => ConnectionRole::Outbound,
-                (ConnectionProvider::InMemory, false, true) => ConnectionRole::Inbound,
-                (ConnectionProvider::FixtureFrame, true, false) => ConnectionRole::Outbound,
-                (ConnectionProvider::FixtureFrame, false, true) => ConnectionRole::Inbound,
-                (ConnectionProvider::FixtureDatagram, true, false) => ConnectionRole::Outbound,
-                (ConnectionProvider::FixtureDatagram, false, true) => ConnectionRole::Inbound,
+            let role = match (connection.base, source.is_some(), sink.is_some()) {
+                (ConnectionBase::Local, true, true) => ConnectionRole::Local,
+                (ConnectionBase::InMemory, true, false) => ConnectionRole::Outbound,
+                (ConnectionBase::InMemory, false, true) => ConnectionRole::Inbound,
+                (ConnectionBase::FixtureFrame, true, false) => ConnectionRole::Outbound,
+                (ConnectionBase::FixtureFrame, false, true) => ConnectionRole::Inbound,
+                (ConnectionBase::FixtureDatagram, true, false) => ConnectionRole::Outbound,
+                (ConnectionBase::FixtureDatagram, false, true) => ConnectionRole::Inbound,
                 _ => {
                     output.events.push(HostEvent::PreparationRejected {
                         plan_id: fragment.plan_id,
-                        reason: FailureReason::InvalidOperationConfiguration,
+                        reason: FailureReason::InvalidGearConfiguration,
                         message: Some(format!(
                             "connection '{}' has invalid local endpoints for {:?}",
                             connection.connection_id.as_str(),
-                            connection.provider
+                            connection.base
                         )),
                     });
                     return output;
@@ -1766,7 +1769,7 @@ impl HostRuntime {
         self.plans.insert(
             fragment.plan_id.clone(),
             RuntimePlan {
-                mandatory_evidence: MandatoryEvidenceLog::new(&fragment),
+                mandatory_clue: MandatoryClueLog::new(&fragment),
                 fragment: fragment.clone(),
                 placements,
                 connections,
@@ -1798,7 +1801,7 @@ impl HostRuntime {
         output
     }
 
-    fn activate(&mut self, plan_id: &PlanId) -> RuntimeOutput {
+    fn start_play(&mut self, plan_id: &PlanId) -> RuntimeOutput {
         let mut output = RuntimeOutput::default();
         if self.released_plans.contains(plan_id) {
             output.events.push(HostEvent::CommandRejected {
@@ -1808,7 +1811,7 @@ impl HostRuntime {
             return output;
         }
         let Some(plan) = self.plans.get_mut(plan_id) else {
-            output.events.push(HostEvent::ActivationRejected {
+            output.events.push(HostEvent::PlayStartRejected {
                 plan_id: plan_id.clone(),
                 reason: FailureReason::InvalidLifecycleCommand,
                 message: Some("plan was not prepared".to_string()),
@@ -1816,7 +1819,7 @@ impl HostRuntime {
             return output;
         };
         if plan.state != PlanState::Prepared {
-            output.events.push(HostEvent::ActivationRejected {
+            output.events.push(HostEvent::PlayStartRejected {
                 plan_id: plan_id.clone(),
                 reason: FailureReason::InvalidLifecycleCommand,
                 message: Some("plan is not in prepared state".to_string()),
@@ -1824,7 +1827,7 @@ impl HostRuntime {
             return output;
         }
         let Some(next_active_play_sequence) = self.next_active_play_sequence.checked_add(1) else {
-            output.events.push(HostEvent::ActivationRejected {
+            output.events.push(HostEvent::PlayStartRejected {
                 plan_id: plan_id.clone(),
                 reason: FailureReason::InvalidLifecycleCommand,
                 message: Some("active-play identity sequence exhausted".to_string()),
@@ -1851,9 +1854,9 @@ impl HostRuntime {
             Some(plan_id.clone()),
             None,
             None,
-            ObservationKind::PlanActivated,
+            ObservationKind::PlanPlayStarted,
         );
-        output.events.push(HostEvent::Activated {
+        output.events.push(HostEvent::PlayStarted {
             plan_id: plan_id.clone(),
             active_play_id: active_play.active_play_id,
         });
@@ -2582,7 +2585,7 @@ impl HostRuntime {
                                 plan,
                                 &placement_id,
                                 ImplementationFailure::new(
-                                    FailureReason::InvalidOperationConfiguration,
+                                    FailureReason::InvalidGearConfiguration,
                                     "implementation emitted an empty, duplicate, unknown, or wrongly typed output port",
                                 ),
                                 &mut pending_observations,
@@ -3112,26 +3115,26 @@ impl HostRuntime {
         presentation_id: Option<PresentationId>,
         kind: ObservationKind,
     ) {
-        let mandatory_evidence = match (&kind, &placement_id, &connection_id) {
+        let mandatory_clue = match (&kind, &placement_id, &connection_id) {
             (ObservationKind::PlanFragmentReceived, _, _) => {
-                Some(ExpectedEvidence::PlanFragmentReceived)
+                Some(ExpectedClue::PlanFragmentReceived)
             }
             (ObservationKind::PlacementPrepared, Some(placement_id), _) => {
-                Some(ExpectedEvidence::PlacementPrepared(placement_id.clone()))
+                Some(ExpectedClue::PlacementPrepared(placement_id.clone()))
             }
             (ObservationKind::PlacementTerminal { .. }, Some(placement_id), _) => {
-                Some(ExpectedEvidence::PlacementTerminal(placement_id.clone()))
+                Some(ExpectedClue::PlacementTerminal(placement_id.clone()))
             }
             (ObservationKind::ConnectionTerminal { .. }, _, Some(connection_id)) => {
-                Some(ExpectedEvidence::ConnectionTerminal(connection_id.clone()))
+                Some(ExpectedClue::ConnectionTerminal(connection_id.clone()))
             }
-            (ObservationKind::PlanTerminal { .. }, _, _) => Some(ExpectedEvidence::PlanTerminal),
+            (ObservationKind::PlanTerminal { .. }, _, _) => Some(ExpectedClue::PlanTerminal),
             _ => None,
         };
-        if let (Some(plan_id), Some(evidence)) = (&plan_id, mandatory_evidence) {
+        if let (Some(plan_id), Some(clue)) = (&plan_id, mandatory_clue) {
             if let Some(plan) = self.plans.get_mut(plan_id) {
-                plan.mandatory_evidence
-                    .record(&plan.fragment.expected_evidence, evidence);
+                plan.mandatory_clue
+                    .record(&plan.fragment.expected_clue, clue);
             }
         }
         if self.observation_limit == 0 {
@@ -3142,9 +3145,9 @@ impl HostRuntime {
             .and_then(|plan_id| self.plans.get(plan_id))
             .and_then(|plan| plan.active_play_id.clone());
         if self.observations.len() < self.observation_limit {
-            let evidence_id = self.issue_evidence_id(active_play_id.as_ref());
+            let clue_id = self.issue_clue_id(active_play_id.as_ref());
             self.observations.push(Observation {
-                evidence_id,
+                clue_id,
                 active_play_id,
                 presentation_id,
                 host_id: self.advertisement.host_id.clone(),
@@ -3159,7 +3162,7 @@ impl HostRuntime {
 
         let mut dropped = 1u64;
         if let Some(Observation {
-            kind: ObservationKind::EvidenceGap { dropped: previous },
+            kind: ObservationKind::ClueGap { dropped: previous },
             ..
         }) = self.observations.first()
         {
@@ -3170,9 +3173,9 @@ impl HostRuntime {
         }
         if self.observation_limit == 1 {
             self.observations.clear();
-            let gap_evidence_id = self.issue_evidence_id(None);
+            let gap_clue_id = self.issue_clue_id(None);
             self.observations.push(Observation {
-                evidence_id: gap_evidence_id,
+                clue_id: gap_clue_id,
                 active_play_id: None,
                 presentation_id: None,
                 host_id: self.advertisement.host_id.clone(),
@@ -3180,7 +3183,7 @@ impl HostRuntime {
                 plan_id: None,
                 placement_id: None,
                 connection_id: None,
-                kind: ObservationKind::EvidenceGap { dropped },
+                kind: ObservationKind::ClueGap { dropped },
             });
             return;
         }
@@ -3188,11 +3191,11 @@ impl HostRuntime {
             self.observations.remove(0);
             dropped += 1;
         }
-        let gap_evidence_id = self.issue_evidence_id(None);
+        let gap_clue_id = self.issue_clue_id(None);
         self.observations.insert(
             0,
             Observation {
-                evidence_id: gap_evidence_id,
+                clue_id: gap_clue_id,
                 active_play_id: None,
                 presentation_id: None,
                 host_id: self.advertisement.host_id.clone(),
@@ -3200,12 +3203,12 @@ impl HostRuntime {
                 plan_id: None,
                 placement_id: None,
                 connection_id: None,
-                kind: ObservationKind::EvidenceGap { dropped },
+                kind: ObservationKind::ClueGap { dropped },
             },
         );
-        let evidence_id = self.issue_evidence_id(active_play_id.as_ref());
+        let clue_id = self.issue_clue_id(active_play_id.as_ref());
         self.observations.push(Observation {
-            evidence_id,
+            clue_id,
             active_play_id,
             presentation_id,
             host_id: self.advertisement.host_id.clone(),
@@ -3217,21 +3220,18 @@ impl HostRuntime {
         });
     }
 
-    fn issue_evidence_id(
-        &mut self,
-        active_play_id: Option<&ActivePlayId>,
-    ) -> conduit_core::EvidenceId {
-        let evidence = bind_evidence(
+    fn issue_clue_id(&mut self, active_play_id: Option<&ActivePlayId>) -> conduit_core::ClueId {
+        let clue = bind_clue(
             &self.advertisement.host_id,
             &self.advertisement.boot_id,
             active_play_id,
-            self.next_evidence_sequence,
+            self.next_clue_sequence,
         );
-        self.next_evidence_sequence = self
-            .next_evidence_sequence
+        self.next_clue_sequence = self
+            .next_clue_sequence
             .checked_add(1)
-            .expect("evidence identity sequence exhausted");
-        evidence.evidence_id
+            .expect("clue identity sequence exhausted");
+        clue.clue_id
     }
 }
 

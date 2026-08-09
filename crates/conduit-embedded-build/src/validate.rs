@@ -21,7 +21,7 @@ pub(crate) fn validate_shape(
     }
     if lowered.host_operations.len() != lowered.identity.host_operations.len()
         || lowered.resources.len() != lowered.identity.resources.len()
-        || lowered.evidence.len() != fragment.expected_evidence.len()
+        || lowered.clues.len() != fragment.expected_clue.len()
     {
         return Err(GenerationError::InconsistentLowering("identity tables"));
     }
@@ -40,9 +40,9 @@ pub(crate) fn validate_shape(
         bounds.maximum_resources,
     )?;
     check_bound(
-        "evidence expectations",
-        lowered.evidence.len(),
-        bounds.maximum_evidence_expectations,
+        "clue expectations",
+        lowered.clues.len(),
+        bounds.maximum_clue_expectations,
     )?;
     check_bound(
         "remote endpoints",
@@ -73,16 +73,8 @@ pub(crate) fn validate_shape(
         lowered.cord_value_bytes,
         bounds.maximum_cord_value_bytes,
     )?;
-    check_numeric_bound(
-        "evidence items",
-        lowered.evidence_items,
-        bounds.maximum_evidence_items,
-    )?;
-    check_numeric_bound(
-        "evidence bytes",
-        lowered.evidence_bytes,
-        bounds.maximum_evidence_bytes,
-    )?;
+    check_numeric_bound("clue items", lowered.clue_items, bounds.maximum_clue_items)?;
+    check_numeric_bound("clue bytes", lowered.clue_bytes, bounds.maximum_clue_bytes)?;
 
     for node in &lowered.nodes {
         let ports = node.inputs.len().max(node.outputs.len());

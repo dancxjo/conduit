@@ -90,7 +90,7 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
       "[0,0,0,0,0,0,0,0,1]",
     );
 
-    // Only after that liveness proof, send the remaining admitted activations.
+    // Only after that liveness proof, send the remaining admitted triggers.
     for (let i = 1; i < 16; i++) {
       await lines.line(1 + i);
       source.stdin.write("\n");
@@ -137,7 +137,7 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
       "hostOperationContractId",
       "placementId",
       "presentationId",
-      "evidenceId",
+      "clueId",
     ];
     for (const [index, presentation] of result.presentations.entries()) {
       const receipt = result.receipts[index];
@@ -157,7 +157,7 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
     expect(new Set(result.presentations.map(({ fragmentId }) => fragmentId)).size).toBe(1);
     expect(new Set(result.presentations.map(({ activePlayId }) => activePlayId)).size).toBe(1);
     expect(new Set(result.presentations.map(({ presentationId }) => presentationId)).size).toBe(16);
-    expect(new Set(result.presentations.map(({ evidenceId }) => evidenceId)).size).toBe(16);
+    expect(new Set(result.presentations.map(({ clueId }) => clueId)).size).toBe(16);
     expect(new Set(result.presentations.map(({ requestId }) => requestId)).size).toBe(16);
     await expect(page.locator("#result")).toHaveText(
       "ok receipts=16 capacity_stable=true",

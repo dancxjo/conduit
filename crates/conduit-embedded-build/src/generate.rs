@@ -1,19 +1,19 @@
 use conduit_core::{
-    verify_plan_fragment, ConfigurationValue, ConnectionProvider, ExpectedEvidence,
-    ExpectedTerminal, PlanFragment,
+    verify_plan_fragment, ConfigurationValue, ConnectionBase, ExpectedClue, ExpectedTerminal,
+    PlanFragment,
 };
-use conduit_kernel::{CordEndpoint, EvidenceExpectationTarget};
+use conduit_kernel::{ClueExpectationTarget, CordEndpoint};
 use conduit_runtime::lowering::{
     LoweredPlanFragment, RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
 
 use crate::model::{
-    EmbeddedImageBounds, GeneratedConfigurationEntry, GeneratedConfigurationValue,
-    GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedEvidenceTarget,
+    EmbeddedImageBounds, GeneratedClueTarget, GeneratedConfigurationEntry,
+    GeneratedConfigurationValue, GeneratedCordEndpoint, GeneratedEmbeddedPlan,
     GeneratedExpectedTerminal, GeneratedHostOperation, GeneratedPort, GeneratedStartupDependency,
-    GeneratedStaticCord, GeneratedStaticEvidence, GeneratedStaticNode,
-    GeneratedStaticRemoteEndpoint, GeneratedStaticResource, GeneratedStaticRoute,
-    GeneratedStaticRouteTarget, GenerationError, UnsupportedPlanFeature,
+    GeneratedStaticClue, GeneratedStaticCord, GeneratedStaticNode, GeneratedStaticRemoteEndpoint,
+    GeneratedStaticResource, GeneratedStaticRoute, GeneratedStaticRouteTarget, GenerationError,
+    UnsupportedPlanFeature,
 };
 use crate::validate::validate_shape;
 use crate::GENERATED_EMBEDDED_PLAN_SCHEMA_VERSION;
@@ -76,7 +76,7 @@ pub fn generate_embedded_plan(
             units: resource.binding.units,
         })
         .collect();
-    let evidence = lowered.evidence.iter().map(generate_evidence).collect();
+    let clues = lowered.clues.iter().map(generate_clue).collect();
     let startup_dependencies = generate_startup_dependencies(fragment, lowered)?;
     let startup_order = fragment
         .startup_order
@@ -114,14 +114,14 @@ pub fn generate_embedded_plan(
         route_targets,
         host_operations,
         resources,
-        evidence,
+        clues,
         startup_dependencies,
         startup_order,
         expected_terminals,
         cord_value_slots: lowered.cord_value_slots,
         cord_value_bytes: lowered.cord_value_bytes,
-        evidence_items: lowered.evidence_items,
-        evidence_bytes: lowered.evidence_bytes,
+        clue_items: lowered.clue_items,
+        clue_bytes: lowered.clue_bytes,
     })
 }
 
@@ -143,7 +143,7 @@ fn generate_remote_endpoints(
                 UnsupportedPlanFeature::RemoteConnection,
             ));
         }
-        if endpoint.binding.provider != ConnectionProvider::UsbCdc {
+        if endpoint.binding.base != ConnectionBase::UsbCdc {
             return Err(GenerationError::Unsupported(
                 UnsupportedPlanFeature::RemoteConnection,
             ));
@@ -161,8 +161,8 @@ fn generate_remote_endpoints(
             peer_host: endpoint.peer.host_id.as_str().to_owned(),
             peer_boot: endpoint.peer.boot_id.as_str().to_owned(),
             peer_endpoint: endpoint.peer.endpoint_id.as_str().to_owned(),
-            provider: endpoint.binding.provider,
-            provider_instance_id: endpoint.binding.provider_instance_id.as_str().to_owned(),
+            base: endpoint.binding.base,
+            base_instance_id: endpoint.binding.base_instance_id.as_str().to_owned(),
             link_binding_id: endpoint.binding.binding_id.as_str().to_owned(),
             value_kind: endpoint.value_kind.as_str().to_owned(),
             maximum_in_flight_items: endpoint.binding.limits.maximum_in_flight_items,
@@ -368,29 +368,23 @@ fn generate_startup_dependencies(
         .collect()
 }
 
-fn generate_evidence(
-    evidence: &conduit_runtime::lowering::LoweredEvidence,
-) -> GeneratedStaticEvidence {
-    let (kind, subject) = match &evidence.expected {
-        ExpectedEvidence::PlanFragmentReceived => ("plan-fragment-received", None),
-        ExpectedEvidence::PlacementPrepared(id) => {
-            ("placement-prepared", Some(id.as_str().to_owned()))
-        }
-        ExpectedEvidence::PlacementTerminal(id) => {
-            ("placement-terminal", Some(id.as_str().to_owned()))
-        }
-        ExpectedEvidence::ConnectionTerminal(id) => {
+fn generate_clue(clue: &conduit_runtime::lowering::LoweredClue) -> GeneratedStaticClue {
+    let (kind, subject) = match &clue.expected {
+        ExpectedClue::PlanFragmentReceived => ("plan-fragment-received", None),
+        ExpectedClue::PlacementPrepared(id) => ("placement-prepared", Some(id.as_str().to_owned())),
+        ExpectedClue::PlacementTerminal(id) => ("placement-terminal", Some(id.as_str().to_owned())),
+        ExpectedClue::ConnectionTerminal(id) => {
             ("connection-terminal", Some(id.as_str().to_owned()))
         }
-        ExpectedEvidence::PlanTerminal => ("plan-terminal", None),
+        ExpectedClue::PlanTerminal => ("plan-terminal", None),
     };
-    let target = match evidence.target {
-        EvidenceExpectationTarget::Fragment => GeneratedEvidenceTarget::Fragment,
-        EvidenceExpectationTarget::Node(node) => GeneratedEvidenceTarget::Node(node.0),
-        EvidenceExpectationTarget::Cord(cord) => GeneratedEvidenceTarget::Cord(cord.0),
+    let target = match clue.target {
+        ClueExpectationTarget::Fragment => GeneratedClueTarget::Fragment,
+        ClueExpectationTarget::Node(node) => GeneratedClueTarget::Node(node.0),
+        ClueExpectationTarget::Cord(cord) => GeneratedClueTarget::Cord(cord.0),
     };
-    GeneratedStaticEvidence {
-        expectation: evidence.expectation.0,
+    GeneratedStaticClue {
+        expectation: clue.expectation.0,
         kind,
         subject,
         target,
