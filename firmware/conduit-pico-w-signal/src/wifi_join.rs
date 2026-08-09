@@ -343,7 +343,18 @@ pub async fn run(
             crate::bootsel::wait_for_request(&mut link).await.ok();
         }
     }
-    crate::websocket_route::run(stack, &mut link, clue, runtime).await
+    let signal_runtime = runtime.for_plan(
+        crate::signal_image::PLAN_ID,
+        crate::signal_image::HOST_ID,
+    );
+    crate::websocket_route::run(
+        stack,
+        &mut link,
+        clue,
+        &mut control,
+        &signal_runtime,
+    )
+    .await
 }
 
 pub(crate) async fn establish_usb(

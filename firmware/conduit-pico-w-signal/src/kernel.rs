@@ -23,12 +23,16 @@ use cyw43::Control;
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use embassy_time::{Duration, Timer};
 
-use crate::receipts::{BootIdentity, PresentationReceiptIdentity, TerminalIdentity};
+#[cfg(not(feature = "wifi-bootstrap"))]
+use crate::receipts::BootIdentity;
+use crate::receipts::{PresentationReceiptIdentity, TerminalIdentity};
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
+#[cfg(not(feature = "wifi-bootstrap"))]
+use crate::signal_image::BOOT_CLUE_ID;
 use crate::signal_image::{
-    ACTIVE_PLAY_ID, BOOT_CLUE_ID, BOOT_ID, CHECKED_FORM_ID, EXPANDED_FORM_ID,
-    FIRMWARE_BUILD_ID, FRAGMENT_ID, HOST_ID, PLAN_ID, SOURCE_DOCUMENT_ID, TERMINAL_CLUE_ID,
+    ACTIVE_PLAY_ID, BOOT_ID, CHECKED_FORM_ID, EXPANDED_FORM_ID, FIRMWARE_BUILD_ID, FRAGMENT_ID,
+    HOST_ID, PLAN_ID, SOURCE_DOCUMENT_ID, TERMINAL_CLUE_ID,
 };
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use crate::signal_image::{
@@ -207,6 +211,7 @@ pub async fn run_signal_demo(
         .await;
 }
 
+#[cfg(not(feature = "wifi-bootstrap"))]
 pub fn boot_identity() -> BootIdentity {
     BootIdentity {
         firmware_build_id: FIRMWARE_BUILD_ID,

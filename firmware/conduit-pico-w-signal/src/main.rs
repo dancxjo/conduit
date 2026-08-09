@@ -33,7 +33,6 @@ compile_error!("select exactly one Pico firmware mode");
 )))]
 compile_error!("select exactly one Pico firmware mode");
 
-#[cfg(not(feature = "wifi-bootstrap"))]
 mod kernel;
 #[cfg(feature = "session-control")]
 mod bootsel;
@@ -44,16 +43,15 @@ mod wifi_recovery;
 #[cfg(feature = "wifi-bootstrap")]
 mod websocket_route;
 #[cfg(feature = "wifi-bootstrap")]
-mod websocket_session;
+mod websocket_signal;
 #[cfg(feature = "wifi-bootstrap")]
 mod websocket_transport;
 mod radio;
 mod receipts;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 mod remote_signal;
-#[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
+#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
 mod remote_kernel;
-#[cfg(not(feature = "wifi-bootstrap"))]
 mod signal_image;
 #[cfg(feature = "wifi-bootstrap")]
 mod network_image;

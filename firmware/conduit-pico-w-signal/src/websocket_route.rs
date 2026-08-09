@@ -16,6 +16,7 @@ pub async fn run(
     stack: Stack<'static>,
     link: &mut UsbLinkSession,
     clue: &mut UsbCdc,
+    control: &mut cyw43::Control<'_>,
     runtime: &RuntimeTranscriptIdentity,
 ) -> ! {
     let Some(config) = stack.config_v4() else {
@@ -65,14 +66,7 @@ pub async fn run(
         socket.abort();
         remain_bootsel(link).await
     };
-    if crate::websocket_session::accept_probe(&mut socket, &mut transport, runtime)
-        .await
-        .is_err()
-    {
-        socket.abort();
-        remain_bootsel(link).await
-    }
-    let binding = conduit_net::r1_websocket_probe_binding(BootId::from(runtime.boot_id()));
+    let binding = conduit_system_binding(runtime);
     if clue
         .write_websocket_link(identity, binding.sink_active_play_id.as_str())
         .await
@@ -84,16 +78,20 @@ pub async fn run(
 
     match select(
         crate::bootsel::wait_for_request(link),
-        transport.wait_for_disconnect(&mut socket),
+        crate::websocket_signal::run(&mut socket, &mut transport, control, clue, runtime),
     )
-    .await
-    {
+    .await {
         Either::First(_) => unreachable!(),
-        Either::Second(()) => {
+        Either::Second(_) => {
             socket.abort();
             remain_bootsel(link).await
         }
     }
+}
+
+fn conduit_system_binding(runtime: &RuntimeTranscriptIdentity) -> conduit_wire::SessionBinding {
+    crate::websocket_signal::binding(runtime)
+        .expect("generated WebSocket Signal session binding remains exact")
 }
 
 async fn await_query(link: &mut UsbLinkSession) -> Result<(), ()> {
