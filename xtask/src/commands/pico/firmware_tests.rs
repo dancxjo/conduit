@@ -89,6 +89,22 @@ fn composite_identity() -> FirmwareIdentity {
 fn composite_manifest_requires_the_exact_ordered_control_family() {
     let identity = composite_identity();
     assert!(identity.verified_r1_control_images().is_ok());
+    let plan_b = conduit_system_continuity::exact_r1_control_plan(
+        conduit_core::BootId::from(conduit_net::R1_PICO_BOOT_ID),
+        R1SignalRouteSet::UsbOnly,
+    )
+    .unwrap()
+    .plan;
+    assert_eq!(
+        identity
+            .verified_r1_control_image(&plan_b.plan_id)
+            .unwrap()
+            .plan_id,
+        plan_b.plan_id.as_str()
+    );
+    assert!(identity
+        .verified_r1_control_image(&conduit_core::PlanId::from("not-sealed"))
+        .is_err());
 
     let mut substituted = identity.clone();
     substituted.r1_control_images.as_mut().unwrap().plan_b = substituted

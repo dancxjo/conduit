@@ -209,16 +209,6 @@ pub fn finish(io: &mut impl R1SessionIo, source: &mut PicoUsbSource) -> PicoResu
     Ok(final_sequence)
 }
 
-pub fn run_to_completion(
-    io: &mut impl R1SessionIo,
-    source: &mut PicoUsbSource,
-    after_accepted: &mut impl FnMut(u64) -> PicoResult<()>,
-) -> PicoResult<u64> {
-    handshake(io, source)?;
-    while deliver_next(io, source, after_accepted)? {}
-    finish(io, source)
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::VecDeque;
@@ -327,11 +317,14 @@ mod tests {
                 .unwrap();
         let mut io = FakeIo::new(source.binding().clone());
         let mut accepted = Vec::new();
-        let delivered = run_to_completion(&mut io, &mut source, &mut |sequence| {
+        handshake(&mut io, &mut source).unwrap();
+        while deliver_next(&mut io, &mut source, &mut |sequence| {
             accepted.push(sequence);
             Ok(())
         })
-        .unwrap();
+        .unwrap()
+        {}
+        let delivered = finish(&mut io, &mut source).unwrap();
         assert_eq!(delivered, 16);
         assert_eq!(accepted, (0..16).collect::<Vec<_>>());
         assert_eq!(source.pressure_retries(), 1);

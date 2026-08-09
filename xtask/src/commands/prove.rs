@@ -66,7 +66,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         ProveTarget::R1NewPlanRecoveryHil => {
             let pico_args = crate::commands::pico::PicoArgs {
                 dry_run: opts.dry_run,
-                wifi_bootstrap: true,
+                r1_control: true,
                 ..Default::default()
             };
             crate::commands::pico::run_prove_pico_wifi_bootstrap(

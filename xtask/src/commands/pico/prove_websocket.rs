@@ -4,11 +4,14 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::time::Duration;
 
 use super::firmware::FirmwareIdentity;
+use super::r1_control_session;
 use super::r1_signal::{self, UsbSessionIo, WebSocketSessionIo};
 use super::transcript::RuntimeTranscriptIdentity;
 use super::PicoResult;
 use conduit_core::BootId;
+use conduit_std_host::pico_control_source::PicoControlSource;
 use conduit_std_host::pico_usb_source::PicoUsbSource;
+use conduit_std_host::r1_control::{R1ControlPeer, R1InputEvent};
 use conduit_std_host::usb_cdc::{NativePathCdcCarrier, NativePathCdcLineReader};
 use conduit_std_host::websocket::NativeWebSocketCarrier;
 use serde::Serialize;
@@ -23,7 +26,11 @@ pub(super) fn verify(
     runtime: &RuntimeTranscriptIdentity,
 ) -> PicoResult<()> {
     let mut websocket = connect(usb, clue, identity, runtime)?;
-    let (plan_a, _) = recovery_plans()?;
+    let plan_a = conduit_system_continuity::exact_r1_signal_plan(
+        BootId::from(conduit_net::R1_PICO_BOOT_ID),
+        conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+    )?
+    .plan;
     let source_host = conduit_core::HostId::from(conduit_net::R1_STD_HOST_ID);
     let mut source = PicoUsbSource::prepare_plan(plan_a, &source_host)?;
     source.observe_sink_boot(BootId::from(runtime.boot_id.as_str()))?;
@@ -129,34 +136,46 @@ pub(super) fn verify_new_plan_recovery(
         },
     )
     .map_err(|error| format!("failed to begin physical R1 recovery record: {error:?}"))?;
-    let mut source_a = PicoUsbSource::prepare_plan(plan_a.clone(), &source_host)?;
+    let mut source_a = PicoControlSource::prepare_plan(plan_a.clone(), &source_host)?;
     source_a.observe_sink_boot(BootId::from(runtime.boot_id.as_str()))?;
     {
         let mut websocket_io = WebSocketSessionIo::new(&mut websocket);
-        r1_signal::handshake(&mut websocket_io, &mut source_a)?;
+        r1_control_session::handshake(&mut websocket_io, &mut source_a)?;
         let link_line = clue
             .read_line(Duration::from_secs(3))
             .map_err(|error| format!("timed out reading WebSocket link Sign: {error}"))?;
         verify_link_clue(&link_line, identity, runtime, source_a.binding())?;
-        for _ in 0..2 {
-            if !r1_signal::deliver_next(&mut websocket_io, &mut source_a, &mut |sequence| {
-                let line = clue
-                    .read_line(Duration::from_secs(3))
-                    .map_err(|error| format!("missing Plan A physical LED Sign: {error}"))?;
-                super::r1_signal_transcript::verify_receipt(
-                    &line, &plan_a, sequence, identity, runtime,
-                )
-            })? {
-                return Err("Plan A ended before physical LED on/off control".into());
-            }
+        for input in control_inputs() {
+            r1_control_session::deliver_input(
+                &mut websocket_io,
+                &mut source_a,
+                input,
+                &mut |sequence| {
+                    let line = clue
+                        .read_line(Duration::from_secs(3))
+                        .map_err(|error| format!("missing Plan A physical LED Sign: {error}"))?;
+                    super::r1_signal_transcript::verify_receipt(
+                        &line, &plan_a, sequence, identity, runtime,
+                    )
+                },
+            )?;
         }
 
-        println!("==> Plan A delivered physical LED off/on over WebSocket");
+        println!("==> Plan A delivered all three exact peers on/off over WebSocket");
         println!("==> Remove real Wi-Fi/network availability now, then press Enter");
         let mut confirmation = String::new();
         std::io::stdin().read_line(&mut confirmation)?;
-        match r1_signal::deliver_next(&mut websocket_io, &mut source_a, &mut |_| Ok(())) {
-            Err(error) if error.to_string().starts_with("WebSocket ") => source_a.cancel()?,
+        match r1_control_session::deliver_input(
+            &mut websocket_io,
+            &mut source_a,
+            R1InputEvent {
+                peer: R1ControlPeer::Terminal,
+                peer_sequence: 2,
+                level: true,
+            },
+            &mut |_| Ok(()),
+        ) {
+            Err(error) if error.to_string().starts_with("WebSocket ") => {}
             Err(error) => {
                 return Err(format!(
                     "Plan A failed without an exact WebSocket transport-unavailable result: {error}"
@@ -202,17 +221,21 @@ pub(super) fn verify_new_plan_recovery(
         )
         .map_err(|error| format!("failed recording physical replacement Plan: {error:?}"))?;
 
-    let mut source_b = PicoUsbSource::prepare_plan(plan_b.clone(), &source_host)?;
+    let mut source_b = PicoControlSource::prepare_plan(plan_b.clone(), &source_host)?;
     source_b.observe_sink_boot(BootId::from(runtime.boot_id.as_str()))?;
     let mut usb_io = UsbSessionIo::new(usb);
-    let delivered = r1_signal::run_to_completion(&mut usb_io, &mut source_b, &mut |sequence| {
-        let line = clue
-            .read_line(Duration::from_secs(3))
-            .map_err(|error| format!("missing Plan B physical LED Sign: {error}"))?;
-        super::r1_signal_transcript::verify_receipt(&line, &plan_b, sequence, identity, runtime)
-    })?;
-    if delivered != 16 {
-        return Err("USB Plan B did not deliver the exact sixteen-value Signal".into());
+    r1_control_session::handshake(&mut usb_io, &mut source_b)?;
+    for input in control_inputs() {
+        r1_control_session::deliver_input(&mut usb_io, &mut source_b, input, &mut |sequence| {
+            let line = clue
+                .read_line(Duration::from_secs(3))
+                .map_err(|error| format!("missing Plan B physical LED Sign: {error}"))?;
+            super::r1_signal_transcript::verify_receipt(&line, &plan_b, sequence, identity, runtime)
+        })?;
+    }
+    let delivered = r1_control_session::finish(&mut usb_io, &mut source_b)?;
+    if delivered != 6 {
+        return Err("USB Plan B did not deliver the exact six deliberate inputs".into());
     }
     let terminal = clue
         .read_line(Duration::from_secs(3))
@@ -311,15 +334,34 @@ struct PhysicalNewPlanRecoveryOutcome<'a> {
 
 fn recovery_plans() -> PicoResult<(conduit_core::Plan, conduit_core::Plan)> {
     let planned_boot = BootId::from(conduit_net::R1_PICO_BOOT_ID);
-    let plan_a = conduit_system_continuity::exact_r1_signal_plan(
+    let plan_a = conduit_system_continuity::exact_r1_control_plan(
         planned_boot.clone(),
         conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
     )?;
-    let plan_b = conduit_system_continuity::exact_r1_signal_plan(
+    let plan_b = conduit_system_continuity::exact_r1_control_plan(
         planned_boot,
         conduit_system_continuity::R1SignalRouteSet::UsbOnly,
     )?;
     Ok((plan_a.plan, plan_b.plan))
+}
+
+fn control_inputs() -> [R1InputEvent; 6] {
+    [
+        control_input(R1ControlPeer::Terminal, 0, true),
+        control_input(R1ControlPeer::Terminal, 1, false),
+        control_input(R1ControlPeer::BrowserA, 0, true),
+        control_input(R1ControlPeer::BrowserA, 1, false),
+        control_input(R1ControlPeer::BrowserB, 0, true),
+        control_input(R1ControlPeer::BrowserB, 1, false),
+    ]
+}
+
+const fn control_input(peer: R1ControlPeer, peer_sequence: u64, level: bool) -> R1InputEvent {
+    R1InputEvent {
+        peer,
+        peer_sequence,
+        level,
+    }
 }
 
 fn remote_connection(plan: &conduit_core::Plan) -> PicoResult<&conduit_core::PlannedConnection> {
