@@ -17,8 +17,17 @@ pub const ROUTE_SLOTS: usize = generated::GENERATED_ROUTES.len();
 pub const ROUTE_TARGETS: usize = generated::GENERATED_ROUTE_TARGETS.len();
 pub const HOST_BINDING_SLOTS: usize = generated::GENERATED_HOST_OPERATIONS.len();
 pub const PENDING_REQUESTS: usize = generated::GENERATED_HOST_OPERATIONS.len();
-pub const RUNTIME_CLUE_EVENTS: usize = generated::CLUE_ITEMS as usize;
-pub const RUNTIME_CLUE_BYTES: u32 = generated::CLUE_BYTES;
+// Generated CLUE_ITEMS/CLUE_BYTES are the Plan's mandatory identity-bearing
+// Clue budget. The kernel event log has a distinct fixed in-memory profile:
+// its byte charge is target-specific `KernelEvent` storage, not serialized
+// mandatory-Clue identity bytes.
+#[allow(dead_code)]
+pub const MANDATORY_PLAN_CLUE_ITEMS: u16 = generated::CLUE_ITEMS;
+#[allow(dead_code)]
+pub const MANDATORY_PLAN_CLUE_BYTES: u32 = generated::CLUE_BYTES;
+pub const RUNTIME_CLUE_EVENTS: usize = 32;
+pub const RUNTIME_CLUE_BYTES: u32 =
+    (RUNTIME_CLUE_EVENTS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32;
 pub const PLAN_ID: &str = generated::PLAN_ID;
 pub const FRAGMENT_ID: &str = generated::FRAGMENT_ID;
 pub const SOURCE_DOCUMENT_ID: &str = generated::SOURCE_DOCUMENT_ID;
