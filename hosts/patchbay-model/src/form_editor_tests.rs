@@ -82,3 +82,19 @@ fn stale_check_result_cannot_replace_newer_revision() {
     editor.recheck().unwrap();
     assert_eq!(editor.view().checked.revision, 1);
 }
+
+#[test]
+fn saved_revision_only_advances_for_the_current_source() {
+    let mut editor = FormEditor::from_source("hello.conduit".into(), HELLO.into()).unwrap();
+    editor.replace_source(GREET.into()).unwrap();
+    assert_eq!(
+        editor.mark_saved(0),
+        Err(FormEditorError::StaleRevision {
+            current: 1,
+            offered: 0
+        })
+    );
+    assert_eq!(editor.view().saved_revision, 0);
+    editor.mark_saved(1).unwrap();
+    assert_eq!(editor.view().saved_revision, 1);
+}

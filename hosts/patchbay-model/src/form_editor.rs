@@ -66,6 +66,7 @@ pub struct GraphItem {
 pub struct GraphForm {
     pub name: String,
     pub checked_form_id: conduit_core::CheckedFormId,
+    pub face: conduit_core::CheckedFace,
     pub source_span: Span,
     pub items: Vec<GraphItem>,
     pub cords: Vec<GraphCord>,
@@ -101,6 +102,7 @@ pub struct SourceSelection {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FormDocumentView {
     pub revision: u64,
+    pub saved_revision: u64,
     pub path: PathBuf,
     pub source: String,
     pub checked: CheckedRevision,
@@ -112,6 +114,7 @@ pub struct FormEditor {
     path: PathBuf,
     source: String,
     revision: u64,
+    saved_revision: u64,
     checked: CheckedRevision,
     open_form: String,
     selection: Option<SourceSelection>,
@@ -131,6 +134,7 @@ impl FormEditor {
             path,
             source,
             revision: 0,
+            saved_revision: 0,
             checked,
             open_form,
             selection: None,
@@ -173,6 +177,17 @@ impl FormEditor {
         self.publish_checked(checked)
     }
 
+    pub fn mark_saved(&mut self, revision: u64) -> Result<(), FormEditorError> {
+        if revision != self.revision {
+            return Err(FormEditorError::StaleRevision {
+                current: self.revision,
+                offered: revision,
+            });
+        }
+        self.saved_revision = revision;
+        Ok(())
+    }
+
     pub fn open_back(&mut self, name: &str) -> Result<(), FormEditorError> {
         if !self.checked.forms.iter().any(|form| form.name == name) {
             return Err(FormEditorError::UnknownForm(name.into()));
@@ -213,6 +228,7 @@ impl FormEditor {
     pub fn view(&self) -> FormDocumentView {
         FormDocumentView {
             revision: self.revision,
+            saved_revision: self.saved_revision,
             path: self.path.clone(),
             source: self.source.clone(),
             checked: self.checked.clone(),
@@ -370,6 +386,7 @@ fn graph_revision(
         forms.push(GraphForm {
             name: form.name.clone(),
             checked_form_id: form.checked_form_id.clone(),
+            face: form.checked_face(),
             source_span: syntax.span,
             items,
             cords,

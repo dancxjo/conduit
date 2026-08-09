@@ -145,3 +145,53 @@ fn topology_document_draws_pixels_inside_the_bounded_surface() {
     );
     assert!(buffer.iter().any(|pixel| *pixel != BACKGROUND));
 }
+
+#[test]
+fn native_build_mode_drives_explicit_birth_wake_plan_play_and_lull() {
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-build-birth-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("hello.conduit");
+    std::fs::write(&path, include_str!("../../../examples/hello.conduit")).unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+
+    let build = application.presentation_lines().join("\n");
+    assert!(build.contains("BUILD current=0 saved=0 checked=0 last-born=not-present"));
+    assert!(build.contains("BODY not born — action: Birth Body"));
+    assert!(build.contains("kind=text/upper"));
+    assert!(build.contains("info=value/text@1"));
+
+    application.birth_body().unwrap();
+    let born_id = application.build_birth.body().unwrap().body_id.clone();
+    let born = application.presentation_lines().join("\n");
+    assert!(born.contains("BORN · LULLED — action: Wake Body"));
+    assert!(!born.contains("WAKE "));
+    application.wake_body().unwrap();
+    application.plan_play().unwrap();
+    application.play_plan().unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while application.control.is_running() && std::time::Instant::now() < deadline {
+        application.control.poll().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    assert!(!application.control.is_running());
+    application.lull_body().unwrap();
+    let lulled = application.presentation_lines().join("\n");
+    assert!(lulled.contains("BODY EVENT Born"));
+    assert!(lulled.contains("WAKE EVENT Woke"));
+    assert!(lulled.contains("WAKE EVENT PlanReady"));
+    assert!(lulled.contains("WAKE EVENT PlayStarted"));
+    assert!(lulled.contains("WAKE EVENT Lulled"));
+
+    application.edit_source(|source| source.push('\n')).unwrap();
+    assert_eq!(application.build_birth.body().unwrap().body_id, born_id);
+    let revised = application.presentation_lines().join("\n");
+    assert!(revised.contains("current=1 saved=0 checked=1 last-born=0"));
+
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
