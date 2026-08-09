@@ -44,6 +44,44 @@ pub struct GuestBootSign {
     pub runtime_arena_bytes: u64,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct GuestKernelSign {
+    pub schema: String,
+    pub status: String,
+    pub arch: String,
+    pub build_id: String,
+    pub kernel: String,
+    pub scheduler_profile: String,
+    pub host_id: String,
+    pub boot_id: String,
+    pub base_ids: Vec<String>,
+    pub base_count: usize,
+    pub memory_arena_bytes: u64,
+    pub execution_lanes: u8,
+    pub timer_slots: u16,
+    pub serial_slots: u16,
+    pub serial_maximum_bytes: u32,
+    pub interrupt_fact_slots: u16,
+    pub sign_item_slots: u16,
+    pub logical_operations: u8,
+    pub kernel_decisions: u32,
+    pub kernel_signs: u16,
+    pub timer_irq_wakes: u32,
+    pub idle_entries: u32,
+    pub serial_presentations: u32,
+    pub clock_monotonic: bool,
+    pub pending_host_operations: u8,
+    pub sse2: bool,
+    pub rdrand: bool,
+    pub invariant_tsc: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct GuestRun {
+    pub boot: GuestBootSign,
+    pub kernel: GuestKernelSign,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ProofRecord {
     pub schema: &'static str,
@@ -57,7 +95,9 @@ pub struct ProofRecord {
     pub iso_sha256: String,
     pub reproducible_image: bool,
     pub first_boot: GuestBootSign,
+    pub first_kernel: GuestKernelSign,
     pub second_boot: GuestBootSign,
+    pub second_kernel: GuestKernelSign,
     pub fresh_host_id: bool,
     pub fresh_boot_id: bool,
 }

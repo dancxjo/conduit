@@ -12,6 +12,7 @@ test = false
 bench = false
 
 [dependencies]
+conduit-kernel = { path = "../../crates/conduit-kernel" }
 sha2 = { version = "=0.10.9", default-features = false }
 
 [target.'cfg(not(target_arch = "x86"))'.dependencies]

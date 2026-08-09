@@ -7,7 +7,10 @@
 mod x86_64;
 
 #[cfg(target_arch = "x86_64")]
-pub use x86_64::{boot_entropy, deterministic_exit, early_write};
+pub use x86_64::{
+    Clock, Idle, Interrupts, Serial, Timer, boot_entropy, deterministic_exit, early_write,
+    feature_basis, initialize_machine,
+};
 
 #[cfg(target_arch = "x86_64")]
 pub const ARCHITECTURE: &str = "x86_64";
