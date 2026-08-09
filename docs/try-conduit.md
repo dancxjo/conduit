@@ -183,6 +183,19 @@ contracts, limits, implementations, and platform stop lines are recorded in
 
 To run the physical std-to-Pico USB proof, build and flash the `usb-remote` firmware image to a Pico W in BOOTSEL mode:
 
+On a desktop-free Linux host, install the narrow BOOTSEL mount helper once:
+
+```bash
+sudo scripts/install-pico-headless-flash.sh
+```
+
+The installer permits members of `plugdev` to invoke only the fixed root-owned
+helper. It discovers exactly one removable USB FAT volume labeled `RPI-RP2` or
+`BOOTSEL`, mounts it beneath `/run/conduit-pico-bootsel` with
+`nosuid,nodev,noexec`, and accepts no caller-controlled device or mount path.
+The ordinary flash command uses it automatically; no desktop automounter is
+required.
+
 ```bash
 just pico-build-remote
 just pico-flash-remote

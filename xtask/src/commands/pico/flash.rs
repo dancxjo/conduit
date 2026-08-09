@@ -8,6 +8,7 @@ use super::run_bootsel;
 use super::{PicoArgs, PicoResult};
 
 const BOOTSEL_WAIT_SECS: u64 = 90;
+const HEADLESS_MOUNT_HELPER: &str = "/usr/local/libexec/conduit-pico-headless-mount";
 
 pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
     let root = repo_root();
@@ -110,6 +111,9 @@ fn resolve_mount(args: &PicoArgs) -> PicoResult<PathBuf> {
         _ => {}
     }
 
+    if let Some(path) = try_headless_mount()? {
+        return Ok(path);
+    }
     if let Some(path) = try_udisks_mount()? {
         return Ok(path);
     }
@@ -126,6 +130,9 @@ fn resolve_mount(args: &PicoArgs) -> PicoResult<PathBuf> {
         if candidates.len() > 1 {
             return Err("multiple RPI-RP2 volumes detected; pass --mount".into());
         }
+        if let Some(path) = try_headless_mount()? {
+            return Ok(path);
+        }
         if let Some(path) = try_udisks_mount()? {
             return Ok(path);
         }
@@ -133,6 +140,48 @@ fn resolve_mount(args: &PicoArgs) -> PicoResult<PathBuf> {
     }
 
     Err(format!("timed out waiting for RPI-RP2 volume after {BOOTSEL_WAIT_SECS} seconds").into())
+}
+
+fn try_headless_mount() -> PicoResult<Option<PathBuf>> {
+    let (_, unmounted) = find_rpi_rp2_devices()?;
+    if unmounted.is_empty() || !PathBuf::from(HEADLESS_MOUNT_HELPER).is_file() {
+        return Ok(None);
+    }
+
+    let output = Command::new("sudo")
+        .args(["-n", HEADLESS_MOUNT_HELPER])
+        .output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "headless BOOTSEL mount helper failed: {}; install it with `sudo scripts/install-pico-headless-flash.sh`",
+            stderr.trim()
+        )
+        .into());
+    }
+
+    let stdout = String::from_utf8(output.stdout)?;
+    let path = parse_headless_mount_path(&stdout)?;
+    if !path.is_dir() {
+        return Err(format!(
+            "headless BOOTSEL helper returned a non-directory mount path: {}",
+            path.display()
+        )
+        .into());
+    }
+    Ok(Some(path))
+}
+
+fn parse_headless_mount_path(stdout: &str) -> PicoResult<PathBuf> {
+    let mut lines = stdout.lines();
+    let path = lines
+        .next()
+        .filter(|line| !line.is_empty())
+        .ok_or("headless BOOTSEL helper returned no mount path")?;
+    if lines.next().is_some() || !path.starts_with("/run/conduit-pico-bootsel/") {
+        return Err("headless BOOTSEL helper returned an invalid mount path".into());
+    }
+    Ok(PathBuf::from(path))
 }
 
 fn discover_bootsel_mounts() -> PicoResult<Vec<PathBuf>> {
@@ -226,4 +275,20 @@ fn standard_paths() -> Vec<PathBuf> {
         PathBuf::from("/media/RPI-RP2"),
         PathBuf::from("/Volumes/RPI-RP2"),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_headless_mount_path;
+
+    #[test]
+    fn accepts_only_one_fixed_headless_mount_path() {
+        assert_eq!(
+            parse_headless_mount_path("/run/conduit-pico-bootsel/1000\n").unwrap(),
+            std::path::PathBuf::from("/run/conduit-pico-bootsel/1000")
+        );
+        assert!(parse_headless_mount_path("").is_err());
+        assert!(parse_headless_mount_path("/media/RPI-RP2\n").is_err());
+        assert!(parse_headless_mount_path("/run/conduit-pico-bootsel/1000\nextra\n").is_err());
+    }
 }
