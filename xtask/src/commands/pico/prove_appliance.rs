@@ -428,7 +428,11 @@ pub(super) fn read_complete_bounded_line(
 
 fn verify_field(record: &serde_json::Value, field: &str, expected: &str) -> PicoResult<()> {
     if record[field].as_str() != Some(expected) {
-        return Err(format!("Pico appliance Sign field `{field}` mismatch").into());
+        return Err(format!(
+            "Pico appliance Sign field `{field}` mismatch: expected `{expected}`, received {}; record {record}",
+            record[field]
+        )
+        .into());
     }
     Ok(())
 }
