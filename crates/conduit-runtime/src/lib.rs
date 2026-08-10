@@ -4,6 +4,13 @@
 //! use only [`lowering`]. Legacy fixture and composite paths must deliberately
 //! opt into `compatibility-executor`.
 
+#![no_std]
+
+extern crate alloc;
+#[cfg(feature = "compatibility-executor")]
+#[macro_use]
+extern crate std;
+
 pub mod lowering;
 
 #[cfg(feature = "compatibility-executor")]

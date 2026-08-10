@@ -1,7 +1,9 @@
+use crate::prelude::*;
 use crate::{
     default_placements_unvalidated, plan_validated_form, PlacementChoices, PlannerError,
     PlanningOptions,
 };
+use alloc::collections::BTreeMap;
 use conduit_core::{
     seal_plan, AuthorityGrant, ConnectionBase, FormIdentity, HostAdvertisement, Plan,
     PlannedSharedPool, PoolMemberLimits, PoolRealizationEnvelope, ResourceBinding, SharedPoolId,
@@ -10,7 +12,6 @@ use conduit_core::{
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{CheckedForm, ExpandedCanonicalForm};
-use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SharedPoolPlanningRequirement {

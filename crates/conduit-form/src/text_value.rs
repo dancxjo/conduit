@@ -1,3 +1,5 @@
+use crate::prelude::*;
+
 pub(crate) fn parse_quoted_text(source: &str) -> Option<String> {
     let body = source.strip_prefix('"')?.strip_suffix('"')?;
     let mut decoded = String::with_capacity(body.len());

@@ -4,13 +4,14 @@ use crate::checked_syntax::{
     KindSignature, StartupCatalog, StartupParameterSignature, SyntaxCheckDiagnostic,
     SyntaxCheckError,
 };
+use crate::prelude::*;
 use crate::syntax::{Argument, BackStatement, CordStage, FormSyntax, Invocation, SyntaxDocument};
 use crate::syntax_identity::{canonical_cord, canonical_gear, checked_identity};
 use crate::{hash_string, Span};
+use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     CheckedFace, FaceStartupParameter, PortDescriptor, PortDirection, SourceDocumentId,
 };
-use std::collections::{BTreeMap, BTreeSet};
 
 mod shared_pool;
 use shared_pool::{check_pool_declarations, checked_pool};

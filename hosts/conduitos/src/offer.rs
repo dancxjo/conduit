@@ -15,6 +15,8 @@ pub const SERIAL_OPERATION_CAPACITY: u16 = 1;
 pub const SERIAL_MAXIMUM_BYTES: u32 = 16;
 pub const SIGN_ITEM_CAPACITY: u16 = 64;
 pub const INTERRUPT_FACT_CAPACITY: u16 = 4;
+pub const TIME_TICK_IMPLEMENTATION: &str = "conduitos/kernel-time-tick@1";
+pub const TICK_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-tick@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CpuFeatures {
@@ -165,7 +167,7 @@ impl<'a> HostOffer<'a> {
                 CapabilityOffer {
                     kind: "time/tick",
                     contract_revision: "conduit.std/time-tick@2",
-                    implementation: "conduitos/kernel-time-tick@1",
+                    implementation: TIME_TICK_IMPLEMENTATION,
                     artifact_build: build_id,
                     host_operation: "conduit.host/wait@1",
                     required_base: BaseKind::Timer,
@@ -184,7 +186,7 @@ impl<'a> HostOffer<'a> {
                 CapabilityOffer {
                     kind: "presentation/tick",
                     contract_revision: "conduit.std/presentation-tick@1",
-                    implementation: "conduitos/kernel-serial-tick@1",
+                    implementation: TICK_PRESENTATION_IMPLEMENTATION,
                     artifact_build: build_id,
                     host_operation: "conduit.host/present@1",
                     required_base: BaseKind::Serial,

@@ -8,7 +8,7 @@ compile_error!("#588 currently promotes only the executable x86_64 ConduitOS bac
 use core::panic::PanicInfo;
 
 #[cfg(target_os = "none")]
-use conduitos::{arch, boot, identity, proof};
+use conduitos::{allocation::BOOT_ARENA, arch, boot, identity, ordinary_plan, proof};
 
 #[cfg(target_os = "none")]
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
@@ -20,6 +20,23 @@ const IMAGE_ID: &str = env!("CONDUITOS_IMAGE_ID");
 extern "C" fn conduitos_start() -> ! {
     match boot::normalize_boot() {
         Ok(record) => {
+            let Some(arena_virtual_start) = record
+                .hhdm_offset
+                .checked_add(record.runtime_arena.physical_start)
+                .and_then(|value| usize::try_from(value).ok())
+            else {
+                emit_refusal("runtime-arena-address-invalid");
+            };
+            if unsafe {
+                BOOT_ARENA.initialize(
+                    arena_virtual_start,
+                    usize::try_from(record.runtime_arena.length).unwrap_or(0),
+                )
+            }
+            .is_err()
+            {
+                emit_refusal("runtime-arena-initialization-failed");
+            }
             let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
             let identities =
                 identity::derive(entropy, record.timestamp, record.image_physical_start);
@@ -38,6 +55,11 @@ extern "C" fn conduitos_start() -> ! {
             if let Err(error) = offer.validate() {
                 emit_machine_refusal(error.as_str());
             }
+            let mut prepared = match ordinary_plan::prepare(&identities, &offer, BUILD_ID) {
+                Ok(prepared) => prepared,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            let allocation_before_play = BOOT_ARENA.seal();
             arch::initialize_machine();
             let mut clock = arch::Clock::new();
             let mut timer = arch::Timer::new();
@@ -45,14 +67,25 @@ extern "C" fn conduitos_start() -> ! {
             let mut interrupts = arch::Interrupts::new();
             let mut idle = arch::Idle::new();
             match conduitos::composition::run(
+                &mut prepared.kernel,
                 &mut clock,
                 &mut timer,
                 &mut serial,
                 &mut interrupts,
                 &mut idle,
             ) {
-                Ok(report) => match proof::machine_accepted(&identities, &offer, &report, BUILD_ID)
-                {
+                Ok(report) => match proof::machine_accepted(
+                    &identities,
+                    &offer,
+                    &report,
+                    &prepared,
+                    proof::AllocationProof {
+                        before_play: allocation_before_play,
+                        after_play: BOOT_ARENA.used(),
+                        capacity: BOOT_ARENA.capacity(),
+                    },
+                    BUILD_ID,
+                ) {
                     Ok(sign) => {
                         arch::early_write(sign.as_bytes());
                         arch::deterministic_exit(true);

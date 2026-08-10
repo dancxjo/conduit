@@ -1,10 +1,12 @@
 use crate::observations::{observations_admit, validate_resource_observations};
 use crate::policy::validate_policy;
+use crate::prelude::*;
 use crate::realization::{consume_selected_capacity, reject_unknown_operation_inputs};
 use crate::requirements::{
     hard_requirement_failure, validate_requirement_identities, HardRealizationRequirements,
 };
 use crate::{PlacementChoice, PlacementChoices, PlannerError, RealizationPolicy};
+use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     seal_plan, ArtifactId, BootId, CapabilityId, CapabilityOffer, ConnectionBase, FormIdentity,
     GearId, HostAdvertisement, HostId, ImplementationId, OfferGeneration, Plan,
@@ -12,7 +14,6 @@ use conduit_core::{
     ResourceObservation,
 };
 use conduit_form::{CheckedForm, CheckedGear};
-use std::collections::{BTreeMap, BTreeSet};
 
 pub const MAXIMUM_REALIZATION_DECISION_RECORDS: usize = 256;
 

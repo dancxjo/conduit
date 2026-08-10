@@ -1,3 +1,5 @@
+use std::prelude::v1::*;
+
 use conduit_core::{
     AuthorityGrant, FailureReason, HostAdvertisement, PlannedSharedPool,
     SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
@@ -104,6 +106,8 @@ fn contract_mismatch(
 
 #[cfg(test)]
 mod tests {
+    use std::vec::Vec;
+
     use super::validate_local_shared_pools;
     use conduit_core::{
         kind_id, port_id, ArtifactId, AuthorityContractId, AuthorityGrant, AuthorityGrantId,

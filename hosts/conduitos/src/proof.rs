@@ -7,12 +7,20 @@ use crate::{
     composition::MachineProof,
     identity::BootIdentities,
     offer::{HostOffer, SERIAL_MAXIMUM_BYTES},
+    ordinary_plan::PreparedOrdinaryPlay,
 };
 
 pub const BOOT_SIGN_SCHEMA: &str = "conduit.conduitos.boot-sign/v1";
 pub const MAX_BOOT_SIGN_BYTES: usize = 1024;
-pub const MACHINE_SIGN_SCHEMA: &str = "conduit.conduitos.kernel-sign/v1";
-pub const MAX_STRUCTURED_SIGN_BYTES: usize = 2048;
+pub const MACHINE_SIGN_SCHEMA: &str = "conduit.conduitos.kernel-sign/v2";
+pub const MAX_STRUCTURED_SIGN_BYTES: usize = 4096;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AllocationProof {
+    pub before_play: usize,
+    pub after_play: usize,
+    pub capacity: usize,
+}
 
 pub struct FixedText {
     bytes: [u8; MAX_STRUCTURED_SIGN_BYTES],
@@ -91,6 +99,8 @@ pub fn machine_accepted(
     identities: &BootIdentities,
     offer: &HostOffer<'_>,
     report: &MachineProof,
+    prepared: &PreparedOrdinaryPlay,
+    allocation: AllocationProof,
     build_id: &str,
 ) -> Result<FixedText, fmt::Error> {
     let mut output = FixedText::new();
@@ -104,7 +114,22 @@ pub fn machine_accepted(
     write_hex(&mut output, &identities.host)?;
     output.write_str("\",\"boot_id\":\"")?;
     write_hex(&mut output, &identities.boot)?;
-    output.write_str("\",\"base_ids\":[")?;
+    write!(
+        output,
+        "\",\"pipeline\":\"check-plan-lower-kernel\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"planned_sign_items\":{},\"planned_sign_bytes\":{},\"cord_item_capacity\":1,\"cord_byte_capacity\":8,\"semantic_result\":\"tick-sequence-0\",\"allocation_before_play\":{},\"allocation_after_play\":{},\"allocation_capacity\":{},\"allocation_stable_during_play\":{},\"base_ids\":[",
+        prepared.source_document_id.as_str(),
+        prepared.checked_form_id.as_str(),
+        prepared.expanded_form_id.as_str(),
+        prepared.plan_id.as_str(),
+        prepared.fragment_id.as_str(),
+        prepared.active_play.active_play_id.as_str(),
+        prepared.planned_sign_items,
+        prepared.planned_sign_bytes,
+        allocation.before_play,
+        allocation.after_play,
+        allocation.capacity,
+        allocation.before_play == allocation.after_play,
+    )?;
     for (index, base) in offer.bases.iter().enumerate() {
         if index != 0 {
             output.write_char(',')?;
@@ -221,6 +246,12 @@ mod tests {
                 clock_monotonic: true,
                 pending_host_operations: 0,
             },
+            &crate::ordinary_plan::prepare(&identities, &offer, "build").unwrap(),
+            AllocationProof {
+                before_play: 1024,
+                after_play: 1024,
+                capacity: 262_144,
+            },
             "build",
         )
         .unwrap();
@@ -229,6 +260,7 @@ mod tests {
         assert!(text.contains("\"kernel\":\"conduit-kernel\""));
         assert!(text.contains("\"base_count\":7"));
         assert!(text.contains("\"memory_arena_bytes\":262144"));
+        assert!(text.contains("\"pipeline\":\"check-plan-lower-kernel\""));
         assert!(text.len() <= MAX_STRUCTURED_SIGN_BYTES);
     }
 }

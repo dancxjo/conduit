@@ -53,7 +53,7 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
     }
     let qemu_version = qemu_version(&paths)?;
     let proof = ProofRecord {
-        schema: "conduit.conduitos.kernel-proof/v1",
+        schema: "conduit.conduitos.ordinary-form-proof/v1",
         base_commit,
         architecture: arch.as_str(),
         proof_class: "freestanding-emulator",
@@ -82,7 +82,10 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
             })?
         );
     } else if !opts.quiet {
-        println!("ConduitOS P0-P3 proof: {}", paths.proof.display());
+        println!(
+            "ConduitOS P4 ordinary Form proof: {}",
+            paths.proof.display()
+        );
     }
     Ok(())
 }

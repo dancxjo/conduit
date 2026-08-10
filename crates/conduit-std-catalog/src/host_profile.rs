@@ -1,3 +1,5 @@
+use alloc::{vec, vec::Vec};
+
 use super::{
     capability_slug, contract_revision, execution_profile, standard_contracts,
     standard_host_operation_requirements, standard_resource_requirements, FILTER_KIND, FORMAT_KIND,
@@ -250,7 +252,7 @@ impl OperationState for FilterState {
         match completion {
             OperationCompletion::Value { value, .. } => {
                 if self.accepts(&value) {
-                    emit_to(std::slice::from_ref(&self.output_port), value)
+                    emit_to(core::slice::from_ref(&self.output_port), value)
                 } else {
                     OperationAction::Idle
                 }
@@ -288,7 +290,7 @@ impl OperationState for FormatState {
                     None => format!("bytes:{}", value.encoded.len()),
                 };
                 emit_to(
-                    std::slice::from_ref(&self.output_port),
+                    core::slice::from_ref(&self.output_port),
                     ValuePayload {
                         value_kind: kind_id(GENERIC_VALUE_KIND),
                         encoded: text.into_bytes(),
@@ -319,7 +321,7 @@ impl OperationState for LatestState {
         match completion {
             OperationCompletion::Value { value, .. } => {
                 self.latest = Some(value.clone());
-                emit_to(std::slice::from_ref(&self.output_port), value)
+                emit_to(core::slice::from_ref(&self.output_port), value)
             }
             OperationCompletion::Emitted => OperationAction::Complete,
             OperationCompletion::InputsClosed => OperationAction::Complete,

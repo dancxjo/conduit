@@ -1,12 +1,13 @@
 use crate::observations::{observations_admit, validate_resource_observations};
 use crate::policy::select_realization_matching;
+use crate::prelude::*;
 use crate::{
     plan_with_hard_requirements, HardRealizationRequirements, PlacementChoices, PlannerError,
     RealizationPolicy,
 };
+use alloc::collections::BTreeMap;
 use conduit_core::{ConnectionBase, GearId, HostAdvertisement, Plan, ResourceObservation};
 use conduit_form::CheckedForm;
-use std::collections::BTreeMap;
 
 /// Selects exact realizations for a whole checked form, sharing current finite
 /// observed capacity across gears, then constructs the ordinary Plan.

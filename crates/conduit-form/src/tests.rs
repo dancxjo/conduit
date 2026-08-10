@@ -1,3 +1,5 @@
+use crate::prelude::*;
+
 use super::{
     parse, parse_document, CompositeFaceTerminal, ConfigurationField, ConfigurationRule, FormError,
     KindDefinition, ProfileCatalog, MAXIMUM_FORM_NESTING_DEPTH, MAXIMUM_FORM_SOURCE_BYTES,

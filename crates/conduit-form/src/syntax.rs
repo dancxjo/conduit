@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use crate::{CstToken, FormDiagnostic, Span};
 
 /// Lossless canonical Form source plus its syntax-only AST.

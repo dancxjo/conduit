@@ -171,7 +171,9 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
                 && id.bytes().all(|byte| byte.is_ascii_hexdigit())
                 && !sign.base_ids[..index].contains(id)
         });
-    if sign.schema != "conduit.conduitos.kernel-sign/v1"
+    let exact_id =
+        |value: &str| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit());
+    if sign.schema != "conduit.conduitos.kernel-sign/v2"
         || sign.status != "accepted"
         || sign.arch != "x86_64"
         || sign.build_id != boot.build_id
@@ -179,6 +181,22 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
         || sign.scheduler_profile != "conduitos/single-lane-cooperative@1"
         || sign.host_id != boot.host_id
         || sign.boot_id != boot.boot_id
+        || sign.pipeline != "check-plan-lower-kernel"
+        || !exact_id(&sign.source_document_id)
+        || !exact_id(&sign.checked_form_id)
+        || !exact_id(&sign.expanded_form_id)
+        || !exact_id(&sign.plan_id)
+        || !exact_id(&sign.fragment_id)
+        || !exact_id(&sign.active_play_id)
+        || sign.planned_sign_items == 0
+        || sign.planned_sign_bytes == 0
+        || sign.cord_item_capacity != 1
+        || sign.cord_byte_capacity != 8
+        || sign.semantic_result != "tick-sequence-0"
+        || sign.allocation_before_play == 0
+        || sign.allocation_before_play != sign.allocation_after_play
+        || sign.allocation_capacity != boot.runtime_arena_bytes as usize
+        || !sign.allocation_stable_during_play
         || sign.base_count != 7
         || !valid_base_ids
         || sign.memory_arena_bytes != boot.runtime_arena_bytes

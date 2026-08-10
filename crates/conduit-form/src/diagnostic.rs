@@ -1,6 +1,7 @@
+use crate::prelude::*;
 use crate::{hash_string, FormDiagnostic, Span};
+use alloc::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 
 pub const DIAGNOSTIC_SCHEMA_VERSION: u16 = 1;
 pub const MAXIMUM_DIAGNOSTIC_RELATED_SUBJECTS: usize = 8;
@@ -122,9 +123,9 @@ impl StructuredDiagnosticV1 {
     }
 
     fn all_text(&self) -> impl Iterator<Item = &str> {
-        std::iter::once(self.code.as_str())
-            .chain(std::iter::once(self.summary.as_str()))
-            .chain(std::iter::once(self.source_document_id.as_str()))
+        core::iter::once(self.code.as_str())
+            .chain(core::iter::once(self.summary.as_str()))
+            .chain(core::iter::once(self.source_document_id.as_str()))
             .chain(self.content_hash.as_deref())
             .chain(
                 self.related

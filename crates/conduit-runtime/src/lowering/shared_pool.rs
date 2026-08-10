@@ -1,10 +1,11 @@
 use super::{as_u16, LoweringError};
+use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::vec::Vec;
 use conduit_core::{
     AuthorityGrantId, BootId, CapabilityId, HostId, PlacementId, PlanFragment, PoolMemberLimits,
     ResourceBinding, SharedPoolId,
 };
 use conduit_kernel::{shared_pool::PoolId, NodeId};
-use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredPoolRealization {

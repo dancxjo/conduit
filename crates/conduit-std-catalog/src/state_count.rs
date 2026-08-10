@@ -2,7 +2,7 @@ use super::{
     StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
     TICK_VALUE_KIND, TIME_EVERY_COUNT,
 };
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{

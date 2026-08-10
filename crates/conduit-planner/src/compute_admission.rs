@@ -1,7 +1,8 @@
+use crate::prelude::*;
 use crate::{PlacementChoices, PlannerError};
+use alloc::collections::BTreeMap;
 use conduit_core::{CapabilityId, HostAdvertisement, HostId, ResourcePoolId};
 use conduit_form::CheckedForm;
-use std::collections::BTreeMap;
 
 pub(crate) type RemainingComputeMinimum = BTreeMap<(HostId, ResourcePoolId), u32>;
 

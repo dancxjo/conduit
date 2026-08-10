@@ -1,6 +1,7 @@
+use crate::prelude::*;
 use crate::{RuntimePort, Span};
+use alloc::collections::BTreeMap;
 use conduit_core::{CheckedFace, CheckedFormId, ExpandedFormId, SourceDocumentId};
-use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StartupParameterSignature {
@@ -170,13 +171,13 @@ pub struct CanonicalExpansionDiagnostic {
     pub message: String,
 }
 
-impl std::fmt::Display for CanonicalExpansionDiagnostic {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for CanonicalExpansionDiagnostic {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(formatter, "{}: {}", self.code, self.message)
     }
 }
 
-impl std::error::Error for CanonicalExpansionDiagnostic {}
+impl core::error::Error for CanonicalExpansionDiagnostic {}
 
 impl CanonicalExpansionDiagnostic {
     pub(crate) fn new(code: &'static str, message: String) -> Self {

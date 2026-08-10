@@ -1,3 +1,5 @@
+use crate::prelude::*;
+
 #[derive(Clone, Copy)]
 pub(crate) struct SourceLine<'a> {
     pub(crate) text: &'a str,

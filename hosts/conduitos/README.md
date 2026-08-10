@@ -32,8 +32,15 @@ The proof requires `curl`, `make`, `tar`, `xorriso`, and
 malformed or absent boot/kernel responses, exceeded bounds, unavailable Bases,
 QEMU timeouts, and stale identities are explicit proof refusals.
 
-The proof topology is intentionally hand-lowered and is not a Form, Plan, or
-Play. This slice adds no allocator, preemption, SMP, framebuffer, network, or
-second runtime and does not activate the other architecture backends. Ordinary
-checking, planning, lowering, reservation, and Play remain behind the next
-acceptance slice in issue #588.
+The production topology is the ordinary authored `time/tick` to
+`presentation/tick` Form in `src/ordinary_plan.rs`. Each boot checks that
+source, plans against the exact current Host/Boot offer, lowers the sealed
+fragment into numeric kernel tables, and binds a distinct active Play. A
+boot-scoped 256 KiB arena admits all semantic preparation before Play; the
+arena is sealed at Play start and the proof requires its usage to remain
+unchanged through terminal completion. The old hand-lowered P2/P3 profile is
+compiled only as a regression-test fixture.
+
+This slice adds no preemption, SMP, framebuffer, network, Patchbay control, or
+second runtime and does not activate the other architecture backends. Native
+bounded observability remains the next acceptance slice in issue #588.

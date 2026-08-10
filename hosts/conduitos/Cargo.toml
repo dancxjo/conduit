@@ -12,8 +12,16 @@ test = false
 bench = false
 
 [dependencies]
+conduit-core = { path = "../../crates/conduit-core" }
+conduit-form = { path = "../../crates/conduit-form" }
 conduit-kernel = { path = "../../crates/conduit-kernel" }
+conduit-planner = { path = "../../crates/conduit-planner" }
+conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
+conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
 sha2 = { version = "=0.10.9", default-features = false }
 
 [target.'cfg(not(target_arch = "x86"))'.dependencies]
 limine = "=0.5.0"
+
+[dev-dependencies]
+conduit-std-host = { path = "../std" }

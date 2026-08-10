@@ -1,8 +1,8 @@
 use crate::PlannerError;
+use alloc::collections::BTreeMap;
 use conduit_form::{
     CheckedForm, DiagnosticSeverity, RelatedDiagnosticSubject, StructuredDiagnosticV1,
 };
-use std::collections::BTreeMap;
 
 pub fn structured_planner_diagnostic(
     form: &CheckedForm,
@@ -60,6 +60,8 @@ fn classification(error: &PlannerError) -> Option<(&'static str, &'static str)> 
 
 #[cfg(test)]
 mod tests {
+    use crate::prelude::*;
+
     use super::*;
     use conduit_core::{CheckedFormId, ExpandedFormId, SourceDocumentId};
 

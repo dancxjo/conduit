@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use crate::requirements::{
     hard_requirement_failure, has_characteristic_requirements, validate_requirement_identities,
     HardRealizationRequirements,
@@ -8,7 +9,7 @@ use conduit_core::{
     HostOperationContractId, RealizationCharacteristicId, ResourceClassId,
 };
 use conduit_form::CheckedGear;
-use std::cmp::Ordering;
+use core::cmp::Ordering;
 
 /// One explicit lexicographic comparison dimension.
 ///

@@ -1,3 +1,17 @@
+#![no_std]
+
+#[macro_use]
+extern crate alloc;
+#[cfg(test)]
+extern crate std;
+
+mod prelude {
+    pub use alloc::string::{String, ToString};
+    pub use alloc::vec::Vec;
+}
+
+use crate::prelude::*;
+use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     mandatory_sign_storage_requirement, seal_plan, AdmittedLine, AuthorityBinding, AuthorityGrant,
     CancellationPolicy, CapabilityId, ConnectionBase, ConnectionId, ExpectedSign, ExpectedTerminal,
@@ -8,7 +22,6 @@ use conduit_core::{
 };
 use conduit_form::{CheckedForm, CheckedGear};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
 
 mod canonical;
 mod characteristic_policy;
@@ -204,6 +217,11 @@ pub(crate) fn plan_validated_form(
         protected_resource_grants,
         line_offers,
     } = options;
+    if connection_item_capacity == 0 || connection_byte_capacity == 0 {
+        return Err(PlannerError::InvalidConnectionBudget(
+            "item and byte capacity must both be nonzero".to_string(),
+        ));
+    }
     let host_index = hosts
         .iter()
         .map(|host| (host.host_id.clone(), host))
