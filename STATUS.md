@@ -19,6 +19,7 @@ adapter or physical proof.
 | Optional pre-Play HOLD | one Wake may admit an exact immutable Plan plus finite planning-basis Signs, hold reason/source, persistence policy, fixed release-authority contract, and current-validity result while remaining distinct from Playing, active-Play pause, and Lull | deterministic direct, held, authorized release, stale-basis replacement, persistent re-hold, non-persistent replacement, authority denial, bounded-basis, replay-tamper, and lifecycle-separation vectors | `conduit-body` exposes bounded held-Plan admission, inspection, release, invalidation, and replacement APIs; no `ActivePlayId` exists before successful release, and release revalidates the complete current basis before starting Play | no browser UI or adapter claim | no firmware change | no new transport; visibility, reachability, and connectivity confer no release authority | no physical/HIL claim |
 | Browser manifestation | local and remote-ingress Signal profiles | yes, `conduit-browser-sim` | actual Rust/WASM planner plus exact-plan-lowered `conduit-kernel` execution for local and distributed sink fragments | thin DOM adapter with exact fixed-frame completion correlation and sixteen receipts | no | actual loopback WebSocket to the std kernel source | included in the accepted three-host physical run with matching cross-host receipts |
 | Interactive Play start/toggle | typed `interaction/start -> state/toggle -> presentation/show` contract with admitted input and exact remote planning | deterministic Play start/toggle lifecycle and identity negatives | native std source services one admitted stdin Play start through the kernel before realizing the corresponding remote offer | pinned Chromium proves the first Enter causes exactly one sequence-0 DOM update before later inputs, then completes sixteen exact presentations with one real pressure retry | no | actual bounded loopback WebSocket with structured link-break failure | no |
+| Native Patchbay presentation and interaction | checked/expanded Forms project exact Gear/Port/Cord subjects; finite platform-neutral `interaction/select` and `interaction/invoke` requests cross exact typed Ports and one admitted host-operation boundary through the production kernel | deterministic geometry/hit, pointer/keyboard convergence, Plan/Play/Sign inspection, bounded-value, stale/unknown/oversized identity, request-restoration, and distinct success/refusal/failure vectors | the actual native Patchbay window renders the bounded canvas and routes pointer selection, graphical keyboard traversal, open/save/view actions, and Body lifecycle controls through ordinary interaction Plays before shared inspector or control state changes | HTML consumes the same semantic request types without DOM identity; no interactive HTML realization is claimed | no firmware or framebuffer interaction claim | no new transport | no physical/HIL claim |
 | Explicit external WebSocket chat | opt-in `net/websocket` client/listener faces encode complete-message RFC 6455 semantics structurally; equal checked faces remain compatible across nominal names/revisions, while a generic byte-stream face does not | deterministic checked-face, canonical expansion, bounded planning/kernel execution, malformed/oversize, and disconnect vectors | bounded two-peer std listener executes exact accept/receive/send operations through the ordinary fixed scheduler and host-operation boundary | two independent planned browser/WASM kernels use native browser WebSocket plus bounded text-input/list adapters; pinned Chromium proves A/B exchange and truthful one-peer continuation | no | actual binary loopback external WebSocket messages, mechanically distinct from `ConnectionBase::WebSocket` Conduit-session carriage | no physical/HIL claim |
 | Bounded shared pools and explicit dynamic flow | checked Forms carry exact scoped pool references and hard member bounds; Plans seal equal-face member contracts, host/boot/capability/resource envelopes, per-member queue/Sign limits, admission authority, and explicit consumers | allocator-free keyed membership, stale occupation epochs, deterministic membership snapshots, per-branch fan pressure/outcomes, and source-tagged bounded merge vectors | the existing kernel owns fixed pool/fan/merge state; the std proof host plans and lowers one 32-peer chat pool without adding a scheduler or ambient registry | two Chromium pages dynamically join, exchange addressed broadcasts, one leaves, and the remaining peer continues; the authored Form names only pool, room, fan, merge, and peer semantics | no | the proof host selects a bounded binary loopback WebSocket Line below authored semantics; no socket/address/Base fact enters source identity | no physical/HIL claim |
 | Pico-shaped manifestation | exact Pico-local and remote-ingress advertisements with reviewed fixed-image bounds | yes, `conduit-pico-sim` | host-side unchanged-form planning/lowering/image generation, exact std source, and verifier tests | no | RP2040 images generated from exact local/remote fragments, CYW43 GPIO 0 LED driver, pinned radio assets, clean firmware-build identity, runtime boot/play receipt identity, and bounded dual CDC | exact bounded std↔Pico USB CDC and final three-host sessions | recorded local, exact std↔Pico success/failure, and final three-host success/broken-link runs |
@@ -112,6 +113,11 @@ The `check` workflow requires:
   Play start is sent, followed by the complete sixteen-value terminal path,
   one real pressure retry, exact receipt correlation, and structured link-break
   failure;
+- bounded native Patchbay geometry and hit-target vectors plus one shared
+  platform-neutral selection/invocation family checked, planned, lowered, and
+  run through the production kernel, with exact request/subject/action/Plan/
+  Play/Sign inspection, pointer/keyboard convergence, HTML contract reuse,
+  lifecycle invocation, and stale/unknown/oversized/refused/failed negatives;
 - one actual Chromium explicit external-WebSocket chat proof with two separate
   browser/WASM kernels using native browser WebSocket, exact
   source/checked/expanded/Plan/fragment/Play/placement/Gear/Kind/implementation/
@@ -483,6 +489,48 @@ core-only optional pre-Play HOLD contract from #646 is accepted separately at
 exact main `52850f9d6d0778c7dfe15c376ec92c31682d645c`; push workflow
 `31334882531` passed both required jobs. It adds no UI, planner, authority
 issuer, active-Play pause, transport, firmware, or physical/HIL claim.
+
+The native Patchbay presentation and semantic-interaction slice from #685 and
+#694 is accepted at exact main
+`161d1cf6c9974ac5141204aa0c030bc44e2f5aae`; push workflow `31348577927`
+passed `check`, `browser-host`, and `conduitos-boot`. The earlier #696 canvas
+projects one checked/expanded Form into finite renderer-local Gear, typed Port,
+Cord, panel, icon, hit-target, and inspector geometry. Its exact-head Weston
+13 Wayland smoke created and rendered the real native window; in-memory pixel,
+clipping, identity, and hit-target tests remain deterministic lower proof.
+
+#699 replaces the provisional application mutation behind that canvas with a
+finite platform-neutral interaction family. Each semantic selection or
+invocation becomes bounded typed Info in a checked two-Gear Form, is planned
+with one exact capacity-four Cord, lowered through `conduit-runtime`, and runs
+through the production `conduit-kernel` before the admitted generic host
+operation may update canonical Patchbay selection or invoke an existing
+control seam. Receipts retain distinct source, checked, expanded, Plan, and
+ActivePlay identities, the exact Plan, typed success/refusal/failure, and
+bounded kernel Signs. Patchbay exposes those Kind, Gear, Port, Plan, Play, and
+Sign facts in its own presentation lines.
+
+Pointer hits remain renderer-local geometry and resolve only to an exact
+`PatchbaySubjectRef`; graphical arrow keys emit the same semantic selection
+request without a second direct editor-selection mutation. The resulting
+canonical selected subject is revalidated against the current expanded Form
+before the shared inspector reads it. Open Back, Save, view switching, and
+Birth/Wake/Plan/Play/Hold/Lull/Stop controls use the same invocation path.
+Deterministic negatives keep successful hit/input recognition separate from
+semantic completion, distinguish stale, unknown, unavailable, refused, and
+failed outcomes, preserve prior selection on refusal, restore interaction
+state after malformed request construction, and retain a failed host
+completion as machine-readable failure rather than success. The HTML adapter
+constructs the same request types without DOM, pixel, Wayland, widget, socket,
+or address identity.
+
+This acceptance adds no widget ontology, semantic coordinates, raw-input
+Kinds, drag-to-rewire behavior, retry or authority policy, second planner,
+runtime, controller, truth store, or authority store. The Weston evidence
+proves native surface realization, not automated physical user input; the
+semantic interaction proof is deterministic below that renderer-local input
+boundary. It adds no firmware, ConduitOS framebuffer, transport, or
+physical/HIL claim.
 
 The first ConduitOS boot slice from #588 is accepted at exact main
 `35a7522703164cdc1758a3bfebfd5ac3f0649a0e`; push workflow `31340517738`
