@@ -206,7 +206,16 @@ pub(super) fn wait_for_ports(
     let deadline = Instant::now() + PHYSICAL_TIMEOUT;
     loop {
         match resolve_dual_ports(link, sign) {
-            Ok(paths) => return Ok(paths),
+            Ok(paths) if paths.0.exists() && paths.1.exists() => return Ok(paths),
+            Ok(_) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(100)),
+            Ok(paths) => {
+                return Err(format!(
+                    "timed out waiting for Pico CDC paths {} and {} to become usable",
+                    paths.0.display(),
+                    paths.1.display()
+                )
+                .into())
+            }
             Err(_) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(100)),
             Err(error) => return Err(error),
         }

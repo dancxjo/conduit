@@ -68,6 +68,7 @@ pub struct ApplianceHilClientGeneratedImageIdentity {
     pub firmware_build_id: String,
     pub image_artifact: String,
     pub fixture_only: bool,
+    pub usb_serial: String,
     pub ssid: String,
     pub open_ap: bool,
     pub server_address: [u8; 4],
@@ -164,6 +165,7 @@ impl ApplianceHilClientFirmwareIdentity {
             || image.firmware_build_id != self.firmware_build_id
             || image.image_artifact != APPLIANCE_HIL_CLIENT_ARTIFACT
             || !image.fixture_only
+            || image.usb_serial != "conduit-pico-hil-client"
             || image.ssid != conduit_net::APPLIANCE_SSID
             || !image.open_ap
             || image.server_address != conduit_net::DHCP_SERVER_ADDRESS

@@ -17,7 +17,7 @@ use super::prove_appliance::{
 use super::{PicoArgs, PicoResult};
 
 const PHYSICAL_TIMEOUT: Duration = Duration::from_secs(60);
-const CLIENT_SERIAL_NEEDLE: &str = "conduit-pico-appliance-hil-client";
+const CLIENT_SERIAL_NEEDLE: &str = "conduit-pico-hil-client";
 
 #[derive(Serialize)]
 struct TwoPicoPhysicalRecord {

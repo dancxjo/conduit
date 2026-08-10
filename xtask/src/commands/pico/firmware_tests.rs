@@ -222,6 +222,7 @@ fn appliance_hil_client_manifest_is_fixture_only_and_exact() {
             firmware_build_id: "client-build".into(),
             image_artifact: APPLIANCE_HIL_CLIENT_ARTIFACT.into(),
             fixture_only: true,
+            usb_serial: "conduit-pico-hil-client".into(),
             ssid: conduit_net::APPLIANCE_SSID.into(),
             open_ap: true,
             server_address: conduit_net::DHCP_SERVER_ADDRESS,

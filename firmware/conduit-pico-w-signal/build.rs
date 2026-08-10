@@ -108,6 +108,7 @@ fn generate_pico_appliance_hil_client_identity() {
         "firmware_build_id": appliance_build_id(),
         "image_artifact": APPLIANCE_HIL_CLIENT_ARTIFACT,
         "fixture_only": true,
+        "usb_serial": "conduit-pico-hil-client",
         "ssid": conduit_net::APPLIANCE_SSID,
         "open_ap": true,
         "server_address": conduit_net::DHCP_SERVER_ADDRESS,

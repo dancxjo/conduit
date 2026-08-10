@@ -49,7 +49,7 @@ pub fn init_composite_usb(
     let (product, serial_number) = if cfg!(feature = "appliance-hil-client") {
         (
             "Pico W Appliance HIL Client",
-            "conduit-pico-appliance-hil-client",
+            "conduit-pico-hil-client",
         )
     } else {
         ("Pico W Signal", "conduit-pico-w-signal")

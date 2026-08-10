@@ -190,4 +190,12 @@ mod tests {
         assert!(!appliance.contains("password"));
         assert!(!appliance.contains("credential"));
     }
+
+    #[test]
+    fn appliance_hil_client_usb_serial_fits_the_control_buffer() {
+        let usb = include_str!("../../../firmware/conduit-pico-w-signal/src/usb.rs");
+        let serial = "conduit-pico-hil-client";
+        assert!(usb.contains(serial));
+        assert!(serial.encode_utf16().count() * 2 + 2 <= 64);
+    }
 }
