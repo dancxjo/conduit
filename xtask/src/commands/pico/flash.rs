@@ -35,6 +35,8 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
     let actual_mode = read_firmware_mode(&root)?;
     let expected_mode = if args.appliance_hello {
         "appliance-hello"
+    } else if args.appliance_hil_client {
+        "appliance-hil-client"
     } else if args.r1_control {
         "r1-control"
     } else if args.wifi_bootstrap {

@@ -109,6 +109,14 @@ pub struct ProveArgs {
     /// Exact Wi-Fi client interface used for the physical Pico appliance proof.
     #[arg(long)]
     pub client_interface: Option<String>,
+
+    /// Exact pre-flash CDC 0 port for the second Pico appliance HIL client.
+    #[arg(long)]
+    pub client_link_port: Option<String>,
+
+    /// Exact post-flash CDC 1 port for the second Pico appliance HIL client.
+    #[arg(long)]
+    pub client_sign_port: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -142,6 +150,7 @@ pub enum ProveTarget {
     StdPicoUsb,
     PicoWifiBootstrap,
     PicoAppliance,
+    PicoApplianceHil,
     PicoWebsocketRoute,
     R1NewPlanRecovery,
     R1NewPlanRecoveryHil,

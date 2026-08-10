@@ -84,10 +84,19 @@ pub fn run_prove_pico_appliance(
         .and_then(|name| name.to_str())
         .ok_or("Pico sign port has no stable hardware identity")?
         .to_owned();
-    let sign_file = std::fs::OpenOptions::new().read(true).open(&sign_path)?;
+    let sign_file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&sign_path)?;
     conduit_std_host::usb_cdc::configure_cdc_port(&sign_file, 0, 100).map_err(|error| {
         format!(
             "failed configuring Pico appliance sign port {}: {error}",
+            sign_path.display()
+        )
+    })?;
+    conduit_std_host::usb_cdc::assert_dtr(&sign_file).map_err(|error| {
+        format!(
+            "failed asserting DTR on Pico appliance sign port {}: {error}",
             sign_path.display()
         )
     })?;
@@ -173,7 +182,7 @@ pub fn run_prove_pico_appliance(
     Ok(())
 }
 
-fn require_clean_exact_commit() -> PicoResult<String> {
+pub(super) fn require_clean_exact_commit() -> PicoResult<String> {
     let root = repo_root();
     let status = Command::new("git")
         .args(["status", "--porcelain"])
@@ -192,18 +201,30 @@ fn require_clean_exact_commit() -> PicoResult<String> {
     Ok(String::from_utf8(commit.stdout)?.trim().to_owned())
 }
 
-fn physical_timestamp() -> PicoResult<String> {
+pub(super) fn physical_timestamp() -> PicoResult<String> {
     let seconds = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
     Ok(format!("unix:{seconds}"))
 }
 
-fn wait_for_ports(link: Option<&str>, sign: Option<&str>) -> PicoResult<(PathBuf, PathBuf)> {
+pub(super) fn wait_for_ports(
+    link: Option<&str>,
+    sign: Option<&str>,
+) -> PicoResult<(PathBuf, PathBuf)> {
     let deadline = Instant::now() + PHYSICAL_TIMEOUT;
     loop {
         match resolve_dual_ports(link, sign) {
-            Ok(paths) => return Ok(paths),
+            Ok(paths) if paths.0.exists() && paths.1.exists() => return Ok(paths),
+            Ok(_) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(100)),
+            Ok(paths) => {
+                return Err(format!(
+                    "timed out waiting for Pico CDC paths {} and {} to become usable",
+                    paths.0.display(),
+                    paths.1.display()
+                )
+                .into())
+            }
             Err(_) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(100)),
             Err(error) => return Err(error),
         }
@@ -317,7 +338,7 @@ fn prove_http() -> PicoResult<()> {
     Ok(())
 }
 
-fn verify_signs(
+pub(super) fn verify_signs(
     mut reader: impl BufRead,
     firmware_build_id: &str,
     leased_address: &str,

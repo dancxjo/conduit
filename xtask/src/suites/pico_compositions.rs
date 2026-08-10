@@ -131,6 +131,25 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         Some(ProofClass::ContractCompile),
         &[],
     ),
+    Step::typed(
+        "check.thumb.firmware-appliance-hil-client",
+        "Pico W fixture-only AP/DHCP/DNS/HTTP client probe Thumb check",
+        "cargo",
+        &[
+            "check",
+            "--manifest-path",
+            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "--no-default-features",
+            "--features",
+            "appliance-hil-client",
+            "--target",
+            "thumbv6m-none-eabi",
+        ],
+        None,
+        Some("thumbv6m-none-eabi"),
+        Some(ProofClass::ContractCompile),
+        &[],
+    ),
 ];
 
 #[cfg(test)]
@@ -153,11 +172,14 @@ mod tests {
             "appliance-hello = [\"session-control\", \"dep:conduit-net\", \"dep:embassy-net\"]"
         ));
         assert!(manifest.contains(
+            "appliance-hil-client = [\"session-control\", \"dep:conduit-net\", \"dep:embassy-net\"]"
+        ));
+        assert!(manifest.contains(
             "conduit-wire = { path = \"../../crates/conduit-wire\", default-features = false, optional = true }"
         ));
         assert!(firmware.contains("#[cfg(feature = \"session-control\")]\nmod usb_link;"));
         assert!(firmware.contains("#[cfg(feature = \"pico-local-minimal\")]"));
-        assert_eq!(PICO_COMPOSITION_STEPS.len(), 7);
+        assert_eq!(PICO_COMPOSITION_STEPS.len(), 8);
     }
 
     #[test]
@@ -167,5 +189,13 @@ mod tests {
         assert!(!appliance.contains("start_ap_wpa2"));
         assert!(!appliance.contains("password"));
         assert!(!appliance.contains("credential"));
+    }
+
+    #[test]
+    fn appliance_hil_client_usb_serial_fits_the_control_buffer() {
+        let usb = include_str!("../../../firmware/conduit-pico-w-signal/src/usb.rs");
+        let serial = "conduit-pico-hil-client";
+        assert!(usb.contains(serial));
+        assert!(serial.encode_utf16().count() * 2 + 2 <= 64);
     }
 }

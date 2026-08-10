@@ -16,7 +16,11 @@ use embassy_rp::{
     usb,
     Peri,
 };
-#[cfg(any(feature = "wifi-bootstrap", feature = "appliance-hello"))]
+#[cfg(any(
+    feature = "wifi-bootstrap",
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
+))]
 use embassy_time::{with_timeout, Duration};
 use static_cell::StaticCell;
 
@@ -31,16 +35,28 @@ bind_interrupts!(struct RadioIrqs {
 
 static STATE: StaticCell<cyw43::State> = StaticCell::new();
 
-#[cfg(any(feature = "wifi-bootstrap", feature = "appliance-hello"))]
+#[cfg(any(
+    feature = "wifi-bootstrap",
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
+))]
 const RADIO_PHASE_TIMEOUT: Duration = Duration::from_secs(20);
 
-#[cfg(any(feature = "wifi-bootstrap", feature = "appliance-hello"))]
+#[cfg(any(
+    feature = "wifi-bootstrap",
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
+))]
 pub enum NetworkRadioInitError {
     DriverStartupTimeout,
     InitializationTimeout,
 }
 
-#[cfg(any(feature = "wifi-bootstrap", feature = "appliance-hello"))]
+#[cfg(any(
+    feature = "wifi-bootstrap",
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
+))]
 impl NetworkRadioInitError {
     pub const fn code(&self) -> &'static str {
         match self {
@@ -61,7 +77,11 @@ async fn cyw43_task(
     clippy::too_many_arguments,
     reason = "the Pico W radio boundary names each fixed peripheral and asset explicitly"
 )]
-#[cfg(not(any(feature = "wifi-bootstrap", feature = "appliance-hello")))]
+#[cfg(not(any(
+    feature = "wifi-bootstrap",
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
+)))]
 pub async fn init_cyw43(
     spawner: &Spawner,
     pio0: Peri<'static, PIO0>,
@@ -93,7 +113,11 @@ pub async fn init_cyw43(
     (control, ())
 }
 
-#[cfg(any(feature = "wifi-bootstrap", feature = "appliance-hello"))]
+#[cfg(any(
+    feature = "wifi-bootstrap",
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
+))]
 #[allow(
     clippy::too_many_arguments,
     reason = "the Pico W network boundary names each fixed peripheral and asset explicitly"

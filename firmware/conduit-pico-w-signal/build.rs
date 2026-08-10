@@ -32,6 +32,9 @@ const TRIPLE_SIGNAL_FORM: &str = include_str!("../../examples/triple-signal.form
 const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
 const APPLIANCE_IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_APPLIANCE_IDENTITY_SIDECAR";
+const APPLIANCE_HIL_CLIENT_IDENTITY_SIDECAR_ENV: &str =
+    "CONDUIT_PICO_APPLIANCE_HIL_CLIENT_IDENTITY_SIDECAR";
+const APPLIANCE_HIL_CLIENT_ARTIFACT: &str = "pico/appliance-hil-client-firmware@1";
 const MAX_STORED_SIGNAL_VALUES: usize = 16;
 const WAIT_VALUE_BYTES: u32 = 8;
 const RUNTIME_SIGN_EVENTS: usize = 256;
@@ -44,6 +47,8 @@ fn main() {
 
     if firmware_mode() == "appliance-hello" {
         generate_pico_appliance_identity();
+    } else if firmware_mode() == "appliance-hil-client" {
+        generate_pico_appliance_hil_client_identity();
     } else if firmware_mode() == "wifi-bootstrap" {
         generate_pico_network_image(&out);
         generate_r1_recovery_signal_images(&out);
@@ -76,9 +81,15 @@ fn main() {
     r1_control_images::emit_rerun_directives();
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_RERUN_ENV}");
     println!("cargo:rerun-if-env-changed={APPLIANCE_IDENTITY_SIDECAR_ENV}");
+    println!("cargo:rerun-if-env-changed={APPLIANCE_HIL_CLIENT_IDENTITY_SIDECAR_ENV}");
 }
 
 fn appliance_build_id() -> String {
+    let artifact = if firmware_mode() == "appliance-hil-client" {
+        APPLIANCE_HIL_CLIENT_ARTIFACT
+    } else {
+        conduit_net::PICO_APPLIANCE_ARTIFACT
+    };
     format!(
         "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}",
         git_revision(),
@@ -86,8 +97,42 @@ fn appliance_build_id() -> String {
         env::var("TARGET").unwrap_or_else(|_| "unknown-target".to_owned()),
         env::var("PROFILE").unwrap_or_else(|_| "unknown-profile".to_owned()),
         firmware_mode(),
-        conduit_net::PICO_APPLIANCE_ARTIFACT,
+        artifact,
     )
+}
+
+fn generate_pico_appliance_hil_client_identity() {
+    let identity = serde_json::json!({
+        "schema": "conduit.pico-appliance/hil-client-image@1",
+        "firmware_mode": firmware_mode(),
+        "firmware_build_id": appliance_build_id(),
+        "image_artifact": APPLIANCE_HIL_CLIENT_ARTIFACT,
+        "fixture_only": true,
+        "usb_serial": "conduit-pico-hil-client",
+        "ssid": conduit_net::APPLIANCE_SSID,
+        "open_ap": true,
+        "server_address": conduit_net::DHCP_SERVER_ADDRESS,
+        "local_name": conduit_net::APPLIANCE_LOCAL_NAME,
+        "hello_body": conduit_net::APPLIANCE_HELLO_BODY,
+        "maximum_http_request_bytes": conduit_net::MAXIMUM_HTTP_REQUEST_BYTES,
+        "maximum_http_response_bytes": conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES,
+    });
+    let sidecar = env::var_os(APPLIANCE_HIL_CLIENT_IDENTITY_SIDECAR_ENV)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR must exist"))
+                .join("pico-appliance-hil-client.generated-image.json")
+        });
+    if let Some(parent) = sidecar.parent() {
+        fs::create_dir_all(parent)
+            .expect("appliance HIL client sidecar directory must be writable");
+    }
+    fs::write(
+        sidecar,
+        serde_json::to_string_pretty(&identity)
+            .expect("appliance HIL client identity must serialize"),
+    )
+    .expect("appliance HIL client identity sidecar must be writable");
 }
 
 fn generate_pico_appliance_identity() {
