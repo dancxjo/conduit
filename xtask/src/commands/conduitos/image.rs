@@ -34,7 +34,7 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<ImageRecord, Co
         });
     }
     prepare_limine(&paths)?;
-    stage_image(&paths)?;
+    stage_image(&paths, arch)?;
     create_iso(&paths)?;
     let file_count = count_files(&paths.iso_root)?;
     if file_count != EXPECTED_IMAGE_FILE_COUNT {
@@ -115,7 +115,7 @@ pub(super) fn prepare_limine(paths: &Paths) -> Result<(), ConduitosError> {
     Ok(())
 }
 
-fn stage_image(paths: &Paths) -> Result<(), ConduitosError> {
+fn stage_image(paths: &Paths, arch: ConduitosArch) -> Result<(), ConduitosError> {
     if paths.iso_root.exists() {
         fs::remove_dir_all(&paths.iso_root)
             .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
@@ -127,8 +127,13 @@ fn stage_image(paths: &Paths) -> Result<(), ConduitosError> {
         .and_then(|_| fs::create_dir_all(&efi_boot))
         .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
     copy(&paths.kernel, &boot.join("conduitos"))?;
+    let config = if arch == ConduitosArch::Aarch64 {
+        "hosts/conduitos/limine-aarch64-a1.conf"
+    } else {
+        "hosts/conduitos/limine.conf"
+    };
     copy(
-        &paths.root.join("hosts/conduitos/limine.conf"),
+        &paths.root.join(config),
         &paths.iso_root.join("limine.conf"),
     )?;
     for name in [
@@ -138,10 +143,11 @@ fn stage_image(paths: &Paths) -> Result<(), ConduitosError> {
     ] {
         copy(&paths.limine.join(name), &limine_boot.join(name))?;
     }
-    copy(
-        &paths.limine.join("BOOTX64.EFI"),
-        &efi_boot.join("BOOTX64.EFI"),
-    )?;
+    let efi_name = match arch {
+        ConduitosArch::Aarch64 => "BOOTAA64.EFI",
+        _ => "BOOTX64.EFI",
+    };
+    copy(&paths.limine.join(efi_name), &efi_boot.join(efi_name))?;
     Ok(())
 }
 

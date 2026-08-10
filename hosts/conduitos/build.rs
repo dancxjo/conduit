@@ -1,6 +1,8 @@
 fn main() {
     println!("cargo:rerun-if-changed=linker/x86_64.ld");
     println!("cargo:rerun-if-changed=linker/aarch64_a0.ld");
+    println!("cargo:rerun-if-env-changed=CONDUITOS_BUILD_ID");
+    println!("cargo:rerun-if-env-changed=CONDUITOS_IMAGE_ID");
     let manifest = std::env::var("CARGO_MANIFEST_DIR").expect("Cargo sets manifest directory");
     if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("x86_64")
         && std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("none")

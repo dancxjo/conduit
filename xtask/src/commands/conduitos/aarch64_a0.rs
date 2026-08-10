@@ -50,6 +50,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     check_shared_backbone(&paths, opts)?;
     let mut command = Command::new("cargo");
+    let base_commit = git_head(&paths.root)?;
     command
         .args([
             "build",
@@ -64,7 +65,15 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
             "--release",
         ])
         .current_dir(&paths.root)
-        .env("RUSTFLAGS", "-C relocation-model=static -C panic=abort");
+        .env("RUSTFLAGS", "-C relocation-model=static -C panic=abort")
+        .env(
+            "CONDUITOS_BUILD_ID",
+            format!("conduitos-build/{base_commit}/aarch64/v1"),
+        )
+        .env(
+            "CONDUITOS_IMAGE_ID",
+            format!("conduitos-image/{base_commit}/aarch64/v1"),
+        );
     if opts.locked {
         command.arg("--locked");
     }
@@ -182,7 +191,7 @@ fn inspect_elf(bytes: &[u8]) -> Result<ElfFacts, ConduitosError> {
         || bytes[4] != 2
         || bytes[5] != 1
         || bytes[6] != 1
-        || bytes[7] != 0
+        || !matches!(bytes[7], 0 | 3)
     {
         return Err(invalid("expected a little-endian ELF64 artifact"));
     }
