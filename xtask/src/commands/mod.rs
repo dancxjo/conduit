@@ -3,6 +3,7 @@ pub mod conduitos;
 pub mod demo;
 pub mod doctor;
 pub mod netherwick;
+pub mod palette_icons;
 pub mod pico;
 pub mod proofs;
 pub mod prove;
