@@ -6,6 +6,9 @@ pub mod allocation;
 pub mod arch;
 pub mod boot;
 pub mod composition;
+pub mod dual_region_composition;
+pub mod dual_region_kernel;
+pub mod dual_region_plan;
 mod execution_region;
 pub mod identity;
 #[cfg(test)]

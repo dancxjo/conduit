@@ -91,6 +91,9 @@ where
                     serial_presentations: serial.presentation_count(),
                     clock_monotonic: clock.now() >= started,
                     pending_host_operations: kernel.pending_host_operations() as u8,
+                    overlap_witness: false,
+                    timer_pending_during_text_progress: false,
+                    physical_parallelism: false,
                 });
             }
             SchedulerStatus::Cancelled => return Err(MachineRunError::KernelFailure),

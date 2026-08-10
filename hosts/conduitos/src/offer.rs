@@ -8,10 +8,10 @@
 use crate::{identity::BootIdentities, machine::BaseKind};
 
 pub const BASE_COUNT: usize = 7;
-pub const RESOURCE_COUNT: usize = 4;
+pub const RESOURCE_COUNT: usize = 5;
 pub const CAPABILITY_COUNT: usize = 5;
 pub const TIMER_SLOT_CAPACITY: u16 = 1;
-pub const SERIAL_OPERATION_CAPACITY: u16 = 1;
+pub const SERIAL_OPERATION_CAPACITY: u16 = 2;
 pub const SERIAL_MAXIMUM_BYTES: u32 = conduit_std_catalog::MAX_TEXT_BYTES;
 pub const SIGN_ITEM_CAPACITY: u16 = 64;
 pub const INTERRUPT_FACT_CAPACITY: u16 = 4;
@@ -133,7 +133,8 @@ impl<'a> HostOffer<'a> {
             kind,
             capacity: match kind {
                 BaseKind::Memory => u32::try_from(runtime_arena_bytes).unwrap_or(u32::MAX),
-                BaseKind::Timer | BaseKind::Serial | BaseKind::ExecutionLane => 1,
+                BaseKind::Timer => 1,
+                BaseKind::Serial | BaseKind::ExecutionLane => 2,
                 BaseKind::Interrupt => u32::from(INTERRUPT_FACT_CAPACITY),
                 BaseKind::Clock | BaseKind::Idle => 1,
             },
@@ -142,7 +143,7 @@ impl<'a> HostOffer<'a> {
             host_id: ids.host,
             boot_id: ids.boot,
             generation: 1,
-            profile: "conduitos/single-lane-cooperative@1",
+            profile: "conduitos/two-lane-cooperative@1",
             bases,
             resources: [
                 ResourceOffer {
@@ -164,6 +165,11 @@ impl<'a> HostOffer<'a> {
                     class: "conduit.resource/presentation-slot@1",
                     capacity: u32::from(SERIAL_OPERATION_CAPACITY),
                     base: BaseKind::Serial,
+                },
+                ResourceOffer {
+                    class: "conduit.resource/execution-lane@1",
+                    capacity: 1,
+                    base: BaseKind::ExecutionLane,
                 },
             ],
             capabilities: [
@@ -201,7 +207,7 @@ impl<'a> HostOffer<'a> {
                         closes: true,
                     }),
                     output: None,
-                    maximum_in_flight: SERIAL_OPERATION_CAPACITY,
+                    maximum_in_flight: 1,
                     maximum_input_bytes: SERIAL_MAXIMUM_BYTES,
                     maximum_output_bytes: 0,
                 },
