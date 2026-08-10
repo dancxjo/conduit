@@ -112,6 +112,22 @@ pub struct ProofsArgs {
     /// Validate one JSON proof record against its exact registered command contract.
     #[arg(long)]
     pub validate_record: Option<std::path::PathBuf>,
+
+    /// Run the one pinned finite proof-catalog validation obligation.
+    #[arg(long)]
+    pub run_obligation: bool,
+
+    /// Stop after emitting the reviewed checkpoint and residual obligation.
+    #[arg(long, requires = "run_obligation")]
+    pub interrupt_after_checkpoint: bool,
+
+    /// Resume from one bounded checkpoint JSON file.
+    #[arg(long, requires = "run_obligation")]
+    pub resume: Option<std::path::PathBuf>,
+
+    /// Write the checkpoint or terminal obligation record as bounded JSON.
+    #[arg(long, requires = "run_obligation")]
+    pub obligation_record: Option<std::path::PathBuf>,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]

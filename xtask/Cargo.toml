@@ -15,9 +15,13 @@ serde_json = "1"
 sha2 = "0.10"
 conduit-body = { path = "../crates/conduit-body" }
 conduit-core = { path = "../crates/conduit-core" }
+conduit-form = { path = "../crates/conduit-form" }
+conduit-kernel = { path = "../crates/conduit-kernel", features = ["alloc"] }
 conduit-net = { path = "../crates/conduit-net" }
 conduit-observatory = { path = "../crates/conduit-observatory" }
 conduit-signal = { path = "../crates/conduit-signal" }
+conduit-planner = { path = "../crates/conduit-planner" }
+conduit-runtime = { path = "../crates/conduit-runtime", default-features = false }
 conduit-std-host = { path = "../hosts/std" }
 conduit-system-continuity = { path = "../crates/conduit-system-continuity", features = ["r1-recovery"] }
 conduit-wire = { path = "../crates/conduit-wire" }
