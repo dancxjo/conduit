@@ -139,7 +139,9 @@ pub async fn run(
     let mut http = TcpSocket::new(stack, &mut http_rx, &mut http_tx);
     let mut leases = conduit_net::DhcpLeasePool::default();
     let mut sequence = 1_u16;
+    write_progress(sign, &runtime_boot, "before-ap-ready").await;
     write_sign(sign, &runtime_boot, sequence, "ap-ready", None, None).await;
+    write_progress(sign, &runtime_boot, "after-ap-ready").await;
 
     loop {
         let event = match select3(
