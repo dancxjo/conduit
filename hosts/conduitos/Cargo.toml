@@ -39,12 +39,20 @@ test = false
 bench = false
 required-features = ["ia32-a0"]
 
+[[bin]]
+name = "conduitos-riscv64-a0"
+path = "src/bin/riscv64_a0.rs"
+test = false
+bench = false
+required-features = ["riscv64-a0"]
+
 [features]
 default = []
 aarch64-a0 = []
 aarch64-a2 = []
 aarch64-a3 = []
 ia32-a0 = []
+riscv64-a0 = []
 
 [dependencies]
 conduit-core = { path = "../../crates/conduit-core" }
