@@ -1,13 +1,14 @@
 //! Finite software rendering for the native Patchbay surface.
 
-use font8x8::UnicodeFonts;
+use crate::canvas::{softbuffer_to_rgb888, SoftwareCanvas};
+use crate::font::{BitmapFont, GLYPH_HEIGHT};
+use embedded_graphics::prelude::Point;
 use patchbay_model::{PatchbayTheme, PHOSPHOR_THEME};
 
 pub const BACKGROUND: u32 = PHOSPHOR_THEME.background.packed_rgb();
 const LEFT_MARGIN: usize = 16;
 const TOP_MARGIN: usize = 16;
-const GLYPH_ADVANCE: usize = 8;
-const LINE_ADVANCE: usize = 11;
+const LINE_ADVANCE: usize = 19;
 
 pub fn draw_document(buffer: &mut [u32], width: usize, height: usize, lines: &[String]) {
     draw_vertical_rule(
@@ -20,26 +21,27 @@ pub fn draw_document(buffer: &mut [u32], width: usize, height: usize, lines: &[S
         PHOSPHOR_THEME.structure_secondary.packed_rgb(),
     );
     for (line_index, line) in lines.iter().enumerate() {
-        let y = TOP_MARGIN + line_index * LINE_ADVANCE;
-        if y + 8 >= height {
+        let y = TOP_MARGIN.saturating_add(line_index.saturating_mul(LINE_ADVANCE));
+        if y.saturating_add(GLYPH_HEIGHT) > height {
             break;
         }
         let heading = is_heading(line);
         let color = line_color(&PHOSPHOR_THEME, line, heading);
-        for (character_index, character) in line.chars().enumerate() {
-            let x = LEFT_MARGIN + character_index * GLYPH_ADVANCE;
-            if x + 8 >= width {
-                break;
-            }
-            draw_character(buffer, width, x, y, character, color);
-        }
+        let mut canvas = SoftwareCanvas::new(buffer, width, height);
+        let _ = BitmapFont::draw_text(
+            &mut canvas,
+            Point::new(LEFT_MARGIN as i32, y as i32),
+            line,
+            softbuffer_to_rgb888(color),
+        )
+        .expect("software canvas drawing is infallible");
         if heading {
             draw_horizontal_rule(
                 buffer,
                 width,
                 height,
                 LEFT_MARGIN,
-                y.saturating_add(9),
+                y.saturating_add(GLYPH_HEIGHT + 1),
                 width.saturating_sub(LEFT_MARGIN.saturating_mul(2)).min(96),
                 PHOSPHOR_THEME.structure_primary.packed_rgb(),
             );
@@ -76,6 +78,15 @@ fn line_color(theme: &PatchbayTheme, line: &str, heading: bool) -> u32 {
     }
 }
 
+fn drawable_rows(buffer: &[u32], width: usize, height: usize) -> usize {
+    if width == 0 {
+        return 0;
+    }
+    let complete = buffer.len() / width;
+    let partial = usize::from(!buffer.len().is_multiple_of(width));
+    complete.saturating_add(partial).min(height)
+}
+
 fn draw_vertical_rule(
     buffer: &mut [u32],
     width: usize,
@@ -85,7 +96,8 @@ fn draw_vertical_rule(
     length: usize,
     color: u32,
 ) {
-    for row in y..y.saturating_add(length).min(height) {
+    let rows = drawable_rows(buffer, width, height);
+    for row in y..y.saturating_add(length).min(rows) {
         if let Some(pixel) = row
             .checked_mul(width)
             .and_then(|offset| offset.checked_add(x))
@@ -105,7 +117,7 @@ fn draw_horizontal_rule(
     length: usize,
     color: u32,
 ) {
-    if y >= height {
+    if y >= drawable_rows(buffer, width, height) {
         return;
     }
     for column in x..x.saturating_add(length).min(width) {
@@ -115,33 +127,6 @@ fn draw_horizontal_rule(
             .and_then(|index| buffer.get_mut(index))
         {
             *pixel = color;
-        }
-    }
-}
-
-fn draw_character(
-    buffer: &mut [u32],
-    width: usize,
-    x: usize,
-    y: usize,
-    character: char,
-    color: u32,
-) {
-    let glyph = font8x8::BASIC_FONTS
-        .get(character)
-        .or_else(|| font8x8::BASIC_FONTS.get('?'))
-        .unwrap_or([0; 8]);
-    for (row, bits) in glyph.iter().enumerate() {
-        for column in 0..8 {
-            if bits & (1 << column) != 0 {
-                if let Some(pixel) = (y + row)
-                    .checked_mul(width)
-                    .and_then(|offset| offset.checked_add(x + column))
-                    .and_then(|index| buffer.get_mut(index))
-                {
-                    *pixel = color;
-                }
-            }
         }
     }
 }

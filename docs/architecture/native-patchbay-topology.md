@@ -30,8 +30,12 @@ retained state changes. The presentation has a hard 256-line limit and fails
 instead of silently truncating report facts inside that bound.
 
 `patchbay-native` renders those lines into a software pixel buffer using a
-small built-in bitmap font. `winit`, `softbuffer`, and font rendering remain in
-the native adapter; `patchbay-model` has no toolkit dependency. The
+build-validated, fixed GNU Unifont subset behind a renderer-local
+`embedded-graphics` drawing target. Glyph lookup is allocation-free and the
+adapter clips every pixel against both declared dimensions and the actual
+finite slice. `winit`, `softbuffer`, drawing coordinates, glyph identities,
+and font rendering remain in the native adapter; `patchbay-model` has no
+toolkit dependency. The
 `--observatory-snapshot PATH` option reads one ordinary JSON snapshot artifact,
 validates it through Observatory, and does not discover, control, or persist
 the reported subjects.
