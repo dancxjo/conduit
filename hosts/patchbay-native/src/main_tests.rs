@@ -351,3 +351,76 @@ fn graphical_selection_rejects_stale_and_invented_hit_candidates() {
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();
 }
+
+#[test]
+fn invalid_request_construction_restores_interaction_state() {
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-invalid-request-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("hello.conduit");
+    std::fs::write(&path, include_str!("../../../examples/hello.conduit")).unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+
+    let graph = application.graphical_form.as_ref().unwrap();
+    let valid = graph
+        .subject_ref(graph.subject_identities().next().unwrap())
+        .unwrap();
+    let mut oversized = valid.clone();
+    oversized.subject_identity = "x".repeat(129);
+    assert!(application
+        .handle_gui_action(GuiAction::SelectSubject(oversized))
+        .unwrap_err()
+        .contains("InvalidIdentity"));
+    assert!(application.interaction.is_some());
+    application
+        .handle_gui_action(GuiAction::SelectSubject(valid))
+        .unwrap();
+
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
+fn native_invocation_adapter_distinguishes_stale_target_and_platform_failure() {
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-action-outcome-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("hello.conduit");
+    std::fs::write(&path, include_str!("../../../examples/hello.conduit")).unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+    let target = application
+        .graphical_form
+        .as_ref()
+        .unwrap()
+        .expanded_form_id
+        .as_str()
+        .to_owned();
+
+    assert_eq!(
+        application.apply_invocation(&patchbay_model::PatchbayInvocation {
+            action: patchbay_model::PatchbayAction::Save,
+            target_identity: "expanded/stale".into(),
+        }),
+        patchbay_model::PatchbayInvocationOutcome::Refused(
+            patchbay_model::PatchbayRefusal::StalePresentation
+        )
+    );
+
+    std::fs::remove_file(&path).unwrap();
+    std::fs::remove_dir(&directory).unwrap();
+    assert_eq!(
+        application.apply_invocation(&patchbay_model::PatchbayInvocation {
+            action: patchbay_model::PatchbayAction::Save,
+            target_identity: target,
+        }),
+        patchbay_model::PatchbayInvocationOutcome::Failed
+    );
+}

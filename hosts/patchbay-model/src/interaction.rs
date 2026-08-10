@@ -86,6 +86,13 @@ pub enum PatchbayRefusal {
     OperationRejected,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PatchbayInvocationOutcome {
+    Succeeded,
+    Refused(PatchbayRefusal),
+    Failed,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InteractionDisposition {
     Succeeded,

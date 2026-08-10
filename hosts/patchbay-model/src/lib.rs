@@ -53,7 +53,8 @@ pub use graphical_patchbay::{
 pub use interaction::{
     InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction,
     PatchbayInteraction, PatchbayInteractionRequest, PatchbayInteractionRequestId,
-    PatchbayInvocation, PatchbayRefusal, MAX_INTERACTION_HISTORY, MAX_INTERACTION_VALUE_BYTES,
+    PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal, MAX_INTERACTION_HISTORY,
+    MAX_INTERACTION_VALUE_BYTES,
 };
 pub use portable_demo::portable_demonstration;
 pub use portable_projection::PortableProjectionError;

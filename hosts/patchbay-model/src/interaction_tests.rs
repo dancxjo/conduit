@@ -1,6 +1,6 @@
 use crate::{
     FormEditor, InteractionDisposition, PatchbayAction, PatchbayGraph, PatchbayInteraction,
-    PatchbayInteractionRequest, PatchbayRefusal,
+    PatchbayInteractionRequest, PatchbayInvocationOutcome, PatchbayRefusal,
 };
 use conduit_core::{BootId, ExpandedFormId, HostId};
 use conduit_kernel::KernelEventKind;
@@ -76,7 +76,9 @@ fn stale_and_unknown_selection_refuse_without_replacing_canonical_selection() {
     )
     .unwrap();
     interaction
-        .execute(Some(&graph), accepted, |_| Ok(()))
+        .execute(Some(&graph), accepted, |_| {
+            PatchbayInvocationOutcome::Succeeded
+        })
         .unwrap();
 
     let mut stale = subject.clone();
@@ -85,7 +87,9 @@ fn stale_and_unknown_selection_refuse_without_replacing_canonical_selection() {
         PatchbayInteractionRequest::select(interaction.next_request_id("select").unwrap(), &stale)
             .unwrap();
     let stale_receipt = interaction
-        .execute(Some(&graph), request, |_| Ok(()))
+        .execute(Some(&graph), request, |_| {
+            PatchbayInvocationOutcome::Succeeded
+        })
         .unwrap();
     assert_eq!(
         stale_receipt.disposition,
@@ -101,7 +105,9 @@ fn stale_and_unknown_selection_refuse_without_replacing_canonical_selection() {
     )
     .unwrap();
     let unknown_receipt = interaction
-        .execute(Some(&graph), request, |_| Ok(()))
+        .execute(Some(&graph), request, |_| {
+            PatchbayInvocationOutcome::Succeeded
+        })
         .unwrap();
     assert_eq!(
         unknown_receipt.disposition,
@@ -123,7 +129,7 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     let receipt = interaction
         .execute(None, request, |invocation| {
             invoked = Some(invocation.clone());
-            Ok(())
+            PatchbayInvocationOutcome::Succeeded
         })
         .unwrap();
     assert_eq!(receipt.disposition, InteractionDisposition::Succeeded);
@@ -136,12 +142,25 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     )
     .unwrap();
     let receipt = interaction
-        .execute(None, request, |_| Err(PatchbayRefusal::OperationRejected))
+        .execute(None, request, |_| {
+            PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected)
+        })
         .unwrap();
     assert_eq!(
         receipt.disposition,
         InteractionDisposition::Refused(PatchbayRefusal::OperationRejected)
     );
+
+    let request = PatchbayInteractionRequest::invoke(
+        interaction.next_request_id("birth").unwrap(),
+        PatchbayAction::Birth,
+        "body/count-demo",
+    )
+    .unwrap();
+    let receipt = interaction
+        .execute(None, request, |_| PatchbayInvocationOutcome::Failed)
+        .unwrap();
+    assert_eq!(receipt.disposition, InteractionDisposition::Failed);
 }
 
 #[test]

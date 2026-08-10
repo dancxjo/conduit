@@ -124,7 +124,7 @@ impl PatchbayInteraction {
         invoke: F,
     ) -> Result<InteractionReceipt, InteractionError>
     where
-        F: FnOnce(&PatchbayInvocation) -> Result<(), PatchbayRefusal>,
+        F: FnOnce(&PatchbayInvocation) -> PatchbayInvocationOutcome,
     {
         let expanded = expanded_request(&request)?;
         let planned_request = request_from_expanded(&expanded)?;
@@ -272,16 +272,20 @@ impl PatchbayInteraction {
                         PatchbayInteractionRequest::Invoke { invocation, .. } => {
                             match invoke
                                 .take()
-                                .ok_or(PatchbayRefusal::OperationRejected)
-                                .and_then(|invoke| invoke(invocation))
-                            {
-                                Ok(()) => {
+                                .map_or(PatchbayInvocationOutcome::Failed, |invoke| {
+                                    invoke(invocation)
+                                }) {
+                                PatchbayInvocationOutcome::Succeeded => {
                                     disposition = Some(InteractionDisposition::Succeeded);
                                     completed_outcome()
                                 }
-                                Err(reason) => {
+                                PatchbayInvocationOutcome::Refused(reason) => {
                                     disposition = Some(InteractionDisposition::Refused(reason));
                                     denied_outcome()
+                                }
+                                PatchbayInvocationOutcome::Failed => {
+                                    disposition = Some(InteractionDisposition::Failed);
+                                    failed_outcome()
                                 }
                             }
                         }

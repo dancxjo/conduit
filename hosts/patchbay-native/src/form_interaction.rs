@@ -5,7 +5,7 @@ use super::{
 };
 use patchbay_model::{
     FormEditor, InteractionDisposition, PatchbayAction, PatchbayInteraction,
-    PatchbayInteractionRequest, PatchbayInvocation, PatchbayRefusal,
+    PatchbayInteractionRequest, PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal,
 };
 use winit::keyboard::{Key, NamedKey};
 
@@ -63,26 +63,20 @@ impl PatchbayApplication {
             .interaction
             .take()
             .expect("interaction state is installed");
-        let request = PatchbayInteractionRequest::select(
-            interaction
-                .next_request_id("select")
-                .map_err(|error| format!("interaction request: {error:?}"))?,
-            &subject,
-        )
-        .map_err(|error| format!("interaction request: {error:?}"))?;
         let graph = self.graphical_form.clone();
-        let result = interaction.execute(graph.as_ref(), request, |_| {
-            Err(PatchbayRefusal::OperationUnavailable)
-        });
+        let result = interaction
+            .next_request_id("select")
+            .and_then(|request_id| PatchbayInteractionRequest::select(request_id, &subject))
+            .and_then(|request| {
+                interaction.execute(graph.as_ref(), request, |_| {
+                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
+                })
+            });
         self.interaction = Some(interaction);
         self.finish_interaction(result)
     }
 
     fn dispatch_invocation(&mut self, action: PatchbayAction) -> Result<(), String> {
-        let mut interaction = self
-            .interaction
-            .take()
-            .expect("interaction state is installed");
         let target = self
             .graphical_form
             .as_ref()
@@ -93,18 +87,19 @@ impl PatchbayApplication {
                     .map(|editor| editor.view().open_form)
             })
             .ok_or("canonical Form target is absent")?;
-        let request = PatchbayInteractionRequest::invoke(
-            interaction
-                .next_request_id(action.as_str())
-                .map_err(|error| format!("interaction request: {error:?}"))?,
-            action,
-            target,
-        )
-        .map_err(|error| format!("interaction request: {error:?}"))?;
+        let mut interaction = self
+            .interaction
+            .take()
+            .expect("interaction state is installed");
         let graph = self.graphical_form.clone();
-        let result = interaction.execute(graph.as_ref(), request, |invocation| {
-            self.apply_invocation(invocation)
-        });
+        let result = interaction
+            .next_request_id(action.as_str())
+            .and_then(|request_id| PatchbayInteractionRequest::invoke(request_id, action, target))
+            .and_then(|request| {
+                interaction.execute(graph.as_ref(), request, |invocation| {
+                    self.apply_invocation(invocation)
+                })
+            });
         self.interaction = Some(interaction);
         self.finish_interaction(result)
     }
@@ -123,8 +118,11 @@ impl PatchbayApplication {
         }
     }
 
-    fn apply_invocation(&mut self, invocation: &PatchbayInvocation) -> Result<(), PatchbayRefusal> {
-        let current_target = self
+    pub(super) fn apply_invocation(
+        &mut self,
+        invocation: &PatchbayInvocation,
+    ) -> PatchbayInvocationOutcome {
+        let current_target = match self
             .graphical_form
             .as_ref()
             .map(|graph| graph.expanded_form_id.as_str().to_owned())
@@ -132,10 +130,14 @@ impl PatchbayApplication {
                 self.form_editor
                     .as_ref()
                     .map(|editor| editor.view().open_form)
-            })
-            .ok_or(PatchbayRefusal::OperationUnavailable)?;
+            }) {
+            Some(target) => target,
+            None => {
+                return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
+            }
+        };
         if invocation.target_identity != current_target {
-            return Err(PatchbayRefusal::StalePresentation);
+            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation);
         }
         let result = match invocation.action {
             PatchbayAction::OpenBack => self.open_next_form(),
@@ -155,7 +157,10 @@ impl PatchbayApplication {
             PatchbayAction::Stop => self.control.stop(),
             PatchbayAction::Hold => self.mark_unsatisfied(),
         };
-        result.map_err(|_| PatchbayRefusal::OperationRejected)
+        match result {
+            Ok(()) => PatchbayInvocationOutcome::Succeeded,
+            Err(_) => PatchbayInvocationOutcome::Failed,
+        }
     }
 
     fn open_next_form(&mut self) -> Result<(), String> {
