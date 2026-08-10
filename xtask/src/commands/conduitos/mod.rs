@@ -1,4 +1,5 @@
 mod aarch64_a0;
+mod aarch64_a1;
 mod architecture_matrix;
 mod build;
 mod image;
@@ -89,15 +90,12 @@ impl ConduitosArch {
     }
 
     fn require_boot_backend(self) -> Result<(), ConduitosError> {
-        if self == Self::X86_64 {
+        if matches!(self, Self::X86_64 | Self::Aarch64) {
             Ok(())
         } else {
             Err(ConduitosError::refusal(
                 "unsupported-architecture-boot-backend",
-                format!(
-                    "{} has no accepted ConduitOS boot backend; AArch64 is A0 compile/link only",
-                    self.as_str()
-                ),
+                format!("{} has no accepted ConduitOS boot backend", self.as_str()),
             ))
         }
     }
@@ -151,7 +149,11 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         }
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
-            run::execute(target.arch, opts).map(|_| ())
+            if target.arch == ConduitosArch::Aarch64 {
+                aarch64_a1::run(opts)
+            } else {
+                run::execute(target.arch, opts).map(|_| ())
+            }
         }
         ConduitosCommand::Prove(target) => {
             target.arch.require_boot_backend()?;
@@ -196,11 +198,10 @@ mod tests {
     }
 
     #[test]
-    fn aarch64_is_compile_link_only() {
+    fn aarch64_has_a_bounded_boot_backend() {
         ConduitosArch::Aarch64
             .require_compile_link_backend()
             .unwrap();
-        let error = ConduitosArch::Aarch64.require_boot_backend().unwrap_err();
-        assert_eq!(error.reason, "unsupported-architecture-boot-backend");
+        ConduitosArch::Aarch64.require_boot_backend().unwrap();
     }
 }
