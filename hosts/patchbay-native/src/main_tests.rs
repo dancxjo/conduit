@@ -241,6 +241,75 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
         .handle_gui_action(GuiAction::ToggleLinearView)
         .unwrap();
     assert!(application.linear_view);
+    let actions = application
+        .interaction
+        .as_ref()
+        .unwrap()
+        .history()
+        .filter_map(|receipt| match &receipt.request {
+            patchbay_model::PatchbayInteractionRequest::Invoke { invocation, .. } => {
+                Some(invocation.action)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        actions,
+        [
+            patchbay_model::PatchbayAction::OpenBack,
+            patchbay_model::PatchbayAction::ToggleLinearView
+        ]
+    );
+
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
+fn pointer_and_keyboard_selection_share_the_typed_interaction_path() {
+    use winit::keyboard::{Key, NamedKey};
+
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-input-selection-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("hello.conduit");
+    std::fs::write(&path, include_str!("../../../examples/hello.conduit")).unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+
+    let graph = application.graphical_form.as_ref().unwrap();
+    let pointer = graph
+        .subject_ref(graph.subject_identities().nth(2).unwrap())
+        .unwrap();
+    application
+        .handle_gui_action(GuiAction::SelectSubject(pointer.clone()))
+        .unwrap();
+    assert_eq!(
+        application.selected_graphical_identity(),
+        Some(pointer.subject_identity.as_str())
+    );
+
+    application
+        .handle_form_key(&Key::Named(NamedKey::ArrowRight))
+        .unwrap();
+    let history = application
+        .interaction
+        .as_ref()
+        .unwrap()
+        .history()
+        .collect::<Vec<_>>();
+    assert_eq!(history.len(), 2);
+    assert!(history.iter().all(|receipt| matches!(
+        receipt.request,
+        patchbay_model::PatchbayInteractionRequest::Select { .. }
+    )));
+    assert!(history.iter().all(|receipt| {
+        receipt.disposition == patchbay_model::InteractionDisposition::Succeeded
+            && !receipt.signs.is_empty()
+    }));
 
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();
@@ -268,16 +337,16 @@ fn graphical_selection_rejects_stale_and_invented_hit_candidates() {
     assert!(application
         .handle_gui_action(GuiAction::SelectSubject(stale))
         .unwrap_err()
-        .contains("stale expanded Form"));
-    assert_eq!(application.graphical_selection, 0);
+        .contains("StalePresentation"));
+    assert!(application.selected_graphical_identity().is_none());
 
     let mut invented = candidate;
     invented.subject_identity = "renderer-invented/subject".into();
     assert!(application
         .handle_gui_action(GuiAction::SelectSubject(invented))
         .unwrap_err()
-        .contains("not in the typed graph"));
-    assert_eq!(application.graphical_selection, 0);
+        .contains("UnknownSubject"));
+    assert!(application.selected_graphical_identity().is_none());
 
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();

@@ -100,6 +100,7 @@ pub struct InteractionReceipt {
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
     pub plan_id: PlanId,
+    pub plan: conduit_core::Plan,
     pub active_play_id: ActivePlayId,
     pub disposition: InteractionDisposition,
     pub signs: Vec<conduit_kernel::KernelEvent>,
@@ -160,9 +161,15 @@ impl PatchbayInteraction {
             .rev()
             .take(4)
             .map(|receipt| {
+                let source_kind = match &receipt.request {
+                    PatchbayInteractionRequest::Select { .. } => SELECT_KIND,
+                    PatchbayInteractionRequest::Invoke { .. } => INVOKE_KIND,
+                };
                 format!(
-                    "INTERACTION request={} plan={} play={} disposition={:?} signs={}",
+                    "INTERACTION request={} kind={} gears=request,apply port=request:{} plan={} play={} disposition={:?} signs={}",
                     receipt.request.request_id().as_str(),
+                    source_kind,
+                    REQUEST_VALUE_KIND,
                     receipt.plan_id.as_str(),
                     receipt.active_play_id.as_str(),
                     receipt.disposition,
@@ -412,8 +419,8 @@ fn apply_offer() -> CapabilityOffer {
 fn interaction_limits() -> CapabilityLimits {
     CapabilityLimits {
         max_active_instances: 1,
-        max_queue_items: 1,
-        max_queue_bytes: MAX_INTERACTION_VALUE_BYTES,
+        max_queue_items: 4,
+        max_queue_bytes: MAX_INTERACTION_VALUE_BYTES * 4,
     }
 }
 

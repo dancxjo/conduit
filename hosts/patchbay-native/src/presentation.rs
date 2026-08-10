@@ -191,6 +191,9 @@ impl PatchbayApplication {
                 Err(error) => vec![format!("RENDERER INSPECTION INVALID: {error}")],
             };
             lines.splice(1..1, inspection);
+            if let Some(interaction) = &self.interaction {
+                lines.extend(interaction.lines());
+            }
             return lines;
         }
         let Some(editor) = &self.form_editor else {
@@ -200,6 +203,9 @@ impl PatchbayApplication {
             }
             if let Some(distributed) = &self.distributed_play {
                 lines.extend_from_slice(distributed.lines());
+            }
+            if let Some(interaction) = &self.interaction {
+                lines.extend(interaction.lines());
             }
             lines.truncate(MAX_FORM_PRESENTATION_LINES);
             return lines;
@@ -277,6 +283,9 @@ impl PatchbayApplication {
         }
         if let Some(distributed) = &self.distributed_play {
             lines.extend_from_slice(distributed.lines());
+        }
+        if let Some(interaction) = &self.interaction {
+            lines.extend(interaction.lines());
         }
         lines.truncate(MAX_FORM_PRESENTATION_LINES);
         lines

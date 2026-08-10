@@ -10,12 +10,13 @@ use conduit_kernel::{
     ValueStorage,
 };
 use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use std::collections::BTreeMap;
 
 const NODES: usize = 2;
 const CORDS: usize = 1;
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-const QUEUE_SLOTS: usize = 1;
-const ROUTE_SLOTS: usize = 2;
+const QUEUE_SLOTS: usize = 4;
+const ROUTE_SLOTS: usize = NODES * PORTS;
 const ROUTE_TARGETS: usize = 1;
 const HOST_BINDINGS: usize = NODES;
 const PENDING_REQUESTS: usize = 1;
@@ -136,11 +137,20 @@ impl PatchbayInteraction {
         let hosts = [advertisement.clone()];
         let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
             .map_err(|error| InteractionError::Planning(error.to_string()))?;
-        let plan = conduit_planner::plan_expanded_canonical(
+        let plan = conduit_planner::plan_expanded_canonical_with_options(
             &expanded,
             &hosts,
             &placements,
             &[ConnectionBase::Local],
+            conduit_planner::PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: QUEUE_SLOTS as u16,
+                connection_byte_capacity: MAX_INTERACTION_VALUE_BYTES * QUEUE_SLOTS as u32,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
         )
         .map_err(|error| InteractionError::Planning(error.to_string()))?;
         let fragment = plan
@@ -311,6 +321,7 @@ impl PatchbayInteraction {
             checked_form_id: plan.checked_form_id.clone(),
             expanded_form_id: plan.expanded_form_id.clone(),
             plan_id: plan.plan_id.clone(),
+            plan,
             active_play_id,
             disposition,
             signs: scheduler.signs().events().collect(),

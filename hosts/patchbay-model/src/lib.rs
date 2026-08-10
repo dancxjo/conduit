@@ -81,6 +81,8 @@ mod build_birth_tests;
 #[cfg(test)]
 mod graphical_patchbay_tests;
 #[cfg(test)]
+mod interaction_tests;
+#[cfg(test)]
 mod portable_projection_tests;
 #[cfg(test)]
 mod renderer_execution_tests;
