@@ -6,9 +6,11 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form" }
+conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
 conduit-observatory = { path = "../../crates/conduit-observatory" }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-presentation = { path = "../../crates/conduit-presentation" }
+conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-body = { path = "../../crates/conduit-body" }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }

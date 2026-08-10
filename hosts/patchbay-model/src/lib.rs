@@ -20,6 +20,7 @@ mod control;
 mod cross_host_renderer;
 mod form_editor;
 mod graphical_patchbay;
+mod interaction;
 mod portable_demo;
 mod portable_projection;
 mod renderer_execution;
@@ -48,6 +49,11 @@ pub use graphical_patchbay::{
     PatchbayCord, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
     PatchbayPort, PatchbaySubjectKind, PatchbaySubjectRef, MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS,
     MAX_PATCHBAY_PORTS,
+};
+pub use interaction::{
+    InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction,
+    PatchbayInteraction, PatchbayInteractionRequest, PatchbayInteractionRequestId,
+    PatchbayInvocation, PatchbayRefusal, MAX_INTERACTION_HISTORY, MAX_INTERACTION_VALUE_BYTES,
 };
 pub use portable_demo::portable_demonstration;
 pub use portable_projection::PortableProjectionError;
