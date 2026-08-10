@@ -140,7 +140,10 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_SERIAL_PRESENT "))
         .collect();
-    if presentations != ["HELLO, CONDUITOS"] {
+    if presentations.len() != 2
+        || presentations[0] != "HELLO, CONDUITOS"
+        || presentations[1].as_bytes() != [0; conduit_std_catalog::TICK_ENCODED_LEN as usize]
+    {
         return Err(ConduitosError::refusal(
             "invalid-serial-presentation",
             format!("expected exact bounded text presentation, found {presentations:?}"),
@@ -211,7 +214,7 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
         || sign.arch != "x86_64"
         || sign.build_id != boot.build_id
         || sign.kernel != "conduit-kernel"
-        || sign.scheduler_profile != "conduitos/single-lane-cooperative@1"
+        || sign.scheduler_profile != "conduitos/two-lane-cooperative@1"
         || sign.host_id != boot.host_id
         || sign.boot_id != boot.boot_id
         || sign.pipeline != "check-plan-lower-kernel"
@@ -223,8 +226,8 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
         || !exact_id(&sign.active_play_id)
         || sign.planned_sign_items == 0
         || sign.planned_sign_bytes == 0
-        || sign.cord_item_capacity != 2
-        || sign.cord_byte_capacity != 512
+        || sign.cord_item_capacity != 3
+        || sign.cord_byte_capacity != 192
         || sign.semantic_result != "HELLO, CONDUITOS"
         || sign.allocation_before_play == 0
         || sign.allocation_before_play != sign.allocation_after_play
@@ -233,19 +236,30 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
         || sign.base_count != 7
         || !valid_base_ids
         || sign.memory_arena_bytes != boot.runtime_arena_bytes
-        || sign.execution_lanes != 1
-        || sign.timer_slots != 0
-        || sign.serial_slots != 1
+        || sign.execution_regions != 2
+        || sign.execution_lanes != 2
+        || sign.region_ids != ["region/text", "region/timer"]
+        || sign.lane_resource_ids.len() != 2
+        || sign.lane_resource_ids[0] == sign.lane_resource_ids[1]
+        || sign.lane_resource_ids.iter().any(|id| id.is_empty())
+        || !exact_id(&sign.lane_base_id)
+        || sign.timer_slots != 1
+        || sign.serial_slots != 2
         || sign.serial_maximum_bytes != 256
         || sign.interrupt_fact_slots != 4
         || sign.sign_item_slots != 64
-        || sign.logical_operations != 3
+        || sign.logical_operations != 5
         || sign.kernel_decisions == 0
         || sign.kernel_signs == 0
-        || sign.timer_irq_wakes != 0
-        || sign.serial_presentations != 1
+        || sign.timer_irq_wakes != 1
+        || sign.serial_presentations != 2
         || !sign.clock_monotonic
         || sign.pending_host_operations != 0
+        || !sign.overlap_witness
+        || !sign.timer_pending_during_text_progress
+        || sign.physical_parallelism
+        || sign.preemption
+        || sign.isolation
         || !sign.sse2
     {
         return Err(ConduitosError::refusal(
@@ -284,6 +298,26 @@ fn validate_observatory(
                         && resource.units == 4_096
                 });
                 let exact_effect_realization = match kind {
+                    "time/tick" => {
+                        placement.resources.len() == 2
+                            && placement.resources.iter().any(|resource| {
+                                resource.class_id.as_str() == "conduit.resource/timer-slot@1"
+                                    && resource.units == 1
+                            })
+                            && placement.host_operations.len() == 1
+                            && placement.host_operations[0].contract_id.as_str()
+                                == "conduit.host/wait@1"
+                    }
+                    "presentation/tick" => {
+                        placement.resources.len() == 2
+                            && placement.resources.iter().any(|resource| {
+                                resource.class_id.as_str() == "conduit.resource/presentation-slot@1"
+                                    && resource.units == 1
+                            })
+                            && placement.host_operations.len() == 1
+                            && placement.host_operations[0].contract_id.as_str()
+                                == "conduit.host/present@1"
+                    }
                     "text/literal" => {
                         placement.resources.len() == 1 && placement.host_operations.is_empty()
                     }
@@ -335,6 +369,15 @@ fn validate_observatory(
         "conduit.std/presentation-text@1",
         "conduitos/kernel-serial-text@1",
     );
+    let exact_tick_placements = exact_placement(
+        "time/tick",
+        "conduit.std/time-tick@2",
+        "conduitos/kernel-time-tick@1",
+    ) && exact_placement(
+        "presentation/tick",
+        "conduit.std/presentation-tick@1",
+        "conduitos/kernel-serial-tick@1",
+    );
     let bases_match = snapshot.bases.len() == kernel.base_ids.len()
         && snapshot.bases.iter().all(|base| {
             base.host_id.as_str() == boot.host_id
@@ -351,10 +394,10 @@ fn validate_observatory(
     let base_inventory = exact_base("conduitos.base/memory@1", boot.runtime_arena_bytes)
         && exact_base("conduitos.base/clock@1", 1)
         && exact_base("conduitos.base/timer@1", 1)
-        && exact_base("conduitos.base/serial@1", 1)
+        && exact_base("conduitos.base/serial@1", 2)
         && exact_base("conduitos.base/interrupt@1", 4)
         && exact_base("conduitos.base/idle@1", 1)
-        && exact_base("conduitos.base/execution-lane@1", 1);
+        && exact_base("conduitos.base/execution-lane@1", 2);
     let current_signs = snapshot
         .observations
         .iter()
@@ -367,7 +410,18 @@ fn validate_observatory(
             )
         })
         .count()
-        == 6;
+        == 9;
+    let overlap_sign = snapshot.observations.iter().any(|sign| {
+        matches!(
+            &sign.kind,
+            conduit_core::ObservationKind::ExecutionRegionOverlap {
+                waiting_region_id,
+                progressing_region_id,
+                physical_parallelism: false,
+            } if waiting_region_id.as_str() == "region/timer"
+                && progressing_region_id.as_str() == "region/text"
+        )
+    });
     let historical_signs = [
         conduit_core::ObservationKind::HostStarted,
         conduit_core::ObservationKind::AdvertisementPublished,
@@ -385,24 +439,26 @@ fn validate_observatory(
         .iter()
         .filter(|sign| matches!(sign.kind, conduit_core::ObservationKind::PlacementPrepared))
         .count()
-        == 3;
+        == 5;
     if snapshot.hosts.len() != 1
         || !snapshot.lines.is_empty()
         || snapshot.plans.len() != 1
         || snapshot.plays.len() != 1
-        || snapshot.observations.len() != 6
-        || snapshot.historical_observations.len() != 7
+        || snapshot.observations.len() != 10
+        || snapshot.historical_observations.len() != 9
         || snapshot.sealed_boot_provenance.len() != 1
         || !bases_match
         || !base_inventory
         || !exact_text_placements
+        || !exact_tick_placements
         || !current_signs
+        || !overlap_sign
         || !historical_signs
         || host.is_none_or(|host| {
             host.advertisement.host_id.as_str() != boot.host_id
                 || host.advertisement.boot_id.as_str() != boot.boot_id
                 || host.advertisement.profile.as_str() != kernel.scheduler_profile
-                || host.advertisement.capabilities.len() != 3
+                || host.advertisement.capabilities.len() != 5
                 || !host.advertisement.capabilities.iter().any(|capability| {
                     capability.kind_id.as_str() == "text/upper"
                         && capability.implementation.implementation_id.as_str()
@@ -425,7 +481,7 @@ fn validate_observatory(
                         && capability.limits.max_queue_bytes == 256
                 })
                 || !host.advertisement.planner_capabilities.is_empty()
-                || host.advertisement.resources.len() != 4
+                || host.advertisement.resources.len() != 5
                 || host.state != OperationalState::Available
         })
         || plan.is_none_or(|plan| {
@@ -435,8 +491,27 @@ fn validate_observatory(
                 || plan.expanded_form_id.as_str() != kernel.expanded_form_id
                 || plan.fragments.len() != 1
                 || plan.fragments[0].fragment_id.as_str() != kernel.fragment_id
-                || plan.fragments[0].placements.len() != 3
-                || plan.fragments[0].connections.len() != 2
+                || plan.fragments[0].placements.len() != 5
+                || plan.fragments[0].connections.len() != 3
+                || plan.fragments[0].execution_regions.len() != 2
+                || plan.fragments[0].execution_regions[0].region_id.as_str() != "region/text"
+                || plan.fragments[0].execution_regions[1].region_id.as_str() != "region/timer"
+                || plan.fragments[0].execution_regions[0]
+                    .lane_resource
+                    .pool_id
+                    .as_str()
+                    != kernel.lane_resource_ids[0]
+                || plan.fragments[0].execution_regions[1]
+                    .lane_resource
+                    .pool_id
+                    .as_str()
+                    != kernel.lane_resource_ids[1]
+                || plan.fragments[0].execution_regions.iter().any(|region| {
+                    region.lane_base_id.as_str() != kernel.lane_base_id
+                        || region.lane_count != 1
+                        || region.preemption_required
+                        || region.isolation_required
+                })
                 || plan.fragments[0]
                     .connections
                     .iter()
@@ -456,8 +531,8 @@ fn validate_observatory(
                 || play.host_id.as_str() != boot.host_id
                 || play.boot_id.as_str() != boot.boot_id
                 || play.lifecycle != PlanLifecycle::Completed
-                || play.placements.len() != 3
-                || play.connections.len() != 2
+                || play.placements.len() != 5
+                || play.connections.len() != 3
                 || play.connections.iter().any(|connection| {
                     connection.pressure.as_ref().is_none_or(|pressure| {
                         pressure.current_in_flight_items != Some(0)
@@ -468,7 +543,7 @@ fn validate_observatory(
                 })
         })
         || snapshot.retention.item_capacity != 64
-        || snapshot.retention.retained_items != 13
+        || snapshot.retention.retained_items != 19
         || snapshot.retention.dropped_items != 0
         || provenance.is_none_or(|provenance| {
             provenance.host_id.as_str() != boot.host_id
