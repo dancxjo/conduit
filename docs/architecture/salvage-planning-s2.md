@@ -267,6 +267,6 @@ rather than an unproven S2 plan claim.
 ## Checkpoint
 
 ```text
-just check-planning-s2
-just check
+cargo xtask check planning-s2
+cargo xtask check workspace
 ```

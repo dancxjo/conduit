@@ -17,7 +17,7 @@ Run the proof with:
 
 ```sh
 rustup target add wasm32-unknown-unknown
-just check-browser-s4
+cargo xtask check browser-host
 ```
 
 The Chromium test has one pinned project, one worker, no retries, and no forced interaction. It

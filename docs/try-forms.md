@@ -158,7 +158,7 @@ Focused proof:
 ```bash
 cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
 cargo build -p conduit-std-host --bin webchat-server
-npx playwright test --config hosts/browser/playwright.config.mjs hosts/browser/webchat.spec.mjs --project=chromium
+cargo xtask prove browser-host
 ```
 
 ## Aggregate validation

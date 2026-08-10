@@ -33,7 +33,7 @@ inconsistent retention accounting.
 A normal actual std execution can write its authoritative snapshot:
 
 ```text
-cargo run -p conduit -- examples/signal-demo.form \
+conduit run examples/signal-demo.form \
   --placements examples/std-local.placements \
   --report runtime-report.json
 ```
@@ -41,7 +41,7 @@ cargo run -p conduit -- examples/signal-demo.form \
 Inspection is a separate read-only command:
 
 ```text
-cargo run -p conduit -- observatory-report runtime-report.json
+conduit inspect runtime-report runtime-report.json
 ```
 
 The inspection command only validates, projects, and renders the stored

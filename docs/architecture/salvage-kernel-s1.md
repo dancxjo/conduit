@@ -137,5 +137,5 @@ authority, and observed-link facts before host or catalog expansion.
 ```text
 cargo test -p conduit-kernel --features alloc
 cargo check -p conduit-kernel --target thumbv6m-none-eabi
-just check-kernel-s1
+cargo xtask check kernel-takeover
 ```

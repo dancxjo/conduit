@@ -29,6 +29,10 @@ fn main() {
         Command::Conduitos(args) => commands::conduitos::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Demo(args) => match args.command {
+            DemoCommand::Std => commands::demo::run_std(&opts),
+            DemoCommand::Triple => commands::demo::run_triple(&opts),
+            DemoCommand::Patchbay => commands::demo::run_patchbay(&opts),
+            DemoCommand::Browser => commands::toggle::run(),
             DemoCommand::Toggle => commands::toggle::run(),
             DemoCommand::Site => commands::toggle::run_site(),
         },

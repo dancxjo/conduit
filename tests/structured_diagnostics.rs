@@ -19,7 +19,7 @@ fn form_path(label: &str, source: &str) -> PathBuf {
 
 fn diagnose(path: &Path, json: bool) -> std::process::Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_conduit"));
-    command.args(["diagnose-form", path.to_str().expect("UTF-8 fixture path")]);
+    command.args(["check", path.to_str().expect("UTF-8 fixture path")]);
     if json {
         command.arg("--json");
     }

@@ -14,14 +14,14 @@ The checked semantic forms use the portable M1 kind names:
 The std host can run the local pair form:
 
 ```text
-cargo run -p conduit -- examples/signal-demo.form --placements examples/std-local.placements
+conduit run examples/signal-demo.form --placements examples/std-local.placements
 ```
 
 It can also run the final platform-neutral fan-out form against a local std
 fixture:
 
 ```text
-cargo run -p conduit -- examples/triple-signal.form --placements examples/triple-local.placements
+conduit run examples/triple-signal.form --placements examples/triple-local.placements
 ```
 
 The local triple fixture intentionally places all three `presentation/show` sinks on
