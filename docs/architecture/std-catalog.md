@@ -2,7 +2,7 @@
 
 `conduit-std-catalog` contains two deliberately separate sets:
 
-- `supported_nucleus_contracts()` is the current nine-operation, exactly typed
+- `supported_nucleus_contracts()` is the current ten-operation, exactly typed
   executable standard nucleus. The std reference host advertises these exact
   revisions and executes them through `conduit-kernel`.
 - `standard_contracts()` retains eight pre-S5 compatibility contracts. Those
@@ -60,8 +60,9 @@ behavior, and one installed std-host realization selected before Play start.
 | `presentation/text` | `conduit.std/presentation-text@1` | bounded text input and stdout presentation |
 | `state/count` | `conduit.std/state-count@1` | bounded startup count, closing tick input, current count output; completes when input closes |
 | `presentation/count` | `conduit.std/presentation-count@1` | at most five current count observations presented to stdout |
+| `file/copy` | `conduit.std/file-copy@1` | exact protected source/destination roles; bounded chunked copy through one admitted filesystem operation family |
 
-The std host's `reference()` composition advertises exactly those nine
+The std host's `reference()` composition advertises exactly those ten
 `conduit.std/*` revisions, plus the separately owned typed Signal family. Its
 `minimal()` composition advertises none, and text/time/state families can be
 selected independently. Runtime advertisement—not compilation or category
@@ -75,7 +76,7 @@ presentation effects, terminal results, and bounded Sign. The canonical
 tests also reject malformed values, bound overflow, temporal mismatch, and
 selected-realization mutation before effects.
 
-All nine contracts and their catalog data remain `no_std` compatible. Their
+All ten contracts and their catalog data remain `no_std` compatible. Their
 installed execution adapters are hosted separately under `hosts/std`. Their
 browser and Pico manifestation flags remain false: compatible faces or related
 Signal operations do not transfer implementation proof.
