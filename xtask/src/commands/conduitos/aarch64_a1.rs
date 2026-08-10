@@ -43,7 +43,7 @@ struct A1Proof {
     limine_archive_sha256: &'static str,
     limine_efi_artifact: &'static str,
     emulator_profile: &'static str,
-    firmware: &'static str,
+    firmware: String,
     qemu_version: String,
     iso_sha256: String,
     reproducible_image: bool,
@@ -105,7 +105,7 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         limine_archive_sha256: LIMINE_ARCHIVE_SHA256,
         limine_efi_artifact: "BOOTAA64.EFI",
         emulator_profile: AARCH64_QEMU_PROFILE,
-        firmware: FIRMWARE,
+        firmware: firmware_path().to_string_lossy().into_owned(),
         qemu_version: qemu_version(&paths)?,
         iso_sha256: sha256_file(&paths.iso)?,
         reproducible_image: true,
@@ -136,10 +136,14 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
             "BOOTAA64.EFI is absent",
         ));
     }
-    if !std::path::Path::new(FIRMWARE).is_file() {
+    let firmware = firmware_path();
+    if !firmware.is_file() {
         return Err(ConduitosError::refusal(
             "unavailable-aarch64-firmware",
-            format!("required repository profile firmware is absent: {FIRMWARE}"),
+            format!(
+                "required repository profile firmware is absent: {}",
+                firmware.display()
+            ),
         ));
     }
     let mut child = Command::new("qemu-system-aarch64")
@@ -149,7 +153,7 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
             "-cpu",
             "cortex-a72",
             "-m",
-            "64M",
+            "256M",
             "-smp",
             "1",
             "-display",
@@ -164,7 +168,12 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
             "-semihosting-config",
             "enable=on,target=native",
             "-bios",
-            FIRMWARE,
+            firmware.to_str().ok_or_else(|| {
+                ConduitosError::refusal(
+                    "unavailable-aarch64-firmware",
+                    "firmware path is not UTF-8",
+                )
+            })?,
             "-cdrom",
             paths.iso.to_str().unwrap(),
             "-boot",
@@ -211,8 +220,9 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
         ConduitosError::refusal("malformed-aarch64-entry-sign", error.to_string())
     })?;
     let signs: Vec<_> = serial
-        .lines()
-        .filter_map(|line| line.strip_prefix(SIGN_PREFIX))
+        .split(SIGN_PREFIX)
+        .skip(1)
+        .filter_map(|suffix| suffix.lines().next())
         .collect();
     if signs.len() != 1 {
         return Err(ConduitosError::refusal(
@@ -229,6 +239,12 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
     })?;
     validate(&sign, paths)?;
     Ok(sign)
+}
+
+fn firmware_path() -> std::path::PathBuf {
+    std::env::var_os("CONDUITOS_AARCH64_UEFI_FIRMWARE")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| FIRMWARE.into())
 }
 
 fn validate(sign: &EntrySign, paths: &Paths) -> Result<(), ConduitosError> {

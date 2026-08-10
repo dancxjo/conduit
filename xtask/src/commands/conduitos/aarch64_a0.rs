@@ -191,7 +191,7 @@ fn inspect_elf(bytes: &[u8]) -> Result<ElfFacts, ConduitosError> {
         || bytes[4] != 2
         || bytes[5] != 1
         || bytes[6] != 1
-        || bytes[7] != 0
+        || !matches!(bytes[7], 0 | 3)
     {
         return Err(invalid("expected a little-endian ELF64 artifact"));
     }

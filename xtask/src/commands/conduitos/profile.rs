@@ -10,7 +10,7 @@ pub const LIMINE_ARCHIVE_SHA256: &str =
 pub const LIMINE_ARCHIVE_URL: &str =
     "https://github.com/limine-bootloader/limine/releases/download/v12.5.2/limine-binary.tar.gz";
 pub const QEMU_PROFILE: &str = "q35-single-cpu-64m-headless";
-pub const AARCH64_QEMU_PROFILE: &str = "qemu-virt-single-cpu-64m-uefi-semihosting";
+pub const AARCH64_QEMU_PROFILE: &str = "qemu-virt-single-cpu-256m-uefi-semihosting";
 pub const EXPECTED_QEMU_SUCCESS: i32 = 33;
 pub const COMMON_BACKBONE_TARGETS: &[&str] = &[
     "i686-unknown-uefi",

@@ -4,30 +4,45 @@
 #[cfg(not(target_arch = "aarch64"))]
 compile_error!("conduitos-aarch64-a0 is only an AArch64 compile/link artifact");
 
+use core::cell::UnsafeCell;
 use core::panic::PanicInfo;
+
+#[repr(C)]
+struct BaseRevision(UnsafeCell<[u64; 3]>);
+
+unsafe impl Sync for BaseRevision {}
+
+#[used]
+#[unsafe(link_section = ".requests_start_marker")]
+static REQUESTS_START: [u64; 4] = [
+    0xf6b8_f4b3_9de7_d1ae,
+    0xfab9_1a69_40fc_b9cf,
+    0x785c_6ed0_15d3_e316,
+    0x181e_920a_7852_b9d9,
+];
+
+#[used]
+#[unsafe(link_section = ".requests")]
+static BASE_REVISION: BaseRevision = BaseRevision(UnsafeCell::new([
+    0xf956_2b2d_5c95_a6c8,
+    0x6a7b_3849_4453_6bdc,
+    6,
+]));
+
+#[used]
+#[unsafe(link_section = ".requests_end_marker")]
+static REQUESTS_END: [u64; 2] = [0xadc0_e053_1bb1_0d03, 0x9572_709f_3176_4c62];
 
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
 const IMAGE_ID: &str = env!("CONDUITOS_IMAGE_ID");
 
 /// The accepted A0 entry now supplies the deliberately tiny A1 proof path.
-/// Semihosting is an emulator test-exit mechanism only; it is not a runtime
-/// Base and must not be used by later ConduitOS proof rungs.
+/// Semihosting output and the PSCI test exit are emulator proof mechanisms
+/// only; neither is a runtime Base or available to later proof rungs.
 #[unsafe(no_mangle)]
 pub extern "C" fn conduitos_aarch64_a0_start() -> ! {
     let nonce = counter();
-    write0(
-        "CONDUIT_AARCH64_ENTRY_SIGN {\"schema\":\"conduit.conduitos.aarch64-entry-sign/v1\",\"status\":\"entered\",\"architecture\":\"aarch64\",\"build_id\":\"",
-    );
-    write0(BUILD_ID);
-    write0("\",\"image_id\":\"");
-    write0(IMAGE_ID);
-    write0(
-        "\",\"bootloader\":\"Limine 12.5.2/BOOTAA64.EFI\",\"emulator_profile\":\"qemu-virt-single-cpu-64m-uefi-semihosting\",\"host_id\":\"host-aarch64-",
-    );
-    write_hex(nonce.rotate_left(17) ^ 0x434f_4e44_5549_544f);
-    write0("\",\"boot_id\":\"boot-aarch64-");
-    write_hex(nonce ^ 0x4152_4348_3634_0001);
-    write0("\"}\n");
+    emit_sign(nonce);
     exit(true)
 }
 
@@ -37,30 +52,46 @@ fn counter() -> u64 {
     value
 }
 
-fn write_hex(value: u64) {
-    let mut bytes = [0_u8; 17];
-    for (index, byte) in bytes[..16].iter_mut().enumerate() {
+fn emit_sign(nonce: u64) {
+    let mut buffer = [0_u8; 512];
+    let mut length = 0;
+    append(&mut buffer, &mut length, b"CONDUIT_AARCH64_ENTRY_SIGN {\"schema\":\"conduit.conduitos.aarch64-entry-sign/v1\",\"status\":\"entered\",\"architecture\":\"aarch64\",\"build_id\":\"");
+    append(&mut buffer, &mut length, BUILD_ID.as_bytes());
+    append(&mut buffer, &mut length, b"\",\"image_id\":\"");
+    append(&mut buffer, &mut length, IMAGE_ID.as_bytes());
+    append(&mut buffer, &mut length, b"\",\"bootloader\":\"Limine 12.5.2/BOOTAA64.EFI\",\"emulator_profile\":\"qemu-virt-single-cpu-256m-uefi-semihosting\",\"host_id\":\"host-aarch64-");
+    append_hex(
+        &mut buffer,
+        &mut length,
+        nonce.rotate_left(17) ^ 0x434f_4e44_5549_544f,
+    );
+    append(&mut buffer, &mut length, b"\",\"boot_id\":\"boot-aarch64-");
+    append_hex(&mut buffer, &mut length, nonce ^ 0x4152_4348_3634_0001);
+    append(&mut buffer, &mut length, b"\"}\n");
+    semihost(0x04, buffer.as_ptr() as usize);
+}
+
+fn append(buffer: &mut [u8; 512], length: &mut usize, value: &[u8]) {
+    let end = *length + value.len();
+    buffer[*length..end].copy_from_slice(value);
+    *length = end;
+}
+
+fn append_hex(buffer: &mut [u8; 512], length: &mut usize, value: u64) {
+    let mut bytes = [0_u8; 16];
+    for (index, byte) in bytes.iter_mut().enumerate() {
         let shift = (15 - index) * 4;
         *byte = b"0123456789abcdef"[((value >> shift) & 0xf) as usize];
     }
-    write0(unsafe { core::str::from_utf8_unchecked(&bytes) });
-}
-
-fn write0(text: &str) {
-    let bytes = text.as_bytes();
-    let mut offset = 0;
-    while offset < bytes.len() {
-        let length = core::cmp::min(bytes.len() - offset, 255);
-        let mut buffer = [0_u8; 256];
-        buffer[..length].copy_from_slice(&bytes[offset..offset + length]);
-        semihost(0x04, buffer.as_ptr() as usize);
-        offset += length;
-    }
+    append(buffer, length, &bytes);
 }
 
 fn exit(success: bool) -> ! {
-    let block = [0x20026_usize, usize::from(!success)];
-    semihost(0x20, block.as_ptr() as usize);
+    if success {
+        unsafe {
+            core::arch::asm!("hvc #0", in("x0") 0x8400_0008_u64, options(noreturn));
+        }
+    }
     loop {
         core::hint::spin_loop();
     }
