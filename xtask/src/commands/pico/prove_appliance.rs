@@ -84,10 +84,19 @@ pub fn run_prove_pico_appliance(
         .and_then(|name| name.to_str())
         .ok_or("Pico sign port has no stable hardware identity")?
         .to_owned();
-    let sign_file = std::fs::OpenOptions::new().read(true).open(&sign_path)?;
+    let sign_file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&sign_path)?;
     conduit_std_host::usb_cdc::configure_cdc_port(&sign_file, 0, 100).map_err(|error| {
         format!(
             "failed configuring Pico appliance sign port {}: {error}",
+            sign_path.display()
+        )
+    })?;
+    conduit_std_host::usb_cdc::assert_dtr(&sign_file).map_err(|error| {
+        format!(
+            "failed asserting DTR on Pico appliance sign port {}: {error}",
             sign_path.display()
         )
     })?;
