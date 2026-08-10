@@ -6,7 +6,7 @@ use super::{
     aarch64_a0, ia32_a0,
     profile::{Paths, COMMON_BACKBONE_TARGETS},
     report::{git_head, sha256_file, BuildRecord},
-    ConduitosArch, ConduitosError,
+    riscv64_a0, ConduitosArch, ConduitosError,
 };
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
@@ -15,6 +15,9 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, Co
     }
     if arch == ConduitosArch::Aarch64 {
         return aarch64_a0::execute(opts);
+    }
+    if arch == ConduitosArch::Riscv64 {
+        return riscv64_a0::execute(opts);
     }
     let paths = Paths::new(arch)?;
     if opts.dry_run {

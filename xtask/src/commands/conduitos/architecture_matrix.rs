@@ -7,7 +7,7 @@ use crate::cli::GlobalOpts;
 use super::{
     aarch64_a0, image,
     profile::{Paths, LIMINE_ARCHIVE_SHA256, LIMINE_ARCHIVE_URL, LIMINE_VERSION},
-    ConduitosArch, ConduitosError,
+    riscv64_a0, ConduitosArch, ConduitosError,
 };
 
 const SCHEMA: &str = "conduit.conduitos/architecture-matrix@1";
@@ -112,8 +112,11 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
     let ordinary_form_accepted = full_spine_accepted || arch == ConduitosArch::Aarch64;
     let observatory_patchbay_accepted = ordinary_form_accepted;
     let machine_wake_accepted = full_spine_accepted || arch == ConduitosArch::Aarch64;
-    let compile_link_accepted =
-        boot_accepted || matches!(arch, ConduitosArch::Ia32 | ConduitosArch::Aarch64);
+    let compile_link_accepted = boot_accepted
+        || matches!(
+            arch,
+            ConduitosArch::Ia32 | ConduitosArch::Aarch64 | ConduitosArch::Riscv64
+        );
     let (artifact, target, blocker) = match arch {
         ConduitosArch::Ia32 => (
             "BOOTIA32.EFI",
@@ -124,8 +127,8 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         ConduitosArch::Aarch64 => ("BOOTAA64.EFI", aarch64_a0::TARGET, ""),
         ConduitosArch::Riscv64 => (
             "BOOTRISCV64.EFI",
-            "riscv64gc-unknown-none-elf",
-            "no accepted RISC-V64 ConduitOS executable backend",
+            riscv64_a0::TARGET,
+            "A0 compile/link accepted; A1 boot not established",
         ),
         ConduitosArch::Loongarch64 => (
             "BOOTLOONGARCH64.EFI",
@@ -168,7 +171,7 @@ mod tests {
                 .iter()
                 .filter(|row| row.executable_backend_present)
                 .count(),
-            3
+            4
         );
         let aarch64 = matrix
             .architectures
@@ -188,6 +191,14 @@ mod tests {
         assert!(ia32.executable_backend_present);
         assert!(ia32.a0_compile_link);
         assert!(!ia32.a1_boot);
+        let riscv64 = matrix
+            .architectures
+            .iter()
+            .find(|row| row.architecture == "riscv64")
+            .unwrap();
+        assert!(riscv64.executable_backend_present);
+        assert!(riscv64.a0_compile_link);
+        assert!(!riscv64.a1_boot);
     }
 
     #[test]
