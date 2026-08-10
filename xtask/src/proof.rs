@@ -254,6 +254,24 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         allowed_claims: &["one physical client associates with the exact finite Pico W appliance, receives its bounded DHCP lease, resolves hello.conduit, loads the literal Hello response, and observes the exact terminal Sign sequence"],
     },
     ProofCommandContract {
+        id: "pico.appliance-hello-two-pico-physical",
+        command: "cargo xtask prove pico-appliance-hil --link-port <appliance-cdc0> --sign-port <appliance-cdc1> --client-link-port <client-cdc0>",
+        proof_class: ProofClass::PhysicalLocalHardware,
+        required_tools_or_targets: &[
+            "two Pico W boards",
+            "two exact USB CDC pairs",
+            "physical 2.4 GHz radio path",
+        ],
+        named_artifacts: &[
+            "target/pico-appliance-hil/appliance.uf2",
+            "target/pico-appliance-hil/appliance.identity.json",
+            "target/pico-appliance-hil/client.uf2",
+            "target/pico-appliance-hil/client.identity.json",
+            "target/pico-appliance-two-pico-physical.json",
+        ],
+        allowed_claims: &["one physical Pico W client associates with the exact finite Pico W appliance, receives its bounded DHCP lease, resolves hello.conduit, loads the literal Hello response, and correlates its exact receipt with the appliance terminal Sign sequence"],
+    },
+    ProofCommandContract {
         id: "copy.unfamiliar-user",
         command: "target/debug/conduit copy <source> <destination> --inspect",
         proof_class: ProofClass::ManualObservation,

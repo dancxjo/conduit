@@ -313,6 +313,23 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
+        "check.pico-appliance-hil.dry-run",
+        "Dry-run verify of the exact two-Pico AP/DHCP/DNS/HTTP Hello proof",
+        "cargo",
+        &[
+            "xtask",
+            "prove",
+            "pico-appliance-hil",
+            "--link-port",
+            "appliance-link-fixture",
+            "--sign-port",
+            "appliance-sign-fixture",
+            "--client-link-port",
+            "client-link-fixture",
+            "--dry-run",
+        ],
+    ),
+    Step::new(
         "check.r1-new-plan-recovery-hil.dry-run",
         "Dry-run verify of the physical R1 WebSocket-to-USB new-Plan proof",
         "cargo",

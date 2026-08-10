@@ -62,6 +62,14 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             )
             .map_err(|error| StepError::prereq("prove.pico-appliance", error.to_string()))
         }
+        ProveTarget::PicoApplianceHil => crate::commands::pico::run_prove_pico_appliance_hil(
+            args.link_port.as_deref(),
+            args.sign_port.as_deref(),
+            args.client_link_port.as_deref(),
+            args.client_sign_port.as_deref(),
+            opts.dry_run,
+        )
+        .map_err(|error| StepError::prereq("prove.pico-appliance-hil", error.to_string())),
         ProveTarget::PicoWebsocketRoute => {
             let pico_args = crate::commands::pico::PicoArgs {
                 dry_run: opts.dry_run,

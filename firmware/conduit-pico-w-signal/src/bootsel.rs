@@ -4,11 +4,17 @@ use core::fmt::Write as _;
 use embassy_time::{Duration, Timer};
 use heapless::String;
 
-#[cfg(all(not(feature = "wifi-bootstrap"), not(feature = "appliance-hello")))]
+#[cfg(all(
+    not(feature = "wifi-bootstrap"),
+    not(feature = "appliance-hello"),
+    not(feature = "appliance-hil-client")
+))]
 use crate::signal_image::FIRMWARE_BUILD_ID;
 #[cfg(feature = "wifi-bootstrap")]
 use crate::network_image::FIRMWARE_BUILD_ID;
 #[cfg(feature = "appliance-hello")]
+const FIRMWARE_BUILD_ID: &str = env!("CONDUIT_PICO_APPLIANCE_BUILD_ID");
+#[cfg(feature = "appliance-hil-client")]
 const FIRMWARE_BUILD_ID: &str = env!("CONDUIT_PICO_APPLIANCE_BUILD_ID");
 use crate::usb_link::{UsbLinkError, UsbLinkSession};
 
