@@ -1,6 +1,9 @@
 use conduit_system_continuity::R1SignalRouteSet;
 
-use super::appliance_identity::{ApplianceFirmwareIdentity, ApplianceGeneratedImageIdentity};
+use super::appliance_identity::{
+    ApplianceFirmwareIdentity, ApplianceGeneratedImageIdentity, ApplianceHilClientFirmwareIdentity,
+    ApplianceHilClientGeneratedImageIdentity, APPLIANCE_HIL_CLIENT_ARTIFACT,
+};
 use super::doctor::{CYW43_ASSETS, CYW43_COMMIT};
 use super::firmware::{AssetEntry, FirmwareIdentity, GeneratedImageIdentity, R1ControlImageFamily};
 
@@ -201,4 +204,43 @@ fn appliance_manifest_seals_radio_service_offer_and_bounds() {
     let mut enlarged_bound = identity;
     enlarged_bound.appliance_image.maximum_dhcp_leases += 1;
     assert!(enlarged_bound.verify().is_err());
+}
+
+#[test]
+fn appliance_hil_client_manifest_is_fixture_only_and_exact() {
+    let mut identity = ApplianceHilClientFirmwareIdentity {
+        schema: "conduit-pico-w-signal/appliance-hil-client-identity@1".into(),
+        git_revision: "revision".into(),
+        target: "thumbv6m-none-eabi".into(),
+        profile: "release".into(),
+        firmware_mode: "appliance-hil-client".into(),
+        firmware_build_id: "client-build".into(),
+        firmware_sha256: "a".repeat(64),
+        client_image: ApplianceHilClientGeneratedImageIdentity {
+            schema: "conduit.pico-appliance/hil-client-image@1".into(),
+            firmware_mode: "appliance-hil-client".into(),
+            firmware_build_id: "client-build".into(),
+            image_artifact: APPLIANCE_HIL_CLIENT_ARTIFACT.into(),
+            fixture_only: true,
+            ssid: conduit_net::APPLIANCE_SSID.into(),
+            open_ap: true,
+            server_address: conduit_net::DHCP_SERVER_ADDRESS,
+            local_name: conduit_net::APPLIANCE_LOCAL_NAME.into(),
+            hello_body: conduit_net::APPLIANCE_HELLO_BODY.into(),
+            maximum_http_request_bytes: conduit_net::MAXIMUM_HTTP_REQUEST_BYTES,
+            maximum_http_response_bytes: conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES,
+        },
+        cyw43_commit: CYW43_COMMIT.into(),
+        cyw43_assets: CYW43_ASSETS
+            .iter()
+            .map(|(filename, sha256)| AssetEntry {
+                filename: (*filename).into(),
+                sha256: (*sha256).into(),
+            })
+            .collect(),
+    };
+    identity.verify().unwrap();
+
+    identity.client_image.fixture_only = false;
+    assert!(identity.verify().is_err());
 }

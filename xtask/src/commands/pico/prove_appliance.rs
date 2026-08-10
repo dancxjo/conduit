@@ -173,7 +173,7 @@ pub fn run_prove_pico_appliance(
     Ok(())
 }
 
-fn require_clean_exact_commit() -> PicoResult<String> {
+pub(super) fn require_clean_exact_commit() -> PicoResult<String> {
     let root = repo_root();
     let status = Command::new("git")
         .args(["status", "--porcelain"])
@@ -192,14 +192,17 @@ fn require_clean_exact_commit() -> PicoResult<String> {
     Ok(String::from_utf8(commit.stdout)?.trim().to_owned())
 }
 
-fn physical_timestamp() -> PicoResult<String> {
+pub(super) fn physical_timestamp() -> PicoResult<String> {
     let seconds = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
     Ok(format!("unix:{seconds}"))
 }
 
-fn wait_for_ports(link: Option<&str>, sign: Option<&str>) -> PicoResult<(PathBuf, PathBuf)> {
+pub(super) fn wait_for_ports(
+    link: Option<&str>,
+    sign: Option<&str>,
+) -> PicoResult<(PathBuf, PathBuf)> {
     let deadline = Instant::now() + PHYSICAL_TIMEOUT;
     loop {
         match resolve_dual_ports(link, sign) {
@@ -317,7 +320,7 @@ fn prove_http() -> PicoResult<()> {
     Ok(())
 }
 
-fn verify_signs(
+pub(super) fn verify_signs(
     mut reader: impl BufRead,
     firmware_build_id: &str,
     leased_address: &str,
