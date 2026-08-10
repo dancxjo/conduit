@@ -1,27 +1,31 @@
 //! Allocation-independent installation of the lowered ordinary text Plan.
 
+use crate::text_kernel_operations::{
+    LiteralOperation, LiteralState, PlannedOperation, PresentationOperation, UpperOperation,
+};
 use conduit_core::{ConfigurationValue, PlanFragment};
+#[cfg(test)]
+use conduit_kernel::RequestId;
 use conduit_kernel::{
     BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, KernelEvent, NodeId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
+    HostOperationDisposition, HostOperationOutcome, KernelEvent, NodeId, SignSink, ValueRef,
+    ValueStorage,
     scheduler::{
         FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
     },
 };
 use conduit_runtime::lowering::{LoweredPlanFragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
 
-const PRESENT_REQUEST: RequestId = RequestId(2);
-const MAX_NODES: usize = 2;
-const MAX_CORDS: usize = 1;
+const MAX_NODES: usize = 3;
+const MAX_CORDS: usize = 2;
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-const QUEUE_SLOTS: usize = 1;
+const QUEUE_SLOTS: usize = 2;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
-const ROUTE_TARGETS: usize = 1;
-const HOST_BINDING_SLOTS: usize = 4;
-const PENDING_REQUESTS: usize = 2;
-const VALUE_SLOTS: usize = 4;
-const VALUE_BYTES: usize = (conduit_std_catalog::MAX_TEXT_BYTES as usize) * 2;
+const ROUTE_TARGETS: usize = 2;
+const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+const PENDING_REQUESTS: usize = 3;
+const VALUE_SLOTS: usize = 6;
+const VALUE_BYTES: usize = (conduit_std_catalog::MAX_TEXT_BYTES as usize) * 3;
 const SIGN_CAPACITY: usize = 64;
 
 type Driver = OperationDriver<PlannedOperation, PORTS>;
@@ -39,162 +43,9 @@ type Scheduler = FixedScheduler<
     PENDING_REQUESTS,
 >;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum LiteralState {
-    Emitting,
-    Complete,
-    Cancelled,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct LiteralOperation {
-    text: ValueRef,
-    state: LiteralState,
-}
-
-impl Operation for LiteralOperation {
-    fn start(&mut self) -> OperationAction {
-        self.state = LiteralState::Emitting;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.text,
-        }
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(11)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.state == LiteralState::Emitting {
-            self.state = LiteralState::Complete;
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    fn cancel(&mut self) {
-        self.state = LiteralState::Cancelled;
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct PresentationOperation {
-    pending: bool,
-    complete: bool,
-}
-
-impl Operation for PresentationOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending => {
-                let Ok(input) = BoundedValueRef::new(value, conduit_std_catalog::MAX_TEXT_BYTES)
-                else {
-                    return invalid(20);
-                };
-                self.pending = true;
-                OperationAction::RequestHostOperation {
-                    request: PRESENT_REQUEST,
-                    operation: conduit_kernel::HostOperationId(0),
-                    input,
-                }
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if request == PRESENT_REQUEST
-                    && self.pending
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = false;
-                self.complete = true;
-                OperationAction::Await
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if request == PRESENT_REQUEST
-                    && self.pending
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
-            {
-                OperationAction::Fail(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::Cancelled,
-                    detail: 22,
-                })
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if request == PRESENT_REQUEST
-                    && self.pending
-                    && outcome.disposition == HostOperationDisposition::Failed =>
-            {
-                OperationAction::Fail(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::HostOperationFailed,
-                    detail: 23,
-                })
-            }
-            OperationInput::Closed { port: PortId(0) } if self.complete && !self.pending => {
-                OperationAction::Complete
-            }
-            _ => invalid(21),
-        }
-    }
-
-    fn cancel(&mut self) {
-        self.pending = false;
-    }
-}
-
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
-        code: conduit_kernel::FailureCode::InvalidLifecycle,
-        detail,
-    })
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum PlannedOperation {
-    Literal(LiteralOperation),
-    Presentation(PresentationOperation),
-}
-
-impl Operation for PlannedOperation {
-    fn start(&mut self) -> OperationAction {
-        match self {
-            Self::Literal(operation) => operation.start(),
-            Self::Presentation(operation) => operation.start(),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Literal(operation) => operation.resume(input),
-            Self::Presentation(operation) => operation.resume(input),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Literal(operation) => operation.advance(),
-            Self::Presentation(operation) => operation.advance(),
-        }
-    }
-
-    fn cancel(&mut self) {
-        match self {
-            Self::Literal(operation) => operation.cancel(),
-            Self::Presentation(operation) => operation.cancel(),
-        }
-    }
-}
-
 pub struct TextPlannedKernel {
     scheduler: Scheduler,
+    upper_node: NodeId,
     presentation_node: NodeId,
 }
 
@@ -219,6 +70,13 @@ impl TextPlannedKernel {
                 placement.kind_id.as_str() == conduit_std_catalog::TEXT_PRESENTATION_KIND
             })
             .ok_or(SchedulerError::InvalidPlan)?;
+        let upper_index = fragment
+            .placements
+            .iter()
+            .position(|placement| {
+                placement.kind_id.as_str() == conduit_std_catalog::TEXT_UPPER_KIND
+            })
+            .ok_or(SchedulerError::InvalidPlan)?;
         let literal = configured_text(&fragment.placements[literal_index].configuration, "value")?;
         let text = values.store(literal.as_bytes())?;
         let nodes = lowered
@@ -226,7 +84,7 @@ impl TextPlannedKernel {
             .as_slice()
             .try_into()
             .map_err(|_| SchedulerError::InvalidPlan)?;
-        let cords = [lowered.cords[0].spec];
+        let cords = [lowered.cords[0].spec, lowered.cords[1].spec];
         let mut routes = FixedRoutes::<ROUTE_SLOTS, ROUTE_TARGETS>::new(PORTS as u16);
         for route in &lowered.routes {
             routes.install(
@@ -251,17 +109,30 @@ impl TextPlannedKernel {
                 pending: false,
                 complete: false,
             }))?;
-        let drivers = if literal_index == 0 {
-            [literal_driver, presentation_driver]
-        } else {
-            [presentation_driver, literal_driver]
+        let upper_driver = OperationDriver::new(PlannedOperation::Upper(UpperOperation {
+            pending: false,
+            emitted: false,
+        }))?;
+        let mut drivers = [None, None, None];
+        drivers[literal_index] = Some(literal_driver);
+        drivers[upper_index] = Some(upper_driver);
+        drivers[presentation_index] = Some(presentation_driver);
+        let [Some(first), Some(second), Some(third)] = drivers else {
+            return Err(SchedulerError::InvalidPlan);
         };
         let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
         let signs = FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
         Ok(Self {
             scheduler: FixedScheduler::new_with_host_operations(
-                nodes, cords, routes, bindings, drivers, values, signs,
+                nodes,
+                cords,
+                routes,
+                bindings,
+                [first, second, third],
+                values,
+                signs,
             )?,
+            upper_node: NodeId(upper_index as u16),
             presentation_node: NodeId(presentation_index as u16),
         })
     }
@@ -297,6 +168,28 @@ impl TextPlannedKernel {
             },
         )
     }
+
+    pub fn complete_upper(
+        &mut self,
+        request: HostOperationRequest,
+        output: &[u8],
+    ) -> Result<(), SchedulerError> {
+        if !self.is_upper_request(&request) {
+            return Err(SchedulerError::InvalidHostOperationAccess);
+        }
+        let value = self.scheduler.store_host_value(output)?;
+        let output = BoundedValueRef::new(value, conduit_std_catalog::MAX_TEXT_BYTES)
+            .map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
+        self.scheduler.complete_host_operation(
+            request.node,
+            request.request,
+            HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(output),
+                failure: None,
+            },
+        )
+    }
     #[cfg(test)]
     fn fail_presentation(&mut self, request: HostOperationRequest) -> Result<(), SchedulerError> {
         if !self.is_presentation_request(&request) {
@@ -318,6 +211,9 @@ impl TextPlannedKernel {
     pub fn is_presentation_request(&self, request: &HostOperationRequest) -> bool {
         request.node == self.presentation_node
             && request.operation == conduit_kernel::HostOperationId(0)
+    }
+    pub fn is_upper_request(&self, request: &HostOperationRequest) -> bool {
+        request.node == self.upper_node && request.operation == conduit_kernel::HostOperationId(0)
     }
 
     pub fn cancel(&mut self) -> Result<(), SchedulerError> {
@@ -374,10 +270,10 @@ fn validate_shape(
         || fragment.connections.len() != MAX_CORDS
         || lowered.nodes.len() != MAX_NODES
         || lowered.cords.len() != MAX_CORDS
-        || lowered.routes.len() != 1
-        || lowered.host_operations.len() != 1
-        || lowered.cord_value_slots != 1
-        || lowered.cord_value_bytes != crate::ordinary_plan::TEXT_LITERAL.len() as u32
+        || lowered.routes.len() != 2
+        || lowered.host_operations.len() != 2
+        || lowered.cord_value_slots != 2
+        || lowered.cord_value_bytes != conduit_std_catalog::MAX_TEXT_BYTES * 2
         || !lowered.remote_endpoints.is_empty()
     {
         return Err(SchedulerError::InvalidPlan);
@@ -392,8 +288,25 @@ fn validate_shape(
         .iter()
         .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::TEXT_PRESENTATION_KIND)
         .ok_or(SchedulerError::InvalidPlan)?;
+    let upper = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::TEXT_UPPER_KIND)
+        .ok_or(SchedulerError::InvalidPlan)?;
     if literal.implementation_id.as_str() != crate::offer::TEXT_LITERAL_IMPLEMENTATION
+        || upper.implementation_id.as_str() != crate::offer::TEXT_UPPER_IMPLEMENTATION
         || presentation.implementation_id.as_str() != crate::offer::TEXT_PRESENTATION_IMPLEMENTATION
+        || upper.host_operations.len() != 1
+        || upper.host_operations[0].contract_id.as_str()
+            != conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT
+        || upper.host_operations[0]
+            .target_kind
+            .as_ref()
+            .map(|kind| kind.as_str())
+            != Some(conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_TARGET)
+        || upper.host_operations[0].maximum_in_flight != 1
+        || upper.host_operations[0].maximum_input_bytes != conduit_std_catalog::MAX_TEXT_BYTES
+        || upper.host_operations[0].maximum_output_bytes != conduit_std_catalog::MAX_TEXT_BYTES
         || configured_text(&literal.configuration, "value")? != crate::ordinary_plan::TEXT_LITERAL
         || configured_u64(&presentation.configuration, "maximum-values")?
             != conduit_std_catalog::MAX_TEXT_VALUES
@@ -462,6 +375,33 @@ mod tests {
     }
 
     #[test]
+    fn mutated_upper_effect_identity_is_rejected_before_play() {
+        let identities = BootIdentities {
+            host: [1; 32],
+            boot: [2; 32],
+        };
+        let offer = HostOffer::new(
+            &identities,
+            "build",
+            CpuFeatures {
+                sse2: true,
+                rdrand: true,
+                invariant_tsc: true,
+            },
+            256 * 1024,
+        );
+        let prepared = ordinary_plan::prepare(&identities, &offer, "build").unwrap();
+        let mut fragment = prepared.plan.fragments[0].clone();
+        let upper = fragment
+            .placements
+            .iter_mut()
+            .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::TEXT_UPPER_KIND)
+            .unwrap();
+        upper.host_operations[0].target_kind = Some(conduit_core::KindId::from("wrong/transform"));
+        assert!(conduit_runtime::lowering::lower_plan_fragment(&fragment).is_err());
+    }
+
+    #[test]
     fn presentation_base_loss_remains_a_distinct_terminal_failure() {
         let mut kernel = kernel();
         let request = loop {
@@ -470,10 +410,25 @@ mod tests {
                 Ok(SchedulerStatus::Progress { .. })
             ));
             if let Some(request) = kernel.next_host_request() {
-                break request;
+                if kernel.is_upper_request(&request) {
+                    let input = kernel.host_value(request.input.value).unwrap();
+                    let output = crate::text_upper::uppercase(input).unwrap();
+                    let bytes = output.as_bytes().to_vec();
+                    kernel.complete_upper(request, &bytes).unwrap();
+                } else {
+                    break request;
+                }
             }
         };
         kernel.fail_presentation(request).unwrap();
-        assert_eq!(kernel.step(), Err(SchedulerError::OperationFailed(23)));
+        loop {
+            match kernel.step() {
+                Ok(SchedulerStatus::Progress { .. }) => {}
+                outcome => {
+                    assert_eq!(outcome, Err(SchedulerError::OperationFailed(23)));
+                    break;
+                }
+            }
+        }
     }
 }

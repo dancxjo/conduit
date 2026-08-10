@@ -21,12 +21,11 @@ fn ordinary_semantics_match_the_materially_different_std_realization() {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut catalog = conduit_form::ProfileCatalog::new();
     conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog).unwrap();
-    let syntax = conduit_form::parse_syntax_document(
-        "form conduitos-text-hello {\n    \"Hello from ConduitOS\" > presentation/text\n}\n",
-    );
+    let syntax =
+        conduit_form::parse_syntax_document(conduitos::ordinary_plan::ORDINARY_FORM_SOURCE);
     let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
-        conduit_form::expand_canonical_form(&checked, "conduitos-text-hello", &catalog).unwrap();
+        conduit_form::expand_canonical_form(&checked, "conduitos-text-upper", &catalog).unwrap();
     let identities = BootIdentities {
         host: [1; 32],
         boot: [2; 32],
@@ -65,7 +64,7 @@ fn ordinary_semantics_match_the_materially_different_std_realization() {
         .unwrap();
     let output = String::from_utf8(output).unwrap();
     assert!(timer.0.is_empty());
-    assert!(output.contains("\nHello from ConduitOS\n"));
+    assert!(output.contains("\nHELLO, CONDUITOS\n"));
     let kernel = report
         .kernel
         .expect("ordinary std realization uses conduit-kernel");
