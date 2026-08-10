@@ -186,3 +186,55 @@ fn maximum_short_text_crosses_the_bounded_interaction_envelope() {
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();
 }
+
+#[test]
+fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-face-pointer-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("controls.conduit");
+    std::fs::write(
+        &path,
+        "form controls {\n    clock: time/every(freq = 25ms)\n}\n",
+    )
+    .unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+    let graph = application.graphical_form.as_ref().unwrap();
+    let mut pixels = vec![super::BACKGROUND; 1_100 * 720];
+    application.hit_targets = super::gui::draw_patchbay(
+        &mut pixels,
+        1_100,
+        720,
+        graph,
+        super::gui::PatchbayViewContext {
+            selected: None,
+            lifecycle: &Default::default(),
+            palette_query: "",
+            presentation_layout: &application.layout,
+        },
+    );
+    // The first control is inside the first Gear rectangle. Later control hit
+    // geometry must win over that containing selection target.
+    application.cursor_position = (220.0, 150.0);
+    application.handle_canvas_press().unwrap();
+    assert_eq!(
+        application.graphical_form.as_ref().unwrap().gears[0].controls[0].value,
+        ConfigurationValue::U64(24)
+    );
+    assert!(application
+        .interaction
+        .as_ref()
+        .unwrap()
+        .history()
+        .any(|receipt| {
+            matches!(&receipt.request,
+            patchbay_model::PatchbayInteractionRequest::Invoke { invocation, .. }
+                if invocation.action == patchbay_model::PatchbayAction::ConfigureGear)
+        }));
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
