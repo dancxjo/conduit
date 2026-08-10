@@ -8,6 +8,7 @@ adapter or physical proof.
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, node-scoped correlated host operations, cancellation, and exact local/remote-plan numeric lowering | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, cancellation, exact signal/multi-value lowering, remote pressure/delivery, and zero-allocation Play start vectors | same scheduler with preallocated hosted storage; installed Signal pair, local and remote three-target fan-out, typed multi-value std profiles, distributed Signal, and admitted Play start/toggle sources execute through it; unsupported forms fail closed without a production legacy pump | browser/WASM Signal and toggle sinks execute exact remote-ingress fragments through the same scheduler before bounded DOM presentation | Pico W firmware consumes generated fixed kernel tables for exact local, std→Pico, and final three-host fragments; its active kernel/transport storage remains finite | bounded loopback WebSocket and physical USB CDC remote Cords; Bases own Line I/O only | exact Pico-local, std↔Pico, and final std/browser/Pico board runs recorded |
 | Exact local timing profile | platform-neutral deadline requirement remains separate from boot-scoped clock/timer/execution offers and the exact Plan timing/resource basis | deterministic-emulator proof admits one 1,000 µs local Plan with a sealed 730 µs worst-case basis, refuses a 100 µs request before Play, and keeps met/missed/Base-loss/cancelled/stale outcomes distinct | the accepted strict path runs the existing fixed `conduit-kernel` scheduler with zero successful heap allocations and exact Plan/Play-correlated timing Signs; inspection is excluded | no browser timing claim | no firmware timing claim | local only; no remote guarantee | no physical timing claim; any future claim requires separate pinned-hardware proof |
+| ConduitOS cooperative execution region | ordinary Plan truth seals one exact admitted placement set, cooperative bounded-step profile, selected execution-lane resource/Base, and existing finite memory/timer/Cord/Sign bounds; preemption and isolation are explicitly false | resealed lane-requirement and unavailable-lane vectors refuse before Play | the unchanged ordinary Form runs through the existing production kernel and Observatory/Patchbay linearly projects the immutable region | no browser execution-lane claim | one x86_64 freestanding-emulator Host offers and validates one boot-scoped lane | local only; no connectivity fact | no SMP, second lane, preemption, isolation, physical scheduling, or HIL claim |
 | Exact plan, play, Sign, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued Sign identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/Play start mutation, unique Sign, wrong-presentation identity, wrong session identity, generated-image mutation, firmware-build mismatch, and runtime-identity mutation vectors | yes, std preparation enforces S2 truth and distributed sources bind exact plan/fragment/play/link/connection identities | browser sinks independently reconstruct and lower exact fragments and reject stale/wrong session facts | generated image and manifest bind source/checked/expanded/plan/fragment identities and clean firmware build identity; runtime-generated boot/play plus presentation/sign identities are carried in USB records and checked across physical sessions | live sessions verify exact base instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | matching physical receipts retain exact plan/fragment/play/presentation/sign/link/base/boot/build identity |
 | Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal Sign, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
 | Canonical Form execution corpus | canonical face/back source, declarative startup binding, recursive expansion, exact checked-face compatibility including temporal shape, and distinct source/checked/expanded/Plan identities | Programs 1–4 deterministic positive/negative corpus; Program 6 exact two-host planning and link-failure vectors | real std `text/*`, `time/every`, `state/count`, and presentation leaves execute through the existing kernel with bounded Sign and stable capacity | Program 6 browser/WASM sink executes the unchanged canonical Signal source's exact remote fragment | no new firmware claim | actual loopback WebSocket carries the Program 6 Conduit session; it is not an authored external WebSocket operation | no new physical/HIL claim |
@@ -40,6 +41,10 @@ The `check` workflow requires:
   execution, arena, Cord, wake, Base scratch, mandatory Sign, and fault-reserve
   bounds; pre-Play unschedulable refusal; zero-allocation strict execution; and
   distinct met, missed, Base-loss, cancellation, and stale-basis Signs;
+- one exact ConduitOS cooperative execution region with an admitted Gear set,
+  bounded-step profile, single selected boot-scoped lane resource/Base, sealed
+  existing memory/timer/Cord/Sign bounds, explicit no-preemption/no-isolation,
+  pre-Play stale/wrong/unavailable-lane refusal, and immutable linear inspection;
 - one bounded deterministic ConduitOS portable-std inventory/gap report derived
   from current supported-nucleus contract and offer truth, with a semantic
   content digest, exact Host build/profile basis, and complete implemented or
@@ -692,3 +697,25 @@ This is an inventory and gap proof only. It advertises no missing capability
 and changes no semantic implementation, scheduler, Base, planner, runtime,
 device/network behavior, or physical claim. Follow-on work must promote one
 small implementation family rather than reopening an aggregate mega-slice.
+
+The ConduitOS cooperative execution-region slice from #711 is accepted at
+exact main `354c6c27a24aa87c71e4ad7ca45b486fccdae9b2`; push workflow
+`31398132917` passed `check`, `browser-host`, and `conduitos-boot`. The
+unchanged ordinary platform-neutral Form now produces one exact Plan region
+containing its two admitted placements, the
+`conduitos/cooperative-bounded-step@1` profile, one selected boot-scoped
+execution-lane resource and initialized Base identity, and explicit false
+preemption and isolation requirements.
+
+The region seals the already-planned 8,192 runtime-memory bytes, one timer
+slot, capacity-one eight-byte Cord, and mandatory Sign item/byte budgets.
+Core Plan verification binds those facts into fragment and Plan identity;
+ConduitOS additionally revalidates the single lane against the current Host
+offer before lowering or Play. A validly resealed two-lane mutation and an
+unavailable lane both refuse before Play. Observatory and native Patchbay
+render the same immutable region through the ordinary linear projection.
+
+This remains `freestanding-emulator` proof of the already-accepted single
+cooperative lane. It adds no per-Gear task, thread, process, or context
+identity; SMP, second lane, context switching, preemption, isolation, new
+scheduler, transport, physical scheduling, and HIL remain outside the claim.
