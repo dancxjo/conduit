@@ -15,9 +15,11 @@ use winit::window::{Window, WindowId};
 const HISTORY_CAPACITY: usize = 4;
 mod arguments;
 mod build_birth;
+mod canvas;
 mod control;
 mod distributed_play;
 mod file_task;
+mod font;
 mod presentation;
 mod render;
 mod renderer_adapter;
@@ -496,6 +498,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 #[path = "main_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "canvas_tests.rs"]
+mod canvas_tests;
+
+#[cfg(test)]
+#[path = "font_tests.rs"]
+mod font_tests;
 
 #[cfg(test)]
 #[path = "render_tests.rs"]
