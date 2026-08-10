@@ -1299,6 +1299,11 @@ pub enum ObservationKind {
     PlanFragmentReceived,
     PlacementPrepared,
     PlanPlayStarted,
+    ExecutionRegionOverlap {
+        waiting_region_id: ExecutionRegionId,
+        progressing_region_id: ExecutionRegionId,
+        physical_parallelism: bool,
+    },
     ValueProduced {
         value: ValuePayload,
     },

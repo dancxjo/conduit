@@ -182,6 +182,51 @@ pub fn tick_profile_catalog() -> conduit_form::ProfileCatalog {
     catalog
 }
 
+#[cfg(feature = "form-catalog")]
+pub fn install_tick_pipeline_catalogs(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    use conduit_form::{KindSignature, StartupParameterSignature};
+    startup.insert(KindSignature {
+        kind: super::TICK_KIND.to_string(),
+        startup_parameters: vec![
+            StartupParameterSignature {
+                name: "count".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("4".to_string()),
+            },
+            StartupParameterSignature {
+                name: "period-ms".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("1000".to_string()),
+            },
+        ],
+    })?;
+    startup.insert(KindSignature {
+        kind: super::TICK_PRESENTATION_KIND.to_string(),
+        startup_parameters: vec![StartupParameterSignature {
+            name: "maximum-values".to_string(),
+            value_type: "Count".to_string(),
+            default: Some("4".to_string()),
+        }],
+    })?;
+    let tick = tick_profile_catalog();
+    let presentation = super::tick_presentation_kind_definition();
+    let tick_kind_id = conduit_core::kind_id(super::TICK_KIND);
+    profile
+        .insert(
+            tick.get(&tick_kind_id)
+                .expect("tick profile contains its exact kind")
+                .clone(),
+        )
+        .map_err(|error| error.to_string())?;
+    profile
+        .insert(presentation)
+        .map_err(|error| error.to_string())?;
+    Ok(())
+}
+
 pub fn parse_tick_configuration(
     entries: &[ConfigurationEntry],
 ) -> Result<TickConfiguration, TickContractError> {

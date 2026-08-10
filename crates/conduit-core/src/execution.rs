@@ -36,6 +36,9 @@ pub struct ExecutionRegionRequirements {
 }
 
 pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
+    if fragment.execution_regions.is_empty() {
+        return true;
+    }
     let mut region_ids = fragment
         .execution_regions
         .iter()
@@ -45,11 +48,12 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
     if region_ids.windows(2).any(|pair| pair[0] == pair[1]) {
         return false;
     }
-    let placement_ids = fragment
+    let mut placement_ids = fragment
         .placements
         .iter()
         .map(|p| &p.placement_id)
         .collect::<Vec<_>>();
+    placement_ids.sort();
     let mut admitted = Vec::new();
     for region in &fragment.execution_regions {
         if region.region_id.as_str().is_empty()
@@ -74,17 +78,24 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
             fragment
                 .placements
                 .iter()
+                .filter(|p| region.admitted_placements.contains(&p.placement_id))
                 .flat_map(|p| &p.resources)
                 .filter(|r| r.class_id.as_str() == class)
                 .try_fold(0u32, |total, r| total.checked_add(r.units))
         };
-        let cord_items = fragment.connections.iter().try_fold(0u32, |total, c| {
+        let mut region_connections = fragment.connections.iter().filter(|connection| {
+            region
+                .admitted_placements
+                .contains(&connection.source_placement_id)
+                && region
+                    .admitted_placements
+                    .contains(&connection.sink_placement_id)
+        });
+        let cord_items = region_connections.clone().try_fold(0u32, |total, c| {
             total.checked_add(u32::from(c.item_capacity))
         });
-        let cord_bytes = fragment
-            .connections
-            .iter()
-            .try_fold(0u32, |total, c| total.checked_add(c.byte_capacity));
+        let cord_bytes =
+            region_connections.try_fold(0u32, |total, c| total.checked_add(c.byte_capacity));
         if resource_total(RUNTIME_MEMORY_RESOURCE_CLASS)
             != Some(region.requirements.runtime_memory_bytes)
             || resource_total(TIMER_RESOURCE_CLASS) != Some(region.requirements.timer_slots)
@@ -111,5 +122,17 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
         admitted.extend(region.admitted_placements.iter());
     }
     admitted.sort();
-    !admitted.windows(2).any(|pair| pair[0] == pair[1])
+    if admitted.windows(2).any(|pair| pair[0] == pair[1]) || admitted != placement_ids {
+        return false;
+    }
+    fragment.connections.iter().all(|connection| {
+        fragment.execution_regions.iter().any(|region| {
+            region
+                .admitted_placements
+                .contains(&connection.source_placement_id)
+                && region
+                    .admitted_placements
+                    .contains(&connection.sink_placement_id)
+        })
+    })
 }
