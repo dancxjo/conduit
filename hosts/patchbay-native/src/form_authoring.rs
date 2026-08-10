@@ -181,6 +181,11 @@ impl PatchbayApplication {
             PatchbayAction::RemoveGear => {
                 direct_gear_name(fields[3]).and_then(|name| editor.remove_gear(revision, name))
             }
+            PatchbayAction::RemoveCord => editor.remove_cord(
+                revision,
+                &conduit_core::ExpandedFormId::from(fields[2]),
+                fields[3],
+            ),
             PatchbayAction::ConnectPorts => editor.connect_ports(
                 revision,
                 &conduit_core::ExpandedFormId::from(fields[2]),

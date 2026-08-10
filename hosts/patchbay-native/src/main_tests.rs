@@ -426,6 +426,42 @@ fn typed_cord_duplicate_and_remove_use_ordinary_interactions_and_persist() {
         .unwrap();
 
     let graph = application.graphical_form.as_ref().unwrap();
+    let cord = graph.subject_ref(&graph.cords[0].identity).unwrap();
+    application
+        .handle_gui_action(GuiAction::SelectSubject(cord))
+        .unwrap();
+    assert!(application
+        .handle_form_key(&winit::keyboard::Key::Named(
+            winit::keyboard::NamedKey::Delete,
+        ))
+        .unwrap());
+    assert!(application
+        .graphical_form
+        .as_ref()
+        .unwrap()
+        .cords
+        .is_empty());
+
+    let graph = application.graphical_form.as_ref().unwrap();
+    let source = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "making/literal")
+        .and_then(|gear| gear.outputs.first())
+        .and_then(|port| graph.subject_ref(&port.identity).ok())
+        .unwrap();
+    let sink = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "making/upper")
+        .and_then(|gear| gear.inputs.first())
+        .and_then(|port| graph.subject_ref(&port.identity).ok())
+        .unwrap();
+    application
+        .handle_gui_action(GuiAction::ConnectPorts { source, sink })
+        .unwrap();
+
+    let graph = application.graphical_form.as_ref().unwrap();
     let literal = graph.subject_ref("gear/making/literal").unwrap();
     application
         .handle_gui_action(GuiAction::DuplicateGear(literal))
@@ -477,6 +513,7 @@ fn typed_cord_duplicate_and_remove_use_ordinary_interactions_and_persist() {
         })
         .collect::<Vec<_>>();
     assert!(actions.contains(&patchbay_model::PatchbayAction::ConnectPorts));
+    assert!(actions.contains(&patchbay_model::PatchbayAction::RemoveCord));
     assert!(actions.contains(&patchbay_model::PatchbayAction::DuplicateGear));
     assert!(actions.contains(&patchbay_model::PatchbayAction::RemoveGear));
     drop(application);

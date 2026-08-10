@@ -206,6 +206,51 @@ impl FormEditor {
         self.apply_candidate(candidate)
     }
 
+    /// Removes one exact direct authored Cord from the current expanded graph.
+    pub fn remove_cord(
+        &mut self,
+        offered_revision: u64,
+        offered_expanded_form_id: &conduit_core::ExpandedFormId,
+        cord_identity: &str,
+    ) -> Result<(), FormEditorError> {
+        self.require_revision(offered_revision)?;
+        let expanded = self.expand_form(&self.open_form)?;
+        let graph = PatchbayGraph::from_expanded(&expanded)
+            .map_err(|error| FormEditorError::Catalog(error.to_string()))?;
+        if &graph.expanded_form_id != offered_expanded_form_id {
+            return Err(FormEditorError::StaleGraphBasis);
+        }
+        let cord = graph
+            .cords
+            .iter()
+            .find(|cord| cord.identity == cord_identity)
+            .ok_or_else(|| FormEditorError::UnknownCord(cord_identity.into()))?;
+        let source = direct_port_reference(&self.open_form, &cord.source_port, "output")?;
+        let sink = direct_port_reference(&self.open_form, &cord.sink_port, "input")?;
+        let form = self.open_graph_form()?;
+        let (cord, item) = form
+            .cords
+            .iter()
+            .zip(
+                form.items
+                    .iter()
+                    .filter(|item| item.kind == GraphItemKind::Cord),
+            )
+            .find(|(cord, _)| {
+                cord.stages.as_slice()
+                    == [
+                        crate::GraphCordStage::Reference(source.clone()),
+                        crate::GraphCordStage::Reference(sink.clone()),
+                    ]
+            })
+            .ok_or_else(|| FormEditorError::UnknownCord(cord_identity.into()))?;
+        debug_assert_eq!(cord.stages.len(), 2);
+        let (start, end) = line_range(&self.source, item.source_span.start, item.source_span.end);
+        let mut candidate = self.source.clone();
+        candidate.replace_range(start..end, "");
+        self.apply_candidate(candidate)
+    }
+
     fn require_revision(&self, offered: u64) -> Result<(), FormEditorError> {
         if offered != self.revision {
             return Err(FormEditorError::StaleRevision {
@@ -270,6 +315,25 @@ fn direct_gear_name(form: &str, gear_id: &str) -> Result<String, FormEditorError
         return Err(FormEditorError::NestedGearEditUnsupported(gear_id.into()));
     }
     Ok(name.into())
+}
+
+fn direct_port_reference(
+    form: &str,
+    identity: &str,
+    direction: &str,
+) -> Result<String, FormEditorError> {
+    let prefix = format!("port/{form}/");
+    let suffix = identity
+        .strip_prefix(&prefix)
+        .ok_or_else(|| FormEditorError::UnknownPort(identity.into()))?;
+    let marker = format!("/{direction}/");
+    let (gear, port) = suffix
+        .split_once(&marker)
+        .ok_or_else(|| FormEditorError::UnknownPort(identity.into()))?;
+    if gear.contains('/') || port.contains('/') || gear.is_empty() || port.is_empty() {
+        return Err(FormEditorError::NestedGearEditUnsupported(identity.into()));
+    }
+    Ok(format!("{gear}.{port}"))
 }
 
 fn line_range(source: &str, start: usize, end: usize) -> (usize, usize) {
