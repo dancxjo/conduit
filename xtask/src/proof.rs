@@ -238,6 +238,22 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         allowed_claims: &["std and Pico kernels complete one exact physical cross-host USB session"],
     },
     ProofCommandContract {
+        id: "pico.appliance-hello-physical",
+        command: "cargo xtask prove pico-appliance --client-interface <name>",
+        proof_class: ProofClass::PhysicalLocalHardware,
+        required_tools_or_targets: &[
+            "Pico W",
+            "USB CDC Sign port",
+            "NetworkManager Wi-Fi client",
+            "physical 2.4 GHz radio path",
+        ],
+        named_artifacts: &[
+            "firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2",
+            "target/pico-appliance-physical.json",
+        ],
+        allowed_claims: &["one physical client associates with the exact finite Pico W appliance, receives its bounded DHCP lease, resolves hello.conduit, loads the literal Hello response, and observes the exact terminal Sign sequence"],
+    },
+    ProofCommandContract {
         id: "copy.unfamiliar-user",
         command: "target/debug/conduit copy <source> <destination> --inspect",
         proof_class: ProofClass::ManualObservation,

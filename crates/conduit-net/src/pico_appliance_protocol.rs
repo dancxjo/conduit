@@ -26,6 +26,10 @@ pub enum ApplianceFailure {
     MissingRadioArtifact,
     RadioInitializationFailed,
     DhcpPoolExhausted,
+    MalformedDhcpRequest,
+    OversizedDhcpRequest,
+    DhcpAddressMismatch,
+    DhcpServerMismatch,
     MalformedDnsRequest,
     OversizedDnsRequest,
     MalformedHttpRequest,
@@ -100,6 +104,12 @@ pub struct DhcpLeasePool {
     available: bool,
 }
 
+impl DhcpLeasePool {
+    pub(crate) fn available(&self) -> bool {
+        self.available
+    }
+}
+
 impl Default for DhcpLeasePool {
     fn default() -> Self {
         Self {
@@ -170,6 +180,34 @@ pub fn answer_appliance_dns(request: &[u8], output: &mut [u8]) -> Result<usize, 
     cursor += 2;
     output[cursor..cursor + 4].copy_from_slice(&[192, 168, 4, 1]);
     Ok(response_len)
+}
+
+pub fn encode_appliance_dns_query(
+    transaction_id: u16,
+    output: &mut [u8],
+) -> Result<usize, ApplianceFailure> {
+    let required = DNS_HEADER_BYTES + APPLIANCE_LOCAL_NAME.len() + 2 + 4;
+    if output.len() < required {
+        return Err(ApplianceFailure::ResponseBufferTooSmall);
+    }
+    output[..required].fill(0);
+    output[..2].copy_from_slice(&transaction_id.to_be_bytes());
+    output[2..4].copy_from_slice(&0x0100_u16.to_be_bytes());
+    output[4..6].copy_from_slice(&1_u16.to_be_bytes());
+    let mut cursor = DNS_HEADER_BYTES;
+    for label in APPLIANCE_LOCAL_NAME.split('.') {
+        output[cursor] = label.len() as u8;
+        cursor += 1;
+        output[cursor..cursor + label.len()].copy_from_slice(label.as_bytes());
+        cursor += label.len();
+    }
+    output[cursor] = 0;
+    cursor += 1;
+    output[cursor..cursor + 2].copy_from_slice(&DNS_TYPE_A.to_be_bytes());
+    cursor += 2;
+    output[cursor..cursor + 2].copy_from_slice(&DNS_CLASS_IN.to_be_bytes());
+    cursor += 2;
+    Ok(cursor)
 }
 
 fn validate_dns_question(request: &[u8]) -> Result<usize, ApplianceFailure> {
@@ -267,7 +305,9 @@ mod tests {
 
     #[test]
     fn dns_answers_only_the_reviewed_bounded_a_query() {
-        let query = dns_query(APPLIANCE_LOCAL_NAME);
+        let mut encoded = [0; MAXIMUM_DNS_PACKET_BYTES as usize];
+        let encoded_len = encode_appliance_dns_query(0x1234, &mut encoded).unwrap();
+        let query = encoded[..encoded_len].to_vec();
         let mut response = [0; MAXIMUM_DNS_PACKET_BYTES as usize];
         let len = answer_appliance_dns(&query, &mut response).unwrap();
         assert_eq!(&response[..2], &[0x12, 0x34]);

@@ -16,7 +16,7 @@ use embassy_rp::{
     usb,
     Peri,
 };
-#[cfg(feature = "wifi-bootstrap")]
+#[cfg(any(feature = "wifi-bootstrap", feature = "appliance-hello"))]
 use embassy_time::{with_timeout, Duration};
 use static_cell::StaticCell;
 
@@ -31,16 +31,16 @@ bind_interrupts!(struct RadioIrqs {
 
 static STATE: StaticCell<cyw43::State> = StaticCell::new();
 
-#[cfg(feature = "wifi-bootstrap")]
+#[cfg(any(feature = "wifi-bootstrap", feature = "appliance-hello"))]
 const RADIO_PHASE_TIMEOUT: Duration = Duration::from_secs(20);
 
-#[cfg(feature = "wifi-bootstrap")]
+#[cfg(any(feature = "wifi-bootstrap", feature = "appliance-hello"))]
 pub enum NetworkRadioInitError {
     DriverStartupTimeout,
     InitializationTimeout,
 }
 
-#[cfg(feature = "wifi-bootstrap")]
+#[cfg(any(feature = "wifi-bootstrap", feature = "appliance-hello"))]
 impl NetworkRadioInitError {
     pub const fn code(&self) -> &'static str {
         match self {
@@ -61,7 +61,7 @@ async fn cyw43_task(
     clippy::too_many_arguments,
     reason = "the Pico W radio boundary names each fixed peripheral and asset explicitly"
 )]
-#[cfg(not(feature = "wifi-bootstrap"))]
+#[cfg(not(any(feature = "wifi-bootstrap", feature = "appliance-hello")))]
 pub async fn init_cyw43(
     spawner: &Spawner,
     pio0: Peri<'static, PIO0>,
@@ -93,7 +93,7 @@ pub async fn init_cyw43(
     (control, ())
 }
 
-#[cfg(feature = "wifi-bootstrap")]
+#[cfg(any(feature = "wifi-bootstrap", feature = "appliance-hello"))]
 #[allow(
     clippy::too_many_arguments,
     reason = "the Pico W network boundary names each fixed peripheral and asset explicitly"
@@ -110,6 +110,7 @@ pub async fn init_cyw43_network(
     nvram: &'static aligned::Aligned<aligned::A4, [u8]>,
     clm: &'static [u8],
 ) -> Result<(cyw43::NetDriver<'static>, Control<'static>), NetworkRadioInitError> {
+    #[cfg(feature = "wifi-bootstrap")]
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioDriverStartup);
     let pwr = Output::new(pin23, Level::Low);
     let cs = Output::new(pin25, Level::High);
@@ -134,11 +135,13 @@ pub async fn init_cyw43_network(
     let (net_device, mut control, runner) = match driver_startup {
         Ok(driver) => driver,
         Err(_) => {
+            #[cfg(feature = "wifi-bootstrap")]
             crate::panic_recovery::clear();
             return Err(NetworkRadioInitError::DriverStartupTimeout);
         }
     };
     spawner.spawn(cyw43_task(runner).unwrap());
+    #[cfg(feature = "wifi-bootstrap")]
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::RadioInitialization);
     let initialization = with_timeout(RADIO_PHASE_TIMEOUT, async {
         control.init(clm).await;
@@ -148,6 +151,7 @@ pub async fn init_cyw43_network(
     })
     .await;
     if initialization.is_err() {
+        #[cfg(feature = "wifi-bootstrap")]
         crate::panic_recovery::clear();
         return Err(NetworkRadioInitError::InitializationTimeout);
     }

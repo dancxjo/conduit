@@ -17,6 +17,10 @@ use conduit_core::{
 pub const PICO_APPLIANCE_PROFILE: &str = "pico/appliance-hello@1";
 pub const PICO_MINIMAL_PROFILE: &str = "pico/minimal@1";
 pub const PICO_APPLIANCE_ARTIFACT: &str = "pico/appliance-hello-firmware@1";
+pub const AP_SERVICE_ARTIFACT: &str = "pico/appliance-ap-base@1";
+pub const DHCP_SERVICE_ARTIFACT: &str = "pico/appliance-dhcp-base@1";
+pub const DNS_SERVICE_ARTIFACT: &str = "pico/appliance-dns-base@1";
+pub const HTTP_SERVICE_ARTIFACT: &str = "pico/appliance-http-base@1";
 
 pub const AP_RESOURCE_CLASS: &str = "conduit.resource/network/wifi-ap@1";
 pub const DHCP_RESOURCE_CLASS: &str = "conduit.resource/network/dhcp-lease-pool@1";
@@ -102,42 +106,50 @@ pub fn pico_appliance_advertisement(
         profile: HostProfileId::from(PICO_APPLIANCE_PROFILE),
         resources: appliance_resources(),
         capabilities: vec![
-            appliance_offer(
-                AP_CAPABILITY,
-                "network/ap-ready",
-                "conduit.network/ap-ready@1",
-                "conduit.host/pico-ap-start@1",
-                AP_RESOURCE_CLASS,
-                1,
-                1,
-            ),
-            appliance_offer(
-                DHCP_CAPABILITY,
-                "network/dhcp-lease-service",
-                "conduit.network/dhcp-lease-service@1",
-                "conduit.host/pico-dhcp-serve@1",
-                DHCP_RESOURCE_CLASS,
-                MAXIMUM_DHCP_LEASES as u32,
-                576,
-            ),
-            appliance_offer(
-                DNS_CAPABILITY,
-                "network/dns-response-service",
-                "conduit.network/dns-response-service@1",
-                "conduit.host/pico-dns-serve@1",
-                DNS_RESOURCE_CLASS,
-                1,
-                MAXIMUM_DNS_PACKET_BYTES,
-            ),
-            appliance_offer(
-                HTTP_CAPABILITY,
-                "network/http-hello-service",
-                "conduit.network/http-hello-service@1",
-                "conduit.host/pico-http-serve@1",
-                HTTP_RESOURCE_CLASS,
-                1,
-                MAXIMUM_HTTP_REQUEST_BYTES,
-            ),
+            appliance_offer(ApplianceOfferSpec {
+                capability: AP_CAPABILITY,
+                artifact: AP_SERVICE_ARTIFACT,
+                kind: "network/ap-ready",
+                revision: "conduit.network/ap-ready@1",
+                host_operation: "conduit.host/pico-ap-start@1",
+                resource_class: AP_RESOURCE_CLASS,
+                resource_units: 1,
+                maximum_input_bytes: 1,
+                maximum_output_bytes: 1,
+            }),
+            appliance_offer(ApplianceOfferSpec {
+                capability: DHCP_CAPABILITY,
+                artifact: DHCP_SERVICE_ARTIFACT,
+                kind: "network/dhcp-lease-service",
+                revision: "conduit.network/dhcp-lease-service@1",
+                host_operation: "conduit.host/pico-dhcp-serve@1",
+                resource_class: DHCP_RESOURCE_CLASS,
+                resource_units: MAXIMUM_DHCP_LEASES as u32,
+                maximum_input_bytes: 576,
+                maximum_output_bytes: 576,
+            }),
+            appliance_offer(ApplianceOfferSpec {
+                capability: DNS_CAPABILITY,
+                artifact: DNS_SERVICE_ARTIFACT,
+                kind: "network/dns-response-service",
+                revision: "conduit.network/dns-response-service@1",
+                host_operation: "conduit.host/pico-dns-serve@1",
+                resource_class: DNS_RESOURCE_CLASS,
+                resource_units: 1,
+                maximum_input_bytes: MAXIMUM_DNS_PACKET_BYTES,
+                maximum_output_bytes: MAXIMUM_DNS_PACKET_BYTES,
+            }),
+            appliance_offer(ApplianceOfferSpec {
+                capability: HTTP_CAPABILITY,
+                artifact: HTTP_SERVICE_ARTIFACT,
+                kind: "network/http-hello-service",
+                revision: "conduit.network/http-hello-service@1",
+                host_operation: "conduit.host/pico-http-serve@1",
+                resource_class: HTTP_RESOURCE_CLASS,
+                resource_units: 1,
+                maximum_input_bytes: MAXIMUM_HTTP_REQUEST_BYTES,
+                maximum_output_bytes: MAXIMUM_HTTP_RESPONSE_BYTES,
+            }),
         ],
         planner_capabilities: vec![],
     })
@@ -174,22 +186,26 @@ fn appliance_resources() -> Vec<ResourceOffer> {
     ]
 }
 
-fn appliance_offer(
-    capability: &str,
-    kind: &str,
-    revision: &str,
-    host_operation: &str,
-    resource_class: &str,
+struct ApplianceOfferSpec<'a> {
+    capability: &'a str,
+    artifact: &'a str,
+    kind: &'a str,
+    revision: &'a str,
+    host_operation: &'a str,
+    resource_class: &'a str,
     resource_units: u32,
-    maximum_bytes: u32,
-) -> CapabilityOffer {
+    maximum_input_bytes: u32,
+    maximum_output_bytes: u32,
+}
+
+fn appliance_offer(spec: ApplianceOfferSpec<'_>) -> CapabilityOffer {
     CapabilityOffer {
-        capability_id: CapabilityId::from(capability),
-        kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        capability_id: CapabilityId::from(spec.capability),
+        kind_id: kind_id(spec.kind),
+        kind_contract_revision: KindContractRevision::from(spec.revision),
         implementation: ImplementationOffer {
-            implementation_id: ImplementationId::from(capability),
-            artifact_id: ArtifactId::from(PICO_APPLIANCE_ARTIFACT),
+            implementation_id: ImplementationId::from(spec.capability),
+            artifact_id: ArtifactId::from(spec.artifact),
             execution_profile_id: ExecutionProfileId::from(PICO_APPLIANCE_PROFILE),
         },
         startup_parameters: vec![],
@@ -197,18 +213,21 @@ fn appliance_offer(
         outputs: vec![],
         shorthand: None,
         host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(host_operation),
+            contract_id: HostOperationContractId::from(spec.host_operation),
             target_kind: None,
             maximum_in_flight: 1,
-            maximum_input_bytes: maximum_bytes,
-            maximum_output_bytes: maximum_bytes.max(MAXIMUM_HTTP_RESPONSE_BYTES),
+            maximum_input_bytes: spec.maximum_input_bytes,
+            maximum_output_bytes: spec.maximum_output_bytes,
         }],
-        resource_requirements: vec![resource_requirement(resource_class, resource_units)],
+        resource_requirements: vec![resource_requirement(
+            spec.resource_class,
+            spec.resource_units,
+        )],
         authority_requirements: vec![],
         limits: CapabilityLimits {
             max_active_instances: 1,
-            max_queue_items: resource_units.min(u16::MAX.into()) as u16,
-            max_queue_bytes: maximum_bytes,
+            max_queue_items: 1,
+            max_queue_bytes: spec.maximum_input_bytes,
         },
     }
 }
@@ -255,9 +274,21 @@ mod tests {
             ]
         );
         assert_eq!(advertisement.resources.len(), 4);
+        assert_eq!(
+            advertisement
+                .capabilities
+                .iter()
+                .map(|offer| offer.implementation.artifact_id.as_str())
+                .collect::<Vec<_>>(),
+            [
+                AP_SERVICE_ARTIFACT,
+                DHCP_SERVICE_ARTIFACT,
+                DNS_SERVICE_ARTIFACT,
+                HTTP_SERVICE_ARTIFACT,
+            ]
+        );
         assert!(advertisement.capabilities.iter().all(|offer| {
-            offer.implementation.artifact_id.as_str() == PICO_APPLIANCE_ARTIFACT
-                && offer.implementation.execution_profile_id.as_str() == PICO_APPLIANCE_PROFILE
+            offer.implementation.execution_profile_id.as_str() == PICO_APPLIANCE_PROFILE
                 && offer.limits.max_active_instances == 1
                 && offer.host_operations.len() == 1
                 && offer.resource_requirements.len() == 1

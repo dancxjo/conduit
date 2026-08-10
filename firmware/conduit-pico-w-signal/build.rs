@@ -31,6 +31,7 @@ const R1_CONTROL_FORM: &str = include_str!("../../examples/r1-three-peer-control
 const TRIPLE_SIGNAL_FORM: &str = include_str!("../../examples/triple-signal.form");
 const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
+const APPLIANCE_IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_APPLIANCE_IDENTITY_SIDECAR";
 const MAX_STORED_SIGNAL_VALUES: usize = 16;
 const WAIT_VALUE_BYTES: u32 = 8;
 const RUNTIME_SIGN_EVENTS: usize = 256;
@@ -38,8 +39,12 @@ const RUNTIME_SIGN_EVENTS: usize = 256;
 fn main() {
     let target = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let appliance_build_id = appliance_build_id();
+    println!("cargo:rustc-env=CONDUIT_PICO_APPLIANCE_BUILD_ID={appliance_build_id}");
 
-    if firmware_mode() == "wifi-bootstrap" {
+    if firmware_mode() == "appliance-hello" {
+        generate_pico_appliance_identity();
+    } else if firmware_mode() == "wifi-bootstrap" {
         generate_pico_network_image(&out);
         generate_r1_recovery_signal_images(&out);
         r1_control_images::generate(&out, false);
@@ -70,6 +75,69 @@ fn main() {
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_ENV}");
     r1_control_images::emit_rerun_directives();
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_RERUN_ENV}");
+    println!("cargo:rerun-if-env-changed={APPLIANCE_IDENTITY_SIDECAR_ENV}");
+}
+
+fn appliance_build_id() -> String {
+    format!(
+        "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}",
+        git_revision(),
+        git_tree_state(),
+        env::var("TARGET").unwrap_or_else(|_| "unknown-target".to_owned()),
+        env::var("PROFILE").unwrap_or_else(|_| "unknown-profile".to_owned()),
+        firmware_mode(),
+        conduit_net::PICO_APPLIANCE_ARTIFACT,
+    )
+}
+
+fn generate_pico_appliance_identity() {
+    let advertisement = conduit_net::pico_appliance_advertisement(
+        "pico/appliance-hello",
+        "image/boot-bound-at-runtime",
+        conduit_net::PicoApplianceComposition::Hello,
+        conduit_net::PicoApplianceInitialization::hello_ready(),
+    )
+    .expect("complete appliance composition must advertise");
+    let identity = serde_json::json!({
+        "schema": "conduit.pico-appliance/generated-image@1",
+        "firmware_mode": firmware_mode(),
+        "firmware_build_id": appliance_build_id(),
+        "image_artifact": conduit_net::PICO_APPLIANCE_ARTIFACT,
+        "service_artifacts": [
+            conduit_net::AP_SERVICE_ARTIFACT,
+            conduit_net::DHCP_SERVICE_ARTIFACT,
+            conduit_net::DNS_SERVICE_ARTIFACT,
+            conduit_net::HTTP_SERVICE_ARTIFACT,
+        ],
+        "host_advertisement": advertisement,
+        "ssid": conduit_net::APPLIANCE_SSID,
+        "open_ap": true,
+        "channel": 6,
+        "server_address": conduit_net::DHCP_SERVER_ADDRESS,
+        "local_name": conduit_net::APPLIANCE_LOCAL_NAME,
+        "hello_body": conduit_net::APPLIANCE_HELLO_BODY,
+        "maximum_associations": conduit_net::MAXIMUM_AP_ASSOCIATIONS,
+        "maximum_dhcp_leases": conduit_net::MAXIMUM_DHCP_LEASES,
+        "maximum_dhcp_packet_bytes": conduit_net::MAXIMUM_DHCP_PACKET_BYTES,
+        "maximum_dns_packet_bytes": conduit_net::MAXIMUM_DNS_PACKET_BYTES,
+        "maximum_http_request_bytes": conduit_net::MAXIMUM_HTTP_REQUEST_BYTES,
+        "maximum_http_response_bytes": conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES,
+        "maximum_signs": conduit_net::MAXIMUM_APPLIANCE_SIGNS,
+    });
+    let sidecar = env::var_os(APPLIANCE_IDENTITY_SIDECAR_ENV)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR must exist"))
+                .join("pico-appliance.generated-image.json")
+        });
+    if let Some(parent) = sidecar.parent() {
+        fs::create_dir_all(parent).expect("appliance sidecar directory must be writable");
+    }
+    fs::write(
+        sidecar,
+        serde_json::to_string_pretty(&identity).expect("appliance identity must serialize"),
+    )
+    .expect("appliance identity sidecar must be writable");
 }
 
 fn generate_r1_recovery_signal_images(out: &Path) {
