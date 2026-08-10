@@ -7,7 +7,8 @@
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use conduit_kernel::{
     scheduler::{
-        FixedScheduler, OperationDriver, SchedulerStatus, StepIo, StepOperation, StepOutcome,
+        FixedScheduler, OperationDriver, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
+        StepOutcome,
     },
     BoundedValueRef, SignSink, Failure, FailureCode, FixedSignLog, FixedValueStore,
     HostOperationDisposition, HostOperationId, HostOperationOutcome, NodeId, Operation,
@@ -344,10 +345,14 @@ enum SignalDriver {
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 impl StepOperation<PORTS> for SignalDriver {
-    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Pulse(driver) => driver.step(io),
-            Self::Show(driver) => driver.step(io),
+            Self::Pulse(driver) => driver.step(io, input_bytes),
+            Self::Show(driver) => driver.step(io, input_bytes),
         }
     }
 
