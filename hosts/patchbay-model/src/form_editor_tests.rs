@@ -98,3 +98,49 @@ fn saved_revision_only_advances_for_the_current_source() {
     editor.mark_saved(1).unwrap();
     assert_eq!(editor.view().saved_revision, 1);
 }
+
+#[test]
+fn palette_placement_edits_canonical_source_and_creates_distinct_gears() {
+    let source = "form making {\n}\n";
+    let mut editor = FormEditor::from_source("making.conduit".into(), source.into()).unwrap();
+    let original_id = editor.view().checked.source_document_id.unwrap();
+    assert_eq!(
+        editor.place_palette_kind(0, &conduit_core::kind_id("text/upper")),
+        Ok("upper".into())
+    );
+    assert_eq!(
+        editor.place_palette_kind(1, &conduit_core::kind_id("text/upper")),
+        Ok("upper-2".into())
+    );
+    let view = editor.view();
+    assert!(view.source.contains("upper: text/upper"));
+    assert!(view.source.contains("upper-2: text/upper"));
+    assert_ne!(view.checked.source_document_id.unwrap(), original_id);
+    assert_eq!(
+        view.checked.forms[0]
+            .items
+            .iter()
+            .filter(|item| item.kind == GraphItemKind::Gear)
+            .count(),
+        2
+    );
+}
+
+#[test]
+fn stale_or_unknown_palette_placement_cannot_mutate_source() {
+    let mut editor =
+        FormEditor::from_source("making.conduit".into(), "form making {\n}\n".into()).unwrap();
+    let source = editor.view().source;
+    assert_eq!(
+        editor.place_palette_kind(1, &conduit_core::kind_id("text/upper")),
+        Err(FormEditorError::StaleRevision {
+            current: 0,
+            offered: 1
+        })
+    );
+    assert_eq!(
+        editor.place_palette_kind(0, &conduit_core::kind_id("invented/kind")),
+        Err(FormEditorError::UnknownPaletteKind("invented/kind".into()))
+    );
+    assert_eq!(editor.view().source, source);
+}

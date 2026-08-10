@@ -25,6 +25,7 @@ mod gui_hit;
 mod gui_inspector;
 mod gui_primitives;
 mod icon;
+mod palette_input;
 mod presentation;
 mod render;
 mod renderer_adapter;
@@ -34,6 +35,7 @@ use conduit_std_host::StdHostComposition;
 use control::NativeControl;
 use distributed_play::{run_server as run_distributed_server, NativeDistributedPlay};
 use file_task::{probe_native_file_base, NativeFileTask};
+use gui::GuiAction;
 use render::{draw_document, BACKGROUND};
 use resource::open_form_resource;
 
@@ -48,6 +50,9 @@ struct PatchbayApplication {
     cursor_position: (f64, f64),
     linear_view: bool,
     modifiers: winit::keyboard::ModifiersState,
+    palette_query: String,
+    palette_search_active: bool,
+    palette_drag: Option<String>,
     control: NativeControl,
     build_birth: BuildBirthController,
     lifecycle_sequence: u64,
@@ -155,6 +160,9 @@ impl PatchbayApplication {
             cursor_position: (0.0, 0.0),
             linear_view: false,
             modifiers: winit::keyboard::ModifiersState::empty(),
+            palette_query: String::new(),
+            palette_search_active: false,
+            palette_drag: None,
             control,
             build_birth: BuildBirthController::new(),
             lifecycle_sequence: 0,
@@ -279,14 +287,36 @@ impl ApplicationHandler for PatchbayApplication {
                     .find(|target| target.contains(self.cursor_position.0, self.cursor_position.1))
                     .map(|target| target.action.clone())
                 {
-                    if let Err(error) = self.handle_gui_action(action) {
+                    if let GuiAction::PlacePaletteKind(kind) = action {
+                        self.palette_drag = Some(kind);
+                    } else if let Err(error) = self.handle_gui_action(action) {
                         self.failure = Some(format!("native GUI action failed: {error}"));
                         event_loop.exit();
                     }
                 }
             }
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button: MouseButton::Left,
+                ..
+            } if !self.linear_view => {
+                if let Some(kind) = self.palette_drag.take() {
+                    if self.cursor_position.0 > 176.0 {
+                        if let Err(error) =
+                            self.handle_gui_action(GuiAction::PlacePaletteKind(kind))
+                        {
+                            self.failure = Some(format!("native palette drop failed: {error}"));
+                            event_loop.exit();
+                        }
+                    }
+                }
+            }
             WindowEvent::KeyboardInput { event, .. } if event.state.is_pressed() => {
-                if let Err(error) = self.handle_form_key(&event.logical_key) {
+                if self.handle_palette_key(&event.logical_key) {
+                    if let Some(window) = &self.window {
+                        window.request_redraw();
+                    }
+                } else if let Err(error) = self.handle_form_key(&event.logical_key) {
                     self.failure = Some(format!("canonical Form edit failed: {error}"));
                     event_loop.exit();
                 }

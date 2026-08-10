@@ -16,6 +16,7 @@ pub enum GuiAction {
     OpenNextForm,
     SaveForm,
     ToggleLinearView,
+    PlacePaletteKind(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

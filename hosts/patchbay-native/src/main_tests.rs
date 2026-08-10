@@ -268,6 +268,103 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
 }
 
 #[test]
+fn palette_placement_runs_an_ordinary_interaction_before_editing_canonical_source() {
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-palette-place-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("making.conduit");
+    std::fs::write(&path, "form making {\n}\n").unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+
+    application
+        .handle_gui_action(GuiAction::PlacePaletteKind("text/upper".into()))
+        .unwrap();
+    application
+        .handle_gui_action(GuiAction::PlacePaletteKind("text/upper".into()))
+        .unwrap();
+    application.handle_gui_action(GuiAction::SaveForm).unwrap();
+
+    let view = application.form_editor.as_ref().unwrap().view();
+    assert!(view.source.contains("upper: text/upper"));
+    assert!(view.source.contains("upper-2: text/upper"));
+    assert_eq!(application.graphical_form.as_ref().unwrap().gears.len(), 2);
+    let receipts = application
+        .interaction
+        .as_ref()
+        .unwrap()
+        .history()
+        .collect::<Vec<_>>();
+    assert_eq!(receipts.len(), 3);
+    assert_eq!(
+        receipts
+            .iter()
+            .filter(|receipt| matches!(
+                &receipt.request,
+                patchbay_model::PatchbayInteractionRequest::Invoke { invocation, .. }
+                    if invocation.action == patchbay_model::PatchbayAction::PlaceGear
+            ))
+            .count(),
+        2
+    );
+    assert!(receipts.iter().all(|receipt| {
+        receipt.disposition == patchbay_model::InteractionDisposition::Succeeded
+    }));
+    drop(application);
+    let reopened = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+    assert_eq!(reopened.graphical_form.as_ref().unwrap().gears.len(), 2);
+
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
+fn stale_palette_drop_is_refused_before_canonical_source_changes() {
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-stale-palette-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("making.conduit");
+    std::fs::write(&path, "form making {\n}\n").unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+    let source_id = application
+        .form_editor
+        .as_ref()
+        .unwrap()
+        .view()
+        .checked
+        .source_document_id
+        .unwrap();
+    let outcome = application.apply_invocation(&patchbay_model::PatchbayInvocation {
+        action: patchbay_model::PatchbayAction::PlaceGear,
+        target_identity: format!("{}@1@text/upper", source_id.as_str()),
+    });
+    assert_eq!(
+        outcome,
+        patchbay_model::PatchbayInvocationOutcome::Refused(
+            patchbay_model::PatchbayRefusal::StalePresentation
+        )
+    );
+    assert_eq!(
+        application.form_editor.as_ref().unwrap().view().source,
+        "form making {\n}\n"
+    );
+
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
 fn pointer_and_keyboard_selection_share_the_typed_interaction_path() {
     use winit::keyboard::{Key, NamedKey};
 
