@@ -548,8 +548,8 @@ the finite supported-nucleus Kind contracts into one authoritative palette,
 supports bounded search and native drag/drop, runs placement through the
 ordinary interaction kernel, edits canonical Form source, redraws exact typed
 Ports, refuses stale or unknown placement, and survives save/reopen. This is a
-foundation slice only: #747 remains open for its Cord and direct-configuration
-continuations.
+foundation checkpoint only: at that point #747 still awaited its Cord and
+direct-configuration continuations.
 
 The categorized canonical-icon continuation from #748 is accepted at exact
 main `5461442076f53afebb46c6060f67b195072a57ae`; push workflow
@@ -693,6 +693,33 @@ This acceptance adds no transport panel, physical wiring CAD, packet inspector,
 renderer-owned topology, generic Cord schema editor, invented Cord parameters,
 Line/Base selection, mutable Plan, automatic replan policy, firmware behavior,
 or physical/HIL claim.
+
+With the #742, #744, and #745 continuations merged, the complete palette and
+Gear-instantiation story from #747 is accepted at exact main
+`398ae3d917243c15a692709f9bda9f7fcb8e9146`; push workflow `31443813442`
+passed `check`, `browser-host`, and `conduitos-boot`. The finite palette derives
+13 supported nucleus entries from authoritative catalog contracts and mandatory
+presentation metadata. Every entry exposes its maker-facing name, summary,
+typed input/output descriptors, configuration defaults, category, tags, and
+canonical icon. Bounded search matches those human names, summaries, Port and
+Info identities, configuration keys, categories, and tags without requiring an
+exact internal Kind identifier.
+
+Native drag/place requests cross the ordinary interaction kernel before adding
+a syntactically valid uniquely named Gear to canonical Form source. Repeated
+placement of one Kind yields distinct Gear identities with the same Kind
+contract; stale and unknown placement leave source unchanged. The fresh Gear
+immediately projects its typed Ports and catalog-derived Face controls, can be
+moved through presentation-only coordinates, and can participate in the
+accepted compatible-Cord creation and rerouting flows. Save/reopen recovers the
+authored Gear instances from canonical source and the coordinates from the
+separate bounded layout sidecar; it does not serialize palette metadata as
+semantic graph truth. Palette selection still chooses no implementation, Host,
+Line, scheduler, or physical device.
+
+This acceptance adds no package marketplace, remote registry, dependency
+resolver, code download, implementation installation, Host placement,
+automatic hardware discovery, or physical/HIL claim.
 
 The first ConduitOS boot slice from #588 is accepted at exact main
 `35a7522703164cdc1758a3bfebfd5ac3f0649a0e`; push workflow `31340517738`
