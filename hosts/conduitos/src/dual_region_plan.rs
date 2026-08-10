@@ -45,10 +45,13 @@ pub fn prepare(
     build_id: &str,
 ) -> Result<PreparedDualRegionPlay, PreparationError> {
     let advertisement = advertisement(identities, fixed_offer, build_id)?;
+    stage(b"advertisement");
     let form = checked_expanded_form()?;
+    stage(b"form");
     let hosts = [advertisement.clone()];
     let placements = default_expanded_placements(&form, &hosts)
         .map_err(|_| PreparationError::PlacementRejected)?;
+    stage(b"placements");
     let plan = plan_expanded_canonical_with_options(
         &form,
         &hosts,
@@ -65,7 +68,9 @@ pub fn prepare(
         },
     )
     .map_err(|_| PreparationError::PlanRejected)?;
+    stage(b"planned");
     let plan = seal_two_execution_regions(plan, &advertisement, fixed_offer)?;
+    stage(b"regions");
     if !conduit_core::verify_plan(&plan) || plan.fragments.len() != 1 {
         return Err(PreparationError::PlanRejected);
     }
@@ -80,6 +85,7 @@ pub fn prepare(
         return Err(PreparationError::PlanRejected);
     }
     let lowered = lower_plan_fragment(fragment).map_err(|_| PreparationError::LoweringRejected)?;
+    stage(b"lowered");
     if lowered.sign_items > fixed_offer.sign_item_capacity
         || lowered.cord_value_slots != CORD_COUNT as u16
         || lowered.cord_value_bytes != CORD_BYTES * CORD_COUNT as u32
@@ -88,6 +94,7 @@ pub fn prepare(
     }
     let kernel = DualRegionKernel::prepare(fragment, &lowered)
         .map_err(|_| PreparationError::KernelRejected)?;
+    stage(b"kernel");
     let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     Ok(PreparedDualRegionPlay {
         kernel,
@@ -103,6 +110,16 @@ pub fn prepare(
         plan,
     })
 }
+
+#[cfg(target_os = "none")]
+fn stage(name: &[u8]) {
+    crate::arch::early_write(b"CONDUIT_PLAN_STAGE ");
+    crate::arch::early_write(name);
+    crate::arch::early_write(b"\n");
+}
+
+#[cfg(not(target_os = "none"))]
+fn stage(_name: &[u8]) {}
 
 fn checked_expanded_form() -> Result<conduit_form::ExpandedCanonicalForm, PreparationError> {
     let syntax = conduit_form::parse_syntax_document(FORM_SOURCE);
