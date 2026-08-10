@@ -19,6 +19,7 @@ mod build_birth;
 mod control;
 mod cross_host_renderer;
 mod form_editor;
+mod graphical_patchbay;
 mod portable_demo;
 mod portable_projection;
 mod renderer_execution;
@@ -43,6 +44,11 @@ pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
 };
+pub use graphical_patchbay::{
+    PatchbayCord, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
+    PatchbayPort, PatchbaySubjectKind, PatchbaySubjectRef, MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS,
+    MAX_PATCHBAY_PORTS,
+};
 pub use portable_demo::portable_demonstration;
 pub use portable_projection::PortableProjectionError;
 pub use renderer_execution::{
@@ -66,6 +72,8 @@ pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES
 
 #[cfg(test)]
 mod build_birth_tests;
+#[cfg(test)]
+mod graphical_patchbay_tests;
 #[cfg(test)]
 mod portable_projection_tests;
 #[cfg(test)]

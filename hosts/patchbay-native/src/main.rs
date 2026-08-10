@@ -7,9 +7,8 @@ use patchbay_model::{
 };
 use std::rc::Rc;
 use winit::application::ApplicationHandler;
-use winit::event::WindowEvent;
+use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
-use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
 
 const HISTORY_CAPACITY: usize = 4;
@@ -20,6 +19,12 @@ mod control;
 mod distributed_play;
 mod file_task;
 mod font;
+mod form_interaction;
+mod gui;
+mod gui_hit;
+mod gui_inspector;
+mod gui_primitives;
+mod icon;
 mod presentation;
 mod render;
 mod renderer_adapter;
@@ -28,15 +33,20 @@ use arguments::{parse_arguments, Arguments};
 use conduit_std_host::StdHostComposition;
 use control::NativeControl;
 use distributed_play::{run_server as run_distributed_server, NativeDistributedPlay};
-use file_task::{probe_native_file_base, DestinationPolicy, NativeFileTask};
+use file_task::{probe_native_file_base, NativeFileTask};
 use render::{draw_document, BACKGROUND};
-use resource::{open_form_resource, save_form_resource};
+use resource::open_form_resource;
 
 struct PatchbayApplication {
     model: PatchbayModel,
     topology_lines: Vec<String>,
     form_editor: Option<FormEditor>,
     form_selection: usize,
+    graphical_form: Option<patchbay_model::PatchbayGraph>,
+    graphical_selection: usize,
+    hit_targets: Vec<gui::HitTarget>,
+    cursor_position: (f64, f64),
+    linear_view: bool,
     modifiers: winit::keyboard::ModifiersState,
     control: NativeControl,
     build_birth: BuildBirthController,
@@ -46,6 +56,8 @@ struct PatchbayApplication {
     renderer_execution: Option<RendererExecution>,
     distributed_play: Option<NativeDistributedPlay>,
     window: Option<Rc<Window>>,
+    surface_context: Option<softbuffer::Context<Rc<Window>>>,
+    surface: Option<softbuffer::Surface<Rc<Window>, Rc<Window>>>,
     exit_after_window: bool,
     rendered_once: bool,
     failure: Option<String>,
@@ -89,6 +101,11 @@ impl PatchbayApplication {
             .map(open_form_resource)
             .transpose()
             .map_err(|error| error.to_string())?;
+        let graphical_form = form_editor
+            .as_ref()
+            .map(form_interaction::graphical_form_for_editor)
+            .transpose()?
+            .flatten();
         let source_host_id = model.projection().host_id().clone();
         let source_boot_id = model.projection().boot_id().clone();
         let control =
@@ -132,6 +149,11 @@ impl PatchbayApplication {
             topology_lines,
             form_editor,
             form_selection: 0,
+            graphical_form,
+            graphical_selection: 0,
+            hit_targets: Vec::new(),
+            cursor_position: (0.0, 0.0),
+            linear_view: false,
             modifiers: winit::keyboard::ModifiersState::empty(),
             control,
             build_birth: BuildBirthController::new(),
@@ -141,6 +163,8 @@ impl PatchbayApplication {
             renderer_execution,
             distributed_play,
             window: None,
+            surface_context: None,
+            surface: None,
             exit_after_window: arguments.exit_after_window,
             rendered_once: false,
             failure: None,
@@ -181,135 +205,6 @@ impl PatchbayApplication {
             self.topology_lines.len(),
         )
     }
-
-    fn edit_source(&mut self, update: impl FnOnce(&mut String)) -> Result<(), String> {
-        let editor = self
-            .form_editor
-            .as_mut()
-            .ok_or("canonical Form editor is absent")?;
-        let mut source = editor.view().source;
-        update(&mut source);
-        editor
-            .replace_source(source)
-            .map_err(|error| error.to_string())?;
-        editor.recheck().map_err(|error| error.to_string())?;
-        self.form_selection = 0;
-        let title = self.title();
-        if let Some(window) = &self.window {
-            window.set_title(&title);
-            window.request_redraw();
-        }
-        Ok(())
-    }
-
-    fn handle_form_key(&mut self, key: &Key) -> Result<bool, String> {
-        if self.form_editor.is_none() {
-            return Ok(false);
-        }
-        match key {
-            Key::Named(NamedKey::Backspace) => self.edit_source(|source| {
-                source.pop();
-            })?,
-            Key::Named(NamedKey::Enter) => self.edit_source(|source| source.push('\n'))?,
-            Key::Named(NamedKey::Tab) => {
-                let editor = self
-                    .form_editor
-                    .as_mut()
-                    .expect("editor presence was checked");
-                let view = editor.view();
-                if !view.checked.forms.is_empty() {
-                    let current = view
-                        .checked
-                        .forms
-                        .iter()
-                        .position(|form| form.name == view.open_form)
-                        .unwrap_or(0);
-                    let next = &view.checked.forms[(current + 1) % view.checked.forms.len()].name;
-                    editor.open_back(next).map_err(|error| error.to_string())?;
-                    self.form_selection = 0;
-                }
-            }
-            Key::Named(NamedKey::ArrowDown) => {
-                let editor = self
-                    .form_editor
-                    .as_ref()
-                    .expect("editor presence was checked");
-                let view = editor.view();
-                let count = editor
-                    .view()
-                    .checked
-                    .forms
-                    .iter()
-                    .find(|form| form.name == view.open_form)
-                    .map(|form| form.items.len())
-                    .unwrap_or(0);
-                if count > 0 {
-                    self.form_selection = (self.form_selection + 1) % count;
-                }
-            }
-            Key::Named(NamedKey::ArrowUp) => {
-                self.form_selection = self.form_selection.saturating_sub(1)
-            }
-            Key::Named(NamedKey::F4) => self.birth_body()?,
-            Key::Named(NamedKey::F5) => self.wake_body()?,
-            Key::Named(NamedKey::F6) => self.plan_play()?,
-            Key::Named(NamedKey::F7) if !self.modifiers.alt_key() => self.play_plan()?,
-            Key::Named(NamedKey::F8) if !self.modifiers.alt_key() => self.mark_unsatisfied()?,
-            Key::Named(NamedKey::F9) if !self.modifiers.alt_key() => self.lull_body()?,
-            Key::Named(NamedKey::Escape) => self.control.stop()?,
-            Key::Named(NamedKey::F7) => {
-                self.file_task.choose_source()?;
-            }
-            Key::Named(NamedKey::F8) => {
-                let policy = if self.modifiers.shift_key() {
-                    DestinationPolicy::Replace
-                } else {
-                    DestinationPolicy::Create
-                };
-                self.file_task.choose_destination(policy)?;
-            }
-            Key::Named(NamedKey::F9) => self.file_task.plan()?,
-            Key::Named(NamedKey::F10) => self.file_task.run()?,
-            Key::Named(NamedKey::F11) => self.file_task.stop()?,
-            Key::Character(character)
-                if self.modifiers.control_key() && character.eq_ignore_ascii_case("s") =>
-            {
-                save_form_resource(
-                    self.form_editor
-                        .as_mut()
-                        .expect("editor presence was checked"),
-                )?;
-            }
-            Key::Character(character)
-                if !self.modifiers.control_key() && !self.modifiers.super_key() =>
-            {
-                let characters = character.clone();
-                self.edit_source(|source| source.push_str(&characters))?;
-            }
-            _ => return Ok(false),
-        }
-        let editor = self
-            .form_editor
-            .as_mut()
-            .expect("editor presence was checked");
-        let view = editor.view();
-        if let Some(identity) = view
-            .checked
-            .forms
-            .iter()
-            .find(|form| form.name == view.open_form)
-            .and_then(|form| form.items.get(self.form_selection))
-            .map(|item| item.identity.clone())
-        {
-            editor.select_graph_item(&identity);
-        }
-        let title = self.title();
-        if let Some(window) = &self.window {
-            window.set_title(&title);
-            window.request_redraw();
-        }
-        Ok(true)
-    }
 }
 
 impl ApplicationHandler for PatchbayApplication {
@@ -323,8 +218,21 @@ impl ApplicationHandler for PatchbayApplication {
         match event_loop.create_window(attributes) {
             Ok(window) => {
                 let window = Rc::new(window);
-                window.request_redraw();
-                self.window = Some(window);
+                match softbuffer::Context::new(window.clone()).and_then(|context| {
+                    softbuffer::Surface::new(&context, window.clone())
+                        .map(|surface| (context, surface))
+                }) {
+                    Ok((context, surface)) => {
+                        window.request_redraw();
+                        self.surface_context = Some(context);
+                        self.surface = Some(surface);
+                        self.window = Some(window);
+                    }
+                    Err(error) => {
+                        self.failure = Some(format!("cannot create native surface: {error}"));
+                        event_loop.exit();
+                    }
+                }
             }
             Err(error) => {
                 self.failure = Some(format!("cannot create native window: {error}"));
@@ -356,6 +264,27 @@ impl ApplicationHandler for PatchbayApplication {
                 }
             }
             WindowEvent::ModifiersChanged(modifiers) => self.modifiers = modifiers.state(),
+            WindowEvent::CursorMoved { position, .. } => {
+                self.cursor_position = (position.x, position.y);
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Left,
+                ..
+            } if !self.linear_view => {
+                if let Some(action) = self
+                    .hit_targets
+                    .iter()
+                    .rev()
+                    .find(|target| target.contains(self.cursor_position.0, self.cursor_position.1))
+                    .map(|target| target.action.clone())
+                {
+                    if let Err(error) = self.handle_gui_action(action) {
+                        self.failure = Some(format!("native GUI action failed: {error}"));
+                        event_loop.exit();
+                    }
+                }
+            }
             WindowEvent::KeyboardInput { event, .. } if event.state.is_pressed() => {
                 if let Err(error) = self.handle_form_key(&event.logical_key) {
                     self.failure = Some(format!("canonical Form edit failed: {error}"));
@@ -510,3 +439,7 @@ mod font_tests;
 #[cfg(test)]
 #[path = "render_tests.rs"]
 mod render_tests;
+
+#[cfg(test)]
+#[path = "gui_tests.rs"]
+mod gui_tests;
