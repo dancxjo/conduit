@@ -13,7 +13,9 @@ use super::doctor::repo_root;
 use super::serial::resolve_dual_ports;
 use super::{PicoArgs, PicoResult};
 
-const PHYSICAL_TIMEOUT: Duration = Duration::from_secs(30);
+// CYW43 startup has two finite 20-second phases before the first appliance
+// Sign can be emitted.
+const PHYSICAL_TIMEOUT: Duration = Duration::from_secs(60);
 pub(super) const MAXIMUM_SIGN_LINE_BYTES: usize = 2048;
 const EXPECTED_SIGNS: [&str; 8] = [
     "ap-ready",

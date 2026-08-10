@@ -337,7 +337,10 @@ async fn write_sign(
     failure: Option<&str>,
     address: Option<[u8; 4]>,
 ) {
-    let mut line = HString::<512>::new();
+    // The image identity admits 1 KiB per Sign. The longest current
+    // association Sign exceeds 512 bytes once exact build and runtime
+    // identities are included, so retain that reviewed image-level bound.
+    let mut line = HString::<1024>::new();
     let mut sign_id = HString::<192>::new();
     if write!(
         sign_id,
