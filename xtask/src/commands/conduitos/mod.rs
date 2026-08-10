@@ -6,6 +6,7 @@ mod prove;
 mod report;
 mod run;
 mod std_gap;
+mod timing_profile;
 
 use std::fmt;
 
@@ -33,6 +34,8 @@ enum ConduitosCommand {
     Prove(TargetArgs),
     /// Inventory the portable std nucleus and classify the exact ConduitOS gap.
     StdGap,
+    /// Prove one exact deterministic deadline-bounded local Plan and refusal.
+    TimingProfile,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
@@ -140,6 +143,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             prove::execute(target.arch, opts)
         }
         ConduitosCommand::StdGap => std_gap::execute(opts),
+        ConduitosCommand::TimingProfile => timing_profile::execute(opts),
     }
 }
 
