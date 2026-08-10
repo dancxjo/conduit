@@ -16,6 +16,8 @@ pub enum FormEditorError {
     StaleRevision { current: u64, offered: u64 },
     UnknownForm(String),
     GraphTooLarge,
+    UnknownPaletteKind(String),
+    InvalidGearName,
 }
 
 impl std::fmt::Display for FormEditorError {
@@ -32,6 +34,8 @@ impl std::fmt::Display for FormEditorError {
             ),
             Self::UnknownForm(name) => write!(f, "checked Form has no reusable form '{name}'"),
             Self::GraphTooLarge => f.write_str("checked Form graph exceeds its finite item bound"),
+            Self::UnknownPaletteKind(kind) => write!(f, "palette Kind '{kind}' is unavailable"),
+            Self::InvalidGearName => f.write_str("generated Gear name is not canonical"),
         }
     }
 }
@@ -111,13 +115,13 @@ pub struct FormDocumentView {
 }
 
 pub struct FormEditor {
-    path: PathBuf,
-    source: String,
-    revision: u64,
-    saved_revision: u64,
-    checked: CheckedRevision,
-    open_form: String,
-    selection: Option<SourceSelection>,
+    pub(crate) path: PathBuf,
+    pub(crate) source: String,
+    pub(crate) revision: u64,
+    pub(crate) saved_revision: u64,
+    pub(crate) checked: CheckedRevision,
+    pub(crate) open_form: String,
+    pub(crate) selection: Option<SourceSelection>,
 }
 
 impl FormEditor {
@@ -250,7 +254,10 @@ impl FormEditor {
     }
 }
 
-fn check_revision(revision: u64, source: &str) -> Result<CheckedRevision, FormEditorError> {
+pub(crate) fn check_revision(
+    revision: u64,
+    source: &str,
+) -> Result<CheckedRevision, FormEditorError> {
     let syntax = parse_syntax_document(source);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Ok(invalid_revision(
@@ -466,7 +473,7 @@ fn validate_path(path: &Path) -> Result<(), FormEditorError> {
     Ok(())
 }
 
-fn ensure_source_bound(source: &str) -> Result<(), FormEditorError> {
+pub(crate) fn ensure_source_bound(source: &str) -> Result<(), FormEditorError> {
     if source.len() > conduit_form::MAXIMUM_FORM_SOURCE_BYTES {
         Err(FormEditorError::SourceTooLarge)
     } else {

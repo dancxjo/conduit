@@ -57,6 +57,7 @@ pub enum PatchbayAction {
     Play,
     Stop,
     Hold,
+    PlaceGear,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -19,8 +19,10 @@ mod build_birth;
 mod control;
 mod cross_host_renderer;
 mod form_editor;
+mod form_edits;
 mod graphical_patchbay;
 mod interaction;
+mod palette;
 mod portable_demo;
 mod portable_projection;
 mod renderer_execution;
@@ -55,6 +57,10 @@ pub use interaction::{
     PatchbayInteraction, PatchbayInteractionRequest, PatchbayInteractionRequestId,
     PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal, MAX_INTERACTION_HISTORY,
     MAX_INTERACTION_VALUE_BYTES,
+};
+pub use palette::{
+    GearPalette, PaletteConfigurationSummary, PaletteEntry, PaletteError, MAX_PALETTE_ENTRIES,
+    MAX_PALETTE_QUERY_BYTES,
 };
 pub use portable_demo::portable_demonstration;
 pub use portable_projection::PortableProjectionError;

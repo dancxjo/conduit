@@ -15,6 +15,7 @@ impl PatchbayAction {
             Self::Play => "play",
             Self::Stop => "stop",
             Self::Hold => "hold",
+            Self::PlaceGear => "place-gear",
         }
     }
 
@@ -30,6 +31,7 @@ impl PatchbayAction {
             "play" => Ok(Self::Play),
             "stop" => Ok(Self::Stop),
             "hold" => Ok(Self::Hold),
+            "place-gear" => Ok(Self::PlaceGear),
             _ => Err(InteractionError::MalformedValue),
         }
     }

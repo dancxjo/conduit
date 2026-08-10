@@ -34,10 +34,15 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
         &graph,
         None,
         &LifecycleContext::default(),
+        "",
     );
     assert_eq!(
         targets.len(),
-        3 + graph.gears.len()
+        3 + patchbay_model::GearPalette::standard()
+            .unwrap()
+            .entries()
+            .len()
+            + graph.gears.len()
             + graph.cords.len()
             + graph
                 .gears
@@ -62,6 +67,9 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
     assert!(targets.iter().any(|target| {
         target.action == GuiAction::ToggleLinearView && target.contains(20.0, 314.0)
     }));
+    assert!(targets.iter().any(|target| {
+        matches!(&target.action, GuiAction::PlacePaletteKind(kind) if kind == "text/upper")
+    }));
 }
 
 #[test]
@@ -82,6 +90,7 @@ fn resize_clipping_and_selection_cannot_touch_guard_pixels_or_graph_identity() {
         &graph,
         Some(&selected),
         &LifecycleContext::default(),
+        "",
     );
     assert_eq!(storage[0], guard);
     assert_eq!(storage[101], guard);
@@ -93,4 +102,27 @@ fn resize_clipping_and_selection_cannot_touch_guard_pixels_or_graph_identity() {
             graph.expanded_form_id
         )
     );
+}
+
+#[test]
+fn palette_query_visibly_filters_the_authoritative_entries() {
+    let graph = graph();
+    let mut pixels = vec![BACKGROUND; 1100 * 720];
+    let targets = draw_patchbay(
+        &mut pixels,
+        1100,
+        720,
+        &graph,
+        None,
+        &LifecycleContext::default(),
+        "value/count",
+    );
+    let kinds = targets
+        .iter()
+        .filter_map(|target| match &target.action {
+            GuiAction::PlacePaletteKind(kind) => Some(kind.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(kinds, ["state/count", "presentation/count"]);
 }

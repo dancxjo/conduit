@@ -48,6 +48,7 @@ impl PatchbayApplication {
             GuiAction::ToggleLinearView => {
                 self.dispatch_invocation(PatchbayAction::ToggleLinearView)?
             }
+            GuiAction::PlacePaletteKind(kind) => self.dispatch_palette_placement(&kind)?,
         }
         if let Some(window) = &self.window {
             window.request_redraw();
@@ -104,6 +105,36 @@ impl PatchbayApplication {
         self.finish_interaction(result)
     }
 
+    fn dispatch_palette_placement(&mut self, kind: &str) -> Result<(), String> {
+        let editor = self
+            .form_editor
+            .as_ref()
+            .ok_or("canonical Form editor is absent")?;
+        let view = editor.view();
+        let source_id = view
+            .checked
+            .source_document_id
+            .ok_or("checked canonical Form identity is absent")?;
+        let target = format!("{}@{}@{kind}", source_id.as_str(), view.revision);
+        let mut interaction = self
+            .interaction
+            .take()
+            .expect("interaction state is installed");
+        let graph = self.graphical_form.clone();
+        let result = interaction
+            .next_request_id("place-gear")
+            .and_then(|request_id| {
+                PatchbayInteractionRequest::invoke(request_id, PatchbayAction::PlaceGear, target)
+            })
+            .and_then(|request| {
+                interaction.execute(graph.as_ref(), request, |invocation| {
+                    self.apply_invocation(invocation)
+                })
+            });
+        self.interaction = Some(interaction);
+        self.finish_interaction(result)
+    }
+
     fn finish_interaction(
         &self,
         result: Result<patchbay_model::InteractionReceipt, patchbay_model::InteractionError>,
@@ -122,6 +153,9 @@ impl PatchbayApplication {
         &mut self,
         invocation: &PatchbayInvocation,
     ) -> PatchbayInvocationOutcome {
+        if invocation.action == PatchbayAction::PlaceGear {
+            return self.apply_palette_placement(&invocation.target_identity);
+        }
         let current_target = match self
             .graphical_form
             .as_ref()
@@ -156,11 +190,57 @@ impl PatchbayApplication {
             PatchbayAction::Play => self.play_plan(),
             PatchbayAction::Stop => self.control.stop(),
             PatchbayAction::Hold => self.mark_unsatisfied(),
+            PatchbayAction::PlaceGear => unreachable!("palette placement returned above"),
         };
         match result {
             Ok(()) => PatchbayInvocationOutcome::Succeeded,
             Err(_) => PatchbayInvocationOutcome::Failed,
         }
+    }
+
+    fn apply_palette_placement(&mut self, target: &str) -> PatchbayInvocationOutcome {
+        let mut fields = target.splitn(3, '@');
+        let (Some(source_id), Some(revision), Some(kind)) =
+            (fields.next(), fields.next(), fields.next())
+        else {
+            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
+        };
+        let Ok(revision) = revision.parse::<u64>() else {
+            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
+        };
+        let Some(editor) = self.form_editor.as_mut() else {
+            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable);
+        };
+        let view = editor.view();
+        if view.revision != revision
+            || view
+                .checked
+                .source_document_id
+                .as_ref()
+                .map(|id| id.as_str())
+                != Some(source_id)
+        {
+            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation);
+        }
+        let kind_id = conduit_core::kind_id(kind);
+        let Ok(palette) = patchbay_model::GearPalette::standard() else {
+            return PatchbayInvocationOutcome::Failed;
+        };
+        if palette.find(&kind_id).is_none() {
+            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
+        }
+        if editor.place_palette_kind(revision, &kind_id).is_err() {
+            return PatchbayInvocationOutcome::Failed;
+        }
+        self.form_selection = 0;
+        if self.refresh_graphical_form().is_err() {
+            return PatchbayInvocationOutcome::Failed;
+        }
+        let title = self.title();
+        if let Some(window) = &self.window {
+            window.set_title(&title);
+        }
+        PatchbayInvocationOutcome::Succeeded
     }
 
     fn open_next_form(&mut self) -> Result<(), String> {

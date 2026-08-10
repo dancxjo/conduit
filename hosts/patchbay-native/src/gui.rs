@@ -23,6 +23,7 @@ pub use crate::gui_hit::{GuiAction, HitTarget};
 pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_PORTS
     + patchbay_model::MAX_PATCHBAY_CORDS
+    + patchbay_model::MAX_PALETTE_ENTRIES
     + 3;
 
 const HEADER_HEIGHT: i32 = 52;
@@ -55,6 +56,7 @@ pub fn draw_patchbay(
     graph: &PatchbayGraph,
     selected: Option<&str>,
     lifecycle: &LifecycleContext,
+    palette_query: &str,
 ) -> Vec<HitTarget> {
     debug_assert!(Icon::ALL
         .iter()
@@ -88,7 +90,7 @@ pub fn draw_patchbay(
                     .sum::<usize>(),
         ),
     );
-    draw_navigator(&mut canvas, theme, &mut targets);
+    draw_navigator(&mut canvas, palette_query, theme, &mut targets);
     draw_cords(&mut canvas, graph, &layouts, selected, theme, &mut targets);
     for layout in &layouts {
         draw_gear(&mut canvas, graph, layout, selected, theme, &mut targets);
@@ -143,6 +145,7 @@ fn draw_header<D: DrawTarget<Color = Rgb888>>(
 
 fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
+    palette_query: &str,
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
@@ -192,6 +195,42 @@ fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
         theme,
         targets,
     );
+    text(
+        target,
+        Point::new(14, 354),
+        &format!("PALETTE /{}", palette_query),
+        theme.emphasis,
+    );
+    if let Ok(palette) = patchbay_model::GearPalette::standard() {
+        let entries = palette.search(palette_query).unwrap_or_default();
+        for (index, entry) in entries.into_iter().enumerate() {
+            let y = 374 + index as i32 * 27;
+            let bounds = PixelRect {
+                x: 12,
+                y,
+                width: 150,
+                height: 24,
+            };
+            frame_rect(target, bounds, theme.structure_secondary, 1);
+            icon_label(
+                target,
+                Icon::Gear,
+                Point::new(18, y + 4),
+                &format!(
+                    "{} {}>{} c{}",
+                    entry.plain_name,
+                    entry.inputs.len(),
+                    entry.outputs.len(),
+                    entry.configuration.len()
+                ),
+                theme.text_primary,
+            );
+            targets.push(HitTarget {
+                action: GuiAction::PlacePaletteKind(entry.kind_id.as_str().into()),
+                shape: HitShape::Rect(bounds),
+            });
+        }
+    }
 }
 
 fn action_button<D: DrawTarget<Color = Rgb888>>(

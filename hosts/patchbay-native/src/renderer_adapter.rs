@@ -95,6 +95,7 @@ impl PatchbayApplication {
                     graph,
                     selected.as_deref(),
                     &lifecycle,
+                    &self.palette_query,
                 )
             }
         } else {
