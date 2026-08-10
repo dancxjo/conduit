@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 
 mod configuration;
 mod control_loop;
+mod execution;
 mod face;
 mod implementation;
 mod port;
@@ -20,6 +21,7 @@ mod shared_pool;
 
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use control_loop::*;
+pub use execution::*;
 pub use face::{CheckedFace, FaceStartupParameter};
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
@@ -38,6 +40,7 @@ pub const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
 pub const AWAIT_TRIGGER_HOST_OPERATION_CONTRACT: &str = "conduit.host/await-trigger@1";
 pub const MAX_PRESENTATION_COMPLETION_BYTES: u32 = 256;
 pub const TIMER_RESOURCE_CLASS: &str = "conduit.resource/timer-slot@1";
+pub const RUNTIME_MEMORY_RESOURCE_CLASS: &str = "conduit.resource/runtime-memory@1";
 pub const PRESENTATION_RESOURCE_CLASS: &str = "conduit.resource/presentation-slot@1";
 pub const INPUT_RESOURCE_CLASS: &str = "conduit.resource/input-slot@1";
 pub const PRESENT_AUTHORITY_CONTRACT: &str = "conduit.authority/present@1";
@@ -83,6 +86,7 @@ identity_type!(KindId);
 identity_type!(KindContractRevision);
 // Immutable identity of one exact implementation execution profile.
 identity_type!(ExecutionProfileId);
+identity_type!(ExecutionRegionId);
 identity_type!(ImplementationId);
 identity_type!(ArtifactId);
 identity_type!(RealizationCharacteristicId);
@@ -546,6 +550,8 @@ pub struct PlanFragment {
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
     pub placements: Vec<PlannedGear>,
+    #[serde(default)]
+    pub execution_regions: Vec<ExecutionRegion>,
     pub connections: Vec<PlannedConnection>,
     #[serde(default)]
     pub shared_pools: Vec<PlannedSharedPool>,
@@ -785,6 +791,7 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
         .filter(|item| item.host_id == fragment.host_id && item.fragment_id == fragment.fragment_id)
         .count();
     own_matches == 1
+        && execution::verify_execution_regions(fragment)
         && compute_plan_id(
             &FormIdentity {
                 source_document_id: fragment.source_document_id.clone(),
@@ -803,6 +810,30 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     push_string(&mut canonical, fragment.host_id.as_str());
     push_string(&mut canonical, fragment.boot_id.as_str());
     push_u64(&mut canonical, fragment.offer_generation.0);
+    push_u32(&mut canonical, fragment.execution_regions.len() as u32);
+    for region in &fragment.execution_regions {
+        push_string(&mut canonical, region.region_id.as_str());
+        push_u32(&mut canonical, region.admitted_placements.len() as u32);
+        for placement in &region.admitted_placements {
+            push_string(&mut canonical, placement.as_str());
+        }
+        push_string(&mut canonical, region.execution_profile_id.as_str());
+        canonical.push(region.scheduling as u8);
+        push_u32(&mut canonical, region.lane_count);
+        push_resource_binding(&mut canonical, &region.lane_resource);
+        push_string(&mut canonical, region.lane_base_id.as_str());
+        push_u32(&mut canonical, region.requirements.runtime_memory_bytes);
+        push_u32(&mut canonical, region.requirements.timer_slots);
+        push_u32(&mut canonical, region.requirements.cord_item_capacity);
+        push_u32(&mut canonical, region.requirements.cord_byte_capacity);
+        push_u32(
+            &mut canonical,
+            u32::from(region.requirements.mandatory_sign_items),
+        );
+        push_u32(&mut canonical, region.requirements.mandatory_sign_bytes);
+        canonical.push(u8::from(region.preemption_required));
+        canonical.push(u8::from(region.isolation_required));
+    }
     push_u32(&mut canonical, fragment.placements.len() as u32);
     for gear in &fragment.placements {
         push_string(&mut canonical, gear.placement_id.as_str());
@@ -876,37 +907,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         }
         push_u32(&mut canonical, gear.resources.len() as u32);
         for binding in &gear.resources {
-            push_string(&mut canonical, binding.pool_id.as_str());
-            push_string(&mut canonical, binding.class_id.as_str());
-            push_u32(&mut canonical, binding.units);
-            match &binding.compute {
-                Some(compute) => {
-                    canonical.push(1);
-                    push_u32(&mut canonical, compute.selected_lanes);
-                    canonical.push(compute.service_guarantee as u8);
-                    push_string(&mut canonical, compute.architecture_base_id.as_str());
-                    canonical.push(compute.architecture_base_kind as u8);
-                    match &compute.topology_group_id {
-                        Some(group) => {
-                            canonical.push(1);
-                            push_string(&mut canonical, group.as_str());
-                        }
-                        None => canonical.push(0),
-                    }
-                }
-                None => canonical.push(0),
-            }
-            match &binding.protected {
-                Some(protected) => {
-                    canonical.push(1);
-                    push_string(&mut canonical, protected.role_id.as_str());
-                    push_string(&mut canonical, protected.handle_id.as_str());
-                    canonical.push(protected.access as u8);
-                    push_u64(&mut canonical, protected.maximum_bytes);
-                    canonical.push(protected.commit_policy as u8);
-                }
-                None => canonical.push(0),
-            }
+            push_resource_binding(&mut canonical, binding);
         }
         push_u32(&mut canonical, gear.authority.len() as u32);
         for binding in &gear.authority {
@@ -1036,6 +1037,40 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     canonical.extend_from_slice(&fragment.sign_storage_budget.item_capacity.to_le_bytes());
     push_u32(&mut canonical, fragment.sign_storage_budget.byte_capacity);
     FragmentId::from(hash_bytes(&canonical))
+}
+
+fn push_resource_binding(canonical: &mut Vec<u8>, binding: &ResourceBinding) {
+    push_string(canonical, binding.pool_id.as_str());
+    push_string(canonical, binding.class_id.as_str());
+    push_u32(canonical, binding.units);
+    match &binding.compute {
+        Some(compute) => {
+            canonical.push(1);
+            push_u32(canonical, compute.selected_lanes);
+            canonical.push(compute.service_guarantee as u8);
+            push_string(canonical, compute.architecture_base_id.as_str());
+            canonical.push(compute.architecture_base_kind as u8);
+            match &compute.topology_group_id {
+                Some(group) => {
+                    canonical.push(1);
+                    push_string(canonical, group.as_str());
+                }
+                None => canonical.push(0),
+            }
+        }
+        None => canonical.push(0),
+    }
+    match &binding.protected {
+        Some(protected) => {
+            canonical.push(1);
+            push_string(canonical, protected.role_id.as_str());
+            push_string(canonical, protected.handle_id.as_str());
+            canonical.push(protected.access as u8);
+            push_u64(canonical, protected.maximum_bytes);
+            canonical.push(protected.commit_policy as u8);
+        }
+        None => canonical.push(0),
+    }
 }
 
 fn push_checked_face(canonical: &mut Vec<u8>, face: &CheckedFace) {

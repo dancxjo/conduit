@@ -12,12 +12,14 @@ use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
 use conduit_runtime::lowering::lower_plan_fragment;
 
 use crate::{
+    execution_region::{seal_execution_region, validate_execution_region},
     identity::BootIdentities,
     offer::{CAPABILITY_COUNT, HostOffer},
     planned_kernel::PlannedKernel,
 };
 
 pub const ORDINARY_FORM_SOURCE: &str = "form 0\n\nconduitos-ordinary {\n    clock: time/tick\n    show: presentation/tick\n\n    clock.count = 1\n    clock.period-ms = 1\n    show.maximum-values = 1\n\n    clock.tick -> show.tick\n}\n";
+pub const COOPERATIVE_REGION_PROFILE: &str = "conduitos/cooperative-bounded-step@1";
 
 pub struct PreparedOrdinaryPlay {
     pub kernel: PlannedKernel,
@@ -87,10 +89,12 @@ pub fn prepare(
         },
     )
     .map_err(|_| PreparationError::PlanRejected)?;
+    let plan = seal_execution_region(plan, &advertisement, fixed_offer)?;
     if !conduit_core::verify_plan(&plan) || plan.fragments.len() != 1 {
         return Err(PreparationError::PlanRejected);
     }
     let fragment = &plan.fragments[0];
+    validate_execution_region(fragment, &advertisement, fixed_offer)?;
     if fragment.host_id != hosts[0].host_id
         || fragment.boot_id != hosts[0].boot_id
         || fragment.offer_generation != hosts[0].offer_generation
@@ -213,6 +217,7 @@ fn hex_identity(bytes: &[u8; 32]) -> String {
 mod tests {
     use super::*;
     use crate::offer::CpuFeatures;
+    use conduit_core::{ExecutionScheduling, FormIdentity, seal_plan};
 
     fn fixture() -> (BootIdentities, HostOffer<'static>) {
         let identities = BootIdentities {
@@ -242,6 +247,74 @@ mod tests {
             hex_identity(&identities.boot)
         );
         assert!(prepared.planned_sign_items > 0 && prepared.planned_sign_bytes > 0);
+        let [region] = prepared.plan.fragments[0].execution_regions.as_slice() else {
+            panic!("ordinary Plan must contain exactly one execution region");
+        };
+        assert_eq!(region.region_id.as_str(), "region/0");
+        assert_eq!(region.admitted_placements.len(), CAPABILITY_COUNT);
+        assert_eq!(
+            region.execution_profile_id.as_str(),
+            COOPERATIVE_REGION_PROFILE
+        );
+        assert_eq!(
+            region.scheduling,
+            ExecutionScheduling::CooperativeBoundedStep
+        );
+        assert_eq!(region.lane_count, 1);
+        assert_eq!(region.lane_resource.units, 1);
+        assert_eq!(region.requirements.runtime_memory_bytes, 8_192);
+        assert_eq!(region.requirements.timer_slots, 1);
+        assert_eq!(region.requirements.cord_item_capacity, 1);
+        assert_eq!(
+            region.requirements.cord_byte_capacity,
+            conduit_std_catalog::TICK_ENCODED_LEN
+        );
+        assert!(!region.preemption_required && !region.isolation_required);
+        assert!(!ORDINARY_FORM_SOURCE.contains("lane"));
+        assert!(!ORDINARY_FORM_SOURCE.contains("preemption"));
+    }
+
+    #[test]
+    fn resealed_wrong_lane_requirement_is_rejected_before_play() {
+        let (identities, offer) = fixture();
+        let prepared = prepare(&identities, &offer, "build").unwrap();
+        let mut fragments = prepared.plan.fragments;
+        fragments[0].execution_regions[0].lane_count = 2;
+        fragments[0].execution_regions[0].lane_resource.units = 2;
+        fragments[0].execution_regions[0]
+            .lane_resource
+            .compute
+            .as_mut()
+            .unwrap()
+            .selected_lanes = 2;
+        let plan = seal_plan(
+            FormIdentity {
+                source_document_id: prepared.source_document_id,
+                checked_form_id: prepared.checked_form_id,
+                expanded_form_id: prepared.expanded_form_id,
+            },
+            fragments,
+        );
+        assert!(conduit_core::verify_plan(&plan));
+        assert_eq!(
+            validate_execution_region(&plan.fragments[0], &prepared.advertisement, &offer),
+            Err(PreparationError::PlanRejected)
+        );
+    }
+
+    #[test]
+    fn unavailable_execution_lane_is_rejected_before_play() {
+        let (identities, mut offer) = fixture();
+        let lane = offer
+            .bases
+            .iter_mut()
+            .find(|base| base.kind == crate::machine::BaseKind::ExecutionLane)
+            .unwrap();
+        lane.capacity = 0;
+        assert_eq!(
+            prepare(&identities, &offer, "build").err(),
+            Some(PreparationError::PlanRejected)
+        );
     }
 
     #[test]

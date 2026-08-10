@@ -3,11 +3,12 @@ use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, AdmittedLine, ArtifactId, AuthorityBinding, AuthorityRequirement, BootId,
     CapabilityId, CapabilityLimits, CheckedFormId, ConnectionId, ConnectionTerminalDisposition,
-    ExecutionProfileId, ExpandedFormId, FragmentId, HostAdvertisement, HostBaseId, HostBaseKindId,
-    HostId, HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision,
-    KindId, LineOffer, Observation, OfferGeneration, PlacementId, Plan, PlanId,
-    PlannerCapabilityOffer, PortDescriptor, PresentationId, ResourceBinding, ResourceOffer,
-    ResourceRequirement, SignId, SourceDocumentId, TerminalDisposition,
+    ExecutionProfileId, ExecutionRegionId, ExecutionScheduling, ExpandedFormId, FragmentId,
+    HostAdvertisement, HostBaseId, HostBaseKindId, HostId, HostOperationRequirement, HostProfileId,
+    ImplementationId, KindContractRevision, KindId, LineOffer, Observation, OfferGeneration,
+    PlacementId, Plan, PlanId, PlannerCapabilityOffer, PortDescriptor, PresentationId,
+    ResourceBinding, ResourceOffer, ResourceRequirement, SignId, SourceDocumentId,
+    TerminalDisposition,
 };
 use serde::{Deserialize, Serialize};
 
@@ -247,6 +248,23 @@ pub struct PlanRow {
     pub fragment_count: usize,
     pub placement_count: usize,
     pub connection_count: usize,
+    pub execution_region_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionRegionRow {
+    pub plan_id: PlanId,
+    pub fragment_id: FragmentId,
+    pub region_id: ExecutionRegionId,
+    pub admitted_placements: Vec<PlacementId>,
+    pub execution_profile_id: ExecutionProfileId,
+    pub scheduling: ExecutionScheduling,
+    pub lane_count: u32,
+    pub lane_resource: ResourceBinding,
+    pub lane_base_id: HostBaseId,
+    pub requirements: conduit_core::ExecutionRegionRequirements,
+    pub preemption_required: bool,
+    pub isolation_required: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -316,6 +334,7 @@ pub struct ObservatoryReport {
     pub bases: Vec<BaseReport>,
     pub lines: Vec<LineRow>,
     pub plans: Vec<PlanRow>,
+    pub execution_regions: Vec<ExecutionRegionRow>,
     pub fragments: Vec<FragmentRow>,
     pub placements: Vec<PlacementRow>,
     pub connections: Vec<ConnectionRow>,

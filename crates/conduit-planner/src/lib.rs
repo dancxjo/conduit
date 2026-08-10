@@ -602,6 +602,7 @@ pub(crate) fn plan_validated_form(
                 boot_id: host.boot_id.clone(),
                 offer_generation: host.offer_generation,
                 placements,
+                execution_regions: Vec::new(),
                 connections,
                 shared_pools: Vec::new(),
                 startup_dependencies,

@@ -115,6 +115,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
                 pool_references: vec![pool.pool_id.clone()],
             })
             .collect(),
+        execution_regions: vec![],
         connections: vec![],
         shared_pools: vec![pool],
         startup_dependencies: vec![],
