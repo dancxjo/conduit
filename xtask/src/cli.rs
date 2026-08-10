@@ -189,6 +189,10 @@ pub enum DemoCommand {
     Toggle,
     /// Run the Conduit-driven project homepage interactively.
     Site,
+    /// Run the pinned Tongues text-to-speech starter through an ordinary Conduit Play.
+    Tongues,
+    /// Project the pinned Netherwick robot configuration with zero actuator authority.
+    Netherwick,
 }
 
 #[derive(Args, Debug)]

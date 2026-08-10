@@ -1,3 +1,4 @@
+mod aarch64_a0;
 mod architecture_matrix;
 mod build;
 mod image;
@@ -73,14 +74,28 @@ impl ConduitosArch {
         }
     }
 
-    fn require_executable_backend(self) -> Result<(), ConduitosError> {
-        if self == Self::X86_64 {
+    fn require_compile_link_backend(self) -> Result<(), ConduitosError> {
+        if matches!(self, Self::X86_64 | Self::Aarch64) {
             Ok(())
         } else {
             Err(ConduitosError::refusal(
                 "unsupported-architecture-backend",
                 format!(
                     "{} is present in the pinned Limine matrix but has no accepted ConduitOS executable backend",
+                    self.as_str()
+                ),
+            ))
+        }
+    }
+
+    fn require_boot_backend(self) -> Result<(), ConduitosError> {
+        if self == Self::X86_64 {
+            Ok(())
+        } else {
+            Err(ConduitosError::refusal(
+                "unsupported-architecture-boot-backend",
+                format!(
+                    "{} has no accepted ConduitOS boot backend; AArch64 is A0 compile/link only",
                     self.as_str()
                 ),
             ))
@@ -127,19 +142,19 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
     match args.command {
         ConduitosCommand::ArchitectureMatrix => architecture_matrix::execute(opts),
         ConduitosCommand::Build(target) => {
-            target.arch.require_executable_backend()?;
+            target.arch.require_compile_link_backend()?;
             build::execute(target.arch, opts).map(|_| ())
         }
         ConduitosCommand::Image(target) => {
-            target.arch.require_executable_backend()?;
+            target.arch.require_boot_backend()?;
             image::execute(target.arch, opts).map(|_| ())
         }
         ConduitosCommand::Run(target) => {
-            target.arch.require_executable_backend()?;
+            target.arch.require_boot_backend()?;
             run::execute(target.arch, opts).map(|_| ())
         }
         ConduitosCommand::Prove(target) => {
-            target.arch.require_executable_backend()?;
+            target.arch.require_boot_backend()?;
             prove::execute(target.arch, opts)
         }
         ConduitosCommand::StdGap => std_gap::execute(opts),
@@ -174,9 +189,18 @@ mod tests {
 
     #[test]
     fn unavailable_backend_refuses_instead_of_aliasing_x86_64() {
-        let error = ConduitosArch::Aarch64
-            .require_executable_backend()
+        let error = ConduitosArch::Riscv64
+            .require_compile_link_backend()
             .unwrap_err();
         assert_eq!(error.reason, "unsupported-architecture-backend");
+    }
+
+    #[test]
+    fn aarch64_is_compile_link_only() {
+        ConduitosArch::Aarch64
+            .require_compile_link_backend()
+            .unwrap();
+        let error = ConduitosArch::Aarch64.require_boot_backend().unwrap_err();
+        assert_eq!(error.reason, "unsupported-architecture-boot-backend");
     }
 }

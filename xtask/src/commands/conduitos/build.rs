@@ -3,12 +3,16 @@ use std::{fs, process::Command};
 use crate::cli::GlobalOpts;
 
 use super::{
+    aarch64_a0,
     profile::{Paths, COMMON_BACKBONE_TARGETS},
     report::{git_head, sha256_file, BuildRecord},
     ConduitosArch, ConduitosError,
 };
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    if arch == ConduitosArch::Aarch64 {
+        return aarch64_a0::execute(opts);
+    }
     let paths = Paths::new(arch)?;
     if opts.dry_run {
         println!("cargo build -p conduitos --target x86_64-unknown-none --release");

@@ -21,11 +21,13 @@ conduit-kernel = { path = "../crates/conduit-kernel", features = ["alloc"] }
 conduit-std-catalog = { path = "../crates/conduit-std-catalog" }
 conduitos = { path = "../hosts/conduitos" }
 conduit-net = { path = "../crates/conduit-net" }
+conduit-netherwick = { path = "../crates/conduit-netherwick" }
 conduit-observatory = { path = "../crates/conduit-observatory" }
 conduit-signal = { path = "../crates/conduit-signal" }
 conduit-planner = { path = "../crates/conduit-planner" }
 conduit-runtime = { path = "../crates/conduit-runtime", default-features = false }
 conduit-std-host = { path = "../hosts/std" }
 conduit-system-continuity = { path = "../crates/conduit-system-continuity", features = ["r1-recovery"] }
+conduit-tongues = { path = "../crates/conduit-tongues" }
 conduit-wire = { path = "../crates/conduit-wire" }
 patchbay-model = { path = "../hosts/patchbay-model" }
