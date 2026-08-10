@@ -29,7 +29,7 @@ adapter or physical proof.
 | Observatory | versioned neutral host/capability/Base/link/plan/Play/pressure/current-and-historical-Sign/retention reports with exact identity and bound validation; sealed boot provenance remains distinct from live offers and Bases | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control; native Patchbay validates and linearly renders the same ordinary snapshot exported by ConduitOS | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store; the accepted ConduitOS export is freestanding-emulator proof | no new transport; observed links are report facts only | no new physical/HIL claim |
 | Durable system continuity | allocator-free realization record over explicit membership, complete checked-face role requirements, exact host+boot assignments, observed links, boot-scoped authority, Plan, Play, and Sign identities | accepted std/browser/Pico replacement vector consumes a validated current-model snapshot, separates request acceptance/old-boot terminal/new-boot observation, and requires explicit replanning with new Plan/Plays and no stale grant inheritance | no execution engine; the layer consumes current reports and exact plans without owning scheduling, placement, bases, or authority issuance | no new browser adapter or UI claim | no firmware change; the accepted Pico arrangement is consumed as already-proven input | no new transport; link observation remains distinct from membership and authority | no new physical/HIL run or claim |
 | `conduit.std` | ten exact typed contracts: time tick/every, typed tick/text/count presentation, text literal/upper/join, state/count, and protected file/copy; legacy `value/any` rows remain unsupported fixtures | UI-independent contract/codec/limit/mutation vectors plus canonical Programs 1–4 | std reference host advertises selected families and resolves exact installed implementations before bounded execution through `conduit-kernel`; minimal/subset compositions advertise only selected offers | no manifestation claim for these ten revisions | no manifestation claim for these ten revisions | no new transport; Program 6 uses the separately owned Signal family | no new physical/HIL claim |
-| ConduitOS portable std gap | bounded inventory derives all exact supported-nucleus contracts/offers, revisions, faces, limits, and canonical SHA-256 content identity directly from catalog truth; legacy compatibility rows cannot enter | deterministic mutation and Host-build separation vectors plus exact 10-item classification | `cargo xtask conduitos std-gap` compares canonical kind/revision identity against the exact boot-scoped ConduitOS profile and reports 4 implemented, 6 missing without advertising any missing capability | no new browser claim | one x86_64 freestanding-emulator ConduitOS Host runs the unchanged bounded `text/literal -> presentation/text` Form through ordinary planning and the production kernel, then presents exactly `Hello from ConduitOS` through its admitted serial Base | no transport | no physical/HIL claim |
+| ConduitOS portable std gap | bounded inventory derives all exact supported-nucleus contracts/offers, revisions, faces, limits, and canonical SHA-256 content identity directly from catalog truth; legacy compatibility rows cannot enter | deterministic mutation and Host-build separation vectors plus exact 10-item classification | `cargo xtask conduitos std-gap` compares canonical kind/revision identity against the exact boot-scoped ConduitOS profile and reports 5 implemented, 5 missing without advertising any missing capability | no new browser claim | one x86_64 freestanding-emulator ConduitOS Host runs the unchanged bounded `text/literal -> text/upper -> presentation/text` Form through ordinary planning and the production kernel, then presents exactly `HELLO, CONDUITOS` through its admitted serial Base | no transport | no physical/HIL claim |
 | Copy a file | unsafe prototype disabled | tests removed from default tree | no admitted host operation | no chooser | no | no | no |
 
 ## Required CI claims
@@ -722,6 +722,41 @@ implemented and six missing contracts. This remains `freestanding-emulator`
 proof for one x86_64 ConduitOS text program; it adds no browser, firmware,
 physical/HIL, non-x86, real-time, universal-console, terminal, framebuffer,
 filesystem, network, `text/upper`, or additional-lane claim.
+
+The bounded ConduitOS `text/upper` slice from #730 is accepted at exact main
+`755426dbd2ca238b60446f2bc71a29274de9bb09`; push workflow `31422614087`
+passed `check`, `browser-host`, and `conduitos-boot`. The unchanged authored
+Form contains only the installed `conduit.std/text-literal@1`,
+`conduit.std/text-upper@1`, and `conduit.std/presentation-text@1` meanings.
+Ordinary source checking, canonical expansion, exact planning, numeric
+lowering, and the production `conduit-kernel` carry the value through two
+distinct capacity-one, 256-byte Cords to the admitted bounded uppercase and
+serial presentation operations.
+
+The exact Plan reuses the accepted `conduitos/single-lane-cooperative@1`
+realization, seals three placements and both Cord identities, and selects
+`conduitos/kernel-text-upper@1` from the truthful boot-scoped offer. Its fixed
+512 KiB boot arena reports 303,408 bytes used before Play and the same value
+after terminal completion; the realized Plan reserves 12,288 runtime-memory
+bytes. One real x86_64 QEMU boot presents exactly `HELLO, CONDUITOS` and
+reaches its bounded terminal Signs. Observatory and native Patchbay project
+the same three placements, two Cords, bounds, identities, and outcome without
+owning runtime state.
+
+Conformance includes `ǰ` expanding from two UTF-8 bytes to the three-byte
+uppercase sequence `J` plus combining caron. A full 256-byte input of that
+specimen refuses output expansion instead of truncating, wrapping, partially
+succeeding, or replacing data. Malformed UTF-8, unavailable implementation,
+insufficient output storage, cancellation, stale identity, and presentation
+Base loss remain distinct outcomes. Shared std-host conformance checks the
+same checked face and normalized semantic result while retaining different
+implementation and artifact identities. The derived std-gap is now five
+implemented and five missing contracts.
+
+This remains `freestanding-emulator` proof for exactly one portable transform
+on x86_64 ConduitOS. It adds no `text/join`, state/count, file/copy, locale
+collation, case folding, normalization, browser manifestation, physical/HIL,
+non-x86 realization, second scheduler, or second execution lane.
 
 The ConduitOS cooperative execution-region slice from #711 is accepted at
 exact main `354c6c27a24aa87c71e4ad7ca45b486fccdae9b2`; push workflow
