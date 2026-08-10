@@ -29,7 +29,7 @@ adapter or physical proof.
 | Observatory | versioned neutral host/capability/Base/link/plan/Play/pressure/current-and-historical-Sign/retention reports with exact identity and bound validation; sealed boot provenance remains distinct from live offers and Bases | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control; native Patchbay validates and linearly renders the same ordinary snapshot exported by ConduitOS | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store; the accepted ConduitOS export is freestanding-emulator proof | no new transport; observed links are report facts only | no new physical/HIL claim |
 | Durable system continuity | allocator-free realization record over explicit membership, complete checked-face role requirements, exact host+boot assignments, observed links, boot-scoped authority, Plan, Play, and Sign identities | accepted std/browser/Pico replacement vector consumes a validated current-model snapshot, separates request acceptance/old-boot terminal/new-boot observation, and requires explicit replanning with new Plan/Plays and no stale grant inheritance | no execution engine; the layer consumes current reports and exact plans without owning scheduling, placement, bases, or authority issuance | no new browser adapter or UI claim | no firmware change; the accepted Pico arrangement is consumed as already-proven input | no new transport; link observation remains distinct from membership and authority | no new physical/HIL run or claim |
 | `conduit.std` | ten exact typed contracts: time tick/every, typed tick/text/count presentation, text literal/upper/join, state/count, and protected file/copy; legacy `value/any` rows remain unsupported fixtures | UI-independent contract/codec/limit/mutation vectors plus canonical Programs 1–4 | std reference host advertises selected families and resolves exact installed implementations before bounded execution through `conduit-kernel`; minimal/subset compositions advertise only selected offers | no manifestation claim for these ten revisions | no manifestation claim for these ten revisions | no new transport; Program 6 uses the separately owned Signal family | no new physical/HIL claim |
-| ConduitOS portable std gap | bounded inventory derives all exact supported-nucleus contracts/offers, revisions, faces, limits, and canonical SHA-256 content identity directly from catalog truth; legacy compatibility rows cannot enter | deterministic mutation and Host-build separation vectors plus exact 10-item classification | `cargo xtask conduitos std-gap` compares canonical kind/revision identity against the exact boot-scoped ConduitOS profile and reports 2 implemented, 8 missing without advertising either missing capability | no new browser claim | no new firmware behavior or capability | no transport | no physical/HIL claim |
+| ConduitOS portable std gap | bounded inventory derives all exact supported-nucleus contracts/offers, revisions, faces, limits, and canonical SHA-256 content identity directly from catalog truth; legacy compatibility rows cannot enter | deterministic mutation and Host-build separation vectors plus exact 10-item classification | `cargo xtask conduitos std-gap` compares canonical kind/revision identity against the exact boot-scoped ConduitOS profile and reports 4 implemented, 6 missing without advertising any missing capability | no new browser claim | one x86_64 freestanding-emulator ConduitOS Host runs the unchanged bounded `text/literal -> presentation/text` Form through ordinary planning and the production kernel, then presents exactly `Hello from ConduitOS` through its admitted serial Base | no transport | no physical/HIL claim |
 | Copy a file | unsafe prototype disabled | tests removed from default tree | no admitted host operation | no chooser | no | no | no |
 
 ## Required CI claims
@@ -697,6 +697,31 @@ This is an inventory and gap proof only. It advertises no missing capability
 and changes no semantic implementation, scheduler, Base, planner, runtime,
 device/network behavior, or physical claim. Follow-on work must promote one
 small implementation family rather than reopening an aggregate mega-slice.
+
+The first ConduitOS portable text slice from #728 is accepted at exact main
+`59e76286cd6930e6bfbb9d53e008e33fb871d1d2`; push workflow `31419594904`
+passed `check`, `browser-host`, and `conduitos-boot`. The unchanged authored
+Form contains only the installed `conduit.std/text-literal@1` and
+`conduit.std/presentation-text@1` meanings. Ordinary source checking,
+canonical expansion, exact planning, numeric lowering, and the production
+`conduit-kernel` carry its exact 20-byte UTF-8 value through a capacity-one,
+20-byte Cord to the admitted serial presentation operation.
+
+The Plan reuses the accepted single cooperative execution-lane realization
+from #711 and seals the exact text implementations, build artifact, memory and
+serial Bases, value/Cord bounds, placement identities, Play, and terminal
+Signs. One real x86_64 QEMU boot presents exactly `Hello from ConduitOS` and
+reaches its bounded terminal state. Observatory and native Patchbay retain the
+same realization facts without becoming their source of truth.
+
+Stale boot, offer, and Plan identities; unavailable implementations or Bases;
+undersized value, Cord, memory, and Sign storage; malformed or oversized text;
+presentation failure; cancellation; and malformed host completion remain
+distinct refusals, failures, or Signs. The derived std-gap is now four
+implemented and six missing contracts. This remains `freestanding-emulator`
+proof for one x86_64 ConduitOS text program; it adds no browser, firmware,
+physical/HIL, non-x86, real-time, universal-console, terminal, framebuffer,
+filesystem, network, `text/upper`, or additional-lane claim.
 
 The ConduitOS cooperative execution-region slice from #711 is accepted at
 exact main `354c6c27a24aa87c71e4ad7ca45b486fccdae9b2`; push workflow
