@@ -15,7 +15,7 @@ Upstream source:
 Regenerate from the downloaded, checksum-verified asset:
 
 ```sh
-python3 hosts/patchbay-native/assets/unifont/generate_subset.py \
+cargo xtask unifont-subset \
   unifont_all-17.0.04.hex.gz \
   hosts/patchbay-native/assets/unifont/unifont-17.0.04-patchbay.hex
 ```
