@@ -217,9 +217,9 @@ mod tests {
     #[test]
     fn current_gap_is_derived_and_exact() {
         let report = build_report("test-build").unwrap();
-        assert_eq!(report.catalog_entry_count, 10);
+        assert_eq!(report.catalog_entry_count, 12);
         assert_eq!(report.implemented_count, 5);
-        assert_eq!(report.missing_count, 5);
+        assert_eq!(report.missing_count, 7);
         assert!(report.entries.iter().any(|entry| {
             entry.kind_id == "time/tick"
                 && entry.contract_revision == "conduit.std/time-tick@2"

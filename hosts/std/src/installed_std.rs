@@ -3,8 +3,11 @@ pub(super) mod contract;
 mod count_operations;
 mod external_websocket;
 mod external_websocket_host;
+mod flow_state_operations;
 mod generate_text;
 mod operation;
+#[cfg(test)]
+mod test_scalar_flow;
 #[cfg(test)]
 mod test_support;
 #[cfg(test)]
@@ -61,6 +64,16 @@ pub(super) use test_support::{test_catalog, test_observer_offer};
 #[cfg(test)]
 pub(super) fn test_text_source_offer() -> conduit_core::CapabilityOffer {
     test_text_source::offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_scalar_source_offer() -> conduit_core::CapabilityOffer {
+    test_scalar_flow::source_offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_scalar_sink_offer() -> conduit_core::CapabilityOffer {
+    test_scalar_flow::sink_offer()
 }
 const HOST_OPERATIONS_PER_NODE: u16 = 3;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_OPERATIONS_PER_NODE as usize;

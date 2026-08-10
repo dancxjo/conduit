@@ -2,12 +2,15 @@
 
 use super::count_operations::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
 use super::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
+use super::flow_state_operations::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_FACTORY};
 use super::generate_text::{
     GENERATE_TEXT_LARGE_FACTORY, GENERATE_TEXT_REMOTE_FACTORY, GENERATE_TEXT_SMALL_FACTORY,
 };
 #[cfg(test)]
 use super::operation::TEST_OBSERVER_FACTORY;
 use super::operation::{InstalledFactory, EVERY_FACTORY, TICK_FACTORY};
+#[cfg(test)]
+use super::test_scalar_flow::{TEST_SCALAR_SINK_FACTORY, TEST_SCALAR_SOURCE_FACTORY};
 #[cfg(test)]
 use super::test_text_source::TEST_TEXT_SOURCE_FACTORY;
 use super::text_operations::{
@@ -26,12 +29,18 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEXT_PRESENTATION_FACTORY,
     &STATE_COUNT_FACTORY,
     &COUNT_PRESENTATION_FACTORY,
+    &STATE_LATEST_SCALAR_FACTORY,
+    &FLOW_TEE_SCALAR_FACTORY,
     &EXTERNAL_WEBSOCKET_LISTENER_FACTORY,
     &GENERATE_TEXT_SMALL_FACTORY,
     &GENERATE_TEXT_LARGE_FACTORY,
     &GENERATE_TEXT_REMOTE_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_SCALAR_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_SCALAR_SINK_FACTORY,
     #[cfg(test)]
     &TEST_OBSERVER_FACTORY,
 ];

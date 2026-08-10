@@ -1,5 +1,6 @@
 use super::contract::{self, TICK_ENCODED_LEN, TICK_VALUE_KIND};
 use super::operation::{TEST_OBSERVER_IMPLEMENTATION, TEST_OBSERVER_KIND};
+use super::test_scalar_flow;
 use super::test_text_source;
 use conduit_core::{
     kind_id, present_host_operation_requirement, ArtifactId, CapabilityId, CapabilityLimits,
@@ -77,5 +78,6 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
         })
         .expect("test observer kind is distinct from typed tick");
     test_text_source::install_catalog(&mut catalog);
+    test_scalar_flow::install_catalog(&mut catalog);
     catalog
 }
