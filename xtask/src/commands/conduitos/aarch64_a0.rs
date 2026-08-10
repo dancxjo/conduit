@@ -11,7 +11,7 @@ use super::{
 };
 
 pub const TARGET: &str = "aarch64-unknown-none";
-const BINARY: &str = "conduitos-aarch64-a0";
+const BINARY: &str = "conduitos-aarch64-a2";
 const MACHINE_AARCH64: u16 = 183;
 const ET_EXEC: u16 = 2;
 const PT_DYNAMIC: u32 = 2;
@@ -34,6 +34,7 @@ struct A0Inspection {
     dynamic_linkage: bool,
     runtime_bases_available: bool,
     boot_claimed: bool,
+    a2_machine_wake_claimed: bool,
     elf_sha256: String,
 }
 
@@ -42,7 +43,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     let paths = Paths::new(ConduitosArch::Aarch64)?;
     if opts.dry_run {
         println!(
-            "cargo build -p conduitos --bin {BINARY} --features aarch64-a0 --target {TARGET} --release"
+            "cargo build -p conduitos --bin {BINARY} --features aarch64-a2 --target {TARGET} --release"
         );
         return record(&paths, "dry-run".to_owned());
     }
@@ -59,7 +60,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
             "--bin",
             BINARY,
             "--features",
-            "aarch64-a0",
+            "aarch64-a2",
             "--target",
             TARGET,
             "--release",
@@ -105,21 +106,22 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     assert_symbol_contract(&symbols)?;
     let digest = sha256_file(&paths.kernel)?;
     let inspection = A0Inspection {
-        schema: "conduit.conduitos.aarch64-a0/v1",
-        proof_class: "compile-link-artifact-only",
+        schema: "conduit.conduitos.aarch64-artifact/v2",
+        proof_class: "compile-link-mechanical-inspection",
         architecture: "aarch64",
         rust_target: TARGET,
         elf_class: "ELF64",
         byte_order: "little-endian",
         machine: "AArch64",
         abi_flags: facts.abi_flags,
-        entry_symbol: "conduitos_aarch64_a0_start",
+        entry_symbol: "conduitos_aarch64_a2_start",
         entry_address: facts.entry,
         required_sections: facts.sections,
         hosted_interpreter: false,
         dynamic_linkage: false,
-        runtime_bases_available: false,
-        boot_claimed: false,
+        runtime_bases_available: true,
+        boot_claimed: true,
+        a2_machine_wake_claimed: true,
         elf_sha256: digest.clone(),
     };
     let inspection_bytes = serde_json::to_vec_pretty(&inspection)
@@ -132,7 +134,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     fs::write(paths.target.join("build.json"), record_bytes)
         .map_err(|error| ConduitosError::refusal("build-record-failed", error.to_string()))?;
     if !opts.quiet && !opts.json {
-        println!("ConduitOS AArch64 A0 ELF: {}", paths.kernel.display());
+        println!("ConduitOS AArch64 ELF: {}", paths.kernel.display());
     }
     Ok(record)
 }
@@ -279,7 +281,7 @@ fn assert_profile(architecture: &str, target: &str) -> Result<(), ConduitosError
 fn assert_symbol_contract(symbols: &str) -> Result<(), ConduitosError> {
     if !symbols.lines().any(|line| {
         line.contains("GLOBAL")
-            && line.contains("conduitos_aarch64_a0_start")
+            && line.contains("conduitos_aarch64_a2_start")
             && !line.contains(" UND ")
     }) {
         return Err(invalid("linked AArch64 entry symbol is missing"));
@@ -423,7 +425,7 @@ mod tests {
     #[test]
     fn entry_symbol_and_x86_leak_contract_is_negative() {
         assert_symbol_contract(
-            "1: 0000000040000000 4 FUNC GLOBAL DEFAULT 1 conduitos_aarch64_a0_start",
+            "1: 0000000040000000 4 FUNC GLOBAL DEFAULT 1 conduitos_aarch64_a2_start",
         )
         .unwrap();
         assert!(assert_symbol_contract("1: 0 4 FUNC GLOBAL DEFAULT 1 cpuid").is_err());

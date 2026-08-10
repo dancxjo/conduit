@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+pub mod aarch64_a2_kernel;
 pub mod allocation;
 pub mod arch;
 pub mod boot;

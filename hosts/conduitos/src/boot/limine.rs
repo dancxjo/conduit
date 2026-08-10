@@ -1,5 +1,7 @@
 //! Sole adapter from Limine protocol types into bootloader-neutral boot truth.
 
+#[cfg(target_arch = "aarch64")]
+use limine::request::StackSizeRequest;
 use limine::{
     BaseRevision,
     firmware_type::FirmwareType,
@@ -21,6 +23,11 @@ const PINNED_BOOTLOADER_VERSION: &str = "12.5.2";
 
 #[used]
 #[unsafe(link_section = ".requests")]
+#[cfg(target_arch = "aarch64")]
+static BASE_REVISION: BaseRevision = BaseRevision::with_revision(6);
+#[used]
+#[unsafe(link_section = ".requests")]
+#[cfg(not(target_arch = "aarch64"))]
 static BASE_REVISION: BaseRevision = BaseRevision::new();
 #[used]
 #[unsafe(link_section = ".requests")]
@@ -52,6 +59,17 @@ static DATE_AT_BOOT: DateAtBootRequest = DateAtBootRequest::new();
 #[used]
 #[unsafe(link_section = ".requests")]
 static EXECUTABLE_CMDLINE: ExecutableCmdlineRequest = ExecutableCmdlineRequest::new();
+#[used]
+#[unsafe(link_section = ".requests")]
+#[cfg(target_arch = "aarch64")]
+static STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(128 * 1024);
+
+pub fn executable_physical_address(virtual_address: u64) -> Option<u64> {
+    let response = EXECUTABLE_ADDRESS.get_response()?;
+    virtual_address
+        .checked_sub(response.virtual_base())?
+        .checked_add(response.physical_base())
+}
 
 unsafe extern "C" {
     static __conduitos_image_start: u8;

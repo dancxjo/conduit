@@ -78,7 +78,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-efi-aarch64
       - name: Prove bounded ConduitOS kernel ownership
         run: cargo xtask conduitos prove --arch x86-64 --locked
-      - name: Prove bounded AArch64 ConduitOS entry
+      - name: Prove bounded AArch64 ConduitOS machine wake
         run: cargo xtask conduitos prove --arch aarch64 --locked
       - name: Prove IA-32 ConduitOS compile/link artifact
         run: cargo xtask conduitos architecture-matrix --locked && cargo xtask conduitos build --arch ia32 --locked
