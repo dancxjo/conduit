@@ -1,10 +1,11 @@
 use crate::policy::select_realization_matching;
+use crate::prelude::*;
 use crate::{HardRealizationRequirements, PlacementChoice, PlannerError, RealizationPolicy};
+use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     CapabilityOffer, HostAdvertisement, ResourceHealth, ResourceObservation, ResourcePoolId,
 };
 use conduit_form::CheckedGear;
-use std::collections::{BTreeMap, BTreeSet};
 
 pub fn select_realization_with_observations(
     gear: &CheckedGear,

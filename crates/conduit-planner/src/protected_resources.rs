@@ -1,10 +1,11 @@
+use crate::prelude::*;
 use crate::PlannerError;
+use alloc::collections::BTreeSet;
 use conduit_core::{
     CapabilityOffer, HostAdvertisement, ProtectedResourceAccess, ProtectedResourceBinding,
     ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceHandleId, ResourceRequirement,
 };
 use conduit_form::CheckedGear;
-use std::collections::BTreeSet;
 
 pub(crate) fn validate_protected_resource_grants(
     grants: &[ProtectedResourceGrant],

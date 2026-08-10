@@ -1,10 +1,23 @@
+#![no_std]
+
+#[macro_use]
+extern crate alloc;
+#[cfg(test)]
+extern crate std;
+
+mod prelude {
+    pub use alloc::string::{String, ToString};
+    pub use alloc::vec::Vec;
+}
+
+use crate::prelude::*;
+use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     CapabilityId, CheckedFormId, ConfigurationEntry, ConfigurationValue, ExpandedFormId,
     FormIdentity, GearId, KindContractRevision, KindId, PortDescriptor, PortDirection, PortId,
     SourceDocumentId,
 };
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
 
 mod canonical_expansion;
 mod checked_syntax;
@@ -404,8 +417,8 @@ pub enum FormError {
     InvalidSyntax(String),
 }
 
-impl std::fmt::Display for FormError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for FormError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::SourceLimitExceeded => write!(
                 f,
@@ -443,7 +456,7 @@ impl std::fmt::Display for FormError {
     }
 }
 
-impl std::error::Error for FormError {}
+impl core::error::Error for FormError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct GearDraft {
@@ -1115,7 +1128,7 @@ fn parse_export_face(
 }
 
 fn validate_export_face_names(export: &CheckedExport) -> Result<(), FormError> {
-    let mut names = std::collections::BTreeSet::new();
+    let mut names = BTreeSet::new();
     for face in export.input_faces.iter().chain(&export.output_faces) {
         if !names.insert(face.external_port.port_id.clone()) {
             return Err(FormError::InvalidExport(format!(

@@ -1,10 +1,11 @@
+use crate::prelude::*;
 use crate::{plan, PlacementChoices, PlannerError};
+use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     AuthorityContractId, ConnectionBase, GearId, HostAdvertisement, HostOperationContractId, Plan,
     RealizationCharacteristicId, ResourceClassId,
 };
 use conduit_form::CheckedForm;
-use std::collections::{BTreeMap, BTreeSet};
 
 /// Hard admissibility constraints for one semantic gear realization.
 ///

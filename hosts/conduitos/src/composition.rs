@@ -1,10 +1,10 @@
-//! Architecture-neutral ownership loop for the first machine-backed kernel profile.
+//! Architecture-neutral ownership loop for an admitted ordinary Plan.
 
 use conduit_kernel::scheduler::SchedulerStatus;
 
 use crate::{
-    kernel_profile::{KernelProfile, PRESENT_OPERATION, WAIT_OPERATION},
     machine::{IdleBase, InterruptBase, MonotonicClockBase, SerialBase, TimerBase},
+    planned_kernel::{PRESENT_NODE, PlannedKernel, TIMER_NODE},
 };
 
 const MAXIMUM_KERNEL_STEPS: u32 = 128;
@@ -49,6 +49,7 @@ impl MachineRunError {
 }
 
 pub fn run<C, T, S, I, D>(
+    kernel: &mut PlannedKernel,
     clock: &mut C,
     timer: &mut T,
     serial: &mut S,
@@ -62,7 +63,6 @@ where
     I: InterruptBase,
     D: IdleBase,
 {
-    let mut kernel = KernelProfile::new().map_err(|_| MachineRunError::KernelConstruction)?;
     let started = clock.now();
     let disabled_state = interrupts.disable();
     if interrupts.is_enabled() {
@@ -85,13 +85,13 @@ where
         }
 
         while let Some(request) = kernel.next_host_request() {
-            if request.operation == WAIT_OPERATION {
-                let interest = KernelProfile::timer_interest(request)
+            if request.node == TIMER_NODE {
+                let interest = PlannedKernel::timer_interest(request)
                     .map_err(|_| MachineRunError::UnexpectedHostOperation)?;
                 timer
                     .arm(interest)
                     .map_err(|_| MachineRunError::TimerBaseFailure)?;
-            } else if request.operation == PRESENT_OPERATION {
+            } else if request.node == PRESENT_NODE {
                 {
                     let value = kernel
                         .host_value(request.input.value)
@@ -101,7 +101,7 @@ where
                         .map_err(|_| MachineRunError::SerialBaseFailure)?;
                 }
                 kernel
-                    .complete_serial(request)
+                    .complete_presentation(request)
                     .map_err(|_| MachineRunError::KernelFailure)?;
             } else {
                 return Err(MachineRunError::UnexpectedHostOperation);
@@ -120,7 +120,7 @@ where
             SchedulerStatus::Complete => {
                 let ended = clock.now();
                 return Ok(MachineProof {
-                    logical_operations: crate::kernel_profile::NODE_COUNT as u8,
+                    logical_operations: 2,
                     decisions: kernel.decisions(),
                     kernel_signs: kernel.sign_count(),
                     timer_irq_wakes: timer.wake_count(),

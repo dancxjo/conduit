@@ -1,16 +1,17 @@
 use crate::characteristics::{seal_characteristics, select_realization_with_characteristics};
 use crate::observations::validate_resource_observations;
+use crate::prelude::*;
 use crate::realization::{consume_selected_capacity, reject_unknown_operation_inputs};
 use crate::requirements::{validate_hard_requirements, HardRealizationRequirements};
 use crate::{
     plan_with_options, PlacementChoices, PlannerError, PlanningOptions, RealizationPolicy,
 };
+use alloc::collections::BTreeMap;
 use conduit_core::{
     ConnectionBase, GearId, HostAdvertisement, Plan, PlanId, RealizationAdvertisement,
     ResourceObservation,
 };
 use conduit_form::CheckedForm;
-use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RealizationReplanOutcome {

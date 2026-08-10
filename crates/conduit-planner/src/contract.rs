@@ -1,8 +1,9 @@
+use crate::prelude::*;
+use alloc::collections::BTreeMap;
 use conduit_core::{
     AuthorityGrant, CapabilityId, ConnectionBase, GearId, HostId, LineId, LineOffer,
     ProtectedResourceGrant,
 };
-use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlacementChoice {
@@ -62,6 +63,7 @@ pub enum PlannerError {
     LineOfferUnavailable(String),
     LineOfferAmbiguous(String),
     UnavailableConnectionBase(String),
+    InvalidConnectionBudget(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
     CyclicStartupDependencies(String),
@@ -70,8 +72,8 @@ pub enum PlannerError {
     InvalidSharedPool(String),
 }
 
-impl std::fmt::Display for PlannerError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for PlannerError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::InvalidFormIdentity(value) => write!(f, "invalid form identity: {value}"),
             Self::PlannerCapabilityNotAdvertised(value) => {
@@ -144,6 +146,9 @@ impl std::fmt::Display for PlannerError {
             Self::UnavailableConnectionBase(value) => {
                 write!(f, "unavailable connection base: {value}")
             }
+            Self::InvalidConnectionBudget(value) => {
+                write!(f, "invalid connection budget: {value}")
+            }
             Self::QueueRequirementAboveHostLimit(value) => {
                 write!(f, "queue requirement above host limit: {value}")
             }
@@ -162,7 +167,7 @@ impl std::fmt::Display for PlannerError {
     }
 }
 
-impl std::error::Error for PlannerError {}
+impl core::error::Error for PlannerError {}
 
 pub fn parse_placements(source: &str) -> Result<PlacementChoices, PlannerError> {
     let lines: Vec<&str> = source

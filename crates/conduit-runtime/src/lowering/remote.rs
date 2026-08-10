@@ -82,3 +82,4 @@ fn validate_local_endpoint(
 fn invalid(connection: &PlannedConnection) -> LoweringError {
     LoweringError::InvalidRemoteConnection(connection.connection_id.clone())
 }
+use alloc::vec::Vec;

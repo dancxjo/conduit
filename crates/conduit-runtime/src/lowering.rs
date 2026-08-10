@@ -1,6 +1,8 @@
 //! Exact pre-Play-start lowering from string-identified plan facts into the
 //! numeric tables consumed by `conduit-kernel`.
 
+use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::vec::Vec;
 use conduit_core::{
     mandatory_sign_storage_requirement, verify_plan_fragment, ActivePlayId, ActivePlayIdentity,
     AdmittedLine, BootId, ConnectionId, ExpectedSign, FragmentId, HostId, HostOperationContractId,
@@ -14,7 +16,6 @@ use conduit_kernel::{
     ResourceBinding as KernelResourceBinding, ResourceId, RouteRange, RouteTarget,
     SignExpectationId, SignExpectationTarget,
 };
-use std::collections::{BTreeMap, BTreeSet};
 
 mod remote;
 mod shared_pool;

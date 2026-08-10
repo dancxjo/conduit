@@ -1,11 +1,12 @@
+use crate::prelude::*;
 use crate::{
     hash_string, CanonicalExpansionDiagnostic, CanonicalStartupValue, CheckedCanonicalForm,
     CheckedCanonicalGear, CheckedConnection, CheckedCordStage, CheckedGear, CheckedSyntaxDocument,
     ConfigurationRule, ConfigurationValue, ExpandedCanonicalForm, ExpandedGearProvenance,
     ExpandedSharedPool, ProfileCatalog, RuntimePortDirection, MAXIMUM_FORM_NESTING_DEPTH,
 };
+use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{GearId, KindId, PortDescriptor};
-use std::collections::{BTreeMap, BTreeSet};
 
 mod graph;
 mod identity;
@@ -49,7 +50,7 @@ pub fn expand_canonical_form(
         &forms,
         catalog,
         &environment,
-        std::slice::from_ref(&form.name),
+        core::slice::from_ref(&form.name),
         &mut stack,
         0,
     )?;

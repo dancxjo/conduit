@@ -1,8 +1,4 @@
-//! Fixed P2/P3 profile driven exclusively by the production `conduit-kernel`.
-//!
-//! The topology is deliberately hand-lowered proof input, not a Form or Plan.
-//! The next #588 slice owns ordinary planning. Here two bounded operations
-//! share one cooperative lane: a timer-backed source and a serial-backed sink.
+//! Fenced P2/P3 hand-lowered regression fixture; production uses `planned_kernel`.
 
 use conduit_kernel::{
     BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
@@ -18,15 +14,16 @@ use conduit_kernel::{
 use crate::machine::KernelInterest;
 
 pub const WAIT_OPERATION: HostOperationId = HostOperationId(0);
-pub const PRESENT_OPERATION: HostOperationId = HostOperationId(1);
+pub const PRESENT_OPERATION: HostOperationId = HostOperationId(0);
 pub const TIMER_REQUEST: RequestId = RequestId(1);
 pub const PRESENT_REQUEST: RequestId = RequestId(2);
-pub const TIMER_VALUE: &[u8] = b"timer-wake";
+pub const TIMER_VALUE: &[u8] = &0_u64.to_le_bytes();
+pub const TIMER_WAIT: &[u8] = &1_u64.to_le_bytes();
 pub const NODE_COUNT: usize = 2;
 pub const CORD_COUNT: usize = 1;
 pub const SIGN_CAPACITY: usize = 64;
 
-const PORTS: usize = 1;
+const PORTS: usize = conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
 const QUEUE_SLOTS: usize = 1;
 const ROUTE_SLOTS: usize = 1;
 const ROUTE_TARGETS: usize = 1;
@@ -60,14 +57,16 @@ enum TimerOperationState {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct TimerOperation {
-    input: BoundedValueRef,
+    wait: BoundedValueRef,
+    tick: ValueRef,
     state: TimerOperationState,
 }
 
 impl TimerOperation {
-    fn new(value: ValueRef) -> Result<Self, SchedulerError> {
+    fn new(wait: ValueRef, tick: ValueRef) -> Result<Self, SchedulerError> {
         Ok(Self {
-            input: BoundedValueRef::new(value, 16)?,
+            wait: BoundedValueRef::new(wait, 8)?,
+            tick,
             state: TimerOperationState::Waiting,
         })
     }
@@ -78,7 +77,7 @@ impl Operation for TimerOperation {
         OperationAction::RequestHostOperation {
             request: TIMER_REQUEST,
             operation: WAIT_OPERATION,
-            input: self.input,
+            input: self.wait,
         }
     }
 
@@ -87,12 +86,12 @@ impl Operation for TimerOperation {
             OperationInput::HostOperationCompleted { request, outcome }
                 if request == TIMER_REQUEST
                     && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output == Some(self.input) =>
+                    && outcome.output.is_none() =>
             {
-                self.state = TimerOperationState::Emitting(self.input.value);
+                self.state = TimerOperationState::Emitting(self.tick);
                 OperationAction::Emit {
                     port: PortId(0),
-                    value: self.input.value,
+                    value: self.tick,
                 }
             }
             OperationInput::HostOperationCompleted { request, outcome }
@@ -247,6 +246,7 @@ impl KernelProfile {
     pub fn new() -> Result<Self, SchedulerError> {
         let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32)?;
         let timer_value = conduit_kernel::ValueStorage::store(&mut values, TIMER_VALUE)?;
+        let timer_wait = conduit_kernel::ValueStorage::store(&mut values, TIMER_WAIT)?;
 
         let mut routes = FixedRoutes::<ROUTE_SLOTS, ROUTE_TARGETS>::new(NODE_COUNT as u16);
         routes.install(
@@ -281,11 +281,15 @@ impl KernelProfile {
 
         let nodes = [
             NodeSpec {
-                input_cords: [None],
+                input_cords: [None; PORTS],
                 maximum_step_work: 2,
             },
             NodeSpec {
-                input_cords: [Some(CordId(0))],
+                input_cords: {
+                    let mut cords = [None; PORTS];
+                    cords[0] = Some(CordId(0));
+                    cords
+                },
                 maximum_step_work: 2,
             },
         ];
@@ -300,7 +304,10 @@ impl KernelProfile {
             },
         )];
         let drivers = [
-            OperationDriver::new(ProfileOperation::Timer(TimerOperation::new(timer_value)?))?,
+            OperationDriver::new(ProfileOperation::Timer(TimerOperation::new(
+                timer_wait,
+                timer_value,
+            )?))?,
             OperationDriver::new(ProfileOperation::Serial(SerialOperation {
                 state: SerialOperationState::Waiting,
             }))?,
@@ -347,7 +354,7 @@ impl KernelProfile {
             interest.request,
             HostOperationOutcome {
                 disposition: HostOperationDisposition::Completed,
-                output: Some(interest.input),
+                output: None,
                 failure: None,
             },
         )

@@ -1,7 +1,8 @@
+use crate::prelude::*;
 use crate::{PlacementChoice, PlacementChoices, PlannerError};
+use alloc::collections::BTreeMap;
 use conduit_core::{CapabilityId, HostAdvertisement};
 use conduit_form::CheckedGear;
-use std::collections::BTreeMap;
 
 pub(crate) fn default_placements_unvalidated(
     gears: &[CheckedGear],

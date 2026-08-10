@@ -1,8 +1,9 @@
+use crate::prelude::*;
 use crate::{
     hash_string, CanonicalExpansionDiagnostic, CanonicalStartupValue, CheckedCanonicalForm,
     CheckedGear, ExpandedSharedPool,
 };
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 pub(super) fn bind_pool_environment(
     form: &CheckedCanonicalForm,

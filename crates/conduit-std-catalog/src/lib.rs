@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "form-catalog"), no_std)]
+#![no_std]
 
 extern crate alloc;
 
@@ -518,6 +518,7 @@ pub use host_profile::{install_standard_profile, standard_registry};
 mod tests {
     use alloc::collections::BTreeMap;
     use alloc::vec;
+    use alloc::vec::Vec;
 
     use super::{
         contract_revision, execution_profile, find_contract, standard_contracts,

@@ -3,7 +3,7 @@ use conduit_core::{
     CapabilityOffer, HostAdvertisement, RealizationAdvertisement, RealizationCharacteristicId,
     RealizationCharacteristicValue,
 };
-use std::cmp::Ordering;
+use core::cmp::Ordering;
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn compare(

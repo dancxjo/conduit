@@ -1,7 +1,8 @@
 use crate::checked_syntax::{CheckedPoolDeclaration, SyntaxCheckDiagnostic, SyntaxCheckError};
+use crate::prelude::*;
 use crate::syntax::{BackStatement, FormSyntax, PoolDeclaration};
+use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::CheckedFace;
-use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) fn check_pool_declarations(
     form: &FormSyntax,

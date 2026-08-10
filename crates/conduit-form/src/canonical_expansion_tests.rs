@@ -1,3 +1,5 @@
+use crate::prelude::*;
+
 use crate::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
     ConfigurationRule, ConfigurationValue, KindDefinition, KindSignature, ProfileCatalog,

@@ -1,3 +1,9 @@
+use std::{
+    boxed::Box,
+    string::{String, ToString},
+    vec::Vec,
+};
+
 use super::{
     HostRuntime, ImplementationFailure, ImplementationRegistry, OperationAction,
     OperationCompletion, OperationImplementation, OperationOutput, OperationState,
